@@ -16,6 +16,9 @@
  */
 package org.apache.nifi.processors.aws;
 
+import static com.amazonaws.retry.PredefinedRetryPolicies.DEFAULT_BACKOFF_STRATEGY;
+import static com.amazonaws.retry.PredefinedRetryPolicies.DEFAULT_RETRY_CONDITION;
+
 import com.amazonaws.AmazonWebServiceClient;
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.Protocol;
@@ -26,6 +29,16 @@ import com.amazonaws.auth.PropertiesCredentials;
 import com.amazonaws.http.conn.ssl.SdkTLSSocketFactory;
 import com.amazonaws.regions.Region;
 import com.amazonaws.regions.Regions;
+import com.amazonaws.retry.PredefinedBackoffStrategies.EqualJitterBackoffStrategy;
+import com.amazonaws.retry.PredefinedBackoffStrategies.ExponentialBackoffStrategy;
+import com.amazonaws.retry.PredefinedBackoffStrategies.FullJitterBackoffStrategy;
+import com.amazonaws.retry.PredefinedBackoffStrategies.SDKDefaultBackoffStrategy;
+import com.amazonaws.retry.PredefinedRetryPolicies;
+import com.amazonaws.retry.RetryPolicy;
+import com.amazonaws.retry.RetryPolicy.BackoffStrategy;
+import com.amazonaws.retry.RetryPolicy.RetryCondition;
+import com.amazonaws.services.s3.internal.CompleteMultipartUploadRetryCondition;
+
 import java.io.File;
 import java.io.IOException;
 import java.net.Proxy;
@@ -35,6 +48,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
@@ -46,6 +60,7 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
@@ -68,6 +83,18 @@ import org.apache.nifi.ssl.SSLContextService;
  */
 @Deprecated
 public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceClient> extends AbstractProcessor {
+
+    public static final String BACKOFF_STRATEGY_EQUAL_JITTER = "EqualJitterBackoffStrategy";
+    public static final String BACKOFF_STRATEGY_EXPONENTIAL = "ExponentialBackoffStrategy";
+    public static final String BACKOFF_STRATEGY_FULL_JITTER = "FullJitterBackoffStrategy";
+    public static final String BACKOFF_STRATEGY_NO_DELAY = "NoDelayBackoffStrategy";
+    public static final String BACKOFF_STRATEGY_SDKDEFAULT = "SDKDefaultBackoffStrategy";
+    public static final String RETRY_CONDITION_COMPLETE_MULTIPART_UPLOAD = "CompleteMultipartUploadRetryCondition";
+    public static final String RETRY_CONDITION_NO_RETRY = "NoRetryCondition";
+    public static final String RETRY_CONDITION_SDKDEFAULT = "SDKDefaultRetryCondition";
+    public static final String RETRY_POLICY_CUSTOM = "custom";
+    public static final String RETRY_POLICY_DYNAMODB_DEFAULT = "dynamodb_default";
+    public static final String RETRY_POLICY_DEFAULT = "default";
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success")
             .description("FlowFiles are routed to success relationship").build();
@@ -147,6 +174,66 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
             .addValidator(StandardValidators.URL_VALIDATOR)
             .build();
 
+    public static final PropertyDescriptor AWS_MAX_ERROR_RETRY = new PropertyDescriptor.Builder()
+      .name("max-error-retry")
+      .displayName("Max Error Retry")
+      .description("Maximum number of retry attempts for failed requests.")
+      .defaultValue("0")
+      .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
+      .build();
+
+    public static final PropertyDescriptor AWS_RETRY_POLICY = new PropertyDescriptor.Builder()
+      .name("retry-policy")
+      .displayName("Retry Policy")
+      .description("Retry policy that can be configured on a specific service client using ClientConfiguration.")
+      .allowableValues(new HashSet<>(Arrays.asList(
+        RETRY_POLICY_DEFAULT, RETRY_POLICY_DYNAMODB_DEFAULT, RETRY_POLICY_DEFAULT)))
+      .defaultValue(RETRY_POLICY_DEFAULT)
+      .build();
+
+    public static final PropertyDescriptor AWS_RETRY_CONDITION = new PropertyDescriptor.Builder()
+      .name("retry-condition")
+      .displayName("Retry Condition")
+      .description("Retry condition on whether a specific request and exception should be retried.")
+      .allowableValues(new HashSet<>(Arrays.asList(
+        RETRY_CONDITION_SDKDEFAULT, RETRY_CONDITION_COMPLETE_MULTIPART_UPLOAD, RETRY_CONDITION_NO_RETRY)))
+      .defaultValue(RETRY_CONDITION_SDKDEFAULT)
+      .build();
+
+    public static final PropertyDescriptor AWS_BACKOFF_STRATEGY = new PropertyDescriptor.Builder()
+      .name("backoff-strategy")
+      .displayName("Backoff Strategy")
+      .description("Back-off strategy for controlling how long the next retry should wait.")
+      .allowableValues(new HashSet<>(Arrays.asList(
+        BACKOFF_STRATEGY_EQUAL_JITTER,BACKOFF_STRATEGY_EXPONENTIAL, BACKOFF_STRATEGY_FULL_JITTER,
+        BACKOFF_STRATEGY_NO_DELAY, BACKOFF_STRATEGY_SDKDEFAULT )))
+      .defaultValue(BACKOFF_STRATEGY_SDKDEFAULT)
+      .build();
+
+    public static final PropertyDescriptor AWS_BACKOFF_BASE_DELAY = new PropertyDescriptor.Builder()
+      .name("backoff-base-delay")
+      .displayName("Back-off Base Delay")
+      .description("Base sleep time (milliseconds) for non-throttled exceptions")
+      .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+      .defaultValue("100")
+      .build();
+
+    public static final PropertyDescriptor AWS_BACKOFF_THROTTLED_BASE_DELAY = new PropertyDescriptor.Builder()
+      .name("backoff-throttled-base-delay")
+      .displayName("Back-off Throttled Base Delay")
+      .description("Base sleep time (milliseconds) for throttled exceptions")
+      .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+      .defaultValue("500")
+      .build();
+
+    public static final PropertyDescriptor AWS_BACKOFF_MAX_BACKOFF_TIME = new PropertyDescriptor.Builder()
+      .name("backoff-max-backoff-time")
+      .displayName("Max Back-off Time")
+      .description("Maximum back-off time before retrying a request")
+      .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+      .defaultValue("20000")
+      .build();
+
     protected volatile ClientType client;
     protected volatile Region region;
 
@@ -214,7 +301,9 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
     protected ClientConfiguration createConfiguration(final ProcessContext context) {
         final ClientConfiguration config = new ClientConfiguration();
         config.setMaxConnections(context.getMaxConcurrentTasks());
-        config.setMaxErrorRetry(0);
+        PropertyValue property = context.getProperty(AWS_MAX_ERROR_RETRY);
+        config.setMaxErrorRetry(property.isSet()? property.asInteger() : 0);
+        setRetryPolicy(config, context);
         config.setUserAgent(DEFAULT_USER_AGENT);
         // If this is changed to be a property, ensure other uses are also changed
         config.setProtocol(DEFAULT_PROTOCOL);
@@ -260,6 +349,80 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
         }
 
         return config;
+    }
+    private void setRetryPolicy(ClientConfiguration config, ProcessContext context) {
+        PropertyValue property = context.getProperty(AWS_RETRY_POLICY);
+        if (property.isSet()) {
+            switch (property.getValue()){
+                case RETRY_POLICY_CUSTOM:
+                    config.setRetryPolicy(new RetryPolicy(
+                      getRetryCondition(context),
+                      getBackoffStrategy(context),
+                      getMaxErrorRetry(context),
+                      true
+                    ));
+                    break;
+                case RETRY_POLICY_DYNAMODB_DEFAULT:
+                    config.setRetryPolicy(PredefinedRetryPolicies.DYNAMODB_DEFAULT);
+                    break;
+                case RETRY_POLICY_DEFAULT:
+                default:
+                    break;
+            }
+        }
+    }
+
+    private RetryCondition getRetryCondition(ProcessContext context) {
+        PropertyValue property = context.getProperty(AWS_RETRY_CONDITION);
+
+        if (!property.isSet()) {
+            return DEFAULT_RETRY_CONDITION;
+        }
+
+        switch (property.getValue()) {
+            case RETRY_CONDITION_COMPLETE_MULTIPART_UPLOAD:
+                return new CompleteMultipartUploadRetryCondition();
+            case RETRY_CONDITION_NO_RETRY:
+                return RetryCondition.NO_RETRY_CONDITION;
+            case RETRY_CONDITION_SDKDEFAULT:
+            default:
+                return DEFAULT_RETRY_CONDITION;
+        }
+    }
+
+    private BackoffStrategy getBackoffStrategy(ProcessContext context) {
+        PropertyValue property = context.getProperty(AWS_BACKOFF_STRATEGY);
+        if (property.isSet()) {
+            int baseDelay = getPropertyValueOrDefault(context, AWS_BACKOFF_BASE_DELAY, 100);
+            int maxBackoffTime = getPropertyValueOrDefault(context, AWS_BACKOFF_MAX_BACKOFF_TIME, 20000);
+            int throttledBaseDelay = getPropertyValueOrDefault(context, AWS_BACKOFF_THROTTLED_BASE_DELAY, 500);
+            switch (property.getValue()) {
+                case BACKOFF_STRATEGY_EQUAL_JITTER:
+                    return new EqualJitterBackoffStrategy(baseDelay, maxBackoffTime);
+                case BACKOFF_STRATEGY_EXPONENTIAL:
+                    return new ExponentialBackoffStrategy(baseDelay, maxBackoffTime);
+                case BACKOFF_STRATEGY_FULL_JITTER:
+                    return new FullJitterBackoffStrategy(baseDelay, maxBackoffTime);
+                case BACKOFF_STRATEGY_NO_DELAY:
+                    return BackoffStrategy.NO_DELAY;
+                case BACKOFF_STRATEGY_SDKDEFAULT:
+                default:
+                    return new SDKDefaultBackoffStrategy(baseDelay, throttledBaseDelay, maxBackoffTime);
+            }
+        }
+
+        return DEFAULT_BACKOFF_STRATEGY;
+    }
+
+    private int getMaxErrorRetry(ProcessContext context) {
+        return getPropertyValueOrDefault(context, AWS_MAX_ERROR_RETRY, 0);
+    }
+
+    private Integer getPropertyValueOrDefault(ProcessContext context, PropertyDescriptor descriptor, int defaultValue) {
+        return Optional.of(context.getProperty(descriptor))
+          .filter(PropertyValue::isSet)
+          .map(PropertyValue::asInteger)
+          .orElse(defaultValue);
     }
 
     @OnScheduled
