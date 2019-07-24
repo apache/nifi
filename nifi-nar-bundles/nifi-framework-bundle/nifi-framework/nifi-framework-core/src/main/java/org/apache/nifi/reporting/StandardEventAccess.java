@@ -51,7 +51,6 @@ import org.apache.nifi.controller.status.ProcessorStatus;
 import org.apache.nifi.controller.status.RemoteProcessGroupStatus;
 import org.apache.nifi.controller.status.RunStatus;
 import org.apache.nifi.controller.status.TransmissionStatus;
-import org.apache.nifi.controller.status.analytics.ConnectionStatusAnalytics;
 import org.apache.nifi.controller.status.analytics.StatusAnalytics;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
@@ -343,11 +342,10 @@ public class StandardEventAccess implements UserAwareEventAccess {
             }
 
             if (statusAnalytics != null) {
-                ConnectionStatusAnalytics connectionStatusAnalytics = statusAnalytics.getConnectionStatusAnalytics(conn.getIdentifier());
-                connStatus.setPredictedTimeToBytesBackpressureMillis(connectionStatusAnalytics.getTimeToBytesBackpressureMillis());
-                connStatus.setPredictedTimeToCountBackpressureMillis(connectionStatusAnalytics.getTimeToCountBackpressureMillis());
-                connStatus.setNextPredictedQueuedBytes(connectionStatusAnalytics.getNextIntervalBytes());
-                connStatus.setNextPredictedQueuedCount(connectionStatusAnalytics.getNextIntervalCount());
+                connStatus.setPredictedTimeToBytesBackpressureMillis(statusAnalytics.getTimeToBytesBackpressureMillis(conn.getIdentifier()));
+                connStatus.setPredictedTimeToCountBackpressureMillis(statusAnalytics.getTimeToCountBackpressureMillis(conn.getIdentifier()));
+                connStatus.setNextPredictedQueuedBytes(statusAnalytics.getNextIntervalBytes(conn.getIdentifier()));
+                connStatus.setNextPredictedQueuedCount(statusAnalytics.getNextIntervalCount(conn.getIdentifier()));
             }
 
             if (isConnectionAuthorized) {
