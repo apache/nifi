@@ -589,7 +589,7 @@ public class StandardFlowManager implements FlowManager {
                 if (value != null) {
                     final ControllerServiceNode serviceNode = flowController.getControllerServiceProvider().getControllerServiceNode(value);
                     if (serviceNode != null) {
-                        serviceNode.removeReference(reportingTaskNode, entry.getKey().getName());
+                        serviceNode.removeReference(reportingTaskNode, descriptor.getName());
                     }
                 }
             }
@@ -645,7 +645,7 @@ public class StandardFlowManager implements FlowManager {
                 if (value != null) {
                     final ControllerServiceNode referencedNode = getRootControllerService(value);
                     if (referencedNode != null) {
-                        referencedNode.removeReference(service, entry.getKey().getName());
+                        referencedNode.removeReference(service, descriptor.getName());
                     }
                 }
             }
