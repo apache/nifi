@@ -158,6 +158,7 @@ public class StatusAnalyticEngine implements StatusAnalytics {
     public long getMinTimeToBackpressureMillis() {
         ProcessGroup rootGroup = controller.getFlowManager().getRootGroup();
         List<Connection> allConnections = rootGroup.findAllConnections();
+        rootGroup.findConnection("asdf");
         long minTimeToBackpressure = Long.MAX_VALUE;
 
         for (Connection conn : allConnections) {
@@ -167,5 +168,26 @@ public class StatusAnalyticEngine implements StatusAnalytics {
 
         LOG.info("Min time to backpressure is: " + Long.toString(minTimeToBackpressure));
         return minTimeToBackpressure;
+    }
+
+    // TODO - populate the prediction fields. Do we need to pass in connection ID?
+    @Override
+    public long getTimeToCountBackpressureMillis(String connectionId) {
+        return 0;
+    }
+
+    @Override
+    public long getTimeToBytesBackpressureMillis(String connectionId) {
+        return 0;
+    }
+
+    @Override
+    public long getNextIntervalBytes(String connectionId) {
+        return 0;
+    }
+
+    @Override
+    public int getNextIntervalCount(String connectionId) {
+        return 0;
     }
 }
