@@ -83,10 +83,7 @@ import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.SystemBundle;
 import org.apache.nifi.persistence.FlowConfigurationDAO;
 import org.apache.nifi.persistence.StandardXMLFlowConfigurationDAO;
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.Processor;
-import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.*;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventRepository;
 import org.apache.nifi.provenance.ProvenanceEventType;
@@ -623,4 +620,24 @@ public class FrameworkIntegrationTest {
         // The counter should become 0 because now the service node is not reference anymore in any processor property
         assertEquals(0, serviceNode.getReferences().getReferencingComponents().size());
     }
+
+//    @Test
+//    public void testReferenceCountsWhenTheResourceIsLeasedByASchedulingContext() {
+//        final String FIRST_PROPERTY = "Counter Service";
+//
+//        final ControllerServiceNode serviceNode = createControllerServiceNode(LongValidatingControllerService.class.getName());
+//        final ProcessorNode counter = createProcessorNode(MultipleControllerServiceReferencingProcessor.class);
+//
+//        final ProcessContext processContext = new MockProcessContext();
+//        final ControllerServiceProvider serviceProvider;
+//        final ProcessorNode processorNode;
+//        final StateManager stateManager;
+//
+//        final SchedulingContext context = null;
+//
+//
+//        // Add another reference of the same service node in the second property of the processor
+//        assertEquals(1, serviceNode.getReferences().getReferencingComponents().size());
+//
+//    }
 }
