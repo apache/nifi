@@ -51,26 +51,6 @@ public class CachingStatusAnalyticEngine implements StatusAnalytics {
         return cachedResult;
     }
 
-    @Override
-    public long getTimeToBytesBackpressureMillis(String connectionId) {
-        return 0;
-    }
-
-    @Override
-    public long getTimeToCountBackpressureMillis(String connectionId) {
-        return getConnectionStatusAnalytics(connectionId).getTimeToCountBackpressureMillis();
-    }
-
-    @Override
-    public long getNextIntervalBytes(String connectionId) {
-        return 0;
-    }
-
-    @Override
-    public int getNextIntervalCount(String connectionId) {
-        return 0;
-    }
-
     protected ConnectionStatusAnalytics calculate(SimpleRegression regression, Connection conn){
         long backPressureObjectThreshold = conn.getFlowFileQueue().getBackPressureObjectThreshold();
 
