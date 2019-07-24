@@ -889,9 +889,9 @@ public final class StandardProcessGroup implements ProcessGroup {
                 final ControllerServiceNode serviceNode = controllerServiceProvider.getControllerServiceNode(serviceId);
                 if (serviceNode != null) {
                     if (validReference) {
-                        serviceNode.addReference(component, entry.getKey().getName());
+                        serviceNode.addReference(component, propertyDescriptor);
                     } else {
-                        serviceNode.removeReference(component, entry.getKey().getName());
+                        serviceNode.removeReference(component, propertyDescriptor);
                     }
                 }
             }
@@ -932,7 +932,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                     if (value != null) {
                         final ControllerServiceNode serviceNode = controllerServiceProvider.getControllerServiceNode(value);
                         if (serviceNode != null) {
-                            serviceNode.removeReference(processor, entry.getKey().getName());
+                            serviceNode.removeReference(processor, descriptor);
                         }
                     }
                 }
@@ -2134,7 +2134,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                     if (value != null) {
                         final ControllerServiceNode referencedNode = getControllerService(value);
                         if (referencedNode != null) {
-                            referencedNode.removeReference(service, entry.getKey().getName());
+                            referencedNode.removeReference(service, descriptor);
                         }
                     }
                 }

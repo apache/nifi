@@ -47,21 +47,20 @@ import org.apache.nifi.processor.SimpleProcessLogger;
 import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.util.CharacterFilterUtils;
 import org.apache.nifi.util.ReflectionUtils;
+import org.apache.nifi.util.Tuple;
 import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Set;
 import java.util.HashSet;
 import java.util.List;
-import java.util.ArrayList;
+import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -70,6 +69,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.stream.Collectors;
 
 public class StandardControllerServiceNode extends AbstractComponentNode implements ControllerServiceNode {
 
@@ -84,7 +84,7 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
     private final Lock readLock = rwLock.readLock();
     private final Lock writeLock = rwLock.writeLock();
 
-    private final Map<String, ComponentNode> referencingComponents = new HashMap<>();
+    private final Set<Tuple<ComponentNode, PropertyDescriptor>> referencingComponents = new HashSet<>();
     private volatile String comment;
     private volatile ProcessGroup processGroup;
 
@@ -225,18 +225,17 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
         readLock.lock();
         try {
             // In case a controller service is referenced multiple times by a component node, the latter is decoupled here
-            return new StandardControllerServiceReference(this, new HashSet<>(referencingComponents.values()));
+            return new StandardControllerServiceReference(this, referencingComponents.stream().map(Tuple::getKey).collect(Collectors.toSet()));
         } finally {
             readLock.unlock();
         }
     }
 
     @Override
-    public void addReference(final ComponentNode referencingComponent, final String propertyName) {
+    public void addReference(final ComponentNode referencingComponent, final PropertyDescriptor propertyDescriptor) {
         writeLock.lock();
         try {
-            String key = new StringBuilder().append(referencingComponent.hashCode()).append(":").append(propertyName).toString();
-            referencingComponents.put(key, referencingComponent);
+            referencingComponents.add(new Tuple<>(referencingComponent, propertyDescriptor));
         } finally {
             writeLock.unlock();
         }
@@ -257,11 +256,10 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
 
 
     @Override
-    public void removeReference(final ComponentNode referencingComponent, final String propertyName) {
+    public void removeReference(final ComponentNode referencingComponent, final PropertyDescriptor propertyDescriptor) {
         writeLock.lock();
         try {
-            String key = new StringBuilder().append(referencingComponent.hashCode()).append(":").append(propertyName).toString();
-            referencingComponents.remove(key);
+            referencingComponents.remove(new Tuple<>(referencingComponent, propertyDescriptor));
         } finally {
             writeLock.unlock();
         }

@@ -21,6 +21,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 
+import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.VersionedComponent;
 import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ControllerService;
@@ -119,16 +120,16 @@ public interface ControllerServiceNode extends ComponentNode, VersionedComponent
     /**
      * Indicates that the given component is now referencing this Controller Service
      * @param referringComponent the component referencing this service
-     * @param propertyName the name of the property for which the component is referencing this controller service
+     * @param propertyDescriptor the property for which the component is referencing this controller service
      */
-    void addReference(ComponentNode referringComponent, String propertyName);
+    void addReference(ComponentNode referringComponent, PropertyDescriptor propertyDescriptor);
 
     /**
      * Indicates that the given component is no longer referencing this Controller Service
      * @param referringComponent the component that is no longer referencing this service
-     * @param propertyName the name of the property for which the component is referencing this controller service
+     * @param propertyDescriptor the property for which the component is referencing this controller service
      */
-    void removeReference(ComponentNode referringComponent, String propertyName);
+    void removeReference(ComponentNode referringComponent, PropertyDescriptor propertyDescriptor);
 
     void setComments(String comment);
 

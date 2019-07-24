@@ -34,7 +34,6 @@ import org.apache.nifi.controller.service.ControllerServiceState;
 
 public class StandardSchedulingContext implements SchedulingContext {
 
-    private final static String LEASE_TAG = "LEASE";
     private final ProcessContext processContext;
     private final ControllerServiceProvider serviceProvider;
     private final ProcessorNode processorNode;
@@ -66,7 +65,7 @@ public class StandardSchedulingContext implements SchedulingContext {
                     + serviceNode.getProxiedControllerService().getIdentifier() + " is in the process of validating its configuration");
         }
 
-        serviceNode.addReference(processorNode, LEASE_TAG);
+        serviceNode.addReference(processorNode, PropertyDescriptor.NULL_DESCRIPTOR);
     }
 
     @Override

@@ -232,13 +232,13 @@ public abstract class AbstractComponentNode implements ComponentNode {
                 if (oldValue != null) {
                     final ControllerServiceNode oldNode = serviceProvider.getControllerServiceNode(oldValue);
                     if (oldNode != null) {
-                        oldNode.removeReference(this, name);
+                        oldNode.removeReference(this, descriptor);
                     }
                 }
 
                 final ControllerServiceNode newNode = serviceProvider.getControllerServiceNode(value);
                 if (newNode != null) {
-                    newNode.addReference(this, name);
+                    newNode.addReference(this, descriptor);
                 }
             }
         }
@@ -281,7 +281,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
                 if (value != null) {
                     final ControllerServiceNode oldNode = serviceProvider.getControllerServiceNode(value);
                     if (oldNode != null) {
-                        oldNode.removeReference(this, name);
+                        oldNode.removeReference(this, descriptor);
                     }
                 }
             }
