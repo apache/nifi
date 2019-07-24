@@ -45,11 +45,18 @@ import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
+import java.time.temporal.ChronoField;
+import java.time.temporal.TemporalAccessor;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
@@ -73,11 +80,13 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TestJdbcCommon {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(TestJdbcCommon.class);
     static final String createTable = "create table restaurants(id integer, name varchar(20), city varchar(50))";
     static final String dropTable = "drop table restaurants";
 
@@ -652,7 +661,7 @@ public class TestJdbcCommon {
     }
 
     @Test
-    public void testConvertToAvroStreamForDateTimeAsString() throws SQLException, IOException, ParseException {
+    public void testConvertToAvroStreamForDateTimeAsString() throws SQLException, IOException {
         final JdbcCommon.AvroConversionOptions options = JdbcCommon.AvroConversionOptions
                 .builder().convertNames(true).useLogicalTypes(false).build();
 
@@ -664,7 +673,7 @@ public class TestJdbcCommon {
     }
 
     @Test
-    public void testConvertToAvroStreamForDateTimeAsLogicalType() throws SQLException, IOException, ParseException {
+    public void testConvertToAvroStreamForDateTimeAsLogicalType() throws SQLException, IOException {
         final JdbcCommon.AvroConversionOptions options = JdbcCommon.AvroConversionOptions
                 .builder().convertNames(true).useLogicalTypes(true).build();
 
@@ -672,31 +681,56 @@ public class TestJdbcCommon {
                 (record, date) -> {
                     final int daysSinceEpoch = (int) record.get("date");
                     final long millisSinceEpoch = TimeUnit.MILLISECONDS.convert(daysSinceEpoch, TimeUnit.DAYS);
-                    assertEquals(date, new java.sql.Date(millisSinceEpoch));
+                    java.sql.Date actual = java.sql.Date.valueOf(Instant.ofEpochMilli(millisSinceEpoch).atZone(ZoneOffset.UTC).toLocalDate());
+                    LOGGER.debug("comparing dates, expecting '{}', actual '{}'", date, actual);
+                    assertEquals(date, actual);
                 },
-                (record, time) -> assertEquals(time, new Time((int) record.get("time"))),
-                (record, timestamp) -> assertEquals(timestamp, new Timestamp((long) record.get("timestamp")))
+                (record, time) -> {
+                    int millisSinceMidnight = (int) record.get("time");
+                    LocalTime localTime = Instant.ofEpochMilli(millisSinceMidnight).atZone(ZoneId.systemDefault()).toLocalTime();
+                    Time actual = Time.valueOf(localTime);
+                    LOGGER.debug("comparing times, expecting '{}', actual '{}'", time, actual);
+                    assertEquals(time, actual);
+                },
+                (record, timestamp) -> {
+                    Timestamp actual = new Timestamp((long) record.get("timestamp"));
+                    LOGGER.debug("comparing date/time, expecting '{}', actual '{}'", timestamp, actual);
+                    assertEquals(timestamp, actual);
+                }
         );
     }
 
     private void testConvertToAvroStreamForDateTime(
             JdbcCommon.AvroConversionOptions options, BiConsumer<GenericRecord, java.sql.Date> assertDate,
             BiConsumer<GenericRecord, Time> assertTime, BiConsumer<GenericRecord, Timestamp> assertTimeStamp)
-            throws SQLException, IOException, ParseException {
+            throws SQLException, IOException {
 
         final ResultSetMetaData metadata = mock(ResultSetMetaData.class);
 
         final ResultSet rs = mock(ResultSet.class);
         when(rs.getMetaData()).thenReturn(metadata);
 
-        BiFunction<String, String, Long> toMillis = (format, dateStr) -> {
-            try {
-                final SimpleDateFormat dateFormat = new SimpleDateFormat(format);
-                dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
-                return dateFormat.parse(dateStr).getTime();
-            } catch (ParseException e) {
-                throw new RuntimeException(e);
+        // create a ZonedDateTime (UTC) given a formatting pattern and a date/time string
+        BiFunction<String, String, ZonedDateTime> toZonedDateTime = (format, dateStr) -> {
+            DateTimeFormatterBuilder dateTimeFormatterBuilder = new DateTimeFormatterBuilder().appendPattern(format);
+            TemporalAccessor temporalAccessor = DateTimeFormatter.ofPattern(format).parse(dateStr);
+            if (!temporalAccessor.isSupported(ChronoField.EPOCH_DAY)) {
+                ZonedDateTime utcNow = LocalDateTime.now().atZone(ZoneId.systemDefault());
+                dateTimeFormatterBuilder.parseDefaulting(ChronoField.DAY_OF_MONTH, utcNow.getDayOfMonth())
+                        .parseDefaulting(ChronoField.MONTH_OF_YEAR, utcNow.getMonthValue())
+                        .parseDefaulting(ChronoField.YEAR, utcNow.getYear());
+
             }
+            if (!temporalAccessor.isSupported(ChronoField.MILLI_OF_SECOND)) {
+                dateTimeFormatterBuilder.parseDefaulting(ChronoField.HOUR_OF_DAY, 0)
+                        .parseDefaulting(ChronoField.MINUTE_OF_HOUR, 0)
+                        .parseDefaulting(ChronoField.SECOND_OF_MINUTE, 0);
+            }
+            DateTimeFormatter formatter = dateTimeFormatterBuilder.toFormatter();
+            LocalDateTime dateTime = LocalDateTime.parse(dateStr, formatter);
+            ZonedDateTime zonedDateTime = dateTime.atZone(ZoneOffset.UTC).withZoneSameInstant(ZoneOffset.UTC);
+            LOGGER.debug("calculated ZonedDateTime '{}' from format '{}', date/time string '{}'", zonedDateTime, format, dateStr);
+            return zonedDateTime;
         };
 
         when(metadata.getColumnCount()).thenReturn(3);
@@ -704,26 +738,24 @@ public class TestJdbcCommon {
 
         when(metadata.getColumnType(1)).thenReturn(Types.DATE);
         when(metadata.getColumnName(1)).thenReturn("date");
-        final java.sql.Date date = new java.sql.Date(toMillis.apply("yyyy/MM/dd", "2017/05/10"));
+        ZonedDateTime parsedDate = toZonedDateTime.apply("yyyy/MM/dd", "2017/05/10");
+        final java.sql.Date date = java.sql.Date.valueOf(parsedDate.toLocalDate());
         when(rs.getObject(1)).thenReturn(date);
 
         when(metadata.getColumnType(2)).thenReturn(Types.TIME);
         when(metadata.getColumnName(2)).thenReturn("time");
-        final Time time = new Time(toMillis.apply("HH:mm:ss.SSS", "12:34:56.789"));
+        ZonedDateTime parsedTime = toZonedDateTime.apply("HH:mm:ss.SSS", "12:34:56.789");
+        final Time time = Time.valueOf(parsedTime.toLocalTime());
         when(rs.getObject(2)).thenReturn(time);
 
         when(metadata.getColumnType(3)).thenReturn(Types.TIMESTAMP);
         when(metadata.getColumnName(3)).thenReturn("timestamp");
-        final Timestamp timestamp = new Timestamp(toMillis.apply("yyyy/MM/dd HH:mm:ss.SSS", "2017/05/11 19:59:39.123"));
+        ZonedDateTime parsedDateTime = toZonedDateTime.apply("yyyy/MM/dd HH:mm:ss.SSS", "2017/05/11 19:59:39.123");
+        final Timestamp timestamp = Timestamp.valueOf(parsedDateTime.toLocalDateTime());
         when(rs.getObject(3)).thenReturn(timestamp);
 
         final AtomicInteger counter = new AtomicInteger(1);
-        Mockito.doAnswer(new Answer<Boolean>() {
-            @Override
-            public Boolean answer(InvocationOnMock invocation) throws Throwable {
-                return counter.getAndDecrement() > 0;
-            }
-        }).when(rs).next();
+        Mockito.doAnswer((Answer<Boolean>) invocation -> counter.getAndDecrement() > 0).when(rs).next();
 
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
