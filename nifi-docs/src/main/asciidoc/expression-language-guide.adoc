@@ -1298,6 +1298,28 @@ Each of the following functions will encode a string according the rules of the 
 
 
 
+[.function]
+=== hash
+
+*Description*: [.description]#Returns a hex encoded string using the hash algorithm provided. This can be used to generate unique keys.#
+
+*Subject Type*: [.subject]#String#
+
+*Arguments*:
+
+	- [.argName]#_algorithm_# : [.argDesc]#An algorithm to hash value.
+      Supports one of [SHA-384, SHA-224, SHA-256, MD2, SHA, SHA-512, MD5]#
+
+
+*Return Type*: [.returnType]#String#
+
+*Examples*: We can hash an attribute named "payload" by using the Expression
+	   `${payload:hash('MD5')}` If the attribute payload had a value of "string value"
+	    then the Expression  `${payload:hash('MD5')}` will return "64e58419496c7248b4ef25731f88b8c3".
+
+
+
+
 [[searching]]
 == Searching
 

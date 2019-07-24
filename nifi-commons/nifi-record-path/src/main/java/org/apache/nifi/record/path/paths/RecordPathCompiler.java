@@ -69,6 +69,7 @@ import org.apache.nifi.record.path.functions.Base64Encode;
 import org.apache.nifi.record.path.functions.Concat;
 import org.apache.nifi.record.path.functions.Format;
 import org.apache.nifi.record.path.functions.FieldName;
+import org.apache.nifi.record.path.functions.Hash;
 import org.apache.nifi.record.path.functions.Replace;
 import org.apache.nifi.record.path.functions.ReplaceNull;
 import org.apache.nifi.record.path.functions.ReplaceRegex;
@@ -302,6 +303,10 @@ public class RecordPathCompiler {
                     case "base64Decode": {
                         final RecordPathSegment[] args = getArgPaths(argumentListTree, 1, functionName, absolute);
                         return new Base64Decode(args[0], absolute);
+                    }
+                    case "hash":{
+                        final RecordPathSegment[] args = getArgPaths(argumentListTree, 2, functionName, absolute);
+                        return new Hash(args[0], args[1], absolute);
                     }
                     default: {
                         throw new RecordPathException("Invalid function call: The '" + functionName + "' function does not exist or can only "
