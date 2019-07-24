@@ -32,6 +32,7 @@ import org.apache.nifi.parameter.ParameterReference;
 import org.apache.nifi.parameter.ParameterReferenceManager;
 import org.apache.nifi.parameter.StandardParameterContext;
 import org.apache.nifi.parameter.StandardParameterReferenceManager;
+import org.apache.nifi.processor.Processor;
 import org.junit.Test;
 
 import java.util.Collections;
@@ -287,5 +288,44 @@ public class ParametersIT extends FrameworkIntegrationTest {
 
         references = updateAttributeNoEL.getProperty(updateAttributeNoEL.getPropertyDescriptor("bar")).getParameterReferences();
         assertEquals(1, references.size());
+    }
+
+    @Test
+    public void testEscaping() throws ExecutionException, InterruptedException {
+        testEscaping(UpdateAttributeNoEL.class);
+        testEscaping(UpdateAttributeWithEL.class);
+    }
+
+    private void testEscaping(final Class<? extends Processor> updateAttributeClass) throws ExecutionException, InterruptedException {
+        final ProcessorNode generate = createProcessorNode(GenerateProcessor.class);
+        final ProcessorNode updateAttribute = createProcessorNode(updateAttributeClass);
+
+        connect(generate, updateAttribute, REL_SUCCESS);
+        final Connection terminateConnection = connect(updateAttribute, getTerminateProcessor(), REL_SUCCESS);
+
+        final ParameterReferenceManager referenceManager = new StandardParameterReferenceManager(getFlowController().getFlowManager());
+        final ParameterContext parameterContext = new StandardParameterContext(UUID.randomUUID().toString(), "param-context", referenceManager, null);
+        parameterContext.setParameters(Collections.singleton(new Parameter(new ParameterDescriptor.Builder().name("test").build(), "unit")));
+
+        getRootGroup().setParameterContext(parameterContext);
+
+        final Map<String, String> properties = new HashMap<>();
+        properties.put("1pound", "#{test}");
+        properties.put("2pound", "##{test}");
+        properties.put("3pound", "###{test}");
+        properties.put("4pound", "####{test}");
+        properties.put("5pound", "#####{test}");
+
+        updateAttribute.setProperties(properties);
+
+        triggerOnce(generate);
+        triggerOnce(updateAttribute);
+
+        final FlowFileRecord flowFile = terminateConnection.getFlowFileQueue().poll(Collections.emptySet());
+        assertEquals("unit", flowFile.getAttribute("1pound"));
+        assertEquals("#{test}", flowFile.getAttribute("2pound"));
+        assertEquals("#unit", flowFile.getAttribute("3pound"));
+        assertEquals("##{test}", flowFile.getAttribute("4pound"));
+        assertEquals("##unit", flowFile.getAttribute("5pound"));
     }
 }

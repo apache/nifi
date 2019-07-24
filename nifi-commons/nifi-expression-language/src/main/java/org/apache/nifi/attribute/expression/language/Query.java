@@ -387,8 +387,9 @@ public class Query {
         ParameterToken lastReference = null;
         for (final ParameterToken token : references) {
             if (token.isEscapeSequence()) {
-                expressions.add(new StringLiteralExpression(token.getText()));
-                index = token.getEndOffset();
+                expressions.add(new StringLiteralExpression(token.getValue(ParameterLookup.EMPTY)));
+                index = token.getEndOffset() + 1;
+                lastReference = token;
                 continue;
             }
 
@@ -402,7 +403,7 @@ public class Query {
                 final ParameterReference parameterReference = (ParameterReference) token;
                 expressions.add(new ParameterExpression(parameterReference.getParameterName()));
             } else {
-                expressions.add(new StringLiteralExpression(token.getText()));
+                expressions.add(new StringLiteralExpression(token.getValue(ParameterLookup.EMPTY)));
             }
 
             index = token.getEndOffset() + 1;
@@ -411,7 +412,7 @@ public class Query {
 
         if (lastReference == null) {
             expressions.add(new StringLiteralExpression(input));
-        } else if (input.length() > lastReference.getEndOffset()) {
+        } else if (input.length() > lastReference.getEndOffset() + 1) {
             expressions.add(new StringLiteralExpression(input.substring(lastReference.getEndOffset() + 1)));
         }
     }
