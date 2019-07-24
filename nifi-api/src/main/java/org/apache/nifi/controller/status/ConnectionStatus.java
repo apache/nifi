@@ -40,6 +40,7 @@ public class ConnectionStatus implements Cloneable {
     private long outputBytes;
     private int maxQueuedCount;
     private long maxQueuedBytes;
+    private long predictionIntervalMillis;
     private int nextPredictedQueuedCount;
     private long nextPredictedQueuedBytes;
     private long predictedTimeToCountBackpressureMillis;
@@ -188,6 +189,14 @@ public class ConnectionStatus implements Cloneable {
 
     public void setBackPressureBytesThreshold(long backPressureBytesThreshold) {
         this.backPressureBytesThreshold = backPressureBytesThreshold;
+    }
+
+    public long getPredictionIntervalMillis() {
+        return predictionIntervalMillis;
+    }
+
+    public void setPredictionIntervalMillis(long predictionIntervalMillis) {
+        this.predictionIntervalMillis = predictionIntervalMillis;
     }
 
     public int getNextPredictedQueuedCount() {

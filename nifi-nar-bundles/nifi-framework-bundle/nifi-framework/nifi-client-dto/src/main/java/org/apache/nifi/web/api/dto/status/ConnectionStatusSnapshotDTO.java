@@ -50,8 +50,11 @@ public class ConnectionStatusSnapshotDTO implements Cloneable {
     private Integer percentUseBytes;
     private Long predictedMillisUntilCountBackpressure = 0L;
     private Long predictedMillisUntilBytesBackpressure = 0L;
+    private Integer predictionIntervalSeconds;
     private Integer predictedCountAtNextInterval = 0;
     private Long predictedBytesAtNextInterval = 0L;
+    private Integer predictedPercentCount;
+    private Integer predictedPercentBytes;
 
     /* getters / setters */
     /**
@@ -302,6 +305,15 @@ public class ConnectionStatusSnapshotDTO implements Cloneable {
         this.predictedCountAtNextInterval = predictedCountAtNextInterval;
     }
 
+    @ApiModelProperty("The configured interval (in seconds) for predicting connection queue count and size (and percent usage).")
+    public Integer getPredictionIntervalSeconds() {
+        return predictionIntervalSeconds;
+    }
+
+    public void setPredictionIntervalSeconds(Integer predictionIntervalSeconds) {
+        this.predictionIntervalSeconds = predictionIntervalSeconds;
+    }
+
     @ApiModelProperty("The predicted total number of bytes in the queue at the next configured interval.")
     public Long getPredictedBytesAtNextInterval() {
         return predictedBytesAtNextInterval;
@@ -309,6 +321,24 @@ public class ConnectionStatusSnapshotDTO implements Cloneable {
 
     public void setPredictedBytesAtNextInterval(Long predictedBytesAtNextInterval) {
         this.predictedBytesAtNextInterval = predictedBytesAtNextInterval;
+    }
+
+    @ApiModelProperty("Predicted connection percent use regarding queued flow files count and backpressure threshold if configured.")
+    public Integer getPredictedPercentCount() {
+        return predictedPercentCount;
+    }
+
+    public void setPredictedPercentCount(Integer predictedPercentCount) {
+        this.predictedPercentCount = predictedPercentCount;
+    }
+
+    @ApiModelProperty("Predicted connection percent use regarding queued flow files size and backpressure threshold if configured.")
+    public Integer getPredictedPercentBytes() {
+        return predictedPercentBytes;
+    }
+
+    public void setPredictedPercentBytes(Integer predictedPercentBytes) {
+        this.predictedPercentBytes = predictedPercentBytes;
     }
 
     @Override
@@ -337,8 +367,11 @@ public class ConnectionStatusSnapshotDTO implements Cloneable {
         other.setPercentUseCount(getPercentUseCount());
         other.setPredictedMillisUntilCountBackpressure(getPredictedMillisUntilCountBackpressure());
         other.setPredictedMillisUntilBytesBackpressure(getPredictedMillisUntilBytesBackpressure());
+        other.setPredictionIntervalSeconds(getPredictionIntervalSeconds());
         other.setPredictedCountAtNextInterval(getPredictedCountAtNextInterval());
         other.setPredictedBytesAtNextInterval(getPredictedBytesAtNextInterval());
+        other.setPredictedPercentBytes(getPredictedPercentBytes());
+        other.setPredictedPercentCount(getPredictedPercentCount());
 
         return other;
     }

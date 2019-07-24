@@ -1181,11 +1181,15 @@ public final class DtoFactory {
 
         if (connectionStatus.getBackPressureObjectThreshold() > 0) {
             snapshot.setPercentUseCount(Math.min(100, StatusMerger.getUtilization(connectionStatus.getQueuedCount(), connectionStatus.getBackPressureObjectThreshold())));
+
+            snapshot.setPredictionIntervalSeconds(((Long) (connectionStatus.getPredictionIntervalMillis() / 1000L)).intValue());
             snapshot.setPredictedMillisUntilCountBackpressure(connectionStatus.getPredictedTimeToCountBackpressureMillis());
             snapshot.setPredictedCountAtNextInterval(connectionStatus.getNextPredictedQueuedCount());
         }
         if (connectionStatus.getBackPressureBytesThreshold() > 0) {
             snapshot.setPercentUseBytes(Math.min(100, StatusMerger.getUtilization(connectionStatus.getQueuedBytes(), connectionStatus.getBackPressureBytesThreshold())));
+
+            snapshot.setPredictionIntervalSeconds(((Long) (connectionStatus.getPredictionIntervalMillis() / 1000L)).intValue());
             snapshot.setPredictedMillisUntilBytesBackpressure(connectionStatus.getPredictedTimeToBytesBackpressureMillis());
             snapshot.setPredictedBytesAtNextInterval(connectionStatus.getNextPredictedQueuedBytes());
         }

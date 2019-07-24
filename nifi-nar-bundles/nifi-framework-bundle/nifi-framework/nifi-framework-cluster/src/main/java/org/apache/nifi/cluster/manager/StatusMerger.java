@@ -500,6 +500,34 @@ public class StatusMerger {
             target.setPercentUseCount(Math.max(target.getPercentUseCount(), toMerge.getPercentUseCount()));
         }
 
+        // Merge predicted values (minimum time to backpressure, maximum percent at next interval
+
+        if (target.getPredictionIntervalSeconds() == null) {
+            target.setPredictionIntervalSeconds(toMerge.getPredictionIntervalSeconds());
+        }
+
+        if (target.getPredictedMillisUntilBytesBackpressure() == null) {
+            target.setPredictedMillisUntilBytesBackpressure(toMerge.getPredictedMillisUntilBytesBackpressure());
+        } else if (toMerge.getPredictedMillisUntilBytesBackpressure() != null) {
+            target.setPredictedMillisUntilBytesBackpressure(Math.min(target.getPredictedMillisUntilBytesBackpressure(), toMerge.getPredictedMillisUntilBytesBackpressure()));
+        }
+        if (target.getPredictedMillisUntilCountBackpressure() == null) {
+            target.setPredictedMillisUntilCountBackpressure(toMerge.getPredictedMillisUntilCountBackpressure());
+        } else if (toMerge.getPredictedMillisUntilCountBackpressure() != null) {
+            target.setPredictedMillisUntilCountBackpressure(Math.min(target.getPredictedMillisUntilCountBackpressure(), toMerge.getPredictedMillisUntilCountBackpressure()));
+        }
+
+        if (target.getPredictedPercentBytes() == null) {
+            target.setPredictedPercentBytes(toMerge.getPredictedPercentBytes());
+        } else if (toMerge.getPercentUseBytes() != null) {
+            target.setPredictedPercentBytes(Math.max(target.getPredictedPercentBytes(), toMerge.getPredictedPercentBytes()));
+        }
+        if (target.getPredictedPercentCount() == null) {
+            target.setPredictedPercentCount(toMerge.getPredictedPercentCount());
+        } else if (toMerge.getPredictedPercentCount() != null) {
+            target.setPredictedPercentCount(Math.max(target.getPredictedPercentCount(), toMerge.getPredictedPercentCount()));
+        }
+
         updatePrettyPrintedFields(target);
     }
 
