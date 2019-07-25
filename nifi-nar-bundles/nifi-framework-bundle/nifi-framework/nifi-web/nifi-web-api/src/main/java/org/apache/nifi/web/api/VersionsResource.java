@@ -1148,7 +1148,7 @@ public class VersionsResource extends ApplicationResource {
         serviceFacade.discoverCompatibleBundles(flowSnapshot.getFlowContents());
 
         // If there are any Controller Services referenced that are inherited from the parent group, resolve those to point to the appropriate Controller Service, if we are able to.
-        serviceFacade.resolveInheritedControllerServices(flowSnapshot, groupId);
+        serviceFacade.resolveInheritedControllerServices(flowSnapshot, groupId, NiFiUserUtils.getNiFiUser());
 
         // Step 1: Determine which components will be affected by updating the version
         final Set<AffectedComponentEntity> affectedComponents = serviceFacade.getComponentsAffectedByVersionChange(groupId, flowSnapshot);
@@ -1312,7 +1312,7 @@ public class VersionsResource extends ApplicationResource {
         serviceFacade.discoverCompatibleBundles(flowSnapshot.getFlowContents());
 
         // If there are any Controller Services referenced that are inherited from the parent group, resolve those to point to the appropriate Controller Service, if we are able to.
-        serviceFacade.resolveInheritedControllerServices(flowSnapshot, groupId);
+        serviceFacade.resolveInheritedControllerServices(flowSnapshot, groupId, NiFiUserUtils.getNiFiUser());
 
         // Step 1: Determine which components will be affected by updating the version
         final Set<AffectedComponentEntity> affectedComponents = serviceFacade.getComponentsAffectedByVersionChange(groupId, flowSnapshot);

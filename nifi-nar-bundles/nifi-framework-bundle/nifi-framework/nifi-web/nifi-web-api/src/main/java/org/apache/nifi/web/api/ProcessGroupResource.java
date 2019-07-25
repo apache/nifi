@@ -1703,7 +1703,7 @@ public class ProcessGroupResource extends ApplicationResource {
             serviceFacade.discoverCompatibleBundles(flowSnapshot.getFlowContents());
 
             // If there are any Controller Services referenced that are inherited from the parent group, resolve those to point to the appropriate Controller Service, if we are able to.
-            serviceFacade.resolveInheritedControllerServices(flowSnapshot, groupId);
+            serviceFacade.resolveInheritedControllerServices(flowSnapshot, groupId, NiFiUserUtils.getNiFiUser());
 
             // Step 4: Update contents of the ProcessGroupDTO passed in to include the components that need to be added.
             requestProcessGroupEntity.setVersionedFlowSnapshot(flowSnapshot);

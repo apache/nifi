@@ -2167,8 +2167,9 @@ public interface NiFiServiceFacade {
      *
      * @param versionedFlowSnapshot the flow snapshot
      * @param parentGroupId the ID of the Process Group from which the Controller Services are inherited
+     * @param user the NiFi user on whose behalf the request is happening; this user is used for validation so that only the Controller Services that the user has READ permissions to are included
      */
-    void resolveInheritedControllerServices(VersionedFlowSnapshot versionedFlowSnapshot, String parentGroupId);
+    void resolveInheritedControllerServices(VersionedFlowSnapshot versionedFlowSnapshot, String parentGroupId, NiFiUser user);
 
     /**
      * @param type the component type

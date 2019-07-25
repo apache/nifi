@@ -3079,16 +3079,19 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public void resolveInheritedControllerServices(final VersionedFlowSnapshot versionedFlowSnapshot, final String processGroupId) {
+    public void resolveInheritedControllerServices(final VersionedFlowSnapshot versionedFlowSnapshot, final String processGroupId, final NiFiUser user) {
         final VersionedProcessGroup versionedGroup = versionedFlowSnapshot.getFlowContents();
-        resolveInheritedControllerServices(versionedGroup, processGroupId, versionedFlowSnapshot.getExternalControllerServices());
+        resolveInheritedControllerServices(versionedGroup, processGroupId, versionedFlowSnapshot.getExternalControllerServices(), user);
     }
 
     private void resolveInheritedControllerServices(final VersionedProcessGroup versionedGroup, final String processGroupId,
-                                                    final Map<String, ExternalControllerServiceReference> externalControllerServiceReferences) {
+                                                    final Map<String, ExternalControllerServiceReference> externalControllerServiceReferences,
+                                                    final NiFiUser user) {
         final Set<String> availableControllerServiceIds = findAllControllerServiceIds(versionedGroup);
         final ProcessGroup parentGroup = processGroupDAO.getProcessGroup(processGroupId);
-        final Set<ControllerServiceNode> serviceNodes = parentGroup.getControllerServices(true);
+        final Set<ControllerServiceNode> serviceNodes = parentGroup.getControllerServices(true).stream()
+            .filter(service -> service.isAuthorized(authorizer, RequestAction.READ, user))
+            .collect(Collectors.toSet());
 
         final ExtensionManager extensionManager = controllerFacade.getExtensionManager();
         for (final VersionedProcessor processor : versionedGroup.getProcessors()) {
@@ -3106,7 +3109,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         }
 
         for (final VersionedProcessGroup child : versionedGroup.getProcessGroups()) {
-            resolveInheritedControllerServices(child, processGroupId, externalControllerServiceReferences);
+            resolveInheritedControllerServices(child, processGroupId, externalControllerServiceReferences, user);
         }
     }
 
