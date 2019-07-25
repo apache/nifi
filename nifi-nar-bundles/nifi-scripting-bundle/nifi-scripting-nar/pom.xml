@@ -40,5 +40,13 @@
             <version>1.10.0-SNAPSHOT</version>
             <type>nar</type>
         </dependency>
+
+        <!-- Groovy dependencies to include in the NAR for processors to use at runtime -->
+        <dependency>
+            <groupId>org.codehaus.groovy</groupId>
+            <artifactId>groovy-all</artifactId>
+            <type>pom</type>
+            <scope>runtime</scope>
+        </dependency>
     </dependencies>
 </project>

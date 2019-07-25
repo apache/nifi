@@ -558,8 +558,8 @@ public class PutElasticsearchHttpRecord extends AbstractElasticsearchHttpProcess
 
                 final RecordSchema schema = writerFactory.getSchema(inputFlowFile.getAttributes(), reader.getSchema());
 
-                try (final RecordSetWriter successWriter = writerFactory.createWriter(getLogger(), schema, successOut);
-                     final RecordSetWriter failedWriter = writerFactory.createWriter(getLogger(), schema, failedOut)) {
+                try (final RecordSetWriter successWriter = writerFactory.createWriter(getLogger(), schema, successOut, successFlowFile);
+                     final RecordSetWriter failedWriter = writerFactory.createWriter(getLogger(), schema, failedOut, failedFlowFile)) {
 
                     successWriter.beginRecordSet();
                     failedWriter.beginRecordSet();

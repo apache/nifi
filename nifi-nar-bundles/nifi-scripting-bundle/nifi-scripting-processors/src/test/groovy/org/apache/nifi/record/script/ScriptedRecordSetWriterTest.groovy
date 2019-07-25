@@ -102,7 +102,7 @@ class ScriptedRecordSetWriterTest {
 		def schema = recordSetWriterFactory.getSchema(Collections.emptyMap(), null)
         
 		ByteArrayOutputStream outputStream = new ByteArrayOutputStream()
-        RecordSetWriter recordSetWriter = recordSetWriterFactory.createWriter(logger, schema, outputStream)
+        RecordSetWriter recordSetWriter = recordSetWriterFactory.createWriter(logger, schema, outputStream, Collections.emptyMap())
         assertNotNull(recordSetWriter)
 
         def recordSchema = new SimpleRecordSchema(

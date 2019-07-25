@@ -16,9 +16,10 @@
  */
 package org.apache.nifi.toolkit.encryptconfig
 
+import groovy.cli.commons.CliBuilder
+import groovy.cli.commons.OptionAccessor
 import org.apache.commons.cli.HelpFormatter
 import org.apache.commons.cli.Options
-import org.apache.http.annotation.Experimental
 import org.apache.nifi.properties.AESSensitivePropertyProvider
 import org.apache.nifi.properties.SensitivePropertyProvider
 import org.apache.nifi.toolkit.encryptconfig.util.BootstrapUtil
@@ -352,10 +353,10 @@ class NiFiRegistryMode implements ToolMode {
                 if (rawOptions.p) {
                     logger.debug("Attempting to generate key from password.")
                     usingPassword = true
-                    password = rawOptions.getInner().getOptionValue("p")
+                    password = rawOptions.getOptionValue("p")
                 } else {
                     usingRawKeyHex = true
-                    keyHex = rawOptions.getInner().getOptionValue("k")
+                    keyHex = rawOptions.getOptionValue("k")
                 }
                 encryptionKey = ToolUtilities.determineKey(TextDevices.defaultTextDevice(), keyHex, password, usingPassword)
             } else if (rawOptions.b) {

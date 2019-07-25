@@ -59,7 +59,7 @@ public class TestSyslogRecordReader {
     private static final String expectedMessage = expectedAppName +
             " " + expectedProcId +
             " " + expectedMessageId +
-            " " + "[exampleSDID@32473 iut=\"3\" eventSource=\"Application\" eventID=\"1011\"] [exampleSDID@32480 iut=\"4\" eventSource=\"Other Application\" eventID=\"2022\"]" +
+            " " + "[exampleSDID@32473 iut=\"3\" eventSource=\"Application\" eventID=\"1011\"][exampleSDID@32480 iut=\"4\" eventSource=\"Other Application\" eventID=\"2022\"]" +
             " " + "Removing instance";
     private static final String expectedPri = "14";
     private static final String expectedTimestamp = "2014-06-20T09:14:07+00:00";

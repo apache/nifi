@@ -379,7 +379,7 @@ public class ListenTCPRecord extends AbstractProcessor {
 
                 final RecordSchema recordSchema = recordSetWriterFactory.getSchema(Collections.EMPTY_MAP, record.getSchema());
                 try (final OutputStream out = session.write(flowFile);
-                     final RecordSetWriter recordWriter = recordSetWriterFactory.createWriter(getLogger(), recordSchema, out)) {
+                     final RecordSetWriter recordWriter = recordSetWriterFactory.createWriter(getLogger(), recordSchema, out, flowFile)) {
 
                     // start the record set and write the first record from above
                     recordWriter.beginRecordSet();

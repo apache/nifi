@@ -166,7 +166,7 @@ public class PublisherLease implements Closeable {
                 baos.reset();
 
                 Map<String, String> additionalAttributes = Collections.emptyMap();
-                try (final RecordSetWriter writer = writerFactory.createWriter(logger, schema, baos)) {
+                try (final RecordSetWriter writer = writerFactory.createWriter(logger, schema, baos, flowFile)) {
                     final WriteResult writeResult = writer.write(record);
                     additionalAttributes = writeResult.getAttributes();
                     writer.flush();

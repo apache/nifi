@@ -97,6 +97,7 @@
         <jetty.version>9.4.19.v20190610</jetty.version>
         <jackson.version>2.9.9</jackson.version>
         <nifi.registry.version>0.4.0</nifi.registry.version>
+        <nifi.groovy.version>2.5.4</nifi.groovy.version>
     </properties>
 
     <repositories>
@@ -135,6 +136,20 @@
             </releases>
         </repository>
     </repositories>
+
+    <pluginRepositories>
+        <pluginRepository>
+            <id>bintray</id>
+            <name>Groovy Bintray</name>
+            <url>https://dl.bintray.com/groovy/maven</url>
+            <releases>
+                <updatePolicy>never</updatePolicy>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </pluginRepository>
+    </pluginRepositories>
 
     <dependencyManagement>
         <dependencies>
@@ -224,14 +239,29 @@
             <dependency>
                 <groupId>org.codehaus.groovy</groupId>
                 <artifactId>groovy-all</artifactId>
-                <version>2.4.13</version>
+                <version>${nifi.groovy.version}</version>
+                <type>pom</type>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.codehaus.groovy</groupId>
+                <artifactId>groovy-test</artifactId>
+                <version>${nifi.groovy.version}</version>
                 <scope>test</scope>
             </dependency>
             <dependency>
                 <groupId>org.spockframework</groupId>
                 <artifactId>spock-core</artifactId>
-                <version>1.0-groovy-2.4</version>
+                <version>1.3-groovy-2.5</version>
                 <scope>test</scope>
+                <exclusions>
+                    <exclusion>
+                        <!-- exclude transitive groovy dependencies to force spock to use the the managed groovy dependencies
+                        inherited from the parent pom -->
+                        <groupId>org.codehaus.groovy</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>org.hamcrest</groupId>
@@ -315,7 +345,8 @@
         </dependency>
         <dependency>
             <groupId>org.codehaus.groovy</groupId>
-            <artifactId>groovy-all</artifactId>
+            <artifactId>groovy-test</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 
@@ -325,6 +356,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
+                    <version>3.8.0</version>
                     <configuration>
                         <fork>true</fork>
                         <optimize>true</optimize>
@@ -335,8 +367,13 @@
                 <plugin>
                     <groupId>org.codehaus.groovy</groupId>
                     <artifactId>groovy-eclipse-compiler</artifactId>
-                    <version>2.9.2-01</version>
+                    <version>3.4.0-01</version>
                     <extensions>true</extensions>
+                </plugin>
+                <plugin>
+                    <groupId>org.codehaus.groovy</groupId>
+                    <artifactId>groovy-eclipse-batch</artifactId>
+                    <version>${nifi.groovy.version}-01</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -455,6 +492,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.8.0</version>
                 <executions>
                     <!-- Only run for tests -->
                     <execution>
@@ -468,19 +506,19 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <source>1.8</source>
-                    <target>1.8</target>
+                    <source>${maven.compiler.source}</source>
+                    <target>${maven.compiler.target}</target>
                 </configuration>
                 <dependencies>
                     <dependency>
                         <groupId>org.codehaus.groovy</groupId>
                         <artifactId>groovy-eclipse-compiler</artifactId>
-                        <version>2.9.2-01</version>
+                        <version>3.4.0-01</version>
                     </dependency>
                     <dependency>
                         <groupId>org.codehaus.groovy</groupId>
                         <artifactId>groovy-eclipse-batch</artifactId>
-                        <version>2.4.3-01</version>
+                        <version>${nifi.groovy.version}-01</version>
                     </dependency>
                 </dependencies>
             </plugin>

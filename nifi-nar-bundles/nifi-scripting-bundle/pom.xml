@@ -30,6 +30,10 @@
         <module>nifi-scripting-nar</module>
     </modules>
 
+    <properties>
+        <scripting.groovy.version>2.5.4</scripting.groovy.version>
+    </properties>
+
     <dependencyManagement>
         <dependencies>
             <dependency>
@@ -70,13 +74,9 @@
             <dependency>
                 <groupId>org.codehaus.groovy</groupId>
                 <artifactId>groovy-all</artifactId>
-                <version>2.4.15</version>
-                <!--
-                    Groovy is provided, by default, in a 'test' scope for use with unit tests
-                    Explicitly provide this as 'compile' to provide Groovy support in the
-                    scripting processors
-                -->
-                <scope>compile</scope>
+                <version>${scripting.groovy.version}</version>
+                <type>pom</type>
+                <scope>provided</scope>
             </dependency>
         </dependencies>
     </dependencyManagement>

@@ -304,6 +304,16 @@ The following binary components are provided under the Apache Software License v
      The following NOTICE information applies:
        Copyright 2008 Google Inc.
 
+  (ASLv2) Groovy (org.codehaus.groovy:groovy-all:jar:2.1.6 - http://www.groovy-lang.org)
+    The following NOTICE information applies:
+      Groovy Language
+         Copyright 2003-2012 The respective authors and developers
+         Developers and Contributors are listed in the project POM file
+         and Gradle build file
+
+     This product includes software developed by
+     The Groovy community (http://groovy.codehaus.org/).
+
   (ASLv2) JPam
     The following NOTICE information applies:
       Copyright 2003-2006 Greg Luck

@@ -432,8 +432,9 @@ public class QuerySolr extends SolrProcessor {
                         final RecordSchema schema = writerFactory.getSchema(flowFileResponse.getAttributes(), null);
                         final RecordSet recordSet = SolrUtils.solrDocumentsToRecordSet(response.getResults(), schema);
                         final StringBuffer mimeType = new StringBuffer();
+                        final FlowFile flowFileResponseRef = flowFileResponse;
                         flowFileResponse = session.write(flowFileResponse, out -> {
-                            try (final RecordSetWriter writer = writerFactory.createWriter(getLogger(), schema, out)) {
+                            try (final RecordSetWriter writer = writerFactory.createWriter(getLogger(), schema, out, flowFileResponseRef)) {
                                 writer.write(recordSet);
                                 writer.flush();
                                 mimeType.append(writer.getMimeType());

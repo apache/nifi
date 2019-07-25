@@ -18,6 +18,7 @@ package org.apache.nifi.processors.azure.eventhub;
 
 import com.microsoft.azure.eventhubs.EventData;
 import com.microsoft.azure.eventprocessorhost.PartitionContext;
+import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
@@ -180,7 +181,7 @@ public class TestConsumeAzureEventHub {
         processor.setWriterFactory(writerFactory);
         final RecordSetWriter writer = mock(RecordSetWriter.class);
         final AtomicReference<OutputStream> outRef = new AtomicReference<>();
-        when(writerFactory.createWriter(any(), any(), any())).thenAnswer(invocation -> {
+        when(writerFactory.createWriter(any(), any(), any(), any(FlowFile.class))).thenAnswer(invocation -> {
             outRef.set(invocation.getArgument(2));
             return writer;
         });

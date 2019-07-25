@@ -104,7 +104,7 @@ class GroovyRecordSetWriterFactory extends AbstractControllerService implements 
     }
 
     @Override
-    RecordSetWriter createWriter(ComponentLog logger, RecordSchema schema, OutputStream out) throws SchemaNotFoundException, IOException {
+    RecordSetWriter createWriter(ComponentLog logger, RecordSchema schema, OutputStream out, Map<String, String> variables) throws SchemaNotFoundException, IOException {
         return new GroovyRecordSetWriter(out)
     }
     

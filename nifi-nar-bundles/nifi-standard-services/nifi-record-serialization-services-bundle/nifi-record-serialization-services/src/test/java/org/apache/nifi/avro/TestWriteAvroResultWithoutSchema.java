@@ -65,8 +65,21 @@ public class TestWriteAvroResultWithoutSchema extends TestWriteAvroResult {
     @Override
     protected GenericRecord readRecord(final InputStream in, final Schema schema) throws IOException {
         final BinaryDecoder decoder = DecoderFactory.get().binaryDecoder(in, null);
-        final GenericDatumReader<GenericRecord> reader = new GenericDatumReader<GenericRecord>(schema);
+        final GenericDatumReader<GenericRecord> reader = new GenericDatumReader<>(schema);
         return reader.read(null, decoder);
+    }
+
+    @Override
+    protected List<GenericRecord> readRecords(final InputStream in, final Schema schema, final int recordCount) throws IOException {
+        final BinaryDecoder decoder = DecoderFactory.get().binaryDecoder(in, null);
+        final GenericDatumReader<GenericRecord> reader = new GenericDatumReader<>(schema);
+
+        List<GenericRecord> records = new ArrayList<>();
+        for (int i = 0; i < recordCount; i++) {
+            records.add(reader.read(null, decoder));
+        }
+
+        return records;
     }
 
     @Override

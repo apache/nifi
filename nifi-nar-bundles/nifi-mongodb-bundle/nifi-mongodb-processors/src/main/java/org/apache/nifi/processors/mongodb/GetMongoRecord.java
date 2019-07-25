@@ -165,7 +165,7 @@ public class GetMongoRecord extends AbstractMongoQueryProcessor {
                     put("schema.name", schemaName);
                 }};
                 RecordSchema schema = writerFactory.getSchema(attrs, null);
-                RecordSetWriter writer = writerFactory.createWriter(getLogger(), schema, out);
+                RecordSetWriter writer = writerFactory.createWriter(getLogger(), schema, out, attrs);
                 long count = 0L;
                 writer.beginRecordSet();
                 while (cursor.hasNext()) {
