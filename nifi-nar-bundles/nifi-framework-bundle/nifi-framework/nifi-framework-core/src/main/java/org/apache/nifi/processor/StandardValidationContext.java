@@ -98,7 +98,7 @@ public class StandardValidationContext implements ValidationContext {
 
     @Override
     public PropertyValue newPropertyValue(final String rawValue) {
-        return new StandardPropertyValue(rawValue, controllerServiceProvider, parameterContext, Query.prepare(rawValue), variableRegistry);
+        return new StandardPropertyValue(rawValue, controllerServiceProvider, parameterContext, Query.prepareWithParametersPreEvaluated(rawValue), variableRegistry);
     }
 
     @Override

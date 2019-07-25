@@ -298,16 +298,32 @@ public class Query {
     }
 
 
+    public static PreparedQuery prepareWithParametersPreEvaluated(final String query) throws AttributeExpressionLanguageParsingException {
+        return prepare(query, true);
+    }
+
     public static PreparedQuery prepare(final String query) throws AttributeExpressionLanguageParsingException {
-        if (query == null) {
+        return prepare(query, false);
+    }
+
+    private static PreparedQuery prepare(final String rawQuery, final boolean escapeParameterReferences) throws AttributeExpressionLanguageParsingException {
+        if (rawQuery == null) {
             return new EmptyPreparedQuery(null);
+        }
+
+        final ParameterParser parameterParser = new ExpressionLanguageAwareParameterParser();
+
+        final String query;
+        if (escapeParameterReferences) {
+            query = parameterParser.parseTokens(rawQuery).escape();
+        } else {
+            query = rawQuery;
         }
 
         final List<Range> ranges = extractExpressionRanges(query);
 
         if (ranges.isEmpty()) {
             final List<Expression> expressions = new ArrayList<>();
-            final ParameterParser parameterParser = new ExpressionLanguageAwareParameterParser();
 
             final List<Range> escapedRanges = extractEscapedRanges(query);
             int lastIndex = 0;
@@ -340,7 +356,6 @@ public class Query {
         }
 
         final ExpressionCompiler compiler = new ExpressionCompiler();
-        final ParameterParser parameterParser = new ExpressionLanguageAwareParameterParser();
 
         try {
             final List<Expression> expressions = new ArrayList<>();

@@ -122,7 +122,7 @@ public class StandardProcessContext implements ProcessContext, ControllerService
     @Override
     public PropertyValue newPropertyValue(final String rawValue) {
         verifyTaskActive();
-        return new StandardPropertyValue(rawValue, this, procNode.getParameterLookup(), Query.prepare(rawValue), procNode.getVariableRegistry());
+        return new StandardPropertyValue(rawValue, this, procNode.getParameterLookup(), Query.prepareWithParametersPreEvaluated(rawValue), procNode.getVariableRegistry());
     }
 
     @Override

@@ -1340,7 +1340,7 @@ public class LoadBalancedQueueIT {
 
                 return new ByteArrayInputStream(bytes);
             }
-        }).when(contentRepo).read(any(ContentClaim.class));
+        }).when(contentRepo).read(Mockito.nullable(ContentClaim.class));
 
         return contentRepo;
     }

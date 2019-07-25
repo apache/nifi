@@ -294,6 +294,7 @@ public class ParametersIT extends FrameworkIntegrationTest {
     public void testEscaping() throws ExecutionException, InterruptedException {
         testEscaping(UpdateAttributeNoEL.class);
         testEscaping(UpdateAttributeWithEL.class);
+        testEscaping(UpdateAttributeCreateOwnProperty.class);
     }
 
     private void testEscaping(final Class<? extends Processor> updateAttributeClass) throws ExecutionException, InterruptedException {

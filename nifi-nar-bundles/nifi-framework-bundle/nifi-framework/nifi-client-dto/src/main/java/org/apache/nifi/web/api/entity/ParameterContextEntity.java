@@ -23,7 +23,6 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement(name = "parameterContextEntity")
 public class ParameterContextEntity extends ComponentEntity {
-    private Boolean disconnectedNodeAcknowledged;
     private ParameterContextDTO parameterContextDTO;
 
     @ApiModelProperty("The Parameter Context")
@@ -33,18 +32,6 @@ public class ParameterContextEntity extends ComponentEntity {
 
     public void setComponent(ParameterContextDTO parameterContext) {
         this.parameterContextDTO = parameterContext;
-    }
-
-
-    @ApiModelProperty(
-        value = "Acknowledges that this node is disconnected to allow for mutable requests to proceed."
-    )
-    public Boolean isDisconnectedNodeAcknowledged() {
-        return disconnectedNodeAcknowledged;
-    }
-
-    public void setDisconnectedNodeAcknowledged(Boolean disconnectedNodeAcknowledged) {
-        this.disconnectedNodeAcknowledged = disconnectedNodeAcknowledged;
     }
 
     @Override
