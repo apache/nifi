@@ -24,9 +24,12 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Test;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 
 /**
@@ -171,6 +174,35 @@ public class ITListS3 extends AbstractS3IT {
         flowFiles.assertAttributeExists("s3.tag.dummytag2");
         flowFiles.assertAttributeEquals("s3.tag.dummytag1", "dummyvalue1");
         flowFiles.assertAttributeEquals("s3.tag.dummytag2", "dummyvalue2");
+    }
+
+    @Test
+    public void testUserMetadataWritten() throws FileNotFoundException {
+        Map<String, String> userMetadata = new HashMap<>();
+        userMetadata.put("dummy.metadata.1", "dummyvalue1");
+        userMetadata.put("dummy.metadata.2", "dummyvalue2");
+
+        putFileWithUserMetadata("b/fileWithUserMetadata", getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME), userMetadata);
+
+        final TestRunner runner = TestRunners.newTestRunner(new ListS3());
+
+        runner.setProperty(ListS3.CREDENTIALS_FILE, CREDENTIALS_FILE);
+        runner.setProperty(ListS3.PREFIX, "b/");
+        runner.setProperty(ListS3.REGION, REGION);
+        runner.setProperty(ListS3.BUCKET, BUCKET_NAME);
+        runner.setProperty(ListS3.WRITE_USER_METADATA, "true");
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ListS3.REL_SUCCESS, 1);
+
+        MockFlowFile flowFiles = runner.getFlowFilesForRelationship(ListS3.REL_SUCCESS).get(0);
+
+        flowFiles.assertAttributeEquals("filename", "b/fileWithUserMetadata");
+        flowFiles.assertAttributeExists("s3.user.metadata.dummy.metadata.1");
+        flowFiles.assertAttributeExists("s3.user.metadata.dummy.metadata.2");
+        flowFiles.assertAttributeEquals("s3.user.metadata.dummy.metadata.1", "dummyvalue1");
+        flowFiles.assertAttributeEquals("s3.user.metadata.dummy.metadata.2", "dummyvalue2");
     }
 
 }
