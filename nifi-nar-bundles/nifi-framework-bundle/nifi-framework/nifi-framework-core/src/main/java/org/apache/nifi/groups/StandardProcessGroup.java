@@ -448,6 +448,8 @@ public final class StandardProcessGroup implements ProcessGroup {
         } finally {
             readLock.unlock();
         }
+
+        onComponentModified();
     }
 
     @Override
@@ -467,6 +469,8 @@ public final class StandardProcessGroup implements ProcessGroup {
         } finally {
             readLock.unlock();
         }
+
+        onComponentModified();
     }
 
     private StateManager getStateManager(final String componentId) {
