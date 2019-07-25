@@ -126,9 +126,13 @@ To run NiFi:
 
 ## Getting Help
 If you have questions, you can reach out to our mailing list: dev@nifi.apache.org
-([archive](http://mail-archives.apache.org/mod_mbox/nifi-dev)).
-For more interactive conversations and chat, we're also often available in IRC: #nifi on
-[irc.freenode.net](http://webchat.freenode.net/?channels=#nifi) and in #NiFi on [ASF HipChat](https://www.hipchat.com/gzh2m5YML).
+([archive](http://mail-archives.apache.org/mod_mbox/nifi-dev)). For more interactive discussions, community members can often be found in the following locations:
+
+- Apache NiFi Slack Workspace: https://apachenifi.slack.com/
+
+  New users can join the workspace using the following [invite link](https://join.slack.com/t/apachenifi/shared_invite/enQtNDI2NDMyMTY3MTA5LWJmZDI3MmM1ZmYyODQwZDYwM2MyMDY5ZjkyMDkxY2JmOGMyNmEzYTE0MTRkZTYwYzZlYTJkY2JhZTYyMzcyZGI).
+  
+- IRC: #nifi on [irc.freenode.net](http://webchat.freenode.net/?channels=#nifi)
 
 ## Documentation
 
