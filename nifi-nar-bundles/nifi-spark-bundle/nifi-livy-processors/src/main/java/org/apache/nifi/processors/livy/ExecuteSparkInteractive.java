@@ -222,6 +222,7 @@ public class ExecuteSparkInteractive extends AbstractProcessor {
             if (result == null) {
                 log.debug("ExecuteSparkInteractive No Job Result received: Session ID" + sessionId);
                 session.transfer(flowFile, REL_FAILURE);
+                return;
             }
 
             log.debug("ExecuteSparkInteractive Result of Job Submit: " + result);
@@ -251,12 +252,13 @@ public class ExecuteSparkInteractive extends AbstractProcessor {
                     flowFile = session.write(flowFile, out -> out.write(output.toString().getBytes(charset)));
                     flowFile = session.putAttribute(flowFile, CoreAttributes.MIME_TYPE.key(), LivySessionService.APPLICATION_JSON);
                     flowFile = session.penalize(flowFile);
-                    session.transfer(flowFile, REL_FAILURE);
 
                     // If we are supposed to drop sessions that caused failures, run it here
                     if(dropSessionOnError) {
                         deleteSession(livyUrl, livySessionService, sessionId);
                     }
+
+                    session.transfer(flowFile, REL_FAILURE);
                 }
             }
         } catch (IOException | SessionManagerException | JSONException e) {
