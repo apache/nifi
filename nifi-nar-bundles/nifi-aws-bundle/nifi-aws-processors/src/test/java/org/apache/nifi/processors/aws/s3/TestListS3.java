@@ -458,7 +458,7 @@ public class TestListS3 {
     public void testGetPropertyDescriptors() throws Exception {
         ListS3 processor = new ListS3();
         List<PropertyDescriptor> pd = processor.getSupportedPropertyDescriptors();
-        assertEquals("size should be eq", 23, pd.size());
+        assertEquals("size should be eq", 30, pd.size());
         assertTrue(pd.contains(ListS3.ACCESS_KEY));
         assertTrue(pd.contains(ListS3.AWS_CREDENTIALS_PROVIDER_SERVICE));
         assertTrue(pd.contains(ListS3.BUCKET));
@@ -482,5 +482,12 @@ public class TestListS3 {
         assertTrue(pd.contains(ListS3.PROXY_USERNAME));
         assertTrue(pd.contains(ListS3.PROXY_PASSWORD));
         assertTrue(pd.contains(ListS3.REQUESTER_PAYS));
+        assertTrue(pd.contains(ListS3.AWS_MAX_ERROR_RETRY));
+        assertTrue(pd.contains(ListS3.AWS_RETRY_POLICY));
+        assertTrue(pd.contains(ListS3.AWS_RETRY_CONDITION));
+        assertTrue(pd.contains(ListS3.AWS_BACKOFF_STRATEGY));
+        assertTrue(pd.contains(ListS3.AWS_BACKOFF_BASE_DELAY));
+        assertTrue(pd.contains(ListS3.AWS_BACKOFF_THROTTLED_BASE_DELAY));
+        assertTrue(pd.contains(ListS3.AWS_BACKOFF_MAX_BACKOFF_TIME));
     }
 }

@@ -142,7 +142,7 @@ public class TestDeleteS3Object {
     public void testGetPropertyDescriptors() throws Exception {
         DeleteS3Object processor = new DeleteS3Object();
         List<PropertyDescriptor> pd = processor.getSupportedPropertyDescriptors();
-        assertEquals("size should be eq", 23, pd.size());
+        assertEquals("size should be eq", 30, pd.size());
         assertTrue(pd.contains(processor.ACCESS_KEY));
         assertTrue(pd.contains(processor.AWS_CREDENTIALS_PROVIDER_SERVICE));
         assertTrue(pd.contains(processor.BUCKET));
@@ -166,5 +166,12 @@ public class TestDeleteS3Object {
         assertTrue(pd.contains(processor.PROXY_HOST_PORT));
         assertTrue(pd.contains(processor.PROXY_USERNAME));
         assertTrue(pd.contains(processor.PROXY_PASSWORD));
+        assertTrue(pd.contains(processor.AWS_MAX_ERROR_RETRY));
+        assertTrue(pd.contains(processor.AWS_RETRY_POLICY));
+        assertTrue(pd.contains(processor.AWS_RETRY_CONDITION));
+        assertTrue(pd.contains(processor.AWS_BACKOFF_STRATEGY));
+        assertTrue(pd.contains(processor.AWS_BACKOFF_BASE_DELAY));
+        assertTrue(pd.contains(processor.AWS_BACKOFF_THROTTLED_BASE_DELAY));
+        assertTrue(pd.contains(processor.AWS_BACKOFF_MAX_BACKOFF_TIME));
     }
 }

@@ -174,7 +174,9 @@ public class PutCloudWatchMetric extends AbstractAWSCredentialsProviderProcessor
             Collections.unmodifiableList(
                     Arrays.asList(NAMESPACE, METRIC_NAME, VALUE, MAXIMUM, MINIMUM, SAMPLECOUNT, SUM, TIMESTAMP,
                             UNIT, REGION, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE, AWS_CREDENTIALS_PROVIDER_SERVICE,
-                            TIMEOUT, SSL_CONTEXT_SERVICE, ENDPOINT_OVERRIDE, PROXY_HOST, PROXY_HOST_PORT, PROXY_USERNAME, PROXY_PASSWORD)
+                            TIMEOUT, SSL_CONTEXT_SERVICE, ENDPOINT_OVERRIDE, PROXY_HOST, PROXY_HOST_PORT, PROXY_USERNAME, PROXY_PASSWORD,
+                            AWS_MAX_ERROR_RETRY, AWS_RETRY_POLICY, AWS_RETRY_CONDITION, AWS_BACKOFF_STRATEGY,
+                            AWS_BACKOFF_BASE_DELAY, AWS_BACKOFF_THROTTLED_BASE_DELAY, AWS_BACKOFF_MAX_BACKOFF_TIME)
             );
 
     private volatile Set<String> dynamicPropertyNames = new HashSet<>();

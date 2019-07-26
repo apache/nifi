@@ -244,7 +244,7 @@ public class TestTagS3Object {
     public void testGetPropertyDescriptors() throws Exception {
         TagS3Object processor = new TagS3Object();
         List<PropertyDescriptor> pd = processor.getSupportedPropertyDescriptors();
-        assertEquals("size should be eq", 20, pd.size());
+        assertEquals("size should be eq", 27, pd.size());
         assertTrue(pd.contains(TagS3Object.ACCESS_KEY));
         assertTrue(pd.contains(TagS3Object.AWS_CREDENTIALS_PROVIDER_SERVICE));
         assertTrue(pd.contains(TagS3Object.BUCKET));
@@ -265,6 +265,13 @@ public class TestTagS3Object {
         assertTrue(pd.contains(TagS3Object.TAG_VALUE));
         assertTrue(pd.contains(TagS3Object.APPEND_TAG));
         assertTrue(pd.contains(TagS3Object.VERSION_ID));
+        assertTrue(pd.contains(TagS3Object.AWS_MAX_ERROR_RETRY));
+        assertTrue(pd.contains(TagS3Object.AWS_RETRY_POLICY));
+        assertTrue(pd.contains(TagS3Object.AWS_RETRY_CONDITION));
+        assertTrue(pd.contains(TagS3Object.AWS_BACKOFF_STRATEGY));
+        assertTrue(pd.contains(TagS3Object.AWS_BACKOFF_BASE_DELAY));
+        assertTrue(pd.contains(TagS3Object.AWS_BACKOFF_THROTTLED_BASE_DELAY));
+        assertTrue(pd.contains(TagS3Object.AWS_BACKOFF_MAX_BACKOFF_TIME));
     }
 
     @Test

@@ -97,7 +97,14 @@ public class InvokeAWSGatewayApi extends AbstractAWSGatewayApiProcessor {
                     PROP_QUERY_PARAMS,
                     PROP_PUT_ATTRIBUTE_MAX_LENGTH,
                     PROP_ADD_HEADERS_TO_REQUEST,
-                    PROXY_CONFIGURATION_SERVICE));
+                    PROXY_CONFIGURATION_SERVICE,
+                    AWS_MAX_ERROR_RETRY,
+                    AWS_RETRY_POLICY,
+                    AWS_RETRY_CONDITION,
+                    AWS_BACKOFF_STRATEGY,
+                    AWS_BACKOFF_BASE_DELAY,
+                    AWS_BACKOFF_THROTTLED_BASE_DELAY,
+                    AWS_BACKOFF_MAX_BACKOFF_TIME));
 
 
     public static final Relationship REL_SUCCESS_REQ = new Relationship.Builder()

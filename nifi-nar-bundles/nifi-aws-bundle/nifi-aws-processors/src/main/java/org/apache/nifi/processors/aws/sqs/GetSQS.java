@@ -119,7 +119,9 @@ public class GetSQS extends AbstractSQSProcessor {
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
             Arrays.asList(DYNAMIC_QUEUE_URL, AUTO_DELETE, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE,
                     AWS_CREDENTIALS_PROVIDER_SERVICE, REGION, BATCH_SIZE, TIMEOUT, ENDPOINT_OVERRIDE,
-                    CHARSET, VISIBILITY_TIMEOUT, RECEIVE_MSG_WAIT_TIME, PROXY_HOST, PROXY_HOST_PORT));
+                    CHARSET, VISIBILITY_TIMEOUT, RECEIVE_MSG_WAIT_TIME, PROXY_HOST, PROXY_HOST_PORT,
+                    AWS_MAX_ERROR_RETRY, AWS_RETRY_POLICY, AWS_RETRY_CONDITION, AWS_BACKOFF_STRATEGY,
+                    AWS_BACKOFF_BASE_DELAY, AWS_BACKOFF_THROTTLED_BASE_DELAY, AWS_BACKOFF_MAX_BACKOFF_TIME));
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {

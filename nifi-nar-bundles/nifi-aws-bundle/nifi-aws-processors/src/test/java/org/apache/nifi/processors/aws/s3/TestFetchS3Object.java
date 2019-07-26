@@ -238,7 +238,7 @@ public class TestFetchS3Object {
     public void testGetPropertyDescriptors() throws Exception {
         FetchS3Object processor = new FetchS3Object();
         List<PropertyDescriptor> pd = processor.getSupportedPropertyDescriptors();
-        assertEquals("size should be eq", 19, pd.size());
+        assertEquals("size should be eq", 26, pd.size());
         assertTrue(pd.contains(FetchS3Object.ACCESS_KEY));
         assertTrue(pd.contains(FetchS3Object.AWS_CREDENTIALS_PROVIDER_SERVICE));
         assertTrue(pd.contains(FetchS3Object.BUCKET));
@@ -258,6 +258,12 @@ public class TestFetchS3Object {
         assertTrue(pd.contains(FetchS3Object.PROXY_USERNAME));
         assertTrue(pd.contains(FetchS3Object.PROXY_PASSWORD));
         assertTrue(pd.contains(FetchS3Object.REQUESTER_PAYS));
-
+        assertTrue(pd.contains(FetchS3Object.AWS_MAX_ERROR_RETRY));
+        assertTrue(pd.contains(FetchS3Object.AWS_RETRY_POLICY));
+        assertTrue(pd.contains(FetchS3Object.AWS_RETRY_CONDITION));
+        assertTrue(pd.contains(FetchS3Object.AWS_BACKOFF_STRATEGY));
+        assertTrue(pd.contains(FetchS3Object.AWS_BACKOFF_BASE_DELAY));
+        assertTrue(pd.contains(FetchS3Object.AWS_BACKOFF_THROTTLED_BASE_DELAY));
+        assertTrue(pd.contains(FetchS3Object.AWS_BACKOFF_MAX_BACKOFF_TIME));
     }
 }
