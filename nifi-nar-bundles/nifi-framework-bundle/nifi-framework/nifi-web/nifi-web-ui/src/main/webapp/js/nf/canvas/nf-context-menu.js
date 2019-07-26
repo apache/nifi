@@ -908,6 +908,11 @@
                     text: item.text,
                     isGroup: false
                 }).on('click', function (evt) {
+                    // If this is a "paste" action, move the paste location to the
+                    // original right-click location, and not the location of the menu-item "Paste"
+                    if(item.action == "paste") {
+                        evt = {pageX: position[0], pageY: position[1]};
+                    }
                     executeAction(item.action, selection, evt);
                 }).on('contextmenu', function (evt) {
                     executeAction(item.action, selection, evt);
