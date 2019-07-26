@@ -38,6 +38,7 @@ public class CurrentUserEntity extends Entity {
     private PermissionsDTO controllerPermissions;
     private PermissionsDTO policiesPermissions;
     private PermissionsDTO systemPermissions;
+    private PermissionsDTO parameterContextPermissions;
     private PermissionsDTO restrictedComponentsPermissions;
     private Set<ComponentRestrictionPermissionDTO> componentRestrictionPermissions;
 
@@ -137,6 +138,18 @@ public class CurrentUserEntity extends Entity {
 
     public void setSystemPermissions(PermissionsDTO systemPermissions) {
         this.systemPermissions = systemPermissions;
+    }
+
+    /**
+     * @return permissions for accessing parameter contexts
+     */
+    @ApiModelProperty("Permissions for accessing parameter contexts.")
+    public PermissionsDTO getParameterContextPermissions() {
+        return parameterContextPermissions;
+    }
+
+    public void setParameterContextPermissions(PermissionsDTO parameterContextPermissions) {
+        this.parameterContextPermissions = parameterContextPermissions;
     }
 
     /**

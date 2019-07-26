@@ -802,7 +802,7 @@ public class ParameterContextResource extends ApplicationResource {
         final Consumer<AsynchronousWebRequest<ParameterContextEntity, ParameterContextEntity>> updateTask = asyncRequest -> {
             try {
                 final ParameterContextEntity updatedParameterContextEntity = updateParameterContext(asyncRequest, requestWrapper.getComponentLifecycle(), requestWrapper.getExampleUri(),
-                    requestWrapper.getAffectedComponents(), requestWrapper.isReplicateRequest(), requestRevision, requestWrapper.getParameterContextEntity());
+                    requestWrapper.getReferencingComponents(), requestWrapper.isReplicateRequest(), requestRevision, requestWrapper.getParameterContextEntity());
 
                 asyncRequest.markStepComplete(updatedParameterContextEntity);
             } catch (final ResumeFlowException rfe) {
@@ -1162,7 +1162,7 @@ public class ParameterContextResource extends ApplicationResource {
             }
         }
 
-        updateRequestDto.setAffectedComponents(new HashSet<>(affectedComponents.values()));
+        updateRequestDto.setReferencingComponents(new HashSet<>(affectedComponents.values()));
 
         // Populate the Affected Components
         final ParameterContextEntity contextEntity = serviceFacade.getParameterContext(asyncRequest.getComponentId(), NiFiUserUtils.getNiFiUser());
@@ -1211,7 +1211,7 @@ public class ParameterContextResource extends ApplicationResource {
             return exampleUri;
         }
 
-        public Set<AffectedComponentEntity> getAffectedComponents() {
+        public Set<AffectedComponentEntity> getReferencingComponents() {
             return affectedComponents;
         }
 

@@ -115,7 +115,11 @@
     }, {
         text: 'access the controller',
         value: 'controller',
-        description: 'Allows users to view/modify the controller including Reporting Tasks, Controller Services, and Nodes in the Cluster'
+        description: 'Allows users to view/modify the controller including Reporting Tasks, Controller Services, Parameter Contexts, and Nodes in the Cluster'
+    }, {
+        text: 'access parameter contexts',
+        value: 'parameter-contexts',
+        description: 'Allows users to view/modify Parameter Contexts'
     }, {
         text: 'query provenance',
         value: 'provenance',
@@ -703,6 +707,19 @@
         canModifyTenants: function () {
             if (nfCommon.isDefinedAndNotNull(nfCommon.currentUser)) {
                 return nfCommon.currentUser.tenantsPermissions.canRead === true && nfCommon.currentUser.tenantsPermissions.canWrite === true;
+            } else {
+                return false;
+            }
+        },
+
+        /**
+         * Determines whether the current user can modify parameter contexts.
+         *
+         * @returns {boolean}
+         */
+        canModifyParameterContexts: function () {
+            if (nfCommon.isDefinedAndNotNull(nfCommon.currentUser)) {
+                return nfCommon.currentUser.parameterContextPermissions.canRead === true && nfCommon.currentUser.parameterContextPermissions.canWrite === true;
             } else {
                 return false;
             }

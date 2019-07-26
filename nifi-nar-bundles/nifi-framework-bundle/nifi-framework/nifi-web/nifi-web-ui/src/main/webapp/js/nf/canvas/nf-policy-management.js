@@ -58,7 +58,7 @@
     }
 }(this, function ($, Slick, nfErrorHandler, nfCommon, nfClient, nfStorage, nfCanvasUtils, nfNgBridge, nfDialog, nfShell) {
     'use strict';
-    
+
     var config = {
         urls: {
             api: '../nifi-api',
@@ -68,6 +68,7 @@
 
     var initialized = false;
     var initializedComponentRestrictions = false;
+    var initializingComponentPolicy = false;
 
     var initAddTenantToPolicyDialog = function () {
         $('#new-policy-user-button').on('click', function () {
@@ -337,7 +338,7 @@
      * @returns {boolean} whether the policy supports read/write options
      */
     var globalPolicySupportsReadWrite = function (policyType) {
-        return policyType === 'controller' || policyType === 'counters' || policyType === 'policies' || policyType === 'tenants';
+        return policyType === 'controller' || policyType === 'parameter-contexts' || policyType === 'counters' || policyType === 'policies' || policyType === 'tenants';
     };
 
     /**
@@ -407,6 +408,7 @@
             options: [
                 nfCommon.getPolicyTypeListing('flow'),
                 nfCommon.getPolicyTypeListing('controller'),
+                nfCommon.getPolicyTypeListing('parameter-contexts'),
                 nfCommon.getPolicyTypeListing('provenance'),
                 nfCommon.getPolicyTypeListing('restricted-components'),
                 nfCommon.getPolicyTypeListing('policies'),
@@ -518,7 +520,7 @@
                 }
             }
         });
-        
+
         // component policy target
         $('#component-policy-target').combo({
             options: [{
@@ -601,8 +603,10 @@
                     // set the resource
                     $('#selected-policy-type').text(resource);
 
-                    // reload the policy
-                    loadPolicy();
+                    // reload the policy if we are finished loading
+                    if (!initializingComponentPolicy) {
+                        loadPolicy();
+                    }
                 }
             }
         });
@@ -810,7 +814,7 @@
     var deletePolicy = function () {
         var currentEntity = $('#policy-table').data('policy');
         var revision = nfClient.getRevision(currentEntity);
-        
+
         if (nfCommon.isDefinedAndNotNull(currentEntity)) {
             $.ajax({
                 type: 'DELETE',
@@ -908,6 +912,8 @@
             return $('<span>Showing effective policy inherited from all policies.</span>');
         } else if (resource === '/controller') {
             return $('<span>Showing effective policy inherited from the controller.</span>');
+        } else if (resource === '/parameter-contexts') {
+            return $('<span>Showing effective policy inherited from global parameter context policy.</span>');
         } else {
             // extract the group id
             var processGroupId = nfCommon.substringAfterLast(resource, '/');
@@ -1319,7 +1325,7 @@
                     'userGroups': userGroups
                 }
             };
-    
+
             $.ajax({
                 type: 'PUT',
                 url: currentEntity.uri,
@@ -1406,7 +1412,7 @@
         $('#selected-policy-action').text('');
         $('#selected-policy-component-id').text('');
         $('#selected-policy-component-type').text('');
-        
+
         // clear the selected component details
         $('div.policy-selected-component-container').hide();
     };
@@ -1454,6 +1460,8 @@
          * @param d
          */
         showControllerServicePolicy: function (d) {
+            initializingComponentPolicy = true;
+
             // reset the policy message
             resetPolicyMessage();
 
@@ -1492,6 +1500,8 @@
                     value: 'read-component'
                 });
 
+            initializingComponentPolicy = false;
+
             return loadPolicy().always(showPolicy);
         },
 
@@ -1501,6 +1511,8 @@
          * @param d
          */
         showReportingTaskPolicy: function (d) {
+            initializingComponentPolicy = true;
+
             // reset the policy message
             resetPolicyMessage();
 
@@ -1515,7 +1527,7 @@
                 $('#policy-selected-reporting-task-container div.policy-selected-component-name').text(d.id);
             }
             $('#policy-selected-reporting-task-container').show();
-            
+
             // populate the initial resource
             $('#selected-policy-component-id').text(d.id);
             $('#selected-policy-component-type').text('reporting-tasks');
@@ -1539,6 +1551,8 @@
                     value: 'read-component'
                 });
 
+            initializingComponentPolicy = false;
+
             return loadPolicy().always(showPolicy);
         },
 
@@ -1548,6 +1562,8 @@
          * @param d
          */
         showTemplatePolicy: function (d) {
+            initializingComponentPolicy = true;
+
             // reset the policy message
             resetPolicyMessage();
 
@@ -1568,6 +1584,9 @@
             $('#selected-policy-component-type').text('templates');
             $('#component-policy-target')
                 .combo('setOptionEnabled', {
+                    value: 'operate-component'
+                }, false)
+                .combo('setOptionEnabled', {
                     value: 'write-receive-data'
                 }, false)
                 .combo('setOptionEnabled', {
@@ -1586,6 +1605,62 @@
                     value: 'read-component'
                 });
 
+            initializingComponentPolicy = false;
+
+            return loadPolicy().always(showPolicy);
+        },
+
+        /**
+         * Shows the parameter context policy.
+         *
+         * @param d
+         */
+        showParameterContextPolicy: function (d) {
+            initializingComponentPolicy = true;
+
+            // reset the policy message
+            resetPolicyMessage();
+
+            // update the policy controls visibility
+            $('#component-policy-controls').show();
+            $('#global-policy-controls').hide();
+
+            // update the visibility
+            if (d.permissions.canRead === true) {
+                $('#policy-selected-parameter-context-container div.policy-selected-component-name').text(d.component.name);
+            } else {
+                $('#policy-selected-parameter-context-container div.policy-selected-component-name').text(d.id);
+            }
+            $('#policy-selected-parameter-context-container').show();
+
+            // populate the initial resource
+            $('#selected-policy-component-id').text(d.id);
+            $('#selected-policy-component-type').text('parameter-contexts');
+            $('#component-policy-target')
+                .combo('setOptionEnabled', {
+                    value: 'operate-component'
+                }, false)
+                .combo('setOptionEnabled', {
+                    value: 'write-receive-data'
+                }, false)
+                .combo('setOptionEnabled', {
+                    value: 'write-send-data'
+                }, false)
+                .combo('setOptionEnabled', {
+                    value: 'read-data'
+                }, false)
+                .combo('setOptionEnabled', {
+                    value: 'read-provenance'
+                }, false)
+                .combo('setOptionEnabled', {
+                    value: 'write-data'
+                }, false)
+                .combo('setSelectedOption', {
+                    value: 'read-component'
+                });
+
+            initializingComponentPolicy = false;
+
             return loadPolicy().always(showPolicy);
         },
 
@@ -1593,6 +1668,8 @@
          * Shows the component policy dialog.
          */
         showComponentPolicy: function (selection) {
+            initializingComponentPolicy = true;
+
             // reset the policy message
             resetPolicyMessage();
 
@@ -1602,7 +1679,7 @@
 
             // update the visibility
             $('#policy-selected-component-container').show();
-            
+
             var resource;
             if (selection.empty()) {
                 $('#selected-policy-component-id').text(nfCanvasUtils.getGroupId());
@@ -1610,6 +1687,9 @@
 
                 // disable site to site option
                 $('#component-policy-target')
+                    .combo('setOptionEnabled', {
+                        value: 'operate-component'
+                    }, true)
                     .combo('setOptionEnabled', {
                         value: 'write-receive-data'
                     }, false)
@@ -1648,6 +1728,9 @@
                 // enable site to site option
                 $('#component-policy-target')
                     .combo('setOptionEnabled', {
+                        value: 'operate-component'
+                    }, !nfCanvasUtils.isLabel(selection))
+                    .combo('setOptionEnabled', {
                         value: 'write-receive-data'
                     }, nfCanvasUtils.isInputPort(selection) && d.allowRemoteAccess === true)
                     .combo('setOptionEnabled', {
@@ -1666,6 +1749,8 @@
             $('#component-policy-target').combo('setSelectedOption', {
                 value: 'read-component'
             });
+
+            initializingComponentPolicy = false;
 
             return loadPolicy().always(showPolicy);
         },

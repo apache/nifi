@@ -358,7 +358,8 @@ public final class EntityFactory {
         return entity;
     }
 
-    public AffectedComponentEntity createAffectedComponentEntity(final AffectedComponentDTO dto, final RevisionDTO revision, final PermissionsDTO permissions) {
+    public AffectedComponentEntity createAffectedComponentEntity(final AffectedComponentDTO dto, final RevisionDTO revision, final PermissionsDTO permissions,
+                                                                 final ProcessGroupNameDTO processGroupNameDto) {
         final AffectedComponentEntity entity = new AffectedComponentEntity();
         entity.setRevision(revision);
         if (dto != null) {
@@ -369,6 +370,8 @@ public final class EntityFactory {
                 entity.setComponent(dto);
             }
         }
+
+        entity.setProcessGroup(processGroupNameDto);
         return entity;
     }
 

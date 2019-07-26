@@ -60,10 +60,12 @@
     'use strict';
 
     var nfControllerServices;
+    var nfParameterContexts;
 
     var config = {
         urls: {
-            api: '../nifi-api'
+            api: '../nifi-api',
+            parameterContexts: '../nifi-api/flow/parameter-contexts'
         }
     };
 
@@ -100,7 +102,10 @@
             'component': {
                 'id': groupId,
                 'name': $('#process-group-name').val(),
-                'comments': $('#process-group-comments').val()
+                'comments': $('#process-group-comments').val(),
+                'parameterContext': {
+                    'id': $('#process-group-parameter-context-combo').combo('getSelectedOption').value
+                }
             }
         };
 
@@ -128,6 +133,25 @@
                 saveConfiguration(response.revision.version, groupId);
             });
 
+            var controllerServicesUri = config.urls.api + '/flow/process-groups/' + encodeURIComponent(groupId) + '/controller-services';
+
+            $.ajax({
+                type: 'GET',
+                url: controllerServicesUri,
+                dataType: 'json'
+            }).done(function (response) {
+                var serviceTable = getControllerServicesTable();
+
+                nfCommon.cleanUpTooltips(serviceTable, 'div.has-errors');
+
+                var controllerServicesGrid = serviceTable.data('gridInstance');
+                var controllerServicesData = controllerServicesGrid.getData();
+
+                $.each(response.controllerServices, function (_, controllerServiceEntity) {
+                    controllerServicesData.updateItem(controllerServiceEntity.id, controllerServiceEntity);
+                });
+            });
+
             nfCanvasUtils.reload();
         }).fail(nfErrorHandler.handleConfigurationUpdateAjaxError);
     };
@@ -139,8 +163,8 @@
      */
     var loadConfiguration = function (groupId) {
         var setUnauthorizedText = function () {
-            $('#read-only-process-group-name').addClass('unset').text('Unauthorized');
-            $('#read-only-process-group-comments').addClass('unset').text('Unauthorized');
+            $('#read-only-process-group-name').text('Unauthorized');
+            $('#read-only-process-group-comments').text('Unauthorized');
         };
 
         var setEditable = function (editable) {
@@ -201,8 +225,8 @@
                 } else {
                     if (response.permissions.canRead) {
                         // populate the process group settings
-                        $('#read-only-process-group-name').removeClass('unset').text(processGroup.name);
-                        $('#read-only-process-group-comments').removeClass('unset').text(processGroup.comments);
+                        $('#read-only-process-group-name').text(processGroup.name);
+                        $('#read-only-process-group-comments').text(processGroup.comments);
 
                         // populate the header
                         $('#process-group-configuration-header-text').text(processGroup.name + ' Configuration');
@@ -212,23 +236,25 @@
 
                     setEditable(false);
                 }
-                deferred.resolve();
+                deferred.resolve(response);
             }).fail(function (xhr, status, error) {
                 if (xhr.status === 403) {
+                    var unauthorizedGroup;
                     if (groupId === nfCanvasUtils.getGroupId()) {
-                        $('#process-group-configuration').data('process-group', {
+                        unauthorizedGroup = {
                             'permissions': {
                                 canRead: false,
                                 canWrite: nfCanvasUtils.canWriteCurrentGroup()
                             }
-                        });
+                        };
                     } else {
-                        $('#process-group-configuration').data('process-group', nfProcessGroup.get(groupId));
+                        unauthorizedGroup = nfProcessGroup.get(groupId);
                     }
+                    $('#process-group-configuration').data('process-group', unauthorizedGroup);
 
                     setUnauthorizedText();
                     setEditable(false);
-                    deferred.resolve();
+                    deferred.resolve(unauthorizedGroup);
                 } else {
                     deferred.reject(xhr, status, error);
                 }
@@ -239,12 +265,127 @@
         var controllerServicesUri = config.urls.api + '/flow/process-groups/' + encodeURIComponent(groupId) + '/controller-services';
         var controllerServices = nfControllerServices.loadControllerServices(controllerServicesUri, getControllerServicesTable());
 
+        var parameterContexts = $.ajax({
+                type: 'GET',
+                url: config.urls.parameterContexts,
+                dataType: 'json'
+            });
+
         // wait for everything to complete
-        return $.when(processGroup, controllerServices).done(function (processGroupResult, controllerServicesResult) {
+        return $.when(processGroup, controllerServices, parameterContexts).done(function (processGroupResult, controllerServicesResult, parameterContextsResult) {
             var controllerServicesResponse = controllerServicesResult[0];
+            var parameterContextsResponse = parameterContextsResult[0];
 
             // update the current time
             $('#process-group-configuration-last-refreshed').text(controllerServicesResponse.currentTime);
+
+            var parameterContexts = parameterContextsResponse.parameterContexts;
+            var options = [{
+                text: 'No parameter context',
+                value: null
+            }];
+            parameterContexts.forEach(function (parameterContext) {
+                var option;
+                if (parameterContext.permissions.canRead) {
+                    option = {
+                        'text': parameterContext.component.name,
+                        'value': parameterContext.id,
+                        'description': parameterContext.component.description
+                    };
+                } else {
+                    option = {
+                        'text': parameterContext.id,
+                        'value': parameterContext.id
+                    }
+                }
+
+                options.push(option);
+            });
+
+            var createNewParameterContextOption = {
+                text: 'Create new parameter context...',
+                value: undefined,
+                optionClass: 'unset'
+            };
+
+            if (nfCommon.canModifyParameterContexts()) {
+                options.push(createNewParameterContextOption);
+            }
+
+            var comboOptions = {
+                options: options,
+                select: function (option) {
+                    if (typeof option.value === 'undefined') {
+                        $('#parameter-context-dialog').modal('setHeaderText', 'Add Parameter Context').modal('setButtonModel', [{
+                            buttonText: 'Apply',
+                            color: {
+                                base: '#728E9B',
+                                hover: '#004849',
+                                text: '#ffffff'
+                            },
+                            disabled: function () {
+                                if ($('#parameter-context-name').val() !== '') {
+                                    return false;
+                                }
+                                return true;
+                            },
+                            handler: {
+                                click: function () {
+                                    nfParameterContexts.addParameterContext(function (parameterContextEntity) {
+                                        options.pop();
+                                        var option = {
+                                            'text': parameterContextEntity.component.name,
+                                            'value': parameterContextEntity.component.id,
+                                            'description': parameterContextEntity.component.description
+                                        };
+                                        options.push(option);
+
+                                        if (nfCommon.canModifyParameterContexts()) {
+                                            options.push(createNewParameterContextOption);
+                                        }
+
+                                        comboOptions.selectedOption = {
+                                            value: parameterContextEntity.component.id
+                                        };
+
+                                        combo.combo('destroy').combo(comboOptions);
+                                    });
+                                }
+                            }
+                        }, {
+                            buttonText: 'Cancel',
+                            color: {
+                                base: '#E3E8EB',
+                                hover: '#C7D2D7',
+                                text: '#004849'
+                            },
+                            handler: {
+                                click: function () {
+                                    $(this).modal('hide');
+                                }
+                            }
+                        }]).modal('show');
+
+                        // set the initial focus
+                        $('#parameter-context-name').focus();
+                    }
+                }
+            };
+
+            // initialize the parameter context combo
+            var combo = $('#process-group-parameter-context-combo').combo('destroy').combo(comboOptions);
+
+            // populate the parameter context
+            if (processGroupResult.permissions.canRead) {
+                var parameterContextId = null;
+                if ($.isEmptyObject(processGroupResult.component.parameterContext) === false) {
+                    parameterContextId = processGroupResult.component.parameterContext.id;
+                }
+
+                $('#process-group-parameter-context-combo').combo('setSelectedOption', {
+                    value: parameterContextId
+                });
+            }
         }).fail(nfErrorHandler.handleAjaxError);
     };
 
@@ -288,9 +429,11 @@
          * Initialize the process group configuration.
          *
          * @param nfControllerServicesRef   The nfControllerServices module.
+         * @param nfParameterContextsRef    The nfParameterContexts module.
          */
-        init: function (nfControllerServicesRef) {
+        init: function (nfControllerServicesRef, nfParameterContextsRef) {
             nfControllerServices = nfControllerServicesRef;
+            nfParameterContexts = nfParameterContextsRef;
 
             // initialize the process group configuration tabs
             $('#process-group-configuration-tabs').tabbs({

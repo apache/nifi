@@ -1,0 +1,103 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*
+    Parameter context dialog
+ */
+
+#parameter-context-dialog {
+    width: 850px;
+    height: 575px;
+}
+
+#parameter-context-dialog div.settings-left {
+    float: left;
+    width: 65%;
+}
+
+#parameter-context-dialog div.settings-right {
+    float: left;
+    width: 33%;
+    height: 100%;
+    position: absolute;
+    left: calc(65% - -15px);
+}
+
+#parameter-context-standard-settings-tab-content,
+#parameter-context-parameters-tab-content {
+    bottom: 10px;
+}
+
+#parameter-table {
+    height: 370px;
+}
+
+#add-parameter {
+    float: right;
+    margin-bottom: 4px;
+    font-size: 16px;
+    text-transform: uppercase;
+}
+
+#parameter-context-update-steps li {
+    width: 300px;
+    margin-bottom: 2px;
+}
+
+#parameter-value-field {
+    height: 54px;
+}
+
+#parameter-description-field {
+    height: 85px;
+}
+
+#parameter-context-description-field {
+    height: 85px;
+}
+
+#parameter-referencing-components-container {
+    position: absolute;
+    bottom: 10px;
+    top: 75px;
+    width: calc(100% - 5px);
+    overflow: auto;
+    border: 0 solid #CCCCCC;
+    overflow: auto;
+    padding: 2px;
+}
+
+.referencing-components-template {
+    position: relative;
+    left: 15px;
+    width: calc(100% - 15px);
+}
+
+/*
+    Parameter creation/configuration dialog
+ */
+
+#parameter-dialog {
+    width: 470px;
+    height: 470px;
+}
+
+span.parameter-context-referencing-component-name {
+    margin-left: 5px;
+    margin-right: 5px;
+    max-width: calc(100% - 10px);
+}

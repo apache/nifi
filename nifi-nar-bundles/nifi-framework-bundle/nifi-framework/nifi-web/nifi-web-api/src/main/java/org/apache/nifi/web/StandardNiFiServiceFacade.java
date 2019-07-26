@@ -1277,7 +1277,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             }
 
             final Parameter parameter = parameterOption.get();
-            final boolean updated = !Objects.equals(updatedValue, parameter.getValue());
+            final boolean valueUpdated = !Objects.equals(updatedValue, parameter.getValue());
+            final boolean descriptionUpdated = parameterDto.getDescription() != null && !parameterDto.getDescription().equals(parameter.getDescriptor().getDescription());
+            final boolean updated = valueUpdated || descriptionUpdated;
             if (updated) {
                 updatedParameters.add(parameterName);
             }
@@ -4004,6 +4006,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         entity.setControllerPermissions(dtoFactory.createPermissionsDto(authorizableLookup.getController()));
         entity.setPoliciesPermissions(dtoFactory.createPermissionsDto(authorizableLookup.getPolicies()));
         entity.setSystemPermissions(dtoFactory.createPermissionsDto(authorizableLookup.getSystem()));
+        entity.setParameterContextPermissions(dtoFactory.createPermissionsDto(authorizableLookup.getParameterContexts()));
         entity.setCanVersionFlows(CollectionUtils.isNotEmpty(flowRegistryClient.getRegistryIdentifiers()));
 
         entity.setRestrictedComponentsPermissions(dtoFactory.createPermissionsDto(authorizableLookup.getRestrictedComponents()));

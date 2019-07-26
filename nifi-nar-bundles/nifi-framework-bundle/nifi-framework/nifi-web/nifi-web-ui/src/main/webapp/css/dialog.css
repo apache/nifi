@@ -377,3 +377,10 @@ div.variable-step {
     width: 300px;
     margin-bottom: 2px;
 }
+
+div.parameter-context-step {
+    width: 16px;
+    height: 16px;
+    background-color: transparent;
+    float: right;
+}

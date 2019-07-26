@@ -144,10 +144,11 @@ public class AsyncRequestManager<R, T> implements RequestManager<R, T> {
         }
 
         if (!request.isComplete()) {
-            throw new IllegalStateException("Cannot remove the request because it is not yet complete");
+            request.cancel();
         }
 
-        return requests.remove(key);
+        requests.remove(key);
+        return request;
     }
 
     @Override

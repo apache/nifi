@@ -1943,12 +1943,17 @@ public final class DtoFactory {
 
         final ProcessorDTO processorDto = processorEntity.getComponent();
         final AffectedComponentDTO componentDto = new AffectedComponentDTO();
-        componentDto.setId(processorDto.getId());
-        componentDto.setName(processorDto.getName());
-        componentDto.setProcessGroupId(processorDto.getParentGroupId());
-        componentDto.setReferenceType(AffectedComponentDTO.COMPONENT_TYPE_PROCESSOR);
-        componentDto.setState(processorDto.getState());
-        componentDto.setValidationErrors(processorDto.getValidationErrors());
+        if (componentDto == null) {
+            componentDto.setId(processorEntity.getId());
+            componentDto.setName(processorEntity.getId());
+        } else {
+            componentDto.setId(processorDto.getId());
+            componentDto.setName(processorDto.getName());
+            componentDto.setProcessGroupId(processorDto.getParentGroupId());
+            componentDto.setReferenceType(AffectedComponentDTO.COMPONENT_TYPE_PROCESSOR);
+            componentDto.setState(processorDto.getState());
+            componentDto.setValidationErrors(processorDto.getValidationErrors());
+        }
         component.setComponent(componentDto);
 
         return component;
@@ -1969,12 +1974,18 @@ public final class DtoFactory {
 
         final PortDTO portDto = portEntity.getComponent();
         final AffectedComponentDTO componentDto = new AffectedComponentDTO();
-        componentDto.setId(portDto.getId());
-        componentDto.setName(portDto.getName());
-        componentDto.setProcessGroupId(portDto.getParentGroupId());
-        componentDto.setReferenceType(referenceType);
-        componentDto.setState(portDto.getState());
-        componentDto.setValidationErrors(portDto.getValidationErrors());
+        if (componentDto == null) {
+            componentDto.setId(portEntity.getId());
+            componentDto.setName(portEntity.getId());
+        } else {
+            componentDto.setId(portDto.getId());
+            componentDto.setName(portDto.getName());
+            componentDto.setProcessGroupId(portDto.getParentGroupId());
+            componentDto.setReferenceType(referenceType);
+            componentDto.setState(portDto.getState());
+            componentDto.setValidationErrors(portDto.getValidationErrors());
+        }
+
         component.setComponent(componentDto);
 
         return component;
@@ -1995,12 +2006,19 @@ public final class DtoFactory {
 
         final ControllerServiceDTO serviceDto = serviceEntity.getComponent();
         final AffectedComponentDTO componentDto = new AffectedComponentDTO();
-        componentDto.setId(serviceDto.getId());
-        componentDto.setName(serviceDto.getName());
-        componentDto.setProcessGroupId(serviceDto.getParentGroupId());
-        componentDto.setReferenceType(AffectedComponentDTO.COMPONENT_TYPE_CONTROLLER_SERVICE);
-        componentDto.setState(serviceDto.getState());
-        componentDto.setValidationErrors(serviceDto.getValidationErrors());
+        if (serviceDto == null) {
+            componentDto.setId(serviceEntity.getId());
+            componentDto.setName(serviceEntity.getId());
+            componentDto.setProcessGroupId(serviceEntity.getParentGroupId());
+        } else {
+            componentDto.setId(serviceDto.getId());
+            componentDto.setName(serviceDto.getName());
+            componentDto.setProcessGroupId(serviceDto.getParentGroupId());
+            componentDto.setReferenceType(AffectedComponentDTO.COMPONENT_TYPE_CONTROLLER_SERVICE);
+            componentDto.setState(serviceDto.getState());
+            componentDto.setValidationErrors(serviceDto.getValidationErrors());
+        }
+
         component.setComponent(componentDto);
 
         return component;
@@ -2707,7 +2725,26 @@ public final class DtoFactory {
         final AffectedComponentDTO affectedComponent = createAffectedComponentDto(componentNode);
         final PermissionsDTO permissions = createPermissionsDto(componentNode);
         final RevisionDTO revision = createRevisionDTO(revisionManager.getRevision(componentNode.getIdentifier()));
-        return entityFactory.createAffectedComponentEntity(affectedComponent, revision, permissions);
+
+        final ProcessGroupNameDTO groupNameDto = new ProcessGroupNameDTO();
+        groupNameDto.setId(componentNode.getProcessGroupIdentifier());
+        groupNameDto.setName(componentNode.getProcessGroupIdentifier());
+
+        ProcessGroup processGroup = null;
+        if (componentNode instanceof ProcessorNode) {
+            processGroup = ((ProcessorNode) componentNode).getProcessGroup();
+        } else if (componentNode instanceof ControllerServiceNode) {
+            processGroup = ((ControllerServiceNode) componentNode).getProcessGroup();
+        }
+
+        if (processGroup != null) {
+            final boolean authorized = processGroup.isAuthorized(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+            if (authorized) {
+                groupNameDto.setName(processGroup.getName());
+            }
+        }
+
+        return entityFactory.createAffectedComponentEntity(affectedComponent, revision, permissions, groupNameDto);
     }
 
     public VariableRegistryDTO createVariableRegistryDto(final ProcessGroup processGroup, final RevisionManager revisionManager) {

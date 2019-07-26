@@ -406,7 +406,11 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
             boolean allReachedDesiredState = true;
             for (final ControllerServiceEntity serviceEntity : serviceEntities) {
                 final ControllerServiceDTO serviceDto = serviceEntity.getComponent();
-                if (!affectedServices.containsKey(serviceDto.getId())) {
+                if (serviceDto == null) {
+                    continue;
+                }
+
+                if (!serviceIds.contains(serviceDto.getId())) {
                     continue;
                 }
 
