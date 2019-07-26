@@ -410,9 +410,7 @@ public class ParameterContextResource extends ApplicationResource {
             if (requireWrite) {
                 authorizable.authorize(authorizer, RequestAction.WRITE, user);
             }
-        }
-
-        if (AffectedComponentDTO.COMPONENT_TYPE_PROCESSOR.equals(dto.getReferenceType())) {
+        } else if (AffectedComponentDTO.COMPONENT_TYPE_PROCESSOR.equals(dto.getReferenceType())) {
             final Authorizable processor = lookup.getProcessor(dto.getId()).getAuthorizable();
 
             if (requireRead) {

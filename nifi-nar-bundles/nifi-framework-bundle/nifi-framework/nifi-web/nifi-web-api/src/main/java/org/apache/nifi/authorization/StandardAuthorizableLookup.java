@@ -831,6 +831,11 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
         public void cleanUpResources() {
             extensionManager.removeInstanceClassLoader(configurableComponent.getIdentifier());
         }
+
+        @Override
+        public Authorizable getParameterContext() {
+            return null;
+        }
     }
 
     /**
@@ -858,6 +863,11 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
         @Override
         public Set<Authorizable> getRestrictedAuthorizables() {
             return RestrictedComponentsAuthorizableFactory.getRestrictedComponentsAuthorizable(processorNode.getComponentClass());
+        }
+
+        @Override
+        public Authorizable getParameterContext() {
+            return processorNode.getProcessGroup().getParameterContext();
         }
 
         @Override
@@ -909,6 +919,11 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
         }
 
         @Override
+        public Authorizable getParameterContext() {
+            return controllerServiceNode.getProcessGroup().getParameterContext();
+        }
+
+        @Override
         public String getValue(PropertyDescriptor propertyDescriptor) {
             return controllerServiceNode.getEffectivePropertyValue(propertyDescriptor);
         }
@@ -954,6 +969,11 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
         @Override
         public Set<Authorizable> getRestrictedAuthorizables() {
             return RestrictedComponentsAuthorizableFactory.getRestrictedComponentsAuthorizable(reportingTaskNode.getComponentClass());
+        }
+
+        @Override
+        public Authorizable getParameterContext() {
+            return null;
         }
 
         @Override

@@ -48,6 +48,11 @@ public interface ComponentAuthorizable {
     Set<Authorizable> getRestrictedAuthorizables();
 
     /**
+     * @return the Parameter Context that is bound to this component's Process Group, as an Authorizable, or <code>null</code> if no Parameter Context is bound
+     */
+    Authorizable getParameterContext();
+
+    /**
      * Returns the property descriptor for the specified property.
      *
      * @param propertyName property name

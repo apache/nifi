@@ -193,9 +193,6 @@ public abstract class AbstractComponentNode implements ComponentNode {
 
             // Keep track of counts of each parameter reference. This way, when we complete the updates to property values, we can
             // update our counts easily.
-            // TODO: This is not right. Was using an EL Aware and an EL Agnostic Parser, and then using hte appropriate one based on whether or not the Property Descriptor
-            //    Indicates that EL is to be used... The problem was that if you then used ${#{boom}} the #{boom} reference was not validated (permissions checked? Not sure...)
-            //    But the problem with this approach is that now using ${#{boom}} will return empty string, even if boom is defined.
             final ParameterParser elAgnosticParameterParser = new ExpressionLanguageAgnosticParameterParser();
             final ParameterParser elAwareParameterParser = new ExpressionLanguageAwareParameterParser();
 

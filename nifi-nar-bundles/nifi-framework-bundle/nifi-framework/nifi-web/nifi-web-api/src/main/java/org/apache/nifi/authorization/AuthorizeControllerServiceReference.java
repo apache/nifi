@@ -44,7 +44,7 @@ public final class AuthorizeControllerServiceReference {
                                                             final AuthorizableLookup lookup, final boolean authorizeTransitiveServices) {
 
         // consider each property when looking for service references
-        authorizable.getPropertyDescriptors().stream().forEach(descriptor -> {
+        authorizable.getPropertyDescriptors().forEach(descriptor -> {
             // if this descriptor identifies a controller service
             if (descriptor.getControllerServiceDefinition() != null) {
                 // get the service id

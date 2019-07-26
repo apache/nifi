@@ -24,6 +24,7 @@ import io.swagger.annotations.ApiResponses;
 import io.swagger.annotations.Authorization;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.AuthorizeControllerServiceReference;
+import org.apache.nifi.authorization.AuthorizeParameterReference;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.ComponentAuthorizable;
 import org.apache.nifi.authorization.RequestAction;
@@ -563,6 +564,13 @@ public class ProcessorResource extends ApplicationResource {
                     final ProcessorConfigDTO config = requestProcessorDTO.getConfig();
                     if (config != null) {
                         AuthorizeControllerServiceReference.authorizeControllerServiceReferences(config.getProperties(), authorizable, authorizer, lookup);
+
+                        final Authorizable parameterContextAuthorizable = authorizable.getParameterContext();
+                        if (parameterContextAuthorizable != null) {
+                            final ProcessorDTO processorDto = serviceFacade.getProcessor(requestProcessorEntity.getComponent().getId()).getComponent();
+                            final ProcessorConfigDTO currentConfiguration = processorDto.getConfig();
+                            AuthorizeParameterReference.authorizeParameterReferences(config.getProperties(), currentConfiguration.getProperties(), authorizer, parameterContextAuthorizable, user);
+                        }
                     }
                 },
                 () -> serviceFacade.verifyUpdateProcessor(requestProcessorDTO),
