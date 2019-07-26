@@ -179,6 +179,7 @@ public class MergeRecord extends AbstractSessionFactoryProcessor {
         .required(true)
         .defaultValue("1")
         .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .build();
     public static final PropertyDescriptor MAX_RECORDS = new PropertyDescriptor.Builder()
         .name("max-records")
@@ -188,6 +189,7 @@ public class MergeRecord extends AbstractSessionFactoryProcessor {
         .required(false)
         .defaultValue("1000")
         .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .build();
     public static final PropertyDescriptor MAX_BIN_COUNT = new PropertyDescriptor.Builder()
         .name("max.bin.count")
@@ -268,8 +270,8 @@ public class MergeRecord extends AbstractSessionFactoryProcessor {
     protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         final List<ValidationResult> results = new ArrayList<>();
 
-        final Integer minRecords = validationContext.getProperty(MIN_RECORDS).asInteger();
-        final Integer maxRecords = validationContext.getProperty(MAX_RECORDS).asInteger();
+        final Integer minRecords = validationContext.getProperty(MIN_RECORDS).evaluateAttributeExpressions().asInteger();
+        final Integer maxRecords = validationContext.getProperty(MAX_RECORDS).evaluateAttributeExpressions().asInteger();
         if (minRecords != null && maxRecords != null && maxRecords < minRecords) {
             results.add(new ValidationResult.Builder()
                 .subject("Max Records")

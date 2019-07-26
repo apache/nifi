@@ -182,8 +182,8 @@ public class RecordBinManager {
 
 
     private RecordBinThresholds createThresholds(FlowFile flowfile) {
-        int minRecords = context.getProperty(MergeRecord.MIN_RECORDS).asInteger();
-        final int maxRecords = context.getProperty(MergeRecord.MAX_RECORDS).asInteger();
+        int minRecords = context.getProperty(MergeRecord.MIN_RECORDS).evaluateAttributeExpressions().asInteger();
+        final int maxRecords = context.getProperty(MergeRecord.MAX_RECORDS).evaluateAttributeExpressions().asInteger();
         final long minBytes = context.getProperty(MergeRecord.MIN_SIZE).asDataSize(DataUnit.B).longValue();
 
         final PropertyValue maxSizeValue = context.getProperty(MergeRecord.MAX_SIZE);
