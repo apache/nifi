@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.amazonaws.services.s3.model.StorageClass;
 import com.amazonaws.services.s3.model.Tag;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -145,6 +146,24 @@ public class TestPutS3Object {
         assertEquals(1, tagSet.size());
         assertEquals("tagS3PII", tagSet.get(0).getKey());
         assertEquals("true", tagSet.get(0).getValue());
+    }
+
+    @Test
+    public void testStorageClasses() {
+        for (StorageClass storageClass : StorageClass.values()) {
+            runner.setProperty(PutS3Object.STORAGE_CLASS, storageClass.name());
+            prepareTest();
+
+            runner.run(1);
+
+            ArgumentCaptor<PutObjectRequest> captureRequest = ArgumentCaptor.forClass(PutObjectRequest.class);
+            Mockito.verify(mockS3Client, Mockito.times(1)).putObject(captureRequest.capture());
+            PutObjectRequest request = captureRequest.getValue();
+
+            assertEquals(storageClass.toString(), request.getStorageClass());
+
+            Mockito.reset(mockS3Client);
+        }
     }
 
     @Test

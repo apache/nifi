@@ -294,38 +294,59 @@ public class ITPutS3Object extends AbstractS3IT {
     }
 
     @Test
-    public void testStorageClass() throws IOException {
+    public void testStorageClasses() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new PutS3Object());
 
         runner.setProperty(PutS3Object.CREDENTIALS_FILE, CREDENTIALS_FILE);
         runner.setProperty(PutS3Object.REGION, REGION);
         runner.setProperty(PutS3Object.BUCKET, BUCKET_NAME);
-        runner.setProperty(PutS3Object.STORAGE_CLASS, StorageClass.ReducedRedundancy.name());
-
-        int bytesNeeded = 55 * 1024 * 1024;
-        StringBuilder bldr = new StringBuilder(bytesNeeded + 1000);
-        for (int line = 0; line < 55; line++) {
-            bldr.append(String.format("line %06d This is sixty-three characters plus the EOL marker!\n", line));
-        }
-        String data55mb = bldr.toString();
 
         Assert.assertTrue(runner.setProperty("x-custom-prop", "hello").isValid());
 
-        final Map<String, String> attrs = new HashMap<>();
-        attrs.put("filename", "folder/2.txt");
-        runner.enqueue(getResourcePath(SAMPLE_FILE_RESOURCE_NAME), attrs);
-        attrs.put("filename", "folder/3.txt");
-        runner.enqueue(data55mb.getBytes(), attrs);
+        for (StorageClass storageClass : StorageClass.values()) {
+            runner.setProperty(PutS3Object.STORAGE_CLASS, storageClass.name());
 
-        runner.run(2);
+            final Map<String, String> attrs = new HashMap<>();
+            attrs.put("filename", "testStorageClasses/small_" + storageClass.name() + ".txt");
+            runner.enqueue(getResourcePath(SAMPLE_FILE_RESOURCE_NAME), attrs);
 
-        runner.assertAllFlowFilesTransferred(PutS3Object.REL_SUCCESS, 2);
-        FlowFile file1 = runner.getFlowFilesForRelationship(PutS3Object.REL_SUCCESS).get(0);
-        Assert.assertEquals(StorageClass.ReducedRedundancy.toString(),
-                file1.getAttribute(PutS3Object.S3_STORAGECLASS_ATTR_KEY));
-        FlowFile file2 = runner.getFlowFilesForRelationship(PutS3Object.REL_SUCCESS).get(1);
-        Assert.assertEquals(StorageClass.ReducedRedundancy.toString(),
-                file2.getAttribute(PutS3Object.S3_STORAGECLASS_ATTR_KEY));
+            runner.run();
+
+            runner.assertAllFlowFilesTransferred(PutS3Object.REL_SUCCESS, 1);
+            FlowFile file = runner.getFlowFilesForRelationship(PutS3Object.REL_SUCCESS).get(0);
+            Assert.assertEquals(storageClass.toString(), file.getAttribute(PutS3Object.S3_STORAGECLASS_ATTR_KEY));
+
+            runner.clearTransferState();
+        }
+    }
+
+    @Test
+    public void testStorageClassesMultipart() throws IOException {
+        final TestRunner runner = TestRunners.newTestRunner(new PutS3Object());
+
+        runner.setProperty(PutS3Object.CREDENTIALS_FILE, CREDENTIALS_FILE);
+        runner.setProperty(PutS3Object.REGION, REGION);
+        runner.setProperty(PutS3Object.BUCKET, BUCKET_NAME);
+        runner.setProperty(PutS3Object.MULTIPART_THRESHOLD, "50 MB");
+        runner.setProperty(PutS3Object.MULTIPART_PART_SIZE, "50 MB");
+
+        Assert.assertTrue(runner.setProperty("x-custom-prop", "hello").isValid());
+
+        for (StorageClass storageClass : StorageClass.values()) {
+            runner.setProperty(PutS3Object.STORAGE_CLASS, storageClass.name());
+
+            final Map<String, String> attrs = new HashMap<>();
+            attrs.put("filename", "testStorageClasses/large_" + storageClass.name() + ".dat");
+            runner.enqueue(new byte[50 * 1024 * 1024 + 1], attrs);
+
+            runner.run();
+
+            runner.assertAllFlowFilesTransferred(PutS3Object.REL_SUCCESS, 1);
+            FlowFile file = runner.getFlowFilesForRelationship(PutS3Object.REL_SUCCESS).get(0);
+            Assert.assertEquals(storageClass.toString(), file.getAttribute(PutS3Object.S3_STORAGECLASS_ATTR_KEY));
+
+            runner.clearTransferState();
+        }
     }
 
     @Test
@@ -415,7 +436,7 @@ public class ITPutS3Object extends AbstractS3IT {
         client.setRegion(Region.fromValue(REGION).toAWSRegion());
         String targetUri = client.getUrl(BUCKET_NAME, PROV1_FILE).toString();
         Assert.assertEquals(targetUri, provRec1.getTransitUri());
-        Assert.assertEquals(7, provRec1.getUpdatedAttributes().size());
+        Assert.assertEquals(8, provRec1.getUpdatedAttributes().size());
         Assert.assertEquals(BUCKET_NAME, provRec1.getUpdatedAttributes().get(PutS3Object.S3_BUCKET_KEY));
     }
 
