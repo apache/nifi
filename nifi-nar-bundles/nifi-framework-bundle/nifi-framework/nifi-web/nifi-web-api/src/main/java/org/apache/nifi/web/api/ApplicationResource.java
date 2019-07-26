@@ -578,13 +578,13 @@ public abstract class ApplicationResource {
         final Consumer<Authorizable> authorize = authorizable -> authorizable.authorize(authorizer, action, NiFiUserUtils.getNiFiUser());
 
         // authorize each component in the specified snippet
-        snippet.getSelectedProcessGroups().stream().forEach(processGroupAuthorizable -> {
+        snippet.getSelectedProcessGroups().forEach(processGroupAuthorizable -> {
             // note - we are not authorizing templates or controller services as they are not considered when using this snippet. however,
             // referenced services are considered so those are explicitly authorized when authorizing a processor
             authorizeProcessGroup(processGroupAuthorizable, authorizer, lookup, action, authorizeReferencedServices, false, false, authorizeTransitiveServices);
         });
-        snippet.getSelectedRemoteProcessGroups().stream().forEach(authorize);
-        snippet.getSelectedProcessors().stream().forEach(processorAuthorizable -> {
+        snippet.getSelectedRemoteProcessGroups().forEach(authorize);
+        snippet.getSelectedProcessors().forEach(processorAuthorizable -> {
             // authorize the processor
             authorize.accept(processorAuthorizable.getAuthorizable());
 
@@ -593,11 +593,11 @@ public abstract class ApplicationResource {
                 AuthorizeControllerServiceReference.authorizeControllerServiceReferences(processorAuthorizable, authorizer, lookup, authorizeTransitiveServices);
             }
         });
-        snippet.getSelectedInputPorts().stream().forEach(authorize);
-        snippet.getSelectedOutputPorts().stream().forEach(authorize);
-        snippet.getSelectedConnections().stream().forEach(connAuth -> authorize.accept(connAuth.getAuthorizable()));
-        snippet.getSelectedFunnels().stream().forEach(authorize);
-        snippet.getSelectedLabels().stream().forEach(authorize);
+        snippet.getSelectedInputPorts().forEach(authorize);
+        snippet.getSelectedOutputPorts().forEach(authorize);
+        snippet.getSelectedConnections().forEach(connAuth -> authorize.accept(connAuth.getAuthorizable()));
+        snippet.getSelectedFunnels().forEach(authorize);
+        snippet.getSelectedLabels().forEach(authorize);
     }
 
     /**

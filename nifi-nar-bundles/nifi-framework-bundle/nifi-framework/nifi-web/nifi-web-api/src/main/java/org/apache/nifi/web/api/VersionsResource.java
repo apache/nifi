@@ -25,6 +25,7 @@ import io.swagger.annotations.ApiResponses;
 import io.swagger.annotations.Authorization;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.AccessDeniedException;
+import org.apache.nifi.authorization.AuthorizeParameterReference;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.ComponentAuthorizable;
 import org.apache.nifi.authorization.ProcessGroupAuthorizable;
@@ -1058,7 +1059,8 @@ public class VersionsResource extends ApplicationResource {
                 @Authorization(value = "Write - /process-groups/{uuid}"),
                 @Authorization(value = "Read - /{component-type}/{uuid} - For all encapsulated components"),
                 @Authorization(value = "Write - /{component-type}/{uuid} - For all encapsulated components"),
-                @Authorization(value = "Write - if the template contains any restricted components - /restricted-components")
+                @Authorization(value = "Write - if the template contains any restricted components - /restricted-components"),
+                @Authorization(value = "Read - /parameter-contexts/{uuid} - For any Parameter Context that is referenced by a Property that is changed, added, or removed")
             })
     @ApiResponses(value = {
         @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
@@ -1178,6 +1180,8 @@ public class VersionsResource extends ApplicationResource {
                     final ComponentAuthorizable restrictedComponentAuthorizable = lookup.getConfigurableComponent(restrictedComponent);
                     authorizeRestrictions(authorizer, restrictedComponentAuthorizable);
                 });
+
+                AuthorizeParameterReference.authorizeParameterReferences(groupContents, groupAuthorizable.getProcessGroup(), authorizer, user);
             },
             () -> {
                 // Step 3: Verify that all components in the snapshot exist on all nodes
@@ -1264,7 +1268,8 @@ public class VersionsResource extends ApplicationResource {
                 @Authorization(value = "Write - /process-groups/{uuid}"),
                 @Authorization(value = "Read - /{component-type}/{uuid} - For all encapsulated components"),
                 @Authorization(value = "Write - /{component-type}/{uuid} - For all encapsulated components"),
-                @Authorization(value = "Write - if the template contains any restricted components - /restricted-components")
+                @Authorization(value = "Write - if the template contains any restricted components - /restricted-components"),
+                @Authorization(value = "Read - /parameter-contexts/{uuid} - For any Parameter Context that is referenced by a Property that is changed, added, or removed")
             })
     @ApiResponses(value = {
         @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
@@ -1350,6 +1355,8 @@ public class VersionsResource extends ApplicationResource {
                     final ComponentAuthorizable restrictedComponentAuthorizable = lookup.getConfigurableComponent(restrictedComponent);
                     authorizeRestrictions(authorizer, restrictedComponentAuthorizable);
                 });
+
+                AuthorizeParameterReference.authorizeParameterReferences(groupContents, groupAuthorizable.getProcessGroup(), authorizer, user);
             },
             () -> {
                 // Step 3: Verify that all components in the snapshot exist on all nodes

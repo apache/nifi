@@ -2819,6 +2819,13 @@ public final class StandardProcessGroup implements ProcessGroup {
                 }
             }
 
+            final ParameterContext currentParameterContext = getParameterContext();
+            final String currentParameterContextId = currentParameterContext == null ? null : currentParameterContext.getIdentifier();
+            final ParameterContext destinationParameterContext = newProcessGroup.getParameterContext();
+            final String destinationParameterContextId = destinationParameterContext == null ? null : destinationParameterContext.getIdentifier();
+
+            final boolean parameterContextsDiffer = !Objects.equals(currentParameterContextId, destinationParameterContextId);
+
             final Set<ProcessorNode> processors = findAllProcessors(snippet);
             for (final ProcessorNode processorNode : processors) {
                 for (final PropertyDescriptor descriptor : processorNode.getProperties().keySet()) {
@@ -2840,6 +2847,14 @@ public final class StandardProcessGroup implements ProcessGroup {
                                         + " references a service that is not available in the destination Process Group");
                             }
                         }
+                    }
+
+                    // If Parameter is used and the Parameter Contexts are different, then the Processor must be stopped.
+                    if (parameterContextsDiffer && processorNode.isRunning() && processorNode.isReferencingParameter()) {
+                        throw new IllegalStateException("Cannot perform Move Operation because Processor with ID " + processorNode.getIdentifier() + " references one or more Parameters, and the " +
+                            "Processor is running, and the destination Process Group is bound to a different Parameter Context that the current Process Group. This would result in changing the " +
+                            "configuration of the Processor while it is running, which is not allowed. You must first stop the Processor before moving it to another Process Group if the " +
+                            "destination's Parameter Context is not the same.");
                     }
                 }
             }

@@ -24,11 +24,15 @@ import io.swagger.annotations.ApiResponses;
 import io.swagger.annotations.Authorization;
 import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.authorization.AuthorizableLookup;
+import org.apache.nifi.authorization.AuthorizeParameterReference;
 import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.ComponentAuthorizable;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.SnippetAuthorizable;
 import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
+import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.api.dto.SnippetDTO;
@@ -272,16 +276,25 @@ public class SnippetResource extends ApplicationResource {
                 requestSnippetEntity,
                 requestRevisions,
                 lookup -> {
+                    final NiFiUser user = NiFiUserUtils.getNiFiUser();
+
                     // ensure write access to the target process group
                     if (requestSnippetDTO.getParentGroupId() != null) {
-                        lookup.getProcessGroup(requestSnippetDTO.getParentGroupId()).getAuthorizable().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                        lookup.getProcessGroup(requestSnippetDTO.getParentGroupId()).getAuthorizable().authorize(authorizer, RequestAction.WRITE, user);
                     }
 
                     // ensure write permission to every component in the snippet excluding referenced services
                     final SnippetAuthorizable snippet = lookup.getSnippet(snippetId);
                     authorizeSnippet(snippet, authorizer, lookup, RequestAction.WRITE, false, false);
+
+                    final ProcessGroup destinationGroup = lookup.getProcessGroup(requestSnippetDTO.getParentGroupId()).getProcessGroup();
+                    final ProcessGroup sourceGroup = snippet.getParentProcessGroup().getProcessGroup();
+
+                    for (final ComponentAuthorizable componentAuthorizable : snippet.getSelectedProcessors()) {
+                        AuthorizeParameterReference.authorizeParameterReferences(sourceGroup, destinationGroup, componentAuthorizable, authorizer, user);
+                    }
                 },
-                () -> serviceFacade.verifyUpdateSnippet(requestSnippetDTO, requestRevisions.stream().map(rev -> rev.getComponentId()).collect(Collectors.toSet())),
+                () -> serviceFacade.verifyUpdateSnippet(requestSnippetDTO, requestRevisions.stream().map(Revision::getComponentId).collect(Collectors.toSet())),
                 (revisions, snippetEntity) -> {
                     // update the snippet
                     final SnippetEntity entity = serviceFacade.updateSnippet(revisions, snippetEntity.getSnippet());
@@ -353,7 +366,7 @@ public class SnippetResource extends ApplicationResource {
                     authorizeSnippet(snippet, authorizer, lookup, RequestAction.WRITE, true, false);
 
                     // ensure write permission to the parent process group
-                    snippet.getParentProcessGroup().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                    snippet.getParentProcessGroup().getAuthorizable().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                 },
                 () -> serviceFacade.verifyDeleteSnippet(snippetId, requestRevisions.stream().map(rev -> rev.getComponentId()).collect(Collectors.toSet())),
                 (revisions, entity) -> {

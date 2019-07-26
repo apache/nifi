@@ -28,6 +28,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.AuthorizableLookup;
 import org.apache.nifi.authorization.AuthorizeAccess;
 import org.apache.nifi.authorization.AuthorizeControllerServiceReference;
+import org.apache.nifi.authorization.AuthorizeParameterReference;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.ComponentAuthorizable;
 import org.apache.nifi.authorization.ProcessGroupAuthorizable;
@@ -1999,8 +2000,15 @@ public class ProcessGroupResource extends ApplicationResource {
                 lookup -> {
                     final NiFiUser user = NiFiUserUtils.getNiFiUser();
 
-                    final Authorizable processGroup = lookup.getProcessGroup(groupId).getAuthorizable();
+                    final ProcessGroupAuthorizable groupAuthorizable = lookup.getProcessGroup(groupId);
+                    final Authorizable processGroup = groupAuthorizable.getAuthorizable();
                     processGroup.authorize(authorizer, RequestAction.WRITE, user);
+
+                    final Authorizable parameterContext = groupAuthorizable.getProcessGroup().getParameterContext();
+                    final ProcessorConfigDTO configDto = requestProcessor.getConfig();
+                    if (parameterContext != null && configDto != null) {
+                        AuthorizeParameterReference.authorizeParameterReferences(configDto.getProperties(), Collections.emptyMap(), authorizer, parameterContext, user);
+                    }
 
                     ComponentAuthorizable authorizable = null;
                     try {
@@ -3331,7 +3339,8 @@ public class ProcessGroupResource extends ApplicationResource {
                     final NiFiUser user = NiFiUserUtils.getNiFiUser();
 
                     // ensure write on the group
-                    final Authorizable processGroup = lookup.getProcessGroup(groupId).getAuthorizable();
+                    final ProcessGroupAuthorizable groupAuthorizable = lookup.getProcessGroup(groupId);
+                    final Authorizable processGroup = groupAuthorizable.getAuthorizable();
                     processGroup.authorize(authorizer, RequestAction.WRITE, user);
 
                     final Authorizable template = lookup.getTemplate(requestInstantiateTemplateRequestEntity.getTemplateId());
@@ -3349,6 +3358,11 @@ public class ProcessGroupResource extends ApplicationResource {
                     // ensure restricted access if necessary
                     templateContents.getEncapsulatedProcessors().forEach(authorizeRestricted);
                     templateContents.getEncapsulatedControllerServices().forEach(authorizeRestricted);
+
+                    final Authorizable parameterContext = groupAuthorizable.getProcessGroup().getParameterContext();
+                    if (parameterContext != null) {
+                        AuthorizeParameterReference.authorizeParameterReferences(requestInstantiateTemplateRequestEntity.getSnippet(), authorizer, parameterContext, user);
+                    }
                 },
                 () -> serviceFacade.verifyCanInstantiate(groupId, requestInstantiateTemplateRequestEntity.getSnippet()),
                 instantiateTemplateRequestEntity -> {
@@ -3760,8 +3774,14 @@ public class ProcessGroupResource extends ApplicationResource {
                 lookup -> {
                     final NiFiUser user = NiFiUserUtils.getNiFiUser();
 
-                    final Authorizable processGroup = lookup.getProcessGroup(groupId).getAuthorizable();
+                    final ProcessGroupAuthorizable groupAuthorizable = lookup.getProcessGroup(groupId);
+                    final Authorizable processGroup = groupAuthorizable.getAuthorizable();
                     processGroup.authorize(authorizer, RequestAction.WRITE, user);
+
+                    final Authorizable parameterContext = groupAuthorizable.getProcessGroup().getParameterContext();
+                    if (parameterContext != null) {
+                        AuthorizeParameterReference.authorizeParameterReferences(requestControllerService.getProperties(), Collections.emptyMap(), authorizer, parameterContext, user);
+                    }
 
                     ComponentAuthorizable authorizable = null;
                     try {

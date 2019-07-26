@@ -381,8 +381,8 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
 
         return new SnippetAuthorizable() {
             @Override
-            public Authorizable getParentProcessGroup() {
-                return processGroup;
+            public ProcessGroupAuthorizable getParentProcessGroup() {
+                return new StandardProcessGroupAuthorizable(processGroup, controllerFacade.getExtensionManager());
             }
 
             @Override
@@ -818,6 +818,11 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
         }
 
         @Override
+        public String getRawValue(final PropertyDescriptor propertyDescriptor) {
+            return null;
+        }
+
+        @Override
         public PropertyDescriptor getPropertyDescriptor(String propertyName) {
             return configurableComponent.getPropertyDescriptor(propertyName);
         }
@@ -876,6 +881,11 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
         }
 
         @Override
+        public String getRawValue(final PropertyDescriptor propertyDescriptor) {
+            return processorNode.getRawPropertyValue(propertyDescriptor);
+        }
+
+        @Override
         public PropertyDescriptor getPropertyDescriptor(String propertyName) {
             return processorNode.getPropertyDescriptor(propertyName);
         }
@@ -926,6 +936,11 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
         @Override
         public String getValue(PropertyDescriptor propertyDescriptor) {
             return controllerServiceNode.getEffectivePropertyValue(propertyDescriptor);
+        }
+
+        @Override
+        public String getRawValue(final PropertyDescriptor propertyDescriptor) {
+            return controllerServiceNode.getRawPropertyValue(propertyDescriptor);
         }
 
         @Override
@@ -982,6 +997,11 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
         }
 
         @Override
+        public String getRawValue(final PropertyDescriptor propertyDescriptor) {
+            return reportingTaskNode.getRawPropertyValue(propertyDescriptor);
+        }
+
+        @Override
         public PropertyDescriptor getPropertyDescriptor(String propertyName) {
             return reportingTaskNode.getReportingTask().getPropertyDescriptor(propertyName);
         }
@@ -1008,6 +1028,11 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
 
         @Override
         public Authorizable getAuthorizable() {
+            return processGroup;
+        }
+
+        @Override
+        public ProcessGroup getProcessGroup() {
             return processGroup;
         }
 

@@ -76,6 +76,14 @@ public interface ComponentAuthorizable {
     String getValue(PropertyDescriptor propertyDescriptor);
 
     /**
+     * Returns the currently configured value of the specified property without performing Parameter substitution
+     *
+     * @param propertyDescriptor property descriptor
+     * @return value
+     */
+    String getRawValue(PropertyDescriptor propertyDescriptor);
+
+    /**
      * Cleans up any resources resulting from the creation of these temporary components.
      */
     void cleanUpResources();
