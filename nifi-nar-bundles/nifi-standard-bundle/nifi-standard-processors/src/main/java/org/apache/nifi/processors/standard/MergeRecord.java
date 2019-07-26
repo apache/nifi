@@ -179,6 +179,7 @@ public class MergeRecord extends AbstractSessionFactoryProcessor {
         .required(true)
         .defaultValue("1")
         .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .build();
     public static final PropertyDescriptor MAX_RECORDS = new PropertyDescriptor.Builder()
         .name("max-records")
@@ -188,6 +189,7 @@ public class MergeRecord extends AbstractSessionFactoryProcessor {
         .required(false)
         .defaultValue("1000")
         .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .build();
     public static final PropertyDescriptor MAX_BIN_COUNT = new PropertyDescriptor.Builder()
         .name("max.bin.count")
@@ -268,8 +270,8 @@ public class MergeRecord extends AbstractSessionFactoryProcessor {
     protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         final List<ValidationResult> results = new ArrayList<>();
 
-        final Integer minRecords = validationContext.getProperty(MIN_RECORDS).asInteger();
-        final Integer maxRecords = validationContext.getProperty(MAX_RECORDS).asInteger();
+        final Integer minRecords = validationContext.getProperty(MIN_RECORDS).evaluateAttributeExpressions().asInteger();
+        final Integer maxRecords = validationContext.getProperty(MAX_RECORDS).evaluateAttributeExpressions().asInteger();
         if (minRecords != null && maxRecords != null && maxRecords < minRecords) {
             results.add(new ValidationResult.Builder()
                 .subject("Max Records")
@@ -277,6 +279,22 @@ public class MergeRecord extends AbstractSessionFactoryProcessor {
                 .valid(false)
                 .explanation("<Maximum Number of Records> property cannot be smaller than <Minimum Number of Records> property")
                 .build());
+        }
+        if (minRecords != null && minRecords <= 0) {
+            results.add(new ValidationResult.Builder()
+                    .subject("Min Records")
+                    .input(String.valueOf(minRecords))
+                    .valid(false)
+                    .explanation("<Minimum Number of Records> property cannot be negative or zero")
+                    .build());
+        }
+        if (maxRecords != null && maxRecords <= 0) {
+            results.add(new ValidationResult.Builder()
+                    .subject("Max Records")
+                    .input(String.valueOf(maxRecords))
+                    .valid(false)
+                    .explanation("<Maximum Number of Records> property cannot be negative or zero")
+                    .build());
         }
 
         final Double minSize = validationContext.getProperty(MIN_SIZE).asDataSize(DataUnit.B);
