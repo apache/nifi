@@ -33,7 +33,16 @@
                             <input type="text" id="process-group-name" class="setting-input"/>
                         </div>
                         <div class="read-only setting-field">
-                            <span id="read-only-process-group-name"></span>
+                            <span id="read-only-process-group-name" class="unset"></span>
+                        </div>
+                    </div>
+                    <div class="setting">
+                        <div class="setting-name">Process group parameter context</div>
+                        <div class="editable setting-field">
+                            <div id="process-group-parameter-context-combo"></div>
+                        </div>
+                        <div class="read-only setting-field">
+                            <span id="read-only-process-group-parameter-context" class="unset">Unauthorized</span>
                         </div>
                     </div>
                     <div class="setting">
@@ -42,7 +51,7 @@
                             <textarea id="process-group-comments" class="setting-input"></textarea>
                         </div>
                         <div class="read-only setting-field">
-                            <span id="read-only-process-group-comments"></span>
+                            <span id="read-only-process-group-comments" class="unset"></span>
                         </div>
                     </div>
                     <div class="editable settings-buttons">

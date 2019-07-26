@@ -15,8 +15,7 @@
  * limitations under the License.
  */
 
-#process-group-configuration {
-    display: none;
+#parameter-contexts {
     position: absolute;
     top: 0px;
     bottom: 0px;
@@ -25,34 +24,61 @@
     overflow: auto;
 }
 
-#add-process-group-configuration-controller-service {
-    float: right;
-}
-
-/* settings tabs */
-
-#process-group-configuration-tabs {
-    float: left;
-}
-
-#process-group-configuration-tabs-content {
-    top: 53px;
-    bottom: 52px;
-}
-
-#process-group-refresh-container {
+#new-parameter-context {
     position: absolute;
-    bottom: 20px;
+    right: 0;
+    top: 26px;
+}
+
+div.parameter-contexts-header-text {
+    height: 28px;
+    font-size: 18px;
+    font-weight: bold;
+    color: #728E9B;
+    margin-bottom: 30px;
+}
+
+div.parameter-contexts-container {
+    padding: 0;
+    position: absolute;
+    top: 58px;
+    bottom: 52px;
     left: 0px;
     right: 0px;
+}
+
+#parameter-contexts-refresh-container {
+    position: absolute;
+    bottom: 20px;
+    right: 0px;
+    left: 0px;
     height: 32px;
 }
 
-#process-group-configuration-refresh-button {
+div.parameter-contexts-table {
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    bottom: 20px;
+    right: 0px;
+    min-height: 150px;
+}
+
+#parameter-contexts-table div.slick-viewport {
+    overflow-x: hidden !important;
+}
+
+span.sorted {
+    text-decoration: underline;
+}
+
+div.parameter-contexts-refresh-button {
+    height: 24px;
+    width: 26px;
     float: left;
 }
 
-#process-group-configuration-loading-container {
+#parameter-contexts-loading-container {
     float: left;
     width: 16px;
     height: 16px;
@@ -61,38 +87,6 @@
     margin-left: 3px;
 }
 
-#process-group-configuration-last-refreshed {
-    color: #775351;
+#parameter-contexts-last-refreshed {
     font-weight: 500;
-}
-
-#flow-cs-availability {
-    float: right;
-    margin-top: 8px;
-    color: #775351;
-    font-family: Roboto;
-    font-size: 13px;
-}
-
-/* general */
-
-#general-process-group-configuration input, #general-process-group-configuration textarea {
-    width: 350px;
-    vertical-align: middle;
-}
-
-#process-group-parameter-context-combo {
-    width: 328px;
-}
-
-#process-group-comments {
-    height: 100px;
-}
-
-#read-only-process-group-comments {
-    white-space: pre-wrap;
-}
-
-#process-group-controller-services-tab-content {
-    top: 32px;
 }
