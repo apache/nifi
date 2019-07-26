@@ -155,7 +155,8 @@ public class PutS3Object extends AbstractS3Processor {
     public static final PropertyDescriptor STORAGE_CLASS = new PropertyDescriptor.Builder()
         .name("Storage Class")
         .required(true)
-        .allowableValues(StorageClass.Standard.name(), StorageClass.ReducedRedundancy.name())
+        .allowableValues(StorageClass.Standard.name(), StorageClass.IntelligentTiering.name(), StorageClass.StandardInfrequentAccess.name(),
+                StorageClass.OneZoneInfrequentAccess.name(), StorageClass.Glacier.name(), StorageClass.DeepArchive.name(), StorageClass.ReducedRedundancy.name())
         .defaultValue(StorageClass.Standard.name())
         .build();
 
@@ -512,9 +513,10 @@ public class PutS3Object extends AbstractS3Processor {
                                 if (result.getExpirationTime() != null) {
                                     attributes.put(S3_EXPIRATION_ATTR_KEY, result.getExpirationTime().toString());
                                 }
-                                if (result.getMetadata().getRawMetadata().keySet().contains(S3_STORAGECLASS_META_KEY)) {
-                                    attributes.put(S3_STORAGECLASS_ATTR_KEY,
-                                            result.getMetadata().getRawMetadataValue(S3_STORAGECLASS_META_KEY).toString());
+                                if (result.getMetadata().getStorageClass() != null) {
+                                    attributes.put(S3_STORAGECLASS_ATTR_KEY, result.getMetadata().getStorageClass());
+                                } else {
+                                    attributes.put(S3_STORAGECLASS_ATTR_KEY, StorageClass.Standard.toString());
                                 }
                                 if (userMetadata.size() > 0) {
                                     StringBuilder userMetaBldr = new StringBuilder();
