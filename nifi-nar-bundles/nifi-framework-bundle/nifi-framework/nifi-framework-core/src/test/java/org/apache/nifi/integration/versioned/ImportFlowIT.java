@@ -41,6 +41,7 @@ import org.junit.Test;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -136,13 +137,13 @@ public class ImportFlowIT extends FrameworkIntegrationTest {
 
         final Set<VersionedProcessor> versionedProcessors = new HashSet<>();
         for (final ProcessorNode processor : processors) {
-            final VersionedProcessor versionedProcessor = flowMapper.mapProcessor(processor, getFlowController().getControllerServiceProvider());
+            final VersionedProcessor versionedProcessor = flowMapper.mapProcessor(processor, getFlowController().getControllerServiceProvider(), Collections.emptySet(), new HashMap<>());
             versionedProcessors.add(versionedProcessor);
         }
 
         final Set<VersionedControllerService> services = new HashSet<>();
         for (final ControllerServiceNode serviceNode : controllerServices) {
-            final VersionedControllerService service = flowMapper.mapControllerService(serviceNode, getFlowController().getControllerServiceProvider());
+            final VersionedControllerService service = flowMapper.mapControllerService(serviceNode, getFlowController().getControllerServiceProvider(), Collections.emptySet(), new HashMap<>());
             services.add(service);
         }
 
