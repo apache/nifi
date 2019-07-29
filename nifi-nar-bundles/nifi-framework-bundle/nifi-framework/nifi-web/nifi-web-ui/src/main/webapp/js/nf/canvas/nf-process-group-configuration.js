@@ -325,6 +325,10 @@
                                             options.push(createNewParameterContextOption);
                                         }
 
+                                        comboOptions.selectedOption = {
+                                            value: parameterContextEntity.component.id
+                                        };
+
                                         combo.combo('destroy').combo(comboOptions);
                                     });
                                 }
