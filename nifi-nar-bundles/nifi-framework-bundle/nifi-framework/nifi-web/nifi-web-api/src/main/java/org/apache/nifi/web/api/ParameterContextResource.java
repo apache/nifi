@@ -110,8 +110,8 @@ public class ParameterContextResource extends ApplicationResource {
     private ComponentLifecycle clusterComponentLifecycle;
     private ComponentLifecycle localComponentLifecycle;
 
-    private RequestManager<ParameterContextEntity> updateRequestManager = new AsyncRequestManager<>(100, TimeUnit.MINUTES.toMillis(1L), "Parameter Context Update Thread");
-    private RequestManager<ComponentValidationResultsEntity> validationRequestManager = new AsyncRequestManager<>(100, TimeUnit.MINUTES.toMillis(1L),
+    private RequestManager<ParameterContextEntity, ParameterContextEntity> updateRequestManager = new AsyncRequestManager<>(100, TimeUnit.MINUTES.toMillis(1L), "Parameter Context Update Thread");
+    private RequestManager<ParameterContextValidationRequestEntity, ComponentValidationResultsEntity> validationRequestManager = new AsyncRequestManager<>(100, TimeUnit.MINUTES.toMillis(1L),
         "Parameter Context Validation Thread");
 
 
@@ -388,6 +388,7 @@ public class ParameterContextResource extends ApplicationResource {
             this::submitUpdateRequest
         );
     }
+
 
     private void authorizeAffectedComponent(final AffectedComponentEntity entity, final AuthorizableLookup lookup, final NiFiUser user, final boolean requireRead, final boolean requireWrite) {
         final AffectedComponentDTO dto = entity.getComponent();
@@ -725,10 +726,11 @@ public class ParameterContextResource extends ApplicationResource {
         // Create an asynchronous request that will occur in the background, because this request may
         // result in stopping components, which can take an indeterminate amount of time.
         final String requestId = generateUuid();
-        final AsynchronousWebRequest<ComponentValidationResultsEntity> request = new StandardAsynchronousWebRequest<>(requestId, null, user, getValidationSteps());
+        final AsynchronousWebRequest<ParameterContextValidationRequestEntity, ComponentValidationResultsEntity> request = new StandardAsynchronousWebRequest<>(requestId, requestEntity, null, user,
+            getValidationSteps());
 
         // Submit the request to be performed in the background
-        final Consumer<AsynchronousWebRequest<ComponentValidationResultsEntity>> validationTask = asyncRequest -> {
+        final Consumer<AsynchronousWebRequest<ParameterContextValidationRequestEntity, ComponentValidationResultsEntity>> validationTask = asyncRequest -> {
             try {
                 final ComponentValidationResultsEntity resultEntity = validateComponents(requestEntity, user);
                 asyncRequest.markStepComplete(resultEntity);
@@ -774,10 +776,11 @@ public class ParameterContextResource extends ApplicationResource {
         // result in stopping components, which can take an indeterminate amount of time.
         final String requestId = UUID.randomUUID().toString();
         final String contextId = requestWrapper.getParameterContextEntity().getComponent().getId();
-        final AsynchronousWebRequest<ParameterContextEntity> request = new StandardAsynchronousWebRequest<>(requestId, contextId, requestWrapper.getUser(), getUpdateSteps());
+        final AsynchronousWebRequest<ParameterContextEntity, ParameterContextEntity> request = new StandardAsynchronousWebRequest<>(requestId, requestWrapper.getParameterContextEntity(), contextId,
+            requestWrapper.getUser(), getUpdateSteps());
 
         // Submit the request to be performed in the background
-        final Consumer<AsynchronousWebRequest<ParameterContextEntity>> updateTask = asyncRequest -> {
+        final Consumer<AsynchronousWebRequest<ParameterContextEntity, ParameterContextEntity>> updateTask = asyncRequest -> {
             try {
                 final ParameterContextEntity updatedParameterContextEntity = updateParameterContext(asyncRequest, requestWrapper.getComponentLifecycle(), requestWrapper.getExampleUri(),
                     requestWrapper.getAffectedComponents(), requestWrapper.isReplicateRequest(), requestRevision, requestWrapper.getParameterContextEntity());
@@ -810,8 +813,8 @@ public class ParameterContextResource extends ApplicationResource {
     }
 
 
-    private ParameterContextEntity updateParameterContext(final AsynchronousWebRequest<ParameterContextEntity> asyncRequest, final ComponentLifecycle componentLifecycle, final URI uri,
-                                                          final Set<AffectedComponentEntity> affectedComponents,
+    private ParameterContextEntity updateParameterContext(final AsynchronousWebRequest<ParameterContextEntity, ParameterContextEntity> asyncRequest, final ComponentLifecycle componentLifecycle,
+                                                          final URI uri, final Set<AffectedComponentEntity> affectedComponents,
                                                           final boolean replicateRequest, final Revision revision, final ParameterContextEntity updatedContextEntity)
         throws LifecycleManagementException, ResumeFlowException {
 
@@ -863,7 +866,7 @@ public class ParameterContextResource extends ApplicationResource {
         return updatedEntity;
     }
 
-    private ParameterContextEntity performParameterContextUpdate(final AsynchronousWebRequest<?> asyncRequest, final URI exampleUri, final boolean replicateRequest, final Revision revision,
+    private ParameterContextEntity performParameterContextUpdate(final AsynchronousWebRequest<?, ?> asyncRequest, final URI exampleUri, final boolean replicateRequest, final Revision revision,
                                                final ParameterContextEntity updatedContext) throws LifecycleManagementException {
 
         if (replicateRequest) {
@@ -928,7 +931,7 @@ public class ParameterContextResource extends ApplicationResource {
     }
 
 
-    private void stopProcessors(final Set<AffectedComponentEntity> processors, final AsynchronousWebRequest<?> asyncRequest, final ComponentLifecycle componentLifecycle, final URI uri)
+    private void stopProcessors(final Set<AffectedComponentEntity> processors, final AsynchronousWebRequest<?, ?> asyncRequest, final ComponentLifecycle componentLifecycle, final URI uri)
         throws LifecycleManagementException {
 
         logger.info("Stopping {} Processors in order to update Parameter Context", processors.size());
@@ -937,7 +940,7 @@ public class ParameterContextResource extends ApplicationResource {
         componentLifecycle.scheduleComponents(uri, "root", processors, ScheduledState.STOPPED, stopComponentsPause, InvalidComponentAction.SKIP);
     }
 
-    private void restartProcessors(final Set<AffectedComponentEntity> processors, final AsynchronousWebRequest<?> asyncRequest, final ComponentLifecycle componentLifecycle, final URI uri)
+    private void restartProcessors(final Set<AffectedComponentEntity> processors, final AsynchronousWebRequest<?, ?> asyncRequest, final ComponentLifecycle componentLifecycle, final URI uri)
         throws ResumeFlowException, LifecycleManagementException {
 
         if (logger.isDebugEnabled()) {
@@ -963,7 +966,7 @@ public class ParameterContextResource extends ApplicationResource {
         }
     }
 
-    private void disableControllerServices(final Set<AffectedComponentEntity> controllerServices, final AsynchronousWebRequest<?> asyncRequest, final ComponentLifecycle componentLifecycle,
+    private void disableControllerServices(final Set<AffectedComponentEntity> controllerServices, final AsynchronousWebRequest<?, ?> asyncRequest, final ComponentLifecycle componentLifecycle,
                                            final URI uri) throws LifecycleManagementException {
 
         asyncRequest.markStepComplete();
@@ -973,7 +976,7 @@ public class ParameterContextResource extends ApplicationResource {
         componentLifecycle.activateControllerServices(uri, "root", controllerServices, ControllerServiceState.DISABLED, disableServicesPause, InvalidComponentAction.SKIP);
     }
 
-    private void enableControllerServices(final Set<AffectedComponentEntity> controllerServices, final AsynchronousWebRequest<?> asyncRequest, final ComponentLifecycle componentLifecycle,
+    private void enableControllerServices(final Set<AffectedComponentEntity> controllerServices, final AsynchronousWebRequest<?, ?> asyncRequest, final ComponentLifecycle componentLifecycle,
                                           final URI uri) throws LifecycleManagementException, ResumeFlowException {
         if (logger.isDebugEnabled()) {
             logger.debug("Re-Enabling {} Controller Services: {}", controllerServices.size(), controllerServices);
@@ -1025,7 +1028,7 @@ public class ParameterContextResource extends ApplicationResource {
 
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
 
-        final AsynchronousWebRequest<ComponentValidationResultsEntity> asyncRequest = validationRequestManager.getRequest(requestType, requestId, user);
+        final AsynchronousWebRequest<?, ComponentValidationResultsEntity> asyncRequest = validationRequestManager.getRequest(requestType, requestId, user);
         final ParameterContextValidationRequestEntity requestEntity = createValidationRequestEntity(asyncRequest, contextId, requestType, requestId);
         return generateOkResponse(requestEntity).build();
     }
@@ -1042,7 +1045,7 @@ public class ParameterContextResource extends ApplicationResource {
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
 
         // request manager will ensure that the current is the user that submitted this request
-        final AsynchronousWebRequest<ComponentValidationResultsEntity> asyncRequest = validationRequestManager.removeRequest(requestType, requestId, user);
+        final AsynchronousWebRequest<?, ComponentValidationResultsEntity> asyncRequest = validationRequestManager.removeRequest(requestType, requestId, user);
         if (asyncRequest == null) {
             throw new ResourceNotFoundException("Could not find request of type " + requestType + " with ID " + requestId);
         }
@@ -1055,7 +1058,7 @@ public class ParameterContextResource extends ApplicationResource {
         return generateOkResponse(requestEntity).build();
     }
 
-    private ParameterContextValidationRequestEntity createValidationRequestEntity(final AsynchronousWebRequest<ComponentValidationResultsEntity> asyncRequest, final String requestType,
+    private ParameterContextValidationRequestEntity createValidationRequestEntity(final AsynchronousWebRequest<?, ComponentValidationResultsEntity> asyncRequest, final String requestType,
                                                                                   final String contextId, final String requestId) {
         final ParameterContextValidationRequestDTO requestDto = new ParameterContextValidationRequestDTO();
 
@@ -1081,7 +1084,7 @@ public class ParameterContextResource extends ApplicationResource {
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
 
         // request manager will ensure that the current is the user that submitted this request
-        final AsynchronousWebRequest<ParameterContextEntity> asyncRequest = updateRequestManager.getRequest(requestType, requestId, user);
+        final AsynchronousWebRequest<ParameterContextEntity, ParameterContextEntity> asyncRequest = updateRequestManager.getRequest(requestType, requestId, user);
         final ParameterContextUpdateRequestEntity updateRequestEntity = createUpdateRequestEntity(asyncRequest, requestType, contextId, requestId);
         return generateOkResponse(updateRequestEntity).build();
     }
@@ -1098,7 +1101,7 @@ public class ParameterContextResource extends ApplicationResource {
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
 
         // request manager will ensure that the current is the user that submitted this request
-        final AsynchronousWebRequest<ParameterContextEntity> asyncRequest = updateRequestManager.removeRequest(requestType, requestId, user);
+        final AsynchronousWebRequest<ParameterContextEntity, ParameterContextEntity> asyncRequest = updateRequestManager.removeRequest(requestType, requestId, user);
         if (asyncRequest == null) {
             throw new ResourceNotFoundException("Could not find request of type " + requestType + " with ID " + requestId);
         }
@@ -1111,7 +1114,7 @@ public class ParameterContextResource extends ApplicationResource {
         return generateOkResponse(updateRequestEntity).build();
     }
 
-    private ParameterContextUpdateRequestEntity createUpdateRequestEntity(final AsynchronousWebRequest<ParameterContextEntity> asyncRequest, final String requestType,
+    private ParameterContextUpdateRequestEntity createUpdateRequestEntity(final AsynchronousWebRequest<ParameterContextEntity, ParameterContextEntity> asyncRequest, final String requestType,
                                                                           final String contextId, final String requestId) {
         final ParameterContextUpdateRequestDTO updateRequestDto = new ParameterContextUpdateRequestDTO();
         updateRequestDto.setComplete(asyncRequest.isComplete());
@@ -1132,20 +1135,18 @@ public class ParameterContextResource extends ApplicationResource {
         }
         updateRequestDto.setUpdateSteps(updateSteps);
 
-        // Populate the Affected Components
-        final ParameterContextEntity contextEntity = serviceFacade.getParameterContext(asyncRequest.getComponentId(), NiFiUserUtils.getNiFiUser());
-        final Set<AffectedComponentEntity> affectedComponents = new HashSet<>();
-        for (final ParameterEntity parameterEntity : contextEntity.getComponent().getParameters()) {
-            final ParameterDTO parameterDto = parameterEntity.getParameter();
-            if (parameterDto == null) {
-                continue;
+        final ParameterContextEntity initialRequest = asyncRequest.getRequest();
+        final Map<String, AffectedComponentEntity> affectedComponents = new HashMap<>();
+        for (final ParameterEntity entity : initialRequest.getComponent().getParameters()) {
+            for (final AffectedComponentEntity affectedComponentEntity : entity.getParameter().getReferencingComponents()) {
+                affectedComponents.put(affectedComponentEntity.getId(), affectedComponentEntity);
             }
-
-            affectedComponents.addAll(parameterDto.getReferencingComponents());
         }
 
-        updateRequestDto.setAffectedComponents(affectedComponents);
+        updateRequestDto.setAffectedComponents(new HashSet<>(affectedComponents.values()));
 
+        // Populate the Affected Components
+        final ParameterContextEntity contextEntity = serviceFacade.getParameterContext(asyncRequest.getComponentId(), NiFiUserUtils.getNiFiUser());
         final ParameterContextUpdateRequestEntity updateRequestEntity = new ParameterContextUpdateRequestEntity();
 
         // If the request is complete, include the new representation of the Parameter Context along with its new Revision. Otherwise, do not include the information, since it is 'stale'

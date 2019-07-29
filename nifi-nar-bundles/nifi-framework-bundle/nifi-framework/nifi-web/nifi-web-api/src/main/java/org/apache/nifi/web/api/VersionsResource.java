@@ -121,7 +121,8 @@ public class VersionsResource extends ApplicationResource {
     private ComponentLifecycle localComponentLifecycle;
     private DtoFactory dtoFactory;
 
-    private RequestManager<VersionControlInformationEntity> requestManager = new AsyncRequestManager<>(100, TimeUnit.MINUTES.toMillis(1L), "Version Control Update Thread");
+    private RequestManager<VersionControlInformationEntity, VersionControlInformationEntity> requestManager = new AsyncRequestManager<>(100, TimeUnit.MINUTES.toMillis(1L),
+        "Version Control Update Thread");
 
     // We need to ensure that only a single Version Control Request can occur throughout the flow.
     // Otherwise, User 1 could log into Node 1 and choose to Version Control Group A.
@@ -902,7 +903,7 @@ public class VersionsResource extends ApplicationResource {
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
 
         // request manager will ensure that the current is the user that submitted this request
-        final AsynchronousWebRequest<VersionControlInformationEntity> asyncRequest = requestManager.getRequest(requestType, requestId, user);
+        final AsynchronousWebRequest<VersionControlInformationEntity, VersionControlInformationEntity> asyncRequest = requestManager.getRequest(requestType, requestId, user);
 
         final VersionedFlowUpdateRequestDTO updateRequestDto = new VersionedFlowUpdateRequestDTO();
         updateRequestDto.setComplete(asyncRequest.isComplete());
@@ -1005,7 +1006,7 @@ public class VersionsResource extends ApplicationResource {
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
 
         // request manager will ensure that the current is the user that submitted this request
-        final AsynchronousWebRequest<VersionControlInformationEntity> asyncRequest = requestManager.removeRequest(requestType, requestId, user);
+        final AsynchronousWebRequest<VersionControlInformationEntity, VersionControlInformationEntity> asyncRequest = requestManager.removeRequest(requestType, requestId, user);
         if (asyncRequest == null) {
             throw new ResourceNotFoundException("Could not find request of type " + requestType + " with ID " + requestId);
         }
@@ -1195,10 +1196,11 @@ public class VersionsResource extends ApplicationResource {
                 // Create an asynchronous request that will occur in the background, because this request may
                 // result in stopping components, which can take an indeterminate amount of time.
                 final String requestId = UUID.randomUUID().toString();
-                final AsynchronousWebRequest<VersionControlInformationEntity> request = new StandardAsynchronousWebRequest<>(requestId, groupId, user, getUpdateSteps());
+                final AsynchronousWebRequest<VersionControlInformationEntity, VersionControlInformationEntity> request = new StandardAsynchronousWebRequest<>(requestId, requestEntity, groupId, user,
+                    getUpdateSteps());
 
                 // Submit the request to be performed in the background
-                final Consumer<AsynchronousWebRequest<VersionControlInformationEntity>> updateTask = vcur -> {
+                final Consumer<AsynchronousWebRequest<VersionControlInformationEntity, VersionControlInformationEntity>> updateTask = vcur -> {
                     try {
                         final VersionControlInformationEntity updatedVersionControlEntity = updateFlowVersion(groupId, wrapper.getComponentLifecycle(), wrapper.getExampleUri(),
                             wrapper.getAffectedComponents(), wrapper.isReplicateRequest(), revision, wrapper.getVersionControlInformationEntity(), wrapper.getFlowSnapshot(), request,
@@ -1392,10 +1394,11 @@ public class VersionsResource extends ApplicationResource {
                 // Create an asynchronous request that will occur in the background, because this request may
                 // result in stopping components, which can take an indeterminate amount of time.
                 final String requestId = UUID.randomUUID().toString();
-                final AsynchronousWebRequest<VersionControlInformationEntity> request = new StandardAsynchronousWebRequest<>(requestId, groupId, user, getUpdateSteps());
+                final AsynchronousWebRequest<VersionControlInformationEntity, VersionControlInformationEntity> request = new StandardAsynchronousWebRequest<>(requestId, requestEntity, groupId, user,
+                    getUpdateSteps());
 
                 // Submit the request to be performed in the background
-                final Consumer<AsynchronousWebRequest<VersionControlInformationEntity>> updateTask = vcur -> {
+                final Consumer<AsynchronousWebRequest<VersionControlInformationEntity, VersionControlInformationEntity>> updateTask = vcur -> {
                     try {
                         final VersionControlInformationEntity updatedVersionControlEntity = updateFlowVersion(groupId, wrapper.getComponentLifecycle(), wrapper.getExampleUri(),
                             wrapper.getAffectedComponents(), wrapper.isReplicateRequest(), revision, versionControlInformationEntity, wrapper.getFlowSnapshot(), request,
@@ -1438,7 +1441,7 @@ public class VersionsResource extends ApplicationResource {
 
     private VersionControlInformationEntity updateFlowVersion(final String groupId, final ComponentLifecycle componentLifecycle, final URI exampleUri,
         final Set<AffectedComponentEntity> affectedComponents, final boolean replicateRequest, final Revision revision, final VersionControlInformationEntity requestEntity,
-        final VersionedFlowSnapshot flowSnapshot, final AsynchronousWebRequest<VersionControlInformationEntity> asyncRequest, final String idGenerationSeed,
+        final VersionedFlowSnapshot flowSnapshot, final AsynchronousWebRequest<VersionControlInformationEntity, VersionControlInformationEntity> asyncRequest, final String idGenerationSeed,
         final boolean verifyNotModified, final boolean updateDescendantVersionedFlows) throws LifecycleManagementException, ResumeFlowException {
 
         // Steps 6-7: Determine which components must be stopped and stop them.

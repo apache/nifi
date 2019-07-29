@@ -396,7 +396,7 @@ public class NiFiRegistryFlowMapper {
             versionedDescriptor.setIdentifiesControllerService(referencedServiceType != null);
 
             if (referencedServiceType != null) {
-                final String value = component.getProperty(descriptor);
+                final String value = component.getProperty(descriptor).getRawValue();
                 if (value != null) {
                     final ControllerServiceNode serviceNode = serviceProvider.getControllerServiceNode(value);
                     if (serviceNode == null) {

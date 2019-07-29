@@ -2670,13 +2670,15 @@ public final class DtoFactory {
 
     public Set<AffectedComponentEntity> createAffectedComponentEntities(final Set<ComponentNode> affectedComponents, final RevisionManager revisionManager) {
         return affectedComponents.stream()
-                .map(component -> {
-                    final AffectedComponentDTO affectedComponent = createAffectedComponentDto(component);
-                    final PermissionsDTO permissions = createPermissionsDto(component);
-                    final RevisionDTO revision = createRevisionDTO(revisionManager.getRevision(component.getIdentifier()));
-                    return entityFactory.createAffectedComponentEntity(affectedComponent, revision, permissions);
-                })
+                .map(component -> createAffectedComponentEntity(component, revisionManager))
                 .collect(Collectors.toSet());
+    }
+
+    public AffectedComponentEntity createAffectedComponentEntity(final ComponentNode componentNode, final RevisionManager revisionManager) {
+        final AffectedComponentDTO affectedComponent = createAffectedComponentDto(componentNode);
+        final PermissionsDTO permissions = createPermissionsDto(componentNode);
+        final RevisionDTO revision = createRevisionDTO(revisionManager.getRevision(componentNode.getIdentifier()));
+        return entityFactory.createAffectedComponentEntity(affectedComponent, revision, permissions);
     }
 
     public VariableRegistryDTO createVariableRegistryDto(final ProcessGroup processGroup, final RevisionManager revisionManager) {

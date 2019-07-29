@@ -24,11 +24,12 @@ import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 
-public class StandardAsynchronousWebRequest<T> implements AsynchronousWebRequest<T> {
+public class StandardAsynchronousWebRequest<R, T> implements AsynchronousWebRequest<R, T> {
     private final String id;
     private final String componentId;
     private final NiFiUser user;
     private final List<UpdateStep> updateSteps;
+    private final R request;
 
     private volatile boolean complete = false;
     private volatile Date lastUpdated = new Date();
@@ -40,15 +41,20 @@ public class StandardAsynchronousWebRequest<T> implements AsynchronousWebRequest
 
     private int currentStepIndex = 0;
 
-    public StandardAsynchronousWebRequest(final String requestId, final String componentId, final NiFiUser user, final List<UpdateStep> updateSteps) {
+    public StandardAsynchronousWebRequest(final String requestId, final R request, final String componentId, final NiFiUser user, final List<UpdateStep> updateSteps) {
         this.id = requestId;
         this.componentId = componentId;
         this.user = user;
         this.updateSteps = updateSteps;
+        this.request = request;
     }
 
     public synchronized UpdateStep getCurrentStep() {
         return (updateSteps == null || updateSteps.size() <= currentStepIndex) ? null : updateSteps.get(currentStepIndex);
+    }
+
+    public R getRequest() {
+        return request;
     }
 
     public String getRequestId() {

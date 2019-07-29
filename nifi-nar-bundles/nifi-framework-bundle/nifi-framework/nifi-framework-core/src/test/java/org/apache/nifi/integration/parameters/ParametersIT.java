@@ -39,6 +39,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 
@@ -328,5 +329,41 @@ public class ParametersIT extends FrameworkIntegrationTest {
         assertEquals("#unit", flowFile.getAttribute("3pound"));
         assertEquals("##{test}", flowFile.getAttribute("4pound"));
         assertEquals("##unit", flowFile.getAttribute("5pound"));
+    }
+
+    @Test
+    public void testParameterReferenceCounts() {
+        final ProcessorNode updateAttribute = createProcessorNode(UpdateAttributeWithEL.class);
+
+        final ParameterReferenceManager referenceManager = new StandardParameterReferenceManager(getFlowController().getFlowManager());
+        final ParameterContext parameterContext = new StandardParameterContext(UUID.randomUUID().toString(), "param-context", referenceManager, null);
+        parameterContext.setParameters(Collections.singleton(new Parameter(new ParameterDescriptor.Builder().name("test").build(), "unit")));
+
+        getRootGroup().setParameterContext(parameterContext);
+
+        final Map<String, String> properties = new HashMap<>();
+        properties.put("test", "#{test} #{test}");
+        updateAttribute.setProperties(properties);
+
+        final Set<String> allParamNames = Collections.singleton("test");
+
+        Set<String> referencedParameters = updateAttribute.getReferencedParameterNames();
+        assertEquals(allParamNames, referencedParameters);
+
+        properties.put("test", "#{test} #{test} #{test}");
+        updateAttribute.setProperties(properties);
+        referencedParameters = updateAttribute.getReferencedParameterNames();
+        assertEquals(allParamNames, referencedParameters);
+
+        properties.put("test", null);
+        updateAttribute.setProperties(properties);
+        referencedParameters = updateAttribute.getReferencedParameterNames();
+        assertEquals(Collections.emptySet(), referencedParameters);
+
+        properties.put("test", "#{test}");
+        updateAttribute.setProperties(properties);
+        referencedParameters = updateAttribute.getReferencedParameterNames();
+        assertEquals(allParamNames, referencedParameters);
+
     }
 }

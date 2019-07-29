@@ -22,7 +22,7 @@ import org.apache.nifi.authorization.user.NiFiUser;
 import java.util.Date;
 import java.util.List;
 
-public interface AsynchronousWebRequest<T> {
+public interface AsynchronousWebRequest<R, T> {
 
     /**
      * @return the ID of the component that the request is for
@@ -48,6 +48,8 @@ public interface AsynchronousWebRequest<T> {
     void markStepComplete(T results);
 
     String getState();
+
+    R getRequest();
 
     /**
      * @return the current percent complete, between 0 and 100 (inclusive)

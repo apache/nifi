@@ -1178,6 +1178,11 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         final Set<String> updatedParameterNames = getUpdatedParameterNames(parameterContextDto);
 
+        // Clear set of Affected Components for each Parameter. This parameter is read-only and it will be populated below.
+        for (final ParameterEntity parameterEntity : parameterContextDto.getParameters()) {
+            parameterEntity.getParameter().setReferencingComponents(new HashSet<>());
+        }
+
         final Set<ComponentNode> affectedComponents = new HashSet<>();
         for (final ProcessGroup group : groupsReferencingParameterContext) {
             for (final ProcessorNode processor : group.getProcessors()) {
@@ -1187,6 +1192,17 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
                     if (referencesUpdatedParam) {
                         affectedComponents.add(processor);
+
+                        final AffectedComponentEntity affectedComponentEntity = dtoFactory.createAffectedComponentEntity(processor, revisionManager);
+
+                        for (final String referencedParam : referencedParams) {
+                            for (final ParameterEntity paramEntity : parameterContextDto.getParameters()) {
+                                final ParameterDTO paramDto = paramEntity.getParameter();
+                                if (referencedParam.equals(paramDto.getName())) {
+                                    paramDto.getReferencingComponents().add(affectedComponentEntity);
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -1198,6 +1214,17 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
                     if (referencesUpdatedParam) {
                         affectedComponents.add(service);
+
+                        final AffectedComponentEntity affectedComponentEntity = dtoFactory.createAffectedComponentEntity(service, revisionManager);
+
+                        for (final String referencedParam : referencedParams) {
+                            for (final ParameterEntity paramEntity : parameterContextDto.getParameters()) {
+                                final ParameterDTO paramDto = paramEntity.getParameter();
+                                if (referencedParam.equals(paramDto.getName())) {
+                                    paramDto.getReferencingComponents().add(affectedComponentEntity);
+                                }
+                            }
+                        }
                     }
                 }
             }

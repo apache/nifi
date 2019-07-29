@@ -2915,6 +2915,10 @@ public final class StandardProcessGroup implements ProcessGroup {
     public void verifyCanSetParameterContext(final ParameterContext parameterContext) {
         readLock.lock();
         try {
+            if (Objects.equals(parameterContext, getParameterContext())) {
+                return;
+            }
+
             for (final ProcessorNode processor : processors.values()) {
                 final boolean referencingParam = processor.isReferencingParameter();
                 if (!referencingParam) {

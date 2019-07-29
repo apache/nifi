@@ -208,7 +208,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
                     final PropertyConfiguration currentConfiguration = this.properties.get(descriptor);
                     if (currentConfiguration != null) {
                         for (final ParameterReference reference : currentConfiguration.getParameterReferences()) {
-                            parameterReferenceCounts.merge(reference.getParameterName(), -1, (a, b) -> a.equals(b) ? null : a - b);
+                            parameterReferenceCounts.merge(reference.getParameterName(), -1, (a, b) -> a == 1 ? null : a + b);
                         }
                     }
 
