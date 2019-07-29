@@ -1580,6 +1580,38 @@ public class TestRecordPath {
         });
     }
 
+    @Test
+    public void testPadLeft() {
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("someString", RecordFieldType.STRING.getDataType()));
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        final Map<String, Object> values = new HashMap<>();
+        values.put("someString", "MyString");
+
+        final Record record = new MapRecord(schema, values);
+
+        assertEquals("##MyString", RecordPath.compile("padLeft(/someString, 10, '#')").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("__MyString", RecordPath.compile("padLeft(/someString, 10)").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("MyString", RecordPath.compile("padLeft(/someString, 3)").evaluate(record).getSelectedFields().findFirst().get().getValue());
+    }
+
+    @Test
+    public void testPadRight() {
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("someString", RecordFieldType.STRING.getDataType()));
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        final Map<String, Object> values = new HashMap<>();
+        values.put("someString", "MyString");
+
+        final Record record = new MapRecord(schema, values);
+
+        assertEquals("MyString##", RecordPath.compile("padRight(/someString, 10, '#')").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("MyString__", RecordPath.compile("padRight(/someString, 10)").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("MyString", RecordPath.compile("padRight(/someString, 3)").evaluate(record).getSelectedFields().findFirst().get().getValue());
+    }
+
     private List<RecordField> getDefaultFields() {
         final List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
