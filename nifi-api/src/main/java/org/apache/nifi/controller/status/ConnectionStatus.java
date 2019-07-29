@@ -45,6 +45,8 @@ public class ConnectionStatus implements Cloneable {
     private long nextPredictedQueuedBytes;
     private long predictedTimeToCountBackpressureMillis;
     private long predictedTimeToBytesBackpressureMillis;
+    private int predictedPercentCount = 0;
+    private int predictedPercentBytes = 0;
 
     public String getId() {
         return id;
@@ -230,6 +232,23 @@ public class ConnectionStatus implements Cloneable {
     public void setPredictedTimeToBytesBackpressureMillis(long predictedTimeToBytesBackpressureMillis) {
         this.predictedTimeToBytesBackpressureMillis = predictedTimeToBytesBackpressureMillis;
     }
+
+    public int getPredictedPercentCount() {
+        return predictedPercentCount;
+    }
+
+    public void setPredictedPercentCount(int predictedPercentCount) {
+        this.predictedPercentCount = predictedPercentCount;
+    }
+
+    public int getPredictedPercentBytes() {
+        return predictedPercentBytes;
+    }
+
+    public void setPredictedPercentBytes(int predictedPercentBytes) {
+        this.predictedPercentBytes = predictedPercentBytes;
+    }
+
 
     @Override
     public ConnectionStatus clone() {

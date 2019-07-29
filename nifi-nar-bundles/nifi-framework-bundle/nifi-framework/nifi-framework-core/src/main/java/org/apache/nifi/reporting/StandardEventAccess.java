@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -343,12 +344,16 @@ public class StandardEventAccess implements UserAwareEventAccess {
             }
 
             if (statusAnalyticsEngine != null) {
-                StatusAnalytics statusAnalytics = statusAnalyticsEngine.getConnectionStatusAnalytics(conn.getIdentifier());
+                StatusAnalytics statusAnalytics =  statusAnalyticsEngine.getStatusAnalytics(conn.getIdentifier());
                 if (statusAnalytics != null) {
-                    connStatus.setPredictedTimeToBytesBackpressureMillis(statusAnalytics.getTimeToBytesBackpressureMillis());
-                    connStatus.setPredictedTimeToCountBackpressureMillis(statusAnalytics.getTimeToCountBackpressureMillis());
-                    connStatus.setNextPredictedQueuedBytes(statusAnalytics.getNextIntervalBytes());
-                    connStatus.setNextPredictedQueuedCount(statusAnalytics.getNextIntervalCount());
+                    Map<String,Long> predictions = statusAnalytics.getPredictions();
+                    connStatus.setPredictedTimeToBytesBackpressureMillis(predictions.get("timeToBytesBackpressureMillis"));
+                    connStatus.setPredictedTimeToCountBackpressureMillis(predictions.get("timeToCountBackpressureMillis"));
+                    connStatus.setNextPredictedQueuedBytes(predictions.get("nextIntervalBytes"));
+                    connStatus.setNextPredictedQueuedCount(predictions.get("nextIntervalCount").intValue());
+                    connStatus.setPredictedPercentCount(predictions.get("nextIntervalPercentageUseCount").intValue());
+                    connStatus.setPredictedPercentBytes(predictions.get("nextIntervalPercentageUseBytes").intValue());
+                    connStatus.setPredictionIntervalMillis(predictions.get("intervalTimeMillis"));
                 }
             }
 

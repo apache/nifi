@@ -16,32 +16,16 @@
  */
 package org.apache.nifi.controller.status.analytics;
 
+import java.util.Map;
+
 /**
  * The StatusAnalytics interface offers methods for accessing predicted and other values for a single component (Connection instance, e.g.)
  */
 public interface StatusAnalytics {
 
-    /**
-     * Returns the predicted time (in milliseconds) when backpressure is expected to be applied to this connection, based on the total number of bytes in the queue.
-     * @return milliseconds until backpressure is predicted to occur, based on the total number of bytes in the queue.
-     */
-    long getTimeToBytesBackpressureMillis();
+    QueryWindow getQueryWindow();
+    Map<String,Long> getPredictions();
+    boolean supportsOnlineLearning();
 
-    /**
-     * Returns the predicted time (in milliseconds) when backpressure is expected to be applied to this connection, based on the number of objects in the queue.
-     * @return milliseconds until backpressure is predicted to occur, based on the number of objects in the queue.
-     */
-    long getTimeToCountBackpressureMillis();
 
-    /**
-     * Returns the predicted total number of bytes in the queue to occur at the next configured interval (5 mins in the future, e.g.).
-     * @return milliseconds until backpressure is predicted to occur, based on the total number of bytes in the queue.
-     */
-    long getNextIntervalBytes();
-
-    /**
-     * Returns the predicted number of objects in the queue to occur at the next configured interval (5 mins in the future, e.g.).
-     * @return milliseconds until backpressure is predicted to occur, based on the number of bytes in the queue.
-     */
-    int getNextIntervalCount();
 }
