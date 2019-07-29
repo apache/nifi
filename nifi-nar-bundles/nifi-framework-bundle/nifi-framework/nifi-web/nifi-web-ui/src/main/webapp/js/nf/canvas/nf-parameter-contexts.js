@@ -922,6 +922,50 @@
                 }]);
             };
 
+            var updateToApplyOrCancelButtonModel = function () {
+                $('#parameter-context-dialog').modal('setButtonModel', [{
+                    buttonText: 'Apply',
+                    color: {
+                        base: '#728E9B',
+                        hover: '#004849',
+                        text: '#ffffff'
+                    },
+                    disabled: function () {
+                        if ($('#parameter-context-name').val() !== '') {
+                            return false;
+                        }
+                        return true;
+                    },
+                    handler: {
+                        click: function () {
+                            if ($('#parameter-referencing-components-container').is(':visible')) {
+                                updateReferencingComponentsBorder($('#parameter-referencing-components-container'));
+                            }
+
+                            updateParameterContexts(parameterContextEntity);
+                        }
+                    }
+                }, {
+                    buttonText: 'Cancel',
+                    color: {
+                        base: '#E3E8EB',
+                        hover: '#C7D2D7',
+                        text: '#004849'
+                    },
+                    handler: {
+                        click: function () {
+                            deferred.resolve();
+
+                            if ($('#parameter-referencing-components-container').is(':visible')) {
+                                updateReferencingComponentsBorder($('#parameter-referencing-components-container'));
+                            }
+
+                            close();
+                        }
+                    }
+                }]);
+            };
+
             var cancelled = false;
 
             // update the button model to show the cancel button
@@ -935,7 +979,12 @@
                 handler: {
                     click: function () {
                         cancelled = true;
-                        updateToCloseButtonModel()
+
+                        if ($('#parameter-referencing-components-container').is(':visible')) {
+                            updateReferencingComponentsBorder($('#parameter-referencing-components-container'));
+                        }
+
+                        updateToCloseButtonModel();
                     }
                 }
             }]);
@@ -950,8 +999,12 @@
                 // update the step status
                 $('#parameter-context-update-steps').find('div.parameter-context-step.ajax-loading').removeClass('ajax-loading').addClass('ajax-error');
 
+                if ($('#parameter-referencing-components-container').is(':visible')) {
+                    updateReferencingComponentsBorder($('#parameter-referencing-components-container'));
+                }
+
                 // update the button model
-                updateToCloseButtonModel();
+                updateToApplyOrCancelButtonModel();
             };
 
             submitUpdateRequest(parameterContextEntity).done(function (response) {
@@ -986,7 +1039,7 @@
                                     var affectedComponent = affectedComponentEntity.component;
 
                                     // reload the processor if it's in the current group
-                                    if (affectedComponent.referenceType === 'PROCESSOR' /*&& nfCanvasUtils.getGroupId() === affectedComponent.processGroupId*/) {
+                                    if (affectedComponent.referenceType === 'PROCESSOR' && nfCanvasUtils.getGroupId() === affectedComponent.processGroupId) {
                                         nfProcessor.reload(affectedComponent.id);
                                     }
                                 }
