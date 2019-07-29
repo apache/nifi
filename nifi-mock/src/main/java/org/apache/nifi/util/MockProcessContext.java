@@ -28,9 +28,9 @@ import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.controller.NodeTypeProvider;
+import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.SchedulingContext;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.state.MockStateManager;
 import org.junit.Assert;
@@ -48,7 +48,7 @@ import java.util.Set;
 
 import static java.util.Objects.requireNonNull;
 
-public class MockProcessContext extends MockControllerServiceLookup implements SchedulingContext, ControllerServiceLookup, NodeTypeProvider {
+public class MockProcessContext extends MockControllerServiceLookup implements ProcessContext, ControllerServiceLookup, NodeTypeProvider {
 
     private final ConfigurableComponent component;
     private final String componentName;
@@ -421,10 +421,6 @@ public class MockProcessContext extends MockControllerServiceLookup implements S
     @Override
     public ControllerServiceLookup getControllerServiceLookup() {
         return this;
-    }
-
-    @Override
-    public void leaseControllerService(final String identifier) {
     }
 
     @Override

@@ -29,9 +29,9 @@ import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.controller.NodeTypeProvider;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.SchedulingContext;
 import org.apache.nifi.registry.VariableRegistry;
 
 import java.io.File;
@@ -46,7 +46,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-public class StatelessProcessContext implements SchedulingContext, ControllerServiceInitializationContext, StatelessConnectionContext {
+public class StatelessProcessContext implements ProcessContext, ControllerServiceInitializationContext, StatelessConnectionContext {
 
     private final ConfigurableComponent component;
     private final String componentName;
@@ -314,10 +314,6 @@ public class StatelessProcessContext implements SchedulingContext, ControllerSer
     @Override
     public ControllerServiceLookup getControllerServiceLookup() {
         return this.lookup;
-    }
-
-    @Override
-    public void leaseControllerService(final String identifier) {
     }
 
     @Override
