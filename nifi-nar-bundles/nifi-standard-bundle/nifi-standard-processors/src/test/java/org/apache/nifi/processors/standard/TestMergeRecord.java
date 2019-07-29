@@ -536,4 +536,54 @@ public class TestMergeRecord {
         runner.removeProperty("min_records");
         runner.removeProperty("max_records");
     }
+
+    @Test
+    public void testNegativeMinAndMaxRecordsValidators(){
+
+        runner.setVariable("min_records", "-3");
+        runner.setVariable("max_records", "-1");
+
+        // This configuration breaks the "<Minimum Number of Records> property cannot be negative or zero" rule
+        runner.setProperty(MergeRecord.MIN_RECORDS, "${min_records}");
+        runner.setProperty(MergeRecord.MAX_RECORDS, "3");
+        runner.assertNotValid();
+
+        // This configuration breaks the "<Minimum Number of Records> property cannot be negative or zero" and the
+        // "<Maximum Number of Records> property cannot be negative or zero" rules
+        runner.setProperty(MergeRecord.MIN_RECORDS, "${min_records}");
+        runner.setProperty(MergeRecord.MAX_RECORDS, "${max_records}");
+        runner.assertNotValid();
+
+        // This configuration breaks the "<Maximum Number of Records> property cannot be smaller than <Minimum Number of Records> property"
+        // and the "<Maximum Number of Records> property cannot be negative or zero" rules
+        runner.setProperty(MergeRecord.MIN_RECORDS, "3");
+        runner.setProperty(MergeRecord.MAX_RECORDS, "${max_records}");
+        runner.assertNotValid();
+
+        // This configuration breaks the "<Maximum Number of Records> property cannot be smaller than <Minimum Number of Records> property"
+        // and the "<Maximum Number of Records> property cannot be negative or zero" rules
+        runner.removeProperty(MergeRecord.MIN_RECORDS); // Will use the default value of 1
+        runner.setProperty(MergeRecord.MAX_RECORDS, "${max_records}");
+        runner.assertNotValid();
+
+        // This configuration breaks the "<Maximum Number of Records> property cannot be smaller than <Minimum Number of Records> property",
+        // the "<Minimum Number of Records> property cannot be negative or zero" and the "<Maximum Number of Records>
+        // property cannot be negative or zero" rules
+        runner.setVariable("min_records", "-1");
+        runner.setVariable("max_records", "-3");
+        runner.setProperty(MergeRecord.MIN_RECORDS, "${min_records}");
+        runner.setProperty(MergeRecord.MAX_RECORDS, "${max_records}");
+        runner.assertNotValid();
+
+        // This configuration is valid
+        runner.setVariable("min_records", "1");
+        runner.setVariable("max_records", "5");
+        runner.setProperty(MergeRecord.MIN_RECORDS, "${min_records}");
+        runner.setProperty(MergeRecord.MAX_RECORDS, "${max_records}");
+        runner.assertValid();
+
+        runner.removeProperty("min_records");
+        runner.removeProperty("max_records");
+    }
+
 }
