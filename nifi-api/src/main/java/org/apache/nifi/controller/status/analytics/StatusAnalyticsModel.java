@@ -16,17 +16,12 @@
  */
 package org.apache.nifi.controller.status.analytics;
 
+import java.util.stream.Stream;
 
-/**
- * The ConnectionStatusAnalytics interface offers additional methods to the StatusAnalytics interface related to the supporting connection information (group ID, e.g.)
- */
-public interface ConnectionStatusAnalytics extends StatusAnalytics{
+public interface StatusAnalyticsModel {
 
-    String getGroupId();
-    String getId();
-    String getName();
-    String getSourceId();
-    String getSourceName();
-    String getDestinationId();
-    String getDestinationName();
+    void learn(Stream<Double> features, Stream<Double> labels);
+    Double predict(Double feature);
+    Boolean supportsOnlineLearning();
+
 }
