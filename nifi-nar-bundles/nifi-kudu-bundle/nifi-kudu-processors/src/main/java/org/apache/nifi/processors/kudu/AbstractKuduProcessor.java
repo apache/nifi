@@ -1,23 +1,41 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.nifi.processors.kudu;
 
-
-import org.apache.kudu.shaded.com.google.common.annotations.VisibleForTesting;
 import org.apache.kudu.ColumnSchema;
 import org.apache.kudu.Schema;
 import org.apache.kudu.Type;
 import org.apache.kudu.client.AsyncKuduClient;
+import org.apache.kudu.client.KuduScanner;
 import org.apache.kudu.client.KuduClient;
 import org.apache.kudu.client.KuduTable;
 import org.apache.kudu.client.KuduSession;
+import org.apache.kudu.client.KuduPredicate;
 import org.apache.kudu.client.KuduException;
 import org.apache.kudu.client.OperationResponse;
 import org.apache.kudu.client.PartialRow;
 import org.apache.kudu.client.RowError;
+import org.apache.kudu.client.RowResult;
 import org.apache.kudu.client.SessionConfiguration;
 import org.apache.kudu.client.Delete;
 import org.apache.kudu.client.Insert;
 import org.apache.kudu.client.Upsert;
 import org.apache.kudu.client.Update;
+import org.apache.kudu.shaded.com.google.common.annotations.VisibleForTesting;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyDescriptor.Builder;
@@ -25,6 +43,8 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.kerberos.KerberosCredentialsService;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processors.kudu.io.ResultHandler;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.security.krb.KerberosAction;
 import org.apache.nifi.security.krb.KerberosKeytabUser;
@@ -34,6 +54,7 @@ import org.apache.nifi.serialization.record.Record;
 import javax.security.auth.login.LoginException;
 import java.math.BigDecimal;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 
 public abstract class AbstractKuduProcessor extends AbstractProcessor {
@@ -242,4 +263,126 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
         return update;
     }
 
+    private void addPredicate(KuduScanner.KuduScannerBuilder scannerBuilder, KuduTable kuduTable, String column, Object value, String comparisonOp) {
+        ColumnSchema columnSchema = kuduTable.getSchema().getColumn(column);
+        KuduPredicate predicate = KuduPredicate.newComparisonPredicate(columnSchema, KuduPredicate.ComparisonOp.valueOf(comparisonOp), value);
+        scannerBuilder.addPredicate(predicate);
+    }
+
+    protected void scan(ProcessContext context, ProcessSession session, KuduTable kuduTable, String predicates, List<String> projectedColumnNames, ResultHandler handler) throws Exception {
+        KuduScanner.KuduScannerBuilder scannerBuilder = this.kuduClient.newScannerBuilder(kuduTable);
+        final String[] arrayPredicates = (predicates == null || predicates.isEmpty() ? new String[0] : predicates.split(","));
+
+        for(String column : arrayPredicates){
+            if (column.contains("=")) {
+                final String[] parts = column.split("=");
+                addPredicate(scannerBuilder, kuduTable, parts[0], parts[1], "EQUAL");
+            } else if(column.contains(">")) {
+                final String[] parts = column.split(">");
+                addPredicate(scannerBuilder, kuduTable, parts[0], parts[1], "GREATER");
+            } else if(column.contains("<")) {
+                final String[] parts = column.split("<");
+                addPredicate(scannerBuilder, kuduTable, parts[0], parts[1], "LESS");
+            } else if(column.contains(">=")) {
+                final String[] parts = column.split(">=");
+                addPredicate(scannerBuilder, kuduTable, parts[0], parts[1], "GREATER_EQUAL");
+            } else if(column.contains("<=")) {
+                final String[] parts = column.split("<=");
+                addPredicate(scannerBuilder, kuduTable, parts[0], parts[1], "LESS_EQUAL");
+            }
+        }
+
+        if(!projectedColumnNames.isEmpty()){
+            scannerBuilder.setProjectedColumnNames(projectedColumnNames);
+        }
+
+        KuduScanner scanner = scannerBuilder.build();
+        while (scanner.hasMoreRows()) {
+            handler.handle(scanner.nextRows());
+        }
+    }
+
+    /**
+     * Serializes a row from Kudu to a JSON document of the form:
+     *
+     * {
+     *    "rows": [
+     *      {
+     *          "columnname-1" : "value1",
+     *          "columnname-2" : "value2",
+     *          "columnname-3" : "value3",
+     *          "columnname-4" : "value4",
+     *      },
+     *      {
+     *          "columnname-1" : "value1",
+     *          "columnname-2" : "value2",
+     *          "columnname-3" : "value3",
+     *          "columnname-4" : "value4",
+     *      }
+     *    ]
+     * }
+     */
+    protected String convertToJson(Iterator<RowResult> rows) {
+        final StringBuilder jsonBuilder = new StringBuilder();
+        jsonBuilder.append("{");
+
+        jsonBuilder.append("\"rows\":[");
+        while (rows.hasNext()) {
+            RowResult result = rows.next();
+            jsonBuilder.append("{");
+
+            Iterator<ColumnSchema> columns = result.getSchema().getColumns().iterator();
+            while (columns.hasNext()) {
+                ColumnSchema col = columns.next();
+                jsonBuilder.append("\"" + col.getName() + "\":");
+                switch (col.getType()) {
+                    case STRING:
+                        jsonBuilder.append("\"" + result.getString(col.getName()) + "\"");
+                        break;
+                    case INT8:
+                        jsonBuilder.append("\"" + result.getInt(col.getName()) + "\"");
+                        break;
+                    case INT16:
+                        jsonBuilder.append("\"" + result.getInt(col.getName()) + "\"");
+                        break;
+                    case INT32:
+                        jsonBuilder.append("\"" + result.getInt(col.getName()) + "\"");
+                        break;
+                    case INT64:
+                        jsonBuilder.append("\"" + result.getLong(col.getName()) + "\"");
+                        break;
+                    case BOOL:
+                        jsonBuilder.append("\"" + result.getBoolean(col.getName()) + "\"");
+                        break;
+                    case DECIMAL:
+                        jsonBuilder.append("\"" + result.getDecimal(col.getName()) + "\"");
+                        break;
+                    case FLOAT:
+                        jsonBuilder.append("\"" + result.getFloat(col.getName()) + "\"");
+                        break;
+                    case UNIXTIME_MICROS:
+                        jsonBuilder.append("\"" + result.getLong(col.getName()) + "\"");
+                        break;
+                    case BINARY:
+                        jsonBuilder.append("\"" + result.getBinary(col.getName()) + "\"");
+                        break;
+                    default:
+                        break;
+                }
+                if(columns.hasNext())
+                    jsonBuilder.append(",");
+            }
+
+            jsonBuilder.append("}");
+            if (rows.hasNext()) {
+                jsonBuilder.append(", ");
+            }
+        }
+        // end row array
+        jsonBuilder.append("]");
+
+        // end overall document
+        jsonBuilder.append("}");
+        return jsonBuilder.toString();
+    }
 }

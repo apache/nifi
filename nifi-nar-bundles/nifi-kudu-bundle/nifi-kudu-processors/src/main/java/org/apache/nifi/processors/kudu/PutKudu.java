@@ -20,7 +20,6 @@ package org.apache.nifi.processors.kudu;
 import org.apache.kudu.client.KuduClient;
 import org.apache.kudu.client.KuduTable;
 import org.apache.kudu.client.KuduSession;
-import org.apache.kudu.client.KuduException;
 import org.apache.kudu.client.Operation;
 import org.apache.kudu.client.OperationResponse;
 import org.apache.kudu.client.RowError;
@@ -41,6 +40,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.kudu.io.OperationType;
 import org.apache.nifi.security.krb.KerberosAction;
 import org.apache.nifi.security.krb.KerberosUser;
 import org.apache.nifi.serialization.RecordReader;
@@ -70,7 +70,7 @@ import java.util.stream.Collectors;
 @WritesAttribute(attribute = "record.count", description = "Number of records written to Kudu")
 
 public class PutKudu extends AbstractKuduProcessor {
-  
+
     protected static final PropertyDescriptor TABLE_NAME = new Builder()
         .name("Table Name")
         .description("The name of the Kudu Table to put data into")
@@ -165,7 +165,7 @@ public class PutKudu extends AbstractKuduProcessor {
 
     protected OperationType operationType;
     protected SessionConfiguration.FlushMode flushMode;
-  
+
     protected int batchSize = 100;
     protected int ffbatch   = 1;
 
