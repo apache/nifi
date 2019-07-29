@@ -55,9 +55,13 @@ To start NiFi:
 
 ## Getting Help
 If you have questions, you can reach out to our mailing list: dev@nifi.apache.org
-([archive](http://mail-archives.apache.org/mod_mbox/nifi-dev)).
-We're also often available in IRC: #nifi on
-[irc.freenode.net](http://webchat.freenode.net/?channels=#nifi).
+([archive](http://mail-archives.apache.org/mod_mbox/nifi-dev)). For more interactive discussions, community members can often be found in the following locations:
+
+- Apache NiFi Slack Workspace: https://apachenifi.slack.com/
+
+  New users can join the workspace using the following [invite link](https://join.slack.com/t/apachenifi/shared_invite/enQtNDI2NDMyMTY3MTA5LWJmZDI3MmM1ZmYyODQwZDYwM2MyMDY5ZjkyMDkxY2JmOGMyNmEzYTE0MTRkZTYwYzZlYTJkY2JhZTYyMzcyZGI).
+
+- IRC: #nifi on [irc.freenode.net](http://webchat.freenode.net/?channels=#nifi)
 
 ## Requirements
 * JDK 1.8 or higher
@@ -81,28 +85,28 @@ limitations under the License.
 
 ## Export Control
 
-This distribution includes cryptographic software. The country in which you 
+This distribution includes cryptographic software. The country in which you
 currently reside may have restrictions on the import, possession, use, and/or
-re-export to another country, of encryption software. BEFORE using any 
-encryption software, please check your country's laws, regulations and 
+re-export to another country, of encryption software. BEFORE using any
+encryption software, please check your country's laws, regulations and
 policies concerning the import, possession, or use, and re-export of encryption
 software, to see if this is permitted. See <http://www.wassenaar.org/> for more
 information.
 
-The U.S. Government Department of Commerce, Bureau of Industry and Security 
-(BIS), has classified this software as Export Commodity Control Number (ECCN) 
-5D002.C.1, which includes information security software using or performing 
+The U.S. Government Department of Commerce, Bureau of Industry and Security
+(BIS), has classified this software as Export Commodity Control Number (ECCN)
+5D002.C.1, which includes information security software using or performing
 cryptographic functions with asymmetric algorithms. The form and manner of this
-Apache Software Foundation distribution makes it eligible for export under the 
+Apache Software Foundation distribution makes it eligible for export under the
 License Exception ENC Technology Software Unrestricted (TSU) exception (see the
 BIS Export Administration Regulations, Section 740.13) for both object code and
 source code.
 
-The following provides more details on the included cryptographic software: 
+The following provides more details on the included cryptographic software:
 
-Apache NiFi uses BouncyCastle, Jasypt, JCraft Inc., and the built-in 
+Apache NiFi uses BouncyCastle, Jasypt, JCraft Inc., and the built-in
 java cryptography libraries for SSL, SSH, and the protection
-of sensitive configuration parameters. See 
+of sensitive configuration parameters. See
 http://bouncycastle.org/about.html
 http://www.jasypt.org/faq.html
 http://jcraft.com/c-info.html

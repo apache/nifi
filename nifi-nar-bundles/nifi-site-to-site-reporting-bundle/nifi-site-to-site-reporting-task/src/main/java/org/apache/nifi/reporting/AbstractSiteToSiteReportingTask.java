@@ -285,7 +285,7 @@ public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingT
             final RecordSchema writeSchema = writerFactory.getSchema(null, recordSchema);
             final ByteArrayOutputStream out = new ByteArrayOutputStream();
 
-            try (final RecordSetWriter writer = writerFactory.createWriter(getLogger(), writeSchema, out)) {
+            try (final RecordSetWriter writer = writerFactory.createWriter(getLogger(), writeSchema, out, attributes)) {
                 writer.beginRecordSet();
 
                 Record record;

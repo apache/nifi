@@ -60,6 +60,7 @@ import java.sql.Blob;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.time.Duration;
+import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.AbstractMap;
 import java.util.ArrayList;
@@ -652,9 +653,8 @@ public class AvroTypeUtil {
 
                 if (LOGICAL_TYPE_DATE.equals(logicalType.getName())) {
                     final String format = AvroTypeUtil.determineDataType(fieldSchema).getFormat();
-                    final Date date = DataTypeUtils.toDate(rawValue, () -> DataTypeUtils.getDateFormat(format), fieldName);
-                    final Duration duration = Duration.between(new Date(0L).toInstant(), new Date(date.getTime()).toInstant());
-                    final long days = duration.toDays();
+                    final java.sql.Date date = DataTypeUtils.toDate(rawValue, () -> DataTypeUtils.getDateFormat(format), fieldName);
+                    final long days = ChronoUnit.DAYS.between(LocalDate.ofEpochDay(0), date.toLocalDate());
                     return (int) days;
                 } else if (LOGICAL_TYPE_TIME_MILLIS.equals(logicalType.getName())) {
                     final String format = AvroTypeUtil.determineDataType(fieldSchema).getFormat();
@@ -679,8 +679,6 @@ public class AvroTypeUtil {
                     final Duration duration = Duration.between(date.toInstant().truncatedTo(ChronoUnit.DAYS), date.toInstant());
                     return duration.toMillis() * 1000L;
                 } else if (LOGICAL_TYPE_TIMESTAMP_MILLIS.equals(logicalType.getName())) {
-                    final String format = AvroTypeUtil.determineDataType(fieldSchema).getFormat();
-                    Timestamp t = DataTypeUtils.toTimestamp(rawValue, () -> DataTypeUtils.getDateFormat(format), fieldName);
                     return getLongFromTimestamp(rawValue, fieldSchema, fieldName);
                 } else if (LOGICAL_TYPE_TIMESTAMP_MICROS.equals(logicalType.getName())) {
                     return getLongFromTimestamp(rawValue, fieldSchema, fieldName) * 1000L;

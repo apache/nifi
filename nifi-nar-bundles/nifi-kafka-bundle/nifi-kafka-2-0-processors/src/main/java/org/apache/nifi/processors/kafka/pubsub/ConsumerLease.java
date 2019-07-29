@@ -558,7 +558,7 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
                                     throw new ProcessException(e);
                                 }
 
-                                writer = writerFactory.createWriter(logger, writeSchema, rawOut);
+                                writer = writerFactory.createWriter(logger, writeSchema, rawOut, flowFile);
                                 writer.beginRecordSet();
 
                                 tracker = new BundleTracker(consumerRecord, topicPartition, keyEncoding, writer);

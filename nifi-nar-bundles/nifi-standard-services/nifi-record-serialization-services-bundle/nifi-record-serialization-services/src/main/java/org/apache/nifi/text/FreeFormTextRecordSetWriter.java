@@ -39,6 +39,7 @@ import java.io.OutputStream;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @Tags({"text", "freeform", "expression", "language", "el", "record", "recordset", "resultset", "writer", "serialize"})
 @CapabilityDescription("Writes the contents of a RecordSet as free-form text. The configured "
@@ -79,7 +80,7 @@ public class FreeFormTextRecordSetWriter extends SchemaRegistryRecordSetWriter i
     }
 
     @Override
-    public RecordSetWriter createWriter(final ComponentLog logger, final RecordSchema schema, final OutputStream out) {
+    public RecordSetWriter createWriter(final ComponentLog logger, final RecordSchema schema, final OutputStream out, final Map<String, String> variables) {
         return new FreeFormTextWriter(textValue, characterSet, out);
     }
 

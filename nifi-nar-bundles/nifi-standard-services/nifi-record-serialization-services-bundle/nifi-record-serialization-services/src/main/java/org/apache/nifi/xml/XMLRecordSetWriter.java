@@ -39,6 +39,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 @Tags({"xml", "resultset", "writer", "serialize", "record", "recordset", "row"})
 @CapabilityDescription("Writes a RecordSet to XML. The records are wrapped by a root tag.")
@@ -165,7 +166,7 @@ public class XMLRecordSetWriter extends DateTimeTextRecordSetWriter implements R
     }
 
     @Override
-    public RecordSetWriter createWriter(final ComponentLog logger, final RecordSchema schema, final OutputStream out) throws SchemaNotFoundException, IOException {
+    public RecordSetWriter createWriter(final ComponentLog logger, final RecordSchema schema, final OutputStream out, final Map<String, String> variables) throws SchemaNotFoundException, IOException {
         final String nullSuppression = getConfigurationContext().getProperty(SUPPRESS_NULLS).getValue();
         final NullSuppression nullSuppressionEnum;
         if (nullSuppression.equals(ALWAYS_SUPPRESS.getValue())) {

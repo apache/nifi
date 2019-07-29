@@ -44,8 +44,11 @@ import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.sql.Date;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -411,6 +414,20 @@ public class TestAvroTypeUtil {
         final ByteBuffer serializedBytes = (ByteBuffer)convertedValue;
         final BigDecimal bigDecimal = new Conversions.DecimalConversion().fromBytes(serializedBytes, fieldSchema, decimalType);
         assertEquals(new BigDecimal("2.5").setScale(8), bigDecimal);
+    }
+
+    @Test
+    public void testDateConversion() {
+        final Calendar c = Calendar.getInstance();
+        c.set(2019, Calendar.JANUARY, 1, 0, 0, 0);
+        final long epochMillis = c.getTimeInMillis();
+
+        final LogicalTypes.Date dateType = LogicalTypes.date();
+        final Schema fieldSchema = Schema.create(Type.INT);
+        dateType.addToSchema(fieldSchema);
+        final Object convertedValue = AvroTypeUtil.convertToAvroObject(new Date(epochMillis), fieldSchema);
+        assertTrue(convertedValue instanceof Integer);
+        assertEquals((int) convertedValue, LocalDate.of(2019, 1, 1).toEpochDay());
     }
 
     @Test
