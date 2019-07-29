@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.web.api.dto.status;
 
-import io.swagger.annotations.ApiModelProperty;
-
 import javax.xml.bind.annotation.XmlType;
+
+import io.swagger.annotations.ApiModelProperty;
 
 /**
  * DTO for serializing the statistics of a connection.
@@ -39,6 +39,9 @@ public class ConnectionStatisticsSnapshotDTO implements Cloneable {
     private Long predictedMillisUntilBytesBackpressure = 0L;
     private Integer predictedCountAtNextInterval = 0;
     private Long predictedBytesAtNextInterval = 0L;
+    private Integer predictedPercentCount = 0;
+    private Integer predictedPercentBytes = 0;
+    private Long predictionIntervalMillis = 0L;
 
     /* getters / setters */
     /**
@@ -161,6 +164,33 @@ public class ConnectionStatisticsSnapshotDTO implements Cloneable {
         this.predictedBytesAtNextInterval = predictedBytesAtNextInterval;
     }
 
+    @ApiModelProperty("The predicted percentage of queued objects at the next configured interval.")
+    public Integer getPredictedPercentCount() {
+        return predictedPercentCount;
+    }
+
+    public void setPredictedPercentCount(Integer predictedPercentCount) {
+        this.predictedPercentCount = predictedPercentCount;
+    }
+
+    @ApiModelProperty("The predicted percentage of bytes in the queue against current threshold at the next configured interval.")
+    public Integer getPredictedPercentBytes() {
+        return predictedPercentBytes;
+    }
+
+    public void setPredictedPercentBytes(Integer predictedPercentBytes) {
+        this.predictedPercentBytes = predictedPercentBytes;
+    }
+
+    @ApiModelProperty("The prediction interval in seconds")
+    public Long getPredictionIntervalMillis() {
+        return predictionIntervalMillis;
+    }
+
+    public void setPredictionIntervalMillis(Long predictionIntervalMillis) {
+        this.predictionIntervalMillis = predictionIntervalMillis;
+    }
+
     @Override
     public ConnectionStatisticsSnapshotDTO clone() {
         final ConnectionStatisticsSnapshotDTO other = new ConnectionStatisticsSnapshotDTO();
@@ -176,6 +206,9 @@ public class ConnectionStatisticsSnapshotDTO implements Cloneable {
         other.setPredictedMillisUntilBytesBackpressure(getPredictedMillisUntilBytesBackpressure());
         other.setPredictedCountAtNextInterval(getPredictedCountAtNextInterval());
         other.setPredictedBytesAtNextInterval(getPredictedBytesAtNextInterval());
+        other.setPredictedPercentCount(getPredictedPercentCount());
+        other.setPredictedPercentBytes(getPredictedPercentBytes());
+        other.setPredictionIntervalMillis(getPredictionIntervalMillis());
 
         return other;
     }

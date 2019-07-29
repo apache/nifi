@@ -16,6 +16,34 @@
  */
 package org.apache.nifi.web.api.dto;
 
+import java.text.Collator;
+import java.text.NumberFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.TimeZone;
+import java.util.TreeMap;
+import java.util.TreeSet;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+
+import javax.ws.rs.WebApplicationException;
+
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -106,7 +134,7 @@ import org.apache.nifi.controller.status.PortStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
 import org.apache.nifi.controller.status.RemoteProcessGroupStatus;
-import org.apache.nifi.controller.status.analytics.ConnectionStatusAnalytics;
+import org.apache.nifi.controller.status.analytics.StatusAnalytics;
 import org.apache.nifi.controller.status.history.GarbageCollectionHistory;
 import org.apache.nifi.controller.status.history.GarbageCollectionStatus;
 import org.apache.nifi.diagnostics.GarbageCollection;
@@ -235,33 +263,6 @@ import org.apache.nifi.web.api.entity.TenantEntity;
 import org.apache.nifi.web.api.entity.VariableEntity;
 import org.apache.nifi.web.controller.ControllerFacade;
 import org.apache.nifi.web.revision.RevisionManager;
-
-import javax.ws.rs.WebApplicationException;
-import java.text.Collator;
-import java.text.NumberFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.TimeZone;
-import java.util.TreeMap;
-import java.util.TreeSet;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 public final class DtoFactory {
 
@@ -1199,30 +1200,35 @@ public final class DtoFactory {
         return connectionStatusDto;
     }
 
-    public ConnectionStatisticsDTO createConnectionStatisticsDto(final ConnectionStatusAnalytics connectionStatistics) {
+    public ConnectionStatisticsDTO createConnectionStatisticsDto(final Connection connection, final StatusAnalytics statusAnalytics) {
         final ConnectionStatisticsDTO connectionStatisticsDTO = new ConnectionStatisticsDTO();
-        connectionStatisticsDTO.setGroupId(connectionStatistics.getGroupId());
-        connectionStatisticsDTO.setId(connectionStatistics.getId());
-        connectionStatisticsDTO.setName(connectionStatistics.getName());
-        connectionStatisticsDTO.setSourceId(connectionStatistics.getSourceId());
-        connectionStatisticsDTO.setSourceName(connectionStatistics.getSourceName());
-        connectionStatisticsDTO.setDestinationId(connectionStatistics.getDestinationId());
-        connectionStatisticsDTO.setDestinationName(connectionStatistics.getDestinationName());
+
+        connectionStatisticsDTO.setGroupId(connection.getProcessGroup().getIdentifier());
+        connectionStatisticsDTO.setId(connection.getIdentifier());
+        connectionStatisticsDTO.setName(connection.getName());
+        connectionStatisticsDTO.setSourceId(connection.getSource().getIdentifier());
+        connectionStatisticsDTO.setSourceName(connection.getSource().getName());
+        connectionStatisticsDTO.setDestinationId(connection.getDestination().getIdentifier());
+        connectionStatisticsDTO.setDestinationName(connection.getDestination().getName());
         connectionStatisticsDTO.setStatsLastRefreshed(new Date());
 
         final ConnectionStatisticsSnapshotDTO snapshot = new ConnectionStatisticsSnapshotDTO();
         connectionStatisticsDTO.setAggregateSnapshot(snapshot);
 
-        snapshot.setId(connectionStatistics.getId());
-        snapshot.setGroupId(connectionStatistics.getGroupId());
-        snapshot.setName(connectionStatistics.getName());
-        snapshot.setSourceName(connectionStatistics.getSourceName());
-        snapshot.setDestinationName(connectionStatistics.getDestinationName());
+        snapshot.setId(connection.getIdentifier());
+        snapshot.setGroupId(connection.getProcessGroup().getIdentifier());
+        snapshot.setName(connection.getName());
+        snapshot.setSourceName(connection.getSource().getName());
+        snapshot.setDestinationName(connection.getDestination().getName());
 
-        snapshot.setPredictedMillisUntilBytesBackpressure(connectionStatistics.getTimeToBytesBackpressureMillis());
-        snapshot.setPredictedMillisUntilCountBackpressure(connectionStatistics.getTimeToCountBackpressureMillis());
-        snapshot.setPredictedBytesAtNextInterval(connectionStatistics.getNextIntervalBytes());
-        snapshot.setPredictedCountAtNextInterval(connectionStatistics.getNextIntervalCount());
+        Map<String,Long> predictions = statusAnalytics.getPredictions();
+        snapshot.setPredictedMillisUntilBytesBackpressure(predictions.get("timeToBytesBackpressureMillis"));
+        snapshot.setPredictedMillisUntilCountBackpressure(predictions.get("timeToCountBackpressureMillis"));
+        snapshot.setPredictedBytesAtNextInterval(predictions.get("nextIntervalBytes"));
+        snapshot.setPredictedCountAtNextInterval(predictions.get("nextIntervalCount").intValue());
+        snapshot.setPredictedPercentBytes(predictions.get("nextIntervalPercentageUseBytes").intValue());
+        snapshot.setPredictedPercentCount(predictions.get("nextIntervalPercentageUseCount").intValue());
+        snapshot.setPredictionIntervalMillis(predictions.get("intervalTimeMillis"));
 
         return connectionStatisticsDTO;
     }
