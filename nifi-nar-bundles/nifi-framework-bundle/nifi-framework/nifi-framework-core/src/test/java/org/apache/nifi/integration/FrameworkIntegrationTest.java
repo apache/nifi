@@ -623,24 +623,4 @@ public class FrameworkIntegrationTest {
         // The counter should become 0 because now the service node is not reference anymore in any processor property
         assertEquals(0, serviceNode.getReferences().getReferencingComponents().size());
     }
-
-//    @Test
-//    public void testReferenceCountsWhenTheResourceIsLeasedByASchedulingContext() {
-//        final String FIRST_PROPERTY = "Counter Service";
-//
-//        final ControllerServiceNode serviceNode = createControllerServiceNode(LongValidatingControllerService.class.getName());
-//        final ProcessorNode counter = createProcessorNode(MultipleControllerServiceReferencingProcessor.class);
-//
-//        final ProcessContext processContext = new MockProcessContext();
-//        final ControllerServiceProvider serviceProvider;
-//        final ProcessorNode processorNode;
-//        final StateManager stateManager;
-//
-//        final SchedulingContext context = null;
-//
-//
-//        // Add another reference of the same service node in the second property of the processor
-//        assertEquals(1, serviceNode.getReferences().getReferencingComponents().size());
-//
-//    }
 }
