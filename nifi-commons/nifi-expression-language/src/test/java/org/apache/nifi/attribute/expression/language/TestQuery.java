@@ -74,6 +74,10 @@ public class TestQuery {
         assertValid("${literal(3)}");
         assertValid("${random()}");
         assertValid("${getStateValue('the_count')}");
+        assertValid("${attr:padLeft(10, '#')}");
+        assertValid("${attr:padRight(10, '#')}");
+        assertValid("${attr:padLeft(10)}");
+        assertValid("${attr:padRight(10)}");
         // left here because it's convenient for looking at the output
         //System.out.println(Query.compile("").evaluate(null));
     }
@@ -1900,6 +1904,44 @@ public class TestQuery {
     public void testThread() {
         final Map<String, String> attributes = new HashMap<>();
         verifyEquals("${thread()}", attributes, "main");
+    }
+
+    @Test
+    public void testPadLeft() {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("attr", "hello");
+        attributes.put("emptyString", "");
+        attributes.put("nullString", null);
+
+        verifyEquals("${attr:padLeft(10, '@')}", attributes, "@@@@@hello");
+        verifyEquals("${attr:padLeft(10)}", attributes, "_____hello");
+        verifyEquals("${attr:padLeft(10, \"xy\")}", attributes, "xyxyxhello");
+        verifyEquals("${attr:padLeft(10, \"aVeryLongPaddingString\")}", attributes, "aVeryhello");
+        verifyEquals("${attr:padLeft(1, \"a\")}", attributes, "hello");
+        verifyEquals("${attr:padLeft(-10, \"a\")}", attributes, "hello");
+        verifyEquals("${emptyString:padLeft(10, '@')}", attributes, "@@@@@@@@@@");
+        verifyEquals("${attr:padLeft(9999999999, \"abc\")}", attributes, "hello");
+        verifyEmpty("${nonExistingAttr:padLeft(10, \"abc\")}", attributes);
+        verifyEmpty("${nullString:padLeft(10, \"@\")}", attributes);
+    }
+
+    @Test
+    public void testPadRight() {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("attr", "hello");
+        attributes.put("emptyString", "");
+        attributes.put("nullString", null);
+
+        verifyEquals("${attr:padRight(10, '@')}", attributes, "hello@@@@@");
+        verifyEquals("${attr:padRight(10)}", attributes, "hello_____");
+        verifyEquals("${attr:padRight(10, \"xy\")}", attributes, "helloxyxyx");
+        verifyEquals("${attr:padRight(10, \"aVeryLongPaddingString\")}", attributes, "helloaVery");
+        verifyEquals("${attr:padRight(1, \"a\")}", attributes, "hello");
+        verifyEquals("${attr:padRight(-10, \"a\")}", attributes, "hello");
+        verifyEquals("${emptyString:padRight(10, '@')}", attributes, "@@@@@@@@@@");
+        verifyEquals("${attr:padRight(9999999999, \"abc\")}", attributes, "hello");
+        verifyEmpty("${nonExistingAttr:padRight(10, \"abc\")}", attributes);
+        verifyEmpty("${nullString:padRight(10, \"@\")}", attributes);
     }
 
     private void verifyEquals(final String expression, final Map<String, String> attributes, final Object expectedResult) {

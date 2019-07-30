@@ -78,6 +78,8 @@ import org.apache.nifi.attribute.expression.language.evaluation.functions.NowEva
 import org.apache.nifi.attribute.expression.language.evaluation.functions.NumberToDateEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.OneUpSequenceEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.OrEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.functions.PadLeftEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.functions.PadRightEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.PlusEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.PrependEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.RandomNumberGeneratorEvaluator;
@@ -190,6 +192,8 @@ import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpre
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.NOT_NULL;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.NOW;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.OR;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.PAD_LEFT;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.PAD_RIGHT;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.PARAMETER_REFERENCE;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.PLUS;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.PREPEND;
@@ -656,6 +660,28 @@ public class ExpressionCompiler {
                 return addToken(new ReplaceAllEvaluator(toStringEvaluator(subjectEvaluator),
                     toStringEvaluator(argEvaluators.get(0), "first argument to replaceAll"),
                     toStringEvaluator(argEvaluators.get(1), "second argument to replaceAll")), "replaceAll");
+            }
+            case PAD_LEFT: {
+                if (argEvaluators.size() == 1) {
+                    return addToken(new PadLeftEvaluator(toStringEvaluator(subjectEvaluator),
+                        toWholeNumberEvaluator(argEvaluators.get(0), "desired string length")),
+                        "padLeft");
+                } else {
+                    return addToken(new PadLeftEvaluator(toStringEvaluator(subjectEvaluator),
+                        toWholeNumberEvaluator(argEvaluators.get(0), "desired string length"),
+                        toStringEvaluator(argEvaluators.get(1), "padding string")), "padLeft");
+                }
+            }
+            case PAD_RIGHT: {
+                if (argEvaluators.size() == 1) {
+                    return addToken(new PadRightEvaluator(toStringEvaluator(subjectEvaluator),
+                        toWholeNumberEvaluator(argEvaluators.get(0), "desired string length")),
+                        "padRight");
+                } else {
+                    return addToken(new PadRightEvaluator(toStringEvaluator(subjectEvaluator),
+                        toWholeNumberEvaluator(argEvaluators.get(0), "desired string length"),
+                        toStringEvaluator(argEvaluators.get(1), "padding string")), "padRight");
+                }
             }
             case APPEND: {
                 verifyArgCount(argEvaluators, 1, "append");

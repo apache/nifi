@@ -977,6 +977,76 @@ Expressions will provide the following results:
 
 
 
+[.function]
+=== padLeft
+
+*Description*: [.description]#The `padLeft` function prepends the given padding string (or `'_'`, if nothing is provided) to the argument `String` until the passed desired length is reached.
+
+It returns the argument as is if its length is already equal or higher than the desired length, if the padding string is `null`, and if the desired length is either negative or greater than `Integer.MAX_VALUE`.
+It returns `null` if the argument string is not a valid attribute.
+
+*Subject Type*: [.subject]#String#
+
+*Arguments*:
+
+- [.argName]#_DesiredLength_# : [.argDesc]#The integer value to pad to.#
+- [.argName]#_PaddingString_# : [.argDesc]#The optional string to pad with. `"_"` will be used if a `PaddingString` is not provided. If the `PaddingString` is not an exact multiple of the actual pad size, it will be trimmed to fit in `DesiredLength`.#
+
+*Return Type*: [.returnType]#String#
+
+*Examples*: If the "greetings" attribute has the value "hello", then the following
+Expressions will provide the following results:
+
+
+
+.PadLeft Examples
+|=======================================================================================
+| Expression | Value
+| `${greetings:padLeft(10)}` | `\_____hello`
+| `${greetings:padLeft(10, '@')}` | `@@@@@hello`
+| `${greetings:padLeft(10, 'xy')}` | `xyxyxhello`
+| `${greetings:padLeft(10, 'aVeryLongPaddingString')}` | `aVeryhello`
+|=======================================================================================
+
+
+
+
+
+[.function]
+=== padRight
+
+*Description*: [.description]#The `padRight` function appends the given padding string (or `'_'`, if nothing is provided) to the argument `String` until the passed desired length is reached.
+
+It returns the argument as is if its length is already equal or higher than the desired length, if the padding string is `null`, and if the desired length is either negative or greater than `Integer.MAX_VALUE`.
+It returns `null` if the argument string is not a valid attribute.
+
+*Subject Type*: [.subject]#String#
+
+*Arguments*:
+
+- [.argName]#_DesiredLength_# : [.argDesc]#The integer value to pad to.#
+- [.argName]#_PaddingString_# : [.argDesc]#The optional string to pad with. `"_"` will be used if a `PaddingString` is not provided. If the `PaddingString` is not an exact multiple of the actual pad size, it will be trimmed to fit in `DesiredLength`.#
+
+*Return Type*: [.returnType]#String#
+
+*Examples*: If the "greetings" attribute has the value "hello", then the following
+Expressions will provide the following results:
+
+
+
+.PadLeft Examples
+|=======================================================================================
+| Expression | Value
+| `${greetings:padRight(10)}` | `hello\_____`
+| `${greetings:padRight(10, '@')}` | `hello@@@@@`
+| `${greetings:padRight(10, 'xy')}` | `helloxyxyx`
+| `${greetings:padLeft(10, 'aVeryLongPaddingString')}` | `helloaVery`
+|=======================================================================================
+
+
+
+
+
 
 [.function]
 === replaceNull
