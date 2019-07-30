@@ -635,6 +635,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
         final List<ValidationResult> results = new ArrayList<>();
 
         final ParameterContext parameterContext = getParameterContext();
+        final boolean assignedToProcessGroup = getProcessGroupIdentifier() != null;
 
         for (final PropertyDescriptor propertyDescriptor : validationContext.getProperties().keySet()) {
             final Collection<String> referencedParameters = validationContext.getReferencedParameters(propertyDescriptor.getName());
@@ -643,7 +644,8 @@ public abstract class AbstractComponentNode implements ComponentNode {
                 results.add(new ValidationResult.Builder()
                     .subject(propertyDescriptor.getDisplayName())
                     .valid(false)
-                    .explanation("Property references one or more Parameters but no Parameter Context is currently set on the Process Group")
+                    .explanation(assignedToProcessGroup ? "Property references one or more Parameters but no Parameter Context is currently set on the Process Group"
+                        : "Property references one or more Parameters, but Parameters may be referenced only by Processors and Controller Services that reside within a Process Group.")
                     .build());
 
                 continue;
