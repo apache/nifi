@@ -22,7 +22,6 @@ import org.apache.nifi.record.path.RecordPathEvaluationContext;
 import org.apache.nifi.record.path.StandardFieldValue;
 import org.apache.nifi.record.path.paths.RecordPathSegment;
 import org.apache.nifi.record.path.util.RecordPathUtils;
-import org.apache.nifi.record.path.util.TriFunction;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 
@@ -51,8 +50,7 @@ abstract class Padding extends RecordPathSegment {
         this.desiredLengthPath = desiredLengthPath;
     }
 
-    final Stream<FieldValue> evaluate(RecordPathEvaluationContext context,
-                                      TriFunction<String, Integer, Character, String> paddingFunction) {
+    public Stream<FieldValue> evaluate(RecordPathEvaluationContext context) {
         char pad = getPaddingChar(context);
 
         final Stream<FieldValue> evaluatedStr = inputStringPath.evaluate(context);
@@ -65,10 +63,11 @@ abstract class Padding extends RecordPathSegment {
 
             int desiredLength = desiredLengthOpt.getAsInt();
             final String value = DataTypeUtils.toString(fv.getValue(), (String) null);
-            return new StandardFieldValue(paddingFunction.apply(value, desiredLength, pad), fv.getField(), fv.getParent().orElse(null));
+            return new StandardFieldValue(doPad(value, desiredLength, pad), fv.getField(), fv.getParent().orElse(null));
         });
     }
 
+    protected abstract String doPad(String inputString, int desiredLength, char pad);
 
     private OptionalInt getDesiredLength(RecordPathEvaluationContext context) {
 
