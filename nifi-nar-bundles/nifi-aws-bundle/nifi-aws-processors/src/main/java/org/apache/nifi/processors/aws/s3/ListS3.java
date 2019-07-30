@@ -87,6 +87,8 @@ import com.amazonaws.services.s3.AmazonS3;
         @WritesAttribute(attribute = "s3.storeClass", description = "The storage class of the object"),
         @WritesAttribute(attribute = "s3.version", description = "The version of the object, if applicable"),
         @WritesAttribute(attribute = "s3.tag.___", description = "If 'Write Object Tags' is set to 'True', the tags associated to the S3 object that is being listed " +
+                "will be written as part of the flowfile attributes"),
+        @WritesAttribute(attribute = "s3.user.metadata.___", description = "If 'Write User Metadata' is set to 'True', the user defined metadata associated to the S3 object that is being listed " +
                 "will be written as part of the flowfile attributes")})
 @SeeAlso({FetchS3Object.class, PutS3Object.class, DeleteS3Object.class})
 public class ListS3 extends AbstractS3Processor {
