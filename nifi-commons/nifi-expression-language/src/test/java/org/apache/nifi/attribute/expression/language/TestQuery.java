@@ -74,6 +74,10 @@ public class TestQuery {
         assertValid("${literal(3)}");
         assertValid("${random()}");
         assertValid("${getStateValue('the_count')}");
+        assertValid("${attr:padLeft(10, '#')}");
+        assertValid("${attr:padRight(10, '#')}");
+        assertValid("${attr:padLeft(10)}");
+        assertValid("${attr:padRight(10)}");
         // left here because it's convenient for looking at the output
         //System.out.println(Query.compile("").evaluate(null));
     }
@@ -1900,6 +1904,48 @@ public class TestQuery {
     public void testThread() {
         final Map<String, String> attributes = new HashMap<>();
         verifyEquals("${thread()}", attributes, "main");
+    }
+
+    @Test
+    public void testPadLeft() {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("attr", "hello");
+
+        verifyEquals("${attr:padLeft(10, '@')}", attributes, "@@@@@hello");
+        verifyEquals("${attr:padLeft(10)}", attributes, "_____hello");
+        verifyEquals("${attr:padLeft(10, \"abc\")}", attributes, "aaaaahello");
+        verifyEquals("${attr:padLeft(1, \"a\")}", attributes, "hello");
+        verifyEquals("${attr:padLeft(-10, \"a\")}", attributes, "hello");
+
+        // Cannot pass by verifyEquals
+        final Query notExistingAttrQuery = Query.compile("${nonExistingAttr:padLeft(10, \"abc\")}");
+        final QueryResult<?> notExistingAttrResult = notExistingAttrQuery.evaluate(attributes, null);
+        assertTrue(notExistingAttrResult.getValue() == null);
+
+        final Query overflowLengthQuery = Query.compile("${nonExistingAttr:padLeft(9999999999, \"abc\")}");
+        final QueryResult<?> overflowLengthResult = overflowLengthQuery.evaluate(attributes, null);
+        assertTrue(overflowLengthResult.getValue() == null);
+    }
+
+    @Test
+    public void testPadRight() {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("attr", "hello");
+
+        verifyEquals("${attr:padRight(10, '@')}", attributes, "hello@@@@@");
+        verifyEquals("${attr:padRight(10)}", attributes, "hello_____");
+        verifyEquals("${attr:padRight(10, \"abc\")}", attributes, "helloaaaaa");
+        verifyEquals("${attr:padRight(1, \"a\")}", attributes, "hello");
+        verifyEquals("${attr:padRight(-10, \"a\")}", attributes, "hello");
+
+        // Cannot pass by verifyEquals
+        final Query notExistingAttrQuery = Query.compile("${nonExistingAttr:padRight(10, \"abc\")}");
+        final QueryResult<?> notExistingAttrResult = notExistingAttrQuery.evaluate(attributes, null);
+        assertTrue(notExistingAttrResult.getValue() == null);
+
+        final Query overflowLengthQuery = Query.compile("${nonExistingAttr:padRight(9999999999, \"abc\")}");
+        final QueryResult<?> overflowLengthResult = overflowLengthQuery.evaluate(attributes, null);
+        assertTrue(overflowLengthResult.getValue() == null);
     }
 
     private void verifyEquals(final String expression, final Map<String, String> attributes, final Object expectedResult) {
