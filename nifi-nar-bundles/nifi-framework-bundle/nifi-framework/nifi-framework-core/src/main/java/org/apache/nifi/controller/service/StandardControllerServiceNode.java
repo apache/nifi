@@ -422,7 +422,7 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
                     if (validationStatus != ValidationStatus.VALID) {
                         LOG.debug("Cannot enable {} because it is not currently valid. Will try again in 5 seconds", StandardControllerServiceNode.this);
                         scheduler.schedule(this, 5, TimeUnit.SECONDS);
-                        future.completeExceptionally(new RuntimeException(this + " cannot be enabled because it is not currently valid. Will try again in 5 seconds."));
+                        future.completeExceptionally(new ControllerServiceNotValidException(this + " cannot be enabled because it is not currently valid. Will try again in 5 seconds."));
                         return;
                     }
 
