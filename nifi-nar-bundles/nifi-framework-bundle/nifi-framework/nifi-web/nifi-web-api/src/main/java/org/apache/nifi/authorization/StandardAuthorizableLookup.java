@@ -930,7 +930,8 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
 
         @Override
         public Authorizable getParameterContext() {
-            return controllerServiceNode.getProcessGroup().getParameterContext();
+            final ProcessGroup processGroup = controllerServiceNode.getProcessGroup();
+            return processGroup == null ? null : processGroup.getParameterContext(); // will be null if Controller-level Controller Service.
         }
 
         @Override
