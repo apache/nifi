@@ -69,7 +69,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+
+import static org.apache.nifi.script.ScriptingComponentUtils.DYNAMIC_RELATIONSHIP_PREFIX;
+import static org.apache.nifi.script.ScriptingComponentUtils.USE_DYNAMIC_RELATIONSHIPS;
 
 @Tags({"script", "execute", "groovy", "python", "jython", "jruby", "ruby", "javascript", "js", "lua", "luaj", "clojure"})
 @CapabilityDescription("Experimental - Executes a script given the flow file and a process session.  The script is responsible for "
@@ -77,8 +83,8 @@ import java.util.concurrent.ConcurrentSkipListSet;
         + "the script. If the handling is incomplete or incorrect, the session will be rolled back. Experimental: "
         + "Impact of sustained usage not yet verified.")
 @DynamicProperty(
-        name = "A script engine property to update, or a dynamic relationship (if the property starts with \"REL_\"). For dynamic "
-                + "relationships, the prefix \"REL_\" will be removed from the property name",
+        name = "A script engine property to update, or a dynamic relationship (if the property starts with \"REL_\" and USE_DYNAMIC_RELATIONSHIPS is set to true). "
+                + "For dynamic relationships, the prefix \"REL_\" will be removed from the property name",
         value = "The value to set it to. For a dynamic relationship, the value will become the documentation of that relationship",
         expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
         description = "Updates a script engine property specified by the Dynamic Property's key with the value "
@@ -86,11 +92,12 @@ import java.util.concurrent.ConcurrentSkipListSet;
                 + "the documentation of that relationship")
 @DynamicRelationship(
         name = "A relationship to add",
-        description = "If a dynamic property starts with \"REL_\", it is assumed to be the name of a dynamic "
+        description = "If a dynamic property starts with \"REL_\" and USE_DYNAMIC_RELATIONSHIPS is set to true, it is assumed to be the name of a dynamic "
         + "relationship to add. In that case, the prefix \"REL_\" will be removed from the actual name of the "
-        + "relationship. All (dynamic) relationships can be accessed in the script variable 'relationships', "
-        + "which is a Map<String, Relationship> [name of relationship] -> relationship. The corresponding dynamic "
-        + "property's value will become the documentation of the new relationship."
+        + "relationship.The corresponding dynamic property's value will become the description of the new relationship. "
+        + "All (dynamic) relationships can be accessed via the script variable 'relationships', "
+        + "which is a Map<String, Relationship> [name of relationship] -> relationship. "
+        + "This variable will only exist, if and only if USE_DYNAMIC_RELATIONSHIPS is set to true."
 )
 @Restricted(
         restrictions = {
@@ -107,10 +114,17 @@ public class ExecuteScript extends AbstractSessionFactoryProcessor implements Se
 
     public static final Relationship REL_SUCCESS = ScriptingComponentUtils.REL_SUCCESS;
     public static final Relationship REL_FAILURE = ScriptingComponentUtils.REL_FAILURE;
-    private static final String DYNAMIC_RELATIONSHIP_PREFIX = "REL_";
 
     private String scriptToRun = null;
     volatile ScriptingComponentHelper scriptingComponentHelper = new ScriptingComponentHelper();
+
+    /** Whether to use dynamic relationships or not. */
+    private volatile boolean useDynamicRelationships = Boolean.parseBoolean(USE_DYNAMIC_RELATIONSHIPS.getDefaultValue());
+
+    /** Map to keep dynamic property keys and values.
+     * They need to be stored for the case that the value of {@code useDynamicProperties} changes.
+     */
+    private final Map<String, String> dynamicProperties = new ConcurrentHashMap<>();
 
     private final Set<Relationship> relationships;
     private ComponentLog log;
@@ -126,6 +140,7 @@ public class ExecuteScript extends AbstractSessionFactoryProcessor implements Se
     protected void init(ProcessorInitializationContext context) {
         super.init(context);
         log = getLogger();
+        log.warn("The default for USE_DYNAMIC_RELATIONSHIPS will change from \"false\" to \"true\" starting in NIFI 2.0");
     }
 
     /**
@@ -155,12 +170,7 @@ public class ExecuteScript extends AbstractSessionFactoryProcessor implements Se
      */
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        synchronized (scriptingComponentHelper.isInitialized) {
-            if (!scriptingComponentHelper.isInitialized.get()) {
-                scriptingComponentHelper.createResources();
-            }
-        }
-
+        initializeScriptingComponentHelper();
         return Collections.unmodifiableList(scriptingComponentHelper.getDescriptors());
     }
 
@@ -173,35 +183,41 @@ public class ExecuteScript extends AbstractSessionFactoryProcessor implements Se
      */
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
-        // we allow for arbitrary relationship names, even empty strings
         final boolean isRelationship = propertySpecifiesRelationship(propertyDescriptorName);
-        final String relName = getRelationshipName(propertyDescriptorName);
-        if (isRelationship) {
-            if (!isValidRelationshipName(relName)) {
-                log.warn("dynamic property for relationship is invalid: '{}'. It must not be named REL_SUCCESS or REL_FAILURE (case in-sensitive)",
-                        new Object[]{propertyDescriptorName}
-                );
-                return new PropertyDescriptor.Builder()
-                        .addValidator(new RelationshipInvalidator())
-                        .dynamic(true)
-                        .required(false)
-                        .name(propertyDescriptorName)
-                        .build();
-            }
+        if (useDynamicRelationships && isRelationship) {
+            return getDynamicRelationshipDescriptor(propertyDescriptorName);
         }
-        final Validator validator = isRelationship
-                ? Validator.VALID
-                : StandardValidators.NON_EMPTY_VALIDATOR;
-        final PropertyDescriptor.Builder builder = new PropertyDescriptor.Builder()
+        return new PropertyDescriptor.Builder()
                 .name(propertyDescriptorName)
                 .required(false)
-                .addValidator(validator)
+                .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
                 .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-                .dynamic(true);
-        if (isRelationship) {
-            builder.description(String.format("This property adds the relationship '%s'", relName));
+                .dynamic(true)
+                .build();
+    }
+
+    private PropertyDescriptor getDynamicRelationshipDescriptor(final String propertyDescriptorName) {
+        // we allow for arbitrary relationship names, even empty strings
+        final String relName = getRelationshipName(propertyDescriptorName);
+        if (!isValidRelationshipName(relName)) {
+            log.warn("dynamic property for relationship is invalid: '{}'. It must not be named REL_SUCCESS or REL_FAILURE (case in-sensitive)",
+                    new Object[]{propertyDescriptorName}
+            );
+            return new PropertyDescriptor.Builder()
+                    .addValidator(new RelationshipInvalidator())
+                    .dynamic(true)
+                    .required(false)
+                    .name(propertyDescriptorName)
+                    .build();
         }
-        return builder.build();
+        return new PropertyDescriptor.Builder()
+                .name(propertyDescriptorName)
+                .required(false)
+                .addValidator(Validator.VALID)
+                .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+                .dynamic(true)
+                .description(String.format("This property adds the relationship '%s'", relName))
+                .build();
     }
 
     /**
@@ -217,7 +233,37 @@ public class ExecuteScript extends AbstractSessionFactoryProcessor implements Se
     public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
         super.onPropertyModified(descriptor, oldValue, newValue);
         final String descriptorName = descriptor.getName();
-        if (propertySpecifiesRelationship(descriptorName)) {
+        if (newValue == null) {
+            dynamicProperties.remove(descriptorName);
+        } else {
+            dynamicProperties.put(descriptorName, newValue);
+        }
+        if (descriptor == ScriptingComponentUtils.USE_DYNAMIC_RELATIONSHIPS) {
+            log.debug("changing descriptor value for USE_DYNAMIC_RELATIONSHIPS to {}", new Object[]{newValue});
+            this.useDynamicRelationships = Boolean.parseBoolean(newValue);
+            // if using dynamic relationships is turned off, and dynamic relationships had previously been
+            // created (i.e. there are more than the REL_SUCCESS and REL_FAILURE,
+            // we need to remove them from the list of relationships
+            if (!this.useDynamicRelationships && relationships.size() > 2) {
+                // filter returns true, if relationship is dynamic
+                final Predicate<? super Relationship> filter = r -> r != REL_SUCCESS && r != REL_FAILURE;
+                log.debug("removing dynamic relationships from processor: [{}]",
+                        new Object[]{
+                                relationships.stream()
+                                        .filter(filter)
+                                        .map(Relationship::getName)
+                                        .collect(Collectors.joining(", "))
+                        });
+                relationships.removeIf(filter);
+            } else if (this.useDynamicRelationships) {
+                // dynamic relationships have been enabled, thus we need to create them from the
+                // given dynamic properties
+                this.dynamicProperties.entrySet()
+                        .stream()
+                        .filter(e -> e.getKey().startsWith(DYNAMIC_RELATIONSHIP_PREFIX))
+                        .forEach(e -> this.addDynamicRelationship(getRelationshipName(e.getKey()), e.getValue()));
+            }
+        } else if (this.useDynamicRelationships && propertySpecifiesRelationship(descriptorName)) {
             final String relationshipName = getRelationshipName(descriptorName);
             if (!isValidRelationshipName(relationshipName)) {
                 return;
@@ -227,12 +273,7 @@ public class ExecuteScript extends AbstractSessionFactoryProcessor implements Se
                 log.debug("removing relationship {}", new Object[]{relationshipName});
                 return;
             }
-            final Relationship relationship = new Relationship.Builder()
-                    .name(relationshipName)
-                    .description(newValue)
-                    .build();
-            relationships.add(relationship);
-            log.debug("added dynamic relationship '{}'", new Object[]{relationshipName});
+            addDynamicRelationship(relationshipName, newValue);
         }
     }
 
@@ -280,11 +321,7 @@ public class ExecuteScript extends AbstractSessionFactoryProcessor implements Se
      */
     @Override
     public void onTrigger(ProcessContext context, ProcessSessionFactory sessionFactory) throws ProcessException {
-        synchronized (scriptingComponentHelper.isInitialized) {
-            if (!scriptingComponentHelper.isInitialized.get()) {
-                scriptingComponentHelper.createResources();
-            }
-        }
+        initializeScriptingComponentHelper();
         ScriptEngine scriptEngine = scriptingComponentHelper.engineQ.poll();
         ComponentLog log = getLogger();
         if (scriptEngine == null) {
@@ -304,15 +341,21 @@ public class ExecuteScript extends AbstractSessionFactoryProcessor implements Se
                 bindings.put("log", log);
                 bindings.put("REL_SUCCESS", REL_SUCCESS);
                 bindings.put("REL_FAILURE", REL_FAILURE);
-                bindings.put("relationships", getRelationshipsAsMap());
+                // only add map relationships if user has opted in
+                if (this.useDynamicRelationships) {
+                    bindings.put("relationships", getRelationshipsAsMap());
+                }
 
-                // Find the user-added properties that don't reference dynamic relationships, and set them on the script
-                for (Map.Entry<PropertyDescriptor, String> property : context.getProperties().entrySet()) {
-                    if (property.getKey().isDynamic() && !property.getKey().getName().startsWith(DYNAMIC_RELATIONSHIP_PREFIX)) {
-                        // Add the dynamic property bound to its full PropertyValue to the script engine
-                        if (property.getValue() != null) {
-                            bindings.put(property.getKey().getName(), context.getProperty(property.getKey()));
-                        }
+                // Find the user-added properties that don't reference dynamic relationships, and set them on the script.
+                // If opted out of dynamic relationship usage, all properties are passed down as variables, even those
+                // starting with "REL_"
+                for (Map.Entry<PropertyDescriptor, String> entry : context.getProperties().entrySet()) {
+                    final PropertyDescriptor property = entry.getKey();
+                    // Add the dynamic entry bound to its full PropertyValue to the script engine
+                    if (property.isDynamic()
+                            && (!this.useDynamicRelationships || !property.getName().startsWith(DYNAMIC_RELATIONSHIP_PREFIX))
+                            && entry.getValue() != null) {
+                        bindings.put(entry.getKey().getName(), context.getProperty(entry.getKey()));
                     }
                 }
 
@@ -393,6 +436,14 @@ public class ExecuteScript extends AbstractSessionFactoryProcessor implements Se
         return results;
     }
 
+    private void initializeScriptingComponentHelper() {
+        synchronized (scriptingComponentHelper.isInitialized) {
+            if (!scriptingComponentHelper.isInitialized.get()) {
+                scriptingComponentHelper.createResources();
+                scriptingComponentHelper.addDescriptor(ScriptingComponentUtils.USE_DYNAMIC_RELATIONSHIPS);
+            }
+        }
+    }
 
     private static boolean propertySpecifiesRelationship(final String propertyDescriptorName) {
         return propertyDescriptorName != null
@@ -423,4 +474,12 @@ public class ExecuteScript extends AbstractSessionFactoryProcessor implements Se
         }
     }
 
+    private void addDynamicRelationship(final String relationshipName, final String description) {
+        final Relationship relationship = new Relationship.Builder()
+                .name(relationshipName)
+                .description(description)
+                .build();
+        relationships.add(relationship);
+        log.debug("added dynamic relationship '{}'", new Object[] {relationshipName});
+    }
 }

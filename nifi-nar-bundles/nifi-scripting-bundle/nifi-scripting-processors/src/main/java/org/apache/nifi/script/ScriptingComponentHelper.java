@@ -118,6 +118,10 @@ public class ScriptingComponentHelper {
         this.descriptors = descriptors;
     }
 
+    public void addDescriptor(final PropertyDescriptor descriptor) {
+        this.descriptors.add(descriptor);
+    }
+
     /**
      * Custom validation for ensuring exactly one of Script File or Script Body is populated
      *

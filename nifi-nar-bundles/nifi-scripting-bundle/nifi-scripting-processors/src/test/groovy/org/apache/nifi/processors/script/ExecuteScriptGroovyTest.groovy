@@ -16,15 +16,12 @@
  */
 package org.apache.nifi.processors.script
 
+
 import org.apache.nifi.script.ScriptingComponentUtils
 import org.apache.nifi.util.MockFlowFile
 import org.apache.nifi.util.StopWatch
 import org.apache.nifi.util.TestRunners
-import org.junit.After
-import org.junit.Before
-import org.junit.BeforeClass
-import org.junit.Test
-import org.junit.Ignore
+import org.junit.*
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
 import org.slf4j.Logger
@@ -32,9 +29,7 @@ import org.slf4j.LoggerFactory
 
 import java.util.concurrent.TimeUnit
 
-import static org.junit.Assert.assertFalse
-import static org.junit.Assert.assertNotNull
-import static org.junit.Assert.assertTrue
+import static org.junit.Assert.*
 
 @RunWith(JUnit4.class)
 class ExecuteScriptGroovyTest extends BaseScriptTest {
@@ -102,6 +97,7 @@ class ExecuteScriptGroovyTest extends BaseScriptTest {
     @Test
     public void testShouldSeeDynamicRelationships() throws Exception {
         logger.info("Mock flowfile queue contents: ${runner.queueSize} ${runner.flowFileQueue.queue}")
+        runner.setProperty(ScriptingComponentUtils.USE_DYNAMIC_RELATIONSHIPS, "true")
         runner.setProperty(ScriptingComponentUtils.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "groovy/testDynamicRelationships.groovy")
         runner.setProperty("REL_test", "a test relationship")
         runner.assertValid()
@@ -123,6 +119,7 @@ class ExecuteScriptGroovyTest extends BaseScriptTest {
     public void testPermissivenessOfRelationshipNaming() throws Exception {
         logger.info("Mock flowfile queue contents: ${runner.queueSize} ${runner.flowFileQueue.queue}")
         runner.setProperty(ScriptingComponentUtils.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "groovy/testDynamicRelationships.groovy")
+        runner.setProperty(ScriptingComponentUtils.USE_DYNAMIC_RELATIONSHIPS, "true")
         ["test", "123", "", "hello, world!", " non-äscii works äs wöll"].each { relName ->
             def propName = "REL_${relName}"
             def description = "dynamic relationship '${relName}'"
@@ -135,6 +132,81 @@ class ExecuteScriptGroovyTest extends BaseScriptTest {
             runner.assertValid()
             assertFalse("relationship '${relName}' should not exist", runner.processor.relationships.any { it.name == relName })
         }
+    }
+
+    @Test
+    public void testDynamicRelationshipsBeingOfByDefault() {
+        logger.info("Mock flowfile queue contents: ${runner.queueSize} ${runner.flowFileQueue.queue}")
+        def key = "REL_not_a_relationship"
+        def value = "not a description"
+        runner.setProperty(key, value)
+        runner.setProperty(ScriptingComponentUtils.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "groovy/testNoDynamicRelationships.groovy")
+        runner.assertValid()
+        runner.setProperty(ScriptingComponentUtils.USE_DYNAMIC_RELATIONSHIPS, "true")
+        runner.assertValid()
+        runner.setProperty(ScriptingComponentUtils.USE_DYNAMIC_RELATIONSHIPS, "false")
+
+        assertEquals("only 2 relationships exist", 2, runner.processor.relationships.size())
+        assertTrue("success relationship exists", runner.processor.relationships.contains(ExecuteScript.REL_SUCCESS))
+        assertTrue("failure relationship exists", runner.processor.relationships.contains(ExecuteScript.REL_FAILURE))
+        runner.run()
+        runner.assertAllFlowFilesTransferred(ExecuteScript.REL_SUCCESS)
+        runner.assertTransferCount(ExecuteScript.REL_SUCCESS, 1)
+        def flowFile = runner.getFlowFilesForRelationship(ExecuteScript.REL_SUCCESS)[0]
+        flowFile.assertAttributeExists("attribute1")
+        flowFile.assertAttributeEquals("attribute1", value)
+    }
+
+    @Test
+    public void testDynamicRelationshipsShadowDynamicProperties() {
+        def key = "REL_not_a_relationship"
+        def value = "not a description"
+        runner.setProperty(key, value)
+        runner.setProperty(ScriptingComponentUtils.USE_DYNAMIC_RELATIONSHIPS, "true")
+        runner.setProperty(ScriptingComponentUtils.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "groovy/testNoDynamicRelationships.groovy")
+
+        assertEquals("exactly 3 relationships exist", 3, runner.processor.relationships.size())
+        def exception = null
+        try {
+            runner.run()
+        } catch (AssertionError e) {
+            exception = e
+        }
+        assertNotNull("AssertionError was thrown", exception)
+        def cause = exception
+        while (cause != null) {
+            exception = cause
+            cause = exception.cause
+        }
+        assertEquals("cause is MissingPropertyException", MissingPropertyException.class, exception.class)
+        assertEquals("missing property is '${key}'", key, exception.property)
+    }
+
+    @Test
+    public void testReenablingOfDynamicRelationships() {
+        def key = "REL_my_relationship"
+        def relName = "my_relationship"
+        def value = "my description"
+        runner.setProperty(ScriptingComponentUtils.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "groovy/testNoDynamicRelationships.groovy")
+        runner.assertValid()
+        assertEquals("2 relationships are present", 2, runner.processor.relationships.size())
+        runner.setProperty(ScriptingComponentUtils.USE_DYNAMIC_RELATIONSHIPS, "false")
+        runner.setProperty(key, value)
+        runner.assertValid()
+        assertEquals("2 relationships are present", 2, runner.processor.relationships.size())
+        runner.setProperty(ScriptingComponentUtils.USE_DYNAMIC_RELATIONSHIPS, "true")
+        runner.assertValid()
+        assertEquals("3 relationships are present", 3, runner.processor.relationships.size())
+        assertTrue("success relationships is present", runner.processor.relationships.contains(ExecuteScript.REL_SUCCESS))
+        assertTrue("failure relationships is present", runner.processor.relationships.contains(ExecuteScript.REL_FAILURE))
+        def dynamicRelationship = runner.processor.relationships.find {
+            it != ExecuteScript.REL_SUCCESS && it != ExecuteScript.REL_FAILURE
+        }
+        assertEquals("dynamic relationship is has correct name", relName, dynamicRelationship.name)
+        assertEquals("dynamic relationship is has correct description", value, dynamicRelationship.description)
+        runner.setProperty(ScriptingComponentUtils.USE_DYNAMIC_RELATIONSHIPS, "false")
+        runner.assertValid()
+        assertEquals("2 relationships are present", 2, runner.processor.relationships.size())
     }
 
     @Test

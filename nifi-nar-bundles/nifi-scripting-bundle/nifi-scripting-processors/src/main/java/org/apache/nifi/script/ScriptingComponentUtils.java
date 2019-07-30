@@ -26,6 +26,10 @@ import org.apache.nifi.processor.util.StandardValidators;
  * Utility methods and constants used by the scripting components.
  */
 public class ScriptingComponentUtils {
+
+    /** Prefix for dynamic properties that should signify a dynamic relationship. */
+    public static final String DYNAMIC_RELATIONSHIP_PREFIX = "REL_";
+
     /** A relationship indicating flow files were processed successfully */
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
@@ -63,6 +67,16 @@ public class ScriptingComponentUtils {
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
+    /** A property descriptor for specifying whether to use dynamic relationships or not */
+    public static final PropertyDescriptor USE_DYNAMIC_RELATIONSHIPS = new PropertyDescriptor.Builder()
+            .name("Use Dynamic Relationships")
+            .description("Whether properties prefixed with \"REL_\" should create a dynamic relationship or not. The default will change to \"true\" in NIFI 2.0.")
+            .required(false)
+            .allowableValues(Boolean.FALSE.toString(), Boolean.TRUE.toString())
+            .defaultValue(Boolean.FALSE.toString())
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
 }
 
