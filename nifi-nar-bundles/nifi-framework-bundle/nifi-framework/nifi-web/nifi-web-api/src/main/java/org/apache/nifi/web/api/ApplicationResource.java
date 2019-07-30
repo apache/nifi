@@ -22,6 +22,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.AuthorizableLookup;
 import org.apache.nifi.authorization.AuthorizeAccess;
 import org.apache.nifi.authorization.AuthorizeControllerServiceReference;
+import org.apache.nifi.authorization.AuthorizeParameterReference;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.ComponentAuthorizable;
 import org.apache.nifi.authorization.ProcessGroupAuthorizable;
@@ -521,7 +522,8 @@ public abstract class ApplicationResource {
      */
     protected void authorizeProcessGroup(final ProcessGroupAuthorizable processGroupAuthorizable, final Authorizer authorizer, final AuthorizableLookup lookup, final RequestAction action,
                                          final boolean authorizeReferencedServices, final boolean authorizeTemplates,
-                                         final boolean authorizeControllerServices, final boolean authorizeTransitiveServices) {
+                                         final boolean authorizeControllerServices, final boolean authorizeTransitiveServices,
+                                         final boolean authorizeParamterReferences) {
 
         final Consumer<Authorizable> authorize = authorizable -> authorizable.authorize(authorizer, action, NiFiUserUtils.getNiFiUser());
 
@@ -536,6 +538,11 @@ public abstract class ApplicationResource {
             // authorize any referenced services if necessary
             if (authorizeReferencedServices) {
                 AuthorizeControllerServiceReference.authorizeControllerServiceReferences(processorAuthorizable, authorizer, lookup, authorizeTransitiveServices);
+            }
+
+            // authorize any referenced parameters if necessary
+            if (authorizeParamterReferences) {
+                AuthorizeParameterReference.authorizeParameterReferences(processorAuthorizable, authorizer, processorAuthorizable.getParameterContext(), user);
             }
         });
         processGroupAuthorizable.getEncapsulatedConnections().stream().map(connection -> connection.getAuthorizable()).forEach(authorize);
@@ -561,6 +568,10 @@ public abstract class ApplicationResource {
                 if (authorizeReferencedServices) {
                     AuthorizeControllerServiceReference.authorizeControllerServiceReferences(controllerServiceAuthorizable, authorizer, lookup, authorizeTransitiveServices);
                 }
+
+                if (authorizeParamterReferences) {
+                    AuthorizeParameterReference.authorizeParameterReferences(controllerServiceAuthorizable, authorizer, controllerServiceAuthorizable.getParameterContext(), user);
+                }
             });
         }
     }
@@ -573,15 +584,17 @@ public abstract class ApplicationResource {
      * @param action     action
      */
     protected void authorizeSnippet(final SnippetAuthorizable snippet, final Authorizer authorizer, final AuthorizableLookup lookup, final RequestAction action,
-                                    final boolean authorizeReferencedServices, final boolean authorizeTransitiveServices) {
+                                    final boolean authorizeReferencedServices, final boolean authorizeTransitiveServices, final boolean authorizeParameterReferences) {
 
-        final Consumer<Authorizable> authorize = authorizable -> authorizable.authorize(authorizer, action, NiFiUserUtils.getNiFiUser());
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+        final Consumer<Authorizable> authorize = authorizable -> authorizable.authorize(authorizer, action, user);
 
         // authorize each component in the specified snippet
         snippet.getSelectedProcessGroups().forEach(processGroupAuthorizable -> {
             // note - we are not authorizing templates or controller services as they are not considered when using this snippet. however,
             // referenced services are considered so those are explicitly authorized when authorizing a processor
-            authorizeProcessGroup(processGroupAuthorizable, authorizer, lookup, action, authorizeReferencedServices, false, false, authorizeTransitiveServices);
+            authorizeProcessGroup(processGroupAuthorizable, authorizer, lookup, action, authorizeReferencedServices,
+                    false, false, authorizeTransitiveServices, authorizeParameterReferences);
         });
         snippet.getSelectedRemoteProcessGroups().forEach(authorize);
         snippet.getSelectedProcessors().forEach(processorAuthorizable -> {
@@ -591,6 +604,11 @@ public abstract class ApplicationResource {
             // authorize any referenced services if necessary
             if (authorizeReferencedServices) {
                 AuthorizeControllerServiceReference.authorizeControllerServiceReferences(processorAuthorizable, authorizer, lookup, authorizeTransitiveServices);
+            }
+
+            // authorize any parameter usage
+            if (authorizeParameterReferences) {
+                AuthorizeParameterReference.authorizeParameterReferences(processorAuthorizable, authorizer, processorAuthorizable.getParameterContext(), user);
             }
         });
         snippet.getSelectedInputPorts().forEach(authorize);

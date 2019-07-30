@@ -539,7 +539,7 @@ public class VersionsResource extends ApplicationResource {
                 processGroup.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
 
                 // require read to this group and all descendants
-                authorizeProcessGroup(groupAuthorizable, authorizer, lookup, RequestAction.READ, true, false, true, true);
+                authorizeProcessGroup(groupAuthorizable, authorizer, lookup, RequestAction.READ, true, false, true, true, true);
             },
             () -> {
                 final VersionedFlowDTO versionedFlow = requestEntity.getVersionedFlow();
@@ -1172,8 +1172,8 @@ public class VersionsResource extends ApplicationResource {
             lookup -> {
                 // Step 2: Verify READ and WRITE permissions for user, for every component.
                 final ProcessGroupAuthorizable groupAuthorizable = lookup.getProcessGroup(groupId);
-                authorizeProcessGroup(groupAuthorizable, authorizer, lookup, RequestAction.READ, true, false, true, true);
-                authorizeProcessGroup(groupAuthorizable, authorizer, lookup, RequestAction.WRITE, true, false, true, true);
+                authorizeProcessGroup(groupAuthorizable, authorizer, lookup, RequestAction.READ, true, false, true, true, true);
+                authorizeProcessGroup(groupAuthorizable, authorizer, lookup, RequestAction.WRITE, true, false, true, true, false);
 
                 final VersionedProcessGroup groupContents = flowSnapshot.getFlowContents();
                 final Set<ConfigurableComponent> restrictedComponents = FlowRegistryUtils.getRestrictedComponents(groupContents, serviceFacade);
@@ -1181,8 +1181,6 @@ public class VersionsResource extends ApplicationResource {
                     final ComponentAuthorizable restrictedComponentAuthorizable = lookup.getConfigurableComponent(restrictedComponent);
                     authorizeRestrictions(authorizer, restrictedComponentAuthorizable);
                 });
-
-                AuthorizeParameterReference.authorizeParameterReferences(groupContents, groupAuthorizable.getProcessGroup(), authorizer, user);
             },
             () -> {
                 // Step 3: Verify that all components in the snapshot exist on all nodes
@@ -1348,8 +1346,8 @@ public class VersionsResource extends ApplicationResource {
             lookup -> {
                 // Step 2: Verify READ and WRITE permissions for user, for every component.
                 final ProcessGroupAuthorizable groupAuthorizable = lookup.getProcessGroup(groupId);
-                authorizeProcessGroup(groupAuthorizable, authorizer, lookup, RequestAction.READ, true, false, true, true);
-                authorizeProcessGroup(groupAuthorizable, authorizer, lookup, RequestAction.WRITE, true, false, true, true);
+                authorizeProcessGroup(groupAuthorizable, authorizer, lookup, RequestAction.READ, true, false, true, true, true);
+                authorizeProcessGroup(groupAuthorizable, authorizer, lookup, RequestAction.WRITE, true, false, true, true, false);
 
                 final VersionedProcessGroup groupContents = flowSnapshot.getFlowContents();
                 final Set<ConfigurableComponent> restrictedComponents = FlowRegistryUtils.getRestrictedComponents(groupContents, serviceFacade);
@@ -1357,8 +1355,6 @@ public class VersionsResource extends ApplicationResource {
                     final ComponentAuthorizable restrictedComponentAuthorizable = lookup.getConfigurableComponent(restrictedComponent);
                     authorizeRestrictions(authorizer, restrictedComponentAuthorizable);
                 });
-
-                AuthorizeParameterReference.authorizeParameterReferences(groupContents, groupAuthorizable.getProcessGroup(), authorizer, user);
             },
             () -> {
                 // Step 3: Verify that all components in the snapshot exist on all nodes

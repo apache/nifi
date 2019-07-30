@@ -51,7 +51,7 @@ public class AuthorizeParameterReference {
 
     public static void authorizeParameterReferences(final Map<String, String> proposedProperties, final Map<String, String> currentProperties, final Authorizer authorizer,
                                                     final Authorizable parameterContextAuthorizable, final NiFiUser user) {
-        if (proposedProperties == null) {
+        if (proposedProperties == null || parameterContextAuthorizable == null) {
             return;
         }
 
@@ -76,6 +76,30 @@ public class AuthorizeParameterReference {
             // on the Parameter Context as per above)
             final String currentValue = currentProperties.get(propertyName);
             tokenList = parameterParser.parseTokens(currentValue);
+            if (!tokenList.toReferenceList().isEmpty()) {
+                referencesParameter = true;
+                break;
+            }
+        }
+
+        if (referencesParameter) {
+            parameterContextAuthorizable.authorize(authorizer, RequestAction.READ, user);
+        }
+    }
+
+    public static void authorizeParameterReferences(final ComponentAuthorizable authorizable, final Authorizer authorizer, final Authorizable parameterContextAuthorizable, final NiFiUser user) {
+
+        if (parameterContextAuthorizable == null) {
+            return;
+        }
+
+        final ParameterParser parameterParser = new ExpressionLanguageAgnosticParameterParser();
+
+        boolean referencesParameter = false;
+        for (final PropertyDescriptor propertyDescriptor : authorizable.getPropertyDescriptors()) {
+            final String rawValue = authorizable.getRawValue(propertyDescriptor);
+
+            final ParameterTokenList tokenList = parameterParser.parseTokens(rawValue);
             if (!tokenList.toReferenceList().isEmpty()) {
                 referencesParameter = true;
                 break;
