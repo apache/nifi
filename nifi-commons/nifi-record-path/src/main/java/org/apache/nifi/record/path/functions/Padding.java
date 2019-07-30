@@ -54,7 +54,7 @@ abstract class Padding extends RecordPathSegment {
         char pad = getPaddingChar(context);
 
         final Stream<FieldValue> evaluatedStr = inputStringPath.evaluate(context);
-        return evaluatedStr.filter(fv -> fv.getValue() != null).map(fv -> {
+        return evaluatedStr.map(fv -> {
 
             final OptionalInt desiredLengthOpt = getDesiredLength(context);
             if (!desiredLengthOpt.isPresent()) {

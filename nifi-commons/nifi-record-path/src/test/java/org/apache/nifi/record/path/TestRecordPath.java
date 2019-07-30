@@ -1584,32 +1584,46 @@ public class TestRecordPath {
     public void testPadLeft() {
         final List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("someString", RecordFieldType.STRING.getDataType()));
+        fields.add(new RecordField("emptyString", RecordFieldType.STRING.getDataType()));
+        fields.add(new RecordField("nullString", RecordFieldType.STRING.getDataType()));
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
         final Map<String, Object> values = new HashMap<>();
         values.put("someString", "MyString");
+        values.put("emptyString", "");
+        values.put("nullString", null);
 
         final Record record = new MapRecord(schema, values);
 
         assertEquals("##MyString", RecordPath.compile("padLeft(/someString, 10, '#')").evaluate(record).getSelectedFields().findFirst().get().getValue());
         assertEquals("__MyString", RecordPath.compile("padLeft(/someString, 10)").evaluate(record).getSelectedFields().findFirst().get().getValue());
         assertEquals("MyString", RecordPath.compile("padLeft(/someString, 3)").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("MyString", RecordPath.compile("padLeft(/someString, -10)").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("@@@@@@@@@@", RecordPath.compile("padLeft(/emptyString, 10, '@')").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals(null, RecordPath.compile("padLeft(/nullString, 10, '@')").evaluate(record).getSelectedFields().findFirst().get().getValue());
     }
 
     @Test
     public void testPadRight() {
         final List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("someString", RecordFieldType.STRING.getDataType()));
+        fields.add(new RecordField("emptyString", RecordFieldType.STRING.getDataType()));
+        fields.add(new RecordField("nullString", RecordFieldType.STRING.getDataType()));
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
         final Map<String, Object> values = new HashMap<>();
         values.put("someString", "MyString");
+        values.put("emptyString", "");
+        values.put("nullString", null);
 
         final Record record = new MapRecord(schema, values);
 
         assertEquals("MyString##", RecordPath.compile("padRight(/someString, 10, '#')").evaluate(record).getSelectedFields().findFirst().get().getValue());
         assertEquals("MyString__", RecordPath.compile("padRight(/someString, 10)").evaluate(record).getSelectedFields().findFirst().get().getValue());
         assertEquals("MyString", RecordPath.compile("padRight(/someString, 3)").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("MyString", RecordPath.compile("padRight(/someString, -10)").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("@@@@@@@@@@", RecordPath.compile("padRight(/emptyString, 10, '@')").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals(null, RecordPath.compile("padRight(/nullString, 10, '@')").evaluate(record).getSelectedFields().findFirst().get().getValue());
     }
 
     private List<RecordField> getDefaultFields() {
