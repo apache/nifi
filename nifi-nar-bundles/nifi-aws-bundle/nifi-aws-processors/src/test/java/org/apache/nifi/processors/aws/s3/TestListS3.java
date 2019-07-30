@@ -49,6 +49,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 
@@ -102,6 +103,7 @@ public class TestListS3 {
         Mockito.verify(mockS3Client, Mockito.times(1)).listObjects(captureRequest.capture());
         ListObjectsRequest request = captureRequest.getValue();
         assertEquals("test-bucket", request.getBucketName());
+        assertFalse(request.isRequesterPays());
         Mockito.verify(mockS3Client, Mockito.never()).listVersions(Mockito.any());
 
         runner.assertAllFlowFilesTransferred(ListS3.REL_SUCCESS, 3);
@@ -114,6 +116,62 @@ public class TestListS3 {
         flowFiles.get(1).assertAttributeEquals("filename", "b/c");
         flowFiles.get(2).assertAttributeEquals("filename", "d/e");
         runner.getStateManager().assertStateEquals(ListS3.CURRENT_TIMESTAMP, lastModifiedTimestamp, Scope.CLUSTER);
+    }
+
+    @Test
+    public void testListWithRequesterPays() {
+        runner.setProperty(ListS3.REGION, "eu-west-1");
+        runner.setProperty(ListS3.BUCKET, "test-bucket");
+        runner.setProperty(ListS3.REQUESTER_PAYS, "true");
+
+        Date lastModified = new Date();
+        ObjectListing objectListing = new ObjectListing();
+        S3ObjectSummary objectSummary1 = new S3ObjectSummary();
+        objectSummary1.setBucketName("test-bucket");
+        objectSummary1.setKey("a");
+        objectSummary1.setLastModified(lastModified);
+        objectListing.getObjectSummaries().add(objectSummary1);
+        S3ObjectSummary objectSummary2 = new S3ObjectSummary();
+        objectSummary2.setBucketName("test-bucket");
+        objectSummary2.setKey("b/c");
+        objectSummary2.setLastModified(lastModified);
+        objectListing.getObjectSummaries().add(objectSummary2);
+        S3ObjectSummary objectSummary3 = new S3ObjectSummary();
+        objectSummary3.setBucketName("test-bucket");
+        objectSummary3.setKey("d/e");
+        objectSummary3.setLastModified(lastModified);
+        objectListing.getObjectSummaries().add(objectSummary3);
+        Mockito.when(mockS3Client.listObjects(Mockito.any(ListObjectsRequest.class))).thenReturn(objectListing);
+
+        runner.run();
+
+        ArgumentCaptor<ListObjectsRequest> captureRequest = ArgumentCaptor.forClass(ListObjectsRequest.class);
+        Mockito.verify(mockS3Client, Mockito.times(1)).listObjects(captureRequest.capture());
+        ListObjectsRequest request = captureRequest.getValue();
+        assertEquals("test-bucket", request.getBucketName());
+        assertTrue(request.isRequesterPays());
+        Mockito.verify(mockS3Client, Mockito.never()).listVersions(Mockito.any());
+
+        runner.assertAllFlowFilesTransferred(ListS3.REL_SUCCESS, 3);
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ListS3.REL_SUCCESS);
+        MockFlowFile ff0 = flowFiles.get(0);
+        ff0.assertAttributeEquals("filename", "a");
+        ff0.assertAttributeEquals("s3.bucket", "test-bucket");
+        String lastModifiedTimestamp = String.valueOf(lastModified.getTime());
+        ff0.assertAttributeEquals("s3.lastModified", lastModifiedTimestamp);
+        flowFiles.get(1).assertAttributeEquals("filename", "b/c");
+        flowFiles.get(2).assertAttributeEquals("filename", "d/e");
+        runner.getStateManager().assertStateEquals(ListS3.CURRENT_TIMESTAMP, lastModifiedTimestamp, Scope.CLUSTER);
+    }
+
+    @Test
+    public void testListWithRequesterPays_invalid() {
+        runner.setProperty(ListS3.REGION, "eu-west-1");
+        runner.setProperty(ListS3.BUCKET, "test-bucket");
+        runner.setProperty(ListS3.USE_VERSIONS, "true"); // requester pays cannot be used with versions
+        runner.setProperty(ListS3.REQUESTER_PAYS, "true");
+
+        runner.assertNotValid();
     }
 
     @Test
@@ -147,6 +205,54 @@ public class TestListS3 {
         Mockito.verify(mockS3Client, Mockito.times(1)).listObjectsV2(captureRequest.capture());
         ListObjectsV2Request request = captureRequest.getValue();
         assertEquals("test-bucket", request.getBucketName());
+        assertFalse(request.isRequesterPays());
+        Mockito.verify(mockS3Client, Mockito.never()).listVersions(Mockito.any());
+
+        runner.assertAllFlowFilesTransferred(ListS3.REL_SUCCESS, 3);
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ListS3.REL_SUCCESS);
+        MockFlowFile ff0 = flowFiles.get(0);
+        ff0.assertAttributeEquals("filename", "a");
+        ff0.assertAttributeEquals("s3.bucket", "test-bucket");
+        String lastModifiedTimestamp = String.valueOf(lastModified.getTime());
+        ff0.assertAttributeEquals("s3.lastModified", lastModifiedTimestamp);
+        flowFiles.get(1).assertAttributeEquals("filename", "b/c");
+        flowFiles.get(2).assertAttributeEquals("filename", "d/e");
+        runner.getStateManager().assertStateEquals(ListS3.CURRENT_TIMESTAMP, lastModifiedTimestamp, Scope.CLUSTER);
+    }
+
+    @Test
+    public void testListVersion2WithRequesterPays() {
+        runner.setProperty(ListS3.REGION, "eu-west-1");
+        runner.setProperty(ListS3.BUCKET, "test-bucket");
+        runner.setProperty(ListS3.REQUESTER_PAYS, "true");
+        runner.setProperty(ListS3.LIST_TYPE, "2");
+
+        Date lastModified = new Date();
+        ListObjectsV2Result objectListing = new ListObjectsV2Result();
+        S3ObjectSummary objectSummary1 = new S3ObjectSummary();
+        objectSummary1.setBucketName("test-bucket");
+        objectSummary1.setKey("a");
+        objectSummary1.setLastModified(lastModified);
+        objectListing.getObjectSummaries().add(objectSummary1);
+        S3ObjectSummary objectSummary2 = new S3ObjectSummary();
+        objectSummary2.setBucketName("test-bucket");
+        objectSummary2.setKey("b/c");
+        objectSummary2.setLastModified(lastModified);
+        objectListing.getObjectSummaries().add(objectSummary2);
+        S3ObjectSummary objectSummary3 = new S3ObjectSummary();
+        objectSummary3.setBucketName("test-bucket");
+        objectSummary3.setKey("d/e");
+        objectSummary3.setLastModified(lastModified);
+        objectListing.getObjectSummaries().add(objectSummary3);
+        Mockito.when(mockS3Client.listObjectsV2(Mockito.any(ListObjectsV2Request.class))).thenReturn(objectListing);
+
+        runner.run();
+
+        ArgumentCaptor<ListObjectsV2Request> captureRequest = ArgumentCaptor.forClass(ListObjectsV2Request.class);
+        Mockito.verify(mockS3Client, Mockito.times(1)).listObjectsV2(captureRequest.capture());
+        ListObjectsV2Request request = captureRequest.getValue();
+        assertEquals("test-bucket", request.getBucketName());
+        assertTrue(request.isRequesterPays());
         Mockito.verify(mockS3Client, Mockito.never()).listVersions(Mockito.any());
 
         runner.assertAllFlowFilesTransferred(ListS3.REL_SUCCESS, 3);
@@ -323,7 +429,7 @@ public class TestListS3 {
     public void testGetPropertyDescriptors() throws Exception {
         ListS3 processor = new ListS3();
         List<PropertyDescriptor> pd = processor.getSupportedPropertyDescriptors();
-        assertEquals("size should be eq", 21, pd.size());
+        assertEquals("size should be eq", 22, pd.size());
         assertTrue(pd.contains(ListS3.ACCESS_KEY));
         assertTrue(pd.contains(ListS3.AWS_CREDENTIALS_PROVIDER_SERVICE));
         assertTrue(pd.contains(ListS3.BUCKET));
@@ -345,5 +451,6 @@ public class TestListS3 {
         assertTrue(pd.contains(ListS3.PROXY_HOST_PORT));
         assertTrue(pd.contains(ListS3.PROXY_USERNAME));
         assertTrue(pd.contains(ListS3.PROXY_PASSWORD));
+        assertTrue(pd.contains(ListS3.REQUESTER_PAYS));
     }
 }

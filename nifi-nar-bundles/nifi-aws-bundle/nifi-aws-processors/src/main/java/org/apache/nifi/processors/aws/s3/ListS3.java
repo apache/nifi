@@ -42,6 +42,9 @@ import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.Validator;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.expression.ExpressionLanguageScope;
@@ -149,12 +152,25 @@ public class ListS3 extends AbstractS3Processor {
             .allowableValues(new AllowableValue("true", "True"), new AllowableValue("false", "False"))
             .defaultValue("false")
             .build();
+    public static final PropertyDescriptor REQUESTER_PAYS = new PropertyDescriptor.Builder()
+            .name("requester-pays")
+            .displayName("Requester Pays")
+            .required(true)
+            .description("If true, indicates that the requester consents to pay any charges associated with listing "
+                    + "the S3 bucket.  This sets the 'x-amz-request-payer' header to 'requester'.  Note that this "
+                    + "setting is not applicable when 'Use Versions' is 'true'.")
+            .addValidator(createRequesterPaysValidator())
+            .allowableValues(new AllowableValue("true", "True", "Indicates that the requester consents to pay any charges associated "
+                    + "with listing the S3 bucket."), new AllowableValue("false", "False", "Does not consent to pay "
+                            + "requester charges for listing the S3 bucket."))
+            .defaultValue("false")
+            .build();
 
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
             Arrays.asList(BUCKET, REGION, ACCESS_KEY, SECRET_KEY, WRITE_OBJECT_TAGS, CREDENTIALS_FILE,
                     AWS_CREDENTIALS_PROVIDER_SERVICE, TIMEOUT, SSL_CONTEXT_SERVICE, ENDPOINT_OVERRIDE,
                     SIGNER_OVERRIDE, PROXY_CONFIGURATION_SERVICE, PROXY_HOST, PROXY_HOST_PORT, PROXY_USERNAME,
-                    PROXY_PASSWORD, DELIMITER, PREFIX, USE_VERSIONS, LIST_TYPE, MIN_AGE));
+                    PROXY_PASSWORD, DELIMITER, PREFIX, USE_VERSIONS, LIST_TYPE, MIN_AGE, REQUESTER_PAYS));
 
     public static final Set<Relationship> relationships = Collections.unmodifiableSet(
             new HashSet<>(Collections.singletonList(REL_SUCCESS)));
@@ -165,6 +181,23 @@ public class ListS3 extends AbstractS3Processor {
     // State tracking
     private long currentTimestamp = 0L;
     private Set<String> currentKeys;
+
+    private static Validator createRequesterPaysValidator() {
+        return new Validator() {
+            @Override
+            public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
+                boolean requesterPays = Boolean.valueOf(input);
+                boolean useVersions = context.getProperty(USE_VERSIONS).asBoolean();
+                boolean valid = !requesterPays || !useVersions;
+                return new ValidationResult.Builder()
+                        .input(input)
+                        .subject(subject)
+                        .valid(valid)
+                        .explanation(valid ? null : "'Requester Pays' cannot be used when listing object versions.")
+                        .build();
+            }
+        };
+    }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -226,6 +259,7 @@ public class ListS3 extends AbstractS3Processor {
         final String bucket = context.getProperty(BUCKET).evaluateAttributeExpressions().getValue();
         final long minAgeMilliseconds = context.getProperty(MIN_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
         final long listingTimestamp = System.currentTimeMillis();
+        final boolean requesterPays = context.getProperty(REQUESTER_PAYS).asBoolean();
 
         final AmazonS3 client = getClient();
         int listCount = 0;
@@ -243,6 +277,7 @@ public class ListS3 extends AbstractS3Processor {
                     : new S3ObjectBucketLister(client);
 
         bucketLister.setBucketName(bucket);
+        bucketLister.setRequesterPays(requesterPays);
 
         if (delimiter != null && !delimiter.isEmpty()) {
             bucketLister.setDelimiter(delimiter);
@@ -358,6 +393,7 @@ public class ListS3 extends AbstractS3Processor {
         public void setBucketName(String bucketName);
         public void setPrefix(String prefix);
         public void setDelimiter(String delimiter);
+        public void setRequesterPays(boolean requesterPays);
         // Versions have a superset of the fields that Objects have, so we'll use
         // them as a common interface
         public VersionListing listVersions();
@@ -387,6 +423,11 @@ public class ListS3 extends AbstractS3Processor {
         @Override
         public void setDelimiter(String delimiter) {
             listObjectsRequest.setDelimiter(delimiter);
+        }
+
+        @Override
+        public void setRequesterPays(boolean requesterPays) {
+            listObjectsRequest.setRequesterPays(requesterPays);
         }
 
         @Override
@@ -446,6 +487,11 @@ public class ListS3 extends AbstractS3Processor {
         }
 
         @Override
+        public void setRequesterPays(boolean requesterPays) {
+            listObjectsRequest.setRequesterPays(requesterPays);
+        }
+
+        @Override
         public VersionListing listVersions() {
             VersionListing versionListing = new VersionListing();
             this.objectListing = client.listObjectsV2(listObjectsRequest);
@@ -499,6 +545,11 @@ public class ListS3 extends AbstractS3Processor {
         @Override
         public void setDelimiter(String delimiter) {
             listVersionsRequest.setDelimiter(delimiter);
+        }
+
+        @Override
+        public void setRequesterPays(boolean requesterPays) {
+            // Not supported in versionListing, so this does nothing.
         }
 
         @Override

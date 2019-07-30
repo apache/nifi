@@ -43,6 +43,7 @@ import org.mockito.Mockito;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 
@@ -100,6 +101,65 @@ public class TestFetchS3Object {
         GetObjectRequest request = captureRequest.getValue();
         assertEquals("request-bucket", request.getBucketName());
         assertEquals("request-key", request.getKey());
+        assertFalse(request.isRequesterPays());
+        assertNull(request.getVersionId());
+
+        runner.assertAllFlowFilesTransferred(FetchS3Object.REL_SUCCESS, 1);
+        final List<MockFlowFile> ffs = runner.getFlowFilesForRelationship(FetchS3Object.REL_SUCCESS);
+        MockFlowFile ff = ffs.get(0);
+        ff.assertAttributeEquals("s3.bucket", "response-bucket-name");
+        ff.assertAttributeEquals(CoreAttributes.FILENAME.key(), "file.txt");
+        ff.assertAttributeEquals(CoreAttributes.PATH.key(), "key/path/to");
+        ff.assertAttributeEquals(CoreAttributes.ABSOLUTE_PATH.key(), "key/path/to/file.txt");
+        ff.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "text/plain");
+        ff.assertAttributeEquals("hash.value", "testMD5hash");
+        ff.assertAttributeEquals("hash.algorithm", "MD5");
+        ff.assertAttributeEquals("s3.etag", "test-etag");
+        ff.assertAttributeEquals("s3.expirationTime", String.valueOf(expiration.getTime()));
+        ff.assertAttributeEquals("s3.expirationTimeRuleId", "testExpirationRuleId");
+        ff.assertAttributeEquals("userKey1", "userValue1");
+        ff.assertAttributeEquals("userKey2", "userValue2");
+        ff.assertAttributeEquals("s3.sseAlgorithm", "testAlgorithm");
+        ff.assertContentEquals("Some Content");
+    }
+
+    @Test
+    public void testGetObjectWithRequesterPays() throws IOException {
+        runner.setProperty(FetchS3Object.REGION, "us-east-1");
+        runner.setProperty(FetchS3Object.BUCKET, "request-bucket");
+        runner.setProperty(FetchS3Object.REQUESTER_PAYS, "true");
+        final Map<String, String> attrs = new HashMap<>();
+        attrs.put("filename", "request-key");
+        runner.enqueue(new byte[0], attrs);
+
+        S3Object s3ObjectResponse = new S3Object();
+        s3ObjectResponse.setBucketName("response-bucket-name");
+        s3ObjectResponse.setKey("response-key");
+        s3ObjectResponse.setObjectContent(new StringInputStream("Some Content"));
+        ObjectMetadata metadata = Mockito.spy(ObjectMetadata.class);
+        metadata.setContentDisposition("key/path/to/file.txt");
+        metadata.setContentType("text/plain");
+        metadata.setContentMD5("testMD5hash");
+        Date expiration = new Date();
+        metadata.setExpirationTime(expiration);
+        metadata.setExpirationTimeRuleId("testExpirationRuleId");
+        Map<String, String> userMetadata = new HashMap<>();
+        userMetadata.put("userKey1", "userValue1");
+        userMetadata.put("userKey2", "userValue2");
+        metadata.setUserMetadata(userMetadata);
+        metadata.setSSEAlgorithm("testAlgorithm");
+        Mockito.when(metadata.getETag()).thenReturn("test-etag");
+        s3ObjectResponse.setObjectMetadata(metadata);
+        Mockito.when(mockS3Client.getObject(Mockito.any())).thenReturn(s3ObjectResponse);
+
+        runner.run(1);
+
+        ArgumentCaptor<GetObjectRequest> captureRequest = ArgumentCaptor.forClass(GetObjectRequest.class);
+        Mockito.verify(mockS3Client, Mockito.times(1)).getObject(captureRequest.capture());
+        GetObjectRequest request = captureRequest.getValue();
+        assertEquals("request-bucket", request.getBucketName());
+        assertEquals("request-key", request.getKey());
+        assertTrue(request.isRequesterPays());
         assertNull(request.getVersionId());
 
         runner.assertAllFlowFilesTransferred(FetchS3Object.REL_SUCCESS, 1);
@@ -179,7 +239,7 @@ public class TestFetchS3Object {
     public void testGetPropertyDescriptors() throws Exception {
         FetchS3Object processor = new FetchS3Object();
         List<PropertyDescriptor> pd = processor.getSupportedPropertyDescriptors();
-        assertEquals("size should be eq", 17, pd.size());
+        assertEquals("size should be eq", 18, pd.size());
         assertTrue(pd.contains(FetchS3Object.ACCESS_KEY));
         assertTrue(pd.contains(FetchS3Object.AWS_CREDENTIALS_PROVIDER_SERVICE));
         assertTrue(pd.contains(FetchS3Object.BUCKET));
@@ -197,6 +257,7 @@ public class TestFetchS3Object {
         assertTrue(pd.contains(FetchS3Object.PROXY_HOST_PORT));
         assertTrue(pd.contains(FetchS3Object.PROXY_USERNAME));
         assertTrue(pd.contains(FetchS3Object.PROXY_PASSWORD));
+        assertTrue(pd.contains(FetchS3Object.REQUESTER_PAYS));
 
     }
 }
