@@ -29,14 +29,15 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class BinlogEventListener implements BinaryLogClient.EventListener {
 
     protected final AtomicBoolean stopNow = new AtomicBoolean(false);
-    private static final int QUEUE_OFFER_TIMEOUT_MSEC = 100;
+    private final long QUEUE_OFFER_TIMEOUT_MSEC;
 
     private final BlockingQueue<RawBinlogEvent> queue;
     private final BinaryLogClient client;
 
-    public BinlogEventListener(BinaryLogClient client, BlockingQueue<RawBinlogEvent> q) {
+    public BinlogEventListener(BinaryLogClient client, BlockingQueue<RawBinlogEvent> q, long maxOfferTimeout) {
         this.client = client;
         this.queue = q;
+        this.QUEUE_OFFER_TIMEOUT_MSEC = maxOfferTimeout;
     }
 
     public void start() {
