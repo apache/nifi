@@ -32,6 +32,7 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
@@ -73,10 +74,23 @@ public class FetchS3Object extends AbstractS3Processor {
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(false)
             .build();
+    public static final PropertyDescriptor REQUESTER_PAYS = new PropertyDescriptor.Builder()
+            .name("requester-pays")
+            .displayName("Requester Pays")
+            .required(true)
+            .description("If true, indicates that the requester consents to pay any charges associated with retrieving objects from "
+                    + "the S3 bucket.  This sets the 'x-amz-request-payer' header to 'requester'.")
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .allowableValues(new AllowableValue("true", "True", "Indicates that the requester consents to pay any charges associated "
+                    + "with retrieving objects from the S3 bucket."), new AllowableValue("false", "False", "Does not consent to pay "
+                            + "requester charges for retrieving objects from the S3 bucket."))
+            .defaultValue("false")
+            .build();
 
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
             Arrays.asList(BUCKET, KEY, REGION, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE, AWS_CREDENTIALS_PROVIDER_SERVICE, TIMEOUT, VERSION_ID,
-                SSL_CONTEXT_SERVICE, ENDPOINT_OVERRIDE, SIGNER_OVERRIDE, PROXY_CONFIGURATION_SERVICE, PROXY_HOST, PROXY_HOST_PORT, PROXY_USERNAME, PROXY_PASSWORD));
+                SSL_CONTEXT_SERVICE, ENDPOINT_OVERRIDE, SIGNER_OVERRIDE, PROXY_CONFIGURATION_SERVICE, PROXY_HOST, PROXY_HOST_PORT, PROXY_USERNAME, PROXY_PASSWORD,
+                REQUESTER_PAYS));
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -94,6 +108,7 @@ public class FetchS3Object extends AbstractS3Processor {
         final String bucket = context.getProperty(BUCKET).evaluateAttributeExpressions(flowFile).getValue();
         final String key = context.getProperty(KEY).evaluateAttributeExpressions(flowFile).getValue();
         final String versionId = context.getProperty(VERSION_ID).evaluateAttributeExpressions(flowFile).getValue();
+        final boolean requesterPays = context.getProperty(REQUESTER_PAYS).asBoolean();
 
         final AmazonS3 client = getClient();
         final GetObjectRequest request;
@@ -102,6 +117,7 @@ public class FetchS3Object extends AbstractS3Processor {
         } else {
             request = new GetObjectRequest(bucket, key, versionId);
         }
+        request.setRequesterPays(requesterPays);
 
         final Map<String, String> attributes = new HashMap<>();
         try (final S3Object s3Object = client.getObject(request)) {
