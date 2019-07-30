@@ -33,9 +33,9 @@ public class PadRight extends Padding {
         super("padRight", null, inputStringPath, desiredLengthPath, paddingCharPath, absolute);
     }
 
-    public PadRight(final RecordPathSegment inputStringPath,
-                    final RecordPathSegment desiredLengthPath,
-                   final boolean absolute) {
+    public PadRight( final RecordPathSegment inputStringPath,
+                     final RecordPathSegment desiredLengthPath,
+                     final boolean absolute) {
         super("padRight", null, inputStringPath, desiredLengthPath, null, absolute);
     }
 

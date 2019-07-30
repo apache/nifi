@@ -33,7 +33,7 @@ public class PadLeft extends Padding {
         super("padLeft", null, inputStringPath, desiredLengthPath, paddingCharPath, absolute);
     }
 
-    public PadLeft(final RecordPathSegment inputStringPath,
+    public PadLeft( final RecordPathSegment inputStringPath,
                     final RecordPathSegment desiredLengthPath,
                     final boolean absolute) {
         super("padLeft", null, inputStringPath, desiredLengthPath, null, absolute);
