@@ -58,7 +58,7 @@ div.available-relationship-container {
 }
 
 #connection-configuration div.relationship-name {
-    display: inline-block;
+    display: block;
     line-height: normal;
 }
 
