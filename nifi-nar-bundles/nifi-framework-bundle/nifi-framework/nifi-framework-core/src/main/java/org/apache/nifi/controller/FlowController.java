@@ -594,7 +594,7 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
         }
 
         componentStatusRepository = createComponentStatusRepository();
-        analyticsEngine = new CachingConnectionStatusAnalyticsEngine(this, componentStatusRepository);
+        analyticsEngine = new CachingConnectionStatusAnalyticsEngine(flowManager, componentStatusRepository);
         eventAccess = new StandardEventAccess(this, flowFileEventRepository);
 
         timerDrivenEngineRef.get().scheduleWithFixedDelay(new Runnable() {
