@@ -21,21 +21,33 @@ import java.util.stream.Stream;
 
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.math3.stat.regression.SimpleRegression;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SimpleRegressionBSAM extends BivariateStatusAnalyticsModel {
 
-    private SimpleRegression regression;
+    private static final Logger LOG = LoggerFactory.getLogger(SimpleRegressionBSAM.class);
+    private final SimpleRegression regression;
+    private final Boolean clearObservationsOnLearn;
 
-    public SimpleRegressionBSAM() {
+    public SimpleRegressionBSAM(Boolean clearObservationsOnLearn) {
+
         this.regression = new SimpleRegression();
+        this.clearObservationsOnLearn = clearObservationsOnLearn;
     }
 
     @Override
     public void learn(Stream<Double> features, Stream<Double> labels) {
         double[] labelArray = ArrayUtils.toPrimitive(labels.toArray(Double[]::new));
         double[][] featuresMatrix = features.map(feature -> new double[]{feature}).toArray(double[][]::new);
-        regression.clear();
+
+        if(clearObservationsOnLearn) {
+            regression.clear();
+        }
+
         regression.addObservations(featuresMatrix, labelArray);
+        LOG.debug("Model is using equation: y = {}x + {}", regression.getSlope(), regression.getIntercept());
+
     }
 
     @Override

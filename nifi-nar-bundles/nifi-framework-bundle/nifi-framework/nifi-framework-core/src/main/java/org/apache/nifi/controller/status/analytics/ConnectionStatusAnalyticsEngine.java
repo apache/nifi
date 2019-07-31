@@ -16,28 +16,27 @@
  */
 package org.apache.nifi.controller.status.analytics;
 
-import org.apache.nifi.controller.FlowController;
+import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.status.history.ComponentStatusRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ConnectionStatusAnalyticsEngine implements StatusAnalyticsEngine {
     private ComponentStatusRepository statusRepository;
-    private FlowController controller;
+    private FlowManager flowManager;
 
     private static final Logger LOG = LoggerFactory.getLogger(ConnectionStatusAnalyticsEngine.class);
 
-    public ConnectionStatusAnalyticsEngine(FlowController controller, ComponentStatusRepository statusRepository) {
-        this.controller = controller;
+    public ConnectionStatusAnalyticsEngine(FlowManager flowManager, ComponentStatusRepository statusRepository) {
+        this.flowManager = flowManager;
         this.statusRepository = statusRepository;
     }
 
     @Override
     public StatusAnalytics getStatusAnalytics(String identifier) {
-        ConnectionStatusAnalytics connectionStatusAnalytics = new ConnectionStatusAnalytics(statusRepository,controller,identifier);
+        ConnectionStatusAnalytics connectionStatusAnalytics = new ConnectionStatusAnalytics(statusRepository,flowManager,identifier,false);
         connectionStatusAnalytics.init();
         return connectionStatusAnalytics;
     }
-
 
 }
