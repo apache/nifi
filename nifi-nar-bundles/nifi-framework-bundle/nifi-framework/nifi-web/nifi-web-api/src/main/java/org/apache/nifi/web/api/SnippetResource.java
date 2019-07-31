@@ -292,7 +292,7 @@ public class SnippetResource extends ApplicationResource {
                     final ProcessGroup destinationGroup = lookup.getProcessGroup(requestSnippetDTO.getParentGroupId()).getProcessGroup();
 
                     for (final ComponentAuthorizable componentAuthorizable : snippet.getSelectedProcessors()) {
-                        AuthorizeParameterReference.authorizeParameterReferences(sourceGroup, destinationGroup, componentAuthorizable, authorizer, user);
+                        AuthorizeParameterReference.authorizeParameterReferences(destinationGroup, componentAuthorizable, authorizer, user);
                     }
                 },
                 () -> serviceFacade.verifyUpdateSnippet(requestSnippetDTO, requestRevisions.stream().map(Revision::getComponentId).collect(Collectors.toSet())),

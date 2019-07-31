@@ -636,14 +636,8 @@ public class ControllerServiceResource extends ApplicationResource {
 
                     // authorize any referenced services
                     AuthorizeControllerServiceReference.authorizeControllerServiceReferences(requestControllerServiceDTO.getProperties(), authorizable, authorizer, lookup);
-
-                    final Authorizable parameterContextAuthorizable = authorizable.getParameterContext();
-                    if (parameterContextAuthorizable != null) {
-                        final ControllerServiceDTO currentControllerServiceDto = serviceFacade.getControllerService(requestControllerServiceDTO.getId()).getComponent();
-                        AuthorizeParameterReference.authorizeParameterReferences(requestControllerServiceDTO.getProperties(), currentControllerServiceDto.getProperties(), authorizer,
-                            parameterContextAuthorizable, NiFiUserUtils.getNiFiUser());
-                    }
-
+                        AuthorizeParameterReference.authorizeParameterReferences(requestControllerServiceDTO.getProperties(), authorizer, authorizable.getParameterContext(),
+                            NiFiUserUtils.getNiFiUser());
                 },
                 () -> serviceFacade.verifyUpdateControllerService(requestControllerServiceDTO),
                 (revision, controllerServiceEntity) -> {

@@ -525,7 +525,8 @@ public abstract class ApplicationResource {
                                          final boolean authorizeControllerServices, final boolean authorizeTransitiveServices,
                                          final boolean authorizeParamterReferences) {
 
-        final Consumer<Authorizable> authorize = authorizable -> authorizable.authorize(authorizer, action, NiFiUserUtils.getNiFiUser());
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+        final Consumer<Authorizable> authorize = authorizable -> authorizable.authorize(authorizer, action, user);
 
         // authorize the process group
         authorize.accept(processGroupAuthorizable.getAuthorizable());

@@ -46,6 +46,7 @@ import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.serialization.FlowEncodingVersion;
 import org.apache.nifi.controller.service.ControllerServiceState;
+import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.registry.bucket.Bucket;
 import org.apache.nifi.registry.client.NiFiRegistryException;
 import org.apache.nifi.registry.flow.FlowRegistryUtils;
@@ -2007,7 +2008,7 @@ public class ProcessGroupResource extends ApplicationResource {
                     final Authorizable parameterContext = groupAuthorizable.getProcessGroup().getParameterContext();
                     final ProcessorConfigDTO configDto = requestProcessor.getConfig();
                     if (parameterContext != null && configDto != null) {
-                        AuthorizeParameterReference.authorizeParameterReferences(configDto.getProperties(), Collections.emptyMap(), authorizer, parameterContext, user);
+                        AuthorizeParameterReference.authorizeParameterReferences(configDto.getProperties(), authorizer, parameterContext, user);
                     }
 
                     ComponentAuthorizable authorizable = null;
@@ -3181,10 +3182,16 @@ public class ProcessGroupResource extends ApplicationResource {
                     // consider each processor. note - this request will not create new controller services so we do not need to check
                     // for if there are not restricted controller services. it will however, need to authorize the user has access
                     // to any referenced services and this is done within authorizeSnippetUsage above.
-                    snippet.getSelectedProcessors().stream().forEach(authorizeRestricted);
-                    snippet.getSelectedProcessGroups().stream().forEach(processGroup -> {
-                        processGroup.getEncapsulatedProcessors().forEach(authorizeRestricted);
-                    });
+                    // Also ensure that user has READ permissions to the Parameter Contexts in order to copy them.
+                    snippet.getSelectedProcessors().forEach(authorizeRestricted);
+                    for (final ProcessGroupAuthorizable groupAuthorizable : snippet.getSelectedProcessGroups()) {
+                        groupAuthorizable.getEncapsulatedProcessors().forEach(authorizeRestricted);
+
+                        final ParameterContext parameterContext = groupAuthorizable.getProcessGroup().getParameterContext();
+                        if (parameterContext != null) {
+                            parameterContext.authorize(authorizer, RequestAction.READ, user);
+                        }
+                    }
                 },
                 null,
                 copySnippetRequestEntity -> {
@@ -3782,7 +3789,7 @@ public class ProcessGroupResource extends ApplicationResource {
 
                     final Authorizable parameterContext = groupAuthorizable.getProcessGroup().getParameterContext();
                     if (parameterContext != null) {
-                        AuthorizeParameterReference.authorizeParameterReferences(requestControllerService.getProperties(), Collections.emptyMap(), authorizer, parameterContext, user);
+                        AuthorizeParameterReference.authorizeParameterReferences(requestControllerService.getProperties(), authorizer, parameterContext, user);
                     }
 
                     ComponentAuthorizable authorizable = null;

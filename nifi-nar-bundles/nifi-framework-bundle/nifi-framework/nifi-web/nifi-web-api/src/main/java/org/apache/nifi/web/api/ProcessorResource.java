@@ -564,13 +564,7 @@ public class ProcessorResource extends ApplicationResource {
                     final ProcessorConfigDTO config = requestProcessorDTO.getConfig();
                     if (config != null) {
                         AuthorizeControllerServiceReference.authorizeControllerServiceReferences(config.getProperties(), authorizable, authorizer, lookup);
-
-                        final Authorizable parameterContextAuthorizable = authorizable.getParameterContext();
-                        if (parameterContextAuthorizable != null) {
-                            final ProcessorDTO processorDto = serviceFacade.getProcessor(requestProcessorEntity.getComponent().getId()).getComponent();
-                            final ProcessorConfigDTO currentConfiguration = processorDto.getConfig();
-                            AuthorizeParameterReference.authorizeParameterReferences(config.getProperties(), currentConfiguration.getProperties(), authorizer, parameterContextAuthorizable, user);
-                        }
+                        AuthorizeParameterReference.authorizeParameterReferences(config.getProperties(), authorizer, authorizable.getParameterContext(), user);
                     }
                 },
                 () -> serviceFacade.verifyUpdateProcessor(requestProcessorDTO),

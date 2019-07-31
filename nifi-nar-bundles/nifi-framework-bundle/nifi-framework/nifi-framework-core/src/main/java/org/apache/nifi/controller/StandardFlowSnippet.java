@@ -36,6 +36,7 @@ import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroupPortDescriptor;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.registry.flow.StandardVersionControlInformation;
@@ -55,6 +56,7 @@ import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 import org.apache.nifi.web.api.dto.FunnelDTO;
 import org.apache.nifi.web.api.dto.LabelDTO;
+import org.apache.nifi.web.api.dto.ParameterContextReferenceDTO;
 import org.apache.nifi.web.api.dto.PortDTO;
 import org.apache.nifi.web.api.dto.PositionDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
@@ -454,6 +456,14 @@ public class StandardFlowSnippet implements FlowSnippet {
             childGroup.setName(groupDTO.getName());
             if (groupDTO.getVariables() != null) {
                 childGroup.setVariables(groupDTO.getVariables());
+            }
+
+            final ParameterContextReferenceDTO parameterContextReferenceDto = groupDTO.getParameterContext();
+            if (parameterContextReferenceDto != null) {
+                final ParameterContext parameterContext = flowManager.getParameterContextManager().getParameterContext(parameterContextReferenceDto.getId());
+                if (parameterContext != null) {
+                    childGroup.setParameterContext(parameterContext);
+                }
             }
 
             // If this Process Group is 'top level' then we do not set versioned component ID's.
