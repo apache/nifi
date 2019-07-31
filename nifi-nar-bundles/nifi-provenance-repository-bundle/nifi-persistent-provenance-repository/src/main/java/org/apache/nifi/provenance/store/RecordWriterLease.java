@@ -42,7 +42,8 @@ public class RecordWriterLease {
     }
 
     public synchronized boolean tryClaim() {
-        if (markedRollable || writer.isClosed() || writer.isDirty() || writer.getBytesWritten() >= maxBytes || writer.getRecordsWritten() >= maxEvents) {
+        if (markedRollable || writer.isClosed() || writer.isDirty() || writer.getBytesWritten() >= maxBytes || writer.getRecordsWritten() >= maxEvents
+            || !writer.getFile().exists()) {
             return false;
         }
 
@@ -69,6 +70,10 @@ public class RecordWriterLease {
 
         if (usageCounter < 1 && (writer.isClosed() || writer.isDirty() || writer.getBytesWritten() >= maxBytes || writer.getRecordsWritten() >= maxEvents)) {
             markedRollable = true;
+            return true;
+        }
+
+        if (!writer.getFile().exists()){
             return true;
         }
 
