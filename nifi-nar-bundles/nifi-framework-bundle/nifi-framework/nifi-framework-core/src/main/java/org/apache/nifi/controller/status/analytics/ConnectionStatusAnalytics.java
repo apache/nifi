@@ -250,7 +250,7 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
 
     private final ExtractFunction extract = (metric, statusHistory) -> {
 
-        List<Double> counts = new ArrayList<>();
+        List<Double> values = new ArrayList<>();
         List<Double> times = new ArrayList<>();
 
         StatusHistoryDTO statusHistoryDTO = StatusHistoryUtil.createStatusHistoryDTO(statusHistory);
@@ -258,10 +258,10 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
         for (StatusSnapshotDTO snap : statusHistoryDTO.getAggregateSnapshots()) {
             Long snapValue = snap.getStatusMetrics().get(metric);
             long snapTime = snap.getTimestamp().getTime();
-            counts.add((double) snapValue);
+            values.add((double) snapValue);
             times.add((double) snapTime);
         }
-        return new Tuple<>(times.stream(), counts.stream());
+        return new Tuple<>(times.stream(), values.stream());
 
     };
 
