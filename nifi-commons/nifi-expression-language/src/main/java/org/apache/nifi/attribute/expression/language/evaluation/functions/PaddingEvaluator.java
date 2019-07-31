@@ -47,7 +47,7 @@ abstract class PaddingEvaluator extends StringEvaluator {
             return new StringQueryResult(null);
         }
         final Long desiredLengthValue = desiredLength.evaluate(attributes, context).getValue();
-        if(desiredLengthValue == null || desiredLengthValue > Integer.MAX_VALUE) {
+        if (desiredLengthValue == null || desiredLengthValue > Integer.MAX_VALUE) {
             return new StringQueryResult(null);
         }
 
