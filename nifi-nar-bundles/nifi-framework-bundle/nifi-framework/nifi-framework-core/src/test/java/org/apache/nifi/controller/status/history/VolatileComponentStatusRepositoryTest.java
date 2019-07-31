@@ -17,7 +17,7 @@
 package org.apache.nifi.controller.status.history;
 
 import java.time.LocalDateTime;
-import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.Date;
 import java.util.List;
 
@@ -75,7 +75,7 @@ public class VolatileComponentStatusRepositoryTest {
   }
 
   private Date asDate(LocalDateTime localDateTime) {
-    return Date.from(localDateTime.atZone(ZoneId.systemDefault()).toInstant());
+    return Date.from(localDateTime.toInstant(ZoneOffset.UTC));
   }
 
   @Test
