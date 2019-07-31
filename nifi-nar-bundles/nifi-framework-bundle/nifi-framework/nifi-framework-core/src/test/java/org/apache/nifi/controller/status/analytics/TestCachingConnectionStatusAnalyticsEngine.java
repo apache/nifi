@@ -20,20 +20,20 @@ import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.status.history.ComponentStatusRepository;
 import org.junit.Test;
 
-public class TestCachingConnectionStatusAnalyticsEngine extends TestStatusAnalyticsEngine{
+public class TestCachingConnectionStatusAnalyticsEngine extends TestStatusAnalyticsEngine {
 
     @Override
     public StatusAnalyticsEngine getStatusAnalyticsEngine(FlowManager flowManager, ComponentStatusRepository componentStatusRepository) {
-        return new CachingConnectionStatusAnalyticsEngine(flowManager,componentStatusRepository);
+        return new CachingConnectionStatusAnalyticsEngine(flowManager, componentStatusRepository);
     }
 
     @Test
-    public void testCachedStatusAnalytics(){
-        StatusAnalyticsEngine statusAnalyticsEngine = new CachingConnectionStatusAnalyticsEngine(flowManager,statusRepository);
+    public void testCachedStatusAnalytics() {
+        StatusAnalyticsEngine statusAnalyticsEngine = new CachingConnectionStatusAnalyticsEngine(flowManager, statusRepository);
         StatusAnalytics statusAnalyticsA = statusAnalyticsEngine.getStatusAnalytics("A");
         StatusAnalytics statusAnalyticsB = statusAnalyticsEngine.getStatusAnalytics("B");
         StatusAnalytics statusAnalyticsTest = statusAnalyticsEngine.getStatusAnalytics("A");
-        assert(statusAnalyticsA.equals(statusAnalyticsTest));
+        assert (statusAnalyticsA.equals(statusAnalyticsTest));
     }
 
 }
