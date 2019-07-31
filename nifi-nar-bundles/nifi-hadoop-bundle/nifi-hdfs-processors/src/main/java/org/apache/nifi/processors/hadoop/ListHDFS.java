@@ -235,7 +235,11 @@ public class ListHDFS extends AbstractHadoopProcessor {
     public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
         super.onPropertyModified(descriptor, oldValue, newValue);
         if (isConfigurationRestored() && (descriptor.equals(DIRECTORY) || descriptor.equals(FILE_FILTER))) {
-            this.resetState = true;
+            //this processor DIRECTORY is already set, when nifi node restart,the DIRECTORY property is different from default,this method can be used,
+            //so resetState is set true,this operate lead to read repetitive hdfs file.We must add condition to decide whether to resetState.
+            if (null != newValue && !newValue.equals(oldValue)) {
+                this.resetState = true;
+            }
         }
     }
 
