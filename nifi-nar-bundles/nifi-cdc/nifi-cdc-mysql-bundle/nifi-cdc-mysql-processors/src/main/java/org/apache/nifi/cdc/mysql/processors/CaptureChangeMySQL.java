@@ -774,6 +774,8 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                                     throw new IOException(se.getMessage(), se);
                                 }
                             }
+                        } else {
+                            currentTable = new TableInfo(data.getDatabase(),data.getTable(),data.getTableId(),null);
                         }
                     } else {
                         // Clear the current table, to force a reload next time we get a TABLE_MAP event we care about

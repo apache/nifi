@@ -33,6 +33,7 @@ public class MySQLCDCUtils {
             } else if (value instanceof Number) {
                 return value;
             }
+            return value.toString();
         } else if (value instanceof Number) {
             return value;
         } else {
@@ -42,6 +43,5 @@ public class MySQLCDCUtils {
                 return value.toString();
             }
         }
-        return null;
     }
 }
