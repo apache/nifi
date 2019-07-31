@@ -187,6 +187,32 @@ Now that the User Interface has been secured, we can easily secure Site-to-Site 
 accomplished by setting the `nifi.remote.input.secure` and `nifi.cluster.protocol.is.secure` properties, respectively, to `true`. These communications
 will always REQUIRE two way SSL as the nodes will use their configured keystore/truststore for authentication.
 
+[[sensitive_properties]]
+=== Other Sensitive Properties
+
+In addition to using AES/GCM keys to protect sensitive properties, NiFi also supports loading (reading, decrypting) sensitive properties from property files using
+other sources of encryption and decryption, such as AWS KMS or HashiCorp Vault.
+
+To use AWS KMS, set the key property like so:
+
+`nifi.foo.key=aws/kms/03a...7b8`
+
+The key fragment (`03a...7b8`) should be a full key ID, ARN, or alias.
+
+To use HashiCorp Vault with a token, set the key property like so:
+
+`nifi.sensitive.example.key=vault/token/https://vault.example.com:8200,04b...8c9`
+
+The token fragment (`04b...8c9`) should be the full token string.
+
+To use the Vault provider with App Role authentication:
+
+`nifi.sensitive.example.key=vault/approle/https://vault.example.com:8200,role-id,secret-id`
+
+And with App ID authentication:
+
+`nifi.sensitive.example.key=vault/approle/https://vault.example.com:8200,app-id,user-id`
+
 [[tls_generation_toolkit]]
 === TLS Generation Toolkit
 
@@ -1720,9 +1746,9 @@ For each Node, the minimum properties to configure are as follows:
    thread pool will never have fewer than this number of threads. It will grow as needed up to the maximum value set by the `nifi.cluster.node.protocol.max.threads`
    property.
 ** `nifi.cluster.node.protocol.max.threads` - The maximum number of threads that should be used to communicate with other nodes in the cluster. This property
-	defaults to `50`. A thread pool is used for replication requests to all nodes, and the thread pool will have a "core" size that is configured by the
-	`nifi.cluster.node.protocol.threads` property. However, if necessary, the thread pool will increase the number of active threads to the limit
-	set by this property.
+        defaults to `50`. A thread pool is used for replication requests to all nodes, and the thread pool will have a "core" size that is configured by the
+        `nifi.cluster.node.protocol.threads` property. However, if necessary, the thread pool will increase the number of active threads to the limit
+        set by this property.
 ** `nifi.zookeeper.connect.string` - The Connect String that is needed to connect to Apache ZooKeeper. This is a comma-separated list
    of hostname:port pairs. For example, `localhost:2181,localhost:2182,localhost:2183`. This should contain a list of all ZooKeeper
    instances in the ZooKeeper quorum.
@@ -2068,9 +2094,9 @@ Now, when we start NiFi, it will use Kerberos to authentication as the `nifi` us
 When using Kerberos, it is import to use fully-qualified domain names and not use _localhost_. Please ensure that the fully qualified hostname of each server is used
 in the following locations:
 
-	- _conf/zookeeper.properties_ file should use FQDN for `server.1`, `server.2`, ..., `server.N` values.
-	- The `Connect String` property of the ZooKeeperStateProvider
-	- The _/etc/hosts_ file should also resolve the FQDN to an IP address that is *not* `127.0.0.1`.
+        - _conf/zookeeper.properties_ file should use FQDN for `server.1`, `server.2`, ..., `server.N` values.
+        - The `Connect String` property of the ZooKeeperStateProvider
+        - The _/etc/hosts_ file should also resolve the FQDN to an IP address that is *not* `127.0.0.1`.
 
 Failure to do so, may result in errors similar to the following:
 
@@ -2292,19 +2318,19 @@ documentation of the proxy for guidance for your deployment environment and use 
 ...
 <Location "/my-nifi">
     ...
-	SSLEngine On
-	SSLCertificateFile /path/to/proxy/certificate.crt
-	SSLCertificateKeyFile /path/to/proxy/key.key
-	SSLCACertificateFile /path/to/ca/certificate.crt
-	SSLVerifyClient require
-	RequestHeader add X-ProxyScheme "https"
-	RequestHeader add X-ProxyHost "proxy-host"
-	RequestHeader add X-ProxyPort "443"
-	RequestHeader add X-ProxyContextPath "/my-nifi"
-	RequestHeader add X-ProxiedEntitiesChain "<%{SSL_CLIENT_S_DN}>"
-	ProxyPass https://nifi-host:8443
-	ProxyPassReverse https://nifi-host:8443
-	...
+        SSLEngine On
+        SSLCertificateFile /path/to/proxy/certificate.crt
+        SSLCertificateKeyFile /path/to/proxy/key.key
+        SSLCACertificateFile /path/to/ca/certificate.crt
+        SSLVerifyClient require
+        RequestHeader add X-ProxyScheme "https"
+        RequestHeader add X-ProxyHost "proxy-host"
+        RequestHeader add X-ProxyPort "443"
+        RequestHeader add X-ProxyContextPath "/my-nifi"
+        RequestHeader add X-ProxiedEntitiesChain "<%{SSL_CLIENT_S_DN}>"
+        ProxyPass https://nifi-host:8443
+        ProxyPassReverse https://nifi-host:8443
+        ...
 </Location>
 ...
 ....
@@ -2578,63 +2604,63 @@ the `WriteAheadProvenanceRepository`, it cannot be changed back to the `Persiste
 |*Property*|*Description*
 |`nifi.provenance.repository.directory.default`*|The location of the Provenance Repository. The default value is `./provenance_repository`. +
  +
-	*NOTE*: Multiple provenance repositories can be specified by using the `nifi.provenance.repository.directory.` prefix with unique suffixes and separate paths as values. +
+        *NOTE*: Multiple provenance repositories can be specified by using the `nifi.provenance.repository.directory.` prefix with unique suffixes and separate paths as values. +
  +
-	For example, to provide two additional locations to act as part of the provenance repository, a user could also specify additional properties with keys of: +
+        For example, to provide two additional locations to act as part of the provenance repository, a user could also specify additional properties with keys of: +
  +
-	`nifi.provenance.repository.directory.provenance1=/repos/provenance1` +
-	`nifi.provenance.repository.directory.provenance2=/repos/provenance2` +
+        `nifi.provenance.repository.directory.provenance1=/repos/provenance1` +
+        `nifi.provenance.repository.directory.provenance2=/repos/provenance2` +
  +
-	Providing three total locations, including `nifi.provenance.repository.directory.default`.
+        Providing three total locations, including `nifi.provenance.repository.directory.default`.
 |`nifi.provenance.repository.max.storage.time`|The maximum amount of time to keep data provenance information. The default value is `24 hours`.
 |`nifi.provenance.repository.max.storage.size`|The maximum amount of data provenance information to store at a time.
-	The default value is `1 GB`. The Data Provenance capability can consume a great deal of storage space because so much data is kept.
-	For production environments, values of 1-2 TB or more is not uncommon. The repository will write to a single "event file" (or set of
-	"event files" if multiple storage locations are defined, as described above) for some period of time (defined by the
-	`nifi.provenance.repository.rollover.time` and `nifi.provenance.repository.rollover.size` properties). Data is always aged off one file at a time,
-	so it is not advisable to write to a single "event file" for a tremendous amount of time, as it will prevent old data from aging off as smoothly.
+        The default value is `1 GB`. The Data Provenance capability can consume a great deal of storage space because so much data is kept.
+        For production environments, values of 1-2 TB or more is not uncommon. The repository will write to a single "event file" (or set of
+        "event files" if multiple storage locations are defined, as described above) for some period of time (defined by the
+        `nifi.provenance.repository.rollover.time` and `nifi.provenance.repository.rollover.size` properties). Data is always aged off one file at a time,
+        so it is not advisable to write to a single "event file" for a tremendous amount of time, as it will prevent old data from aging off as smoothly.
 |`nifi.provenance.repository.rollover.time`|The amount of time to wait before rolling over the "event file" that the repository is writing to.
 |`nifi.provenance.repository.rollover.size`|The amount of data to write to a single "event file." The default value is `100 MB`. For production
-	environments where a very large amount of Data Provenance is generated, a value of `1 GB` is also very reasonable.
+        environments where a very large amount of Data Provenance is generated, a value of `1 GB` is also very reasonable.
 |`nifi.provenance.repository.query.threads`|The number of threads to use for Provenance Repository queries. The default value is `2`.
 |`nifi.provenance.repository.index.threads`|The number of threads to use for indexing Provenance events so that they are searchable. The default value is `2`.
-	For flows that operate on a very high number of FlowFiles, the indexing of Provenance events could become a bottleneck. If this happens, increasing the
-	value of this property may increase the rate at which the Provenance Repository is able to process these records, resulting in better overall throughput.
-	It is advisable to use at least 1 thread per storage location (i.e., if there are 3 storage locations, at least 3 threads should be used). For high
-	throughput environments, where more CPU and disk I/O is available, it may make sense to increase this value significantly. Typically going beyond
-	2-4 threads per storage location is not valuable. However, this can be tuned depending on the CPU resources available compared to the I/O resources.
+        For flows that operate on a very high number of FlowFiles, the indexing of Provenance events could become a bottleneck. If this happens, increasing the
+        value of this property may increase the rate at which the Provenance Repository is able to process these records, resulting in better overall throughput.
+        It is advisable to use at least 1 thread per storage location (i.e., if there are 3 storage locations, at least 3 threads should be used). For high
+        throughput environments, where more CPU and disk I/O is available, it may make sense to increase this value significantly. Typically going beyond
+        2-4 threads per storage location is not valuable. However, this can be tuned depending on the CPU resources available compared to the I/O resources.
 |`nifi.provenance.repository.compress.on.rollover`|Indicates whether to compress the provenance information when an "event file" is rolled over. The default value is `true`.
 |`nifi.provenance.repository.always.sync`|If set to `true`, any change to the repository will be synchronized to the disk, meaning that NiFi will ask the operating system
-	not to cache the information. This is very expensive and can significantly reduce NiFi performance. However, if it is `false`, there could be the potential for data
-	loss if either there is a sudden power loss or the operating system crashes. The default value is `false`.
+        not to cache the information. This is very expensive and can significantly reduce NiFi performance. However, if it is `false`, there could be the potential for data
+        loss if either there is a sudden power loss or the operating system crashes. The default value is `false`.
 |`nifi.provenance.repository.indexed.fields`|This is a comma-separated list of the fields that should be indexed and made searchable.
-	Fields that are not indexed will not be searchable. Valid fields are: `EventType`, `FlowFileUUID`, `Filename`, `TransitURI`, `ProcessorID`,
-	`AlternateIdentifierURI`, `Relationship`, `Details`. The default value is: `EventType, FlowFileUUID, Filename, ProcessorID`.
+        Fields that are not indexed will not be searchable. Valid fields are: `EventType`, `FlowFileUUID`, `Filename`, `TransitURI`, `ProcessorID`,
+        `AlternateIdentifierURI`, `Relationship`, `Details`. The default value is: `EventType, FlowFileUUID, Filename, ProcessorID`.
 |`nifi.provenance.repository.indexed.attributes`|This is a comma-separated list of FlowFile Attributes that should be indexed and made searchable. It is blank by default.
-	But some good examples to consider are `filename` and `mime.type` as well as any custom attributes you might use which are valuable for your use case.
+        But some good examples to consider are `filename` and `mime.type` as well as any custom attributes you might use which are valuable for your use case.
 |`nifi.provenance.repository.index.shard.size`|The repository uses Apache Lucene to performing indexing and searching capabilities. This value indicates how large a Lucene Index should
-	become before the Repository starts writing to a new Index. Large values for the shard size will result in more Java heap usage when searching the Provenance Repository but should
-	provide better performance. The default value is `500 MB`. However, this is due to the fact that defaults are tuned for very small environments where most users begin to use NiFi.
-	For production environments, it is advisable to change this value to `4` to `8 GB`. Once all Provenance Events in the index have been aged off from the "event files," the index
-	will be destroyed as well.
+        become before the Repository starts writing to a new Index. Large values for the shard size will result in more Java heap usage when searching the Provenance Repository but should
+        provide better performance. The default value is `500 MB`. However, this is due to the fact that defaults are tuned for very small environments where most users begin to use NiFi.
+        For production environments, it is advisable to change this value to `4` to `8 GB`. Once all Provenance Events in the index have been aged off from the "event files," the index
+        will be destroyed as well.
 
   *NOTE:* This value should be smaller than (no more than half of) the `nifi.provenance.repository.max.storage.size` property.
 |`nifi.provenance.repository.max.attribute.length`|Indicates the maximum length that a FlowFile attribute can be when retrieving a Provenance Event from the repository.
-	If the length of any attribute exceeds this value, it will be truncated when the event is retrieved. The default value is `65536`.
+        If the length of any attribute exceeds this value, it will be truncated when the event is retrieved. The default value is `65536`.
 |`nifi.provenance.repository.concurrent.merge.threads`|Apache Lucene creates several "segments" in an Index. These segments are periodically merged together in order to provide faster
-	querying. This property specifies the maximum number of threads that are allowed to be used for *each* of the storage directories. The default value is `2`. For high throughput
-	environments, it is advisable to set the number of index threads larger than the number of merge threads * the number of storage locations. For example, if there are 2 storage
-	locations and the number of index threads is set to `8`, then the number of merge threads should likely be less than `4`. While it is not critical that this be done, setting the
-	number of merge threads larger than this can result in all index threads being used to merge, which would cause the NiFi flow to periodically pause while indexing is happening,
-	resulting in some data being processed with much higher latency than other data.
+        querying. This property specifies the maximum number of threads that are allowed to be used for *each* of the storage directories. The default value is `2`. For high throughput
+        environments, it is advisable to set the number of index threads larger than the number of merge threads * the number of storage locations. For example, if there are 2 storage
+        locations and the number of index threads is set to `8`, then the number of merge threads should likely be less than `4`. While it is not critical that this be done, setting the
+        number of merge threads larger than this can result in all index threads being used to merge, which would cause the NiFi flow to periodically pause while indexing is happening,
+        resulting in some data being processed with much higher latency than other data.
 |`nifi.provenance.repository.warm.cache.frequency`|Each time that a Provenance query is run, the query must first search the Apache Lucene indices (at least, in most cases - there are
-	some queries that are run often and the results are cached to avoid searching the Lucene indices). When a Lucene index is opened for the first time, it can be very expensive and take
-	several seconds. This is compounded by having many different indices, and can result in a Provenance query taking much longer. After the index has been opened, the Operating System's
-	disk cache will typically hold onto enough data to make re-opening the index much faster - at least for a period of time, until the disk cache evicts this data. If this value is set,
-	NiFi will periodically open each Lucene index and then close it, in order to "warm" the cache. This will result in far faster queries when the Provenance Repository is large. As with
-	all great things, though, it comes with a cost. Warming the cache does take some CPU resources, but more importantly it will evict other data from the Operating System disk cache and
-	will result in reading (potentially a great deal of) data from the disk. This can result in lower NiFi performance. However, if NiFi is running in an environment where CPU and disk
-	are not fully utilized, this feature can result in far faster Provenance queries. The default value for this property is blank (i.e. disabled).
+        some queries that are run often and the results are cached to avoid searching the Lucene indices). When a Lucene index is opened for the first time, it can be very expensive and take
+        several seconds. This is compounded by having many different indices, and can result in a Provenance query taking much longer. After the index has been opened, the Operating System's
+        disk cache will typically hold onto enough data to make re-opening the index much faster - at least for a period of time, until the disk cache evicts this data. If this value is set,
+        NiFi will periodically open each Lucene index and then close it, in order to "warm" the cache. This will result in far faster queries when the Provenance Repository is large. As with
+        all great things, though, it comes with a cost. Warming the cache does take some CPU resources, but more importantly it will evict other data from the Operating System disk cache and
+        will result in reading (potentially a great deal of) data from the disk. This can result in lower NiFi performance. However, if NiFi is running in an environment where CPU and disk
+        are not fully utilized, this feature can result in far faster Provenance queries. The default value for this property is blank (i.e. disabled).
 |====
 
 [[encrypted-write-ahead-provenance-repository-properties]]
@@ -2684,9 +2710,9 @@ Providing three total locations, including `nifi.provenance.repository.directory
 |`nifi.provenance.repository.rollover.size`|The amount of information to roll over at a time. The default value is `100 MB`.
 |`nifi.provenance.repository.query.threads`|The number of threads to use for Provenance Repository queries. The default value is `2`.
 |`nifi.provenance.repository.index.threads`|The number of threads to use for indexing Provenance events so that they are searchable. The default value is `2`.
-	For flows that operate on a very high number of FlowFiles, the indexing of Provenance events could become a bottleneck. If this is the case, a bulletin will appear, indicating that
-	"The rate of the dataflow is exceeding the provenance recording rate. Slowing down flow to accommodate." If this happens, increasing the value of this property
-	may increase the rate at which the Provenance Repository is able to process these records, resulting in better overall throughput.
+        For flows that operate on a very high number of FlowFiles, the indexing of Provenance events could become a bottleneck. If this is the case, a bulletin will appear, indicating that
+        "The rate of the dataflow is exceeding the provenance recording rate. Slowing down flow to accommodate." If this happens, increasing the value of this property
+        may increase the rate at which the Provenance Repository is able to process these records, resulting in better overall throughput.
 |`nifi.provenance.repository.compress.on.rollover`|Indicates whether to compress the provenance information when rolling it over. The default value is `true`.
 |`nifi.provenance.repository.always.sync`|If set to `true`, any change to the repository will be synchronized to the disk, meaning that NiFi will ask the operating system not to cache the information. This is very expensive and can significantly reduce NiFi performance. However, if it is `false`, there could be the potential for data loss if either there is a sudden power loss or the operating system crashes. The default value is `false`.
 |`nifi.provenance.repository.journal.count`|The number of journal files that should be used to serialize Provenance Event data. Increasing this value will allow more tasks to simultaneously update the repository but will result in more expensive merging of the journal files later. This value should ideally be equal to the number of threads that are expected to update the repository simultaneously, but 16 tends to work well in must environments. The default value is `16`.

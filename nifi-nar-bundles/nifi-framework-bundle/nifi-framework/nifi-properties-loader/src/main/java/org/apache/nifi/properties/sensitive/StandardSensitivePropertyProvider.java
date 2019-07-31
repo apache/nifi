@@ -19,6 +19,7 @@ package org.apache.nifi.properties.sensitive;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.properties.sensitive.aes.AESSensitivePropertyProvider;
 import org.apache.nifi.properties.sensitive.aws.kms.AWSKMSSensitivePropertyProvider;
+import org.apache.nifi.properties.sensitive.hashicorp.vault.VaultSensitivePropertyProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,6 +53,11 @@ public class StandardSensitivePropertyProvider {
             logger.debug("StandardSensitivePropertyProvider selected specific AWS KMS provider for key: " + printableKey);
             return new AWSKMSSensitivePropertyProvider(keyOrKeyId);
 
+        } else if (VaultSensitivePropertyProvider.isProviderFor(scheme)) {
+            String printableKey = VaultSensitivePropertyProvider.toPrintableString(keyOrKeyId);
+            logger.debug("StandardSensitivePropertyProvider selected specific Vault provider for key: " + printableKey);
+            return new VaultSensitivePropertyProvider(keyOrKeyId);
+
         } else if (AESSensitivePropertyProvider.isProviderFor(scheme) || StringUtils.isEmpty(scheme)) {
             String printableKey = AESSensitivePropertyProvider.toPrintableString(keyOrKeyId);
             logger.debug("StandardSensitivePropertyProvider selected specific AES provider for key: " + printableKey);
@@ -82,11 +88,11 @@ public class StandardSensitivePropertyProvider {
     static boolean hasProviderFor(String scheme) {
         if (AWSKMSSensitivePropertyProvider.isProviderFor(scheme)) {
             return true;
-
+        } else if (VaultSensitivePropertyProvider.isProviderFor(scheme)) {
+            return true;
         } else if (AESSensitivePropertyProvider.isProviderFor(scheme)) {
             return true;
         }
-
         return false;
     }
 
