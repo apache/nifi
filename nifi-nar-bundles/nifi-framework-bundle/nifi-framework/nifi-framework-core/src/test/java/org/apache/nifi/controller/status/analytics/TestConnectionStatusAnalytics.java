@@ -1,3 +1,19 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.nifi.controller.status.analytics;
 
 import static org.junit.Assert.assertNotNull;
@@ -32,9 +48,10 @@ public class TestConnectionStatusAnalytics {
             .map(ConnectionStatusDescriptor::getDescriptor)
             .collect(Collectors.toSet());
 
-    protected ConnectionStatusAnalytics getConnectionStatusAnalytics(Long queuedBytes, Long queuedCount,String backPressureDataSizeThreshhold, Long backPressureObjectThreshold, Boolean isConstantStatus){
+    protected ConnectionStatusAnalytics getConnectionStatusAnalytics(Long queuedBytes, Long queuedCount, String backPressureDataSizeThreshhold, Long backPressureObjectThreshold, Boolean isConstantStatus) {
         ComponentStatusRepository statusRepository = Mockito.mock(ComponentStatusRepository.class);
-        FlowManager flowManager;flowManager = Mockito.mock(FlowManager.class);
+        FlowManager flowManager;
+        flowManager = Mockito.mock(FlowManager.class);
         final ProcessGroup processGroup = Mockito.mock(ProcessGroup.class);
         final StatusHistory statusHistory = Mockito.mock(StatusHistory.class);
         final Connection connection = Mockito.mock(Connection.class);
@@ -47,11 +64,11 @@ public class TestConnectionStatusAnalytics {
         final long startTime = System.currentTimeMillis();
         int iterations = 10;
 
-        for (int i=0; i < iterations; i++) {
+        for (int i = 0; i < iterations; i++) {
             final StandardStatusSnapshot snapshot = new StandardStatusSnapshot(CONNECTION_METRICS);
             snapshot.setTimestamp(new Date(startTime + i * 1000));
-            snapshot.addStatusMetric(ConnectionStatusDescriptor.QUEUED_BYTES.getDescriptor(), (isConstantStatus || i < 5) ? queuedBytes: queuedBytes * 2);
-            snapshot.addStatusMetric(ConnectionStatusDescriptor.QUEUED_COUNT.getDescriptor(), (isConstantStatus || i < 5) ? queuedCount: queuedCount * 2);
+            snapshot.addStatusMetric(ConnectionStatusDescriptor.QUEUED_BYTES.getDescriptor(), (isConstantStatus || i < 5) ? queuedBytes : queuedBytes * 2);
+            snapshot.addStatusMetric(ConnectionStatusDescriptor.QUEUED_COUNT.getDescriptor(), (isConstantStatus || i < 5) ? queuedCount : queuedCount * 2);
             snapshotList.add(snapshot);
         }
 
@@ -62,98 +79,98 @@ public class TestConnectionStatusAnalytics {
         when(processGroup.findAllConnections()).thenReturn(connections);
         when(statusHistory.getStatusSnapshots()).thenReturn(snapshotList);
         when(flowManager.getRootGroup()).thenReturn(processGroup);
-        when(statusRepository.getConnectionStatusHistory(anyString(),any(),any(),anyInt())).thenReturn(statusHistory);
-        ConnectionStatusAnalytics connectionStatusAnalytics = new ConnectionStatusAnalytics(statusRepository,flowManager,connectionIdentifier,false);
+        when(statusRepository.getConnectionStatusHistory(anyString(), any(), any(), anyInt())).thenReturn(statusHistory);
+        ConnectionStatusAnalytics connectionStatusAnalytics = new ConnectionStatusAnalytics(statusRepository, flowManager, connectionIdentifier, false);
         connectionStatusAnalytics.init();
         return connectionStatusAnalytics;
     }
 
     @Test
-    public void testGetIntervalTimeMillis(){
+    public void testGetIntervalTimeMillis() {
         ConnectionStatusAnalytics connectionStatusAnalytics = getConnectionStatusAnalytics(5000L, 50L, "100MB", 100L, true);
         Long interval = connectionStatusAnalytics.getIntervalTimeMillis();
         assertNotNull(interval);
-        assert(interval == 300000);
+        assert (interval == 300000);
     }
 
     @Test
-    public void testGetTimeToCountBackpressureMillisConstantStatus(){
+    public void testGetTimeToCountBackpressureMillisConstantStatus() {
         ConnectionStatusAnalytics connectionStatusAnalytics = getConnectionStatusAnalytics(5000L, 50L, "100MB", 100L, true);
         Long countTime = connectionStatusAnalytics.getTimeToCountBackpressureMillis();
         assertNotNull(countTime);
-        assert(countTime == -1L);
+        assert (countTime == -1L);
     }
 
     @Test
-    public void testGetTimeToCountBackpressureMillisVaryingStatus(){
+    public void testGetTimeToCountBackpressureMillisVaryingStatus() {
         ConnectionStatusAnalytics connectionStatusAnalytics = getConnectionStatusAnalytics(5000L, 50L, "100MB", 100L, false);
         Long countTime = connectionStatusAnalytics.getTimeToCountBackpressureMillis();
         assertNotNull(countTime);
-        assert(countTime > -1L);
+        assert (countTime > -1L);
     }
 
     @Test
-    public void testGetTimeToBytesBackpressureMillisConstantStatus(){
+    public void testGetTimeToBytesBackpressureMillisConstantStatus() {
         ConnectionStatusAnalytics connectionStatusAnalytics = getConnectionStatusAnalytics(5000L, 50L, "100MB", 100L, true);
         Long bytesTime = connectionStatusAnalytics.getTimeToBytesBackpressureMillis();
         assertNotNull(bytesTime);
-        assert(bytesTime == -1L);
+        assert (bytesTime == -1L);
     }
 
     @Test
-    public void testGetTimeToBytesBackpressureMillisVaryingStatus(){
+    public void testGetTimeToBytesBackpressureMillisVaryingStatus() {
         ConnectionStatusAnalytics connectionStatusAnalytics = getConnectionStatusAnalytics(5000L, 50L, "100MB", 100L, false);
         Long bytesTime = connectionStatusAnalytics.getTimeToBytesBackpressureMillis();
         assertNotNull(bytesTime);
-        assert(bytesTime > -1L);
+        assert (bytesTime > -1L);
     }
 
     @Test
-    public void testGetNextIntervalBytesConstantStatus(){
+    public void testGetNextIntervalBytesConstantStatus() {
         ConnectionStatusAnalytics connectionStatusAnalytics = getConnectionStatusAnalytics(5000L, 50L, "100MB", 100L, true);
         Long nextBytes = connectionStatusAnalytics.getNextIntervalBytes();
         assertNotNull(nextBytes);
-        assert(nextBytes == 5000L);
+        assert (nextBytes == 5000L);
     }
 
     @Test
-    public void testGetNextIntervalBytesVaryingStatus(){
+    public void testGetNextIntervalBytesVaryingStatus() {
         ConnectionStatusAnalytics connectionStatusAnalytics = getConnectionStatusAnalytics(5000L, 50L, "100MB", 100L, false);
         Long nextBytes = connectionStatusAnalytics.getNextIntervalBytes();
         assertNotNull(nextBytes);
-        assert(nextBytes > -1L);
+        assert (nextBytes > -1L);
     }
 
     @Test
-    public void testGetNextIntervalCountConstantStatus(){
+    public void testGetNextIntervalCountConstantStatus() {
         ConnectionStatusAnalytics connectionStatusAnalytics = getConnectionStatusAnalytics(5000L, 50L, "100MB", 100L, true);
         Long nextCount = connectionStatusAnalytics.getNextIntervalCount();
         assertNotNull(nextCount);
-        assert(nextCount == 50L);
+        assert (nextCount == 50L);
     }
 
     @Test
-    public void testGetNextIntervalCountVaryingStatus(){
+    public void testGetNextIntervalCountVaryingStatus() {
         ConnectionStatusAnalytics connectionStatusAnalytics = getConnectionStatusAnalytics(5000L, 50L, "100MB", 100L, true);
         Long nextCount = connectionStatusAnalytics.getNextIntervalCount();
         assertNotNull(nextCount);
-        assert(nextCount == 50L);
+        assert (nextCount == 50L);
     }
 
     @Test
-    public void testGetNextIntervalPercentageUseBytesConstantStatus(){
+    public void testGetNextIntervalPercentageUseBytesConstantStatus() {
         ConnectionStatusAnalytics connectionStatusAnalytics = getConnectionStatusAnalytics(50000L, 50L, "1MB", 100L, true);
         Long nextBytesPercentage = connectionStatusAnalytics.getNextIntervalPercentageUseBytes();
         assertNotNull(nextBytesPercentage);
-        assert(nextBytesPercentage == 5);
+        assert (nextBytesPercentage == 5);
     }
 
     @Test
-    public void testGetNextIntervalPercentageUseCountConstantStatus(){
+    public void testGetNextIntervalPercentageUseCountConstantStatus() {
         ConnectionStatusAnalytics connectionStatusAnalytics = getConnectionStatusAnalytics(5000L, 50L, "100MB", 100L, true);
         Long nextCountPercentage = connectionStatusAnalytics.getNextIntervalPercentageUseCount();
         assertNotNull(nextCountPercentage);
-        assert(nextCountPercentage == 50);
+        assert (nextCountPercentage == 50);
     }
 
 }

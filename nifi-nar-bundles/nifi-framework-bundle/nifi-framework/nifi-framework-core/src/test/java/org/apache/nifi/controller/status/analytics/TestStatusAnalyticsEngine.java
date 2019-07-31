@@ -48,12 +48,12 @@ public abstract class TestStatusAnalyticsEngine {
         StatusSnapshot statusSnapshot = Mockito.mock(StatusSnapshot.class);
         when(statusSnapshot.getMetricDescriptors()).thenReturn(Collections.emptySet());
         when(flowManager.getRootGroup()).thenReturn(processGroup);
-        when(statusRepository.getConnectionStatusHistory(anyString(),any(),any(),anyInt())).thenReturn(statusHistory);
+        when(statusRepository.getConnectionStatusHistory(anyString(), any(), any(), anyInt())).thenReturn(statusHistory);
     }
 
     @Test
-    public void testGetStatusAnalytics(){
-        StatusAnalyticsEngine statusAnalyticsEngine = getStatusAnalyticsEngine(flowManager,statusRepository);
+    public void testGetStatusAnalytics() {
+        StatusAnalyticsEngine statusAnalyticsEngine = getStatusAnalyticsEngine(flowManager, statusRepository);
         StatusAnalytics statusAnalytics = statusAnalyticsEngine.getStatusAnalytics("1");
         assertNotNull(statusAnalytics);
     }
