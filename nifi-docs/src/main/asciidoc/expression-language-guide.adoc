@@ -983,7 +983,7 @@ Expressions will provide the following results:
 *Description*: [.description]#The `padLeft` function prepends the given padding string (or `'_'`, if nothing is provided) to the argument `String` until the passed desired length is reached.
 
 It returns the argument as is if its length is already equal or higher than the desired length. It returns `null` if the
-argument string is not a valid attribute or in case of `DesiredLength` overflow.
+argument string is not a valid attribute.
 
 *Subject Type*: [.subject]#String#
 
@@ -1018,7 +1018,7 @@ Expressions will provide the following results:
 *Description*: [.description]#The `padRight` function appends the given padding string (or `'_'`, if nothing is provided) to the argument `String` until the passed desired length is reached.
 
 It returns the argument as is if its length is already equal or higher than the desired length. It returns `null` if the
-argument string is not a valid attribute or in case of `DesiredLength` overflow.
+argument string is not a valid attribute.
 
 *Subject Type*: [.subject]#String#
 
