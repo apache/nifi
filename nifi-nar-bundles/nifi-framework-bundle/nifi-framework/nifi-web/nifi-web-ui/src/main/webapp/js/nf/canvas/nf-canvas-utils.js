@@ -349,11 +349,8 @@
                 var refreshGraph = $.Deferred(function (deferred) {
                     // load a different group if necessary
                     if (groupId !== nfCanvas.getGroupId()) {
-                        // set the new group id
-                        nfCanvas.setGroupId(groupId);
-
-                        // reload
-                        nfCanvas.reload().done(function () {
+                        // load the process group
+                        nfCanvas.reload({}, groupId).done(function () {
                             deferred.resolve();
                         }).fail(function (xhr, status, error) {
                             nfDialog.showOkDialog({
@@ -455,11 +452,8 @@
                 var refreshGraph = $.Deferred(function (deferred) {
                     // load a different group if necessary
                     if (groupId !== nfCanvas.getGroupId() || forceCanvasLoad) {
-                        // set the new group id
-                        nfCanvas.setGroupId(groupId);
-
-                        // reload
-                        nfCanvas.reload().done(function () {
+                        // load the process group
+                        nfCanvas.reload({}, groupId).done(function () {
                             deferred.resolve();
                         }).fail(function (xhr, status, error) {
                             nfDialog.showOkDialog({
@@ -575,11 +569,22 @@
         },
 
         /**
-         * Centers the specified bounding box.
+         * Gets the selection object of the id passed.
+         *
+         * @param {id}              The uuid of the component to retrieve
+         * @returns {selection}     The selection object of the component id passed
+         */
+        getSelectionById: function(id){
+            return d3.select('#id-' + id);
+        },
+
+        /**
+         * Gets the coordinates neccessary to center a bounding box on the screen.
          *
          * @param {type} boundingBox
+         * @returns {number[]}
          */
-        centerBoundingBox: function (boundingBox) {
+        getCenterForBoundingBox: function (boundingBox) {
             var scale = nfCanvas.View.getScale();
             if (nfCommon.isDefinedAndNotNull(boundingBox.scale)) {
                 scale = boundingBox.scale;
@@ -592,6 +597,56 @@
 
             // determine the center location for this component in canvas space
             var center = [(screenWidth / 2) - (boundingBox.width / 2), (screenHeight / 2) - (boundingBox.height / 2)];
+            return center;
+        },
+
+        /**
+         * Determines if a bounding box is fully in the current viewable canvas area.
+         *
+         * @param {type} boundingBox       Bounding box to check.
+         * @param {boolean} strict         If true, the entire bounding box must be in the viewport.
+         *                                 If false, only part of the bounding box must be in the viewport.
+         * @returns {boolean}
+         */
+        isBoundingBoxInViewport: function (boundingBox, strict) {
+            var scale = nfCanvas.View.getScale();
+            var translate = nfCanvas.View.getTranslate();
+            var offset = nfCanvas.CANVAS_OFFSET;
+
+            // get the canvas normalized width and height
+            var canvasContainer = $('#canvas-container');
+            var screenWidth = Math.floor(canvasContainer.width() / scale);
+            var screenHeight = Math.floor(canvasContainer.height() / scale);
+            var screenLeft = Math.ceil(-translate[0] / scale);
+            var screenTop = Math.ceil(-translate[1] / scale);
+            var screenRight = screenLeft + screenWidth;
+            var screenBottom = screenTop + screenHeight;
+
+            var left = Math.ceil(boundingBox.x);
+            var right = Math.floor(boundingBox.x + boundingBox.width);
+            var top = Math.ceil(boundingBox.y - (offset) / scale);
+            var bottom = Math.floor(boundingBox.y - (offset / scale) + boundingBox.height);
+
+            if (strict) {
+                return !(left < screenLeft || right > screenRight || top < screenTop || bottom > screenBottom);
+            } else {
+                return ((left > screenLeft && left < screenRight) || (right < screenRight && right > screenLeft)) &&
+                    ((top > screenTop && top < screenBottom) || (bottom < screenBottom && bottom > screenTop));
+            }
+        },
+
+        /**
+         * Centers the specified bounding box.
+         *
+         * @param {type} boundingBox
+         */
+        centerBoundingBox: function (boundingBox) {
+            var scale = nfCanvas.View.getScale();
+            if (nfCommon.isDefinedAndNotNull(boundingBox.scale)) {
+                scale = boundingBox.scale;
+            }
+
+            var center = nfCanvasUtils.getCenterForBoundingBox(boundingBox);
 
             // calculate the difference between the center point and the position of this component and convert to screen space
             nfCanvas.View.transform([(center[0] - boundingBox.x) * scale, (center[1] - boundingBox.y) * scale], scale);
@@ -1764,6 +1819,75 @@
         },
 
         /**
+         * Get a BoundingClientRect, normalized to the canvas, that encompasses all nodes in a given selection.
+         *
+         * @param selection
+         * @returns {*} BoundingClientRect
+         */
+        getSelectionBoundingClientRect: function (selection) {
+            var scale = nfCanvas.View.getScale();
+            var translate = nfCanvas.View.getTranslate();
+
+            var initialBBox = {
+                x: Number.MAX_VALUE,
+                y: Number.MAX_VALUE,
+                right: Number.MIN_VALUE,
+                bottom: Number.MIN_VALUE,
+                translate: nfCanvas.View.getTranslate()
+            };
+
+            var bbox = selection.nodes().reduce(function (aggregateBBox, node) {
+                var rect = node.getBoundingClientRect();
+                aggregateBBox.x = Math.min(rect.x, aggregateBBox.x);
+                aggregateBBox.y = Math.min(rect.y, aggregateBBox.y);
+                aggregateBBox.right = Math.max(rect.right, aggregateBBox.right);
+                aggregateBBox.bottom = Math.max(rect.bottom, aggregateBBox.bottom);
+
+                return aggregateBBox;
+            }, initialBBox);
+
+            // normalize the bounding box with scale and translate
+            bbox.x = (bbox.x - translate[0]) / scale;
+            bbox.y = (bbox.y - translate[1]) / scale;
+            bbox.right = (bbox.right - translate[0]) / scale;
+            bbox.bottom = (bbox.bottom - translate[1]) / scale;
+
+            bbox.width = bbox.right - bbox.x;
+            bbox.height = bbox.bottom - bbox.y;
+            bbox.top = bbox.y;
+            bbox.left = bbox.x;
+
+            return bbox;
+        },
+
+        /**
+         * Applies a translation to BoundingClientRect.
+         *
+         * @param boundingClientRect
+         * @param translate
+         * @returns {{top: number, left: number, bottom: number, x: number, width: number, y: number, right: number, height: number}}
+         */
+        translateBoundingClientRect: function (boundingClientRect, translate) {
+            if (nfCommon.isUndefinedOrNull(translate)) {
+                if (nfCommon.isDefinedAndNotNull(boundingClientRect.translate)) {
+                    translate = boundingClientRect.translate;
+                } else {
+                    translate = nfCanvas.View.getTranslate();
+                }
+            }
+            return {
+                x: boundingClientRect.x - translate[0],
+                y: boundingClientRect.y - translate[1],
+                left: boundingClientRect.left - translate[0],
+                right: boundingClientRect.right - translate[0],
+                top: boundingClientRect.top - translate[1],
+                bottom: boundingClientRect.bottom - translate[1],
+                width: boundingClientRect.width,
+                height: boundingClientRect.height
+            }
+        },
+
+        /**
          * Moves the specified components into the current parent group.
          *
          * @param {selection} components
@@ -1980,11 +2104,13 @@
 
         /**
          * Reloads the status for the entire canvas (components and flow.)
+         *
+         * @param {string} groupId    Optional, specific group id to reload the canvas to
          */
-        reload: function () {
+        reload: function (groupId) {
             return nfCanvas.reload({
                 'transition': true
-            });
+            }, groupId);
         },
 
         /**

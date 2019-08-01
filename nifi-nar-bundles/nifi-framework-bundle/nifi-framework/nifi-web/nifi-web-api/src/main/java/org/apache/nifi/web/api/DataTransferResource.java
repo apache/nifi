@@ -27,7 +27,7 @@ import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.authorization.AuthorizableLookup;
 import org.apache.nifi.authorization.AuthorizationResult;
 import org.apache.nifi.authorization.AuthorizationResult.Result;
-import org.apache.nifi.authorization.RootGroupPortAuthorizable;
+import org.apache.nifi.authorization.PublicPortAuthorizable;
 import org.apache.nifi.authorization.resource.ResourceType;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
@@ -135,11 +135,11 @@ public class DataTransferResource extends ApplicationResource {
         }
 
         // get the authorizable
-        final RootGroupPortAuthorizable authorizable;
+        final PublicPortAuthorizable authorizable;
         if (ResourceType.InputPort.equals(resourceType)) {
-            authorizable = lookup.getRootGroupInputPort(identifier);
+            authorizable = lookup.getPublicInputPort(identifier);
         } else {
-            authorizable = lookup.getRootGroupOutputPort(identifier);
+            authorizable = lookup.getPublicOutputPort(identifier);
         }
 
         // perform the authorization

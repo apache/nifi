@@ -649,7 +649,7 @@ public class MockProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public void verifyCanSaveToFlowRegistry(String registryId, String bucketId, String flowId) {
+    public void verifyCanSaveToFlowRegistry(String registryId, String bucketId, String flowId, String action) {
     }
 
     @Override

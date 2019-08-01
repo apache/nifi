@@ -54,7 +54,7 @@ public class CSVHeaderSchemaStrategy implements SchemaAccessStrategy {
         }
 
         try {
-            final CSVFormat csvFormat = CSVUtils.createCSVFormat(context).withFirstRecordAsHeader();
+            final CSVFormat csvFormat = CSVUtils.createCSVFormat(context, variables).withFirstRecordAsHeader();
             try (final Reader reader = new InputStreamReader(new BOMInputStream(contentStream));
                 final CSVParser csvParser = new CSVParser(reader, csvFormat)) {
 

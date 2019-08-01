@@ -95,20 +95,20 @@ public interface AuthorizableLookup {
     Authorizable getFlow();
 
     /**
-     * Get the authorizable RootGroup InputPort.
+     * Get the authorizable public InputPort.
      *
      * @param id input port id
      * @return authorizable
      */
-    RootGroupPortAuthorizable getRootGroupInputPort(String id);
+    PublicPortAuthorizable getPublicInputPort(String id);
 
     /**
-     * Get the authorizable RootGroup OutputPort.
+     * Get the authorizable public OutputPort.
      *
      * @param id output port id
      * @return authorizable
      */
-    RootGroupPortAuthorizable getRootGroupOutputPort(String id);
+    PublicPortAuthorizable getPublicOutputPort(String id);
 
     /**
      * Get the authorizable InputPort.

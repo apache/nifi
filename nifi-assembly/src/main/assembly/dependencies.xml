@@ -35,6 +35,14 @@
                 <exclude>nifi-bootstrap</exclude>
                 <exclude>nifi-resources</exclude>
                 <exclude>nifi-docs</exclude>
+
+                <!-- exclude jaxb/activation/annotation libs from lib, they'll be included in the java11 subdir -->
+                <!-- TODO: remove these once minimum Java version is 11 -->
+                <exclude>javax.xml.bind:jaxb-api</exclude>
+                <exclude>com.sun.xml.bind:jaxb-impl</exclude>
+                <exclude>com.sun.xml.bind:jaxb-core</exclude>
+                <exclude>javax.activation:javax.activation-api</exclude>
+                <exclude>javax.annotation:javax.annotation-api</exclude>
             </excludes>
         </dependencySet>
     </dependencySets>

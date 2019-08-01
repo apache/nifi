@@ -107,8 +107,9 @@ public class WriteCSVResult extends AbstractRecordSetWriter implements RecordSet
         }
 
         final Set<String> allFields = new LinkedHashSet<>();
-        allFields.addAll(record.getRawFieldNames());
+        // The fields defined in the schema should be written first followed by extra ones.
         allFields.addAll(recordSchema.getFieldNames());
+        allFields.addAll(record.getRawFieldNames());
         fieldNames = allFields.toArray(new String[0]);
         return fieldNames;
     }

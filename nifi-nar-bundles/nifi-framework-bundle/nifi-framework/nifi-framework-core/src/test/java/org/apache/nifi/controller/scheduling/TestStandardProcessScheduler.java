@@ -77,6 +77,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.mockito.AdditionalMatchers;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
@@ -91,6 +92,7 @@ import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -103,10 +105,11 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyBoolean;
-import static org.mockito.Matchers.anySet;
-import static org.mockito.Matchers.anyString;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anySet;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.when;
 
@@ -165,7 +168,7 @@ public class TestStandardProcessScheduler {
         Mockito.doAnswer(new Answer<ProcessorNode>() {
             @Override
             public ProcessorNode answer(InvocationOnMock invocation) {
-                final String id = invocation.getArgumentAt(0, String.class);
+                final String id = invocation.getArgument(0);
                 return processorMap.get(id);
             }
         }).when(flowManager).getProcessorNode(Mockito.anyString());
@@ -173,7 +176,7 @@ public class TestStandardProcessScheduler {
         Mockito.doAnswer(new Answer<Object>() {
             @Override
             public Object answer(InvocationOnMock invocation) {
-                final ProcessorNode procNode = invocation.getArgumentAt(0, ProcessorNode.class);
+                final ProcessorNode procNode = invocation.getArgument(0);
                 processorMap.putIfAbsent(procNode.getIdentifier(), procNode);
                 return null;
             }
@@ -189,9 +192,9 @@ public class TestStandardProcessScheduler {
         doAnswer(new Answer<ControllerServiceNode>() {
             @Override
             public ControllerServiceNode answer(final InvocationOnMock invocation) throws Throwable {
-                final String type = invocation.getArgumentAt(0, String.class);
-                final String id = invocation.getArgumentAt(1, String.class);
-                final BundleCoordinate bundleCoordinate = invocation.getArgumentAt(2, BundleCoordinate.class);
+                final String type = invocation.getArgument(0);
+                final String id = invocation.getArgument(1);
+                final BundleCoordinate bundleCoordinate = invocation.getArgument(2);
 
                 final ControllerServiceNode serviceNode = new ExtensionBuilder()
                     .identifier(id)
@@ -210,7 +213,7 @@ public class TestStandardProcessScheduler {
                 serviceProvider.onControllerServiceAdded(serviceNode);
                 return serviceNode;
             }
-        }).when(flowManager).createControllerService(anyString(), anyString(), any(BundleCoordinate.class), anySet(), anyBoolean(), anyBoolean());
+        }).when(flowManager).createControllerService(anyString(), anyString(), any(BundleCoordinate.class), AdditionalMatchers.or(anySet(), isNull()), anyBoolean(), anyBoolean());
     }
 
     @After
@@ -246,7 +249,7 @@ public class TestStandardProcessScheduler {
     }
 
     @Test(timeout = 60000)
-    public void testDisableControllerServiceWithProcessorTryingToStartUsingIt() throws InterruptedException {
+    public void testDisableControllerServiceWithProcessorTryingToStartUsingIt() throws InterruptedException, ExecutionException {
         final String uuid = UUID.randomUUID().toString();
         final Processor proc = new ServiceReferencingProcessor();
         proc.initialize(new StandardProcessorInitializationContext(uuid, null, null, null, KerberosConfig.NOT_CONFIGURED));
@@ -280,13 +283,8 @@ public class TestStandardProcessScheduler {
         scheduler.stopProcessor(procNode);
         assertTrue(service.isActive());
         assertSame(service.getState(), ControllerServiceState.ENABLING);
-        scheduler.disableControllerService(service);
-        assertSame(service.getState(), ControllerServiceState.DISABLING);
+        scheduler.disableControllerService(service).get();
         assertFalse(service.isActive());
-
-        while (service.getState() != ControllerServiceState.DISABLED) {
-            Thread.sleep(5L);
-        }
         assertSame(service.getState(), ControllerServiceState.DISABLED);
     }
 
@@ -356,7 +354,7 @@ public class TestStandardProcessScheduler {
                 @Override
                 public void run() {
                     try {
-                        scheduler.enableControllerService(serviceNode);
+                        scheduler.enableControllerService(serviceNode).get();
                         assertTrue(serviceNode.isActive());
                     } catch (final Exception e) {
                         e.printStackTrace();

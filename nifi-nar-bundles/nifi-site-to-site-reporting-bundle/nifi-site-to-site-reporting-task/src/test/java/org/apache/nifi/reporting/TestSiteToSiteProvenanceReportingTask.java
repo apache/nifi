@@ -81,7 +81,7 @@ public class TestSiteToSiteProvenanceReportingTask {
         Mockito.doAnswer(new Answer<PropertyValue>() {
             @Override
             public PropertyValue answer(final InvocationOnMock invocation) throws Throwable {
-                final PropertyDescriptor descriptor = invocation.getArgumentAt(0, PropertyDescriptor.class);
+                final PropertyDescriptor descriptor = invocation.getArgument(0, PropertyDescriptor.class);
                 return new MockPropertyValue(properties.get(descriptor));
             }
         }).when(context).getProperty(Mockito.any(PropertyDescriptor.class));
@@ -89,7 +89,7 @@ public class TestSiteToSiteProvenanceReportingTask {
         Mockito.doAnswer(new Answer<PropertyValue>() {
             @Override
             public PropertyValue answer(final InvocationOnMock invocation) throws Throwable {
-                final PropertyDescriptor descriptor = invocation.getArgumentAt(0, PropertyDescriptor.class);
+                final PropertyDescriptor descriptor = invocation.getArgument(0, PropertyDescriptor.class);
                 return new MockPropertyValue(properties.get(descriptor));
             }
         }).when(confContext).getProperty(Mockito.any(PropertyDescriptor.class));
@@ -100,8 +100,8 @@ public class TestSiteToSiteProvenanceReportingTask {
         Mockito.doAnswer(new Answer<List<ProvenanceEventRecord>>() {
             @Override
             public List<ProvenanceEventRecord> answer(final InvocationOnMock invocation) throws Throwable {
-                final long startId = invocation.getArgumentAt(0, long.class);
-                final int maxRecords = invocation.getArgumentAt(1, int.class);
+                final long startId = invocation.getArgument(0, Long.class);
+                final int maxRecords = invocation.getArgument(1, Integer.class);
 
                 final List<ProvenanceEventRecord> eventsToReturn = new ArrayList<>();
                 for (int i = (int) Math.max(0, startId); i < (int) (startId + maxRecords) && totalEvents.get() < maxEventId; i++) {
@@ -651,7 +651,7 @@ public class TestSiteToSiteProvenanceReportingTask {
                 Mockito.doAnswer(new Answer<Object>() {
                     @Override
                     public Object answer(final InvocationOnMock invocation) throws Throwable {
-                        final byte[] data = invocation.getArgumentAt(0, byte[].class);
+                        final byte[] data = invocation.getArgument(0, byte[].class);
                         dataSent.add(data);
                         return null;
                     }

@@ -16,12 +16,13 @@
  */
 package org.apache.nifi.provenance.toc;
 
+import org.apache.nifi.stream.io.StreamUtils;
+
 import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
-
-import org.apache.nifi.stream.io.StreamUtils;
 
 /**
  * Standard implementation of TocReader.
@@ -45,7 +46,11 @@ public class StandardTocReader implements TocReader {
         this.file = file;
         final long fileLength = file.length();
         if (fileLength < 2) {
-            throw new EOFException();
+            if (file.exists()) {
+                throw new EOFException();
+            } else {
+                throw new FileNotFoundException();
+            }
         }
 
         try (final FileInputStream fis = new FileInputStream(file)) {

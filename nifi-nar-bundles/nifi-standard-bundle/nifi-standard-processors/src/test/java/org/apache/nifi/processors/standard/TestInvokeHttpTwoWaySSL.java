@@ -36,7 +36,7 @@ public class TestInvokeHttpTwoWaySSL extends TestInvokeHttpSSL {
         // create the SSL properties, which basically store keystore / trustore information
         // this is used by the StandardSSLContextService and the Jetty Server
         serverSslProperties = createServerSslProperties(true);
-        sslProperties = createSslProperties(true);
+        sslProperties = createClientSslProperties(true);
 
         // create a Jetty server on a random port
         server = createServer();

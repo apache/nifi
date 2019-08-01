@@ -18,12 +18,14 @@
 package org.apache.nifi.processors.standard;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -120,6 +122,14 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
         .required(false)
         .build();
 
+    static final PropertyDescriptor FILE_NOT_FOUND_LOG_LEVEL = new PropertyDescriptor.Builder()
+        .displayName("Log level when file not found")
+        .name("fetchfiletransfer-notfound-loglevel")
+        .description("Log level to use in case the file does not exist when the processor is triggered")
+        .allowableValues(LogLevel.values())
+        .defaultValue(LogLevel.ERROR.toString()) // backward compatibility support
+        .required(true)
+        .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
         .name("success")
@@ -141,6 +151,7 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
     private final Map<Tuple<String, Integer>, BlockingQueue<FileTransferIdleWrapper>> fileTransferMap = new HashMap<>();
     private final long IDLE_CONNECTION_MILLIS = TimeUnit.SECONDS.toMillis(10L); // amount of time to wait before closing an idle connection
     private volatile long lastClearTime = System.currentTimeMillis();
+    private LogLevel levelFileNotFound = LogLevel.ERROR;
 
     @Override
     public Set<Relationship> getRelationships() {
@@ -151,6 +162,12 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
         relationships.add(REL_COMMS_FAILURE);
         return relationships;
     }
+
+    @OnScheduled
+    public void onScheduled(final ProcessContext context) {
+        levelFileNotFound = LogLevel.valueOf(context.getProperty(FILE_NOT_FOUND_LOG_LEVEL).getValue());
+    }
+
 
     /**
      * Close connections that are idle or optionally close all connections.
@@ -261,7 +278,7 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
 
             } catch (final FileNotFoundException e) {
                 closeConnection = false;
-                getLogger().error("Failed to fetch content for {} from filename {} on remote host {} because the file could not be found on the remote system; routing to {}",
+                getLogger().log(levelFileNotFound, "Failed to fetch content for {} from filename {} on remote host {} because the file could not be found on the remote system; routing to {}",
                         new Object[]{flowFile, filename, host, REL_NOT_FOUND.getName()});
                 session.transfer(session.penalize(flowFile), REL_NOT_FOUND);
                 session.getProvenanceReporter().route(flowFile, REL_NOT_FOUND);

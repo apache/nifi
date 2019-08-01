@@ -1448,6 +1448,32 @@ public abstract class TestInvokeHttpCommon {
         Assert.assertEquals("chunked",header);
     }
 
+    @Test
+    public void testTrustedHostname() throws Exception {
+        addHandler(new GetOrHeadHandler());
+
+        runner.setProperty(InvokeHTTP.PROP_URL, url + "/status/200");
+        runner.setProperty("Trusted Hostname", "https://example.com/");
+        runner.assertValid();
+
+        runner.setProperty(InvokeHTTP.PROP_METHOD, "GET");
+        runner.setProperty(InvokeHTTP.PROP_OUTPUT_RESPONSE_REGARDLESS,"true");
+        runner.setProperty(InvokeHTTP.PROP_PUT_OUTPUT_IN_ATTRIBUTE,"outputBody");
+        runner.assertValid();
+
+        createFlowFiles(runner);
+        runner.run();
+
+        runner.assertValid();
+
+        runner.assertTransferCount(InvokeHTTP.REL_SUCCESS_REQ, 1);
+        runner.assertTransferCount(InvokeHTTP.REL_RESPONSE, 1);
+        runner.assertTransferCount(InvokeHTTP.REL_RETRY, 0);
+        runner.assertTransferCount(InvokeHTTP.REL_NO_RETRY,0);
+        runner.assertTransferCount(InvokeHTTP.REL_FAILURE, 0);
+        runner.assertPenalizeCount(0);
+    }
+
 
     public static void createFlowFiles(final TestRunner testRunner) throws UnsupportedEncodingException {
         final Map<String, String> attributes = new HashMap<>();

@@ -16,6 +16,12 @@
  */
 package org.apache.nifi.controller;
 
+import java.lang.reflect.Proxy;
+import java.net.URL;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.configuration.DefaultSettings;
@@ -55,13 +61,6 @@ import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.lang.reflect.Proxy;
-import java.net.URL;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 
 public class ExtensionBuilder {
     private static final Logger logger = LoggerFactory.getLogger(ExtensionBuilder.class);
@@ -190,7 +189,11 @@ public class ExtensionBuilder {
         try {
             loggableComponent = createLoggableProcessor();
         } catch (final ProcessorInstantiationException pie) {
-            logger.error("Could not create Processor of type " + type + " for ID " + identifier + "; creating \"Ghost\" implementation", pie);
+            logger.error("Could not create Processor of type " + type + " for ID " + identifier + " due to: " + pie.getMessage() + "; creating \"Ghost\" implementation");
+            if (logger.isDebugEnabled()) {
+                logger.debug(pie.getMessage(), pie);
+            }
+
             final GhostProcessor ghostProc = new GhostProcessor();
             ghostProc.setIdentifier(identifier);
             ghostProc.setCanonicalClassName(type);
@@ -280,7 +283,11 @@ public class ExtensionBuilder {
         try {
             return createControllerServiceNode();
         } catch (final Exception e) {
-            logger.error("Could not create Controller Service of type " + type + " for ID " + identifier + "; creating \"Ghost\" implementation", e);
+            logger.error("Could not create Controller Service of type " + type + " for ID " + identifier + " due to: " + e.getMessage() + "; creating \"Ghost\" implementation");
+            if (logger.isDebugEnabled()) {
+                logger.debug(e.getMessage(), e);
+            }
+
             return createGhostControllerServiceNode();
         }
     }
@@ -293,12 +300,12 @@ public class ExtensionBuilder {
         final ProcessorNode procNode;
         if (creationSuccessful) {
             procNode = new StandardProcessorNode(processor, identifier, validationContextFactory, processScheduler, serviceProvider,
-                componentVarRegistry, reloadComponent, extensionManager, validationTrigger);
+                    componentVarRegistry, reloadComponent, extensionManager, validationTrigger);
         } else {
             final String simpleClassName = type.contains(".") ? StringUtils.substringAfterLast(type, ".") : type;
             final String componentType = "(Missing) " + simpleClassName;
             procNode = new StandardProcessorNode(processor, identifier, validationContextFactory, processScheduler, serviceProvider,
-                componentType, type, componentVarRegistry, reloadComponent, extensionManager, validationTrigger, true);
+                    componentType, type, componentVarRegistry, reloadComponent, extensionManager, validationTrigger, true);
         }
 
         applyDefaultSettings(procNode);
@@ -312,14 +319,14 @@ public class ExtensionBuilder {
         final ReportingTaskNode taskNode;
         if (creationSuccessful) {
             taskNode = new StandardReportingTaskNode(reportingTask, identifier, flowController, processScheduler,
-                validationContextFactory, componentVarRegistry, reloadComponent, extensionManager, validationTrigger);
+                    validationContextFactory, componentVarRegistry, reloadComponent, extensionManager, validationTrigger);
             taskNode.setName(taskNode.getReportingTask().getClass().getSimpleName());
         } else {
             final String simpleClassName = type.contains(".") ? StringUtils.substringAfterLast(type, ".") : type;
             final String componentType = "(Missing) " + simpleClassName;
 
             taskNode = new StandardReportingTaskNode(reportingTask, identifier, flowController, processScheduler, validationContextFactory,
-                componentType, type, componentVarRegistry, reloadComponent, extensionManager, validationTrigger, true);
+                    componentType, type, componentVarRegistry, reloadComponent, extensionManager, validationTrigger, true);
             taskNode.setName(componentType);
         }
 
@@ -374,7 +381,7 @@ public class ExtensionBuilder {
 
             final StateManager stateManager = stateManagerProvider.getStateManager(identifier);
             final ControllerServiceInitializationContext initContext = new StandardControllerServiceInitializationContext(identifier, terminationAwareLogger,
-                serviceProvider, stateManager, kerberosConfig);
+                    serviceProvider, stateManager, kerberosConfig, nodeTypeProvider);
             serviceImpl.initialize(initContext);
 
             final LoggableComponent<ControllerService> originalLoggableComponent = new LoggableComponent<>(serviceImpl, bundleCoordinate, terminationAwareLogger);
@@ -383,7 +390,7 @@ public class ExtensionBuilder {
             final ComponentVariableRegistry componentVarRegistry = new StandardComponentVariableRegistry(this.variableRegistry);
             final ValidationContextFactory validationContextFactory = new StandardValidationContextFactory(serviceProvider, componentVarRegistry);
             final ControllerServiceNode serviceNode = new StandardControllerServiceNode(originalLoggableComponent, proxiedLoggableComponent, invocationHandler,
-                identifier, validationContextFactory, serviceProvider, componentVarRegistry, reloadComponent, extensionManager, validationTrigger);
+                    identifier, validationContextFactory, serviceProvider, componentVarRegistry, reloadComponent, extensionManager, validationTrigger);
             serviceNode.setName(rawClass.getSimpleName());
 
             invocationHandler.setServiceNode(serviceNode);
@@ -407,7 +414,7 @@ public class ExtensionBuilder {
         final ComponentVariableRegistry componentVarRegistry = new StandardComponentVariableRegistry(this.variableRegistry);
         final ValidationContextFactory validationContextFactory = new StandardValidationContextFactory(serviceProvider, variableRegistry);
         final ControllerServiceNode serviceNode = new StandardControllerServiceNode(proxiedLoggableComponent, proxiedLoggableComponent, invocationHandler, identifier,
-            validationContextFactory, serviceProvider, componentType, type, componentVarRegistry, reloadComponent, extensionManager, validationTrigger, true);
+                validationContextFactory, serviceProvider, componentType, type, componentVarRegistry, reloadComponent, extensionManager, validationTrigger, true);
 
         return serviceNode;
     }
@@ -417,7 +424,7 @@ public class ExtensionBuilder {
             final LoggableComponent<Processor> processorComponent = createLoggableComponent(Processor.class);
 
             final ProcessorInitializationContext initiContext = new StandardProcessorInitializationContext(identifier, processorComponent.getLogger(),
-                serviceProvider, nodeTypeProvider, kerberosConfig);
+                    serviceProvider, nodeTypeProvider, kerberosConfig);
             processorComponent.getComponent().initialize(initiContext);
 
             return processorComponent;
@@ -433,7 +440,7 @@ public class ExtensionBuilder {
 
             final String taskName = taskComponent.getComponent().getClass().getSimpleName();
             final ReportingInitializationContext config = new StandardReportingInitializationContext(identifier, taskName,
-                SchedulingStrategy.TIMER_DRIVEN, "1 min", taskComponent.getLogger(), serviceProvider, kerberosConfig, nodeTypeProvider);
+                    SchedulingStrategy.TIMER_DRIVEN, "1 min", taskComponent.getLogger(), serviceProvider, kerberosConfig, nodeTypeProvider);
 
             taskComponent.getComponent().initialize(config);
 

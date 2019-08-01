@@ -152,32 +152,32 @@ public final class BundleUtils {
         if (versionedGroup.getProcessors() != null) {
             versionedGroup.getProcessors().forEach(processor -> {
                 final BundleCoordinate coordinate = BundleUtils.getCompatibleBundle(extensionManager, processor.getType(), createBundleDto(processor.getBundle()));
-
-                final org.apache.nifi.registry.flow.Bundle bundle = new org.apache.nifi.registry.flow.Bundle();
-                bundle.setArtifact(coordinate.getId());
-                bundle.setGroup(coordinate.getGroup());
-                bundle.setVersion(coordinate.getVersion());
-                processor.setBundle(bundle);
+                processor.setBundle(createBundle(coordinate));
             });
         }
 
         if (versionedGroup.getControllerServices() != null) {
             versionedGroup.getControllerServices().forEach(controllerService -> {
                 final BundleCoordinate coordinate = BundleUtils.getCompatibleBundle(extensionManager, controllerService.getType(), createBundleDto(controllerService.getBundle()));
-
-                final org.apache.nifi.registry.flow.Bundle bundle = new org.apache.nifi.registry.flow.Bundle();
-                bundle.setArtifact(coordinate.getId());
-                bundle.setGroup(coordinate.getGroup());
-                bundle.setVersion(coordinate.getVersion());
-                controllerService.setBundle(bundle);
+                controllerService.setBundle(createBundle(coordinate));
             });
         }
 
         if (versionedGroup.getProcessGroups() != null) {
-            versionedGroup.getProcessGroups().forEach(processGroup -> {
-                discoverCompatibleBundles(extensionManager, processGroup);
-            });
+            versionedGroup.getProcessGroups().forEach(processGroup -> discoverCompatibleBundles(extensionManager, processGroup));
         }
+    }
+
+    public static BundleCoordinate discoverCompatibleBundle(final ExtensionManager extensionManager, final String type, final org.apache.nifi.registry.flow.Bundle bundle) {
+        return getCompatibleBundle(extensionManager, type, createBundleDto(bundle));
+    }
+
+    private static org.apache.nifi.registry.flow.Bundle createBundle(final BundleCoordinate coordinate) {
+        final org.apache.nifi.registry.flow.Bundle bundle = new org.apache.nifi.registry.flow.Bundle();
+        bundle.setArtifact(coordinate.getId());
+        bundle.setGroup(coordinate.getGroup());
+        bundle.setVersion(coordinate.getVersion());
+        return bundle;
     }
 
     public static BundleDTO createBundleDto(final org.apache.nifi.registry.flow.Bundle bundle) {

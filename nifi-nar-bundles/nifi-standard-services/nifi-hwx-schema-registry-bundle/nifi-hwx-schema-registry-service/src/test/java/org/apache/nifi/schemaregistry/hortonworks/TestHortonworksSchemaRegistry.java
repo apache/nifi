@@ -42,7 +42,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.junit.Assert.assertNotNull;
-import static org.mockito.Matchers.any;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 
@@ -62,7 +62,7 @@ public class TestHortonworksSchemaRegistry {
         doAnswer(new Answer<SchemaVersionInfo>() {
             @Override
             public SchemaVersionInfo answer(final InvocationOnMock invocation) throws Throwable {
-                final String schemaName = invocation.getArgumentAt(0, String.class);
+                final String schemaName = invocation.getArgument(0);
                 final SchemaVersionInfo info = schemaVersionInfoMap.get(schemaName);
 
                 if (info == null) {
@@ -76,7 +76,7 @@ public class TestHortonworksSchemaRegistry {
         doAnswer(new Answer<SchemaMetadataInfo>() {
             @Override
             public SchemaMetadataInfo answer(InvocationOnMock invocation) throws Throwable {
-                final String schemaName = invocation.getArgumentAt(0, String.class);
+                final String schemaName = invocation.getArgument(0);
                 final SchemaMetadataInfo info = schemaMetadataInfoMap.get(schemaName);
 
                 if (info == null) {

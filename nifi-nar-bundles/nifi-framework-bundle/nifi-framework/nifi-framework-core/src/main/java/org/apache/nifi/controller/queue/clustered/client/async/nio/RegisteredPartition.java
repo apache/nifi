@@ -33,6 +33,7 @@ public class RegisteredPartition {
     private final TransactionCompleteCallback successCallback;
     private final Supplier<LoadBalanceCompression> compressionSupplier;
     private final BooleanSupplier honorBackpressureSupplier;
+    private volatile long penaltyExpiration;
 
     public RegisteredPartition(final String connectionId, final BooleanSupplier emptySupplier, final Supplier<FlowFileRecord> flowFileSupplier, final TransactionFailureCallback failureCallback,
                                final TransactionCompleteCallback successCallback, final Supplier<LoadBalanceCompression> compressionSupplier, final BooleanSupplier honorBackpressureSupplier) {
@@ -71,5 +72,13 @@ public class RegisteredPartition {
 
     public boolean isHonorBackpressure() {
         return honorBackpressureSupplier.getAsBoolean();
+    }
+
+    public void penalize(final long millis) {
+        this.penaltyExpiration = System.currentTimeMillis() + millis;
+    }
+
+    public boolean isPenalized() {
+        return penaltyExpiration > System.currentTimeMillis();
     }
 }

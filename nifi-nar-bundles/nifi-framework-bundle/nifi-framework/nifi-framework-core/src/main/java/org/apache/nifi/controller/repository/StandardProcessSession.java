@@ -325,6 +325,8 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                     newRecord.setTransferRelationship(record.getTransferRelationship());
                     // put the mapping into toAdd because adding to records now will cause a ConcurrentModificationException
                     toAdd.put(clone.getId(), newRecord);
+
+                    createdFlowFiles.add(newUuid);
                 }
             }
         }
@@ -377,51 +379,22 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             final long flowFileRepoUpdateFinishNanos = System.nanoTime();
             final long flowFileRepoUpdateNanos = flowFileRepoUpdateFinishNanos - flowFileRepoUpdateStart;
 
-            final long claimRemovalStart = flowFileRepoUpdateFinishNanos;
-
-            /**
-             * Figure out which content claims can be released. At this point,
-             * we will decrement the Claimant Count for the claims via the
-             * Content Repository. We do not actually destroy the content
-             * because otherwise, we could remove the Original Claim and
-             * crash/restart before the FlowFileRepository is updated. This will
-             * result in the FlowFile being restored such that the content claim
-             * points to the Original Claim -- which has already been removed!
-             *
-             */
-            for (final StandardRepositoryRecord record : checkpoint.records.values()) {
-                if (record.isMarkedForDelete()) {
-                    // if the working claim is not the same as the original claim, we can immediately destroy the working claim
-                    // because it was created in this session and is to be deleted. We don't need to wait for the FlowFile Repo to sync.
-                    decrementClaimCount(record.getWorkingClaim());
-
-                    if (record.getOriginalClaim() != null && !record.getOriginalClaim().equals(record.getWorkingClaim())) {
-                        // if working & original claim are same, don't remove twice; we only want to remove the original
-                        // if it's different from the working. Otherwise, we remove two claimant counts. This causes
-                        // an issue if we only updated the FlowFile attributes.
-                        decrementClaimCount(record.getOriginalClaim());
-                    }
-
-                    if (LOG.isInfoEnabled()) {
+            if (LOG.isInfoEnabled()) {
+                for (final RepositoryRecord record : checkpoint.records.values()) {
+                    if (record.isMarkedForAbort()) {
                         final FlowFileRecord flowFile = record.getCurrent();
                         final long flowFileLife = System.currentTimeMillis() - flowFile.getEntryDate();
                         final Connectable connectable = context.getConnectable();
                         final Object terminator = connectable instanceof ProcessorNode ? ((ProcessorNode) connectable).getProcessor() : connectable;
                         LOG.info("{} terminated by {}; life of FlowFile = {} ms", new Object[]{flowFile, terminator, flowFileLife});
                     }
-                } else if (record.isWorking() && record.getWorkingClaim() != record.getOriginalClaim()) {
-                    // records which have been updated - remove original if exists
-                    decrementClaimCount(record.getOriginalClaim());
                 }
             }
-
-            final long claimRemovalFinishNanos = System.nanoTime();
-            final long claimRemovalNanos = claimRemovalFinishNanos - claimRemovalStart;
 
             updateEventRepository(checkpoint);
 
             final long updateEventRepositoryFinishNanos = System.nanoTime();
-            final long updateEventRepositoryNanos = updateEventRepositoryFinishNanos - claimRemovalFinishNanos;
+            final long updateEventRepositoryNanos = updateEventRepositoryFinishNanos - flowFileRepoUpdateFinishNanos;
 
             // transfer the flowfiles to the connections' queues.
             final Map<FlowFileQueue, Collection<FlowFileRecord>> recordMap = new HashMap<>();
@@ -480,8 +453,6 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                 formatNanos(commitNanos, timingInfo);
                 timingInfo.append("; FlowFile Repository Update took ");
                 formatNanos(flowFileRepoUpdateNanos, timingInfo);
-                timingInfo.append("; Claim Removal took ");
-                formatNanos(claimRemovalNanos, timingInfo);
                 timingInfo.append("; FlowFile Event Update took ");
                 formatNanos(updateEventRepositoryNanos, timingInfo);
                 timingInfo.append("; Enqueuing FlowFiles took ");
@@ -645,6 +616,17 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             }
         }
 
+        // Next, process any JOIN events because we need to ensure that the JOINed FlowFile is created before any processor-emitted events occur.
+        for (final Map.Entry<FlowFile, List<ProvenanceEventRecord>> entry : checkpoint.generatedProvenanceEvents.entrySet()) {
+            for (final ProvenanceEventRecord event : entry.getValue()) {
+                final ProvenanceEventType eventType = event.getEventType();
+                if (eventType == ProvenanceEventType.JOIN) {
+                    recordsToSubmit.add(event);
+                    addEventType(eventTypesPerFlowFileId, event.getFlowFileUuid(), event.getEventType());
+                }
+            }
+        }
+
         // Now add any Processor-reported events.
         for (final ProvenanceEventRecord event : processorGenerated) {
             if (isSpuriousForkEvent(event, checkpoint.removedFlowFiles)) {
@@ -659,11 +641,22 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
 
             recordsToSubmit.add(event);
             addEventType(eventTypesPerFlowFileId, event.getFlowFileUuid(), event.getEventType());
+
+            final List<String> childUuids = event.getChildUuids();
+            if (childUuids != null) {
+                for (final String childUuid : childUuids) {
+                    addEventType(eventTypesPerFlowFileId, childUuid, event.getEventType());
+                }
+            }
         }
 
         // Finally, add any other events that we may have generated.
         for (final List<ProvenanceEventRecord> eventList : checkpoint.generatedProvenanceEvents.values()) {
             for (final ProvenanceEventRecord event : eventList) {
+                if (event.getEventType() == ProvenanceEventType.JOIN) {
+                    continue; // JOIN events are handled above.
+                }
+
                 if (isSpuriousForkEvent(event, checkpoint.removedFlowFiles)) {
                     continue;
                 }
@@ -678,17 +671,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             final ContentClaim original = repoRecord.getOriginalClaim();
             final ContentClaim current = repoRecord.getCurrentClaim();
 
-            boolean contentChanged = false;
-            if (original == null && current != null) {
-                contentChanged = true;
-            }
-            if (original != null && current == null) {
-                contentChanged = true;
-            }
-            if (original != null && current != null && !original.equals(current)) {
-                contentChanged = true;
-            }
-
+            final boolean contentChanged = !Objects.equals(original, current);
             final FlowFileRecord curFlowFile = repoRecord.getCurrent();
             final String flowFileId = curFlowFile.getAttribute(CoreAttributes.UUID.key());
             boolean eventAdded = false;
@@ -710,6 +693,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                 if (registeredTypes != null) {
                     if (registeredTypes.get(ProvenanceEventType.CREATE.ordinal())
                         || registeredTypes.get(ProvenanceEventType.FORK.ordinal())
+                        || registeredTypes.get(ProvenanceEventType.CLONE.ordinal())
                         || registeredTypes.get(ProvenanceEventType.JOIN.ordinal())
                         || registeredTypes.get(ProvenanceEventType.RECEIVE.ordinal())
                         || registeredTypes.get(ProvenanceEventType.FETCH.ordinal())) {
@@ -796,6 +780,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
 
         provenanceRepo.registerEvents(iterable);
     }
+
 
     private void updateEventContentClaims(final ProvenanceEventBuilder builder, final FlowFile flowFile, final StandardRepositoryRecord repoRecord) {
         final ContentClaim originalClaim = repoRecord.getOriginalClaim();
@@ -1010,12 +995,6 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         for (final StandardRepositoryRecord record : recordsToHandle) {
             if (record.isMarkedForAbort()) {
                 decrementClaimCount(record.getWorkingClaim());
-                if (record.getCurrentClaim() != null && !record.getCurrentClaim().equals(record.getWorkingClaim())) {
-                    // if working & original claim are same, don't remove twice; we only want to remove the original
-                    // if it's different from the working. Otherwise, we remove two claimant counts. This causes
-                    // an issue if we only updated the flowfile attributes.
-                    decrementClaimCount(record.getCurrentClaim());
-                }
                 abortedRecords.add(record);
             } else {
                 transferRecords.add(record);
@@ -1710,6 +1689,97 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
     }
 
     @Override
+    public FlowFile create(FlowFile parent) {
+        verifyTaskActive();
+        parent = getMostRecent(parent);
+
+        final String uuid = UUID.randomUUID().toString();
+
+        final Map<String, String> newAttributes = new HashMap<>(3);
+        newAttributes.put(CoreAttributes.FILENAME.key(), uuid);
+        newAttributes.put(CoreAttributes.PATH.key(), DEFAULT_FLOWFILE_PATH);
+        newAttributes.put(CoreAttributes.UUID.key(), uuid);
+
+        final StandardFlowFileRecord.Builder fFileBuilder = new StandardFlowFileRecord.Builder().id(context.getNextFlowFileSequence());
+
+        // copy all attributes from parent except for the "special" attributes. Copying the special attributes
+        // can cause problems -- especially the ALTERNATE_IDENTIFIER, because copying can cause Provenance Events
+        // to be incorrectly created.
+        for (final Map.Entry<String, String> entry : parent.getAttributes().entrySet()) {
+            final String key = entry.getKey();
+            final String value = entry.getValue();
+            if (CoreAttributes.ALTERNATE_IDENTIFIER.key().equals(key)
+                || CoreAttributes.DISCARD_REASON.key().equals(key)
+                || CoreAttributes.UUID.key().equals(key)) {
+                continue;
+            }
+            newAttributes.put(key, value);
+        }
+
+        fFileBuilder.lineageStart(parent.getLineageStartDate(), parent.getLineageStartIndex());
+        fFileBuilder.addAttributes(newAttributes);
+
+        final FlowFileRecord fFile = fFileBuilder.build();
+        final StandardRepositoryRecord record = new StandardRepositoryRecord(null);
+        record.setWorking(fFile, newAttributes);
+        records.put(fFile.getId(), record);
+        createdFlowFiles.add(fFile.getAttribute(CoreAttributes.UUID.key()));
+
+        registerForkEvent(parent, fFile);
+        return fFile;
+    }
+
+    @Override
+    public FlowFile create(Collection<FlowFile> parents) {
+        verifyTaskActive();
+
+        parents = parents.stream().map(this::getMostRecent).collect(Collectors.toList());
+
+        final Map<String, String> newAttributes = intersectAttributes(parents);
+        newAttributes.remove(CoreAttributes.UUID.key());
+        newAttributes.remove(CoreAttributes.ALTERNATE_IDENTIFIER.key());
+        newAttributes.remove(CoreAttributes.DISCARD_REASON.key());
+
+        // When creating a new FlowFile from multiple parents, we need to add all of the Lineage Identifiers
+        // and use the earliest lineage start date
+        long lineageStartDate = 0L;
+        for (final FlowFile parent : parents) {
+
+            final long parentLineageStartDate = parent.getLineageStartDate();
+            if (lineageStartDate == 0L || parentLineageStartDate < lineageStartDate) {
+                lineageStartDate = parentLineageStartDate;
+            }
+        }
+
+        // find the smallest lineage start index that has the same lineage start date as the one we've chosen.
+        long lineageStartIndex = 0L;
+        for (final FlowFile parent : parents) {
+            if (parent.getLineageStartDate() == lineageStartDate && parent.getLineageStartIndex() < lineageStartIndex) {
+                lineageStartIndex = parent.getLineageStartIndex();
+            }
+        }
+
+        final String uuid = UUID.randomUUID().toString();
+        newAttributes.put(CoreAttributes.FILENAME.key(), uuid);
+        newAttributes.put(CoreAttributes.PATH.key(), DEFAULT_FLOWFILE_PATH);
+        newAttributes.put(CoreAttributes.UUID.key(), uuid);
+
+        final FlowFileRecord fFile = new StandardFlowFileRecord.Builder().id(context.getNextFlowFileSequence())
+            .addAttributes(newAttributes)
+            .lineageStart(lineageStartDate, lineageStartIndex)
+            .build();
+
+        final StandardRepositoryRecord record = new StandardRepositoryRecord(null);
+        record.setWorking(fFile, newAttributes);
+        records.put(fFile.getId(), record);
+        createdFlowFiles.add(fFile.getAttribute(CoreAttributes.UUID.key()));
+
+        registerJoinEvent(fFile, parents);
+        return fFile;
+    }
+
+
+    @Override
     public FlowFile clone(FlowFile example) {
         verifyTaskActive();
         example = validateRecordState(example);
@@ -1779,11 +1849,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
 
     private void registerJoinEvent(final FlowFile child, final Collection<FlowFile> parents) {
         final ProvenanceEventRecord eventRecord = provenanceReporter.generateJoinEvent(parents, child);
-        List<ProvenanceEventRecord> existingRecords = generatedProvenanceEvents.get(child);
-        if (existingRecords == null) {
-            existingRecords = new ArrayList<>();
-            generatedProvenanceEvents.put(child, existingRecords);
-        }
+        final List<ProvenanceEventRecord> existingRecords = generatedProvenanceEvents.computeIfAbsent(child, k -> new ArrayList<>());
         existingRecords.add(eventRecord);
     }
 
@@ -2104,7 +2170,6 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             record.markForDelete();
             expiredRecords.add(record);
             expiredReporter.expire(flowFile, "Expiration Threshold = " + connection.getFlowFileQueue().getFlowFileExpiration());
-            decrementClaimCount(flowFile.getContentClaim());
 
             final long flowFileLife = System.currentTimeMillis() - flowFile.getEntryDate();
             final Object terminator = connectable instanceof ProcessorNode ? ((ProcessorNode) connectable).getProcessor() : connectable;
@@ -3208,95 +3273,6 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         return existingRecord == null ? flowFile : existingRecord.getCurrent();
     }
 
-    @Override
-    public FlowFile create(FlowFile parent) {
-        verifyTaskActive();
-        parent = getMostRecent(parent);
-
-        final String uuid = UUID.randomUUID().toString();
-
-        final Map<String, String> newAttributes = new HashMap<>(3);
-        newAttributes.put(CoreAttributes.FILENAME.key(), uuid);
-        newAttributes.put(CoreAttributes.PATH.key(), DEFAULT_FLOWFILE_PATH);
-        newAttributes.put(CoreAttributes.UUID.key(), uuid);
-
-        final StandardFlowFileRecord.Builder fFileBuilder = new StandardFlowFileRecord.Builder().id(context.getNextFlowFileSequence());
-
-        // copy all attributes from parent except for the "special" attributes. Copying the special attributes
-        // can cause problems -- especially the ALTERNATE_IDENTIFIER, because copying can cause Provenance Events
-        // to be incorrectly created.
-        for (final Map.Entry<String, String> entry : parent.getAttributes().entrySet()) {
-            final String key = entry.getKey();
-            final String value = entry.getValue();
-            if (CoreAttributes.ALTERNATE_IDENTIFIER.key().equals(key)
-                || CoreAttributes.DISCARD_REASON.key().equals(key)
-                || CoreAttributes.UUID.key().equals(key)) {
-                continue;
-            }
-            newAttributes.put(key, value);
-        }
-
-        fFileBuilder.lineageStart(parent.getLineageStartDate(), parent.getLineageStartIndex());
-        fFileBuilder.addAttributes(newAttributes);
-
-        final FlowFileRecord fFile = fFileBuilder.build();
-        final StandardRepositoryRecord record = new StandardRepositoryRecord(null);
-        record.setWorking(fFile, newAttributes);
-        records.put(fFile.getId(), record);
-        createdFlowFiles.add(fFile.getAttribute(CoreAttributes.UUID.key()));
-
-        registerForkEvent(parent, fFile);
-        return fFile;
-    }
-
-    @Override
-    public FlowFile create(Collection<FlowFile> parents) {
-        verifyTaskActive();
-
-        parents = parents.stream().map(this::getMostRecent).collect(Collectors.toList());
-
-        final Map<String, String> newAttributes = intersectAttributes(parents);
-        newAttributes.remove(CoreAttributes.UUID.key());
-        newAttributes.remove(CoreAttributes.ALTERNATE_IDENTIFIER.key());
-        newAttributes.remove(CoreAttributes.DISCARD_REASON.key());
-
-        // When creating a new FlowFile from multiple parents, we need to add all of the Lineage Identifiers
-        // and use the earliest lineage start date
-        long lineageStartDate = 0L;
-        for (final FlowFile parent : parents) {
-
-            final long parentLineageStartDate = parent.getLineageStartDate();
-            if (lineageStartDate == 0L || parentLineageStartDate < lineageStartDate) {
-                lineageStartDate = parentLineageStartDate;
-            }
-        }
-
-        // find the smallest lineage start index that has the same lineage start date as the one we've chosen.
-        long lineageStartIndex = 0L;
-        for (final FlowFile parent : parents) {
-            if (parent.getLineageStartDate() == lineageStartDate && parent.getLineageStartIndex() < lineageStartIndex) {
-                lineageStartIndex = parent.getLineageStartIndex();
-            }
-        }
-
-        final String uuid = UUID.randomUUID().toString();
-        newAttributes.put(CoreAttributes.FILENAME.key(), uuid);
-        newAttributes.put(CoreAttributes.PATH.key(), DEFAULT_FLOWFILE_PATH);
-        newAttributes.put(CoreAttributes.UUID.key(), uuid);
-
-        final FlowFileRecord fFile = new StandardFlowFileRecord.Builder().id(context.getNextFlowFileSequence())
-            .addAttributes(newAttributes)
-            .lineageStart(lineageStartDate, lineageStartIndex)
-            .build();
-
-        final StandardRepositoryRecord record = new StandardRepositoryRecord(null);
-        record.setWorking(fFile, newAttributes);
-        records.put(fFile.getId(), record);
-        createdFlowFiles.add(fFile.getAttribute(CoreAttributes.UUID.key()));
-
-        registerJoinEvent(fFile, parents);
-        return fFile;
-    }
 
     /**
      * Returns the attributes that are common to every FlowFile given. The key

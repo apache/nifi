@@ -21,10 +21,15 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.registry.security.util.KeystoreType;
 import org.apache.nifi.toolkit.cli.api.ClientFactory;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ControllerClient;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.ControllerServicesClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.FlowClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientConfig;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.PoliciesClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ProcessGroupClient;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.ReportingTasksClient;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.TemplatesClient;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.TenantsClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.VersionsClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.impl.JerseyNiFiClient;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
@@ -136,6 +141,21 @@ public class NiFiClientFactory implements ClientFactory<NiFiClient> {
         }
 
         @Override
+        public ControllerServicesClient getControllerServicesClient() {
+            return wrappedClient.getControllerServicesClientForProxiedEntities(proxiedEntity);
+        }
+
+        @Override
+        public ControllerServicesClient getControllerServicesClientForProxiedEntities(String... proxiedEntity) {
+            return wrappedClient.getControllerServicesClientForProxiedEntities(proxiedEntity);
+        }
+
+        @Override
+        public ControllerServicesClient getControllerServicesClientForToken(String token) {
+            return wrappedClient.getControllerServicesClientForToken(token);
+        }
+
+        @Override
         public FlowClient getFlowClient() {
             return wrappedClient.getFlowClientForProxiedEntities(proxiedEntity);
         }
@@ -178,6 +198,66 @@ public class NiFiClientFactory implements ClientFactory<NiFiClient> {
         @Override
         public VersionsClient getVersionsClientForToken(String token) {
             return wrappedClient.getVersionsClientForToken(token);
+        }
+
+        @Override
+        public TenantsClient getTenantsClient() {
+            return wrappedClient.getTenantsClientForProxiedEntities(proxiedEntity);
+        }
+
+        @Override
+        public TenantsClient getTenantsClientForProxiedEntities(String... proxiedEntity) {
+            return wrappedClient.getTenantsClientForProxiedEntities(proxiedEntity);
+        }
+
+        @Override
+        public TenantsClient getTenantsClientForToken(String token) {
+            return wrappedClient.getTenantsClientForToken(token);
+        }
+
+        @Override
+        public PoliciesClient getPoliciesClient() {
+            return wrappedClient.getPoliciesClientForProxiedEntities(proxiedEntity);
+        }
+
+        @Override
+        public PoliciesClient getPoliciesClientForProxiedEntities(String... proxiedEntity) {
+            return wrappedClient.getPoliciesClientForProxiedEntities(proxiedEntity);
+        }
+
+        @Override
+        public PoliciesClient getPoliciesClientForToken(String token) {
+            return wrappedClient.getPoliciesClientForToken(token);
+        }
+
+        @Override
+        public TemplatesClient getTemplatesClient() {
+            return wrappedClient.getTemplatesClientForProxiedEntities(proxiedEntity);
+        }
+
+        @Override
+        public TemplatesClient getTemplatesClientForProxiedEntities(String... proxiedEntity) {
+            return wrappedClient.getTemplatesClientForProxiedEntities(proxiedEntity);
+        }
+
+        @Override
+        public TemplatesClient getTemplatesClientForToken(String token) {
+            return wrappedClient.getTemplatesClientForToken(token);
+        }
+
+        @Override
+        public ReportingTasksClient getReportingTasksClient() {
+            return wrappedClient.getReportingTasksClientForProxiedEntities(proxiedEntity);
+        }
+
+        @Override
+        public ReportingTasksClient getReportingTasksClientForProxiedEntities(String... proxiedEntity) {
+            return wrappedClient.getReportingTasksClientForProxiedEntities(proxiedEntity);
+        }
+
+        @Override
+        public ReportingTasksClient getReportingTasksClientForToken(String token) {
+            return wrappedClient.getReportingTasksClientForToken(token);
         }
 
         @Override

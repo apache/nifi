@@ -336,7 +336,7 @@ public class QueryRecord extends AbstractProcessor {
                                     throw new ProcessException(e);
                                 }
 
-                                try (final RecordSetWriter resultSetWriter = recordSetWriterFactory.createWriter(getLogger(), writeSchema, out)) {
+                                try (final RecordSetWriter resultSetWriter = recordSetWriterFactory.createWriter(getLogger(), writeSchema, out, original)) {
                                     writeResultRef.set(resultSetWriter.write(recordSet));
                                     mimeTypeRef.set(resultSetWriter.getMimeType());
                                 } catch (final Exception e) {

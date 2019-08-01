@@ -79,6 +79,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -94,8 +95,8 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.notNull;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.notNull;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -191,7 +192,7 @@ public class TestStandardProcessSession {
 
         contentRepo = new MockContentRepository();
         contentRepo.initialize(new StandardResourceClaimManager());
-        flowFileRepo = new MockFlowFileRepository();
+        flowFileRepo = new MockFlowFileRepository(contentRepo);
 
         context = new RepositoryContext(connectable, new AtomicLong(0L), contentRepo, flowFileRepo, flowFileEventRepo, counterRepo, provenanceRepo);
         session = new StandardProcessSession(context, () -> false);
@@ -254,14 +255,14 @@ public class TestStandardProcessSession {
         Mockito.doAnswer(new Answer<FlowFile>() {
             @Override
             public FlowFile answer(InvocationOnMock invocation) throws Throwable {
-                return localFlowFileQueue.poll(invocation.getArgumentAt(0, Set.class));
+                return localFlowFileQueue.poll(invocation.getArgument(0));
             }
         }).when(connection).poll(any(Set.class));
 
         Mockito.doAnswer(new Answer<List<FlowFileRecord>>() {
             @Override
             public List<FlowFileRecord> answer(InvocationOnMock invocation) throws Throwable {
-                return localFlowFileQueue.poll(invocation.getArgumentAt(0, FlowFileFilter.class), invocation.getArgumentAt(1, Set.class));
+                return localFlowFileQueue.poll(invocation.getArgument(0), invocation.getArgument(1));
             }
         }).when(connection).poll(any(FlowFileFilter.class), any(Set.class));
 
@@ -1391,7 +1392,7 @@ public class TestStandardProcessSession {
             @Override
             public List<FlowFileRecord> answer(InvocationOnMock invocation) throws Throwable {
                 if (iterations++ == 0) {
-                    final Set<FlowFileRecord> expired = invocation.getArgumentAt(1, Set.class);
+                    final Set<FlowFileRecord> expired = invocation.getArgument(1);
                     expired.add(flowFileRecord);
                 }
 
@@ -2149,6 +2150,11 @@ public class TestStandardProcessSession {
         private boolean failOnUpdate = false;
         private final AtomicLong idGenerator = new AtomicLong(0L);
         private final List<RepositoryRecord> updates = new ArrayList<>();
+        private final ContentRepository contentRepo;
+
+        public MockFlowFileRepository(final ContentRepository contentRepo) {
+            this.contentRepo = contentRepo;
+        }
 
         public void setFailOnUpdate(final boolean fail) {
             this.failOnUpdate = fail;
@@ -2178,6 +2184,16 @@ public class TestStandardProcessSession {
                 throw new IOException("FlowFile Repository told to fail on update for unit test");
             }
             updates.addAll(records);
+
+            for (final RepositoryRecord record : records) {
+                if (record.getType() == RepositoryRecordType.DELETE) {
+                    contentRepo.decrementClaimantCount(record.getCurrentClaim());
+                }
+
+                if (!Objects.equals(record.getOriginalClaim(), record.getCurrentClaim())) {
+                    contentRepo.decrementClaimantCount(record.getOriginalClaim());
+                }
+            }
         }
 
         public List<RepositoryRecord> getUpdates() {
@@ -2243,11 +2259,9 @@ public class TestStandardProcessSession {
         public Set<ContentClaim> getExistingClaims() {
             final Set<ContentClaim> claims = new HashSet<>();
 
-            for (long i = 0; i < idGenerator.get(); i++) {
-                final ResourceClaim resourceClaim = resourceClaimManager.newResourceClaim("container", "section", String.valueOf(i), false, false);
-                final ContentClaim contentClaim = new StandardContentClaim(resourceClaim, 0L);
-                if (getClaimantCount(contentClaim) > 0) {
-                    claims.add(contentClaim);
+            for (final Map.Entry<ContentClaim, AtomicInteger> entry : claimantCounts.entrySet()) {
+                if (entry.getValue().get() > 0) {
+                    claims.add(entry.getKey());
                 }
             }
 

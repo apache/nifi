@@ -29,6 +29,25 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
+import java.net.URI;
+import java.security.cert.X509Certificate;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import javax.servlet.ServletContext;
+import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
+import javax.ws.rs.FormParam;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.UriBuilder;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.admin.service.AdministrationException;
 import org.apache.nifi.authentication.AuthenticationResponse;
@@ -69,25 +88,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.authentication.preauth.x509.X509PrincipalExtractor;
 
-import javax.servlet.ServletContext;
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.FormParam;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.UriBuilder;
-import java.net.URI;
-import java.security.cert.X509Certificate;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-
 /**
  * RESTful endpoint for managing access.
  */
@@ -102,6 +102,7 @@ public class AccessResource extends ApplicationResource {
 
     private static final String OIDC_REQUEST_IDENTIFIER = "oidc-request-identifier";
     private static final String OIDC_ERROR_TITLE = "Unable to continue login sequence";
+
 
     private X509CertificateExtractor certificateExtractor;
     private X509AuthenticationProvider x509AuthenticationProvider;
@@ -372,7 +373,7 @@ public class AccessResource extends ApplicationResource {
 
         // build the authorization uri
         final URI authorizationUri = UriBuilder.fromUri(knoxService.getKnoxUrl())
-                .queryParam("originalUrl", originalUri.toString())
+                .queryParam("originalUrl", originalUri)
                 .build();
 
         // generate the response
@@ -413,7 +414,7 @@ public class AccessResource extends ApplicationResource {
     )
     public void knoxLogout(@Context HttpServletRequest httpServletRequest, @Context HttpServletResponse httpServletResponse) throws Exception {
         String redirectPath = generateResourceUri("..", "nifi", "login");
-        httpServletResponse.sendRedirect(redirectPath.toString());
+        httpServletResponse.sendRedirect(redirectPath);
     }
 
     /**
@@ -742,6 +743,42 @@ public class AccessResource extends ApplicationResource {
         // build the response
         final URI uri = URI.create(generateResourceUri("access", "token"));
         return generateCreatedResponse(uri, token).build();
+    }
+
+    @DELETE
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.WILDCARD)
+    @Path("/logout")
+    @ApiOperation(
+            value = "Performs a logout for other providers that have been issued a JWT.",
+            notes = NON_GUARANTEED_ENDPOINT
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(code = 200, message = "User was logged out successfully."),
+                    @ApiResponse(code = 401, message = "Authentication token provided was empty or not in the correct JWT format."),
+                    @ApiResponse(code = 500, message = "Client failed to log out."),
+            }
+    )
+    public Response logOut(@Context HttpServletRequest httpServletRequest, @Context HttpServletResponse httpServletResponse) {
+        if (!httpServletRequest.isSecure()) {
+            throw new IllegalStateException("User authentication/authorization is only supported when running over HTTPS.");
+        }
+
+        String userIdentity = NiFiUserUtils.getNiFiUserIdentity();
+
+        if(userIdentity != null && !userIdentity.isEmpty()) {
+            try {
+                logger.info("Logging out user " + userIdentity);
+                jwtService.logOut(userIdentity);
+                return generateOkResponse().build();
+            } catch (final JwtException e) {
+                logger.error("Logout of user " + userIdentity + " failed due to: " + e.getMessage());
+                return Response.serverError().build();
+            }
+        } else {
+            return Response.status(401, "Authentication token provided was empty or not in the correct JWT format.").build();
+        }
     }
 
     private long validateTokenExpiration(long proposedTokenExpiration, String identity) {

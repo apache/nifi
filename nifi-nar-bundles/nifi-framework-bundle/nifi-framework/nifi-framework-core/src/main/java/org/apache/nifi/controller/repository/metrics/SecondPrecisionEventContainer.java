@@ -28,8 +28,8 @@ public class SecondPrecisionEventContainer implements EventContainer {
 
     private final int numBins;
     private final EventSum[] sums;
-    private final EventSumValue aggregateValue = new EventSumValue(0);
-    private final AtomicLong lastUpdateSecond = new AtomicLong(0);
+    private final EventSumValue aggregateValue = new EventSumValue(0L);
+    private final AtomicLong lastUpdateSecond = new AtomicLong(System.currentTimeMillis() / 1000L);
 
     public SecondPrecisionEventContainer(final int numMinutes) {
         // number of bins is number of seconds in 'numMinutes' plus 1. We add one because

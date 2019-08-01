@@ -20,7 +20,7 @@ import org.apache.nifi.registry.client.NiFiRegistryClient;
 import org.apache.nifi.registry.client.NiFiRegistryException;
 import org.apache.nifi.registry.client.UserClient;
 import org.apache.nifi.toolkit.cli.impl.command.registry.AbstractNiFiRegistryCommand;
-import org.apache.nifi.toolkit.cli.impl.result.CurrentUserResult;
+import org.apache.nifi.toolkit.cli.impl.result.nifi.CurrentUserResult;
 
 import java.io.IOException;
 import java.util.Properties;

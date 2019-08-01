@@ -620,7 +620,7 @@ public class GetMongoIT {
         //Test a bad flowfile attribute
         runner.setIncomingConnection(true);
         runner.setProperty(GetMongo.QUERY, "${badfromff}");
-        runner.enqueue("<<?>>", new HashMap<String, String>(){{
+        runner.enqueue("<<?>>", new HashMap<String, String>() {{
             put("badfromff", "{\"prop\":}");
         }});
         runner.run();
@@ -633,7 +633,7 @@ public class GetMongoIT {
         //Test for regression on a good query from a flowfile attribute
         runner.setIncomingConnection(true);
         runner.setProperty(GetMongo.QUERY, "${badfromff}");
-        runner.enqueue("<<?>>", new HashMap<String, String>(){{
+        runner.enqueue("<<?>>", new HashMap<String, String>() {{
             put("badfromff", "{}");
         }});
         runner.run();
@@ -650,5 +650,22 @@ public class GetMongoIT {
         runner.assertTransferCount(GetMongo.REL_FAILURE, 1);
         runner.assertTransferCount(GetMongo.REL_SUCCESS, 0);
         runner.assertTransferCount(GetMongo.REL_ORIGINAL, 0);
+    }
+
+    public void testSendEmpty() throws Exception {
+        runner.setIncomingConnection(true);
+        runner.setProperty(GetMongo.SEND_EMPTY_RESULTS, "true");
+        runner.setProperty(GetMongo.QUERY, "{ \"nothing\": true }");
+        runner.assertValid();
+        runner.enqueue("");
+        runner.run();
+
+        runner.assertTransferCount(GetMongo.REL_ORIGINAL, 1);
+        runner.assertTransferCount(GetMongo.REL_SUCCESS, 1);
+        runner.assertTransferCount(GetMongo.REL_FAILURE, 0);
+
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetMongo.REL_SUCCESS);
+        MockFlowFile flowFile = flowFiles.get(0);
+        Assert.assertEquals(0, flowFile.getSize());
     }
 }

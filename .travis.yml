@@ -24,7 +24,7 @@ os:
   - linux
 
 jdk:
-  - oraclejdk8
+  - openjdk8
 
 # Caches mvn repository in order to speed upbuilds
 cache:
@@ -55,4 +55,4 @@ script:
   # Note: The reason the sed is done as part of script is to ensure the pom hack 
   # won't affect the 'clean install' above
   - bash .travis.sh
-  - mvn -T 2 clean install -Pcontrib-check,include-grpc,include-atlas,include-hive3 -Ddir-only | grep -v -F -f .travis-output-filters && exit ${PIPESTATUS[0]}
+  - mvn -T 1C clean install -Pcontrib-check,include-grpc,include-atlas,include-hive3 -Ddir-only | grep -v -F -f .travis-output-filters && exit ${PIPESTATUS[0]}

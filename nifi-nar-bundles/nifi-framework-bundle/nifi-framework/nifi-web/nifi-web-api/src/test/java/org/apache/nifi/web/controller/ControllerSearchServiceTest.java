@@ -30,14 +30,16 @@ import org.apache.nifi.registry.variable.MutableVariableRegistry;
 import org.apache.nifi.web.api.dto.search.SearchResultsDTO;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.AdditionalMatchers;
 import org.mockito.Mockito;
 
 import java.util.HashSet;
 import java.util.Optional;
 
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 
 public class ControllerSearchServiceTest {
@@ -350,7 +352,8 @@ public class ControllerSearchServiceTest {
         final Processor processor1 = mock(Processor.class);
 
         final ProcessorNode processorNode1 = mock(StandardProcessorNode.class);
-        Mockito.doReturn(authorizedToRead).when(processorNode1).isAuthorized(any(Authorizer.class), eq(RequestAction.READ), any(NiFiUser.class));
+        Mockito.doReturn(authorizedToRead).when(processorNode1).isAuthorized(AdditionalMatchers.or(any(Authorizer.class), isNull()), eq(RequestAction.READ),
+                AdditionalMatchers.or(any(NiFiUser.class), isNull()));
         Mockito.doReturn(variableRegistry).when(processorNode1).getVariableRegistry();
         Mockito.doReturn(processor1).when(processorNode1).getProcessor();
         // set processor node's attributes
@@ -389,7 +392,8 @@ public class ControllerSearchServiceTest {
         Mockito.doReturn(variableRegistry).when(processGroup).getVariableRegistry();
         Mockito.doReturn(parent == null).when(processGroup).isRootGroup();
         // override process group's access rights
-        Mockito.doReturn(authorizedToRead).when(processGroup).isAuthorized(any(Authorizer.class), eq(RequestAction.READ), any(NiFiUser.class));
+        Mockito.doReturn(authorizedToRead).when(processGroup).isAuthorized(AdditionalMatchers.or(any(Authorizer.class), isNull()), eq(RequestAction.READ),
+                AdditionalMatchers.or(any(NiFiUser.class), isNull()));
 
         return processGroup;
     }

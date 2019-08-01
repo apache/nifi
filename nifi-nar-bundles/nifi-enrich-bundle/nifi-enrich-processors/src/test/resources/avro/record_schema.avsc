@@ -1,0 +1,42 @@
+{
+	"type": "record",
+	"name": "TestRecord",
+	"fields": [{
+			"name": "message",
+			"type": "string"
+		},
+		{
+			"name": "ip_address",
+			"type": "string"
+		},
+		{
+			"name": "geo",
+			"type": ["null", {
+				"type": "record",
+				"name": "GeoRecord",
+				"fields": [{
+					"name": "city",
+					"type": "string"
+				}, {
+					"name": "country",
+					"type": "string"
+				}, {
+					"name": "country_iso",
+					"type": "string"
+				}, {
+					"name": "country_postal",
+					"type": "string"
+				}, {
+					"name": "lat",
+					"type": "double"
+				}, {
+					"name": "lon",
+					"type": "double"
+				}, {
+					"name": "accuracy",
+					"type": "int"
+				}]
+			}]
+		}
+	]
+}

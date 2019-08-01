@@ -42,6 +42,7 @@ import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.Assert.fail;
 
@@ -143,6 +144,14 @@ public abstract class AbstractS3IT {
     protected void putTestFileEncrypted(String key, File file) throws AmazonS3Exception, FileNotFoundException {
         ObjectMetadata objectMetadata = new ObjectMetadata();
         objectMetadata.setSSEAlgorithm(ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION);
+        PutObjectRequest putRequest = new PutObjectRequest(BUCKET_NAME, key, new FileInputStream(file), objectMetadata);
+
+        client.putObject(putRequest);
+    }
+
+    protected void putFileWithUserMetadata(String key, File file, Map<String, String> userMetadata) throws AmazonS3Exception, FileNotFoundException {
+        ObjectMetadata objectMetadata = new ObjectMetadata();
+        objectMetadata.setUserMetadata(userMetadata);
         PutObjectRequest putRequest = new PutObjectRequest(BUCKET_NAME, key, new FileInputStream(file), objectMetadata);
 
         client.putObject(putRequest);

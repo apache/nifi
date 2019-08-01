@@ -25,7 +25,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.StringUtils;
@@ -302,7 +304,7 @@ final class KafkaProcessorUtils {
             final boolean knownValue = KafkaProcessorUtils.isStaticStringFieldNamePresent(subject, classType, CommonClientConfigs.class, SslConfigs.class, SaslConfigs.class);
             return new ValidationResult.Builder().subject(subject).explanation("Must be a known configuration parameter for this kafka client").valid(knownValue).build();
         }
-    };
+    }
 
     static final class KafkaConsumerTopicNameValidator implements Validator {
 
@@ -395,6 +397,16 @@ final class KafkaProcessorUtils {
         if (SEC_SASL_PLAINTEXT.getValue().equals(securityProtocol) || SEC_SASL_SSL.getValue().equals(securityProtocol)) {
             setJaasConfig(mapToPopulate, context);
         }
+    }
+
+    /**
+     * Method used to create a transactional id Supplier for KafkaProducer
+     *
+     * @param prefix String transactional id prefix, can be null
+     * @return A Supplier that generates transactional id
+     */
+    static Supplier<String> getTransactionalIdSupplier(String prefix) {
+        return () -> (prefix == null ? "" : prefix)  + UUID.randomUUID().toString();
     }
 
     /**

@@ -42,8 +42,8 @@ import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.registry.flow.FlowRegistry;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.registry.flow.VersionControlInformation;
+import org.apache.nifi.remote.PublicPort;
 import org.apache.nifi.remote.RemoteGroupPort;
-import org.apache.nifi.remote.RootGroupPort;
 import org.apache.nifi.util.CharacterFilterUtils;
 import org.apache.nifi.util.StringUtils;
 import org.w3c.dom.DOMException;
@@ -212,20 +212,18 @@ public class StandardFlowSerializer implements FlowSerializer<Document> {
             addProcessor(element, processor, scheduledStateLookup);
         }
 
-        if (group.isRootGroup()) {
-            for (final Port port : group.getInputPorts()) {
-                addRootGroupPort(element, (RootGroupPort) port, "inputPort", scheduledStateLookup);
-            }
-
-            for (final Port port : group.getOutputPorts()) {
-                addRootGroupPort(element, (RootGroupPort) port, "outputPort", scheduledStateLookup);
-            }
-        } else {
-            for (final Port port : group.getInputPorts()) {
+        for (final Port port : group.getInputPorts()) {
+            if (port instanceof PublicPort) {
+                addPublicPort(element, (PublicPort) port, "inputPort", scheduledStateLookup);
+            } else {
                 addPort(element, port, "inputPort", scheduledStateLookup);
             }
+        }
 
-            for (final Port port : group.getOutputPorts()) {
+        for (final Port port : group.getOutputPorts()) {
+            if (port instanceof PublicPort) {
+                addPublicPort(element, (PublicPort) port, "outputPort", scheduledStateLookup);
+            } else {
                 addPort(element, port, "outputPort", scheduledStateLookup);
             }
         }
@@ -416,7 +414,7 @@ public class StandardFlowSerializer implements FlowSerializer<Document> {
         parentElement.appendChild(element);
     }
 
-    private void addRootGroupPort(final Element parentElement, final RootGroupPort port, final String elementName, final ScheduledStateLookup scheduledStateLookup) {
+    private void addPublicPort(final Element parentElement, final PublicPort port, final String elementName, final ScheduledStateLookup scheduledStateLookup) {
         final Document doc = parentElement.getOwnerDocument();
         final Element element = doc.createElement(elementName);
         parentElement.appendChild(element);
@@ -427,6 +425,7 @@ public class StandardFlowSerializer implements FlowSerializer<Document> {
         addTextElement(element, "comments", port.getComments());
         addTextElement(element, "scheduledState", scheduledStateLookup.getScheduledState(port).name());
         addTextElement(element, "maxConcurrentTasks", String.valueOf(port.getMaxConcurrentTasks()));
+        addTextElement(element, "allowRemoteAccess", Boolean.TRUE.toString());
         for (final String user : port.getUserAccessControl()) {
             addTextElement(element, "userAccessControl", user);
         }

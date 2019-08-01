@@ -20,6 +20,7 @@ import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.controller.ControllerServiceLookup;
+import org.apache.nifi.controller.NodeTypeProvider;
 import org.apache.nifi.controller.kerberos.KerberosConfig;
 import org.apache.nifi.logging.ComponentLog;
 
@@ -33,16 +34,18 @@ public class StandardControllerServiceInitializationContext implements Controlle
     private final ComponentLog logger;
     private final StateManager stateManager;
     private final KerberosConfig kerberosConfig;
+    private NodeTypeProvider nodeTypeProvider;
 
     public StandardControllerServiceInitializationContext(
             final String identifier, final ComponentLog logger,
             final ControllerServiceProvider serviceProvider, final StateManager stateManager,
-            final KerberosConfig kerberosConfig) {
+            final KerberosConfig kerberosConfig, final NodeTypeProvider nodeTypeProvider) {
         this.id = identifier;
         this.logger = logger;
         this.serviceProvider = serviceProvider;
         this.stateManager = stateManager;
         this.kerberosConfig = kerberosConfig;
+        this.nodeTypeProvider = nodeTypeProvider;
     }
 
     @Override
@@ -93,6 +96,11 @@ public class StandardControllerServiceInitializationContext implements Controlle
     @Override
     public StateManager getStateManager() {
         return stateManager;
+    }
+
+    @Override
+    public NodeTypeProvider getNodeTypeProvider() {
+        return nodeTypeProvider;
     }
 
     @Override

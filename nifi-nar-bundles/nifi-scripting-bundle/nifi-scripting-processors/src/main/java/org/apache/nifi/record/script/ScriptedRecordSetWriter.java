@@ -62,10 +62,10 @@ public class ScriptedRecordSetWriter extends AbstractScriptedRecordFactory<Recor
 
 
     @Override
-    public RecordSetWriter createWriter(ComponentLog logger, RecordSchema schema, OutputStream out) throws SchemaNotFoundException, IOException {
+    public RecordSetWriter createWriter(ComponentLog logger, RecordSchema schema, OutputStream out, Map<String, String> variables) throws SchemaNotFoundException, IOException {
         if (recordFactory.get() != null) {
             try {
-                return recordFactory.get().createWriter(logger, schema, out);
+                return recordFactory.get().createWriter(logger, schema, out, variables);
             } catch (UndeclaredThrowableException ute) {
                 throw new IOException(ute.getCause());
             }

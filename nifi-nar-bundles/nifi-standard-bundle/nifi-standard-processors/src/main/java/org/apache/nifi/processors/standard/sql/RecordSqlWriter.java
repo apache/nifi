@@ -36,6 +36,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
@@ -77,7 +78,7 @@ public class RecordSqlWriter implements SqlWriter {
         } catch (final SQLException | SchemaNotFoundException | IOException e) {
             throw new ProcessException(e);
         }
-        try (final RecordSetWriter resultSetWriter = recordSetWriterFactory.createWriter(logger, writeSchema, outputStream)) {
+        try (final RecordSetWriter resultSetWriter = recordSetWriterFactory.createWriter(logger, writeSchema, outputStream, Collections.emptyMap())) {
             writeResultRef.set(resultSetWriter.write(recordSet));
             if (mimeType == null) {
                 mimeType = resultSetWriter.getMimeType();
@@ -115,7 +116,7 @@ public class RecordSqlWriter implements SqlWriter {
 
     @Override
     public void writeEmptyResultSet(OutputStream outputStream, ComponentLog logger) throws IOException {
-        try (final RecordSetWriter resultSetWriter = recordSetWriterFactory.createWriter(logger, writeSchema, outputStream)) {
+        try (final RecordSetWriter resultSetWriter = recordSetWriterFactory.createWriter(logger, writeSchema, outputStream, Collections.emptyMap())) {
             mimeType = resultSetWriter.getMimeType();
             resultSetWriter.beginRecordSet();
             resultSetWriter.finishRecordSet();

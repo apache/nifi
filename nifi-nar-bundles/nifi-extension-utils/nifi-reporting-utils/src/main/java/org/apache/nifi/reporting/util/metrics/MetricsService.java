@@ -26,9 +26,9 @@ import javax.json.JsonObjectBuilder;
 
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
+import org.apache.nifi.metrics.jvm.JvmMetrics;
+import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.reporting.util.metrics.api.MetricFields;
-
-import com.yammer.metrics.core.VirtualMachineMetrics;
 
 /**
  * A service used to produce key/value metrics based on a given input.
@@ -90,7 +90,7 @@ public class MetricsService {
      * @param virtualMachineMetrics a VirtualMachineMetrics instance to get metrics from
      * @return a map of metrics from the given VirtualMachineStatus
      */
-    public Map<String,String> getMetrics(VirtualMachineMetrics virtualMachineMetrics) {
+    public Map<String,String> getMetrics(JvmMetrics virtualMachineMetrics) {
         final Map<String,String> metrics = new HashMap<>();
 
         Map<String,Integer> integerMetrics = getIntegerMetrics(virtualMachineMetrics);
@@ -135,20 +135,20 @@ public class MetricsService {
         }
     }
 
-    private Map<String,Double> getDoubleMetrics(VirtualMachineMetrics virtualMachineMetrics) {
+    private Map<String,Double> getDoubleMetrics(JvmMetrics virtualMachineMetrics) {
         final Map<String,Double> metrics = new HashMap<>();
-        metrics.put(MetricNames.JVM_HEAP_USED, virtualMachineMetrics.heapUsed());
+        metrics.put(MetricNames.JVM_HEAP_USED, virtualMachineMetrics.heapUsed(DataUnit.B));
         metrics.put(MetricNames.JVM_HEAP_USAGE, virtualMachineMetrics.heapUsage());
         metrics.put(MetricNames.JVM_NON_HEAP_USAGE, virtualMachineMetrics.nonHeapUsage());
         metrics.put(MetricNames.JVM_FILE_DESCRIPTOR_USAGE, virtualMachineMetrics.fileDescriptorUsage());
         return metrics;
     }
 
-    private Map<String,Long> getLongMetrics(VirtualMachineMetrics virtualMachineMetrics) {
+    private Map<String,Long> getLongMetrics(JvmMetrics virtualMachineMetrics) {
         final Map<String,Long> metrics = new HashMap<>();
         metrics.put(MetricNames.JVM_UPTIME, virtualMachineMetrics.uptime());
 
-        for (Map.Entry<String,VirtualMachineMetrics.GarbageCollectorStats> entry : virtualMachineMetrics.garbageCollectors().entrySet()) {
+        for (Map.Entry<String,JvmMetrics.GarbageCollectorStats> entry : virtualMachineMetrics.garbageCollectors().entrySet()) {
             final String gcName = entry.getKey().replace(" ", "");
             final long runs = entry.getValue().getRuns();
             final long timeMS = entry.getValue().getTime(TimeUnit.MILLISECONDS);
@@ -159,7 +159,7 @@ public class MetricsService {
         return metrics;
     }
 
-    private Map<String,Integer> getIntegerMetrics(VirtualMachineMetrics virtualMachineMetrics) {
+    private Map<String,Integer> getIntegerMetrics(JvmMetrics virtualMachineMetrics) {
         final Map<String,Integer> metrics = new HashMap<>();
         metrics.put(MetricNames.JVM_DAEMON_THREAD_COUNT, virtualMachineMetrics.daemonThreadCount());
         metrics.put(MetricNames.JVM_THREAD_COUNT, virtualMachineMetrics.threadCount());
@@ -187,7 +187,7 @@ public class MetricsService {
         return metrics;
     }
 
-    public JsonObject getMetrics(JsonBuilderFactory factory, ProcessGroupStatus status, VirtualMachineMetrics virtualMachineMetrics,
+    public JsonObject getMetrics(JsonBuilderFactory factory, ProcessGroupStatus status, JvmMetrics virtualMachineMetrics,
             String applicationId, String id, String hostname, long currentTimeMillis, int availableProcessors, double systemLoad) {
         JsonObjectBuilder objectBuilder = factory.createObjectBuilder()
                 .add(MetricFields.APP_ID, applicationId)

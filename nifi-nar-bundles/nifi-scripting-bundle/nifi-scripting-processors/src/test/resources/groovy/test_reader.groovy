@@ -24,9 +24,26 @@ class GroovyProcessor implements Processor {
     def descriptor = new PropertyDescriptor.Builder()
             .name("test-attribute").addValidator(StandardValidators.NON_EMPTY_VALIDATOR).build()
 
+    def logger
+
+    def setAttributeFromThisInOnScheduled = ''
+
     @Override
     void initialize(ProcessorInitializationContext context) {
 
+    }
+
+    void setLogger(log) {
+        logger = log
+    }
+
+    void onScheduled(ProcessContext context) {
+        // Set the attribute value for use in onTrigger
+        setAttributeFromThisInOnScheduled = 'test content'
+    }
+
+    void onStopped(ProcessContext context) {
+        logger.info("Called onStopped")
     }
 
     @Override
@@ -41,7 +58,7 @@ class GroovyProcessor implements Processor {
         if (flowFile == null) {
             return;
         }
-        flowFile = session.putAttribute(flowFile, "from-content", "test content")
+        flowFile = session.putAttribute(flowFile, 'from-content', setAttributeFromThisInOnScheduled)
         // transfer
         session.transfer(flowFile, REL_TEST)
         session.commit()

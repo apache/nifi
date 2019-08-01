@@ -41,6 +41,7 @@ import java.sql.Clob;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.sql.Types;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -736,7 +737,7 @@ public class DataTypeUtils {
     }
 
     public static boolean isMapTypeCompatible(final Object value) {
-        return value != null && value instanceof Map;
+        return value != null && (value instanceof Map || value instanceof MapRecord);
     }
 
 
@@ -891,13 +892,13 @@ public class DataTypeUtils {
             return null;
         }
 
+        if (value instanceof Date) {
+            return (Date) value;
+        }
+
         if (value instanceof java.util.Date) {
             java.util.Date _temp = (java.util.Date)value;
             return new Date(_temp.getTime());
-        }
-
-        if (value instanceof Date) {
-            return (Date) value;
         }
 
         if (value instanceof Number) {
@@ -1019,6 +1020,15 @@ public class DataTypeUtils {
         return df;
     }
 
+    public static DateFormat getDateFormat(final String format, final String timezoneID) {
+        if (format == null || timezoneID == null) {
+            return null;
+        }
+        final DateFormat df = new SimpleDateFormat(format);
+        df.setTimeZone(TimeZone.getTimeZone(timezoneID));
+        return df;
+    }
+
     public static boolean isTimeTypeCompatible(final Object value, final String format) {
         return isDateTypeCompatible(value, format);
     }
@@ -1028,12 +1038,12 @@ public class DataTypeUtils {
             return null;
         }
 
-        if (value instanceof java.util.Date) {
-            return new Timestamp(((java.util.Date)value).getTime());
-        }
-
         if (value instanceof Timestamp) {
             return (Timestamp) value;
+        }
+
+        if (value instanceof java.util.Date) {
+            return new Timestamp(((java.util.Date)value).getTime());
         }
 
         if (value instanceof Number) {
@@ -1080,15 +1090,25 @@ public class DataTypeUtils {
         if (value instanceof BigInteger) {
             return (BigInteger) value;
         }
-        if (value instanceof Long) {
-            return BigInteger.valueOf((Long) value);
+
+        if (value instanceof Number) {
+            return BigInteger.valueOf(((Number) value).longValue());
+        }
+
+        if (value instanceof String) {
+            try {
+                return new BigInteger((String) value);
+            } catch (NumberFormatException nfe) {
+                throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to BigInteger for field " + fieldName
+                        + ", value is not a valid representation of BigInteger", nfe);
+            }
         }
 
         throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to BigInteger for field " + fieldName);
     }
 
     public static boolean isBigIntTypeCompatible(final Object value) {
-        return value == null && (value instanceof BigInteger || value instanceof Long);
+        return isNumberTypeCompatible(value, DataTypeUtils::isIntegral);
     }
 
     public static Boolean toBoolean(final Object value, final String fieldName) {
@@ -1259,7 +1279,10 @@ public class DataTypeUtils {
         return false;
     }
 
-    private static boolean isIntegral(final String value, final long minValue, final long maxValue) {
+    /**
+     * Check if the value is an integral.
+     */
+    private static boolean isIntegral(final String value) {
         if (value == null || value.isEmpty()) {
             return false;
         }
@@ -1280,6 +1303,18 @@ public class DataTypeUtils {
             }
         }
 
+        return true;
+    }
+
+    /**
+     * Check if the value is an integral within a value range.
+     */
+    private static boolean isIntegral(final String value, final long minValue, final long maxValue) {
+
+        if (!isIntegral(value)) {
+            return false;
+        }
+
         try {
             final long longValue = Long.parseLong(value);
             return longValue >= minValue && longValue <= maxValue;
@@ -1288,7 +1323,6 @@ public class DataTypeUtils {
             return false;
         }
     }
-
 
     public static Integer toInteger(final Object value, final String fieldName) {
         if (value == null) {
@@ -1571,6 +1605,55 @@ public class DataTypeUtils {
                 return 0;
             default:
                 return -1;
+        }
+    }
+
+    /**
+     * Converts the specified field data type into a java.sql.Types constant (INTEGER = 4, e.g.)
+     *
+     * @param dataType the DataType to be converted
+     * @return the SQL type corresponding to the specified RecordFieldType
+     */
+    public static int getSQLTypeValue(final DataType dataType) {
+        if (dataType == null) {
+            return Types.NULL;
+        }
+        RecordFieldType fieldType = dataType.getFieldType();
+        switch (fieldType) {
+            case BIGINT:
+            case LONG:
+                return Types.BIGINT;
+            case BOOLEAN:
+                return Types.BOOLEAN;
+            case BYTE:
+                return Types.TINYINT;
+            case CHAR:
+                return Types.CHAR;
+            case DATE:
+                return Types.DATE;
+            case DOUBLE:
+                return Types.DOUBLE;
+            case FLOAT:
+                return Types.FLOAT;
+            case INT:
+                return Types.INTEGER;
+            case SHORT:
+                return Types.SMALLINT;
+            case STRING:
+                return Types.VARCHAR;
+            case TIME:
+                return Types.TIME;
+            case TIMESTAMP:
+                return Types.TIMESTAMP;
+            case ARRAY:
+                return Types.ARRAY;
+            case MAP:
+            case RECORD:
+                return Types.STRUCT;
+            case CHOICE:
+                throw new IllegalTypeConversionException("Cannot convert CHOICE, type must be explicit");
+            default:
+                throw new IllegalTypeConversionException("Cannot convert unknown type " + fieldType.name());
         }
     }
 

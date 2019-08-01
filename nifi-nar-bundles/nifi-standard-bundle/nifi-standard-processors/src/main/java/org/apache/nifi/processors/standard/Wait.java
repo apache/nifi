@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -43,6 +44,7 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
@@ -212,6 +214,24 @@ public class Wait extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
 
+    public static final PropertyDescriptor WAIT_PENALTY_DURATION = new PropertyDescriptor.Builder()
+        .name("wait-penalty-duration")
+        .displayName("Wait Penalty Duration")
+        .description("If configured, after a signal identifier got processed but did not meet the release criteria," +
+            " the signal identifier is penalized and FlowFiles having the signal identifier" +
+            " will not be processed again for the specified period of time," +
+            " so that the signal identifier will not block others to be processed." +
+            " This can be useful for use cases where a Wait processor is expected to process multiple signal identifiers," +
+            " and each signal identifier has multiple FlowFiles," +
+            " and also the order of releasing FlowFiles is important within a signal identifier." +
+            " The FlowFile order can be configured with Prioritizers." +
+            " IMPORTANT: There is a limitation of number of queued signals can be processed," +
+            " and Wait processor may not be able to check all queued signal ids. See additional details for the best practice.")
+        .required(false)
+        .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+        .build();
+
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("A FlowFile with a matching release signal in the cache will be routed to this relationship")
@@ -234,6 +254,8 @@ public class Wait extends AbstractProcessor {
 
     private final Set<Relationship> relationships;
 
+    private final Map<String, Long> signalIdPenalties = new HashMap<>();
+
     public Wait() {
         final Set<Relationship> rels = new HashSet<>();
         rels.add(REL_SUCCESS);
@@ -255,6 +277,7 @@ public class Wait extends AbstractProcessor {
         descriptors.add(DISTRIBUTED_CACHE_SERVICE);
         descriptors.add(ATTRIBUTE_COPY_MODE);
         descriptors.add(WAIT_MODE);
+        descriptors.add(WAIT_PENALTY_DURATION);
         return descriptors;
     }
 
@@ -280,6 +303,19 @@ public class Wait extends AbstractProcessor {
         final List<FlowFile> failedFilteringFlowFiles = new ArrayList<>();
         final Supplier<FlowFileFilter.FlowFileFilterResult> acceptResultSupplier =
                 () -> bufferedCount.incrementAndGet() == bufferCount ? ACCEPT_AND_TERMINATE : ACCEPT_AND_CONTINUE;
+
+        // Clear expired penalties.
+        if (!signalIdPenalties.isEmpty()) {
+            final Iterator<Entry<String, Long>> penaltyIterator = signalIdPenalties.entrySet().iterator();
+            final long now = System.currentTimeMillis();
+            while (penaltyIterator.hasNext()) {
+                final Entry<String, Long> penalty = penaltyIterator.next();
+                if (penalty.getValue() < now) {
+                    penaltyIterator.remove();
+                }
+            }
+        }
+
         final List<FlowFile> flowFiles = session.get(f -> {
 
             final String fSignalId = signalIdProperty.evaluateAttributeExpressions(f).getValue();
@@ -290,6 +326,11 @@ public class Wait extends AbstractProcessor {
                 logger.error("FlowFile {} has no attribute for given Release Signal Identifier", new Object[] {f});
                 failedFilteringFlowFiles.add(f);
                 return ACCEPT_AND_CONTINUE;
+            }
+
+            if (signalIdPenalties.containsKey(fSignalId)) {
+                // This id is penalized.
+                return REJECT_AND_CONTINUE;
             }
 
             final String targetSignalIdStr = targetSignalId.get();
@@ -468,6 +509,12 @@ public class Wait extends AbstractProcessor {
         // Transfer FlowFiles.
         processedFlowFiles.entrySet().forEach(transferFlowFiles);
 
+        // Penalize signal id if no FlowFile transferred to success.
+        final PropertyValue waitPenaltyDuration = context.getProperty(WAIT_PENALTY_DURATION);
+        if (waitPenaltyDuration.isSet() && getFlowFilesFor.apply(REL_SUCCESS).isEmpty()) {
+            signalIdPenalties.put(signalId, System.currentTimeMillis() + waitPenaltyDuration.asTimePeriod(TimeUnit.MILLISECONDS));
+        }
+
         // Update signal if needed.
         try {
             if (waitCompleted) {
@@ -515,4 +562,12 @@ public class Wait extends AbstractProcessor {
         return session.putAllAttributes(flowFile, attributesToCopy);
     }
 
+    @OnStopped
+    public void onStopped(final ProcessContext context) {
+        signalIdPenalties.clear();
+    }
+
+    Map<String, Long> getSignalIdPenalties() {
+        return signalIdPenalties;
+    }
 }

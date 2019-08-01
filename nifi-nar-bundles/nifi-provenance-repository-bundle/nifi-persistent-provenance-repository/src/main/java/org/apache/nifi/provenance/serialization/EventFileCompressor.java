@@ -17,15 +17,6 @@
 
 package org.apache.nifi.provenance.serialization;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.TimeUnit;
-
 import org.apache.nifi.provenance.store.EventFileManager;
 import org.apache.nifi.provenance.toc.StandardTocReader;
 import org.apache.nifi.provenance.toc.StandardTocWriter;
@@ -40,6 +31,17 @@ import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.FormatUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.EOFException;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 /**
  * <p>
@@ -79,9 +81,9 @@ public class EventFileCompressor implements Runnable {
                     continue;
                 }
 
-                File outputFile = null;
-                long bytesBefore = 0L;
-                StandardTocReader tocReader = null;
+                File outputFile;
+                long bytesBefore;
+                StandardTocReader tocReader;
 
                 File tmpTocFile = null;
                 eventFileManager.obtainReadLock(uncompressedEventFile);
@@ -91,6 +93,13 @@ public class EventFileCompressor implements Runnable {
                     final File tocFile = TocUtil.getTocFile(uncompressedEventFile);
                     try {
                         tocReader = new StandardTocReader(tocFile);
+                    } catch (final FileNotFoundException fnfe) {
+                        logger.debug("Attempted to compress event file {} but the TOC file {} could not be found", uncompressedEventFile, tocFile);
+                        continue;
+                    } catch (final EOFException eof) {
+                        logger.info("Attempted to compress event file {} but encountered unexpected End-of-File when reading TOC file {}; this typically happens as a result of the data aging off " +
+                            "from the Provenance Repository before it is able to be compressed.", uncompressedEventFile, tocFile);
+                        continue;
                     } catch (final IOException e) {
                         logger.error("Failed to read TOC File {}", tocFile, e);
                         continue;
@@ -151,7 +160,7 @@ public class EventFileCompressor implements Runnable {
         }
     }
 
-    public static void compress(final File input, final TocReader tocReader, final File output, final TocWriter tocWriter) throws IOException {
+    private static void compress(final File input, final TocReader tocReader, final File output, final TocWriter tocWriter) throws IOException {
         try (final InputStream fis = new FileInputStream(input);
             final OutputStream fos = new FileOutputStream(output);
             final ByteCountingOutputStream byteCountingOut = new ByteCountingOutputStream(fos)) {

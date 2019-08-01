@@ -27,7 +27,7 @@ import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.ScheduledState;
-import org.apache.nifi.remote.RootGroupPort;
+import org.apache.nifi.remote.PublicPort;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.web.api.dto.PortDTO;
 import org.apache.nifi.web.dao.PortDAO;
@@ -94,11 +94,12 @@ public class PortAuditor extends NiFiAuditor {
 
         final Set<String> existingUsers = new HashSet<>();
         final Set<String> existingGroups = new HashSet<>();
-        boolean isRootGroupPort = false;
-        if (port instanceof RootGroupPort) {
-            isRootGroupPort = true;
-            existingUsers.addAll(((RootGroupPort) port).getUserAccessControl());
-            existingGroups.addAll(((RootGroupPort) port).getGroupAccessControl());
+        boolean isPublicPort = false;
+        if (port instanceof PublicPort) {
+            isPublicPort = true;
+            final PublicPort publicPort = (PublicPort) port;
+            existingUsers.addAll(publicPort.getUserAccessControl());
+            existingGroups.addAll(publicPort.getGroupAccessControl());
         }
 
         // perform the underlying operation
@@ -134,7 +135,7 @@ public class PortAuditor extends NiFiAuditor {
             }
 
             // if this is a root group port, consider concurrent tasks
-            if (isRootGroupPort) {
+            if (isPublicPort) {
                 if (portDTO.getConcurrentlySchedulableTaskCount() != null && updatedPort.getMaxConcurrentTasks() != maxConcurrentTasks) {
                     // create the config details
                     FlowChangeConfigureDetails configDetails = new FlowChangeConfigureDetails();

@@ -1341,9 +1341,7 @@
                 resetPolicy();
                 loadPolicy();
             }).always(function () {
-                nfCanvasUtils.reload({
-                    'transition': true
-                });
+                nfCanvasUtils.reload();
             });
         } else {
             nfDialog.showOkDialog({
@@ -1651,10 +1649,10 @@
                 $('#component-policy-target')
                     .combo('setOptionEnabled', {
                         value: 'write-receive-data'
-                    }, nfCanvasUtils.isInputPort(selection) && nfCanvasUtils.getParentGroupId() === null)
+                    }, nfCanvasUtils.isInputPort(selection) && d.allowRemoteAccess === true)
                     .combo('setOptionEnabled', {
                         value: 'write-send-data'
-                    }, nfCanvasUtils.isOutputPort(selection) && nfCanvasUtils.getParentGroupId() === null)
+                    }, nfCanvasUtils.isOutputPort(selection) && d.allowRemoteAccess === true)
                     .combo('setOptionEnabled', {
                         value: 'read-data'
                     }, !nfCanvasUtils.isLabel(selection))

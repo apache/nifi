@@ -266,7 +266,6 @@ public class PutElasticsearchHttpRecord extends AbstractElasticsearchHttpProcess
         descriptors.add(ID_RECORD_PATH);
         descriptors.add(INDEX);
         descriptors.add(TYPE);
-        descriptors.add(CHARSET);
         descriptors.add(INDEX_OP);
         descriptors.add(SUPPRESS_NULLS);
         descriptors.add(DATE_FORMAT);
@@ -559,8 +558,8 @@ public class PutElasticsearchHttpRecord extends AbstractElasticsearchHttpProcess
 
                 final RecordSchema schema = writerFactory.getSchema(inputFlowFile.getAttributes(), reader.getSchema());
 
-                try (final RecordSetWriter successWriter = writerFactory.createWriter(getLogger(), schema, successOut);
-                     final RecordSetWriter failedWriter = writerFactory.createWriter(getLogger(), schema, failedOut)) {
+                try (final RecordSetWriter successWriter = writerFactory.createWriter(getLogger(), schema, successOut, successFlowFile);
+                     final RecordSetWriter failedWriter = writerFactory.createWriter(getLogger(), schema, failedOut, failedFlowFile)) {
 
                     successWriter.beginRecordSet();
                     failedWriter.beginRecordSet();

@@ -169,7 +169,7 @@ public class SplitRecord extends AbstractProcessor {
                                 final WriteResult writeResult;
 
                                 try (final OutputStream out = session.write(split);
-                                    final RecordSetWriter writer = writerFactory.createWriter(getLogger(), schema, out)) {
+                                    final RecordSetWriter writer = writerFactory.createWriter(getLogger(), schema, out, split)) {
                                         if (maxRecords == 1) {
                                             final Record record = pushbackSet.next();
                                             writeResult = writer.write(record);
@@ -206,7 +206,8 @@ public class SplitRecord extends AbstractProcessor {
             return;
         }
 
-        session.transfer(original, REL_ORIGINAL);
+        final FlowFile originalFlowFile = FragmentAttributes.copyAttributesToOriginal(session, original, fragmentId, splits.size());
+        session.transfer(originalFlowFile, REL_ORIGINAL);
         // Add the fragment count to each split
         for(FlowFile split : splits) {
             session.putAttribute(split, FRAGMENT_COUNT, String.valueOf(splits.size()));

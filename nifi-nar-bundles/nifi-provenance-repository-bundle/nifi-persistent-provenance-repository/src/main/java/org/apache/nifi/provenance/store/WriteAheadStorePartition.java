@@ -17,8 +17,28 @@
 
 package org.apache.nifi.provenance.store;
 
+import org.apache.nifi.events.EventReporter;
+import org.apache.nifi.provenance.ProvenanceEventRecord;
+import org.apache.nifi.provenance.RepositoryConfiguration;
+import org.apache.nifi.provenance.StandardProvenanceEventRecord;
+import org.apache.nifi.provenance.authorization.EventAuthorizer;
+import org.apache.nifi.provenance.index.EventIndex;
+import org.apache.nifi.provenance.serialization.RecordReader;
+import org.apache.nifi.provenance.serialization.RecordWriter;
+import org.apache.nifi.provenance.serialization.StorageSummary;
+import org.apache.nifi.provenance.store.iterator.EventIterator;
+import org.apache.nifi.provenance.store.iterator.SelectiveRecordReaderEventIterator;
+import org.apache.nifi.provenance.store.iterator.SequentialRecordReaderEventIterator;
+import org.apache.nifi.provenance.toc.TocUtil;
+import org.apache.nifi.provenance.util.DirectoryUtils;
+import org.apache.nifi.provenance.util.NamedThreadFactory;
+import org.apache.nifi.util.FormatUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.EOFException;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.ArrayList;
@@ -42,25 +62,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.apache.nifi.events.EventReporter;
-import org.apache.nifi.provenance.ProvenanceEventRecord;
-import org.apache.nifi.provenance.RepositoryConfiguration;
-import org.apache.nifi.provenance.StandardProvenanceEventRecord;
-import org.apache.nifi.provenance.authorization.EventAuthorizer;
-import org.apache.nifi.provenance.index.EventIndex;
-import org.apache.nifi.provenance.serialization.RecordReader;
-import org.apache.nifi.provenance.serialization.RecordWriter;
-import org.apache.nifi.provenance.serialization.StorageSummary;
-import org.apache.nifi.provenance.store.iterator.EventIterator;
-import org.apache.nifi.provenance.store.iterator.SelectiveRecordReaderEventIterator;
-import org.apache.nifi.provenance.store.iterator.SequentialRecordReaderEventIterator;
-import org.apache.nifi.provenance.toc.TocUtil;
-import org.apache.nifi.provenance.util.DirectoryUtils;
-import org.apache.nifi.provenance.util.NamedThreadFactory;
-import org.apache.nifi.util.FormatUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 public class WriteAheadStorePartition implements EventStorePartition {
     private static final Logger logger = LoggerFactory.getLogger(WriteAheadStorePartition.class);
 
@@ -72,6 +73,7 @@ public class WriteAheadStorePartition implements EventStorePartition {
     private final BlockingQueue<File> filesToCompress;
     private final AtomicLong idGenerator;
     private final AtomicLong maxEventId = new AtomicLong(-1L);
+    private final EventFileManager eventFileManager;
     private volatile boolean closed = false;
 
     private AtomicReference<RecordWriterLease> eventWriterLeaseRef = new AtomicReference<>();
@@ -79,7 +81,8 @@ public class WriteAheadStorePartition implements EventStorePartition {
     private final SortedMap<Long, File> minEventIdToPathMap = new TreeMap<>();  // guarded by synchronizing on object
 
     public WriteAheadStorePartition(final File storageDirectory, final String partitionName, final RepositoryConfiguration repoConfig, final RecordWriterFactory recordWriterFactory,
-        final RecordReaderFactory recordReaderFactory, final BlockingQueue<File> filesToCompress, final AtomicLong idGenerator, final EventReporter eventReporter) {
+                                    final RecordReaderFactory recordReaderFactory, final BlockingQueue<File> filesToCompress, final AtomicLong idGenerator, final EventReporter eventReporter,
+                                    final EventFileManager eventFileManager) {
 
         this.partitionName = partitionName;
         this.config = repoConfig;
@@ -88,6 +91,7 @@ public class WriteAheadStorePartition implements EventStorePartition {
         this.recordWriterFactory = recordWriterFactory;
         this.recordReaderFactory = recordReaderFactory;
         this.filesToCompress = filesToCompress;
+        this.eventFileManager = eventFileManager;
     }
 
     @Override
@@ -118,7 +122,7 @@ public class WriteAheadStorePartition implements EventStorePartition {
         // the Largest Event ID to the smallest.
         long maxEventId = -1L;
         final List<File> fileList = Arrays.asList(files);
-        Collections.sort(fileList, DirectoryUtils.LARGEST_ID_FIRST);
+        fileList.sort(DirectoryUtils.LARGEST_ID_FIRST);
         for (final File file : fileList) {
             try {
                 final RecordReader reader = recordReaderFactory.newRecordReader(file, Collections.emptyList(), Integer.MAX_VALUE);
@@ -336,7 +340,7 @@ public class WriteAheadStorePartition implements EventStorePartition {
     @Override
     public long getSize() {
         return getEventFilesFromDisk()
-            .collect(Collectors.summarizingLong(file -> file.length()))
+            .collect(Collectors.summarizingLong(File::length))
             .getSum();
     }
 
@@ -471,7 +475,7 @@ public class WriteAheadStorePartition implements EventStorePartition {
 
         getEventFilesFromDisk().filter(file -> file.lastModified() < timeCutoff)
             .sorted(DirectoryUtils.SMALLEST_ID_FIRST)
-            .forEach(file -> delete(file));
+            .forEach(this::delete);
     }
 
 
@@ -482,7 +486,13 @@ public class WriteAheadStorePartition implements EventStorePartition {
             return 0L;
         }
 
+        final RecordWriterLease lease = eventWriterLeaseRef.get();
+        final File currentFile = lease == null ? null : lease.getWriter().getFile();
         for (final File eventFile : eventFiles) {
+            if (eventFile.equals(currentFile)) {
+                continue;
+            }
+
             final long fileSize = eventFile.length();
 
             if (delete(eventFile)) {
@@ -503,17 +513,22 @@ public class WriteAheadStorePartition implements EventStorePartition {
             minEventIdToPathMap.remove(firstEventId);
         }
 
-        if (!file.delete()) {
-            logger.warn("Failed to remove Provenance Event file {}; this file should be cleaned up manually", file);
-            return false;
-        }
+        eventFileManager.obtainWriteLock(file);
+        try {
+            if (!file.delete()) {
+                logger.warn("Failed to remove Provenance Event file {}; this file should be cleaned up manually", file);
+                return false;
+            }
 
-        final File tocFile = TocUtil.getTocFile(file);
-        if (tocFile.exists() && !tocFile.delete()) {
-            logger.warn("Failed to remove Provenance Table-of-Contents file {}; this file should be cleaned up manually", tocFile);
-        }
+            final File tocFile = TocUtil.getTocFile(file);
+            if (tocFile.exists() && !tocFile.delete()) {
+                logger.warn("Failed to remove Provenance Table-of-Contents file {}; this file should be cleaned up manually", tocFile);
+            }
 
-        return true;
+            return true;
+        } finally {
+            eventFileManager.releaseWriteLock(file);
+        }
     }
 
     void reindexLatestEvents(final EventIndex eventIndex) {
@@ -575,7 +590,7 @@ public class WriteAheadStorePartition implements EventStorePartition {
                             }
                         }
 
-                        StandardProvenanceEventRecord event = null;
+                        StandardProvenanceEventRecord event;
                         while (true) {
                             final long startBytesConsumed = recordReader.getBytesConsumed();
 
@@ -596,7 +611,7 @@ public class WriteAheadStorePartition implements EventStorePartition {
                                 }
                             }
                         }
-                    } catch (final EOFException eof) {
+                    } catch (final EOFException | FileNotFoundException eof) {
                         // Ran out of data. Continue on.
                         logger.warn("Failed to find event with ID {} in Event File {} due to {}", minEventIdToReindex, eventFile, eof.toString());
                     } catch (final Exception e) {
@@ -633,6 +648,50 @@ public class WriteAheadStorePartition implements EventStorePartition {
         final long millisRemainder = millis % 1000L;
         logger.info("Finished re-indexing {} events across {} files for {} in {}.{} seconds",
             reindexedCount.get(), eventFilesToReindex.size(), partitionDirectory, seconds, millisRemainder);
+    }
+
+
+    EventIterator getEventsByTimestamp(final long minTimestmap, final long maxTimestamp) throws IOException {
+        // Get a list of all Files and order them based on their ID such that the largest ID is first.
+        // This allows us to step through the event files in order and read the first event in the file.
+        // If the first event comes after out maxTimestamp, then we know that all other events do as well,
+        // so we can ignore that file. Otherwise, we must add it to our list of Files that may contain events
+        // within the given time range. If we then reach a file whose first event comes before our minTimestamp,
+        // this means that all other files that we later encounter will have a max timestamp that comes before
+        // our earliest event time, so we can stop adding files at that point.
+        final List<File> eventFiles = getEventFilesFromDisk().sorted(DirectoryUtils.LARGEST_ID_FIRST).collect(Collectors.toList());
+        if (eventFiles.isEmpty()) {
+            return EventIterator.EMPTY;
+        }
+
+        final List<File> relevantEventFiles = new ArrayList<>();
+        for (final File eventFile : eventFiles) {
+            final ProvenanceEventRecord firstEvent = getFirstEvent(eventFile);
+            if (firstEvent == null) {
+                return EventIterator.EMPTY;
+            }
+
+            final long eventTime = firstEvent.getEventTime();
+
+            if (eventTime > maxTimestamp) {
+                continue;
+            }
+
+            relevantEventFiles.add(eventFile);
+
+            if (eventTime < minTimestmap) {
+                break;
+            }
+        }
+
+        final EventIterator rawEventIterator = new SequentialRecordReaderEventIterator(relevantEventFiles, recordReaderFactory, 0, Integer.MAX_VALUE);
+        return rawEventIterator.filter(event -> event.getEventTime() >= minTimestmap && event.getEventTime() <= maxTimestamp);
+    }
+
+    private ProvenanceEventRecord getFirstEvent(final File eventFile) throws IOException {
+        try (final RecordReader recordReader = recordReaderFactory.newRecordReader(eventFile, Collections.emptyList(), Integer.MAX_VALUE)) {
+            return recordReader.nextRecord();
+        }
     }
 
     @Override

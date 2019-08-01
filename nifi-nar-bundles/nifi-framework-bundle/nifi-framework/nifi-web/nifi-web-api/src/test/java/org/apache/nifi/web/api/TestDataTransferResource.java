@@ -20,7 +20,7 @@ import org.apache.nifi.authorization.AuthorizableLookup;
 import org.apache.nifi.authorization.resource.ResourceType;
 import org.apache.nifi.remote.HttpRemoteSiteListener;
 import org.apache.nifi.remote.Peer;
-import org.apache.nifi.remote.RootGroupPort;
+import org.apache.nifi.remote.PublicPort;
 import org.apache.nifi.remote.VersionNegotiator;
 import org.apache.nifi.remote.exception.HandshakeException;
 import org.apache.nifi.remote.io.http.HttpServerCommunicationsSession;
@@ -51,8 +51,8 @@ import static org.apache.nifi.web.api.ApplicationResource.PROXY_PORT_HTTP_HEADER
 import static org.apache.nifi.web.api.ApplicationResource.PROXY_SCHEME_HTTP_HEADER;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
@@ -251,7 +251,7 @@ public class TestDataTransferResource {
         final DataTransferResource resource = getDataTransferResource();
         final HttpFlowFileServerProtocol serverProtocol = resource.getHttpFlowFileServerProtocol(null);
 
-        final RootGroupPort port = mock(RootGroupPort.class);
+        final PublicPort port = mock(PublicPort.class);
         doReturn(port).when(serverProtocol).getPort();
         doAnswer(invocation -> {
             Peer peer = (Peer) invocation.getArguments()[0];
@@ -282,7 +282,7 @@ public class TestDataTransferResource {
         final DataTransferResource resource = getDataTransferResource();
         final HttpFlowFileServerProtocol serverProtocol = resource.getHttpFlowFileServerProtocol(null);
 
-        final RootGroupPort port = mock(RootGroupPort.class);
+        final PublicPort port = mock(PublicPort.class);
         doReturn(port).when(serverProtocol).getPort();
         doAnswer(invocation -> 0).when(port).receiveFlowFiles(any(Peer.class), any());
 

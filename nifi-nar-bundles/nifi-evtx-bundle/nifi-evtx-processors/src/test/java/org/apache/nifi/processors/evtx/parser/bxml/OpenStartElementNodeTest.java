@@ -88,8 +88,6 @@ public class OpenStartElementNodeTest extends BxmlNodeWithTokenTestBase {
         testBinaryReaderBuilder.put((byte) BxmlNode.CLOSE_EMPTY_ELEMENT_TOKEN);
 
         BinaryReader binaryReader = testBinaryReaderBuilder.build();
-        NameStringNode nameStringNode = mock(NameStringNode.class);
-        when(nameStringNode.getString()).thenReturn(tagName);
         when(chunkHeader.addNameStringNode(stringOffset, binaryReader)).thenAnswer(invocation -> new NameStringNode(binaryReader, chunkHeader));
         openStartElementNode = new OpenStartElementNode(binaryReader, chunkHeader, parent);
 

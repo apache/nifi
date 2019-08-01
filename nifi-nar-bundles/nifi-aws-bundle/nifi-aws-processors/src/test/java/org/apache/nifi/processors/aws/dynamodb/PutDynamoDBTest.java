@@ -31,7 +31,7 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Matchers;
+import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
 
 import com.amazonaws.AmazonClientException;
@@ -76,7 +76,7 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
         // Inject a mock DynamoDB to create the exception condition
         final DynamoDB mockDynamoDb = Mockito.mock(DynamoDB.class);
         // When writing, mock thrown service exception from AWS
-        Mockito.when(mockDynamoDb.batchWriteItem(Matchers.<TableWriteItems>anyVararg())).thenThrow(getSampleAwsServiceException());
+        Mockito.when(mockDynamoDb.batchWriteItem(ArgumentMatchers.<TableWriteItems>any())).thenThrow(getSampleAwsServiceException());
 
         putDynamoDB = new PutDynamoDB() {
             @Override

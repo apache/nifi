@@ -131,7 +131,7 @@ public abstract class AbstractRecordProcessor extends AbstractProcessor {
                         Record firstRecord = reader.nextRecord();
                         if (firstRecord == null) {
                             final RecordSchema writeSchema = writerFactory.getSchema(originalAttributes, reader.getSchema());
-                            try (final RecordSetWriter writer = writerFactory.createWriter(getLogger(), writeSchema, out)) {
+                            try (final RecordSetWriter writer = writerFactory.createWriter(getLogger(), writeSchema, out, originalAttributes)) {
                                 writer.beginRecordSet();
 
                                 final WriteResult writeResult = writer.finishRecordSet();
@@ -147,7 +147,7 @@ public abstract class AbstractRecordProcessor extends AbstractProcessor {
                         firstRecord = AbstractRecordProcessor.this.process(firstRecord, original, context);
 
                         final RecordSchema writeSchema = writerFactory.getSchema(originalAttributes, firstRecord.getSchema());
-                        try (final RecordSetWriter writer = writerFactory.createWriter(getLogger(), writeSchema, out)) {
+                        try (final RecordSetWriter writer = writerFactory.createWriter(getLogger(), writeSchema, out, originalAttributes)) {
                             writer.beginRecordSet();
 
                             writer.write(firstRecord);

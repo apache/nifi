@@ -113,7 +113,8 @@ var TransformJsonController = function ($scope, $state, $q, $mdDialog, $timeout,
 
         _editor.setOption('extraKeys',{
 
-            'Shift-F': function(cm){
+            // We're not enabling search, so repurpose Shift-Ctrl-F for auto-format / beautify
+            'Shift-Ctrl-F': function(cm){
                 var jsonValue = js_beautify(cm.getDoc().getValue(), {
                     'indent_size': 1,
                     'indent_char': '\t'

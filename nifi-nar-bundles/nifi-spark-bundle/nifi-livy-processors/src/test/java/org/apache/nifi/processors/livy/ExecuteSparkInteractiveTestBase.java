@@ -112,6 +112,7 @@ class ExecuteSparkInteractiveTestBase {
         runner.run();
         List<MockFlowFile> waitingFlowfiles = runner.getFlowFilesForRelationship(ExecuteSparkInteractive.REL_WAIT);
         while (!waitingFlowfiles.isEmpty()) {
+          runner.assertTransferCount(ExecuteSparkInteractive.REL_FAILURE, 0);
           Thread.sleep(1000);
           runner.clearTransferState();
           runner.enqueue(code);

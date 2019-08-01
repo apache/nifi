@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.processors.parquet;
 
-import static org.mockito.Matchers.any;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import java.io.File;

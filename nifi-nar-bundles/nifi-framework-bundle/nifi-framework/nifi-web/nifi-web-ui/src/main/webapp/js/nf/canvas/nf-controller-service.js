@@ -78,33 +78,6 @@
     };
 
     /**
-     * Handle any expected controller service configuration errors.
-     *
-     * @argument {object} xhr       The XmlHttpRequest
-     * @argument {string} status    The status of the request
-     * @argument {string} error     The error
-     */
-    var handleControllerServiceConfigurationError = function (xhr, status, error) {
-        if (xhr.status === 400) {
-            var errors = xhr.responseText.split('\n');
-
-            var content;
-            if (errors.length === 1) {
-                content = $('<span></span>').text(errors[0]);
-            } else {
-                content = nfCommon.formatUnorderedList(errors);
-            }
-
-            nfDialog.showOkDialog({
-                dialogContent: content,
-                headerText: 'Controller Service'
-            });
-        } else {
-            nfErrorHandler.handleAjaxError(xhr, status, error);
-        }
-    };
-
-    /**
      * Determines whether the user has made any changes to the controller service configuration
      * that needs to be saved.
      */
@@ -1606,7 +1579,7 @@
                 $.each(previouslyReferencedServiceIds, function (_, oldServiceReferenceId) {
                     reloadControllerService(serviceTable, oldServiceReferenceId);
                 });
-            }).fail(handleControllerServiceConfigurationError);
+            }).fail(nfErrorHandler.handleConfigurationUpdateAjaxError);
         } else {
             return $.Deferred(function (deferred) {
                 deferred.reject();

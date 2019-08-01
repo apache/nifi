@@ -67,7 +67,6 @@ public abstract class AbstractComponentNode implements ComponentNode {
     private final ControllerServiceProvider serviceProvider;
     private final AtomicReference<String> name;
     private final AtomicReference<String> annotationData = new AtomicReference<>();
-    private final AtomicReference<ValidationContext> validationContext = new AtomicReference<>();
     private final String componentType;
     private final String componentCanonicalClass;
     private final ComponentVariableRegistry variableRegistry;
@@ -79,9 +78,12 @@ public abstract class AbstractComponentNode implements ComponentNode {
     private final Lock lock = new ReentrantLock();
     private final ConcurrentMap<PropertyDescriptor, String> properties = new ConcurrentHashMap<>();
     private volatile String additionalResourcesFingerprint;
-    private AtomicReference<ValidationState> validationState = new AtomicReference<>(new ValidationState(ValidationStatus.VALIDATING, Collections.emptyList()));
+    private final AtomicReference<ValidationState> validationState = new AtomicReference<>(new ValidationState(ValidationStatus.VALIDATING, Collections.emptyList()));
     private final ValidationTrigger validationTrigger;
     private volatile boolean triggerValidation = true;
+
+    // guaraded by lock
+    private ValidationContext validationContext = null;
 
     public AbstractComponentNode(final String id,
                                  final ValidationContextFactory validationContextFactory, final ControllerServiceProvider serviceProvider,
@@ -575,7 +577,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
     }
 
 
-    private final void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
+    private void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
         try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, getComponent().getClass(), getComponent().getIdentifier())) {
             getComponent().onPropertyModified(descriptor, oldValue, newValue);
         }
@@ -627,13 +629,18 @@ public abstract class AbstractComponentNode implements ComponentNode {
     }
 
     protected void resetValidationState() {
-        validationContext.set(null);
-        validationState.set(new ValidationState(ValidationStatus.VALIDATING, Collections.emptyList()));
+        lock.lock();
+        try {
+            validationContext = null;
+            validationState.set(new ValidationState(ValidationStatus.VALIDATING, Collections.emptyList()));
 
-        if (isTriggerValidation()) {
-            validationTrigger.triggerAsync(this);
-        } else {
-            logger.debug("Reset validation state of {} but will not trigger async validation because trigger has been paused", this);
+            if (isTriggerValidation()) {
+                validationTrigger.triggerAsync(this);
+            } else {
+                logger.debug("Reset validation state of {} but will not trigger async validation because trigger has been paused", this);
+            }
+        } finally {
+            lock.unlock();
         }
     }
 
@@ -714,27 +721,21 @@ public abstract class AbstractComponentNode implements ComponentNode {
     }
 
     protected ValidationContext getValidationContext() {
-        while (true) {
-            ValidationContext context = this.validationContext.get();
+        lock.lock();
+        try {
+            ValidationContext context = this.validationContext;
             if (context != null) {
                 return context;
             }
 
-            // Use a lock here because we want to prevent calls to getProperties() from happening while setProperties() is also happening.
-            final Map<PropertyDescriptor, String> properties;
-            lock.lock();
-            try {
-                properties = getProperties();
-            } finally {
-                lock.unlock();
-            }
+            final Map<PropertyDescriptor, String> properties = getProperties();
             context = getValidationContextFactory().newValidationContext(properties, getAnnotationData(), getProcessGroupIdentifier(), getIdentifier());
 
-            final boolean updated = validationContext.compareAndSet(null, context);
-            if (updated) {
-                logger.debug("Updating validation context to {}", context);
-                return context;
-            }
+            this.validationContext = context;
+            logger.debug("Updating validation context to {}", context);
+            return context;
+        } finally {
+            lock.unlock();
         }
     }
 

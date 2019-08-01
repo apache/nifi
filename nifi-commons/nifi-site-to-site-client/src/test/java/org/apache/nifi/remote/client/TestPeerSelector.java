@@ -40,7 +40,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 
@@ -204,7 +204,7 @@ public class TestPeerSelector {
 
         doReturn(bootstrapNode).when(peerStatusProvider).getBootstrapPeerDescription();
         doAnswer(invocation -> {
-            final PeerDescription peerFetchStatusesFrom = invocation.getArgumentAt(0, PeerDescription.class);
+            final PeerDescription peerFetchStatusesFrom = invocation.getArgument(0);
             if (peerStatuses.stream().filter(ps -> ps.getPeerDescription().equals(peerFetchStatusesFrom)).collect(Collectors.toSet()).size() > 0) {
                 // If the remote peer is running, then return available peer statuses.
                 return peerStatuses;

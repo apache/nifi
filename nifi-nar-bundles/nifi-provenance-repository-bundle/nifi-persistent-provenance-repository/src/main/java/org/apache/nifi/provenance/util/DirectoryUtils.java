@@ -19,33 +19,19 @@ package org.apache.nifi.provenance.util;
 
 import java.io.File;
 import java.io.FileFilter;
-import java.nio.file.Path;
-import java.util.Arrays;
 import java.util.Comparator;
-import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import org.apache.nifi.provenance.RepositoryConfiguration;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class DirectoryUtils {
-
+    public static final Pattern INDEX_DIRECTORY_NAME_PATTERN = Pattern.compile("(?:lucene-\\d+-)?index-(.*)");
+    public static final FileFilter INDEX_FILE_FILTER = f -> INDEX_DIRECTORY_NAME_PATTERN.matcher(f.getName()).matches();
     public static final FileFilter EVENT_FILE_FILTER = f -> f.getName().endsWith(".prov") || f.getName().endsWith(".prov.gz");
-    public static final FileFilter INDEX_FILE_FILTER = f -> f.getName().startsWith("index-");
     public static final Comparator<File> SMALLEST_ID_FIRST = (a, b) -> Long.compare(getMinId(a), getMinId(b));
     public static final Comparator<File> LARGEST_ID_FIRST = SMALLEST_ID_FIRST.reversed();
     public static final Comparator<File> OLDEST_INDEX_FIRST = (a, b) -> Long.compare(getIndexTimestamp(a), getIndexTimestamp(b));
     public static final Comparator<File> NEWEST_INDEX_FIRST = OLDEST_INDEX_FIRST.reversed();
 
-    public static List<Path> getProvenanceEventFiles(final RepositoryConfiguration repoConfig) {
-        return repoConfig.getStorageDirectories().values().stream()
-            .flatMap(f -> {
-                final File[] eventFiles = f.listFiles(EVENT_FILE_FILTER);
-                return eventFiles == null ? Stream.empty() : Arrays.stream(eventFiles);
-            })
-            .map(f -> f.toPath())
-            .collect(Collectors.toList());
-    }
 
     public static long getMinId(final File file) {
         final String filename = file.getName();
@@ -64,13 +50,13 @@ public class DirectoryUtils {
 
     public static long getIndexTimestamp(final File file) {
         final String filename = file.getName();
-        if (!filename.startsWith("index-") && filename.length() > 6) {
+        final Matcher matcher = INDEX_DIRECTORY_NAME_PATTERN.matcher(filename);
+        if (!matcher.matches()) {
             return -1L;
         }
 
-        final String suffix = filename.substring(6);
         try {
-            return Long.parseLong(suffix);
+            return Long.parseLong(matcher.group(1));
         } catch (final NumberFormatException nfe) {
             return -1L;
         }

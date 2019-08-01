@@ -26,9 +26,19 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import com.amazonaws.services.s3.model.GetObjectMetadataRequest;
 import com.amazonaws.services.s3.model.GetObjectTaggingRequest;
 import com.amazonaws.services.s3.model.GetObjectTaggingResult;
+import com.amazonaws.services.s3.model.ListObjectsRequest;
+import com.amazonaws.services.s3.model.ListObjectsV2Request;
+import com.amazonaws.services.s3.model.ListObjectsV2Result;
+import com.amazonaws.services.s3.model.ListVersionsRequest;
+import com.amazonaws.services.s3.model.ObjectListing;
+import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.S3ObjectSummary;
+import com.amazonaws.services.s3.model.S3VersionSummary;
 import com.amazonaws.services.s3.model.Tag;
+import com.amazonaws.services.s3.model.VersionListing;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.PrimaryNodeOnly;
@@ -53,14 +63,6 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
 
 import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.ListObjectsRequest;
-import com.amazonaws.services.s3.model.ListVersionsRequest;
-import com.amazonaws.services.s3.model.ObjectListing;
-import com.amazonaws.services.s3.model.S3ObjectSummary;
-import com.amazonaws.services.s3.model.S3VersionSummary;
-import com.amazonaws.services.s3.model.VersionListing;
-import com.amazonaws.services.s3.model.ListObjectsV2Request;
-import com.amazonaws.services.s3.model.ListObjectsV2Result;
 
 @PrimaryNodeOnly
 @TriggerSerially
@@ -85,6 +87,8 @@ import com.amazonaws.services.s3.model.ListObjectsV2Result;
         @WritesAttribute(attribute = "s3.storeClass", description = "The storage class of the object"),
         @WritesAttribute(attribute = "s3.version", description = "The version of the object, if applicable"),
         @WritesAttribute(attribute = "s3.tag.___", description = "If 'Write Object Tags' is set to 'True', the tags associated to the S3 object that is being listed " +
+                "will be written as part of the flowfile attributes"),
+        @WritesAttribute(attribute = "s3.user.metadata.___", description = "If 'Write User Metadata' is set to 'True', the user defined metadata associated to the S3 object that is being listed " +
                 "will be written as part of the flowfile attributes")})
 @SeeAlso({FetchS3Object.class, PutS3Object.class, DeleteS3Object.class})
 public class ListS3 extends AbstractS3Processor {
@@ -150,8 +154,18 @@ public class ListS3 extends AbstractS3Processor {
             .defaultValue("false")
             .build();
 
+    public static final PropertyDescriptor WRITE_USER_METADATA = new PropertyDescriptor.Builder()
+            .name("write-s3-user-metadata")
+            .displayName("Write User Metadata")
+            .description("If set to 'True', the user defined metadata associated with the S3 object will be written as FlowFile attributes")
+            .required(true)
+            .allowableValues(new AllowableValue("true", "True"), new AllowableValue("false", "False"))
+            .defaultValue("false")
+            .build();
+
+
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
-            Arrays.asList(BUCKET, REGION, ACCESS_KEY, SECRET_KEY, WRITE_OBJECT_TAGS, CREDENTIALS_FILE,
+            Arrays.asList(BUCKET, REGION, ACCESS_KEY, SECRET_KEY, WRITE_OBJECT_TAGS, WRITE_USER_METADATA, CREDENTIALS_FILE,
                     AWS_CREDENTIALS_PROVIDER_SERVICE, TIMEOUT, SSL_CONTEXT_SERVICE, ENDPOINT_OVERRIDE,
                     SIGNER_OVERRIDE, PROXY_CONFIGURATION_SERVICE, PROXY_HOST, PROXY_HOST_PORT, PROXY_USERNAME,
                     PROXY_PASSWORD, DELIMITER, PREFIX, USE_VERSIONS, LIST_TYPE, MIN_AGE));
@@ -286,6 +300,9 @@ public class ListS3 extends AbstractS3Processor {
                 if (context.getProperty(WRITE_OBJECT_TAGS).asBoolean()) {
                     attributes.putAll(writeObjectTags(client, versionSummary));
                 }
+                if (context.getProperty(WRITE_USER_METADATA).asBoolean()) {
+                    attributes.putAll(writeUserMetadata(client, versionSummary));
+                }
 
                 // Create the flowfile
                 FlowFile flowFile = session.create();
@@ -352,6 +369,17 @@ public class ListS3 extends AbstractS3Processor {
             }
         }
         return tagMap;
+    }
+
+    private Map<String, String> writeUserMetadata(AmazonS3 client, S3VersionSummary versionSummary) {
+        ObjectMetadata objectMetadata = client.getObjectMetadata(new GetObjectMetadataRequest(versionSummary.getBucketName(), versionSummary.getKey()));
+        final Map<String, String> metadata = new HashMap<>();
+        if (objectMetadata != null) {
+            for (Map.Entry<String, String> e : objectMetadata.getUserMetadata().entrySet()) {
+                metadata.put("s3.user.metadata." + e.getKey(), e.getValue());
+            }
+        }
+        return metadata;
     }
 
     private interface S3BucketLister {

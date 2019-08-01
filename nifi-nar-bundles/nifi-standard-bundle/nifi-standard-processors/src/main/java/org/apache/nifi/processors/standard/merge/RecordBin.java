@@ -63,6 +63,7 @@ public class RecordBin {
     private RecordSetWriter recordWriter;
     private ByteCountingOutputStream out;
     private int recordCount = 0;
+    private int fragmentCount = 0;
     private volatile boolean complete = false;
 
     private static final AtomicLong idGenerator = new AtomicLong(0L);
@@ -114,7 +115,7 @@ public class RecordBin {
         }
 
         boolean flowFileMigrated = false;
-
+        this.fragmentCount++;
         try {
             if (isComplete()) {
                 logger.debug("RecordBin.offer for id={} returning false because {} is complete", new Object[] {flowFile.getId(), this});
@@ -131,7 +132,7 @@ public class RecordBin {
 
                     this.out = new ByteCountingOutputStream(rawOut);
 
-                    recordWriter = writerFactory.createWriter(logger, record.getSchema(), out);
+                    recordWriter = writerFactory.createWriter(logger, record.getSchema(), out, flowFile);
                     recordWriter.beginRecordSet();
                 }
 
@@ -202,26 +203,11 @@ public class RecordBin {
                 return false;
             }
 
-            int maxRecords;
-            final Optional<String> recordCountAttribute = thresholds.getRecordCountAttribute();
-            if (recordCountAttribute.isPresent()) {
-                final Optional<String> recordCountValue = flowFiles.stream()
-                    .filter(ff -> ff.getAttribute(recordCountAttribute.get()) != null)
-                    .map(ff -> ff.getAttribute(recordCountAttribute.get()))
-                    .findFirst();
-
-                if (!recordCountValue.isPresent()) {
-                    return false;
-                }
-
-                try {
-                    maxRecords = Integer.parseInt(recordCountValue.get());
-                } catch (final NumberFormatException e) {
-                    maxRecords = 1;
-                }
-            } else {
-                maxRecords = thresholds.getMaxRecords();
+            if(thresholds.getFragmentCountAttribute().isPresent() && this.fragmentCount == getMinimumRecordCount()) {
+                return true;
             }
+
+            int maxRecords = thresholds.getMaxRecords();
 
             if (recordCount >= maxRecords) {
                 return true;
@@ -243,18 +229,7 @@ public class RecordBin {
             return currentCount;
         }
 
-        int requiredCount;
-        final Optional<String> recordCountAttribute = thresholds.getRecordCountAttribute();
-        if (recordCountAttribute.isPresent()) {
-            final String recordCountValue = flowFiles.get(0).getAttribute(recordCountAttribute.get());
-            try {
-                requiredCount = Integer.parseInt(recordCountValue);
-            } catch (final NumberFormatException e) {
-                requiredCount = 1;
-            }
-        } else {
-            requiredCount = thresholds.getMinRecords();
-        }
+        int requiredCount = thresholds.getMinRecords();
 
         this.requiredRecordCount = requiredCount;
         return requiredCount;
@@ -347,7 +322,7 @@ public class RecordBin {
             }
 
             // If using defragment mode, and we don't have enough FlowFiles, then we need to fail this bin.
-            final Optional<String> countAttr = thresholds.getRecordCountAttribute();
+            final Optional<String> countAttr = thresholds.getFragmentCountAttribute();
             if (countAttr.isPresent()) {
                 // Ensure that at least one FlowFile has a fragment.count attribute and that they all have the same value, if they have a value.
                 Integer expectedBinCount = null;
@@ -362,14 +337,14 @@ public class RecordBin {
                         count = Integer.parseInt(countVal);
                     } catch (final NumberFormatException nfe) {
                         logger.error("Could not merge bin with {} FlowFiles because the '{}' attribute had a value of '{}' for {} but expected a number",
-                            new Object[] {flowFiles.size(), countAttr.get(), countVal, flowFile});
+                                new Object[] {flowFiles.size(), countAttr.get(), countVal, flowFile});
                         fail();
                         return;
                     }
 
                     if (expectedBinCount != null && count != expectedBinCount) {
                         logger.error("Could not merge bin with {} FlowFiles because the '{}' attribute had a value of '{}' for {} but another FlowFile in the bin had a value of {}",
-                            new Object[] {flowFiles.size(), countAttr.get(), countVal, flowFile, expectedBinCount});
+                                new Object[] {flowFiles.size(), countAttr.get(), countVal, flowFile, expectedBinCount});
                         fail();
                         return;
                     }
@@ -379,15 +354,15 @@ public class RecordBin {
 
                 if (expectedBinCount == null) {
                     logger.error("Could not merge bin with {} FlowFiles because the '{}' attribute was not present on any of the FlowFiles",
-                        new Object[] {flowFiles.size(), countAttr.get()});
+                            new Object[] {flowFiles.size(), countAttr.get()});
                     fail();
                     return;
                 }
 
                 if (expectedBinCount != flowFiles.size()) {
                     logger.error("Could not merge bin with {} FlowFiles because the '{}' attribute had a value of '{}' but only {} of {} FlowFiles were encountered before this bin was evicted "
-                        + "(due to to Max Bin Age being reached or due to the Maximum Number of Bins being exceeded).",
-                        new Object[] {flowFiles.size(), countAttr.get(), expectedBinCount, flowFiles.size(), expectedBinCount});
+                                    + "(due to to Max Bin Age being reached or due to the Maximum Number of Bins being exceeded).",
+                            new Object[] {flowFiles.size(), countAttr.get(), expectedBinCount, flowFiles.size(), expectedBinCount});
                     fail();
                     return;
                 }

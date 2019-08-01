@@ -91,7 +91,6 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.MultivaluedHashMap;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
-import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Collections;
@@ -468,6 +467,13 @@ public class VersionsResource extends ApplicationResource {
         if (versionedFlowDto.getComments() != null && versionedFlowDto.getComments().length() > 65535) {
             throw new IllegalArgumentException("Comments cannot exceed 65,535 characters");
         }
+        if (StringUtils.isEmpty(versionedFlowDto.getAction())) {
+            throw new IllegalArgumentException("Action is required");
+        }
+        if (!VersionedFlowDTO.COMMIT_ACTION.equals(versionedFlowDto.getAction())
+                && !VersionedFlowDTO.FORCE_COMMIT_ACTION.equals(versionedFlowDto.getAction())) {
+            throw new IllegalArgumentException("Action must be one of " + VersionedFlowDTO.COMMIT_ACTION + " or " + VersionedFlowDTO.FORCE_COMMIT_ACTION);
+        }
 
         if (isDisconnectedFromCluster()) {
             verifyDisconnectedNodeModification(requestEntity.isDisconnectedNodeAcknowledged());
@@ -534,7 +540,8 @@ public class VersionsResource extends ApplicationResource {
                 final String registryId = versionedFlow.getRegistryId();
                 final String bucketId = versionedFlow.getBucketId();
                 final String flowId = versionedFlow.getFlowId();
-                serviceFacade.verifyCanSaveToFlowRegistry(groupId, registryId, bucketId, flowId);
+                final String action = versionedFlow.getAction();
+                serviceFacade.verifyCanSaveToFlowRegistry(groupId, registryId, bucketId, flowId, action);
             },
             (rev, flowEntity) -> {
                 // Register the current flow with the Flow Registry.
@@ -1140,6 +1147,9 @@ public class VersionsResource extends ApplicationResource {
         // the flow snapshot to contain compatible bundles.
         serviceFacade.discoverCompatibleBundles(flowSnapshot.getFlowContents());
 
+        // If there are any Controller Services referenced that are inherited from the parent group, resolve those to point to the appropriate Controller Service, if we are able to.
+        serviceFacade.resolveInheritedControllerServices(flowSnapshot, groupId, NiFiUserUtils.getNiFiUser());
+
         // Step 1: Determine which components will be affected by updating the version
         final Set<AffectedComponentEntity> affectedComponents = serviceFacade.getComponentsAffectedByVersionChange(groupId, flowSnapshot);
 
@@ -1252,7 +1262,7 @@ public class VersionsResource extends ApplicationResource {
         @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
     })
     public Response initiateRevertFlowVersion(@ApiParam("The process group id.") @PathParam("id") final String groupId,
-        @ApiParam(value = "The controller service configuration details.", required = true) final VersionControlInformationEntity requestEntity) throws IOException {
+        @ApiParam(value = "The controller service configuration details.", required = true) final VersionControlInformationEntity requestEntity) {
 
         // Verify the request
         final RevisionDTO revisionDto = requestEntity.getProcessGroupRevision();
@@ -1300,6 +1310,9 @@ public class VersionsResource extends ApplicationResource {
         // The flow in the registry may not contain the same versions of components that we have in our flow. As a result, we need to update
         // the flow snapshot to contain compatible bundles.
         serviceFacade.discoverCompatibleBundles(flowSnapshot.getFlowContents());
+
+        // If there are any Controller Services referenced that are inherited from the parent group, resolve those to point to the appropriate Controller Service, if we are able to.
+        serviceFacade.resolveInheritedControllerServices(flowSnapshot, groupId, NiFiUserUtils.getNiFiUser());
 
         // Step 1: Determine which components will be affected by updating the version
         final Set<AffectedComponentEntity> affectedComponents = serviceFacade.getComponentsAffectedByVersionChange(groupId, flowSnapshot);

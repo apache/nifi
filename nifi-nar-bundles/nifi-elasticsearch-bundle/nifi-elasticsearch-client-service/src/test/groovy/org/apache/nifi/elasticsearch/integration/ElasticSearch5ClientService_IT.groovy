@@ -21,6 +21,7 @@ import org.apache.nifi.elasticsearch.DeleteOperationResponse
 import org.apache.nifi.elasticsearch.ElasticSearchClientService
 import org.apache.nifi.elasticsearch.ElasticSearchClientServiceImpl
 import org.apache.nifi.elasticsearch.SearchResponse
+import org.apache.nifi.ssl.StandardSSLContextService
 import org.apache.nifi.util.TestRunner
 import org.apache.nifi.util.TestRunners
 import org.junit.After
@@ -144,5 +145,30 @@ class ElasticSearch5ClientService_IT {
             Assert.assertNotNull("${doc.toString()}\t${doc.keySet().toString()}", doc.get("msg"))
             old = doc
         }
+    }
+
+    @Test
+    void testSSL() {
+        def sslContext = new StandardSSLContextService()
+        runner.setProperty(TestControllerServiceProcessor.CLIENT_SERVICE, "Client Service")
+        runner.disableControllerService(service)
+        runner.addControllerService("sslContext", sslContext)
+        runner.setProperty(sslContext, StandardSSLContextService.TRUSTSTORE, "src/test/resources/truststore.jks")
+        runner.setProperty(sslContext, StandardSSLContextService.TRUSTSTORE_PASSWORD, "2DZ5i7yvbG2GA3Ld4yiAsH62QDqAjWt4ToCU0yHajwM")
+        runner.setProperty(sslContext, StandardSSLContextService.TRUSTSTORE_TYPE, StandardSSLContextService.STORE_TYPE_JKS)
+        runner.setProperty(service, ElasticSearchClientService.PROP_SSL_CONTEXT_SERVICE, "sslContext")
+        runner.enableControllerService(sslContext)
+        runner.enableControllerService(service)
+        runner.assertValid()
+
+        runner.disableControllerService(service)
+        runner.disableControllerService(sslContext)
+        runner.setProperty(sslContext, StandardSSLContextService.KEYSTORE, "src/test/resources/keystore.jks")
+        runner.setProperty(sslContext, StandardSSLContextService.KEYSTORE_PASSWORD, "pben4DTOUhLDI8mZiCHNX1dGEAWrpGnSYX38FTvmaeU")
+        runner.setProperty(sslContext, StandardSSLContextService.KEYSTORE_TYPE, StandardSSLContextService.STORE_TYPE_JKS)
+        runner.enableControllerService(sslContext)
+        runner.enableControllerService(service)
+
+        runner.assertValid()
     }
 }

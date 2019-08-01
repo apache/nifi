@@ -49,6 +49,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
@@ -993,6 +994,23 @@ public class RunNiFi {
             cpFiles.add(file.getAbsolutePath());
         }
 
+        String runtimeJavaVersion = System.getProperty("java.version");
+        defaultLogger.info("Runtime Java version: {}", runtimeJavaVersion);
+        if (Integer.parseInt(runtimeJavaVersion.substring(0, runtimeJavaVersion.indexOf('.'))) >= 11) {
+            /* If running on Java 11 or greater, add the JAXB/activation/annotation libs to the classpath.
+             *
+             * TODO: Once the minimum Java version requirement of NiFi is 11, this processing should be removed.
+             * JAXB/activation/annotation will be added as an actual dependency via pom.xml.
+             */
+            final String libJava11Filename = replaceNull(props.get("lib.dir"), "./lib").trim() + "/java11";
+            File libJava11Dir = getFile(libJava11Filename, workingDir);
+            if (libJava11Dir.exists()) {
+                for (final File file : Objects.requireNonNull(libJava11Dir.listFiles((dir, filename) -> filename.toLowerCase().endsWith(".jar")))) {
+                    cpFiles.add(file.getAbsolutePath());
+                }
+            }
+        }
+
         final StringBuilder classPathBuilder = new StringBuilder();
         for (int i = 0; i < cpFiles.size(); i++) {
             final String filename = cpFiles.get(i);
@@ -1032,8 +1050,8 @@ public class RunNiFi {
         cmd.add("-Dnifi.bootstrap.listen.port=" + listenPort);
         cmd.add("-Dapp=NiFi");
         cmd.add("-Dorg.apache.nifi.bootstrap.config.log.dir=" + nifiLogDir);
-        if (!System.getProperty("java.version").startsWith("1.")) {
-            // running on Java 9+, java.xml.bind module must be made available
+        if (runtimeJavaVersion.startsWith("9") || runtimeJavaVersion.startsWith("10")) {
+            // running on Java 9 or 10, internal module java.xml.bind module must be made available
             cmd.add("--add-modules=java.xml.bind");
         }
         cmd.add("org.apache.nifi.NiFi");

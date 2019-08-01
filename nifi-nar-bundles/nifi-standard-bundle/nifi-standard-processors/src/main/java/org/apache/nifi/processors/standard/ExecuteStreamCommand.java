@@ -32,9 +32,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.annotation.behavior.DynamicProperties;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -46,7 +49,9 @@ import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
@@ -81,6 +86,15 @@ import org.apache.nifi.stream.io.StreamUtils;
  * <li>Specifies the command to be executed; if just the name of an executable is provided, it must be in the user's environment PATH.</li>
  * <li>Default value: none</li>
  * <li>Supports expression language: true</li>
+ * </ul>
+ * </li>
+ * <li>Arguments Strategy
+ * <ul>
+ * <li>Selects the strategy to use for arguments to the executable</li>
+ * <ul>
+ * <li>Command Arguments Property: Use the delimited list of arguments from the Command Arguments Property.  Does not support quotations in parameters.</li>
+ * <li>Dynamic Property Arguments: Use Dynamic Properties, with each property a separate argument.  Does support quotes.</li>
+ * </ul>
  * </ul>
  * </li>
  * <li>Command Arguments
@@ -134,7 +148,13 @@ import org.apache.nifi.stream.io.StreamUtils;
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"command execution", "command", "stream", "execute"})
 @CapabilityDescription("Executes an external command on the contents of a flow file, and creates a new flow file with the results of the command.")
-@DynamicProperty(name = "An environment variable name", value = "An environment variable value", description = "These environment variables are passed to the process spawned by this Processor")
+@DynamicProperties({
+    @DynamicProperty(name = "An environment variable name", value = "An environment variable value",
+        description = "These environment variables are passed to the process spawned by this Processor"),
+    @DynamicProperty(name = "command.argument.<NUMBER>", value = "Argument to be supplied to the command",
+        description = "These arguments are supplied to the process spawned by this Processor when using the "
+        + "Command Arguments Strategy : Dynamic Property Arguments. The NUMBER will determine the order.")
+})
 @WritesAttributes({
         @WritesAttribute(attribute = "execution.command", description = "The name of the command executed"),
         @WritesAttribute(attribute = "execution.command.args", description = "The semi-colon delimited list of arguments"),
@@ -167,6 +187,17 @@ public class ExecuteStreamCommand extends AbstractProcessor {
     private final static Set<Relationship> OUTPUT_STREAM_RELATIONSHIP_SET;
     private final static Set<Relationship> ATTRIBUTE_RELATIONSHIP_SET;
 
+    private static final Pattern DYNAMIC_PARAMETER_NAME = Pattern.compile("command\\.argument\\.(?<commandIndex>[0-9]+)$");
+    public static final String executionArguments = "Command Arguments Property";
+    public static final String dynamicArguements = "Dynamic Property Arguments";
+
+    static final AllowableValue EXECUTION_ARGUMENTS_PROPERTY_STRATEGEY = new AllowableValue(executionArguments, executionArguments,
+            "Arguments to be supplied to the executable are taken from the Command Arguments property");
+
+    static final AllowableValue DYNAMIC_PROPERTY_ARGUMENTS_STRATEGY = new AllowableValue(dynamicArguements,dynamicArguements,
+            "Arguments to be supplied to the executable are taken from dynamic properties");
+
+
     private static final Validator ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR = StandardValidators.createAttributeExpressionLanguageValidator(ResultType.STRING, true);
     static final PropertyDescriptor EXECUTION_COMMAND = new PropertyDescriptor.Builder()
             .name("Command Path")
@@ -174,6 +205,16 @@ public class ExecuteStreamCommand extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR)
             .required(true)
+            .build();
+
+    static final PropertyDescriptor ARGUMENTS_STRATEGY = new PropertyDescriptor.Builder()
+            .name("argumentsStrategy")
+            .displayName("Command Arguments Strategy")
+            .description("Strategy for configuring arguments to be supplied to the command.")
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .required(false)
+            .allowableValues(EXECUTION_ARGUMENTS_PROPERTY_STRATEGEY.getValue(),DYNAMIC_PROPERTY_ARGUMENTS_STRATEGY.getValue())
+            .defaultValue(EXECUTION_ARGUMENTS_PROPERTY_STRATEGEY.getValue())
             .build();
 
     static final PropertyDescriptor EXECUTION_ARGUMENTS = new PropertyDescriptor.Builder()
@@ -245,6 +286,7 @@ public class ExecuteStreamCommand extends AbstractProcessor {
 
     static {
         List<PropertyDescriptor> props = new ArrayList<>();
+        props.add(ARGUMENTS_STRATEGY);
         props.add(EXECUTION_ARGUMENTS);
         props.add(EXECUTION_COMMAND);
         props.add(IGNORE_STDIN);
@@ -298,12 +340,29 @@ public class ExecuteStreamCommand extends AbstractProcessor {
 
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
-        return new PropertyDescriptor.Builder()
+        if (!propertyDescriptorName.startsWith("command.argument.")) {
+            return new PropertyDescriptor.Builder()
                 .name(propertyDescriptorName)
-                .description("Sets the environment variable '" + propertyDescriptorName + "' for the process' environment")
+                .description(
+                    "Sets the environment variable '" + propertyDescriptorName + "' for the process' environment")
                 .dynamic(true)
                 .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
                 .build();
+        }
+        // get the number part of the name
+        Matcher matcher = DYNAMIC_PARAMETER_NAME.matcher(propertyDescriptorName);
+        if (matcher.matches()) {
+            final String commandIndex = matcher.group("commandIndex");
+            return new PropertyDescriptor.Builder()
+                .name(propertyDescriptorName)
+                .displayName(propertyDescriptorName)
+                .description("Argument passed to command")
+                .dynamic(true)
+                .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+                .addValidator(ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR)
+                .build();
+        }
+        return null;
     }
 
     @Override
@@ -315,18 +374,67 @@ public class ExecuteStreamCommand extends AbstractProcessor {
 
         final ArrayList<String> args = new ArrayList<>();
         final boolean putToAttribute = context.getProperty(PUT_OUTPUT_IN_ATTRIBUTE).isSet();
+        final PropertyValue argumentsStrategyPropertyValue = context.getProperty(ARGUMENTS_STRATEGY);
+        final boolean useDynamicPropertyArguments = argumentsStrategyPropertyValue.isSet() && argumentsStrategyPropertyValue.getValue().equals(DYNAMIC_PROPERTY_ARGUMENTS_STRATEGY.getValue());
         final Integer attributeSize = context.getProperty(PUT_ATTRIBUTE_MAX_LENGTH).asInteger();
         final String attributeName = context.getProperty(PUT_OUTPUT_IN_ATTRIBUTE).getValue();
 
         final String executeCommand = context.getProperty(EXECUTION_COMMAND).evaluateAttributeExpressions(inputFlowFile).getValue();
         args.add(executeCommand);
-        final String commandArguments = context.getProperty(EXECUTION_ARGUMENTS).evaluateAttributeExpressions(inputFlowFile).getValue();
         final boolean ignoreStdin = Boolean.parseBoolean(context.getProperty(IGNORE_STDIN).getValue());
-        if (!StringUtils.isBlank(commandArguments)) {
-            for (String arg : ArgumentUtils.splitArgs(commandArguments, context.getProperty(ARG_DELIMITER).getValue().charAt(0))) {
-                args.add(arg);
+        final String commandArguments;
+        if (!useDynamicPropertyArguments) {
+            commandArguments = context.getProperty(EXECUTION_ARGUMENTS).evaluateAttributeExpressions(inputFlowFile).getValue();
+            if (!StringUtils.isBlank(commandArguments)) {
+                for (String arg : ArgumentUtils
+                    .splitArgs(commandArguments, context.getProperty(ARG_DELIMITER).getValue().charAt(0))) {
+                    args.add(arg);
+                }
+            }
+        } else {
+
+            ArrayList<PropertyDescriptor> propertyDescriptors = new ArrayList<>();
+            for (final Map.Entry<PropertyDescriptor, String> entry : context.getProperties().entrySet()) {
+                Matcher matcher = DYNAMIC_PARAMETER_NAME.matcher(entry.getKey().getName());
+                if (matcher.matches()) {
+                    propertyDescriptors.add(entry.getKey());
+                }
+            }
+            Collections.sort(propertyDescriptors,(p1,p2) -> {
+                Matcher matcher = DYNAMIC_PARAMETER_NAME.matcher(p1.getName());
+                String indexString1 = null;
+                while (matcher.find()) {
+                    indexString1 = matcher.group("commandIndex");
+                }
+                matcher = DYNAMIC_PARAMETER_NAME.matcher(p2.getName());
+                String indexString2 = null;
+                while (matcher.find()) {
+                    indexString2 = matcher.group("commandIndex");
+                }
+                final int index1 = Integer.parseInt(indexString1);
+                final int index2 = Integer.parseInt(indexString2);
+                if ( index1 > index2 ) {
+                    return 1;
+                } else if (index1 < index2) {
+                    return -1;
+                }
+                return 0;
+            });
+            for ( final PropertyDescriptor descriptor : propertyDescriptors) {
+                args.add(context.getProperty(descriptor.getName()).evaluateAttributeExpressions(inputFlowFile).getValue());
+            }
+            if (args.size() > 0) {
+                final StringBuilder builder = new StringBuilder();
+
+                for ( int i = 1; i < args.size(); i++) {
+                   builder.append(args.get(i)).append("\t");
+                }
+                commandArguments = builder.toString().trim();
+            } else {
+                commandArguments = "";
             }
         }
+
         final String workingDir = context.getProperty(WORKING_DIR).evaluateAttributeExpressions(inputFlowFile).getValue();
 
         final ProcessBuilder builder = new ProcessBuilder();

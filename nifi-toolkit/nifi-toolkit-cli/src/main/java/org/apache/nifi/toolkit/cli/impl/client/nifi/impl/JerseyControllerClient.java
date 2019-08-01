@@ -20,9 +20,11 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ControllerClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.web.api.entity.ClusterEntity;
+import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.NodeEntity;
 import org.apache.nifi.web.api.entity.RegistryClientEntity;
 import org.apache.nifi.web.api.entity.RegistryClientsEntity;
+import org.apache.nifi.web.api.entity.ReportingTaskEntity;
 
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.WebTarget;
@@ -189,6 +191,38 @@ public class JerseyControllerClient extends AbstractJerseyClient implements Cont
             final WebTarget target = controllerTarget.path("cluster");
 
             return getRequestBuilder(target).get(ClusterEntity.class);
+        });
+    }
+
+    @Override
+    public ControllerServiceEntity  createControllerService(final ControllerServiceEntity controllerService) throws NiFiClientException, IOException {
+        if (controllerService == null) {
+            throw new IllegalArgumentException("Controller service entity cannot be null");
+        }
+
+        return executeAction("Error creating controller service", () -> {
+            final WebTarget target = controllerTarget.path("controller-services");
+
+            return getRequestBuilder(target).post(
+                    Entity.entity(controllerService, MediaType.APPLICATION_JSON),
+                    ControllerServiceEntity.class
+            );
+        });
+    }
+
+    @Override
+    public ReportingTaskEntity createReportingTask(ReportingTaskEntity reportingTask) throws NiFiClientException, IOException {
+        if (reportingTask == null) {
+            throw new IllegalArgumentException("Reporting task entity cannot be null");
+        }
+
+        return executeAction("Error creating reporting task", () -> {
+            final WebTarget target = controllerTarget.path("reporting-tasks");
+
+            return getRequestBuilder(target).post(
+                    Entity.entity(reportingTask, MediaType.APPLICATION_JSON),
+                    ReportingTaskEntity.class
+            );
         });
     }
 }

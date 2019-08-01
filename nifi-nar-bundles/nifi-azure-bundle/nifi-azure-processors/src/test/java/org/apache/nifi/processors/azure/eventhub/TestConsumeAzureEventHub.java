@@ -18,6 +18,7 @@ package org.apache.nifi.processors.azure.eventhub;
 
 import com.microsoft.azure.eventhubs.EventData;
 import com.microsoft.azure.eventprocessorhost.PartitionContext;
+import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
@@ -57,8 +58,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.junit.Assert.assertEquals;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyMap;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -180,12 +181,12 @@ public class TestConsumeAzureEventHub {
         processor.setWriterFactory(writerFactory);
         final RecordSetWriter writer = mock(RecordSetWriter.class);
         final AtomicReference<OutputStream> outRef = new AtomicReference<>();
-        when(writerFactory.createWriter(any(), any(), any())).thenAnswer(invocation -> {
-            outRef.set(invocation.getArgumentAt(2, OutputStream.class));
+        when(writerFactory.createWriter(any(), any(), any(), any(FlowFile.class))).thenAnswer(invocation -> {
+            outRef.set(invocation.getArgument(2));
             return writer;
         });
         when(writer.write(any(Record.class))).thenAnswer(invocation -> {
-            final String value = (String) invocation.getArgumentAt(0, Record.class).getValue("value");
+            final String value = (String) invocation.<Record>getArgument(0).getValue("value");
             if (throwErrorWith != null && throwErrorWith.equals(value)) {
                 throw new IOException("Simulating record write failure.");
             }

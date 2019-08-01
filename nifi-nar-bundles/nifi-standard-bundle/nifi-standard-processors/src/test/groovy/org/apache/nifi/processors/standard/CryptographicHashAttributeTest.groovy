@@ -35,6 +35,8 @@ import org.slf4j.LoggerFactory
 import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
 import java.security.Security
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
 
 @RunWith(JUnit4.class)
 class CryptographicHashAttributeTest extends GroovyTestCase {
@@ -68,7 +70,9 @@ class CryptographicHashAttributeTest extends GroovyTestCase {
         // Create attributes for username and date
         def attributes = [
                 username: "alopresto",
-                date    : new Date().format("YYYY-MM-dd HH:mm:ss.SSS Z")
+                // FIXME groovy-datetime dependency not providing the "format" method for new Date().format("YYYY-MM-dd HH:mm:ss.SSS Z")
+                //  adding the following workaround temporarily
+                date    : ZonedDateTime.now().format(DateTimeFormatter.ofPattern('YYYY-MM-dd HH:mm:ss.SSS Z'))
         ]
         def attributeKeys = attributes.keySet()
 

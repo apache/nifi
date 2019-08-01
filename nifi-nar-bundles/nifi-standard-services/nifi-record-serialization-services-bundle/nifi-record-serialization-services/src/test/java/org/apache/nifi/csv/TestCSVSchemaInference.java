@@ -58,9 +58,56 @@ public class TestCSVSchemaInference {
              final InputStream bufferedIn = new BufferedInputStream(in)) {
 
             final InferSchemaAccessStrategy<?> accessStrategy = new InferSchemaAccessStrategy<>(
-                (var, content) -> new CSVRecordSource(content, context),
+                (variables, content) -> new CSVRecordSource(content, context, variables),
                 new CSVSchemaInference(timestampInference), Mockito.mock(ComponentLog.class));
             schema = accessStrategy.getSchema(null, bufferedIn, null);
+        }
+
+        assertSame(RecordFieldType.STRING, schema.getDataType("eventId").get().getFieldType());
+        assertSame(RecordFieldType.INT, schema.getDataType("eventOrdinal").get().getFieldType());
+        assertSame(RecordFieldType.STRING, schema.getDataType("eventType").get().getFieldType());
+        assertSame(RecordFieldType.LONG, schema.getDataType("timestampMillis").get().getFieldType());
+
+        assertEquals(RecordFieldType.TIMESTAMP.getDataType("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"), schema.getDataType("timestamp").get());
+        assertEquals(RecordFieldType.TIME.getDataType("HH:mm:ss"), schema.getDataType("eventTime").get());
+        assertEquals(RecordFieldType.DATE.getDataType("yyyy-MM-dd"), schema.getDataType("eventDate").get());
+        assertEquals(RecordFieldType.STRING.getDataType(), schema.getDataType("maybeTime").get());
+        assertEquals(RecordFieldType.DATE.getDataType("yyyy-MM-dd"), schema.getDataType("maybeDate").get());
+
+        assertSame(RecordFieldType.INT, schema.getDataType("parentIds").get().getFieldType());
+        assertSame(RecordFieldType.STRING, schema.getDataType("numeric string").get().getFieldType());
+
+        final List<String> fieldNames = schema.getFieldNames();
+        assertEquals(Arrays.asList("eventId", "eventOrdinal", "eventType", "timestampMillis", "timestamp", "eventDate", "eventTime", "maybeTime", "maybeDate", "durationMillis", "lineageStart",
+            "componentId", "componentType", "componentName", "processGroupId", "processGroupName", "entityId", "entityType", "entitySize", "previousEntitySize", "updatedAttributes", "actorHostname",
+                "contentURI", "previousContentURI", "parentIds", "childIds", "platform", "application", "extra field", "numeric string"), fieldNames);
+    }
+
+    @Test
+    public void testInferenceIncludesAllRecordsWithEL() throws IOException {
+        final File file = new File("src/test/resources/csv/prov-events.csv");
+
+        final Map<PropertyDescriptor, String> properties = new HashMap<>();
+        new CSVReader().getSupportedPropertyDescriptors().forEach(prop -> properties.put(prop, prop.getDefaultValue()));
+        properties.put(CSVUtils.TRIM_FIELDS, "true");
+        properties.put(CSVUtils.VALUE_SEPARATOR, "${csv.delimiter}");
+        properties.put(CSVUtils.QUOTE_CHAR, "${csv.quote}");
+        properties.put(CSVUtils.ESCAPE_CHAR, "${csv.escape}");
+        final PropertyContext context = new MockConfigurationContext(properties, null);
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("csv.delimiter", ",");
+        attributes.put("csv.quote", "\"");
+        attributes.put("csv.escape", "\\");
+
+        final RecordSchema schema;
+        try (final InputStream in = new FileInputStream(file);
+             final InputStream bufferedIn = new BufferedInputStream(in)) {
+
+            final InferSchemaAccessStrategy<?> accessStrategy = new InferSchemaAccessStrategy<>(
+                    (variables, content) -> new CSVRecordSource(content, context, variables),
+                    new CSVSchemaInference(timestampInference), Mockito.mock(ComponentLog.class));
+            schema = accessStrategy.getSchema(attributes, bufferedIn, null);
         }
 
         assertSame(RecordFieldType.STRING, schema.getDataType("eventId").get().getFieldType());
