@@ -78,25 +78,63 @@ public class StringUtils {
         return sb.toString().substring(0, sb.lastIndexOf(delimiter));
     }
 
-    public static String padLeft(final String source, int length, char padding) {
-        if (source != null) {
+    public static String padLeft(final String source, int length, String padding) {
+
+        if(source == null) {
+            return null;
+        }
+        if(padding == null || (length - source.length()) <= 0) {
+            return source;
+        }
+
+        final int sourceLen = source.length();
+        final int paddingLen = padding.length();
+        final int paddingSteps = length - sourceLen;
+
+        if (paddingSteps == paddingLen) {
+            return padding.concat(source);
+        } else if (paddingSteps < paddingLen) {
+            return padding.substring(0, paddingSteps).concat(source);
+        } else {
             StringBuilder sb = new StringBuilder(source).reverse();
-            while (sb.length() < length) {
-                sb.append(padding);
+            String reversPadding = new StringBuilder(padding).reverse().toString();
+            for(int i = 0; i < paddingSteps; i++) {
+                sb.append(reversPadding.charAt(i%paddingLen));
             }
             return sb.reverse().toString();
         }
-        return null;
     }
 
-    public static String padRight(final String source, int length, char padding) {
-        if (source != null) {
+    public static String padLeft(final String source, int length, char padding) {
+        return padLeft(source, length, String.valueOf(padding));
+    }
+
+    public static String padRight(final String source, int length, String padding) {
+        if(source == null) {
+            return null;
+        }
+        if(padding == null || (length - source.length()) <= 0) {
+            return source;
+        }
+
+        final int sourceLen = source.length();
+        final int paddingLen = padding.length();
+        final int paddingSteps = length - sourceLen;
+
+        if (paddingSteps == paddingLen) {
+            return source.concat(padding);
+        } else if (paddingSteps < paddingLen) {
+            return source.concat(padding.substring(0, paddingSteps));
+        } else {
             StringBuilder sb = new StringBuilder(source);
-            while (sb.length() < length) {
-                sb.append(padding);
+            for(int i = 0; i < paddingSteps; i++) {
+                sb.append(padding.charAt(i%paddingLen));
             }
             return sb.toString();
         }
-        return null;
+    }
+
+    public static String padRight(final String source, int length, char padding) {
+        return padRight(source, length, String.valueOf(padding));
     }
 }

@@ -37,31 +37,6 @@ public class PadLeft extends Padding {
 
     @Override
     protected String doPad(String inputString, int desiredLength, String pad) {
-//
-//        final int padLen = pad.length();
-//        final int strLen = inputString.length();
-//        final int pads = desiredLength - strLen;
-//        if (pads <= 0 || desiredLength >= Integer.MAX_VALUE) {
-//            return inputString; // returns original String when possible
-//        }
-//        if (padLen == 1 && pads <= PAD_LIMIT) {
-//            return leftPad(str, size, padStr.charAt(0));
-//        }
-//
-//        if (pads == padLen) {
-//            return padStr.concat(str);
-//        } else if (pads < padLen) {
-//            return padStr.substring(0, pads).concat(str);
-//        } else {
-//            final char[] padding = new char[pads];
-//            final char[] padChars = padStr.toCharArray();
-//            for (int i = 0; i < pads; i++) {
-//                padding[i] = padChars[i % padLen];
-//            }
-//            return new String(padding).concat(str);
-//        }
-//
-
-        return StringUtils.padLeft(inputString, desiredLength, pad.charAt(0));
+        return StringUtils.padLeft(inputString, desiredLength, pad);
     }
 }
