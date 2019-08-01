@@ -192,8 +192,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
     public static final PropertyDescriptor MAX_QUEUE_OFFER_TIMEOUT = new PropertyDescriptor.Builder()
         .name("capture-change-mysql-max-queue-offer-timeout")
         .displayName("Max Queue Offer Time")
-        .description("The maximum amount of time allowed for polling thread to consume events from queue. Max time which binlog reading (offering) thread "
-            + "will wait on before it discards the bin log event.")
+        .description("The maximum amount of time allowed to wait for the intermediate queue space to be available, before received bin log events are discarded.")
         .defaultValue("60 seconds")
         .required(false)
         .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)

@@ -29,7 +29,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class BinlogEventListener implements BinaryLogClient.EventListener {
 
     protected final AtomicBoolean stopNow = new AtomicBoolean(false);
-    private final long QUEUE_OFFER_TIMEOUT_MSEC;
+    private final long queueOfferTimeoutMsec;
 
     private final BlockingQueue<RawBinlogEvent> queue;
     private final BinaryLogClient client;
@@ -37,7 +37,7 @@ public class BinlogEventListener implements BinaryLogClient.EventListener {
     public BinlogEventListener(BinaryLogClient client, BlockingQueue<RawBinlogEvent> q, long maxOfferTimeout) {
         this.client = client;
         this.queue = q;
-        this.QUEUE_OFFER_TIMEOUT_MSEC = maxOfferTimeout;
+        this.queueOfferTimeoutMsec = maxOfferTimeout;
     }
 
     public void start() {
@@ -53,7 +53,7 @@ public class BinlogEventListener implements BinaryLogClient.EventListener {
         while (!stopNow.get()) {
             RawBinlogEvent ep = new RawBinlogEvent(event, client.getBinlogFilename());
             try {
-                if (queue.offer(ep, QUEUE_OFFER_TIMEOUT_MSEC, TimeUnit.MILLISECONDS)) {
+                if (queue.offer(ep, queueOfferTimeoutMsec, TimeUnit.MILLISECONDS)) {
                     return;
                 } else {
                     throw new RuntimeException("Unable to add event to the queue");
