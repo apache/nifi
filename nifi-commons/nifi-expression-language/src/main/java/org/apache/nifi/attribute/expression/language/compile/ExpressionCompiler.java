@@ -670,7 +670,7 @@ public class ExpressionCompiler {
                 } else {
                     return addToken(new PadLeftEvaluator(toStringEvaluator(subjectEvaluator),
                         toWholeNumberEvaluator(argEvaluators.get(0), "desired string length"),
-                        toStringEvaluator(argEvaluators.get(1), "padding character")), "padLeft");
+                        toStringEvaluator(argEvaluators.get(1), "padding string")), "padLeft");
                 }
             }
             case PAD_RIGHT: {
@@ -681,7 +681,7 @@ public class ExpressionCompiler {
                 } else {
                     return addToken(new PadRightEvaluator(toStringEvaluator(subjectEvaluator),
                         toWholeNumberEvaluator(argEvaluators.get(0), "desired string length"),
-                        toStringEvaluator(argEvaluators.get(1), "padding character")), "padRight");
+                        toStringEvaluator(argEvaluators.get(1), "padding string")), "padRight");
                 }
             }
             case APPEND: {
