@@ -980,7 +980,7 @@ Expressions will provide the following results:
 [.function]
 === padLeft
 
-*Description*: [.description]#The `padLeft` function prepends the given padding character (or `'_'`, if nothing is provided) to the argument `String` until the passed desired length is reached.
+*Description*: [.description]#The `padLeft` function prepends the given padding string (or `'_'`, if nothing is provided) to the argument `String` until the passed desired length is reached.
 
 It returns the argument as is if its length is already equal or higher than the desired length. It returns `null` if the
 argument string is not a valid attribute or in case of `DesiredLength` overflow.
@@ -990,7 +990,7 @@ argument string is not a valid attribute or in case of `DesiredLength` overflow.
 *Arguments*:
 
 - [.argName]#_DesiredLength_# : [.argDesc]#The integer value to pad to.#
-- [.argName]#_PaddingCharacter_# : [.argDesc]#The optional character to pad with. `'_'` will be used if a `PaddingCharacter` is not provided. If a `String` is passed here, it's first character will be used.#
+- [.argName]#_PaddingString_# : [.argDesc]#The optional string to pad with. `"_"` will be used if a `PaddingString` is not provided. If the `PaddingString` is not an exact multiple of the actual pad size, it will be trimmed to fit in `DesiredLength`.#
 
 *Return Type*: [.returnType]#String#
 
@@ -1004,7 +1004,8 @@ Expressions will provide the following results:
 | Expression | Value
 | `${greetings:padLeft(10)}` | `\_____hello`
 | `${greetings:padLeft(10, '@')}` | `@@@@@hello`
-| `${greetings:padLeft(10, 'abc')}` | `aaaaahello`
+| `${greetings:padLeft(10, 'xy')}` | `xyxyxhello`
+| `${greetings:padLeft(10, 'aVeryLongPaddingString')}` | `aVeryhello`
 |=======================================================================================
 
 
@@ -1014,7 +1015,7 @@ Expressions will provide the following results:
 [.function]
 === padRight
 
-*Description*: [.description]#The `padRight` function appends the given padding character (or `'_'`, if nothing is provided) to the argument `String` until the passed desired length is reached.
+*Description*: [.description]#The `padRight` function appends the given padding string (or `'_'`, if nothing is provided) to the argument `String` until the passed desired length is reached.
 
 It returns the argument as is if its length is already equal or higher than the desired length. It returns `null` if the
 argument string is not a valid attribute or in case of `DesiredLength` overflow.
@@ -1024,7 +1025,7 @@ argument string is not a valid attribute or in case of `DesiredLength` overflow.
 *Arguments*:
 
 - [.argName]#_DesiredLength_# : [.argDesc]#The integer value to pad to.#
-- [.argName]#_PaddingCharacter_# : [.argDesc]#The optional character to pad with. `'_'` will be used if a `PaddingCharacter` is not provided. If a `String` is passed here, it's first character will be used.#
+- [.argName]#_PaddingString_# : [.argDesc]#The optional string to pad with. `"_"` will be used if a `PaddingString` is not provided. If the `PaddingString` is not an exact multiple of the actual pad size, it will be trimmed to fit in `DesiredLength`.#
 
 *Return Type*: [.returnType]#String#
 
@@ -1038,7 +1039,8 @@ Expressions will provide the following results:
 | Expression | Value
 | `${greetings:padRight(10)}` | `hello\_____`
 | `${greetings:padRight(10, '@')}` | `hello@@@@@`
-| `${greetings:padRight(10, 'abc')}` | `helloaaaaa`
+| `${greetings:padRight(10, 'xy')}` | `helloxyxyx`
+| `${greetings:padLeft(10, 'aVeryLongPaddingString')}` | `helloaVery`
 |=======================================================================================
 
 

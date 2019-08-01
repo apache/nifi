@@ -31,7 +31,7 @@ public class PadLeftEvaluator extends PaddingEvaluator {
     }
 
     @Override
-    protected String doPad(String subjectValue, int desiredLengthValue, char padValue) {
+    protected String doPad(String subjectValue, int desiredLengthValue, String padValue) {
         return StringUtils.leftPad(subjectValue, desiredLengthValue, padValue);
     }
 }

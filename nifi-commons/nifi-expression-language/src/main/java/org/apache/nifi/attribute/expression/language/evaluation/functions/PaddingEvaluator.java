@@ -26,7 +26,7 @@ import java.util.Map;
 
 abstract class PaddingEvaluator extends StringEvaluator {
 
-    public static final char DEFAULT_PADDING_CHARACTER = '_';
+    public static final String DEFAULT_PADDING_STRING = "_";
 
     private final Evaluator<String> subject;
     private final Evaluator<Long> desiredLength;
@@ -51,18 +51,18 @@ abstract class PaddingEvaluator extends StringEvaluator {
             return new StringQueryResult(null);
         }
 
-        char padValue;
+        String padValue;
         if( pad == null) {
-            padValue = DEFAULT_PADDING_CHARACTER;
+            padValue = DEFAULT_PADDING_STRING;
         } else {
             String s = pad.evaluate(attributes, context).getValue();
-            padValue = (s != null && !s.isEmpty()) ? s.charAt(0) : DEFAULT_PADDING_CHARACTER;
+            padValue = (s != null && !s.isEmpty()) ? s : DEFAULT_PADDING_STRING;
         }
 
         return new StringQueryResult(doPad(subjectValue, desiredLengthValue.intValue(), padValue));
     }
 
-    protected abstract String doPad(String subjectValue, int desiredLengthValue, char padValue);
+    protected abstract String doPad(String subjectValue, int desiredLengthValue, String padValue);
 
     @Override
     public Evaluator<?> getSubjectEvaluator() {

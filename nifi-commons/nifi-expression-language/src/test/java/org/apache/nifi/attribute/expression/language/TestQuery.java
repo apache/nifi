@@ -1915,7 +1915,8 @@ public class TestQuery {
 
         verifyEquals("${attr:padLeft(10, '@')}", attributes, "@@@@@hello");
         verifyEquals("${attr:padLeft(10)}", attributes, "_____hello");
-        verifyEquals("${attr:padLeft(10, \"abc\")}", attributes, "aaaaahello");
+        verifyEquals("${attr:padLeft(10, \"xy\")}", attributes, "xyxyxhello");
+        verifyEquals("${attr:padLeft(10, \"aVeryLongPaddingString\")}", attributes, "aVeryhello");
         verifyEquals("${attr:padLeft(1, \"a\")}", attributes, "hello");
         verifyEquals("${attr:padLeft(-10, \"a\")}", attributes, "hello");
         verifyEquals("${emptyString:padLeft(10, '@')}", attributes, "@@@@@@@@@@");
@@ -1932,7 +1933,6 @@ public class TestQuery {
         final Query nullStringQuery = Query.compile("${nullString:padLeft(10, \"@\")}");
         final QueryResult<?> nullStringResult = nullStringQuery.evaluate(attributes, null);
         assertTrue(nullStringResult.getValue() == null);
-
     }
 
     @Test
@@ -1944,7 +1944,8 @@ public class TestQuery {
 
         verifyEquals("${attr:padRight(10, '@')}", attributes, "hello@@@@@");
         verifyEquals("${attr:padRight(10)}", attributes, "hello_____");
-        verifyEquals("${attr:padRight(10, \"abc\")}", attributes, "helloaaaaa");
+        verifyEquals("${attr:padRight(10, \"xy\")}", attributes, "helloxyxyx");
+        verifyEquals("${attr:padRight(10, \"aVeryLongPaddingString\")}", attributes, "helloaVery");
         verifyEquals("${attr:padRight(1, \"a\")}", attributes, "hello");
         verifyEquals("${attr:padRight(-10, \"a\")}", attributes, "hello");
         verifyEquals("${emptyString:padRight(10, '@')}", attributes, "@@@@@@@@@@");
