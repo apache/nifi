@@ -96,6 +96,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 
@@ -103,6 +104,7 @@ import java.util.stream.Collectors;
 @Api(value = "/parameter-contexts", description = "Endpoint for managing version control for a flow")
 public class ParameterContextResource extends ApplicationResource {
     private static final Logger logger = LoggerFactory.getLogger(ParameterContextResource.class);
+    private static final Pattern VALID_PARAMETER_NAME_PATTERN = Pattern.compile("[A-Za-z0-9 ._\\-]+");
 
     private NiFiServiceFacade serviceFacade;
     private Authorizer authorizer;
@@ -193,6 +195,8 @@ public class ParameterContextResource extends ApplicationResource {
         if (context.getName() == null) {
             throw new IllegalArgumentException("Parameter Context's Name must be specified");
         }
+
+        validateParameterNames(requestEntity.getComponent());
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.POST, requestEntity);
@@ -342,6 +346,8 @@ public class ParameterContextResource extends ApplicationResource {
             throw new IllegalArgumentException("ID of Parameter Context in message body does not match Parameter Context ID supplied in URI");
         }
 
+        validateParameterNames(contextDto);
+
         // We will perform the updating of the Parameter Context in a background thread because it can be a long-running process.
         // In order to do this, we will need some objects that are only available as Thread-Local variables to the current
         // thread, so we will gather the values for these objects up front.
@@ -389,6 +395,19 @@ public class ParameterContextResource extends ApplicationResource {
         );
     }
 
+    private void validateParameterNames(final ParameterContextDTO parameterContextDto) {
+        for (final ParameterEntity entity : parameterContextDto.getParameters()) {
+            final String parameterName = entity.getParameter().getName();
+            if (!isLegalParameterName(parameterName)) {
+                throw new IllegalArgumentException("Request contains an illegal Parameter Name (" + parameterName + "). Parameter names may only include letters, numbers, spaces, and the special " +
+                    "characters .-_");
+            }
+        }
+    }
+
+    private boolean isLegalParameterName(final String parameterName) {
+        return VALID_PARAMETER_NAME_PATTERN.matcher(parameterName).matches();
+    }
 
     private void authorizeAffectedComponent(final AffectedComponentEntity entity, final AuthorizableLookup lookup, final NiFiUser user, final boolean requireRead, final boolean requireWrite) {
         final AffectedComponentDTO dto = entity.getComponent();

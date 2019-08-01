@@ -3191,6 +3191,14 @@ public class ProcessGroupResource extends ApplicationResource {
                         if (parameterContext != null) {
                             parameterContext.authorize(authorizer, RequestAction.READ, user);
                         }
+
+                        for (final ProcessGroupAuthorizable encapsulatedGroupAuth : groupAuthorizable.getEncapsulatedProcessGroups()) {
+                            final ParameterContext encapsulatedGroupParameterContext = encapsulatedGroupAuth.getProcessGroup().getParameterContext();
+                            if (encapsulatedGroupParameterContext != null) {
+                                encapsulatedGroupParameterContext.authorize(authorizer, RequestAction.READ, user);
+                            }
+
+                        }
                     }
                 },
                 null,
