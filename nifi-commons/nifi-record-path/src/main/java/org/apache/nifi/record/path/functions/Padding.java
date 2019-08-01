@@ -31,9 +31,9 @@ import java.util.stream.Stream;
 
 abstract class Padding extends RecordPathSegment {
 
-    public final static char DEFAULT_PADDING_CHAR = '_';
+    public final static String DEFAULT_PADDING_STRING = "_";
 
-    private RecordPathSegment paddingCharPath;
+    private RecordPathSegment paddingStringPath;
     private RecordPathSegment inputStringPath;
     private RecordPathSegment desiredLengthPath;
 
@@ -41,17 +41,17 @@ abstract class Padding extends RecordPathSegment {
              final RecordPathSegment parentPath,
              final RecordPathSegment inputStringPath,
              final RecordPathSegment desiredLengthPath,
-             final RecordPathSegment paddingCharPath,
+             final RecordPathSegment paddingStringPath,
              final boolean absolute) {
 
         super(path, parentPath, absolute);
-        this.paddingCharPath = paddingCharPath;
+        this.paddingStringPath = paddingStringPath;
         this.inputStringPath = inputStringPath;
         this.desiredLengthPath = desiredLengthPath;
     }
 
     public Stream<FieldValue> evaluate(RecordPathEvaluationContext context) {
-        char pad = getPaddingChar(context);
+        String pad = getPaddingString(context);
 
         final Stream<FieldValue> evaluatedStr = inputStringPath.evaluate(context);
         return evaluatedStr.map(fv -> {
@@ -67,7 +67,7 @@ abstract class Padding extends RecordPathSegment {
         });
     }
 
-    protected abstract String doPad(String inputString, int desiredLength, char pad);
+    protected abstract String doPad(String inputString, int desiredLength, String pad);
 
     private OptionalInt getDesiredLength(RecordPathEvaluationContext context) {
 
@@ -90,17 +90,17 @@ abstract class Padding extends RecordPathSegment {
         return OptionalInt.of(DataTypeUtils.toInteger(length, fieldName));
     }
 
-    private char getPaddingChar(RecordPathEvaluationContext context){
+    private String getPaddingString(RecordPathEvaluationContext context){
 
-        if (null == paddingCharPath) {
-            return DEFAULT_PADDING_CHAR;
+        if (null == paddingStringPath) {
+            return DEFAULT_PADDING_STRING;
         }
 
-        String padStr = RecordPathUtils.getFirstStringValue(paddingCharPath, context);
+        String padStr = RecordPathUtils.getFirstStringValue(paddingStringPath, context);
 
         if (null != padStr && !padStr.isEmpty()){
-            return padStr.charAt(0);
+            return padStr;
         }
-        return DEFAULT_PADDING_CHAR;
+        return DEFAULT_PADDING_STRING;
     }
 }

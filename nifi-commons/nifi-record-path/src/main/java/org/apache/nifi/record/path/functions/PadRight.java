@@ -24,9 +24,9 @@ public class PadRight extends Padding {
 
     public PadRight( final RecordPathSegment inputStringPath,
                      final RecordPathSegment desiredLengthPath,
-                     final RecordPathSegment paddingCharPath,
+                     final RecordPathSegment paddingStringPath,
                      final boolean absolute) {
-        super("padRight", null, inputStringPath, desiredLengthPath, paddingCharPath, absolute);
+        super("padRight", null, inputStringPath, desiredLengthPath, paddingStringPath, absolute);
     }
 
     public PadRight( final RecordPathSegment inputStringPath,
@@ -36,7 +36,7 @@ public class PadRight extends Padding {
     }
 
     @Override
-    protected String doPad(String inputString, int desiredLength, char pad) {
-        return StringUtils.padRight(inputString, desiredLength, pad);
+    protected String doPad(String inputString, int desiredLength, String pad) {
+        return StringUtils.padRight(inputString, desiredLength, pad.charAt(0));
     }
 }
