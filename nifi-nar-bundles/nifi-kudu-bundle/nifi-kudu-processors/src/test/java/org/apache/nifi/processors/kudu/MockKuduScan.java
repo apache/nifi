@@ -110,6 +110,7 @@ public class MockKuduScan extends ScanKudu {
             if (predicates == null || predicates.isEmpty() || !predicates.contains("=")) {
                 while (it.hasNext()) {
                     matchedRows.add(it.next());
+                    handler.handle(it.next());
                 }
             } else {
                 if (predicates.contains("=")) {
@@ -122,11 +123,11 @@ public class MockKuduScan extends ScanKudu {
                         RowResult result = it.next();
                         if (parts[1].equals(result.getString(String.valueOf(parts[0])))) {
                             matchedRows.add(result);
+                            handler.handle(result);
                         }
                     }
                 }
             }
-            handler.handle(matchedRows.iterator());
         }
         numScans++;
     }

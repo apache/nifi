@@ -46,7 +46,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
@@ -262,7 +261,7 @@ public class ScanKudu extends AbstractKuduProcessor {
         }
 
         @Override
-        public void handle(final Iterator<RowResult> resultCells) {
+        public void handle(final RowResult resultCells) {
 
             long rowsPulled = rowsPulledHolder.get();
             long ffUncommittedCount = ffCountHolder.get();

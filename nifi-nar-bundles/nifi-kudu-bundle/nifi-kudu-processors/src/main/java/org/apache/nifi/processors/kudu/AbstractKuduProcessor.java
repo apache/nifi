@@ -297,8 +297,8 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
         }
 
         KuduScanner scanner = scannerBuilder.build();
-        while (scanner.hasMoreRows()) {
-            handler.handle(scanner.nextRows());
+        for (RowResult rowResult: scanner) {
+            handler.handle(rowResult);
         }
     }
 
@@ -322,67 +322,51 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
      *    ]
      * }
      */
-    protected String convertToJson(Iterator<RowResult> rows) {
+    protected String convertToJson(RowResult row) {
         final StringBuilder jsonBuilder = new StringBuilder();
-        jsonBuilder.append("{");
-
-        jsonBuilder.append("\"rows\":[");
-        while (rows.hasNext()) {
-            RowResult result = rows.next();
-            jsonBuilder.append("{");
-
-            Iterator<ColumnSchema> columns = result.getSchema().getColumns().iterator();
-            while (columns.hasNext()) {
-                ColumnSchema col = columns.next();
-                jsonBuilder.append("\"" + col.getName() + "\":");
-                switch (col.getType()) {
-                    case STRING:
-                        jsonBuilder.append("\"" + result.getString(col.getName()) + "\"");
-                        break;
-                    case INT8:
-                        jsonBuilder.append("\"" + result.getInt(col.getName()) + "\"");
-                        break;
-                    case INT16:
-                        jsonBuilder.append("\"" + result.getInt(col.getName()) + "\"");
-                        break;
-                    case INT32:
-                        jsonBuilder.append("\"" + result.getInt(col.getName()) + "\"");
-                        break;
-                    case INT64:
-                        jsonBuilder.append("\"" + result.getLong(col.getName()) + "\"");
-                        break;
-                    case BOOL:
-                        jsonBuilder.append("\"" + result.getBoolean(col.getName()) + "\"");
-                        break;
-                    case DECIMAL:
-                        jsonBuilder.append("\"" + result.getDecimal(col.getName()) + "\"");
-                        break;
-                    case FLOAT:
-                        jsonBuilder.append("\"" + result.getFloat(col.getName()) + "\"");
-                        break;
-                    case UNIXTIME_MICROS:
-                        jsonBuilder.append("\"" + result.getLong(col.getName()) + "\"");
-                        break;
-                    case BINARY:
-                        jsonBuilder.append("\"" + result.getBinary(col.getName()) + "\"");
-                        break;
-                    default:
-                        break;
-                }
-                if(columns.hasNext())
-                    jsonBuilder.append(",");
+        jsonBuilder.append("{\"rows\":[{");
+        Iterator<ColumnSchema> columns = row.getSchema().getColumns().iterator();
+        while (columns.hasNext()) {
+            ColumnSchema col = columns.next();
+            jsonBuilder.append("\"" + col.getName() + "\":");
+            switch (col.getType()) {
+                case STRING:
+                    jsonBuilder.append("\"" + row.getString(col.getName()) + "\"");
+                    break;
+                case INT8:
+                    jsonBuilder.append("\"" + row.getInt(col.getName()) + "\"");
+                    break;
+                case INT16:
+                    jsonBuilder.append("\"" + row.getInt(col.getName()) + "\"");
+                    break;
+                case INT32:
+                    jsonBuilder.append("\"" + row.getInt(col.getName()) + "\"");
+                    break;
+                case INT64:
+                    jsonBuilder.append("\"" + row.getLong(col.getName()) + "\"");
+                    break;
+                case BOOL:
+                    jsonBuilder.append("\"" + row.getBoolean(col.getName()) + "\"");
+                    break;
+                case DECIMAL:
+                    jsonBuilder.append("\"" + row.getDecimal(col.getName()) + "\"");
+                    break;
+                case FLOAT:
+                    jsonBuilder.append("\"" + row.getFloat(col.getName()) + "\"");
+                    break;
+                case UNIXTIME_MICROS:
+                    jsonBuilder.append("\"" + row.getLong(col.getName()) + "\"");
+                    break;
+                case BINARY:
+                    jsonBuilder.append("\"" + row.getBinary(col.getName()) + "\"");
+                    break;
+                default:
+                    break;
             }
-
-            jsonBuilder.append("}");
-            if (rows.hasNext()) {
-                jsonBuilder.append(", ");
-            }
+            if(columns.hasNext())
+                jsonBuilder.append(",");
         }
-        // end row array
-        jsonBuilder.append("]");
-
-        // end overall document
-        jsonBuilder.append("}");
+        jsonBuilder.append("}]}");
         return jsonBuilder.toString();
     }
 }

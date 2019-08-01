@@ -20,13 +20,11 @@ package org.apache.nifi.processors.kudu.io;
 import org.apache.kudu.client.RowResult;
 import org.apache.nifi.flowfile.FlowFile;
 
-import java.util.Iterator;
-
 /**
  * Handles a single row from an Kudu scan.
  */
 public interface ResultHandler {
 
-    void handle(Iterator<RowResult> resultCells);
+    void handle(RowResult resultCells);
     FlowFile getFlowFile();
 }

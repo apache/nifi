@@ -184,13 +184,14 @@ public class TestScanKudu {
     public void testKuduScanToContentWithStringValues() throws InitializationException {
         final Map<String, String> rows = new HashMap<>();
         rows.put("column1", "val1");
+        rows.put("column1", "val1");
         rows.put("column2", "val2");
 
         kuduScan.addResult(rows);
 
         runner.setProperty(ScanKudu.TABLE_NAME, DEFAULT_TABLE_NAME);
         runner.setProperty(ScanKudu.PREDICATES, "column1=val1");
-        runner.setProperty(ScanKudu.PROJECTED_COLUMNS, "column1");
+        runner.setProperty(ScanKudu.PROJECTED_COLUMNS, "column1,column2");
 
         runner.setValidateExpressionUsage(false);
         runner.setIncomingConnection(false);
