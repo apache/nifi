@@ -102,6 +102,9 @@ public class TestJdbcCommon {
         try (final Statement stmt = con.createStatement()) {
             stmt.executeUpdate(createTable);
         }
+
+        // Set default timezone to avoid conflicts with the java.sql.Date library
+        TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
     }
 
     @Test
