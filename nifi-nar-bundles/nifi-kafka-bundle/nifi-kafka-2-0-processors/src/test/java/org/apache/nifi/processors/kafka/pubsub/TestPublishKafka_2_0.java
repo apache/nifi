@@ -40,6 +40,7 @@ import java.util.stream.Collectors;
 import static org.apache.nifi.processors.kafka.pubsub.PublishKafka_2_0.DELIVERY_REPLICATED;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
