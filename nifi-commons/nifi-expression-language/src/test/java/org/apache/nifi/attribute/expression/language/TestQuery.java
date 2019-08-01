@@ -1920,19 +1920,9 @@ public class TestQuery {
         verifyEquals("${attr:padLeft(1, \"a\")}", attributes, "hello");
         verifyEquals("${attr:padLeft(-10, \"a\")}", attributes, "hello");
         verifyEquals("${emptyString:padLeft(10, '@')}", attributes, "@@@@@@@@@@");
-
-        // Cannot pass by verifyEquals
-        final Query notExistingAttrQuery = Query.compile("${nonExistingAttr:padLeft(10, \"abc\")}");
-        final QueryResult<?> notExistingAttrResult = notExistingAttrQuery.evaluate(attributes, null);
-        assertTrue(notExistingAttrResult.getValue() == null);
-
-        final Query overflowLengthQuery = Query.compile("${nonExistingAttr:padLeft(9999999999, \"abc\")}");
-        final QueryResult<?> overflowLengthResult = overflowLengthQuery.evaluate(attributes, null);
-        assertTrue(overflowLengthResult.getValue() == null);
-
-        final Query nullStringQuery = Query.compile("${nullString:padLeft(10, \"@\")}");
-        final QueryResult<?> nullStringResult = nullStringQuery.evaluate(attributes, null);
-        assertTrue(nullStringResult.getValue() == null);
+        verifyEquals("${attr:padLeft(9999999999, \"abc\")}", attributes, "hello");
+        verifyEmpty("${nonExistingAttr:padLeft(10, \"abc\")}", attributes);
+        verifyEmpty("${nullString:padLeft(10, \"@\")}", attributes);
     }
 
     @Test
@@ -1949,19 +1939,9 @@ public class TestQuery {
         verifyEquals("${attr:padRight(1, \"a\")}", attributes, "hello");
         verifyEquals("${attr:padRight(-10, \"a\")}", attributes, "hello");
         verifyEquals("${emptyString:padRight(10, '@')}", attributes, "@@@@@@@@@@");
-
-        // Cannot pass by verifyEquals
-        final Query notExistingAttrQuery = Query.compile("${nonExistingAttr:padRight(10, \"abc\")}");
-        final QueryResult<?> notExistingAttrResult = notExistingAttrQuery.evaluate(attributes, null);
-        assertTrue(notExistingAttrResult.getValue() == null);
-
-        final Query overflowLengthQuery = Query.compile("${nonExistingAttr:padRight(9999999999, \"abc\")}");
-        final QueryResult<?> overflowLengthResult = overflowLengthQuery.evaluate(attributes, null);
-        assertTrue(overflowLengthResult.getValue() == null);
-
-        final Query nullStringQuery = Query.compile("${nullString:padRight(10, \"@\")}");
-        final QueryResult<?> nullStringResult = nullStringQuery.evaluate(attributes, null);
-        assertTrue(nullStringResult.getValue() == null);
+        verifyEquals("${attr:padRight(9999999999, \"abc\")}", attributes, "hello");
+        verifyEmpty("${nonExistingAttr:padRight(10, \"abc\")}", attributes);
+        verifyEmpty("${nullString:padRight(10, \"@\")}", attributes);
     }
 
     private void verifyEquals(final String expression, final Map<String, String> attributes, final Object expectedResult) {

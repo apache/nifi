@@ -47,16 +47,16 @@ abstract class PaddingEvaluator extends StringEvaluator {
             return new StringQueryResult(null);
         }
         final Long desiredLengthValue = desiredLength.evaluate(attributes, context).getValue();
-        if (desiredLengthValue == null || desiredLengthValue > Integer.MAX_VALUE) {
-            return new StringQueryResult(null);
+        if (desiredLengthValue == null || desiredLengthValue > Integer.MAX_VALUE || desiredLengthValue <= 0) {
+            return new StringQueryResult(subjectValue);
         }
 
-        String padValue;
-        if( pad == null) {
-            padValue = DEFAULT_PADDING_STRING;
-        } else {
+        String padValue = DEFAULT_PADDING_STRING;
+        if (pad != null) {
             String s = pad.evaluate(attributes, context).getValue();
-            padValue = (s != null && !s.isEmpty()) ? s : DEFAULT_PADDING_STRING;
+            if (s != null && !s.isEmpty()) {
+                padValue = s;
+            }
         }
 
         return new StringQueryResult(doPad(subjectValue, desiredLengthValue.intValue(), padValue));
