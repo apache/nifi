@@ -665,23 +665,23 @@ public class ExpressionCompiler {
             case PAD_LEFT: {
                 if (argEvaluators.size() == 1) {
                     return addToken(new PadLeftEvaluator(toStringEvaluator(subjectEvaluator),
-                            toWholeNumberEvaluator(argEvaluators.get(0), "desired string length")),
-                            "padLeft");
+                        toWholeNumberEvaluator(argEvaluators.get(0), "desired string length")),
+                        "padLeft");
                 } else {
                     return addToken(new PadLeftEvaluator(toStringEvaluator(subjectEvaluator),
-                            toWholeNumberEvaluator(argEvaluators.get(0), "desired string length"),
-                            toStringEvaluator(argEvaluators.get(1), "padding character")), "padLeft");
+                        toWholeNumberEvaluator(argEvaluators.get(0), "desired string length"),
+                        toStringEvaluator(argEvaluators.get(1), "padding character")), "padLeft");
                 }
             }
             case PAD_RIGHT: {
                 if (argEvaluators.size() == 1) {
                     return addToken(new PadRightEvaluator(toStringEvaluator(subjectEvaluator),
-                                    toWholeNumberEvaluator(argEvaluators.get(0), "desired string length")),
-                            "padRight");
+                        toWholeNumberEvaluator(argEvaluators.get(0), "desired string length")),
+                        "padRight");
                 } else {
                     return addToken(new PadRightEvaluator(toStringEvaluator(subjectEvaluator),
-                            toWholeNumberEvaluator(argEvaluators.get(0), "desired string length"),
-                            toStringEvaluator(argEvaluators.get(1), "padding character")), "padRight");
+                        toWholeNumberEvaluator(argEvaluators.get(0), "desired string length"),
+                        toStringEvaluator(argEvaluators.get(1), "padding character")), "padRight");
                 }
             }
             case APPEND: {
