@@ -48,7 +48,8 @@ public class TestConnectionStatusAnalytics {
             .map(ConnectionStatusDescriptor::getDescriptor)
             .collect(Collectors.toSet());
 
-    protected ConnectionStatusAnalytics getConnectionStatusAnalytics(Long queuedBytes, Long queuedCount, String backPressureDataSizeThreshhold, Long backPressureObjectThreshold, Boolean isConstantStatus) {
+    protected ConnectionStatusAnalytics getConnectionStatusAnalytics(Long queuedBytes, Long queuedCount, String backPressureDataSizeThreshhold,
+                                                                     Long backPressureObjectThreshold, Boolean isConstantStatus) {
         ComponentStatusRepository statusRepository = Mockito.mock(ComponentStatusRepository.class);
         FlowManager flowManager;
         flowManager = Mockito.mock(FlowManager.class);
