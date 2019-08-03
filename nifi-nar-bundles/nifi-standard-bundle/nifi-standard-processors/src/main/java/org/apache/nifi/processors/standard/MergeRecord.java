@@ -70,7 +70,6 @@ import java.util.stream.Collectors;
 import static org.apache.nifi.processor.DataUnit.DATA_SIZE_PATTERN;
 import static org.apache.nifi.util.FormatUtils.TIME_DURATION_PATTERN;
 
-
 @SideEffectFree
 @TriggerWhenEmpty
 @InputRequirement(Requirement.INPUT_REQUIRED)
