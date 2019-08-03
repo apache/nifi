@@ -180,6 +180,7 @@ AND : 'and';
 JOIN : 'join';
 TO_LITERAL : 'literal';
 JSON_PATH : 'jsonPath';
+JSON_PATH_DELETE : 'jsonPathDelete';
 
 // 2 arg functions
 SUBSTRING	: 'substring';
