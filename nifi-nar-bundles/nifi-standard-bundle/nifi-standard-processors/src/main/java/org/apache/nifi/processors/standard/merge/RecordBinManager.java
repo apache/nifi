@@ -61,7 +61,7 @@ public class RecordBinManager {
         this.sessionFactory = sessionFactory;
         this.logger = logger;
 
-        final Integer maxBins = context.getProperty(MergeRecord.MAX_BIN_COUNT).asInteger();
+        final Integer maxBins = context.getProperty(MergeRecord.MAX_BIN_COUNT).evaluateAttributeExpressions().asInteger();
         this.maxBinCount = maxBins == null ? Integer.MAX_VALUE : maxBins.intValue();
     }
 
@@ -184,12 +184,12 @@ public class RecordBinManager {
     private RecordBinThresholds createThresholds(FlowFile flowfile) {
         int minRecords = context.getProperty(MergeRecord.MIN_RECORDS).evaluateAttributeExpressions().asInteger();
         final int maxRecords = context.getProperty(MergeRecord.MAX_RECORDS).evaluateAttributeExpressions().asInteger();
-        final long minBytes = context.getProperty(MergeRecord.MIN_SIZE).asDataSize(DataUnit.B).longValue();
+        final long minBytes = context.getProperty(MergeRecord.MIN_SIZE).evaluateAttributeExpressions().asDataSize(DataUnit.B).longValue();
 
-        final PropertyValue maxSizeValue = context.getProperty(MergeRecord.MAX_SIZE);
+        final PropertyValue maxSizeValue = context.getProperty(MergeRecord.MAX_SIZE).evaluateAttributeExpressions();
         final long maxBytes = maxSizeValue.isSet() ? maxSizeValue.asDataSize(DataUnit.B).longValue() : Long.MAX_VALUE;
 
-        final PropertyValue maxMillisValue = context.getProperty(MergeRecord.MAX_BIN_AGE);
+        final PropertyValue maxMillisValue = context.getProperty(MergeRecord.MAX_BIN_AGE).evaluateAttributeExpressions();
         final String maxBinAge = maxMillisValue.getValue();
         final long maxBinMillis = maxMillisValue.isSet() ? maxMillisValue.asTimePeriod(TimeUnit.MILLISECONDS) : Long.MAX_VALUE;
 

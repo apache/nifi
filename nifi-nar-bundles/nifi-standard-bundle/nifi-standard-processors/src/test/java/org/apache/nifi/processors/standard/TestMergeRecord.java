@@ -22,6 +22,7 @@ import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.record.CommaSeparatedRecordReader;
 import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.StandardProcessorTestRunner;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
@@ -31,8 +32,11 @@ import org.junit.Test;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class TestMergeRecord {
     private TestRunner runner;
@@ -52,6 +56,22 @@ public class TestMergeRecord {
 
         runner.addControllerService("writer", writerService);
         runner.enableControllerService(writerService);
+
+        runner.setProperty(MergeRecord.RECORD_READER, "reader");
+        runner.setProperty(MergeRecord.RECORD_WRITER, "writer");
+        runner.setValidateExpressionUsage(true);
+    }
+
+    /**
+     * Utility method to avoid side effects after a test
+     */
+    private void clearRunner() {
+        runner.clearTransferState();
+        runner.clearProvenanceEvents();
+        runner.clearProperties();
+
+        ((StandardProcessorTestRunner) runner).clearQueue();
+        ((MergeRecord) runner.getProcessor()).resetState();
 
         runner.setProperty(MergeRecord.RECORD_READER, "reader");
         runner.setProperty(MergeRecord.RECORD_WRITER, "writer");
@@ -309,6 +329,27 @@ public class TestMergeRecord {
 
         runner.assertTransferCount(MergeRecord.REL_MERGED, 1);
         runner.assertTransferCount(MergeRecord.REL_ORIGINAL, 3);
+
+        clearRunner();
+
+        runner.setVariable("min_size", "1 KB");
+        runner.removeProperty(MergeRecord.MIN_RECORDS);
+        runner.setProperty(MergeRecord.MIN_SIZE, "${min_size}");
+        runner.setProperty(MergeRecord.MAX_RECORDS, "2");
+
+        runner.enqueue("Name, Age\nJohn, 35"); // About 20 Bytes
+        runner.enqueue("Name, Age\nJane, 34");
+
+        runner.run();
+        runner.assertTransferCount(MergeRecord.REL_MERGED, 0);
+        runner.assertTransferCount(MergeRecord.REL_ORIGINAL, 0);
+
+        runner.enqueue(sb.toString()); // About 1300 Bytes
+
+        runner.run();
+
+        runner.assertTransferCount(MergeRecord.REL_MERGED, 1);
+        runner.assertTransferCount(MergeRecord.REL_ORIGINAL, 3);
     }
 
     @Test
@@ -316,12 +357,140 @@ public class TestMergeRecord {
         runner.setProperty(MergeRecord.MIN_RECORDS, "103");
         runner.setProperty(MergeRecord.MAX_RECORDS, "2");
         runner.setProperty(MergeRecord.MIN_SIZE, "500 B");
-
         runner.assertNotValid();
 
         runner.setProperty(MergeRecord.MIN_RECORDS, "2");
         runner.setProperty(MergeRecord.MAX_RECORDS, "103");
         runner.assertValid();
+
+        runner.setVariable("min_records", "-3");
+        runner.setVariable("max_records", "-1");
+
+        // This configuration breaks the "<Minimum Number of Records> property cannot be negative or zero" rule
+        runner.setProperty(MergeRecord.MIN_RECORDS, "${min_records}");
+        runner.setProperty(MergeRecord.MAX_RECORDS, "3");
+        runner.assertNotValid();
+
+        // This configuration breaks the "<Minimum Number of Records> property cannot be negative or zero" and the
+        // "<Maximum Number of Records> property cannot be negative or zero" rules
+        runner.setProperty(MergeRecord.MIN_RECORDS, "${min_records}");
+        runner.setProperty(MergeRecord.MAX_RECORDS, "${max_records}");
+        runner.assertNotValid();
+
+        // This configuration breaks the "<Maximum Number of Records> property cannot be smaller than <Minimum Number of Records> property"
+        // and the "<Maximum Number of Records> property cannot be negative or zero" rules
+        runner.setProperty(MergeRecord.MIN_RECORDS, "3");
+        runner.setProperty(MergeRecord.MAX_RECORDS, "${max_records}");
+        runner.assertNotValid();
+
+        // This configuration breaks the "<Maximum Number of Records> property cannot be smaller than <Minimum Number of Records> property"
+        // and the "<Maximum Number of Records> property cannot be negative or zero" rules
+        runner.removeProperty(MergeRecord.MIN_RECORDS); // Will use the default value of 1
+        runner.setProperty(MergeRecord.MAX_RECORDS, "${max_records}");
+        runner.assertNotValid();
+
+        // This configuration breaks the "<Maximum Number of Records> property cannot be smaller than <Minimum Number of Records> property",
+        // the "<Minimum Number of Records> property cannot be negative or zero" and the "<Maximum Number of Records>
+        // property cannot be negative or zero" rules
+        runner.setVariable("min_records", "-1");
+        runner.setVariable("max_records", "-3");
+        runner.setProperty(MergeRecord.MIN_RECORDS, "${min_records}");
+        runner.setProperty(MergeRecord.MAX_RECORDS, "${max_records}");
+        runner.assertNotValid();
+
+        // This configuration is valid
+        runner.setVariable("min_records", "1");
+        runner.setVariable("max_records", "5");
+        runner.setProperty(MergeRecord.MIN_RECORDS, "${min_records}");
+        runner.setProperty(MergeRecord.MAX_RECORDS, "${max_records}");
+        runner.assertValid();
+
+        runner.removeProperty(MergeRecord.MIN_RECORDS);
+        runner.removeProperty(MergeRecord.MAX_RECORDS);
+
+        // This configuration is valid
+        runner.setVariable("min_size", "0 B");
+        runner.setVariable("max_size", "100 B");
+        runner.setProperty(MergeRecord.MIN_SIZE, "${min_size}");
+        runner.setProperty(MergeRecord.MAX_SIZE, "${max_size}");
+
+        // This configuration breaks the "<Maximum Bin Size> property cannot be smaller than <Minimum Bin Size> property"
+        runner.setVariable("min_size", "1000 B");
+        runner.setVariable("max_size", "100 B");
+        runner.setProperty(MergeRecord.MIN_SIZE, "${min_size}");
+        runner.setProperty(MergeRecord.MAX_SIZE, "${max_size}");
+        runner.assertNotValid();
+
+        // This configuration breaks the "<Maximum Bin Size> property cannot be smaller than <Minimum Bin Size> property"
+        runner.setVariable("min_size", "10 MB");
+        runner.setVariable("max_size", "100 KB");
+        runner.setProperty(MergeRecord.MIN_SIZE, "${min_size}");
+        runner.setProperty(MergeRecord.MAX_SIZE, "${max_size}");
+        runner.assertNotValid();
+
+        // This configuration breaks the "<Minimum Bin Size> Must be of format <Data Size> <Data Unit> where <Data Size>
+        // is a non-negative integer and <Data Unit> is a supported Data Unit, such as: B, KB, MB, GB, TB"
+        runner.setVariable("min_size", "50 L");
+        runner.setProperty(MergeRecord.MIN_SIZE, "${min_size}");
+        runner.assertNotValid();
+
+        // This configuration breaks the "<Maximum Bin Size> Must be of format <Data Size> <Data Unit> where <Data Size>
+        // is a non-negative integer and <Data Unit> is a supported Data Unit, such as: B, KB, MB, GB, TB" rule
+        runner.setVariable("min_size", "50 B");
+        runner.setVariable("max_size", "100 L");
+        runner.setProperty(MergeRecord.MIN_SIZE, "${min_size}");
+        runner.setProperty(MergeRecord.MAX_SIZE, "${max_size}");
+        runner.assertNotValid();
+
+        // This configuration breaks the "<Maximum Bin Size> Must be of format <Data Size> <Data Unit> where <Data Size>
+        // is a non-negative integer and <Data Unit> is a supported Data Unit, such as: B, KB, MB, GB, TB" and the
+        // "<Maximum Bin Size> Must be of format <Data Size> <Data Unit> where <Data Size> is a non-negative integer and
+        // <Data Unit> is a supported Data Unit, such as: B, KB, MB, GB, TB" rules
+        runner.setVariable("min_size", "50 F");
+        runner.setVariable("max_size", "100 L");
+        runner.setProperty(MergeRecord.MIN_SIZE, "${min_size}");
+        runner.setProperty(MergeRecord.MAX_SIZE, "${max_size}");
+        runner.assertNotValid();
+
+        runner.removeProperty(MergeRecord.MIN_SIZE);
+        runner.removeProperty(MergeRecord.MAX_SIZE);
+
+        // This configuration is valid
+        runner.setVariable("max_bin_age", "50 s");
+        runner.setProperty(MergeRecord.MAX_BIN_AGE, "${max_bin_age}");
+        runner.assertValid();
+
+        // This configuration breaks the "<Maximum Bin Size> property must be of format <duration> <TimeUnit> where <duration>
+        // is a non-negative integer and TimeUnit is a supported Time Unit, such as: nanos, millis, secs, mins, hrs, days" rule
+        runner.setVariable("max_bin_age", "50 B");
+        runner.setProperty(MergeRecord.MAX_BIN_AGE, "${max_bin_age}");
+        runner.assertNotValid();
+
+        // This configuration breaks the "<Maximum Bin Size> property must be of format <duration> <TimeUnit> where <duration>
+        // is a non-negative integer and TimeUnit is a supported Time Unit, such as: nanos, millis, secs, mins, hrs, days" rule
+        runner.setVariable("max_bin_age", "-50 s");
+        runner.setProperty(MergeRecord.MAX_BIN_AGE, "${max_bin_age}");
+        runner.assertNotValid();
+
+        // This configuration breaks the "<Maximum Bin Size> property must be of format <duration> <TimeUnit> where <duration>
+        // is a non-negative integer and TimeUnit is a supported Time Unit, such as: nanos, millis, secs, mins, hrs, days" rule
+        runner.setVariable("max_bin_age", "-30");
+        runner.setProperty(MergeRecord.MAX_BIN_AGE, "${max_bin_age}");
+        runner.assertNotValid();
+
+        runner.removeProperty(MergeRecord.MAX_BIN_AGE);
+
+        // This configuration is valid
+        runner.setVariable("max_bin_count", "30");
+        runner.setProperty(MergeRecord.MAX_BIN_COUNT, "${max_bin_count}");
+        runner.assertValid();
+
+        // This configuration is breaks the "because <Max Bin Count> property cannot be negative or zero" rule
+        runner.setVariable("max_bin_count", "0");
+        runner.setProperty(MergeRecord.MAX_BIN_COUNT, "${max_bin_count}");
+        runner.assertNotValid();
+
+        runner.removeProperty(MergeRecord.MAX_BIN_COUNT);
     }
 
     @Test
@@ -347,6 +516,28 @@ public class TestMergeRecord {
         runner.run(2);
         runner.assertTransferCount(MergeRecord.REL_MERGED, 1);
         runner.assertTransferCount(MergeRecord.REL_ORIGINAL, 4);
+
+        clearRunner();
+
+        runner.setValidateExpressionUsage(true);
+        runner.setVariable("min_records", "3");
+        runner.setProperty(MergeRecord.MIN_RECORDS, "${min_records}");
+        runner.setProperty(MergeRecord.MAX_RECORDS, "3");
+        runner.removeProperty(MergeRecord.MIN_SIZE);
+
+        runner.enqueue("Name, Age\nJohn, 35");
+        runner.enqueue("Name, Age\nJane, 34");
+        runner.enqueue("Name, Age\nAlex, 28");
+
+        runner.run(1);
+        runner.assertTransferCount(MergeRecord.REL_MERGED, 1);
+        runner.assertTransferCount(MergeRecord.REL_ORIGINAL, 3);
+
+        final MockFlowFile mff = runner.getFlowFilesForRelationship(MergeRecord.REL_MERGED).get(0);
+        mff.assertAttributeEquals("record.count", "3");
+        mff.assertContentEquals("header\nJohn,35\nJane,34\nAlex,28\n");
+        runner.removeProperty(MergeRecord.MIN_RECORDS);
+        runner.removeProperty(MergeRecord.MAX_RECORDS);
     }
 
     @Test
@@ -365,6 +556,33 @@ public class TestMergeRecord {
         assertEquals(4, runner.getQueueSize().getObjectCount());
 
         runner.getFlowFilesForRelationship(MergeRecord.REL_MERGED).stream().forEach(ff -> ff.assertAttributeEquals("record.count", "10"));
+        clearRunner();
+
+        runner.setValidateExpressionUsage(true);
+        runner.setVariable("max_records", "3");
+        runner.setProperty(MergeRecord.MIN_RECORDS, "1");
+        runner.setProperty(MergeRecord.MAX_RECORDS, "${max_records}");
+        runner.enqueue("Name, Age\nJohn, 35");
+        runner.enqueue("Name, Age\nJane, 34");
+        runner.enqueue("Name, Age\nAlex, 28");
+        runner.enqueue("Name, Age\nDonna, 48");
+        runner.enqueue("Name, Age\nJoey, 45");
+
+        runner.run(2);
+        runner.assertTransferCount(MergeRecord.REL_MERGED, 2);
+        runner.assertTransferCount(MergeRecord.REL_ORIGINAL, 5);
+
+        final MockFlowFile mff1 = runner.getFlowFilesForRelationship(MergeRecord.REL_MERGED).get(0);
+        mff1.assertAttributeEquals("record.count", "3");
+        mff1.assertContentEquals("header\nJohn,35\nJane,34\nAlex,28\n");
+
+        final MockFlowFile mff2 = runner.getFlowFilesForRelationship(MergeRecord.REL_MERGED).get(1);
+        mff2.assertAttributeEquals("record.count", "2");
+        mff2.assertContentEquals("header\nDonna,48\nJoey,45\n");
+        runner.clearTransferState();
+
+        runner.removeProperty(MergeRecord.MIN_RECORDS);
+        runner.removeProperty(MergeRecord.MAX_RECORDS);
     }
 
     @Test
@@ -381,13 +599,30 @@ public class TestMergeRecord {
         runner.assertTransferCount(MergeRecord.REL_ORIGINAL, 33);
 
         assertEquals(3, runner.getQueueSize().getObjectCount());
+
+        clearRunner();
+        runner.clearTransferState();
+        runner.setVariable("max_size", "50 B");
+        runner.removeProperty(MergeRecord.MIN_RECORDS);
+        runner.setProperty(MergeRecord.MAX_SIZE, "${max_size}");
+
+        for (int i = 0; i < 10; i++) {
+            runner.enqueue("Name, Age\nJohnny, 5");
+        }
+
+        runner.run();
+        runner.assertTransferCount(MergeRecord.REL_MERGED, 2);
+        runner.assertTransferCount(MergeRecord.REL_ORIGINAL, 10);
+
+        assertEquals(0, runner.getQueueSize().getObjectCount());
     }
 
     @Test
     @Ignore("This unit test depends on timing and could potentially cause problems in an automated build environment. However, it can be useful for manual testing")
     public void testTimeout() throws InterruptedException {
+        runner.setVariable("max_bin_age", "500 millis");
         runner.setProperty(MergeRecord.MIN_RECORDS, "500");
-        runner.setProperty(MergeRecord.MAX_BIN_AGE, "500 millis");
+        runner.setProperty(MergeRecord.MAX_BIN_AGE, "${max_bin_age}");
 
         for (int i = 0; i < 100; i++) {
             runner.enqueue("Name, Age\nJohnny, 5");
@@ -407,9 +642,10 @@ public class TestMergeRecord {
 
     @Test
     public void testBinCount() {
+        runner.setVariable("max_bin_count", "5");
         runner.setProperty(MergeRecord.MIN_RECORDS, "5");
         runner.setProperty(MergeRecord.MAX_RECORDS, "10");
-        runner.setProperty(MergeRecord.MAX_BIN_COUNT, "5");
+        runner.setProperty(MergeRecord.MAX_BIN_COUNT, "${max_bin_count}");
         runner.setProperty(MergeRecord.CORRELATION_ATTRIBUTE_NAME, "correlationId");
 
         final Map<String, String> attrs = new HashMap<>();
@@ -433,6 +669,33 @@ public class TestMergeRecord {
         runner.assertTransferCount(MergeRecord.REL_ORIGINAL, 1);
         runner.assertTransferCount(MergeRecord.REL_FAILURE, 0);
         assertEquals(5, ((MergeRecord) runner.getProcessor()).getBinCount());
+    }
+
+    @Test
+    public void testCorrelationId(){
+
+        runner.setVariable("merge_id", "correlationId");
+        runner.setProperty(MergeRecord.MAX_RECORDS, "2");
+        runner.setProperty(MergeRecord.MIN_RECORDS, "1");
+        runner.setProperty(MergeRecord.CORRELATION_ATTRIBUTE_NAME, "${merge_id}");
+
+        final Map<String, String> attrs = new HashMap<>();
+        for (int i = 0; i < 5; i++) {
+            attrs.put("correlationId", String.valueOf(i));
+            runner.enqueue("Name, Age\nJohn, 3" + i, attrs);
+            runner.enqueue("Name, Age\nJane, 2" + i, attrs);
+        }
+        runner.run();
+
+        runner.assertTransferCount(MergeRecord.REL_MERGED, 5);
+        runner.assertTransferCount(MergeRecord.REL_ORIGINAL, 10);
+        runner.assertTransferCount(MergeRecord.REL_FAILURE, 0);
+
+        final List<MockFlowFile> mffs = runner.getFlowFilesForRelationship(MergeRecord.REL_MERGED);
+        final Set<String> ffStrings = mffs.stream().map(ff -> new String(ff.toByteArray())).collect(Collectors.toSet());
+        for(int i = 0; i < 5; i++) {
+            assertTrue(ffStrings.contains("header\nJohn,3" + i  + "\nJane,2" + i  + "\n"));
+        }
     }
 
     @Test
@@ -486,104 +749,4 @@ public class TestMergeRecord {
         runner.assertTransferCount(MergeRecord.REL_ORIGINAL, 0);
         runner.assertTransferCount(MergeRecord.REL_FAILURE, 1);
     }
-
-    @Test
-    public void testMergeWithMinRecordsFromVariableRegistry() {
-        runner.setVariable("min_records", "3");
-        runner.setVariable("max_records", "3");
-        runner.setValidateExpressionUsage(true);
-
-        // Test MIN_RECORDS
-        runner.setProperty(MergeRecord.MIN_RECORDS, "${min_records}");
-        runner.setProperty(MergeRecord.MAX_RECORDS, "3");
-
-        runner.enqueue("Name, Age\nJohn, 35");
-        runner.enqueue("Name, Age\nJane, 34");
-        runner.enqueue("Name, Age\nAlex, 28");
-
-        runner.run(1);
-        runner.assertTransferCount(MergeRecord.REL_MERGED, 1);
-        runner.assertTransferCount(MergeRecord.REL_ORIGINAL, 3);
-
-        final MockFlowFile mff = runner.getFlowFilesForRelationship(MergeRecord.REL_MERGED).get(0);
-        mff.assertAttributeEquals("record.count", "3");
-        mff.assertContentEquals("header\nJohn,35\nJane,34\nAlex,28\n");
-        runner.clearTransferState();
-
-        // Test MAX_RECORDS
-        runner.setProperty(MergeRecord.MIN_RECORDS, "1");
-        runner.setProperty(MergeRecord.MAX_RECORDS, "${max_records}");
-
-        runner.enqueue("Name, Age\nJohn, 35");
-        runner.enqueue("Name, Age\nJane, 34");
-        runner.enqueue("Name, Age\nAlex, 28");
-        runner.enqueue("Name, Age\nDonna, 48");
-        runner.enqueue("Name, Age\nJoey, 45");
-
-        runner.run(2);
-        runner.assertTransferCount(MergeRecord.REL_MERGED, 2);
-        runner.assertTransferCount(MergeRecord.REL_ORIGINAL, 5);
-
-        final MockFlowFile mff1 = runner.getFlowFilesForRelationship(MergeRecord.REL_MERGED).get(0);
-        mff1.assertAttributeEquals("record.count", "3");
-        mff1.assertContentEquals("header\nJohn,35\nJane,34\nAlex,28\n");
-
-        final MockFlowFile mff2 = runner.getFlowFilesForRelationship(MergeRecord.REL_MERGED).get(1);
-        mff2.assertAttributeEquals("record.count", "2");
-        mff2.assertContentEquals("header\nDonna,48\nJoey,45\n");
-        runner.clearTransferState();
-
-        runner.removeProperty("min_records");
-        runner.removeProperty("max_records");
-    }
-
-    @Test
-    public void testNegativeMinAndMaxRecordsValidators(){
-
-        runner.setVariable("min_records", "-3");
-        runner.setVariable("max_records", "-1");
-
-        // This configuration breaks the "<Minimum Number of Records> property cannot be negative or zero" rule
-        runner.setProperty(MergeRecord.MIN_RECORDS, "${min_records}");
-        runner.setProperty(MergeRecord.MAX_RECORDS, "3");
-        runner.assertNotValid();
-
-        // This configuration breaks the "<Minimum Number of Records> property cannot be negative or zero" and the
-        // "<Maximum Number of Records> property cannot be negative or zero" rules
-        runner.setProperty(MergeRecord.MIN_RECORDS, "${min_records}");
-        runner.setProperty(MergeRecord.MAX_RECORDS, "${max_records}");
-        runner.assertNotValid();
-
-        // This configuration breaks the "<Maximum Number of Records> property cannot be smaller than <Minimum Number of Records> property"
-        // and the "<Maximum Number of Records> property cannot be negative or zero" rules
-        runner.setProperty(MergeRecord.MIN_RECORDS, "3");
-        runner.setProperty(MergeRecord.MAX_RECORDS, "${max_records}");
-        runner.assertNotValid();
-
-        // This configuration breaks the "<Maximum Number of Records> property cannot be smaller than <Minimum Number of Records> property"
-        // and the "<Maximum Number of Records> property cannot be negative or zero" rules
-        runner.removeProperty(MergeRecord.MIN_RECORDS); // Will use the default value of 1
-        runner.setProperty(MergeRecord.MAX_RECORDS, "${max_records}");
-        runner.assertNotValid();
-
-        // This configuration breaks the "<Maximum Number of Records> property cannot be smaller than <Minimum Number of Records> property",
-        // the "<Minimum Number of Records> property cannot be negative or zero" and the "<Maximum Number of Records>
-        // property cannot be negative or zero" rules
-        runner.setVariable("min_records", "-1");
-        runner.setVariable("max_records", "-3");
-        runner.setProperty(MergeRecord.MIN_RECORDS, "${min_records}");
-        runner.setProperty(MergeRecord.MAX_RECORDS, "${max_records}");
-        runner.assertNotValid();
-
-        // This configuration is valid
-        runner.setVariable("min_records", "1");
-        runner.setVariable("max_records", "5");
-        runner.setProperty(MergeRecord.MIN_RECORDS, "${min_records}");
-        runner.setProperty(MergeRecord.MAX_RECORDS, "${max_records}");
-        runner.assertValid();
-
-        runner.removeProperty("min_records");
-        runner.removeProperty("max_records");
-    }
-
 }

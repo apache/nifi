@@ -67,6 +67,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
+import static org.apache.nifi.processor.DataUnit.DATA_SIZE_PATTERN;
+import static org.apache.nifi.util.FormatUtils.TIME_DURATION_PATTERN;
+
 
 @SideEffectFree
 @TriggerWhenEmpty
@@ -151,7 +154,7 @@ public class MergeRecord extends AbstractSessionFactoryProcessor {
         .description("If specified, two FlowFiles will be binned together only if they have the same value for "
             + "this Attribute. If not specified, FlowFiles are bundled by the order in which they are pulled from the queue.")
         .required(false)
-        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .addValidator(StandardValidators.ATTRIBUTE_KEY_VALIDATOR)
         .defaultValue(null)
         .build();
@@ -162,6 +165,7 @@ public class MergeRecord extends AbstractSessionFactoryProcessor {
         .required(true)
         .defaultValue("0 B")
         .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .build();
     public static final PropertyDescriptor MAX_SIZE = new PropertyDescriptor.Builder()
         .name("max-bin-size")
@@ -170,6 +174,7 @@ public class MergeRecord extends AbstractSessionFactoryProcessor {
             + "all records in that FlowFile will be added, so this limit may be exceeded by up to the number of bytes in last input FlowFile.")
         .required(false)
         .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .build();
 
     public static final PropertyDescriptor MIN_RECORDS = new PropertyDescriptor.Builder()
@@ -200,6 +205,7 @@ public class MergeRecord extends AbstractSessionFactoryProcessor {
         .defaultValue("10")
         .required(true)
         .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .build();
 
     public static final PropertyDescriptor MAX_BIN_AGE = new PropertyDescriptor.Builder()
@@ -209,6 +215,7 @@ public class MergeRecord extends AbstractSessionFactoryProcessor {
             + "where <duration> is a positive integer and time unit is one of seconds, minutes, hours")
         .required(false)
         .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .build();
 
 
@@ -297,15 +304,75 @@ public class MergeRecord extends AbstractSessionFactoryProcessor {
                     .build());
         }
 
-        final Double minSize = validationContext.getProperty(MIN_SIZE).asDataSize(DataUnit.B);
-        final Double maxSize = validationContext.getProperty(MAX_SIZE).asDataSize(DataUnit.B);
-        if (minSize != null && maxSize != null && maxSize < minSize) {
+        final String minSize = validationContext.getProperty(MIN_SIZE).evaluateAttributeExpressions().getValue();
+        final String maxSize = validationContext.getProperty(MAX_SIZE).evaluateAttributeExpressions().getValue();
+        if(minSize != null || maxSize != null) {
+            // Keep track of valid formats in order to check their value only if they pass the format validation
+            boolean minSizeValidFormat = false;
+            boolean maxSizeValidFormat = false;
+            if(minSize != null) {
+                if (!DATA_SIZE_PATTERN.matcher(minSize).matches())  { // Validates both format and non-negativity
+                    results.add(new ValidationResult.Builder()
+                            .subject("Min Size")
+                            .input(minSize)
+                            .valid(false)
+                            .explanation("<Minimum Bin Size> Must be of format <Data Size> <Data Unit> where <Data Size>"
+                                    + " is a non-negative integer and <Data Unit> is a supported Data"
+                                    + " Unit, such as: B, KB, MB, GB, TB")
+                            .build());
+                } else {
+                    minSizeValidFormat = true;
+                }
+            }
+            if(maxSize != null) {
+                if (!DATA_SIZE_PATTERN.matcher(maxSize).matches())  { // Validates both format and non-negativity
+                    results.add(new ValidationResult.Builder()
+                            .subject("Min Size")
+                            .input(maxSize)
+                            .valid(false)
+                            .explanation("<Minimum Bin Size> Must be of format <Data Size> <Data Unit> where <Data Size>"
+                                    + " is a non-negative integer and <Data Unit> is a supported Data"
+                                    + " Unit, such as: B, KB, MB, GB, TB")
+                            .build());
+                } else {
+                    maxSizeValidFormat = true;
+                }
+            }
+
+           if(minSizeValidFormat && maxSizeValidFormat) {
+               final Double minSizeValue = validationContext.getProperty(MIN_SIZE).evaluateAttributeExpressions().asDataSize(DataUnit.B);
+               final Double maxSizeValue = validationContext.getProperty(MAX_SIZE).evaluateAttributeExpressions().asDataSize(DataUnit.B);
+               if (minSizeValue != null && maxSizeValue != null && maxSizeValue < minSizeValue) {
+                   results.add(new ValidationResult.Builder()
+                           .subject("Max Size")
+                           .input(maxSize)
+                           .valid(false)
+                           .explanation("<Maximum Bin Size> property cannot be smaller than <Minimum Bin Size> property")
+                           .build());
+               }
+           }
+        }
+
+        final String maxBinAge = validationContext.getProperty(MAX_BIN_AGE).evaluateAttributeExpressions().getValue();
+        if(maxBinAge != null && !TIME_DURATION_PATTERN.matcher(maxBinAge).matches()) { // Validates both format and non-negativity
             results.add(new ValidationResult.Builder()
-                .subject("Max Size")
-                .input(validationContext.getProperty(MAX_SIZE).getValue())
-                .valid(false)
-                .explanation("<Maximum Bin Size> property cannot be smaller than <Minimum Bin Size> property")
-                .build());
+                    .subject("Max Size")
+                    .input(maxBinAge)
+                    .valid(false)
+                    .explanation("<Maximum Bin Size> property must be of format <duration> <TimeUnit> where <duration> is a "
+                            + "non-negative integer and TimeUnit is a supported Time Unit, such "
+                            + "as: nanos, millis, secs, mins, hrs, days")
+                    .build());
+            }
+
+        final Integer maxBinCount = validationContext.getProperty(MergeRecord.MAX_BIN_COUNT).evaluateAttributeExpressions().asInteger();
+        if (maxBinCount != null && maxBinCount <= 0) {
+            results.add(new ValidationResult.Builder()
+                    .subject("Max Bin Count")
+                    .input(maxBinCount.toString())
+                    .valid(false)
+                    .explanation("<Max Bin Count> property cannot be negative or zero")
+                    .build());
         }
 
         return results;
@@ -316,7 +383,8 @@ public class MergeRecord extends AbstractSessionFactoryProcessor {
         RecordBinManager manager = binManager.get();
         while (manager == null) {
             manager = new RecordBinManager(context, sessionFactory, getLogger());
-            manager.setMaxBinAge(context.getProperty(MAX_BIN_AGE).asTimePeriod(TimeUnit.NANOSECONDS), TimeUnit.NANOSECONDS);
+            manager.setMaxBinAge(context.getProperty(MAX_BIN_AGE).evaluateAttributeExpressions()
+                .asTimePeriod(TimeUnit.NANOSECONDS), TimeUnit.NANOSECONDS);
             final boolean updated = binManager.compareAndSet(null, manager);
             if (!updated) {
                 manager = binManager.get();
@@ -329,21 +397,10 @@ public class MergeRecord extends AbstractSessionFactoryProcessor {
             final List<String> ids = flowFiles.stream().map(ff -> "id=" + ff.getId()).collect(Collectors.toList());
             getLogger().debug("Pulled {} FlowFiles from queue: {}", new Object[] {ids.size(), ids});
         }
-
-        final String mergeStrategy = context.getProperty(MERGE_STRATEGY).getValue();
-        final boolean block;
-        if (MERGE_STRATEGY_DEFRAGMENT.getValue().equals(mergeStrategy)) {
-            block = true;
-        } else if (context.getProperty(CORRELATION_ATTRIBUTE_NAME).isSet()) {
-            block = true;
-        } else {
-            block = false;
-        }
-
         try {
             for (final FlowFile flowFile : flowFiles) {
                 try {
-                    binFlowFile(context, flowFile, session, manager, block);
+                    binFlowFile(context, flowFile, session, manager);
                 } catch (final Exception e) {
                     getLogger().error("Failed to bin {} due to {}", new Object[] {flowFile, e});
                     session.transfer(flowFile, REL_FAILURE);
@@ -377,14 +434,18 @@ public class MergeRecord extends AbstractSessionFactoryProcessor {
     }
 
 
-    private void binFlowFile(final ProcessContext context, final FlowFile flowFile, final ProcessSession session, final RecordBinManager binManager, final boolean block) {
+    private void binFlowFile(final ProcessContext context, final FlowFile flowFile, final ProcessSession session, final RecordBinManager binManager) {
         final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
         try (final InputStream in = session.read(flowFile);
             final RecordReader reader = readerFactory.createRecordReader(flowFile, in, getLogger())) {
-
             final RecordSchema schema = reader.getSchema();
 
-            final String groupId = getGroupId(context, flowFile, schema, session);
+            final String mergeStrategy = context.getProperty(MERGE_STRATEGY).getValue();
+            final String correlationAttributeName = context.getProperty(CORRELATION_ATTRIBUTE_NAME)
+                    .evaluateAttributeExpressions(flowFile).getValue();
+            boolean block = isBlocking(mergeStrategy, correlationAttributeName);
+
+            final String groupId = getGroupId(mergeStrategy, correlationAttributeName, flowFile, schema);
             getLogger().debug("Got Group ID {} for {}", new Object[] {groupId, flowFile});
 
             binManager.add(groupId, flowFile, reader, session, block);
@@ -394,25 +455,30 @@ public class MergeRecord extends AbstractSessionFactoryProcessor {
     }
 
 
-    protected String getGroupId(final ProcessContext context, final FlowFile flowFile, final RecordSchema schema, final ProcessSession session) {
-        final String mergeStrategy = context.getProperty(MERGE_STRATEGY).getValue();
+    protected String getGroupId(final String mergeStrategy, final String correlationAttributeName, final FlowFile flowFile, final RecordSchema schema) {
+
         if (MERGE_STRATEGY_DEFRAGMENT.getValue().equals(mergeStrategy)) {
             return flowFile.getAttribute(FRAGMENT_ID_ATTRIBUTE);
         }
-
         final Optional<String> optionalText = schema.getSchemaText();
         final String schemaText = optionalText.orElseGet(() -> AvroTypeUtil.extractAvroSchema(schema).toString());
 
         final String groupId;
-        final String correlationshipAttributeName = context.getProperty(CORRELATION_ATTRIBUTE_NAME).getValue();
-        if (correlationshipAttributeName != null) {
-            final String correlationAttr = flowFile.getAttribute(correlationshipAttributeName);
+        if (correlationAttributeName != null) {
+            final String correlationAttr = flowFile.getAttribute(correlationAttributeName);
             groupId = correlationAttr == null ? schemaText : schemaText + correlationAttr;
         } else {
             groupId = schemaText;
         }
 
         return groupId;
+    }
+
+    private boolean isBlocking(String mergeStrategy, String correlationAttribute) {
+        if (MERGE_STRATEGY_DEFRAGMENT.getValue().equals(mergeStrategy)) {
+            return true;
+        }
+        return (correlationAttribute != null && !correlationAttribute.isEmpty());
     }
 
     int getBinCount() {
