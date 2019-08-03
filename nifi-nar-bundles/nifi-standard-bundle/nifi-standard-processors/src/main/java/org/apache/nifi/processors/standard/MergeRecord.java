@@ -312,13 +312,13 @@ public class MergeRecord extends AbstractSessionFactoryProcessor {
             if(minSize != null) {
                 if (!DATA_SIZE_PATTERN.matcher(minSize).matches())  { // Validates both format and non-negativity
                     results.add(new ValidationResult.Builder()
-                            .subject("Min Size")
-                            .input(minSize)
-                            .valid(false)
-                            .explanation("<Minimum Bin Size> Must be of format <Data Size> <Data Unit> where <Data Size>"
-                                    + " is a non-negative integer and <Data Unit> is a supported Data"
-                                    + " Unit, such as: B, KB, MB, GB, TB")
-                            .build());
+                        .subject("Min Size")
+                        .input(minSize)
+                        .valid(false)
+                        .explanation("<Minimum Bin Size> Must be of format <Data Size> <Data Unit> where <Data Size>"
+                                + " is a non-negative integer and <Data Unit> is a supported Data"
+                                + " Unit, such as: B, KB, MB, GB, TB")
+                        .build());
                 } else {
                     minSizeValidFormat = true;
                 }
@@ -326,13 +326,13 @@ public class MergeRecord extends AbstractSessionFactoryProcessor {
             if(maxSize != null) {
                 if (!DATA_SIZE_PATTERN.matcher(maxSize).matches())  { // Validates both format and non-negativity
                     results.add(new ValidationResult.Builder()
-                            .subject("Min Size")
-                            .input(maxSize)
-                            .valid(false)
-                            .explanation("<Minimum Bin Size> Must be of format <Data Size> <Data Unit> where <Data Size>"
-                                    + " is a non-negative integer and <Data Unit> is a supported Data"
-                                    + " Unit, such as: B, KB, MB, GB, TB")
-                            .build());
+                        .subject("Min Size")
+                        .input(maxSize)
+                        .valid(false)
+                        .explanation("<Minimum Bin Size> Must be of format <Data Size> <Data Unit> where <Data Size>"
+                                + " is a non-negative integer and <Data Unit> is a supported Data"
+                                + " Unit, such as: B, KB, MB, GB, TB")
+                        .build());
                 } else {
                     maxSizeValidFormat = true;
                 }
@@ -343,11 +343,11 @@ public class MergeRecord extends AbstractSessionFactoryProcessor {
                final Double maxSizeValue = validationContext.getProperty(MAX_SIZE).evaluateAttributeExpressions().asDataSize(DataUnit.B);
                if (minSizeValue != null && maxSizeValue != null && maxSizeValue < minSizeValue) {
                    results.add(new ValidationResult.Builder()
-                           .subject("Max Size")
-                           .input(maxSize)
-                           .valid(false)
-                           .explanation("<Maximum Bin Size> property cannot be smaller than <Minimum Bin Size> property")
-                           .build());
+                       .subject("Max Size")
+                       .input(maxSize)
+                       .valid(false)
+                       .explanation("<Maximum Bin Size> property cannot be smaller than <Minimum Bin Size> property")
+                       .build());
                }
            }
         }
@@ -355,23 +355,23 @@ public class MergeRecord extends AbstractSessionFactoryProcessor {
         final String maxBinAge = validationContext.getProperty(MAX_BIN_AGE).evaluateAttributeExpressions().getValue();
         if(maxBinAge != null && !TIME_DURATION_PATTERN.matcher(maxBinAge).matches()) { // Validates both format and non-negativity
             results.add(new ValidationResult.Builder()
-                    .subject("Max Size")
-                    .input(maxBinAge)
-                    .valid(false)
-                    .explanation("<Maximum Bin Size> property must be of format <duration> <TimeUnit> where <duration> is a "
-                            + "non-negative integer and TimeUnit is a supported Time Unit, such "
-                            + "as: nanos, millis, secs, mins, hrs, days")
-                    .build());
+                .subject("Max Size")
+                .input(maxBinAge)
+                .valid(false)
+                .explanation("<Maximum Bin Size> property must be of format <duration> <TimeUnit> where <duration> is a "
+                        + "non-negative integer and TimeUnit is a supported Time Unit, such "
+                        + "as: nanos, millis, secs, mins, hrs, days")
+                .build());
             }
 
         final Integer maxBinCount = validationContext.getProperty(MergeRecord.MAX_BIN_COUNT).evaluateAttributeExpressions().asInteger();
         if (maxBinCount != null && maxBinCount <= 0) {
             results.add(new ValidationResult.Builder()
-                    .subject("Max Bin Count")
-                    .input(maxBinCount.toString())
-                    .valid(false)
-                    .explanation("<Max Bin Count> property cannot be negative or zero")
-                    .build());
+                .subject("Max Bin Count")
+                .input(maxBinCount.toString())
+                .valid(false)
+                .explanation("<Max Bin Count> property cannot be negative or zero")
+                .build());
         }
 
         return results;
