@@ -1576,6 +1576,58 @@ Expressions will provide the following results:
 
 An empty subject value or a subject value with an invalid JSON document results in an exception bulletin.
 
+
+[.function]
+=== jsonPathDelete
+
+*Description*: [.description]#The `jsonPathDelete` function deletes the specified JsonPath from a Subject JSON and returns string
+form of the updated JSON.#
+
+*Subject Type*: [.subject]#String#
+
+*Arguments*:
+	 [.argName]#_jsonPath_# : [.argDesc]#the JSON path expression to delete from the Subject.#
+
+*Return Type*: [.returnType]#String#
+
+*Examples*: If the "myJson" attribute is
+
+..........
+{
+  "firstName": "John",
+  "lastName": "Smith",
+  "isAlive": true,
+  "age": 25,
+  "address": {
+    "streetAddress": "21 2nd Street",
+    "city": "New York",
+    "state": "NY",
+    "postalCode": "10021-3100"
+  },
+  "phoneNumbers": [
+    {
+      "type": "home",
+      "number": "212 555-1234"
+    },
+    {
+      "type": "office",
+      "number": "646 555-4567"
+    }
+  ],
+  "children": [],
+  "spouse": null
+}
+..........
+
+.jsonPathDelete Examples
+|===================================================================
+| Expression | Value
+| `${myJson:jsonPathDelete('$.firstName')}` | `{"lastName":"Smith","age":25,"address":{"streetAddress":"21 2nd Street","city":"New York","state":"NY","postalCode":"10021-3100"},"phoneNumbers":[{"type":"home","number":"212 555-1234"},{"type":"office","number":"646 555-4567"}]}`
+| `${myJson:jsonPathDelete('$.missing-path')}` | Returns original JSON document
+|===================================================================
+
+An empty subject value or a subject value with an invalid JSON document results in an exception bulletin.
+
 [[numbers]]
 == Mathematical Operations and Numeric Manipulation
 

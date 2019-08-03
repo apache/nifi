@@ -25,11 +25,11 @@ import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.JsonPath;
 
 /**
- * JsonPathEvaluator provides access to document at the specified JsonPath
+ * JsonPathDeleteEvaluator allows delete elements at the specified path
  */
-public class JsonPathEvaluator extends JsonPathBaseEvaluator {
+public class JsonPathDeleteEvaluator extends JsonPathBaseEvaluator {
 
-    public JsonPathEvaluator(final Evaluator<String> subject, final Evaluator<String> jsonPathExp) {
+    public JsonPathDeleteEvaluator(final Evaluator<String> subject, final Evaluator<String> jsonPathExp) {
         super(subject, jsonPathExp);
     }
 
@@ -37,11 +37,11 @@ public class JsonPathEvaluator extends JsonPathBaseEvaluator {
     public QueryResult<String> evaluate(EvaluationContext context) {
         DocumentContext documentContext = getDocumentContext(context);
 
-        final JsonPath compiledJsonPath = getJsonPath(context);
+        final JsonPath compiledJsonPath = getJsonPath(context);;
 
-        Object result = null;
+        String result = null;
         try {
-            result = documentContext.read(compiledJsonPath);
+            result = documentContext.delete(compiledJsonPath).jsonString();
         } catch (Exception e) {
             // assume the path did not match anything in the document
             return EMPTY_RESULT;

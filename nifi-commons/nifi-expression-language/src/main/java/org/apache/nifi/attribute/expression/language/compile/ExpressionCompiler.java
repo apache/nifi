@@ -61,6 +61,7 @@ import org.apache.nifi.attribute.expression.language.evaluation.functions.InEval
 import org.apache.nifi.attribute.expression.language.evaluation.functions.IndexOfEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.IsEmptyEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.IsNullEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.functions.JsonPathDeleteEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.JsonPathEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.LastIndexOfEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.LengthEvaluator;
@@ -173,6 +174,7 @@ import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpre
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.IS_NULL;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.JOIN;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.JSON_PATH;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.JSON_PATH_DELETE;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.LAST_INDEX_OF;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.LENGTH;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.LESS_THAN;
@@ -911,6 +913,11 @@ public class ExpressionCompiler {
                 verifyArgCount(argEvaluators, 1, "jsonPath");
                 return addToken(new JsonPathEvaluator(toStringEvaluator(subjectEvaluator),
                     toStringEvaluator(argEvaluators.get(0), "first argument to jsonPath")), "jsonPath");
+            }
+            case JSON_PATH_DELETE: {
+                verifyArgCount(argEvaluators, 1, "jsonPathDelete");
+                return addToken(new JsonPathDeleteEvaluator(toStringEvaluator(subjectEvaluator),
+                        toStringEvaluator(argEvaluators.get(0), "first argument to jsonPathDelete")), "jsonPathDelete");
             }
             case IF_ELSE: {
                 verifyArgCount(argEvaluators, 2, "ifElse");
