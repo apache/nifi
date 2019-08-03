@@ -288,11 +288,11 @@ public class MergeRecord extends AbstractSessionFactoryProcessor {
         }
         if (minRecords != null && minRecords <= 0) {
             results.add(new ValidationResult.Builder()
-                    .subject("Min Records")
-                    .input(String.valueOf(minRecords))
-                    .valid(false)
-                    .explanation("<Minimum Number of Records> property cannot be negative or zero")
-                    .build());
+                .subject("Min Records")
+                .input(String.valueOf(minRecords))
+                .valid(false)
+                .explanation("<Minimum Number of Records> property cannot be negative or zero")
+                .build());
         }
         if (maxRecords != null && maxRecords <= 0) {
             results.add(new ValidationResult.Builder()
