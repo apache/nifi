@@ -151,26 +151,17 @@ public class PutHive3Streaming extends AbstractProcessor {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
-    static final PropertyDescriptor PARTITION_VALUES = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor STATIC_PARTITION_VALUES = new PropertyDescriptor.Builder()
             .name("hive3-stream-part-vals")
-            .displayName("Partition Values")
+            .displayName("Static Partition Values")
             .description("Specifies a comma-separated list of the values for the partition columns of the target table. If the incoming records all have the same values "
                     + "for the partition columns, those values can be entered here, resulting in a performance gain. If specified, this property will often contain "
                     + "Expression Language, for example if PartitionRecord is upstream and two partitions 'name' and 'age' are used, then this property can be set to "
-                    + "${name},${age}.")
+                    + "${name},${age}.\n"
+                    + "Having this property filled implies Hive Static Partitioning.")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .build();
-
-    static final PropertyDescriptor AUTOCREATE_PARTITIONS = new PropertyDescriptor.Builder()
-            .name("hive3-stream-autocreate-partition")
-            .displayName("Auto-Create Partitions")
-            .description("Flag indicating whether partitions should be automatically created")
-            .required(true)
-            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
-            .allowableValues("true", "false")
-            .defaultValue("true")
             .build();
 
     static final PropertyDescriptor CALL_TIMEOUT = new PropertyDescriptor.Builder()
@@ -250,8 +241,7 @@ public class PutHive3Streaming extends AbstractProcessor {
         props.add(HIVE_CONFIGURATION_RESOURCES);
         props.add(DB_NAME);
         props.add(TABLE_NAME);
-        props.add(PARTITION_VALUES);
-        props.add(AUTOCREATE_PARTITIONS);
+        props.add(STATIC_PARTITION_VALUES);
         props.add(CALL_TIMEOUT);
         props.add(DISABLE_STREAMING_OPTIMIZATIONS);
         props.add(ROLLBACK_ON_FAILURE);
@@ -362,8 +352,7 @@ public class PutHive3Streaming extends AbstractProcessor {
             }
         }
 
-        final String partitionValuesString = context.getProperty(PARTITION_VALUES).evaluateAttributeExpressions(flowFile).getValue();
-        final boolean autoCreatePartitions = context.getProperty(AUTOCREATE_PARTITIONS).asBoolean();
+        final String staticPartitionValuesString = context.getProperty(STATIC_PARTITION_VALUES).evaluateAttributeExpressions(flowFile).getValue();
         final boolean disableStreamingOptimizations = context.getProperty(DISABLE_STREAMING_OPTIMIZATIONS).asBoolean();
 
         // Override the Hive Metastore URIs in the config if set by the user
@@ -373,12 +362,11 @@ public class PutHive3Streaming extends AbstractProcessor {
 
         HiveOptions o = new HiveOptions(metastoreURIs, dbName, tableName)
                 .withHiveConf(hiveConfig)
-                .withAutoCreatePartitions(autoCreatePartitions)
                 .withCallTimeout(callTimeout)
                 .withStreamingOptimizations(!disableStreamingOptimizations);
 
-        if (!StringUtils.isEmpty(partitionValuesString)) {
-            List<String> staticPartitionValues = Arrays.stream(partitionValuesString.split(",")).filter(Objects::nonNull).map(String::trim).collect(Collectors.toList());
+        if (!StringUtils.isEmpty(staticPartitionValuesString)) {
+            List<String> staticPartitionValues = Arrays.stream(staticPartitionValuesString.split(",")).filter(Objects::nonNull).map(String::trim).collect(Collectors.toList());
             o = o.withStaticPartitionValues(staticPartitionValues);
         }
 
