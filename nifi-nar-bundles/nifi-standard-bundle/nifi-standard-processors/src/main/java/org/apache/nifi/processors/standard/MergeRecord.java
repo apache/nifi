@@ -355,10 +355,10 @@ public class MergeRecord extends AbstractSessionFactoryProcessor {
         final String maxBinAge = validationContext.getProperty(MAX_BIN_AGE).evaluateAttributeExpressions().getValue();
         if(maxBinAge != null && !TIME_DURATION_PATTERN.matcher(maxBinAge).matches()) { // Validates both format and non-negativity
             results.add(new ValidationResult.Builder()
-                .subject("Max Size")
+                .subject("Maximum Bin Age")
                 .input(maxBinAge)
                 .valid(false)
-                .explanation("<Maximum Bin Size> property must be of format <duration> <TimeUnit> where <duration> is a "
+                .explanation("<Maximum Bin Age> property must be of format <duration> <TimeUnit> where <duration> is a "
                         + "non-negative integer and TimeUnit is a supported Time Unit, such "
                         + "as: nanos, millis, secs, mins, hrs, days")
                 .build());
