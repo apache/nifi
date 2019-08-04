@@ -393,7 +393,6 @@ public class MergeContent extends BinFiles {
                 results.add(StandardValidators.FILE_EXISTS_VALIDATOR.validate(DEMARCATOR.getName(), demarcatorValue, context));
             }
         }
-
         return results;
     }
 
