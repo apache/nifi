@@ -1132,7 +1132,7 @@ public class TestMergeContent {
 
     @Test
     public void testMaxBinAge() throws InterruptedException {
-        final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
+        TestRunner runner = TestRunners.newTestRunner(new MergeContent());
         runner.setProperty(MergeContent.MERGE_STRATEGY, MergeContent.MERGE_STRATEGY_BIN_PACK);
         runner.setProperty(MergeContent.MAX_BIN_AGE, "2 sec");
         runner.setProperty(MergeContent.CORRELATION_ATTRIBUTE_NAME, "attr");
@@ -1153,6 +1153,248 @@ public class TestMergeContent {
         runner.run();
 
         runner.assertTransferCount(MergeContent.REL_MERGED, 1);
+
+        runner = TestRunners.newTestRunner(new MergeContent());
+        runner.setVariable("max_age", "2 sec");
+        runner.setProperty(MergeContent.MERGE_STRATEGY, MergeContent.MERGE_STRATEGY_BIN_PACK);
+        runner.setProperty(MergeContent.MAX_BIN_AGE, "${max_age}");
+        runner.setProperty(MergeContent.MAX_ENTRIES, "500");
+
+        for (int i = 0; i < 50; i++) {
+            runner.enqueue(new byte[0]);
+        }
+
+        runner.run(5, false);
+        Thread.sleep(3000L);
+
+        runner.run();
+
+        runner.assertTransferCount(MergeContent.REL_MERGED, 1);
+    }
+
+    @Test
+    public void testSize() {
+        final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
+        runner.setVariable("max_size", "50 B");
+        runner.setProperty(MergeContent.MAX_SIZE, "${max_size}");
+        runner.setProperty(MergeContent.MIN_SIZE, "0 B");
+
+        for (int i = 0; i < 10; i++) {
+            runner.enqueue(new byte[10]);
+        }
+
+        runner.run();
+        runner.assertTransferCount(MergeContent.REL_MERGED, 2);
+        runner.assertTransferCount(MergeContent.REL_ORIGINAL, 10);
+
+        assertEquals(0, runner.getQueueSize().getObjectCount());
+        runner.clearTransferState();
+
+        runner.setVariable("min_size", "50 B");
+        runner.setProperty(MergeContent.MIN_SIZE, "${min_size}");
+        runner.setProperty(MergeContent.MAX_SIZE, "100 B");
+
+        for (int i = 0; i < 4; i++) {
+            runner.enqueue(new byte[10]);
+        }
+
+        runner.run();
+        runner.assertTransferCount(MergeContent.REL_MERGED, 0);
+        runner.assertTransferCount(MergeContent.REL_ORIGINAL, 0);
+
+        assertEquals(4, runner.getQueueSize().getObjectCount());
+
+        for (int i = 0; i < 6; i++) {
+            runner.enqueue(new byte[10]);
+        }
+
+        runner.run();
+        runner.assertTransferCount(MergeContent.REL_MERGED, 1);
+        runner.assertTransferCount(MergeContent.REL_ORIGINAL, 10);
+    }
+
+    @Test
+    public void testNumEntries() {
+        final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
+        runner.setVariable("min_entries", "3");
+        runner.setVariable("max_entries", "3");
+        runner.setValidateExpressionUsage(true);
+
+        runner.setProperty(MergeContent.MIN_ENTRIES, "${min_entries}");
+        runner.setProperty(MergeContent.MAX_ENTRIES, "3");
+
+        for(int i = 0; i < 3; i++) {
+            runner.enqueue(new byte[10]);
+        }
+
+        runner.run(1);
+        runner.assertTransferCount(MergeContent.REL_MERGED, 1);
+        runner.assertTransferCount(MergeContent.REL_ORIGINAL, 3);
+
+        final MockFlowFile mff = runner.getFlowFilesForRelationship(MergeContent.REL_MERGED).get(0);
+        mff.assertAttributeEquals("merge.count", "3");
+        runner.clearTransferState();
+
+        // Test MAX_ENTRIES
+        runner.setProperty(MergeContent.MIN_ENTRIES, "1");
+        runner.setProperty(MergeContent.MAX_ENTRIES, "${max_entries}");
+
+        for(int i = 0; i < 5; i++) {
+            runner.enqueue(new byte[10]);
+        }
+
+        runner.run(2);
+        runner.assertTransferCount(MergeContent.REL_MERGED, 2);
+        runner.assertTransferCount(MergeContent.REL_ORIGINAL, 5);
+
+        final MockFlowFile mff1 = runner.getFlowFilesForRelationship(MergeContent.REL_MERGED).get(0);
+        mff1.assertAttributeEquals("merge.count", "3");
+
+        final MockFlowFile mff2 = runner.getFlowFilesForRelationship(MergeContent.REL_MERGED).get(1);
+        mff2.assertAttributeEquals("merge.count", "2");
+    }
+
+    @Test
+    public void testValidity() {
+        final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
+
+        runner.setProperty(MergeContent.MIN_ENTRIES, "103");
+        runner.setProperty(MergeContent.MAX_ENTRIES, "2");
+        runner.setProperty(MergeContent.MIN_SIZE, "500 B");
+        runner.assertNotValid();
+
+        runner.setProperty(MergeContent.MIN_ENTRIES, "2");
+        runner.setProperty(MergeContent.MAX_ENTRIES, "103");
+        runner.assertValid();
+
+        runner.setVariable("min_entries", "-3");
+        runner.setVariable("max_entries", "-1");
+
+        // This configuration breaks the "<Minimum Number of Entries> property cannot be negative or zero" rule
+        runner.setProperty(MergeContent.MIN_ENTRIES, "${min_entries}");
+        runner.setProperty(MergeContent.MAX_ENTRIES, "3");
+        runner.assertNotValid();
+
+        // This configuration breaks the "<Minimum Number of Entries> property cannot be negative or zero" and the
+        // "<Maximum Number of Entries> property cannot be negative or zero" rules
+        runner.setProperty(MergeContent.MIN_ENTRIES, "${min_entries}");
+        runner.setProperty(MergeContent.MAX_ENTRIES, "${max_entries}");
+        runner.assertNotValid();
+
+        // This configuration breaks the "<Maximum Number of Entries> property cannot be smaller than <Minimum Number of Entries> property"
+        // and the "<Maximum Number of Entries> property cannot be negative or zero" rules
+        runner.setProperty(MergeContent.MIN_ENTRIES, "3");
+        runner.setProperty(MergeContent.MAX_ENTRIES, "${max_entries}");
+        runner.assertNotValid();
+
+        // This configuration breaks the "<Maximum Number of Entries> property cannot be smaller than <Minimum Number of Entries> property"
+        // and the "<Maximum Number of Entries> property cannot be negative or zero" rules
+        runner.removeProperty(MergeContent.MIN_ENTRIES); // Will use the default value of 1
+        runner.setProperty(MergeContent.MAX_ENTRIES, "${max_entries}");
+        runner.assertNotValid();
+
+        // This configuration breaks the "<Maximum Number of Entries> property cannot be smaller than <Minimum Number of Entries> property",
+        // the "<Minimum Number of Entries> property cannot be negative or zero" and the "<Maximum Number of Entries>
+        // property cannot be negative or zero" rules
+        runner.setVariable("min_entries", "-1");
+        runner.setVariable("max_entries", "-3");
+        runner.setProperty(MergeContent.MIN_ENTRIES, "${min_entries}");
+        runner.setProperty(MergeContent.MAX_ENTRIES, "${max_entries}");
+        runner.assertNotValid();
+
+        // This configuration is valid
+        runner.setVariable("min_entries", "1");
+        runner.setVariable("max_entries", "5");
+        runner.setProperty(MergeContent.MIN_ENTRIES, "${min_entries}");
+        runner.setProperty(MergeContent.MAX_ENTRIES, "${max_entries}");
+        runner.assertValid();
+
+        runner.removeProperty(MergeContent.MIN_ENTRIES);
+        runner.removeProperty(MergeContent.MAX_ENTRIES);
+
+        // This configuration is valid
+        runner.setVariable("min_size", "0 B");
+        runner.setVariable("max_size", "100 B");
+        runner.setProperty(MergeContent.MIN_SIZE, "${min_size}");
+        runner.setProperty(MergeContent.MAX_SIZE, "${max_size}");
+
+        // This configuration breaks the "<Maximum Bin Size> property cannot be smaller than <Minimum Bin Size> property"
+        runner.setVariable("min_size", "1000 B");
+        runner.setVariable("max_size", "100 B");
+        runner.setProperty(MergeContent.MIN_SIZE, "${min_size}");
+        runner.setProperty(MergeContent.MAX_SIZE, "${max_size}");
+        runner.assertNotValid();
+
+        // This configuration breaks the "<Maximum Bin Size> property cannot be smaller than <Minimum Bin Size> property"
+        runner.setVariable("min_size", "10 MB");
+        runner.setVariable("max_size", "100 KB");
+        runner.setProperty(MergeContent.MIN_SIZE, "${min_size}");
+        runner.setProperty(MergeContent.MAX_SIZE, "${max_size}");
+        runner.assertNotValid();
+
+        // This configuration breaks the "<Minimum Bin Size> Must be of format <Data Size> <Data Unit> where <Data Size>
+        // is a non-negative integer and <Data Unit> is a supported Data Unit, such as: B, KB, MB, GB, TB"
+        runner.setVariable("min_size", "50 L");
+        runner.setProperty(MergeContent.MIN_SIZE, "${min_size}");
+        runner.assertNotValid();
+
+        // This configuration breaks the "<Maximum Bin Size> Must be of format <Data Size> <Data Unit> where <Data Size>
+        // is a non-negative integer and <Data Unit> is a supported Data Unit, such as: B, KB, MB, GB, TB" rule
+        runner.setVariable("min_size", "50 B");
+        runner.setVariable("max_size", "100 L");
+        runner.setProperty(MergeContent.MIN_SIZE, "${min_size}");
+        runner.setProperty(MergeContent.MAX_SIZE, "${max_size}");
+        runner.assertNotValid();
+
+        // This configuration breaks the "<Maximum Bin Size> Must be of format <Data Size> <Data Unit> where <Data Size>
+        // is a non-negative integer and <Data Unit> is a supported Data Unit, such as: B, KB, MB, GB, TB" and the
+        // "<Maximum Bin Size> Must be of format <Data Size> <Data Unit> where <Data Size> is a non-negative integer and
+        // <Data Unit> is a supported Data Unit, such as: B, KB, MB, GB, TB" rules
+        runner.setVariable("min_size", "50 F");
+        runner.setVariable("max_size", "100 L");
+        runner.setProperty(MergeContent.MIN_SIZE, "${min_size}");
+        runner.setProperty(MergeContent.MAX_SIZE, "${max_size}");
+        runner.assertNotValid();
+
+        runner.removeProperty(MergeContent.MIN_SIZE);
+        runner.removeProperty(MergeContent.MAX_SIZE);
+
+        // This configuration is valid
+        runner.setVariable("max_bin_age", "50 s");
+        runner.setProperty(MergeContent.MAX_BIN_AGE, "${max_bin_age}");
+        runner.assertValid();
+
+        // This configuration breaks the "<Maximum Bin Size> property must be of format <duration> <TimeUnit> where <duration>
+        // is a non-negative integer and TimeUnit is a supported Time Unit, such as: nanos, millis, secs, mins, hrs, days" rule
+        runner.setVariable("max_bin_age", "50 B");
+        runner.setProperty(MergeContent.MAX_BIN_AGE, "${max_bin_age}");
+        runner.assertNotValid();
+
+        // This configuration breaks the "<Maximum Bin Size> property must be of format <duration> <TimeUnit> where <duration>
+        // is a non-negative integer and TimeUnit is a supported Time Unit, such as: nanos, millis, secs, mins, hrs, days" rule
+        runner.setVariable("max_bin_age", "-50 s");
+        runner.setProperty(MergeContent.MAX_BIN_AGE, "${max_bin_age}");
+        runner.assertNotValid();
+
+        // This configuration breaks the "<Maximum Bin Size> property must be of format <duration> <TimeUnit> where <duration>
+        // is a non-negative integer and TimeUnit is a supported Time Unit, such as: nanos, millis, secs, mins, hrs, days" rule
+        runner.setVariable("max_bin_age", "-30");
+        runner.setProperty(MergeContent.MAX_BIN_AGE, "${max_bin_age}");
+        runner.assertNotValid();
+
+        runner.removeProperty(MergeContent.MAX_BIN_AGE);
+
+        // This configuration is valid
+        runner.setVariable("max_bin_count", "30");
+        runner.setProperty(MergeContent.MAX_BIN_COUNT, "${max_bin_count}");
+        runner.assertValid();
+
+        // This configuration is breaks the "because <Max Bin Count> property cannot be negative or zero" rule
+        runner.setVariable("max_bin_count", "0");
+        runner.setProperty(MergeContent.MAX_BIN_COUNT, "${max_bin_count}");
+        runner.assertNotValid();
+
+        runner.removeProperty(MergeContent.MAX_BIN_COUNT);
     }
 
     @Test

@@ -32,6 +32,7 @@ import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
@@ -42,6 +43,9 @@ import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+
+import static org.apache.nifi.processor.DataUnit.DATA_SIZE_PATTERN;
+import static org.apache.nifi.util.FormatUtils.TIME_DURATION_PATTERN;
 
 /**
  * Base class for file-binning processors.
@@ -55,12 +59,14 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
             .required(true)
             .defaultValue("0 B")
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
     public static final PropertyDescriptor MAX_SIZE = new PropertyDescriptor.Builder()
             .name("Maximum Group Size")
             .description("The maximum size for the bundle. If not specified, there is no maximum.")
             .required(false)
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor MIN_ENTRIES = new PropertyDescriptor.Builder()
@@ -69,6 +75,7 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
             .required(true)
             .defaultValue("1")
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
     public static final PropertyDescriptor MAX_ENTRIES = new PropertyDescriptor.Builder()
             .name("Maximum Number of Entries")
@@ -76,6 +83,7 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
             .defaultValue("1000")
             .required(true)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor MAX_BIN_COUNT = new PropertyDescriptor.Builder()
@@ -84,6 +92,7 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
             .defaultValue("5")
             .required(true)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor MAX_BIN_AGE = new PropertyDescriptor.Builder()
@@ -92,6 +101,7 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
                     + "where <duration> is a positive integer and time unit is one of seconds, minutes, hours")
             .required(false)
             .addValidator(StandardValidators.createTimePeriodValidator(1, TimeUnit.SECONDS, Integer.MAX_VALUE, TimeUnit.SECONDS))
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final Relationship REL_ORIGINAL = new Relationship.Builder()
@@ -172,7 +182,7 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
     @Override
     public final void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) throws ProcessException {
         final int totalBinCount = binManager.getBinCount() + readyBins.size();
-        final int maxBinCount = context.getProperty(MAX_BIN_COUNT).asInteger();
+        final int maxBinCount = context.getProperty(MAX_BIN_COUNT).evaluateAttributeExpressions().asInteger();
         final int flowFilesBinned;
 
         if (totalBinCount < maxBinCount) {
@@ -206,7 +216,8 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
         // if we have created all of the bins that are allowed, go ahead and remove the oldest one. If we don't do
         // this, then we will simply wait for it to expire because we can't get any more FlowFiles into the
         // bins. So we may as well expire it now.
-        if (added == 0 && binManager.getBinCount() >= context.getProperty(MAX_BIN_COUNT).asInteger()) {
+        if (added == 0 && binManager.getBinCount() >= context.getProperty(MAX_BIN_COUNT)
+                .evaluateAttributeExpressions().asInteger()) {
             final Bin bin = binManager.removeOldestBin();
             if (bin != null) {
                 added++;
@@ -256,7 +267,7 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
 
     private int binFlowFiles(final ProcessContext context, final ProcessSessionFactory sessionFactory) {
         int flowFilesBinned = 0;
-        while (binManager.getBinCount() <= context.getProperty(MAX_BIN_COUNT).asInteger()) {
+        while (binManager.getBinCount() <= context.getProperty(MAX_BIN_COUNT).evaluateAttributeExpressions().asInteger()) {
             if (!isScheduled()) {
                 break;
             }
@@ -297,24 +308,28 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
 
     @OnScheduled
     public final void onScheduled(final ProcessContext context) throws IOException {
-        binManager.setMinimumSize(context.getProperty(MIN_SIZE).asDataSize(DataUnit.B).longValue());
+        binManager.setMinimumSize(context.getProperty(MIN_SIZE)
+                .evaluateAttributeExpressions().asDataSize(DataUnit.B).longValue());
 
         if (context.getProperty(MAX_BIN_AGE).isSet()) {
-            binManager.setMaxBinAge(context.getProperty(MAX_BIN_AGE).asTimePeriod(TimeUnit.SECONDS).intValue());
+            binManager.setMaxBinAge(context.getProperty(MAX_BIN_AGE)
+                    .evaluateAttributeExpressions().asTimePeriod(TimeUnit.SECONDS).intValue());
         } else {
             binManager.setMaxBinAge(Integer.MAX_VALUE);
         }
 
         if (context.getProperty(MAX_SIZE).isSet()) {
-            binManager.setMaximumSize(context.getProperty(MAX_SIZE).asDataSize(DataUnit.B).longValue());
+            binManager.setMaximumSize(context.getProperty(MAX_SIZE)
+                    .evaluateAttributeExpressions().asDataSize(DataUnit.B).longValue());
         } else {
             binManager.setMaximumSize(Long.MAX_VALUE);
         }
 
-        binManager.setMinimumEntries(context.getProperty(MIN_ENTRIES).asInteger());
+        binManager.setMinimumEntries(context.getProperty(MIN_ENTRIES).evaluateAttributeExpressions().asInteger());
 
         if (context.getProperty(MAX_ENTRIES).isSet()) {
-            binManager.setMaximumEntries(context.getProperty(MAX_ENTRIES).asInteger().intValue());
+            binManager.setMaximumEntries(context.getProperty(MAX_ENTRIES)
+                    .evaluateAttributeExpressions().asInteger());
         } else {
             binManager.setMaximumEntries(Integer.MAX_VALUE);
         }
@@ -326,33 +341,102 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
     protected final Collection<ValidationResult> customValidate(final ValidationContext context) {
         final List<ValidationResult> problems = new ArrayList<>(super.customValidate(context));
 
-        final long minBytes = context.getProperty(MIN_SIZE).asDataSize(DataUnit.B).longValue();
-        final Double maxBytes = context.getProperty(MAX_SIZE).asDataSize(DataUnit.B);
+        final String minSize = context.getProperty(MIN_SIZE).evaluateAttributeExpressions().getValue();
+        final String maxSize = context.getProperty(MAX_SIZE).evaluateAttributeExpressions().getValue();
+        if(minSize != null || maxSize != null) {
+            // Keep track of valid formats in order to check their value only if they pass the format validation
+            boolean minSizeValidFormat = false;
+            boolean maxSizeValidFormat = false;
+            if(minSize != null) {
+                if (!DATA_SIZE_PATTERN.matcher(minSize).matches())  { // Validates both format and non-negativity
+                    problems.add(new ValidationResult.Builder()
+                        .subject("Min Size")
+                        .input(minSize)
+                        .valid(false)
+                        .explanation("<Minimum Group Size> Must be of format <Data Size> <Data Unit> where <Data Size>"
+                                + " is a non-negative integer and <Data Unit> is a supported Data"
+                                + " Unit, such as: B, KB, MB, GB, TB")
+                        .build());
+                } else {
+                    minSizeValidFormat = true;
+                }
+            }
+            if(maxSize != null) {
+                if (!DATA_SIZE_PATTERN.matcher(maxSize).matches())  { // Validates both format and non-negativity
+                    problems.add(new ValidationResult.Builder()
+                        .subject("Min Size")
+                        .input(maxSize)
+                        .valid(false)
+                        .explanation("<Minimum Group Size> Must be of format <Data Size> <Data Unit> where <Data Size>"
+                                + " is a non-negative integer and <Data Unit> is a supported Data"
+                                + " Unit, such as: B, KB, MB, GB, TB")
+                        .build());
+                } else {
+                    maxSizeValidFormat = true;
+                }
+            }
 
-        if (maxBytes != null && maxBytes.longValue() < minBytes) {
-            problems.add(
-                    new ValidationResult.Builder()
-                    .subject(MIN_SIZE.getName())
-                    .input(context.getProperty(MIN_SIZE).getValue())
-                    .valid(false)
-                    .explanation("Min Size must be less than or equal to Max Size")
-                    .build()
-            );
+            if(minSizeValidFormat && maxSizeValidFormat) {
+                final Double minSizeValue = context.getProperty(MIN_SIZE).evaluateAttributeExpressions().asDataSize(DataUnit.B);
+                final Double maxSizeValue = context.getProperty(MAX_SIZE).evaluateAttributeExpressions().asDataSize(DataUnit.B);
+                if (minSizeValue != null && maxSizeValue != null && maxSizeValue < minSizeValue) {
+                    problems.add(new ValidationResult.Builder()
+                        .subject("Max Size")
+                        .input(maxSize)
+                        .valid(false)
+                        .explanation("<Maximum Group Size> property cannot be smaller than <Minimum Group Size> property")
+                        .build());
+                }
+            }
         }
 
-        final Long min = context.getProperty(MIN_ENTRIES).asLong();
-        final Long max = context.getProperty(MAX_ENTRIES).asLong();
+        final Integer minEntries = context.getProperty(MIN_ENTRIES).evaluateAttributeExpressions().asInteger();
+        final Integer maxEntries = context.getProperty(MAX_ENTRIES).evaluateAttributeExpressions().asInteger();
+        if (minEntries != null && maxEntries != null && maxEntries < minEntries) {
+            problems.add(new ValidationResult.Builder()
+                .subject("Max Records")
+                .input(String.valueOf(maxEntries))
+                .valid(false)
+                .explanation("<Maximum Number of Entries> property cannot be smaller than <Minimum Number of Records> property")
+                .build());
+        }
+        if (minEntries != null && minEntries <= 0) {
+            problems.add(new ValidationResult.Builder()
+                .subject("Min Records")
+                .input(String.valueOf(minEntries))
+                .valid(false)
+                .explanation("<Minimum Number of Entries> property cannot be negative or zero")
+                .build());
+        }
+        if (maxEntries != null && maxEntries <= 0) {
+            problems.add(new ValidationResult.Builder()
+                .subject("Max Records")
+                .input(String.valueOf(maxEntries))
+                .valid(false)
+                .explanation("<Maximum Number of Entries> property cannot be negative or zero")
+                .build());
+        }
 
-        if (min != null && max != null) {
-            if (min > max) {
-                problems.add(
-                        new ValidationResult.Builder().subject(MIN_ENTRIES.getName())
-                        .input(context.getProperty(MIN_ENTRIES).getValue())
-                        .valid(false)
-                        .explanation("Min Entries must be less than or equal to Max Entries")
-                        .build()
-                );
-            }
+        final String maxBinAge = context.getProperty(MAX_BIN_AGE).evaluateAttributeExpressions().getValue();
+        if(maxBinAge != null && !TIME_DURATION_PATTERN.matcher(maxBinAge).matches()) { // Validates both format and non-negativity
+            problems.add(new ValidationResult.Builder()
+                .subject("Max Bin Age")
+                .input(maxBinAge)
+                .valid(false)
+                .explanation("<Max Bin Age> property must be of format <duration> <TimeUnit> where <duration> is a "
+                        + "non-negative integer and TimeUnit is a supported Time Unit, such "
+                        + "as: nanos, millis, secs, mins, hrs, days")
+                .build());
+        }
+
+        final Integer maxBinCount = context.getProperty(MAX_BIN_COUNT).evaluateAttributeExpressions().asInteger();
+        if (maxBinCount != null && maxBinCount <= 0) {
+            problems.add(new ValidationResult.Builder()
+                .subject("Max Bin Count")
+                .input(maxBinCount.toString())
+                .valid(false)
+                .explanation("<Maximum number of Bins> property cannot be negative or zero")
+                .build());
         }
 
         Collection<ValidationResult> otherProblems = this.additionalCustomValidation(context);
