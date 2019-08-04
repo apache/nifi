@@ -15,18 +15,88 @@
 
 language: java
 
-env:
-  - USER_LANGUAGE=en USER_REGION=US'
-  - USER_LANGUAGE=fr USER_REGION=FR'
-  - USER_LANGUAGE=ja USER_REGION=JP'
+matrix:
+  include:
+    - stage: "Cache"
+      name: "Cache Dependencies - no explicit jdk specified"
+      script: >-
+        if [ ! -d "$HOME"/.m2/repository ] || [ ! "$(ls -A "$HOME"/.m2/repository)" ] ; then
+          echo "Cached Maven repository does not exist, downloading dependencies..."
+          mvn -V -T 1C dependency:go-offline -Dsilent -ntp --fail-never \
+          | grep -v -F -f .travis-output-filters -e "Failed to execute goal on project"
+        else
+          echo "Cached Maven repository exists, skipping dependency cache"
+        fi
+    - stage: "Cache"
+      name: "Cache Dependencies - openjdk8"
+      jdk: openjdk8
+      script: >-
+        if [ ! -d "$HOME"/.m2/repository ] || [ ! "$(ls -A "$HOME"/.m2/repository)" ] ; then
+          echo "Cached Maven repository does not exist, downloading dependencies..."
+          mvn -V -T 1C dependency:go-offline -Dsilent -ntp --fail-never \
+          | grep -v -F -f .travis-output-filters -e "Failed to execute goal on project"
+        else
+          echo "Cached Maven repository exists, skipping dependency cache"
+        fi
+    # For the build stages, use -pl to exclude the following from the build to reduce build time:
+    #   non-api nar modules
+    #   assembly modules
+    #   nifi-maven-archetype directories that have "__" in the name
+    - stage: "Build"
+      name: "Build Java 8 EN"
+      jdk: openjdk8
+      script: >-
+        mvn clean install -V -T 1C
+        -pl `find . -type d \( -name "*-nar" -or -name "*-assembly" \) -and -not -name "*api-nar" -and -not -path "*/target/*" -and -not -name "*__*" -printf "!./%P,"`
+        -Pcontrib-check,include-grpc -Ddir-only
+        -Dmaven.surefire.arguments="-Duser.language=en -Duser.region=US"
+        | grep -v -F -f .travis-output-filters
+        && test ${PIPESTATUS[0]} -eq 0
+    - stage: "Build"
+      name: "Build Java 8 FR"
+      jdk: openjdk8
+      script: >-
+        mvn clean install -V -T 1C
+        -pl `find . -type d \( -name "*-nar" -or -name "*-assembly" \) -and -not -name "*api-nar" -and -not -path "*/target/*" -and -not -name "*__*" -printf "!./%P,"`
+        -Pcontrib-check,include-grpc -Ddir-only
+        -Dmaven.surefire.arguments="-Duser.language=fr -Duser.region=FR"
+        | grep -v -F -f .travis-output-filters
+        && test ${PIPESTATUS[0]} -eq 0
+    - stage: "Build"
+      name: "Build Java 8 JA"
+      jdk: openjdk8
+      script: >-
+        mvn clean install -V -T 1C
+        -pl `find . -type d \( -name "*-nar" -or -name "*-assembly" \) -and -not -name "*api-nar" -and -not -path "*/target/*" -and -not -name "*__*" -printf "!./%P,"`
+        -Pcontrib-check,include-grpc -Ddir-only
+        -Dmaven.surefire.arguments="-Duser.language=ja -Duser.region=JP"
+        | grep -v -F -f .travis-output-filters
+        && test ${PIPESTATUS[0]} -eq 0
+    - stage: "Build"
+      name: "Build Java 11 EN"
+      # Do not specify "jdk:" here, install-jdk.sh will download the JDK set JAVA_HOME appropriately
+      before_script:
+        # Download the newest version of sormuras' install-jdk.sh to /tmp
+        # install-jdk.sh is used by Travis internally, sormoras is the maintainer of that script
+        - wget -O /tmp/install-jdk.sh https://github.com/sormuras/bach/raw/master/install-jdk.sh
+        # Need to specifically install AdoptOpenJDK 11.0.4 (Linux, HotSpot) since Travis does not offer it by default
+        # The link to the AdoptOpenJDK 11.0.4 .tar.gz is taken directly from AdoptOpenJDK's website
+        - >-
+          source /tmp/install-jdk.sh
+          --url 'https://github.com/AdoptOpenJDK/openjdk11-binaries/releases/download/jdk-11.0.4%2B11/OpenJDK11U-jdk_x64_linux_hotspot_11.0.4_11.tar.gz'
+      script:
+        - >-
+          mvn clean install -V -T 1C
+          -pl `find . -type d \( -name "*-nar" -or -name "*-assembly" \) -and -not -name "*api-nar" -and -not -path "*/target/*" -and -not -name "*__*" -printf "!./%P,"`
+          -Pcontrib-check,include-grpc -Ddir-only
+          -Dmaven.surefire.arguments="-Duser.language=en -Duser.region=US"
+          | grep -v -F -f .travis-output-filters
+          && test ${PIPESTATUS[0]} -eq 0
 
 os:
   - linux
 
-jdk:
-  - openjdk8
-
-# Caches mvn repository in order to speed upbuilds
+# Caches mvn repository in order to speed up builds
 cache:
   directories:
     - $HOME/.m2
@@ -47,12 +117,10 @@ before_install:
   - cat ~/.mavenrc
   # Remove nifi repo again to save travis from caching it
   - rm -rf $HOME/.m2/repository/org/apache/nifi/
+  # Install Maven 3.6.1
+  - wget -O /tmp/apache-maven-3.6.1-bin.tar.gz https://archive.apache.org/dist/maven/maven-3/3.6.1/binaries/apache-maven-3.6.1-bin.tar.gz
+  - tar xzf /tmp/apache-maven-3.6.1-bin.tar.gz -C /tmp
+  - export M2_HOME=/tmp/apache-maven-3.6.1
+  - export PATH=$M2_HOME/bin:$PATH
 
 install: true
-    
-script:
-  # Replace variables seems to be the only option to pass proper values to surefire
-  # Note: The reason the sed is done as part of script is to ensure the pom hack 
-  # won't affect the 'clean install' above
-  - bash .travis.sh
-  - mvn -T 1C clean install -Pcontrib-check,include-grpc,include-atlas,include-hive3 -Ddir-only | grep -v -F -f .travis-output-filters && exit ${PIPESTATUS[0]}
