@@ -343,12 +343,12 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
 
         final String minSize = context.getProperty(MIN_SIZE).evaluateAttributeExpressions().getValue();
         final String maxSize = context.getProperty(MAX_SIZE).evaluateAttributeExpressions().getValue();
-        if(minSize != null || maxSize != null) {
+        if (minSize != null || maxSize != null) {
             // Keep track of valid formats in order to check their value only if they pass the format validation
             boolean minSizeValidFormat = false;
             boolean maxSizeValidFormat = false;
-            if(minSize != null) {
-                if (!DATA_SIZE_PATTERN.matcher(minSize).matches())  { // Validates both format and non-negativity
+            if (minSize != null) {
+                if (!DATA_SIZE_PATTERN.matcher(minSize).matches()) { // Validates both format and non-negativity
                     problems.add(new ValidationResult.Builder()
                         .subject("Min Size")
                         .input(minSize)
@@ -361,8 +361,8 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
                     minSizeValidFormat = true;
                 }
             }
-            if(maxSize != null) {
-                if (!DATA_SIZE_PATTERN.matcher(maxSize).matches())  { // Validates both format and non-negativity
+            if (maxSize != null) {
+                if (!DATA_SIZE_PATTERN.matcher(maxSize).matches()) { // Validates both format and non-negativity
                     problems.add(new ValidationResult.Builder()
                         .subject("Min Size")
                         .input(maxSize)
@@ -376,7 +376,7 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
                 }
             }
 
-            if(minSizeValidFormat && maxSizeValidFormat) {
+            if (minSizeValidFormat && maxSizeValidFormat) {
                 final Double minSizeValue = context.getProperty(MIN_SIZE).evaluateAttributeExpressions().asDataSize(DataUnit.B);
                 final Double maxSizeValue = context.getProperty(MAX_SIZE).evaluateAttributeExpressions().asDataSize(DataUnit.B);
                 if (minSizeValue != null && maxSizeValue != null && maxSizeValue < minSizeValue) {
