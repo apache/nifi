@@ -142,7 +142,7 @@ public class ParameterContextMerger {
 
         final AffectedComponentDTO mergedComponent = merged.getComponent();
         final AffectedComponentDTO additionalComponent = additional.getComponent();
-        mergedComponent.setActiveThreadCount(mergedComponent.getActiveThreadCount() + additionalComponent.getActiveThreadCount());
+        mergedComponent.setActiveThreadCount(add(mergedComponent.getActiveThreadCount(), additionalComponent.getActiveThreadCount()));
 
         if (mergedComponent.getValidationErrors() == null) {
             mergedComponent.setValidationErrors(new ArrayList<>());
@@ -151,5 +151,15 @@ public class ParameterContextMerger {
         if (additionalComponent.getValidationErrors() != null) {
             mergedComponent.getValidationErrors().addAll(additionalComponent.getValidationErrors());
         }
+    }
+
+    private static Integer add(final Integer a, final Integer b) {
+        if (a == null) {
+            return b;
+        }
+        if (b == null) {
+            return a;
+        }
+        return a + b;
     }
 }
