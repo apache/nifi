@@ -331,7 +331,7 @@ public class TestQuery {
 
         verifyEquals("${json:jsonPath('$.firstName')}", attributes, "John");
 
-        String addressBookAfterDelete = Query.evaluateExpressions("${json:jsonPathDelete('$.firstName')}", attributes);
+        String addressBookAfterDelete = Query.evaluateExpressions("${json:jsonPathDelete('$.firstName')}", attributes, ParameterLookup.EMPTY);
         attributes.clear();
         attributes.put("json", addressBookAfterDelete);
 
@@ -351,7 +351,7 @@ public class TestQuery {
         String addressBook = getResourceAsString("/json/address-book.json");
         attributes.put("json", addressBook);
 
-        String addressBookAfterDelete = Query.evaluateExpressions("${json:jsonPathDelete('$.missing-path')}", attributes);
+        String addressBookAfterDelete = Query.evaluateExpressions("${json:jsonPathDelete('$.missing-path')}", attributes, ParameterLookup.EMPTY);
         attributes.clear();
         attributes.put("json", addressBookAfterDelete);
 
@@ -372,7 +372,7 @@ public class TestQuery {
 
         verifyEquals("${json:jsonPath(\"$.phoneNumbers[?(@.type=='home')].number\")}", attributes, "212 555-1234");
 
-        String addressBookAfterDelete = Query.evaluateExpressions("${json:jsonPathDelete(\"$.phoneNumbers[?(@.type=='home')]\")}", attributes);
+        String addressBookAfterDelete = Query.evaluateExpressions("${json:jsonPathDelete(\"$.phoneNumbers[?(@.type=='home')]\")}", attributes, ParameterLookup.EMPTY);
 
         attributes.clear();
         attributes.put("json", addressBookAfterDelete);
