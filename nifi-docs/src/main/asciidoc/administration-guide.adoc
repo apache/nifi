@@ -469,6 +469,8 @@ The ShellUserGroupProvider has the following properties:
 | Property Name | Description
 |`Initial Refresh Delay` | Duration of initial delay before first user and group refresh. (i.e. `10 secs`).  Default is `5 mins`.
 |`Refresh Delay` | Duration of delay between each user and group refresh. (i.e. `10 secs`).  Default is `5 mins`.
+|`Exclude Groups` | Regular expression used to exclude groups.  Default is '', which means no groups are excluded.
+|`Exclude Users` | Regular expression used to exclude users.  Default is '', which means no users are excluded.
 |==================================================================================================================================================
 
 Like LdapUserGroupProvider, the ShellUserGroupProvider is commented out in the _authorizers.xml_ file.  Refer to that comment for usage examples.
