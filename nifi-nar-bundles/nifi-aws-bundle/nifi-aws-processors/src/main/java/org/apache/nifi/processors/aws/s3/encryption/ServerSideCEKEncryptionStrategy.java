@@ -26,6 +26,9 @@ import org.apache.nifi.components.ValidationResult;
 import org.bouncycastle.util.encoders.Base64;
 
 /**
+ * This strategy uses a customer key to perform server-side encryption.  Use this strategy when you want the server to perform the encryption,
+ * (meaning you pay cost of processing) and when you want to manage the key material yourself.
+ *
  * See https://docs.aws.amazon.com/AmazonS3/latest/dev/ServerSideEncryptionCustomerKeys.html
  *
  */

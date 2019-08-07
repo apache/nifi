@@ -122,8 +122,8 @@ import com.amazonaws.services.s3.model.UploadPartResult;
             "the S3 object, if one is set"),
     @WritesAttribute(attribute = "s3.sseAlgorithm", description = "The server side encryption algorithm of the object"),
     @WritesAttribute(attribute = "s3.usermetadata", description = "A human-readable form of the User Metadata of " +
-            "the S3 object, if any was set")
-})
+            "the S3 object, if any was set"),
+    @WritesAttribute(attribute = "s3.encryptionStrategy", description = "The name of the encryption strategy, if any was set"),})
 public class PutS3Object extends AbstractS3Processor {
 
     public static final long MIN_S3_PART_SIZE = 50L * 1024L * 1024L;
@@ -251,6 +251,8 @@ public class PutS3Object extends AbstractS3Processor {
     final static String S3_API_METHOD_PUTOBJECT = "putobject";
     final static String S3_API_METHOD_MULTIPARTUPLOAD = "multipartupload";
     final static String S3_SSE_ALGORITHM = "s3.sseAlgorithm";
+    final static String S3_ENCRYPTION_STRATEGY = "s3.encryptionStrategy";
+
 
     final static String S3_PROCESS_UNSCHEDULED_MESSAGE = "Processor unscheduled, stopping upload";
 
@@ -474,13 +476,13 @@ public class PutS3Object extends AbstractS3Processor {
                         }
 
                         final String serverSideEncryption = context.getProperty(SERVER_SIDE_ENCRYPTION).getValue();
-                        AbstractS3EncryptionService encryptionService = null;
+                        AmazonS3EncryptionService encryptionService = null;
 
                         if (!serverSideEncryption.equals(NO_SERVER_SIDE_ENCRYPTION)) {
                             objectMetadata.setSSEAlgorithm(serverSideEncryption);
                             attributes.put(S3_SSE_ALGORITHM, serverSideEncryption);
                         } else {
-                            encryptionService = context.getProperty(ENCRYPTION_SERVICE).asControllerService(AbstractS3EncryptionService.class);
+                            encryptionService = context.getProperty(ENCRYPTION_SERVICE).asControllerService(AmazonS3EncryptionService.class);
                         }
 
                         if (!userMetadata.isEmpty()) {
@@ -494,6 +496,7 @@ public class PutS3Object extends AbstractS3Processor {
                             final PutObjectRequest request = new PutObjectRequest(bucket, key, in, objectMetadata);
                             if (encryptionService != null) {
                                 encryptionService.configurePutObjectRequest(request, objectMetadata);
+                                attributes.put(S3_ENCRYPTION_STRATEGY, encryptionService.getStrategyName());
                             }
 
                             request.setStorageClass(StorageClass.valueOf(context.getProperty(STORAGE_CLASS).getValue()));
@@ -594,6 +597,7 @@ public class PutS3Object extends AbstractS3Processor {
                                 final InitiateMultipartUploadRequest initiateRequest = new InitiateMultipartUploadRequest(bucket, key, objectMetadata);
                                 if (encryptionService != null) {
                                     encryptionService.configureInitiateMultipartUploadRequest(initiateRequest, objectMetadata);
+                                    attributes.put(S3_ENCRYPTION_STRATEGY, encryptionService.getStrategyName());
                                 }
                                 initiateRequest.setStorageClass(currentState.getStorageClass());
 

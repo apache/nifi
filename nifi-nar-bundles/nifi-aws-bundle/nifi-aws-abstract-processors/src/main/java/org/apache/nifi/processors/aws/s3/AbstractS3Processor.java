@@ -133,7 +133,7 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
             .description("Specifies the Encryption Service Controller used configure requests.  "
                     + "For backward compatibility, this value is ignored when 'Server Side Encryption' is set.")
             .required(false)
-            .identifiesControllerService(AbstractS3EncryptionService.class)
+            .identifiesControllerService(AmazonS3EncryptionService.class)
             .build();
 
     /**
@@ -143,7 +143,7 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
     protected AmazonS3Client createClient(final ProcessContext context, final AWSCredentialsProvider credentialsProvider, final ClientConfiguration config) {
         getLogger().info("Creating client with credentials provider");
         initializeSignerOverride(context, config);
-        AbstractS3EncryptionService encryptionService = context.getProperty(ENCRYPTION_SERVICE).asControllerService(AbstractS3EncryptionService.class);
+        AmazonS3EncryptionService encryptionService = context.getProperty(ENCRYPTION_SERVICE).asControllerService(AmazonS3EncryptionService.class);
         AmazonS3Client s3 = null;
 
         if (encryptionService != null) {

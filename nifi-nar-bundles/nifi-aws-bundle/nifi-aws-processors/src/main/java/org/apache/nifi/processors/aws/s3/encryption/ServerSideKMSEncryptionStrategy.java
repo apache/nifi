@@ -22,6 +22,9 @@ import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.SSEAwsKeyManagementParams;
 
 /**
+ * This strategy uses a KMS key to perform server-side encryption.  Use this strategy when you want the server to perform the encryption,
+ * (meaning you pay the cost of processing) and when you want to use a KMS key.
+ *
  * See https://docs.aws.amazon.com/AmazonS3/latest/dev/UsingKMSEncryption.html
  *
  */

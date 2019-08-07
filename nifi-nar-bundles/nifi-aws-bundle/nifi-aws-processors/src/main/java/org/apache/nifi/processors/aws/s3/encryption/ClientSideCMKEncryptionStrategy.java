@@ -25,48 +25,68 @@ import com.amazonaws.services.s3.AmazonS3EncryptionClient;
 import com.amazonaws.services.s3.model.CryptoConfiguration;
 import com.amazonaws.services.s3.model.EncryptionMaterials;
 import com.amazonaws.services.s3.model.StaticEncryptionMaterialsProvider;
+import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.components.ValidationResult;
-import org.bouncycastle.util.encoders.Base64;
 
 import javax.crypto.spec.SecretKeySpec;
 
 /**
- * See https://docs.aws.amazon.com/AmazonS3/latest/dev/UsingClientSideEncryption.html#client-side-encryption-client-side-master-key-intro
+ * This strategy uses a client master key to perform client-side encryption.   Use this strategy when you want the client to perform the encryption,
+ * (thus incurring the cost of processing) and when you want to manage the key material yourself.
  *
+ * See https://docs.aws.amazon.com/AmazonS3/latest/dev/UsingClientSideEncryption.html#client-side-encryption-client-side-master-key-intro
  *
  */
 public class ClientSideCMKEncryptionStrategy implements S3EncryptionStrategy {
+    /**
+     * Create an encryption client.
+     *
+     * @param credentialsProvider AWS credentials provider.
+     * @param clientConfiguration Client configuration
+     * @param region AWS region
+     * @param keyIdOrMaterial client master key, always base64 encoded
+     * @return AWS S3 client
+     */
     @Override
-    public AmazonS3Client createEncryptionClient(AWSCredentialsProvider credentialsProvider, ClientConfiguration clientConfiguration, String region, String keyIdOrMaterial) {
-        byte[] keyMaterial = Base64.decode(keyIdOrMaterial);
+    public AmazonS3Client createEncryptionClient(AWSCredentialsProvider credentialsProvider, ClientConfiguration clientConfiguration, String region, String keyIdOrMaterial) throws SecurityException {
+        if (!validateKey(keyIdOrMaterial).isValid()) {
+            throw new SecurityException("Invalid client key; ensure key material is base64 encoded.");
+        }
+
+        byte[] keyMaterial = Base64.decodeBase64(keyIdOrMaterial);
         SecretKeySpec symmetricKey = new SecretKeySpec(keyMaterial, "AES");
         StaticEncryptionMaterialsProvider encryptionMaterialsProvider = new StaticEncryptionMaterialsProvider(new EncryptionMaterials(symmetricKey));
         boolean haveRegion = StringUtils.isNotBlank(region);
         CryptoConfiguration cryptoConfig = new CryptoConfiguration();
+        Region awsRegion = null;
 
         if (haveRegion) {
-            cryptoConfig.setAwsKmsRegion(Region.getRegion(Regions.fromName(region)));
+            awsRegion = Region.getRegion(Regions.fromName(region));
+            cryptoConfig.setAwsKmsRegion(awsRegion);
         }
 
         AmazonS3EncryptionClient client = new AmazonS3EncryptionClient(credentialsProvider, encryptionMaterialsProvider, cryptoConfig);
-        if (haveRegion) {
-            client.setRegion(Region.getRegion(Regions.fromName(region)));
+        if (haveRegion && awsRegion != null) {
+            client.setRegion(awsRegion);
         }
 
         return client;
     }
 
-    @Override
     public ValidationResult validateKey(String keyValue) {
+        if (StringUtils.isBlank(keyValue) || !Base64.isBase64(keyValue)) {
+            return new ValidationResult.Builder().valid(false).build();
+        }
+
         boolean decoded = false;
         boolean sized = false;
         byte[] keyMaterial;
 
         try {
-            keyMaterial = Base64.decode(keyValue);
+            keyMaterial = Base64.decodeBase64(keyValue);
             decoded = true;
-            sized = (keyMaterial.length > 0) && (keyMaterial.length % 32) == 0;
+            sized = keyMaterial.length == 32 || keyMaterial.length == 24 || keyMaterial.length == 16;
         } catch (final Exception ignored) {
         }
 

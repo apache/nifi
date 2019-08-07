@@ -21,6 +21,10 @@ import com.amazonaws.services.s3.model.PutObjectRequest;
 
 
 /**
+ * This strategy uses S3-managed keys to perform server-side encryption.  Use this strategy when you want the server to
+ * perform the encryption (meaning you pay the cost of processing) and you want AWS to completely manage the key.
+ *
+ *
  * See https://docs.aws.amazon.com/AmazonS3/latest/dev/UsingServerSideEncryption.html
  *
  */

@@ -37,7 +37,7 @@ import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
 
-import org.apache.nifi.processors.aws.s3.AbstractS3EncryptionService;
+import org.apache.nifi.processors.aws.s3.AmazonS3EncryptionService;
 import org.apache.nifi.processors.aws.s3.AbstractS3Processor;
 
 import org.apache.nifi.reporting.InitializationException;
@@ -54,8 +54,8 @@ import java.util.Map;
 
 @Tags({"service", "encryption", "encrypt", "decryption", "decrypt", "key"})
 @CapabilityDescription("Adds configurable encryption to S3 Put and S3 Fetch operations.")
-public class S3EncryptionService extends AbstractControllerService implements AbstractS3EncryptionService {
-    private static final Logger logger = LoggerFactory.getLogger(S3EncryptionService.class);
+public class StandardS3EncryptionService extends AbstractControllerService implements AmazonS3EncryptionService {
+    private static final Logger logger = LoggerFactory.getLogger(StandardS3EncryptionService.class);
 
     public static final String STRATEGY_NAME_NONE = "NONE";
     public static final String STRATEGY_NAME_SSE_S3 = "SSE_S3";
@@ -81,7 +81,7 @@ public class S3EncryptionService extends AbstractControllerService implements Ab
     private static final AllowableValue CSE_CMK = new AllowableValue(STRATEGY_NAME_CSE_CMK, "Client-side Customer Master Key","Use client-side, customer-supplied master key to perform encryption.");
 
     public static final PropertyDescriptor ENCRYPTION_STRATEGY = new PropertyDescriptor.Builder()
-            .name("Encryption Strategy")
+            .name("encryption-strategy")
             .displayName("Encryption Strategy")
             .description("Strategy to use for S3 data encryption and decryption.")
             .allowableValues(NONE, SSE_S3, SSE_KMS, SSE_C, CSE_KMS, CSE_CMK)
@@ -90,9 +90,9 @@ public class S3EncryptionService extends AbstractControllerService implements Ab
             .build();
 
     public static final PropertyDescriptor ENCRYPTION_VALUE = new PropertyDescriptor.Builder()
-            .name("Key ID or Key Material")
+            .name("key-id-or-key-material")
             .displayName("Key ID or Key Material")
-            .description("Key ID or Key Material used to encrypt and decrypt S3 data.")
+            .description("For Server-side CEK and Client-side CMK, this is base64-encoded Key Material.  For all others (except 'None'), it is the KMS Key ID.")
             .required(false)
             .sensitive(true)
             .addValidator(new StandardValidators.StringLengthValidator(0, 4096))
@@ -100,7 +100,7 @@ public class S3EncryptionService extends AbstractControllerService implements Ab
             .build();
 
     public static final PropertyDescriptor REGION = new PropertyDescriptor.Builder()
-            .name("Region")
+            .name("region")
             .required(false)
             .allowableValues(AbstractS3Processor.getAvailableRegions())
             .defaultValue(AbstractS3Processor.createAllowableValue(Regions.DEFAULT_REGION).getValue())

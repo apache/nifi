@@ -29,7 +29,7 @@ import org.apache.nifi.controller.ControllerService;
 /**
  * This interface defines how clients interact with an S3 encryption service.
  */
-public interface AbstractS3EncryptionService extends ControllerService {
+public interface AmazonS3EncryptionService extends ControllerService {
 
     /**
      * Configure a {@link PutObjectRequest} for encryption.

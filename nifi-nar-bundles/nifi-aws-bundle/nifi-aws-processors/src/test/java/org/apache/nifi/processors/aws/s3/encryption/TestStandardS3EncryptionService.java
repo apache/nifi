@@ -32,8 +32,8 @@ import org.mockito.Mockito;
 import java.util.List;
 
 
-public class TestS3EncryptionService {
-    private S3EncryptionService service;
+public class TestStandardS3EncryptionService {
+    private StandardS3EncryptionService service;
     private ConfigurationContext context;
     private String strategyName;
     private String keyIdOrMaterial;
@@ -41,16 +41,16 @@ public class TestS3EncryptionService {
 
     @Before
     public void setup() throws InitializationException {
-        service = new S3EncryptionService();
+        service = new StandardS3EncryptionService();
         context = Mockito.mock(ConfigurationContext.class);
 
-        strategyName = S3EncryptionService.STRATEGY_NAME_NONE;
+        strategyName = StandardS3EncryptionService.STRATEGY_NAME_NONE;
         keyIdOrMaterial = "test-key-id";
         region = "us-west-1";
 
-        Mockito.when(context.getProperty(S3EncryptionService.ENCRYPTION_STRATEGY)).thenReturn(new MockPropertyValue(strategyName));
-        Mockito.when(context.getProperty(S3EncryptionService.ENCRYPTION_VALUE)).thenReturn(new MockPropertyValue(keyIdOrMaterial));
-        Mockito.when(context.getProperty(S3EncryptionService.REGION)).thenReturn(new MockPropertyValue(region));
+        Mockito.when(context.getProperty(StandardS3EncryptionService.ENCRYPTION_STRATEGY)).thenReturn(new MockPropertyValue(strategyName));
+        Mockito.when(context.getProperty(StandardS3EncryptionService.ENCRYPTION_VALUE)).thenReturn(new MockPropertyValue(keyIdOrMaterial));
+        Mockito.when(context.getProperty(StandardS3EncryptionService.REGION)).thenReturn(new MockPropertyValue(region));
         service.onConfigured(context);
     }
 
@@ -95,8 +95,8 @@ public class TestS3EncryptionService {
         List<PropertyDescriptor> properties = service.getSupportedPropertyDescriptors();
         Assert.assertEquals(3, properties.size());
 
-        Assert.assertEquals(properties.get(0).getName(), S3EncryptionService.ENCRYPTION_STRATEGY.getName());
-        Assert.assertEquals(properties.get(1).getName(), S3EncryptionService.ENCRYPTION_VALUE.getName());
-        Assert.assertEquals(properties.get(2).getName(), S3EncryptionService.REGION.getName());
+        Assert.assertEquals(properties.get(0).getName(), StandardS3EncryptionService.ENCRYPTION_STRATEGY.getName());
+        Assert.assertEquals(properties.get(1).getName(), StandardS3EncryptionService.ENCRYPTION_VALUE.getName());
+        Assert.assertEquals(properties.get(2).getName(), StandardS3EncryptionService.REGION.getName());
     }
 }

@@ -63,7 +63,8 @@ import com.amazonaws.services.s3.model.S3Object;
     @WritesAttribute(attribute = "s3.expirationTime", description = "If the file has an expiration date, this attribute will be set, containing the milliseconds since epoch in UTC time"),
     @WritesAttribute(attribute = "s3.expirationTimeRuleId", description = "The ID of the rule that dictates this object's expiration time"),
     @WritesAttribute(attribute = "s3.sseAlgorithm", description = "The server side encryption algorithm of the object"),
-    @WritesAttribute(attribute = "s3.version", description = "The version of the S3 object"),})
+    @WritesAttribute(attribute = "s3.version", description = "The version of the S3 object"),
+    @WritesAttribute(attribute = "s3.encryptionStrategy", description = "The name of the encryption strategy, if any was set"),})
 public class FetchS3Object extends AbstractS3Processor {
 
     public static final PropertyDescriptor VERSION_ID = new PropertyDescriptor.Builder()
@@ -104,12 +105,14 @@ public class FetchS3Object extends AbstractS3Processor {
             request = new GetObjectRequest(bucket, key, versionId);
         }
 
-        AbstractS3EncryptionService encryptionService = context.getProperty(ENCRYPTION_SERVICE).asControllerService(AbstractS3EncryptionService.class);
+        final Map<String, String> attributes = new HashMap<>();
+
+        AmazonS3EncryptionService encryptionService = context.getProperty(ENCRYPTION_SERVICE).asControllerService(AmazonS3EncryptionService.class);
         if (encryptionService != null) {
             encryptionService.configureGetObjectRequest(request, new ObjectMetadata());
+            attributes.put("s3.encryptionStrategy", encryptionService.getStrategyName());
         }
 
-        final Map<String, String> attributes = new HashMap<>();
         try (final S3Object s3Object = client.getObject(request)) {
             flowFile = session.importFrom(s3Object.getObjectContent(), flowFile);
             attributes.put("s3.bucket", s3Object.getBucketName());
