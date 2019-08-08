@@ -34,6 +34,8 @@ import org.apache.nifi.registry.flow.VersionedControllerService;
 import org.apache.nifi.registry.flow.VersionedFlow;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshotMetadata;
+import org.apache.nifi.registry.flow.VersionedParameter;
+import org.apache.nifi.registry.flow.VersionedParameterContext;
 import org.apache.nifi.registry.flow.VersionedProcessGroup;
 import org.apache.nifi.registry.flow.VersionedProcessor;
 import org.apache.nifi.registry.flow.mapping.NiFiRegistryFlowMapper;
@@ -44,6 +46,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
@@ -70,7 +73,7 @@ public class ImportFlowIT extends FrameworkIntegrationTest {
         processor.setAutoTerminatedRelationships(Collections.singleton(REL_SUCCESS));
         processor.setProperties(Collections.singletonMap(NopServiceReferencingProcessor.SERVICE.getName(), controllerService.getIdentifier()));
 
-        final VersionedFlowSnapshot proposedFlow = createFlowSnapshot(Collections.singletonList(controllerService), Collections.singletonList(processor));
+        final VersionedFlowSnapshot proposedFlow = createFlowSnapshot(Collections.singletonList(controllerService), Collections.singletonList(processor), null);
 
         // Create an Inner Process Group and update it to match the Versioned Flow.
         final ProcessGroup innerGroup = getFlowController().getFlowManager().createProcessGroup("inner-group-id");
@@ -107,7 +110,7 @@ public class ImportFlowIT extends FrameworkIntegrationTest {
     }
 
 
-    private VersionedFlowSnapshot createFlowSnapshot(final List<ControllerServiceNode> controllerServices, final List<ProcessorNode> processors) {
+    private VersionedFlowSnapshot createFlowSnapshot(final List<ControllerServiceNode> controllerServices, final List<ProcessorNode> processors, final Map<String, String> parameters) {
         final VersionedFlowSnapshotMetadata snapshotMetadata = new VersionedFlowSnapshotMetadata();
         snapshotMetadata.setAuthor("unit-test");
         snapshotMetadata.setBucketIdentifier("unit-test-bucket");
@@ -158,6 +161,21 @@ public class ImportFlowIT extends FrameworkIntegrationTest {
         versionedFlowSnapshot.setBucket(bucket);
         versionedFlowSnapshot.setFlow(flow);
         versionedFlowSnapshot.setFlowContents(flowContents);
+
+        if (parameters != null) {
+            final Set<VersionedParameter> versionedParameters = new HashSet<>();
+            for (final Map.Entry<String, String> entry : parameters.entrySet()) {
+                final VersionedParameter versionedParameter = new VersionedParameter();
+                versionedParameter.setName(entry.getKey());
+                versionedParameter.setValue(entry.getValue());
+                versionedParameters.add(versionedParameter);
+            }
+
+            final VersionedParameterContext versionedParameterContext = new VersionedParameterContext();
+            versionedParameterContext.setName("Unit Test Context");
+            versionedParameterContext.setParameters(versionedParameters);
+            versionedFlowSnapshot.setParameterContexts(Collections.singletonMap("unit-test-context", versionedParameterContext));
+        }
 
         return versionedFlowSnapshot;
     }

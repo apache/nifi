@@ -181,8 +181,12 @@ public class MockValidationContext extends MockControllerServiceLookup implement
 
     @Override
     public boolean isParameterDefined(final String parameterName) {
-        // TODO: Implement
-        return false;
+        return true;
+    }
+
+    @Override
+    public boolean isParameterSet(final String parameterName) {
+        return true;
     }
 
 }

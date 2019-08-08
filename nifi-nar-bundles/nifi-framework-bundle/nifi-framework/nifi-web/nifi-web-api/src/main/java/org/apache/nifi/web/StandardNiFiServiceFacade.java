@@ -1046,10 +1046,11 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final Set<ProcessGroup> boundProcessGroups = parameterContext.getParameterReferenceManager().getProcessGroupsBound(parameterContext);
 
         final ParameterContext updatedParameterContext = new StandardParameterContext(parameterContext.getIdentifier(), parameterContext.getName(), ParameterReferenceManager.EMPTY, null);
-        final Set<Parameter> parameters = parameterContextDto.getParameters().stream()
+        final Map<String, Parameter> parameters = new HashMap<>();
+        parameterContextDto.getParameters().stream()
             .map(ParameterEntity::getParameter)
             .map(this::createParameter)
-            .collect(Collectors.toSet());
+            .forEach(param -> parameters.put(param.getDescriptor().getName(), param));
         updatedParameterContext.setParameters(parameters);
 
         final List<ComponentValidationResultEntity> validationResults = new ArrayList<>();
@@ -1089,6 +1090,10 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     private Parameter createParameter(final ParameterDTO dto) {
+        if (dto.getDescription() == null && dto.getSensitive() == null && dto.getValue() == null) {
+            return null; // null description, sensitivity flag, and value indicates a deletion, which we want to represent as a null Parameter.
+        }
+
         final ParameterDescriptor descriptor = new ParameterDescriptor.Builder()
             .name(dto.getName())
             .description(dto.getDescription())

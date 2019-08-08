@@ -27,7 +27,6 @@ import org.mockito.Mockito;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -47,9 +46,9 @@ public class TestStandardParameterContext {
         final ParameterDescriptor xyzDescriptor = new ParameterDescriptor.Builder().name("xyz").build();
         final ParameterDescriptor fooDescriptor = new ParameterDescriptor.Builder().name("foo").description("bar").sensitive(true).build();
 
-        final Set<Parameter> parameters = new HashSet<>();
-        parameters.add(new Parameter(abcDescriptor, "123"));
-        parameters.add(new Parameter(xyzDescriptor, "242526"));
+        final Map<String, Parameter> parameters = new HashMap<>();
+        parameters.put("abc", new Parameter(abcDescriptor, "123"));
+        parameters.put("xyz", new Parameter(xyzDescriptor, "242526"));
 
         context.setParameters(parameters);
 
@@ -63,15 +62,15 @@ public class TestStandardParameterContext {
         assertNull(xyzParam.getDescriptor().getDescription());
         assertEquals("242526", xyzParam.getValue());
 
-        final Set<Parameter> secondParameters = new HashSet<>();
-        secondParameters.add(new Parameter(fooDescriptor, "baz"));
+        final Map<String, Parameter> secondParameters = new HashMap<>();
+        secondParameters.put("foo", new Parameter(fooDescriptor, "baz"));
         context.setParameters(secondParameters);
 
         assertTrue(context.getParameter("abc").isPresent());
         assertTrue(context.getParameter("xyz").isPresent());
 
-        secondParameters.add(new Parameter(abcParam.getDescriptor(), null));
-        secondParameters.add(new Parameter(xyzParam.getDescriptor(), null));
+        secondParameters.put("abc", null);
+        secondParameters.put("xyz", null);
 
         context.setParameters(secondParameters);
 
@@ -86,8 +85,8 @@ public class TestStandardParameterContext {
 
         assertEquals(Collections.singletonMap(fooDescriptor, fooParam), context.getParameters());
 
-        final Set<Parameter> thirdParameters = new HashSet<>();
-        thirdParameters.add(new Parameter(fooDescriptor, "other"));
+        final Map<String, Parameter> thirdParameters = new HashMap<>();
+        thirdParameters.put("foo", new Parameter(fooDescriptor, "other"));
         context.setParameters(thirdParameters);
 
         assertEquals("other", context.getParameter("foo").get().getValue());
@@ -100,8 +99,8 @@ public class TestStandardParameterContext {
 
         final ParameterDescriptor abcDescriptor = new ParameterDescriptor.Builder().name("abc").description("abc").build();
 
-        final Set<Parameter> parameters = new HashSet<>();
-        parameters.add(new Parameter(abcDescriptor, "123"));
+        final Map<String, Parameter> parameters = new HashMap<>();
+        parameters.put("abc", new Parameter(abcDescriptor, "123"));
 
         context.setParameters(parameters);
 
@@ -112,7 +111,7 @@ public class TestStandardParameterContext {
 
         ParameterDescriptor updatedDescriptor = new ParameterDescriptor.Builder().name("abc").description("Updated").build();
         final Parameter newDescriptionParam = new Parameter(updatedDescriptor, "321");
-        context.setParameters(Collections.singleton(newDescriptionParam));
+        context.setParameters(Collections.singletonMap("abc", newDescriptionParam));
 
         abcParam = context.getParameter("abc").get();
         assertEquals(abcDescriptor, abcParam.getDescriptor());
@@ -121,12 +120,12 @@ public class TestStandardParameterContext {
 
         updatedDescriptor = new ParameterDescriptor.Builder().name("abc").description("Updated Again").build();
         final Parameter paramWithoutValue = new Parameter(updatedDescriptor, null);
-        context.setParameters(Collections.singleton(paramWithoutValue));
+        context.setParameters(Collections.singletonMap("abc", paramWithoutValue));
 
         abcParam = context.getParameter("abc").get();
         assertEquals(abcDescriptor, abcParam.getDescriptor());
         assertEquals("Updated Again", abcParam.getDescriptor().getDescription());
-        assertEquals("321", abcParam.getValue());
+        assertNull(abcParam.getValue());
     }
 
     @Test
@@ -139,17 +138,17 @@ public class TestStandardParameterContext {
         final ParameterDescriptor xyzDescriptor = new ParameterDescriptor.Builder().name("xyz").build();
         final ParameterDescriptor fooDescriptor = new ParameterDescriptor.Builder().name("foo").description("bar").sensitive(true).build();
 
-        final Set<Parameter> parameters = new HashSet<>();
-        parameters.add(new Parameter(abcDescriptor, "123"));
-        parameters.add(new Parameter(xyzDescriptor, "242526"));
+        final Map<String, Parameter> parameters = new HashMap<>();
+        parameters.put("abc", new Parameter(abcDescriptor, "123"));
+        parameters.put("xyz", new Parameter(xyzDescriptor, "242526"));
 
         context.setParameters(parameters);
 
         final ParameterDescriptor sensitiveXyzDescriptor = new ParameterDescriptor.Builder().name("xyz").sensitive(true).build();
 
-        final Set<Parameter> updatedParameters = new HashSet<>();
-        updatedParameters.add(new Parameter(fooDescriptor, "baz"));
-        updatedParameters.add(new Parameter(sensitiveXyzDescriptor, "242526"));
+        final Map<String, Parameter> updatedParameters = new HashMap<>();
+        updatedParameters.put("foo", new Parameter(fooDescriptor, "baz"));
+        updatedParameters.put("xyz", new Parameter(sensitiveXyzDescriptor, "242526"));
 
         try {
             context.setParameters(updatedParameters);
@@ -159,7 +158,7 @@ public class TestStandardParameterContext {
 
         final ParameterDescriptor insensitiveAbcDescriptor = new ParameterDescriptor.Builder().name("abc").sensitive(false).build();
         updatedParameters.clear();
-        updatedParameters.add(new Parameter(insensitiveAbcDescriptor, "123"));
+        updatedParameters.put("abc", new Parameter(insensitiveAbcDescriptor, "123"));
 
         try {
             context.setParameters(updatedParameters);
@@ -179,13 +178,13 @@ public class TestStandardParameterContext {
 
         final ParameterDescriptor abcDescriptor = new ParameterDescriptor.Builder().name("abc").sensitive(true).build();
 
-        final Set<Parameter> parameters = new HashSet<>();
-        parameters.add(new Parameter(abcDescriptor, "123"));
+        final Map<String, Parameter> parameters = new HashMap<>();
+        parameters.put("abc", new Parameter(abcDescriptor, "123"));
 
         context.setParameters(parameters);
 
         parameters.clear();
-        parameters.add(new Parameter(abcDescriptor, "321"));
+        parameters.put("abc", new Parameter(abcDescriptor, "321"));
         context.setParameters(parameters);
 
         assertEquals("321", context.getParameter("abc").get().getValue());
@@ -194,7 +193,7 @@ public class TestStandardParameterContext {
         Mockito.when(procNode.isRunning()).thenReturn(true);
 
         parameters.clear();
-        parameters.add(new Parameter(abcDescriptor, "123"));
+        parameters.put("abc", new Parameter(abcDescriptor, "123"));
 
         try {
             context.setParameters(parameters);
@@ -202,10 +201,10 @@ public class TestStandardParameterContext {
         } catch (final IllegalStateException expected) {
         }
 
-        context.setParameters(Collections.emptySet());
+        context.setParameters(Collections.emptyMap());
 
         parameters.clear();
-        parameters.add(new Parameter(abcDescriptor, null));
+        parameters.put("abc", new Parameter(abcDescriptor, null));
         try {
             context.setParameters(parameters);
             Assert.fail("Was able to remove parameter while referencing processor was running");
@@ -224,15 +223,15 @@ public class TestStandardParameterContext {
         Mockito.when(serviceNode.getState()).thenReturn(ControllerServiceState.ENABLED);
 
         final ParameterDescriptor abcDescriptor = new ParameterDescriptor.Builder().name("abc").sensitive(true).build();
-        final Set<Parameter> parameters = new HashSet<>();
-        parameters.add(new Parameter(abcDescriptor, "123"));
+        final Map<String, Parameter> parameters = new HashMap<>();
+        parameters.put("abc", new Parameter(abcDescriptor, "123"));
 
         context.setParameters(parameters);
 
         referenceManager.addControllerServiceReference("abc", serviceNode);
 
         parameters.clear();
-        parameters.add(new Parameter(abcDescriptor, "321"));
+        parameters.put("abc", new Parameter(abcDescriptor, "321"));
 
         for (final ControllerServiceState state : EnumSet.of(ControllerServiceState.ENABLED, ControllerServiceState.ENABLING, ControllerServiceState.DISABLING)) {
             Mockito.when(serviceNode.getState()).thenReturn(state);
@@ -249,7 +248,7 @@ public class TestStandardParameterContext {
         parameters.clear();
         context.setParameters(parameters);
 
-        parameters.add(new Parameter(abcDescriptor, null));
+        parameters.put("abc", new Parameter(abcDescriptor, null));
         try {
             context.setParameters(parameters);
             Assert.fail("Was able to remove parameter being referenced by Controller Service that is DISABLING");

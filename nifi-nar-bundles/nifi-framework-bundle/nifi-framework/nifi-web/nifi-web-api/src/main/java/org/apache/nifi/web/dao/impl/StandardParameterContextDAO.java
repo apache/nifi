@@ -37,10 +37,10 @@ import org.apache.nifi.web.api.entity.ParameterEntity;
 import org.apache.nifi.web.dao.ParameterContextDAO;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 public class StandardParameterContextDAO implements ParameterContextDAO {
     private FlowManager flowManager;
@@ -57,7 +57,7 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
 
     @Override
     public ParameterContext createParameterContext(final ParameterContextDTO parameterContextDto) {
-        final Set<Parameter> parameters = getParameters(parameterContextDto);
+        final Map<String, Parameter> parameters = getParameters(parameterContextDto);
         final ParameterContext parameterContext = flowManager.createParameterContext(parameterContextDto.getId(), parameterContextDto.getName(), parameters);
         if (parameterContextDto.getDescription() != null) {
             parameterContext.setDescription(parameterContextDto.getDescription());
@@ -65,16 +65,30 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
         return parameterContext;
     }
 
-    private Set<Parameter> getParameters(final ParameterContextDTO parameterContextDto) {
-        final Set<ParameterEntity> parameterDtos = parameterContextDto.getParameters();
-        if (parameterDtos == null) {
-            return Collections.emptySet();
+    private Map<String, Parameter> getParameters(final ParameterContextDTO parameterContextDto) {
+        final Set<ParameterEntity> parameterEntities = parameterContextDto.getParameters();
+        if (parameterEntities == null) {
+            return Collections.emptyMap();
         }
 
-        return parameterContextDto.getParameters().stream()
-            .map(ParameterEntity::getParameter)
-            .map(this::createParameter)
-            .collect(Collectors.toSet());
+        final Map<String, Parameter> parameterMap = new HashMap<>();
+        for (final ParameterEntity parameterEntity : parameterEntities) {
+            final ParameterDTO parameterDto = parameterEntity.getParameter();
+
+            if (parameterDto.getName() == null) {
+                throw new IllegalArgumentException("Cannot specify a Parameter without a name");
+            }
+
+            final boolean deletion = parameterDto.getDescription() == null && parameterDto.getSensitive() == null && parameterDto.getValue() == null;
+            if (deletion) {
+                parameterMap.put(parameterDto.getName(), null);
+            } else {
+                final Parameter parameter = createParameter(parameterDto);
+                parameterMap.put(parameterDto.getName(), parameter);
+            }
+        }
+
+        return parameterMap;
     }
 
     private Parameter createParameter(final ParameterDTO dto) {
@@ -118,7 +132,7 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
         }
 
         if (parameterContextDto.getParameters() != null) {
-            final Set<Parameter> parameters = getParameters(parameterContextDto);
+            final Map<String, Parameter> parameters = getParameters(parameterContextDto);
             context.setParameters(parameters);
         }
 

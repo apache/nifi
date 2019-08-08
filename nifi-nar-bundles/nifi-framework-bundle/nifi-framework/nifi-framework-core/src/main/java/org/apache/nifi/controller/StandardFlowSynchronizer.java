@@ -131,6 +131,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.zip.GZIPInputStream;
 
@@ -547,10 +548,10 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
     }
 
     private ParameterContext createParameterContext(final ParameterContextDTO dto, final FlowManager flowManager) {
-        final Set<Parameter> parameters = dto.getParameters().stream()
+        final Map<String, Parameter> parameters = dto.getParameters().stream()
             .map(ParameterEntity::getParameter)
             .map(this::createParameter)
-            .collect(Collectors.toSet());
+            .collect(Collectors.toMap(param -> param.getDescriptor().getName(), Function.identity()));
 
         final ParameterContext context = flowManager.createParameterContext(dto.getId(), dto.getName(), parameters);
         context.setDescription(dto.getDescription());

@@ -61,13 +61,13 @@ public class StatelessParameterContext implements ParameterContext {
     }
 
     @Override
-    public void setParameters(final Set<Parameter> updatedParameters) {
-        throw new UnsupportedOperationException();
+    public void setParameters(final Map<String, Parameter> updatedParameters) {
+        throw new UnsupportedOperationException(); // This parameter context does not support updating - all parameters are provided in the constructor.
     }
 
     @Override
-    public void verifyCanSetParameters(final Set<Parameter> parameters) {
-        throw new UnsupportedOperationException();
+    public void verifyCanSetParameters(final Map<String, Parameter> parameters) {
+        throw new UnsupportedOperationException(); // This parameter context does not support updating - all parameters are provided in the constructor.
     }
 
     @Override

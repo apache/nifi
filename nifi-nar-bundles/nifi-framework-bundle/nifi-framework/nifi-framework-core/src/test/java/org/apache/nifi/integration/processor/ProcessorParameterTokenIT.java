@@ -40,7 +40,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -77,9 +76,9 @@ public class ProcessorParameterTokenIT extends FrameworkIntegrationTest {
         final ParameterContext parameterContext = new StandardParameterContext(UUID.randomUUID().toString(), "testEscapedParameterReference", ParameterReferenceManager.EMPTY, null);
         getRootGroup().setParameterContext(parameterContext);
 
-        final Set<Parameter> parameters = new HashSet<>();
-        parameters.add(new Parameter(new ParameterDescriptor.Builder().name("foo").build(), "bar"));
-        parameters.add(new Parameter(new ParameterDescriptor.Builder().name("sensitive").sensitive(true).build(), "*password*"));
+        final Map<String, Parameter> parameters = new HashMap<>();
+        parameters.put("foo", new Parameter(new ParameterDescriptor.Builder().name("foo").build(), "bar"));
+        parameters.put("sensitive", new Parameter(new ParameterDescriptor.Builder().name("sensitive").sensitive(true).build(), "*password*"));
         parameterContext.setParameters(parameters);
 
         verifyText(procNode, "hello", "hello");
@@ -107,9 +106,9 @@ public class ProcessorParameterTokenIT extends FrameworkIntegrationTest {
         final ParameterContext parameterContext = new StandardParameterContext(UUID.randomUUID().toString(), "testEscapedParameterReference", ParameterReferenceManager.EMPTY, null);
         getRootGroup().setParameterContext(parameterContext);
 
-        final Set<Parameter> parameters = new HashSet<>();
-        parameters.add(new Parameter(new ParameterDescriptor.Builder().name("foo").build(), "bar"));
-        parameters.add(new Parameter(new ParameterDescriptor.Builder().name("sensitive").sensitive(true).build(), "*password*"));
+        final Map<String, Parameter> parameters = new HashMap<>();
+        parameters.put("foo", new Parameter(new ParameterDescriptor.Builder().name("foo").build(), "bar"));
+        parameters.put("sensitive", new Parameter(new ParameterDescriptor.Builder().name("sensitive").sensitive(true).build(), "*password*"));
         parameterContext.setParameters(parameters);
 
         verifyCannotSetParameter(procNode, "#{sensitive}", null);
