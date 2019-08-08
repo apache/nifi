@@ -36,6 +36,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public class RestBasedFlowRegistry implements FlowRegistry {
+    private static final String FLOW_ENCODING_VERSION = "1.0";
 
     private final FlowRegistryClient flowRegistryClient;
     private final String identifier;
@@ -189,6 +190,7 @@ public class RestBasedFlowRegistry implements FlowRegistry {
         versionedFlowSnapshot.setFlowContents(snapshot);
         versionedFlowSnapshot.setExternalControllerServices(externalControllerServices);
         versionedFlowSnapshot.setParameterContexts(parameterContextMap);
+        versionedFlowSnapshot.setFlowEncodingVersion(FLOW_ENCODING_VERSION);
 
         final VersionedFlowSnapshotMetadata metadata = new VersionedFlowSnapshotMetadata();
         metadata.setBucketIdentifier(flow.getBucketIdentifier());

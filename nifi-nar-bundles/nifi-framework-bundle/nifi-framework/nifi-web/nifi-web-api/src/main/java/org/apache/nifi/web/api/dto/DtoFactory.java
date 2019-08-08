@@ -1405,7 +1405,9 @@ public final class DtoFactory {
         dto.setName(descriptor.getName());
         dto.setDescription(descriptor.getDescription());
         dto.setSensitive(descriptor.isSensitive());
-        dto.setValue(descriptor.isSensitive() ? SENSITIVE_VALUE_MASK : parameter.getValue());
+        if (parameter.getValue() != null) {
+            dto.setValue(descriptor.isSensitive() ? SENSITIVE_VALUE_MASK : parameter.getValue());
+        }
 
         final ParameterReferenceManager parameterReferenceManager = parameterContext.getParameterReferenceManager();
 

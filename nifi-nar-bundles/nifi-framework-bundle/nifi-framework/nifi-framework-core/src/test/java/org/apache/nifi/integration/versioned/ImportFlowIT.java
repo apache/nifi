@@ -27,6 +27,13 @@ import org.apache.nifi.integration.DirectInjectionExtensionManager;
 import org.apache.nifi.integration.FrameworkIntegrationTest;
 import org.apache.nifi.integration.cs.LongValidatingControllerService;
 import org.apache.nifi.integration.cs.NopServiceReferencingProcessor;
+import org.apache.nifi.integration.processors.UsernamePasswordProcessor;
+import org.apache.nifi.parameter.Parameter;
+import org.apache.nifi.parameter.ParameterContext;
+import org.apache.nifi.parameter.ParameterDescriptor;
+import org.apache.nifi.parameter.ParameterReferenceManager;
+import org.apache.nifi.parameter.StandardParameterContext;
+import org.apache.nifi.parameter.StandardParameterReferenceManager;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.registry.bucket.Bucket;
 import org.apache.nifi.registry.flow.Bundle;
@@ -38,21 +45,36 @@ import org.apache.nifi.registry.flow.VersionedParameter;
 import org.apache.nifi.registry.flow.VersionedParameterContext;
 import org.apache.nifi.registry.flow.VersionedProcessGroup;
 import org.apache.nifi.registry.flow.VersionedProcessor;
+import org.apache.nifi.registry.flow.diff.ComparableDataFlow;
+import org.apache.nifi.registry.flow.diff.ConciseEvolvingDifferenceDescriptor;
+import org.apache.nifi.registry.flow.diff.DifferenceType;
+import org.apache.nifi.registry.flow.diff.FlowComparator;
+import org.apache.nifi.registry.flow.diff.FlowComparison;
+import org.apache.nifi.registry.flow.diff.FlowDifference;
+import org.apache.nifi.registry.flow.diff.StandardComparableDataFlow;
+import org.apache.nifi.registry.flow.diff.StandardFlowComparator;
 import org.apache.nifi.registry.flow.mapping.NiFiRegistryFlowMapper;
+import org.apache.nifi.util.FlowDifferenceFilters;
 import org.junit.Test;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
 
 import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
+import static org.testng.Assert.assertNotNull;
+import static org.testng.AssertJUnit.assertNull;
 
 public class ImportFlowIT extends FrameworkIntegrationTest {
 
@@ -110,7 +132,312 @@ public class ImportFlowIT extends FrameworkIntegrationTest {
     }
 
 
-    private VersionedFlowSnapshot createFlowSnapshot(final List<ControllerServiceNode> controllerServices, final List<ProcessorNode> processors, final Map<String, String> parameters) {
+    @Test
+    public void testLocalModificationWhenSensitivePropReferencesParameter() {
+        // Create a processor with a sensitive property
+        final ProcessorNode processor = createProcessorNode(UsernamePasswordProcessor.class);
+        processor.setProperties(Collections.singletonMap(UsernamePasswordProcessor.PASSWORD.getName(), "password"));
+
+        // Create a VersionedFlowSnapshot that contains the processor
+        final VersionedFlowSnapshot versionedFlowWithExplicitValue = createFlowSnapshot(Collections.emptyList(), Collections.singletonList(processor), null);
+
+        // Create child group
+        final ProcessGroup innerGroup = getFlowController().getFlowManager().createProcessGroup("inner-group-id");
+        innerGroup.setName("Inner Group");
+        getRootGroup().addProcessGroup(innerGroup);
+
+        // Move processor into the child group
+        moveProcessor(processor, innerGroup);
+
+        // Verify that there are no differences between the versioned flow and the Process Group
+        Set<FlowDifference> differences = getLocalModifications(innerGroup, versionedFlowWithExplicitValue);
+        assertEquals(0, differences.size());
+
+        // Change the value of the sensitive property from one explicit value to another. Verify no local modifications.
+        processor.setProperties(Collections.singletonMap(UsernamePasswordProcessor.PASSWORD.getName(), "secret"));
+        differences = getLocalModifications(innerGroup, versionedFlowWithExplicitValue);
+        assertEquals(0, differences.size());
+
+        // Change the value of the sensitive property to now reference a parameter. There should be one local modification.
+        processor.setProperties(Collections.singletonMap(UsernamePasswordProcessor.PASSWORD.getName(), "#{secret-parameter}"));
+        differences = getLocalModifications(innerGroup, versionedFlowWithExplicitValue);
+        assertEquals(1, differences.size());
+        assertEquals(DifferenceType.PROPERTY_ADDED, differences.iterator().next().getDifferenceType());
+
+        // Create a Versioned Flow that contains the Parameter Reference.
+        final VersionedFlowSnapshot versionedFlowWithParameterReference = createFlowSnapshot(Collections.emptyList(), Collections.singletonList(processor), null);
+
+        // Ensure no difference between the current configuration and the versioned flow
+        differences = getLocalModifications(innerGroup, versionedFlowWithParameterReference);
+        assertEquals(0, differences.size());
+
+        processor.setProperties(Collections.singletonMap(UsernamePasswordProcessor.PASSWORD.getName(), "secret"));
+        differences = getLocalModifications(innerGroup, versionedFlowWithParameterReference);
+        assertEquals(1, differences.size());
+        assertEquals(DifferenceType.PROPERTY_REMOVED, differences.iterator().next().getDifferenceType());
+    }
+
+    @Test
+    public void testParameterCreatedWithNullValueOnImportWithSensitivePropertyReference() {
+        // Create a processor with a sensitive property
+        final ProcessorNode processor = createProcessorNode(UsernamePasswordProcessor.class);
+        processor.setProperties(Collections.singletonMap(UsernamePasswordProcessor.PASSWORD.getName(), "#{secret-param}"));
+
+        // Create a VersionedFlowSnapshot that contains the processor
+        final Parameter parameter = new Parameter(new ParameterDescriptor.Builder().name("secret-param").sensitive(true).build(), null);
+        final VersionedFlowSnapshot versionedFlowWithParameterReference = createFlowSnapshot(Collections.emptyList(), Collections.singletonList(processor), Collections.singleton(parameter));
+
+        // Create child group
+        final ProcessGroup innerGroup = getFlowController().getFlowManager().createProcessGroup("inner-group-id");
+        innerGroup.setName("Inner Group");
+        getRootGroup().addProcessGroup(innerGroup);
+
+        final ParameterReferenceManager parameterReferenceManager = new StandardParameterReferenceManager(getFlowController().getFlowManager());
+        final ParameterContext parameterContext = new StandardParameterContext("param-context-id", "parameter-context", parameterReferenceManager, null);
+        innerGroup.setParameterContext(parameterContext);
+
+        assertTrue(parameterContext.getParameters().isEmpty());
+
+        innerGroup.updateFlow(versionedFlowWithParameterReference, null, true, true, true);
+
+        final Collection<Parameter> parameters = parameterContext.getParameters().values();
+        assertEquals(1, parameters.size());
+
+        final Parameter firstParameter = parameters.iterator().next();
+        assertEquals("secret-param", firstParameter.getDescriptor().getName());
+        assertTrue(firstParameter.getDescriptor().isSensitive());
+        assertNull(firstParameter.getValue());
+    }
+
+    @Test
+    public void testParameterContextCreatedOnImportWithSensitivePropertyReference() {
+        // Create a processor with a sensitive property
+        final ProcessorNode processor = createProcessorNode(UsernamePasswordProcessor.class);
+        processor.setProperties(Collections.singletonMap(UsernamePasswordProcessor.PASSWORD.getName(), "#{secret-param}"));
+
+        // Create a VersionedFlowSnapshot that contains the processor
+        final Parameter parameter = new Parameter(new ParameterDescriptor.Builder().name("secret-param").sensitive(true).build(), null);
+        final VersionedFlowSnapshot versionedFlowWithParameterReference = createFlowSnapshot(Collections.emptyList(), Collections.singletonList(processor), Collections.singleton(parameter));
+
+        // Create child group
+        final ProcessGroup innerGroup = getFlowController().getFlowManager().createProcessGroup("inner-group-id");
+        innerGroup.setName("Inner Group");
+        getRootGroup().addProcessGroup(innerGroup);
+
+        innerGroup.updateFlow(versionedFlowWithParameterReference, null, true, true, true);
+
+        final ParameterContext parameterContext = innerGroup.getParameterContext();
+        assertNotNull(parameterContext);
+
+        final Collection<Parameter> parameters = parameterContext.getParameters().values();
+        assertEquals(1, parameters.size());
+
+        final Parameter firstParameter = parameters.iterator().next();
+        assertEquals("secret-param", firstParameter.getDescriptor().getName());
+        assertTrue(firstParameter.getDescriptor().isSensitive());
+        assertNull(firstParameter.getValue());
+    }
+
+
+    @Test
+    public void testChangeVersionFromParameterToExplicitValueSensitiveProperty() {
+        // Create a processor with a sensitive property
+        final ProcessorNode initialProcessor = createProcessorNode(UsernamePasswordProcessor.class);
+        initialProcessor.setProperties(Collections.singletonMap(UsernamePasswordProcessor.PASSWORD.getName(), "#{secret-param}"));
+
+        // Create a VersionedFlowSnapshot that contains the processor
+        final Parameter parameter = new Parameter(new ParameterDescriptor.Builder().name("secret-param").sensitive(true).build(), null);
+        final VersionedFlowSnapshot versionedFlowWithParameterReference = createFlowSnapshot(Collections.emptyList(),
+            Collections.singletonList(initialProcessor), Collections.singleton(parameter));
+
+
+        // Update processor to have an explicit value for the second version of the flow.
+        initialProcessor.setProperties(Collections.singletonMap(UsernamePasswordProcessor.PASSWORD.getName(), "secret-value"));
+        final VersionedFlowSnapshot versionedFlowExplicitValue = createFlowSnapshot(Collections.emptyList(), Collections.singletonList(initialProcessor), null);
+
+        // Create child group and update to the first version of the flow, with parameter ref
+        final ProcessGroup innerGroup = getFlowController().getFlowManager().createProcessGroup("inner-group-id");
+        innerGroup.setName("Inner Group");
+        getRootGroup().addProcessGroup(innerGroup);
+
+        innerGroup.updateFlow(versionedFlowWithParameterReference, null, true, true, true);
+
+        final ProcessorNode nodeInGroupWithRef = innerGroup.getProcessors().iterator().next();
+        assertNotNull(nodeInGroupWithRef.getProperty(UsernamePasswordProcessor.PASSWORD).getRawValue());
+
+        // Update the flow to new version that uses explicit value.
+        innerGroup.updateFlow(versionedFlowExplicitValue, null, true, true, true);
+
+        // Updated flow has sensitive property that no longer references parameter. Now is an explicit value, so it should be unset
+        final ProcessorNode nodeInGroupWithNoValue = innerGroup.getProcessors().iterator().next();
+        assertNull(nodeInGroupWithNoValue.getProperty(UsernamePasswordProcessor.PASSWORD).getRawValue());
+    }
+
+    @Test
+    public void testChangeVersionFromExplicitToExplicitValueDoesNotChangeSensitiveProperty() {
+        // Create a processor with a sensitive property and create a versioned flow for it.
+        final ProcessorNode initialProcessor = createProcessorNode(UsernamePasswordProcessor.class);
+        final Map<String, String> initialProperties = new HashMap<>();
+        initialProperties.put(UsernamePasswordProcessor.USERNAME.getName(), "user");
+        initialProperties.put(UsernamePasswordProcessor.PASSWORD.getName(), "pass");
+        initialProcessor.setProperties(initialProperties);
+
+        final VersionedFlowSnapshot initialVersionSnapshot = createFlowSnapshot(Collections.emptyList(), Collections.singletonList(initialProcessor), null);
+
+        // Update processor to have a different explicit value for both sensitive and non-sensitive properties and create a versioned flow for it.
+        final Map<String, String> updatedProperties = new HashMap<>();
+        updatedProperties.put(UsernamePasswordProcessor.USERNAME.getName(), "other");
+        updatedProperties.put(UsernamePasswordProcessor.PASSWORD.getName(), "pass");
+        initialProcessor.setProperties(updatedProperties);
+
+        final VersionedFlowSnapshot updatedVersionSnapshot = createFlowSnapshot(Collections.emptyList(), Collections.singletonList(initialProcessor), null);
+
+        // Create child group and update to the first version of the flow, with parameter ref
+        final ProcessGroup innerGroup = getFlowController().getFlowManager().createProcessGroup("inner-group-id");
+        innerGroup.setName("Inner Group");
+        getRootGroup().addProcessGroup(innerGroup);
+
+        // Import the flow into our newly created group
+        innerGroup.updateFlow(initialVersionSnapshot, null, true, true, true);
+
+        final ProcessorNode initialImportedProcessor = innerGroup.getProcessors().iterator().next();
+        assertEquals("user", initialImportedProcessor.getProperty(UsernamePasswordProcessor.USERNAME).getRawValue());
+        assertNull("pass", initialImportedProcessor.getProperty(UsernamePasswordProcessor.PASSWORD).getRawValue());
+
+        // Update the sensitive property to "pass"
+        initialImportedProcessor.setProperties(initialProperties);
+        assertEquals("pass", initialImportedProcessor.getProperty(UsernamePasswordProcessor.PASSWORD).getRawValue());
+
+        // Update the flow to new version
+        innerGroup.updateFlow(updatedVersionSnapshot, null, true, true, true);
+
+        // Updated flow has sensitive property that no longer references parameter. Now is an explicit value, so it should be unset
+        final ProcessorNode updatedImportedProcessor = innerGroup.getProcessors().iterator().next();
+        assertEquals("other", updatedImportedProcessor.getProperty(UsernamePasswordProcessor.USERNAME).getRawValue());
+        assertEquals("pass", updatedImportedProcessor.getProperty(UsernamePasswordProcessor.PASSWORD).getRawValue());
+    }
+
+
+    @Test
+    public void testChangeVersionFromParamReferenceToAnotherParamReferenceIsLocalModification() {
+        // Create a processor with a sensitive property and create a versioned flow for it.
+        final ProcessorNode initialProcessor = createProcessorNode(UsernamePasswordProcessor.class);
+        final Map<String, String> initialProperties = new HashMap<>();
+        initialProperties.put(UsernamePasswordProcessor.USERNAME.getName(), "user");
+        initialProperties.put(UsernamePasswordProcessor.PASSWORD.getName(), "#{secret-param}");
+        initialProcessor.setProperties(initialProperties);
+
+        final VersionedFlowSnapshot initialVersionSnapshot = createFlowSnapshot(Collections.emptyList(), Collections.singletonList(initialProcessor), null);
+
+        // Update processor to have a different explicit value for both sensitive and non-sensitive properties and create a versioned flow for it.
+        final Map<String, String> updatedProperties = new HashMap<>();
+        updatedProperties.put(UsernamePasswordProcessor.USERNAME.getName(), "user");
+        updatedProperties.put(UsernamePasswordProcessor.PASSWORD.getName(), "#{other-param}");
+        initialProcessor.setProperties(updatedProperties);
+
+        final VersionedFlowSnapshot updatedVersionSnapshot = createFlowSnapshot(Collections.emptyList(), Collections.singletonList(initialProcessor), null);
+
+        // Create child group and update to the first version of the flow, with parameter ref
+        final ProcessGroup innerGroup = getFlowController().getFlowManager().createProcessGroup("inner-group-id");
+        innerGroup.setName("Inner Group");
+        getRootGroup().addProcessGroup(innerGroup);
+
+        // Import the flow into our newly created group
+        innerGroup.updateFlow(initialVersionSnapshot, null, true, true, true);
+
+        final Set<FlowDifference> localModifications = getLocalModifications(innerGroup, updatedVersionSnapshot);
+        assertEquals(1, localModifications.size());
+        assertEquals(DifferenceType.PROPERTY_CHANGED, localModifications.iterator().next().getDifferenceType());
+    }
+
+
+    @Test
+    public void testChangeVersionFromExplicitValueToParameterSensitiveProperty() {
+        // Create a processor with a sensitive property
+        final ProcessorNode processorWithParamRef = createProcessorNode(UsernamePasswordProcessor.class);
+        processorWithParamRef.setProperties(Collections.singletonMap(UsernamePasswordProcessor.PASSWORD.getName(), "#{secret-param}"));
+
+        final ProcessorNode processorWithExplicitValue = createProcessorNode(UsernamePasswordProcessor.class);
+        processorWithExplicitValue.setProperties(Collections.singletonMap(UsernamePasswordProcessor.PASSWORD.getName(), "secret-value"));
+
+
+        // Create a VersionedFlowSnapshot that contains the processor
+        final Parameter parameter = new Parameter(new ParameterDescriptor.Builder().name("secret-param").sensitive(true).build(), null);
+        final VersionedFlowSnapshot versionedFlowWithParameterReference = createFlowSnapshot(Collections.emptyList(),
+            Collections.singletonList(processorWithParamRef), Collections.singleton(parameter));
+
+        final VersionedFlowSnapshot versionedFlowExplicitValue = createFlowSnapshot(Collections.emptyList(), Collections.singletonList(processorWithExplicitValue), null);
+
+        // Create child group and update to the first version of the flow, with parameter ref
+        final ProcessGroup innerGroup = getFlowController().getFlowManager().createProcessGroup("inner-group-id");
+        innerGroup.setName("Inner Group");
+        getRootGroup().addProcessGroup(innerGroup);
+
+        innerGroup.updateFlow(versionedFlowExplicitValue, null, true, true, true);
+
+        final ProcessorNode nodeInGroupWithRef = innerGroup.getProcessors().iterator().next();
+        assertNotNull(nodeInGroupWithRef.getProperty(UsernamePasswordProcessor.PASSWORD));
+
+
+        // Update the flow to new version that uses explicit value.
+        innerGroup.updateFlow(versionedFlowWithParameterReference, null, true, true, true);
+
+        // Updated flow has sensitive property that no longer references parameter. Now is an explicit value, so it should be unset
+        final ProcessorNode nodeInGroupWithNoValue = innerGroup.getProcessors().iterator().next();
+        assertEquals("#{secret-param}", nodeInGroupWithNoValue.getProperty(UsernamePasswordProcessor.PASSWORD).getRawValue());
+    }
+
+
+
+
+    private Set<FlowDifference> getLocalModifications(final ProcessGroup processGroup, final VersionedFlowSnapshot versionedFlowSnapshot) {
+        final NiFiRegistryFlowMapper mapper = new NiFiRegistryFlowMapper(getFlowController().getExtensionManager());
+        final VersionedProcessGroup localGroup = mapper.mapProcessGroup(processGroup, getFlowController().getControllerServiceProvider(), getFlowController().getFlowRegistryClient(), true);
+        final VersionedProcessGroup registryGroup = versionedFlowSnapshot.getFlowContents();
+
+        final ComparableDataFlow localFlow = new StandardComparableDataFlow("Local Flow", localGroup);
+        final ComparableDataFlow registryFlow = new StandardComparableDataFlow("Versioned Flow", registryGroup);
+
+        final Set<String> ancestorServiceIds = getAncestorGroupServiceIds(processGroup);
+        final FlowComparator flowComparator = new StandardFlowComparator(registryFlow, localFlow, ancestorServiceIds, new ConciseEvolvingDifferenceDescriptor());
+        final FlowComparison flowComparison = flowComparator.compare();
+        final Set<FlowDifference> differences = flowComparison.getDifferences().stream()
+            .filter(difference -> difference.getDifferenceType() != DifferenceType.BUNDLE_CHANGED)
+            .filter(FlowDifferenceFilters.FILTER_ADDED_REMOVED_REMOTE_PORTS)
+            .filter(FlowDifferenceFilters.FILTER_PUBLIC_PORT_NAME_CHANGES)
+            .filter(FlowDifferenceFilters.FILTER_IGNORABLE_VERSIONED_FLOW_COORDINATE_CHANGES)
+            .collect(Collectors.toCollection(HashSet::new));
+
+        return differences;
+    }
+
+    private Set<String> getAncestorGroupServiceIds(final ProcessGroup processGroup) {
+        final Set<String> ancestorServiceIds;
+        ProcessGroup parentGroup = processGroup.getParent();
+
+        if (parentGroup == null) {
+            ancestorServiceIds = Collections.emptySet();
+        } else {
+            ancestorServiceIds = parentGroup.getControllerServices(true).stream()
+                .map(cs -> {
+                    // We want to map the Controller Service to its Versioned Component ID, if it has one.
+                    // If it does not have one, we want to generate it in the same way that our Flow Mapper does
+                    // because this allows us to find the Controller Service when doing a Flow Diff.
+                    final Optional<String> versionedId = cs.getVersionedComponentId();
+                    if (versionedId.isPresent()) {
+                        return versionedId.get();
+                    }
+
+                    return UUID.nameUUIDFromBytes(cs.getIdentifier().getBytes(StandardCharsets.UTF_8)).toString();
+                })
+                .collect(Collectors.toSet());
+        }
+
+        return ancestorServiceIds;
+    }
+
+
+    private VersionedFlowSnapshot createFlowSnapshot(final List<ControllerServiceNode> controllerServices, final List<ProcessorNode> processors, final Set<Parameter> parameters) {
         final VersionedFlowSnapshotMetadata snapshotMetadata = new VersionedFlowSnapshotMetadata();
         snapshotMetadata.setAuthor("unit-test");
         snapshotMetadata.setBucketIdentifier("unit-test-bucket");
@@ -142,12 +469,14 @@ public class ImportFlowIT extends FrameworkIntegrationTest {
         for (final ProcessorNode processor : processors) {
             final VersionedProcessor versionedProcessor = flowMapper.mapProcessor(processor, getFlowController().getControllerServiceProvider(), Collections.emptySet(), new HashMap<>());
             versionedProcessors.add(versionedProcessor);
+            processor.setVersionedComponentId(versionedProcessor.getIdentifier());
         }
 
         final Set<VersionedControllerService> services = new HashSet<>();
         for (final ControllerServiceNode serviceNode : controllerServices) {
             final VersionedControllerService service = flowMapper.mapControllerService(serviceNode, getFlowController().getControllerServiceProvider(), Collections.emptySet(), new HashMap<>());
             services.add(service);
+            serviceNode.setVersionedComponentId(service.getIdentifier());
         }
 
         final VersionedProcessGroup flowContents = new VersionedProcessGroup();
@@ -164,17 +493,21 @@ public class ImportFlowIT extends FrameworkIntegrationTest {
 
         if (parameters != null) {
             final Set<VersionedParameter> versionedParameters = new HashSet<>();
-            for (final Map.Entry<String, String> entry : parameters.entrySet()) {
+            for (final Parameter parameter : parameters) {
                 final VersionedParameter versionedParameter = new VersionedParameter();
-                versionedParameter.setName(entry.getKey());
-                versionedParameter.setValue(entry.getValue());
+                versionedParameter.setName(parameter.getDescriptor().getName());
+                versionedParameter.setValue(parameter.getValue());
+                versionedParameter.setSensitive(parameter.getDescriptor().isSensitive());
+
                 versionedParameters.add(versionedParameter);
             }
 
             final VersionedParameterContext versionedParameterContext = new VersionedParameterContext();
             versionedParameterContext.setName("Unit Test Context");
             versionedParameterContext.setParameters(versionedParameters);
-            versionedFlowSnapshot.setParameterContexts(Collections.singletonMap("unit-test-context", versionedParameterContext));
+            versionedFlowSnapshot.setParameterContexts(Collections.singletonMap(versionedParameterContext.getName(), versionedParameterContext));
+
+            flowContents.setParameterContextName("Unit Test Context");
         }
 
         return versionedFlowSnapshot;

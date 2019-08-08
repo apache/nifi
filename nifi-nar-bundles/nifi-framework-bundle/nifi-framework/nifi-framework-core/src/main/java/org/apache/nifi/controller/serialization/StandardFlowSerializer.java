@@ -180,7 +180,8 @@ public class StandardFlowSerializer implements FlowSerializer<Document> {
         addStringElement(parameterElement, "sensitive", String.valueOf(descriptor.isSensitive()));
 
         if (descriptor.isSensitive()) {
-            addStringElement(parameterElement, "value", ENC_PREFIX + encryptor.encrypt(parameter.getValue()) + ENC_SUFFIX);
+            final String parameterValue = parameter.getValue();
+            addStringElement(parameterElement, "value", parameterValue == null ? null : ENC_PREFIX + encryptor.encrypt(parameterValue) + ENC_SUFFIX);
         } else {
             addStringElement(parameterElement, "value", parameter.getValue());
         }

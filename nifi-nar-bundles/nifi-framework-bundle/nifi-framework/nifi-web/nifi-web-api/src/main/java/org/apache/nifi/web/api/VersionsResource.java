@@ -25,6 +25,7 @@ import io.swagger.annotations.ApiResponses;
 import io.swagger.annotations.Authorization;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.AccessDeniedException;
+import org.apache.nifi.authorization.AuthorizeParameterReference;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.ComponentAuthorizable;
 import org.apache.nifi.authorization.ProcessGroupAuthorizable;
@@ -43,6 +44,7 @@ import org.apache.nifi.registry.flow.VersionedFlow;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshotMetadata;
 import org.apache.nifi.registry.flow.VersionedFlowState;
+import org.apache.nifi.registry.flow.VersionedParameterContext;
 import org.apache.nifi.registry.flow.VersionedProcessGroup;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.ResourceNotFoundException;
@@ -832,7 +834,7 @@ public class VersionsResource extends ApplicationResource {
                 versionControlInfoDto.setState(flowState.name());
 
                 final ProcessGroupEntity updatedGroup = serviceFacade.updateProcessGroupContents(rev, groupId, versionControlInfoDto, flowSnapshot, getIdGenerationSeed().orElse(null), false,
-                    false, entity.getUpdateDescendantVersionedFlows());
+                    false, entity.getUpdateDescendantVersionedFlows(), this::generateUuid);
                 final VersionControlInformationDTO updatedVci = updatedGroup.getComponent().getVersionControlInformation();
 
                 final VersionControlInformationEntity responseEntity = new VersionControlInformationEntity();
@@ -1180,6 +1182,11 @@ public class VersionsResource extends ApplicationResource {
                     final ComponentAuthorizable restrictedComponentAuthorizable = lookup.getConfigurableComponent(restrictedComponent);
                     authorizeRestrictions(authorizer, restrictedComponentAuthorizable);
                 });
+
+                final Map<String, VersionedParameterContext> parameterContexts = flowSnapshot.getParameterContexts();
+                if (parameterContexts != null) {
+                    parameterContexts.values().forEach(context -> AuthorizeParameterReference.authorizeParameterContextAddition(context, serviceFacade, authorizer, lookup, user));
+                }
             },
             () -> {
                 // Step 3: Verify that all components in the snapshot exist on all nodes
@@ -1354,6 +1361,11 @@ public class VersionsResource extends ApplicationResource {
                     final ComponentAuthorizable restrictedComponentAuthorizable = lookup.getConfigurableComponent(restrictedComponent);
                     authorizeRestrictions(authorizer, restrictedComponentAuthorizable);
                 });
+
+                final Map<String, VersionedParameterContext> parameterContexts = flowSnapshot.getParameterContexts();
+                if (parameterContexts != null) {
+                    parameterContexts.values().forEach(context -> AuthorizeParameterReference.authorizeParameterContextAddition(context, serviceFacade, authorizer, lookup, user));
+                }
             },
             () -> {
                 // Step 3: Verify that all components in the snapshot exist on all nodes
@@ -1552,7 +1564,8 @@ public class VersionsResource extends ApplicationResource {
                 vci.setVersion(metadata.getVersion());
                 vci.setState(flowSnapshot.isLatest() ? VersionedFlowState.UP_TO_DATE.name() : VersionedFlowState.STALE.name());
 
-                serviceFacade.updateProcessGroupContents(revision, groupId, vci, flowSnapshot, idGenerationSeed, verifyNotModified, false, updateDescendantVersionedFlows);
+                serviceFacade.updateProcessGroupContents(revision, groupId, vci, flowSnapshot, idGenerationSeed, verifyNotModified, false, updateDescendantVersionedFlows,
+                    this::generateUuid);
             }
         } finally {
             if (!asyncRequest.isCancelled()) {

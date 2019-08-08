@@ -22,14 +22,20 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.parameter.ExpressionLanguageAgnosticParameterParser;
 import org.apache.nifi.parameter.ParameterContext;
+import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.parameter.ParameterParser;
 import org.apache.nifi.parameter.ParameterTokenList;
+import org.apache.nifi.registry.flow.VersionedParameter;
+import org.apache.nifi.registry.flow.VersionedParameterContext;
+import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class AuthorizeParameterReference {
 
@@ -122,6 +128,50 @@ public class AuthorizeParameterReference {
             if (destinationContext != null) {
                 destinationContext.authorize(authorizer, RequestAction.READ, user);
             }
+        }
+    }
+
+    /**
+     * Ensures that any Parameter Context that is referenced by the given VersionedParameterContext is readable by the given user. If the Versioned Parameter Context references a Parameter Context
+     * (by name) that does not exist in the current flow, ensures that the user has persmissions to create a new Parameter Context. If the Versioned Parameter Context contains any Parameters that
+     * do not currently exist in the Parameter Context that is referenced, ensures that the usre has permissions to WRITE to the Parameter Context so that the additional Parameter can be added.
+     *
+     * @param versionedParameterContext the Versioned Parameter Context
+     * @param serviceFacade the Service Facade
+     * @param authorizer the authorizer
+     * @param lookup the authorizable lookup
+     * @param user the user
+     */
+    public static void authorizeParameterContextAddition(final VersionedParameterContext versionedParameterContext, final NiFiServiceFacade serviceFacade, final Authorizer authorizer,
+                                                         final AuthorizableLookup lookup, final NiFiUser user) {
+        final ParameterContext parameterContext = serviceFacade.getParameterContextByName(versionedParameterContext.getName(), user);
+
+        if (parameterContext == null) {
+            // If Parameter Context does not yet exist, authorize that the user is allowed to create it.
+            lookup.getParameterContexts().authorize(authorizer, RequestAction.WRITE, user);
+            return;
+        }
+
+        // User must have READ permissions to the Parameter Context in order to use it
+        parameterContext.authorize(authorizer, RequestAction.READ, user);
+
+        // Parameter Context exists. Check if there are any new parameters that must be added.
+        final Set<String> existingParameterNames = parameterContext.getParameters().keySet().stream()
+            .map(ParameterDescriptor::getName)
+            .collect(Collectors.toSet());
+
+        boolean requiresAddition = false;
+        for (final VersionedParameter versionedParameter : versionedParameterContext.getParameters()) {
+            final String versionedParameterName = versionedParameter.getName();
+            if (!existingParameterNames.contains(versionedParameterName)) {
+                requiresAddition = true;
+                break;
+            }
+        }
+
+        if (requiresAddition) {
+            // User is required to have WRITE permission to the Parameter Context in order to add one or more parameters.
+            parameterContext.authorize(authorizer, RequestAction.WRITE, user);
         }
     }
 }

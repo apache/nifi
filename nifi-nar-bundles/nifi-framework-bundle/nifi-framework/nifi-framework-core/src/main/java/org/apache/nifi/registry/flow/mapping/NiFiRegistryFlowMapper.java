@@ -27,6 +27,7 @@ import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ProcessorNode;
+import org.apache.nifi.controller.PropertyConfiguration;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.service.ControllerServiceNode;
@@ -362,7 +363,7 @@ public class NiFiRegistryFlowMapper {
         final Map<String, String> mapped = new HashMap<>();
 
         component.getProperties().keySet().stream()
-            .filter(property -> !property.isSensitive())
+            .filter(property -> isMappable(property, component.getProperty(property)))
             .forEach(property -> {
                 String value = component.getRawPropertyValue(property);
                 if (value == null) {
@@ -384,6 +385,21 @@ public class NiFiRegistryFlowMapper {
         return mapped;
     }
 
+    private boolean isMappable(final PropertyDescriptor propertyDescriptor, final PropertyConfiguration propertyConfiguration) {
+        if (!propertyDescriptor.isSensitive()) { // If the property is not sensitive, it can be mapped.
+            return true;
+        }
+
+        if (propertyConfiguration == null) {
+            return false;
+        }
+
+        // Sensitive properties can be mapped if and only if they reference a Parameter. If a sensitive property references a parameter, it cannot contain any other value around it.
+        // For example, for a non-sensitive property, a value of "hello#{param}123" is valid, but for a sensitive property, it is invalid. Only something like "hello123" or "#{param}" is valid.
+        // Thus, we will map sensitive properties only if they reference a parameter.
+        return !propertyConfiguration.getParameterReferences().isEmpty();
+    }
+
     private Map<String, VersionedPropertyDescriptor> mapPropertyDescriptors(final ComponentNode component, final ControllerServiceProvider serviceProvider, final Set<String> includedGroupIds,
                                                                             final Map<String, ExternalControllerServiceReference> externalControllerServiceReferences) {
         final Map<String, VersionedPropertyDescriptor> descriptors = new HashMap<>();
@@ -391,6 +407,7 @@ public class NiFiRegistryFlowMapper {
             final VersionedPropertyDescriptor versionedDescriptor = new VersionedPropertyDescriptor();
             versionedDescriptor.setName(descriptor.getName());
             versionedDescriptor.setDisplayName(descriptor.getDisplayName());
+            versionedDescriptor.setSensitive(descriptor.isSensitive());
 
             final Class<?> referencedServiceType = descriptor.getControllerServiceDefinition();
             versionedDescriptor.setIdentifiesControllerService(referencedServiceType != null);
