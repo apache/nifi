@@ -55,7 +55,6 @@ import org.apache.nifi.annotation.lifecycle.OnConfigurationRestored;
 import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.annotation.notification.OnPrimaryNodeStateChange;
 import org.apache.nifi.annotation.notification.PrimaryNodeState;
-import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.resource.Authorizable;
@@ -174,6 +173,7 @@ import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.nar.NarThreadContextClassLoader;
 import org.apache.nifi.parameter.ParameterContextManager;
+import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.parameter.StandardParameterContextManager;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
@@ -594,7 +594,7 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
         }
 
         componentStatusRepository = createComponentStatusRepository();
-        analyticsEngine = new ConnectionStatusAnalyticsEngine(flowManager, componentStatusRepository);
+        analyticsEngine = new ConnectionStatusAnalyticsEngine(flowManager, componentStatusRepository,flowFileEventRepository);
         eventAccess = new StandardEventAccess(this, flowFileEventRepository);
 
         timerDrivenEngineRef.get().scheduleWithFixedDelay(new Runnable() {

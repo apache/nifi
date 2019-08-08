@@ -22,10 +22,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
+import java.util.Random;
 import java.util.stream.Stream;
 
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.flow.FlowManager;
+import org.apache.nifi.controller.repository.FlowFileEvent;
+import org.apache.nifi.controller.repository.FlowFileEventRepository;
+import org.apache.nifi.controller.repository.RepositoryStatusReport;
+import org.apache.nifi.controller.status.analytics.models.MultivariateStatusAnalyticsModel;
+import org.apache.nifi.controller.status.analytics.models.OrdinaryLeastSquaresMSAM;
+import org.apache.nifi.controller.status.analytics.models.VariateStatusAnalyticsModel;
 import org.apache.nifi.controller.status.history.ComponentStatusRepository;
 import org.apache.nifi.controller.status.history.ConnectionStatusDescriptor;
 import org.apache.nifi.controller.status.history.StatusHistory;
@@ -38,19 +46,26 @@ import org.apache.nifi.web.api.dto.status.StatusSnapshotDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.primitives.Doubles;
+
 public class ConnectionStatusAnalytics implements StatusAnalytics {
 
     private static final Logger LOG = LoggerFactory.getLogger(ConnectionStatusAnalytics.class);
     private Map<String, Tuple<StatusAnalyticsModel, ExtractFunction>> modelMap;
     private QueryWindow queryWindow;
     private final ComponentStatusRepository componentStatusRepository;
+    private final FlowFileEventRepository flowFileEventRepository;
     private final String connectionIdentifier;
     private final FlowManager flowManager;
     private final Boolean supportOnlineLearning;
+    private Boolean extendWindow = false;
+    private static double SCORE_THRESHOLD = .90;
 
-    public ConnectionStatusAnalytics(ComponentStatusRepository componentStatusRepository, FlowManager flowManager, String connectionIdentifier, Boolean supportOnlineLearning) {
+    public ConnectionStatusAnalytics(ComponentStatusRepository componentStatusRepository, FlowManager flowManager, FlowFileEventRepository flowFileEventRepository, String connectionIdentifier,
+                                     Boolean supportOnlineLearning) {
         this.componentStatusRepository = componentStatusRepository;
         this.flowManager = flowManager;
+        this.flowFileEventRepository = flowFileEventRepository;
         this.connectionIdentifier = connectionIdentifier;
         this.supportOnlineLearning = supportOnlineLearning;
     }
@@ -60,8 +75,8 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
         LOG.debug("Initialize analytics connection id: {} ", connectionIdentifier);
 
         if (this.modelMap == null || this.modelMap.isEmpty()) {
-            Tuple<StatusAnalyticsModel, ExtractFunction> countModelFunction = new Tuple<>(new SimpleRegressionBSAM(!supportsOnlineLearning()), extract);
-            Tuple<StatusAnalyticsModel, ExtractFunction> byteModelFunction = new Tuple<>(new SimpleRegressionBSAM(!supportsOnlineLearning()), extract);
+            Tuple<StatusAnalyticsModel, ExtractFunction> countModelFunction = new Tuple<>(new OrdinaryLeastSquaresMSAM(), extract);
+            Tuple<StatusAnalyticsModel, ExtractFunction> byteModelFunction = new Tuple<>(new OrdinaryLeastSquaresMSAM(), extract);
             this.modelMap = new HashMap<>();
             //TODO: Should change keys used here
             this.modelMap.put(ConnectionStatusDescriptor.QUEUED_COUNT.getField(), countModelFunction);
@@ -73,36 +88,37 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
 
     public void refresh() {
 
-        LOG.debug("Refreshing model with new data for connection id: {} ", connectionIdentifier);
         if (this.queryWindow == null) {
+            //Set query window to fresh value
             this.queryWindow = new QueryWindow(System.currentTimeMillis() - getIntervalTimeMillis(), System.currentTimeMillis());
-        } else if (supportsOnlineLearning()) {
-            this.queryWindow = new QueryWindow(queryWindow.getEndTimeMillis(), System.currentTimeMillis());
+        } else if (supportOnlineLearning) {
+            //Obtain latest observations when available, extend window if needed to obtain minimum observations
+            this.queryWindow = new QueryWindow(extendWindow ? queryWindow.getStartTimeMillis() : queryWindow.getEndTimeMillis(), System.currentTimeMillis());
+
         }
         modelMap.forEach((metric, modelFunction) -> {
 
             StatusAnalyticsModel model = modelFunction.getKey();
             ExtractFunction extract = modelFunction.getValue();
             StatusHistory statusHistory = componentStatusRepository.getConnectionStatusHistory(connectionIdentifier, queryWindow.getStartDateTime(), queryWindow.getEndDateTime(), Integer.MAX_VALUE);
-            Tuple<Stream<Double>, Stream<Double>> modelData = extract.extractMetric(metric, statusHistory);
-            Stream<Double> times = modelData.getKey();
-            Stream<Double> values = modelData.getValue();
-            //times are the X axis and values are on the y axis
-            model.learn(times, values);
+            Tuple<Stream<Double[]>, Stream<Double>> modelData = extract.extractMetric(metric, statusHistory);
+            Double[][] features = modelData.getKey().toArray(size -> new Double[size][1]);
+            Double[] values = modelData.getValue().toArray(size -> new Double[size]);
+
+            if (ArrayUtils.isNotEmpty(features)) {
+                try {
+                    LOG.debug("Refreshing model with new data for connection id: {} ", connectionIdentifier);
+                    model.learn(Stream.of(features), Stream.of(values));
+                    extendWindow = false;
+                } catch (Exception ex) {
+                    LOG.debug("Exception encountered while training model for connection id {}: {}", connectionIdentifier, ex.getMessage());
+                    extendWindow = true;
+                }
+            } else {
+                extendWindow = true;
+            }
 
         });
-    }
-
-    protected Long getTimePrediction(Double prediction, Long timeMillis) {
-
-        if (Double.isNaN(prediction) || Double.isInfinite(prediction)) {
-            return -1L;
-        } else if (prediction < timeMillis) {
-            return 0L;
-        } else {
-            return Math.max(0, Math.round(prediction) - timeMillis);
-        }
-
     }
 
     /**
@@ -112,16 +128,24 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
      */
     public Long getTimeToBytesBackpressureMillis() {
 
-        final BivariateStatusAnalyticsModel bytesModel = (BivariateStatusAnalyticsModel) modelMap.get(ConnectionStatusDescriptor.QUEUED_BYTES.getField()).getKey();
+        final MultivariateStatusAnalyticsModel bytesModel = (MultivariateStatusAnalyticsModel) modelMap.get(ConnectionStatusDescriptor.QUEUED_BYTES.getField()).getKey();
+        FlowFileEvent flowFileEvent = getStatusReport();
+
         final Connection connection = getConnection();
         if (connection == null) {
             throw new NoSuchElementException("Connection with the following id cannot be found:" + connectionIdentifier + ". Model should be invalidated!");
         }
         final String backPressureDataSize = connection.getFlowFileQueue().getBackPressureDataSizeThreshold();
         final double backPressureBytes = DataUnit.parseDataSize(backPressureDataSize, DataUnit.B);
-        final double prediction = bytesModel.predictX(backPressureBytes);
-        return getTimePrediction(prediction, System.currentTimeMillis());
 
+        if(validModel(bytesModel) && flowFileEvent != null) {
+            List<Tuple<Integer, Double>> predictFeatures = new ArrayList<>();
+            Double inOutRatio = (flowFileEvent.getContentSizeOut() / (double)flowFileEvent.getContentSizeIn());
+            predictFeatures.add(new Tuple<>(1, inOutRatio));
+            return getTimePrediction(bytesModel.predictVariable(0, predictFeatures, backPressureBytes), System.currentTimeMillis());
+        }else{
+            return -1L;
+        }
     }
 
     /**
@@ -131,14 +155,24 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
      */
     public Long getTimeToCountBackpressureMillis() {
 
-        final BivariateStatusAnalyticsModel countModel = (BivariateStatusAnalyticsModel) modelMap.get(ConnectionStatusDescriptor.QUEUED_COUNT.getField()).getKey();
+        final MultivariateStatusAnalyticsModel countModel = (MultivariateStatusAnalyticsModel) modelMap.get(ConnectionStatusDescriptor.QUEUED_COUNT.getField()).getKey();
+        FlowFileEvent flowFileEvent = getStatusReport();
+
         final Connection connection = getConnection();
         if (connection == null) {
             throw new NoSuchElementException("Connection with the following id cannot be found:" + connectionIdentifier + ". Model should be invalidated!");
         }
+
         final double backPressureCountThreshold = connection.getFlowFileQueue().getBackPressureObjectThreshold();
-        final double prediction = countModel.predictX(backPressureCountThreshold);
-        return getTimePrediction(prediction, System.currentTimeMillis());
+
+        if(validModel(countModel) && flowFileEvent != null) {
+            List<Tuple<Integer, Double>> predictFeatures = new ArrayList<>();
+            Double inOutRatio = (flowFileEvent.getFlowFilesOut() / (double)flowFileEvent.getFlowFilesIn());
+            predictFeatures.add(new Tuple<>(1, inOutRatio));
+            return getTimePrediction(countModel.predictVariable(0, predictFeatures, backPressureCountThreshold), System.currentTimeMillis());
+        }else{
+            return -1L;
+        }
     }
 
     /**
@@ -148,11 +182,17 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
      */
 
     public Long getNextIntervalBytes() {
-        final BivariateStatusAnalyticsModel bytesModel = (BivariateStatusAnalyticsModel) modelMap.get(ConnectionStatusDescriptor.QUEUED_BYTES.getField()).getKey();
-        final Double prediction = bytesModel.predictY((double) System.currentTimeMillis() + getIntervalTimeMillis());
-        if (!Double.isNaN(prediction) && prediction >= 0) {
-            return Math.round(prediction);
-        } else {
+        final VariateStatusAnalyticsModel bytesModel = (VariateStatusAnalyticsModel) modelMap.get(ConnectionStatusDescriptor.QUEUED_BYTES.getField()).getKey();
+        FlowFileEvent flowFileEvent = getStatusReport();
+
+        if(validModel(bytesModel) && flowFileEvent != null) {
+            List<Double> predictFeatures = new ArrayList<>();
+            Long nextInterval =  System.currentTimeMillis() + getIntervalTimeMillis();
+            Double inOutRatio = flowFileEvent.getContentSizeOut() / (double)flowFileEvent.getContentSizeIn();
+            predictFeatures.add(nextInterval.doubleValue());
+            predictFeatures.add(inOutRatio);
+            return  (bytesModel.predict(predictFeatures.toArray(new Double[2]))).longValue();
+        }else{
             return -1L;
         }
     }
@@ -164,13 +204,20 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
      */
 
     public Long getNextIntervalCount() {
-        final BivariateStatusAnalyticsModel countModel = (BivariateStatusAnalyticsModel) modelMap.get(ConnectionStatusDescriptor.QUEUED_COUNT.getField()).getKey();
-        final Double prediction = countModel.predictY((double) System.currentTimeMillis() + getIntervalTimeMillis());
-        if (!Double.isNaN(prediction) && prediction >= 0) {
-            return Math.round(prediction);
-        } else {
+        final VariateStatusAnalyticsModel countModel = (VariateStatusAnalyticsModel) modelMap.get(ConnectionStatusDescriptor.QUEUED_COUNT.getField()).getKey();
+        FlowFileEvent flowFileEvent = getStatusReport();
+
+        if(validModel(countModel) && flowFileEvent != null) {
+            List<Double> predictFeatures = new ArrayList<>();
+            Long nextInterval =  System.currentTimeMillis() + getIntervalTimeMillis();
+            Double inOutRatio = flowFileEvent.getFlowFilesOut()/ (double)flowFileEvent.getFlowFilesIn();
+            predictFeatures.add(nextInterval.doubleValue());
+            predictFeatures.add(inOutRatio);
+            return (countModel.predict(predictFeatures.toArray(new Double[2]))).longValue();
+        }else{
             return -1L;
         }
+
     }
 
     public Long getNextIntervalPercentageUseCount() {
@@ -183,7 +230,7 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
         final long nextIntervalCount = getNextIntervalCount();
 
         if (nextIntervalCount > -1L) {
-            return Math.round((getNextIntervalCount() / backPressureCountThreshold) * 100);
+            return Math.min(100, Math.round((nextIntervalCount / backPressureCountThreshold) * 100));
         } else {
             return -1L;
         }
@@ -201,14 +248,14 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
         final long nextIntervalBytes = getNextIntervalBytes();
 
         if (nextIntervalBytes > -1L) {
-            return Math.round((getNextIntervalBytes() / backPressureBytes) * 100);
+            return Math.min(100, Math.round((getNextIntervalBytes() / backPressureBytes) * 100));
         } else {
             return -1L;
         }
     }
 
     public Long getIntervalTimeMillis() {
-        return (5L * 60 * 1000);
+        return 3L * 60 * 1000;
     }
 
     @Override
@@ -249,24 +296,73 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
         return connection.orElse(null);
     }
 
+    private FlowFileEvent getStatusReport(){
+        RepositoryStatusReport statusReport =  flowFileEventRepository.reportTransferEvents(System.currentTimeMillis());
+        return statusReport.getReportEntry(this.connectionIdentifier);
+    }
+
     private interface ExtractFunction {
-        Tuple<Stream<Double>, Stream<Double>> extractMetric(String metric, StatusHistory statusHistory);
+        Tuple<Stream<Double[]>, Stream<Double>> extractMetric(String metric, StatusHistory statusHistory);
+    }
+
+    private Long getTimePrediction(Double prediction, Long timeMillis) {
+
+        if (Double.isNaN(prediction) || Double.isInfinite(prediction)) {
+            return -1L;
+        } else if (prediction < timeMillis) {
+            return 0L;
+        } else {
+            return Math.max(0, Math.round(prediction) - timeMillis);
+        }
+    }
+
+    private boolean validModel(VariateStatusAnalyticsModel model){
+
+        Double rSquared = model.getRSquared();
+
+        if (rSquared == null || (Doubles.isFinite(rSquared) && !Double.isNaN(rSquared) && rSquared < SCORE_THRESHOLD)) {
+            if(supportOnlineLearning && model.supportsOnlineLearning()){
+                model.clear();
+            }
+            return false;
+        }else {
+            return true;
+        }
     }
 
     private final ExtractFunction extract = (metric, statusHistory) -> {
 
         List<Double> values = new ArrayList<>();
-        List<Double> times = new ArrayList<>();
-
+        List<Double[]> features = new ArrayList<>();
+        Random rand = new Random();
         StatusHistoryDTO statusHistoryDTO = StatusHistoryUtil.createStatusHistoryDTO(statusHistory);
 
         for (StatusSnapshotDTO snap : statusHistoryDTO.getAggregateSnapshots()) {
+            List<Double> featureArray = new ArrayList<>();
             Long snapValue = snap.getStatusMetrics().get(metric);
             long snapTime = snap.getTimestamp().getTime();
+
+            featureArray.add((double) snapTime);
+            Double randomError = + (rand.nextInt(1000) * .0000001);
+            if (metric.equals(ConnectionStatusDescriptor.QUEUED_COUNT.getField())) {
+
+                Long inputCount = snap.getStatusMetrics().get(ConnectionStatusDescriptor.INPUT_COUNT.getField());
+                Long outputCount = snap.getStatusMetrics().get(ConnectionStatusDescriptor.OUTPUT_COUNT.getField());
+                Double inOutRatio = ((double)outputCount /(double)inputCount) + randomError;
+                featureArray.add(Double.isNaN(inOutRatio)? randomError : inOutRatio);
+
+            } else {
+                Long inputBytes = snap.getStatusMetrics().get(ConnectionStatusDescriptor.INPUT_BYTES.getField());
+                Long outputBytes = snap.getStatusMetrics().get(ConnectionStatusDescriptor.OUTPUT_BYTES.getField());
+                Double inOutRatio = ((double)outputBytes/(double)inputBytes) + randomError;
+                featureArray.add(Double.isNaN(inOutRatio)? randomError : inOutRatio);
+            }
+
             values.add((double) snapValue);
-            times.add((double) snapTime);
+            features.add(featureArray.toArray(new Double[featureArray.size()]));
+
         }
-        return new Tuple<>(times.stream(), values.stream());
+        return new Tuple<Stream<Double[]>, Stream<Double>>(features.stream(), values.stream());
 
     };
 

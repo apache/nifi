@@ -17,13 +17,14 @@
 package org.apache.nifi.controller.status.analytics;
 
 import org.apache.nifi.controller.flow.FlowManager;
+import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.status.history.ComponentStatusRepository;
 
 public class TestConnectionStatusAnalyticsEngine extends TestStatusAnalyticsEngine {
 
     @Override
-    public StatusAnalyticsEngine getStatusAnalyticsEngine(FlowManager flowManager, ComponentStatusRepository statusRepository) {
-        return new ConnectionStatusAnalyticsEngine(flowManager, statusRepository);
+    public StatusAnalyticsEngine getStatusAnalyticsEngine(FlowManager flowManager, FlowFileEventRepository flowFileEventRepository, ComponentStatusRepository statusRepository) {
+        return new ConnectionStatusAnalyticsEngine(flowManager, statusRepository, flowFileEventRepository);
     }
 
 }

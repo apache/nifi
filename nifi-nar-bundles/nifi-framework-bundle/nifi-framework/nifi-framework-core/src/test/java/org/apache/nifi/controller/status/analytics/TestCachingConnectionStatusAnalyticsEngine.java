@@ -17,19 +17,20 @@
 package org.apache.nifi.controller.status.analytics;
 
 import org.apache.nifi.controller.flow.FlowManager;
+import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.status.history.ComponentStatusRepository;
 import org.junit.Test;
 
 public class TestCachingConnectionStatusAnalyticsEngine extends TestStatusAnalyticsEngine {
 
     @Override
-    public StatusAnalyticsEngine getStatusAnalyticsEngine(FlowManager flowManager, ComponentStatusRepository componentStatusRepository) {
-        return new CachingConnectionStatusAnalyticsEngine(flowManager, componentStatusRepository);
+    public StatusAnalyticsEngine getStatusAnalyticsEngine(FlowManager flowManager, FlowFileEventRepository flowFileEventRepository, ComponentStatusRepository componentStatusRepository) {
+        return new CachingConnectionStatusAnalyticsEngine(flowManager, componentStatusRepository, flowFileEventRepository);
     }
 
     @Test
     public void testCachedStatusAnalytics() {
-        StatusAnalyticsEngine statusAnalyticsEngine = new CachingConnectionStatusAnalyticsEngine(flowManager, statusRepository);
+        StatusAnalyticsEngine statusAnalyticsEngine = new CachingConnectionStatusAnalyticsEngine(flowManager, statusRepository, flowFileEventRepository);
         StatusAnalytics statusAnalyticsA = statusAnalyticsEngine.getStatusAnalytics("A");
         StatusAnalytics statusAnalyticsB = statusAnalyticsEngine.getStatusAnalytics("B");
         StatusAnalytics statusAnalyticsTest = statusAnalyticsEngine.getStatusAnalytics("A");

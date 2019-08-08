@@ -17,24 +17,26 @@
 package org.apache.nifi.controller.status.analytics;
 
 import org.apache.nifi.controller.flow.FlowManager;
+import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.status.history.ComponentStatusRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ConnectionStatusAnalyticsEngine implements StatusAnalyticsEngine {
-    private ComponentStatusRepository statusRepository;
-    private FlowManager flowManager;
-
     private static final Logger LOG = LoggerFactory.getLogger(ConnectionStatusAnalyticsEngine.class);
+    private final ComponentStatusRepository statusRepository;
+    private final FlowManager flowManager;
+    private final FlowFileEventRepository flowFileEventRepository;
 
-    public ConnectionStatusAnalyticsEngine(FlowManager flowManager, ComponentStatusRepository statusRepository) {
+    public ConnectionStatusAnalyticsEngine(FlowManager flowManager, ComponentStatusRepository statusRepository, FlowFileEventRepository flowFileEventRepository) {
         this.flowManager = flowManager;
         this.statusRepository = statusRepository;
+        this.flowFileEventRepository = flowFileEventRepository;
     }
 
     @Override
     public StatusAnalytics getStatusAnalytics(String identifier) {
-        ConnectionStatusAnalytics connectionStatusAnalytics = new ConnectionStatusAnalytics(statusRepository,flowManager,identifier,false);
+        ConnectionStatusAnalytics connectionStatusAnalytics = new ConnectionStatusAnalytics(statusRepository, flowManager, flowFileEventRepository, identifier, false);
         connectionStatusAnalytics.init();
         return connectionStatusAnalytics;
     }
