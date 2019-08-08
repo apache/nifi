@@ -106,4 +106,12 @@ public interface ValidationContext extends PropertyContext {
      * @return <code>true</code> if a Parameter with the given name is defined in the currently selected Parameter Context
      */
     boolean isParameterDefined(String parameterName);
+
+    /**
+     * Returns <code>true</code> if a Parameter with the given name is defined and has a non-null value, <code>false</code> if either the Parameter
+     * is not defined or the Parameter is defined but has a value of <code>null</code>.
+     * @param parameterName the name of the parameter
+     * @return <code>true</code> if the Parameter is defined and has a non-null value, false otherwise
+     */
+    boolean isParameterSet(String parameterName);
 }

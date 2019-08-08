@@ -101,6 +101,11 @@ public abstract class ValidationContextAdapter implements ValidationContext {
     }
 
     @Override
+    public boolean isParameterSet(final String parameterName) {
+        return innerValidationContext.isParameterSet(parameterName);
+    }
+
+    @Override
     public Collection<String> getReferencedParameters(final String propertyName) {
         return innerValidationContext.getReferencedParameters(propertyName);
     }

@@ -36,6 +36,7 @@ import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 
 import java.net.URL;
 import java.util.Collection;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -322,7 +323,7 @@ public interface FlowManager {
 
     void removeRootControllerService(final ControllerServiceNode service);
 
-    ParameterContext createParameterContext(String id, String name, Set<Parameter> parameters);
+    ParameterContext createParameterContext(String id, String name, Map<String, Parameter> parameters);
 
     ParameterContextManager getParameterContextManager();
 }

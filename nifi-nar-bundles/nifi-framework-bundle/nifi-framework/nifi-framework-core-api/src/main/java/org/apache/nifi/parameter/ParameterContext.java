@@ -20,7 +20,6 @@ import org.apache.nifi.authorization.resource.Authorizable;
 
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 
 public interface ParameterContext extends ParameterLookup, Authorizable {
 
@@ -52,19 +51,22 @@ public interface ParameterContext extends ParameterLookup, Authorizable {
     void setDescription(String description);
 
     /**
-     * Updates the Parameters within this context to match the given set of Parameters.
-     * @param updatedParameters the updated set of parameters
+     * Updates the Parameters within this context to match the given set of Parameters. If the Parameter Context contains any parameters that are not in
+     * the given set of updated Parameters, those parameters are unaffected. However, if the Map contains any key with a <code>null</code> value, the
+     * parameter whose name is given by the key will be removed
+     *
+     * @param updatedParameters the updated set of parameters, keyed by Parameter name
      * @throws IllegalStateException if any parameter is modified or removed and that parameter is being referenced by a running Processor or an enabled Controller Service, or if
      * an update would result in changing the sensitivity of any parameter
      */
-    void setParameters(Set<Parameter> updatedParameters);
+    void setParameters(Map<String, Parameter> updatedParameters);
 
     /**
      * Ensures that it is legal to update the Parameters for this Parameter Context to match the given set of Parameters
-     * @param parameters the Set of Parameters that are to become the new Parameters for this Parameter Context
+     * @param parameters the updated set of parameters, keyed by Parameter name
      * @throws IllegalStateException if setting the given set of Parameters is not legal
      */
-    void verifyCanSetParameters(Set<Parameter> parameters);
+    void verifyCanSetParameters(Map<String, Parameter> parameters);
 
 
     /**

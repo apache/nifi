@@ -34,7 +34,6 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -97,32 +96,26 @@ public class StandardParameterContext implements ParameterContext {
         return description;
     }
 
-    public void setParameters(final Set<Parameter> updatedParameters) {
+    public void setParameters(final Map<String, Parameter> updatedParameters) {
         writeLock.lock();
         try {
             this.version++;
-
             verifyCanSetParameters(updatedParameters);
 
             boolean changeAffectingComponents = false;
-            for (final Parameter parameter : updatedParameters) {
-                if (parameter.getValue() == null && parameter.getDescriptor().getDescription() == null) {
-                    parameters.remove(parameter.getDescriptor());
-                    changeAffectingComponents = true;
-                } else if (parameter.getValue() == null) {
-                    // Value is null but description is not. Just update the description of the existing Parameter.
-                    final Parameter existingParameter = parameters.get(parameter.getDescriptor());
-                    final ParameterDescriptor existingDescriptor = existingParameter.getDescriptor();
-                    final ParameterDescriptor replacementDescriptor = new ParameterDescriptor.Builder()
-                        .from(existingDescriptor)
-                        .description(parameter.getDescriptor().getDescription())
-                        .build();
+            for (final Map.Entry<String, Parameter> entry : updatedParameters.entrySet()) {
+                final String parameterName = entry.getKey();
+                final Parameter parameter = entry.getValue();
 
-                    final Parameter replacementParameter = new Parameter(replacementDescriptor, existingParameter.getValue());
-                    parameters.put(parameter.getDescriptor(), replacementParameter);
-                } else {
-                    parameters.put(parameter.getDescriptor(), parameter);
+                if (parameter == null) {
+                    final ParameterDescriptor parameterDescriptor = new ParameterDescriptor.Builder().name(parameterName).build();
+                    parameters.remove(parameterDescriptor);
                     changeAffectingComponents = true;
+                } else {
+                    final Parameter oldParameter = parameters.put(parameter.getDescriptor(), parameter);
+                    if (oldParameter == null || !Objects.equals(oldParameter.getValue(), parameter.getValue())) {
+                        changeAffectingComponents = true;
+                    }
                 }
             }
 
@@ -195,25 +188,23 @@ public class StandardParameterContext implements ParameterContext {
     }
 
     @Override
-    public void verifyCanSetParameters(final Set<Parameter> updatedParameters) {
+    public void verifyCanSetParameters(final Map<String, Parameter> updatedParameters) {
         // Ensure that the updated parameters will not result in changing the sensitivity flag of any parameter.
-        for (final Parameter updatedParameter : updatedParameters) {
-            validateSensitiveFlag(updatedParameter);
-
-            // Parameters' names and sensitivity flags are immutable. However, the description and value are mutable. If both value and description are
-            // set to `null`, this is the indication that the Parameter should be removed. If the value is `null` but the Description is supplied, the user
-            // is indicating that only the description is to be changed.
-            if (updatedParameter.getValue() == null && updatedParameter.getDescriptor().getDescription() == null) {
-                validateReferencingComponents(updatedParameter, "remove");
-            } else if (updatedParameter.getValue() != null) {
-                validateReferencingComponents(updatedParameter, "update");
-            } else {
-                // Only parameter is changing. No value is set. This means that the Parameter must already exist.
-                final Optional<Parameter> existing = getParameter(updatedParameter.getDescriptor());
-                if (!existing.isPresent()) {
-                    throw new IllegalStateException("Cannot add Parameter '" + updatedParameter.getDescriptor().getName() + "' without providing a value");
-                }
+        for (final Map.Entry<String, Parameter> entry : updatedParameters.entrySet()) {
+            final String parameterName = entry.getKey();
+            final Parameter parameter = entry.getValue();
+            if (parameter == null) {
+                // parameter is being deleted.
+                validateReferencingComponents(parameterName, null,"remove");
+                continue;
             }
+
+            if (!Objects.equals(parameterName, parameter.getDescriptor().getName())) {
+                throw new IllegalArgumentException("Parameter '" + parameterName + "' was specified with the wrong key in the Map");
+            }
+
+            validateSensitiveFlag(parameter);
+            validateReferencingComponents(parameterName, parameter, "update");
         }
     }
 
@@ -236,25 +227,27 @@ public class StandardParameterContext implements ParameterContext {
     }
 
 
-    private void validateReferencingComponents(final Parameter updatedParameter, final String parameterAction) {
-        final String paramName = updatedParameter.getDescriptor().getName();
-
-        for (final ProcessorNode procNode : parameterReferenceManager.getProcessorsReferencing(this, paramName)) {
+    private void validateReferencingComponents(final String parameterName, final Parameter parameter, final String parameterAction) {
+        for (final ProcessorNode procNode : parameterReferenceManager.getProcessorsReferencing(this, parameterName)) {
             if (procNode.isRunning()) {
-                throw new IllegalStateException("Cannot " + parameterAction + " parameter '" + paramName + "' because it is referenced by " + procNode + ", which is currently running");
+                throw new IllegalStateException("Cannot " + parameterAction + " parameter '" + parameterName + "' because it is referenced by " + procNode + ", which is currently running");
             }
 
-            validateParameterSensitivity(updatedParameter, procNode);
+            if (parameter != null) {
+                validateParameterSensitivity(parameter, procNode);
+            }
         }
 
-        for (final ControllerServiceNode serviceNode : parameterReferenceManager.getControllerServicesReferencing(this, paramName)) {
+        for (final ControllerServiceNode serviceNode : parameterReferenceManager.getControllerServicesReferencing(this, parameterName)) {
             final ControllerServiceState serviceState = serviceNode.getState();
             if (serviceState != ControllerServiceState.DISABLED) {
-                throw new IllegalStateException("Cannot " + parameterAction + " parameter '" + paramName + "' because it is referenced by "
+                throw new IllegalStateException("Cannot " + parameterAction + " parameter '" + parameterName + "' because it is referenced by "
                     + serviceNode + ", which currently has a state of " + serviceState);
             }
 
-            validateParameterSensitivity(updatedParameter, serviceNode);
+            if (parameter != null) {
+                validateParameterSensitivity(parameter, serviceNode);
+            }
         }
     }
 

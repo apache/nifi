@@ -33,6 +33,7 @@ import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.expression.ExpressionLanguageCompiler;
 import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterReference;
 import org.apache.nifi.registry.VariableRegistry;
@@ -43,6 +44,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
@@ -214,6 +216,21 @@ public class StandardValidationContext implements ValidationContext {
         }
 
         return parameterContext.getParameter(parameterName).isPresent();
+    }
+
+    @Override
+    public boolean isParameterSet(final String parameterName) {
+        if (parameterContext == null) {
+            return false;
+        }
+
+        final Optional<Parameter> parameterOption = parameterContext.getParameter(parameterName);
+        if (!parameterOption.isPresent()) {
+            return false;
+        }
+
+        final String value = parameterOption.get().getValue();
+        return value != null;
     }
 
     @Override

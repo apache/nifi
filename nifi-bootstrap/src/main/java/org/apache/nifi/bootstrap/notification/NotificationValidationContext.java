@@ -133,4 +133,9 @@ public class NotificationValidationContext implements ValidationContext {
     public boolean isParameterDefined(final String parameterName) {
         return false;
     }
+
+    @Override
+    public boolean isParameterSet(final String parameterName) {
+        return false;
+    }
 }

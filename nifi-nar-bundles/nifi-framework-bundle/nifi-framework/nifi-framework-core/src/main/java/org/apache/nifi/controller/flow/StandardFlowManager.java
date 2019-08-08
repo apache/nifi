@@ -736,7 +736,7 @@ public class StandardFlowManager implements FlowManager {
     }
 
     @Override
-    public ParameterContext createParameterContext(final String id, final String name, final Set<Parameter> parameters) {
+    public ParameterContext createParameterContext(final String id, final String name, final Map<String, Parameter> parameters) {
         final boolean namingConflict = parameterContextManager.getParameterContexts().stream()
             .anyMatch(paramContext -> paramContext.getName().equals(name));
 
