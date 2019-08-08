@@ -4854,7 +4854,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     @Override
     public ProcessGroupEntity updateProcessGroupContents(final Revision revision, final String groupId, final VersionControlInformationDTO versionControlInfo,
-        final VersionedFlowSnapshot proposedFlowSnapshot, final String componentIdSeed, final boolean verifyNotModified, final boolean updateSettings, final boolean updateDescendantVersionedFlows) {
+                                                         final VersionedFlowSnapshot proposedFlowSnapshot, final String componentIdSeed, final boolean verifyNotModified,
+                                                         final boolean updateSettings, final boolean updateDescendantVersionedFlows, final Supplier<String> idGenerator) {
 
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
 
@@ -4868,7 +4869,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             @Override
             public RevisionUpdate<ProcessGroupDTO> update() {
                 // update the Process Group
-                processGroupDAO.updateProcessGroupFlow(groupId, proposedFlowSnapshot, versionControlInfo, componentIdSeed, verifyNotModified, updateSettings, updateDescendantVersionedFlows);
+                final ProcessGroup updatedProcessGroup = processGroupDAO.updateProcessGroupFlow(groupId, proposedFlowSnapshot, versionControlInfo, componentIdSeed, verifyNotModified, updateSettings,
+                    updateDescendantVersionedFlows);
 
                 // update the revisions
                 final Set<Revision> updatedRevisions = revisions.stream()

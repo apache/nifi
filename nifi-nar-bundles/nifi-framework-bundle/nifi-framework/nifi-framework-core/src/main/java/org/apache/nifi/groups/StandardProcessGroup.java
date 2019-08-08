@@ -72,6 +72,7 @@ import org.apache.nifi.logging.LogRepositoryFactory;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
+import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.parameter.ParameterReference;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.StandardProcessContext;
@@ -96,6 +97,8 @@ import org.apache.nifi.registry.flow.VersionedFlowState;
 import org.apache.nifi.registry.flow.VersionedFlowStatus;
 import org.apache.nifi.registry.flow.VersionedFunnel;
 import org.apache.nifi.registry.flow.VersionedLabel;
+import org.apache.nifi.registry.flow.VersionedParameter;
+import org.apache.nifi.registry.flow.VersionedParameterContext;
 import org.apache.nifi.registry.flow.VersionedPort;
 import org.apache.nifi.registry.flow.VersionedProcessGroup;
 import org.apache.nifi.registry.flow.VersionedProcessor;
@@ -3547,7 +3550,8 @@ public final class StandardProcessGroup implements ProcessGroup {
 
             final StandardVersionControlInformation originalVci = this.versionControlInfo.get();
             try {
-                updateProcessGroup(this, proposedSnapshot.getFlowContents(), componentIdSeed, updatedVersionedComponentIds, false, updateSettings, updateDescendantVersionedFlows, knownVariables);
+                updateProcessGroup(this, proposedSnapshot.getFlowContents(), componentIdSeed, updatedVersionedComponentIds, false, updateSettings, updateDescendantVersionedFlows, knownVariables,
+                    proposedSnapshot.getParameterContexts());
             } catch (final Throwable t) {
                 // The proposed snapshot may not have any Versioned Flow Coordinates. As a result, the call to #updateProcessGroup may
                 // set this PG's Version Control Info to null. During the normal flow of control,
@@ -3627,7 +3631,7 @@ public final class StandardProcessGroup implements ProcessGroup {
 
     private void updateProcessGroup(final ProcessGroup group, final VersionedProcessGroup proposed, final String componentIdSeed,
                                     final Set<String> updatedVersionedComponentIds, final boolean updatePosition, final boolean updateName, final boolean updateDescendantVersionedGroups,
-                                    final Set<String> variablesToSkip) throws ProcessorInstantiationException {
+                                    final Set<String> variablesToSkip, final Map<String, VersionedParameterContext> versionedParameterContexts) throws ProcessorInstantiationException {
 
         // During the flow update, we will use temporary names for process group ports. This is because port names must be
         // unique within a process group, but during an update we might temporarily be in a state where two ports have the same name.
@@ -3647,24 +3651,8 @@ public final class StandardProcessGroup implements ProcessGroup {
             group.setPosition(new Position(proposed.getPosition().getX(), proposed.getPosition().getY()));
         }
 
-        // Determine which variables have been added/removed and add/remove them from this group's variable registry.
-        // We don't worry about if a variable value has changed, because variables are designed to be 'environment specific.'
-        // As a result, once imported, we won't update variables to match the remote flow, but we will add any missing variables
-        // and remove any variables that are no longer part of the remote flow.
-        final Set<String> existingVariableNames = group.getVariableRegistry().getVariableMap().keySet().stream()
-                .map(VariableDescriptor::getName)
-                .collect(Collectors.toSet());
-
-        final Map<String, String> updatedVariableMap = new HashMap<>();
-
-        // If any new variables exist in the proposed flow, add those to the variable registry.
-        for (final Map.Entry<String, String> entry : proposed.getVariables().entrySet()) {
-            if (!existingVariableNames.contains(entry.getKey()) && !variablesToSkip.contains(entry.getKey())) {
-                updatedVariableMap.put(entry.getKey(), entry.getValue());
-            }
-        }
-
-        group.setVariables(updatedVariableMap);
+        updateParameterContext(group, proposed, versionedParameterContexts, componentIdSeed);
+        updateVariableRegistry(group, proposed, variablesToSkip);
 
         final VersionedFlowCoordinates remoteCoordinates = proposed.getVersionedFlowCoordinates();
         if (remoteCoordinates == null) {
@@ -3743,12 +3731,13 @@ public final class StandardProcessGroup implements ProcessGroup {
             final VersionedFlowCoordinates childCoordinates = proposedChildGroup.getVersionedFlowCoordinates();
 
             if (childGroup == null) {
-                final ProcessGroup added = addProcessGroup(group, proposedChildGroup, componentIdSeed, variablesToSkip);
+                final ProcessGroup added = addProcessGroup(group, proposedChildGroup, componentIdSeed, variablesToSkip, versionedParameterContexts);
                 flowManager.onProcessGroupAdded(added);
                 added.findAllRemoteProcessGroups().forEach(RemoteProcessGroup::initialize);
                 LOG.info("Added {} to {}", added, this);
             } else if (childCoordinates == null || updateDescendantVersionedGroups) {
-                updateProcessGroup(childGroup, proposedChildGroup, componentIdSeed, updatedVersionedComponentIds, true, true, updateDescendantVersionedGroups, variablesToSkip);
+                updateProcessGroup(childGroup, proposedChildGroup, componentIdSeed, updatedVersionedComponentIds, true, true, updateDescendantVersionedGroups,
+                    variablesToSkip, versionedParameterContexts);
                 LOG.info("Updated {}", childGroup);
             }
 
@@ -4017,6 +4006,101 @@ public final class StandardProcessGroup implements ProcessGroup {
         }
     }
 
+    private ParameterContext createParameterContext(final VersionedParameterContext versionedParameterContext, final String parameterContextId) {
+        final Map<String, Parameter> parameters = new HashMap<>();
+        for (final VersionedParameter versionedParameter : versionedParameterContext.getParameters()) {
+            final ParameterDescriptor descriptor = new ParameterDescriptor.Builder()
+                .name(versionedParameter.getName())
+                .description(versionedParameter.getDescription())
+                .sensitive(versionedParameter.isSensitive())
+                .build();
+
+            final Parameter parameter = new Parameter(descriptor, versionedParameter.getValue());
+            parameters.put(versionedParameter.getName(), parameter);
+        }
+
+        return flowController.getFlowManager().createParameterContext(parameterContextId, versionedParameterContext.getName(), parameters);
+    }
+
+    private void addMissingParameters(final VersionedParameterContext versionedParameterContext, final ParameterContext currentParameterContext) {
+        final Map<String, Parameter> parameters = new HashMap<>();
+        for (final VersionedParameter versionedParameter : versionedParameterContext.getParameters()) {
+            final Optional<Parameter> parameterOption = currentParameterContext.getParameter(versionedParameter.getName());
+            if (parameterOption.isPresent()) {
+                // Skip this parameter, since it is already defined. We only want to add missing parameters
+                continue;
+            }
+
+            final ParameterDescriptor descriptor = new ParameterDescriptor.Builder()
+                .name(versionedParameter.getName())
+                .description(versionedParameter.getDescription())
+                .sensitive(versionedParameter.isSensitive())
+                .build();
+
+            final Parameter parameter = new Parameter(descriptor, versionedParameter.getValue());
+            parameters.put(versionedParameter.getName(), parameter);
+        }
+
+        currentParameterContext.setParameters(parameters);
+    }
+
+    private ParameterContext getParameterContextByName(final String contextName) {
+        return flowController.getFlowManager().getParameterContextManager().getParameterContexts().stream()
+            .filter(context -> context.getName().equals(contextName))
+            .findAny()
+            .orElse(null);
+    }
+
+    private void updateParameterContext(final ProcessGroup group, final VersionedProcessGroup proposed, final Map<String, VersionedParameterContext> versionedParameterContexts,
+                                        final String componentIdSeed) {
+        // Update the Parameter Context
+        final ParameterContext currentParamContext = group.getParameterContext();
+        final String proposedParameterContextName = proposed.getParameterContextName();
+        if (proposedParameterContextName != null) {
+            if (currentParamContext == null) {
+                // Create a new Parameter Context based on the parameters provided
+                final VersionedParameterContext versionedParameterContext = versionedParameterContexts.get(proposedParameterContextName);
+
+                final ParameterContext contextByName = getParameterContextByName(versionedParameterContext.getName());
+                final ParameterContext selectedParameterContext;
+                if (contextByName == null) {
+                    final String parameterContextId = generateUuid(versionedParameterContext.getName(), versionedParameterContext.getName(), componentIdSeed);
+                    selectedParameterContext = createParameterContext(versionedParameterContext, parameterContextId);
+                } else {
+                    selectedParameterContext = contextByName;
+                }
+
+                group.setParameterContext(selectedParameterContext);
+            } else {
+                // Update the current Parameter Context so that it has any Parameters included in the proposed context
+                final VersionedParameterContext versionedParameterContext = versionedParameterContexts.get(proposedParameterContextName);
+                addMissingParameters(versionedParameterContext, currentParamContext);
+            }
+        }
+    }
+
+    private void updateVariableRegistry(final ProcessGroup group, final VersionedProcessGroup proposed, final Set<String> variablesToSkip) {
+        // Determine which variables have been added/removed and add/remove them from this group's variable registry.
+        // We don't worry about if a variable value has changed, because variables are designed to be 'environment specific.'
+        // As a result, once imported, we won't update variables to match the remote flow, but we will add any missing variables
+        // and remove any variables that are no longer part of the remote flow.
+        final Set<String> existingVariableNames = group.getVariableRegistry().getVariableMap().keySet().stream()
+            .map(VariableDescriptor::getName)
+            .collect(Collectors.toSet());
+
+        final Map<String, String> updatedVariableMap = new HashMap<>();
+
+        // If any new variables exist in the proposed flow, add those to the variable registry.
+        for (final Map.Entry<String, String> entry : proposed.getVariables().entrySet()) {
+            if (!existingVariableNames.contains(entry.getKey()) && !variablesToSkip.contains(entry.getKey())) {
+                updatedVariableMap.put(entry.getKey(), entry.getValue());
+            }
+        }
+
+        group.setVariables(updatedVariableMap);
+    }
+
+
     private String getPublicPortFinalName(final PublicPort publicPort, final String proposedFinalName) {
         final Optional<Port> existingPublicPort;
         if (TransferDirection.RECEIVE == publicPort.getDirection()) {
@@ -4074,12 +4158,13 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
 
-    private ProcessGroup addProcessGroup(final ProcessGroup destination, final VersionedProcessGroup proposed, final String componentIdSeed, final Set<String> variablesToSkip)
+    private ProcessGroup addProcessGroup(final ProcessGroup destination, final VersionedProcessGroup proposed, final String componentIdSeed, final Set<String> variablesToSkip,
+                                         final Map<String, VersionedParameterContext> versionedParameterContexts)
             throws ProcessorInstantiationException {
         final ProcessGroup group = flowManager.createProcessGroup(generateUuid(proposed.getIdentifier(), destination.getIdentifier(), componentIdSeed));
         group.setVersionedComponentId(proposed.getIdentifier());
         group.setParent(destination);
-        updateProcessGroup(group, proposed, componentIdSeed, Collections.emptySet(), true, true, true, variablesToSkip);
+        updateProcessGroup(group, proposed, componentIdSeed, Collections.emptySet(), true, true, true, variablesToSkip, versionedParameterContexts);
         destination.addProcessGroup(group);
         return group;
     }
