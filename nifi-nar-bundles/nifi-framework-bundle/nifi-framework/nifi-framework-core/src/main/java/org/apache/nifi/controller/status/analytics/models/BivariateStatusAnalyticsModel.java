@@ -14,14 +14,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.controller.status.analytics;
+package org.apache.nifi.controller.status.analytics.models;
 
+import java.util.Map;
 import java.util.stream.Stream;
 
-public interface StatusAnalyticsModel {
+public abstract class BivariateStatusAnalyticsModel implements VariateStatusAnalyticsModel {
 
-    void learn(Stream<Double[]> features, Stream<Double> labels);
-    Double predict(Double[] feature);
-    Boolean supportsOnlineLearning();
+    public abstract void learn(Stream<Double[]> features, Stream<Double> labels);
+
+    public  Double predict(Double[] feature){
+        return predictY(feature[0]);
+    }
+
+    public Boolean supportsOnlineLearning() {
+        return false;
+    }
+
+    public abstract Double predictX(Double y);
+
+    public abstract Double predictY(Double x);
+
+    public abstract Double getRSquared();
+
+    public abstract Map<String,Double> getScores();
+
+    @Override
+    public void clear() {
+    }
 
 }

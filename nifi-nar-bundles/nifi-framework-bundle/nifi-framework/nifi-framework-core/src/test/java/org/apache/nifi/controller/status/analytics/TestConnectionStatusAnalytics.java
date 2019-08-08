@@ -19,6 +19,7 @@ package org.apache.nifi.controller.status.analytics;
 import static org.junit.Assert.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
@@ -32,6 +33,9 @@ import java.util.stream.Collectors;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.queue.FlowFileQueue;
+import org.apache.nifi.controller.repository.FlowFileEvent;
+import org.apache.nifi.controller.repository.FlowFileEventRepository;
+import org.apache.nifi.controller.repository.RepositoryStatusReport;
 import org.apache.nifi.controller.status.history.ComponentStatusRepository;
 import org.apache.nifi.controller.status.history.ConnectionStatusDescriptor;
 import org.apache.nifi.controller.status.history.MetricDescriptor;
@@ -57,6 +61,9 @@ public class TestConnectionStatusAnalytics {
         final StatusHistory statusHistory = Mockito.mock(StatusHistory.class);
         final Connection connection = Mockito.mock(Connection.class);
         final FlowFileQueue flowFileQueue = Mockito.mock(FlowFileQueue.class);
+        final FlowFileEventRepository flowFileEventRepository = Mockito.mock(FlowFileEventRepository.class);
+        final RepositoryStatusReport repositoryStatusReport = Mockito.mock(RepositoryStatusReport.class);
+        final FlowFileEvent flowFileEvent = Mockito.mock(FlowFileEvent.class);
         final List<Connection> connections = new ArrayList<>();
         final String connectionIdentifier = "1";
         connections.add(connection);
@@ -65,11 +72,20 @@ public class TestConnectionStatusAnalytics {
         final long startTime = System.currentTimeMillis();
         int iterations = 10;
 
+        Long inputBytes = queuedBytes * 2;
+        Long outputBytes = inputBytes - queuedBytes;
+        Long inputCount = queuedCount * 2;
+        Long outputCount = inputCount - queuedCount;
+
         for (int i = 0; i < iterations; i++) {
             final StandardStatusSnapshot snapshot = new StandardStatusSnapshot(CONNECTION_METRICS);
             snapshot.setTimestamp(new Date(startTime + i * 1000));
             snapshot.addStatusMetric(ConnectionStatusDescriptor.QUEUED_BYTES.getDescriptor(), (isConstantStatus || i < 5) ? queuedBytes : queuedBytes * 2);
             snapshot.addStatusMetric(ConnectionStatusDescriptor.QUEUED_COUNT.getDescriptor(), (isConstantStatus || i < 5) ? queuedCount : queuedCount * 2);
+            snapshot.addStatusMetric(ConnectionStatusDescriptor.INPUT_BYTES.getDescriptor(), (isConstantStatus || i < 5) ? inputBytes : inputBytes * 2);
+            snapshot.addStatusMetric(ConnectionStatusDescriptor.INPUT_COUNT.getDescriptor(), (isConstantStatus || i < 5) ? inputCount : inputCount * 2);
+            snapshot.addStatusMetric(ConnectionStatusDescriptor.OUTPUT_BYTES.getDescriptor(), (isConstantStatus || i < 5) ? outputBytes : outputBytes * 2);
+            snapshot.addStatusMetric(ConnectionStatusDescriptor.OUTPUT_COUNT.getDescriptor(), (isConstantStatus || i < 5) ? outputCount : outputCount * 2);
             snapshotList.add(snapshot);
         }
 
@@ -80,8 +96,14 @@ public class TestConnectionStatusAnalytics {
         when(processGroup.findAllConnections()).thenReturn(connections);
         when(statusHistory.getStatusSnapshots()).thenReturn(snapshotList);
         when(flowManager.getRootGroup()).thenReturn(processGroup);
+        when(flowFileEvent.getContentSizeIn()).thenReturn(inputBytes);
+        when(flowFileEvent.getContentSizeOut()).thenReturn(outputBytes);
+        when(flowFileEvent.getFlowFilesIn()).thenReturn(inputCount.intValue());
+        when(flowFileEvent.getFlowFilesOut()).thenReturn(outputCount.intValue());
+        when(flowFileEventRepository.reportTransferEvents(anyLong())).thenReturn(repositoryStatusReport);
+        when(repositoryStatusReport.getReportEntry(anyString())).thenReturn(flowFileEvent);
         when(statusRepository.getConnectionStatusHistory(anyString(), any(), any(), anyInt())).thenReturn(statusHistory);
-        ConnectionStatusAnalytics connectionStatusAnalytics = new ConnectionStatusAnalytics(statusRepository, flowManager, connectionIdentifier, false);
+        ConnectionStatusAnalytics connectionStatusAnalytics = new ConnectionStatusAnalytics(statusRepository, flowManager,flowFileEventRepository, connectionIdentifier, false);
         connectionStatusAnalytics.init();
         return connectionStatusAnalytics;
     }
@@ -91,7 +113,7 @@ public class TestConnectionStatusAnalytics {
         ConnectionStatusAnalytics connectionStatusAnalytics = getConnectionStatusAnalytics(5000L, 50L, "100MB", 100L, true);
         Long interval = connectionStatusAnalytics.getIntervalTimeMillis();
         assertNotNull(interval);
-        assert (interval == 300000);
+        assert (interval == 180000);
     }
 
     @Test
@@ -99,7 +121,7 @@ public class TestConnectionStatusAnalytics {
         ConnectionStatusAnalytics connectionStatusAnalytics = getConnectionStatusAnalytics(5000L, 50L, "100MB", 100L, true);
         Long countTime = connectionStatusAnalytics.getTimeToCountBackpressureMillis();
         assertNotNull(countTime);
-        assert (countTime == -1L);
+        assert (countTime > 0);
     }
 
     @Test
@@ -107,7 +129,7 @@ public class TestConnectionStatusAnalytics {
         ConnectionStatusAnalytics connectionStatusAnalytics = getConnectionStatusAnalytics(5000L, 50L, "100MB", 100L, false);
         Long countTime = connectionStatusAnalytics.getTimeToCountBackpressureMillis();
         assertNotNull(countTime);
-        assert (countTime > -1L);
+        assert (countTime == -1L);
     }
 
     @Test
@@ -115,7 +137,7 @@ public class TestConnectionStatusAnalytics {
         ConnectionStatusAnalytics connectionStatusAnalytics = getConnectionStatusAnalytics(5000L, 50L, "100MB", 100L, true);
         Long bytesTime = connectionStatusAnalytics.getTimeToBytesBackpressureMillis();
         assertNotNull(bytesTime);
-        assert (bytesTime == -1L);
+        assert (bytesTime == -1L || bytesTime == 0);
     }
 
     @Test
@@ -123,7 +145,7 @@ public class TestConnectionStatusAnalytics {
         ConnectionStatusAnalytics connectionStatusAnalytics = getConnectionStatusAnalytics(5000L, 50L, "100MB", 100L, false);
         Long bytesTime = connectionStatusAnalytics.getTimeToBytesBackpressureMillis();
         assertNotNull(bytesTime);
-        assert (bytesTime > -1L);
+        assert (bytesTime == -1L);
     }
 
     @Test
@@ -139,7 +161,7 @@ public class TestConnectionStatusAnalytics {
         ConnectionStatusAnalytics connectionStatusAnalytics = getConnectionStatusAnalytics(5000L, 50L, "100MB", 100L, false);
         Long nextBytes = connectionStatusAnalytics.getNextIntervalBytes();
         assertNotNull(nextBytes);
-        assert (nextBytes > -1L);
+        assert (nextBytes == -1L);
     }
 
     @Test
@@ -152,10 +174,11 @@ public class TestConnectionStatusAnalytics {
 
     @Test
     public void testGetNextIntervalCountVaryingStatus() {
-        ConnectionStatusAnalytics connectionStatusAnalytics = getConnectionStatusAnalytics(5000L, 50L, "100MB", 100L, true);
+
+        ConnectionStatusAnalytics connectionStatusAnalytics = getConnectionStatusAnalytics(5000L, 50L, "100MB", 100L, false);
         Long nextCount = connectionStatusAnalytics.getNextIntervalCount();
         assertNotNull(nextCount);
-        assert (nextCount == 50L);
+        assert (nextCount == -1L);
     }
 
     @Test
