@@ -19,6 +19,7 @@ package org.apache.nifi.controller.status.analytics;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.nifi.controller.flow.FlowManager;
+import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.status.history.ComponentStatusRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,14 +28,16 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 
 public class CachingConnectionStatusAnalyticsEngine implements StatusAnalyticsEngine {
-    private ComponentStatusRepository statusRepository;
-    private FlowManager flowManager;
+    private final ComponentStatusRepository statusRepository;
+    private final FlowManager flowManager;
+    private final FlowFileEventRepository flowFileEventRepository;
     private volatile Cache<String, ConnectionStatusAnalytics> cache;
     private static final Logger LOG = LoggerFactory.getLogger(CachingConnectionStatusAnalyticsEngine.class);
 
-    public CachingConnectionStatusAnalyticsEngine(FlowManager flowManager, ComponentStatusRepository statusRepository) {
+    public CachingConnectionStatusAnalyticsEngine(FlowManager flowManager, ComponentStatusRepository statusRepository, FlowFileEventRepository flowFileEventRepository) {
         this.flowManager = flowManager;
         this.statusRepository = statusRepository;
+        this.flowFileEventRepository = flowFileEventRepository;
         this.cache = Caffeine.newBuilder()
                 .expireAfterWrite(30, TimeUnit.MINUTES)
                 .build();
@@ -44,12 +47,12 @@ public class CachingConnectionStatusAnalyticsEngine implements StatusAnalyticsEn
     public StatusAnalytics getStatusAnalytics(String identifier) {
 
         ConnectionStatusAnalytics connectionStatusAnalytics = cache.getIfPresent(identifier);
-        if(connectionStatusAnalytics == null){
+        if (connectionStatusAnalytics == null) {
             LOG.debug("Creating new status analytics object for connection id: {}", identifier);
-            connectionStatusAnalytics = new ConnectionStatusAnalytics(statusRepository,flowManager,identifier,true);
+            connectionStatusAnalytics = new ConnectionStatusAnalytics(statusRepository, flowManager,flowFileEventRepository, identifier, true);
             connectionStatusAnalytics.init();
-            cache.put(identifier,connectionStatusAnalytics);
-        }else{
+            cache.put(identifier, connectionStatusAnalytics);
+        } else {
             LOG.debug("Pulled existing analytics from cache for connection id: {}", identifier);
             connectionStatusAnalytics.refresh();
         }
