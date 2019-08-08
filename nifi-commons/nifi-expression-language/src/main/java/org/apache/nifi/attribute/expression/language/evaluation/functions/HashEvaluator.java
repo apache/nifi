@@ -22,6 +22,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.Security;
 import java.util.Map;
 
+import org.apache.nifi.attribute.expression.language.EvaluationContext;
 import org.apache.nifi.attribute.expression.language.evaluation.*;
 import org.apache.nifi.attribute.expression.language.exception.AttributeExpressionLanguageException;
 
@@ -38,13 +39,13 @@ public class HashEvaluator extends StringEvaluator {
     }
 
     @Override
-    public QueryResult<String> evaluate(final Map<String, String> attributes, final EvaluatorState context) {
-        final String subjectValue = subject.evaluate(attributes, context).getValue();
+    public QueryResult<String> evaluate(EvaluationContext context) {
+        final String subjectValue = subject.evaluate(context).getValue();
         if (subjectValue == null) {
             return new StringQueryResult(null);
         }
 
-        final String algorithmValue = algorithm.evaluate(attributes,context).getValue();
+        final String algorithmValue = algorithm.evaluate(context).getValue();
         final MessageDigest digest = getDigest(algorithmValue);
 
         final byte[] dv = digest.digest(subjectValue.getBytes());
