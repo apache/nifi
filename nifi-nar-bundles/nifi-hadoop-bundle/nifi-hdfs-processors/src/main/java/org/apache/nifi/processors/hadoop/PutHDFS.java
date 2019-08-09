@@ -278,12 +278,14 @@ public class PutHDFS extends AbstractHadoopProcessor {
                     final Path copyFile = new Path(configuredRootDirPath, filename);
 
                     // Create destination directory if it does not exist
+                    boolean targetDirCreated = false;
                     try {
                         if (!hdfs.getFileStatus(configuredRootDirPath).isDirectory()) {
                             throw new IOException(configuredRootDirPath.toString() + " already exists and is not a directory");
                         }
                     } catch (FileNotFoundException fe) {
-                        if (!hdfs.mkdirs(configuredRootDirPath)) {
+                        targetDirCreated = hdfs.mkdirs(configuredRootDirPath);
+                        if (!targetDirCreated) {
                             throw new IOException(configuredRootDirPath.toString() + " could not be created");
                         }
                         changeOwner(context, hdfs, configuredRootDirPath, flowFile);
@@ -398,6 +400,7 @@ public class PutHDFS extends AbstractHadoopProcessor {
                     final String hdfsPath = copyFile.getParent().toString();
                     putFlowFile = session.putAttribute(putFlowFile, CoreAttributes.FILENAME.key(), newFilename);
                     putFlowFile = session.putAttribute(putFlowFile, ABSOLUTE_HDFS_PATH_ATTRIBUTE, hdfsPath);
+                    putFlowFile = session.putAttribute(putFlowFile, TARGET_HDFS_DIR_CREATED_ATTRIBUTE, String.valueOf(targetDirCreated));
                     final Path qualifiedPath = copyFile.makeQualified(hdfs.getUri(), hdfs.getWorkingDirectory());
                     session.getProvenanceReporter().send(putFlowFile, qualifiedPath.toString());
 
