@@ -16,13 +16,11 @@
  */
 package org.apache.nifi.attribute.expression.language.evaluation.functions;
 
+import org.apache.nifi.attribute.expression.language.EvaluationContext;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.EvaluatorState;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.StringQueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.StringEvaluator;
-
-import java.util.Map;
 
 abstract class PaddingEvaluator extends StringEvaluator {
 
@@ -41,19 +39,19 @@ abstract class PaddingEvaluator extends StringEvaluator {
     }
 
     @Override
-    public QueryResult<String> evaluate(final Map<String, String> attributes, final EvaluatorState context) {
-        final String subjectValue = subject.evaluate(attributes, context).getValue();
+    public QueryResult<String> evaluate(EvaluationContext evaluationContext) {
+        final String subjectValue = subject.evaluate(evaluationContext).getValue();
         if (subjectValue == null) {
             return new StringQueryResult(null);
         }
-        final Long desiredLengthValue = desiredLength.evaluate(attributes, context).getValue();
+        final Long desiredLengthValue = desiredLength.evaluate(evaluationContext).getValue();
         if (desiredLengthValue == null || desiredLengthValue > Integer.MAX_VALUE || desiredLengthValue <= 0) {
             return new StringQueryResult(subjectValue);
         }
 
         String padValue = DEFAULT_PADDING_STRING;
         if (pad != null) {
-            String s = pad.evaluate(attributes, context).getValue();
+            String s = pad.evaluate(evaluationContext).getValue();
             if (s != null && !s.isEmpty()) {
                 padValue = s;
             }
