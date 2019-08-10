@@ -31,8 +31,6 @@ abstract class PaddingEvaluator extends StringEvaluator {
     private final Evaluator<String> pad;
 
     PaddingEvaluator(final Evaluator<String> subject, final Evaluator<Long> desiredLength, final Evaluator<String> pad) {
-                      final Evaluator<Long> desiredLength,
-                      final Evaluator<String> pad) {
         this.subject = subject;
         this.desiredLength = desiredLength;
         this.pad = pad;
