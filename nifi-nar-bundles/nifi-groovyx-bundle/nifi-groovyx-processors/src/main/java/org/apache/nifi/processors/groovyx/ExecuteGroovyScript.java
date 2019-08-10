@@ -27,6 +27,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.RequiredPermission;
@@ -268,6 +269,14 @@ public class ExecuteGroovyScript extends AbstractProcessor {
         } catch (Throwable t) {
             getLogger().error("onStart failed: " + t);
             throw new ProcessException("onStart failed: " + t, t);
+        }
+    }
+    @OnUnscheduled
+    public void onUnscheduled(final ProcessContext context) {
+        try {
+            callScriptStatic("onUnscheduled", context);
+        } catch (Throwable t) {
+            throw new ProcessException("onUnscheduled failed: " + t, t);
         }
     }
 
