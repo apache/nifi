@@ -1,5 +1,9 @@
 {
-     "firstName": "John", "lastName": "Smith", "age": 25,
+     "firstName": "John",
+     "lastName": "Smith",
+     "age": 25,
+     "voter" : true,
+     "height" : 6.1,
      "address" : {
          "streetAddress": "21 2nd Street",
          "city": "New York",

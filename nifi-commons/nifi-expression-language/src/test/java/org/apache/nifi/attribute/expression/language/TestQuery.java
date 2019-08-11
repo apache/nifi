@@ -362,6 +362,7 @@ public class TestQuery {
         verifyEquals("${json:jsonPath('$.firstName')}", attributes, "John");
         verifyEquals("${json:jsonPath('$.lastName')}", attributes, "Smith");
         verifyEquals("${json:jsonPath('$.age')}", attributes, "25");
+        verifyEquals("${json:jsonPath('$.voter')}", attributes, "true");
         verifyEquals("${json:jsonPath('$.address')}", attributes,
                 "{\"streetAddress\":\"21 2nd Street\",\"city\":\"New York\",\"state\":\"NY\",\"postalCode\":\"10021-3100\"}");
         verifyEquals("${json:jsonPath('$.phoneNumbers')}", attributes,
@@ -384,10 +385,119 @@ public class TestQuery {
         verifyEquals("${json:jsonPath('$.firstName')}", attributes, "John");
         verifyEquals("${json:jsonPath('$.lastName')}", attributes, "Smith");
         verifyEquals("${json:jsonPath('$.age')}", attributes, "25");
+        verifyEquals("${json:jsonPath('$.voter')}", attributes, "true");
         verifyEquals("${json:jsonPath('$.address.postalCode')}", attributes, "10021-3100");
         verifyEquals("${json:jsonPath(\"$.phoneNumbers[?(@.type=='home')].number\")}", attributes, "[]");
         verifyEquals("${json:jsonPath('$.phoneNumbers')}", attributes,
                 "{\"type\":\"office\",\"number\":\"646 555-4567\"}");
+    }
+
+    @Test
+    public void testJsonPathSetFirstNameAttribute() throws IOException {
+        final Map<String, String> attributes = new HashMap<>();
+        String addressBook = getResourceAsString("/json/address-book.json");
+        attributes.put("json", addressBook);
+
+        verifyEquals("${json:jsonPath('$.firstName')}", attributes, "John");
+
+        String addressBookAfterSet = Query.evaluateExpressions("${json:jsonPathSet('$.firstName', 'James')}", attributes, ParameterLookup.EMPTY);
+        attributes.clear();
+        attributes.put("json", addressBookAfterSet);
+
+        verifyEquals("${json:jsonPath('$.firstName')}", attributes, "James");
+        verifyEquals("${json:jsonPath('$.lastName')}", attributes, "Smith");
+        verifyEquals("${json:jsonPath('$.age')}", attributes, "25");
+        verifyEquals("${json:jsonPath('$.voter')}", attributes, "true");
+        verifyEquals("${json:jsonPath('$.address.postalCode')}", attributes, "10021-3100");
+        verifyEquals("${json:jsonPath(\"$.phoneNumbers[?(@.type=='home')].number\")}", attributes, "212 555-1234");
+        verifyEquals("${json:jsonPath('$.phoneNumbers')}", attributes,
+                "[{\"type\":\"home\",\"number\":\"212 555-1234\"},{\"type\":\"office\",\"number\":\"646 555-4567\"}]");
+    }
+
+    @Test
+    public void testJsonPathSetAgeWholeNumberAttribute() throws IOException {
+        final Map<String, String> attributes = new HashMap<>();
+        String addressBook = getResourceAsString("/json/address-book.json");
+        attributes.put("json", addressBook);
+
+        verifyEquals("${json:jsonPath('$.age')}", attributes, "25");
+
+        String addressBookAfterSet = Query.evaluateExpressions("${json:jsonPathSet('$.age', 35)}", attributes, ParameterLookup.EMPTY);
+        attributes.clear();
+        attributes.put("json", addressBookAfterSet);
+
+        verifyEquals("${json:jsonPath('$.firstName')}", attributes, "John");
+        verifyEquals("${json:jsonPath('$.lastName')}", attributes, "Smith");
+        verifyEquals("${json:jsonPath('$.age')}", attributes, "35");
+        verifyEquals("${json:jsonPath('$.voter')}", attributes, "true");
+        verifyEquals("${json:jsonPath('$.address.postalCode')}", attributes, "10021-3100");
+        verifyEquals("${json:jsonPath(\"$.phoneNumbers[?(@.type=='home')].number\")}", attributes, "212 555-1234");
+        verifyEquals("${json:jsonPath('$.phoneNumbers')}", attributes,
+                "[{\"type\":\"home\",\"number\":\"212 555-1234\"},{\"type\":\"office\",\"number\":\"646 555-4567\"}]");
+    }
+
+    @Test
+    public void testJsonPathSetVoterBooleanAttribute() throws IOException {
+        final Map<String, String> attributes = new HashMap<>();
+        String addressBook = getResourceAsString("/json/address-book.json");
+        attributes.put("json", addressBook);
+
+        verifyEquals("${json:jsonPath('$.voter')}", attributes, "true");
+
+        String addressBookAfterSet = Query.evaluateExpressions("${json:jsonPathSet('$.voter', false)}", attributes, ParameterLookup.EMPTY);
+        attributes.clear();
+        attributes.put("json", addressBookAfterSet);
+
+        verifyEquals("${json:jsonPath('$.voter')}", attributes, "false");
+        verifyEquals("${json:jsonPath('$.firstName')}", attributes, "John");
+        verifyEquals("${json:jsonPath('$.lastName')}", attributes, "Smith");
+        verifyEquals("${json:jsonPath('$.age')}", attributes, "25");
+        verifyEquals("${json:jsonPath('$.address.postalCode')}", attributes, "10021-3100");
+        verifyEquals("${json:jsonPath(\"$.phoneNumbers[?(@.type=='home')].number\")}", attributes, "212 555-1234");
+        verifyEquals("${json:jsonPath('$.phoneNumbers')}", attributes,
+                "[{\"type\":\"home\",\"number\":\"212 555-1234\"},{\"type\":\"office\",\"number\":\"646 555-4567\"}]");
+    }
+
+    @Test
+    public void testJsonPathSetHeightNumberAttribute() throws IOException {
+        final Map<String, String> attributes = new HashMap<>();
+        String addressBook = getResourceAsString("/json/address-book.json");
+        attributes.put("json", addressBook);
+
+        verifyEquals("${json:jsonPath('$.height')}", attributes, "6.1");
+
+        String addressBookAfterSet = Query.evaluateExpressions("${json:jsonPathSet('$.height', 5.9)}", attributes, ParameterLookup.EMPTY);
+        attributes.clear();
+        attributes.put("json", addressBookAfterSet);
+
+        verifyEquals("${json:jsonPath('$.height')}", attributes, "5.9");
+        verifyEquals("${json:jsonPath('$.firstName')}", attributes, "John");
+        verifyEquals("${json:jsonPath('$.lastName')}", attributes, "Smith");
+        verifyEquals("${json:jsonPath('$.age')}", attributes, "25");
+        verifyEquals("${json:jsonPath('$.address.postalCode')}", attributes, "10021-3100");
+        verifyEquals("${json:jsonPath(\"$.phoneNumbers[?(@.type=='home')].number\")}", attributes, "212 555-1234");
+        verifyEquals("${json:jsonPath('$.phoneNumbers')}", attributes,
+                "[{\"type\":\"home\",\"number\":\"212 555-1234\"},{\"type\":\"office\",\"number\":\"646 555-4567\"}]");
+    }
+
+    @Test
+    public void testJsonPathSetMissingPathAttribute() throws IOException {
+        final Map<String, String> attributes = new HashMap<>();
+        String addressBook = getResourceAsString("/json/address-book.json");
+        attributes.put("json", addressBook);
+
+        String addressBookAfterSet = Query.evaluateExpressions("${json:jsonPathSet('$.missingPath', 'missingValue')}", attributes, ParameterLookup.EMPTY);
+        attributes.clear();
+        attributes.put("json", addressBookAfterSet);
+
+        verifyEquals("${json:jsonPath('$.firstName')}", attributes, "John");
+        verifyEquals("${json:jsonPath('$.lastName')}", attributes, "Smith");
+        verifyEquals("${json:jsonPath('$.age')}", attributes, "25");
+        verifyEquals("${json:jsonPath('$.address.postalCode')}", attributes, "10021-3100");
+        verifyEquals("${json:jsonPath(\"$.phoneNumbers[?(@.type=='home')].number\")}", attributes, "212 555-1234");
+        verifyEquals("${json:jsonPath('$.phoneNumbers')}", attributes,
+                "[{\"type\":\"home\",\"number\":\"212 555-1234\"},{\"type\":\"office\",\"number\":\"646 555-4567\"}]");
+
     }
 
     @Test
