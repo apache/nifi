@@ -29,8 +29,11 @@ import org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionLe
 import org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser;
 import org.apache.nifi.attribute.expression.language.evaluation.BooleanEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.DateEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.DecimalEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.NumberEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.StringEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.WholeNumberEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.cast.BooleanCastEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.cast.DateCastEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.cast.DecimalCastEvaluator;
@@ -63,6 +66,7 @@ import org.apache.nifi.attribute.expression.language.evaluation.functions.IsEmpt
 import org.apache.nifi.attribute.expression.language.evaluation.functions.IsNullEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.JsonPathDeleteEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.JsonPathEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.functions.JsonPathSetEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.LastIndexOfEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.LengthEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.LessThanEvaluator;
@@ -177,6 +181,7 @@ import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpre
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.JOIN;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.JSON_PATH;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.JSON_PATH_DELETE;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.JSON_PATH_SET;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.LAST_INDEX_OF;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.LENGTH;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.LESS_THAN;
@@ -944,6 +949,29 @@ public class ExpressionCompiler {
                 verifyArgCount(argEvaluators, 1, "jsonPathDelete");
                 return addToken(new JsonPathDeleteEvaluator(toStringEvaluator(subjectEvaluator),
                         toStringEvaluator(argEvaluators.get(0), "first argument to jsonPathDelete")), "jsonPathDelete");
+            }
+            case JSON_PATH_SET: {
+                verifyArgCount(argEvaluators, 2, "jsonPathSet");
+                Evaluator<?> valueEvaluator = null;
+                Evaluator<?> argValueEvaluator = argEvaluators.get(1);
+                String location = "second argument to jsonPathSet";
+                if (argValueEvaluator instanceof StringEvaluator) {
+                    valueEvaluator = toStringEvaluator(argValueEvaluator, location);
+                } else if (argValueEvaluator instanceof DecimalEvaluator) {
+                    valueEvaluator = toDecimalEvaluator(argValueEvaluator, location);
+                } else if (argValueEvaluator instanceof NumberEvaluator) {
+                    valueEvaluator = toNumberEvaluator(argValueEvaluator, location);
+                } else if (argValueEvaluator instanceof WholeNumberEvaluator) {
+                    valueEvaluator = toWholeNumberEvaluator(argValueEvaluator, location);
+                } else if (argValueEvaluator instanceof BooleanEvaluator) {
+                    valueEvaluator = toBooleanEvaluator(argValueEvaluator, location);
+                } else {
+                    throw new AttributeExpressionLanguageParsingException("Cannot implicitly convert Data Type " +
+                            argValueEvaluator.getResultType() + (location == null ? "" : " at location [" + location + "]"));
+                }
+                return addToken(new JsonPathSetEvaluator(toStringEvaluator(subjectEvaluator),
+                        toStringEvaluator(argEvaluators.get(0), "first argument to jsonPathSet"),
+                        valueEvaluator), "jsonPathSet");
             }
             case IF_ELSE: {
                 verifyArgCount(argEvaluators, 2, "ifElse");

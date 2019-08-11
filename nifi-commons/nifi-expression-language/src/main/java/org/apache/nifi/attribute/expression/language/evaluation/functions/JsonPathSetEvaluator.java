@@ -16,38 +16,37 @@
  */
 package org.apache.nifi.attribute.expression.language.evaluation.functions;
 
+import com.jayway.jsonpath.DocumentContext;
+import com.jayway.jsonpath.JsonPath;
 import org.apache.nifi.attribute.expression.language.EvaluationContext;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.StringQueryResult;
 
-import com.jayway.jsonpath.DocumentContext;
-import com.jayway.jsonpath.JsonPath;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 /**
- * JsonPathEvaluator provides access to document at the specified JsonPath
+ * JsonPathSetEvaluator allows setting values at the specified existing path
  */
-public class JsonPathEvaluator extends JsonPathBaseEvaluator {
+public class JsonPathSetEvaluator extends JsonPathBaseEvaluator {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(JsonPathEvaluator.class);
+    protected Evaluator<?> valueEvaluator;
 
-    public JsonPathEvaluator(final Evaluator<String> subject, final Evaluator<String> jsonPathExp) {
+    public JsonPathSetEvaluator(final Evaluator<String> subject, final Evaluator<String> jsonPathExp, final Evaluator<?> valueEvaluator) {
         super(subject, jsonPathExp);
+        this.valueEvaluator = valueEvaluator;
     }
 
     @Override
     public QueryResult<String> evaluate(EvaluationContext context) {
         DocumentContext documentContext = getDocumentContext(context);
-
         final JsonPath compiledJsonPath = getJsonPath(context);
 
-        Object result = null;
+        final Object value = valueEvaluator.evaluate(context).getValue();
+
+        String result;
         try {
-            result = documentContext.read(compiledJsonPath);
+            result = documentContext.set(compiledJsonPath, value).jsonString();
         } catch (Exception e) {
-            LOGGER.error("Exception while reading JsonPath " + compiledJsonPath.getPath(), e);
+            // assume the path did not match anything in the document
             return EMPTY_RESULT;
         }
 

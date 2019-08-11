@@ -188,6 +188,7 @@ REPLACE	: 'replace';
 REPLACE_FIRST	: 'replaceFirst';
 REPLACE_ALL : 'replaceAll';
 IF_ELSE : 'ifElse';
+JSON_PATH_SET : 'jsonPathSet';
 PAD_LEFT : 'padLeft';
 PAD_RIGHT : 'padRight';
 
