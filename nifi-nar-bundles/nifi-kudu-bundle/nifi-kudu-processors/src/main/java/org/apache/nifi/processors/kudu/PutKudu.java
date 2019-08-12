@@ -98,7 +98,8 @@ public class PutKudu extends AbstractKuduProcessor {
         .build();
 
     protected static final PropertyDescriptor INSERT_OPERATION = new Builder()
-        .name("Kudu Operation Type")
+        .name("Insert Operation")
+	.displayName("Kudu Operation Type")
         .description("Specify operationType for this processor. Insert-Ignore will ignore duplicated rows")
         .defaultValue(OperationType.INSERT.toString())
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -144,8 +145,7 @@ public class PutKudu extends AbstractKuduProcessor {
 
     protected static final PropertyDescriptor IGNORE_NULL = new Builder()
         .name("Ignore NULL")
-        .displayName("Ignore NULL on Kudu Put Operation")
-        .description("Update only non-Null columns if set true")
+        .description("Ignore NULL on Kudu Put Operation, Update only non-Null columns if set true")
         .defaultValue("true")
         .allowableValues("true", "false")
         .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
