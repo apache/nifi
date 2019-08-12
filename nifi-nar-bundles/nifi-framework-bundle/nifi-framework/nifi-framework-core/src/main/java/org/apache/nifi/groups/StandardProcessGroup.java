@@ -4068,6 +4068,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                     selectedParameterContext = createParameterContext(versionedParameterContext, parameterContextId);
                 } else {
                     selectedParameterContext = contextByName;
+                    addMissingParameters(versionedParameterContext, selectedParameterContext);
                 }
 
                 group.setParameterContext(selectedParameterContext);
@@ -4576,11 +4577,6 @@ public final class StandardProcessGroup implements ProcessGroup {
                 final String propertyName = entry.getKey();
                 final VersionedPropertyDescriptor descriptor = proposedDescriptors.get(propertyName);
 
-                // skip any sensitive properties so we can retain whatever is currently set
-                if (sensitiveProperties.contains(propertyName)) {
-                    continue;
-                }
-
                 String value;
                 if (descriptor != null && descriptor.getIdentifiesControllerService()) {
                     // Property identifies a Controller Service. So the value that we want to assign is not the value given.
@@ -4591,6 +4587,13 @@ public final class StandardProcessGroup implements ProcessGroup {
                     value = instanceId == null ? serviceVersionedComponentId : instanceId;
                 } else {
                     value = entry.getValue();
+                }
+
+                // skip any sensitive properties that are not populated so we can retain whatever is currently set. We do this because sensitive properties are not stored in the registry
+                // unless the value is a reference to a Parameter. If the value in the registry is null, it indicates that the sensitive value was removed, so we want to keep the currently
+                // populated value.
+                if (sensitiveProperties.contains(propertyName) && value == null) {
+                    continue;
                 }
 
                 fullPropertyMap.put(propertyName, value);
