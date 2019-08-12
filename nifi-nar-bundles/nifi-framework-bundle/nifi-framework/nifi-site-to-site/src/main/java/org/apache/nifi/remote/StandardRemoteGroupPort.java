@@ -36,6 +36,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.remote.client.SiteToSiteClient;
 import org.apache.nifi.remote.client.SiteToSiteClientConfig;
+import org.apache.nifi.remote.exception.NoValidPeerException;
 import org.apache.nifi.remote.exception.PortNotRunningException;
 import org.apache.nifi.remote.exception.ProtocolException;
 import org.apache.nifi.remote.exception.UnknownPortException;
@@ -232,9 +233,16 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
         }
 
         final SiteToSiteClient client = getSiteToSiteClient();
-        final Transaction transaction;
+        Transaction transaction = null;
         try {
             transaction = client.createTransaction(transferDirection);
+        } catch (final NoValidPeerException e) {
+            final String message = String.format("%s Unable to create transaction to communicate with; all peers must be penalized, so yielding context", this);
+            logger.debug(message);
+            session.rollback();
+            context.yield();
+            remoteGroup.getEventReporter().reportEvent(Severity.ERROR, CATEGORY, message);
+            return;
         } catch (final PortNotRunningException e) {
             context.yield();
             this.targetRunning.set(false);
@@ -270,11 +278,10 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
             remoteGroup.getEventReporter().reportEvent(Severity.ERROR, CATEGORY, message);
             return;
         }
-
         if (transaction == null) {
-            logger.debug("{} Unable to create transaction to communicate with; all peers must be penalized, so yielding context", this);
-            session.rollback();
             context.yield();
+            final String message = String.format("%s successfully connected to %s, but it has no flowfiles to provide, yielding", this, url);
+            logger.debug(message);
             return;
         }
 
