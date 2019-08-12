@@ -262,7 +262,7 @@ public class PeerSelector {
      *                  for RECEIVE, a peer with more flow files is preferred
      * @return a selected peer, if there is no available peer or all peers are penalized, then return null
      */
-    public PeerStatus getNextPeerStatus(final TransferDirection direction) {
+    public ArrayList<PeerStatus> getPeerStatuses(final TransferDirection direction) {
         List<PeerStatus> peerList = peerStatuses;
         if (isPeerRefreshNeeded(peerList)) {
             peerRefreshLock.lock();
@@ -289,25 +289,15 @@ public class PeerSelector {
             }
         }
 
+
         if (peerList == null || peerList.isEmpty()) {
-            return null;
+            return new ArrayList<PeerStatus>();
         }
 
-        PeerStatus peerStatus;
-        for (int i = 0; i < peerList.size(); i++) {
-            final long idx = peerIndex.getAndIncrement();
-            final int listIndex = (int) (idx % peerList.size());
-            peerStatus = peerList.get(listIndex);
+        ArrayList<PeerStatus> retVal = new ArrayList<>(peerList);
+        retVal.removeIf(p -> isPenalized(p));
 
-            if (isPenalized(peerStatus)) {
-                logger.debug("{} {} is penalized; will not communicate with this peer", this, peerStatus);
-            } else {
-                return peerStatus;
-            }
-        }
-
-        logger.debug("{} All peers appear to be penalized; returning null", this);
-        return null;
+        return retVal;
     }
 
     private List<PeerStatus> createPeerStatusList(final TransferDirection direction) throws IOException {
