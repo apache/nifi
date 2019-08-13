@@ -1875,6 +1875,16 @@
                     },
                     goToServiceDeferred: function () {
                         return goToServiceFromProperty(serviceTable);
+                    },
+                    getParameterContextId: function (groupId) {
+                        // attempt to identify the parameter context id, conditional based on whether
+                        // the user is configuring the current process group
+                        if (_.isNil(groupId) || groupId === nfCanvasUtils.getGroupId()) {
+                            return nfCanvasUtils.getParameterContextId();
+                        } else {
+                            var parentProcessGroup = nfCanvasUtils.getComponentByType('ProcessGroup').get(groupId);
+                            return parentProcessGroup.parameterContextId;
+                        }
                     }
                 });
 

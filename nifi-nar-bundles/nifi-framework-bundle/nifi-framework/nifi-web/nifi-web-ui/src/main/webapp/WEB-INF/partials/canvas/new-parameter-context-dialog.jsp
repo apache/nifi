@@ -117,6 +117,10 @@
             <div class="clear"></div>
         </div>
     </div>
+    <div id="parameter-context-updating-status">
+        <div class='parameter-context-step ajax-loading'></div>
+        <div class='status-message'>Updating parameter context</div>
+    </div>
 </div>
 <div id="referencing-components-template" class="referencing-components-template hidden clear">
     <div class="setting">
