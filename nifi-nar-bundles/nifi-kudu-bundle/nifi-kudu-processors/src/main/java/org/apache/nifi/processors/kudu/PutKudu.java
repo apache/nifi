@@ -146,7 +146,7 @@ public class PutKudu extends AbstractKuduProcessor {
     protected static final PropertyDescriptor IGNORE_NULL = new Builder()
         .name("Ignore NULL")
         .description("Ignore NULL on Kudu Put Operation, Update only non-Null columns if set true")
-        .defaultValue("true")
+        .defaultValue("false")
         .allowableValues("true", "false")
         .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
         .build();
