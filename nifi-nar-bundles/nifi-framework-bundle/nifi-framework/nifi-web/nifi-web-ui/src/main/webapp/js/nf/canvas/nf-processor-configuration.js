@@ -659,7 +659,11 @@
                         }
                     }).promise();
                 },
-                goToServiceDeferred: goToServiceFromProperty
+                goToServiceDeferred: goToServiceFromProperty,
+                getParameterContextId: function (groupId) {
+                    // processors being configured must be in the current group
+                    return nfCanvasUtils.getParameterContextId();
+                }
             });
         },
 

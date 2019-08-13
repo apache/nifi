@@ -30,7 +30,9 @@
                 'nf.Client',
                 'nf.ErrorHandler',
                 'nf.ProcessGroupConfiguration',
-                'nf.Settings'],
+                'nf.Settings',
+                'nf.ParameterContexts',
+                'lodash-core'],
             function ($,
                       Slick,
                       nfCommon,
@@ -40,7 +42,9 @@
                       nfClient,
                       nfErrorHandler,
                       nfProcessGroupConfiguration,
-                      nfSettings) {
+                      nfSettings,
+                      nfParameterContexts,
+                      _) {
                 factory($,
                     Slick,
                     nfCommon,
@@ -50,7 +54,9 @@
                     nfClient,
                     nfErrorHandler,
                     nfProcessGroupConfiguration,
-                    nfSettings);
+                    nfSettings,
+                    nfParameterContexts,
+                    _);
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         factory(require('jquery'),
@@ -62,7 +68,9 @@
             require('nf.Client'),
             require('nf.ErrorHandler'),
             require('nf.ProcessGroupConfiguration'),
-            require('nf.Settings'));
+            require('nf.Settings'),
+            recuire('nf.ParameterContexts'),
+            require('lodash-core'));
     } else {
         factory(root.$,
             root.Slick,
@@ -73,7 +81,9 @@
             root.nf.Client,
             root.nf.ErrorHandler,
             root.nf.ProcessGroupConfiguration,
-            root.nf.Settings);
+            root.nf.Settings,
+            root.nf.ParameterContexts,
+            root._);
     }
 }(this, function ($,
                   Slick,
@@ -84,7 +94,9 @@
                   nfClient,
                   nfErrorHandler,
                   nfProcessGroupConfiguration,
-                  nfSettings) {
+                  nfSettings,
+                  nfParameterContexts,
+                  _) {
 
     var groupId = null;
     var COMBO_MIN_WIDTH = 212;
@@ -1350,9 +1362,22 @@
                 });
             }
 
-            // allow user defined properties to be removed
-            if (options.readOnly !== true && dataContext.type === 'userDefined') {
-                markup += '<div title="Delete" class="delete-property pointer fa fa-trash"></div>';
+            if (options.readOnly !== true) {
+                var canModifyParamContexts = nfCommon.canModifyParameterContexts();
+                var paramContextIsSet = false;
+                if (_.isFunction(options.getParameterContextId)) {
+                    paramContextIsSet = !_.isNil(options.getParameterContextId(groupId));
+                }
+                var referencesParam = referencesParameter(dataContext.value);
+
+                if (canModifyParamContexts && paramContextIsSet && !referencesParam && !identifiesControllerService) {
+                    markup += '<div title="Convert to parameter" class="convert-to-parameter pointer fa fa-level-up"></div>';
+                }
+
+                // allow user defined properties to be removed
+                if (dataContext.type === 'userDefined') {
+                    markup += '<div title="Delete" class="delete-property pointer fa fa-trash"></div>';
+                }
             }
 
             return markup;
@@ -1544,6 +1569,25 @@
                                 goToControllerService(property);
                             });
                         }
+                    }
+                } else if (target.hasClass('convert-to-parameter')) {
+                    var parameterContextId;
+                    if (_.isFunction(options.getParameterContextId)) {
+                        parameterContextId = options.getParameterContextId(groupId);
+                    }
+
+                    if (options.readOnly !== true && !_.isNil(parameterContextId)) {
+                        var descriptors = table.data('descriptors');
+                        var propertyDescriptor = descriptors[property.displayName];
+
+                        nfParameterContexts.convertPropertyToParameter(property, propertyDescriptor, parameterContextId)
+                            .done(function (parameter) {
+                                // set the property value to the reference the parameter that was created
+                                propertyData.updateItem(property.id, $.extend(property, {
+                                    previousValue: property.value,
+                                    value: '#{' + parameter.name + '}'
+                                }));
+                            });
                     }
                 }
             }

@@ -384,3 +384,22 @@ div.parameter-context-step {
     background-color: transparent;
     float: right;
 }
+
+#parameter-context-updating-status {
+    display: none;
+    position: absolute;
+    left: 12px;
+    bottom: 0;
+    height: 32px;
+}
+
+#parameter-context-updating-status.show-status {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}
+
+#parameter-context-updating-status .status-message {
+    white-space: nowrap;
+    margin-left: 6px;
+}
