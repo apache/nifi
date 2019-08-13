@@ -30,15 +30,17 @@ public class RunMiNiFiTest {
 
     @Test
     public void buildSecurityPropertiesNotDefined() throws Exception {
+        final RunMiNiFi testMiNiFi = new RunMiNiFi(null);
         final Properties bootstrapProperties = getTestBootstrapProperties("bootstrap-ssl-ctx/bootstrap.conf.default");
-        final Optional<SecurityPropertiesSchema> securityPropsOptional = RunMiNiFi.buildSecurityPropertiesFromBootstrap(bootstrapProperties);
+        final Optional<SecurityPropertiesSchema> securityPropsOptional = testMiNiFi.buildSecurityPropertiesFromBootstrap(bootstrapProperties);
         Assert.assertTrue(!securityPropsOptional.isPresent());
     }
 
     @Test
     public void buildSecurityPropertiesDefined() throws Exception {
+        final RunMiNiFi testMiNiFi = new RunMiNiFi(null);
         final Properties bootstrapProperties = getTestBootstrapProperties("bootstrap-ssl-ctx/bootstrap.conf.configured");
-        final Optional<SecurityPropertiesSchema> securityPropsOptional = RunMiNiFi.buildSecurityPropertiesFromBootstrap(bootstrapProperties);
+        final Optional<SecurityPropertiesSchema> securityPropsOptional = testMiNiFi.buildSecurityPropertiesFromBootstrap(bootstrapProperties);
         Assert.assertTrue(securityPropsOptional.isPresent());
 
         final SecurityPropertiesSchema securityPropertiesSchema = securityPropsOptional.get();
@@ -66,8 +68,9 @@ public class RunMiNiFiTest {
 
     @Test
     public void buildSecurityPropertiesDefinedButInvalid() throws Exception {
+        final RunMiNiFi testMiNiFi = new RunMiNiFi(null);
         final Properties bootstrapProperties = getTestBootstrapProperties("bootstrap-ssl-ctx/bootstrap.conf.configured.invalid");
-        final Optional<SecurityPropertiesSchema> securityPropsOptional = RunMiNiFi.buildSecurityPropertiesFromBootstrap(bootstrapProperties);
+        final Optional<SecurityPropertiesSchema> securityPropsOptional = testMiNiFi.buildSecurityPropertiesFromBootstrap(bootstrapProperties);
         Assert.assertTrue(securityPropsOptional.isPresent());
 
         final SecurityPropertiesSchema securityPropertiesSchema = securityPropsOptional.get();

@@ -1687,7 +1687,7 @@ public class RunMiNiFi implements QueryableStatusAggregator, ConfigurationFileHo
                             newConfigBais.reset();
 
                             logger.info("Performing transformation for input and saving outputs to {}", confDir);
-                            ByteBuffer tempConfigFile = performTransformation(newConfigBais, confDir);
+                            ByteBuffer tempConfigFile = runner.performTransformation(newConfigBais, confDir);
                             runner.currentConfigFileReference.set(tempConfigFile.asReadOnlyBuffer());
 
                             try {
@@ -1695,7 +1695,7 @@ public class RunMiNiFi implements QueryableStatusAggregator, ConfigurationFileHo
                                 restartInstance();
                             } catch (Exception e) {
                                 logger.debug("Transformation of new config file failed after transformation into Flow.xml and nifi.properties, reverting.");
-                                ByteBuffer resetConfigFile = performTransformation(new FileInputStream(swapConfigFile), confDir);
+                                ByteBuffer resetConfigFile = runner.performTransformation(new FileInputStream(swapConfigFile), confDir);
                                 runner.currentConfigFileReference.set(resetConfigFile.asReadOnlyBuffer());
                                 throw e;
                             }
@@ -1758,11 +1758,15 @@ public class RunMiNiFi implements QueryableStatusAggregator, ConfigurationFileHo
         }
     }
 
-    private static ByteBuffer performTransformation(InputStream configIs, String configDestinationPath) throws ConfigurationChangeException, IOException {
+    private ByteBuffer performTransformation(InputStream configIs, String configDestinationPath) throws ConfigurationChangeException, IOException {
         try (ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
              TeeInputStream teeInputStream = new TeeInputStream(configIs, byteArrayOutputStream)) {
 
-            ConfigTransformer.transformConfigFile(teeInputStream, configDestinationPath);
+            ConfigTransformer.transformConfigFile(
+                teeInputStream,
+                configDestinationPath,
+                buildSecurityPropertiesFromBootstrap(getBootstrapProperties()).orElse(null)
+            );
 
             return ByteBuffer.wrap(byteArrayOutputStream.toByteArray());
         } catch (ConfigurationChangeException e){
@@ -1772,7 +1776,8 @@ public class RunMiNiFi implements QueryableStatusAggregator, ConfigurationFileHo
         }
     }
 
-    public static Optional<SecurityPropertiesSchema> buildSecurityPropertiesFromBootstrap(final Properties bootstrapProperties) {
+    // TODO extract this to separate class BootstrapTransformer, and make private
+    public Optional<SecurityPropertiesSchema> buildSecurityPropertiesFromBootstrap(final Properties bootstrapProperties) {
 
         Optional<SecurityPropertiesSchema> securityPropsOptional = Optional.empty();
 
