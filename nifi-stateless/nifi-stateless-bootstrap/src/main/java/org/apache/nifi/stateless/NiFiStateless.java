@@ -104,7 +104,7 @@ public class NiFiStateless {
 
         final File[] jarFiles = statelesslibDir.listFiles(file -> file.getName().endsWith(".jar"));
         if (jarFiles == null) {
-            System.out.println("Could not obtain listing of NiFi-Stateless Lib directory <" + libDir + ">");
+            System.out.println("Could not obtain listing of NiFi-Stateless Lib directory <" + statelesslibDir + ">");
             return;
         }
 

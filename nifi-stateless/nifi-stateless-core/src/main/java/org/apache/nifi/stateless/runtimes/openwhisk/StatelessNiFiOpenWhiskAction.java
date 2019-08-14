@@ -102,7 +102,7 @@ public class StatelessNiFiOpenWhiskAction {
                 } else {
 
                     final JsonObject config = new JsonParser().parse(code).getAsJsonObject();
-                    flow = StatelessFlow.createAndEnqueueFromJSON(config, systemClassLoader, narWorkingDirectory);
+                    flow = StatelessFlow.createFromRegistryAndEnqueueFromJson(config, systemClassLoader, narWorkingDirectory);
 
                     initialized = true;
                     writeResponse(t, 200, "Initialized Flow");
@@ -159,7 +159,7 @@ public class StatelessNiFiOpenWhiskAction {
                     System.out.println(inputObject.toString());
 
                     final JsonObject config = new JsonParser().parse(inputObject.get("code").getAsJsonPrimitive().getAsString()).getAsJsonObject();
-                    RunnableFlow tempFlow = StatelessFlow.createAndEnqueueFromJSON(config, systemClassLoader, narWorkingDirectory);
+                    RunnableFlow tempFlow = StatelessFlow.createFromRegistryAndEnqueueFromJson(config, systemClassLoader, narWorkingDirectory);
                     successful = tempFlow.runOnce(output);
                 } else {
                     System.out.println("Input:");

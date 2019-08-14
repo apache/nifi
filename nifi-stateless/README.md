@@ -30,19 +30,25 @@ Where the arguments dictate the runtime to use:
 1) RunFromRegistry [Once|Continuous] --json <JSON>
    RunFromRegistry [Once|Continuous] --file <File Name>   # Filename of JSON file that matches the examples below.
 
-2) RunYARNServiceFromRegistry <YARN RM URL> <Docker Image Name> <Service Name> <# of Containers> --json <JSON>
+2) RunFromFlowXml [Once|Continuous] --json <JSON>
+   RunFromFlowXml [Once|Continuous] --file <File Name>   # Filename of JSON file that matches the examples below.
+
+3) RunYARNServiceFromRegistry <YARN RM URL> <Docker Image Name> <Service Name> <# of Containers> --json <JSON>
    RunYARNServiceFromRegistry <YARN RM URL> <Docker Image Name> <Service Name> <# of Containers> --file <File Name>
 
-3) RunOpenwhiskActionServer   <Port>
+4) RunOpenwhiskActionServer   <Port>
 ```
 
 ### Examples:
 ```
 1) docker run --rm -it nifi-stateless:1.10.0-SNAPSHOT-dockermaven \
     RunFromRegistry Once --file /Users/nifi/nifi-stateless-configs/flow-abc.json
-2) docker run --rm -it nifi-stateless:1.10.0-SNAPSHOT-dockermaven \
+2) docker run --rm -it --mount type=bind,src=$(pwd)/flow.xml.gz,dst=/opt/nifi/nifi-current/conf/flow.xml.gz \
+    nifi-stateless:1.10.0-SNAPSHOT-dockermaven \
+    RunFromFlowXml Once --file /Users/nifi/nifi-stateless-configs/flow-abc.json
+3) docker run --rm -it nifi-stateless:1.10.0-SNAPSHOT-dockermaven \
     RunYARNServiceFromRegistry http://127.0.0.1:8088 nifi-stateless:latest kafka-to-solr 3 --file kafka-to-solr.json
-3) docker run -d nifi-stateless:1.10.0-SNAPSHOT-dockermaven \
+4) docker run -d nifi-stateless:1.10.0-SNAPSHOT-dockermaven \
     RunOpenwhiskActionServer 8080
 ```
 
@@ -60,6 +66,7 @@ The JSON that is provided, either via the `--json` command-line argument or the 
 - `bucketId` : The UUID of the Bucket containing the flow
 - `flowId` : The UUID of the flow to run
 - `flowVersion` : _Optional_ - The Version of the flow to run. If not present or equal to -1, then the latest version of the flow will be used.
+- `flowXmlPath` : _Optional_ - The path on the filesystem to a valid `flow.xml.gz`, used only with `RunFromFlowXml`. Defaults to `/opt/nifi/nifi-current/conf/flow.xml.gz`
 - `materializeContent` : _Optional_ - Whether or not the contents of the FlowFile should be stored in Java Heap so that they can be read multiple times. If this value is `false`, the contents of any
 input FlowFile will be read as a stream of data and not buffered into heap. However, this means that the contents can be read only one time. This can be useful if transferring large files from HDFS to
  another HDFS instance or directory, for example, and contains a simple flow such as `ListHDFS -> FetchHDFS -> PutHDFS`. In this flow, the contents of the files will be buffered into Java Heap if the

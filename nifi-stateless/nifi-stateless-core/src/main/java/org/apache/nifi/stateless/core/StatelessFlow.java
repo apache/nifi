@@ -23,6 +23,9 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
+import org.apache.nifi.controller.serialization.FlowEncodingVersion;
+import org.apache.nifi.controller.serialization.FlowFromDOMFactory;
+import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
@@ -45,10 +48,17 @@ import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.stateless.bootstrap.ExtensionDiscovery;
 import org.apache.nifi.stateless.bootstrap.InMemoryFlowFile;
 import org.apache.nifi.stateless.bootstrap.RunnableFlow;
+import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.web.api.dto.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
 
 import javax.net.ssl.SSLContext;
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -60,8 +70,12 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+
 public class StatelessFlow implements RunnableFlow {
 
+    private static final Logger logger = LoggerFactory.getLogger(StatelessFlow.class);
+
+    public static final String FLOWXML = "flowXmlPath";
     public static final String REGISTRY = "registryUrl";
     public static final String BUCKETID = "bucketId";
     public static final String FLOWID = "flowId";
@@ -73,6 +87,8 @@ public class StatelessFlow implements RunnableFlow {
     public static final String PARAMETERS = "parameters";
     public static final String PARAMETER_SENSITIVE = "sensitive";
     public static final String PARAMETER_VALUE = "value";
+    public static final String NIFI_PROPERTIES = "./conf/nifi.properties";
+    public static final String DEFAULT_FLOW_XML = "./conf/flow.xml.gz";
 
     public static final String SSL = "ssl";
     public static final String KEYSTORE = "keystore";
@@ -82,7 +98,6 @@ public class StatelessFlow implements RunnableFlow {
     public static final String TRUSTSTORE = "truststore";
     public static final String TRUSTSTORE_PASS = "truststorePass";
     public static final String TRUSTSTORE_TYPE = "truststoreType";
-
 
     private List<StatelessComponent> roots;
     private volatile boolean stopRequested = false;
@@ -99,6 +114,194 @@ public class StatelessFlow implements RunnableFlow {
         this.componentFactory = null;
     }
 
+    public StatelessFlow(final ProcessGroupDTO flow, final ExtensionManager extensionManager, final VariableRegistry variableRegistry, final List<String> failureOutputPorts,
+                          final boolean materializeContent, final SSLContext sslContext, final ParameterContext parameterContext) throws ProcessorInstantiationException, InitializationException {
+
+        this.componentFactory = new ComponentFactory(extensionManager);
+
+        final Map<String, ProcessorDTO> processors = findProcessorsRecursive(flow).stream()
+                .collect(Collectors.toMap(ProcessorDTO::getId, proc -> proc));
+
+        final Map<String, RemoteProcessGroupDTO> rpgs = new HashMap<>();
+        final Map<String, RemoteProcessGroupPortDTO> remotePorts = new HashMap<>();
+        findRemoteGroupRecursive(flow, rpgs, remotePorts);
+
+        final Set<ConnectionDTO> connections = findConnectionsRecursive(flow);
+        final Set<PortDTO> inputPorts = flow.getContents().getInputPorts();
+
+        if (inputPorts.size() > 1) {
+            throw new IllegalArgumentException("Only one input port per flow is allowed");
+        }
+
+        final StatelessControllerServiceLookup serviceLookup = new StatelessControllerServiceLookup(parameterContext);
+
+        final Set<ControllerServiceDTO> controllerServices = flow.getContents().getControllerServices();
+        for (final ControllerServiceDTO controllerService : controllerServices) {
+            final StateManager stateManager = new StatelessStateManager();
+
+            final ControllerService service = componentFactory.createControllerService(controllerService, variableRegistry, serviceLookup, stateManager, parameterContext);
+            serviceLookup.addControllerService(service, controllerService.getName());
+            serviceLookup.setControllerServiceAnnotationData(service, controllerService.getAnnotationData());
+
+            final SLF4JComponentLog logger = new SLF4JComponentLog(service);
+            final StatelessProcessContext processContext = new StatelessProcessContext(service, serviceLookup, controllerService.getName(),
+                    logger, stateManager, variableRegistry, parameterContext);
+
+            final Map<String, String> versionedPropertyValues = controllerService.getProperties();
+            for (final Map.Entry<String, String> entry : versionedPropertyValues.entrySet()) {
+                final String propertyName = entry.getKey();
+                final String propertyValue = entry.getValue();
+                final PropertyDescriptor descriptor = service.getPropertyDescriptor(propertyName);
+
+                serviceLookup.setControllerServiceProperty(service, descriptor, processContext, variableRegistry, propertyValue);
+            }
+
+            for (final PropertyDescriptor descriptor : service.getPropertyDescriptors()) {
+                final String versionedPropertyValue = versionedPropertyValues.get(descriptor.getName());
+                if (versionedPropertyValue == null && descriptor.getDefaultValue() != null) {
+                    serviceLookup.setControllerServiceProperty(service, descriptor, processContext, variableRegistry, descriptor.getDefaultValue());
+                }
+            }
+        }
+
+        serviceLookup.enableControllerServices(variableRegistry);
+
+
+        final Map<String, StatelessComponent> componentMap = new HashMap<>();
+        for (final ConnectionDTO connection : connections) {
+            boolean isInputPortConnection = false;
+
+            final ConnectableDTO source = connection.getSource();
+            final ConnectableDTO destination = connection.getDestination();
+
+            StatelessComponent sourceComponent = null;
+            if (componentMap.containsKey(source.getId())) {
+                sourceComponent = componentMap.get(source.getId());
+            } else {
+                switch (source.getType()) {
+                    case "PROCESSOR":
+                        final ProcessorDTO processor = processors.get(source.getId());
+
+                        if (processor == null) {
+                            throw new IllegalArgumentException("Unknown input processor. " + source.getId());
+                        } else {
+                            sourceComponent = componentFactory.createProcessor(processor, materializeContent, serviceLookup, variableRegistry, null, parameterContext);
+                            componentMap.put(source.getId(), sourceComponent);
+                        }
+                        break;
+
+                    case "REMOTE_INPUT_PORT":
+                        throw new IllegalArgumentException("Unsupported source type: " + source.getType());
+
+                    case "REMOTE_OUTPUT_PORT":
+                        final RemoteProcessGroupPortDTO remotePort = remotePorts.get(source.getId());
+                        final RemoteProcessGroupDTO rpg = rpgs.get(remotePort.getGroupId());
+
+                        sourceComponent = new StatelessRemoteOutputPort(rpg, remotePort, sslContext);
+                        componentMap.put(source.getId(), sourceComponent);
+                        break;
+
+                    case "OUTPUT_PORT":
+
+                    case "FUNNEL":
+                        sourceComponent = new StatelessPassThroughComponent();
+                        componentMap.put(source.getId(), sourceComponent);
+                        break;
+
+                    case "INPUT_PORT":
+                        if (flow.getId().equals(source.getGroupId())) {
+                            isInputPortConnection = true;
+                        } else {
+                            sourceComponent = new StatelessPassThroughComponent();
+                            componentMap.put(source.getId(), sourceComponent);
+                        }
+                        break;
+                }
+            }
+
+            StatelessComponent destinationComponent = null;
+            switch (destination.getType()) {
+                case "PROCESSOR":
+                    if (componentMap.containsKey(destination.getId())) {
+                        destinationComponent = componentMap.get(destination.getId());
+                    } else {
+                        final ProcessorDTO processor = processors.get(destination.getId());
+                        if (processor == null) {
+                            return;
+                        }
+
+                        destinationComponent = componentFactory.createProcessor(processor, materializeContent, serviceLookup, variableRegistry, null, parameterContext);
+                        destinationComponent.addParent(sourceComponent);
+                        componentMap.put(destination.getId(), destinationComponent);
+                    }
+                    break;
+
+                case "REMOTE_INPUT_PORT":
+                    if (componentMap.containsKey(destination.getId())) {
+                        destinationComponent = componentMap.get(destination.getId());
+                    } else {
+                        final RemoteProcessGroupPortDTO remotePort = remotePorts.get(destination.getId());
+                        final RemoteProcessGroupDTO rpg = rpgs.get(remotePort.getGroupId());
+
+                        destinationComponent = new StatelessRemoteInputPort(rpg, remotePort, sslContext);
+                        destinationComponent.addParent(sourceComponent);
+                        componentMap.put(destination.getId(), destinationComponent);
+                    }
+                    break;
+
+                case "REMOTE_OUTPUT_PORT":
+                    throw new IllegalArgumentException("Unsupported destination type: " + destination.getType());
+
+                case "OUTPUT_PORT":
+                    if (isInputPortConnection) {
+                        throw new IllegalArgumentException("Input ports can not be mapped directly to output ports...");
+                    }
+
+                    // If Output Port is top-level port, treat it differently than if it's an inner group.
+                    if (flow.getId().equals(destination.getGroupId())) {
+                        //Link source and destination
+                        for (final String selectedRelationship : connection.getSelectedRelationships()) {
+                            final Relationship relationship = new Relationship.Builder().name(selectedRelationship).build();
+                            final boolean failurePort = failureOutputPorts.contains(destination.getId());
+                            sourceComponent.addOutputPort(relationship, failurePort);
+                        }
+                        break;
+                    }
+
+                    // Intentionally let the flow drop-through, and treat the same as an output port or funnel.
+                case "INPUT_PORT":
+                case "FUNNEL":
+                    if (componentMap.containsKey(destination.getId())) {
+                        destinationComponent = componentMap.get(destination.getId());
+                    } else {
+                        destinationComponent = new StatelessPassThroughComponent();
+                        componentMap.put(destination.getId(), destinationComponent);
+                    }
+
+                    break;
+            }
+
+            if (destinationComponent != null) {
+                destinationComponent.addIncomingConnection(connection.getId());
+
+                if (isInputPortConnection) {
+                    this.sourceComponent = destinationComponent;
+                } else {
+                    destinationComponent.addParent(sourceComponent);
+
+                    //Link source and destination
+                    for (final String relationship : connection.getSelectedRelationships()) {
+                        sourceComponent.addChild(destinationComponent, new Relationship.Builder().name(relationship).build());
+                    }
+                }
+            }
+        }
+
+        roots = componentMap.values()
+                .stream()
+                .filter(statelessComponent -> statelessComponent.getParents().isEmpty())
+                .collect(Collectors.toList());
+    }
 
     public StatelessFlow(final VersionedProcessGroup flow, final ExtensionManager extensionManager, final VariableRegistry variableRegistry, final List<String> failureOutputPorts,
                          final boolean materializeContent, final SSLContext sslContext, final ParameterContext parameterContext) throws ProcessorInstantiationException, InitializationException {
@@ -292,9 +495,20 @@ public class StatelessFlow implements RunnableFlow {
         return processors;
     }
 
+    private Set<ProcessorDTO> findProcessorsRecursive(final ProcessGroupDTO group) {
+        final Set<ProcessorDTO> processors = new HashSet<>();
+        findProcessorsRecursive(group, processors);
+        return processors;
+    }
+
     private void findProcessorsRecursive(final VersionedProcessGroup group, final Set<VersionedProcessor> processors) {
         processors.addAll(group.getProcessors());
         group.getProcessGroups().forEach(child -> findProcessorsRecursive(child, processors));
+    }
+
+    private void findProcessorsRecursive(final ProcessGroupDTO group, final Set<ProcessorDTO> processors) {
+        processors.addAll(group.getContents().getProcessors());
+        group.getContents().getProcessGroups().forEach(child -> findProcessorsRecursive(child, processors));
     }
 
     private Set<VersionedConnection> findConnectionsRecursive(final VersionedProcessGroup group) {
@@ -303,9 +517,20 @@ public class StatelessFlow implements RunnableFlow {
         return connections;
     }
 
+    private Set<ConnectionDTO> findConnectionsRecursive(final ProcessGroupDTO group) {
+        final Set<ConnectionDTO> connections = new HashSet<>();
+        findConnectionsRecursive(group, connections);
+        return connections;
+    }
+
     private void findConnectionsRecursive(final VersionedProcessGroup group, final Set<VersionedConnection> connections) {
         connections.addAll(group.getConnections());
         group.getProcessGroups().forEach(child -> findConnectionsRecursive(child, connections));
+    }
+
+    private void findConnectionsRecursive(final ProcessGroupDTO group, final Set<ConnectionDTO> connections) {
+        connections.addAll(group.getContents().getConnections());
+        group.getContents().getProcessGroups().forEach(child -> findConnectionsRecursive(child, connections));
     }
 
     private void findRemoteGroupRecursive(final VersionedProcessGroup group, final Map<String, VersionedRemoteProcessGroup> rpgs, final Map<String, VersionedRemoteGroupPort> ports) {
@@ -317,7 +542,14 @@ public class StatelessFlow implements RunnableFlow {
         }
     }
 
+    private void findRemoteGroupRecursive(final ProcessGroupDTO group, final Map<String, RemoteProcessGroupDTO> rpgs, final Map<String, RemoteProcessGroupPortDTO> ports) {
+        for (final RemoteProcessGroupDTO rpg : group.getContents().getRemoteProcessGroups()) {
+            rpgs.put(rpg.getId(), rpg);
 
+            rpg.getContents().getInputPorts().forEach(port -> ports.put(port.getId(), port));
+            rpg.getContents().getOutputPorts().forEach(port -> ports.put(port.getId(), port));
+        }
+    }
 
     public boolean run(final Queue<InMemoryFlowFile> output) {
         while (!this.stopRequested) {
@@ -377,13 +609,106 @@ public class StatelessFlow implements RunnableFlow {
         return null;
     }
 
-    public static StatelessFlow createAndEnqueueFromJSON(final JsonObject args, final ClassLoader systemClassLoader, final File narWorkingDir)
-            throws InitializationException, IOException, ProcessorInstantiationException, NiFiRegistryException {
+    public static StatelessFlow createFromFlowXmlAndEnqueueFromJson(final JsonObject args, final ClassLoader systemClassLoader, final File narWorkingDir)
+            throws InitializationException, IOException, ProcessorInstantiationException {
+
+        logger.info("Running flow from json: " + args.toString());
+
+        final String nifiProps = Paths.get(NIFI_PROPERTIES).toAbsolutePath().toString();
+
+        final Path flowXmlPath;
+        if (!args.has(FLOWXML)) {
+            flowXmlPath = Paths.get(DEFAULT_FLOW_XML).toAbsolutePath();
+            logger.info("No configuration provided for '" + FLOWXML + "', defaulting to " + flowXmlPath.toString());
+        } else {
+            flowXmlPath = Paths.get(args.getAsJsonPrimitive(FLOWXML).getAsString()).toAbsolutePath();
+        }
+
+        boolean materializeContent = true;
+        if (args.has(MATERIALIZECONTENT)) {
+            materializeContent = args.getAsJsonPrimitive(MATERIALIZECONTENT).getAsBoolean();
+        }
+
+        final List<String> failurePorts = new ArrayList<>();
+        if (args.has(FAILUREPORTS)) {
+            args.getAsJsonArray(FAILUREPORTS).forEach(port ->failurePorts.add(port.getAsString()));
+        }
+
+        final StringEncryptor encryptor = NiFiPropertiesUtil.createEncryptorFromProperties(NiFiProperties.createBasicNiFiProperties(nifiProps, null));
+        final SSLContext sslContext = getSSLContext(args);
+        final Document document = FlowXmlUtil.readFlowFromDisk(flowXmlPath);
+        final Element rootElement = document.getDocumentElement();
+        final FlowEncodingVersion encodingVersion = FlowEncodingVersion.parse(rootElement);
+
+        final Element rootGroupElement = (Element) rootElement.getElementsByTagName("rootGroup").item(0);
+        final ProcessGroupDTO rootProcessGroup = FlowFromDOMFactory.getProcessGroup(null, rootGroupElement, encryptor, encodingVersion);
+
+        final Map<VariableDescriptor, String> inputVariables = new HashMap<>();
+        if (rootProcessGroup != null) {
+            for (final Map.Entry<String, String> entry : rootProcessGroup.getVariables().entrySet()) {
+                final String variableName = entry.getKey();
+                final String variableValue = entry.getValue();
+                inputVariables.put(new VariableDescriptor(variableName), variableValue);
+            }
+        }
+
+        final Set<Parameter> parameters = new HashSet<>();
+        final Set<String> parameterNames = new HashSet<>();
+        if (args.has(PARAMETERS)) {
+            final JsonElement parametersElement = args.get(PARAMETERS);
+            final JsonObject parametersObject = parametersElement.getAsJsonObject();
+
+            for (final Map.Entry<String, JsonElement> entry : parametersObject.entrySet()) {
+                final String parameterName = entry.getKey();
+                final JsonElement valueElement = entry.getValue();
+
+                if (parameterNames.contains(parameterName)) {
+                    throw new IllegalStateException("Cannot parse configuration because Parameter '" + parameterName + "' has been defined twice");
+                }
+
+                parameterNames.add(parameterName);
+
+                if (valueElement.isJsonObject()) {
+                    final JsonObject valueObject = valueElement.getAsJsonObject();
+
+                    final boolean sensitive;
+                    if (valueObject.has(PARAMETER_SENSITIVE)) {
+                        sensitive = valueObject.get(PARAMETER_SENSITIVE).getAsBoolean();
+                    } else {
+                        sensitive = false;
+                    }
+
+                    if (valueObject.has(PARAMETER_VALUE)) {
+                        final String value = valueObject.get(PARAMETER_VALUE).getAsString();
+                        final ParameterDescriptor descriptor = new ParameterDescriptor.Builder().name(parameterName).sensitive(sensitive).build();
+                        final Parameter parameter = new Parameter(descriptor, value);
+                        parameters.add(parameter);
+                    } else {
+                        throw new IllegalStateException("Cannot parse configuration because Parameter '" + parameterName + "' does not have a value associated with it");
+                    }
+                } else {
+                    final String parameterValue = entry.getValue().getAsString();
+                    final ParameterDescriptor descriptor = new ParameterDescriptor.Builder().name(parameterName).build();
+                    final Parameter parameter = new Parameter(descriptor, parameterValue);
+                    parameters.add(parameter);
+                }
+            }
+        }
+
+        final ParameterContext parameterContext = new StatelessParameterContext(parameters);
+        final ExtensionManager extensionManager = ExtensionDiscovery.discover(narWorkingDir, systemClassLoader);
+        final StatelessFlow flow = new StatelessFlow(rootProcessGroup, extensionManager, () -> inputVariables, failurePorts, materializeContent, sslContext, parameterContext);
+        flow.enqueueFromJSON(args);
+        return flow;
+    }
+
+    public static StatelessFlow createFromRegistryAndEnqueueFromJson(final JsonObject args, final ClassLoader systemClassLoader, final File narWorkingDir)
+            throws IOException, InitializationException, NiFiRegistryException, ProcessorInstantiationException {
         if (args == null) {
             throw new IllegalArgumentException("Flow arguments can not be null");
         }
 
-        System.out.println("Running flow from json: " + args.toString());
+        logger.info("Running flow from json: " + args.toString());
 
         if (!args.has(REGISTRY) || !args.has(BUCKETID) || !args.has(FLOWID)) {
             throw new IllegalArgumentException("The following parameters must be provided: " + REGISTRY + ", " + BUCKETID + ", " + FLOWID);

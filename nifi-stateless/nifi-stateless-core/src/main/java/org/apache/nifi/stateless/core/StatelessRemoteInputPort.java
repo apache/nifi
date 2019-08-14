@@ -29,6 +29,8 @@ import org.apache.nifi.remote.protocol.DataPacket;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.remote.util.StandardDataPacket;
 import org.apache.nifi.util.FormatUtils;
+import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
+import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
 
 import javax.net.ssl.SSLContext;
 import java.util.Collections;
@@ -71,6 +73,24 @@ public class StatelessRemoteInputPort extends AbstractStatelessComponent {
             .sslContext(sslContext)
             .eventReporter(EventReporter.NO_OP)
             .build();
+    }
+
+    public StatelessRemoteInputPort(final RemoteProcessGroupDTO rpg, final RemoteProcessGroupPortDTO remotePort, final SSLContext sslContext) {
+        final String timeout = rpg.getCommunicationsTimeout();
+        final long timeoutMillis = FormatUtils.getTimeDuration(timeout, TimeUnit.MILLISECONDS);
+
+        url = rpg.getTargetUris();
+        name = remotePort.getName();
+
+        client = new SiteToSiteClient.Builder()
+                .portName(remotePort.getName())
+                .timeout(timeoutMillis, TimeUnit.MILLISECONDS)
+                .transportProtocol(SiteToSiteTransportProtocol.valueOf(rpg.getTransportProtocol()))
+                .url(rpg.getTargetUris())
+                .useCompression(remotePort.getUseCompression())
+                .sslContext(sslContext)
+                .eventReporter(EventReporter.NO_OP)
+                .build();
     }
 
     @Override

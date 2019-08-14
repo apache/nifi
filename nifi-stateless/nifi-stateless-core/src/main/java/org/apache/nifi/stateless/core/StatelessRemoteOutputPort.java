@@ -31,6 +31,9 @@ import org.apache.nifi.remote.protocol.DataPacket;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.FormatUtils;
+import org.apache.nifi.web.api.dto.BatchSettingsDTO;
+import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
+import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
 
 import javax.net.ssl.SSLContext;
 import java.io.InputStream;
@@ -82,6 +85,41 @@ public class StatelessRemoteOutputPort extends AbstractStatelessComponent {
             .useCompression(remotePort.isUseCompression())
             .eventReporter(EventReporter.NO_OP)
             .build();
+    }
+
+    public StatelessRemoteOutputPort(final RemoteProcessGroupDTO rpg, final RemoteProcessGroupPortDTO remotePort, final SSLContext sslContext) {
+        final String timeout = rpg.getCommunicationsTimeout();
+        final long timeoutMillis = FormatUtils.getTimeDuration(timeout, TimeUnit.MILLISECONDS);
+
+        url = rpg.getTargetUris();
+        name = remotePort.getName();
+
+        final BatchSettingsDTO batchSize = remotePort.getBatchSettings();
+        final int batchCount;
+        final long batchBytes;
+        final long batchMillis;
+        if (batchSize == null) {
+            batchCount = 1;
+            batchBytes = 1L;
+            batchMillis = 1L;
+        } else {
+            batchCount = batchSize.getCount() == null ? 1 : batchSize.getCount();
+            batchBytes = batchSize.getSize() == null ? 1L : DataUnit.parseDataSize(batchSize.getSize(), DataUnit.B).longValue();
+            batchMillis = batchSize.getDuration() == null ? 1L : FormatUtils.getTimeDuration(batchSize.getDuration(), TimeUnit.MILLISECONDS);
+        }
+
+        client = new SiteToSiteClient.Builder()
+                .portName(remotePort.getName())
+                .timeout(timeoutMillis, TimeUnit.MILLISECONDS)
+                .requestBatchCount(batchCount)
+                .requestBatchDuration(batchMillis, TimeUnit.MILLISECONDS)
+                .requestBatchSize(batchBytes)
+                .transportProtocol(SiteToSiteTransportProtocol.valueOf(rpg.getTransportProtocol()))
+                .url(rpg.getTargetUris())
+                .sslContext(sslContext)
+                .useCompression(remotePort.getUseCompression())
+                .eventReporter(EventReporter.NO_OP)
+                .build();
     }
 
     @Override

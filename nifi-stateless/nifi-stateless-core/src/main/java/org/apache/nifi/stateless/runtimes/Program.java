@@ -36,6 +36,7 @@ import java.util.Queue;
 public class Program {
 
     public static final String RUN_FROM_REGISTRY = "RunFromRegistry";
+    public static final String RUN_FROM_FLOW_XML = "RunFromFlowXml";
     public static final String RUN_YARN_SERVICE_FROM_REGISTRY = "RunYARNServiceFromRegistry";
     public static final String RUN_OPENWHISK_ACTION_SERVER = "RunOpenwhiskActionServer";
 
@@ -63,7 +64,7 @@ public class Program {
         if (args.length == 0) {
             printUsage();
             System.exit(1);
-        } else if (args[0].equals(RUN_FROM_REGISTRY) && (args[1].equalsIgnoreCase("Once") || args[1].equalsIgnoreCase("Continuous")) && args.length >= 4) {
+        } else if ((args[0].equals(RUN_FROM_REGISTRY) || args[0].equals(RUN_FROM_FLOW_XML)) && (args[1].equalsIgnoreCase("Once") || args[1].equalsIgnoreCase("Continuous")) && args.length >= 4) {
             runLocal(args, systemClassLoader, narWorkingDirectory);
         } else if (args[0].equals(RUN_YARN_SERVICE_FROM_REGISTRY) && args.length >= 7) {
             runOnYarn(args);
@@ -130,7 +131,13 @@ public class Program {
         JsonObject jsonObject = new JsonParser().parse(json).getAsJsonObject();
         System.out.println("Running from json:");
         System.out.println(jsonObject.toString());
-        final RunnableFlow flow = StatelessFlow.createAndEnqueueFromJSON(jsonObject, systemClassLoader, narWorkingDirectory);
+
+        final RunnableFlow flow;
+        if (args[0].equals(RUN_FROM_REGISTRY)) {
+            flow = StatelessFlow.createFromRegistryAndEnqueueFromJson(jsonObject, systemClassLoader, narWorkingDirectory);
+        } else {
+            flow = StatelessFlow.createFromFlowXmlAndEnqueueFromJson(jsonObject, systemClassLoader, narWorkingDirectory);
+        }
 
         // Run Flow
         final Queue<InMemoryFlowFile> outputFlowFiles = new LinkedList<>();
@@ -154,22 +161,26 @@ public class Program {
 
     private static void printUsage() {
         System.out.println("Usage:");
-        System.out.println("       " + RUN_FROM_REGISTRY + " [Once|Continuous] --json <JSON>");
+        System.out.println("    1) " + RUN_FROM_REGISTRY + " [Once|Continuous] --json <JSON>");
         System.out.println("       " + RUN_FROM_REGISTRY + " [Once|Continuous] --file <File Name>");
         System.out.println();
-        System.out.println("       " + RUN_YARN_SERVICE_FROM_REGISTRY + "        <YARN RM URL> <Docker Image Name> <Service Name> <# of Containers> --json <JSON>");
+        System.out.println("    2) " + RUN_FROM_FLOW_XML + " [Once|Continuous] --json <JSON>");
+        System.out.println("       " + RUN_FROM_FLOW_XML + " [Once|Continuous] --file <File Name>");
+        System.out.println();
+        System.out.println("    3) " + RUN_YARN_SERVICE_FROM_REGISTRY + "        <YARN RM URL> <Docker Image Name> <Service Name> <# of Containers> --json <JSON>");
         System.out.println("       " + RUN_YARN_SERVICE_FROM_REGISTRY + "        <YARN RM URL> <Docker Image Name> <Service Name> <# of Containers> --file <File Name>");
         System.out.println();
-        System.out.println("    3) " + RUN_OPENWHISK_ACTION_SERVER + "          <Port>");
+        System.out.println("    4) " + RUN_OPENWHISK_ACTION_SERVER + "          <Port>");
         System.out.println();
         System.out.println("Examples:");
         System.out.println("    1) " + RUN_FROM_REGISTRY + " Once --json \"{\\\"registryUrl\\\":\\\"http://172.26.198.107:61080\\\",\\\"bucketId\\\":\\\"5eec8794-01b3-4cd7-8536-0167c8b4ce8c\\\",\\\"flowId\\\": \\\"c5fa1d4f-b453-4bf5-8ff3-352352c418f3\\\"}\"");
-        System.out.println("    2) " + RUN_YARN_SERVICE_FROM_REGISTRY + " http://127.0.0.1:8088 nifi-stateless:latest kafka-to-solr 3 --file kafka-to-solr.json");
-        System.out.println("    3) " + RUN_OPENWHISK_ACTION_SERVER + " 8080");
+        System.out.println("    2) " + RUN_FROM_FLOW_XML + " Once --file /opt/nifi/nifi-stateless-configs/flow-abc.json");
+        System.out.println("    3) " + RUN_YARN_SERVICE_FROM_REGISTRY + " http://127.0.0.1:8088 nifi-stateless:latest kafka-to-solr 3 --file kafka-to-solr.json");
+        System.out.println("    4) " + RUN_OPENWHISK_ACTION_SERVER + " 8080");
         System.out.println();
         System.out.println("Notes:");
         System.out.println("    1) The configuration file must be in JSON format. ");
-        System.out.println("    2) When providing configurations via JSON, the following attributes must be provided: " + StatelessFlow.REGISTRY + ", " + StatelessFlow.BUCKETID
+        System.out.println("    2) When providing configurations via JSON and initializing the flow from a registry, the following attributes must be provided: " + StatelessFlow.REGISTRY + ", " + StatelessFlow.BUCKETID
             + ", " + StatelessFlow.FLOWID + ".");
         System.out.println("          All other attributes will be passed to the flow using the variable registry interface");
         System.out.println();

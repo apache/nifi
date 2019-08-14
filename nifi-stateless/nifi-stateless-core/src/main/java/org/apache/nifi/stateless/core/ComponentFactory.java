@@ -38,6 +38,9 @@ import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.registry.flow.VersionedControllerService;
 import org.apache.nifi.registry.flow.VersionedProcessor;
 import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
+import org.apache.nifi.web.api.dto.BundleDTO;
+import org.apache.nifi.web.api.dto.ControllerServiceDTO;
+import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,6 +52,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
 
 public class ComponentFactory {
     private static final Logger logger = LoggerFactory.getLogger(ComponentFactory.class);
@@ -120,6 +124,74 @@ public class ComponentFactory {
         }
     }
 
+    public StatelessProcessorWrapper createProcessor(final ProcessorDTO processorDto, final boolean materializeContent, final StatelessControllerServiceLookup controllerServiceLookup,
+                                                     final VariableRegistry variableRegistry, final Set<URL> classpathUrls, final ParameterContext parameterContext)
+            throws ProcessorInstantiationException {
+
+        final String type = processorDto.getType();
+        final String identifier = processorDto.getId();
+
+        final Bundle bundle = getAvailableBundle(processorDto.getBundle(), type);
+        if (bundle == null) {
+            throw new IllegalStateException("Unable to find bundle for coordinate "
+                    + processorDto.getBundle().getGroup() + ":"
+                    + processorDto.getBundle().getArtifact() + ":"
+                    + processorDto.getBundle().getVersion());
+        }
+
+        final ClassLoader ctxClassLoader = Thread.currentThread().getContextClassLoader();
+        try {
+            final ClassLoader detectedClassLoader = extensionManager.createInstanceClassLoader(type, identifier, bundle,
+                    classpathUrls == null ? Collections.emptySet() : classpathUrls);
+
+            logger.debug("Setting context class loader to {} (parent = {}) to create {}", detectedClassLoader, detectedClassLoader.getParent(), type);
+            final Class<?> rawClass = Class.forName(type, true, detectedClassLoader);
+            Thread.currentThread().setContextClassLoader(detectedClassLoader);
+
+            final Object extensionInstance = rawClass.newInstance();
+            final ComponentLog componentLog = new SLF4JComponentLog(extensionInstance);
+
+            final Processor processor = (Processor) extensionInstance;
+            final ProcessorInitializationContext initializationContext = new StatelessProcessorInitializationContext(processor.getIdentifier(), processor, controllerServiceLookup);
+            processor.initialize(initializationContext);
+
+            // If no classpath urls were provided, check if we need to add additional classpath URL's based on configured properties.
+            if (classpathUrls == null) {
+                final Set<URL> additionalClasspathUrls = getAdditionalClasspathResources(processor.getPropertyDescriptors(), processor.getIdentifier(), processorDto.getConfig().getProperties(),
+                        parameterContext, variableRegistry,componentLog);
+
+                if (!additionalClasspathUrls.isEmpty()) {
+                    return createProcessor(processorDto, materializeContent, controllerServiceLookup, variableRegistry, additionalClasspathUrls, parameterContext);
+                }
+            }
+
+            final StatelessProcessorWrapper processorWrapper = new StatelessProcessorWrapper(processorDto.getId(), processor, null,
+                    controllerServiceLookup, variableRegistry, materializeContent, detectedClassLoader, parameterContext);
+
+            // Configure the Processor
+            processorWrapper.setAnnotationData(processorDto.getConfig().getAnnotationData());
+            for (Map.Entry<String,String> prop : processorDto.getConfig().getProperties().entrySet()) {
+                if (prop.getValue() != null) {
+                    processorWrapper.setProperty(prop.getKey(), prop.getValue());
+                }
+            }
+
+            if (processorDto.getConfig().getAutoTerminatedRelationships() != null) {
+                for (String relationship : processorDto.getConfig().getAutoTerminatedRelationships()) {
+                    processorWrapper.addAutoTermination(new Relationship.Builder().name(relationship).build());
+                }
+            }
+
+            return processorWrapper;
+        } catch (final Exception e) {
+            throw new ProcessorInstantiationException(type, e);
+        } finally {
+            if (ctxClassLoader != null) {
+                Thread.currentThread().setContextClassLoader(ctxClassLoader);
+            }
+        }
+    }
+
 
     private Set<URL> getAdditionalClasspathResources(final List<PropertyDescriptor> propertyDescriptors, final String componentId, final Map<String, String> properties,
                                                      final ParameterLookup parameterLookup, final VariableRegistry variableRegistry, final ComponentLog logger) {
@@ -151,6 +223,11 @@ public class ComponentFactory {
     public ControllerService createControllerService(final VersionedControllerService versionedControllerService, final VariableRegistry variableRegistry,
                                                      final ControllerServiceLookup serviceLookup, final StateManager stateManager, final ParameterLookup parameterLookup) {
         return createControllerService(versionedControllerService, variableRegistry, null, serviceLookup, stateManager, parameterLookup);
+    }
+
+    public ControllerService createControllerService(final ControllerServiceDTO controllerService, final VariableRegistry variableRegistry,
+                                                     final ControllerServiceLookup serviceLookup, final StateManager stateManager, final ParameterLookup parameterLookup) {
+        return createControllerService(controllerService, variableRegistry, null, serviceLookup, stateManager, parameterLookup);
     }
 
 
@@ -204,6 +281,56 @@ public class ComponentFactory {
         }
     }
 
+    private ControllerService createControllerService(final ControllerServiceDTO controllerService, final VariableRegistry variableRegistry, final Set<URL> classpathUrls,
+                                                      final ControllerServiceLookup serviceLookup, final StateManager stateManager, final ParameterLookup parameterLookup) {
+
+        final String type = controllerService.getType();
+        final String identifier = controllerService.getId();
+
+        final Bundle bundle = getAvailableBundle(controllerService.getBundle(), type);
+        if (bundle == null) {
+            throw new IllegalStateException("Unable to find bundle for coordinate "
+                    + controllerService.getBundle().getGroup() + ":"
+                    + controllerService.getBundle().getArtifact() + ":"
+                    + controllerService.getBundle().getVersion());
+        }
+
+        final ClassLoader ctxClassLoader = Thread.currentThread().getContextClassLoader();
+        try {
+            final ClassLoader detectedClassLoader = extensionManager.createInstanceClassLoader(type, identifier, bundle,
+                    classpathUrls == null ? Collections.emptySet() : classpathUrls);
+
+            logger.debug("Setting context class loader to {} (parent = {}) to create {}", detectedClassLoader, detectedClassLoader.getParent(), type);
+            final Class<?> rawClass = Class.forName(type, true, detectedClassLoader);
+            Thread.currentThread().setContextClassLoader(detectedClassLoader);
+
+            final Object extensionInstance = rawClass.newInstance();
+            final ComponentLog componentLog = new SLF4JComponentLog(extensionInstance);
+
+            final ControllerService service = (ControllerService) extensionInstance;
+            final ControllerServiceInitializationContext initializationContext = new StatelessControllerServiceInitializationContext(identifier, service, serviceLookup, stateManager);
+            service.initialize(initializationContext);
+
+            // If no classpath urls were provided, check if we need to add additional classpath URL's based on configured properties.
+            if (classpathUrls == null) {
+                final Set<URL> additionalClasspathUrls = getAdditionalClasspathResources(service.getPropertyDescriptors(), service.getIdentifier(), controllerService.getProperties(),
+                        parameterLookup, variableRegistry, componentLog);
+
+                if (!additionalClasspathUrls.isEmpty()) {
+                    return createControllerService(controllerService, variableRegistry, additionalClasspathUrls, serviceLookup, stateManager, parameterLookup);
+                }
+            }
+
+            return service;
+        } catch (final Exception e) {
+            throw new ControllerServiceInstantiationException(type, e);
+        } finally {
+            if (ctxClassLoader != null) {
+                Thread.currentThread().setContextClassLoader(ctxClassLoader);
+            }
+        }
+    }
+
     private Bundle getAvailableBundle(final org.apache.nifi.registry.flow.Bundle bundle, final String componentType) {
         final BundleCoordinate bundleCoordinate = new BundleCoordinate(bundle.getGroup(), bundle.getArtifact(), bundle.getVersion());
         final Bundle availableBundle = extensionManager.getBundle(bundleCoordinate);
@@ -219,6 +346,26 @@ public class ComponentFactory {
         if (possibleBundles.size() > 1) {
             throw new IllegalStateException("Found " + possibleBundles.size() + " different NiFi Bundles that contain the Extension [" + componentType + "] but none of them had a version of " +
                 bundle.getVersion());
+        }
+
+        return possibleBundles.get(0);
+    }
+
+    private Bundle getAvailableBundle(final BundleDTO bundle, final String componentType) {
+        final BundleCoordinate bundleCoordinate = new BundleCoordinate(bundle.getGroup(), bundle.getArtifact(), bundle.getVersion());
+        final Bundle availableBundle = extensionManager.getBundle(bundleCoordinate);
+        if (availableBundle != null) {
+            return availableBundle;
+        }
+
+        final List<Bundle> possibleBundles = extensionManager.getBundles(componentType);
+        if (possibleBundles.isEmpty()) {
+            throw new IllegalStateException("Could not find any NiFi Bundles that contain the Extension [" + componentType + "]");
+        }
+
+        if (possibleBundles.size() > 1) {
+            throw new IllegalStateException("Found " + possibleBundles.size() + " different NiFi Bundles that contain the Extension [" + componentType + "] but none of them had a version of " +
+                    bundle.getVersion());
         }
 
         return possibleBundles.get(0);
