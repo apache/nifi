@@ -2463,8 +2463,9 @@ There are currently three implementations of the FlowFile Repository, which are 
 
 |====
 |*Property*|*Description*
-|`nifi.flowfile.repository.implementation`|The FlowFile Repository implementation. The default value is `org.apache.nifi.controller.repository.WriteAheadFlowFileRepository`.  The other current options are `org.apache.nifi.controller.repository.VolatileFlowFileRepository` and `org.apache.nifi.controller.repository.RocksDBFlowFileRepository`.  *NOTE:* Switching repositories should only be done on an instance with zero FlowFiles, and should only be done with caution.
+|`nifi.flowfile.repository.implementation`|The FlowFile Repository implementation. The default value is `org.apache.nifi.controller.repository.WriteAheadFlowFileRepository`.  The other current options are `org.apache.nifi.controller.repository.VolatileFlowFileRepository` and `org.apache.nifi.controller.repository.RocksDBFlowFileRepository`.  
 |====
+NOTE: Switching repository implementations should only be done on an instance with zero queued FlowFiles, and should only be done with caution.
 
 === Write Ahead FlowFile Repository
 
@@ -2498,7 +2499,7 @@ This implementation makes use of the RocksDB key-value store.  It uses periodic 
 
 The configuration parameters for this repository fall in to two categories, "NiFi-centric" and "RocksDB-centric".  The NiFi-centric settings have to do with the operations of the FlowFile Repository and its interaction with NiFi.  The RocksDB-centric settings directly correlate to settings on the underlying RocksDB repo.  More information on these settings can be found in the RocksDB documentation: https://github.com/facebook/rocksdb/wiki/RocksJava-Basics.
 
-Note: Windows users will need to ensure "Microsoft Visual C++ 2015 Redistributable" is installed for this repository to work.  See the following link for more details: https://github.com/facebook/rocksdb/wiki/RocksJava-Basics#maven-windows.
+NOTE:  Windows users will need to ensure "Microsoft Visual C++ 2015 Redistributable" is installed for this repository to work.  See the following link for more details: https://github.com/facebook/rocksdb/wiki/RocksJava-Basics#maven-windows.
 
 
 To use this implementation, set `nifi.flowfile.repository.implementation` to `org.apache.nifi.controller.repository.RocksDBFlowFileRepository`.
@@ -2515,22 +2516,22 @@ The default value is 30 seconds.
 |How often to mark content claims destructible (so they can be removed from the content repo).
 The default value is 30 seconds.
 |`nifi.flowfile.repository.rocksdb.deserialization.threads`
-|How many threads to use on startup restoring the FlowFile state
+|How many threads to use on startup restoring the FlowFile state.
 The default value is 16.
 |`nifi.flowfile.repository.rocksdb.deserialization.buffer.size`
-|Size of the buffer to use on startup restoring the FlowFile state
+|Size of the buffer to use on startup restoring the FlowFile state.
 The default value is 1000.
 |`nifi.flowfile.repository.rocksdb.sync.period`
-|Frequency at which to force a sync to disk.  This is the maximum period a data creation operation may block if `nifi.flowfile.repository.rocksdb.accept.data.loss` is `false`
+|Frequency at which to force a sync to disk.  This is the maximum period a data creation operation may block if `nifi.flowfile.repository.rocksdb.accept.data.loss` is `false`.
 The default value is 10 milliseconds.
 |`nifi.flowfile.repository.rocksdb.accept.data.loss`
-|Whether to accept the loss of received / created data.  Setting this `true` increases throughput if loss of data is acceptable
+|Whether to accept the loss of received / created data.  Setting this `true` increases throughput if loss of data is acceptable.
 The default value is false.
 |`nifi.flowfile.repository.rocksdb.enable.stall.stop`
 |Whether to enable the stall / stop of writes to the repository based on configured limits.  Enabling this feature allows the system to protect itself by restricting (delaying or denying) operations that increase the total FlowFile count on the node to prevent the system from being overwhelmed.
 The default value is false.
 |`nifi.flowfile.repository.rocksdb.stall.period`
-|The period of time to stall when the specified criteria are encountered
+|The period of time to stall when the specified criteria are encountered.
 The default value is 100 milliseconds.
 |`nifi.flowfile.repository.rocksdb.stall.flowfile.count`
 |The FlowFile count at which to begin stalling writes to the repo.
@@ -2539,10 +2540,10 @@ The default value is 800000.
 |The heap usage at which to begin stalling writes to the repo.
 The default value is 95%.
 |`nifi.flowfile.repository.rocksdb.stop.flowfile.count`
-|The FlowFile count at which to begin stopping the creation of new FlowFiles
+|The FlowFile count at which to begin stopping the creation of new FlowFiles.
 The default value is 1100000.
 |`nifi.flowfile.repository.rocksdb.stop.heap.usage.percent`
-|The heap usage at which to begin stopping the creation of new FlowFiles
+|The heap usage at which to begin stopping the creation of new FlowFiles.
 The default value is 99.9%.
 |`nifi.flowfile.repository.rocksdb.remove.orphaned.flowfiles.on.startup`
 |Whether to allow the repository to remove FlowFiles it cannot identify on startup.  As this is often the result of a configuration or synchronization error, it is disabled by default.  This should only be enabled if you are absolutely certain you want to lose the data in question.
