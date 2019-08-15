@@ -22,8 +22,6 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.registry.flow.BatchSize;
-import org.apache.nifi.registry.flow.VersionedRemoteGroupPort;
-import org.apache.nifi.registry.flow.VersionedRemoteProcessGroup;
 import org.apache.nifi.remote.Transaction;
 import org.apache.nifi.remote.TransferDirection;
 import org.apache.nifi.remote.client.SiteToSiteClient;
@@ -31,9 +29,6 @@ import org.apache.nifi.remote.protocol.DataPacket;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.FormatUtils;
-import org.apache.nifi.web.api.dto.BatchSettingsDTO;
-import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
-import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
 
 import javax.net.ssl.SSLContext;
 import java.io.InputStream;
@@ -45,6 +40,10 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 public class StatelessRemoteOutputPort extends AbstractStatelessComponent {
+    public final int DEFAULT_BATCH_COUNT = 1;
+    public final long DEFAULT_BATCH_BYTES = 1L;
+    public final long DEFAULT_BATCH_MILLIS = 1L;
+
     private final SiteToSiteClient client;
     private final String url;
     private final String name;
@@ -52,72 +51,36 @@ public class StatelessRemoteOutputPort extends AbstractStatelessComponent {
     private final ComponentLog logger = new SLF4JComponentLog(this);
     private final StatelessConnectionContext connectionContext = new StatelessPassThroughConnectionContext();
 
-    public StatelessRemoteOutputPort(final VersionedRemoteProcessGroup rpg, final VersionedRemoteGroupPort remotePort, final SSLContext sslContext) {
-        final String timeout = rpg.getCommunicationsTimeout();
+    public StatelessRemoteOutputPort(final String timeout, final String remotePortName, final String targetUris, final BatchSize batchSize,
+                                     final String transportProtocol, final Boolean useCompression, final SSLContext sslContext) {
         final long timeoutMillis = FormatUtils.getTimeDuration(timeout, TimeUnit.MILLISECONDS);
 
-        url = rpg.getTargetUris();
-        name = remotePort.getName();
+        this.url = targetUris;
+        this.name = remotePortName;
 
-        final BatchSize batchSize = remotePort.getBatchSize();
         final int batchCount;
         final long batchBytes;
         final long batchMillis;
         if (batchSize == null) {
-            batchCount = 1;
-            batchBytes = 1L;
-            batchMillis = 1L;
+            batchCount = DEFAULT_BATCH_COUNT;
+            batchBytes =  DEFAULT_BATCH_BYTES;
+            batchMillis =  DEFAULT_BATCH_MILLIS;
         } else {
-            batchCount = batchSize.getCount() == null ? 1 : batchSize.getCount();
-            batchBytes = batchSize.getSize() == null ? 1L : DataUnit.parseDataSize(batchSize.getSize(), DataUnit.B).longValue();
-            batchMillis = batchSize.getDuration() == null ? 1L : FormatUtils.getTimeDuration(batchSize.getDuration(), TimeUnit.MILLISECONDS);
+            batchCount = batchSize.getCount() == null ? DEFAULT_BATCH_COUNT : batchSize.getCount();
+            batchBytes = batchSize.getSize() == null ? DEFAULT_BATCH_BYTES : DataUnit.parseDataSize(batchSize.getSize(), DataUnit.B).longValue();
+            batchMillis = batchSize.getDuration() == null ? DEFAULT_BATCH_MILLIS : FormatUtils.getTimeDuration(batchSize.getDuration(), TimeUnit.MILLISECONDS);
         }
 
-        client = new SiteToSiteClient.Builder()
-            .portName(remotePort.getName())
-            .timeout(timeoutMillis, TimeUnit.MILLISECONDS)
-            .requestBatchCount(batchCount)
-            .requestBatchDuration(batchMillis, TimeUnit.MILLISECONDS)
-            .requestBatchSize(batchBytes)
-            .transportProtocol(SiteToSiteTransportProtocol.valueOf(rpg.getTransportProtocol()))
-            .url(rpg.getTargetUris())
-            .sslContext(sslContext)
-            .useCompression(remotePort.isUseCompression())
-            .eventReporter(EventReporter.NO_OP)
-            .build();
-    }
-
-    public StatelessRemoteOutputPort(final RemoteProcessGroupDTO rpg, final RemoteProcessGroupPortDTO remotePort, final SSLContext sslContext) {
-        final String timeout = rpg.getCommunicationsTimeout();
-        final long timeoutMillis = FormatUtils.getTimeDuration(timeout, TimeUnit.MILLISECONDS);
-
-        url = rpg.getTargetUris();
-        name = remotePort.getName();
-
-        final BatchSettingsDTO batchSize = remotePort.getBatchSettings();
-        final int batchCount;
-        final long batchBytes;
-        final long batchMillis;
-        if (batchSize == null) {
-            batchCount = 1;
-            batchBytes = 1L;
-            batchMillis = 1L;
-        } else {
-            batchCount = batchSize.getCount() == null ? 1 : batchSize.getCount();
-            batchBytes = batchSize.getSize() == null ? 1L : DataUnit.parseDataSize(batchSize.getSize(), DataUnit.B).longValue();
-            batchMillis = batchSize.getDuration() == null ? 1L : FormatUtils.getTimeDuration(batchSize.getDuration(), TimeUnit.MILLISECONDS);
-        }
-
-        client = new SiteToSiteClient.Builder()
-                .portName(remotePort.getName())
+        this.client = new SiteToSiteClient.Builder()
+                .portName(remotePortName)
                 .timeout(timeoutMillis, TimeUnit.MILLISECONDS)
                 .requestBatchCount(batchCount)
                 .requestBatchDuration(batchMillis, TimeUnit.MILLISECONDS)
                 .requestBatchSize(batchBytes)
-                .transportProtocol(SiteToSiteTransportProtocol.valueOf(rpg.getTransportProtocol()))
-                .url(rpg.getTargetUris())
+                .transportProtocol(SiteToSiteTransportProtocol.valueOf(transportProtocol))
+                .url(targetUris)
                 .sslContext(sslContext)
-                .useCompression(remotePort.getUseCompression())
+                .useCompression(useCompression)
                 .eventReporter(EventReporter.NO_OP)
                 .build();
     }

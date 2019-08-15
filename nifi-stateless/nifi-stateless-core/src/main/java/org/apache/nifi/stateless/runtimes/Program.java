@@ -174,7 +174,7 @@ public class Program {
         System.out.println();
         System.out.println("Examples:");
         System.out.println("    1) " + RUN_FROM_REGISTRY + " Once --json \"{\\\"registryUrl\\\":\\\"http://172.26.198.107:61080\\\",\\\"bucketId\\\":\\\"5eec8794-01b3-4cd7-8536-0167c8b4ce8c\\\",\\\"flowId\\\": \\\"c5fa1d4f-b453-4bf5-8ff3-352352c418f3\\\"}\"");
-        System.out.println("    2) " + RUN_FROM_FLOW_XML + " Once --file /opt/nifi/nifi-stateless-configs/flow-abc.json");
+        System.out.println("    2) " + RUN_FROM_FLOW_XML + " Once --file /Users/nifi/nifi-stateless-configs/flow-abc.json");
         System.out.println("    3) " + RUN_YARN_SERVICE_FROM_REGISTRY + " http://127.0.0.1:8088 nifi-stateless:latest kafka-to-solr 3 --file kafka-to-solr.json");
         System.out.println("    4) " + RUN_OPENWHISK_ACTION_SERVER + " 8080");
         System.out.println();

@@ -205,7 +205,7 @@ public class StatelessFlow implements RunnableFlow {
                         final RemoteProcessGroupPortDTO remotePort = remotePorts.get(source.getId());
                         final RemoteProcessGroupDTO rpg = rpgs.get(remotePort.getGroupId());
 
-                        sourceComponent = new StatelessRemoteOutputPort(rpg, remotePort, sslContext);
+                        sourceComponent = componentFactory.createStatelessRemoteOutputPort(rpg, remotePort, sslContext);
                         componentMap.put(source.getId(), sourceComponent);
                         break;
 
@@ -392,7 +392,7 @@ public class StatelessFlow implements RunnableFlow {
                         final VersionedRemoteGroupPort remotePort = remotePorts.get(source.getId());
                         final VersionedRemoteProcessGroup rpg = rpgs.get(remotePort.getRemoteGroupId());
 
-                        sourceComponent = new StatelessRemoteOutputPort(rpg, remotePort, sslContext);
+                        sourceComponent = componentFactory.createStatelessRemoteOutputPort(rpg, remotePort, sslContext);
                         componentMap.put(source.getId(), sourceComponent);
                         break;
                     case OUTPUT_PORT:

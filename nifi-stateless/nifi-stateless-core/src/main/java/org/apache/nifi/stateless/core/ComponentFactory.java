@@ -35,15 +35,22 @@ import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.registry.VariableRegistry;
+import org.apache.nifi.registry.flow.BatchSize;
 import org.apache.nifi.registry.flow.VersionedControllerService;
 import org.apache.nifi.registry.flow.VersionedProcessor;
+import org.apache.nifi.registry.flow.VersionedRemoteGroupPort;
+import org.apache.nifi.registry.flow.VersionedRemoteProcessGroup;
 import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
+import org.apache.nifi.web.api.dto.BatchSettingsDTO;
 import org.apache.nifi.web.api.dto.BundleDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
+import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
+import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.net.ssl.SSLContext;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Arrays;
@@ -65,63 +72,23 @@ public class ComponentFactory {
 
     public StatelessProcessorWrapper createProcessor(final VersionedProcessor versionedProcessor, final boolean materializeContent, final StatelessControllerServiceLookup controllerServiceLookup,
                                                      final VariableRegistry variableRegistry, final Set<URL> classpathUrls, final ParameterContext parameterContext)
-        throws ProcessorInstantiationException {
+            throws ProcessorInstantiationException {
 
         final String type = versionedProcessor.getType();
         final String identifier = versionedProcessor.getIdentifier();
+        final Map<String, String> properties = versionedProcessor.getProperties();
+        final String annotationData = versionedProcessor.getAnnotationData();
+        final Set<String> autoTerminatedRelationships = versionedProcessor.getAutoTerminatedRelationships();
 
         final Bundle bundle = getAvailableBundle(versionedProcessor.getBundle(), type);
         if (bundle == null) {
             throw new IllegalStateException("Unable to find bundle for coordinate "
-                + versionedProcessor.getBundle().getGroup() + ":"
-                + versionedProcessor.getBundle().getArtifact() + ":"
-                + versionedProcessor.getBundle().getVersion());
+                    + versionedProcessor.getBundle().getGroup() + ":"
+                    + versionedProcessor.getBundle().getArtifact() + ":"
+                    + versionedProcessor.getBundle().getVersion());
         }
 
-        final ClassLoader ctxClassLoader = Thread.currentThread().getContextClassLoader();
-        try {
-            final ClassLoader detectedClassLoader = extensionManager.createInstanceClassLoader(type, identifier, bundle,
-                classpathUrls == null ? Collections.emptySet() : classpathUrls);
-
-            logger.debug("Setting context class loader to {} (parent = {}) to create {}", detectedClassLoader, detectedClassLoader.getParent(), type);
-            final Class<?> rawClass = Class.forName(type, true, detectedClassLoader);
-            Thread.currentThread().setContextClassLoader(detectedClassLoader);
-
-            final Object extensionInstance = rawClass.newInstance();
-            final ComponentLog componentLog = new SLF4JComponentLog(extensionInstance);
-
-            final Processor processor = (Processor) extensionInstance;
-            final ProcessorInitializationContext initializationContext = new StatelessProcessorInitializationContext(versionedProcessor.getIdentifier(), processor, controllerServiceLookup);
-            processor.initialize(initializationContext);
-
-            // If no classpath urls were provided, check if we need to add additional classpath URL's based on configured properties.
-            if (classpathUrls == null) {
-                final Set<URL> additionalClasspathUrls = getAdditionalClasspathResources(processor.getPropertyDescriptors(), processor.getIdentifier(), versionedProcessor.getProperties(),
-                    parameterContext, variableRegistry,componentLog);
-
-                if (!additionalClasspathUrls.isEmpty()) {
-                    return createProcessor(versionedProcessor, materializeContent, controllerServiceLookup, variableRegistry, additionalClasspathUrls, parameterContext);
-                }
-            }
-
-            final StatelessProcessorWrapper processorWrapper = new StatelessProcessorWrapper(versionedProcessor.getIdentifier(), processor, null,
-                controllerServiceLookup, variableRegistry, materializeContent, detectedClassLoader, parameterContext);
-
-            // Configure the Processor
-            processorWrapper.setAnnotationData(versionedProcessor.getAnnotationData());
-            versionedProcessor.getProperties().forEach(processorWrapper::setProperty);
-            for (String relationship : versionedProcessor.getAutoTerminatedRelationships()) {
-                processorWrapper.addAutoTermination(new Relationship.Builder().name(relationship).build());
-            }
-
-            return processorWrapper;
-        } catch (final Exception e) {
-            throw new ProcessorInstantiationException(type, e);
-        } finally {
-            if (ctxClassLoader != null) {
-                Thread.currentThread().setContextClassLoader(ctxClassLoader);
-            }
-        }
+        return createProcessor(identifier, type, properties, autoTerminatedRelationships, annotationData, bundle, materializeContent, controllerServiceLookup, variableRegistry, classpathUrls, parameterContext);
     }
 
     public StatelessProcessorWrapper createProcessor(final ProcessorDTO processorDto, final boolean materializeContent, final StatelessControllerServiceLookup controllerServiceLookup,
@@ -130,6 +97,9 @@ public class ComponentFactory {
 
         final String type = processorDto.getType();
         final String identifier = processorDto.getId();
+        final Map<String, String> properties = processorDto.getConfig().getProperties();
+        final String annotationData = processorDto.getConfig().getAnnotationData();
+        final Set<String> autoTerminatedRelationships = processorDto.getConfig().getAutoTerminatedRelationships();
 
         final Bundle bundle = getAvailableBundle(processorDto.getBundle(), type);
         if (bundle == null) {
@@ -138,6 +108,13 @@ public class ComponentFactory {
                     + processorDto.getBundle().getArtifact() + ":"
                     + processorDto.getBundle().getVersion());
         }
+
+        return createProcessor(identifier, type, properties, autoTerminatedRelationships, annotationData, bundle, materializeContent, controllerServiceLookup, variableRegistry, classpathUrls, parameterContext);
+    }
+
+    private StatelessProcessorWrapper createProcessor(final String identifier, final String type, final Map<String, String> properties, final Set<String> autoTerminatedRelationships, final String annotationData, final Bundle bundle, final boolean materializeContent, final StatelessControllerServiceLookup controllerServiceLookup,
+                                                          final VariableRegistry variableRegistry, final Set<URL> classpathUrls, final ParameterContext parameterContext)
+            throws ProcessorInstantiationException {
 
         final ClassLoader ctxClassLoader = Thread.currentThread().getContextClassLoader();
         try {
@@ -152,32 +129,32 @@ public class ComponentFactory {
             final ComponentLog componentLog = new SLF4JComponentLog(extensionInstance);
 
             final Processor processor = (Processor) extensionInstance;
-            final ProcessorInitializationContext initializationContext = new StatelessProcessorInitializationContext(processor.getIdentifier(), processor, controllerServiceLookup);
+            final ProcessorInitializationContext initializationContext = new StatelessProcessorInitializationContext(identifier, processor, controllerServiceLookup);
             processor.initialize(initializationContext);
 
             // If no classpath urls were provided, check if we need to add additional classpath URL's based on configured properties.
             if (classpathUrls == null) {
-                final Set<URL> additionalClasspathUrls = getAdditionalClasspathResources(processor.getPropertyDescriptors(), processor.getIdentifier(), processorDto.getConfig().getProperties(),
+                final Set<URL> additionalClasspathUrls = getAdditionalClasspathResources(processor.getPropertyDescriptors(), processor.getIdentifier(), properties,
                         parameterContext, variableRegistry,componentLog);
 
                 if (!additionalClasspathUrls.isEmpty()) {
-                    return createProcessor(processorDto, materializeContent, controllerServiceLookup, variableRegistry, additionalClasspathUrls, parameterContext);
+                    return createProcessor(identifier, type, properties, autoTerminatedRelationships, annotationData, bundle, materializeContent, controllerServiceLookup, variableRegistry, additionalClasspathUrls, parameterContext);
                 }
             }
 
-            final StatelessProcessorWrapper processorWrapper = new StatelessProcessorWrapper(processorDto.getId(), processor, null,
+            final StatelessProcessorWrapper processorWrapper = new StatelessProcessorWrapper(identifier, processor, null,
                     controllerServiceLookup, variableRegistry, materializeContent, detectedClassLoader, parameterContext);
 
             // Configure the Processor
-            processorWrapper.setAnnotationData(processorDto.getConfig().getAnnotationData());
-            for (Map.Entry<String,String> prop : processorDto.getConfig().getProperties().entrySet()) {
+            processorWrapper.setAnnotationData(annotationData);
+            for (Map.Entry<String,String> prop : properties.entrySet()) {
                 if (prop.getValue() != null) {
                     processorWrapper.setProperty(prop.getKey(), prop.getValue());
                 }
             }
 
-            if (processorDto.getConfig().getAutoTerminatedRelationships() != null) {
-                for (String relationship : processorDto.getConfig().getAutoTerminatedRelationships()) {
+            if (autoTerminatedRelationships != null) {
+                for (String relationship : autoTerminatedRelationships) {
                     processorWrapper.addAutoTermination(new Relationship.Builder().name(relationship).build());
                 }
             }
@@ -191,7 +168,6 @@ public class ComponentFactory {
             }
         }
     }
-
 
     private Set<URL> getAdditionalClasspathResources(final List<PropertyDescriptor> propertyDescriptors, final String componentId, final Map<String, String> properties,
                                                      final ParameterLookup parameterLookup, final VariableRegistry variableRegistry, final ComponentLog logger) {
@@ -219,73 +195,30 @@ public class ComponentFactory {
         return additionalUrls;
     }
 
-
     public ControllerService createControllerService(final VersionedControllerService versionedControllerService, final VariableRegistry variableRegistry,
                                                      final ControllerServiceLookup serviceLookup, final StateManager stateManager, final ParameterLookup parameterLookup) {
-        return createControllerService(versionedControllerService, variableRegistry, null, serviceLookup, stateManager, parameterLookup);
-    }
-
-    public ControllerService createControllerService(final ControllerServiceDTO controllerService, final VariableRegistry variableRegistry,
-                                                     final ControllerServiceLookup serviceLookup, final StateManager stateManager, final ParameterLookup parameterLookup) {
-        return createControllerService(controllerService, variableRegistry, null, serviceLookup, stateManager, parameterLookup);
-    }
-
-
-    private ControllerService createControllerService(final VersionedControllerService versionedControllerService, final VariableRegistry variableRegistry, final Set<URL> classpathUrls,
-                                                      final ControllerServiceLookup serviceLookup, final StateManager stateManager, final ParameterLookup parameterLookup) {
 
         final String type = versionedControllerService.getType();
         final String identifier = versionedControllerService.getIdentifier();
+        final Map<String, String> properties = versionedControllerService.getProperties();
 
         final Bundle bundle = getAvailableBundle(versionedControllerService.getBundle(), type);
         if (bundle == null) {
             throw new IllegalStateException("Unable to find bundle for coordinate "
-                + versionedControllerService.getBundle().getGroup() + ":"
-                + versionedControllerService.getBundle().getArtifact() + ":"
-                + versionedControllerService.getBundle().getVersion());
+                    + versionedControllerService.getBundle().getGroup() + ":"
+                    + versionedControllerService.getBundle().getArtifact() + ":"
+                    + versionedControllerService.getBundle().getVersion());
         }
 
-        final ClassLoader ctxClassLoader = Thread.currentThread().getContextClassLoader();
-        try {
-            final ClassLoader detectedClassLoader = extensionManager.createInstanceClassLoader(type, identifier, bundle,
-                classpathUrls == null ? Collections.emptySet() : classpathUrls);
-
-            logger.debug("Setting context class loader to {} (parent = {}) to create {}", detectedClassLoader, detectedClassLoader.getParent(), type);
-            final Class<?> rawClass = Class.forName(type, true, detectedClassLoader);
-            Thread.currentThread().setContextClassLoader(detectedClassLoader);
-
-            final Object extensionInstance = rawClass.newInstance();
-            final ComponentLog componentLog = new SLF4JComponentLog(extensionInstance);
-
-            final ControllerService service = (ControllerService) extensionInstance;
-            final ControllerServiceInitializationContext initializationContext = new StatelessControllerServiceInitializationContext(identifier, service, serviceLookup, stateManager);
-            service.initialize(initializationContext);
-
-            // If no classpath urls were provided, check if we need to add additional classpath URL's based on configured properties.
-            if (classpathUrls == null) {
-                final Set<URL> additionalClasspathUrls = getAdditionalClasspathResources(service.getPropertyDescriptors(), service.getIdentifier(), versionedControllerService.getProperties(),
-                    parameterLookup, variableRegistry, componentLog);
-
-                if (!additionalClasspathUrls.isEmpty()) {
-                    return createControllerService(versionedControllerService, variableRegistry, additionalClasspathUrls, serviceLookup, stateManager, parameterLookup);
-                }
-            }
-
-            return service;
-        } catch (final Exception e) {
-            throw new ControllerServiceInstantiationException(type, e);
-        } finally {
-            if (ctxClassLoader != null) {
-                Thread.currentThread().setContextClassLoader(ctxClassLoader);
-            }
-        }
+        return createControllerService(identifier, type, properties, bundle, variableRegistry, null, serviceLookup, stateManager, parameterLookup);
     }
 
-    private ControllerService createControllerService(final ControllerServiceDTO controllerService, final VariableRegistry variableRegistry, final Set<URL> classpathUrls,
-                                                      final ControllerServiceLookup serviceLookup, final StateManager stateManager, final ParameterLookup parameterLookup) {
+    public ControllerService createControllerService(final ControllerServiceDTO controllerService, final VariableRegistry variableRegistry,
+                                                     final ControllerServiceLookup serviceLookup, final StateManager stateManager, final ParameterLookup parameterLookup) {
 
         final String type = controllerService.getType();
         final String identifier = controllerService.getId();
+        final Map<String, String> properties = controllerService.getProperties();
 
         final Bundle bundle = getAvailableBundle(controllerService.getBundle(), type);
         if (bundle == null) {
@@ -294,6 +227,12 @@ public class ComponentFactory {
                     + controllerService.getBundle().getArtifact() + ":"
                     + controllerService.getBundle().getVersion());
         }
+
+        return createControllerService(identifier, type, properties, bundle, variableRegistry, null, serviceLookup, stateManager, parameterLookup);
+    }
+
+    private ControllerService createControllerService(String identifier, String type, Map<String, String> properties, Bundle bundle, final VariableRegistry variableRegistry, final Set<URL> classpathUrls,
+                                                          final ControllerServiceLookup serviceLookup, final StateManager stateManager, final ParameterLookup parameterLookup) {
 
         final ClassLoader ctxClassLoader = Thread.currentThread().getContextClassLoader();
         try {
@@ -313,11 +252,11 @@ public class ComponentFactory {
 
             // If no classpath urls were provided, check if we need to add additional classpath URL's based on configured properties.
             if (classpathUrls == null) {
-                final Set<URL> additionalClasspathUrls = getAdditionalClasspathResources(service.getPropertyDescriptors(), service.getIdentifier(), controllerService.getProperties(),
+                final Set<URL> additionalClasspathUrls = getAdditionalClasspathResources(service.getPropertyDescriptors(), service.getIdentifier(), properties,
                         parameterLookup, variableRegistry, componentLog);
 
                 if (!additionalClasspathUrls.isEmpty()) {
-                    return createControllerService(controllerService, variableRegistry, additionalClasspathUrls, serviceLookup, stateManager, parameterLookup);
+                    return createControllerService(identifier, type, properties, bundle, variableRegistry, additionalClasspathUrls, serviceLookup, stateManager, parameterLookup);
                 }
             }
 
@@ -332,7 +271,15 @@ public class ComponentFactory {
     }
 
     private Bundle getAvailableBundle(final org.apache.nifi.registry.flow.Bundle bundle, final String componentType) {
-        final BundleCoordinate bundleCoordinate = new BundleCoordinate(bundle.getGroup(), bundle.getArtifact(), bundle.getVersion());
+        return getAvailableBundle(componentType, bundle.getGroup(), bundle.getArtifact(), bundle.getVersion());
+    }
+
+    private Bundle getAvailableBundle(final BundleDTO bundle, final String componentType) {
+        return getAvailableBundle(componentType, bundle.getGroup(), bundle.getArtifact(), bundle.getVersion());
+    }
+
+    private Bundle getAvailableBundle(final String componentType, String group, String artifact, String version) {
+        final BundleCoordinate bundleCoordinate = new BundleCoordinate(group, artifact, version);
         final Bundle availableBundle = extensionManager.getBundle(bundleCoordinate);
         if (availableBundle != null) {
             return availableBundle;
@@ -345,29 +292,39 @@ public class ComponentFactory {
 
         if (possibleBundles.size() > 1) {
             throw new IllegalStateException("Found " + possibleBundles.size() + " different NiFi Bundles that contain the Extension [" + componentType + "] but none of them had a version of " +
-                bundle.getVersion());
+                    version);
         }
 
         return possibleBundles.get(0);
     }
 
-    private Bundle getAvailableBundle(final BundleDTO bundle, final String componentType) {
-        final BundleCoordinate bundleCoordinate = new BundleCoordinate(bundle.getGroup(), bundle.getArtifact(), bundle.getVersion());
-        final Bundle availableBundle = extensionManager.getBundle(bundleCoordinate);
-        if (availableBundle != null) {
-            return availableBundle;
-        }
+    public StatelessRemoteOutputPort createStatelessRemoteOutputPort(final VersionedRemoteProcessGroup rpg, final VersionedRemoteGroupPort remotePort, final SSLContext sslContext) {
+        final String timeout = rpg.getCommunicationsTimeout();
+        final String remotePortName = remotePort.getName();
+        final String targetUris = rpg.getTargetUris();
+        final String transportProtocol = rpg.getTransportProtocol();
+        final Boolean useCompression = remotePort.isUseCompression();
+        final BatchSize batchSize = remotePort.getBatchSize();
 
-        final List<Bundle> possibleBundles = extensionManager.getBundles(componentType);
-        if (possibleBundles.isEmpty()) {
-            throw new IllegalStateException("Could not find any NiFi Bundles that contain the Extension [" + componentType + "]");
-        }
+        return new StatelessRemoteOutputPort(timeout, remotePortName, targetUris, batchSize, transportProtocol, useCompression, sslContext);
+    }
 
-        if (possibleBundles.size() > 1) {
-            throw new IllegalStateException("Found " + possibleBundles.size() + " different NiFi Bundles that contain the Extension [" + componentType + "] but none of them had a version of " +
-                    bundle.getVersion());
-        }
+    public StatelessRemoteOutputPort createStatelessRemoteOutputPort(final RemoteProcessGroupDTO rpg, final RemoteProcessGroupPortDTO remotePort, final SSLContext sslContext) {
+        final String timeout = rpg.getCommunicationsTimeout();
+        final String remotePortName = remotePort.getName();
+        final String targetUris = rpg.getTargetUris();
+        final String transportProtocol = rpg.getTransportProtocol();
+        final Boolean useCompression = remotePort.getUseCompression();
+        final BatchSize batchSize = toBatchSize(remotePort.getBatchSettings());
 
-        return possibleBundles.get(0);
+        return new StatelessRemoteOutputPort(timeout, remotePortName, targetUris, batchSize, transportProtocol, useCompression, sslContext);
+    }
+
+    private BatchSize toBatchSize(final BatchSettingsDTO batchSizeDto) {
+        final BatchSize batchSize = new BatchSize();
+        batchSize.setCount(batchSizeDto.getCount());
+        batchSize.setSize(batchSizeDto.getSize());
+        batchSize.setDuration(batchSizeDto.getDuration());
+        return batchSize;
     }
 }
