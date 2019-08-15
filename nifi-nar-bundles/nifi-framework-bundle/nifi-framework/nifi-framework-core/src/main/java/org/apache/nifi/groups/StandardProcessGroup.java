@@ -4394,7 +4394,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             service.setComments(proposed.getComments());
             service.setName(proposed.getName());
 
-            final Map<String, String> properties = populatePropertiesMap(service.getEffectivePropertyValues(), proposed.getProperties(), proposed.getPropertyDescriptors(), service.getProcessGroup());
+            final Map<String, String> properties = populatePropertiesMap(service, proposed.getProperties(), proposed.getPropertyDescriptors(), service.getProcessGroup());
             service.setProperties(properties, true);
 
             if (!isEqual(service.getBundleCoordinate(), proposed.getBundle())) {
@@ -4533,7 +4533,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             processor.setName(proposed.getName());
             processor.setPenalizationPeriod(proposed.getPenaltyDuration());
 
-            final Map<String, String> properties = populatePropertiesMap(processor.getRawPropertyValues(), proposed.getProperties(), proposed.getPropertyDescriptors(), processor.getProcessGroup());
+            final Map<String, String> properties = populatePropertiesMap(processor, proposed.getProperties(), proposed.getPropertyDescriptors(), processor.getProcessGroup());
             processor.setProperties(properties, true);
             processor.setRunDuration(proposed.getRunDurationMillis(), TimeUnit.MILLISECONDS);
             processor.setSchedulingStrategy(SchedulingStrategy.valueOf(proposed.getSchedulingStrategy()));
@@ -4556,7 +4556,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
 
-    private Map<String, String> populatePropertiesMap(final Map<PropertyDescriptor, String> currentProperties, final Map<String, String> proposedProperties,
+    private Map<String, String> populatePropertiesMap(final ComponentNode componentNode, final Map<String, String> proposedProperties,
                                                       final Map<String, VersionedPropertyDescriptor> proposedDescriptors, final ProcessGroup group) {
 
         // since VersionedPropertyDescriptor currently doesn't know if it is sensitive or not,
@@ -4564,7 +4564,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         final Set<String> sensitiveProperties = new HashSet<>();
 
         final Map<String, String> fullPropertyMap = new HashMap<>();
-        for (final PropertyDescriptor property : currentProperties.keySet()) {
+        for (final PropertyDescriptor property : componentNode.getRawPropertyValues().keySet()) {
             if (property.isSensitive()) {
                 sensitiveProperties.add(property.getName());
             } else {
@@ -4573,8 +4573,14 @@ public final class StandardProcessGroup implements ProcessGroup {
         }
 
         if (proposedProperties != null) {
-            for (final Map.Entry<String, String> entry : proposedProperties.entrySet()) {
-                final String propertyName = entry.getKey();
+            // Build a Set of all properties that are included in either the currently configured property values or the proposed values.
+            final Set<String> updatedPropertyNames = new HashSet<>();
+            updatedPropertyNames.addAll(proposedProperties.keySet());
+            componentNode.getProperties().keySet().stream()
+                .map(PropertyDescriptor::getName)
+                .forEach(updatedPropertyNames::add);
+
+            for (final String propertyName : updatedPropertyNames) {
                 final VersionedPropertyDescriptor descriptor = proposedDescriptors.get(propertyName);
 
                 String value;
@@ -4582,18 +4588,31 @@ public final class StandardProcessGroup implements ProcessGroup {
                     // Property identifies a Controller Service. So the value that we want to assign is not the value given.
                     // The value given is instead the Versioned Component ID of the Controller Service. We want to resolve this
                     // to the instance ID of the Controller Service.
-                    final String serviceVersionedComponentId = entry.getValue();
+                    final String serviceVersionedComponentId = proposedProperties.get(propertyName);
                     String instanceId = getServiceInstanceId(serviceVersionedComponentId, group);
                     value = instanceId == null ? serviceVersionedComponentId : instanceId;
                 } else {
-                    value = entry.getValue();
+                    value = proposedProperties.get(propertyName);
                 }
 
                 // skip any sensitive properties that are not populated so we can retain whatever is currently set. We do this because sensitive properties are not stored in the registry
                 // unless the value is a reference to a Parameter. If the value in the registry is null, it indicates that the sensitive value was removed, so we want to keep the currently
-                // populated value.
+                // populated value. The exception to this rule is if the currently configured value is a Parameter Reference and the Versioned Flow is empty. In this case, it implies
+                // that the Versioned Flow has changed from a Parameter Reference to an explicit value. In this case, we do in fact want to change the value of the Sensitive Property from
+                // the current parameter reference to an unset value.
                 if (sensitiveProperties.contains(propertyName) && value == null) {
-                    continue;
+                    final PropertyConfiguration propertyConfiguration = componentNode.getProperty(componentNode.getPropertyDescriptor(propertyName));
+                    if (propertyConfiguration == null) {
+                        continue;
+                    }
+
+                    // No parameter references. Property currently is set to an explicit value. We don't want to change it.
+                    if (propertyConfiguration.getParameterReferences().isEmpty()) {
+                        continue;
+                    }
+
+                    // Once we reach this point, the property is configured to reference a Parameter, and the value in the Versioned Flow is an explicit value,
+                    // so we want to continue on and update the value to null.
                 }
 
                 fullPropertyMap.put(propertyName, value);

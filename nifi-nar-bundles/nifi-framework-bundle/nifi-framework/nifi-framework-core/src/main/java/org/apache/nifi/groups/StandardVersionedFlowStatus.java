@@ -20,11 +20,11 @@ package org.apache.nifi.groups;
 import org.apache.nifi.registry.flow.VersionedFlowState;
 import org.apache.nifi.registry.flow.VersionedFlowStatus;
 
-class StandardVersionedFlowStatus implements VersionedFlowStatus {
+public class StandardVersionedFlowStatus implements VersionedFlowStatus {
     private final VersionedFlowState state;
     private final String explanation;
 
-    StandardVersionedFlowStatus(final VersionedFlowState state, final String explanation) {
+    public StandardVersionedFlowStatus(final VersionedFlowState state, final String explanation) {
         this.state = state;
         this.explanation = explanation;
     }
