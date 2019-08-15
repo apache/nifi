@@ -36,7 +36,6 @@ import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.events.BulletinFactory;
 import org.apache.nifi.events.EventReporter;
-import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
@@ -101,12 +100,12 @@ public class StandardPublicPort extends AbstractPort implements PublicPort {
     private final Lock requestLock = new ReentrantLock();
     private boolean shutdown = false;   // guarded by requestLock
 
-    public StandardPublicPort(final String id, final String name, final ProcessGroup processGroup,
+    public StandardPublicPort(final String id, final String name,
                               final TransferDirection direction, final ConnectableType type, final Authorizer authorizer,
                               final BulletinRepository bulletinRepository, final ProcessScheduler scheduler, final boolean secure,
                               final String yieldPeriod, final List<IdentityMapping> identityMappings) {
 
-        super(id, name, processGroup, type, scheduler);
+        super(id, name, type, scheduler);
 
         setScheduldingPeriod(MINIMUM_SCHEDULING_NANOS + " nanos");
         this.authorizer = authorizer;

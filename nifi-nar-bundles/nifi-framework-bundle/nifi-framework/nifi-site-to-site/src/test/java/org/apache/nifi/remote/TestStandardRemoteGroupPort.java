@@ -121,7 +121,7 @@ public class TestStandardRemoteGroupPort {
         }
 
         port = spy(new StandardRemoteGroupPort(ID, ID, NAME,
-                processGroup, remoteGroup, direction, connectableType, null, scheduler, NiFiProperties.createBasicNiFiProperties(null, null)));
+                remoteGroup, direction, connectableType, null, scheduler, NiFiProperties.createBasicNiFiProperties(null, null)));
 
         doReturn(true).when(remoteGroup).isTransmitting();
         doReturn(protocol).when(remoteGroup).getTransportProtocol();

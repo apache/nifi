@@ -54,7 +54,7 @@ public class LocalPort extends AbstractPort {
     final int maxIterations;
 
     public LocalPort(final String id, final String name, final ConnectableType type, final ProcessScheduler scheduler, final NiFiProperties nifiProperties) {
-        super(id, name, null, type, scheduler);
+        super(id, name, type, scheduler);
 
         int maxConcurrentTasks = Integer.parseInt(nifiProperties.getProperty(MAX_CONCURRENT_TASKS_PROP_NAME, "1"));
         setMaxConcurrentTasks(maxConcurrentTasks);
