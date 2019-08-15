@@ -17,7 +17,6 @@
 package org.apache.nifi.properties
 
 import org.apache.nifi.properties.sensitive.StandardSensitivePropertyProvider
-import org.apache.nifi.properties.sensitive.TestsWithAWSCredentials
 import org.apache.nifi.properties.sensitive.aes.AESSensitivePropertyProvider
 import org.apache.nifi.properties.sensitive.aws.kms.AWSKMSSensitivePropertyProvider
 import org.bouncycastle.jce.provider.BouncyCastleProvider
@@ -35,7 +34,7 @@ import javax.crypto.Cipher
 
 
 @RunWith(JUnit4.class)
-class StandardSensitivePropertyProviderIT extends TestsWithAWSCredentials {
+class StandardSensitivePropertyProviderIT {
     private static final Logger logger = LoggerFactory.getLogger(StandardSensitivePropertyProviderIT.class)
 
     private String AES_128_KEY

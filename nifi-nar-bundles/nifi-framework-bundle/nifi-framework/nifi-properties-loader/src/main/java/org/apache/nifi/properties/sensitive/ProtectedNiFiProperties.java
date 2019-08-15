@@ -397,7 +397,7 @@ public class ProtectedNiFiProperties extends StandardNiFiProperties {
      * @return the protected properties in a {@link StandardNiFiProperties} object
      * @throws IllegalStateException if no protection schemes are registered
      */
-    NiFiProperties protectPlainProperties() {
+    public NiFiProperties protectPlainProperties() {
         try {
             return protectPlainProperties(StandardSensitivePropertyProvider.getDefaultProtectionScheme());
         } catch (IllegalStateException e) {

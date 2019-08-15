@@ -85,7 +85,7 @@ public class AWSKMSSensitivePropertyProvider implements SensitivePropertyProvide
      */
     @Override
     public String getIdentifierKey() {
-        return IMPLEMENTATION_KEY + keyId; // getIdentifierKey() has to include the kms key id/alias/arn
+        return IMPLEMENTATION_KEY + keyId;
     }
 
 
@@ -129,21 +129,21 @@ public class AWSKMSSensitivePropertyProvider implements SensitivePropertyProvide
     /**
      * True when the client specifies a key like 'aws/kms/...'.
      *
-     * @param scheme name of encryption or protection scheme
+     * @param material name of encryption or protection scheme
      * @return true if this class can provide protected values
      */
-    public static boolean isProviderFor(String scheme) {
-        return StringUtils.isNotBlank(scheme) && scheme.startsWith(IMPLEMENTATION_KEY);
+    public static boolean isProviderFor(String material) {
+        return StringUtils.isNotBlank(material) && material.startsWith(IMPLEMENTATION_KEY);
     }
 
 
     /**
      * Returns a printable representation of a key.
      *
-     * @param keyOrKeyId key material or key id
+     * @param key key material or key id
      * @return printable string
      */
-    public static String toPrintableString(String keyOrKeyId) {
-        return keyOrKeyId;
+    public static String toPrintableString(String key) {
+        return key;
     }
 }

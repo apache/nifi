@@ -277,20 +277,20 @@ public class AESSensitivePropertyProvider implements SensitivePropertyProvider {
     /**
      * True if this class can provide protected and unprotected values for the given scheme.
      *
-     * @param scheme name of encryption or protection scheme
+     * @param material name of encryption or protection scheme
      * @return true if this class can provide protected values
      */
-    public static boolean isProviderFor(String scheme) {
-        return scheme.startsWith(IMPLEMENTATION_KEY);
+    public static boolean isProviderFor(String material) {
+        return material.startsWith(IMPLEMENTATION_KEY);
     }
 
     /**
      * Printable representation of a key.
      *
-     * @param keyOrKeyId key material or key id
+     * @param key key material or key id
      * @return printable string
      */
-    public static String toPrintableString(String keyOrKeyId) {
-        return PRINTABLE_PREFIX + UUID.nameUUIDFromBytes(keyOrKeyId.getBytes(StandardCharsets.UTF_8)).toString();
+    public static String toPrintableString(String key) {
+        return PRINTABLE_PREFIX + UUID.nameUUIDFromBytes(key.getBytes(StandardCharsets.UTF_8)).toString();
     }
 }

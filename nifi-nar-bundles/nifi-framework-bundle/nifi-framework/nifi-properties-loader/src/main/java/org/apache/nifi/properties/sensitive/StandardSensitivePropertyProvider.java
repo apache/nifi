@@ -19,6 +19,11 @@ package org.apache.nifi.properties.sensitive;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.properties.sensitive.aes.AESSensitivePropertyProvider;
 import org.apache.nifi.properties.sensitive.aws.kms.AWSKMSSensitivePropertyProvider;
+import org.apache.nifi.properties.sensitive.gcp.kms.GCPKMSSensitivePropertyProvider;
+import org.apache.nifi.properties.sensitive.hashicorp.vault.VaultSensitivePropertyProvider;
+import org.apache.nifi.properties.sensitive.keystore.KeyStoreSensitivePropertyProvider;
+
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,25 +42,34 @@ public class StandardSensitivePropertyProvider {
      *
      * If no provider recognizes a key/key id, this implementation throws {@link SensitivePropertyProtectionException}.
      *
-     * @param keyOrKeyId provider encryption key
+     * @param key provider encryption key
      * @param scheme name of encryption or protection scheme
      * @return concrete instance of SensitivePropertyProvider, or null when no key/key id is specified
      * @throws SensitivePropertyProtectionException when a key/key id is not handled by any provider.
      */
-    public static SensitivePropertyProvider fromKey(String keyOrKeyId, String scheme) {
-        if (StringUtils.isBlank(keyOrKeyId)) {
+    public static SensitivePropertyProvider fromKey(String key, String scheme) {
+        if (StringUtils.isBlank(key)) {
             return null;
-        }
 
-        if (AWSKMSSensitivePropertyProvider.isProviderFor(keyOrKeyId) || AWSKMSSensitivePropertyProvider.isProviderFor(scheme)) {
-            String printableKey = AWSKMSSensitivePropertyProvider.toPrintableString(keyOrKeyId);
-            logger.debug("StandardSensitivePropertyProvider selected specific AWS KMS provider for key: " + printableKey);
-            return new AWSKMSSensitivePropertyProvider(keyOrKeyId);
+        } else if (VaultSensitivePropertyProvider.isProviderFor(scheme)) {
+            logger.debug("StandardSensitivePropertyProvider selected specific Vault provider for key: " + VaultSensitivePropertyProvider.toPrintableString(key));
+            return new VaultSensitivePropertyProvider(key);
+
+        } else if (KeyStoreSensitivePropertyProvider.isProviderFor(scheme)) {
+            logger.debug("StandardSensitivePropertyProvider selected specific KeyStore provider for key: " + KeyStoreSensitivePropertyProvider.toPrintableString(key));
+            return new KeyStoreSensitivePropertyProvider(key);
+
+        } else if (GCPKMSSensitivePropertyProvider.isProviderFor(scheme)) {
+            logger.debug("StandardSensitivePropertyProvider selected specific GCP KMS provider for key: " + GCPKMSSensitivePropertyProvider.toPrintableString(key));
+            return new GCPKMSSensitivePropertyProvider(key);
+
+        } else if (AWSKMSSensitivePropertyProvider.isProviderFor(key) || AWSKMSSensitivePropertyProvider.isProviderFor(scheme)) {
+            logger.debug("StandardSensitivePropertyProvider selected specific AWS KMS provider for key: " + AWSKMSSensitivePropertyProvider.toPrintableString(key));
+            return new AWSKMSSensitivePropertyProvider(key);
 
         } else if (AESSensitivePropertyProvider.isProviderFor(scheme) || StringUtils.isEmpty(scheme)) {
-            String printableKey = AESSensitivePropertyProvider.toPrintableString(keyOrKeyId);
-            logger.debug("StandardSensitivePropertyProvider selected specific AES provider for key: " + printableKey);
-            return new AESSensitivePropertyProvider(keyOrKeyId);
+            logger.debug("StandardSensitivePropertyProvider selected specific AES provider for key: " + AESSensitivePropertyProvider.toPrintableString(key));
+            return new AESSensitivePropertyProvider(key);
         }
 
         throw new SensitivePropertyProtectionException("No sensitive property provider for key or key id.");
@@ -65,12 +79,12 @@ public class StandardSensitivePropertyProvider {
      * Creates a {@link SensitivePropertyProvider} suitable for a given key or key id, without specifying a protection
      * or encryption scheme.
      *
-     * @param keyOrKeyId protection or encryption key
+     * @param key protection or encryption key
      * @return concrete instance of SensitivePropertyProvider, or null when no key/key id is specified
      * @throws SensitivePropertyProtectionException when a key/key id is not handled by any provider.
      */
-    public static SensitivePropertyProvider fromKey(String keyOrKeyId) {
-        return fromKey(keyOrKeyId, "");
+    public static SensitivePropertyProvider fromKey(String key) {
+        return fromKey(key, "");
     }
 
     /**
@@ -80,14 +94,11 @@ public class StandardSensitivePropertyProvider {
      * @return true if at least one provider handles scheme
      */
     static boolean hasProviderFor(String scheme) {
-        if (AWSKMSSensitivePropertyProvider.isProviderFor(scheme)) {
-            return true;
-
-        } else if (AESSensitivePropertyProvider.isProviderFor(scheme)) {
-            return true;
-        }
-
-        return false;
+        return VaultSensitivePropertyProvider.isProviderFor(scheme) ||
+                KeyStoreSensitivePropertyProvider.isProviderFor(scheme) ||
+                GCPKMSSensitivePropertyProvider.isProviderFor(scheme) ||
+                AWSKMSSensitivePropertyProvider.isProviderFor(scheme) ||
+                AESSensitivePropertyProvider.isProviderFor(scheme);
     }
 
     /**
