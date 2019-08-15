@@ -180,8 +180,8 @@ public class Program {
         System.out.println();
         System.out.println("Notes:");
         System.out.println("    1) The configuration file must be in JSON format. ");
-        System.out.println("    2) When providing configurations via JSON and initializing the flow from a registry, the following attributes must be provided: " + StatelessFlow.REGISTRY + ", " + StatelessFlow.BUCKETID
-            + ", " + StatelessFlow.FLOWID + ".");
+        System.out.println("    2) When providing configurations via JSON and initializing the flow from a registry, the following attributes must be provided: " +
+                StatelessFlow.REGISTRY + ", " + StatelessFlow.BUCKETID + ", " + StatelessFlow.FLOWID + ".");
         System.out.println("          All other attributes will be passed to the flow using the variable registry interface");
         System.out.println();
     }

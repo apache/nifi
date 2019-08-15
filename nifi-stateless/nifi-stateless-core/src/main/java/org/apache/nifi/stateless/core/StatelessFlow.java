@@ -49,14 +49,22 @@ import org.apache.nifi.stateless.bootstrap.ExtensionDiscovery;
 import org.apache.nifi.stateless.bootstrap.InMemoryFlowFile;
 import org.apache.nifi.stateless.bootstrap.RunnableFlow;
 import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.api.dto.*;
+import org.apache.nifi.web.api.dto.ConnectableDTO;
+import org.apache.nifi.web.api.dto.ConnectionDTO;
+import org.apache.nifi.web.api.dto.ControllerServiceDTO;
+import org.apache.nifi.web.api.dto.PortDTO;
+import org.apache.nifi.web.api.dto.ProcessGroupDTO;
+import org.apache.nifi.web.api.dto.ProcessorDTO;
+import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
+import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
 import javax.net.ssl.SSLContext;
-import java.io.*;
+import java.io.File;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -115,7 +123,7 @@ public class StatelessFlow implements RunnableFlow {
     }
 
     public StatelessFlow(final ProcessGroupDTO flow, final ExtensionManager extensionManager, final VariableRegistry variableRegistry, final List<String> failureOutputPorts,
-                          final boolean materializeContent, final SSLContext sslContext, final ParameterContext parameterContext) throws ProcessorInstantiationException, InitializationException {
+                         final boolean materializeContent, final SSLContext sslContext, final ParameterContext parameterContext) throws ProcessorInstantiationException, InitializationException {
 
         this.componentFactory = new ComponentFactory(extensionManager);
 

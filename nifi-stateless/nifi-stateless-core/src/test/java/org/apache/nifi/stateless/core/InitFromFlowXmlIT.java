@@ -17,63 +17,63 @@
 package org.apache.nifi.stateless.core;
 
 
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-import org.apache.nifi.bundle.Bundle;
-import org.apache.nifi.bundle.BundleCoordinate;
-import org.apache.nifi.controller.exception.ProcessorInstantiationException;
-import org.apache.nifi.controller.serialization.FlowEncodingVersion;
-import org.apache.nifi.controller.serialization.FlowFromDOMFactory;
-import org.apache.nifi.encrypt.StringEncryptor;
-import org.apache.nifi.nar.ExtensionManager;
-import org.apache.nifi.nar.NarUnpacker;
-import org.apache.nifi.parameter.Parameter;
-import org.apache.nifi.parameter.ParameterContext;
-import org.apache.nifi.registry.VariableDescriptor;
-import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.stateless.bootstrap.ExtensionDiscovery;
-import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.api.dto.ProcessGroupDTO;
-import org.glassfish.jersey.internal.jsr166.Flow;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-
-import javax.net.ssl.SSLContext;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.net.URLClassLoader;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.*;
-
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+//import com.google.gson.JsonObject;
+//import com.google.gson.JsonParser;
+//import org.apache.nifi.bundle.Bundle;
+//import org.apache.nifi.bundle.BundleCoordinate;
+//import org.apache.nifi.controller.exception.ProcessorInstantiationException;
+//import org.apache.nifi.controller.serialization.FlowEncodingVersion;
+//import org.apache.nifi.controller.serialization.FlowFromDOMFactory;
+//import org.apache.nifi.encrypt.StringEncryptor;
+//import org.apache.nifi.nar.ExtensionManager;
+//import org.apache.nifi.nar.NarUnpacker;
+//import org.apache.nifi.parameter.Parameter;
+//import org.apache.nifi.parameter.ParameterContext;
+//import org.apache.nifi.registry.VariableDescriptor;
+//import org.apache.nifi.reporting.InitializationException;
+//import org.apache.nifi.stateless.bootstrap.ExtensionDiscovery;
+//import org.apache.nifi.util.NiFiProperties;
+//import org.apache.nifi.web.api.dto.ProcessGroupDTO;
+//import org.glassfish.jersey.internal.jsr166.Flow;
+//import org.w3c.dom.Document;
+//import org.w3c.dom.Element;
+//
+//import javax.net.ssl.SSLContext;
+//import java.io.File;
+//import java.io.FileNotFoundException;
+//import java.io.IOException;
+//import java.net.MalformedURLException;
+//import java.net.URL;
+//import java.net.URLClassLoader;
+//import java.nio.file.Path;
+//import java.nio.file.Paths;
+//import java.util.*;
+//
+//import static org.mockito.ArgumentMatchers.anyString;
+//import static org.mockito.Mockito.mock;
+//import static org.mockito.Mockito.when;
 
 public class InitFromFlowXmlIT {
 
-    private NiFiProperties getNiFiProperties() {
-        final NiFiProperties nifiProperties = mock(NiFiProperties.class);
-        when(nifiProperties.getProperty(StringEncryptor.NF_SENSITIVE_PROPS_ALGORITHM)).thenReturn("PBEWITHMD5AND256BITAES-CBC-OPENSSL");
-        when(nifiProperties.getProperty(StringEncryptor.NF_SENSITIVE_PROPS_PROVIDER)).thenReturn("BC");
-        when(nifiProperties.getProperty(anyString(), anyString())).then(invocation -> invocation.getArgument(1));
-        return nifiProperties;
-    }
+//    private NiFiProperties getNiFiProperties() {
+//        final NiFiProperties nifiProperties = mock(NiFiProperties.class);
+//        when(nifiProperties.getProperty(StringEncryptor.NF_SENSITIVE_PROPS_ALGORITHM)).thenReturn("PBEWITHMD5AND256BITAES-CBC-OPENSSL");
+//        when(nifiProperties.getProperty(StringEncryptor.NF_SENSITIVE_PROPS_PROVIDER)).thenReturn("BC");
+//        when(nifiProperties.getProperty(anyString(), anyString())).then(invocation -> invocation.getArgument(1));
+//        return nifiProperties;
+//    }
+//
+//    private static URL[] toURLs(final File[] files) throws MalformedURLException {
+//        final List<URL> urls = new ArrayList<>();
+//        for (final File file : files) {
+//            urls.add(file.toURI().toURL());
+//        }
+//
+//        return urls.toArray(new URL[0]);
+//    }
 
-    private static URL[] toURLs(final File[] files) throws MalformedURLException {
-        final List<URL> urls = new ArrayList<>();
-        for (final File file : files) {
-            urls.add(file.toURI().toURL());
-        }
-
-        return urls.toArray(new URL[0]);
-    }
-
-    @org.junit.Test
-    public void testScenario1_Test() throws IOException, ProcessorInstantiationException, InitializationException {
+//    @org.junit.Test
+//    public void testScenario1_Test() throws IOException, ProcessorInstantiationException, InitializationException {
 
 //        final File narWorkingDir = new File("../../nifi-docker/dockermaven-stateless/target/work");
 //        final File statelessLibDir = new File("../../nifi-stateless/nifi-stateless-core/target/nifi-stateless-lib");
@@ -134,5 +134,5 @@ public class InitFromFlowXmlIT {
 //
 //        // test StatelessFlow initialization
 //        new StatelessFlow(rootProcessGroup, extensionManager, () -> inputVariables, failurePorts, false, sslContext, parameterContext);
-    }
+//    }
 }
