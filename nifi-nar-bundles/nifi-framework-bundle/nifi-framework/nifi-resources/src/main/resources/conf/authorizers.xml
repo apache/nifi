@@ -87,6 +87,9 @@
         'Url' - Space-separated list of URLs of the LDAP servers (i.e. ldap://<hostname>:<port>).
         'Page Size' - Sets the page size when retrieving users and groups. If not specified, no paging is performed.
         'Sync Interval' - Duration of time between syncing users and groups (i.e. 30 mins). Minimum allowable value is 10 secs.
+        'Group Membership - Enforce Case Sensitivity' - Sets whether group membership decisions are case sensitive. When a user or group
+            is inferred (by not specifying or user or group search base or user identity attribute or group name attribute) case sensitivity
+            is enforced since the value to use for the user identity or group name would be ambiguous. Defaults to false.
 
         'User Search Base' - Base DN for searching for users (i.e. ou=users,o=nifi). Required to search users.
         'User Object Class' - Object class for identifying users (i.e. person). Required if searching users.
@@ -147,6 +150,7 @@
         <property name="Url"></property>
         <property name="Page Size"></property>
         <property name="Sync Interval">30 mins</property>
+        <property name="Group Membership - Enforce Case Sensitivity">false</property>
 
         <property name="User Search Base"></property>
         <property name="User Object Class">person</property>
