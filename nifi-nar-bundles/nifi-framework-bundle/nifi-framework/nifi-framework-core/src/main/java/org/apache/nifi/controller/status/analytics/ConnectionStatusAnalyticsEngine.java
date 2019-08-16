@@ -27,16 +27,19 @@ public class ConnectionStatusAnalyticsEngine implements StatusAnalyticsEngine {
     private final ComponentStatusRepository statusRepository;
     private final FlowManager flowManager;
     private final FlowFileEventRepository flowFileEventRepository;
+    private final long predictionIntervalMillis;
 
-    public ConnectionStatusAnalyticsEngine(FlowManager flowManager, ComponentStatusRepository statusRepository, FlowFileEventRepository flowFileEventRepository) {
+    public ConnectionStatusAnalyticsEngine(FlowManager flowManager, ComponentStatusRepository statusRepository, FlowFileEventRepository flowFileEventRepository, long predictionIntervalMillis) {
         this.flowManager = flowManager;
         this.statusRepository = statusRepository;
         this.flowFileEventRepository = flowFileEventRepository;
+        this.predictionIntervalMillis = predictionIntervalMillis;
     }
 
     @Override
     public StatusAnalytics getStatusAnalytics(String identifier) {
         ConnectionStatusAnalytics connectionStatusAnalytics = new ConnectionStatusAnalytics(statusRepository, flowManager, flowFileEventRepository, identifier, false);
+        connectionStatusAnalytics.setIntervalTimeMillis(predictionIntervalMillis);
         connectionStatusAnalytics.init();
         return connectionStatusAnalytics;
     }

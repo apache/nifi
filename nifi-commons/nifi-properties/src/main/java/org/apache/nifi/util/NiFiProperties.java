@@ -238,6 +238,9 @@ public abstract class NiFiProperties {
     // expression language properties
     public static final String VARIABLE_REGISTRY_PROPERTIES = "nifi.variable.registry.properties";
 
+    // analytics properties
+    public static final String ANALYTICS_PREDICTION_INTERVAL = "nifi.analytics.predict.interval";
+
     // defaults
     public static final Boolean DEFAULT_AUTO_RESUME_STATE = true;
     public static final String DEFAULT_AUTHORIZER_CONFIGURATION_FILE = "conf/authorizers.xml";
@@ -307,6 +310,9 @@ public abstract class NiFiProperties {
 
     // Kerberos defaults
     public static final String DEFAULT_KERBEROS_AUTHENTICATION_EXPIRATION = "12 hours";
+
+    // analytics defaults
+    public static final String DEFAULT_ANALYTICS_PREDICTION_INTERVAL = "3 mins";
 
 
     /**

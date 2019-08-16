@@ -59,6 +59,7 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
     private final FlowManager flowManager;
     private final Boolean supportOnlineLearning;
     private Boolean extendWindow = false;
+    private long intervalMillis = 3L * 60 * 1000; // Default is 3 minutes
     private static double SCORE_THRESHOLD = .90;
 
     public ConnectionStatusAnalytics(ComponentStatusRepository componentStatusRepository, FlowManager flowManager, FlowFileEventRepository flowFileEventRepository, String connectionIdentifier,
@@ -255,7 +256,11 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
     }
 
     public Long getIntervalTimeMillis() {
-        return 3L * 60 * 1000;
+        return intervalMillis;
+    }
+
+    public void setIntervalTimeMillis(long intervalTimeMillis) {
+        this.intervalMillis = intervalTimeMillis;
     }
 
     @Override
