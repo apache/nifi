@@ -331,14 +331,14 @@ public class PutHDFS extends AbstractHadoopProcessor {
                                   final EnumSet<CreateFlag> cflags = EnumSet.of(CreateFlag.CREATE, CreateFlag.OVERWRITE);
 
                                   final Boolean ignoreLocality = context.getProperty(IGNORE_LOCALITY).asBoolean();
-                                  if (ignoreLocality.booleanValue()) {
+                                  if (ignoreLocality) {
                                     cflags.add(CreateFlag.IGNORE_CLIENT_LOCALITY);
                                   }
 
                                   fos = hdfs.create(tempCopyFile, FsCreateModes.applyUMask(FsPermission.getFileDefault(),
                                       FsPermission.getUMask(hdfs.getConf())), cflags, bufferSize, replication, blockSize,
                                       null, null);
-                                  }
+                                }
 
                                 if (codec != null) {
                                     fos = codec.createOutputStream(fos);
