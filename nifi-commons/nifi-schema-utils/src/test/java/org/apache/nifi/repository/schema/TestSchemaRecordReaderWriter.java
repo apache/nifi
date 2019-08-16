@@ -25,6 +25,9 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
@@ -300,6 +303,136 @@ public class TestSchemaRecordReaderWriter {
         assertEquals("test 64k char string truncated to 65,530 utf bytes should be 32765", 32765, SchemaRecordWriter.getCharsInUTF8Limit(string64k, 65530));
         assertEquals("test 64k char string truncated to 65,529 utf bytes should be 32765", 32765, SchemaRecordWriter.getCharsInUTF8Limit(string64k, 65529));
         assertEquals("test 64k char string truncated to 65,528 utf bytes should be 32764", 32764, SchemaRecordWriter.getCharsInUTF8Limit(string64k, 65528)); // lost 2 byte char (again)
+    }
+
+    @Test
+    public void testExternalFile() throws IOException {
+
+        final RecordField stringField = createField("string field", FieldType.STRING);
+        final RecordField intField = createField("int field", FieldType.INT);
+
+        final SchemaRecordWriter writer = new SchemaRecordWriter();
+        final RecordSchema schema = new RecordSchema(stringField, intField);
+
+        final Map<RecordField, Object> complexMap1 = new LinkedHashMap<>();
+        complexMap1.put(stringField, "apples");
+        complexMap1.put(intField, 100);
+        final FieldMapRecord complexRecord1 = new FieldMapRecord(complexMap1, schema);
+
+        final Map<RecordField, Object> complexMap2 = new LinkedHashMap<>();
+        complexMap1.put(stringField, "oranges");
+        complexMap1.put(intField, 200);
+        final FieldMapRecord complexRecord2 = new FieldMapRecord(complexMap2, schema);
+
+        // Write out a record and read it back in.
+        try (final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+            // Write the schema to the stream
+            schema.writeTo(baos);
+
+            // Write the records, once to the output stream, and one to a temp file
+            writer.writeRecord(complexRecord1, baos);
+
+            File externalFile = new File("target/externalFile");
+            externalFile.delete();
+            writer.writeExternalFileReference(new DataOutputStream(baos), externalFile);
+
+            //Write out the data to the new external file, which we've added a reference for
+            FileOutputStream outputStream = new FileOutputStream(externalFile);
+            writer.writeRecord(complexRecord2, new DataOutputStream(outputStream));
+
+            outputStream.close();
+
+            try (final InputStream in = new ByteArrayInputStream(baos.toByteArray())) {
+                // Read the Schema from the stream and create a Record Reader for reading records, based on this schema
+                final RecordSchema readSchema = RecordSchema.readFrom(in);
+                final SchemaRecordReader reader = SchemaRecordReader.fromSchema(readSchema);
+
+                // Read two records and verify the values.
+                // One should be loaded from External file
+
+                final RecordIterator recordReaderInternal = reader.readRecords(in);
+                Record firstRecord = recordReaderInternal.next();
+                assertNotNull(firstRecord);
+                Record nullRecord1 = recordReaderInternal.next();
+                assertNull(nullRecord1);
+
+                recordReaderInternal.close();
+
+                final RecordIterator recordReaderExternal = reader.readRecords(in);
+                Record secondRecord = recordReaderExternal.next();
+                assertNotNull(secondRecord);
+                Record nullRecord2 = recordReaderExternal.next();
+                assertNull(nullRecord2);
+
+                recordReaderExternal.close();
+
+                assertNull(reader.readRecords(in));
+            }
+        }
+    }
+
+    @Test
+    public void testExternalFileNotFound() throws IOException {
+
+        final RecordField stringField = createField("string field", FieldType.STRING);
+        final RecordField intField = createField("int field", FieldType.INT);
+
+        final SchemaRecordWriter writer = new SchemaRecordWriter();
+        final RecordSchema schema = new RecordSchema(stringField, intField);
+
+        final Map<RecordField, Object> complexMap1 = new LinkedHashMap<>();
+        complexMap1.put(stringField, "apples");
+        complexMap1.put(intField, 100);
+        final FieldMapRecord complexRecord1 = new FieldMapRecord(complexMap1, schema);
+
+        final Map<RecordField, Object> complexMap2 = new LinkedHashMap<>();
+        complexMap1.put(stringField, "oranges");
+        complexMap1.put(intField, 200);
+        final FieldMapRecord complexRecord2 = new FieldMapRecord(complexMap2, schema);
+
+        // Write out a record and read it back in.
+        try (final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+            // Write the schema to the stream
+            schema.writeTo(baos);
+
+            // Write the records, once to the output stream, and one to a temp file
+            writer.writeRecord(complexRecord1, baos);
+
+            // We write the external file reference, but don't write any data to the file.
+            File externalFile = new File("target/externalFileMissing");
+            writer.writeExternalFileReference(new DataOutputStream(baos), externalFile);
+
+            // Write 2nd record internal
+            writer.writeRecord(complexRecord2, baos);
+
+            try (final InputStream in = new ByteArrayInputStream(baos.toByteArray())) {
+                // Read the Schema from the stream and create a Record Reader for reading records, based on this schema
+                final RecordSchema readSchema = RecordSchema.readFrom(in);
+                final SchemaRecordReader reader = SchemaRecordReader.fromSchema(readSchema);
+
+                // Read two records and verify the values.
+                // The External file reference should be missing
+
+                final RecordIterator recordReaderInternal = reader.readRecords(in);
+                Record firstRecord = recordReaderInternal.next();
+                assertNotNull(firstRecord);
+                Record nullRecord1 = recordReaderInternal.next();
+                assertNull(nullRecord1);
+
+                recordReaderInternal.close();
+
+                // Because the external file is missing, it will be automatically skipped, but an error will be logged.
+                final RecordIterator recordReaderExternal = reader.readRecords(in);
+                Record secondRecord = recordReaderExternal.next();
+                assertNotNull(secondRecord);
+                Record nullRecord2 = recordReaderExternal.next();
+                assertNull(nullRecord2);
+
+                recordReaderExternal.close();
+
+                assertNull(reader.readRecords(in));
+            }
+        }
     }
 
     private SimpleRecordField createField(final String fieldName, final FieldType type) {

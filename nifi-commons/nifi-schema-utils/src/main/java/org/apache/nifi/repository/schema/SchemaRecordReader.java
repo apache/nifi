@@ -17,6 +17,9 @@
 
 package org.apache.nifi.repository.schema;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.BufferedInputStream;
 import java.io.DataInputStream;
 import java.io.EOFException;
@@ -34,6 +37,7 @@ import java.util.Map;
 import java.util.Optional;
 
 public class SchemaRecordReader {
+    private static final Logger logger = LoggerFactory.getLogger(SchemaRecordReader.class);
     private final RecordSchema schema;
 
     public SchemaRecordReader(final RecordSchema schema) {
@@ -88,52 +92,60 @@ public class SchemaRecordReader {
     }
 
     public RecordIterator readRecords(final InputStream in) throws IOException {
-        final int recordIndicator = in.read();
-        if (recordIndicator < 0) {
-            return null;
-        }
-
-        if (recordIndicator == SchemaRecordWriter.INLINE_RECORD_INDICATOR) {
-            final Record nextRecord = readInlineRecord(in);
-            return new SingleRecordIterator(nextRecord);
-        }
-
-        if (recordIndicator != SchemaRecordWriter.EXTERNAL_FILE_INDICATOR) {
-            throw new IOException("Expected to read a Sentinel Byte of '" + SchemaRecordWriter.INLINE_RECORD_INDICATOR + "' or '" + SchemaRecordWriter.EXTERNAL_FILE_INDICATOR
-                + "' but encountered a value of '" + recordIndicator + "' instead");
-        }
-
-        final DataInputStream dis = new DataInputStream(in);
-        final String externalFilename = dis.readUTF();
-        final File externalFile = new File(externalFilename);
-        final FileInputStream fis = new FileInputStream(externalFile);
-        final InputStream bufferedIn = new BufferedInputStream(fis);
-
-        final RecordIterator recordIterator = new RecordIterator() {
-            @Override
-            public Record next() throws IOException {
-                return readRecord(bufferedIn);
+        while(true){
+            final int recordIndicator = in.read();
+            if (recordIndicator < 0) {
+                return null;
             }
 
-            @Override
-            public boolean isNext() throws IOException {
-                bufferedIn.mark(1);
-                final int nextByte = bufferedIn.read();
-                bufferedIn.reset();
-
-                return (nextByte > -1);
+            if (recordIndicator == SchemaRecordWriter.INLINE_RECORD_INDICATOR) {
+                final Record nextRecord = readInlineRecord(in);
+                return new SingleRecordIterator(nextRecord);
             }
 
-            @Override
-            public void close() throws IOException {
-                bufferedIn.close();
+            if (recordIndicator != SchemaRecordWriter.EXTERNAL_FILE_INDICATOR) {
+                throw new IOException("Expected to read a Sentinel Byte of '" + SchemaRecordWriter.INLINE_RECORD_INDICATOR + "' or '" + SchemaRecordWriter.EXTERNAL_FILE_INDICATOR
+                        + "' but encountered a value of '" + recordIndicator + "' instead");
             }
-        };
 
-        return recordIterator;
+            final DataInputStream dis = new DataInputStream(in);
+            final String externalFilename = dis.readUTF();
+            final File externalFile = new File(externalFilename);
+
+            if(!externalFile.exists()) {
+                logger.error("External Journal file missing: " + externalFilename
+                        + ". Some FlowFiles will be lost.");
+                continue;
+            }
+
+            final FileInputStream fis = new FileInputStream(externalFile);
+            final InputStream bufferedIn = new BufferedInputStream(fis);
+
+            final RecordIterator recordIterator = new RecordIterator() {
+                @Override
+                public Record next() throws IOException {
+                    return readRecord(bufferedIn);
+                }
+
+                @Override
+                public boolean isNext() throws IOException {
+                    bufferedIn.mark(1);
+                    final int nextByte = bufferedIn.read();
+                    bufferedIn.reset();
+
+                    return (nextByte > -1);
+                }
+
+                @Override
+                public void close() throws IOException {
+                    bufferedIn.close();
+                }
+            };
+
+            return recordIterator;
+        }
+
     }
-
-
 
     private Object readField(final InputStream in, final RecordField field) throws IOException {
         switch (field.getRepetition()) {
