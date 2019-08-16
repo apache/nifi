@@ -3317,6 +3317,16 @@ that is specified.
 |`nifi.kerberos.spengo.authentication.expiration`*|The expiration duration of a successful Kerberos user authentication, if used. The default value is `12 hours`.
 |====
 
+[[analytics_properties]]
+=== Analytics Properties
+
+These properties determine the behavior of the internal NiFi Analytics capability, such as backpressure prediction, and should be configured the same way on all nodes.
+
+|====
+|*Property*|*Description*
+|`nifi.analytics.predict.interval`|This indicates a time interval for which analytical predictions (queue saturation, e.g.) should be made. The default value is `3 mins`.
+|====
+
 [[custom_properties]]
 === Custom Properties
 

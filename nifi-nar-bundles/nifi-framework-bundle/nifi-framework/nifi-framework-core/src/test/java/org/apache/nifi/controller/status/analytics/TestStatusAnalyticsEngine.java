@@ -36,6 +36,8 @@ import org.mockito.Mockito;
 
 public abstract class TestStatusAnalyticsEngine {
 
+    static final long DEFAULT_PREDICT_INTERVAL_MILLIS = 3L * 60 * 1000;
+
     protected ComponentStatusRepository statusRepository;
     protected FlowManager flowManager;
     protected FlowFileEventRepository flowFileEventRepository;
@@ -55,11 +57,12 @@ public abstract class TestStatusAnalyticsEngine {
 
     @Test
     public void testGetStatusAnalytics() {
-        StatusAnalyticsEngine statusAnalyticsEngine = getStatusAnalyticsEngine(flowManager,flowFileEventRepository, statusRepository);
+        StatusAnalyticsEngine statusAnalyticsEngine = getStatusAnalyticsEngine(flowManager,flowFileEventRepository, statusRepository, DEFAULT_PREDICT_INTERVAL_MILLIS);
         StatusAnalytics statusAnalytics = statusAnalyticsEngine.getStatusAnalytics("1");
         assertNotNull(statusAnalytics);
     }
 
-    public abstract StatusAnalyticsEngine getStatusAnalyticsEngine(FlowManager flowManager, FlowFileEventRepository flowFileEventRepository, ComponentStatusRepository componentStatusRepository);
+    public abstract StatusAnalyticsEngine getStatusAnalyticsEngine(FlowManager flowManager, FlowFileEventRepository flowFileEventRepository,
+                                                                   ComponentStatusRepository componentStatusRepository, long predictIntervalMillis);
 
 }

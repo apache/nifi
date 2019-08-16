@@ -32,15 +32,18 @@ public class CachingConnectionStatusAnalyticsEngine implements StatusAnalyticsEn
     private final FlowManager flowManager;
     private final FlowFileEventRepository flowFileEventRepository;
     private volatile Cache<String, ConnectionStatusAnalytics> cache;
+    private final long predictionIntervalMillis;
     private static final Logger LOG = LoggerFactory.getLogger(CachingConnectionStatusAnalyticsEngine.class);
 
-    public CachingConnectionStatusAnalyticsEngine(FlowManager flowManager, ComponentStatusRepository statusRepository, FlowFileEventRepository flowFileEventRepository) {
+    public CachingConnectionStatusAnalyticsEngine(FlowManager flowManager, ComponentStatusRepository statusRepository,
+                                                  FlowFileEventRepository flowFileEventRepository, long predictionIntervalMillis) {
         this.flowManager = flowManager;
         this.statusRepository = statusRepository;
         this.flowFileEventRepository = flowFileEventRepository;
         this.cache = Caffeine.newBuilder()
                 .expireAfterWrite(30, TimeUnit.MINUTES)
                 .build();
+        this.predictionIntervalMillis = predictionIntervalMillis;
     }
 
     @Override
@@ -50,6 +53,7 @@ public class CachingConnectionStatusAnalyticsEngine implements StatusAnalyticsEn
         if (connectionStatusAnalytics == null) {
             LOG.debug("Creating new status analytics object for connection id: {}", identifier);
             connectionStatusAnalytics = new ConnectionStatusAnalytics(statusRepository, flowManager,flowFileEventRepository, identifier, true);
+            connectionStatusAnalytics.setIntervalTimeMillis(predictionIntervalMillis);
             connectionStatusAnalytics.init();
             cache.put(identifier, connectionStatusAnalytics);
         } else {
