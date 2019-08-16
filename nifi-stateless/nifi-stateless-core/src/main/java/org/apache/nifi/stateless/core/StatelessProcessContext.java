@@ -41,6 +41,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.registry.VariableRegistry;
+import org.apache.nifi.scheduling.ExecutionNode;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -194,6 +195,11 @@ public class StatelessProcessContext implements ProcessContext, ControllerServic
     @Override
     public int getMaxConcurrentTasks() {
         return maxConcurrentTasks;
+    }
+
+    @Override
+    public ExecutionNode getExecutionNode() {
+        return ExecutionNode.ALL;
     }
 
     public void setAnnotationData(final String annotationData) {

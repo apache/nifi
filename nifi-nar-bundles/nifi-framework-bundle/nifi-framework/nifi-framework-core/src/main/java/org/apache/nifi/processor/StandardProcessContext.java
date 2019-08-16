@@ -31,6 +31,7 @@ import org.apache.nifi.controller.lifecycle.TaskTermination;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.processor.exception.TerminatedTaskException;
+import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.util.Connectables;
 
 import java.util.Collection;
@@ -141,6 +142,12 @@ public class StandardProcessContext implements ProcessContext, ControllerService
     public int getMaxConcurrentTasks() {
         verifyTaskActive();
         return procNode.getMaxConcurrentTasks();
+    }
+
+    @Override
+    public ExecutionNode getExecutionNode() {
+        verifyTaskActive();
+        return procNode.getExecutionNode();
     }
 
     @Override
