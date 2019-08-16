@@ -32,6 +32,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.registry.VariableRegistry;
+import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.state.MockStateManager;
 import org.junit.Assert;
 
@@ -235,6 +236,11 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
     @Override
     public int getMaxConcurrentTasks() {
         return maxConcurrentTasks;
+    }
+
+    @Override
+    public ExecutionNode getExecutionNode() {
+        return ExecutionNode.ALL;
     }
 
     public void setAnnotationData(final String annotationData) {
