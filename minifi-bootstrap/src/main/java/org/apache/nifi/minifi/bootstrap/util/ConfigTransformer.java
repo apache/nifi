@@ -95,22 +95,35 @@ public final class ConfigTransformer {
         final File ymlConfigFile = new File(sourceFile);
         final InputStream ios = new FileInputStream(ymlConfigFile);
 
-        transformConfigFile(ios, destPath, securityProperties);
+        transformConfigFile(ios, destPath, securityProperties, null);
     }
 
+    public static void transformConfigFile(String sourceFile, String destPath, SecurityPropertiesSchema securityProperties, ProvenanceReportingSchema provenanceReportingProperties) throws Exception {
+        final File ymlConfigFile = new File(sourceFile);
+        final InputStream ios = new FileInputStream(ymlConfigFile);
+
+        transformConfigFile(ios, destPath, securityProperties, provenanceReportingProperties);
+    }
 
     public static void transformConfigFile(InputStream sourceStream, String destPath) throws Exception {
-        transformConfigFile(sourceStream, destPath, null);
+        transformConfigFile(sourceStream, destPath, null, null);
     }
 
 
-    public static void transformConfigFile(InputStream sourceStream, String destPath, SecurityPropertiesSchema securityProperties) throws Exception {
+    public static void transformConfigFile(
+            InputStream sourceStream,
+            String destPath,
+            SecurityPropertiesSchema securityProperties,
+            ProvenanceReportingSchema provenanceReportingProperties) throws Exception {
         ConvertableSchema<ConfigSchema> convertableSchema = throwIfInvalid(SchemaLoader.loadConvertableSchemaFromYaml(sourceStream));
         ConfigSchema configSchema = throwIfInvalid(convertableSchema.convert());
 
         // See if we are providing defined properties from the filesystem configurations and use those as the definitive values
         if (securityProperties != null) {
             configSchema.setSecurityProperties(securityProperties);
+        }
+        if (provenanceReportingProperties != null) {
+            configSchema.setProvenanceReportingProperties(provenanceReportingProperties);
         }
 
         // Create nifi.properties and flow.xml.gz in memory

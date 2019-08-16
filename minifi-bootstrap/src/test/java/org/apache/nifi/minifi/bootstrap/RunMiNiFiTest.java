@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.minifi.bootstrap;
 
+import org.apache.nifi.minifi.commons.schema.ProvenanceReportingSchema;
 import org.apache.nifi.minifi.commons.schema.SecurityPropertiesSchema;
 import org.apache.nifi.minifi.commons.schema.SensitivePropsSchema;
 import org.junit.Assert;
@@ -93,6 +94,32 @@ public class RunMiNiFiTest {
         Assert.assertFalse(securityPropertiesSchema.isValid());
 
     }
+
+    @Test
+    public void buildProvenanceReportingNotDefined() throws Exception {
+        final RunMiNiFi testMiNiFi = new RunMiNiFi(null);
+        final Properties bootstrapProperties = getTestBootstrapProperties("bootstrap-provenance-reporting/bootstrap.conf.default");
+        final Optional<ProvenanceReportingSchema> provenanceReportingPropsOptional = testMiNiFi.buildProvenanceReportingPropertiesFromBootstrap(bootstrapProperties);
+        Assert.assertTrue(!provenanceReportingPropsOptional.isPresent());
+    }
+
+    @Test
+    public void buildProvenanceReportingDefined() throws Exception {
+        final RunMiNiFi testMiNiFi = new RunMiNiFi(null);
+        final Properties bootstrapProperties = getTestBootstrapProperties("bootstrap-provenance-reporting/bootstrap.conf.configured");
+        final Optional<ProvenanceReportingSchema> provenanceReportingPropsOptional = testMiNiFi.buildProvenanceReportingPropertiesFromBootstrap(bootstrapProperties);
+        Assert.assertTrue(provenanceReportingPropsOptional.isPresent());
+
+        final ProvenanceReportingSchema provenanceReportingSchema = provenanceReportingPropsOptional.get();
+        Assert.assertEquals("This is a comment!", provenanceReportingSchema.getComment());
+        Assert.assertEquals("TIMER_DRIVEN", provenanceReportingSchema.getSchedulingStrategy());
+        Assert.assertEquals("15 secs", provenanceReportingSchema.getSchedulingPeriod());
+        Assert.assertEquals("http://localhost:8080/", provenanceReportingSchema.getDestinationUrl());
+        Assert.assertEquals("provenance", provenanceReportingSchema.getPortName());
+        Assert.assertEquals("http://${hostname(true)}:8081/nifi", provenanceReportingSchema.getOriginatingUrl());
+        Assert.assertEquals("10 secs", provenanceReportingSchema.getTimeout());
+    }
+
 
     public static Properties getTestBootstrapProperties(final String fileName) throws IOException {
         final Properties bootstrapProperties = new Properties();

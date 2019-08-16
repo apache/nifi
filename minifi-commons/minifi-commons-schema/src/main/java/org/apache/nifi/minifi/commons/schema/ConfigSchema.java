@@ -195,6 +195,10 @@ public class ConfigSchema extends BaseSchema implements WritableSchema, Converta
         this.securityProperties = securityProperties;
     }
 
+    public void setProvenanceReportingProperties(ProvenanceReportingSchema provenanceReportingProperties) {
+        this.provenanceReportingProperties = provenanceReportingProperties;
+    }
+
     public ProcessGroupSchema getProcessGroupSchema() {
         return processGroupSchema;
     }

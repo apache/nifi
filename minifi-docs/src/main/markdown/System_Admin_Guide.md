@@ -618,21 +618,26 @@ When connecting via Site to Site, MiNiFi needs to know which input or output por
 
 ## Provenance Reporting
 
-MiNiFi is currently designed only to report provenance data using the Site to Site protocol. These properties configure the underlying reporting task that sends the provenance events.
-
-*Property*             | *Description*
----------------------- | -------------
-`comment`              | A comment about the Provenance reporting. This is not used for any underlying implementation but solely for the users of this configuration and MiNiFi agent.
-`scheduling strategy`  | The strategy for executing the Reporting Task. Valid options are `CRON_DRIVEN` or `TIMER_DRIVEN`
-`scheduling period`    | This property expects different input depending on the scheduling strategy selected. For the `TIMER_DRIVEN` scheduling strategy, this value is a time duration specified by a number followed by a time unit. For example, 1 second or 5 mins. The default value of `0 sec` means that the Processor should run as often as possible as long as it has data to process. This is true for any time duration of 0, regardless of the time unit (i.e., 0 sec, 0 mins, 0 days). For an explanation of values that are applicable for the CRON driven scheduling strategy, see the description of the CRON driven scheduling strategy in the scheduling tab section of the [NiFi User documentation](https://nifi.apache.org/docs/nifi-docs/html/user-guide.html#scheduling-tab).
-`destination url`      | The URL to post the Provenance Events to.
-`port name`            | The name of the input port as it exists on the receiving NiFi instance. To get this information access the UI of the core instance, right the input port that is desired to be connect to and select "configure". The id of the port should under the "Port name" section.
-`originating url`      | The URL of this MiNiFi instance. This is used to include the Content URI to send to the destination.
-`use compression`      | Indicates whether or not to compress the events when being sent.
-`timeout`              | How long MiNiFi should wait before timing out the connection.
-`batch size`           | Specifies how many records to send in a single batch, at most. This should be significantly above the expected amount of records generated between scheduling. If it is not, then there is the potential for the Provenance reporting to lag behind event generation and never catch up.
+MiNiFi is currently designed only to report provenance data using the Site to Site protocol. 
 
 **Note:** In order to send via HTTPS, the "Security Properties" must be fully configured. A StandardSSLContextService will be made automatically with the ID "SSL-Context-Service" and used by the Provenance Reporting.
+
+Provenance Reporting can be configured in two ways via:
+
+* **config.yml**:  These properties are specified below and an example can be found in the Example Config File section.
+* **bootstrap.conf**:   This is an alternative means of configuration that takes precedence over the config.yml configuration and is a way of separating provenance reporting settings from the processing flow.
+
+*bootstrap.conf Property*                                 | *config.yml Property* | *Description*
+--------------------------------------------------------- | --------------------- | -------------------------------------------------------------------------------------------
+`nifi.minifi.provenance.reporting.comment`                | `comment`             | A comment about the Provenance reporting. This is not used for any underlying implementation but solely for the users of this configuration and MiNiFi agent.
+`nifi.minifi.provenance.reporting.scheduling.strategy`    | `scheduling strategy` | The strategy for executing the Reporting Task. Valid options are CRON_DRIVEN or TIMER_DRIVEN
+`nifi.minifi.provenance.reporting.scheduling.period`      | `scheduling period`   | This property expects different input depending on the scheduling strategy selected. For the TIMER_DRIVEN scheduling strategy, this value is a time duration specified by a number followed by a time unit. For example, 1 second or 5 mins. The default value of 0 sec means that the Processor should run as often as possible as long as it has data to process. This is true for any time duration of 0, regardless of the time unit (i.e., 0 sec, 0 mins, 0 days). For an explanation of values that are applicable for the CRON driven scheduling strategy, see the description of the CRON driven scheduling strategy in the scheduling tab section of the NiFi User documentation.
+`nifi.minifi.provenance.reporting.destination.url`        | `destination url`     | The URL to post the Provenance Events to.
+`nifi.minifi.provenance.reporting.input.port.name`        | `port name`           | The name of the input port as it exists on the receiving NiFi instance. To get this information access the UI of the core instance, right the input port that is desired to be connect to and select "configure". The id of the port should under the "Port name" section.
+`nifi.minifi.provenance.reporting.instance.url`           | `originating url`     | The URL of this MiNiFi instance. This is used to include the Content URI to send to the destination.
+`nifi.minifi.provenance.reporting.compress.events`        | `use compression`     | Indicates whether or not to compress the events when being sent.
+`nifi.minifi.provenance.reporting.batch.size`             | `batch size`          | Specifies how many records to send in a single batch, at most. This should be significantly above the expected amount of records generated between scheduling. If it is not, then there is the potential for the Provenance reporting to lag behind event generation and never catch up.
+`nifi.minifi.provenance.reporting.communications.timeout` | `timeout`             | How long MiNiFi should wait before timing out the connection.
 
 ## NiFi Properties Overrides
 
