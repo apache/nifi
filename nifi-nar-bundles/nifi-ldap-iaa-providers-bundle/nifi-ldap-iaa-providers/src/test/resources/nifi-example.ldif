@@ -110,6 +110,7 @@ objectClass: inetOrgPerson
 objectClass: top
 cn: User 8
 sn: User8
+description: cn=Team2,ou=groups,o=nifi
 uid: user8
 
 dn: cn=User 9,ou=users-2,o=nifi
@@ -156,6 +157,13 @@ objectClass: groupOfNames
 objectClass: top
 cn: team2
 member: cn=User 1,ou=users,o=nifi
+
+dn: cn=team4,ou=groups,o=nifi
+objectClass: groupOfNames
+objectClass: top
+cn: team4
+member: cn=User 1,ou=users,o=nifi
+member: cn=user 2,ou=users,o=nifi
 
 ## since the embedded ldap requires member to be fqdn, we are simulating using room and description
 
