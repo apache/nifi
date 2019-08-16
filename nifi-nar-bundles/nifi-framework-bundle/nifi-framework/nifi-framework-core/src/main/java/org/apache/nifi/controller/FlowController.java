@@ -593,8 +593,17 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
             zooKeeperStateServer = null;
         }
 
+        // Determine interval for predicting future feature values
+        final String predictionInterval = nifiProperties.getProperty(NiFiProperties.ANALYTICS_PREDICTION_INTERVAL, NiFiProperties.DEFAULT_ANALYTICS_PREDICTION_INTERVAL);
+        long predictionIntervalMillis;
+        try {
+            predictionIntervalMillis = FormatUtils.getTimeDuration(predictionInterval, TimeUnit.MILLISECONDS);
+        } catch (final Exception e) {
+            predictionIntervalMillis = FormatUtils.getTimeDuration(NiFiProperties.DEFAULT_ANALYTICS_PREDICTION_INTERVAL, TimeUnit.MILLISECONDS);
+        }
+
         componentStatusRepository = createComponentStatusRepository();
-        analyticsEngine = new ConnectionStatusAnalyticsEngine(flowManager, componentStatusRepository,flowFileEventRepository);
+        analyticsEngine = new ConnectionStatusAnalyticsEngine(flowManager, componentStatusRepository, flowFileEventRepository, predictionIntervalMillis);
         eventAccess = new StandardEventAccess(this, flowFileEventRepository);
 
         timerDrivenEngineRef.get().scheduleWithFixedDelay(new Runnable() {

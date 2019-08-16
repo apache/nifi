@@ -21,20 +21,25 @@ import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.status.history.ComponentStatusRepository;
 import org.junit.Test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+
 public class TestCachingConnectionStatusAnalyticsEngine extends TestStatusAnalyticsEngine {
 
     @Override
-    public StatusAnalyticsEngine getStatusAnalyticsEngine(FlowManager flowManager, FlowFileEventRepository flowFileEventRepository, ComponentStatusRepository componentStatusRepository) {
-        return new CachingConnectionStatusAnalyticsEngine(flowManager, componentStatusRepository, flowFileEventRepository);
+    public StatusAnalyticsEngine getStatusAnalyticsEngine(FlowManager flowManager, FlowFileEventRepository flowFileEventRepository,
+                                                          ComponentStatusRepository componentStatusRepository, long predictIntervalMillis) {
+        return new CachingConnectionStatusAnalyticsEngine(flowManager, componentStatusRepository, flowFileEventRepository, predictIntervalMillis);
     }
 
     @Test
     public void testCachedStatusAnalytics() {
-        StatusAnalyticsEngine statusAnalyticsEngine = new CachingConnectionStatusAnalyticsEngine(flowManager, statusRepository, flowFileEventRepository);
+        StatusAnalyticsEngine statusAnalyticsEngine = new CachingConnectionStatusAnalyticsEngine(flowManager, statusRepository, flowFileEventRepository, DEFAULT_PREDICT_INTERVAL_MILLIS);
         StatusAnalytics statusAnalyticsA = statusAnalyticsEngine.getStatusAnalytics("A");
         StatusAnalytics statusAnalyticsB = statusAnalyticsEngine.getStatusAnalytics("B");
         StatusAnalytics statusAnalyticsTest = statusAnalyticsEngine.getStatusAnalytics("A");
-        assert (statusAnalyticsA.equals(statusAnalyticsTest));
+        assertEquals(statusAnalyticsA, statusAnalyticsTest);
+        assertNotEquals(statusAnalyticsB, statusAnalyticsTest);
     }
 
 }
