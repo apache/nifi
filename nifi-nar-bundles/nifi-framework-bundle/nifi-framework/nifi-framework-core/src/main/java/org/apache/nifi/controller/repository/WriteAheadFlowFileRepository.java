@@ -515,7 +515,7 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
         updateRepository(repoRecords, true);
 
         synchronized (this.swapLocationSuffixes) {
-            this.swapLocationSuffixes.add(normalizeSwapLocation(swapLocation));
+            this.swapLocationSuffixes.remove(normalizeSwapLocation(swapLocation));
         }
 
         logger.info("Repository updated to reflect that {} FlowFiles were swapped in to {}", new Object[]{swapRecords.size(), queue});

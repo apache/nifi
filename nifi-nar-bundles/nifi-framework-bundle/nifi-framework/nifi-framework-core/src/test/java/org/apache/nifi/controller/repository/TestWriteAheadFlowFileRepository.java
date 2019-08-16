@@ -490,6 +490,10 @@ public class TestWriteAheadFlowFileRepository {
         assertFalse(repo.isValidSwapLocationSuffix("swap123"));
         repo.updateRepository(records);
         assertTrue(repo.isValidSwapLocationSuffix("swap123"));
+
+        repo.swapFlowFilesIn("/tmp/swap123", Collections.singletonList(flowFileRecord), queue);
+        assertFalse(repo.isValidSwapLocationSuffix("swap123"));
+
         repo.close();
     }
 
