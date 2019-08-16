@@ -1729,6 +1729,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             resources.add(ResourceFactory.getProvenanceDataResource(componentResource));
             resources.add(ResourceFactory.getDataTransferResource(componentResource));
             resources.add(ResourceFactory.getPolicyResource(componentResource));
+            resources.add(ResourceFactory.getOperationResource(componentResource));
 
             for (final Resource resource : resources) {
                 for (final RequestAction action : RequestAction.values()) {
