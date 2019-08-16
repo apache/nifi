@@ -407,6 +407,7 @@ public class NiFiRegistryFlowMapper {
             final VersionedPropertyDescriptor versionedDescriptor = new VersionedPropertyDescriptor();
             versionedDescriptor.setName(descriptor.getName());
             versionedDescriptor.setDisplayName(descriptor.getDisplayName());
+            versionedDescriptor.setSensitive(descriptor.isSensitive());
 
             final Class<?> referencedServiceType = descriptor.getControllerServiceDefinition();
             versionedDescriptor.setIdentifiesControllerService(referencedServiceType != null);

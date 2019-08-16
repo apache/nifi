@@ -25,6 +25,7 @@ import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.repository.claim.ContentDirection;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.registry.flow.ExternalControllerServiceReference;
 import org.apache.nifi.registry.flow.VersionedFlow;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
@@ -1046,6 +1047,15 @@ public interface NiFiServiceFacade {
      * @return the Set of all Parameter Context Entities for the current user
      */
     Set<ParameterContextEntity> getParameterContexts();
+
+    /**
+     * Returns the Parameter Context with the given name
+     * @param parameterContextName the name of the Parameter Context
+     * @return the Parameter Context with the given name, or <code>null</code> if no Parameter Context exists with that name
+     *
+     * @throws org.apache.nifi.authorization.AccessDeniedException if a Parameter Context exists with the given name but the user does not have READ permissions to it
+     */
+    ParameterContext getParameterContextByName(String parameterContextName, NiFiUser user);
 
     /**
      * Returns the ParameterContextEntity for the ParameterContext with the given ID

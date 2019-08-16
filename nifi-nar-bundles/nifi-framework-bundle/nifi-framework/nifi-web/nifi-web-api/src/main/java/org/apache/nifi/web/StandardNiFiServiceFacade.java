@@ -1032,6 +1032,28 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         return entities;
     }
 
+    @Override
+    public ParameterContext getParameterContextByName(final String parameterContextName, final NiFiUser user) {
+        final ParameterContext parameterContext = parameterContextDAO.getParameterContexts().stream()
+            .filter(context -> context.getName().equals(parameterContextName))
+            .findAny()
+            .orElse(null);
+
+        if (parameterContext == null) {
+            return null;
+        }
+
+        final boolean authorized = parameterContext.isAuthorized(authorizer, RequestAction.READ, user);
+        if (!authorized) {
+            // Note that we do not call ParameterContext.authorize() because doing so would result in an error message indicating that the user does not have permission
+            // to READ Parameter Context with ID ABC123, which tells the user that the Parameter Context ABC123 has the same name as the requested name. Instead, we simply indicate
+            // that the user is unable to read the Parameter Context and provide the name, rather than the ID, so that information about which ID corresponds to the given name is not provided.
+            throw new AccessDeniedException("Unable to read Parameter Context with name '" + parameterContextName + "'.");
+        }
+
+        return parameterContext;
+    }
+
     private ParameterContextEntity createParameterContextEntity(final ParameterContext parameterContext, final NiFiUser user) {
         final PermissionsDTO permissions = dtoFactory.createPermissionsDto(parameterContext, user);
         final RevisionDTO revisionDto = dtoFactory.createRevisionDTO(revisionManager.getRevision(parameterContext.getIdentifier()));
