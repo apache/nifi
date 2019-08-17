@@ -29,6 +29,8 @@ import org.apache.commons.codec.binary.Hex;
 import org.apache.nifi.processor.io.StreamCallback;
 import org.apache.nifi.security.util.EncryptionMethod;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.openpgp.PGPEncryptedData;
+import org.bouncycastle.openpgp.PGPUtil;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -67,65 +69,78 @@ public class OpenPGPKeyBasedEncryptorTest {
 
     @Test
     public void testShouldEncryptAndDecrypt() throws Exception {
-        // Arrange
-        final String PLAINTEXT = "This is a plaintext message.";
-        logger.info("Plaintext: {}", PLAINTEXT);
-        InputStream plainStream = new ByteArrayInputStream(PLAINTEXT.getBytes("UTF-8"));
-        OutputStream cipherStream = new ByteArrayOutputStream();
-        OutputStream recoveredStream = new ByteArrayOutputStream();
 
-        // No file, just streams
-        String filename = "tempFile.txt";
+        for(int i = 1; i<14; i++) {
+            if (PGPEncryptedData.SAFER != i) {
+                Integer cipher = i;
+                System.out.println("Testing PGP encryption with " + PGPUtil.getSymmetricCipherName(cipher) + " chiper.");
+                // Arrange
+                final String PLAINTEXT = "This is a plaintext message.";
+                logger.info("Plaintext: {}", PLAINTEXT);
+                InputStream plainStream = new ByteArrayInputStream(PLAINTEXT.getBytes("UTF-8"));
+                OutputStream cipherStream = new ByteArrayOutputStream();
+                OutputStream recoveredStream = new ByteArrayOutputStream();
 
-        // Encryptor does not require password
-        OpenPGPKeyBasedEncryptor encryptor = new OpenPGPKeyBasedEncryptor(
-            EncryptionMethod.PGP.getAlgorithm(), EncryptionMethod.PGP.getProvider(), PUBLIC_KEYRING_PATH, USER_ID, new char[0], filename);
-        StreamCallback encryptionCallback = encryptor.getEncryptionCallback();
+                // No file, just streams
+                String filename = "tempFile.txt";
 
-        OpenPGPKeyBasedEncryptor decryptor = new OpenPGPKeyBasedEncryptor(
-            EncryptionMethod.PGP.getAlgorithm(), EncryptionMethod.PGP.getProvider(), SECRET_KEYRING_PATH, USER_ID, PASSWORD.toCharArray(), filename);
-        StreamCallback decryptionCallback = decryptor.getDecryptionCallback();
 
-        // Act
-        encryptionCallback.process(plainStream, cipherStream);
+                // Encryptor does not require password
+                OpenPGPKeyBasedEncryptor encryptor = new OpenPGPKeyBasedEncryptor(
+                        EncryptionMethod.PGP.getAlgorithm(), cipher, EncryptionMethod.PGP.getProvider(), PUBLIC_KEYRING_PATH, USER_ID, new char[0], filename);
+                StreamCallback encryptionCallback = encryptor.getEncryptionCallback();
 
-        final byte[] cipherBytes = ((ByteArrayOutputStream) cipherStream).toByteArray();
-        logger.info("Encrypted: {}", Hex.encodeHexString(cipherBytes));
-        InputStream cipherInputStream = new ByteArrayInputStream(cipherBytes);
+                OpenPGPKeyBasedEncryptor decryptor = new OpenPGPKeyBasedEncryptor(
+                        EncryptionMethod.PGP.getAlgorithm(), cipher, EncryptionMethod.PGP.getProvider(), SECRET_KEYRING_PATH, USER_ID, PASSWORD.toCharArray(), filename);
+                StreamCallback decryptionCallback = decryptor.getDecryptionCallback();
 
-        decryptionCallback.process(cipherInputStream, recoveredStream);
+                // Act
+                encryptionCallback.process(plainStream, cipherStream);
 
-        // Assert
-        byte[] recoveredBytes = ((ByteArrayOutputStream) recoveredStream).toByteArray();
-        String recovered = new String(recoveredBytes, "UTF-8");
-        logger.info("Recovered: {}", recovered);
-        assert PLAINTEXT.equals(recovered);
+                final byte[] cipherBytes = ((ByteArrayOutputStream) cipherStream).toByteArray();
+                logger.info("Encrypted: {}", Hex.encodeHexString(cipherBytes));
+                InputStream cipherInputStream = new ByteArrayInputStream(cipherBytes);
+
+                decryptionCallback.process(cipherInputStream, recoveredStream);
+
+                // Assert
+                byte[] recoveredBytes = ((ByteArrayOutputStream) recoveredStream).toByteArray();
+                String recovered = new String(recoveredBytes, "UTF-8");
+                logger.info("Recovered: {}", recovered);
+                assert PLAINTEXT.equals(recovered);
+            }
+        }
     }
 
     @Test
     public void testShouldDecryptExternalFile() throws Exception {
-        // Arrange
-        byte[] plainBytes = Files.readAllBytes(Paths.get(plainFile.getPath()));
-        final String PLAINTEXT = new String(plainBytes, "UTF-8");
+        for(int i = 1; i<14; i++) {
+            if (PGPEncryptedData.SAFER != i) {
+                Integer cipher = i;
+                // Arrange
+                byte[] plainBytes = Files.readAllBytes(Paths.get(plainFile.getPath()));
+                final String PLAINTEXT = new String(plainBytes, "UTF-8");
 
-        InputStream cipherStream = new FileInputStream(unsignedFile);
-        OutputStream recoveredStream = new ByteArrayOutputStream();
+                InputStream cipherStream = new FileInputStream(unsignedFile);
+                OutputStream recoveredStream = new ByteArrayOutputStream();
 
-        // No file, just streams
-        String filename = unsignedFile.getName();
+                // No file, just streams
+                String filename = unsignedFile.getName();
 
-        OpenPGPKeyBasedEncryptor encryptor = new OpenPGPKeyBasedEncryptor(
-            EncryptionMethod.PGP.getAlgorithm(), EncryptionMethod.PGP.getProvider(), SECRET_KEYRING_PATH, USER_ID, PASSWORD.toCharArray(), filename);
+                OpenPGPKeyBasedEncryptor encryptor = new OpenPGPKeyBasedEncryptor(
+                        EncryptionMethod.PGP.getAlgorithm(), cipher, EncryptionMethod.PGP.getProvider(), SECRET_KEYRING_PATH, USER_ID, PASSWORD.toCharArray(), filename);
 
-        StreamCallback decryptionCallback = encryptor.getDecryptionCallback();
+                StreamCallback decryptionCallback = encryptor.getDecryptionCallback();
 
-        // Act
-        decryptionCallback.process(cipherStream, recoveredStream);
+                // Act
+                decryptionCallback.process(cipherStream, recoveredStream);
 
-        // Assert
-        byte[] recoveredBytes = ((ByteArrayOutputStream) recoveredStream).toByteArray();
-        String recovered = new String(recoveredBytes, "UTF-8");
-        logger.info("Recovered: {}", recovered);
-        Assert.assertEquals("Recovered text", PLAINTEXT, recovered);
+                // Assert
+                byte[] recoveredBytes = ((ByteArrayOutputStream) recoveredStream).toByteArray();
+                String recovered = new String(recoveredBytes, "UTF-8");
+                logger.info("Recovered: {}", recovered);
+                Assert.assertEquals("Recovered text", PLAINTEXT, recovered);
+            }
+        }
     }
 }

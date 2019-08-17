@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.standard;
 
+import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.security.Security;
 import java.text.Normalizer;
@@ -62,7 +63,9 @@ import org.apache.nifi.security.util.crypto.OpenPGPKeyBasedEncryptor;
 import org.apache.nifi.security.util.crypto.OpenPGPPasswordBasedEncryptor;
 import org.apache.nifi.security.util.crypto.PasswordBasedEncryptor;
 import org.apache.nifi.util.StopWatch;
+import org.bouncycastle.bcpg.SymmetricKeyAlgorithmTags;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.openpgp.PGPEncryptedData;
 
 @EventDriven
 @SideEffectFree
@@ -138,6 +141,17 @@ public class EncryptContent extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .sensitive(true)
             .build();
+
+    public static final PropertyDescriptor PGP_SYMMETRIC_ENCRYPTION_CIPHER = new PropertyDescriptor.Builder()
+            .name("pgp-symmetric-cipher")
+            .displayName("PGP Symmetric Cipher")
+            .description("When using PGP encryption, this is the symmetric cipher to be used. This property is ignored if "
+                    + "Encryption Algorithm is not PGP or PGP-ASCII-ARMOR")
+            .required(false)
+            .allowableValues(buildPgpSymmetricCipherAllowableValues())
+            .defaultValue(String.valueOf(PGPEncryptedData.AES_128))
+            .build();
+
     public static final PropertyDescriptor RAW_KEY_HEX = new PropertyDescriptor.Builder()
             .name("raw-key-hex")
             .displayName("Raw Key (hexadecimal)")
@@ -202,12 +216,38 @@ public class EncryptContent extends AbstractProcessor {
                 "if unsafe combinations of encryption algorithms and passwords are provided on a JVM with limited strength crypto. To fix this, see the Admin Guide.");
     }
 
+    private static AllowableValue[] buildPgpSymmetricCipherAllowableValues() {
+        // Note: the provided PGPUtil.getSymmetricCipherName() is unfeasible since it hides the key length in the cipher name
+        List<AllowableValue> allowableValues = new ArrayList<>();
+
+        Field[] fields = SymmetricKeyAlgorithmTags.class.getDeclaredFields();
+        for (Field classField : fields) {
+            classField.setAccessible(true);
+            String fieldName = classField.getName();
+            Integer fieldValue = null;
+            try{
+                if (classField.isAccessible() && classField.getType() == int.class) {
+                    fieldValue = classField.getInt(null);
+                }
+            } catch (IllegalAccessException e) {
+                // This exception should never happen and in case it happens the throwing value is ignored in the following check
+            }
+
+            // NULL and SAFER cipher are not supported and throw ClassNotFoundException in BouncyCastle when used.
+            if(fieldValue != null && fieldValue != SymmetricKeyAlgorithmTags.NULL && fieldValue != SymmetricKeyAlgorithmTags.SAFER) {
+                allowableValues.add(new AllowableValue(fieldValue.toString(), fieldName));
+            }
+        }
+        return allowableValues.toArray(new AllowableValue[0]);
+    }
+
     @Override
     protected void init(final ProcessorInitializationContext context) {
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(MODE);
         properties.add(KEY_DERIVATION_FUNCTION);
         properties.add(ENCRYPTION_ALGORITHM);
+        properties.add(PGP_SYMMETRIC_ENCRYPTION_CIPHER);
         properties.add(ALLOW_WEAK_CRYPTO);
         properties.add(PASSWORD);
         properties.add(RAW_KEY_HEX);
@@ -463,6 +503,7 @@ public class EncryptContent extends AbstractProcessor {
         final EncryptionMethod encryptionMethod = EncryptionMethod.valueOf(method);
         final String providerName = encryptionMethod.getProvider();
         final String algorithm = encryptionMethod.getAlgorithm();
+        final Integer pgpCipher = context.getProperty(PGP_SYMMETRIC_ENCRYPTION_CIPHER).asInteger();
         final String password = context.getProperty(PASSWORD).getValue();
         final KeyDerivationFunction kdf = KeyDerivationFunction.valueOf(context.getProperty(KEY_DERIVATION_FUNCTION).getValue());
         final boolean encrypt = context.getProperty(MODE).getValue().equalsIgnoreCase(ENCRYPT_MODE);
@@ -476,14 +517,13 @@ public class EncryptContent extends AbstractProcessor {
                 final String privateKeyring = context.getProperty(PRIVATE_KEYRING).getValue();
                 if (encrypt && publicKeyring != null) {
                     final String publicUserId = context.getProperty(PUBLIC_KEY_USERID).getValue();
-                    encryptor = new OpenPGPKeyBasedEncryptor(algorithm, providerName, publicKeyring, publicUserId, null, filename);
+                    encryptor = new OpenPGPKeyBasedEncryptor(algorithm, pgpCipher, providerName, publicKeyring, publicUserId, null, filename);
                 } else if (!encrypt && privateKeyring != null) {
                     final char[] keyringPassphrase = context.getProperty(PRIVATE_KEYRING_PASSPHRASE).evaluateAttributeExpressions().getValue().toCharArray();
-                    encryptor = new OpenPGPKeyBasedEncryptor(algorithm, providerName, privateKeyring, null, keyringPassphrase,
-                            filename);
+                    encryptor = new OpenPGPKeyBasedEncryptor(algorithm, pgpCipher, providerName, privateKeyring, null, keyringPassphrase, filename);
                 } else {
                     final char[] passphrase = Normalizer.normalize(password, Normalizer.Form.NFC).toCharArray();
-                    encryptor = new OpenPGPPasswordBasedEncryptor(algorithm, providerName, passphrase, filename);
+                    encryptor = new OpenPGPPasswordBasedEncryptor(algorithm, pgpCipher, providerName, passphrase, filename);
                 }
             } else if (kdf.equals(KeyDerivationFunction.NONE)) { // Raw key
                 final String keyHex = context.getProperty(RAW_KEY_HEX).getValue();
