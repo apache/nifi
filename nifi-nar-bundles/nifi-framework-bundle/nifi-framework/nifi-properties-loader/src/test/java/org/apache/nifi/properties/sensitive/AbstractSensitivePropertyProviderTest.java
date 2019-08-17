@@ -16,22 +16,25 @@
  */
 package org.apache.nifi.properties.sensitive;
 
+import groovy.util.GroovyTestCase;
+import org.apache.nifi.properties.StandardNiFiProperties;
 import org.apache.nifi.security.util.CipherUtils;
+import org.apache.nifi.util.NiFiProperties;
+import org.bouncycastle.util.encoders.Base64;
 import org.junit.Assert;
-import org.junit.Test;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Properties;
+
 
 public abstract class AbstractSensitivePropertyProviderTest {
-
-    @Test
-    public void showTheAbstractClassWorksLikeYouLike() {
-        System.out.println("base class works like you like");
-    }
-
     /**
      * This routine provides tests of behavior common to all SensitivePropertyProviders, specifically that an SPP implementation can
      * cipher and decipher text, and that it throws an exception when trying to cipher an empty string.
      */
-    protected void checkProvider(SensitivePropertyProvider sensitivePropertyProvider, int plainSize) {
+    public void checkProviderCanProtectAndUnprotectValue(SensitivePropertyProvider sensitivePropertyProvider, int plainSize) {
         String plainText = CipherUtils.getRandomHex(plainSize);
         String cipherText = sensitivePropertyProvider.protect(plainText);
 
@@ -41,15 +44,70 @@ public abstract class AbstractSensitivePropertyProviderTest {
         String unwrappedText = sensitivePropertyProvider.unprotect(cipherText);
         Assert.assertNotNull(unwrappedText);
         Assert.assertEquals(unwrappedText, plainText);
-
-        boolean failed = false;
-        try  {
-            sensitivePropertyProvider.protect("");
-        } catch (final IllegalArgumentException ignored) {
-            failed = true;
-        }
-        Assert.assertTrue(failed);
     }
 
+    public void checkProviderProtectDoesNotAllowBlankValues(SensitivePropertyProvider sensitivePropertyProvider) throws Exception {
+        final List<String> blankValues = new ArrayList<>(Arrays.asList("", "    ", "\n", "\n\n", "\t", "\t\t", "\t\n", "\n\t", null));
+        for (String blank : blankValues) {
+            boolean okay = false;
+            try {
+                sensitivePropertyProvider.protect(blank);
+                okay = true;
+            } catch (final IllegalArgumentException ignored) {
+            }
+            if (okay) {
+                throw new Exception("SPP allowed empty string when it should not");
+            }
+        }
+    }
 
+    public void checkProviderUnprotectDoesNotAllowInvalidBase64Values(SensitivePropertyProvider sensitivePropertyProvider) throws Exception {
+        final List<String> malformedCipherTextValues = new ArrayList<String>(Arrays.asList("any", "bad", "value"));
+
+        // text that cannot be decoded values throw a bouncy castle exception:
+        for (String malformedCipherTextValue : malformedCipherTextValues) {
+
+            boolean okay = true;
+            try {
+                sensitivePropertyProvider.unprotect(malformedCipherTextValue);
+            } catch (final SensitivePropertyProtectionException | IllegalArgumentException ignored) {
+                okay = false;
+            }
+            if (okay) {
+                throw new Exception("SPP allowed malformed ciphertext when it should not");
+            }
+        }
+    }
+
+    public void checkProviderUnprotectDoesNotAllowValidBase64InvalidCipherTextValues(SensitivePropertyProvider sensitivePropertyProvider) throws Exception {
+        String plainText = CipherUtils.getRandomHex(128);
+        String encodedText = Base64.toBase64String(plainText.getBytes());
+
+        boolean okay = true;
+        try {
+            sensitivePropertyProvider.unprotect(encodedText);
+        } catch (final SensitivePropertyProtectionException | IllegalArgumentException ignored) {
+            okay = false;
+        }
+        if (okay) {
+            throw new Exception("SPP allowed malformed ciphertext when it should not");
+        }
+    }
+
+    public void checkProviderCanProtectAndUnprotectProperties(SensitivePropertyProvider sensitivePropertyProvider) throws Exception {
+        final String propKey = NiFiProperties.SENSITIVE_PROPS_KEY;
+        final String clearText = CipherUtils.getRandomHex(128);
+        final Properties rawProps = new Properties();
+
+        rawProps.setProperty(propKey, clearText); // set an unprotected value along with the specific key
+        rawProps.setProperty(propKey + ".protected", sensitivePropertyProvider.getIdentifierKey());
+
+        final NiFiProperties standardProps = new StandardNiFiProperties(rawProps);
+        final ProtectedNiFiProperties protectedProps = new ProtectedNiFiProperties(standardProps, sensitivePropertyProvider.getIdentifierKey());
+
+        // check to see if the property was encrypted
+        final NiFiProperties encryptedProps = protectedProps.protectPlainProperties();
+        Assert.assertNotEquals(clearText, encryptedProps.getProperty(propKey));
+        Assert.assertEquals(clearText, sensitivePropertyProvider.unprotect(encryptedProps.getProperty(propKey)));
+    }
 }

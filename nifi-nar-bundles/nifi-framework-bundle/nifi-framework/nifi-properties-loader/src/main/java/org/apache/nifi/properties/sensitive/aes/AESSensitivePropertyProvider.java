@@ -35,6 +35,7 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.properties.sensitive.SensitivePropertyConfigurationException;
 import org.apache.nifi.properties.sensitive.SensitivePropertyProtectionException;
 import org.apache.nifi.properties.sensitive.SensitivePropertyProvider;
 import org.bouncycastle.util.encoders.Base64;
@@ -67,34 +68,37 @@ public class AESSensitivePropertyProvider implements SensitivePropertyProvider {
             this.key = new SecretKeySpec(key, "AES");
         } catch (NoSuchAlgorithmException | NoSuchProviderException | NoSuchPaddingException e) {
             logger.error("Encountered an error initializing the {}: {}", IMPLEMENTATION_NAME, e.getMessage());
-            throw new SensitivePropertyProtectionException("Error initializing the protection cipher", e);
+            throw new SensitivePropertyConfigurationException("Error initializing the protection cipher", e);
         }
     }
 
     private byte[] validateKey(String keyHex) {
         if (StringUtils.isBlank(keyHex)) {
-            throw new SensitivePropertyProtectionException("The key cannot be empty");
+            throw new SensitivePropertyConfigurationException("The key cannot be empty");
         }
         keyHex = formatHexKey(keyHex);
         if (!isHexKeyValid(keyHex)) {
-            throw new SensitivePropertyProtectionException("The key must be a valid hexadecimal key");
+            throw new SensitivePropertyConfigurationException("The key must be a valid hexadecimal key");
         }
         byte[] key = Hex.decode(keyHex);
         final List<Integer> validKeyLengths = getValidKeyLengths();
         if (!validKeyLengths.contains(key.length * 8)) {
             List<String> validKeyLengthsAsStrings = validKeyLengths.stream().map(i -> Integer.toString(i)).collect(Collectors.toList());
-            throw new SensitivePropertyProtectionException("The key (" + key.length * 8 + " bits) must be a valid length: " + StringUtils.join(validKeyLengthsAsStrings, ", "));
+            throw new SensitivePropertyConfigurationException("The key (" + key.length * 8 + " bits) must be a valid length: " + StringUtils.join(validKeyLengthsAsStrings, ", "));
         }
         return key;
     }
 
-    public AESSensitivePropertyProvider(byte[] key) throws SensitivePropertyProtectionException {
+    public AESSensitivePropertyProvider(byte[] key) throws SensitivePropertyConfigurationException {
         this(key == null ? "" : Hex.toHexString(key));
     }
 
     private static String formatHexKey(String input) {
         if (StringUtils.isBlank(input)) {
             return "";
+        }
+        if (input.startsWith(IMPLEMENTATION_KEY)) {
+            input = input.substring(IMPLEMENTATION_KEY.length());
         }
         return input.replaceAll("[^0-9a-fA-F]", "").toLowerCase();
     }
@@ -142,7 +146,7 @@ public class AESSensitivePropertyProvider implements SensitivePropertyProvider {
      */
     @Override
     public String getIdentifierKey() {
-        return IMPLEMENTATION_KEY + getKeySize(Hex.toHexString(key.getEncoded()));
+        return IMPLEMENTATION_KEY + Hex.toHexString(key.getEncoded()); // getKeySize();
     }
 
     private int getKeySize(String key) {

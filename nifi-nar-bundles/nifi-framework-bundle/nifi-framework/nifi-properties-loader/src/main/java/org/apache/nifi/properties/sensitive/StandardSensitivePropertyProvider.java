@@ -51,15 +51,15 @@ public class StandardSensitivePropertyProvider {
         if (StringUtils.isBlank(key)) {
             return null;
 
-        } else if (VaultSensitivePropertyProvider.isProviderFor(scheme)) {
+        } else if (VaultSensitivePropertyProvider.isProviderFor(key) || VaultSensitivePropertyProvider.isProviderFor(scheme)) {
             logger.debug("StandardSensitivePropertyProvider selected specific Vault provider for key: " + VaultSensitivePropertyProvider.toPrintableString(key));
             return new VaultSensitivePropertyProvider(key);
 
-        } else if (KeyStoreSensitivePropertyProvider.isProviderFor(scheme)) {
+        } else if (KeyStoreSensitivePropertyProvider.isProviderFor(key) || KeyStoreSensitivePropertyProvider.isProviderFor(scheme)) {
             logger.debug("StandardSensitivePropertyProvider selected specific KeyStore provider for key: " + KeyStoreSensitivePropertyProvider.toPrintableString(key));
             return new KeyStoreSensitivePropertyProvider(key);
 
-        } else if (GCPKMSSensitivePropertyProvider.isProviderFor(scheme)) {
+        } else if (GCPKMSSensitivePropertyProvider.isProviderFor(key) || GCPKMSSensitivePropertyProvider.isProviderFor(scheme)) {
             logger.debug("StandardSensitivePropertyProvider selected specific GCP KMS provider for key: " + GCPKMSSensitivePropertyProvider.toPrintableString(key));
             return new GCPKMSSensitivePropertyProvider(key);
 
@@ -93,12 +93,12 @@ public class StandardSensitivePropertyProvider {
      * @param scheme name of encryption or protection scheme
      * @return true if at least one provider handles scheme
      */
-    static boolean hasProviderFor(String scheme) {
-        return VaultSensitivePropertyProvider.isProviderFor(scheme) ||
-                KeyStoreSensitivePropertyProvider.isProviderFor(scheme) ||
-                GCPKMSSensitivePropertyProvider.isProviderFor(scheme) ||
-                AWSKMSSensitivePropertyProvider.isProviderFor(scheme) ||
-                AESSensitivePropertyProvider.isProviderFor(scheme);
+    public static boolean hasProviderFor(String scheme) {
+        return VaultSensitivePropertyProvider.isProviderFor(scheme)
+                || KeyStoreSensitivePropertyProvider.isProviderFor(scheme)
+                || GCPKMSSensitivePropertyProvider.isProviderFor(scheme)
+                || AWSKMSSensitivePropertyProvider.isProviderFor(scheme)
+                || AESSensitivePropertyProvider.isProviderFor(scheme);
     }
 
     /**

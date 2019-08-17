@@ -17,7 +17,9 @@
 package org.apache.nifi.properties.sensitive.hashicorp.vault;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.properties.sensitive.AbstractSensitivePropertyProvider;
 import org.apache.nifi.properties.sensitive.ExternalProperties;
+import org.apache.nifi.properties.sensitive.SensitivePropertyConfigurationException;
 import org.apache.nifi.properties.sensitive.SensitivePropertyProtectionException;
 import org.apache.nifi.properties.sensitive.SensitivePropertyProvider;
 import org.apache.nifi.properties.sensitive.StandardExternalPropertyLookup;
@@ -30,11 +32,10 @@ import org.springframework.vault.client.VaultEndpoint;
 import org.springframework.vault.config.ClientHttpRequestFactoryFactory;
 import org.springframework.vault.core.VaultOperations;
 import org.springframework.vault.core.VaultTemplate;
-import org.springframework.vault.support.ClientOptions;
 import org.springframework.vault.support.SslConfiguration;
+import org.springframework.vault.support.ClientOptions;
 
 import java.net.URI;
-import java.nio.file.Paths;
 import java.security.KeyStore;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -45,11 +46,11 @@ import java.util.Set;
 /**
  * Sensitive properties using Vault Transit encrypt and decrypt operations.
  */
-public class VaultSensitivePropertyProvider implements SensitivePropertyProvider {
+public class VaultSensitivePropertyProvider extends AbstractSensitivePropertyProvider implements SensitivePropertyProvider {
     private static final Logger logger = LoggerFactory.getLogger(VaultSensitivePropertyProvider.class);
+
     private static final String PROVIDER_NAME = "HashiCorp Vault Sensitive Property Provider";
-    static final String VAULT_KEY_DELIMITER = "/";
-    static final String VAULT_PREFIX = "vault";
+    static final String MATERIAL_PREFIX = "vault";
 
     static final String VAULT_AUTH_TOKEN = "token";
     static final String VAULT_AUTH_APP_ID = "appid";
@@ -69,7 +70,7 @@ public class VaultSensitivePropertyProvider implements SensitivePropertyProvider
     private final String authType;
 
     public VaultSensitivePropertyProvider(String keyId) {
-        this(keyId, new StandardExternalPropertyLookup(getDefaultPropertiesFilename(), getDefaultPropertiesMapping()));
+        this(keyId, new StandardExternalPropertyLookup(null, getVaultPropertiesMapping()));
     }
 
     /**
@@ -84,9 +85,8 @@ public class VaultSensitivePropertyProvider implements SensitivePropertyProvider
 
         String serverUri = getVaultUri();
 
-        if (StringUtils.isBlank(authType) || StringUtils.isBlank(serverUri) || StringUtils.isBlank(transitKeyId)) {
-            throw new SensitivePropertyProtectionException("Invalid Vault client materials.");
-        }
+        if (StringUtils.isBlank(authType) || StringUtils.isBlank(serverUri) || StringUtils.isBlank(transitKeyId))
+            throw new SensitivePropertyConfigurationException("The key cannot be empty");
 
         VaultEndpoint vaultEndpoint = VaultEndpoint.from(URI.create(serverUri));
         StandardVaultConfiguration config = new StandardVaultConfiguration(vaultEndpoint, externalProperties);
@@ -117,49 +117,48 @@ public class VaultSensitivePropertyProvider implements SensitivePropertyProvider
     /**
      * Extract the Vault auth method from the external properties.
      *
+     * Note that this method does not reference the system property `vault.authentication or a similar environment variable.
+     * This is because our auth method is embedded in the key, e.g., vault/appid/some-token.
+     *
      * @return auth method
-     * @param keySpec
+     * @param keyId key identifier
      */
-    private String getVaultAuthentication(String keySpec) {
-        String authProp = this.externalProperties.get("vault.authentication");
-        String[] parts = keySpec.split(VAULT_KEY_DELIMITER);
-        if (parts.length == 3 && VAULT_AUTH_TYPES.contains(parts[1])) {
-            return parts[1];
-        }
-        return authProp;
+    private String getVaultAuthentication(String keyId) {
+        String[] parts = keyId.split(MATERIAL_SEPARATOR);
+        return parts.length == 3 && VAULT_AUTH_TYPES.contains(parts[1]) ? parts[1] : "";
     }
 
     private static String getTransitKey(String keyId) {
-        String[] parts = keyId.split(VAULT_KEY_DELIMITER, 3);
-        return parts.length == 3 ? parts[2] : "";
+        String[] parts = keyId.split(MATERIAL_SEPARATOR, 3);
+        return parts.length == 3 && VAULT_AUTH_TYPES.contains(parts[1]) ? parts[2] : "";
     }
 
     /**
      * Creates a Vault key spec string for token authentication.
      */
     static String formatForTokenAuth(String keyId) {
-        return VAULT_PREFIX + VAULT_KEY_DELIMITER + VAULT_AUTH_TOKEN + VAULT_KEY_DELIMITER + keyId;
+        return MATERIAL_PREFIX + MATERIAL_SEPARATOR + VAULT_AUTH_TOKEN + MATERIAL_SEPARATOR + keyId;
     }
 
     /**
      * Creates a Vault key spec string for token authentication.
      */
     static String formatForCubbyholeAuth(String keyId) {
-        return VAULT_PREFIX + VAULT_KEY_DELIMITER + VAULT_AUTH_CUBBYHOLE + VAULT_KEY_DELIMITER + keyId;
+        return MATERIAL_PREFIX + MATERIAL_SEPARATOR + VAULT_AUTH_CUBBYHOLE + MATERIAL_SEPARATOR + keyId;
     }
 
     /**
      * Creates a Vault key spec string for app role authentication.
      */
     static String formatForAppRoleAuth(String keyId) {
-        return VAULT_PREFIX + VAULT_KEY_DELIMITER + VAULT_AUTH_APP_ROLE + VAULT_KEY_DELIMITER + keyId;
+        return MATERIAL_PREFIX + MATERIAL_SEPARATOR + VAULT_AUTH_APP_ROLE + MATERIAL_SEPARATOR + keyId;
     }
 
     /**
      * Creates a Vault key spec string for app id authentication.
      */
     static String formatForAppIdAuth(String keyId) {
-        return VAULT_PREFIX + VAULT_KEY_DELIMITER + VAULT_AUTH_APP_ID + VAULT_KEY_DELIMITER + keyId;
+        return MATERIAL_PREFIX + MATERIAL_SEPARATOR + VAULT_AUTH_APP_ID + MATERIAL_SEPARATOR + keyId;
     }
 
     /**
@@ -179,7 +178,7 @@ public class VaultSensitivePropertyProvider implements SensitivePropertyProvider
      */
     @Override
     public String getIdentifierKey() {
-        return VAULT_PREFIX + VAULT_KEY_DELIMITER + authType + VAULT_KEY_DELIMITER + transitKeyId;
+        return MATERIAL_PREFIX + MATERIAL_SEPARATOR + authType + MATERIAL_SEPARATOR + transitKeyId;
     }
 
     /**
@@ -194,7 +193,8 @@ public class VaultSensitivePropertyProvider implements SensitivePropertyProvider
         if (unprotectedValue == null || StringUtils.isBlank(unprotectedValue)) {
             throw new IllegalArgumentException("Cannot encrypt an empty value");
         }
-        String vaultResponse = vaultTransitEncrypt(vaultOperations, transitKeyId, unprotectedValue);
+        String vaultResponse;
+        vaultResponse = vaultTransitEncrypt(vaultOperations, transitKeyId, unprotectedValue);
         if (vaultResponse == null) {
             throw new SensitivePropertyProtectionException("Empty response during wrap.");
         }
@@ -210,7 +210,13 @@ public class VaultSensitivePropertyProvider implements SensitivePropertyProvider
      */
     @Override
     public String unprotect(String protectedValue) throws SensitivePropertyProtectionException {
-        String vaultResponse = vaultTransitDecrypt(vaultOperations, transitKeyId, protectedValue);
+        String vaultResponse;
+        try {
+            vaultResponse = vaultTransitDecrypt(vaultOperations, transitKeyId, protectedValue);
+        } catch (final org.springframework.vault.VaultException e) {
+            throw new SensitivePropertyProtectionException(e);
+        }
+
         if (vaultResponse == null) {
             throw new SensitivePropertyProtectionException("Empty response during unwrap.");
         }
@@ -227,14 +233,8 @@ public class VaultSensitivePropertyProvider implements SensitivePropertyProvider
         if (StringUtils.isBlank(material)) {
             return false;
         }
-        String[] parts = material.split(VAULT_KEY_DELIMITER, 3);
-        if (parts.length < 3) {
-            return false;
-        }
-        if (!StringUtils.equals(parts[0], VAULT_PREFIX)) {
-            return false;
-        }
-        return VAULT_AUTH_TYPES.contains(parts[1]);
+        String[] parts = material.split(MATERIAL_SEPARATOR, 3);
+        return parts.length == 3 && StringUtils.equals(parts[0], MATERIAL_PREFIX) && VAULT_AUTH_TYPES.contains(parts[1]);
     }
 
     /**
@@ -271,15 +271,10 @@ public class VaultSensitivePropertyProvider implements SensitivePropertyProvider
         return vaultOperations.opsForTransit().encrypt(keyId, plainText);
     }
 
-    private static String getDefaultPropertiesFilename() {
-        String home = System.getenv("NIFI_HOME");
-        return Paths.get(StringUtils.isBlank(home) ? "." : home, "conf", "vault.properties").toString();
-    }
-
-    private static Map<String, String> getDefaultPropertiesMapping() {
+    private static Map<String, String> getVaultPropertiesMapping() {
         Map<String, String> map = new HashMap<>();
         map.put("vault.uri", "VAULT_ADDR");
-        map.put("vault.authentication", "VAULT_AUTH");
+        // map.put("vault.authentication", "VAULT_AUTH"); // not used; see note in `getVaultAuthentication`
         map.put("vault.token", "VAULT_TOKEN");
 
         map.put("vault.app-role.role-id", "VAULT_ROLE_ID");
@@ -296,4 +291,3 @@ public class VaultSensitivePropertyProvider implements SensitivePropertyProvider
         return map;
     }
 }
-

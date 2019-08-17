@@ -16,31 +16,86 @@
  */
 package org.apache.nifi.properties.sensitive.gcp.kms;
 
-
 import org.apache.nifi.properties.sensitive.AbstractSensitivePropertyProviderTest;
+import org.apache.nifi.properties.sensitive.SensitivePropertyConfigurationException;
 import org.apache.nifi.properties.sensitive.SensitivePropertyProvider;
 import org.apache.nifi.security.util.CipherUtils;
 import org.junit.Assert;
+import org.junit.Assume;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.regex.Pattern;
+
+
 public class GCPKMSSensitivePropertyProviderIT extends AbstractSensitivePropertyProviderTest {
     private static final Logger logger = LoggerFactory.getLogger(GCPKMSSensitivePropertyProviderIT.class);
-    //         "projects/P/locations/L/keyRings/R/cryptoKeys/K" {
+    private static final String keyId = "gcp/kms/nifi-gcp-unit-tests-project/us-west2/key-ring-0/key-name-0x037af";
+
+    @BeforeClass
+    public static void checkGcpEnvVar() {
+        Assume.assumeTrue(System.getenv("GOOGLE_APPLICATION_CREDENTIALS") != null);
+        // Assume.assumeTrue( ... running within GCE ... )
+    }
 
     @Test
-    public void showThatItWorks() {
-        String keyId = "gcp/kms/nifi-gcp-unit-tests-project/us-west2/key-ring-0/key-name-0x037af";
+    public void testShouldThrowExceptionsWithBadKeys() throws Exception {
+        try {
+            new GCPKMSSensitivePropertyProvider("");
+        } catch (final SensitivePropertyConfigurationException e) {
+            Assert.assertTrue(Pattern.compile("The key cannot be empty").matcher(e.getMessage()).matches());
+        }
+
+        try {
+            new GCPKMSSensitivePropertyProvider("this is an invalid key and will not work");
+        } catch (final SensitivePropertyConfigurationException e) {
+            Assert.assertTrue(Pattern.compile("Invalid GCP key").matcher(e.getMessage()).matches());
+        }
+    }
+
+    @Test
+    public void testProtectAndUnprotect() {
         SensitivePropertyProvider sensitivePropertyProvider = new GCPKMSSensitivePropertyProvider(keyId);
         int plainSize = CipherUtils.getRandomInt(32, 256);
+        checkProviderCanProtectAndUnprotectValue(sensitivePropertyProvider, plainSize);
+        logger.info("GCP SPP protected and unprotected string of " + plainSize + " bytes using material: " + keyId);
+    }
 
-        checkProvider(sensitivePropertyProvider, plainSize);
-        logger.info("GCP unprotected string of " + plainSize + " bytes using key id: " + keyId);
-        // Assert.assertNotNull(sensitivePropertyProvider);
-        // String plainText = CipherUtils.getRandomHex(64);
-        // String cipherText = sensitivePropertyProvider.protect(plainText);
-        // Assert.assertNotEquals(plainText, cipherText);
-        // Assert.assertEquals(plainText, sensitivePropertyProvider.unprotect(cipherText));
+    /**
+     * These tests show that the provider cannot encrypt empty values.
+     */
+    @Test
+    public void testShouldHandleProtectEmptyValue() throws Exception {
+        SensitivePropertyProvider sensitivePropertyProvider = new GCPKMSSensitivePropertyProvider(keyId);
+        checkProviderProtectDoesNotAllowBlankValues(sensitivePropertyProvider);
+    }
+
+    /**
+     * These tests show that the provider cannot decrypt invalid ciphertext.
+     */
+    @Test
+    public void testShouldUnprotectValue() throws Exception {
+        SensitivePropertyProvider sensitivePropertyProvider = new GCPKMSSensitivePropertyProvider(keyId);
+        checkProviderUnprotectDoesNotAllowInvalidBase64Values(sensitivePropertyProvider);
+    }
+
+    /**
+     * These tests show that the provider cannot decrypt text encoded but not encrypted.
+     */
+    @Test
+    public void testShouldThrowExceptionWithValidBase64EncodedTextInvalidCipherText() throws Exception {
+        SensitivePropertyProvider sensitivePropertyProvider = new GCPKMSSensitivePropertyProvider(keyId);
+        checkProviderUnprotectDoesNotAllowValidBase64InvalidCipherTextValues(sensitivePropertyProvider);
+    }
+
+    /**
+     * These tests show we can use an AWS KMS key to encrypt/decrypt property values.
+     */
+    @Test
+    public void testShouldProtectAndUnprotectProperties() throws Exception {
+        SensitivePropertyProvider sensitivePropertyProvider = new GCPKMSSensitivePropertyProvider(keyId);
+        checkProviderCanProtectAndUnprotectProperties(sensitivePropertyProvider);
     }
 }

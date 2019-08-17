@@ -62,7 +62,7 @@ public class VaultHttpsSensitivePropertyProviderIT extends VaultHttpSensitivePro
    public static TemporaryFolder tempFolder = new TemporaryFolder(new File("/tmp/"));
 
    @AfterClass
-   public static void deleteTempFolder () {
+   public static void deleteTempFolder() {
        tempFolder.delete();
    }
 

@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.properties.sensitive.keystore;
 
+import org.apache.nifi.properties.sensitive.AbstractSensitivePropertyProviderTest;
 import org.apache.nifi.properties.sensitive.SensitivePropertyConfigurationException;
 import org.apache.nifi.properties.sensitive.SensitivePropertyProvider;
 import org.apache.nifi.security.util.CipherUtils;
@@ -23,13 +24,18 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.crypto.spec.SecretKeySpec;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -41,10 +47,11 @@ import java.text.NumberFormat;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 
-public class KeyStoreSensitivePropertyProviderTest {
-    private static final Logger logger = LoggerFactory.getLogger(KeyStoreSensitivePropertyProviderTest.class);
+public class KeyStoreSensitivePropertyProviderIT extends AbstractSensitivePropertyProviderTest {
+    private static final Logger logger = LoggerFactory.getLogger(KeyStoreSensitivePropertyProviderIT.class);
 
     private static SecureRandom random = new SecureRandom();
     private static Map<String, KeyStoreTestCase> testCases = new HashMap<>();
@@ -136,6 +143,7 @@ public class KeyStoreSensitivePropertyProviderTest {
                 spp = new KeyStoreSensitivePropertyProvider(clientMaterial, byteKeyStore, null);
                 Assert.assertNotNull(spp);
             } catch (final SensitivePropertyConfigurationException ignored) {
+                Assert.assertNull(ignored);
             }
 
             // This shows that we fail to load a store when we supply an incorrect store password:
@@ -196,7 +204,6 @@ public class KeyStoreSensitivePropertyProviderTest {
             }
 
             clearTestProps();
-
             logger.info("Ran {} tests using {} key store, total plaintext size {} bytes, total ciphertext size {} bytes",
                     tests,
                     config.storeType.toUpperCase(),
@@ -212,14 +219,121 @@ public class KeyStoreSensitivePropertyProviderTest {
     }
 
     private void clearTestProps() {
-        System.clearProperty("KEYSTORE_PASSWORD");
-        System.clearProperty("KEYSTORE_KEY_PASSWORD");
-        System.clearProperty("KEYSTORE_FILE");
+        System.clearProperty("keystore.file");
+        System.clearProperty("keystore.password");
+        System.clearProperty("keystore.key-password");
     }
 
     private static void setTestProps(String storePass, String keyPassword) {
-        System.setProperty("KEYSTORE_PASSWORD", storePass);
-        System.setProperty("KEYSTORE_KEY_PASSWORD", keyPassword);
-        System.setProperty("KEYSTORE_FILE", "");
+        System.setProperty("keystore.file", "");
+        System.setProperty("keystore.password", storePass);
+        System.setProperty("keystore.key-password", keyPassword);
+
+    }
+
+    @Test
+    public void testShouldThrowExceptionsWithBadKeys() throws Exception {
+        try {
+            new KeyStoreSensitivePropertyProvider("");
+        } catch (final SensitivePropertyConfigurationException e) {
+            Assert.assertTrue(Pattern.compile("The key cannot be empty").matcher(e.getMessage()).matches());
+        }
+
+        try {
+            new KeyStoreSensitivePropertyProvider("this is an invalid key and will not work");
+        } catch (final SensitivePropertyConfigurationException e) {
+            Assert.assertTrue(Pattern.compile("Invalid Key Store key").matcher(e.getMessage()).matches());
+        }
+    }
+
+    @Test
+    public void testProtectAndUnprotect() {
+        for (final Map.Entry<String, KeyStoreTestCase> entry : testCases.entrySet()) {
+            final KeyStoreTestCase config = entry.getValue();
+            final String clientMaterial = KeyStoreSensitivePropertyProvider.formatForType(config.storeType, config.keyAlias);
+            final ByteArrayKeyStoreProvider byteKeyStore = new ByteArrayKeyStoreProvider(config.storeContents, config.storeType, config.storePassword);
+            setTestProps(config.storePassword, config.keyPassword);
+
+            SensitivePropertyProvider sensitivePropertyProvider = new KeyStoreSensitivePropertyProvider(clientMaterial, byteKeyStore, null);
+            int plainSize = CipherUtils.getRandomInt(32, 256);
+            checkProviderCanProtectAndUnprotectValue(sensitivePropertyProvider, plainSize);
+            logger.info("GCP SPP protected and unprotected string of " + plainSize + " bytes using material: " + clientMaterial);
+        }
+    }
+
+    /**
+     * These tests show that the provider cannot encrypt empty values.
+     */
+    @Test
+    public void testShouldHandleProtectEmptyValue() throws Exception {
+        for (final Map.Entry<String, KeyStoreTestCase> entry : testCases.entrySet()) {
+            final KeyStoreTestCase config = entry.getValue();
+            final String clientMaterial = KeyStoreSensitivePropertyProvider.formatForType(config.storeType, config.keyAlias);
+            final ByteArrayKeyStoreProvider byteKeyStore = new ByteArrayKeyStoreProvider(config.storeContents, config.storeType, config.storePassword);
+            setTestProps(config.storePassword, config.keyPassword);
+
+            SensitivePropertyProvider sensitivePropertyProvider = new KeyStoreSensitivePropertyProvider(clientMaterial, byteKeyStore, null);
+            checkProviderProtectDoesNotAllowBlankValues(sensitivePropertyProvider);
+        }
+    }
+
+    /**
+     * These tests show that the provider cannot decrypt invalid ciphertext.
+     */
+    @Test
+    public void testProviderUnprotectWithBadValues() throws Exception {
+        for (final Map.Entry<String, KeyStoreTestCase> entry : testCases.entrySet()) {
+            final KeyStoreTestCase config = entry.getValue();
+            final String clientMaterial = KeyStoreSensitivePropertyProvider.formatForType(config.storeType, config.keyAlias);
+            final ByteArrayKeyStoreProvider byteKeyStore = new ByteArrayKeyStoreProvider(config.storeContents, config.storeType, config.storePassword);
+            setTestProps(config.storePassword, config.keyPassword);
+
+            SensitivePropertyProvider sensitivePropertyProvider = new KeyStoreSensitivePropertyProvider(clientMaterial, byteKeyStore, null);
+            checkProviderUnprotectDoesNotAllowInvalidBase64Values(sensitivePropertyProvider);
+        }
+    }
+
+    /**
+     * These tests show that the provider cannot decrypt text encoded but not encrypted.
+     */
+    @Test
+    public void testShouldThrowExceptionWithValidBase64EncodedTextInvalidCipherText() throws Exception {
+        for (final Map.Entry<String, KeyStoreTestCase> entry : testCases.entrySet()) {
+            final KeyStoreTestCase config = entry.getValue();
+            final String clientMaterial = KeyStoreSensitivePropertyProvider.formatForType(config.storeType, config.keyAlias);
+            final ByteArrayKeyStoreProvider byteKeyStore = new ByteArrayKeyStoreProvider(config.storeContents, config.storeType, config.storePassword);
+            setTestProps(config.storePassword, config.keyPassword);
+
+            SensitivePropertyProvider sensitivePropertyProvider = new KeyStoreSensitivePropertyProvider(clientMaterial, byteKeyStore, null);
+            checkProviderUnprotectDoesNotAllowValidBase64InvalidCipherTextValues(sensitivePropertyProvider);
+        }
+    }
+
+    @Rule
+    public TemporaryFolder tmpDir = new TemporaryFolder();
+
+    /**
+     * These tests show we can use an AWS KMS key to encrypt/decrypt property values.
+     */
+    @Test
+    public void testShouldProtectAndUnprotectProperties() throws Exception {
+        for (final Map.Entry<String, KeyStoreTestCase> entry : testCases.entrySet()) {
+            final KeyStoreTestCase config = entry.getValue();
+
+            File tmp = tmpDir.newFile();
+            tmp.deleteOnExit();
+            OutputStream fos = new FileOutputStream(tmp);
+            fos.write(config.storeContents);
+            fos.close();
+
+            final String clientMaterial = KeyStoreSensitivePropertyProvider.formatForType(config.storeType, config.keyAlias);
+            final ByteArrayKeyStoreProvider byteKeyStore = new ByteArrayKeyStoreProvider(config.storeContents, config.storeType, config.storePassword);
+
+            setTestProps(config.storePassword, config.keyPassword);
+            System.setProperty("keystore.file", tmp.getAbsolutePath());
+
+            final SensitivePropertyProvider sensitivePropertyProvider = new KeyStoreSensitivePropertyProvider(clientMaterial, byteKeyStore, null);
+            checkProviderCanProtectAndUnprotectProperties(sensitivePropertyProvider);
+        }
     }
 }

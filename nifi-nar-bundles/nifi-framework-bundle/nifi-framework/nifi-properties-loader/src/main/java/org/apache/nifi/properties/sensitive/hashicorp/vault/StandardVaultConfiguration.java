@@ -85,22 +85,9 @@ class StandardVaultConfiguration extends EnvironmentVaultConfiguration {
     }
 
     @Override
-    public SslConfiguration sslConfiguration() {
-        Resource keyStore = getVaultSslKeyStore();
-        char[] keyStorePassword = getVaultSslKeyStorePassword();
-        Resource trustStore = getVaultSslTrustStore();
-        char[] trustStorePassword = getVaultSslTrustStorePassword();
-
-        return new SslConfiguration(
-                new SslConfiguration.KeyStoreConfiguration(keyStore, keyStorePassword, KeyStore.getDefaultType()),
-                new SslConfiguration.KeyStoreConfiguration(trustStore, trustStorePassword, KeyStore.getDefaultType()));
-    }
-
-    @Override
     public AbstractVaultConfiguration.ClientFactoryWrapper clientHttpRequestFactoryWrapper() {
         return new AbstractVaultConfiguration.ClientFactoryWrapper(ClientHttpRequestFactoryFactory.create(this.clientOptions(), this.sslConfiguration()));
     }
-
 
     @Override
     protected ClientAuthentication appRoleAuthentication() {
@@ -131,17 +118,8 @@ class StandardVaultConfiguration extends EnvironmentVaultConfiguration {
         return new CubbyholeAuthentication(options, VaultClients.createRestTemplate(endpoint, clientHttpRequestFactoryWrapper().getClientHttpRequestFactory()));
     }
 
-
     @Override
     public ClientAuthentication clientAuthentication() {
-
-        // Auth types implemented:
-        //
-        // AppIdAuthentication
-        // AppRoleAuthentication
-        // TokenAuthentication
-        // CubbyholeAuthentication
-
         switch (getVaultAuthentication()) {
             case VAULT_AUTH_APP_ID:
                 return appIdAuthentication();
@@ -151,17 +129,26 @@ class StandardVaultConfiguration extends EnvironmentVaultConfiguration {
                 return tokenAuthentication();
             case VAULT_AUTH_CUBBYHOLE:
                 return cubbyholeAuthentication();
-
             default:
                 throw new SensitivePropertyProtectionException("Unknown Vault authentication type.");
         }
-
         // Not implemented:
-        //
         // AwsEc2Authentication
         // AwsIamAuthentication
         // ClientCertificateAuthentication
         // LoginTokenAdapter
+    }
+
+    @Override
+    public SslConfiguration sslConfiguration() {
+        Resource keyStore = getVaultSslKeyStore();
+        char[] keyStorePassword = getVaultSslKeyStorePassword();
+        Resource trustStore = getVaultSslTrustStore();
+        char[] trustStorePassword = getVaultSslTrustStorePassword();
+
+        return new SslConfiguration(
+                new SslConfiguration.KeyStoreConfiguration(keyStore, keyStorePassword, KeyStore.getDefaultType()),
+                new SslConfiguration.KeyStoreConfiguration(trustStore, trustStorePassword, KeyStore.getDefaultType()));
     }
 
     /**

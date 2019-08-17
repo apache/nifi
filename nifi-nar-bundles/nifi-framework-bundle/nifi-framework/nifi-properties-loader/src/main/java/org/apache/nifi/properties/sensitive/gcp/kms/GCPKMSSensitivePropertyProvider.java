@@ -22,6 +22,7 @@ import com.google.cloud.kms.v1.EncryptResponse;
 import com.google.cloud.kms.v1.KeyManagementServiceClient;
 import com.google.protobuf.ByteString;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.properties.sensitive.AbstractSensitivePropertyProvider;
 import org.apache.nifi.properties.sensitive.SensitivePropertyConfigurationException;
 import org.apache.nifi.properties.sensitive.SensitivePropertyProtectionException;
 import org.apache.nifi.properties.sensitive.SensitivePropertyProvider;
@@ -38,26 +39,39 @@ import java.util.regex.Pattern;
  * This provider uses the GCP SDK to interact with the GCP KMS.  Values are encoded/decoded base64, using the
  * standard encoders from bouncycastle.
  */
-public class GCPKMSSensitivePropertyProvider implements SensitivePropertyProvider {
+public class GCPKMSSensitivePropertyProvider extends AbstractSensitivePropertyProvider implements SensitivePropertyProvider {
     private static final Logger logger = LoggerFactory.getLogger(GCPKMSSensitivePropertyProvider.class);
     private static final String IMPLEMENTATION_NAME = "GCP KMS Sensitive Property Provider";
 
     private static final String MATERIAL_PREFIX = "gcp";
     private static final String MATERIAL_KEY_TYPE = "kms";
-    private static final String MATERIAL_SEPARATOR = "/";
-
     private static final String IMPLEMENTATION_PREFIX = MATERIAL_PREFIX + MATERIAL_SEPARATOR + MATERIAL_KEY_TYPE + MATERIAL_SEPARATOR;
 
-    private final String keyId;
+    private String keyId;
+    private String projectId;
+    private String locationId;
+    private String keyRingId;
+    private String cryptoKeyId;
+
     private final String resource;
     private final KeyManagementServiceClient client;
 
     public GCPKMSSensitivePropertyProvider(String keyId) {
         checkGcpEnvVar();
+        setKeyId(keyId);
+        this.resource = CryptoKeyName.format(projectId, locationId, keyRingId, cryptoKeyId);
+        try {
+            this.client = KeyManagementServiceClient.create();
+        } catch (IOException e) {
+            throw new SensitivePropertyConfigurationException("Unable to create service client", e);
+        }
+    }
+
+    public void setKeyId(String keyId) {
         this.keyId = keyId;
 
         if (StringUtils.isBlank(keyId))
-            throw new SensitivePropertyConfigurationException("Empty GCP key");
+            throw new SensitivePropertyConfigurationException("The key cannot be empty");
 
         String[] parts = this.keyId.split(MATERIAL_SEPARATOR, 3);
         if (parts.length != 3 || !parts[0].equals(MATERIAL_PREFIX) || !parts[1].equals(MATERIAL_KEY_TYPE))
@@ -66,7 +80,6 @@ public class GCPKMSSensitivePropertyProvider implements SensitivePropertyProvide
         String path = parts[2];
         Pattern simplePattern = Pattern.compile("([^/]+)/([^/]+)/([^/]+)/([^/]+)");
         Pattern verbosePattern = Pattern.compile("projects/([^/]+)/locations/([^/]+)/keyRings([^/]+)/cryptoKeys([^/]+)");
-        String projectId = "", locationId = "", keyRingId = "", cryptoKeyId = "";
 
         Matcher match = null;
         if (verbosePattern.asPredicate().test(path)) {
@@ -76,7 +89,7 @@ public class GCPKMSSensitivePropertyProvider implements SensitivePropertyProvide
         }
 
         if (match == null || match.groupCount() != 4 || !match.find())
-            throw new SensitivePropertyConfigurationException("Invalid GCP key path");
+            throw new SensitivePropertyConfigurationException("Invalid GCP key pattern");
 
         projectId = match.group(1);
         locationId = match.group(2);
@@ -85,18 +98,11 @@ public class GCPKMSSensitivePropertyProvider implements SensitivePropertyProvide
 
         if (StringUtils.isBlank(projectId) || StringUtils.isBlank(locationId) || StringUtils.isBlank(keyRingId) || StringUtils.isBlank(cryptoKeyId))
             throw new SensitivePropertyConfigurationException("Invalid GCP key identifier");
-
-        this.resource = CryptoKeyName.format(projectId, locationId, keyRingId, cryptoKeyId);
-        try {
-            this.client = KeyManagementServiceClient.create();
-        } catch (IOException e) {
-            throw new SensitivePropertyConfigurationException("Unable to create service client", e);
-        }
     }
 
     private void checkGcpEnvVar() {
         if (StringUtils.isBlank(System.getenv("GOOGLE_APPLICATION_CREDENTIALS"))) {
-            throw new SensitivePropertyConfigurationException("Unable to find google application credentials");
+            throw new SensitivePropertyConfigurationException("Unable to find Google Application Credentials");
         }
     }
 
@@ -117,7 +123,7 @@ public class GCPKMSSensitivePropertyProvider implements SensitivePropertyProvide
      */
     @Override
     public String getIdentifierKey() {
-        return IMPLEMENTATION_PREFIX + keyId;
+        return keyId;
     }
 
     /**
@@ -132,7 +138,6 @@ public class GCPKMSSensitivePropertyProvider implements SensitivePropertyProvide
         if (StringUtils.isBlank(unprotectedValue)) {
             throw new IllegalArgumentException("Cannot encrypt an empty value");
         }
-
         EncryptResponse response = client.encrypt(resource, ByteString.copyFrom(unprotectedValue, StandardCharsets.UTF_8));
         return Base64.toBase64String(response.getCiphertext().toByteArray());
     }
@@ -149,7 +154,12 @@ public class GCPKMSSensitivePropertyProvider implements SensitivePropertyProvide
         if (StringUtils.isBlank(protectedValue)) {
             throw new IllegalArgumentException("Cannot decrypt empty or blank cipher text.");
         }
-        DecryptResponse response = client.decrypt(resource, ByteString.copyFrom(Base64.decode(protectedValue)));
+        DecryptResponse response;
+        try {
+            response = client.decrypt(resource, ByteString.copyFrom(Base64.decode(protectedValue)));
+        } catch (final org.bouncycastle.util.encoders.DecoderException | com.google.api.gax.rpc.InvalidArgumentException e) {
+            throw new SensitivePropertyProtectionException(e);
+        }
         return response.getPlaintext().toStringUtf8();
     }
 

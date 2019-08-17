@@ -18,7 +18,6 @@ package org.apache.nifi.properties
 
 import org.apache.nifi.properties.sensitive.StandardSensitivePropertyProvider
 import org.apache.nifi.properties.sensitive.aes.AESSensitivePropertyProvider
-import org.apache.nifi.properties.sensitive.aws.kms.AWSKMSSensitivePropertyProvider
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.junit.Before
 import org.junit.BeforeClass
@@ -39,7 +38,6 @@ class StandardSensitivePropertyProviderIT {
 
     private String AES_128_KEY
     private String AES_256_KEY
-    private String AWS_KMS_KEY
 
     @BeforeClass
     static void setUpOnce() throws Exception {
@@ -62,7 +60,7 @@ class StandardSensitivePropertyProviderIT {
 
         AES_128_KEY = material[0..< 32]
         AES_256_KEY = material[0..< 64]
-        AWS_KMS_KEY = "aws/kms/" + material[64..<80]
+        // AWS_KMS_KEY = "aws/kms/" + material[64..<80]
     }
 
     /**
@@ -85,12 +83,13 @@ class StandardSensitivePropertyProviderIT {
 
     /**
      * This test shows that the SSPP creates an AWS SPP from an AWS key.
-     */
+
     @Test
     void testKnownAWSKMSKeyProducesAWSKMSProvider() throws Exception {
         def sensitivePropertyProvider = StandardSensitivePropertyProvider.fromKey(AWS_KMS_KEY)
         assert sensitivePropertyProvider.getName() == new AWSKMSSensitivePropertyProvider(AWS_KMS_KEY).getName()
     }
+     */
 
     /**
      * This test shows that the SSPP default protection scheme is the AES default protection scheme.

@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.properties.sensitive.hashicorp.vault;
 
+import org.apache.nifi.properties.sensitive.AbstractSensitivePropertyProvider;
 import org.apache.nifi.properties.sensitive.AbstractSensitivePropertyProviderTest;
 import org.apache.nifi.properties.sensitive.SensitivePropertyProvider;
 import org.apache.nifi.security.util.CipherUtils;
@@ -214,15 +215,13 @@ public class VaultHttpSensitivePropertyProviderIT extends AbstractSensitivePrope
      */
     @Test
     public void testProviderShouldProtectAndUnprotectWithTokenAuthType() throws Exception {
-        System.setProperty("vault.authentication", VaultSensitivePropertyProvider.VAULT_AUTH_TOKEN);
-        System.setProperty("vault.uri", vaultUri);
-        System.setProperty("vault.token", vaultToken);
+        setTokenAuthProps();
 
         String keyId = VaultSensitivePropertyProvider.formatForTokenAuth(transitKeyId);
         VaultSensitivePropertyProvider sensitivePropertyProvider = new VaultSensitivePropertyProvider(keyId);
         int plainSize = CipherUtils.getRandomInt(32, 256);
 
-        checkProvider(sensitivePropertyProvider, plainSize);
+        checkProviderCanProtectAndUnprotectValue(sensitivePropertyProvider, plainSize);
         logger.info("Token auth protected and unprotected string of " + plainSize + " bytes using material: " + keyId);
     }
 
@@ -240,7 +239,7 @@ public class VaultHttpSensitivePropertyProviderIT extends AbstractSensitivePrope
         VaultSensitivePropertyProvider sensitivePropertyProvider = new VaultSensitivePropertyProvider(keyId);
         int plainSize = CipherUtils.getRandomInt(32, 256);
 
-        checkProvider(sensitivePropertyProvider, plainSize);
+        checkProviderCanProtectAndUnprotectValue(sensitivePropertyProvider, plainSize);
         logger.info("App Role auth protected and unprotected string of " + plainSize + " bytes using material: " + keyId);
     }
 
@@ -258,7 +257,7 @@ public class VaultHttpSensitivePropertyProviderIT extends AbstractSensitivePrope
         VaultSensitivePropertyProvider sensitivePropertyProvider = new VaultSensitivePropertyProvider(keyId);
         int plainSize = CipherUtils.getRandomInt(32, 256);
 
-        checkProvider(sensitivePropertyProvider, plainSize);
+        checkProviderCanProtectAndUnprotectValue(sensitivePropertyProvider, plainSize);
         logger.info("App Id auth protected and unprotected string of " + plainSize + " bytes using material: " + keyId);
     }
 
@@ -275,7 +274,7 @@ public class VaultHttpSensitivePropertyProviderIT extends AbstractSensitivePrope
         VaultSensitivePropertyProvider sensitivePropertyProvider = new VaultSensitivePropertyProvider(keyId);
         int plainSize = CipherUtils.getRandomInt(32, 256);
 
-        checkProvider(sensitivePropertyProvider, plainSize);
+        checkProviderCanProtectAndUnprotectValue(sensitivePropertyProvider, plainSize);
         logger.info("Cubbyhole auth protected and unprotected string of " + plainSize + " bytes using material: " + keyId);
     }
 
@@ -287,7 +286,7 @@ public class VaultHttpSensitivePropertyProviderIT extends AbstractSensitivePrope
         for (String keySpec : getKeySpecs(transitKeyId)) {
             String printable = VaultSensitivePropertyProvider.toPrintableString(keySpec);
             Assert.assertEquals(printable, keySpec);
-            Assert.assertTrue(printable.startsWith(VaultSensitivePropertyProvider.VAULT_PREFIX + VaultSensitivePropertyProvider.VAULT_KEY_DELIMITER));
+            Assert.assertTrue(printable.startsWith(VaultSensitivePropertyProvider.MATERIAL_PREFIX + AbstractSensitivePropertyProvider.MATERIAL_SEPARATOR));
 
             logger.info("Key spec:" + keySpec + " has printable:" + printable);
         }
@@ -299,9 +298,7 @@ public class VaultHttpSensitivePropertyProviderIT extends AbstractSensitivePrope
     @Test
     public void testProviderIdentifierKey() {
         // We need some environment bits to create the SPP below:
-        System.setProperty("vault.authentication", VaultSensitivePropertyProvider.VAULT_AUTH_TOKEN);
-        System.setProperty("vault.uri", vaultUri);
-        System.setProperty("vault.token", vaultToken);
+        setTokenAuthProps();
 
         for (String keySpec : getKeySpecs(transitKeyId)) {
             SensitivePropertyProvider sensitivePropertyProvider = new VaultSensitivePropertyProvider(keySpec);
@@ -350,5 +347,75 @@ public class VaultHttpSensitivePropertyProviderIT extends AbstractSensitivePrope
                 VaultSensitivePropertyProvider.formatForCubbyholeAuth(keyId),
                 VaultSensitivePropertyProvider.formatForTokenAuth(keyId)
         ).collect(Collectors.toSet());
+    }
+
+    @Test
+    public void testProtectAndUnprotect() {
+        setTokenAuthProps();
+
+        for (String keyId : getKeySpecs(transitKeyId)) {
+            SensitivePropertyProvider sensitivePropertyProvider = new VaultSensitivePropertyProvider(keyId);
+            int plainSize = CipherUtils.getRandomInt(32, 256);
+            checkProviderCanProtectAndUnprotectValue(sensitivePropertyProvider, plainSize);
+            logger.info("Vault SPP protected and unprotected string of " + plainSize + " bytes using material: " + keyId);
+        }
+    }
+
+    /**
+     * These tests show that the provider cannot encrypt empty values.
+     */
+    @Test
+    public void testShouldHandleProtectEmptyValue() throws Exception {
+        setTokenAuthProps();
+
+        for (String keyId : getKeySpecs(transitKeyId)) {
+            SensitivePropertyProvider sensitivePropertyProvider = new VaultSensitivePropertyProvider(keyId);
+            checkProviderProtectDoesNotAllowBlankValues(sensitivePropertyProvider);
+        }
+    }
+
+    /**
+     * These tests show that the provider cannot decrypt invalid ciphertext.
+     */
+    @Test
+    public void testShouldUnprotectValue() throws Exception {
+        setTokenAuthProps();
+
+        for (String keyId : getKeySpecs(transitKeyId)) {
+            SensitivePropertyProvider sensitivePropertyProvider = new VaultSensitivePropertyProvider(keyId);
+            checkProviderUnprotectDoesNotAllowInvalidBase64Values(sensitivePropertyProvider);
+        }
+    }
+
+    /**
+     * These tests show that the provider cannot decrypt text encoded but not encrypted.
+     */
+    @Test
+    public void testShouldThrowExceptionWithValidBase64EncodedTextInvalidCipherText() throws Exception {
+        setTokenAuthProps();
+
+        for (String keyId : getKeySpecs(transitKeyId)) {
+            SensitivePropertyProvider sensitivePropertyProvider = new VaultSensitivePropertyProvider(keyId);
+            checkProviderUnprotectDoesNotAllowValidBase64InvalidCipherTextValues(sensitivePropertyProvider);
+        }
+    }
+
+    /**
+     * These tests show we can use an AWS KMS key to encrypt/decrypt property values.
+     */
+    @Test
+    public void testShouldProtectAndUnprotectProperties() throws Exception {
+        setTokenAuthProps();
+
+        for (String keyId : getKeySpecs(transitKeyId)) {
+            SensitivePropertyProvider sensitivePropertyProvider = new VaultSensitivePropertyProvider(keyId);
+            checkProviderCanProtectAndUnprotectProperties(sensitivePropertyProvider);
+        }
+    }
+
+    private void setTokenAuthProps() {
+        System.setProperty("vault.authentication", VaultSensitivePropertyProvider.VAULT_AUTH_TOKEN);
+        System.setProperty("vault.uri", vaultUri);
+        System.setProperty("vault.token", vaultToken);
     }
 }

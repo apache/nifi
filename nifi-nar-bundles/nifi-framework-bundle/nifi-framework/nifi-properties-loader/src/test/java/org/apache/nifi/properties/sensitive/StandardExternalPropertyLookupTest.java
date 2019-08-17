@@ -64,7 +64,7 @@ public class StandardExternalPropertyLookupTest {
         int randomKeyCount = getRandomInt(12, 32);
         for (int i = 0; i<randomKeyCount; i++) {
             props.setProperty(getRandomHex(getRandomInt(4, 8)), getRandomHex(getRandomInt(12, 32)));
-        };
+        }
         props.store(new FileOutputStream(propsFile), "");
     }
 

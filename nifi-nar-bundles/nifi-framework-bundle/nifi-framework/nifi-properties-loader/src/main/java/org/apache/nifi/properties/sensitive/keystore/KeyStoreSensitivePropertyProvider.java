@@ -17,6 +17,7 @@
 package org.apache.nifi.properties.sensitive.keystore;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.properties.sensitive.AbstractSensitivePropertyProvider;
 import org.apache.nifi.properties.sensitive.ExternalProperties;
 import org.apache.nifi.properties.sensitive.SensitivePropertyConfigurationException;
 import org.apache.nifi.properties.sensitive.SensitivePropertyProtectionException;
@@ -35,18 +36,19 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 /**
  * Sensitive properties using KeyStore keys with an inner AES SPP.
  */
-public class KeyStoreSensitivePropertyProvider implements SensitivePropertyProvider {
+public class KeyStoreSensitivePropertyProvider extends AbstractSensitivePropertyProvider implements SensitivePropertyProvider {
     private static final Logger logger = LoggerFactory.getLogger(KeyStoreSensitivePropertyProvider.class);
 
     private static final String PROVIDER_NAME = "KeyStore Sensitive Property Provider";
     private static final String MATERIAL_PREFIX = "keystore";
-    private static final String MATERIAL_DELIMITER = "/";
 
     private static final String KEYSTORE_TYPE_JCECKS = "jceks";
     private static final String KEYSTORE_TYPE_PKCS12 = "pkcs12";
@@ -73,13 +75,22 @@ public class KeyStoreSensitivePropertyProvider implements SensitivePropertyProvi
 
     public KeyStoreSensitivePropertyProvider(String keyId, KeyStoreProvider keyStoreProvider, ExternalProperties externalProperties)  {
         if (externalProperties == null) {
-            externalProperties = new StandardExternalPropertyLookup(getDefaultPropertiesFilename());
+            externalProperties = new StandardExternalPropertyLookup(null, getKeyStorePropertiesMapping() );
         }
         this.externalProperties = externalProperties;
 
-        String[] parts = keyId.split(MATERIAL_DELIMITER);
-        String storeType = parts.length > 0 ? parts[1] : "";
-        String keyAlias = parts.length > 1 ? parts[2] : "";
+        if (StringUtils.isBlank(keyId))
+            throw new SensitivePropertyConfigurationException("The key cannot be empty");
+
+        String storeType;
+        String keyAlias;
+        try {
+            String[] parts = keyId.split(MATERIAL_SEPARATOR);
+            storeType = parts.length > 0 ? parts[1] : "";
+            keyAlias = parts.length > 1 ? parts[2] : "";
+        } catch (final ArrayIndexOutOfBoundsException e) {
+            throw new SensitivePropertyConfigurationException("Invalid Key Store key", e);
+        }
 
         this.storeType = storeType;
         this.keyAlias = keyAlias;
@@ -97,25 +108,28 @@ public class KeyStoreSensitivePropertyProvider implements SensitivePropertyProvi
         }
     }
 
+    private Map<String, String> getKeyStorePropertiesMapping() {
+        Map<String, String> map = new HashMap<>();
+        map.put("keystore.key-password", "KEYSTORE_KEY_PASSWORD");
+        map.put("keystore.password", "KEYSTORE_PASSWORD");
+        map.put("keystore.file", "KEYSTORE_FILE");
+        return map;
+    }
+
     private String getKeyPassword() {
-        return externalProperties.get("KEYSTORE_KEY_PASSWORD");
+        return externalProperties.get("keystore.key-password", "");
     }
 
     private String getStorePassword() {
-        return externalProperties.get("KEYSTORE_PASSWORD");
+        return externalProperties.get("keystore.password", "");
     }
 
     private String getStoreUri() {
-        return externalProperties.get("KEYSTORE_FILE");
-    }
-
-    private static String getDefaultPropertiesFilename() {
-        String home = System.getenv("NIFI_HOME");
-        return Paths.get(StringUtils.isBlank(home) ? "." : home, "conf", "keystore.properties").toString();
+        return externalProperties.get("keystore.file", "");
     }
 
     public static String formatForType(String storeType, String keyAlias) {
-        return MATERIAL_PREFIX + MATERIAL_DELIMITER + storeType + MATERIAL_DELIMITER + keyAlias;
+        return MATERIAL_PREFIX + MATERIAL_SEPARATOR + storeType + MATERIAL_SEPARATOR + keyAlias;
     }
 
     /**
@@ -135,7 +149,7 @@ public class KeyStoreSensitivePropertyProvider implements SensitivePropertyProvi
      */
     @Override
     public String getIdentifierKey() {
-        return MATERIAL_PREFIX + MATERIAL_DELIMITER + storeType + MATERIAL_DELIMITER + keyAlias;
+        return MATERIAL_PREFIX + MATERIAL_SEPARATOR + storeType + MATERIAL_SEPARATOR + keyAlias;
     }
 
     /**
@@ -159,7 +173,11 @@ public class KeyStoreSensitivePropertyProvider implements SensitivePropertyProvi
      */
     @Override
     public String unprotect(String protectedValue) throws SensitivePropertyProtectionException {
-        return wrappedSensitivePropertyProvider.unprotect(protectedValue);
+        try {
+            return wrappedSensitivePropertyProvider.unprotect(protectedValue);
+        } catch (final IllegalArgumentException e) {
+            throw new SensitivePropertyProtectionException(e);
+        }
     }
 
     /**
@@ -172,7 +190,7 @@ public class KeyStoreSensitivePropertyProvider implements SensitivePropertyProvi
         if (StringUtils.isBlank(material)) {
             return false;
         }
-        String[] parts = material.split(MATERIAL_DELIMITER, 3);
+        String[] parts = material.split(MATERIAL_SEPARATOR, 3);
         return parts.length == 3 && parts[0].equals(MATERIAL_PREFIX) && KEYSTORE_TYPES.contains(parts[1]);
     }
 

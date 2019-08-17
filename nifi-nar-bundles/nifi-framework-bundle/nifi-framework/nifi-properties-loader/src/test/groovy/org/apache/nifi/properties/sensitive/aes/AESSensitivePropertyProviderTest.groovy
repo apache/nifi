@@ -16,15 +16,18 @@
  */
 package org.apache.nifi.properties.sensitive.aes
 
-
+import org.apache.nifi.properties.sensitive.AbstractSensitivePropertyProviderTest
+import org.apache.nifi.properties.sensitive.SensitivePropertyConfigurationException
 import org.apache.nifi.properties.sensitive.SensitivePropertyProtectionException
 import org.apache.nifi.properties.sensitive.SensitivePropertyProvider
+import org.apache.nifi.security.util.CipherUtils
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.bouncycastle.util.encoders.Hex
 import org.junit.After
 import org.junit.Assume
 import org.junit.Before
 import org.junit.BeforeClass
+import org.junit.Ignore
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
@@ -41,6 +44,7 @@ import java.security.Security
 @RunWith(JUnit4.class)
 class AESSensitivePropertyProviderTest extends GroovyTestCase {
     private static final Logger logger = LoggerFactory.getLogger(AESSensitivePropertyProviderTest.class)
+    private static final class InnerTests extends AbstractSensitivePropertyProviderTest {}
 
     private static final String KEY_128_HEX = "0123456789ABCDEFFEDCBA9876543210"
     private static final String KEY_256_HEX = KEY_128_HEX * 2
@@ -120,7 +124,7 @@ class AESSensitivePropertyProviderTest extends GroovyTestCase {
             Security.removeProvider(new BouncyCastleProvider().getName())
 
             // Act
-            def msg = shouldFail(SensitivePropertyProtectionException) {
+            def msg = shouldFail(SensitivePropertyConfigurationException) {
                 SensitivePropertyProvider spp = new AESSensitivePropertyProvider(Hex.decode(KEY_128_HEX))
                 logger.error("This should not be reached")
             }
@@ -385,6 +389,7 @@ class AESSensitivePropertyProviderTest extends GroovyTestCase {
         }
     }
 
+    @Ignore // for now bc size is gone
     @Test
     void testShouldGetIdentifierKeyWithDifferentMaxKeyLengths() throws Exception {
         // Arrange
@@ -409,7 +414,7 @@ class AESSensitivePropertyProviderTest extends GroovyTestCase {
         final String INVALID_KEY = ""
 
         // Act
-        def msg = shouldFail(SensitivePropertyProtectionException) {
+        def msg = shouldFail(SensitivePropertyConfigurationException) {
             AESSensitivePropertyProvider spp = new AESSensitivePropertyProvider(INVALID_KEY)
         }
 
@@ -423,7 +428,7 @@ class AESSensitivePropertyProviderTest extends GroovyTestCase {
         final String INVALID_KEY = "Z" * 31
 
         // Act
-        def msg = shouldFail(SensitivePropertyProtectionException) {
+        def msg = shouldFail(SensitivePropertyConfigurationException) {
             AESSensitivePropertyProvider spp = new AESSensitivePropertyProvider(INVALID_KEY)
         }
 
@@ -437,7 +442,7 @@ class AESSensitivePropertyProviderTest extends GroovyTestCase {
         final String INVALID_KEY = "Z" * 32
 
         // Act
-        def msg = shouldFail(SensitivePropertyProtectionException) {
+        def msg = shouldFail(SensitivePropertyConfigurationException) {
             AESSensitivePropertyProvider spp = new AESSensitivePropertyProvider(INVALID_KEY)
         }
 
@@ -496,5 +501,16 @@ class AESSensitivePropertyProviderTest extends GroovyTestCase {
         // Assert
         assert rawValue == EXPECTED_VALUE
         assert rawUnpaddedValue == EXPECTED_VALUE
+    }
+
+    @Test
+    void testShouldRunInnerTestsCorrectly() {
+        final InnerTests innerTests = new InnerTests();
+        SensitivePropertyProvider spp = new AESSensitivePropertyProvider(CipherUtils.getRandomHex(32))
+        innerTests.checkProviderCanProtectAndUnprotectValue(spp, 128)
+        innerTests.checkProviderProtectDoesNotAllowBlankValues(spp)
+        innerTests.checkProviderUnprotectDoesNotAllowInvalidBase64Values(spp)
+        innerTests.checkProviderUnprotectDoesNotAllowValidBase64InvalidCipherTextValues(spp)
+        innerTests.checkProviderCanProtectAndUnprotectProperties(spp)
     }
 }

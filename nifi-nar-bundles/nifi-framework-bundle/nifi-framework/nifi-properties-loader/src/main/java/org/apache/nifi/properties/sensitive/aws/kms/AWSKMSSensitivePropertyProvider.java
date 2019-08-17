@@ -26,6 +26,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.properties.sensitive.SensitivePropertyConfigurationException;
 import org.apache.nifi.properties.sensitive.SensitivePropertyProtectionException;
 import org.apache.nifi.properties.sensitive.SensitivePropertyProvider;
 import org.bouncycastle.util.encoders.Base64;
@@ -59,7 +60,7 @@ public class AWSKMSSensitivePropertyProvider implements SensitivePropertyProvide
      */
     private String normalizeKey(String keyId) {
         if (StringUtils.isBlank(keyId)) {
-            throw new SensitivePropertyProtectionException("The key cannot be empty");
+            throw new SensitivePropertyConfigurationException("The key cannot be empty");
         }
         if (keyId.startsWith(IMPLEMENTATION_KEY)) {
             keyId = keyId.substring(IMPLEMENTATION_KEY.length());
@@ -119,10 +120,19 @@ public class AWSKMSSensitivePropertyProvider implements SensitivePropertyProvide
      */
     @Override
     public String unprotect(String protectedValue) throws SensitivePropertyProtectionException {
-        DecryptRequest request = new DecryptRequest()
-            .withCiphertextBlob(ByteBuffer.wrap(Base64.decode(protectedValue)));
+        DecryptRequest request;
+        try {
+            request = new DecryptRequest().withCiphertextBlob(ByteBuffer.wrap(Base64.decode(protectedValue)));
+        } catch (final org.bouncycastle.util.encoders.DecoderException e) {
+            throw new SensitivePropertyProtectionException(e);
+        }
 
-        DecryptResult response = client.decrypt(request);
+        DecryptResult response;
+        try {
+            response = client.decrypt(request);
+        } catch (final com.amazonaws.services.kms.model.InvalidCiphertextException e) {
+            throw new SensitivePropertyProtectionException(e);
+        }
         return new String(response.getPlaintext().array(), Charset.defaultCharset());
     }
 

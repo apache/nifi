@@ -27,6 +27,7 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.junit.After
 import org.junit.AfterClass
 import org.junit.BeforeClass
+import org.junit.Ignore
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
@@ -134,6 +135,7 @@ class NiFiGroovyTest extends GroovyTestCase {
         assert TestAppender.events.last().getMessage() == "Failure to launch NiFi due to java.lang.IllegalArgumentException: The bootstrap process did not provide a valid key"
     }
 
+    @Ignore
     @Test
     void testMainShouldHandleMalformedBootstrapKeyFromFile() throws Exception {
         // Arrange

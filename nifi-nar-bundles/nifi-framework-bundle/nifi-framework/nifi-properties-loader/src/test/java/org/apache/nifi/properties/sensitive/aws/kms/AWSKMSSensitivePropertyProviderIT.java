@@ -27,17 +27,13 @@ import com.amazonaws.services.kms.model.DescribeKeyResult;
 import com.amazonaws.services.kms.model.GenerateDataKeyRequest;
 import com.amazonaws.services.kms.model.GenerateDataKeyResult;
 import com.amazonaws.services.kms.model.ScheduleKeyDeletionRequest;
-import groovy.lang.Closure;
+
 import junit.framework.TestCase;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.properties.StandardNiFiProperties;
 import org.apache.nifi.properties.sensitive.AbstractSensitivePropertyProviderTest;
-import org.apache.nifi.properties.sensitive.ProtectedNiFiProperties;
-import org.apache.nifi.properties.sensitive.SensitivePropertyProtectionException;
+import org.apache.nifi.properties.sensitive.SensitivePropertyConfigurationException;
 import org.apache.nifi.properties.sensitive.SensitivePropertyProvider;
 import org.apache.nifi.security.util.CipherUtils;
-import org.apache.nifi.util.NiFiProperties;
-import org.bouncycastle.util.encoders.Base64;
 
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -48,12 +44,8 @@ import org.slf4j.LoggerFactory;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
@@ -162,13 +154,13 @@ public class AWSKMSSensitivePropertyProviderIT extends AbstractSensitiveProperty
     public void testShouldThrowExceptionsWithBadKeys() throws Exception {
         try {
             new AWSKMSSensitivePropertyProvider("");
-        } catch (final SensitivePropertyProtectionException e) {
+        } catch (final SensitivePropertyConfigurationException e) {
             Assert.assertTrue(Pattern.compile("The key cannot be empty").matcher(e.getMessage()).matches());
         }
 
         try {
             new AWSKMSSensitivePropertyProvider("this is an invalid key and will not work");
-        } catch (final SensitivePropertyProtectionException e) {
+        } catch (final SensitivePropertyConfigurationException e) {
             Assert.assertTrue(Pattern.compile("Invalid keyId").matcher(e.getMessage()).matches());
         }
     }
@@ -178,16 +170,11 @@ public class AWSKMSSensitivePropertyProviderIT extends AbstractSensitiveProperty
      */
     @Test
     public void testShouldProtectAndUnprotectValues() throws Exception {
-        SensitivePropertyProvider propProvider;
-        String plainText;
-
         for (String knownGoodKey : knownGoodKeys) {
-            propProvider = new AWSKMSSensitivePropertyProvider(knownGoodKey);
-            plainText = CipherUtils.getRandomHex(128);
-
-            Assert.assertNotNull(plainText);
-            Assert.assertTrue(StringUtils.isNotBlank(plainText));
-            Assert.assertEquals(plainText, propProvider.unprotect(propProvider.protect(plainText)));
+            SensitivePropertyProvider sensitivePropertyProvider = new AWSKMSSensitivePropertyProvider(knownGoodKey);
+            int plainSize = CipherUtils.getRandomInt(32, 256);
+            checkProviderCanProtectAndUnprotectValue(sensitivePropertyProvider, plainSize);
+            logger.info("AES SPP protected and unprotected string of " + plainSize + " bytes using material: " + knownGoodKey);
         }
     }
 
@@ -196,23 +183,9 @@ public class AWSKMSSensitivePropertyProviderIT extends AbstractSensitiveProperty
      */
     @Test
     public void testShouldHandleProtectEmptyValue() throws Exception {
-        final List<String> blankValues = new ArrayList<>(Arrays.asList("", "    ", "\n", "\n\n", "\t", "\t\t", "\t\n", "\n\t", null));
-
         for (String knownGoodKey : knownGoodKeys) {
             final SensitivePropertyProvider propProvider = new AWSKMSSensitivePropertyProvider(knownGoodKey);
-            Assert.assertNotNull(propProvider);
-
-            for (String blank : blankValues) {
-                boolean okay = false;
-                try {
-                    propProvider.protect(blank);
-                    okay = true;
-                } catch (final IllegalArgumentException ignored) {
-                }
-                if (okay) {
-                    throw new Exception("SPP allowed empty string when it should not");
-                }
-            }
+            checkProviderProtectDoesNotAllowBlankValues(propProvider);
         }
     }
 
@@ -221,25 +194,8 @@ public class AWSKMSSensitivePropertyProviderIT extends AbstractSensitiveProperty
      */
     @Test
     public void testShouldUnprotectValue() throws Exception {
-        final List<String> malformedCipherTextValues = new ArrayList<String>(Arrays.asList("any", "bad", "value"));
-
         for (String knownGoodKey : knownGoodKeys) {
-            final SensitivePropertyProvider propProvider = new AWSKMSSensitivePropertyProvider(knownGoodKey);
-            Assert.assertNotNull(propProvider);
-
-            // text that cannot be decoded values throw a bouncy castle exception:
-            for (String malformedCipherTextValue : malformedCipherTextValues) {
-
-                boolean okay = true;
-                try {
-                    propProvider.protect(malformedCipherTextValue);
-                    okay = false;
-                } catch (final SensitivePropertyProtectionException ignored) {
-                }
-                if (okay) {
-                    throw new Exception("SPP allowed malformed ciphertext when it should not");
-                }
-            }
+            checkProviderUnprotectDoesNotAllowInvalidBase64Values(new AWSKMSSensitivePropertyProvider(knownGoodKey));
         }
     }
 
@@ -249,21 +205,7 @@ public class AWSKMSSensitivePropertyProviderIT extends AbstractSensitiveProperty
     @Test
     public void testShouldThrowExceptionWithValidBase64EncodedTextInvalidCipherText() throws Exception {
         for (String knownGoodKey : knownGoodKeys) {
-            final SensitivePropertyProvider propProvider = new AWSKMSSensitivePropertyProvider(knownGoodKey);
-            Assert.assertNotNull(propProvider);
-
-            String plainText = CipherUtils.getRandomHex(128);
-            String encodedText = Base64.toBase64String(plainText.getBytes());
-
-            boolean okay = true;
-            try {
-                propProvider.protect(encodedText);
-                okay = false;
-            } catch (final SensitivePropertyProtectionException ignored) {
-            }
-            if (okay) {
-                throw new Exception("SPP allowed malformed ciphertext when it should not");
-            }
+            checkProviderUnprotectDoesNotAllowValidBase64InvalidCipherTextValues(new AWSKMSSensitivePropertyProvider(knownGoodKey));
         }
     }
 
@@ -272,26 +214,8 @@ public class AWSKMSSensitivePropertyProviderIT extends AbstractSensitiveProperty
      */
     @Test
     public void testShouldProtectAndUnprotectProperties() throws Exception {
-        final String propKey = NiFiProperties.SENSITIVE_PROPS_KEY;
-
         for (String knownGoodKey : knownGoodKeys) {
-            String clearText = CipherUtils.getRandomHex(128);
-
-            final Properties rawProps = new Properties();
-            rawProps.setProperty(propKey, clearText); // set an unprotected value along with the specific key
-            rawProps.setProperty(propKey + ".protected", "aws/kms/" + knownGoodKey);
-
-            final NiFiProperties standardProps = new StandardNiFiProperties(rawProps);
-            final ProtectedNiFiProperties protectedProps = new ProtectedNiFiProperties(standardProps, "aws/kms/" + knownGoodKey);
-
-            logger.info("protectedProps has " + String.valueOf(protectedProps.size()) + " properties: " + protectedProps.getPropertyKeys());
-
-            // check to see if the property was encrypted
-            final NiFiProperties encryptedProps = protectedProps.protectPlainProperties();
-
-            Assert.assertNotEquals(clearText, encryptedProps.getProperty(propKey));
-            final SensitivePropertyProvider propProvider = new AWSKMSSensitivePropertyProvider(knownGoodKey);
-            Assert.assertEquals(clearText, propProvider.unprotect(encryptedProps.getProperty(propKey)));
+            checkProviderCanProtectAndUnprotectProperties(new AWSKMSSensitivePropertyProvider(knownGoodKey));
         }
     }
 }

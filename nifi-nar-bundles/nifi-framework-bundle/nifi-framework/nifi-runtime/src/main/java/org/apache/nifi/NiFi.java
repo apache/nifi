@@ -357,14 +357,13 @@ public class NiFi {
         if (parsedArgs.contains(KEY_FILE_FLAG)) {
             key = getKeyFromKeyFileAndPrune(parsedArgs);
             // Format the key (check hex validity and remove spaces)
-            key = formatHexKey(key);
-
+            // key = formatHexKey(key);
         }
 
         if (null == key) {
             return "";
-        } else if (!isHexKeyValid(key)) {
-            throw new IllegalArgumentException("The key was not provided in valid hex format and of the correct length");
+        //} else if (!isHexKeyValid(key)) {
+        //    throw new IllegalArgumentException("The key was not provided in valid hex format and of the correct length");
         } else {
             return key;
         }

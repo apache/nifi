@@ -16,20 +16,7 @@
  */
 package org.apache.nifi.properties.sensitive;
 
-/**
- *
- * ExternalProperties is an interface for reading external values by name.
- *
- */
-public interface ExternalProperties {
-    /**
-     * Looks up the Authorizer with the specified identifier
-     *
-     * @param identifier        The identifier of the Authorizer
-     * @return                  The Authorizer
-     */
 
-    String get(String name);
-
-    String get(String name, String missing);
+public class AbstractSensitivePropertyProvider {
+    public static final String MATERIAL_SEPARATOR = "/";
 }
