@@ -24,7 +24,7 @@ import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.StringQueryResult;
 
 /**
- * JsonPathSetEvaluator allows setting values at the specified path
+ * JsonPathSetEvaluator allows setting values at the specified existing path
  */
 public class JsonPathSetEvaluator extends JsonPathBaseEvaluator {
 
@@ -38,11 +38,11 @@ public class JsonPathSetEvaluator extends JsonPathBaseEvaluator {
     @Override
     public QueryResult<String> evaluate(EvaluationContext context) {
         DocumentContext documentContext = getDocumentContext(context);
-        final JsonPath compiledJsonPath = getJsonPath(context);;
+        final JsonPath compiledJsonPath = getJsonPath(context);
 
         final Object value = valueEvaluator.evaluate(context).getValue();
 
-        String result = null;
+        String result;
         try {
             result = documentContext.set(compiledJsonPath, value).jsonString();
         } catch (Exception e) {

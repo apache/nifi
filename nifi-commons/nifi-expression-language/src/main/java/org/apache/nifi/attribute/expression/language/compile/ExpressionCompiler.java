@@ -966,8 +966,8 @@ public class ExpressionCompiler {
                 } else if (argValueEvaluator instanceof BooleanEvaluator) {
                     valueEvaluator = toBooleanEvaluator(argValueEvaluator, location);
                 } else {
-                    throw new AttributeExpressionLanguageParsingException("Cannot implicitly convert Data Type " + argValueEvaluator.getResultType() + " to " + ResultType.WHOLE_NUMBER
-                            + (location == null ? "" : " at location [" + location + "]"));
+                    throw new AttributeExpressionLanguageParsingException("Cannot implicitly convert Data Type " +
+                            argValueEvaluator.getResultType() + (location == null ? "" : " at location [" + location + "]"));
                 }
                 return addToken(new JsonPathSetEvaluator(toStringEvaluator(subjectEvaluator),
                         toStringEvaluator(argEvaluators.get(0), "first argument to jsonPathSet"),
