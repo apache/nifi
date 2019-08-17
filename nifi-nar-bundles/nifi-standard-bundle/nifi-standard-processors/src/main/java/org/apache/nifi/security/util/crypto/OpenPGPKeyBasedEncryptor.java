@@ -35,7 +35,6 @@ import org.apache.nifi.processors.standard.EncryptContent.Encryptor;
 import org.bouncycastle.bcpg.ArmoredOutputStream;
 import org.bouncycastle.openpgp.PGPCompressedData;
 import org.bouncycastle.openpgp.PGPCompressedDataGenerator;
-import org.bouncycastle.openpgp.PGPEncryptedData;
 import org.bouncycastle.openpgp.PGPEncryptedDataGenerator;
 import org.bouncycastle.openpgp.PGPEncryptedDataList;
 import org.bouncycastle.openpgp.PGPException;
@@ -67,6 +66,7 @@ public class OpenPGPKeyBasedEncryptor implements Encryptor {
     private static final Logger logger = LoggerFactory.getLogger(OpenPGPPasswordBasedEncryptor.class);
 
     private String algorithm;
+    private Integer cipher;
     private String provider;
     // TODO: This can hold either the secret or public keyring path
     private String keyring;
@@ -74,8 +74,10 @@ public class OpenPGPKeyBasedEncryptor implements Encryptor {
     private char[] passphrase;
     private String filename;
 
-    public OpenPGPKeyBasedEncryptor(final String algorithm, final String provider, final String keyring, final String userId, final char[] passphrase, final String filename) {
+    public OpenPGPKeyBasedEncryptor(final String algorithm, final Integer cipher, final String provider, final String keyring,
+                                    final String userId, final char[] passphrase, final String filename) {
         this.algorithm = algorithm;
+        this.cipher = cipher;
         this.provider = provider;
         this.keyring = keyring;
         this.userId = userId;
@@ -85,7 +87,7 @@ public class OpenPGPKeyBasedEncryptor implements Encryptor {
 
     @Override
     public StreamCallback getEncryptionCallback() throws Exception {
-        return new OpenPGPEncryptCallback(algorithm, provider, keyring, userId, filename);
+        return new OpenPGPEncryptCallback(algorithm, cipher, provider, keyring, userId, filename);
     }
 
     @Override
@@ -314,13 +316,15 @@ public class OpenPGPKeyBasedEncryptor implements Encryptor {
     private static class OpenPGPEncryptCallback implements StreamCallback {
 
         private String algorithm;
+        private Integer cipher;
         private String provider;
         private String publicKeyring;
         private String userId;
         private String filename;
 
-        OpenPGPEncryptCallback(final String algorithm, final String provider, final String keyring, final String userId, final String filename) {
+        OpenPGPEncryptCallback(final String algorithm, final Integer cipher, final String provider, final String keyring, final String userId, final String filename) {
             this.algorithm = algorithm;
+            this.cipher = cipher;
             this.provider = provider;
             this.publicKeyring = keyring;
             this.userId = userId;
@@ -345,9 +349,8 @@ public class OpenPGPKeyBasedEncryptor implements Encryptor {
                 }
 
                 try {
-                    // TODO: Refactor internal symmetric encryption algorithm to be customizable
                     PGPEncryptedDataGenerator encryptedDataGenerator = new PGPEncryptedDataGenerator(
-                            new JcePGPDataEncryptorBuilder(PGPEncryptedData.AES_128).setWithIntegrityPacket(true).setSecureRandom(new SecureRandom()).setProvider(provider));
+                            new JcePGPDataEncryptorBuilder(cipher).setWithIntegrityPacket(true).setSecureRandom(new SecureRandom()).setProvider(provider));
 
                     encryptedDataGenerator.addMethod(new JcePublicKeyKeyEncryptionMethodGenerator(publicKey).setProvider(provider));
 

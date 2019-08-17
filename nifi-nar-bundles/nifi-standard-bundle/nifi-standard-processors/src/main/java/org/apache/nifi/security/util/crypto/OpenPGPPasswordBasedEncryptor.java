@@ -25,7 +25,6 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.StreamCallback;
 import org.apache.nifi.processors.standard.EncryptContent.Encryptor;
 import org.bouncycastle.openpgp.PGPCompressedData;
-import org.bouncycastle.openpgp.PGPEncryptedData;
 import org.bouncycastle.openpgp.PGPEncryptedDataList;
 import org.bouncycastle.openpgp.PGPException;
 import org.bouncycastle.openpgp.PGPLiteralData;
@@ -47,17 +46,19 @@ public class OpenPGPPasswordBasedEncryptor implements Encryptor {
     private String provider;
     private char[] password;
     private String filename;
+    private Integer cipher;
 
-    public OpenPGPPasswordBasedEncryptor(final String algorithm, final String provider, final char[] passphrase, final String filename) {
+    public OpenPGPPasswordBasedEncryptor(final String algorithm, final Integer cipher, final String provider, final char[] passphrase, final String filename) {
         this.algorithm = algorithm;
         this.provider = provider;
         this.password = passphrase;
         this.filename = filename;
+        this.cipher = cipher;
     }
 
     @Override
     public StreamCallback getEncryptionCallback() throws Exception {
-        return new OpenPGPEncryptCallback(algorithm, provider, password, filename);
+        return new OpenPGPEncryptCallback(algorithm, cipher, provider, password, filename);
     }
 
     @Override
@@ -136,19 +137,21 @@ public class OpenPGPPasswordBasedEncryptor implements Encryptor {
         private String provider;
         private char[] password;
         private String filename;
+        private Integer cipher;
 
-        OpenPGPEncryptCallback(final String algorithm, final String provider, final char[] password, final String filename) {
+        OpenPGPEncryptCallback(final String algorithm, final Integer cipher, final String provider, final char[] password, final String filename) {
             this.algorithm = algorithm;
             this.provider = provider;
             this.password = password;
             this.filename = filename;
+            this.cipher = cipher;
         }
 
         @Override
         public void process(InputStream in, OutputStream out) throws IOException {
             try {
                 PGPKeyEncryptionMethodGenerator encryptionMethodGenerator = new JcePBEKeyEncryptionMethodGenerator(password).setProvider(provider);
-                org.apache.nifi.processors.standard.util.PGPUtil.encrypt(in, out, algorithm, provider, PGPEncryptedData.AES_128, filename, encryptionMethodGenerator);
+                org.apache.nifi.processors.standard.util.PGPUtil.encrypt(in, out, algorithm, provider, cipher, filename, encryptionMethodGenerator);
             } catch (Exception e) {
                 throw new ProcessException(e.getMessage());
             }
