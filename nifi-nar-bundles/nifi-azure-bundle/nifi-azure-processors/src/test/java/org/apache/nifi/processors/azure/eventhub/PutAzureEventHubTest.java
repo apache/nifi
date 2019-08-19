@@ -23,6 +23,8 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.concurrent.ScheduledExecutorService;
+
 public class PutAzureEventHubTest {
     private static final String namespaceName = "nifi-azure-hub";
     private static final String eventHubName = "get-test";
@@ -51,13 +53,10 @@ public class PutAzureEventHubTest {
     }
     @Test
     public void verifyRelationships(){
-
         assert(2 == processor.getRelationships().size());
-
     }
     @Test
     public void testNoFlow() {
-
         setUpStandardTestConfig();
         testRunner.run(1, true);
         testRunner.assertAllFlowFilesTransferred(PutAzureEventHub.REL_SUCCESS, 0);
@@ -65,7 +64,6 @@ public class PutAzureEventHubTest {
     }
     @Test
     public void testNormalFlow(){
-
         setUpStandardTestConfig();
         String flowFileContents = "TEST MESSAGE";
         testRunner.enqueue(flowFileContents);
@@ -76,7 +74,6 @@ public class PutAzureEventHubTest {
     }
     @Test
     public void testSendMessageThrows() {
-
         PutAzureEventHubTest.OnSendThrowingMockPutAzureEventHub throwingProcessor = new PutAzureEventHubTest.OnSendThrowingMockPutAzureEventHub();
         testRunner = TestRunners.newTestRunner(throwingProcessor);
         setUpStandardTestConfig();
@@ -89,7 +86,6 @@ public class PutAzureEventHubTest {
 
     @Test(expected = AssertionError.class)
     public void testBadConnectionString() {
-
         PutAzureEventHubTest.BogusConnectionStringMockPutAzureEventHub badConnectionStringProcessor = new PutAzureEventHubTest.BogusConnectionStringMockPutAzureEventHub();
         testRunner = TestRunners.newTestRunner(badConnectionStringProcessor);
         setUpStandardTestConfig();
@@ -97,14 +93,18 @@ public class PutAzureEventHubTest {
     }
 
     private static class MockPutAzureEventHub extends PutAzureEventHub{
-
         byte[] receivedBuffer = null;
         byte[] getReceivedBuffer(){
             return receivedBuffer;
         }
 
         @Override
-        protected EventHubClient createEventHubClient(final String namespace, final String eventHubName, final String policyName, final String policyKey) throws ProcessException {
+        protected EventHubClient createEventHubClient(
+            final String namespace,
+            final String eventHubName,
+            final String policyName,
+            final String policyKey,
+            final ScheduledExecutorService executor) throws ProcessException {
             return null;
         }
 
@@ -115,12 +115,16 @@ public class PutAzureEventHubTest {
     }
     private static class OnSendThrowingMockPutAzureEventHub extends PutAzureEventHub{
         @Override
-        protected EventHubClient createEventHubClient(final String namespace, final String eventHubName, final String policyName, final String policyKey) throws ProcessException {
+        protected EventHubClient createEventHubClient(
+            final String namespace,
+            final String eventHubName,
+            final String policyName,
+            final String policyKey,
+            final ScheduledExecutorService executor) throws ProcessException {
             return null;
         }
     }
     private static class BogusConnectionStringMockPutAzureEventHub extends PutAzureEventHub{
-
         @Override
         protected String getConnectionString(final String namespace, final String eventHubName, final String policyName, final String policyKey){
             return "Bogus Connection String";

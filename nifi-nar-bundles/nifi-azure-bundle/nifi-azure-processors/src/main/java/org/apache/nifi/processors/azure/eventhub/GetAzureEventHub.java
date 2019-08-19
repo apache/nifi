@@ -16,11 +16,35 @@
  */
 package org.apache.nifi.processors.azure.eventhub;
 
+import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
+import com.microsoft.azure.eventhubs.ConnectionStringBuilder;
 import com.microsoft.azure.eventhubs.EventData;
 import com.microsoft.azure.eventhubs.EventHubClient;
+import com.microsoft.azure.eventhubs.EventHubException;
+import com.microsoft.azure.eventhubs.EventPosition;
 import com.microsoft.azure.eventhubs.PartitionReceiver;
-import com.microsoft.azure.servicebus.ConnectionStringBuilder;
-import com.microsoft.azure.servicebus.ServiceBusException;
+import com.microsoft.azure.eventhubs.impl.EventHubClientImpl;
+
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -40,27 +64,9 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.util.StopWatch;
 
-import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.time.Duration;
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
-
 @Tags({"azure", "microsoft", "cloud", "eventhub", "events", "streaming", "streams"})
-@CapabilityDescription("Receives messages from a Microsoft Azure Event Hub, writing the contents of the Azure message to the content of the FlowFile")
+@CapabilityDescription("Receives messages from a Microsoft Azure Event Hub, writing the contents of the Azure message to the content of the FlowFile. "
+        + "Note: Please be aware that this processor creates a thread pool of 4 threads for Event Hub Client. They will be extra threads other than the concurrent tasks scheduled for this processor.")
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @WritesAttributes({
         @WritesAttribute(attribute = "eventhub.enqueued.timestamp", description = "The time (in milliseconds since epoch, UTC) at which the message was enqueued in the Azure Event Hub"),
@@ -70,7 +76,6 @@ import java.util.concurrent.TimeUnit;
         @WritesAttribute(attribute = "eventhub.partition", description = "The name of the Azure Partition from which the message was pulled")
 })
 public class GetAzureEventHub extends AbstractProcessor {
-
     static final PropertyDescriptor EVENT_HUB_NAME = new PropertyDescriptor.Builder()
             .name("Event Hub Name")
             .description("The name of the Azure Event Hub to pull messages from")
@@ -128,9 +133,9 @@ public class GetAzureEventHub extends AbstractProcessor {
 
     static final PropertyDescriptor ENQUEUE_TIME = new PropertyDescriptor.Builder()
             .name("Event Hub Message Enqueue Time")
-            .description("A timestamp (ISO-8061 Instant) formatted as YYYY-MM-DDThhmmss.sssZ (2016-01-01T01:01:01.000Z) from which messages "
+            .description("A timestamp (ISO-8601 Instant) formatted as YYYY-MM-DDThhmmss.sssZ (2016-01-01T01:01:01.000Z) from which messages "
                     + "should have been enqueued in the EventHub to start reading from")
-            .addValidator(StandardValidators.ISO8061_INSTANT_VALIDATOR)
+            .addValidator(StandardValidators.ISO8601_INSTANT_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .required(false)
             .build();
@@ -198,16 +203,16 @@ public class GetAzureEventHub extends AbstractProcessor {
         return propertyDescriptors;
     }
 
-
-    protected void setupReceiver(final String connectionString) throws ProcessException {
+    protected void setupReceiver(final String connectionString, final ScheduledExecutorService executor) throws ProcessException {
         try {
-            eventHubClient = EventHubClient.createFromConnectionString(connectionString).get();
-        } catch (InterruptedException | ExecutionException | IOException | ServiceBusException e) {
+            EventHubClientImpl.USER_AGENT = "ApacheNiFi-azureeventhub/2.3.2";
+            eventHubClient = EventHubClient.createSync(connectionString, executor);
+        } catch (IOException | EventHubException e) {
             throw new ProcessException(e);
         }
     }
 
-    PartitionReceiver getReceiver(final ProcessContext context, final String partitionId) throws IOException, ServiceBusException, ExecutionException, InterruptedException {
+    PartitionReceiver getReceiver(final ProcessContext context, final String partitionId) throws IOException, EventHubException, ExecutionException, InterruptedException {
         PartitionReceiver existingReceiver = partitionToReceiverMap.get(partitionId);
         if (existingReceiver != null) {
             return existingReceiver;
@@ -232,7 +237,8 @@ public class GetAzureEventHub extends AbstractProcessor {
             final PartitionReceiver receiver = eventHubClient.createReceiver(
                     consumerGroupName,
                     partitionId,
-                    configuredEnqueueTime == null ? Instant.now() : configuredEnqueueTime).get();
+                    EventPosition.fromEnqueuedTime(
+                            configuredEnqueueTime == null ? Instant.now() : configuredEnqueueTime)).get();
 
             receiver.setReceiveTimeout(receiverFetchTimeout == null ? Duration.ofMillis(60000) : receiverFetchTimeout);
             partitionToReceiverMap.put(partitionId, receiver);
@@ -257,7 +263,7 @@ public class GetAzureEventHub extends AbstractProcessor {
         try {
             receiver = getReceiver(context, partitionId);
             return receiver.receive(receiverFetchSize).get();
-        } catch (final IOException | ServiceBusException | ExecutionException | InterruptedException e) {
+        } catch (final EventHubException | IOException | ExecutionException | InterruptedException e) {
             throw new ProcessException(e);
         }
     }
@@ -275,10 +281,13 @@ public class GetAzureEventHub extends AbstractProcessor {
             if (null != eventHubClient) {
                 eventHubClient.closeSync();
             }
-        } catch (final ServiceBusException e) {
+            executor.shutdown();
+        } catch (final EventHubException e) {
             throw new ProcessException(e);
         }
     }
+
+    private ScheduledExecutorService executor;
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) throws ProcessException, URISyntaxException {
@@ -293,8 +302,6 @@ public class GetAzureEventHub extends AbstractProcessor {
         final String namespace = context.getProperty(NAMESPACE).getValue();
         final String eventHubName = context.getProperty(EVENT_HUB_NAME).getValue();
         final String serviceBusEndpoint = context.getProperty(SERVICE_BUS_ENDPOINT).getValue();
-
-
 
         if(context.getProperty(ENQUEUE_TIME).isSet()) {
             configuredEnqueueTime = Instant.parse(context.getProperty(ENQUEUE_TIME).toString());
@@ -312,10 +319,11 @@ public class GetAzureEventHub extends AbstractProcessor {
             receiverFetchTimeout = null;
         }
 
-        final String connectionString = new ConnectionStringBuilder(new URI("amqps://"+namespace+serviceBusEndpoint), eventHubName, policyName, policyKey).toString();
-        setupReceiver(connectionString);
+        executor = Executors.newScheduledThreadPool(4);
+        final String connectionString = new ConnectionStringBuilder().setEndpoint(
+            new URI("amqps://"+namespace+serviceBusEndpoint)).setEventHubName(eventHubName).setSasKeyName(policyName).setSasKey(policyKey).toString();
+        setupReceiver(connectionString, executor);
     }
-
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
@@ -370,5 +378,4 @@ public class GetAzureEventHub extends AbstractProcessor {
             partitionIds.offer(partitionId);
         }
     }
-
 }
