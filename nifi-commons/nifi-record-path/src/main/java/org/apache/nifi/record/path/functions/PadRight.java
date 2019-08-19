@@ -37,6 +37,6 @@ public class PadRight extends Padding {
 
     @Override
     protected String doPad(String inputString, int desiredLength, String pad) {
-        return StringUtils.padRight(inputString, desiredLength, pad);
+        return StringUtils.rightPad(inputString, desiredLength, pad);
     }
 }
