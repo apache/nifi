@@ -20,7 +20,8 @@
     <artifactId>nifi-azure-processors</artifactId>
     <packaging>jar</packaging>
     <properties>
-        <azure-eventhubs.version>0.14.4</azure-eventhubs.version>
+        <azure-eventhubs.version>2.3.2</azure-eventhubs.version>
+        <azure-eventhubs-eph.version>2.5.2</azure-eventhubs-eph.version>
     </properties>
     <dependencies>
         <dependency>
@@ -57,7 +58,7 @@
         <dependency>
             <groupId>com.microsoft.azure</groupId>
             <artifactId>azure-eventhubs-eph</artifactId>
-            <version>${azure-eventhubs.version}</version>
+            <version>${azure-eventhubs-eph.version}</version>
         </dependency>
         <dependency>
             <groupId>com.microsoft.azure</groupId>

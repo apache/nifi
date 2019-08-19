@@ -23,6 +23,8 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.concurrent.ScheduledExecutorService;
+
 public class PutAzureEventHubTest {
     private static final String namespaceName = "nifi-azure-hub";
     private static final String eventHubName = "get-test";
@@ -104,7 +106,7 @@ public class PutAzureEventHubTest {
         }
 
         @Override
-        protected EventHubClient createEventHubClient(final String namespace, final String eventHubName, final String policyName, final String policyKey) throws ProcessException {
+        protected EventHubClient createEventHubClient(final String namespace, final String eventHubName, final String policyName, final String policyKey, final ScheduledExecutorService executor ) throws ProcessException {
             return null;
         }
 
@@ -115,7 +117,7 @@ public class PutAzureEventHubTest {
     }
     private static class OnSendThrowingMockPutAzureEventHub extends PutAzureEventHub{
         @Override
-        protected EventHubClient createEventHubClient(final String namespace, final String eventHubName, final String policyName, final String policyKey) throws ProcessException {
+        protected EventHubClient createEventHubClient(final String namespace, final String eventHubName, final String policyName, final String policyKey, final ScheduledExecutorService executor) throws ProcessException {
             return null;
         }
     }

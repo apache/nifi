@@ -23,8 +23,8 @@ import com.microsoft.azure.eventprocessorhost.EventProcessorOptions;
 import com.microsoft.azure.eventprocessorhost.IEventProcessor;
 import com.microsoft.azure.eventprocessorhost.IEventProcessorFactory;
 import com.microsoft.azure.eventprocessorhost.PartitionContext;
-import com.microsoft.azure.servicebus.ConnectionStringBuilder;
-import com.microsoft.azure.servicebus.ReceiverDisconnectedException;
+import com.microsoft.azure.eventhubs.ConnectionStringBuilder;
+import com.microsoft.azure.eventhubs.ReceiverDisconnectedException;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -606,9 +606,9 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
         final EventProcessorOptions options = new EventProcessorOptions();
         final String initialOffset = context.getProperty(INITIAL_OFFSET).getValue();
         if (INITIAL_OFFSET_START_OF_STREAM.getValue().equals(initialOffset)) {
-            options.setInitialOffsetProvider(options.new StartOfStreamInitialOffsetProvider());
+            options.setInitialPositionProvider(options.new StartOfStreamInitialPositionProvider());
         } else if (INITIAL_OFFSET_END_OF_STREAM.getValue().equals(initialOffset)){
-            options.setInitialOffsetProvider(options.new EndOfStreamInitialOffsetProvider());
+            options.setInitialPositionProvider(options.new EndOfStreamInitialPositionProvider());
         } else {
             throw new IllegalArgumentException("Initial offset " + initialOffset + " is not allowed.");
         }
@@ -629,7 +629,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
 
         final String storageConnectionString = String.format(FORMAT_STORAGE_CONNECTION_STRING, storageAccountName, storageAccountKey);
 
-        final ConnectionStringBuilder eventHubConnectionString = new ConnectionStringBuilder(namespaceName, eventHubName, sasName, sasKey);
+        final ConnectionStringBuilder eventHubConnectionString = new ConnectionStringBuilder().setNamespaceName(namespaceName).setEventHubName( eventHubName).setSasKeyName(sasName).setSasKey(sasKey);
 
         eventProcessorHost = new EventProcessorHost(consumerHostname, eventHubName, consumerGroupName, eventHubConnectionString.toString(), storageConnectionString, containerName);
 

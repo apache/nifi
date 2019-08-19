@@ -19,8 +19,8 @@ package org.apache.nifi.processors.azure.eventhub;
 import com.microsoft.azure.eventhubs.EventData;
 import com.microsoft.azure.eventhubs.EventData.SystemProperties;
 import com.microsoft.azure.eventhubs.PartitionReceiver;
-import com.microsoft.azure.servicebus.ServiceBusException;
-import com.microsoft.azure.servicebus.amqp.AmqpConstants;
+import com.microsoft.azure.eventhubs.EventHubException;
+import com.microsoft.azure.eventhubs.impl.AmqpConstants;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -31,6 +31,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ScheduledExecutorService;
 
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.nifi.processor.ProcessContext;
@@ -158,11 +159,11 @@ public class GetAzureEventHubTest {
         boolean received = true;
 
         @Override
-        protected void setupReceiver(final String connectionString) throws ProcessException{
+        protected void setupReceiver(final String connectionString, final ScheduledExecutorService executor) throws ProcessException{
             //do nothing
         }
         @Override
-        protected PartitionReceiver getReceiver(final ProcessContext context, final String partitionId) throws IOException, ServiceBusException, ExecutionException, InterruptedException {
+        protected PartitionReceiver getReceiver(final ProcessContext context, final String partitionId) throws IOException, EventHubException, ExecutionException, InterruptedException {
             if(getReceiverThrow){
                 throw new IOException("Could not create receiver");
             }
@@ -179,7 +180,7 @@ public class GetAzureEventHubTest {
             }
             final LinkedList<EventData> receivedEvents = new LinkedList<>();
             for(int i = 0; i < 10; i++){
-                EventData eventData = new EventData(String.format("test event number: %d", i).getBytes());
+                EventData eventData = EventData.create(String.format("test event number: %d", i).getBytes());
                 if (received) {
                     HashMap<String, Object> properties = new HashMap<>();
                     properties.put(AmqpConstants.PARTITION_KEY_ANNOTATION_NAME, PARTITION_KEY_VALUE);
@@ -205,9 +206,8 @@ public class GetAzureEventHubTest {
 
     public static class MockGetAzureEventHubNoPartitions extends GetAzureEventHub{
 
-
         @Override
-        protected void setupReceiver(final String connectionString) throws ProcessException{
+        protected void setupReceiver(final String connectionString, final ScheduledExecutorService executor) throws ProcessException{
             //do nothing
         }
 

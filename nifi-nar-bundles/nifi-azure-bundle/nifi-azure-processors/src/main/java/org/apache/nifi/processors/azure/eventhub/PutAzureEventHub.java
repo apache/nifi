@@ -16,11 +16,10 @@
  */
 package org.apache.nifi.processors.azure.eventhub;
 
-import com.microsoft.azure.eventhubs.EventData;
-import com.microsoft.azure.eventhubs.EventHubClient;
-import com.microsoft.azure.servicebus.ConnectionStringBuilder;
-import com.microsoft.azure.servicebus.IllegalConnectionStringFormatException;
-import com.microsoft.azure.servicebus.ServiceBusException;
+import com.microsoft.azure.eventhubs.*;
+import com.microsoft.azure.eventhubs.ConnectionStringBuilder;
+import com.microsoft.azure.eventhubs.IllegalConnectionStringFormatException;
+import com.microsoft.azure.eventhubs.EventHubException;
 import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -48,10 +47,7 @@ import java.util.Set;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Collections;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 
 @SupportsBatching
@@ -131,6 +127,8 @@ public class PutAzureEventHub extends AbstractProcessor {
         return propertyDescriptors;
     }
 
+    private ScheduledExecutorService executor;
+
     @OnScheduled
     public final void setupClient(final ProcessContext context) throws ProcessException{
         final String policyName = context.getProperty(ACCESS_POLICY).getValue();
@@ -138,11 +136,11 @@ public class PutAzureEventHub extends AbstractProcessor {
         final String namespace = context.getProperty(NAMESPACE).getValue();
         final String eventHubName = context.getProperty(EVENT_HUB_NAME).getValue();
 
-
         final int numThreads = context.getMaxConcurrentTasks();
         senderQueue = new LinkedBlockingQueue<>(numThreads);
+        executor = Executors.newScheduledThreadPool(numThreads);
         for (int i = 0; i < numThreads; i++) {
-            final EventHubClient client = createEventHubClient(namespace, eventHubName, policyName, policyKey);
+            final EventHubClient client = createEventHubClient(namespace, eventHubName, policyName, policyKey, executor);
             if(null != client) {
                 senderQueue.offer(client);
             }
@@ -183,25 +181,25 @@ public class PutAzureEventHub extends AbstractProcessor {
 
     }
 
-    protected EventHubClient createEventHubClient(final String namespace, final String eventHubName, final String policyName, final String policyKey) throws ProcessException{
+    protected EventHubClient createEventHubClient(final String namespace, final String eventHubName, final String policyName, final String policyKey, final ScheduledExecutorService executor) throws ProcessException{
 
         try {
-            return EventHubClient.createFromConnectionString(getConnectionString(namespace, eventHubName, policyName, policyKey)).get();
-        } catch (InterruptedException | ExecutionException | IOException | ServiceBusException | IllegalConnectionStringFormatException e) {
+            return EventHubClient.createSync(getConnectionString(namespace, eventHubName, policyName, policyKey), executor);
+        } catch (IOException | EventHubException | IllegalConnectionStringFormatException e) {
             getLogger().error("Failed to create EventHubClient due to {}", e);
             throw new ProcessException(e);
         }
     }
     protected String getConnectionString(final String namespace, final String eventHubName, final String policyName, final String policyKey){
-        return new ConnectionStringBuilder(namespace, eventHubName, policyName, policyKey).toString();
+        return new ConnectionStringBuilder().setNamespaceName(namespace).setEventHubName(eventHubName).setSasKeyName(policyName).setSasKey(policyKey).toString();
     }
     protected void sendMessage(final byte[] buffer) throws ProcessException {
 
         final EventHubClient sender = senderQueue.poll();
         if(null != sender) {
             try {
-                sender.sendSync(new EventData(buffer));
-            } catch (final ServiceBusException sbe) {
+                sender.sendSync(EventData.create(buffer));
+            } catch (final EventHubException sbe) {
                 throw new ProcessException("Caught exception trying to send message to eventbus", sbe);
             } finally {
                 senderQueue.offer(sender);

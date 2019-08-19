@@ -102,7 +102,7 @@ public class TestConsumeAzureEventHub {
     @Test
     public void testReceiveOne() throws Exception {
 
-        final Iterable<EventData> eventDataList = Arrays.asList(new EventData("one".getBytes(StandardCharsets.UTF_8)));
+        final Iterable<EventData> eventDataList = Arrays.asList(EventData.create("one".getBytes(StandardCharsets.UTF_8)));
         eventProcessor.onEvents(partitionContext, eventDataList);
 
         processSession.assertCommitted();
@@ -126,8 +126,8 @@ public class TestConsumeAzureEventHub {
     public void testReceiveTwo() throws Exception {
 
         final Iterable<EventData> eventDataList = Arrays.asList(
-                new EventData("one".getBytes(StandardCharsets.UTF_8)),
-                new EventData("two".getBytes(StandardCharsets.UTF_8))
+                EventData.create("one".getBytes(StandardCharsets.UTF_8)),
+                EventData.create("two".getBytes(StandardCharsets.UTF_8))
         );
         eventProcessor.onEvents(partitionContext, eventDataList);
 
@@ -147,8 +147,8 @@ public class TestConsumeAzureEventHub {
     public void testCheckpointFailure() throws Exception {
 
         final Iterable<EventData> eventDataList = Arrays.asList(
-                new EventData("one".getBytes(StandardCharsets.UTF_8)),
-                new EventData("two".getBytes(StandardCharsets.UTF_8))
+                EventData.create("one".getBytes(StandardCharsets.UTF_8)),
+                EventData.create("two".getBytes(StandardCharsets.UTF_8))
         );
         doThrow(new RuntimeException("Failed to create a checkpoint.")).when(partitionContext).checkpoint();
         eventProcessor.onEvents(partitionContext, eventDataList);
@@ -246,8 +246,8 @@ public class TestConsumeAzureEventHub {
     public void testReceiveRecords() throws Exception {
 
         final List<EventData> eventDataList = Arrays.asList(
-                new EventData("one".getBytes(StandardCharsets.UTF_8)),
-                new EventData("two".getBytes(StandardCharsets.UTF_8))
+                EventData.create("one".getBytes(StandardCharsets.UTF_8)),
+                EventData.create("two".getBytes(StandardCharsets.UTF_8))
         );
 
         setupRecordReader(eventDataList);
@@ -276,10 +276,10 @@ public class TestConsumeAzureEventHub {
     public void testReceiveRecordReaderFailure() throws Exception {
 
         final List<EventData> eventDataList = Arrays.asList(
-                new EventData("one".getBytes(StandardCharsets.UTF_8)),
-                new EventData("two".getBytes(StandardCharsets.UTF_8)),
-                new EventData("three".getBytes(StandardCharsets.UTF_8)),
-                new EventData("four".getBytes(StandardCharsets.UTF_8))
+                EventData.create("one".getBytes(StandardCharsets.UTF_8)),
+                EventData.create("two".getBytes(StandardCharsets.UTF_8)),
+                EventData.create("three".getBytes(StandardCharsets.UTF_8)),
+                EventData.create("four".getBytes(StandardCharsets.UTF_8))
         );
 
         setupRecordReader(eventDataList, 2, null);
@@ -321,7 +321,7 @@ public class TestConsumeAzureEventHub {
     public void testReceiveAllRecordFailure() throws Exception {
 
         final List<EventData> eventDataList = Collections.singletonList(
-                new EventData("one".getBytes(StandardCharsets.UTF_8))
+                EventData.create("one".getBytes(StandardCharsets.UTF_8))
         );
 
         setupRecordReader(eventDataList, 0, null);
@@ -355,10 +355,10 @@ public class TestConsumeAzureEventHub {
     public void testReceiveRecordWriterFailure() throws Exception {
 
         final List<EventData> eventDataList = Arrays.asList(
-                new EventData("one".getBytes(StandardCharsets.UTF_8)),
-                new EventData("two".getBytes(StandardCharsets.UTF_8)),
-                new EventData("three".getBytes(StandardCharsets.UTF_8)),
-                new EventData("four".getBytes(StandardCharsets.UTF_8))
+                EventData.create("one".getBytes(StandardCharsets.UTF_8)),
+                EventData.create("two".getBytes(StandardCharsets.UTF_8)),
+                EventData.create("three".getBytes(StandardCharsets.UTF_8)),
+                EventData.create("four".getBytes(StandardCharsets.UTF_8))
         );
 
         setupRecordReader(eventDataList, -1, "two");
