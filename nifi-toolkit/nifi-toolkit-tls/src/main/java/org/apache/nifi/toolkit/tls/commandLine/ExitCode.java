@@ -67,6 +67,11 @@ public enum ExitCode {
     ERROR_TOKEN_ARG_EMPTY,
 
     /**
+     * Token does not meet minimum size of 16 bytes
+     */
+    ERROR_TOKEN_ARG_TOO_SHORT,
+
+    /**
      * Unable to read nifi.properties
      */
     ERROR_READING_NIFI_PROPERTIES,
