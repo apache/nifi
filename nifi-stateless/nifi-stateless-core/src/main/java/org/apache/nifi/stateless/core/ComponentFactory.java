@@ -36,17 +36,11 @@ import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.registry.flow.BatchSize;
-import org.apache.nifi.registry.flow.VersionedControllerService;
-import org.apache.nifi.registry.flow.VersionedProcessor;
-import org.apache.nifi.registry.flow.VersionedRemoteGroupPort;
-import org.apache.nifi.registry.flow.VersionedRemoteProcessGroup;
+import org.apache.nifi.stateless.core.compatibility.StatelessControllerService;
+import org.apache.nifi.stateless.core.compatibility.StatelessProcessor;
+import org.apache.nifi.stateless.core.compatibility.StatelessRemoteProcessGroupPort;
+import org.apache.nifi.stateless.core.compatibility.StatelessRemoteProcessGroup;
 import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
-import org.apache.nifi.web.api.dto.BatchSettingsDTO;
-import org.apache.nifi.web.api.dto.BundleDTO;
-import org.apache.nifi.web.api.dto.ControllerServiceDTO;
-import org.apache.nifi.web.api.dto.ProcessorDTO;
-import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
-import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,52 +63,24 @@ public class ComponentFactory {
         this.extensionManager = extensionManager;
     }
 
-
-    public StatelessProcessorWrapper createProcessor(final VersionedProcessor versionedProcessor, final boolean materializeContent, final StatelessControllerServiceLookup controllerServiceLookup,
-                                                     final VariableRegistry variableRegistry, final Set<URL> classpathUrls, final ParameterContext parameterContext)
+    public StatelessProcessorWrapper createProcessor(final StatelessProcessor statelessProcessor, final boolean materializeContent,
+                                                     final StatelessControllerServiceLookup controllerServiceLookup, final VariableRegistry variableRegistry,
+                                                     final Set<URL> classpathUrls, final ParameterContext parameterContext)
             throws ProcessorInstantiationException {
 
-        final String type = versionedProcessor.getType();
-        final String identifier = versionedProcessor.getIdentifier();
-        final Map<String, String> properties = versionedProcessor.getProperties();
-        final String annotationData = versionedProcessor.getAnnotationData();
-        final Set<String> autoTerminatedRelationships = versionedProcessor.getAutoTerminatedRelationships();
+        final String type = statelessProcessor.getType();
+        final String identifier = statelessProcessor.getId();
+        final Map<String, String> properties = statelessProcessor.getProperties();
+        final String annotationData = statelessProcessor.getAnnotationData();
+        final Set<String> autoTerminatedRelationships = statelessProcessor.getAutoTerminatedRelationships();
 
-        final Bundle bundle = getAvailableBundle(versionedProcessor.getBundle(), type);
+        final Bundle bundle = getAvailableBundle(type, statelessProcessor.getBundleGroup(), statelessProcessor.getBundleArtifact(), statelessProcessor.getBundleVersion());
         if (bundle == null) {
             throw new IllegalStateException("Unable to find bundle for coordinate "
-                    + versionedProcessor.getBundle().getGroup() + ":"
-                    + versionedProcessor.getBundle().getArtifact() + ":"
-                    + versionedProcessor.getBundle().getVersion());
+                    + statelessProcessor.getBundleGroup() + ":"
+                    + statelessProcessor.getBundleArtifact() + ":"
+                    + statelessProcessor.getBundleVersion());
         }
-
-        return createProcessor(identifier, type, properties, autoTerminatedRelationships, annotationData, bundle, materializeContent, controllerServiceLookup, variableRegistry, classpathUrls, parameterContext);
-    }
-
-    public StatelessProcessorWrapper createProcessor(final ProcessorDTO processorDto, final boolean materializeContent, final StatelessControllerServiceLookup controllerServiceLookup,
-                                                     final VariableRegistry variableRegistry, final Set<URL> classpathUrls, final ParameterContext parameterContext)
-            throws ProcessorInstantiationException {
-
-        final String type = processorDto.getType();
-        final String identifier = processorDto.getId();
-        final Map<String, String> properties = processorDto.getConfig().getProperties();
-        final String annotationData = processorDto.getConfig().getAnnotationData();
-        final Set<String> autoTerminatedRelationships = processorDto.getConfig().getAutoTerminatedRelationships();
-
-        final Bundle bundle = getAvailableBundle(processorDto.getBundle(), type);
-        if (bundle == null) {
-            throw new IllegalStateException("Unable to find bundle for coordinate "
-                    + processorDto.getBundle().getGroup() + ":"
-                    + processorDto.getBundle().getArtifact() + ":"
-                    + processorDto.getBundle().getVersion());
-        }
-
-        return createProcessor(identifier, type, properties, autoTerminatedRelationships, annotationData, bundle, materializeContent, controllerServiceLookup, variableRegistry, classpathUrls, parameterContext);
-    }
-
-    private StatelessProcessorWrapper createProcessor(final String identifier, final String type, final Map<String, String> properties, final Set<String> autoTerminatedRelationships, final String annotationData, final Bundle bundle, final boolean materializeContent, final StatelessControllerServiceLookup controllerServiceLookup,
-                                                          final VariableRegistry variableRegistry, final Set<URL> classpathUrls, final ParameterContext parameterContext)
-            throws ProcessorInstantiationException {
 
         final ClassLoader ctxClassLoader = Thread.currentThread().getContextClassLoader();
         try {
@@ -138,7 +104,7 @@ public class ComponentFactory {
                         parameterContext, variableRegistry,componentLog);
 
                 if (!additionalClasspathUrls.isEmpty()) {
-                    return createProcessor(identifier, type, properties, autoTerminatedRelationships, annotationData, bundle, materializeContent, controllerServiceLookup, variableRegistry, additionalClasspathUrls, parameterContext);
+                    return createProcessor(statelessProcessor, materializeContent, controllerServiceLookup, variableRegistry, additionalClasspathUrls, parameterContext);
                 }
             }
 
@@ -195,44 +161,20 @@ public class ComponentFactory {
         return additionalUrls;
     }
 
-    public ControllerService createControllerService(final VersionedControllerService versionedControllerService, final VariableRegistry variableRegistry,
+    public ControllerService createControllerService(final StatelessControllerService statelessControllerService, final VariableRegistry variableRegistry, final Set<URL> classpathUrls,
                                                      final ControllerServiceLookup serviceLookup, final StateManager stateManager, final ParameterLookup parameterLookup) {
 
-        final String type = versionedControllerService.getType();
-        final String identifier = versionedControllerService.getIdentifier();
-        final Map<String, String> properties = versionedControllerService.getProperties();
+        final String type = statelessControllerService.getType();
+        final String identifier = statelessControllerService.getId();
+        final Map<String, String> properties = statelessControllerService.getProperties();
 
-        final Bundle bundle = getAvailableBundle(versionedControllerService.getBundle(), type);
+        final Bundle bundle = getAvailableBundle(type, statelessControllerService.getBundleGroup(), statelessControllerService.getBundleArtifact(), statelessControllerService.getBundleVersion());
         if (bundle == null) {
             throw new IllegalStateException("Unable to find bundle for coordinate "
-                    + versionedControllerService.getBundle().getGroup() + ":"
-                    + versionedControllerService.getBundle().getArtifact() + ":"
-                    + versionedControllerService.getBundle().getVersion());
+                    + statelessControllerService.getBundleGroup() + ":"
+                    + statelessControllerService.getBundleArtifact() + ":"
+                    + statelessControllerService.getBundleVersion());
         }
-
-        return createControllerService(identifier, type, properties, bundle, variableRegistry, null, serviceLookup, stateManager, parameterLookup);
-    }
-
-    public ControllerService createControllerService(final ControllerServiceDTO controllerService, final VariableRegistry variableRegistry,
-                                                     final ControllerServiceLookup serviceLookup, final StateManager stateManager, final ParameterLookup parameterLookup) {
-
-        final String type = controllerService.getType();
-        final String identifier = controllerService.getId();
-        final Map<String, String> properties = controllerService.getProperties();
-
-        final Bundle bundle = getAvailableBundle(controllerService.getBundle(), type);
-        if (bundle == null) {
-            throw new IllegalStateException("Unable to find bundle for coordinate "
-                    + controllerService.getBundle().getGroup() + ":"
-                    + controllerService.getBundle().getArtifact() + ":"
-                    + controllerService.getBundle().getVersion());
-        }
-
-        return createControllerService(identifier, type, properties, bundle, variableRegistry, null, serviceLookup, stateManager, parameterLookup);
-    }
-
-    private ControllerService createControllerService(String identifier, String type, Map<String, String> properties, Bundle bundle, final VariableRegistry variableRegistry, final Set<URL> classpathUrls,
-                                                          final ControllerServiceLookup serviceLookup, final StateManager stateManager, final ParameterLookup parameterLookup) {
 
         final ClassLoader ctxClassLoader = Thread.currentThread().getContextClassLoader();
         try {
@@ -256,7 +198,7 @@ public class ComponentFactory {
                         parameterLookup, variableRegistry, componentLog);
 
                 if (!additionalClasspathUrls.isEmpty()) {
-                    return createControllerService(identifier, type, properties, bundle, variableRegistry, additionalClasspathUrls, serviceLookup, stateManager, parameterLookup);
+                    return createControllerService(statelessControllerService, variableRegistry, additionalClasspathUrls, serviceLookup, stateManager, parameterLookup);
                 }
             }
 
@@ -268,14 +210,6 @@ public class ComponentFactory {
                 Thread.currentThread().setContextClassLoader(ctxClassLoader);
             }
         }
-    }
-
-    private Bundle getAvailableBundle(final org.apache.nifi.registry.flow.Bundle bundle, final String componentType) {
-        return getAvailableBundle(componentType, bundle.getGroup(), bundle.getArtifact(), bundle.getVersion());
-    }
-
-    private Bundle getAvailableBundle(final BundleDTO bundle, final String componentType) {
-        return getAvailableBundle(componentType, bundle.getGroup(), bundle.getArtifact(), bundle.getVersion());
     }
 
     private Bundle getAvailableBundle(final String componentType, String group, String artifact, String version) {
@@ -298,33 +232,27 @@ public class ComponentFactory {
         return possibleBundles.get(0);
     }
 
-    public StatelessRemoteOutputPort createStatelessRemoteOutputPort(final VersionedRemoteProcessGroup rpg, final VersionedRemoteGroupPort remotePort, final SSLContext sslContext) {
-        final String timeout = rpg.getCommunicationsTimeout();
-        final String remotePortName = remotePort.getName();
-        final String targetUris = rpg.getTargetUris();
-        final String transportProtocol = rpg.getTransportProtocol();
-        final Boolean useCompression = remotePort.isUseCompression();
-        final BatchSize batchSize = remotePort.getBatchSize();
-
-        return new StatelessRemoteOutputPort(timeout, remotePortName, targetUris, batchSize, transportProtocol, useCompression, sslContext);
-    }
-
-    public StatelessRemoteOutputPort createStatelessRemoteOutputPort(final RemoteProcessGroupDTO rpg, final RemoteProcessGroupPortDTO remotePort, final SSLContext sslContext) {
+    public StatelessRemoteInputPort createStatelessRemoteInputPort(final StatelessRemoteProcessGroup rpg,
+                                                                   final StatelessRemoteProcessGroupPort remotePort, final SSLContext sslContext) {
         final String timeout = rpg.getCommunicationsTimeout();
         final String remotePortName = remotePort.getName();
         final String targetUris = rpg.getTargetUris();
         final String transportProtocol = rpg.getTransportProtocol();
         final Boolean useCompression = remotePort.getUseCompression();
-        final BatchSize batchSize = toBatchSize(remotePort.getBatchSettings());
-
-        return new StatelessRemoteOutputPort(timeout, remotePortName, targetUris, batchSize, transportProtocol, useCompression, sslContext);
+        return new StatelessRemoteInputPort(remotePortName, timeout, targetUris, transportProtocol, useCompression, sslContext);
     }
 
-    private BatchSize toBatchSize(final BatchSettingsDTO batchSizeDto) {
+    public StatelessRemoteOutputPort createStatelessRemoteOutputPort(final StatelessRemoteProcessGroup rpg,
+                                                                     final StatelessRemoteProcessGroupPort remotePort, final SSLContext sslContext) {
+        final String timeout = rpg.getCommunicationsTimeout();
+        final String remotePortName = remotePort.getName();
+        final String targetUris = rpg.getTargetUris();
+        final String transportProtocol = rpg.getTransportProtocol();
+        final Boolean useCompression = remotePort.getUseCompression();
         final BatchSize batchSize = new BatchSize();
-        batchSize.setCount(batchSizeDto.getCount());
-        batchSize.setSize(batchSizeDto.getSize());
-        batchSize.setDuration(batchSizeDto.getDuration());
-        return batchSize;
+        batchSize.setDuration(remotePort.getBatchSizeDuration());
+        batchSize.setSize(remotePort.getBatchSizeSize());
+        batchSize.setCount(remotePort.getBatchSizeCount());
+        return new StatelessRemoteOutputPort(timeout, remotePortName, targetUris, batchSize, transportProtocol, useCompression, sslContext);
     }
 }

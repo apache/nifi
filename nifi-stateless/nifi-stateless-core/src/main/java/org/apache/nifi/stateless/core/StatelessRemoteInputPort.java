@@ -20,8 +20,6 @@ import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.stateless.bootstrap.InMemoryFlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.registry.flow.VersionedRemoteGroupPort;
-import org.apache.nifi.registry.flow.VersionedRemoteProcessGroup;
 import org.apache.nifi.remote.Transaction;
 import org.apache.nifi.remote.TransferDirection;
 import org.apache.nifi.remote.client.SiteToSiteClient;
@@ -29,8 +27,6 @@ import org.apache.nifi.remote.protocol.DataPacket;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.remote.util.StandardDataPacket;
 import org.apache.nifi.util.FormatUtils;
-import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
-import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
 
 import javax.net.ssl.SSLContext;
 import java.util.Collections;
@@ -57,40 +53,21 @@ public class StatelessRemoteInputPort extends AbstractStatelessComponent {
         }
     };
 
-    public StatelessRemoteInputPort(final VersionedRemoteProcessGroup rpg, final VersionedRemoteGroupPort remotePort, final SSLContext sslContext) {
-        final String timeout = rpg.getCommunicationsTimeout();
-        final long timeoutMillis = FormatUtils.getTimeDuration(timeout, TimeUnit.MILLISECONDS);
+    public StatelessRemoteInputPort(final String remotePortName, final String communicationTimeout, final String targetUris,
+                                    final String transportProtocol, final Boolean isUseCompression, final SSLContext sslContext) {
+        final long timeoutMillis = FormatUtils.getTimeDuration(communicationTimeout, TimeUnit.MILLISECONDS);
 
-        url = rpg.getTargetUris();
-        name = remotePort.getName();
-
-        client = new SiteToSiteClient.Builder()
-            .portName(remotePort.getName())
+        this.name = remotePortName;
+        this.url = targetUris;
+        this.client = new SiteToSiteClient.Builder()
+            .portName(remotePortName)
             .timeout(timeoutMillis, TimeUnit.MILLISECONDS)
-            .transportProtocol(SiteToSiteTransportProtocol.valueOf(rpg.getTransportProtocol()))
-            .url(rpg.getTargetUris())
-            .useCompression(remotePort.isUseCompression())
+            .transportProtocol(SiteToSiteTransportProtocol.valueOf(transportProtocol))
+            .url(targetUris)
+            .useCompression(isUseCompression)
             .sslContext(sslContext)
             .eventReporter(EventReporter.NO_OP)
             .build();
-    }
-
-    public StatelessRemoteInputPort(final RemoteProcessGroupDTO rpg, final RemoteProcessGroupPortDTO remotePort, final SSLContext sslContext) {
-        final String timeout = rpg.getCommunicationsTimeout();
-        final long timeoutMillis = FormatUtils.getTimeDuration(timeout, TimeUnit.MILLISECONDS);
-
-        url = rpg.getTargetUris();
-        name = remotePort.getName();
-
-        client = new SiteToSiteClient.Builder()
-                .portName(remotePort.getName())
-                .timeout(timeoutMillis, TimeUnit.MILLISECONDS)
-                .transportProtocol(SiteToSiteTransportProtocol.valueOf(rpg.getTransportProtocol()))
-                .url(rpg.getTargetUris())
-                .useCompression(remotePort.getUseCompression())
-                .sslContext(sslContext)
-                .eventReporter(EventReporter.NO_OP)
-                .build();
     }
 
     @Override

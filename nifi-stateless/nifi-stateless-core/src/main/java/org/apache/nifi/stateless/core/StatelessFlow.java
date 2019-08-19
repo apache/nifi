@@ -34,29 +34,25 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.registry.VariableDescriptor;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.registry.client.NiFiRegistryException;
-import org.apache.nifi.registry.flow.ConnectableComponent;
-import org.apache.nifi.registry.flow.VersionedConnection;
-import org.apache.nifi.registry.flow.VersionedControllerService;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
-import org.apache.nifi.registry.flow.VersionedPort;
 import org.apache.nifi.registry.flow.VersionedProcessGroup;
-import org.apache.nifi.registry.flow.VersionedProcessor;
-import org.apache.nifi.registry.flow.VersionedRemoteGroupPort;
-import org.apache.nifi.registry.flow.VersionedRemoteProcessGroup;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.stateless.bootstrap.ExtensionDiscovery;
 import org.apache.nifi.stateless.bootstrap.InMemoryFlowFile;
 import org.apache.nifi.stateless.bootstrap.RunnableFlow;
+import org.apache.nifi.stateless.core.compatibility.StatelessConnectable;
+import org.apache.nifi.stateless.core.compatibility.StatelessConnection;
+import org.apache.nifi.stateless.core.compatibility.StatelessControllerService;
+import org.apache.nifi.stateless.core.compatibility.StatelessPort;
+import org.apache.nifi.stateless.core.compatibility.StatelessProcessGroupDTO;
+import org.apache.nifi.stateless.core.compatibility.StatelessProcessGroup;
+import org.apache.nifi.stateless.core.compatibility.StatelessProcessor;
+import org.apache.nifi.stateless.core.compatibility.StatelessRemoteProcessGroupPort;
+import org.apache.nifi.stateless.core.compatibility.StatelessRemoteProcessGroup;
+import org.apache.nifi.stateless.core.compatibility.StatelessVersionedProcessGroup;
 import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.api.dto.ConnectableDTO;
-import org.apache.nifi.web.api.dto.ConnectionDTO;
-import org.apache.nifi.web.api.dto.ControllerServiceDTO;
-import org.apache.nifi.web.api.dto.PortDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
-import org.apache.nifi.web.api.dto.ProcessorDTO;
-import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
-import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
@@ -77,7 +73,6 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 import java.util.stream.Collectors;
-
 
 public class StatelessFlow implements RunnableFlow {
 
@@ -122,20 +117,22 @@ public class StatelessFlow implements RunnableFlow {
         this.componentFactory = null;
     }
 
-    public StatelessFlow(final ProcessGroupDTO flow, final ExtensionManager extensionManager, final VariableRegistry variableRegistry, final List<String> failureOutputPorts,
-                         final boolean materializeContent, final SSLContext sslContext, final ParameterContext parameterContext) throws ProcessorInstantiationException, InitializationException {
+    public StatelessFlow(final StatelessProcessGroup flow, final ExtensionManager extensionManager, final VariableRegistry variableRegistry, final List<String> failureOutputPorts,
+                         final boolean materializeContent, final SSLContext sslContext, final ParameterContext parameterContext)
+            throws ProcessorInstantiationException, InitializationException {
 
         this.componentFactory = new ComponentFactory(extensionManager);
 
-        final Map<String, ProcessorDTO> processors = findProcessorsRecursive(flow).stream()
-                .collect(Collectors.toMap(ProcessorDTO::getId, proc -> proc));
+        final Set<StatelessProcessor> processors = findProcessorsRecursive(flow);
+        final Map<String, StatelessProcessor> processorMap = processors.stream()
+                .collect(Collectors.toMap(StatelessProcessor::getId, proc-> proc));
 
-        final Map<String, RemoteProcessGroupDTO> rpgs = new HashMap<>();
-        final Map<String, RemoteProcessGroupPortDTO> remotePorts = new HashMap<>();
+        final Map<String, StatelessRemoteProcessGroup> rpgs = new HashMap<>();
+        final Map<String, StatelessRemoteProcessGroupPort> remotePorts = new HashMap<>();
         findRemoteGroupRecursive(flow, rpgs, remotePorts);
 
-        final Set<ConnectionDTO> connections = findConnectionsRecursive(flow);
-        final Set<PortDTO> inputPorts = flow.getContents().getInputPorts();
+        final Set<StatelessConnection> connections = findConnectionsRecursive(flow);
+        final Set<? extends StatelessPort> inputPorts = flow.getInputPorts();
 
         if (inputPorts.size() > 1) {
             throw new IllegalArgumentException("Only one input port per flow is allowed");
@@ -143,11 +140,11 @@ public class StatelessFlow implements RunnableFlow {
 
         final StatelessControllerServiceLookup serviceLookup = new StatelessControllerServiceLookup(parameterContext);
 
-        final Set<ControllerServiceDTO> controllerServices = flow.getContents().getControllerServices();
-        for (final ControllerServiceDTO controllerService : controllerServices) {
+        final Set<? extends StatelessControllerService> controllerServices = flow.getControllerServices();
+        for (final StatelessControllerService controllerService : controllerServices) {
             final StateManager stateManager = new StatelessStateManager();
 
-            final ControllerService service = componentFactory.createControllerService(controllerService, variableRegistry, serviceLookup, stateManager, parameterContext);
+            final ControllerService service = componentFactory.createControllerService(controllerService, variableRegistry, null, serviceLookup, stateManager, parameterContext);
             serviceLookup.addControllerService(service, controllerService.getName());
             serviceLookup.setControllerServiceAnnotationData(service, controllerService.getAnnotationData());
 
@@ -176,19 +173,19 @@ public class StatelessFlow implements RunnableFlow {
 
 
         final Map<String, StatelessComponent> componentMap = new HashMap<>();
-        for (final ConnectionDTO connection : connections) {
+        for (final StatelessConnection connection : connections) {
             boolean isInputPortConnection = false;
 
-            final ConnectableDTO source = connection.getSource();
-            final ConnectableDTO destination = connection.getDestination();
+            final StatelessConnectable source = connection.getSource();
+            final StatelessConnectable destination = connection.getDestination();
 
             StatelessComponent sourceComponent = null;
             if (componentMap.containsKey(source.getId())) {
                 sourceComponent = componentMap.get(source.getId());
             } else {
                 switch (source.getType()) {
-                    case "PROCESSOR":
-                        final ProcessorDTO processor = processors.get(source.getId());
+                    case PROCESSOR:
+                        final StatelessProcessor processor = processorMap.get(source.getId());
 
                         if (processor == null) {
                             throw new IllegalArgumentException("Unknown input processor. " + source.getId());
@@ -198,25 +195,25 @@ public class StatelessFlow implements RunnableFlow {
                         }
                         break;
 
-                    case "REMOTE_INPUT_PORT":
-                        throw new IllegalArgumentException("Unsupported source type: " + source.getType());
+                    case REMOTE_INPUT_PORT:
+                        throw new IllegalArgumentException("Unsupported source type: " + source.getId());
 
-                    case "REMOTE_OUTPUT_PORT":
-                        final RemoteProcessGroupPortDTO remotePort = remotePorts.get(source.getId());
-                        final RemoteProcessGroupDTO rpg = rpgs.get(remotePort.getGroupId());
+                    case REMOTE_OUTPUT_PORT:
+                        final StatelessRemoteProcessGroupPort remotePort = remotePorts.get(source.getId());
+                        final StatelessRemoteProcessGroup rpg = rpgs.get(remotePort.getGroupId());
 
                         sourceComponent = componentFactory.createStatelessRemoteOutputPort(rpg, remotePort, sslContext);
                         componentMap.put(source.getId(), sourceComponent);
                         break;
 
-                    case "OUTPUT_PORT":
+                    case OUTPUT_PORT:
 
-                    case "FUNNEL":
+                    case FUNNEL:
                         sourceComponent = new StatelessPassThroughComponent();
                         componentMap.put(source.getId(), sourceComponent);
                         break;
 
-                    case "INPUT_PORT":
+                    case INPUT_PORT:
                         if (flow.getId().equals(source.getGroupId())) {
                             isInputPortConnection = true;
                         } else {
@@ -229,11 +226,11 @@ public class StatelessFlow implements RunnableFlow {
 
             StatelessComponent destinationComponent = null;
             switch (destination.getType()) {
-                case "PROCESSOR":
+                case PROCESSOR:
                     if (componentMap.containsKey(destination.getId())) {
                         destinationComponent = componentMap.get(destination.getId());
                     } else {
-                        final ProcessorDTO processor = processors.get(destination.getId());
+                        final StatelessProcessor processor = processorMap.get(destination.getId());
                         if (processor == null) {
                             return;
                         }
@@ -244,23 +241,23 @@ public class StatelessFlow implements RunnableFlow {
                     }
                     break;
 
-                case "REMOTE_INPUT_PORT":
+                case REMOTE_INPUT_PORT:
                     if (componentMap.containsKey(destination.getId())) {
                         destinationComponent = componentMap.get(destination.getId());
                     } else {
-                        final RemoteProcessGroupPortDTO remotePort = remotePorts.get(destination.getId());
-                        final RemoteProcessGroupDTO rpg = rpgs.get(remotePort.getGroupId());
+                        final StatelessRemoteProcessGroupPort remotePort = remotePorts.get(destination.getId());
+                        final StatelessRemoteProcessGroup rpg = rpgs.get(remotePort.getGroupId());
 
-                        destinationComponent = new StatelessRemoteInputPort(rpg, remotePort, sslContext);
+                        destinationComponent = componentFactory.createStatelessRemoteInputPort(rpg, remotePort, sslContext);
                         destinationComponent.addParent(sourceComponent);
                         componentMap.put(destination.getId(), destinationComponent);
                     }
                     break;
 
-                case "REMOTE_OUTPUT_PORT":
+                case REMOTE_OUTPUT_PORT:
                     throw new IllegalArgumentException("Unsupported destination type: " + destination.getType());
 
-                case "OUTPUT_PORT":
+                case OUTPUT_PORT:
                     if (isInputPortConnection) {
                         throw new IllegalArgumentException("Input ports can not be mapped directly to output ports...");
                     }
@@ -277,8 +274,8 @@ public class StatelessFlow implements RunnableFlow {
                     }
 
                     // Intentionally let the flow drop-through, and treat the same as an output port or funnel.
-                case "INPUT_PORT":
-                case "FUNNEL":
+                case INPUT_PORT:
+                case FUNNEL:
                     if (componentMap.containsKey(destination.getId())) {
                         destinationComponent = componentMap.get(destination.getId());
                     } else {
@@ -311,251 +308,36 @@ public class StatelessFlow implements RunnableFlow {
                 .collect(Collectors.toList());
     }
 
-    public StatelessFlow(final VersionedProcessGroup flow, final ExtensionManager extensionManager, final VariableRegistry variableRegistry, final List<String> failureOutputPorts,
-                         final boolean materializeContent, final SSLContext sslContext, final ParameterContext parameterContext) throws ProcessorInstantiationException, InitializationException {
-
-        this.componentFactory = new ComponentFactory(extensionManager);
-
-        final Map<String, VersionedProcessor> processors = findProcessorsRecursive(flow).stream()
-            .collect(Collectors.toMap(VersionedProcessor::getIdentifier, proc -> proc));
-
-        final Map<String, VersionedRemoteProcessGroup> rpgs = new HashMap<>();
-        final Map<String, VersionedRemoteGroupPort> remotePorts = new HashMap<>();
-        findRemoteGroupRecursive(flow, rpgs, remotePorts);
-
-        final Set<VersionedConnection> connections = findConnectionsRecursive(flow);
-        final Set<VersionedPort> inputPorts = flow.getInputPorts();
-
-        if (inputPorts.size() > 1) {
-            throw new IllegalArgumentException("Only one input port per flow is allowed");
-        }
-
-        final StatelessControllerServiceLookup serviceLookup = new StatelessControllerServiceLookup(parameterContext);
-
-        final Set<VersionedControllerService> controllerServices = flow.getControllerServices();
-        for (final VersionedControllerService versionedControllerService : controllerServices) {
-            final StateManager stateManager = new StatelessStateManager();
-
-            final ControllerService service = componentFactory.createControllerService(versionedControllerService, variableRegistry, serviceLookup, stateManager, parameterContext);
-            serviceLookup.addControllerService(service, versionedControllerService.getName());
-            serviceLookup.setControllerServiceAnnotationData(service, versionedControllerService.getAnnotationData());
-
-            final SLF4JComponentLog logger = new SLF4JComponentLog(service);
-            final StatelessProcessContext processContext = new StatelessProcessContext(service, serviceLookup, versionedControllerService.getName(),
-                logger, stateManager, variableRegistry, parameterContext);
-
-            final Map<String, String> versionedPropertyValues = versionedControllerService.getProperties();
-            for (final Map.Entry<String, String> entry : versionedPropertyValues.entrySet()) {
-                final String propertyName = entry.getKey();
-                final String propertyValue = entry.getValue();
-                final PropertyDescriptor descriptor = service.getPropertyDescriptor(propertyName);
-
-                serviceLookup.setControllerServiceProperty(service, descriptor, processContext, variableRegistry, propertyValue);
-            }
-
-            for (final PropertyDescriptor descriptor : service.getPropertyDescriptors()) {
-                final String versionedPropertyValue = versionedPropertyValues.get(descriptor.getName());
-                if (versionedPropertyValue == null && descriptor.getDefaultValue() != null) {
-                    serviceLookup.setControllerServiceProperty(service, descriptor, processContext, variableRegistry, descriptor.getDefaultValue());
-                }
-            }
-        }
-
-        serviceLookup.enableControllerServices(variableRegistry);
-
-
-        final Map<String, StatelessComponent> componentMap = new HashMap<>();
-        for (final VersionedConnection connection : connections) {
-            boolean isInputPortConnection = false;
-
-            final ConnectableComponent source = connection.getSource();
-            final ConnectableComponent destination = connection.getDestination();
-
-            StatelessComponent sourceComponent = null;
-            if (componentMap.containsKey(source.getId())) {
-                sourceComponent = componentMap.get(source.getId());
-            } else {
-                switch (source.getType()) {
-                    case PROCESSOR:
-                        final VersionedProcessor processor = processors.get(source.getId());
-
-                        if (processor == null) {
-                            throw new IllegalArgumentException("Unknown input processor. " + source.getId());
-                        } else {
-                            sourceComponent = componentFactory.createProcessor(processor, materializeContent, serviceLookup, variableRegistry, null, parameterContext);
-                            componentMap.put(source.getId(), sourceComponent);
-                        }
-                        break;
-                    case REMOTE_INPUT_PORT:
-                        throw new IllegalArgumentException("Unsupported source type: " + source.getType());
-                    case REMOTE_OUTPUT_PORT:
-                        final VersionedRemoteGroupPort remotePort = remotePorts.get(source.getId());
-                        final VersionedRemoteProcessGroup rpg = rpgs.get(remotePort.getRemoteGroupId());
-
-                        sourceComponent = componentFactory.createStatelessRemoteOutputPort(rpg, remotePort, sslContext);
-                        componentMap.put(source.getId(), sourceComponent);
-                        break;
-                    case OUTPUT_PORT:
-                    case FUNNEL:
-                        sourceComponent = new StatelessPassThroughComponent();
-                        componentMap.put(source.getId(), sourceComponent);
-                        break;
-                    case INPUT_PORT:
-                        if (flow.getIdentifier().equals(connection.getGroupIdentifier())) {
-                            isInputPortConnection = true;
-                        } else {
-                            sourceComponent = new StatelessPassThroughComponent();
-                            componentMap.put(source.getId(), sourceComponent);
-                        }
-
-                        break;
-                }
-            }
-
-            StatelessComponent destinationComponent = null;
-            switch (destination.getType()) {
-                case PROCESSOR:
-                    if (componentMap.containsKey(destination.getId())) {
-                        destinationComponent = componentMap.get(destination.getId());
-                    } else {
-                        final VersionedProcessor processor = processors.get(destination.getId());
-                        if (processor == null) {
-                            return;
-                        }
-
-                        destinationComponent = componentFactory.createProcessor(processor, materializeContent, serviceLookup, variableRegistry, null, parameterContext);
-                        destinationComponent.addParent(sourceComponent);
-                        componentMap.put(destination.getId(), destinationComponent);
-                    }
-
-                    break;
-                case REMOTE_INPUT_PORT:
-                    if (componentMap.containsKey(destination.getId())) {
-                        destinationComponent = componentMap.get(destination.getId());
-                    } else {
-                        final VersionedRemoteGroupPort remotePort = remotePorts.get(destination.getId());
-                        final VersionedRemoteProcessGroup rpg = rpgs.get(remotePort.getRemoteGroupId());
-
-                        destinationComponent = new StatelessRemoteInputPort(rpg, remotePort, sslContext);
-                        destinationComponent.addParent(sourceComponent);
-                        componentMap.put(destination.getId(), destinationComponent);
-                    }
-
-                    break;
-                case REMOTE_OUTPUT_PORT:
-                    throw new IllegalArgumentException("Unsupported destination type: " + destination.getType());
-                case OUTPUT_PORT:
-                    if (isInputPortConnection) {
-                        throw new IllegalArgumentException("Input ports can not be mapped directly to output ports...");
-                    }
-
-                    // If Output Port is top-level port, treat it differently than if it's an inner group.
-                    if (flow.getIdentifier().equals(connection.getGroupIdentifier())) {
-                        //Link source and destination
-                        for (final String selectedRelationship : connection.getSelectedRelationships()) {
-                            final Relationship relationship = new Relationship.Builder().name(selectedRelationship).build();
-                            final boolean failurePort = failureOutputPorts.contains(destination.getId());
-                            sourceComponent.addOutputPort(relationship, failurePort);
-                        }
-
-                        break;
-                    }
-
-                    // Intentionally let the flow drop-through, and treat the same as an output port or funnel.
-                case INPUT_PORT:
-                case FUNNEL:
-                    if (componentMap.containsKey(destination.getId())) {
-                        destinationComponent = componentMap.get(destination.getId());
-                    } else {
-                        destinationComponent = new StatelessPassThroughComponent();
-                        componentMap.put(destination.getId(), destinationComponent);
-                    }
-
-                    break;
-            }
-
-            if (destinationComponent != null) {
-                destinationComponent.addIncomingConnection(connection.getIdentifier());
-
-                if (isInputPortConnection) {
-                    this.sourceComponent = destinationComponent;
-                } else {
-                    destinationComponent.addParent(sourceComponent);
-
-                    //Link source and destination
-                    for (final String relationship : connection.getSelectedRelationships()) {
-                        sourceComponent.addChild(destinationComponent, new Relationship.Builder().name(relationship).build());
-                    }
-                }
-
-            }
-        }
-
-        roots = componentMap.values()
-            .stream()
-            .filter(statelessComponent -> statelessComponent.getParents().isEmpty())
-            .collect(Collectors.toList());
-    }
-
-    private Set<VersionedProcessor> findProcessorsRecursive(final VersionedProcessGroup group) {
-        final Set<VersionedProcessor> processors = new HashSet<>();
-        findProcessorsRecursive(group, processors);
-        return processors;
-    }
-
-    private Set<ProcessorDTO> findProcessorsRecursive(final ProcessGroupDTO group) {
-        final Set<ProcessorDTO> processors = new HashSet<>();
-        findProcessorsRecursive(group, processors);
-        return processors;
-    }
-
-    private void findProcessorsRecursive(final VersionedProcessGroup group, final Set<VersionedProcessor> processors) {
+    private void findProcessorsRecursive(final StatelessProcessGroup group, final Set<StatelessProcessor> processors) {
         processors.addAll(group.getProcessors());
         group.getProcessGroups().forEach(child -> findProcessorsRecursive(child, processors));
     }
 
-    private void findProcessorsRecursive(final ProcessGroupDTO group, final Set<ProcessorDTO> processors) {
-        processors.addAll(group.getContents().getProcessors());
-        group.getContents().getProcessGroups().forEach(child -> findProcessorsRecursive(child, processors));
+    private Set<StatelessProcessor> findProcessorsRecursive(final StatelessProcessGroup group) {
+        final Set<StatelessProcessor> processors = new HashSet<>();
+        findProcessorsRecursive(group, processors);
+        return processors;
     }
 
-    private Set<VersionedConnection> findConnectionsRecursive(final VersionedProcessGroup group) {
-        final Set<VersionedConnection> connections = new HashSet<>();
+    private Set<StatelessConnection> findConnectionsRecursive(final StatelessProcessGroup group) {
+        final Set<StatelessConnection> connections = new HashSet<>();
         findConnectionsRecursive(group, connections);
         return connections;
     }
 
-    private Set<ConnectionDTO> findConnectionsRecursive(final ProcessGroupDTO group) {
-        final Set<ConnectionDTO> connections = new HashSet<>();
-        findConnectionsRecursive(group, connections);
-        return connections;
-    }
-
-    private void findConnectionsRecursive(final VersionedProcessGroup group, final Set<VersionedConnection> connections) {
+    private void findConnectionsRecursive(final StatelessProcessGroup group, Set<StatelessConnection> connections) {
         connections.addAll(group.getConnections());
         group.getProcessGroups().forEach(child -> findConnectionsRecursive(child, connections));
     }
 
-    private void findConnectionsRecursive(final ProcessGroupDTO group, final Set<ConnectionDTO> connections) {
-        connections.addAll(group.getContents().getConnections());
-        group.getContents().getProcessGroups().forEach(child -> findConnectionsRecursive(child, connections));
-    }
+    private void findRemoteGroupRecursive(final StatelessProcessGroup group, final Map<String, StatelessRemoteProcessGroup> rpgs,
+                                          final Map<String, StatelessRemoteProcessGroupPort> ports) {
 
-    private void findRemoteGroupRecursive(final VersionedProcessGroup group, final Map<String, VersionedRemoteProcessGroup> rpgs, final Map<String, VersionedRemoteGroupPort> ports) {
-        for (final VersionedRemoteProcessGroup rpg : group.getRemoteProcessGroups()) {
-            rpgs.put(rpg.getIdentifier(), rpg);
+        for (final StatelessRemoteProcessGroup rpg : group.getRemoteProcessGroups()) {
+            rpgs.put(group.getId(), rpg);
 
-            rpg.getInputPorts().forEach(port -> ports.put(port.getIdentifier(), port));
-            rpg.getOutputPorts().forEach(port -> ports.put(port.getIdentifier(), port));
-        }
-    }
-
-    private void findRemoteGroupRecursive(final ProcessGroupDTO group, final Map<String, RemoteProcessGroupDTO> rpgs, final Map<String, RemoteProcessGroupPortDTO> ports) {
-        for (final RemoteProcessGroupDTO rpg : group.getContents().getRemoteProcessGroups()) {
-            rpgs.put(rpg.getId(), rpg);
-
-            rpg.getContents().getInputPorts().forEach(port -> ports.put(port.getId(), port));
-            rpg.getContents().getOutputPorts().forEach(port -> ports.put(port.getId(), port));
+            rpg.getInputPorts().forEach(port -> ports.put(port.getId(), port));
+            rpg.getOutputPorts().forEach(port -> ports.put(port.getId(), port));
         }
     }
 
@@ -618,7 +400,7 @@ public class StatelessFlow implements RunnableFlow {
     }
 
     public static StatelessFlow createFromFlowXmlAndEnqueueFromJson(final JsonObject args, final ClassLoader systemClassLoader, final File narWorkingDir)
-            throws InitializationException, IOException, ProcessorInstantiationException {
+            throws IOException, InitializationException, ProcessorInstantiationException {
 
         logger.info("Running flow from json: " + args.toString());
 
@@ -630,16 +412,6 @@ public class StatelessFlow implements RunnableFlow {
             logger.info("No configuration provided for '" + FLOWXML + "', defaulting to " + flowXmlPath.toString());
         } else {
             flowXmlPath = Paths.get(args.getAsJsonPrimitive(FLOWXML).getAsString()).toAbsolutePath();
-        }
-
-        boolean materializeContent = true;
-        if (args.has(MATERIALIZECONTENT)) {
-            materializeContent = args.getAsJsonPrimitive(MATERIALIZECONTENT).getAsBoolean();
-        }
-
-        final List<String> failurePorts = new ArrayList<>();
-        if (args.has(FAILUREPORTS)) {
-            args.getAsJsonArray(FAILUREPORTS).forEach(port ->failurePorts.add(port.getAsString()));
         }
 
         final StringEncryptor encryptor = NiFiPropertiesUtil.createEncryptorFromProperties(NiFiProperties.createBasicNiFiProperties(nifiProps, null));
@@ -660,58 +432,12 @@ public class StatelessFlow implements RunnableFlow {
             }
         }
 
-        final Set<Parameter> parameters = new HashSet<>();
-        final Set<String> parameterNames = new HashSet<>();
-        if (args.has(PARAMETERS)) {
-            final JsonElement parametersElement = args.get(PARAMETERS);
-            final JsonObject parametersObject = parametersElement.getAsJsonObject();
-
-            for (final Map.Entry<String, JsonElement> entry : parametersObject.entrySet()) {
-                final String parameterName = entry.getKey();
-                final JsonElement valueElement = entry.getValue();
-
-                if (parameterNames.contains(parameterName)) {
-                    throw new IllegalStateException("Cannot parse configuration because Parameter '" + parameterName + "' has been defined twice");
-                }
-
-                parameterNames.add(parameterName);
-
-                if (valueElement.isJsonObject()) {
-                    final JsonObject valueObject = valueElement.getAsJsonObject();
-
-                    final boolean sensitive;
-                    if (valueObject.has(PARAMETER_SENSITIVE)) {
-                        sensitive = valueObject.get(PARAMETER_SENSITIVE).getAsBoolean();
-                    } else {
-                        sensitive = false;
-                    }
-
-                    if (valueObject.has(PARAMETER_VALUE)) {
-                        final String value = valueObject.get(PARAMETER_VALUE).getAsString();
-                        final ParameterDescriptor descriptor = new ParameterDescriptor.Builder().name(parameterName).sensitive(sensitive).build();
-                        final Parameter parameter = new Parameter(descriptor, value);
-                        parameters.add(parameter);
-                    } else {
-                        throw new IllegalStateException("Cannot parse configuration because Parameter '" + parameterName + "' does not have a value associated with it");
-                    }
-                } else {
-                    final String parameterValue = entry.getValue().getAsString();
-                    final ParameterDescriptor descriptor = new ParameterDescriptor.Builder().name(parameterName).build();
-                    final Parameter parameter = new Parameter(descriptor, parameterValue);
-                    parameters.add(parameter);
-                }
-            }
-        }
-
-        final ParameterContext parameterContext = new StatelessParameterContext(parameters);
-        final ExtensionManager extensionManager = ExtensionDiscovery.discover(narWorkingDir, systemClassLoader);
-        final StatelessFlow flow = new StatelessFlow(rootProcessGroup, extensionManager, () -> inputVariables, failurePorts, materializeContent, sslContext, parameterContext);
-        flow.enqueueFromJSON(args);
-        return flow;
+        final StatelessProcessGroupDTO flow = new StatelessProcessGroupDTO(rootProcessGroup);
+        return createAndEnqueueFromJSON(flow, args, systemClassLoader, narWorkingDir, sslContext, inputVariables);
     }
 
     public static StatelessFlow createFromRegistryAndEnqueueFromJson(final JsonObject args, final ClassLoader systemClassLoader, final File narWorkingDir)
-            throws IOException, InitializationException, NiFiRegistryException, ProcessorInstantiationException {
+            throws IOException, NiFiRegistryException, InitializationException, ProcessorInstantiationException {
         if (args == null) {
             throw new IllegalArgumentException("Flow arguments can not be null");
         }
@@ -731,16 +457,6 @@ public class StatelessFlow implements RunnableFlow {
             flowVersion = args.getAsJsonPrimitive(FLOWVERSION).getAsInt();
         }
 
-        boolean materializeContent = true;
-        if (args.has(MATERIALIZECONTENT)) {
-            materializeContent = args.getAsJsonPrimitive(MATERIALIZECONTENT).getAsBoolean();
-        }
-
-        final List<String> failurePorts = new ArrayList<>();
-        if (args.has(FAILUREPORTS)) {
-            args.getAsJsonArray(FAILUREPORTS).forEach(port ->failurePorts.add(port.getAsString()));
-        }
-
         final SSLContext sslContext = getSSLContext(args);
         final VersionedFlowSnapshot snapshot = new RegistryUtil(registryurl, sslContext).getFlowByID(bucketID, flowID, flowVersion);
 
@@ -752,6 +468,24 @@ public class StatelessFlow implements RunnableFlow {
                 final String variableValue = entry.getValue();
                 inputVariables.put(new VariableDescriptor(variableName), variableValue);
             }
+        }
+
+        final StatelessVersionedProcessGroup flow = new StatelessVersionedProcessGroup(snapshot.getFlowContents());
+        return createAndEnqueueFromJSON(flow, args, systemClassLoader, narWorkingDir, sslContext, inputVariables);
+    }
+
+    private static StatelessFlow createAndEnqueueFromJSON(final StatelessProcessGroup flow, final JsonObject args, final ClassLoader systemClassLoader, final File narWorkingDir,
+                                                          final SSLContext sslContext, final Map<VariableDescriptor, String> inputVariables)
+            throws IOException, InitializationException, ProcessorInstantiationException {
+
+        boolean materializeContent = true;
+        if (args.has(MATERIALIZECONTENT)) {
+            materializeContent = args.getAsJsonPrimitive(MATERIALIZECONTENT).getAsBoolean();
+        }
+
+        final List<String> failurePorts = new ArrayList<>();
+        if (args.has(FAILUREPORTS)) {
+            args.getAsJsonArray(FAILUREPORTS).forEach(port ->failurePorts.add(port.getAsString()));
         }
 
         final Set<Parameter> parameters = new HashSet<>();
@@ -799,9 +533,10 @@ public class StatelessFlow implements RunnableFlow {
 
         final ParameterContext parameterContext = new StatelessParameterContext(parameters);
         final ExtensionManager extensionManager = ExtensionDiscovery.discover(narWorkingDir, systemClassLoader);
-        final StatelessFlow flow = new StatelessFlow(snapshot.getFlowContents(), extensionManager, () -> inputVariables, failurePorts, materializeContent, sslContext, parameterContext);
-        flow.enqueueFromJSON(args);
-        return flow;
+        final StatelessFlow statelessFlow = new StatelessFlow(flow, extensionManager, () -> inputVariables, failurePorts, materializeContent, sslContext, parameterContext);
+
+        statelessFlow.enqueueFromJSON(args);
+        return statelessFlow;
     }
 
     public void enqueueFlowFile(final byte[] content, final Map<String, String> attributes) {
