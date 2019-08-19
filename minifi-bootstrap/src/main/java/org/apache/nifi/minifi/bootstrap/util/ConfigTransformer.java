@@ -59,8 +59,6 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.TransformerFactoryConfigurationError;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -73,6 +71,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.stream.Collectors;
 import java.util.zip.GZIPOutputStream;
 
@@ -87,36 +86,12 @@ public final class ConfigTransformer {
     private ConfigTransformer() {
     }
 
-    public static void transformConfigFile(String sourceFile, String destPath) throws Exception {
-        transformConfigFile(sourceFile, destPath, null);
-    }
-
-    public static void transformConfigFile(String sourceFile, String destPath, SecurityPropertiesSchema securityProperties) throws Exception {
-        final File ymlConfigFile = new File(sourceFile);
-        final InputStream ios = new FileInputStream(ymlConfigFile);
-
-        transformConfigFile(ios, destPath, securityProperties, null);
-    }
-
-    public static void transformConfigFile(String sourceFile, String destPath, SecurityPropertiesSchema securityProperties, ProvenanceReportingSchema provenanceReportingProperties) throws Exception {
-        final File ymlConfigFile = new File(sourceFile);
-        final InputStream ios = new FileInputStream(ymlConfigFile);
-
-        transformConfigFile(ios, destPath, securityProperties, provenanceReportingProperties);
-    }
-
-    public static void transformConfigFile(InputStream sourceStream, String destPath) throws Exception {
-        transformConfigFile(sourceStream, destPath, null, null);
-    }
-
-
-    public static void transformConfigFile(
-            InputStream sourceStream,
-            String destPath,
-            SecurityPropertiesSchema securityProperties,
-            ProvenanceReportingSchema provenanceReportingProperties) throws Exception {
+    public static void transformConfigFile(InputStream sourceStream, String destPath, Properties bootstrapProperties) throws Exception {
         ConvertableSchema<ConfigSchema> convertableSchema = throwIfInvalid(SchemaLoader.loadConvertableSchemaFromYaml(sourceStream));
         ConfigSchema configSchema = throwIfInvalid(convertableSchema.convert());
+
+        SecurityPropertiesSchema securityProperties = BootstrapTransformer.buildSecurityPropertiesFromBootstrap(bootstrapProperties).orElse(null);
+        ProvenanceReportingSchema provenanceReportingProperties = BootstrapTransformer.buildProvenanceReportingPropertiesFromBootstrap(bootstrapProperties).orElse(null);
 
         // See if we are providing defined properties from the filesystem configurations and use those as the definitive values
         if (securityProperties != null) {

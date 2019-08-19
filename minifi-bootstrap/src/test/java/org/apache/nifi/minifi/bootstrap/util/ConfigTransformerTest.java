@@ -222,7 +222,8 @@ public class ConfigTransformerTest {
 
     @Test
     public void doesTransformFile() throws Exception {
-        ConfigTransformer.transformConfigFile("./src/test/resources/config.yml", "./target/");
+        File inputFile = new File("./src/test/resources/config.yml");
+        ConfigTransformer.transformConfigFile(new FileInputStream(inputFile), "./target/", null);
         File nifiPropertiesFile = new File("./target/nifi.properties");
 
         assertTrue(nifiPropertiesFile.exists());
@@ -239,7 +240,8 @@ public class ConfigTransformerTest {
 
     @Test
     public void doesTransformV1File() throws Exception {
-        ConfigTransformer.transformConfigFile("./src/test/resources/config-v1.yml", "./target/");
+        File inputFile = new File("./src/test/resources/config-v1.yml");
+        ConfigTransformer.transformConfigFile(new FileInputStream(inputFile), "./target/", null);
         File nifiPropertiesFile = new File("./target/nifi.properties");
 
         assertTrue(nifiPropertiesFile.exists());
@@ -257,7 +259,7 @@ public class ConfigTransformerTest {
     @Test
     public void doesTransformInputStream() throws Exception {
         File inputFile = new File("./src/test/resources/config.yml");
-        ConfigTransformer.transformConfigFile(new FileInputStream(inputFile), "./target/");
+        ConfigTransformer.transformConfigFile(new FileInputStream(inputFile), "./target/", null);
 
         File nifiPropertiesFile = new File("./target/nifi.properties");
         assertTrue(nifiPropertiesFile.exists());
@@ -274,7 +276,8 @@ public class ConfigTransformerTest {
 
     @Test
     public void doesTransformOnDefaultFile() throws Exception {
-        ConfigTransformer.transformConfigFile("./src/test/resources/default.yml", "./target/");
+        File inputFile = new File("./src/test/resources/default.yml");
+        ConfigTransformer.transformConfigFile(new FileInputStream(inputFile), "./target/", null);
         File nifiPropertiesFile = new File("./target/nifi.properties");
 
         assertTrue(nifiPropertiesFile.exists());
@@ -291,7 +294,8 @@ public class ConfigTransformerTest {
 
     @Test
     public void doesTransformOnMultipleProcessors() throws Exception {
-        ConfigTransformer.transformConfigFile("./src/test/resources/config-multiple-processors.yml", "./target/");
+        File inputFile = new File("./src/test/resources/config-multiple-processors.yml");
+        ConfigTransformer.transformConfigFile(new FileInputStream(inputFile), "./target/", null);
         File nifiPropertiesFile = new File("./target/nifi.properties");
 
         assertTrue(nifiPropertiesFile.exists());
@@ -308,7 +312,8 @@ public class ConfigTransformerTest {
 
     @Test
     public void doesTransformOnMultipleRemoteProcessGroups() throws Exception {
-        ConfigTransformer.transformConfigFile("./src/test/resources/config-multiple-RPGs.yml", "./target/");
+        File inputFile = new File("./src/test/resources/config-multiple-RPGs.yml");
+        ConfigTransformer.transformConfigFile(new FileInputStream(inputFile), "./target/", null);
         File nifiPropertiesFile = new File("./target/nifi.properties");
 
         assertTrue(nifiPropertiesFile.exists());
@@ -325,7 +330,8 @@ public class ConfigTransformerTest {
 
     @Test
     public void doesTransformOnMultipleInputPorts() throws Exception {
-        ConfigTransformer.transformConfigFile("./src/test/resources/config-multiple-input-ports.yml", "./target/");
+        File inputFile = new File("./src/test/resources/config-multiple-input-ports.yml");
+        ConfigTransformer.transformConfigFile(new FileInputStream(inputFile), "./target/", null);
         File nifiPropertiesFile = new File("./target/nifi.properties");
 
         assertTrue(nifiPropertiesFile.exists());
@@ -342,7 +348,8 @@ public class ConfigTransformerTest {
 
     @Test
     public void doesTransformOnMinimal() throws Exception {
-        ConfigTransformer.transformConfigFile("./src/test/resources/config-minimal.yml", "./target/");
+        File inputFile = new File("./src/test/resources/config-minimal.yml");
+        ConfigTransformer.transformConfigFile(new FileInputStream(inputFile), "./target/", null);
         File nifiPropertiesFile = new File("./target/nifi.properties");
 
         assertTrue(nifiPropertiesFile.exists());
@@ -359,7 +366,8 @@ public class ConfigTransformerTest {
 
     @Test
     public void doesTransformOnProvenanceRepository() throws Exception {
-        ConfigTransformer.transformConfigFile("./src/test/resources/config-provenance-repository.yml", "./target/");
+        File inputFile = new File("./src/test/resources/config-provenance-repository.yml");
+        ConfigTransformer.transformConfigFile(new FileInputStream(inputFile), "./target/", null);
         File nifiPropertiesFile = new File("./target/nifi.properties");
 
         assertTrue(nifiPropertiesFile.exists());
@@ -379,7 +387,8 @@ public class ConfigTransformerTest {
 
     @Test
     public void doesTransformOnCustomProvenanceRepository() throws Exception {
-        ConfigTransformer.transformConfigFile("./src/test/resources/config-provenance-custom-repository.yml", "./target/");
+        File inputFile = new File("./src/test/resources/config-provenance-custom-repository.yml");
+        ConfigTransformer.transformConfigFile(new FileInputStream(inputFile), "./target/", null);
         File nifiPropertiesFile = new File("./target/nifi.properties");
 
         assertTrue(nifiPropertiesFile.exists());
@@ -400,7 +409,8 @@ public class ConfigTransformerTest {
     @Test
     public void handleTransformInvalidFile() throws Exception {
         try {
-            ConfigTransformer.transformConfigFile("./src/test/resources/config-invalid.yml", "./target/");
+            File inputFile = new File("./src/test/resources/config-invalid.yml");
+            ConfigTransformer.transformConfigFile(new FileInputStream(inputFile), "./target/", null);
             fail("Invalid configuration file was not detected.");
         } catch (SchemaLoaderException e){
             assertEquals("Provided YAML configuration is not a Map", e.getMessage());
@@ -410,7 +420,8 @@ public class ConfigTransformerTest {
     @Test
     public void handleTransformMalformedField() throws Exception {
         try {
-            ConfigTransformer.transformConfigFile("./src/test/resources/config-malformed-field.yml", "./target/");
+            File inputFile = new File("./src/test/resources/config-malformed-field.yml");
+            ConfigTransformer.transformConfigFile(new FileInputStream(inputFile), "./target/", null);
             fail("Invalid configuration file was not detected.");
         } catch (InvalidConfigurationException e){
             assertEquals("Failed to transform config file due to:['threshold' in section 'Swap' because it is found but could not be parsed as a Number]", e.getMessage());
@@ -420,7 +431,8 @@ public class ConfigTransformerTest {
     @Test
     public void handleTransformEmptyFile() throws Exception {
         try {
-            ConfigTransformer.transformConfigFile("./src/test/resources/config-empty.yml", "./target/");
+            File inputFile = new File("./src/test/resources/config-empty.yml");
+            ConfigTransformer.transformConfigFile(new FileInputStream(inputFile), "./target/", null);
             fail("Invalid configuration file was not detected.");
         } catch (SchemaLoaderException e){
             assertEquals("Provided YAML configuration is not a Map", e.getMessage());
@@ -430,7 +442,8 @@ public class ConfigTransformerTest {
     @Test
     public void handleTransformFileMissingRequiredField() throws Exception {
         try {
-            ConfigTransformer.transformConfigFile("./src/test/resources/config-missing-required-field.yml", "./target/");
+            File inputFile = new File("./src/test/resources/config-missing-required-field.yml");
+            ConfigTransformer.transformConfigFile(new FileInputStream(inputFile), "./target/", null);
             fail("Invalid configuration file was not detected.");
         } catch (InvalidConfigurationException e){
             assertEquals("Failed to transform config file due to:['class' in section 'Processors' because it was not found and it is required]", e.getMessage());
@@ -440,7 +453,8 @@ public class ConfigTransformerTest {
     @Test
     public void handleTransformFileMultipleProblems() throws Exception {
         try {
-            ConfigTransformer.transformConfigFile("./src/test/resources/config-multiple-problems.yml", "./target/");
+            File inputFile = new File("./src/test/resources/config-multiple-problems.yml");
+            ConfigTransformer.transformConfigFile(new FileInputStream(inputFile), "./target/", null);
             fail("Invalid configuration file was not detected.");
         } catch (InvalidConfigurationException e){
             assertEquals("Failed to transform config file due to:['class' in section 'Processors' because it was not found and it is required], " +

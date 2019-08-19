@@ -27,7 +27,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.Properties;
 
-import static org.apache.nifi.minifi.bootstrap.RunMiNiFi.STATUS_REPORTER_PROPERTY_PREFIX;
+import static org.apache.nifi.minifi.commons.schema.common.BootstrapPropertyKeys.STATUS_REPORTER_PROPERTY_PREFIX;
 
 public class StatusLogger extends PeriodicStatusReporter {
 

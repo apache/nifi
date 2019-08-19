@@ -23,10 +23,6 @@ import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeExcepti
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeListener;
 import org.apache.nifi.minifi.bootstrap.status.PeriodicStatusReporter;
 import org.apache.nifi.minifi.bootstrap.util.ConfigTransformer;
-import org.apache.nifi.minifi.commons.schema.ProvenanceReportingSchema;
-import org.apache.nifi.minifi.commons.schema.SecurityPropertiesSchema;
-import org.apache.nifi.minifi.commons.schema.SensitivePropsSchema;
-import org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys;
 import org.apache.nifi.minifi.commons.status.FlowStatusReport;
 import org.apache.nifi.util.Tuple;
 import org.apache.nifi.util.file.FileUtils;
@@ -69,7 +65,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
@@ -84,11 +79,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
-import static org.apache.nifi.minifi.commons.schema.RemoteProcessGroupSchema.TIMEOUT_KEY;
-import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.COMMENT_KEY;
-import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.SCHEDULING_PERIOD_KEY;
-import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.SCHEDULING_STRATEGY_KEY;
-import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.USE_COMPRESSION_KEY;
+import static org.apache.nifi.minifi.commons.schema.common.BootstrapPropertyKeys.STATUS_REPORTER_COMPONENTS_KEY;
 
 /**
  * <p>
@@ -136,96 +127,6 @@ public class RunMiNiFi implements QueryableStatusAggregator, ConfigurationFileHo
     public static final String PING_CMD = "PING";
     public static final String DUMP_CMD = "DUMP";
     public static final String FLOW_STATUS_REPORT_CMD = "FLOW_STATUS_REPORT";
-
-    public static final String NOTIFIER_PROPERTY_PREFIX = "nifi.minifi.notifier";
-    public static final String NOTIFIER_COMPONENTS_KEY = NOTIFIER_PROPERTY_PREFIX + ".components";
-
-    public static final String STATUS_REPORTER_PROPERTY_PREFIX = "nifi.minifi.status.reporter";
-    public static final String STATUS_REPORTER_COMPONENTS_KEY = STATUS_REPORTER_PROPERTY_PREFIX + ".components";
-
-
-    public static final String SECURITY_KEYSTORE_KEY = "nifi.minifi.security.keystore";
-    public static final String SECURITY_KEYSTORE_TYPE_KEY = "nifi.minifi.security.keystoreType";
-    public static final String SECURITY_KEYSTORE_PASSWORD_KEY = "nifi.minifi.security.keystorePasswd";
-    public static final String SECURITY_KEY_PASSWORD_KEY = "nifi.minifi.security.keyPasswd";
-    public static final String SECURITY_TRUSTSTORE_KEY = "nifi.minifi.security.truststore";
-    public static final String SECURITY_TRUSTSTORE_TYPE_KEY = "nifi.minifi.security.truststoreType";
-    public static final String SECURITY_TRUSTSTORE_PASSWORD_KEY = "nifi.minifi.security.truststorePasswd";
-    public static final String SECURITY_SSL_PROTOCOL_KEY = "nifi.minifi.security.ssl.protocol";
-
-    public static final String SENSITIVE_PROPS_KEY_KEY = "nifi.minifi.sensitive.props.key";
-    public static final String SENSITIVE_PROPS_ALGORITHM_KEY = "nifi.minifi.sensitive.props.algorithm";
-    public static final String SENSITIVE_PROPS_PROVIDER_KEY = "nifi.minifi.sensitive.props.provider";
-
-    public static final Set<String> BOOTSTRAP_SECURITY_PROPERTY_KEYS = new HashSet<>(
-            Arrays.asList(SECURITY_KEYSTORE_KEY,
-                    SECURITY_KEYSTORE_TYPE_KEY,
-                    SECURITY_KEYSTORE_PASSWORD_KEY,
-                    SECURITY_KEY_PASSWORD_KEY,
-                    SECURITY_TRUSTSTORE_KEY,
-                    SECURITY_TRUSTSTORE_TYPE_KEY,
-                    SECURITY_TRUSTSTORE_PASSWORD_KEY,
-                    SECURITY_SSL_PROTOCOL_KEY));
-
-    public static final Set<String> BOOTSTRAP_SENSITIVE_PROPERTY_KEYS = new HashSet<>(
-            Arrays.asList(
-                    SENSITIVE_PROPS_KEY_KEY,
-                    SENSITIVE_PROPS_ALGORITHM_KEY,
-                    SENSITIVE_PROPS_PROVIDER_KEY));
-
-    public static final String PROVENANCE_REPORTING_COMMENT_KEY = "nifi.minifi.provenance.reporting.comment";
-    public static final String PROVENANCE_REPORTING_SCHEDULING_STRATEGY_KEY = "nifi.minifi.provenance.reporting.scheduling.strategy";
-    public static final String PROVENANCE_REPORTING_SCHEDULING_PERIOD_KEY = "nifi.minifi.provenance.reporting.scheduling.period";
-    public static final String PROVENANCE_REPORTING_DESTINATION_URL_KEY = "nifi.minifi.provenance.reporting.destination.url";
-    public static final String PROVENANCE_REPORTING_INPUT_PORT_NAME_KEY = "nifi.minifi.provenance.reporting.input.port.name";
-    public static final String PROVENANCE_REPORTING_INSTANCE_URL_KEY = "nifi.minifi.provenance.reporting.instance.url";
-    public static final String PROVENANCE_REPORTING_COMPRESS_EVENTS_KEY = "nifi.minifi.provenance.reporting.compress.events";
-    public static final String PROVENANCE_REPORTING_BATCH_SIZE_KEY = "nifi.minifi.provenance.reporting.batch.size";
-    public static final String PROVENANCE_REPORTING_COMMUNICATIONS_TIMEOUT_KEY = "nifi.minifi.provenance.reporting.communications.timeout";
-
-    public static final Set<String> BOOTSTRAP_PROVENANCE_REPORTING_KEYS = new HashSet<>(
-            Arrays.asList(PROVENANCE_REPORTING_COMMENT_KEY,
-                    PROVENANCE_REPORTING_SCHEDULING_STRATEGY_KEY,
-                    PROVENANCE_REPORTING_SCHEDULING_PERIOD_KEY,
-                    PROVENANCE_REPORTING_DESTINATION_URL_KEY,
-                    PROVENANCE_REPORTING_INPUT_PORT_NAME_KEY,
-                    PROVENANCE_REPORTING_INSTANCE_URL_KEY,
-                    PROVENANCE_REPORTING_COMPRESS_EVENTS_KEY,
-                    PROVENANCE_REPORTING_BATCH_SIZE_KEY,
-                    PROVENANCE_REPORTING_COMMUNICATIONS_TIMEOUT_KEY
-            ));
-
-    public static final Map<String, String> BOOTSTRAP_KEYS_TO_YML_KEYS;
-
-    static {
-        final Map<String, String> mutableMap = new HashMap<>();
-        mutableMap.put(SECURITY_KEYSTORE_KEY, SecurityPropertiesSchema.KEYSTORE_KEY);
-        mutableMap.put(SECURITY_KEYSTORE_TYPE_KEY, SecurityPropertiesSchema.KEYSTORE_TYPE_KEY);
-        mutableMap.put(SECURITY_KEYSTORE_PASSWORD_KEY, SecurityPropertiesSchema.KEYSTORE_PASSWORD_KEY);
-        mutableMap.put(SECURITY_KEY_PASSWORD_KEY, SecurityPropertiesSchema.KEY_PASSWORD_KEY);
-
-        mutableMap.put(SECURITY_TRUSTSTORE_KEY, SecurityPropertiesSchema.TRUSTSTORE_KEY);
-        mutableMap.put(SECURITY_TRUSTSTORE_TYPE_KEY, SecurityPropertiesSchema.TRUSTSTORE_TYPE_KEY);
-        mutableMap.put(SECURITY_TRUSTSTORE_PASSWORD_KEY, SecurityPropertiesSchema.TRUSTSTORE_PASSWORD_KEY);
-
-        mutableMap.put(SECURITY_SSL_PROTOCOL_KEY, SecurityPropertiesSchema.SSL_PROTOCOL_KEY);
-
-        mutableMap.put(SENSITIVE_PROPS_KEY_KEY, SensitivePropsSchema.SENSITIVE_PROPS_KEY_KEY);
-        mutableMap.put(SENSITIVE_PROPS_ALGORITHM_KEY, SensitivePropsSchema.SENSITIVE_PROPS_ALGORITHM_KEY);
-        mutableMap.put(SENSITIVE_PROPS_PROVIDER_KEY, SensitivePropsSchema.SENSITIVE_PROPS_PROVIDER_KEY);
-
-        mutableMap.put(PROVENANCE_REPORTING_COMMENT_KEY, COMMENT_KEY);
-        mutableMap.put(PROVENANCE_REPORTING_SCHEDULING_STRATEGY_KEY, SCHEDULING_STRATEGY_KEY);
-        mutableMap.put(PROVENANCE_REPORTING_SCHEDULING_PERIOD_KEY, SCHEDULING_PERIOD_KEY);
-        mutableMap.put(PROVENANCE_REPORTING_DESTINATION_URL_KEY, ProvenanceReportingSchema.DESTINATION_URL_KEY);
-        mutableMap.put(PROVENANCE_REPORTING_INPUT_PORT_NAME_KEY, ProvenanceReportingSchema.PORT_NAME_KEY);
-        mutableMap.put(PROVENANCE_REPORTING_INSTANCE_URL_KEY, ProvenanceReportingSchema.ORIGINATING_URL_KEY);
-        mutableMap.put(PROVENANCE_REPORTING_COMPRESS_EVENTS_KEY, USE_COMPRESSION_KEY);
-        mutableMap.put(PROVENANCE_REPORTING_BATCH_SIZE_KEY, ProvenanceReportingSchema.BATCH_SIZE_KEY);
-        mutableMap.put(PROVENANCE_REPORTING_COMMUNICATIONS_TIMEOUT_KEY, TIMEOUT_KEY);
-
-        BOOTSTRAP_KEYS_TO_YML_KEYS = Collections.unmodifiableMap(mutableMap);
-    }
 
     private static final int UNINITIALIZED_CC_PORT = -1;
 
@@ -1811,8 +1712,7 @@ public class RunMiNiFi implements QueryableStatusAggregator, ConfigurationFileHo
             ConfigTransformer.transformConfigFile(
                 teeInputStream,
                 configDestinationPath,
-                buildSecurityPropertiesFromBootstrap(getBootstrapProperties()).orElse(null),
-                buildProvenanceReportingPropertiesFromBootstrap(getBootstrapProperties()).orElse(null)
+                getBootstrapProperties()
             );
 
             return ByteBuffer.wrap(byteArrayOutputStream.toByteArray());
@@ -1821,58 +1721,6 @@ public class RunMiNiFi implements QueryableStatusAggregator, ConfigurationFileHo
         } catch (Exception e) {
             throw new IOException("Unable to successfully transform the provided configuration", e);
         }
-    }
-
-    // TODO extract this and buildProvenanceReportingPropertiesFromBootstrap to separate class BootstrapTransformer, and make private
-    public Optional<SecurityPropertiesSchema> buildSecurityPropertiesFromBootstrap(final Properties bootstrapProperties) {
-
-        Optional<SecurityPropertiesSchema> securityPropsOptional = Optional.empty();
-
-        final Map<String, Object> securityProperties = new HashMap<>();
-
-        BOOTSTRAP_SECURITY_PROPERTY_KEYS.stream()
-                .filter(key -> StringUtils.isNotBlank(bootstrapProperties.getProperty(key)))
-                .forEach(key ->
-                        securityProperties.put(BOOTSTRAP_KEYS_TO_YML_KEYS.get(key), bootstrapProperties.getProperty(key))
-                );
-
-        if (!securityProperties.isEmpty()) {
-            // Determine if sensitive properties were provided
-            final Map<String, String> sensitiveProperties = new HashMap<>();
-            BOOTSTRAP_SENSITIVE_PROPERTY_KEYS.stream()
-                    .filter(key -> StringUtils.isNotBlank(bootstrapProperties.getProperty(key)))
-                    .forEach(key ->
-                            sensitiveProperties.put(BOOTSTRAP_KEYS_TO_YML_KEYS.get(key), bootstrapProperties.getProperty(key))
-                    );
-            if (!sensitiveProperties.isEmpty()) {
-                securityProperties.put(CommonPropertyKeys.SENSITIVE_PROPS_KEY, sensitiveProperties);
-            }
-
-            final SecurityPropertiesSchema securityPropertiesSchema = new SecurityPropertiesSchema(securityProperties);
-            securityPropsOptional = Optional.of(securityPropertiesSchema);
-        }
-
-        return securityPropsOptional;
-    }
-
-    public Optional<ProvenanceReportingSchema> buildProvenanceReportingPropertiesFromBootstrap(final Properties bootstrapProperties) {
-
-        Optional<ProvenanceReportingSchema> provenanceReportingPropsOptional = Optional.empty();
-
-        final Map<String, Object> provenanceReportingProperties = new HashMap<>();
-
-        BOOTSTRAP_PROVENANCE_REPORTING_KEYS.stream()
-                .filter(key -> StringUtils.isNotBlank(bootstrapProperties.getProperty(key)))
-                .forEach(key ->
-                        provenanceReportingProperties.put(BOOTSTRAP_KEYS_TO_YML_KEYS.get(key), bootstrapProperties.getProperty(key))
-                );
-
-        if (!provenanceReportingProperties.isEmpty()) {
-            final ProvenanceReportingSchema provenanceReportingSchema = new ProvenanceReportingSchema(provenanceReportingProperties);
-            provenanceReportingPropsOptional = Optional.of(provenanceReportingSchema);
-        }
-
-        return provenanceReportingPropsOptional;
     }
 
     private static class Status {
