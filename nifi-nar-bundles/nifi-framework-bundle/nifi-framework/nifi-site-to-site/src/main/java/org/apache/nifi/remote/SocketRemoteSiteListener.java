@@ -88,7 +88,7 @@ public class SocketRemoteSiteListener implements RemoteSiteListener {
     @Override
     public void start() throws IOException {
         final boolean secure = (sslContext != null);
-        final List<Thread> threads = new ArrayList<Thread>();
+        final List<Thread> threads = new ArrayList<>();
 
         final ServerSocketChannel serverSocketChannel = ServerSocketChannel.open();
         serverSocketChannel.configureBlocking(true);
@@ -101,17 +101,6 @@ public class SocketRemoteSiteListener implements RemoteSiteListener {
             @Override
             public void run() {
                 while (!stopped.get()) {
-                    final ProcessGroup processGroup = rootGroup.get();
-                    // If nodeInformant is not null, we are in clustered mode, which means that we don't care about
-                    // the processGroup.
-                    if ((nodeInformant == null) && (processGroup == null || (processGroup.getInputPorts().isEmpty() && processGroup.getOutputPorts().isEmpty()))) {
-                        try {
-                            Thread.sleep(2000L);
-                        } catch (final Exception e) {
-                        }
-                        continue;
-                    }
-
                     LOG.trace("Accepting Connection...");
                     Socket acceptedSocket = null;
                     try {
@@ -241,8 +230,7 @@ public class SocketRemoteSiteListener implements RemoteSiteListener {
 
                                 commsSession.setTimeout((int) protocol.getRequestExpiration());
 
-                                LOG.info("Successfully negotiated ServerProtocol {} Version {} with {}", new Object[]{
-                                    protocol.getResourceName(), protocol.getVersionNegotiator().getVersion(), peer});
+                                LOG.info("Successfully negotiated ServerProtocol {} Version {} with {}", protocol.getResourceName(), protocol.getVersionNegotiator().getVersion(), peer);
 
                                 try {
                                     while (!protocol.isShutdown()) {
@@ -258,7 +246,7 @@ public class SocketRemoteSiteListener implements RemoteSiteListener {
                                                 // Give the timeout a bit longer (twice as long) to receive the Request Type,
                                                 // in order to attempt to receive more data without shutting down the socket if we don't
                                                 // have to.
-                                                LOG.debug("{} Timed out waiting to receive RequestType using {} with {}", new Object[]{this, protocol, peer});
+                                                LOG.debug("{} Timed out waiting to receive RequestType using {} with {}", this, protocol, peer);
                                                 timeoutCount++;
                                                 requestType = null;
 
@@ -377,7 +365,7 @@ public class SocketRemoteSiteListener implements RemoteSiteListener {
     public void destroy() {
     }
 
-    private void verifyMagicBytes(final InputStream in, final String peerDescription) throws IOException, HandshakeException {
+    private void verifyMagicBytes(final InputStream in, final String peerDescription) throws IOException {
         final byte[] receivedMagicBytes = new byte[CommunicationsSession.MAGIC_BYTES.length];
 
         // expect magic bytes
