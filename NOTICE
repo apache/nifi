@@ -7,6 +7,11 @@ The Apache Software Foundation (http://www.apache.org/).
 This product includes the following work from the Apache Hadoop project under Apache Software License V2:
   BoundedByteArrayOutputStream.java adapted to SoftLimitBoundedByteArrayOutputStream.java
 
+This product includes derived works from Apache Commons Lang (ASLv2 licensed)
+  Copyright 2019 The Apache Software Foundation
+  The derived work is adapted from the class StringUtils:
+    https://github.com/apache/commons-lang/blob/465e6becd8beda9569fbdc9ff44fac7dc3c5d1c6/src/main/java/org/apache/commons/lang3/StringUtils.java
+
 This product includes derived works from the Apache Software License V2 library python-evtx (https://github.com/williballenthin/python-evtx)
   Copyright 2012, 2013 Willi Ballenthin william.ballenthin@mandiant.com
   while at Mandiant http://www.mandiant.com
