@@ -19,14 +19,24 @@ package org.apache.nifi.controller.status.analytics.models;
 import java.util.Map;
 import java.util.stream.Stream;
 
-public abstract class BivariateStatusAnalyticsModel implements VariateStatusAnalyticsModel {
+import org.apache.nifi.controller.status.analytics.StatusAnalyticsModel;
 
+public abstract class BivariateStatusAnalyticsModel implements StatusAnalyticsModel {
+
+    @Override
     public abstract void learn(Stream<Double[]> features, Stream<Double> labels);
 
-    public  Double predict(Double[] feature){
+    @Override
+    public Double predict(Double[] feature){
         return predictY(feature[0]);
     }
 
+    @Override
+    public Double predictVariable(Integer predictVariableIndex, Map<Integer, Double> knownVariablesWithIndex, Double label) {
+        return predictY(label);
+    }
+
+    @Override
     public Boolean supportsOnlineLearning() {
         return false;
     }
@@ -35,8 +45,7 @@ public abstract class BivariateStatusAnalyticsModel implements VariateStatusAnal
 
     public abstract Double predictY(Double x);
 
-    public abstract Double getRSquared();
-
+    @Override
     public abstract Map<String,Double> getScores();
 
     @Override

@@ -21,7 +21,7 @@ import static org.junit.Assert.assertNotNull;
 import java.util.stream.Stream;
 import org.junit.Test;
 
-public class TestSimpleRegressionBSAM {
+public class TestSimpleRegression {
 
     @Test
     public void testConstantPrediction(){
@@ -37,7 +37,7 @@ public class TestSimpleRegressionBSAM {
         Double[][] features = {feature0, feature1,feature2,feature3};
         Double[] labels = {queueCount,queueCount,queueCount, queueCount};
 
-        SimpleRegressionBSAM model = new SimpleRegressionBSAM(false);
+        SimpleRegression model = new SimpleRegression(false);
 
         model.learn(Stream.of(features), Stream.of(labels));
 
@@ -62,7 +62,7 @@ public class TestSimpleRegressionBSAM {
         Double[][] features = {feature0, feature1,feature2,feature3};
         Double[] labels = {queueCount,queueCount + 50, queueCount - 50, queueCount - 100};
 
-        SimpleRegressionBSAM model = new SimpleRegressionBSAM(false);
+        SimpleRegression model = new SimpleRegression(false);
 
         model.learn(Stream.of(features), Stream.of(labels));
 
@@ -87,13 +87,13 @@ public class TestSimpleRegressionBSAM {
         Double[][] features = {feature0, feature1,feature2,feature3};
         Double[] labels = {queueCount,queueCount + 50, queueCount - 50, queueCount - 100};
 
-        SimpleRegressionBSAM model = new SimpleRegressionBSAM(false);
+        SimpleRegression model = new SimpleRegression(false);
 
         Double[] predictor = {timestamp + 5000};
 
         model.learn(Stream.of(features), Stream.of(labels));
         Double target = model.predict(predictor);
-        Double rSquared = model.getRSquared();
+        Double rSquared = model.getScores().get("rSquared");
         Double minCount = -1265.0;
         Double maxCount = 3235.0;
         assert(rSquared > .60);
