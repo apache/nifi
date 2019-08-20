@@ -23,13 +23,21 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
+import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.status.history.ComponentStatusRepository;
 import org.apache.nifi.controller.status.history.StatusHistory;
 import org.apache.nifi.controller.status.history.StatusSnapshot;
 import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
+import org.apache.nifi.nar.SystemBundle;
+import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.util.Tuple;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -37,16 +45,31 @@ import org.mockito.Mockito;
 public abstract class TestStatusAnalyticsEngine {
 
     static final long DEFAULT_PREDICT_INTERVAL_MILLIS = 3L * 60 * 1000;
+    static final String DEFAULT_SCORE_NAME = "rSquared";
+    static final double DEFAULT_SCORE_THRESHOLD = .9;
 
     protected ComponentStatusRepository statusRepository;
     protected FlowManager flowManager;
     protected FlowFileEventRepository flowFileEventRepository;
+    protected Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> modelMap;
 
     @Before
     public void setup() {
 
         statusRepository = Mockito.mock(ComponentStatusRepository.class);
         flowManager = Mockito.mock(FlowManager.class);
+
+        final Map<String, String> otherProps = new HashMap<>();
+        final String propsFile = "src/test/resources/conf/nifi.properties";
+        NiFiProperties nifiProperties = NiFiProperties.createBasicNiFiProperties(propsFile, otherProps);
+
+        // use the system bundle
+        Bundle systemBundle = SystemBundle.create(nifiProperties);
+        ExtensionManager extensionManager = new StandardExtensionDiscoveringManager();
+        ((StandardExtensionDiscoveringManager)extensionManager).discoverExtensions(systemBundle, Collections.emptySet());
+
+        modelMap = StatusAnalyticsModelMapFactory.getConnectionStatusModelMap(extensionManager,nifiProperties);
+
         ProcessGroup processGroup = Mockito.mock(ProcessGroup.class);
         StatusHistory statusHistory = Mockito.mock(StatusHistory.class);
         StatusSnapshot statusSnapshot = Mockito.mock(StatusSnapshot.class);
@@ -57,12 +80,14 @@ public abstract class TestStatusAnalyticsEngine {
 
     @Test
     public void testGetStatusAnalytics() {
-        StatusAnalyticsEngine statusAnalyticsEngine = getStatusAnalyticsEngine(flowManager,flowFileEventRepository, statusRepository, DEFAULT_PREDICT_INTERVAL_MILLIS);
+        StatusAnalyticsEngine statusAnalyticsEngine = getStatusAnalyticsEngine(flowManager,flowFileEventRepository, statusRepository, modelMap, DEFAULT_PREDICT_INTERVAL_MILLIS,
+                                                                                DEFAULT_SCORE_NAME, DEFAULT_SCORE_THRESHOLD);
         StatusAnalytics statusAnalytics = statusAnalyticsEngine.getStatusAnalytics("1");
         assertNotNull(statusAnalytics);
     }
 
     public abstract StatusAnalyticsEngine getStatusAnalyticsEngine(FlowManager flowManager, FlowFileEventRepository flowFileEventRepository,
-                                                                   ComponentStatusRepository componentStatusRepository, long predictIntervalMillis);
+                                                                   ComponentStatusRepository componentStatusRepository, Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>>  modelMap,
+                                                                    long predictIntervalMillis, String scoreName, double scoreThreshold);
 
 }

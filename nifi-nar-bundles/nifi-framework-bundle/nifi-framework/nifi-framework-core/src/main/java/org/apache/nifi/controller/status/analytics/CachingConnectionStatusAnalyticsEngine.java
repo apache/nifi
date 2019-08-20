@@ -16,49 +16,44 @@
  */
 package org.apache.nifi.controller.status.analytics;
 
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.status.history.ComponentStatusRepository;
+import org.apache.nifi.util.Tuple;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 
-public class CachingConnectionStatusAnalyticsEngine implements StatusAnalyticsEngine {
-    private final ComponentStatusRepository statusRepository;
-    private final FlowManager flowManager;
-    private final FlowFileEventRepository flowFileEventRepository;
-    private volatile Cache<String, ConnectionStatusAnalytics> cache;
-    private final long predictionIntervalMillis;
+public class CachingConnectionStatusAnalyticsEngine extends ConnectionStatusAnalyticsEngine{
+    private volatile Cache<String, StatusAnalytics> cache;
     private static final Logger LOG = LoggerFactory.getLogger(CachingConnectionStatusAnalyticsEngine.class);
 
     public CachingConnectionStatusAnalyticsEngine(FlowManager flowManager, ComponentStatusRepository statusRepository,
-                                                  FlowFileEventRepository flowFileEventRepository, long predictionIntervalMillis) {
-        this.flowManager = flowManager;
-        this.statusRepository = statusRepository;
-        this.flowFileEventRepository = flowFileEventRepository;
+            FlowFileEventRepository flowFileEventRepository, Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> modelMap,
+            long predictionIntervalMillis, String scoreName, double scoreThreshold) {
+
+        super(flowManager,statusRepository,flowFileEventRepository,modelMap,predictionIntervalMillis,scoreName,scoreThreshold);
         this.cache = Caffeine.newBuilder()
                 .expireAfterWrite(30, TimeUnit.MINUTES)
                 .build();
-        this.predictionIntervalMillis = predictionIntervalMillis;
     }
 
     @Override
     public StatusAnalytics getStatusAnalytics(String identifier) {
 
-        ConnectionStatusAnalytics connectionStatusAnalytics = cache.getIfPresent(identifier);
+        StatusAnalytics connectionStatusAnalytics = cache.getIfPresent(identifier);
         if (connectionStatusAnalytics == null) {
             LOG.debug("Creating new status analytics object for connection id: {}", identifier);
-            connectionStatusAnalytics = new ConnectionStatusAnalytics(statusRepository, flowManager,flowFileEventRepository, identifier, true);
-            connectionStatusAnalytics.setIntervalTimeMillis(predictionIntervalMillis);
-            connectionStatusAnalytics.init();
+            connectionStatusAnalytics = super.getStatusAnalytics(identifier);
             cache.put(identifier, connectionStatusAnalytics);
         } else {
             LOG.debug("Pulled existing analytics from cache for connection id: {}", identifier);
-            connectionStatusAnalytics.refresh();
+            ((ConnectionStatusAnalytics)connectionStatusAnalytics).refresh();
         }
         return connectionStatusAnalytics;
 

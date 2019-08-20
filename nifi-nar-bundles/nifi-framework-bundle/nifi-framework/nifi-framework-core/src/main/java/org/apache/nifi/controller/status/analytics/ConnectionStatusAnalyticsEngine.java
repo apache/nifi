@@ -16,31 +16,43 @@
  */
 package org.apache.nifi.controller.status.analytics;
 
+import java.util.Map;
+
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.status.history.ComponentStatusRepository;
+import org.apache.nifi.util.Tuple;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ConnectionStatusAnalyticsEngine implements StatusAnalyticsEngine {
     private static final Logger LOG = LoggerFactory.getLogger(ConnectionStatusAnalyticsEngine.class);
-    private final ComponentStatusRepository statusRepository;
-    private final FlowManager flowManager;
-    private final FlowFileEventRepository flowFileEventRepository;
-    private final long predictionIntervalMillis;
+    protected final ComponentStatusRepository statusRepository;
+    protected final FlowManager flowManager;
+    protected final FlowFileEventRepository flowFileEventRepository;
+    protected final Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> modelMap;
+    protected final long predictionIntervalMillis;
+    protected final String scoreName;
+    protected final double scoreThreshold;
 
-    public ConnectionStatusAnalyticsEngine(FlowManager flowManager, ComponentStatusRepository statusRepository, FlowFileEventRepository flowFileEventRepository, long predictionIntervalMillis) {
+    public ConnectionStatusAnalyticsEngine(FlowManager flowManager, ComponentStatusRepository statusRepository, FlowFileEventRepository flowFileEventRepository,
+            Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> modelMap, long predictionIntervalMillis, String scoreName, double scoreThreshold) {
         this.flowManager = flowManager;
         this.statusRepository = statusRepository;
         this.flowFileEventRepository = flowFileEventRepository;
         this.predictionIntervalMillis = predictionIntervalMillis;
+        this.modelMap = modelMap;
+        this.scoreName = scoreName;
+        this.scoreThreshold = scoreThreshold;
     }
 
     @Override
     public StatusAnalytics getStatusAnalytics(String identifier) {
-        ConnectionStatusAnalytics connectionStatusAnalytics = new ConnectionStatusAnalytics(statusRepository, flowManager, flowFileEventRepository, identifier, false);
+        ConnectionStatusAnalytics connectionStatusAnalytics = new ConnectionStatusAnalytics(statusRepository, flowManager, flowFileEventRepository, modelMap, identifier, false);
         connectionStatusAnalytics.setIntervalTimeMillis(predictionIntervalMillis);
-        connectionStatusAnalytics.init();
+        connectionStatusAnalytics.setScoreName(scoreName);
+        connectionStatusAnalytics.setScoreThreshold(scoreThreshold);
+        connectionStatusAnalytics.refresh();
         return connectionStatusAnalytics;
     }
 
