@@ -59,6 +59,34 @@
         <nifi.flowfile.repository.partitions>256</nifi.flowfile.repository.partitions>
         <nifi.flowfile.repository.checkpoint.interval>2 mins</nifi.flowfile.repository.checkpoint.interval>
         <nifi.flowfile.repository.always.sync>false</nifi.flowfile.repository.always.sync>
+
+        <nifi.flowfile.repository.rocksdb.sync.warning.period>30 sec</nifi.flowfile.repository.rocksdb.sync.warning.period>
+        <nifi.flowfile.repository.rocksdb.claim.cleanup.period>30 sec</nifi.flowfile.repository.rocksdb.claim.cleanup.period>
+        <nifi.flowfile.repository.rocksdb.deserialization.threads>16</nifi.flowfile.repository.rocksdb.deserialization.threads>
+        <nifi.flowfile.repository.rocksdb.deserialization.buffer.size>1000</nifi.flowfile.repository.rocksdb.deserialization.buffer.size>
+        <nifi.flowfile.repository.rocksdb.sync.period>10 ms</nifi.flowfile.repository.rocksdb.sync.period>
+        <nifi.flowfile.repository.rocksdb.accept.data.loss>false</nifi.flowfile.repository.rocksdb.accept.data.loss>
+        <nifi.flowfile.repository.rocksdb.enable.stall.stop>false</nifi.flowfile.repository.rocksdb.enable.stall.stop>
+        <nifi.flowfile.repository.rocksdb.stall.period>100 ms</nifi.flowfile.repository.rocksdb.stall.period>
+        <nifi.flowfile.repository.rocksdb.stall.flowfile.count>800000</nifi.flowfile.repository.rocksdb.stall.flowfile.count>
+        <nifi.flowfile.repository.rocksdb.stall.heap.usage.percent>95%</nifi.flowfile.repository.rocksdb.stall.heap.usage.percent>
+        <nifi.flowfile.repository.rocksdb.stop.flowfile.count>1100000</nifi.flowfile.repository.rocksdb.stop.flowfile.count>
+        <nifi.flowfile.repository.rocksdb.stop.heap.usage.percent>99.9%</nifi.flowfile.repository.rocksdb.stop.heap.usage.percent>
+        <nifi.flowfile.repository.rocksdb.remove.orphaned.flowfiles.on.startup>false</nifi.flowfile.repository.rocksdb.remove.orphaned.flowfiles.on.startup>
+        <nifi.flowfile.repository.rocksdb.enable.recovery.mode>false</nifi.flowfile.repository.rocksdb.enable.recovery.mode>
+        <nifi.flowfile.repository.rocksdb.recovery.mode.flowfile.count>5000</nifi.flowfile.repository.rocksdb.recovery.mode.flowfile.count>
+
+        <nifi.flowfile.repository.rocksdb.parallel.threads>8</nifi.flowfile.repository.rocksdb.parallel.threads>
+        <nifi.flowfile.repository.rocksdb.max.write.buffer.number>4</nifi.flowfile.repository.rocksdb.max.write.buffer.number>
+        <nifi.flowfile.repository.rocksdb.write.buffer.size>256 MB</nifi.flowfile.repository.rocksdb.write.buffer.size>
+        <nifi.flowfile.repository.rocksdb.level.0.slowdown.writes.trigger>20</nifi.flowfile.repository.rocksdb.level.0.slowdown.writes.trigger>
+        <nifi.flowfile.repository.rocksdb.level.0.stop.writes.trigger>40</nifi.flowfile.repository.rocksdb.level.0.stop.writes.trigger>
+        <nifi.flowfile.repository.rocksdb.delayed.write.bytes.per.second>16 MB</nifi.flowfile.repository.rocksdb.delayed.write.bytes.per.second>
+        <nifi.flowfile.repository.rocksdb.max.background.flushes>1</nifi.flowfile.repository.rocksdb.max.background.flushes>
+        <nifi.flowfile.repository.rocksdb.max.background.compactions>1</nifi.flowfile.repository.rocksdb.max.background.compactions>
+        <nifi.flowfile.repository.rocksdb.min.write.buffer.number.to.merge>1</nifi.flowfile.repository.rocksdb.min.write.buffer.number.to.merge>
+        <nifi.flowfile.repository.rocksdb.stat.dump.period>600 sec</nifi.flowfile.repository.rocksdb.stat.dump.period>
+
         <nifi.swap.manager.implementation>org.apache.nifi.controller.FileSystemSwapManager</nifi.swap.manager.implementation>
         <nifi.queue.swap.threshold>20000</nifi.queue.swap.threshold>
         <nifi.swap.in.period>5 sec</nifi.swap.in.period>
