@@ -3325,6 +3325,10 @@ These properties determine the behavior of the internal NiFi Analytics capabilit
 |====
 |*Property*|*Description*
 |`nifi.analytics.predict.interval`|This indicates a time interval for which analytical predictions (queue saturation, e.g.) should be made. The default value is `3 mins`.
+|`nifi.analytics.connection.model.implementation`|This is the implementation class for the status analytics model used to make connection predictions.  The default value is `org.apache.nifi.controller.status.analytics.models.OrdinaryLeastSquares`.
+|`nifi.analytics.connection.model.score.name`|This is the name of the scoring type that should be used to evaluate model.  The default value is `rSquared`.
+|`nifi.analytics.connection.model.score.threshold`|This is the threshold for the scoring value (where score should be above given threshold).  The default value is `.9`.
+
 |====
 
 [[custom_properties]]

@@ -16,12 +16,16 @@
  */
 package org.apache.nifi.controller.status.analytics;
 
+import java.util.Map;
 import java.util.stream.Stream;
 
 public interface StatusAnalyticsModel {
 
     void learn(Stream<Double[]> features, Stream<Double> labels);
     Double predict(Double[] feature);
+    Double predictVariable(Integer predictVariableIndex, Map<Integer,Double> knownVariablesWithIndex, Double label);
     Boolean supportsOnlineLearning();
+    Map<String,Double> getScores();
+    void clear();
 
 }

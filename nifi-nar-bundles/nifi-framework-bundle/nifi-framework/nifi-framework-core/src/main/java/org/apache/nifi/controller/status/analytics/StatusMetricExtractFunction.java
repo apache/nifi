@@ -14,24 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.controller.status.analytics.models;
+package org.apache.nifi.controller.status.analytics;
 
-import java.util.Map;
 import java.util.stream.Stream;
 
-import org.apache.nifi.controller.status.analytics.StatusAnalyticsModel;
+import org.apache.nifi.controller.status.history.StatusHistory;
+import org.apache.nifi.util.Tuple;
 
-public interface VariateStatusAnalyticsModel extends StatusAnalyticsModel {
+public interface StatusMetricExtractFunction {
 
-    void learn(Stream<Double[]> features, Stream<Double> labels);
-
-    Double predict(Double[] feature);
-
-    Boolean supportsOnlineLearning();
-
-    Double getRSquared();
-
-    Map<String,Double> getScores();
-
-    void clear();
+    Tuple<Stream<Double[]>, Stream<Double>> extractMetric(String metric, StatusHistory statusHistory);
 }

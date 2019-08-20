@@ -149,8 +149,11 @@ import org.apache.nifi.controller.service.StandardConfigurationContext;
 import org.apache.nifi.controller.service.StandardControllerServiceProvider;
 import org.apache.nifi.controller.state.manager.StandardStateManagerProvider;
 import org.apache.nifi.controller.state.server.ZooKeeperStateServer;
-import org.apache.nifi.controller.status.analytics.ConnectionStatusAnalyticsEngine;
+import org.apache.nifi.controller.status.analytics.CachingConnectionStatusAnalyticsEngine;
 import org.apache.nifi.controller.status.analytics.StatusAnalyticsEngine;
+import org.apache.nifi.controller.status.analytics.StatusAnalyticsModel;
+import org.apache.nifi.controller.status.analytics.StatusAnalyticsModelMapFactory;
+import org.apache.nifi.controller.status.analytics.StatusMetricExtractFunction;
 import org.apache.nifi.controller.status.history.ComponentStatusRepository;
 import org.apache.nifi.controller.status.history.GarbageCollectionHistory;
 import org.apache.nifi.controller.status.history.GarbageCollectionStatus;
@@ -210,6 +213,7 @@ import org.apache.nifi.util.ComponentIdGenerator;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.ReflectionUtils;
+import org.apache.nifi.util.Tuple;
 import org.apache.nifi.util.concurrency.TimedLock;
 import org.apache.nifi.web.api.dto.PositionDTO;
 import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
@@ -602,8 +606,25 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
             predictionIntervalMillis = FormatUtils.getTimeDuration(NiFiProperties.DEFAULT_ANALYTICS_PREDICTION_INTERVAL, TimeUnit.MILLISECONDS);
         }
 
+        // Determine score name to use for evaluating model performance
+        String modelScoreName = nifiProperties.getProperty(NiFiProperties.ANALYTICS_CONNECTION_MODEL_SCORE_NAME, NiFiProperties.DEFAULT_ANALYTICS_CONNECTION_SCORE_NAME);
+
+        // Determine score threshold to use when evaluating acceptable model
+        Double modelScoreThreshold;
+        try {
+            modelScoreThreshold = Double.valueOf(nifiProperties.getProperty(NiFiProperties.ANALYTICS_CONNECTION_MODEL_SCORE_NAME, NiFiProperties.DEFAULT_ANALYTICS_PREDICTION_INTERVAL));
+        }catch (final Exception e) {
+            modelScoreThreshold = Double.valueOf(NiFiProperties.DEFAULT_ANALYTICS_CONNECTION_SCORE_THRESHOLD);
+        }
+
         componentStatusRepository = createComponentStatusRepository();
-        analyticsEngine = new ConnectionStatusAnalyticsEngine(flowManager, componentStatusRepository, flowFileEventRepository, predictionIntervalMillis);
+
+        final Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> modelMap = StatusAnalyticsModelMapFactory
+                                                                                                    .getConnectionStatusModelMap(extensionManager, nifiProperties);
+
+        analyticsEngine = new CachingConnectionStatusAnalyticsEngine(flowManager, componentStatusRepository, flowFileEventRepository, modelMap,
+                                                                predictionIntervalMillis, modelScoreName, modelScoreThreshold);
+
         eventAccess = new StandardEventAccess(this, flowFileEventRepository);
 
         timerDrivenEngineRef.get().scheduleWithFixedDelay(new Runnable() {
@@ -1040,8 +1061,6 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
             throw new RuntimeException(e);
         }
     }
-
-
 
 
     public KerberosConfig createKerberosConfig(final NiFiProperties nifiProperties) {
