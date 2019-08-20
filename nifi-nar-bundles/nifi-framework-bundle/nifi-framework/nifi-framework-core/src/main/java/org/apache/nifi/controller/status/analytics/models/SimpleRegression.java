@@ -23,21 +23,24 @@ import java.util.stream.Stream;
 
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.math3.stat.regression.RegressionResults;
-import org.apache.commons.math3.stat.regression.SimpleRegression;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class SimpleRegressionBSAM extends BivariateStatusAnalyticsModel {
+public class SimpleRegression extends BivariateStatusAnalyticsModel {
 
-    private static final Logger LOG = LoggerFactory.getLogger(SimpleRegressionBSAM.class);
-    private final SimpleRegression regression;
-    private final Boolean clearObservationsOnLearn;
+    private static final Logger LOG = LoggerFactory.getLogger(SimpleRegression.class);
+    private final org.apache.commons.math3.stat.regression.SimpleRegression regression;
+    private final Boolean supportOnlineLearning;
     private RegressionResults results;
 
-    public SimpleRegressionBSAM(Boolean clearObservationsOnLearn) {
+    public SimpleRegression() {
+        this.regression = new org.apache.commons.math3.stat.regression.SimpleRegression();
+        this.supportOnlineLearning = true;
+    }
 
-        this.regression = new SimpleRegression();
-        this.clearObservationsOnLearn = clearObservationsOnLearn;
+    public SimpleRegression(Boolean supportOnlineLearning) {
+        this.regression = new org.apache.commons.math3.stat.regression.SimpleRegression();
+        this.supportOnlineLearning = supportOnlineLearning;
     }
 
     @Override
@@ -45,7 +48,7 @@ public class SimpleRegressionBSAM extends BivariateStatusAnalyticsModel {
         double[] labelArray = ArrayUtils.toPrimitive(labels.toArray(Double[]::new));
         double[][] featuresMatrix = features.map(feature -> ArrayUtils.toPrimitive(feature)).toArray(double[][]::new);
 
-        if (clearObservationsOnLearn) {
+        if (!supportOnlineLearning) {
             regression.clear();
         }
 
@@ -64,15 +67,6 @@ public class SimpleRegressionBSAM extends BivariateStatusAnalyticsModel {
     @Override
     public Double predictY(Double x) {
         return regression.getSlope() * x + regression.getIntercept();
-    }
-
-    @Override
-    public Double getRSquared() {
-        if (results != null) {
-            return results.getRSquared();
-        } else {
-            return null;
-        }
     }
 
     @Override
@@ -97,7 +91,7 @@ public class SimpleRegressionBSAM extends BivariateStatusAnalyticsModel {
 
     @Override
     public Boolean supportsOnlineLearning() {
-        return true;
+        return supportOnlineLearning;
     }
 
 }

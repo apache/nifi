@@ -17,24 +17,23 @@
 package org.apache.nifi.controller.status.analytics.models;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.math3.stat.regression.OLSMultipleLinearRegression;
-import org.apache.nifi.util.Tuple;
+import org.apache.nifi.controller.status.analytics.StatusAnalyticsModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class OrdinaryLeastSquaresMSAM extends MultivariateStatusAnalyticsModel {
+public class OrdinaryLeastSquares implements StatusAnalyticsModel {
 
-    private static final Logger LOG = LoggerFactory.getLogger(OrdinaryLeastSquaresMSAM.class);
+    private static final Logger LOG = LoggerFactory.getLogger(OrdinaryLeastSquares.class);
     private OLSMultipleLinearRegression olsModel;
     private double[] coefficients;
 
-    public OrdinaryLeastSquaresMSAM() {
+    public OrdinaryLeastSquares() {
         this.olsModel = new OLSMultipleLinearRegression();
     }
 
@@ -63,13 +62,14 @@ public class OrdinaryLeastSquaresMSAM extends MultivariateStatusAnalyticsModel {
     }
 
     @Override
-    public Double predictVariable(Integer variableIndex, List<Tuple<Integer, Double>> predictorVariablesWithIndex, Double label) {
+    public Double predictVariable(Integer predictVariableIndex, Map<Integer, Double> knownVariablesWithIndex, Double label) {
         if (coefficients != null) {
             final double intercept = olsModel.isNoIntercept() ? 0 : coefficients[0];
-            final double predictorCoeff = coefficients[variableIndex + 1];
+            final double predictorCoeff = coefficients[predictVariableIndex + 1];
             double sumX = 0;
-            if (predictorVariablesWithIndex.size() > 0) {
-                sumX = predictorVariablesWithIndex.stream().map(featureTuple -> coefficients[olsModel.isNoIntercept() ? featureTuple.getKey() : featureTuple.getKey() + 1] * featureTuple.getValue())
+            if (knownVariablesWithIndex.size() > 0) {
+                sumX = knownVariablesWithIndex.entrySet().stream().map(featureTuple -> coefficients[olsModel.isNoIntercept()
+                                                            ? featureTuple.getKey() : featureTuple.getKey() + 1] * featureTuple.getValue())
                                                            .collect(Collectors.summingDouble(Double::doubleValue));
             }
             return (label - intercept - sumX) / predictorCoeff;
@@ -91,13 +91,12 @@ public class OrdinaryLeastSquaresMSAM extends MultivariateStatusAnalyticsModel {
     }
 
     @Override
-    public Double getRSquared() {
-        if (coefficients != null) {
-            return olsModel.calculateRSquared();
-        } else {
-            return null;
-        }
+    public Boolean supportsOnlineLearning() {
+        return false;
     }
 
+    @Override
+    public void clear() {
 
+    }
 }

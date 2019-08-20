@@ -18,18 +18,16 @@ package org.apache.nifi.controller.status.analytics.models;
 
 import static org.junit.Assert.assertTrue;
 
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Stream;
 
 import org.apache.commons.lang3.time.DateUtils;
 import org.apache.commons.math3.linear.SingularMatrixException;
-import org.apache.nifi.util.Tuple;
 import org.junit.Test;
 
-public class TestOrdinaryLeastSqauresMSAM {
+public class TestOrdinaryLeastSqaures {
 
 
     @Test
@@ -48,7 +46,7 @@ public class TestOrdinaryLeastSqauresMSAM {
         Double[][] features = {feature0, feature1,feature2,feature3};
         Double[] labels = {queueCount,queueCount,queueCount, queueCount};
 
-        OrdinaryLeastSquaresMSAM model = new OrdinaryLeastSquaresMSAM();
+        OrdinaryLeastSquares model = new OrdinaryLeastSquares();
         boolean exOccurred = false;
         try {
             model.learn(Stream.of(features), Stream.of(labels));
@@ -75,15 +73,14 @@ public class TestOrdinaryLeastSqauresMSAM {
         Double[][] features = {feature0, feature1,feature2,feature3};
         Double[] labels = {queueCount,queueCount + 50, queueCount - 50, queueCount - 100};
 
-        OrdinaryLeastSquaresMSAM model = new OrdinaryLeastSquaresMSAM();
+        OrdinaryLeastSquares model = new OrdinaryLeastSquares();
 
         model.learn(Stream.of(features), Stream.of(labels));
 
-        Tuple<Integer,Double> ratioPredictor = new Tuple<>(1,200/800.0);
-        List<Tuple<Integer,Double>> predictorVars = new ArrayList<>();
-        predictorVars.add(ratioPredictor);
+        Map<Integer,Double> predictorVars = new HashMap<>();
+        predictorVars.put(1,200/800.0);
         Double target = model.predictVariable(0,predictorVars, 750.0);
-        Double rSquared = model.getRSquared();
+        Double rSquared = model.getScores().get("rSquared");
         assert(rSquared > .90);
         Date targetDate = new Date(target.longValue());
         Date testDate = new Date(timestamp.longValue());
@@ -108,13 +105,13 @@ public class TestOrdinaryLeastSqauresMSAM {
         Double[] labels = {queueCount,queueCount + 50, queueCount - 50, queueCount - 100};
 
 
-        OrdinaryLeastSquaresMSAM model = new OrdinaryLeastSquaresMSAM();
+        OrdinaryLeastSquares model = new OrdinaryLeastSquares();
 
         Double[] predictor = {timestamp + 5000, outputCount/inputCount};
 
         model.learn(Stream.of(features), Stream.of(labels));
         Double target = model.predict(predictor);
-        Double rSquared = model.getRSquared();
+        Double rSquared = model.getScores().get("rSquared");
         assert(rSquared > .90);
         assert(target >= 950);
 
@@ -136,17 +133,17 @@ public class TestOrdinaryLeastSqauresMSAM {
         Double[][] features = {feature0, feature1,feature2,feature3};
         Double[] labels = {queueCount,queueCount + 50, queueCount - 50, queueCount - 100};
 
-        OrdinaryLeastSquaresMSAM ordinaryLeastSquaresMSAM = new OrdinaryLeastSquaresMSAM();
-        SimpleRegressionBSAM simpleRegressionBSAM = new SimpleRegressionBSAM(false);
+        OrdinaryLeastSquares ordinaryLeastSquares = new OrdinaryLeastSquares();
+        SimpleRegression simpleRegression = new SimpleRegression(false);
 
-        ordinaryLeastSquaresMSAM.learn(Stream.of(features), Stream.of(labels));
-        simpleRegressionBSAM.learn(Stream.of(features), Stream.of(labels));
-        double olsR2 = ordinaryLeastSquaresMSAM.getRSquared();
-        double srR2 = simpleRegressionBSAM.getRSquared();
+        ordinaryLeastSquares.learn(Stream.of(features), Stream.of(labels));
+        simpleRegression.learn(Stream.of(features), Stream.of(labels));
+        double olsR2 = ordinaryLeastSquares.getScores().get("rSquared");
+        double srR2 = simpleRegression.getScores().get("rSquared");
         assert(!Double.isNaN(olsR2));
         assert(!Double.isNaN(srR2));
-        Map<String,Double> olsScores = ordinaryLeastSquaresMSAM.getScores();
-        Map<String,Double> srScores = simpleRegressionBSAM.getScores();
+        Map<String,Double> olsScores = ordinaryLeastSquares.getScores();
+        Map<String,Double> srScores = simpleRegression.getScores();
         System.out.print(olsScores.toString());
         System.out.print(srScores.toString());
         assert(olsR2 > srR2);

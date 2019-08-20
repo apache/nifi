@@ -25,11 +25,15 @@ import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.queue.FlowFileQueue;
@@ -43,6 +47,9 @@ import org.apache.nifi.controller.status.history.StandardStatusSnapshot;
 import org.apache.nifi.controller.status.history.StatusHistory;
 import org.apache.nifi.controller.status.history.StatusSnapshot;
 import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
+import org.apache.nifi.nar.SystemBundle;
+import org.apache.nifi.util.NiFiProperties;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -54,9 +61,19 @@ public class TestConnectionStatusAnalytics {
 
     protected ConnectionStatusAnalytics getConnectionStatusAnalytics(Long queuedBytes, Long queuedCount, String backPressureDataSizeThreshhold,
                                                                      Long backPressureObjectThreshold, Boolean isConstantStatus) {
+
         ComponentStatusRepository statusRepository = Mockito.mock(ComponentStatusRepository.class);
         FlowManager flowManager;
         flowManager = Mockito.mock(FlowManager.class);
+        final Map<String, String> otherProps = new HashMap<>();
+        final String propsFile = "src/test/resources/conf/nifi.properties";
+        NiFiProperties nifiProperties = NiFiProperties.createBasicNiFiProperties(propsFile, otherProps);
+
+        // use the system bundle
+        Bundle systemBundle = SystemBundle.create(nifiProperties);
+        StandardExtensionDiscoveringManager extensionManager = new StandardExtensionDiscoveringManager();
+        extensionManager.discoverExtensions(systemBundle, Collections.emptySet());
+
         final ProcessGroup processGroup = Mockito.mock(ProcessGroup.class);
         final StatusHistory statusHistory = Mockito.mock(StatusHistory.class);
         final Connection connection = Mockito.mock(Connection.class);
@@ -64,6 +81,8 @@ public class TestConnectionStatusAnalytics {
         final FlowFileEventRepository flowFileEventRepository = Mockito.mock(FlowFileEventRepository.class);
         final RepositoryStatusReport repositoryStatusReport = Mockito.mock(RepositoryStatusReport.class);
         final FlowFileEvent flowFileEvent = Mockito.mock(FlowFileEvent.class);
+
+
         final List<Connection> connections = new ArrayList<>();
         final String connectionIdentifier = "1";
         connections.add(connection);
@@ -103,8 +122,11 @@ public class TestConnectionStatusAnalytics {
         when(flowFileEventRepository.reportTransferEvents(anyLong())).thenReturn(repositoryStatusReport);
         when(repositoryStatusReport.getReportEntry(anyString())).thenReturn(flowFileEvent);
         when(statusRepository.getConnectionStatusHistory(anyString(), any(), any(), anyInt())).thenReturn(statusHistory);
+
         ConnectionStatusAnalytics connectionStatusAnalytics = new ConnectionStatusAnalytics(statusRepository, flowManager,flowFileEventRepository, connectionIdentifier, false);
-        connectionStatusAnalytics.init();
+        connectionStatusAnalytics.init(StatusAnalyticsModelMapFactory.getConnectionStatusModelMap(extensionManager,nifiProperties));
+        connectionStatusAnalytics.setScoreThreshold(.9);
+        connectionStatusAnalytics.setScoreName("rSquared");
         return connectionStatusAnalytics;
     }
 
