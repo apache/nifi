@@ -61,7 +61,6 @@ import java.util.concurrent.*;
         @WritesAttribute(attribute = "eventhub.partition", description = "The name of the Azure Partition from which the message was pulled")
 })
 public class GetAzureEventHub extends AbstractProcessor {
-
     static final PropertyDescriptor EVENT_HUB_NAME = new PropertyDescriptor.Builder()
             .name("Event Hub Name")
             .description("The name of the Azure Event Hub to pull messages from")
@@ -189,7 +188,6 @@ public class GetAzureEventHub extends AbstractProcessor {
         return propertyDescriptors;
     }
 
-
     protected void setupReceiver(final String connectionString, final ScheduledExecutorService executor) throws ProcessException {
         try {
             eventHubClient = EventHubClient.createSync(connectionString, executor);
@@ -311,7 +309,6 @@ public class GetAzureEventHub extends AbstractProcessor {
         setupReceiver(connectionString, executor);
     }
 
-
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         final BlockingQueue<String> partitionIds = this.partitionNames;
@@ -365,5 +362,4 @@ public class GetAzureEventHub extends AbstractProcessor {
             partitionIds.offer(partitionId);
         }
     }
-
 }

@@ -49,7 +49,6 @@ import java.util.HashSet;
 import java.util.Collections;
 import java.util.concurrent.*;
 
-
 @SupportsBatching
 @Tags({"microsoft", "azure", "cloud", "eventhub", "events", "streams", "streaming"})
 @InputRequirement(Requirement.INPUT_REQUIRED)
@@ -207,6 +206,5 @@ public class PutAzureEventHub extends AbstractProcessor {
         }else{
             throw new ProcessException("No EventHubClients are configured for sending");
         }
-
     }
 }

@@ -243,7 +243,6 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
             .required(false)
             .build();
 
-
     static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("FlowFiles received from Event Hub.")
@@ -531,7 +530,6 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
                             " consumerGroupName={}, exception={}",
                     new Object[]{context.getEventHubPath(), context.getPartitionId(), context.getConsumerGroupName(), e}, e);
         }
-
     }
 
     @Override
@@ -639,7 +637,6 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
                     new Object[]{eventHubName, consumerGroupName, e.getPartitionId(), e.getAction(), e.getHostname()}, e.getException());
         });
 
-
         eventProcessorHost.registerEventProcessorFactory(new EventProcessorFactory(), options).get();
     }
 
@@ -652,5 +649,4 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
             throw new IllegalArgumentException(String.format("'%s' is required, but not specified.", property.getDisplayName()));
         }
     }
-
 }

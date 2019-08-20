@@ -42,9 +42,7 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
 import org.junit.Test;
 
-
 public class GetAzureEventHubTest {
-
     private static final String namespaceName = "nifi-azure-hub";
     private static final String eventHubName = "get-test";
     private static final String sasKeyName = "bogus-policy";
@@ -200,12 +198,10 @@ public class GetAzureEventHubTest {
             }
 
             return receivedEvents;
-
         }
     }
 
     public static class MockGetAzureEventHubNoPartitions extends GetAzureEventHub{
-
         @Override
         protected void setupReceiver(final String connectionString, final ScheduledExecutorService executor) throws ProcessException{
             //do nothing
@@ -217,8 +213,6 @@ public class GetAzureEventHubTest {
         }
     }
 
-
-
     private void setUpStandardTestConfig() {
         testRunner.setProperty(GetAzureEventHub.EVENT_HUB_NAME,eventHubName);
         testRunner.setProperty(GetAzureEventHub.NAMESPACE,namespaceName);
@@ -227,5 +221,4 @@ public class GetAzureEventHubTest {
         testRunner.setProperty(GetAzureEventHub.NUM_PARTITIONS,"4");
         testRunner.assertValid();
     }
-
 }
