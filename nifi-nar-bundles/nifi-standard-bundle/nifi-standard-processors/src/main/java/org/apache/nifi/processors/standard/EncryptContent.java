@@ -225,7 +225,7 @@ public class EncryptContent extends AbstractProcessor {
             classField.setAccessible(true);
             String fieldName = classField.getName();
             Integer fieldValue = null;
-            try{
+            try {
                 if (classField.isAccessible() && classField.getType() == int.class) {
                     fieldValue = classField.getInt(null);
                 }
