@@ -38,7 +38,7 @@ public class StatusAnalyticsModelMapFactory {
     private final static String INPUT_BYTES_METRIC = "inputBytes";
     private final static String OUTPUT_COUNT_METRIC = "outputCount";
     private final static String OUTPUT_BYTES_METRIC = "outputBytes";
-    private final static String DEFAULT_ANALYTICS_CONNECTION_MODEL = "org.apache.nifi.controller.status.analytics.models.OrdinaryLeastSquares";
+
 
     public static Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> getConnectionStatusModelMap(ExtensionManager extensionManager, NiFiProperties niFiProperties){
             Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> modelMap = new HashMap<>();
@@ -51,7 +51,7 @@ public class StatusAnalyticsModelMapFactory {
     }
 
     private static StatusAnalyticsModel createModelInstance(ExtensionManager extensionManager, NiFiProperties nifiProperties) {
-        final String implementationClassName = nifiProperties.getProperty(NiFiProperties.ANALYTICS_CONNECTION_MODEL_IMPLEMENTATION, DEFAULT_ANALYTICS_CONNECTION_MODEL);
+        final String implementationClassName = nifiProperties.getProperty(NiFiProperties.ANALYTICS_CONNECTION_MODEL_IMPLEMENTATION, NiFiProperties.DEFAULT_ANALYTICS_CONNECTION_MODEL);
         if (implementationClassName == null) {
             throw new RuntimeException("Cannot create Analytics Model because the NiFi Properties is missing the following property: "
                     + NiFiProperties.ANALYTICS_CONNECTION_MODEL_IMPLEMENTATION);

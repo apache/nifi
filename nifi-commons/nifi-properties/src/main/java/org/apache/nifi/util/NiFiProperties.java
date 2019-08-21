@@ -316,6 +316,7 @@ public abstract class NiFiProperties {
 
     // analytics defaults
     public static final String DEFAULT_ANALYTICS_PREDICTION_INTERVAL = "3 mins";
+    public final static String DEFAULT_ANALYTICS_CONNECTION_MODEL = "org.apache.nifi.controller.status.analytics.models.OrdinaryLeastSquares";
     public static final String DEFAULT_ANALYTICS_CONNECTION_SCORE_NAME = "rSquared";
     public static final double DEFAULT_ANALYTICS_CONNECTION_SCORE_THRESHOLD = .90;
 
