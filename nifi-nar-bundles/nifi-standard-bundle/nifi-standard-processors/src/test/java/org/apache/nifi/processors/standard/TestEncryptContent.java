@@ -20,7 +20,10 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.security.Security;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.security.util.EncryptionMethod;
@@ -31,6 +34,7 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.bouncycastle.bcpg.SymmetricKeyAlgorithmTags;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.junit.Assert;
 import org.junit.Assume;
@@ -89,6 +93,48 @@ public class TestEncryptContent {
 
             flowFile = testRunner.getFlowFilesForRelationship(EncryptContent.REL_SUCCESS).get(0);
             flowFile.assertContentEquals(new File("src/test/resources/hello.txt"));
+        }
+    }
+
+    @Test
+    public void testPgpCiphersRoundTrip() throws IOException {
+        final TestRunner testRunner = TestRunners.newTestRunner(new EncryptContent());
+        List<String> pgpAlgorithms = new ArrayList<>();
+        pgpAlgorithms.add("PGP");
+        pgpAlgorithms.add("PGP-ASCII-ARMOR");
+
+        for (String algorithm : pgpAlgorithms) {
+
+            testRunner.setProperty(EncryptContent.ENCRYPTION_ALGORITHM, algorithm);
+            testRunner.setProperty(EncryptContent.PASSWORD, "short");
+            testRunner.setProperty(EncryptContent.KEY_DERIVATION_FUNCTION, KeyDerivationFunction.NIFI_LEGACY.name());
+            // Must be allowed or short password will cause validation errors
+            testRunner.setProperty(EncryptContent.ALLOW_WEAK_CRYPTO, "allowed");
+
+            for (int i = 1; i < 14; i++) {
+                if (i != SymmetricKeyAlgorithmTags.SAFER) {
+                    testRunner.setProperty(EncryptContent.PGP_SYMMETRIC_ENCRYPTION_CIPHER, String.valueOf(i));
+                    testRunner.setProperty(EncryptContent.MODE, EncryptContent.ENCRYPT_MODE);
+
+                    testRunner.enqueue(Paths.get("src/test/resources/hello.txt"));
+                    testRunner.clearTransferState();
+                    testRunner.run();
+
+                    testRunner.assertAllFlowFilesTransferred(EncryptContent.REL_SUCCESS, 1);
+
+                    MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(EncryptContent.REL_SUCCESS).get(0);
+                    testRunner.assertQueueEmpty();
+                    System.out.println(Arrays.toString(flowFile.toByteArray()));
+                    testRunner.setProperty(EncryptContent.MODE, EncryptContent.DECRYPT_MODE);
+                    testRunner.enqueue(flowFile);
+                    testRunner.clearTransferState();
+                    testRunner.run();
+                    testRunner.assertAllFlowFilesTransferred(EncryptContent.REL_SUCCESS, 1);
+
+                    flowFile = testRunner.getFlowFilesForRelationship(EncryptContent.REL_SUCCESS).get(0);
+                    flowFile.assertContentEquals(new File("src/test/resources/hello.txt"));
+                }
+            }
         }
     }
 
