@@ -43,7 +43,7 @@ import com.google.common.primitives.Doubles;
 public class ConnectionStatusAnalytics implements StatusAnalytics {
 
     private static final Logger LOG = LoggerFactory.getLogger(ConnectionStatusAnalytics.class);
-    private Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> modelMap;
+    private final Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> modelMap;
     private QueryWindow queryWindow;
     private final ComponentStatusRepository componentStatusRepository;
     private final FlowFileEventRepository flowFileEventRepository;
@@ -55,21 +55,14 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
     private String scoreName = "rSquared";
     private double scoreThreshold = .90;
 
-    public ConnectionStatusAnalytics(ComponentStatusRepository componentStatusRepository, FlowManager flowManager, FlowFileEventRepository flowFileEventRepository, String connectionIdentifier,
-            Boolean supportOnlineLearning) {
+    public ConnectionStatusAnalytics(ComponentStatusRepository componentStatusRepository, FlowManager flowManager, FlowFileEventRepository flowFileEventRepository,
+                                     Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> modelMap, String connectionIdentifier, Boolean supportOnlineLearning) {
         this.componentStatusRepository = componentStatusRepository;
         this.flowManager = flowManager;
         this.flowFileEventRepository = flowFileEventRepository;
+        this.modelMap = modelMap;
         this.connectionIdentifier = connectionIdentifier;
         this.supportOnlineLearning = supportOnlineLearning;
-    }
-
-    public void init(Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> modelMap) {
-        LOG.debug("Initialize analytics connection id: {} ", connectionIdentifier);
-        if (this.modelMap == null || this.modelMap.isEmpty()) {
-            this.modelMap = modelMap;
-        }
-        refresh();
     }
 
     public void refresh() {

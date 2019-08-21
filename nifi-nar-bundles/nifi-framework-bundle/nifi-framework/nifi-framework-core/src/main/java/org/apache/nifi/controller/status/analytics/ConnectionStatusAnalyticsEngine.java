@@ -48,11 +48,11 @@ public class ConnectionStatusAnalyticsEngine implements StatusAnalyticsEngine {
 
     @Override
     public StatusAnalytics getStatusAnalytics(String identifier) {
-        ConnectionStatusAnalytics connectionStatusAnalytics = new ConnectionStatusAnalytics(statusRepository, flowManager, flowFileEventRepository, identifier, false);
+        ConnectionStatusAnalytics connectionStatusAnalytics = new ConnectionStatusAnalytics(statusRepository, flowManager, flowFileEventRepository, modelMap, identifier, false);
         connectionStatusAnalytics.setIntervalTimeMillis(predictionIntervalMillis);
         connectionStatusAnalytics.setScoreName(scoreName);
         connectionStatusAnalytics.setScoreThreshold(scoreThreshold);
-        connectionStatusAnalytics.init(modelMap);
+        connectionStatusAnalytics.refresh();
         return connectionStatusAnalytics;
     }
 

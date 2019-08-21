@@ -51,7 +51,7 @@ public class StatusAnalyticsModelMapFactory {
     }
 
     private static StatusAnalyticsModel createModelInstance(ExtensionManager extensionManager, NiFiProperties nifiProperties) {
-        final String implementationClassName = nifiProperties.getProperty(NiFiProperties.ANALYTICS_CONNECTION_MODEL_IMPLEMENTATION, NiFiProperties.DEFAULT_ANALYTICS_CONNECTION_MODEL);
+        final String implementationClassName = nifiProperties.getProperty(NiFiProperties.ANALYTICS_CONNECTION_MODEL_IMPLEMENTATION, NiFiProperties.DEFAULT_ANALYTICS_CONNECTION_MODEL_IMPLEMENTATION);
         if (implementationClassName == null) {
             throw new RuntimeException("Cannot create Analytics Model because the NiFi Properties is missing the following property: "
                     + NiFiProperties.ANALYTICS_CONNECTION_MODEL_IMPLEMENTATION);

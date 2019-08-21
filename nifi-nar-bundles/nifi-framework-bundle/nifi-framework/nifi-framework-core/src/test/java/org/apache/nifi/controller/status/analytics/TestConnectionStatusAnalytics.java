@@ -123,10 +123,9 @@ public class TestConnectionStatusAnalytics {
         when(repositoryStatusReport.getReportEntry(anyString())).thenReturn(flowFileEvent);
         when(statusRepository.getConnectionStatusHistory(anyString(), any(), any(), anyInt())).thenReturn(statusHistory);
 
-        ConnectionStatusAnalytics connectionStatusAnalytics = new ConnectionStatusAnalytics(statusRepository, flowManager,flowFileEventRepository, connectionIdentifier, false);
-        connectionStatusAnalytics.init(StatusAnalyticsModelMapFactory.getConnectionStatusModelMap(extensionManager,nifiProperties));
-        connectionStatusAnalytics.setScoreThreshold(.9);
-        connectionStatusAnalytics.setScoreName("rSquared");
+        ConnectionStatusAnalytics connectionStatusAnalytics = new ConnectionStatusAnalytics(statusRepository, flowManager,flowFileEventRepository,
+                StatusAnalyticsModelMapFactory.getConnectionStatusModelMap(extensionManager,nifiProperties), connectionIdentifier, false);
+        connectionStatusAnalytics.refresh();
         return connectionStatusAnalytics;
     }
 
