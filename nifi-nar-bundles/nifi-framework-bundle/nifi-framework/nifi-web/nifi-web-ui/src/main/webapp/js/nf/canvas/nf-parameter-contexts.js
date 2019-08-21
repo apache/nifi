@@ -234,38 +234,41 @@
             var parameter = {
                 'name': this.name
             };
-            var modified = false;
+
+            // if the parameter has been deleted
             if (this.hidden === true && this.previousValue !== null) {
                 // hidden parameters were removed by the user, clear the value
-                modified = true;
-            } else if (this.value !== this.previousValue) {
-                parameter['sensitive'] = this.sensitive;
-                if(!this.sensitive) {
-                    parameter['value'] = this.value;
-                } else {
-                    // if the parameter is sensitive we don't know it's value so we only include the
-                    // value if it has changed or if the empty string set checkbox has been checked
-                    if (!nfCommon.isBlank(this.value) || this.isEmptyStringSet === true){
+                parameters.push({
+                    'parameter': parameter
+                });
+            } else if (this.isModified === true) { // the parameter is modified
+                // check if the value has changed
+                if (this.value !== this.previousValue) {
+                    parameter['sensitive'] = this.sensitive;
+
+                    // for non-sensitive values we always include the value
+                    if (!this.sensitive) {
                         parameter['value'] = this.value;
+                    } else {
+                        // for sensitive parameters we don't know it's value so we only include the
+                        // value if it has changed or if the empty string set checkbox has been checked
+                        if (!nfCommon.isBlank(this.value) || this.isEmptyStringSet === true) {
+                            parameter['value'] = this.value;
+                        }
                     }
+
+                    parameter['description'] = this.description;
+                } else if (this.value === this.previousValue && this.sensitive === true) {
+                    // if the user sets the sensitive parameter's value to the mask returned by the server
+                    parameter['value'] = this.value;
+                    parameter['sensitive'] = this.sensitive;
+                    parameter['description'] = this.description;
+                } else if (this.description !== this.previousDescription) {
+                    parameter['value'] = this.value;
+                    parameter['sensitive'] = this.sensitive;
+                    parameter['description'] = this.description;
                 }
 
-                parameter['description'] = this.description;
-                modified = true;
-            } else if (this.value === this.previousValue && this.sensitive === true && this.isModified === true) {
-                // if the user sets the sensitive parameter's value to the mask returned by the server
-                parameter['value'] = this.value;
-                parameter['sensitive'] = this.sensitive;
-                parameter['description'] = this.description;
-                modified = true;
-            } else if (this.description !== this.previousDescription) {
-                parameter['value'] = this.value;
-                parameter['sensitive'] = this.sensitive;
-                parameter['description'] = this.description;
-                modified = true;
-            }
-
-            if (modified) {
                 parameters.push({
                     'parameter': parameter
                 });
