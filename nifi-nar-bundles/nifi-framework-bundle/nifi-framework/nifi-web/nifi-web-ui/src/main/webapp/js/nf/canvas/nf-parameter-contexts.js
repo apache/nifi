@@ -210,9 +210,13 @@
         affectedControllerServicesContainer.empty();
 
         $('#parameter-context-affected-unauthorized-components').empty();
+        $('#parameter-referencing-components-container').empty();
 
         // reset the last selected parameter
         lastSelectedId = null;
+
+        // reset the current parameter context
+        currentParameterContextEntity = null;
 
         // clean up any tooltips that may have been generated
         nfCommon.cleanUpTooltips($('#parameter-table'), 'div.fa-question-circle');
@@ -227,28 +231,44 @@
         var parameterGrid = table.data('gridInstance');
         var parameterData = parameterGrid.getData();
         $.each(parameterData.getItems(), function () {
-            if (this.hidden === true) {
-                var parameter = {
-                    parameter: {
-                        'name': this.name,
-                        'value': null
-                    }
-                };
-
+            var parameter = {
+                'name': this.name
+            };
+            var modified = false;
+            if (this.hidden === true && this.previousValue !== null) {
                 // hidden parameters were removed by the user, clear the value
-                parameters.push(parameter);
-            } else if (this.value !== this.previousValue || this.description !== this.previousDescription) {
-                var parameter =  {
-                    parameter: {
-                        'name': this.name,
-                        'description': this.description,
-                        'value': this.value,
-                        'sensitive': this.sensitive
+                modified = true;
+            } else if (this.value !== this.previousValue) {
+                parameter['sensitive'] = this.sensitive;
+                if(!this.sensitive) {
+                    parameter['value'] = this.value;
+                } else {
+                    // if the parameter is sensitive we don't know it's value so we only include the
+                    // value if it has changed or if the empty string set checkbox has been checked
+                    if (!nfCommon.isBlank(this.value) || this.isEmptyStringSet === true){
+                        parameter['value'] = this.value;
                     }
-                };
+                }
 
-                // the value has changed
-                parameters.push(parameter);
+                parameter['description'] = this.description;
+                modified = true;
+            } else if (this.value === this.previousValue && this.sensitive === true && this.isModified === true) {
+                // if the user sets the sensitive parameter's value to the mask returned by the server
+                parameter['value'] = this.value;
+                parameter['sensitive'] = this.sensitive;
+                parameter['description'] = this.description;
+                modified = true;
+            } else if (this.description !== this.previousDescription) {
+                parameter['value'] = this.value;
+                parameter['sensitive'] = this.sensitive;
+                parameter['description'] = this.description;
+                modified = true;
+            }
+
+            if (modified) {
+                parameters.push({
+                    'parameter': parameter
+                });
             }
         });
 
@@ -287,7 +307,7 @@
                             deferred.resolve();
                         },
                         yesHandler: function () {
-                            updateParameterContexts().done(function () {
+                            updateParameterContext(currentParameterContextEntity).done(function () {
                                 deferred.resolve();
                             }).fail(function () {
                                 deferred.reject();
@@ -538,7 +558,7 @@
 
             // bin the affected unauthorized components according to their PG
             $.each(unauthorizedAffectedComponents, function (_, unauthorizedAffectedComponentEntity) {
-                if(unauthorizedAffectedComponentEntity.permissions.canRead === true) {
+                if (unauthorizedAffectedComponentEntity.permissions.canRead === true) {
                     if (affectedProcessGroups[unauthorizedAffectedComponentEntity.component.processGroupId]) {
                         affectedProcessGroups[unauthorizedAffectedComponentEntity.component.processGroupId].unauthorizedAffectedComponents.push(unauthorizedAffectedComponentEntity);
                     } else {
@@ -571,7 +591,7 @@
                         referencingComponents.removeClass('hidden');
 
                         // create the reference block
-                        var groupTwist = $('<div class="referencing-component-block pointer unselectable"></div>').data( 'processGroupId', key ).on('click', function () {
+                        var groupTwist = $('<div class="referencing-component-block pointer unselectable"></div>').data('processGroupId', key).on('click', function () {
                             if (twist.hasClass('collapsed')) {
                                 groupTwist.append(referencingComponents);
 
@@ -744,6 +764,8 @@
         return a.component.name.localeCompare(b.component.name);
     };
 
+    const parameterKeyRegex = /^[a-zA-Z0-9-_. ]+/;
+
     /**
      * Adds a new parameter.
      */
@@ -751,7 +773,7 @@
         var parameterName = $.trim($('#parameter-name').val());
 
         // ensure the parameter name is specified
-        if (parameterName !== '') {
+        if (parameterName !== '' && parameterKeyRegex.test(parameterName)) {
             var parameterGrid = $('#parameter-table').data('gridInstance');
             var parameterData = parameterGrid.getData();
 
@@ -760,22 +782,37 @@
             $.each(parameterData.getItems(), function (_, item) {
                 if (parameterName === item.name) {
                     matchingParameter = item;
+                    return false;
                 }
             });
 
             if (matchingParameter === null) {
+                var isChecked = $('#parameter-dialog').find('.nf-checkbox').hasClass('checkbox-checked');
+
                 var parameter = {
                     id: parameterCount,
                     hidden: false,
                     type: 'Parameter',
                     sensitive: $('#parameter-dialog').find('input[name="sensitive"]:checked').val() === "sensitive" ? true : false,
                     name: parameterName,
-                    value: ($.trim($('#parameter-value-field').val()) === '' ? ($('#parameter-dialog').find('.nf-checkbox').hasClass('checkbox-checked') ? '' : null) : $.trim($('#parameter-value-field').val())),
                     description: $.trim($('#parameter-description-field').val()),
                     previousValue: null,
                     previousDescription: null,
-                    isEditable: true
+                    isEditable: true,
+                    isEmptyStringSet: isChecked,
+                    isModified: true
                 };
+
+                var value = $.trim($('#parameter-value-field').val());
+                if (!nfCommon.isBlank(value)) {
+                    parameter.value = value;
+                } else {
+                    if (isChecked) {
+                        parameter.value = '';
+                    } else {
+                        parameter.value = null;
+                    }
+                }
 
                 // add a row for the new parameter
                 parameterData.addItem(parameter);
@@ -805,6 +842,11 @@
             // update the buttons to possibly trigger the disabled state
             $('#parameter-context-dialog').modal('refreshButtons');
 
+        } else if (!parameterKeyRegex.test(parameterName)) {
+            nfDialog.showOkDialog({
+                headerText: 'Configuration Error',
+                dialogContent: 'This parameter appears to have an invalid character or characters. Only alpha-numeric characters (a-z, A-Z, 0-9), hyphens (-), underscores (_), periods (.), and spaces ( ) are accepted.'
+            });
         } else {
             nfDialog.showOkDialog({
                 headerText: 'Configuration Error',
@@ -829,22 +871,37 @@
             $.each(parameterData.getItems(), function (_, item) {
                 if (parameterName === item.name) {
                     matchingParameter = item;
+                    return false;
                 }
             });
 
             if (matchingParameter !== null) {
+                var isChecked = $('#parameter-dialog').find('.nf-checkbox').hasClass('checkbox-checked');
+
                 var parameter = {
                     id: matchingParameter.id,
                     hidden: false,
                     type: 'Parameter',
                     sensitive: matchingParameter.sensitive,
                     name: parameterName,
-                    value: ($.trim($('#parameter-value-field').val()) === '' ? ($('#parameter-dialog').find('.nf-checkbox').hasClass('checkbox-checked') ? '' : null) : $.trim($('#parameter-value-field').val())),
                     description: $.trim($('#parameter-description-field').val()),
                     previousValue: matchingParameter.value,
                     previousDescription: matchingParameter.description,
-                    isEditable: matchingParameter.isEditable
+                    isEditable: matchingParameter.isEditable,
+                    isEmptyStringSet: isChecked,
+                    isModified: true
                 };
+
+                var value = $.trim($('#parameter-value-field').val());
+                if (!nfCommon.isBlank(value)) {
+                    parameter.value = value;
+                } else {
+                    if (isChecked) {
+                        parameter.value = '';
+                    } else {
+                        parameter.value = null;
+                    }
+                }
 
                 // update row for the parameter
                 parameterData.updateItem(matchingParameter.id, parameter);
@@ -877,8 +934,11 @@
 
     /**
      * Updates parameter contexts by issuing an update request and polling until it's completion.
+     *
+     * @param parameterContextEntity
+     * @returns {*}
      */
-    var updateParameterContexts = function (parameterContextEntity) {
+    var updateParameterContext = function (parameterContextEntity) {
         var parameters = marshalParameters();
 
         if (parameters.length === 0) {
@@ -942,7 +1002,7 @@
                                 updateReferencingComponentsBorder($('#parameter-referencing-components-container'));
                             }
 
-                            updateParameterContexts(parameterContextEntity);
+                            updateParameterContext(parameterContextEntity);
                         }
                     }
                 }, {
@@ -1055,7 +1115,10 @@
                                     component: updateRequestEntity.request.parameterContext
                                 });
 
-                                parameterContextData.updateItem(parameterContextEntity.id, parameterContextEntity);
+                                var item = parameterContextData.getItem(parameterContextEntity.id);
+                                if(nfCommon.isDefinedAndNotNull(item)) {
+                                    parameterContextData.updateItem(parameterContextEntity.id, parameterContextEntity);
+                                }
                             }
 
                             // delete the update request
@@ -1211,6 +1274,7 @@
                 $.each(parameters, function (i, parameterEntity) {
                     if (parameterEntity.parameter.name === parameterToSelect) {
                         parameterIndex = parameterData.getRowById(parameterEntity.parameter.id);
+                        return false;
                     }
                 });
             }
@@ -1292,19 +1356,14 @@
         };
 
         var valueFormatter = function (row, cell, value, columnDef, dataContext) {
-            if (nfCommon.isDefinedAndNotNull(value)) {
-                // determine if the parameter is sensitive
-                if (dataContext.sensitive === true) {
-                    return '<span class="table-cell sensitive">Sensitive value set</span>';
-                } else {
-                    if (value === '') {
-                        return '<span class="table-cell blank">Empty string set</span>';
-                    } else {
-                        return '<div class="table-cell value"><pre class="ellipsis">' + nfCommon.escapeHtml(value) + '</pre></div>';
-                    }
-                }
-            } else {
+            if (dataContext.sensitive === true) {
+                return '<span class="table-cell sensitive">Sensitive value set</span>';
+            } else if (nfCommon.isBlank(value)) {
+                return '<span class="table-cell blank">Empty string set</span>';
+            } else if (nfCommon.isNull(value)) {
                 return '<span class="unset">No value set</span>';
+            } else {
+                return nfCommon.escapeHtml(value);
             }
         };
 
@@ -1422,79 +1481,106 @@
                     // prevents standard edit logic
                     e.stopImmediatePropagation();
                 } else if (target.hasClass('edit-parameter')) {
-                    $('#parameter-dialog').modal('setHeaderText', 'Edit Parameter').modal('setButtonModel', [{
-                        buttonText: 'Apply',
-                        color: {
-                            base: '#728E9B',
-                            hover: '#004849',
-                            text: '#ffffff'
-                        },
-                        disabled: function () {
-                            var value = $('#parameter-value-field').val();
-                            var description = $('#parameter-description-field').val();
-
-                            if (value === parameter.value) {
-                                if (value === '********') {
-                                    return false;
-                                } else if (value === '' && $('#parameter-dialog').find('.nf-checkbox').hasClass('checkbox-unchecked')) {
-                                    return true;
-                                } else if ($('#parameter-dialog').find('.nf-checkbox').hasClass('checkbox-checked')) {
-                                    return false;
-                                }
-                            } else if (value !== parameter.value) {
-                                if (value === '' && $('#parameter-dialog').find('.nf-checkbox').hasClass('checkbox-checked')) {
-                                    return false;
-                                } else if (value !== '') {
-                                    return false;
-                                } else if (value === '' && $('#parameter-dialog').find('.nf-checkbox').hasClass('checkbox-unchecked')) {
-                                    return true;
-                                }
-                            }
-
-                            if (description !== parameter.description) {
-                                return false;
-                            }
-
-                            return true;
-                        },
-                        handler: {
-                            click: function () {
-                                updateParameter();
-                            }
-                        }
-                    }, {
-                        buttonText: 'Cancel',
-                        color: {
-                            base: '#E3E8EB',
-                            hover: '#C7D2D7',
-                            text: '#004849'
-                        },
-                        handler: {
-                            click: function () {
-                                $(this).modal('hide');
-                            }
-                        }
-                    }]).modal('show');
-
-                    $('#parameter-name').val(parameter.name);
-                    $('#parameter-name').prop('disabled', true);
-                    $('#parameter-sensitive-radio-button').prop('disabled', true);
-                    $('#parameter-not-sensitive-radio-button').prop('disabled', true);
-                    if (parameter.value === '') {
-                        $('#parameter-dialog').find('.nf-checkbox').removeClass('checkbox-unchecked').addClass('checkbox-checked');
-                    } else {
-                        $('#parameter-dialog').find('.nf-checkbox').removeClass('checkbox-checked').addClass('checkbox-unchecked');
-                    }
-
-                    if (parameter.sensitive) {
-                        $('#parameter-sensitive-radio-button').prop('checked', true);
+                    var closeHandler = function () {
+                        $('#parameter-name').val('');
+                        $('#parameter-value-field').val('');
+                        $('#parameter-description-field').val('');
+                        $('#parameter-sensitive-radio-button').prop('checked', false);
                         $('#parameter-not-sensitive-radio-button').prop('checked', false);
-                    } else {
+                        $('#parameter-name').prop('disabled', false);
+                        $('#parameter-sensitive-radio-button').prop('disabled', false);
+                        $('#parameter-not-sensitive-radio-button').prop('disabled', false);
+                        $('#parameter-dialog').find('.nf-checkbox').removeClass('checkbox-checked').addClass('checkbox-unchecked');
+                    };
+
+                    var openHandler = function () {
                         $('#parameter-sensitive-radio-button').prop('checked', false);
                         $('#parameter-not-sensitive-radio-button').prop('checked', true);
-                        $('#parameter-value-field').val(parameter.value);
-                    }
-                    $('#parameter-description-field').val(parameter.description);
+                        $('#parameter-name').focus();
+
+                        $('#parameter-name').val(parameter.name);
+                        $('#parameter-name').prop('disabled', true);
+                        $('#parameter-sensitive-radio-button').prop('disabled', true);
+                        $('#parameter-not-sensitive-radio-button').prop('disabled', true);
+                        if (parameter.value === '') {
+                            $('#parameter-dialog').find('.nf-checkbox').removeClass('checkbox-unchecked').addClass('checkbox-checked');
+                        } else {
+                            $('#parameter-dialog').find('.nf-checkbox').removeClass('checkbox-checked').addClass('checkbox-unchecked');
+                        }
+
+                        if (parameter.sensitive) {
+                            $('#parameter-sensitive-radio-button').prop('checked', true);
+                            $('#parameter-not-sensitive-radio-button').prop('checked', false);
+                        } else {
+                            $('#parameter-sensitive-radio-button').prop('checked', false);
+                            $('#parameter-not-sensitive-radio-button').prop('checked', true);
+                            $('#parameter-value-field').val(parameter.value);
+                        }
+                        $('#parameter-description-field').val(parameter.description);
+
+                        // update the buttons to possibly trigger the disabled state
+                        $('#parameter-dialog').modal('refreshButtons');
+                    };
+
+                    $('#parameter-dialog')
+                        .modal('setHeaderText', 'Edit Parameter')
+                        .modal('setOpenHandler', openHandler)
+                        .modal('setCloseHandler', closeHandler)
+                        .modal('setButtonModel', [{
+                            buttonText: 'Apply',
+                            color: {
+                                base: '#728E9B',
+                                hover: '#004849',
+                                text: '#ffffff'
+                            },
+                            disabled: function () {
+                                var value = $('#parameter-value-field').val();
+                                var description = $('#parameter-description-field').val();
+                                var isChecked = $('#parameter-dialog').find('.nf-checkbox').hasClass('checkbox-checked');
+
+                                if (value === parameter.value) {
+                                    if (parameter.sensitive === true) {
+                                        return false;
+                                    } else if (nfCommon.isBlank(value) && !isChecked) {
+                                        return true;
+                                    } else if (isChecked) {
+                                        return false;
+                                    } else if (description !== parameter.description) {
+                                        return false;
+                                    }
+                                } else if (value !== parameter.value) {
+                                    if (nfCommon.isBlank(value) && isChecked) {
+                                        return false;
+                                    } else if (!nfCommon.isBlank(value)) {
+                                        return false;
+                                    } else if (nfCommon.isBlank(value) && !isChecked) {
+                                        if (description !== parameter.description) {
+                                            return false;
+                                        }
+                                        return true;
+                                    }
+                                }
+
+                                return true;
+                            },
+                            handler: {
+                                click: function () {
+                                    updateParameter();
+                                }
+                            }
+                        }, {
+                            buttonText: 'Cancel',
+                            color: {
+                                base: '#E3E8EB',
+                                hover: '#C7D2D7',
+                                text: '#004849'
+                            },
+                            handler: {
+                                click: function () {
+                                    $(this).modal('hide');
+                                }
+                            }
+                        }]).modal('show');
 
                     // prevents standard edit logic
                     e.stopImmediatePropagation();
@@ -1600,26 +1686,7 @@
             }
         });
 
-        $('#parameter-dialog').modal({
-            handler: {
-                close: function () {
-                    $('#parameter-name').val('');
-                    $('#parameter-value-field').val('');
-                    $('#parameter-description-field').val('');
-                    $('#parameter-sensitive-radio-button').prop('checked', false);
-                    $('#parameter-not-sensitive-radio-button').prop('checked', false);
-                    $('#parameter-name').prop('disabled', false);
-                    $('#parameter-sensitive-radio-button').prop('disabled', false);
-                    $('#parameter-not-sensitive-radio-button').prop('disabled', false);
-                    $('#parameter-dialog').find('.nf-checkbox').removeClass('checkbox-checked').addClass('checkbox-unchecked');
-                },
-                open: function () {
-                    $('#parameter-sensitive-radio-button').prop('checked', false);
-                    $('#parameter-not-sensitive-radio-button').prop('checked', true);
-                    $('#parameter-name').focus();
-                }
-            }
-        });
+        $('#parameter-dialog').modal();
 
         $('#parameter-name').on('keydown', function (e) {
             var code = e.keyCode ? e.keyCode : e.which;
@@ -1633,37 +1700,59 @@
         });
 
         $('#add-parameter').on('click', function () {
-            $('#parameter-dialog').modal('setHeaderText', 'Add Parameter').modal('setButtonModel', [{
-                buttonText: 'Apply',
-                color: {
-                    base: '#728E9B',
-                    hover: '#004849',
-                    text: '#ffffff'
-                },
-                disabled: function () {
-                    if (($('#parameter-name').val() !== '' && $('#parameter-value-field').val() !== '') || ($('#parameter-name').val() !== '' && $('#parameter-dialog').find('.nf-checkbox').hasClass('checkbox-checked'))) {
-                        return false;
+            var closeHandler = function () {
+                $('#parameter-name').val('');
+                $('#parameter-value-field').val('');
+                $('#parameter-description-field').val('');
+                $('#parameter-sensitive-radio-button').prop('checked', false);
+                $('#parameter-not-sensitive-radio-button').prop('checked', false);
+                $('#parameter-name').prop('disabled', false);
+                $('#parameter-sensitive-radio-button').prop('disabled', false);
+                $('#parameter-not-sensitive-radio-button').prop('disabled', false);
+                $('#parameter-dialog').find('.nf-checkbox').removeClass('checkbox-checked').addClass('checkbox-unchecked');
+            };
+
+            var openHandler = function () {
+                $('#parameter-sensitive-radio-button').prop('checked', false);
+                $('#parameter-not-sensitive-radio-button').prop('checked', true);
+                $('#parameter-name').focus();
+            };
+
+            $('#parameter-dialog')
+                .modal('setHeaderText', 'Add Parameter')
+                .modal('setOpenHandler', openHandler)
+                .modal('setCloseHandler', closeHandler)
+                .modal('setButtonModel', [{
+                    buttonText: 'Apply',
+                    color: {
+                        base: '#728E9B',
+                        hover: '#004849',
+                        text: '#ffffff'
+                    },
+                    disabled: function () {
+                        if (($('#parameter-name').val() !== '' && $('#parameter-value-field').val() !== '') || ($('#parameter-name').val() !== '' && $('#parameter-dialog').find('.nf-checkbox').hasClass('checkbox-checked'))) {
+                            return false;
+                        }
+                        return true;
+                    },
+                    handler: {
+                        click: function () {
+                            addNewParameter();
+                        }
                     }
-                    return true;
-                },
-                handler: {
-                    click: function () {
-                        addNewParameter();
+                }, {
+                    buttonText: 'Cancel',
+                    color: {
+                        base: '#E3E8EB',
+                        hover: '#C7D2D7',
+                        text: '#004849'
+                    },
+                    handler: {
+                        click: function () {
+                            $(this).modal('hide');
+                        }
                     }
-                }
-            }, {
-                buttonText: 'Cancel',
-                color: {
-                    base: '#E3E8EB',
-                    hover: '#C7D2D7',
-                    text: '#004849'
-                },
-                handler: {
-                    click: function () {
-                        $(this).modal('hide');
-                    }
-                }
-            }]).modal('show');
+                }]).modal('show');
             $('#parameter-dialog').modal('show');
         });
 
@@ -1840,7 +1929,7 @@
             // determine the desired action
             if (parameterContextsGrid.getColumns()[args.cell].id === 'actions') {
                 if (target.hasClass('edit-parameter-context')) {
-                    nfParameterContexts.showParameterContext(parameterContextEntity);
+                    nfParameterContexts.showParameterContext(parameterContextEntity.id);
                 } else if (target.hasClass('delete-parameter-context')) {
                     nfParameterContexts.promptToDeleteParameterContext(parameterContextEntity);
                 } else if (target.hasClass('edit-access-policies')) {
@@ -1895,6 +1984,8 @@
             }
         });
     };
+
+    let currentParameterContextEntity = null;
 
     var nfParameterContexts = {
         /**
@@ -2036,29 +2127,23 @@
         },
 
         /**
-         * Loads the parameter context dialogs.
-         */
-        loadParameterContexts: function () {
-            return loadParameterContexts();
-        },
-
-        /**
          * Shows the dialog for the specified parameter context.
          *
-         * @argument {parameterContext} parameterContextEntity      The parameter context
+         * @argument id      The parameter context id
          */
-        showParameterContext: function (parameterContextEntity) {
+        showParameterContext: function (id) {
             parameterCount = 0;
 
             // reload the parameter context in case the parameters have changed
             var reloadContext = $.ajax({
                 type: 'GET',
-                url: config.urls.parameterContexts + '/' + encodeURIComponent(parameterContextEntity.id),
+                url: config.urls.parameterContexts + '/' + encodeURIComponent(id),
                 dataType: 'json'
             });
 
             // once everything is loaded, show the dialog
             reloadContext.done(function (parameterContextEntity) {
+                currentParameterContextEntity = parameterContextEntity;
                 $('#parameter-context-name').val(parameterContextEntity.component.name);
                 $('#parameter-context-description-field').val(parameterContextEntity.component.description);
 
@@ -2080,7 +2165,7 @@
                     },
                     handler: {
                         click: function () {
-                            updateParameterContexts(parameterContextEntity);
+                            updateParameterContext(currentParameterContextEntity);
                         }
                     }
                 }, {

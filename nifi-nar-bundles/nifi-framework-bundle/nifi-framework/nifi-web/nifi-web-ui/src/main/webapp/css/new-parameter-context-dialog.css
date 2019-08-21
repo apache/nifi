@@ -37,6 +37,11 @@
     left: calc(65% - -15px);
 }
 
+#parameter-context-standard-settings-tab-content,
+#parameter-context-parameters-tab-content {
+    bottom: 10px;
+}
+
 #parameter-table {
     height: 370px;
 }

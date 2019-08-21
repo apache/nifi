@@ -1422,13 +1422,7 @@
             }
 
             if (nfCommon.isDefinedAndNotNull(pcid)) {
-                $.ajax({
-                    type: 'GET',
-                    url: config.urls.parameterContexts + '/' + pcid,
-                    dataType: 'json'
-                }).done(function (response) {
-                    nfParameterContexts.showParameterContext(response);
-                }).fail(nfErrorHandler.handleAjaxError);
+                nfParameterContexts.showParameterContext(pcid);
             }
         },
 
