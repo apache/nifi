@@ -31,12 +31,7 @@ import org.apache.avro.io.BinaryDecoder;
 import org.apache.avro.io.DatumReader;
 import org.apache.avro.io.DecoderFactory;
 import org.apache.commons.io.input.TeeInputStream;
-import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.record.RecordSchema;
-
-import java.io.EOFException;
-import java.io.IOException;
-import java.io.InputStream;
 
 public class AvroReaderWithExplicitSchema extends AvroRecordReader {
     private final InputStream in;
@@ -73,7 +68,7 @@ public class AvroReaderWithExplicitSchema extends AvroRecordReader {
             // Need to be able to re-read the bytes read so far, but we don't want to copy the input to a byte array anymore, so get rid of the TeeInputStream
             ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
             SequenceInputStream sis = new SequenceInputStream(bais, in);
-            dataFileStream = new DataFileStream<>(sis, new GenericDatumReader<>());
+            dataFileStream = new DataFileStream<>(sis, new NonCachingDatumReader<>());
         }
     }
 
@@ -103,7 +98,7 @@ public class AvroReaderWithExplicitSchema extends AvroRecordReader {
     }
 
     @Override
-    public RecordSchema getSchema() throws MalformedRecordException {
+    public RecordSchema getSchema() {
         return recordSchema;
     }
 }

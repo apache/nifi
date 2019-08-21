@@ -17,6 +17,7 @@
 package org.apache.nifi.avro;
 
 import org.apache.avro.Schema;
+import org.apache.avro.generic.GenericRecord;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.junit.Test;
@@ -24,6 +25,10 @@ import org.junit.Test;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 
 public class TestAvroReaderWithExplicitSchema {
 
@@ -35,7 +40,23 @@ public class TestAvroReaderWithExplicitSchema {
         RecordSchema recordSchema = new SimpleRecordSchema(dataSchema.toString(), AvroTypeUtil.AVRO_SCHEMA_FORMAT, null);
 
         AvroReaderWithExplicitSchema avroReader = new AvroReaderWithExplicitSchema(fileInputStream, recordSchema, dataSchema);
-        avroReader.nextAvroRecord();
+        GenericRecord record = avroReader.nextAvroRecord();
+        assertNotNull(record);
+        assertEquals(1, record.get("id"));
+        assertNotNull(record.get("key"));
+        assertEquals("value", record.get("key").toString());
+
+        record = avroReader.nextAvroRecord();
+        assertNotNull(record);
+        assertEquals(2, record.get("id"));
+        assertNull(record.get("key"));
+
+        record = avroReader.nextAvroRecord();
+        assertEquals(3, record.get("id"));
+        assertNotNull(record.get("key"));
+        assertEquals("hello", record.get("key").toString());
+        record = avroReader.nextAvroRecord();
+        assertNull(record);
     }
 
     @Test
@@ -46,7 +67,23 @@ public class TestAvroReaderWithExplicitSchema {
         RecordSchema recordSchema = new SimpleRecordSchema(dataSchema.toString(), AvroTypeUtil.AVRO_SCHEMA_FORMAT, null);
 
         AvroReaderWithExplicitSchema avroReader = new AvroReaderWithExplicitSchema(fileInputStream, recordSchema, dataSchema);
-        avroReader.nextAvroRecord();
+        GenericRecord record = avroReader.nextAvroRecord();
+        assertNotNull(record);
+        assertEquals(1, record.get("id"));
+        assertNotNull(record.get("key"));
+        assertEquals("value", record.get("key").toString());
+
+        record = avroReader.nextAvroRecord();
+        assertNotNull(record);
+        assertEquals(2, record.get("id"));
+        assertNull(record.get("key"));
+
+        record = avroReader.nextAvroRecord();
+        assertEquals(3, record.get("id"));
+        assertNotNull(record.get("key"));
+        assertEquals("hello", record.get("key").toString());
+        record = avroReader.nextAvroRecord();
+        assertNull(record);
     }
 
     @Test(expected = IOException.class)
@@ -56,7 +93,7 @@ public class TestAvroReaderWithExplicitSchema {
         Schema dataSchema = new Schema.Parser().parse("{\"namespace\": \"nifi\",\"name\": \"test\",\"type\": \"record\",\"fields\": [{\"name\": \"id\",\"type\": \"int\"}]}");
         RecordSchema recordSchema = new SimpleRecordSchema(dataSchema.toString(), AvroTypeUtil.AVRO_SCHEMA_FORMAT, null);
 
-        AvroReaderWithExplicitSchema avroReader = new AvroReaderWithExplicitSchema(fileInputStream, recordSchema, dataSchema);
-        avroReader.nextAvroRecord();
+        // Causes IOException in constructor due to schemas not matching
+        new AvroReaderWithExplicitSchema(fileInputStream, recordSchema, dataSchema);
     }
 }
