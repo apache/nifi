@@ -1985,7 +1985,7 @@
         });
     };
 
-    let currentParameterContextEntity = null;
+    var currentParameterContextEntity = null;
 
     var nfParameterContexts = {
         /**
