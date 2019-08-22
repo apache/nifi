@@ -133,6 +133,25 @@
                 saveConfiguration(response.revision.version, groupId);
             });
 
+            var controllerServicesUri = config.urls.api + '/flow/process-groups/' + encodeURIComponent(groupId) + '/controller-services';
+
+            $.ajax({
+                type: 'GET',
+                url: controllerServicesUri,
+                dataType: 'json'
+            }).done(function (response) {
+                var serviceTable = getControllerServicesTable();
+
+                nfCommon.cleanUpTooltips(serviceTable, 'div.has-errors');
+
+                var controllerServicesGrid = serviceTable.data('gridInstance');
+                var controllerServicesData = controllerServicesGrid.getData();
+
+                $.each(response.controllerServices, function (_, controllerServiceEntity) {
+                    controllerServicesData.updateItem(controllerServiceEntity.id, controllerServiceEntity);
+                });
+            });
+
             nfCanvasUtils.reload();
         }).fail(nfErrorHandler.handleConfigurationUpdateAjaxError);
     };
