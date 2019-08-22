@@ -46,6 +46,9 @@ public enum CommandOption {
     FLOW_DESC("fd", "flowDesc", "A flow description", true),
     FLOW_VERSION("fv", "flowVersion", "A version of a flow", true),
 
+    FLOW_VERSION_1("fv1", "flowVersion1", "A version of a flow", true),
+    FLOW_VERSION_2("fv2", "flowVersion2", "A version of a flow", true),
+
     // Registry - Source options for when there are two registries involved and one is a source
     SRC_PROPS("sp", "sourceProps", "A properties file to load for the source", true, true),
     SRC_FLOW_ID("sf", "sourceFlowIdentifier", "A flow identifier from the source registry", true),
