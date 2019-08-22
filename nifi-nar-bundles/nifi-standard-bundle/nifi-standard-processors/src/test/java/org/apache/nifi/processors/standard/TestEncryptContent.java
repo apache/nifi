@@ -101,7 +101,7 @@ public class TestEncryptContent {
         final TestRunner testRunner = TestRunners.newTestRunner(new EncryptContent());
         List<String> pgpAlgorithms = new ArrayList<>();
         pgpAlgorithms.add("PGP");
-        pgpAlgorithms.add("PGP-ASCII-ARMOR");
+        pgpAlgorithms.add("PGP_ASCII_ARMOR");
 
         for (String algorithm : pgpAlgorithms) {
 

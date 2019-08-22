@@ -67,9 +67,9 @@ public class OpenPGPPasswordBasedEncryptorTest {
     public void testShouldEncryptAndDecrypt() throws Exception {
 
         for (int i = 1; i<14; i++) {
-            if (PGPEncryptedData.SAFER != i) {
+            if (PGPEncryptedData.SAFER != i) { // SAFER cipher is not supported and therefore its test is skipped
                 Integer cipher = i;
-                System.out.println("Testing PGP encryption with " + PGPUtil.getSymmetricCipherName(cipher) + " chiper.");
+                logger.info("Testing PGP encryption with " + PGPUtil.getSymmetricCipherName(cipher) + " cipher.");
 
                 // Arrange
                 final String PLAINTEXT = "This is a plaintext message.";
@@ -108,7 +108,7 @@ public class OpenPGPPasswordBasedEncryptorTest {
     @Test
     public void testShouldDecryptExternalFile() throws Exception {
         for (int i = 1; i<14; i++) {
-            if (PGPEncryptedData.SAFER != i) {
+            if (PGPEncryptedData.SAFER != i) {  // SAFER cipher is not supported and therefore its test is skipped
                 Integer cipher = i;
                 // Arrange
                 byte[] plainBytes = Files.readAllBytes(Paths.get(plainFile.getPath()));
