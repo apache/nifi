@@ -16,14 +16,16 @@
  */
 package org.apache.nifi.processors.standard;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.InputStream;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.security.Security;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+
 import org.apache.commons.codec.binary.Hex;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.security.util.EncryptionMethod;
@@ -34,7 +36,9 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.bouncycastle.bcpg.BCPGInputStream;
 import org.bouncycastle.bcpg.SymmetricKeyAlgorithmTags;
+import org.bouncycastle.bcpg.SymmetricKeyEncSessionPacket;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.junit.Assert;
 import org.junit.Assume;
@@ -42,6 +46,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static org.bouncycastle.openpgp.PGPUtil.getDecoderStream;
 
 public class TestEncryptContent {
 
@@ -97,8 +103,9 @@ public class TestEncryptContent {
     }
 
     @Test
-    public void testPgpCiphersRoundTrip() throws IOException {
+    public void testPgpCiphersRoundTrip() {
         final TestRunner testRunner = TestRunners.newTestRunner(new EncryptContent());
+
         List<String> pgpAlgorithms = new ArrayList<>();
         pgpAlgorithms.add("PGP");
         pgpAlgorithms.add("PGP_ASCII_ARMOR");
@@ -107,16 +114,17 @@ public class TestEncryptContent {
 
             testRunner.setProperty(EncryptContent.ENCRYPTION_ALGORITHM, algorithm);
             testRunner.setProperty(EncryptContent.PASSWORD, "short");
-            testRunner.setProperty(EncryptContent.KEY_DERIVATION_FUNCTION, KeyDerivationFunction.NIFI_LEGACY.name());
+            testRunner.setProperty(EncryptContent.KEY_DERIVATION_FUNCTION, KeyDerivationFunction.NONE.name());
             // Must be allowed or short password will cause validation errors
             testRunner.setProperty(EncryptContent.ALLOW_WEAK_CRYPTO, "allowed");
 
             for (int i = 1; i < 14; i++) {
                 if (i != SymmetricKeyAlgorithmTags.SAFER) {
-                    testRunner.setProperty(EncryptContent.PGP_SYMMETRIC_ENCRYPTION_CIPHER, String.valueOf(i));
+                    Integer cipher = i;
+                    testRunner.setProperty(EncryptContent.PGP_SYMMETRIC_ENCRYPTION_CIPHER, String.valueOf(cipher));
                     testRunner.setProperty(EncryptContent.MODE, EncryptContent.ENCRYPT_MODE);
 
-                    testRunner.enqueue(Paths.get("src/test/resources/hello.txt"));
+                    testRunner.enqueue("A cool plaintext!");
                     testRunner.clearTransferState();
                     testRunner.run();
 
@@ -124,7 +132,7 @@ public class TestEncryptContent {
 
                     MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(EncryptContent.REL_SUCCESS).get(0);
                     testRunner.assertQueueEmpty();
-                    System.out.println(Arrays.toString(flowFile.toByteArray()));
+
                     testRunner.setProperty(EncryptContent.MODE, EncryptContent.DECRYPT_MODE);
                     testRunner.enqueue(flowFile);
                     testRunner.clearTransferState();
@@ -132,7 +140,49 @@ public class TestEncryptContent {
                     testRunner.assertAllFlowFilesTransferred(EncryptContent.REL_SUCCESS, 1);
 
                     flowFile = testRunner.getFlowFilesForRelationship(EncryptContent.REL_SUCCESS).get(0);
-                    flowFile.assertContentEquals(new File("src/test/resources/hello.txt"));
+                    flowFile.assertContentEquals("A cool plaintext!");
+                }
+            }
+        }
+    }
+
+    @Test
+    public void testPGPCiphers() throws Exception {
+        final TestRunner testRunner = TestRunners.newTestRunner(new EncryptContent());
+
+        List<String> pgpAlgorithms = new ArrayList<>();
+        pgpAlgorithms.add("PGP");
+        pgpAlgorithms.add("PGP_ASCII_ARMOR");
+
+        for (String algorithm : pgpAlgorithms) {
+
+            testRunner.setProperty(EncryptContent.ENCRYPTION_ALGORITHM, algorithm);
+            testRunner.setProperty(EncryptContent.PASSWORD, "short");
+            testRunner.setProperty(EncryptContent.KEY_DERIVATION_FUNCTION, KeyDerivationFunction.NONE.name());
+            // Must be allowed or short password will cause validation errors
+            testRunner.setProperty(EncryptContent.ALLOW_WEAK_CRYPTO, "allowed");
+
+            for (int i = 1; i < 14; i++) {
+                if (i != SymmetricKeyAlgorithmTags.SAFER) {
+                    Integer cipher = i;
+                    testRunner.setProperty(EncryptContent.PGP_SYMMETRIC_ENCRYPTION_CIPHER, String.valueOf(cipher));
+                    testRunner.setProperty(EncryptContent.MODE, EncryptContent.ENCRYPT_MODE);
+
+                    testRunner.enqueue("A cool plaintext!");
+                    testRunner.clearTransferState();
+                    testRunner.run();
+
+                    testRunner.assertAllFlowFilesTransferred(EncryptContent.REL_SUCCESS, 1);
+
+                    MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(EncryptContent.REL_SUCCESS).get(0);
+                    testRunner.assertQueueEmpty();
+
+                    // Other than the round trip, checks that the provided cipher is actually used, inferring it from the ciphertext
+                    InputStream ciphertext = new ByteArrayInputStream(flowFile.toByteArray());
+                    BCPGInputStream pgpin = new BCPGInputStream(getDecoderStream(ciphertext));
+                    assert pgpin.nextPacketTag() == 3;
+                    assert ((SymmetricKeyEncSessionPacket)pgpin.readPacket()).getEncAlgorithm() == cipher;
+                    pgpin.close();
                 }
             }
         }
