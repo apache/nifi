@@ -234,7 +234,7 @@ public class EncryptContent extends AbstractProcessor {
             }
 
             // NULL and SAFER cipher are not supported and throw ClassNotFoundException in BouncyCastle when used.
-            if(fieldValue != null && fieldValue != SymmetricKeyAlgorithmTags.NULL && fieldValue != SymmetricKeyAlgorithmTags.SAFER) {
+            if (fieldValue != null && fieldValue != SymmetricKeyAlgorithmTags.NULL && fieldValue != SymmetricKeyAlgorithmTags.SAFER) {
                 allowableValues.add(new AllowableValue(fieldValue.toString(), fieldName));
             }
         }

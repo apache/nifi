@@ -69,8 +69,7 @@ public class OpenPGPKeyBasedEncryptorTest {
 
     @Test
     public void testShouldEncryptAndDecrypt() throws Exception {
-
-        for (int i = 1; i<14; i++) {
+        for (int i = 1; i < 14; i++) {
             if (PGPEncryptedData.SAFER != i) {
                 Integer cipher = i;
                 System.out.println("Testing PGP encryption with " + PGPUtil.getSymmetricCipherName(cipher) + " chiper.");
