@@ -51,7 +51,9 @@ public class PGImport extends AbstractNiFiCommand<StringResult> {
     public String getDescription() {
         return "Creates a new process group by importing a versioned flow from a registry. If no process group id is " +
                 "specified, then the created process group will be placed in the root group. If only one registry client " +
-                "exists in NiFi, then it does not need to be specified and will be automatically selected.";
+                "exists in NiFi, then it does not need to be specified and will be automatically selected. The x and y " +
+                "coordinates for the position of the imported process group may be optionally specified. If left blank, " +
+                "the position will automatically be selected to avoid overlapping with existing process groups.";
     }
 
     @Override
@@ -61,6 +63,8 @@ public class PGImport extends AbstractNiFiCommand<StringResult> {
         addOption(CommandOption.BUCKET_ID.createOption());
         addOption(CommandOption.FLOW_ID.createOption());
         addOption(CommandOption.FLOW_VERSION.createOption());
+        addOption(CommandOption.POS_X.createOption());
+        addOption(CommandOption.POS_Y.createOption());
     }
 
     @Override
@@ -70,6 +74,20 @@ public class PGImport extends AbstractNiFiCommand<StringResult> {
         final String bucketId = getRequiredArg(properties, CommandOption.BUCKET_ID);
         final String flowId = getRequiredArg(properties, CommandOption.FLOW_ID);
         final Integer flowVersion = getRequiredIntArg(properties, CommandOption.FLOW_VERSION);
+
+        final String posXStr = getArg(properties, CommandOption.POS_X);
+        final String posYStr = getArg(properties, CommandOption.POS_Y);
+
+        final boolean posXExists = StringUtils.isNotBlank(posXStr);
+        final boolean posYExists = StringUtils.isNotBlank(posYStr);
+
+        if ((posXExists && !posYExists)) {
+            throw new IllegalArgumentException("Missing Y position - Please specify both X and Y, or specify neither");
+        }
+
+        if ((posYExists && !posXExists)) {
+            throw new IllegalArgumentException("Missing X position - Please specify both X and Y, or specify neither");
+        }
 
         // if a registry client is specified use it, otherwise see if there is only one available and use that,
         // if more than one is available then throw an exception because we don't know which one to use
@@ -103,11 +121,15 @@ public class PGImport extends AbstractNiFiCommand<StringResult> {
         versionControlInfo.setFlowId(flowId);
         versionControlInfo.setVersion(flowVersion);
 
-        final ProcessGroupBox pgBox = client.getFlowClient().getSuggestedProcessGroupCoordinates(parentPgId);
-
         final PositionDTO posDto = new PositionDTO();
-        posDto.setX(Integer.valueOf(pgBox.getX()).doubleValue());
-        posDto.setY(Integer.valueOf(pgBox.getY()).doubleValue());
+        if (posXExists && posYExists) {
+            posDto.setX(Double.parseDouble(posXStr));
+            posDto.setY(Double.parseDouble(posYStr));
+        } else {
+            final ProcessGroupBox pgBox = client.getFlowClient().getSuggestedProcessGroupCoordinates(parentPgId);
+            posDto.setX(Integer.valueOf(pgBox.getX()).doubleValue());
+            posDto.setY(Integer.valueOf(pgBox.getY()).doubleValue());
+        }
 
         final ProcessGroupDTO pgDto = new ProcessGroupDTO();
         pgDto.setVersionControlInformation(versionControlInfo);
