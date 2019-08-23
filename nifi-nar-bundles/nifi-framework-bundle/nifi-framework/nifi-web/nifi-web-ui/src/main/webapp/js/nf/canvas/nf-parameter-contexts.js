@@ -832,7 +832,7 @@
         return a.component.name.localeCompare(b.component.name);
     };
 
-    var parameterKeyRegex = /^[a-zA-Z0-9-_. ]+/;
+    var parameterKeyRegex = /^[a-zA-Z0-9-_. ]+$/;
 
     /**
      * Adds a new parameter.
