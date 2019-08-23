@@ -236,44 +236,28 @@
             };
 
             // if the parameter has been deleted
-            if (this.hidden === true && this.previousValue !== null) {
+            if (this.hidden === true && this.isNew !== true) {
                 // hidden parameters were removed by the user, clear the value
                 parameters.push({
                     'parameter': parameter
                 });
-            } else if (this.isModified === true) { // the parameter is modified
-                // check if the value has changed
-                if (this.value !== this.previousValue) {
-                    parameter['sensitive'] = this.sensitive;
+            } else if (this.isNew === true) {
+                parameter['value'] = this.value;
+                parameter['sensitive'] = this.sensitive;
+                parameter['description'] = this.description;
 
-                    // for non-sensitive values we always include the value
-                    if (!this.sensitive) {
-                        parameter['value'] = this.value;
-                    } else {
-                        // for sensitive parameters we don't know it's value so we only include the
-                        // value if it has changed or if the empty string set checkbox has been checked
-                        if (!nfCommon.isBlank(this.value) || this.isEmptyStringSet === true) {
-                            parameter['value'] = this.value;
-                        } else if (nfCommon.isBlank(this.value) && this.previousValue !== '********') {
-                            // the sensitive parameter has not ever been saved and we still need to send the value as part of the update
-                            parameter['value'] = this.previousValue;
-                        } else if (nfCommon.isNull(this.value) && this.previousValue === '********') {
-                            // the sensitive parameter has not ever been saved and we still need to send the value as part of the update even if that value is '********'
-                            parameter['value'] = '********';
-                        }
-                    }
+                parameters.push({
+                    'parameter': parameter
+                });
+            } else if (this.isModified === true) {
+                parameter['sensitive'] = this.sensitive;
 
-                    parameter['description'] = this.description;
-                } else if (this.value === this.previousValue && this.sensitive === true) {
-                    // if the user sets the sensitive parameter's value to the mask returned by the server
+                // if modified grab what's changed
+                if (this.hasValueChanged) {
                     parameter['value'] = this.value;
-                    parameter['sensitive'] = this.sensitive;
-                    parameter['description'] = this.description;
-                } else if (this.description !== this.previousDescription) {
-                    parameter['value'] = this.value;
-                    parameter['sensitive'] = this.sensitive;
-                    parameter['description'] = this.description;
                 }
+
+                parameter['description'] = this.description;
 
                 parameters.push({
                     'parameter': parameter
@@ -838,7 +822,7 @@
      * Adds a new parameter.
      */
     var addNewParameter = function () {
-        var parameterName = $.trim($('#parameter-name').val());
+        var parameterName = $('#parameter-name').val();
 
         // ensure the parameter name is specified
         if (parameterName !== '' && parameterKeyRegex.test(parameterName)) {
@@ -863,15 +847,17 @@
                     type: 'Parameter',
                     sensitive: $('#parameter-dialog').find('input[name="sensitive"]:checked').val() === "sensitive" ? true : false,
                     name: parameterName,
-                    description: $.trim($('#parameter-description-field').val()),
+                    description: $('#parameter-description-field').val(),
                     previousValue: null,
                     previousDescription: null,
                     isEditable: true,
                     isEmptyStringSet: isChecked,
-                    isModified: true
+                    isModified: true,
+                    hasValueChanged: false,
+                    isNew: true
                 };
 
-                var value = $.trim($('#parameter-value-field').val());
+                var value = $('#parameter-value-field').val();
                 if (!nfCommon.isBlank(value)) {
                     parameter.value = value;
                 } else {
@@ -893,15 +879,52 @@
                 parameterGrid.setActiveCell(row, parameterGrid.getColumnIndex('value'));
                 parameterCount++;
             } else {
-                nfDialog.showOkDialog({
-                    headerText: 'Parameter Exists',
-                    dialogContent: 'A parameter with this name already exists.'
-                });
+                // if this row is currently hidden, clear the value and show it
+                if (matchingParameter.hidden === true) {
+                    var parameter = $.extend(matchingParameter, {
+                        hidden: false,
+                        sensitive: $('#parameter-dialog').find('input[name="sensitive"]:checked').val() === "sensitive" ? true : false,
+                        previousValue: null,
+                        description: $('#parameter-description-field').val(),
+                        previousDescription: null,
+                        isEditable: true,
+                        isEmptyStringSet: false,
+                        isModified: true,
+                        hasValueChanged: false,
+                        isNew: true
+                    });
 
-                // select the existing properties row
-                var matchingRow = parameterData.getRowById(matchingParameter.id);
-                parameterGrid.setSelectedRows([matchingRow]);
-                parameterGrid.scrollRowIntoView(matchingRow);
+                    var value = $('#parameter-value-field').val();
+                    if (!nfCommon.isBlank(value)) {
+                        parameter.value = value;
+                    } else {
+                        if (isChecked) {
+                            parameter.value = '';
+                        } else {
+                            parameter.value = null;
+                        }
+                    }
+
+                    parameterData.updateItem(matchingParameter.id, parameter);
+
+                    // sort the data
+                    parameterData.reSort();
+
+                    // select the new parameter row
+                    var row = parameterData.getRowById(parameterCount);
+                    parameterGrid.setActiveCell(row, parameterGrid.getColumnIndex('value'));
+                    parameterCount++;
+                } else {
+                    nfDialog.showOkDialog({
+                        headerText: 'Parameter Exists',
+                        dialogContent: 'A parameter with this name already exists.'
+                    });
+
+                    // select the existing properties row
+                    var matchingRow = parameterData.getRowById(matchingParameter.id);
+                    parameterGrid.setSelectedRows([matchingRow]);
+                    parameterGrid.scrollRowIntoView(matchingRow);
+                }
             }
 
             // close the new parameter dialog
@@ -923,11 +946,39 @@
         }
     };
 
+    var serializeValue = function (input, parameter, isChecked) {
+        var serializedValue;
+        var hasChanged = true;
+
+        var value = input.val();
+        if (!nfCommon.isBlank(value)) {
+            // if the value is sensitive and the user has not made a change
+            if (parameter.sensitive === true && input.hasClass('sensitive') && parameter.isNew === false) {
+                serializedValue = parameter.previousValue;
+                hasChanged = false;
+            } else {
+                // value is not sensitive or it is sensitive and the user has changed it then always take the current value
+                serializedValue = value;
+            }
+        } else {
+            if (isChecked) {
+                serializedValue = '';
+            } else {
+                serializedValue = null;
+            }
+        }
+
+        return {
+            value: serializedValue,
+            hasChanged: hasChanged
+        };
+    };
+
     /**
      * Update a parameter.
      */
     var updateParameter = function () {
-        var parameterName = $.trim($('#parameter-name').val());
+        var parameterName = $('#parameter-name').val();
 
         // ensure the parameter name is specified
         if (parameterName !== '') {
@@ -952,24 +1003,20 @@
                     type: 'Parameter',
                     sensitive: matchingParameter.sensitive,
                     name: parameterName,
-                    description: $.trim($('#parameter-description-field').val()),
+                    description: $('#parameter-description-field').val(),
+                    affectedComponents: matchingParameter.affectedComponents,
                     previousValue: matchingParameter.value,
                     previousDescription: matchingParameter.description,
                     isEditable: matchingParameter.isEditable,
                     isEmptyStringSet: isChecked,
-                    isModified: true
+                    isNew: matchingParameter.isNew
                 };
 
-                var value = $.trim($('#parameter-value-field').val());
-                if (!nfCommon.isBlank(value)) {
-                    parameter.value = value;
-                } else {
-                    if (isChecked) {
-                        parameter.value = '';
-                    } else {
-                        parameter.value = null;
-                    }
-                }
+                var input = $('#parameter-value-field');
+                var serializedValue = serializeValue(input, parameter, isChecked);
+                parameter.value = serializedValue.value;
+                parameter.isModified = serializedValue.hasChanged || parameter.description !== parameter.previousDescription;
+                parameter.hasValueChanged = serializedValue.hasChanged;
 
                 // update row for the parameter
                 parameterData.updateItem(matchingParameter.id, parameter);
@@ -1316,6 +1363,9 @@
                     id: parameterCount++,
                     hidden: false,
                     type: 'Parameter',
+                    isNew: false,
+                    isModified: false,
+                    hasValueChanged: false,
                     name: parameterEntity.parameter.name,
                     value: parameterEntity.parameter.value,
                     sensitive: parameterEntity.parameter.sensitive,
@@ -1323,7 +1373,7 @@
                     previousValue: parameterEntity.parameter.value,
                     previousDescription: parameterEntity.parameter.description,
                     isEditable: parameterEntity.canWrite,
-                    affectedComponents: parameterEntity.parameter.referencingComponents
+                    referencingComponents: parameterEntity.parameter.referencingComponents
                 };
 
                 parameters.push({
@@ -1579,6 +1629,7 @@
                         if (parameter.sensitive) {
                             $('#parameter-sensitive-radio-button').prop('checked', true);
                             $('#parameter-not-sensitive-radio-button').prop('checked', false);
+                            $('#parameter-value-field').addClass('sensitive').val(nfCommon.config.sensitiveText).select();
                         } else {
                             $('#parameter-sensitive-radio-button').prop('checked', false);
                             $('#parameter-not-sensitive-radio-button').prop('checked', true);
@@ -1602,34 +1653,19 @@
                                 text: '#ffffff'
                             },
                             disabled: function () {
-                                var value = $('#parameter-value-field').val();
-                                var description = $('#parameter-description-field').val();
+                                var input = $('#parameter-value-field');
                                 var isChecked = $('#parameter-dialog').find('.nf-checkbox').hasClass('checkbox-checked');
+                                var serializedValue = serializeValue(input, parameter, isChecked);
 
-                                if (value === parameter.value) {
-                                    if (parameter.sensitive === true) {
-                                        return false;
-                                    } else if (nfCommon.isBlank(value) && !isChecked) {
-                                        return true;
-                                    } else if (isChecked) {
-                                        return false;
-                                    } else if (description !== parameter.description) {
-                                        return false;
-                                    }
-                                } else if (value !== parameter.value) {
-                                    if (nfCommon.isBlank(value) && isChecked) {
-                                        return false;
-                                    } else if (!nfCommon.isBlank(value)) {
-                                        return false;
-                                    } else if (nfCommon.isBlank(value) && !isChecked) {
-                                        if (description !== parameter.description) {
-                                            return false;
-                                        }
-                                        return true;
-                                    }
+                                if (nfCommon.isNull(serializedValue.value)) {
+                                    return true;
                                 }
 
-                                return true;
+                                var description = $('#parameter-description-field').val();
+
+                                var hasChanged = serializedValue.hasChanged || description !== parameter.previousDescription;
+
+                                return !hasChanged;
                             },
                             handler: {
                                 click: function () {
@@ -1666,7 +1702,7 @@
                     if (lastSelectedId === null || lastSelectedId !== parameter.id) {
                         // update the details for this parameter
                         $('#parameter-affected-components-context').removeClass('unset').text(parameter.name);
-                        populateAffectedComponents(parameter.affectedComponents);
+                        populateAffectedComponents(parameter.referencingComponents);
 
                         updateReferencingComponentsBorder($('#parameter-referencing-components-container'));
 
@@ -1755,6 +1791,16 @@
         });
 
         $('#parameter-dialog').modal();
+
+        $('#parameter-value-field').keydown(function () {
+            var sensitiveInput = $(this);
+            if (sensitiveInput.hasClass('sensitive')) {
+                sensitiveInput.removeClass('sensitive');
+                if (sensitiveInput.val() === nfCommon.config.sensitiveText) {
+                    sensitiveInput.val('');
+                }
+            }
+        });
 
         $('#parameter-name').on('keydown', function (e) {
             var code = e.keyCode ? e.keyCode : e.which;
@@ -1875,7 +1921,7 @@
             var contexts = [];
             $.each(response.parameterContexts, function (_, parameterContext) {
                 contexts.push($.extend({
-                    type: 'ParameterContext'
+                    type: 'ParameterContext',
                 }, parameterContext));
             });
 
@@ -1927,7 +1973,7 @@
 
         var descriptionFormatter = function (row, cell, value, columnDef, dataContext) {
             if (!dataContext.permissions.canRead) {
-                return '<span class="blank">' + nfCommon.escapeHtml(dataContext.id) + '</span>';
+                return '';
             }
 
             return nfCommon.escapeHtml(dataContext.component.description);
