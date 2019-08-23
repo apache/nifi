@@ -162,7 +162,8 @@ public class JsonPathReader extends SchemaRegistryService implements RecordReade
     }
 
     @Override
-    public RecordReader createRecordReader(final Map<String, String> variables, final InputStream in, final ComponentLog logger) throws IOException, MalformedRecordException, SchemaNotFoundException {
+    public RecordReader createRecordReader(final Map<String, String> variables, final InputStream in, final long inputLength, final ComponentLog logger)
+            throws IOException, MalformedRecordException, SchemaNotFoundException {
         final InputStream bufferedIn = new BufferedInputStream(in);
         final RecordSchema schema = getSchema(variables, bufferedIn, null);
         return new JsonPathRowRecordReader(jsonPaths, schema, bufferedIn, logger, dateFormat, timeFormat, timestampFormat);

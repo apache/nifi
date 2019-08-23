@@ -160,7 +160,8 @@ public class XMLReader extends SchemaRegistryService implements RecordReaderFact
     }
 
     @Override
-    public RecordReader createRecordReader(final Map<String, String> variables, final InputStream in, final ComponentLog logger) throws IOException, SchemaNotFoundException, MalformedRecordException {
+    public RecordReader createRecordReader(final Map<String, String> variables, final InputStream in, final long inputLength, final ComponentLog logger)
+            throws IOException, SchemaNotFoundException, MalformedRecordException {
         final ConfigurationContext context = getConfigurationContext();
 
         final RecordSchema schema = getSchema(variables, in, null);

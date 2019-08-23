@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.parquet.record;
+package org.apache.nifi.parquet.hadoop;
 
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;

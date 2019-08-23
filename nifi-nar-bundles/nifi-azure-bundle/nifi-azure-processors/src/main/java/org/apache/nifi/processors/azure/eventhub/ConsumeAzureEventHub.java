@@ -48,6 +48,7 @@ import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
@@ -74,7 +75,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 
 import static org.apache.nifi.util.StringUtils.isEmpty;
 
@@ -454,9 +454,9 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
 
             try (final OutputStream out = session.write(flowFile)) {
                 for (final EventData eventData : messages) {
-
-                    try (final InputStream in = new ByteArrayInputStream(eventData.getBytes())) {
-                        final RecordReader reader = readerFactory.createRecordReader(schemaRetrievalVariables, in, logger);
+                    final byte[] eventDataBytes = eventData.getBytes();
+                    try (final InputStream in = new ByteArrayInputStream(eventDataBytes)) {
+                        final RecordReader reader = readerFactory.createRecordReader(schemaRetrievalVariables, in, eventDataBytes.length, logger);
 
                         Record record;
                         while ((record = reader.nextRecord()) != null) {

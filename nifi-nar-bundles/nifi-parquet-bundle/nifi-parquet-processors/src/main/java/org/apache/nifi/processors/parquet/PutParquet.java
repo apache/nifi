@@ -33,13 +33,14 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.parquet.utils.ParquetConfig;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processors.hadoop.AbstractPutHDFSRecord;
 import org.apache.nifi.processors.hadoop.record.HDFSRecordWriter;
-import org.apache.nifi.processors.parquet.record.AvroParquetHDFSRecordWriter;
-import org.apache.nifi.processors.parquet.utils.ParquetUtils;
+import org.apache.nifi.parquet.hadoop.AvroParquetHDFSRecordWriter;
+import org.apache.nifi.parquet.utils.ParquetUtils;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.parquet.avro.AvroParquetWriter;
@@ -48,6 +49,9 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+
+import static org.apache.nifi.parquet.utils.ParquetUtils.createParquetConfig;
+import static org.apache.nifi.parquet.utils.ParquetUtils.applyCommonConfig;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"put", "parquet", "hadoop", "HDFS", "filesystem", "record"})
@@ -79,19 +83,9 @@ public class PutParquet extends AbstractPutHDFSRecord {
             .defaultValue("false")
             .build();
 
-    public static final List<AllowableValue> COMPRESSION_TYPES;
-    static {
-        final List<AllowableValue> compressionTypes = new ArrayList<>();
-        for (CompressionCodecName compressionCodecName : CompressionCodecName.values()) {
-            final String name = compressionCodecName.name();
-            compressionTypes.add(new AllowableValue(name, name));
-        }
-        COMPRESSION_TYPES = Collections.unmodifiableList(compressionTypes);
-    }
-
     @Override
     public List<AllowableValue> getCompressionTypes(final ProcessorInitializationContext context) {
-        return COMPRESSION_TYPES;
+        return ParquetUtils.COMPRESSION_TYPES;
     }
 
     @Override
@@ -109,6 +103,8 @@ public class PutParquet extends AbstractPutHDFSRecord {
         props.add(ParquetUtils.ENABLE_DICTIONARY_ENCODING);
         props.add(ParquetUtils.ENABLE_VALIDATION);
         props.add(ParquetUtils.WRITER_VERSION);
+        props.add(ParquetUtils.AVRO_WRITE_OLD_LIST_STRUCTURE);
+        props.add(ParquetUtils.AVRO_ADD_LIST_ELEMENT_RECORDS);
         props.add(REMOVE_CRC_FILES);
         return Collections.unmodifiableList(props);
     }
@@ -123,7 +119,8 @@ public class PutParquet extends AbstractPutHDFSRecord {
                 .<GenericRecord>builder(path)
                 .withSchema(avroSchema);
 
-        ParquetUtils.applyCommonConfig(parquetWriter, context, flowFile, conf, this);
+        final ParquetConfig parquetConfig = createParquetConfig(context, flowFile.getAttributes());
+        applyCommonConfig(parquetWriter, conf, parquetConfig);
 
         return new AvroParquetHDFSRecordWriter(parquetWriter.build(), avroSchema);
     }

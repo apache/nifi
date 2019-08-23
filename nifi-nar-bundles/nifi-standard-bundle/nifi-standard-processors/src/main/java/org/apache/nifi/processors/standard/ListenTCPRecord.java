@@ -334,10 +334,10 @@ public class ListenTCPRecord extends AbstractProcessor {
         synchronized (socketRecordReader) {
             FlowFile flowFile = session.create();
             try {
-                // lazily creating the record reader here b/c we need a flow file, eventually shouldn't have to do this
+                // lazily creating the record reader here
                 RecordReader recordReader = socketRecordReader.getRecordReader();
                 if (recordReader == null) {
-                    recordReader = socketRecordReader.createRecordReader(flowFile, getLogger());
+                    recordReader = socketRecordReader.createRecordReader(getLogger());
                 }
 
                 Record record;

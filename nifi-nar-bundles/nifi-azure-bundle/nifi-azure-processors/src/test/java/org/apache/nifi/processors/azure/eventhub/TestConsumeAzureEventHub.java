@@ -59,6 +59,7 @@ import java.util.stream.Stream;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -204,7 +205,7 @@ public class TestConsumeAzureEventHub {
         final RecordReaderFactory readerFactory = mock(RecordReaderFactory.class);
         processor.setReaderFactory(readerFactory);
         final RecordReader reader = mock(RecordReader.class);
-        when(readerFactory.createRecordReader(anyMap(), any(), any())).thenReturn(reader);
+        when(readerFactory.createRecordReader(anyMap(), any(), anyLong(), any())).thenReturn(reader);
         final List<Record> recordList = eventDataList.stream()
                 .map(eventData -> toRecord(new String(eventData.getBytes())))
                 .collect(Collectors.toList());

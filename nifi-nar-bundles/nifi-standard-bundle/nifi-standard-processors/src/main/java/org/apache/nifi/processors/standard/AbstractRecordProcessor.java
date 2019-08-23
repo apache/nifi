@@ -123,7 +123,7 @@ public abstract class AbstractRecordProcessor extends AbstractProcessor {
                 @Override
                 public void process(final InputStream in, final OutputStream out) throws IOException {
 
-                    try (final RecordReader reader = readerFactory.createRecordReader(originalAttributes, in, getLogger())) {
+                    try (final RecordReader reader = readerFactory.createRecordReader(originalAttributes, in, original.getSize(), getLogger())) {
 
                         // Get the first record and process it before we create the Record Writer. We do this so that if the Processor
                         // updates the Record's schema, we can provide an updated schema to the Record Writer. If there are no records,
