@@ -25,22 +25,20 @@ import static org.mockito.Mockito.when;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Stream;
 
-import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.status.history.ComponentStatusRepository;
 import org.apache.nifi.controller.status.history.StatusHistory;
 import org.apache.nifi.controller.status.history.StatusSnapshot;
 import org.apache.nifi.groups.ProcessGroup;
-import org.apache.nifi.nar.ExtensionManager;
-import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
-import org.apache.nifi.nar.SystemBundle;
-import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.Tuple;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 public abstract class TestStatusAnalyticsEngine {
 
@@ -58,21 +56,31 @@ public abstract class TestStatusAnalyticsEngine {
 
         statusRepository = Mockito.mock(ComponentStatusRepository.class);
         flowManager = Mockito.mock(FlowManager.class);
+        modelMap = new HashMap<>();
 
-        final Map<String, String> otherProps = new HashMap<>();
-        final String propsFile = "src/test/resources/conf/nifi.properties";
-        NiFiProperties nifiProperties = NiFiProperties.createBasicNiFiProperties(propsFile, otherProps);
+        StatusAnalyticsModel countModel = Mockito.mock(StatusAnalyticsModel.class);
+        StatusAnalyticsModel byteModel = Mockito.mock(StatusAnalyticsModel.class);
+        StatusMetricExtractFunction extractFunction = Mockito.mock(StatusMetricExtractFunction.class);
+        Tuple<StatusAnalyticsModel,StatusMetricExtractFunction> countTuple = new Tuple<>(countModel,extractFunction);
+        Tuple<StatusAnalyticsModel,StatusMetricExtractFunction> byteTuple = new Tuple<>(byteModel,extractFunction);
+        modelMap.put("queuedCount",countTuple);
+        modelMap.put("queuedBytes",byteTuple);
 
-        // use the system bundle
-        Bundle systemBundle = SystemBundle.create(nifiProperties);
-        ExtensionManager extensionManager = new StandardExtensionDiscoveringManager();
-        ((StandardExtensionDiscoveringManager)extensionManager).discoverExtensions(systemBundle, Collections.emptySet());
+        Double[][] features = new Double[1][1];
+        Double[] target = new Double[1];
 
-        modelMap = StatusAnalyticsModelMapFactory.getConnectionStatusModelMap(extensionManager,nifiProperties);
 
         ProcessGroup processGroup = Mockito.mock(ProcessGroup.class);
         StatusHistory statusHistory = Mockito.mock(StatusHistory.class);
         StatusSnapshot statusSnapshot = Mockito.mock(StatusSnapshot.class);
+
+        when(extractFunction.extractMetric(anyString(),any(StatusHistory.class))).then(new Answer<Tuple<Stream<Double[]>,Stream<Double>>>() {
+            @Override
+            public Tuple<Stream<Double[]>, Stream<Double>> answer(InvocationOnMock invocationOnMock) throws Throwable {
+                return new Tuple<>(Stream.of(features), Stream.of(target));
+            }
+        });
+
         when(statusSnapshot.getMetricDescriptors()).thenReturn(Collections.emptySet());
         when(flowManager.getRootGroup()).thenReturn(processGroup);
         when(statusRepository.getConnectionStatusHistory(anyString(), any(), any(), anyInt())).thenReturn(statusHistory);

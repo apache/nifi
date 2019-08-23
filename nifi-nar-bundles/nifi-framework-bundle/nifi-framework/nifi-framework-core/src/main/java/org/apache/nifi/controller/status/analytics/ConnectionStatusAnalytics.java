@@ -99,6 +99,14 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
         });
     }
 
+    protected StatusAnalyticsModel getModel(String modelType){
+
+        if(modelMap.containsKey(modelType)){
+            return modelMap.get(modelType).getKey();
+        }else{
+            throw new IllegalArgumentException("Model cannot be found for provided type: " + modelType);
+        }
+    }
     /**
      * Returns the predicted time (in milliseconds) when backpressure is expected to be applied to this connection, based on the total number of bytes in the queue.
      *
@@ -106,7 +114,7 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
      */
     public Long getTimeToBytesBackpressureMillis() {
 
-        final StatusAnalyticsModel bytesModel = modelMap.get("queuedBytes").getKey();
+        final StatusAnalyticsModel bytesModel = getModel("queuedBytes");
         FlowFileEvent flowFileEvent = getStatusReport();
 
         final Connection connection = getConnection();
@@ -133,7 +141,7 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
      */
     public Long getTimeToCountBackpressureMillis() {
 
-        final StatusAnalyticsModel countModel = modelMap.get("queuedCount").getKey();
+        final StatusAnalyticsModel countModel = getModel("queuedCount");
         FlowFileEvent flowFileEvent = getStatusReport();
 
         final Connection connection = getConnection();
@@ -160,7 +168,7 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
      */
 
     public Long getNextIntervalBytes() {
-        final StatusAnalyticsModel bytesModel = modelMap.get("queuedBytes").getKey();
+        final StatusAnalyticsModel bytesModel = getModel("queuedBytes");
         FlowFileEvent flowFileEvent = getStatusReport();
 
         if (validModel(bytesModel) && flowFileEvent != null) {
@@ -182,7 +190,7 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
      */
 
     public Long getNextIntervalCount() {
-        final StatusAnalyticsModel countModel = modelMap.get("queuedCount").getKey();
+        final StatusAnalyticsModel countModel = getModel("queuedCount");
         FlowFileEvent flowFileEvent = getStatusReport();
 
         if (validModel(countModel) && flowFileEvent != null) {
