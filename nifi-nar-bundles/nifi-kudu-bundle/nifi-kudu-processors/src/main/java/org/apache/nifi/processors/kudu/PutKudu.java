@@ -26,6 +26,7 @@ import org.apache.kudu.client.RowError;
 import org.apache.kudu.client.SessionConfiguration;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.RequiresInstanceClassLoading;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -61,6 +62,7 @@ import java.util.stream.Collectors;
 
 @EventDriven
 @SupportsBatching
+@RequiresInstanceClassLoading // Because of calls to UserGroupInformation.setConfiguration
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"put", "database", "NoSQL", "kudu", "HDFS", "record"})
 @CapabilityDescription("Reads records from an incoming FlowFile using the provided Record Reader, and writes those records " +
@@ -174,10 +176,8 @@ public class PutKudu extends AbstractKuduProcessor {
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(KUDU_MASTERS);
-        properties.add(KERBEROS_CREDENTIALS_SERVICE);
-        properties.add(KUDU_OPERATION_TIMEOUT_MS);
-        properties.add(KUDU_KEEP_ALIVE_PERIOD_TIMEOUT_MS);
         properties.add(TABLE_NAME);
+        properties.add(KERBEROS_CREDENTIALS_SERVICE);
         properties.add(SKIP_HEAD_LINE);
         properties.add(RECORD_READER);
         properties.add(INSERT_OPERATION);
@@ -185,6 +185,8 @@ public class PutKudu extends AbstractKuduProcessor {
         properties.add(FLOWFILE_BATCH_SIZE);
         properties.add(BATCH_SIZE);
         properties.add(IGNORE_NULL);
+        properties.add(KUDU_OPERATION_TIMEOUT_MS);
+        properties.add(KUDU_KEEP_ALIVE_PERIOD_TIMEOUT_MS);
         return properties;
     }
 
