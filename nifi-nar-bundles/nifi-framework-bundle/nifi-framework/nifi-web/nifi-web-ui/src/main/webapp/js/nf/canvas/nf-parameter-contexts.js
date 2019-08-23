@@ -1004,7 +1004,7 @@
                     sensitive: matchingParameter.sensitive,
                     name: parameterName,
                     description: $('#parameter-description-field').val(),
-                    affectedComponents: matchingParameter.affectedComponents,
+                    referencingComponents: matchingParameter.referencingComponents,
                     previousValue: matchingParameter.value,
                     previousDescription: matchingParameter.description,
                     isEditable: matchingParameter.isEditable,
