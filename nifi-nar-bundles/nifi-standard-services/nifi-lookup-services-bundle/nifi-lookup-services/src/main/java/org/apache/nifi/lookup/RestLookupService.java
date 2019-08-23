@@ -302,7 +302,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
             final Record record;
             try (final InputStream is = responseBody.byteStream();
                 final InputStream bufferedIn = new BufferedInputStream(is)) {
-                record = handleResponse(bufferedIn, context);
+                record = handleResponse(bufferedIn, responseBody.contentLength(), context);
             }
 
             return Optional.ofNullable(record);
@@ -342,9 +342,9 @@ public class RestLookupService extends AbstractControllerService implements Reco
         return client.newCall(request).execute();
     }
 
-    private Record handleResponse(InputStream is, Map<String, String> context) throws SchemaNotFoundException, MalformedRecordException, IOException {
+    private Record handleResponse(InputStream is, long inputLength, Map<String, String> context) throws SchemaNotFoundException, MalformedRecordException, IOException {
 
-        try (RecordReader reader = readerFactory.createRecordReader(context, is, getLogger())) {
+        try (RecordReader reader = readerFactory.createRecordReader(context, is, inputLength, getLogger())) {
 
             Record record = reader.nextRecord();
 

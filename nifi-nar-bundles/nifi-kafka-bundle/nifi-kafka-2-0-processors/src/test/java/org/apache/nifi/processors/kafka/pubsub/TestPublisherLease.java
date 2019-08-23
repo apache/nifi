@@ -22,8 +22,6 @@ import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.processors.kafka.pubsub.PublishResult;
-import org.apache.nifi.processors.kafka.pubsub.PublisherLease;
 import org.apache.nifi.processors.kafka.pubsub.util.MockRecordParser;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.MalformedRecordException;
@@ -267,7 +265,7 @@ public class TestPublisherLease {
         readerService.addSchemaField("name", RecordFieldType.STRING);
         readerService.addSchemaField("age", RecordFieldType.INT);
 
-        final RecordReader reader = readerService.createRecordReader(Collections.emptyMap(), new ByteArrayInputStream(exampleInput), logger);
+        final RecordReader reader = readerService.createRecordReader(Collections.emptyMap(), new ByteArrayInputStream(exampleInput), -1, logger);
         final RecordSet recordSet = reader.createRecordSet();
         final RecordSchema schema = reader.getSchema();
 

@@ -36,7 +36,7 @@ public class ArrayListRecordReader extends AbstractControllerService implements 
     }
 
     @Override
-    public ArrayListReader createRecordReader(final Map<String, String> variables, final InputStream in, final ComponentLog logger) {
+    public ArrayListReader createRecordReader(final Map<String, String> variables, final InputStream in, final long inputLength, final ComponentLog logger) {
         return new ArrayListReader(records, schema);
     }
 

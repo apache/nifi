@@ -60,10 +60,10 @@ public class ScriptedReader extends AbstractScriptedRecordFactory<RecordReaderFa
     }
 
     @Override
-    public RecordReader createRecordReader(Map<String, String> variables, InputStream in, ComponentLog logger) throws MalformedRecordException, IOException, SchemaNotFoundException {
+    public RecordReader createRecordReader(Map<String, String> variables, InputStream in, long inputLength, ComponentLog logger) throws MalformedRecordException, IOException, SchemaNotFoundException {
         if (recordFactory.get() != null) {
             try {
-                return recordFactory.get().createRecordReader(variables, in, logger);
+                return recordFactory.get().createRecordReader(variables, in, inputLength, logger);
             } catch (UndeclaredThrowableException ute) {
                 throw new IOException(ute.getCause());
             }

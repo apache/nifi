@@ -37,7 +37,7 @@ public interface RecordReaderFactory extends ControllerService {
 
     /**
      * Create a RecordReader instance to read records from specified InputStream.
-     * This method calls {@link #createRecordReader(Map, InputStream, ComponentLog)} with Attributes of the specified FlowFile.
+     * This method calls {@link #createRecordReader(Map, InputStream, long, ComponentLog)} with Attributes of the specified FlowFile.
      * @param flowFile Attributes of this FlowFile are used to resolve Record Schema via Expression Language dynamically. This can be null.
      *
      * @param in InputStream containing Records.
@@ -46,7 +46,7 @@ public interface RecordReaderFactory extends ControllerService {
      * @return Created RecordReader instance
      */
     default RecordReader createRecordReader(FlowFile flowFile, InputStream in, ComponentLog logger) throws MalformedRecordException, IOException, SchemaNotFoundException {
-        return createRecordReader(flowFile == null ? Collections.emptyMap() : flowFile.getAttributes(), in, logger);
+        return createRecordReader(flowFile == null ? Collections.emptyMap() : flowFile.getAttributes(), in, flowFile == null ? -1 : flowFile.getSize(), logger);
     }
 
     /**
@@ -68,10 +68,11 @@ public interface RecordReaderFactory extends ControllerService {
      * @param variables A map containing variables which is used to resolve the Record Schema dynamically via Expression Language.
      *                 This can be null or empty.
      * @param in InputStream containing Records.
+     * @param inputLength the length of the content to read from the InputStream in bytes, a negative value indicates an unknown or unbound size
      * @param logger A logger bound to a component
      *
      * @return Created RecordReader instance
      */
-    RecordReader createRecordReader(Map<String, String> variables, InputStream in, ComponentLog logger) throws MalformedRecordException, IOException, SchemaNotFoundException;
+    RecordReader createRecordReader(Map<String, String> variables, InputStream in, long inputLength, ComponentLog logger) throws MalformedRecordException, IOException, SchemaNotFoundException;
 
 }

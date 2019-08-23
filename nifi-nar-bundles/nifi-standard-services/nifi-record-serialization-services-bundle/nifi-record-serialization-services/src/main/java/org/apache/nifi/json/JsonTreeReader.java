@@ -105,7 +105,8 @@ public class JsonTreeReader extends SchemaRegistryService implements RecordReade
     }
 
     @Override
-    public RecordReader createRecordReader(final Map<String, String> variables, final InputStream in, final ComponentLog logger) throws IOException, MalformedRecordException, SchemaNotFoundException {
+    public RecordReader createRecordReader(final Map<String, String> variables, final InputStream in, final long inputLength, final ComponentLog logger)
+            throws IOException, MalformedRecordException, SchemaNotFoundException {
         final RecordSchema schema = getSchema(variables, in, null);
         return new JsonTreeRowRecordReader(in, logger, schema, dateFormat, timeFormat, timestampFormat);
     }

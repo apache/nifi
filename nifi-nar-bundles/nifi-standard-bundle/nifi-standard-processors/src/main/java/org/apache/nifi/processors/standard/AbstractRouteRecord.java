@@ -121,7 +121,7 @@ public abstract class AbstractRouteRecord<T> extends AbstractProcessor {
             session.read(flowFile, new InputStreamCallback() {
                 @Override
                 public void process(final InputStream in) throws IOException {
-                    try (final RecordReader reader = readerFactory.createRecordReader(originalAttributes, in, getLogger())) {
+                    try (final RecordReader reader = readerFactory.createRecordReader(originalAttributes, in, original.getSize(), getLogger())) {
 
                         final Record firstRecord = reader.nextRecord();
                         if (firstRecord == null) {

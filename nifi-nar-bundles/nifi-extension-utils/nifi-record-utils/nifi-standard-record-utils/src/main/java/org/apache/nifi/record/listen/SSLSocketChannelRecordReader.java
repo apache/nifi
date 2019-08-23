@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.record.listen;
 
-import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.remote.io.socket.ssl.SSLSocketChannel;
 import org.apache.nifi.remote.io.socket.ssl.SSLSocketChannelInputStream;
@@ -30,6 +29,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetAddress;
 import java.nio.channels.SocketChannel;
+import java.util.Collections;
 
 /**
  * Encapsulates an SSLSocketChannel and a RecordReader created for the given channel.
@@ -54,14 +54,14 @@ public class SSLSocketChannelRecordReader implements SocketChannelRecordReader {
     }
 
     @Override
-    public RecordReader createRecordReader(final FlowFile flowFile, final ComponentLog logger) throws IOException, MalformedRecordException, SchemaNotFoundException {
+    public RecordReader createRecordReader(final ComponentLog logger) throws IOException, MalformedRecordException, SchemaNotFoundException {
         if (recordReader != null) {
             throw new IllegalStateException("Cannot create RecordReader because already created");
         }
 
         final InputStream socketIn = new SSLSocketChannelInputStream(sslSocketChannel);
         final InputStream in = new BufferedInputStream(socketIn);
-        recordReader = readerFactory.createRecordReader(flowFile, in, logger);
+        recordReader = readerFactory.createRecordReader(Collections.emptyMap(), in, -1, logger);
         return recordReader;
     }
 

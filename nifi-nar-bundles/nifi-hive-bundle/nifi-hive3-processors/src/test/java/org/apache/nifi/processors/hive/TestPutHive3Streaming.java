@@ -171,11 +171,11 @@ public class TestPutHive3Streaming {
         runner.setProperty(PutHive3Streaming.HIVE_CONFIGURATION_RESOURCES, TEST_CONF_PATH);
         MockRecordParser readerFactory = new MockRecordParser() {
             @Override
-            public RecordReader createRecordReader(Map<String, String> variables, InputStream in, ComponentLog logger) throws IOException, SchemaNotFoundException {
+            public RecordReader createRecordReader(Map<String, String> variables, InputStream in, long inputLength, ComponentLog logger) throws IOException, SchemaNotFoundException {
                 if (failOnCreateReader) {
                     throw new SchemaNotFoundException("test");
                 }
-                return super.createRecordReader(variables, in, logger);
+                return super.createRecordReader(variables, in, inputLength, logger);
             }
         };
         final RecordSchema recordSchema = AvroTypeUtil.createSchema(schema);

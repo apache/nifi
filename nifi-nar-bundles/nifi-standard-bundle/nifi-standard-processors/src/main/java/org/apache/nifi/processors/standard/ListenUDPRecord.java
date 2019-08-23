@@ -242,7 +242,8 @@ public class ListenUDPRecord extends AbstractListenEventProcessor<StandardEvent>
             final RecordReader reader;
             final List<Record> records = new ArrayList<>();
             try (final InputStream in = new ByteArrayInputStream(event.getData())) {
-                reader = readerFactory.createRecordReader(Collections.emptyMap(), in, getLogger());
+                final long inputLength = event.getData() == null ? -1 : event.getData().length;
+                reader = readerFactory.createRecordReader(Collections.emptyMap(), in, inputLength, getLogger());
 
                 Record record;
                 while((record = reader.nextRecord()) != null) {

@@ -139,7 +139,7 @@ public class CSVReader extends SchemaRegistryService implements RecordReaderFact
     }
 
     @Override
-    public RecordReader createRecordReader(final Map<String, String> variables, final InputStream in, final ComponentLog logger) throws IOException, SchemaNotFoundException {
+    public RecordReader createRecordReader(final Map<String, String> variables, final InputStream in, final long inputLength, final ComponentLog logger) throws IOException, SchemaNotFoundException {
         // Use Mark/Reset of a BufferedInputStream in case we read from the Input Stream for the header.
         in.mark(1024 * 1024);
         final RecordSchema schema = getSchema(variables, new NonCloseableInputStream(in), null);

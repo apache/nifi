@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.nifi.processors.parquet.stream;
+package org.apache.nifi.parquet.stream;
 
 import org.apache.parquet.io.PositionOutputStream;
 

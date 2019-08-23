@@ -42,7 +42,7 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.hadoop.exception.FailureException;
 import org.apache.nifi.processors.hadoop.record.HDFSRecordWriter;
-import org.apache.nifi.processors.parquet.utils.ParquetUtils;
+import org.apache.nifi.parquet.utils.ParquetUtils;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.reporting.InitializationException;

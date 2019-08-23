@@ -286,7 +286,7 @@ public class QueryRecord extends AbstractProcessor {
         final RecordSchema readerSchema;
         try (final InputStream rawIn = session.read(original)) {
             final Map<String, String> originalAttributes = original.getAttributes();
-            final RecordReader reader = recordReaderFactory.createRecordReader(originalAttributes, rawIn, getLogger());
+            final RecordReader reader = recordReaderFactory.createRecordReader(originalAttributes, rawIn, original.getSize(), getLogger());
             readerSchema = reader.getSchema();
 
             writerSchema = recordSetWriterFactory.getSchema(originalAttributes, readerSchema);

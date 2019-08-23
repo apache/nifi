@@ -16,25 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.nifi.processors.parquet.utils;
+package org.apache.nifi.parquet.utils;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
-import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.DataUnit;
-import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.parquet.PutParquet;
+import org.apache.parquet.avro.AvroReadSupport;
+import org.apache.parquet.avro.AvroSchemaConverter;
+import org.apache.parquet.avro.AvroWriteSupport;
 import org.apache.parquet.column.ParquetProperties;
 import org.apache.parquet.hadoop.ParquetFileWriter;
 import org.apache.parquet.hadoop.ParquetWriter;
 import org.apache.parquet.hadoop.metadata.CompressionCodecName;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 public class ParquetUtils {
 
@@ -96,18 +99,36 @@ public class ParquetUtils {
             .allowableValues(org.apache.parquet.column.ParquetProperties.WriterVersion.values())
             .build();
 
-    public static List<AllowableValue> COMPRESSION_TYPES = getCompressionTypes();
-
-    public static final PropertyDescriptor COMPRESSION_TYPE = new PropertyDescriptor.Builder()
-            .name("compression-type")
-            .displayName("Compression Type")
-            .description("The type of compression for the file being written.")
-            .allowableValues(COMPRESSION_TYPES.toArray(new AllowableValue[0]))
-            .defaultValue(COMPRESSION_TYPES.get(0).getValue())
+    public static final PropertyDescriptor AVRO_READ_COMPATIBILITY = new PropertyDescriptor.Builder()
+            .name("avro-read-compatibility")
+            .displayName("Avro Read Compatibility")
+            .description("Specifies the value for '" + AvroReadSupport.AVRO_COMPATIBILITY + "' in the underlying Parquet library")
+            .allowableValues("true", "false")
+            .defaultValue("true")
             .required(true)
             .build();
 
-    public static List<AllowableValue> getCompressionTypes() {
+    public static final PropertyDescriptor AVRO_ADD_LIST_ELEMENT_RECORDS = new PropertyDescriptor.Builder()
+            .name("avro-add-list-element-records")
+            .displayName("Avro Add List Element Records")
+            .description("Specifies the value for '" + AvroSchemaConverter.ADD_LIST_ELEMENT_RECORDS + "' in the underlying Parquet library")
+            .allowableValues("true", "false")
+            .defaultValue("true")
+            .required(true)
+            .build();
+
+    public static final PropertyDescriptor AVRO_WRITE_OLD_LIST_STRUCTURE = new PropertyDescriptor.Builder()
+            .name("avro-write-old-list-structure")
+            .displayName("Avro Write Old List Structure")
+            .description("Specifies the value for '" + AvroWriteSupport.WRITE_OLD_LIST_STRUCTURE + "' in the underlying Parquet library")
+            .allowableValues("true", "false")
+            .defaultValue("true")
+            .required(true)
+            .build();
+
+    public static final List<AllowableValue> COMPRESSION_TYPES = getCompressionTypes();
+
+    private static List<AllowableValue> getCompressionTypes() {
         final List<AllowableValue> compressionTypes = new ArrayList<>();
         for (CompressionCodecName compressionCodecName : CompressionCodecName.values()) {
             final String name = compressionCodecName.name();
@@ -116,35 +137,48 @@ public class ParquetUtils {
         return  Collections.unmodifiableList(compressionTypes);
     }
 
-    public static void applyCommonConfig(final ParquetWriter.Builder<?, ?> builder,
-                                         final ProcessContext context,
-                                         final FlowFile flowFile,
-                                         final Configuration conf,
-                                         final AbstractProcessor abstractProcessor) {
-        builder.withConf(conf);
+    // NOTE: This needs to be named the same as the compression property in AbstractPutHDFSRecord
+    public static final String COMPRESSION_TYPE_PROP_NAME = "compression-type";
+
+    public static final PropertyDescriptor COMPRESSION_TYPE = new PropertyDescriptor.Builder()
+            .name(COMPRESSION_TYPE_PROP_NAME)
+            .displayName("Compression Type")
+            .description("The type of compression for the file being written.")
+            .allowableValues(COMPRESSION_TYPES.toArray(new AllowableValue[0]))
+            .defaultValue(COMPRESSION_TYPES.get(0).getValue())
+            .required(true)
+            .build();
+
+    /**
+     * Creates a ParquetConfig instance from the given PropertyContext.
+     *
+     * @param context the PropertyContext from a component
+     * @param variables an optional set of variables to evaluate EL against, may be null
+     * @return the ParquetConfig
+     */
+    public static ParquetConfig createParquetConfig(final PropertyContext context, final Map<String, String> variables) {
+        final ParquetConfig parquetConfig = new ParquetConfig();
 
         // Required properties
         boolean overwrite = true;
-        if(context.getProperty(PutParquet.OVERWRITE).isSet())
+        if(context.getProperty(PutParquet.OVERWRITE).isSet()) {
             overwrite = context.getProperty(PutParquet.OVERWRITE).asBoolean();
+        }
 
         final ParquetFileWriter.Mode mode = overwrite ? ParquetFileWriter.Mode.OVERWRITE : ParquetFileWriter.Mode.CREATE;
-        builder.withWriteMode(mode);
+        parquetConfig.setWriterMode(mode);
 
-        final PropertyDescriptor compressionTypeDescriptor = abstractProcessor.getPropertyDescriptor(COMPRESSION_TYPE.getName());
-
-        final String compressionTypeValue = context.getProperty(compressionTypeDescriptor).getValue();
-
+        final String compressionTypeValue = context.getProperty(ParquetUtils.COMPRESSION_TYPE).getValue();
         final CompressionCodecName codecName = CompressionCodecName.valueOf(compressionTypeValue);
-        builder.withCompressionCodec(codecName);
+        parquetConfig.setCompressionCodec(codecName);
 
         // Optional properties
 
         if (context.getProperty(ROW_GROUP_SIZE).isSet()){
             try {
-                final Double rowGroupSize = context.getProperty(ROW_GROUP_SIZE).evaluateAttributeExpressions(flowFile).asDataSize(DataUnit.B);
+                final Double rowGroupSize = context.getProperty(ROW_GROUP_SIZE).evaluateAttributeExpressions(variables).asDataSize(DataUnit.B);
                 if (rowGroupSize != null) {
-                    builder.withRowGroupSize(rowGroupSize.intValue());
+                    parquetConfig.setRowGroupSize(rowGroupSize.intValue());
                 }
             } catch (IllegalArgumentException e) {
                 throw new IllegalArgumentException("Invalid data size for " + ROW_GROUP_SIZE.getDisplayName(), e);
@@ -153,9 +187,9 @@ public class ParquetUtils {
 
         if (context.getProperty(PAGE_SIZE).isSet()) {
             try {
-                final Double pageSize = context.getProperty(PAGE_SIZE).evaluateAttributeExpressions(flowFile).asDataSize(DataUnit.B);
+                final Double pageSize = context.getProperty(PAGE_SIZE).evaluateAttributeExpressions(variables).asDataSize(DataUnit.B);
                 if (pageSize != null) {
-                    builder.withPageSize(pageSize.intValue());
+                    parquetConfig.setPageSize(pageSize.intValue());
                 }
             } catch (IllegalArgumentException e) {
                 throw new IllegalArgumentException("Invalid data size for " + PAGE_SIZE.getDisplayName(), e);
@@ -164,9 +198,9 @@ public class ParquetUtils {
 
         if (context.getProperty(DICTIONARY_PAGE_SIZE).isSet()) {
             try {
-                final Double dictionaryPageSize = context.getProperty(DICTIONARY_PAGE_SIZE).evaluateAttributeExpressions(flowFile).asDataSize(DataUnit.B);
+                final Double dictionaryPageSize = context.getProperty(DICTIONARY_PAGE_SIZE).evaluateAttributeExpressions(variables).asDataSize(DataUnit.B);
                 if (dictionaryPageSize != null) {
-                    builder.withDictionaryPageSize(dictionaryPageSize.intValue());
+                    parquetConfig.setDictionaryPageSize(dictionaryPageSize.intValue());
                 }
             } catch (IllegalArgumentException e) {
                 throw new IllegalArgumentException("Invalid data size for " + DICTIONARY_PAGE_SIZE.getDisplayName(), e);
@@ -175,9 +209,9 @@ public class ParquetUtils {
 
         if (context.getProperty(MAX_PADDING_SIZE).isSet()) {
             try {
-                final Double maxPaddingSize = context.getProperty(MAX_PADDING_SIZE).evaluateAttributeExpressions(flowFile).asDataSize(DataUnit.B);
+                final Double maxPaddingSize = context.getProperty(MAX_PADDING_SIZE).evaluateAttributeExpressions(variables).asDataSize(DataUnit.B);
                 if (maxPaddingSize != null) {
-                    builder.withMaxPaddingSize(maxPaddingSize.intValue());
+                    parquetConfig.setMaxPaddingSize(maxPaddingSize.intValue());
                 }
             } catch (IllegalArgumentException e) {
                 throw new IllegalArgumentException("Invalid data size for " + MAX_PADDING_SIZE.getDisplayName(), e);
@@ -186,17 +220,93 @@ public class ParquetUtils {
 
         if (context.getProperty(ENABLE_DICTIONARY_ENCODING).isSet()) {
             final boolean enableDictionaryEncoding = context.getProperty(ENABLE_DICTIONARY_ENCODING).asBoolean();
-            builder.withDictionaryEncoding(enableDictionaryEncoding);
+            parquetConfig.setEnableDictionaryEncoding(enableDictionaryEncoding);
         }
 
         if (context.getProperty(ENABLE_VALIDATION).isSet()) {
             final boolean enableValidation = context.getProperty(ENABLE_VALIDATION).asBoolean();
-            builder.withValidation(enableValidation);
+            parquetConfig.setEnableValidation(enableValidation);
         }
 
         if (context.getProperty(WRITER_VERSION).isSet()) {
             final String writerVersionValue = context.getProperty(WRITER_VERSION).getValue();
-            builder.withWriterVersion(ParquetProperties.WriterVersion.valueOf(writerVersionValue));
+            parquetConfig.setWriterVersion(ParquetProperties.WriterVersion.valueOf(writerVersionValue));
+        }
+
+        if (context.getProperty(AVRO_READ_COMPATIBILITY).isSet()) {
+            final boolean avroReadCompatibility = context.getProperty(AVRO_READ_COMPATIBILITY).asBoolean();
+            parquetConfig.setAvroReadCompatibility(avroReadCompatibility);
+        }
+
+        if (context.getProperty(AVRO_ADD_LIST_ELEMENT_RECORDS).isSet()) {
+            final boolean avroAddListElementRecords = context.getProperty(AVRO_ADD_LIST_ELEMENT_RECORDS).asBoolean();
+            parquetConfig.setAvroAddListElementRecords(avroAddListElementRecords);
+        }
+
+        if (context.getProperty(AVRO_WRITE_OLD_LIST_STRUCTURE).isSet()) {
+            final boolean avroWriteOldListStructure = context.getProperty(AVRO_WRITE_OLD_LIST_STRUCTURE).asBoolean();
+            parquetConfig.setAvroWriteOldListStructure(avroWriteOldListStructure);
+        }
+
+        return parquetConfig;
+    }
+
+    public static void applyCommonConfig(final ParquetWriter.Builder<?, ?> builder, final Configuration conf,
+                                         final ParquetConfig parquetConfig) {
+        builder.withConf(conf);
+        builder.withCompressionCodec(parquetConfig.getCompressionCodec());
+
+        // Optional properties
+
+        if (parquetConfig.getRowGroupSize() != null){
+            builder.withRowGroupSize(parquetConfig.getRowGroupSize());
+        }
+
+        if (parquetConfig.getPageSize() != null) {
+            builder.withPageSize(parquetConfig.getPageSize());
+        }
+
+        if (parquetConfig.getDictionaryPageSize() != null) {
+            builder.withDictionaryPageSize(parquetConfig.getDictionaryPageSize());
+        }
+
+        if (parquetConfig.getMaxPaddingSize() != null) {
+            builder.withMaxPaddingSize(parquetConfig.getMaxPaddingSize());
+        }
+
+        if (parquetConfig.getEnableDictionaryEncoding() != null) {
+            builder.withDictionaryEncoding(parquetConfig.getEnableDictionaryEncoding());
+        }
+
+        if (parquetConfig.getEnableValidation() != null) {
+            builder.withValidation(parquetConfig.getEnableValidation());
+        }
+
+        if (parquetConfig.getWriterVersion() != null) {
+            builder.withWriterVersion(parquetConfig.getWriterVersion());
+        }
+
+        if (parquetConfig.getWriterMode() != null) {
+            builder.withWriteMode(parquetConfig.getWriterMode());
+        }
+
+        applyCommonConfig(conf, parquetConfig);
+    }
+
+    public static void applyCommonConfig(Configuration conf, ParquetConfig parquetConfig) {
+        if (parquetConfig.getAvroReadCompatibility() != null) {
+            conf.setBoolean(AvroReadSupport.AVRO_COMPATIBILITY,
+                    parquetConfig.getAvroReadCompatibility().booleanValue());
+        }
+
+        if (parquetConfig.getAvroAddListElementRecords() != null) {
+            conf.setBoolean(AvroSchemaConverter.ADD_LIST_ELEMENT_RECORDS,
+                    parquetConfig.getAvroAddListElementRecords().booleanValue());
+        }
+
+        if (parquetConfig.getAvroWriteOldListStructure() != null) {
+            conf.setBoolean(AvroWriteSupport.WRITE_OLD_LIST_STRUCTURE,
+                    parquetConfig.getAvroWriteOldListStructure().booleanValue());
         }
     }
 }

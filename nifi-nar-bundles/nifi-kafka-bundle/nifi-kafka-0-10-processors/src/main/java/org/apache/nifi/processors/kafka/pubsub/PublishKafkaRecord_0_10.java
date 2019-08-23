@@ -330,7 +330,7 @@ public class PublishKafkaRecord_0_10 extends AbstractProcessor {
                         @Override
                         public void process(final InputStream in) throws IOException {
                             try {
-                                final RecordReader reader = readerFactory.createRecordReader(attributes, in, getLogger());
+                                final RecordReader reader = readerFactory.createRecordReader(attributes, in, flowFile.getSize(), getLogger());
                                 final RecordSet recordSet = reader.createRecordSet();
 
                                 final RecordSchema schema = writerFactory.getSchema(attributes, recordSet.getSchema());

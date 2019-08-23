@@ -17,14 +17,6 @@
 
 package org.apache.nifi.processors.standard;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.Optional;
-
 import org.apache.nifi.avro.AvroReader;
 import org.apache.nifi.avro.AvroRecordSetWriter;
 import org.apache.nifi.csv.CSVReader;
@@ -47,6 +39,14 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.Optional;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -257,9 +257,10 @@ public class TestValidateRecord {
         runner.setProperty(avroReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
         runner.enableControllerService(avroReader);
         final MockFlowFile validFlowFile = runner.getFlowFilesForRelationship(ValidateRecord.REL_VALID).get(0);
+        final byte[] validFlowFileBytes = validFlowFile.toByteArray();
         try (
-        final ByteArrayInputStream resultContentStream = new ByteArrayInputStream(validFlowFile.toByteArray());
-        final RecordReader recordReader = avroReader.createRecordReader(validFlowFile.getAttributes(), resultContentStream, runner.getLogger());
+        final ByteArrayInputStream resultContentStream = new ByteArrayInputStream(validFlowFileBytes);
+        final RecordReader recordReader = avroReader.createRecordReader(validFlowFile.getAttributes(), resultContentStream, validFlowFileBytes.length, runner.getLogger());
         ) {
             final RecordSchema resultSchema = recordReader.getSchema();
             assertEquals(3, resultSchema.getFieldCount());
