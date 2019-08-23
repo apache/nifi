@@ -57,6 +57,7 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
     static final PropertyDescriptor KUDU_MASTERS = new Builder()
             .name("Kudu Masters")
             .description("Comma separated addresses of the Kudu masters to connect to.")
+            .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();

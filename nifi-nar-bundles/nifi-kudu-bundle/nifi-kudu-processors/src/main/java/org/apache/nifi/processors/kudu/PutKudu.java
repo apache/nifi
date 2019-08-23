@@ -204,12 +204,10 @@ public class PutKudu extends AbstractKuduProcessor {
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) throws IOException, LoginException {
-        tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions().getValue();
         batchSize = context.getProperty(BATCH_SIZE).evaluateAttributeExpressions().asInteger();
         ffbatch   = context.getProperty(FLOWFILE_BATCH_SIZE).evaluateAttributeExpressions().asInteger();
         flushMode = SessionConfiguration.FlushMode.valueOf(context.getProperty(FLUSH_MODE).getValue());
         createKuduClient(context);
-        kuduTable = getKuduClient().openTable(tableName);
     }
 
     @Override
@@ -255,7 +253,7 @@ public class PutKudu extends AbstractKuduProcessor {
                 final List<String> fieldNames = recordReader.getSchema().getFieldNames();
                 final RecordSet recordSet = recordReader.createRecordSet();
                 final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions(flowFile).getValue();
-                final KuduTable kuduTable = kuduClient.openTable(tableName);
+                kuduTable = kuduClient.openTable(tableName);
 
                 Record record = recordSet.next();
                 while (record != null) {

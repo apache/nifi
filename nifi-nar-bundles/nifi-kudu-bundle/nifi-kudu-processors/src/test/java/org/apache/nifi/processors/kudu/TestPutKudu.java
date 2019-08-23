@@ -100,6 +100,7 @@ public class TestPutKudu {
 
     private void setUpTestRunner(TestRunner testRunner) throws InitializationException {
         testRunner.setProperty(PutKudu.TABLE_NAME, DEFAULT_TABLE_NAME);
+        testRunner.setProperty(PutKudu.KUDU_MASTERS, DEFAULT_MASTERS);
         testRunner.setProperty(PutKudu.SKIP_HEAD_LINE, SKIP_HEAD_LINE);
         testRunner.setProperty(PutKudu.IGNORE_NULL, "true");
         testRunner.setProperty(PutKudu.RECORD_READER, "mock-reader-factory");
@@ -560,7 +561,6 @@ public class TestPutKudu {
         testRunner.setProperty(PutKudu.FLUSH_MODE, flushMode.name());
         testRunner.setProperty(PutKudu.BATCH_SIZE, String.valueOf(batchSize));
         testRunner.setProperty(PutKudu.FLOWFILE_BATCH_SIZE, String.valueOf(batchSize));
-        testRunner.setValidateExpressionUsage(false);
 
         IntStream.range(0, numFlowFiles).forEach(i -> testRunner.enqueue(""));
         testRunner.run(numFlowFiles);
