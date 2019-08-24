@@ -75,6 +75,11 @@
             <artifactId>nifi-security-utils</artifactId>
         </dependency>
         <dependency>
+            <groupId>com.microsoft.azure</groupId>
+            <artifactId>azure</artifactId>
+            <version>1.24.1</version>
+        </dependency>
+        <dependency>
           <groupId>com.google.cloud</groupId>
           <artifactId>google-cloud-kms</artifactId>
           <version>1.23.0</version>

@@ -53,7 +53,7 @@ public abstract class AbstractSensitivePropertyProviderTest {
             try {
                 sensitivePropertyProvider.protect(blank);
                 okay = true;
-            } catch (final IllegalArgumentException ignored) {
+            } catch (final IllegalArgumentException | SensitivePropertyProtectionException ignored) {
             }
             if (okay) {
                 throw new Exception("SPP allowed empty string when it should not");
@@ -70,7 +70,7 @@ public abstract class AbstractSensitivePropertyProviderTest {
             boolean okay = true;
             try {
                 sensitivePropertyProvider.unprotect(malformedCipherTextValue);
-            } catch (final SensitivePropertyProtectionException | IllegalArgumentException ignored) {
+            } catch (final IllegalArgumentException| SensitivePropertyProtectionException ignored) {
                 okay = false;
             }
             if (okay) {

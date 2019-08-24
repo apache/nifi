@@ -79,7 +79,7 @@ public class GCPKMSSensitivePropertyProvider extends AbstractSensitivePropertyPr
 
         String path = parts[2];
         Pattern simplePattern = Pattern.compile("([^/]+)/([^/]+)/([^/]+)/([^/]+)");
-        Pattern verbosePattern = Pattern.compile("projects/([^/]+)/locations/([^/]+)/keyRings([^/]+)/cryptoKeys([^/]+)");
+        Pattern verbosePattern = Pattern.compile("projects/([^/]+)/locations/([^/]+)/keyRings/([^/]+)/cryptoKeys/([^/]+)");
 
         Matcher match = null;
         if (verbosePattern.asPredicate().test(path)) {
@@ -138,7 +138,13 @@ public class GCPKMSSensitivePropertyProvider extends AbstractSensitivePropertyPr
         if (StringUtils.isBlank(unprotectedValue)) {
             throw new IllegalArgumentException("Cannot encrypt an empty value");
         }
-        EncryptResponse response = client.encrypt(resource, ByteString.copyFrom(unprotectedValue, StandardCharsets.UTF_8));
+
+        EncryptResponse response;
+        try {
+            response = client.encrypt(resource, ByteString.copyFrom(unprotectedValue, StandardCharsets.UTF_8));
+        } catch (final com.google.api.gax.rpc.NotFoundException e) {
+            throw new SensitivePropertyProtectionException(e);
+        }
         return Base64.toBase64String(response.getCiphertext().toByteArray());
     }
 
@@ -157,7 +163,7 @@ public class GCPKMSSensitivePropertyProvider extends AbstractSensitivePropertyPr
         DecryptResponse response;
         try {
             response = client.decrypt(resource, ByteString.copyFrom(Base64.decode(protectedValue)));
-        } catch (final org.bouncycastle.util.encoders.DecoderException | com.google.api.gax.rpc.InvalidArgumentException e) {
+        } catch (final org.bouncycastle.util.encoders.DecoderException | com.google.api.gax.rpc.InvalidArgumentException | com.google.api.gax.rpc.NotFoundException e) {
             throw new SensitivePropertyProtectionException(e);
         }
         return response.getPlaintext().toStringUtf8();

@@ -16,9 +16,11 @@
  */
 package org.apache.nifi.properties.sensitive;
 
+import com.microsoft.azure.management.Azure;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.properties.sensitive.aes.AESSensitivePropertyProvider;
 import org.apache.nifi.properties.sensitive.aws.kms.AWSKMSSensitivePropertyProvider;
+import org.apache.nifi.properties.sensitive.azure.keyvault.AzureKeyVaultSensitivePropertyProvider;
 import org.apache.nifi.properties.sensitive.gcp.kms.GCPKMSSensitivePropertyProvider;
 import org.apache.nifi.properties.sensitive.hashicorp.vault.VaultSensitivePropertyProvider;
 import org.apache.nifi.properties.sensitive.keystore.KeyStoreSensitivePropertyProvider;
@@ -51,8 +53,13 @@ public class StandardSensitivePropertyProvider {
         if (StringUtils.isBlank(key)) {
             return null;
 
+            // TODO:  remove these scheme checks
+        } else if (AzureKeyVaultSensitivePropertyProvider.isProviderFor(key) || AzureKeyVaultSensitivePropertyProvider.isProviderFor(scheme)) {
+            logger.debug("StandardSensitivePropertyProvider selected specific Azure Key Vault provider for key: " + AzureKeyVaultSensitivePropertyProvider.toPrintableString(key));
+            return new AzureKeyVaultSensitivePropertyProvider(key);
+
         } else if (VaultSensitivePropertyProvider.isProviderFor(key) || VaultSensitivePropertyProvider.isProviderFor(scheme)) {
-            logger.debug("StandardSensitivePropertyProvider selected specific Vault provider for key: " + VaultSensitivePropertyProvider.toPrintableString(key));
+            logger.debug("StandardSensitivePropertyProvider selected specific HashiCorp Vault provider for key: " + VaultSensitivePropertyProvider.toPrintableString(key));
             return new VaultSensitivePropertyProvider(key);
 
         } else if (KeyStoreSensitivePropertyProvider.isProviderFor(key) || KeyStoreSensitivePropertyProvider.isProviderFor(scheme)) {
@@ -94,7 +101,8 @@ public class StandardSensitivePropertyProvider {
      * @return true if at least one provider handles scheme
      */
     public static boolean hasProviderFor(String scheme) {
-        return VaultSensitivePropertyProvider.isProviderFor(scheme)
+        return AzureKeyVaultSensitivePropertyProvider.isProviderFor(scheme)
+                || VaultSensitivePropertyProvider.isProviderFor(scheme)
                 || KeyStoreSensitivePropertyProvider.isProviderFor(scheme)
                 || GCPKMSSensitivePropertyProvider.isProviderFor(scheme)
                 || AWSKMSSensitivePropertyProvider.isProviderFor(scheme)
