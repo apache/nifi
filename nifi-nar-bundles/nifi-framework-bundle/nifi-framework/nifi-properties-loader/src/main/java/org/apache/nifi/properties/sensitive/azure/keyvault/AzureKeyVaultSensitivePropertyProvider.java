@@ -120,6 +120,7 @@ public class AzureKeyVaultSensitivePropertyProvider implements SensitiveProperty
      */
     @Override
     public String protect(String unprotectedValue) throws SensitivePropertyProtectionException {
+        // TODO:  check length of value; azure limits length of encryption operations.
         if (StringUtils.isBlank(unprotectedValue)) {
             throw new IllegalArgumentException("Cannot encrypt an empty value");
         }

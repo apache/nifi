@@ -202,6 +202,8 @@ class NiFiPropertiesLoaderGroovyTest extends GroovyTestCase {
         assert niFiProperties instanceof StandardNiFiProperties
     }
 
+
+    @Ignore
     @Test
     void testShouldLoadUnprotectedPropertiesFromProtectedFile() throws Exception {
         // Arrange
@@ -346,6 +348,7 @@ class NiFiPropertiesLoaderGroovyTest extends GroovyTestCase {
         Files.setPosixFilePermissions(unreadableDir.toPath(), originalPermissions)
     }
 
+    @Ignore
     @Test
     void testShouldLoadUnprotectedPropertiesFromProtectedDefaultFileAndUseBootstrapKey() throws Exception {
         // Arrange
@@ -372,6 +375,7 @@ class NiFiPropertiesLoaderGroovyTest extends GroovyTestCase {
         assert readPropertiesAndValues == expectedPropertiesAndValues
     }
 
+    @Ignore
     @Test
     void testShouldUpdateKeyInFactory() throws Exception {
         // Arrange

@@ -17,7 +17,6 @@
 package org.apache.nifi.properties.sensitive.keystore;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.properties.sensitive.AbstractSensitivePropertyProvider;
 import org.apache.nifi.properties.sensitive.ExternalProperties;
 import org.apache.nifi.properties.sensitive.SensitivePropertyConfigurationException;
 import org.apache.nifi.properties.sensitive.SensitivePropertyProtectionException;
@@ -29,7 +28,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.nio.file.Paths;
 import java.security.Key;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
@@ -44,11 +42,12 @@ import java.util.Set;
 /**
  * Sensitive properties using KeyStore keys with an inner AES SPP.
  */
-public class KeyStoreSensitivePropertyProvider extends AbstractSensitivePropertyProvider implements SensitivePropertyProvider {
+public class KeyStoreSensitivePropertyProvider implements SensitivePropertyProvider {
     private static final Logger logger = LoggerFactory.getLogger(KeyStoreSensitivePropertyProvider.class);
 
     private static final String PROVIDER_NAME = "KeyStore Sensitive Property Provider";
     private static final String MATERIAL_PREFIX = "keystore";
+    private static final String MATERIAL_SEPARATOR = "/";
 
     private static final String KEYSTORE_TYPE_JCECKS = "jceks";
     private static final String KEYSTORE_TYPE_PKCS12 = "pkcs12";

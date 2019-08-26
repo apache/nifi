@@ -152,6 +152,7 @@ class NiFiGroovyTest extends GroovyTestCase {
         assert TestAppender.events.last().getMessage() == "Failure to launch NiFi due to java.lang.IllegalArgumentException: The bootstrap process did not provide a valid key"
     }
 
+    @Ignore
     @Test
     void testInitializePropertiesShouldSetBootstrapKeyFromFile() throws Exception {
         // Arrange

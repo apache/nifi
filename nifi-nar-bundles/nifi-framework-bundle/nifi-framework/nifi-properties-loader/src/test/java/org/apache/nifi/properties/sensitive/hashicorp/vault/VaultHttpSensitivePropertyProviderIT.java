@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.properties.sensitive.hashicorp.vault;
 
-import org.apache.nifi.properties.sensitive.AbstractSensitivePropertyProvider;
 import org.apache.nifi.properties.sensitive.AbstractSensitivePropertyProviderTest;
 import org.apache.nifi.properties.sensitive.SensitivePropertyProvider;
 import org.apache.nifi.security.util.CipherUtils;
@@ -286,8 +285,6 @@ public class VaultHttpSensitivePropertyProviderIT extends AbstractSensitivePrope
         for (String keySpec : getKeySpecs(transitKeyId)) {
             String printable = VaultSensitivePropertyProvider.toPrintableString(keySpec);
             Assert.assertEquals(printable, keySpec);
-            Assert.assertTrue(printable.startsWith(VaultSensitivePropertyProvider.MATERIAL_PREFIX + AbstractSensitivePropertyProvider.MATERIAL_SEPARATOR));
-
             logger.info("Key spec:" + keySpec + " has printable:" + printable);
         }
     }
@@ -349,6 +346,9 @@ public class VaultHttpSensitivePropertyProviderIT extends AbstractSensitivePrope
         ).collect(Collectors.toSet());
     }
 
+    /**
+     * This test shows that the provider can encrypt and decrypt values as expected.
+     */
     @Test
     public void testProtectAndUnprotect() {
         setTokenAuthProps();

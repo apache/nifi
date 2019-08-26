@@ -28,7 +28,7 @@ import org.slf4j.LoggerFactory;
 
 public class AzureKeyVaultSensitivePropertyProviderIT extends AbstractSensitivePropertyProviderTest {
     private static final Logger logger = LoggerFactory.getLogger(AzureKeyVaultSensitivePropertyProviderIT.class);
-    private SensitivePropertyProvider spp;
+    private SensitivePropertyProvider sensitivePropertyProvider;
 
     @BeforeClass
     public static void checkAssumptions() {
@@ -39,13 +39,16 @@ public class AzureKeyVaultSensitivePropertyProviderIT extends AbstractSensitiveP
     public void createSensitivePropertyProvider() {
         String material = System.getenv("AZURE_KEY_VAULT_MATERIAL");
         Assume.assumeTrue(material != null);
-        spp = new AzureKeyVaultSensitivePropertyProvider(material);
+        sensitivePropertyProvider = new AzureKeyVaultSensitivePropertyProvider(material);
     }
 
+    /**
+     * These tests show that the provider can encrypt and decrypt values.
+     */
     @Test
     public void testProtectAndUnprotect() throws Exception {
         int plainSize = 128;
-        checkProviderCanProtectAndUnprotectValue(spp, plainSize);
+        checkProviderCanProtectAndUnprotectValue(sensitivePropertyProvider, plainSize);
         logger.info("Azure Key Vault SPP protected and unprotected string of " + plainSize);
     }
 
@@ -54,7 +57,7 @@ public class AzureKeyVaultSensitivePropertyProviderIT extends AbstractSensitiveP
      */
     @Test
     public void testShouldHandleProtectEmptyValue() throws Exception {
-        checkProviderProtectDoesNotAllowBlankValues(spp);
+        checkProviderProtectDoesNotAllowBlankValues(sensitivePropertyProvider);
     }
 
     /**
@@ -62,7 +65,7 @@ public class AzureKeyVaultSensitivePropertyProviderIT extends AbstractSensitiveP
      */
     @Test
     public void testProviderUnprotectWithBadValues() throws Exception {
-        checkProviderUnprotectDoesNotAllowInvalidBase64Values(spp);
+        checkProviderUnprotectDoesNotAllowInvalidBase64Values(sensitivePropertyProvider);
     }
 
     /**
@@ -70,11 +73,14 @@ public class AzureKeyVaultSensitivePropertyProviderIT extends AbstractSensitiveP
      */
     @Test
     public void testShouldThrowExceptionWithValidBase64EncodedTextInvalidCipherText() throws Exception {
-        checkProviderUnprotectDoesNotAllowValidBase64InvalidCipherTextValues(spp);
+        checkProviderUnprotectDoesNotAllowValidBase64InvalidCipherTextValues(sensitivePropertyProvider);
     }
 
+    /**
+     * These tests show that the provider can protect and unprotect properties.
+     */
     @Test
     public void testShouldProtectAndUnprotectProperties() throws Exception {
-        checkProviderCanProtectAndUnprotectProperties(spp);
+        checkProviderCanProtectAndUnprotectProperties(sensitivePropertyProvider);
     }
 }

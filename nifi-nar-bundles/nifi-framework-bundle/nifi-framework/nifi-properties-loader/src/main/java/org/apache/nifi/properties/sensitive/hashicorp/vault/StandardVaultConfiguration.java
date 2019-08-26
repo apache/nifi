@@ -44,15 +44,13 @@ import java.io.File;
 import java.security.KeyStore;
 
 
-/**
- *
- */
+// This class provides our configuration to the Vault client library.  Some of the implementation is inspired by / cribbed from the
+// base class.
 class StandardVaultConfiguration extends EnvironmentVaultConfiguration {
     private static final String VAULT_AUTH_TOKEN = "token";
     private static final String VAULT_AUTH_APP_ID = "appid";
     private static final String VAULT_AUTH_APP_ROLE = "approle";
     private static final String VAULT_AUTH_CUBBYHOLE = "cubbyhole";
-
 
     private final VaultEndpoint endpoint;
     private final ExternalProperties propertyProvider;
@@ -62,11 +60,13 @@ class StandardVaultConfiguration extends EnvironmentVaultConfiguration {
         propertyProvider = externalProperties;
     }
 
+    // Generates the client auth for token auth
     @Override
     protected ClientAuthentication tokenAuthentication() {
         return new TokenAuthentication(getVaultToken());
     }
 
+    // Generates the client auth for app id auth
     @Override
     protected ClientAuthentication appIdAuthentication() {
         String appId = getVaultAppId();
@@ -84,11 +84,13 @@ class StandardVaultConfiguration extends EnvironmentVaultConfiguration {
         return new AppIdAuthentication(appIdOptions, VaultClients.createRestTemplate(endpoint, clientHttpRequestFactoryWrapper().getClientHttpRequestFactory()));
     }
 
+    // Returns the client http request factory wrapper with our options and SSL config.
     @Override
     public AbstractVaultConfiguration.ClientFactoryWrapper clientHttpRequestFactoryWrapper() {
         return new AbstractVaultConfiguration.ClientFactoryWrapper(ClientHttpRequestFactoryFactory.create(this.clientOptions(), this.sslConfiguration()));
     }
 
+    // Generates the client auth for app role auth.
     @Override
     protected ClientAuthentication appRoleAuthentication() {
         final String roleId = getVaultRoleId();
@@ -106,6 +108,7 @@ class StandardVaultConfiguration extends EnvironmentVaultConfiguration {
         return new AppRoleAuthentication(appRoleOptions, VaultClients.createRestTemplate(endpoint, clientHttpRequestFactoryWrapper().getClientHttpRequestFactory()));
     }
 
+    // Generates the client auth for cubbyhole auth.
     @Override
     protected ClientAuthentication cubbyholeAuthentication() {
         String token = getVaultToken();
@@ -118,6 +121,7 @@ class StandardVaultConfiguration extends EnvironmentVaultConfiguration {
         return new CubbyholeAuthentication(options, VaultClients.createRestTemplate(endpoint, clientHttpRequestFactoryWrapper().getClientHttpRequestFactory()));
     }
 
+    // Generates a Vault client auth object based on the "vault.authentication" property
     @Override
     public ClientAuthentication clientAuthentication() {
         switch (getVaultAuthentication()) {
@@ -139,6 +143,7 @@ class StandardVaultConfiguration extends EnvironmentVaultConfiguration {
         // LoginTokenAdapter
     }
 
+    // Generates an SSL config object based on the various "vault.ssl.*" properties
     @Override
     public SslConfiguration sslConfiguration() {
         Resource keyStore = getVaultSslKeyStore();
@@ -225,6 +230,7 @@ class StandardVaultConfiguration extends EnvironmentVaultConfiguration {
         return StringUtils.isBlank(password) ? null : password.toCharArray();
     }
 
+    // This method creates an empty spring environment.
     @Override
     protected Environment getEnvironment() {
         return new Environment() {

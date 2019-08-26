@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.properties.sensitive;
 
-import groovy.util.GroovyTestCase;
 import org.apache.nifi.properties.StandardNiFiProperties;
 import org.apache.nifi.security.util.CipherUtils;
 import org.apache.nifi.util.NiFiProperties;
@@ -30,10 +29,6 @@ import java.util.Properties;
 
 
 public abstract class AbstractSensitivePropertyProviderTest {
-    /**
-     * This routine provides tests of behavior common to all SensitivePropertyProviders, specifically that an SPP implementation can
-     * cipher and decipher text, and that it throws an exception when trying to cipher an empty string.
-     */
     public void checkProviderCanProtectAndUnprotectValue(SensitivePropertyProvider sensitivePropertyProvider, int plainSize) {
         String plainText = CipherUtils.getRandomHex(plainSize);
         String cipherText = sensitivePropertyProvider.protect(plainText);

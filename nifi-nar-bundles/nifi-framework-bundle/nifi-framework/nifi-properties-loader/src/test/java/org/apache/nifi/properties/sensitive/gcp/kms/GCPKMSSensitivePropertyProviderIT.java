@@ -51,7 +51,6 @@ Configure your test environment like:
 */
 public class GCPKMSSensitivePropertyProviderIT extends AbstractSensitivePropertyProviderTest {
     private static final Logger logger = LoggerFactory.getLogger(GCPKMSSensitivePropertyProviderIT.class);
-    // private static final String keyId = "gcp/kms/nifi-gcp-unit-tests-project/us-west2/key-ring-0/key-name-0x037af";
     private static String keyId;
 
     private static final String locationId = "us-west2";
@@ -73,9 +72,6 @@ public class GCPKMSSensitivePropertyProviderIT extends AbstractSensitiveProperty
             keyRing = client.createKeyRing(parent, keyRingId, KeyRing.newBuilder().build());
             CryptoKey cryptoKey = CryptoKey.newBuilder().setPurpose(CryptoKey.CryptoKeyPurpose.ENCRYPT_DECRYPT).build();
             createdKey = client.createCryptoKey(KeyRingName.format(projectId, locationId, keyRingId), cryptoKeyId, cryptoKey);
-
-            // keyId = "gcp/kms/nifi-gcp-unit-tests-project/us-west2/key-ring-0/key-name-0x037af";
-            // keyId = "gcp/kms/" + projectId + "/" + locationId + "/" + keyRingId + "/" + createdKey.getName();
             keyId = "gcp/kms/" + createdKey.getName();
             logger.info("Created GCP key: {}", createdKey.getName());
 
@@ -98,6 +94,9 @@ public class GCPKMSSensitivePropertyProviderIT extends AbstractSensitiveProperty
         }
     }
 
+    /**
+     * These tests show that the provider enforces valid key formats.
+     */
     @Test
     public void testShouldThrowExceptionsWithBadKeys() throws Exception {
         try {
@@ -113,6 +112,9 @@ public class GCPKMSSensitivePropertyProviderIT extends AbstractSensitiveProperty
         }
     }
 
+    /**
+     * These tests show that the provider can encrypt and decrypt values as expected.
+     */
     @Test
     public void testProtectAndUnprotect() {
         SensitivePropertyProvider sensitivePropertyProvider = new GCPKMSSensitivePropertyProvider(keyId);

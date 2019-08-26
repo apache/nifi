@@ -68,6 +68,9 @@ public class KeyStoreSensitivePropertyProviderIT extends AbstractSensitiveProper
     private static final String[] keyAlgos = {"RSA", "DSA", "ECDSA", "AES"};
     private static final int[] keySizes = {16, 24, 32};
 
+    @Rule
+    public TemporaryFolder tmpDir = new TemporaryFolder();
+
     @BeforeClass
     public static void setUpKeyPair() {
         Security.addProvider(new BouncyCastleProvider());
@@ -231,6 +234,7 @@ public class KeyStoreSensitivePropertyProviderIT extends AbstractSensitiveProper
 
     }
 
+    // These tests show the provider will not accept an invalid key.
     @Test
     public void testShouldThrowExceptionsWithBadKeys() throws Exception {
         try {
@@ -246,6 +250,7 @@ public class KeyStoreSensitivePropertyProviderIT extends AbstractSensitiveProper
         }
     }
 
+    // These tests show the provider can encrypt and decrypt values as expected.
     @Test
     public void testProtectAndUnprotect() {
         for (final Map.Entry<String, KeyStoreTestCase> entry : testCases.entrySet()) {
@@ -261,9 +266,8 @@ public class KeyStoreSensitivePropertyProviderIT extends AbstractSensitiveProper
         }
     }
 
-    /**
-     * These tests show that the provider cannot encrypt empty values.
-     */
+
+     // These tests show that the provider cannot encrypt empty values.
     @Test
     public void testShouldHandleProtectEmptyValue() throws Exception {
         for (final Map.Entry<String, KeyStoreTestCase> entry : testCases.entrySet()) {
@@ -277,9 +281,7 @@ public class KeyStoreSensitivePropertyProviderIT extends AbstractSensitiveProper
         }
     }
 
-    /**
-     * These tests show that the provider cannot decrypt invalid ciphertext.
-     */
+     // These tests show that the provider cannot decrypt invalid ciphertext.
     @Test
     public void testProviderUnprotectWithBadValues() throws Exception {
         for (final Map.Entry<String, KeyStoreTestCase> entry : testCases.entrySet()) {
@@ -293,9 +295,7 @@ public class KeyStoreSensitivePropertyProviderIT extends AbstractSensitiveProper
         }
     }
 
-    /**
-     * These tests show that the provider cannot decrypt text encoded but not encrypted.
-     */
+     // These tests show that the provider cannot decrypt text encoded but not encrypted.
     @Test
     public void testShouldThrowExceptionWithValidBase64EncodedTextInvalidCipherText() throws Exception {
         for (final Map.Entry<String, KeyStoreTestCase> entry : testCases.entrySet()) {
@@ -309,12 +309,7 @@ public class KeyStoreSensitivePropertyProviderIT extends AbstractSensitiveProper
         }
     }
 
-    @Rule
-    public TemporaryFolder tmpDir = new TemporaryFolder();
-
-    /**
-     * These tests show we can use an AWS KMS key to encrypt/decrypt property values.
-     */
+    // These tests show we can use an AWS KMS key to encrypt/decrypt property values.
     @Test
     public void testShouldProtectAndUnprotectProperties() throws Exception {
         for (final Map.Entry<String, KeyStoreTestCase> entry : testCases.entrySet()) {

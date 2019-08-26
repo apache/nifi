@@ -22,7 +22,6 @@ import com.google.cloud.kms.v1.EncryptResponse;
 import com.google.cloud.kms.v1.KeyManagementServiceClient;
 import com.google.protobuf.ByteString;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.properties.sensitive.AbstractSensitivePropertyProvider;
 import org.apache.nifi.properties.sensitive.SensitivePropertyConfigurationException;
 import org.apache.nifi.properties.sensitive.SensitivePropertyProtectionException;
 import org.apache.nifi.properties.sensitive.SensitivePropertyProvider;
@@ -39,12 +38,13 @@ import java.util.regex.Pattern;
  * This provider uses the GCP SDK to interact with the GCP KMS.  Values are encoded/decoded base64, using the
  * standard encoders from bouncycastle.
  */
-public class GCPKMSSensitivePropertyProvider extends AbstractSensitivePropertyProvider implements SensitivePropertyProvider {
+public class GCPKMSSensitivePropertyProvider implements SensitivePropertyProvider {
     private static final Logger logger = LoggerFactory.getLogger(GCPKMSSensitivePropertyProvider.class);
     private static final String IMPLEMENTATION_NAME = "GCP KMS Sensitive Property Provider";
 
     private static final String MATERIAL_PREFIX = "gcp";
     private static final String MATERIAL_KEY_TYPE = "kms";
+    private static final String MATERIAL_SEPARATOR = "/";
     private static final String IMPLEMENTATION_PREFIX = MATERIAL_PREFIX + MATERIAL_SEPARATOR + MATERIAL_KEY_TYPE + MATERIAL_SEPARATOR;
 
     private String keyId;
@@ -56,9 +56,12 @@ public class GCPKMSSensitivePropertyProvider extends AbstractSensitivePropertyPr
     private final String resource;
     private final KeyManagementServiceClient client;
 
+
     public GCPKMSSensitivePropertyProvider(String keyId) {
-        checkGcpEnvVar();
-        setKeyId(keyId);
+        if (StringUtils.isBlank(System.getenv("GOOGLE_APPLICATION_CREDENTIALS"))) {
+            throw new SensitivePropertyConfigurationException("Unable to find Google Application Credentials");
+        }
+        extractKeyParts(keyId);
         this.resource = CryptoKeyName.format(projectId, locationId, keyRingId, cryptoKeyId);
         try {
             this.client = KeyManagementServiceClient.create();
@@ -67,11 +70,10 @@ public class GCPKMSSensitivePropertyProvider extends AbstractSensitivePropertyPr
         }
     }
 
-    public void setKeyId(String keyId) {
-        this.keyId = keyId;
+    private void extractKeyParts(String keyId) {
+        if (StringUtils.isBlank(keyId)) throw new SensitivePropertyConfigurationException("The key cannot be empty");
 
-        if (StringUtils.isBlank(keyId))
-            throw new SensitivePropertyConfigurationException("The key cannot be empty");
+        this.keyId = keyId;
 
         String[] parts = this.keyId.split(MATERIAL_SEPARATOR, 3);
         if (parts.length != 3 || !parts[0].equals(MATERIAL_PREFIX) || !parts[1].equals(MATERIAL_KEY_TYPE))
@@ -98,12 +100,6 @@ public class GCPKMSSensitivePropertyProvider extends AbstractSensitivePropertyPr
 
         if (StringUtils.isBlank(projectId) || StringUtils.isBlank(locationId) || StringUtils.isBlank(keyRingId) || StringUtils.isBlank(cryptoKeyId))
             throw new SensitivePropertyConfigurationException("Invalid GCP key identifier");
-    }
-
-    private void checkGcpEnvVar() {
-        if (StringUtils.isBlank(System.getenv("GOOGLE_APPLICATION_CREDENTIALS"))) {
-            throw new SensitivePropertyConfigurationException("Unable to find Google Application Credentials");
-        }
     }
 
     /**

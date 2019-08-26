@@ -17,7 +17,6 @@
 package org.apache.nifi.properties.sensitive.hashicorp.vault;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.properties.sensitive.AbstractSensitivePropertyProvider;
 import org.apache.nifi.properties.sensitive.ExternalProperties;
 import org.apache.nifi.properties.sensitive.SensitivePropertyConfigurationException;
 import org.apache.nifi.properties.sensitive.SensitivePropertyProtectionException;
@@ -46,11 +45,12 @@ import java.util.Set;
 /**
  * Sensitive properties using Vault Transit encrypt and decrypt operations.
  */
-public class VaultSensitivePropertyProvider extends AbstractSensitivePropertyProvider implements SensitivePropertyProvider {
+public class VaultSensitivePropertyProvider implements SensitivePropertyProvider {
     private static final Logger logger = LoggerFactory.getLogger(VaultSensitivePropertyProvider.class);
 
     private static final String PROVIDER_NAME = "HashiCorp Vault Sensitive Property Provider";
     static final String MATERIAL_PREFIX = "vault";
+    static final String MATERIAL_SEPARATOR = "/";
 
     static final String VAULT_AUTH_TOKEN = "token";
     static final String VAULT_AUTH_APP_ID = "appid";

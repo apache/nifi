@@ -60,7 +60,6 @@ class StandardSensitivePropertyProviderIT {
 
         AES_128_KEY = material[0..< 32]
         AES_256_KEY = material[0..< 64]
-        // AWS_KMS_KEY = "aws/kms/" + material[64..<80]
     }
 
     /**
@@ -80,16 +79,6 @@ class StandardSensitivePropertyProviderIT {
         def sensitivePropertyProvider = StandardSensitivePropertyProvider.fromKey(AES_256_KEY)
         assert sensitivePropertyProvider.getName() == new AESSensitivePropertyProvider(AES_256_KEY).getName()
     }
-
-    /**
-     * This test shows that the SSPP creates an AWS SPP from an AWS key.
-
-    @Test
-    void testKnownAWSKMSKeyProducesAWSKMSProvider() throws Exception {
-        def sensitivePropertyProvider = StandardSensitivePropertyProvider.fromKey(AWS_KMS_KEY)
-        assert sensitivePropertyProvider.getName() == new AWSKMSSensitivePropertyProvider(AWS_KMS_KEY).getName()
-    }
-     */
 
     /**
      * This test shows that the SSPP default protection scheme is the AES default protection scheme.

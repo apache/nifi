@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.properties.sensitive;
 
-import com.microsoft.azure.management.Azure;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.properties.sensitive.aes.AESSensitivePropertyProvider;
 import org.apache.nifi.properties.sensitive.aws.kms.AWSKMSSensitivePropertyProvider;

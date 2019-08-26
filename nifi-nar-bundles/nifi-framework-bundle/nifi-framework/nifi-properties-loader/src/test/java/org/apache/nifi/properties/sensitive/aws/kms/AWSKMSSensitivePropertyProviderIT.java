@@ -79,7 +79,6 @@ public class AWSKMSSensitivePropertyProviderIT extends AbstractSensitiveProperty
 
         credentialsDuringTest.put("aws.accessKeyId", credentials.getAWSAccessKeyId());
         credentialsDuringTest.put("aws.secretKey", credentials.getAWSSecretKey());
-        // credentialsDuringTest.put("aws.region", "us-east-2");
 
         for (String name : credentialsDuringTest.keySet()) {
             String value = System.getProperty(name);
@@ -94,23 +93,23 @@ public class AWSKMSSensitivePropertyProviderIT extends AbstractSensitiveProperty
 
         client = (AWSKMSClient) AWSKMSClientBuilder.standard().build();
 
-        // generate a cmk
+        // Our first step is to generate a cmk (Customer Master Key):
         CreateKeyRequest cmkRequest = new CreateKeyRequest().withDescription("CMK for unit tests");
         CreateKeyResult cmkResult = client.createKey(cmkRequest);
         logger.info("Created customer master key: " + cmkResult.getKeyMetadata().getKeyId());
 
-        // from the cmk, generate a dek
+        // Our next step is to generate a DEK (data encryption key) from the cmk:
         GenerateDataKeyRequest dekRequest = new GenerateDataKeyRequest().withKeyId(cmkResult.getKeyMetadata().getKeyId()).withKeySpec("AES_128");
         GenerateDataKeyResult dekResult = client.generateDataKey(dekRequest);
         logger.info("Created data encryption key: " + dekResult.getKeyId());
 
-        // add an alias to the dek
+        // Here we add an alias to the DEK to test the fact that aliases can be used in place of key ids:
         final String aliasName = "alias/aws-kms-spp-integration-test-" + UUID.randomUUID().toString();
         CreateAliasRequest aliasReq = new CreateAliasRequest().withAliasName(aliasName).withTargetKeyId(dekResult.getKeyId());
         client.createAlias(aliasReq);
         logger.info("Created key alias: " + aliasName);
 
-        // re-read the dek so we have the arn
+        // Finally, we re-read the DEK so we have the ARN:
         DescribeKeyRequest descRequest = new DescribeKeyRequest().withKeyId(dekResult.getKeyId());
         DescribeKeyResult descResult = client.describeKey(descRequest);
         logger.info("Retrieved description for: " + descResult.getKeyMetadata().getArn());
