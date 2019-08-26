@@ -91,7 +91,7 @@
             return !nfCommon.isUndefinedOrNull(nfCanvasUtils.getParameterContextId());
         } else if (nfCanvasUtils.isProcessGroup(selection)) {
             var pg = selection.datum();
-            return !nfCommon.isUndefinedOrNull(pg.component.parameterContextId);
+            return !nfCommon.isUndefinedOrNull(pg.component.parameterContext.id);
         }
         return false;
     };

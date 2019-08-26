@@ -1417,7 +1417,7 @@
             } else if (selection.size() === 1) {
                 if (nfCanvasUtils.isProcessGroup(selection)) {
                     var pg = selection.datum();
-                    pcid = pg.component.parameterContextId;
+                    pcid = pg.component.parameterContext.id;
                 }
             }
 
