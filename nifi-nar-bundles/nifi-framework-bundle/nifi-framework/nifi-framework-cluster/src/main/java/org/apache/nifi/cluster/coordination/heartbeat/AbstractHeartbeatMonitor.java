@@ -111,9 +111,6 @@ public abstract class AbstractHeartbeatMonitor implements HeartbeatMonitor {
         return clusterCoordinator;
     }
 
-    protected long getHeartbeatInterval(final TimeUnit timeUnit) {
-        return timeUnit.convert(heartbeatIntervalMillis, TimeUnit.MILLISECONDS);
-    }
 
     /**
      * Fetches all of the latest heartbeats and updates the Cluster Coordinator
@@ -122,8 +119,7 @@ public abstract class AbstractHeartbeatMonitor implements HeartbeatMonitor {
      * Visible for testing.
      */
     protected synchronized void monitorHeartbeats() {
-        final NodeIdentifier activeCoordinator = clusterCoordinator.getElectedActiveCoordinatorNode();
-        if (activeCoordinator != null && !activeCoordinator.equals(clusterCoordinator.getLocalNodeIdentifier())) {
+        if (!clusterCoordinator.isActiveClusterCoordinator()) {
             // Occasionally Curator appears to not notify us that we have lost the elected leader role, or does so
             // on a very large delay. So before we kick the node out of the cluster, we want to first check what the
             // ZNode in ZooKeeper says, and ensure that this is the node that is being advertised as the appropriate

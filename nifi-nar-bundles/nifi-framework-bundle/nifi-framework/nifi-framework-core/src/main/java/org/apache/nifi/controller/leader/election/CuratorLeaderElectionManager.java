@@ -446,6 +446,8 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
         private final String participantId;
 
         private volatile boolean leader;
+        private long leaderUpdateTimestamp = 0L;
+        private final long MAX_CACHE_MILLIS = TimeUnit.SECONDS.toMillis(5L);
 
         public ElectionListener(final String roleName, final LeaderElectionStateChangeListener listener, final String participantId) {
             this.roleName = roleName;
@@ -453,12 +455,34 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
             this.participantId = participantId;
         }
 
-        public boolean isLeader() {
+        public synchronized boolean isLeader() {
+            if (leaderUpdateTimestamp < System.currentTimeMillis() - MAX_CACHE_MILLIS) {
+                try {
+                    final long start = System.nanoTime();
+                    final boolean zkLeader = verifyLeader();
+                    final long nanos = System.nanoTime() - start;
+
+                    setLeader(zkLeader);
+                    logger.debug("Took {} nanoseconds to reach out to ZooKeeper in order to check whether or not this node is currently the leader for Role '{}'. ZooKeeper reported {}",
+                        nanos, roleName, zkLeader);
+                } catch (final Exception e) {
+                    logger.warn("Attempted to reach out to ZooKeeper to determine whether or not this node is the elected leader for Role '{}' but failed to communicate with ZooKeeper. " +
+                        "Assuming that this node is not the leader.", roleName, e);
+
+                    return false;
+                }
+            }
+
             return leader;
         }
 
+        private synchronized void setLeader(final boolean leader) {
+            this.leader = leader;
+            this.leaderUpdateTimestamp = System.currentTimeMillis();
+        }
+
         @Override
-        public void stateChanged(final CuratorFramework client, final ConnectionState newState) {
+        public synchronized void stateChanged(final CuratorFramework client, final ConnectionState newState) {
             logger.info("{} Connection State changed to {}", this, newState.name());
 
             if (newState == ConnectionState.SUSPENDED || newState == ConnectionState.LOST) {
@@ -466,7 +490,7 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
                     logger.info("Because Connection State was changed to {}, will relinquish leadership for role '{}'", newState, roleName);
                 }
 
-                leader = false;
+                setLeader(false);
             }
 
             super.stateChanged(client, newState);
@@ -482,18 +506,19 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
             final String leader = getLeader(roleName);
             if (leader == null) {
                 logger.debug("Reached out to ZooKeeper to determine which node is the elected leader for Role '{}' but found that there is no leader.", roleName);
-                return false;
+                setLeader(false);
             }
 
             final boolean match = leader.equals(participantId);
             logger.debug("Reached out to ZooKeeper to determine which node is the elected leader for Role '{}'. Elected Leader = '{}', Participant ID = '{}', This Node Elected = {}",
                 roleName, leader, participantId, match);
+            setLeader(match);
             return match;
         }
 
         @Override
         public void takeLeadership(final CuratorFramework client) throws Exception {
-            leader = true;
+            setLeader(true);
             logger.info("{} This node has been elected Leader for Role '{}'", this, roleName);
 
             if (listener != null) {
@@ -502,7 +527,7 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
                 } catch (final Exception e) {
                     logger.error("This node was elected Leader for Role '{}' but failed to take leadership. Will relinquish leadership role. Failure was due to: {}", roleName, e);
                     logger.error("", e);
-                    leader = false;
+                    setLeader(false);
                     Thread.sleep(1000L);
                     return;
                 }
@@ -547,7 +572,7 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
                     }
                 }
             } finally {
-                leader = false;
+                setLeader(false);
                 logger.info("{} This node is no longer leader for role '{}'", this, roleName);
 
                 if (listener != null) {
