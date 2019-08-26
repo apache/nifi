@@ -60,6 +60,16 @@ import static org.junit.Assert.fail;
 
 public class TestQuery {
 
+    // Address book JsonPath constants
+    public static final String ADDRESS_BOOK_JSON_PATH_FIRST_NAME = "${json:jsonPath('$.firstName')}";
+    public static final String ADDRESS_BOOK_JSON_PATH_LAST_NAME = "${json:jsonPath('$.lastName')}";
+    public static final String ADDRESS_BOOK_JSON_PATH_AGE = "${json:jsonPath('$.age')}";
+    public static final String ADDRESS_BOOK_JSON_PATH_VOTER = "${json:jsonPath('$.voter')}";
+    public static final String ADDRESS_BOOK_JSON_PATH_ADDRESS_POSTAL_CODE = "${json:jsonPath('$.address.postalCode')}";
+    public static final String ADDRESS_BOOK_JSON_PATH_PHONE_NUMBERS_TYPE_HOME_NUMBER = "${json:jsonPath(\"$.phoneNumbers[?(@.type=='home')].number\")}";
+    public static final String ADDRESS_BOOK_JSON_PATH_PHONE_NUMBERS_TYPE_OFFICE_NUMBER = "${json:jsonPath(\"$.phoneNumbers[?(@.type=='office')].number\")}";
+    public static final String ADDRESS_BOOK_JSON_PATH_HEIGHT = "${json:jsonPath('$.height')}";
+
     @Test
     public void testCompilation() {
         assertInvalid("${attr:uuid()}");
@@ -298,7 +308,6 @@ public class TestQuery {
         verifyEquals("${#{test}:append(' - '):append(#{test})}", attributes, stateValues, parameters,"unit - unit");
     }
 
-
     @Test
     public void testJsonPath() throws IOException {
         final Map<String, String> attributes = new HashMap<>();
@@ -327,26 +336,47 @@ public class TestQuery {
         }
     }
 
+    private void verifyCommonAddressBookAttributes(Map<String,String> attributes, String skipCheck) {
+        if (! ADDRESS_BOOK_JSON_PATH_FIRST_NAME.equals(skipCheck) )
+            verifyEquals(ADDRESS_BOOK_JSON_PATH_FIRST_NAME, attributes, "John");
+        if (! ADDRESS_BOOK_JSON_PATH_LAST_NAME.equals(skipCheck) )
+            verifyEquals(ADDRESS_BOOK_JSON_PATH_LAST_NAME, attributes, "Smith");
+        if (! ADDRESS_BOOK_JSON_PATH_AGE.equals(skipCheck) )
+            verifyEquals(ADDRESS_BOOK_JSON_PATH_AGE, attributes, "25");
+        if (! ADDRESS_BOOK_JSON_PATH_VOTER.equals(skipCheck) )
+            verifyEquals(ADDRESS_BOOK_JSON_PATH_VOTER, attributes, "true");
+        if (! ADDRESS_BOOK_JSON_PATH_ADDRESS_POSTAL_CODE.equals(skipCheck) )
+            verifyEquals(ADDRESS_BOOK_JSON_PATH_ADDRESS_POSTAL_CODE, attributes, "10021-3100");
+    }
+
+    private void verifyBothPhones(Map<String,String> attributes) {
+        verifyHomePhone(attributes);
+        verifyOfficePhone(attributes);
+    }
+
+    private void verifyHomePhone(Map<String, String> attributes) {
+        verifyEquals(ADDRESS_BOOK_JSON_PATH_PHONE_NUMBERS_TYPE_HOME_NUMBER, attributes, "212 555-1234");
+    }
+
+    private void verifyOfficePhone(Map<String, String> attributes) {
+        verifyEquals(ADDRESS_BOOK_JSON_PATH_PHONE_NUMBERS_TYPE_OFFICE_NUMBER, attributes, "646 555-4567");
+    }
+
     @Test
     public void testJsonPathDeleteFirstNameAttribute() throws IOException {
         final Map<String, String> attributes = new HashMap<>();
         String addressBook = getResourceAsString("/json/address-book.json");
         attributes.put("json", addressBook);
 
-        verifyEquals("${json:jsonPath('$.firstName')}", attributes, "John");
+        verifyEquals(ADDRESS_BOOK_JSON_PATH_FIRST_NAME, attributes, "John");
 
         String addressBookAfterDelete = Query.evaluateExpressions("${json:jsonPathDelete('$.firstName')}", attributes, ParameterLookup.EMPTY);
         attributes.clear();
         attributes.put("json", addressBookAfterDelete);
 
-        verifyEquals("${json:jsonPath('$.lastName')}", attributes, "Smith");
-        verifyEquals("${json:jsonPath('$.age')}", attributes, "25");
-        verifyEquals("${json:jsonPath('$.address.postalCode')}", attributes, "10021-3100");
-        verifyEquals("${json:jsonPath(\"$.phoneNumbers[?(@.type=='home')].number\")}", attributes, "212 555-1234");
-        verifyEquals("${json:jsonPath('$.phoneNumbers')}", attributes,
-                "[{\"type\":\"home\",\"number\":\"212 555-1234\"},{\"type\":\"office\",\"number\":\"646 555-4567\"}]");
-
-        verifyEquals("${json:jsonPath('$.firstName')}", attributes, "");
+        verifyCommonAddressBookAttributes(attributes, ADDRESS_BOOK_JSON_PATH_FIRST_NAME);
+        verifyBothPhones(attributes);
+        verifyEquals(ADDRESS_BOOK_JSON_PATH_FIRST_NAME, attributes, "");
     }
 
     @Test
@@ -359,14 +389,8 @@ public class TestQuery {
         attributes.clear();
         attributes.put("json", addressBookAfterDelete);
 
-        verifyEquals("${json:jsonPath('$.firstName')}", attributes, "John");
-        verifyEquals("${json:jsonPath('$.lastName')}", attributes, "Smith");
-        verifyEquals("${json:jsonPath('$.age')}", attributes, "25");
-        verifyEquals("${json:jsonPath('$.voter')}", attributes, "true");
-        verifyEquals("${json:jsonPath('$.address')}", attributes,
-                "{\"streetAddress\":\"21 2nd Street\",\"city\":\"New York\",\"state\":\"NY\",\"postalCode\":\"10021-3100\"}");
-        verifyEquals("${json:jsonPath('$.phoneNumbers')}", attributes,
-                "[{\"type\":\"home\",\"number\":\"212 555-1234\"},{\"type\":\"office\",\"number\":\"646 555-4567\"}]");
+        verifyCommonAddressBookAttributes(attributes, "");
+        verifyBothPhones(attributes);
     }
 
     @Test
@@ -375,21 +399,16 @@ public class TestQuery {
         String addressBook = getResourceAsString("/json/address-book.json");
         attributes.put("json", addressBook);
 
-        verifyEquals("${json:jsonPath(\"$.phoneNumbers[?(@.type=='home')].number\")}", attributes, "212 555-1234");
+        verifyEquals(ADDRESS_BOOK_JSON_PATH_PHONE_NUMBERS_TYPE_HOME_NUMBER, attributes, "212 555-1234");
 
         String addressBookAfterDelete = Query.evaluateExpressions("${json:jsonPathDelete(\"$.phoneNumbers[?(@.type=='home')]\")}", attributes, ParameterLookup.EMPTY);
 
         attributes.clear();
         attributes.put("json", addressBookAfterDelete);
 
-        verifyEquals("${json:jsonPath('$.firstName')}", attributes, "John");
-        verifyEquals("${json:jsonPath('$.lastName')}", attributes, "Smith");
-        verifyEquals("${json:jsonPath('$.age')}", attributes, "25");
-        verifyEquals("${json:jsonPath('$.voter')}", attributes, "true");
-        verifyEquals("${json:jsonPath('$.address.postalCode')}", attributes, "10021-3100");
-        verifyEquals("${json:jsonPath(\"$.phoneNumbers[?(@.type=='home')].number\")}", attributes, "[]");
-        verifyEquals("${json:jsonPath('$.phoneNumbers')}", attributes,
-                "{\"type\":\"office\",\"number\":\"646 555-4567\"}");
+        verifyCommonAddressBookAttributes(attributes, ADDRESS_BOOK_JSON_PATH_PHONE_NUMBERS_TYPE_HOME_NUMBER);
+        verifyEquals(ADDRESS_BOOK_JSON_PATH_PHONE_NUMBERS_TYPE_HOME_NUMBER, attributes, "[]");
+        verifyOfficePhone(attributes);
     }
 
     @Test
@@ -398,20 +417,15 @@ public class TestQuery {
         String addressBook = getResourceAsString("/json/address-book.json");
         attributes.put("json", addressBook);
 
-        verifyEquals("${json:jsonPath('$.firstName')}", attributes, "John");
+        verifyEquals(ADDRESS_BOOK_JSON_PATH_FIRST_NAME, attributes, "John");
 
         String addressBookAfterSet = Query.evaluateExpressions("${json:jsonPathSet('$.firstName', 'James')}", attributes, ParameterLookup.EMPTY);
         attributes.clear();
         attributes.put("json", addressBookAfterSet);
 
-        verifyEquals("${json:jsonPath('$.firstName')}", attributes, "James");
-        verifyEquals("${json:jsonPath('$.lastName')}", attributes, "Smith");
-        verifyEquals("${json:jsonPath('$.age')}", attributes, "25");
-        verifyEquals("${json:jsonPath('$.voter')}", attributes, "true");
-        verifyEquals("${json:jsonPath('$.address.postalCode')}", attributes, "10021-3100");
-        verifyEquals("${json:jsonPath(\"$.phoneNumbers[?(@.type=='home')].number\")}", attributes, "212 555-1234");
-        verifyEquals("${json:jsonPath('$.phoneNumbers')}", attributes,
-                "[{\"type\":\"home\",\"number\":\"212 555-1234\"},{\"type\":\"office\",\"number\":\"646 555-4567\"}]");
+        verifyEquals(ADDRESS_BOOK_JSON_PATH_FIRST_NAME, attributes, "James");
+        verifyCommonAddressBookAttributes(attributes, ADDRESS_BOOK_JSON_PATH_FIRST_NAME);
+        verifyBothPhones(attributes);
     }
 
     @Test
@@ -420,20 +434,15 @@ public class TestQuery {
         String addressBook = getResourceAsString("/json/address-book.json");
         attributes.put("json", addressBook);
 
-        verifyEquals("${json:jsonPath('$.age')}", attributes, "25");
+        verifyEquals(ADDRESS_BOOK_JSON_PATH_AGE, attributes, "25");
 
         String addressBookAfterSet = Query.evaluateExpressions("${json:jsonPathSet('$.age', 35)}", attributes, ParameterLookup.EMPTY);
         attributes.clear();
         attributes.put("json", addressBookAfterSet);
 
-        verifyEquals("${json:jsonPath('$.firstName')}", attributes, "John");
-        verifyEquals("${json:jsonPath('$.lastName')}", attributes, "Smith");
-        verifyEquals("${json:jsonPath('$.age')}", attributes, "35");
-        verifyEquals("${json:jsonPath('$.voter')}", attributes, "true");
-        verifyEquals("${json:jsonPath('$.address.postalCode')}", attributes, "10021-3100");
-        verifyEquals("${json:jsonPath(\"$.phoneNumbers[?(@.type=='home')].number\")}", attributes, "212 555-1234");
-        verifyEquals("${json:jsonPath('$.phoneNumbers')}", attributes,
-                "[{\"type\":\"home\",\"number\":\"212 555-1234\"},{\"type\":\"office\",\"number\":\"646 555-4567\"}]");
+        verifyCommonAddressBookAttributes(attributes, ADDRESS_BOOK_JSON_PATH_AGE);
+        verifyEquals(ADDRESS_BOOK_JSON_PATH_AGE, attributes, "35");
+        verifyBothPhones(attributes);
     }
 
     @Test
@@ -442,20 +451,15 @@ public class TestQuery {
         String addressBook = getResourceAsString("/json/address-book.json");
         attributes.put("json", addressBook);
 
-        verifyEquals("${json:jsonPath('$.voter')}", attributes, "true");
+        verifyEquals(ADDRESS_BOOK_JSON_PATH_VOTER, attributes, "true");
 
         String addressBookAfterSet = Query.evaluateExpressions("${json:jsonPathSet('$.voter', false)}", attributes, ParameterLookup.EMPTY);
         attributes.clear();
         attributes.put("json", addressBookAfterSet);
 
-        verifyEquals("${json:jsonPath('$.voter')}", attributes, "false");
-        verifyEquals("${json:jsonPath('$.firstName')}", attributes, "John");
-        verifyEquals("${json:jsonPath('$.lastName')}", attributes, "Smith");
-        verifyEquals("${json:jsonPath('$.age')}", attributes, "25");
-        verifyEquals("${json:jsonPath('$.address.postalCode')}", attributes, "10021-3100");
-        verifyEquals("${json:jsonPath(\"$.phoneNumbers[?(@.type=='home')].number\")}", attributes, "212 555-1234");
-        verifyEquals("${json:jsonPath('$.phoneNumbers')}", attributes,
-                "[{\"type\":\"home\",\"number\":\"212 555-1234\"},{\"type\":\"office\",\"number\":\"646 555-4567\"}]");
+        verifyCommonAddressBookAttributes(attributes, ADDRESS_BOOK_JSON_PATH_VOTER);
+        verifyEquals(ADDRESS_BOOK_JSON_PATH_VOTER, attributes, "false");
+        verifyBothPhones(attributes);
     }
 
     @Test
@@ -464,20 +468,15 @@ public class TestQuery {
         String addressBook = getResourceAsString("/json/address-book.json");
         attributes.put("json", addressBook);
 
-        verifyEquals("${json:jsonPath('$.height')}", attributes, "6.1");
+        verifyEquals(ADDRESS_BOOK_JSON_PATH_HEIGHT, attributes, "6.1");
 
         String addressBookAfterSet = Query.evaluateExpressions("${json:jsonPathSet('$.height', 5.9)}", attributes, ParameterLookup.EMPTY);
         attributes.clear();
         attributes.put("json", addressBookAfterSet);
 
-        verifyEquals("${json:jsonPath('$.height')}", attributes, "5.9");
-        verifyEquals("${json:jsonPath('$.firstName')}", attributes, "John");
-        verifyEquals("${json:jsonPath('$.lastName')}", attributes, "Smith");
-        verifyEquals("${json:jsonPath('$.age')}", attributes, "25");
-        verifyEquals("${json:jsonPath('$.address.postalCode')}", attributes, "10021-3100");
-        verifyEquals("${json:jsonPath(\"$.phoneNumbers[?(@.type=='home')].number\")}", attributes, "212 555-1234");
-        verifyEquals("${json:jsonPath('$.phoneNumbers')}", attributes,
-                "[{\"type\":\"home\",\"number\":\"212 555-1234\"},{\"type\":\"office\",\"number\":\"646 555-4567\"}]");
+        verifyCommonAddressBookAttributes(attributes, ADDRESS_BOOK_JSON_PATH_HEIGHT);
+        verifyEquals(ADDRESS_BOOK_JSON_PATH_HEIGHT, attributes, "5.9");
+        verifyBothPhones(attributes);
     }
 
     @Test
@@ -490,14 +489,8 @@ public class TestQuery {
         attributes.clear();
         attributes.put("json", addressBookAfterSet);
 
-        verifyEquals("${json:jsonPath('$.firstName')}", attributes, "John");
-        verifyEquals("${json:jsonPath('$.lastName')}", attributes, "Smith");
-        verifyEquals("${json:jsonPath('$.age')}", attributes, "25");
-        verifyEquals("${json:jsonPath('$.address.postalCode')}", attributes, "10021-3100");
-        verifyEquals("${json:jsonPath(\"$.phoneNumbers[?(@.type=='home')].number\")}", attributes, "212 555-1234");
-        verifyEquals("${json:jsonPath('$.phoneNumbers')}", attributes,
-                "[{\"type\":\"home\",\"number\":\"212 555-1234\"},{\"type\":\"office\",\"number\":\"646 555-4567\"}]");
-
+        verifyCommonAddressBookAttributes(attributes, "");
+        verifyBothPhones(attributes);
     }
 
     @Test

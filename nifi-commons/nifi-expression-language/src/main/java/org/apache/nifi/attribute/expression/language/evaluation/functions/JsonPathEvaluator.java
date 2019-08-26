@@ -23,11 +23,15 @@ import org.apache.nifi.attribute.expression.language.evaluation.StringQueryResul
 
 import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.JsonPath;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * JsonPathEvaluator provides access to document at the specified JsonPath
  */
 public class JsonPathEvaluator extends JsonPathBaseEvaluator {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(JsonPathEvaluator.class);
 
     public JsonPathEvaluator(final Evaluator<String> subject, final Evaluator<String> jsonPathExp) {
         super(subject, jsonPathExp);
@@ -43,7 +47,7 @@ public class JsonPathEvaluator extends JsonPathBaseEvaluator {
         try {
             result = documentContext.read(compiledJsonPath);
         } catch (Exception e) {
-            // assume the path did not match anything in the document
+            LOGGER.error("Exception while reading JsonPath " + compiledJsonPath.getPath(), e);
             return EMPTY_RESULT;
         }
 
