@@ -784,8 +784,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
 
     @Override
     public boolean isActiveClusterCoordinator() {
-        final NodeIdentifier self = getLocalNodeIdentifier();
-        return self != null && self.equals(getElectedActiveCoordinatorNode());
+        return leaderElectionManager != null && leaderElectionManager.isLeader(ClusterRoles.CLUSTER_COORDINATOR);
     }
 
     @Override

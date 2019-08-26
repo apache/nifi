@@ -349,7 +349,7 @@ public class TestAbstractHeartbeatMonitor {
 
         @Override
         public boolean isActiveClusterCoordinator() {
-            return false;
+            return true;
         }
 
         @Override
