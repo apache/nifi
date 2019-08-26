@@ -95,7 +95,7 @@
             <div class="setting-field new-parameter-value-container">
                 <textarea id="parameter-value-field"></textarea>
                 <div class="string-check-container">
-                    <div class="nf-checkbox string-check checkbox-unchecked"></div>
+                    <div id="parameter-set-empty-string-field" class="nf-checkbox string-check checkbox-unchecked"></div>
                     <span class="string-check-label nf-checkbox-label">Set empty string</span>
                 </div>
             </div>

@@ -839,7 +839,7 @@
             });
 
             if (matchingParameter === null) {
-                var isChecked = $('#parameter-dialog').find('.nf-checkbox').hasClass('checkbox-checked');
+                var isChecked = $('#parameter-set-empty-string-field').hasClass('checkbox-checked');
 
                 var parameter = {
                     id: parameterCount,
@@ -995,7 +995,7 @@
             });
 
             if (matchingParameter !== null) {
-                var isChecked = $('#parameter-dialog').find('.nf-checkbox').hasClass('checkbox-checked');
+                var isChecked = $('#parameter-set-empty-string-field').hasClass('checkbox-checked');
 
                 var parameter = {
                     id: matchingParameter.id,
@@ -1608,7 +1608,7 @@
                         $('#parameter-name').prop('disabled', false);
                         $('#parameter-sensitive-radio-button').prop('disabled', false);
                         $('#parameter-not-sensitive-radio-button').prop('disabled', false);
-                        $('#parameter-dialog').find('.nf-checkbox').removeClass('checkbox-checked').addClass('checkbox-unchecked');
+                        $('#parameter-set-empty-string-field').removeClass('checkbox-checked').addClass('checkbox-unchecked');
                     };
 
                     var openHandler = function () {
@@ -1621,9 +1621,9 @@
                         $('#parameter-sensitive-radio-button').prop('disabled', true);
                         $('#parameter-not-sensitive-radio-button').prop('disabled', true);
                         if (parameter.value === '') {
-                            $('#parameter-dialog').find('.nf-checkbox').removeClass('checkbox-unchecked').addClass('checkbox-checked');
+                            $('#parameter-set-empty-string-field').removeClass('checkbox-unchecked').addClass('checkbox-checked');
                         } else {
-                            $('#parameter-dialog').find('.nf-checkbox').removeClass('checkbox-checked').addClass('checkbox-unchecked');
+                            $('#parameter-set-empty-string-field').removeClass('checkbox-checked').addClass('checkbox-unchecked');
                         }
 
                         if (parameter.sensitive) {
@@ -1654,7 +1654,7 @@
                             },
                             disabled: function () {
                                 var input = $('#parameter-value-field');
-                                var isChecked = $('#parameter-dialog').find('.nf-checkbox').hasClass('checkbox-checked');
+                                var isChecked = $('#parameter-set-empty-string-field').hasClass('checkbox-checked');
                                 var serializedValue = serializeValue(input, parameter, isChecked);
 
                                 if (nfCommon.isNull(serializedValue.value)) {
@@ -1792,8 +1792,18 @@
 
         $('#parameter-dialog').modal();
 
-        $('#parameter-value-field').keydown(function () {
+        $('#parameter-value-field').on('keydown', function () {
             var sensitiveInput = $(this);
+            if (sensitiveInput.hasClass('sensitive')) {
+                sensitiveInput.removeClass('sensitive');
+                if (sensitiveInput.val() === nfCommon.config.sensitiveText) {
+                    sensitiveInput.val('');
+                }
+            }
+        });
+
+        $('#parameter-set-empty-string-field').on('click', function () {
+            var sensitiveInput = $('#parameter-value-field');
             if (sensitiveInput.hasClass('sensitive')) {
                 sensitiveInput.removeClass('sensitive');
                 if (sensitiveInput.val() === nfCommon.config.sensitiveText) {
@@ -1823,7 +1833,7 @@
                 $('#parameter-name').prop('disabled', false);
                 $('#parameter-sensitive-radio-button').prop('disabled', false);
                 $('#parameter-not-sensitive-radio-button').prop('disabled', false);
-                $('#parameter-dialog').find('.nf-checkbox').removeClass('checkbox-checked').addClass('checkbox-unchecked');
+                $('#parameter-set-empty-string-field').removeClass('checkbox-checked').addClass('checkbox-unchecked');
             };
 
             var openHandler = function () {
@@ -1844,7 +1854,7 @@
                         text: '#ffffff'
                     },
                     disabled: function () {
-                        if (($('#parameter-name').val() !== '' && $('#parameter-value-field').val() !== '') || ($('#parameter-name').val() !== '' && $('#parameter-dialog').find('.nf-checkbox').hasClass('checkbox-checked'))) {
+                        if (($('#parameter-name').val() !== '' && $('#parameter-value-field').val() !== '') || ($('#parameter-name').val() !== '' && $('#parameter-set-empty-string-field').hasClass('checkbox-checked'))) {
                             return false;
                         }
                         return true;
@@ -1890,7 +1900,7 @@
             $('#parameter-dialog').modal('refreshButtons');
         });
 
-        $('#parameter-dialog').find('.nf-checkbox').on('change', function (evt) {
+        $('#parameter-set-empty-string-field').on('change', function (evt) {
             // update the buttons to possibly trigger the disabled state
             $('#parameter-dialog').modal('refreshButtons');
         });
