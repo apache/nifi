@@ -171,7 +171,7 @@ public class AzureLogAnalysticsReporter extends ScheduledReporter {
     private static final String HMAC_SHA256_ALG = "HmacSHA256";
     private static final Charset UTF8 = Charset.forName("UTF-8");
     /**
-     * 
+     * geneate authoriization code from content length and rfc1123Data
      * @param contentLength
      * @param rfc1123Date
      * @return
@@ -198,8 +198,11 @@ public class AzureLogAnalysticsReporter extends ScheduledReporter {
             throw new RuntimeException(e);
         }
     }
-
-    private void sendToAzureLogAnalystics(String jdata)
+    /**
+     * send json object in string to azure log analystics
+     * @param jdata
+     */
+    public void sendToAzureLogAnalystics(String jdata)
     {
         String dataCollectorEndpoint = String.format(
             "https://%s.ods.opinsights.azure.com/api/logs?api-version=2016-04-01", this.workspaceId);

@@ -96,10 +96,6 @@ public class AzureLogAnalysticsMetricReporterService extends AbstractControllerS
         properties = Collections.unmodifiableList(props);
     }
 
-    /**
-     * ScheduledReporter implementation connected to Azure Log Analystics 
-     */
-    private ScheduledReporter azReporter;
     private String workspaceId;
     private String workspaceKey;
     private String logType;
@@ -123,11 +119,6 @@ public class AzureLogAnalysticsMetricReporterService extends AbstractControllerS
      */
     @OnDisabled
     public void shutdown() throws IOException {
-        try {
-            azReporter.close();
-        } finally {
-            azReporter = null;
-        }
     }
 
     /**
@@ -138,18 +129,19 @@ public class AzureLogAnalysticsMetricReporterService extends AbstractControllerS
      */
     @Override
     public ScheduledReporter createReporter(MetricRegistry metricRegistry) {
-        this.azReporter = new AzureLogAnalysticsReporter(
+        AzureLogAnalysticsReporter azReporter = new AzureLogAnalysticsReporter(
             this.workspaceId,
             this.workspaceKey,
             this.logType,
             metricRegistry,
             MetricFilter.ALL, TimeUnit.SECONDS, TimeUnit.MILLISECONDS);
 
-        return this.azReporter;
+        return azReporter;
     }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return properties;
     }
+
 }
