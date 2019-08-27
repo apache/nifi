@@ -268,7 +268,14 @@ public class ShellUserGroupProvider implements UserGroupProvider {
         refreshUsersAndGroups();
 
         // And finally, our last init step is to fire off the refresh thread:
-        scheduler.scheduleWithFixedDelay(this::refreshUsersAndGroups, fixedDelay, fixedDelay, TimeUnit.SECONDS);
+        scheduler.scheduleWithFixedDelay(() -> {
+            try {
+                refreshUsersAndGroups();
+            }catch (final Throwable t) {
+                logger.error("", t);
+            }
+        }, fixedDelay, fixedDelay, TimeUnit.SECONDS);
+
     }
 
     private static ShellCommandsProvider getCommandsProviderFromName(String osName) {
@@ -569,7 +576,7 @@ public class ShellUserGroupProvider implements UserGroupProvider {
      * @return string UUID
      */
     private static String getNameBasedUUID(String name) {
-        return UUID.nameUUIDFromBytes(name.getBytes(StandardCharsets.UTF_8)).toString();
+        return new Group.Builder().identifierGenerateFromSeed(name).name(name).build().getIdentifier();
     }
 
     /**
