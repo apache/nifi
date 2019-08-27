@@ -356,8 +356,9 @@ public class TestQuery {
                             verifyEquals(currentAttribute, attributes, expected);
                         }
                 );
-        if (! ADDRESS_BOOK_JSON_PATH_EMPTY.equals(updatedAttribute) )
+        if (! ADDRESS_BOOK_JSON_PATH_EMPTY.equals(updatedAttribute) ) {
             verifyEquals(updatedAttribute, attributes, updatedValue);
+        }
     }
 
     private Map<String,String> verifyJsonPathExpressions(String targetAttribute, Object originalValue, String updateExpression, Object updatedValue) throws IOException {
@@ -365,8 +366,9 @@ public class TestQuery {
         String addressBook = getResourceAsString("/json/address-book.json");
         attributes.put("json", addressBook);
 
-        if ( ! ADDRESS_BOOK_JSON_PATH_EMPTY.equals(targetAttribute) )
+        if ( ! ADDRESS_BOOK_JSON_PATH_EMPTY.equals(targetAttribute) ) {
             verifyEquals(targetAttribute, attributes, originalValue);
+        }
 
         String addressBookAfterDelete = Query.evaluateExpressions(updateExpression, attributes, ParameterLookup.EMPTY);
         attributes.clear();
