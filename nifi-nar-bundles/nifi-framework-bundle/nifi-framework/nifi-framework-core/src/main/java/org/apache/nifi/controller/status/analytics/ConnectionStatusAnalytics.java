@@ -39,7 +39,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.primitives.Doubles;
-
+/**
+ * <p>
+ * An implementation of {@link StatusAnalytics} that is provides Connection related analysis/prediction for a given connection instance
+ * </p>
+ */
 public class ConnectionStatusAnalytics implements StatusAnalytics {
 
     private static final Logger LOG = LoggerFactory.getLogger(ConnectionStatusAnalytics.class);
@@ -65,6 +69,9 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
         this.supportOnlineLearning = supportOnlineLearning;
     }
 
+    /**
+     *  Retrieve observations and train available model(s)
+     */
     public void refresh() {
 
         if (supportOnlineLearning && this.queryWindow != null) {
@@ -206,6 +213,11 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
 
     }
 
+    /**
+     * Returns the predicted object count percentage in queue when compared to threshold (maximum value allowed) at the next configured interval
+     *
+     * @return percentage of bytes used at next interval
+     */
     public Long getNextIntervalPercentageUseCount() {
 
         final Connection connection = getConnection();
@@ -222,6 +234,12 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
         }
 
     }
+
+    /**
+     * Returns the predicted bytes percentage in queue when compared to threshold (maximum value allowed) at the next configured interval
+     *
+     * @return percentage of bytes used at next interval
+     */
 
     public Long getNextIntervalPercentageUseBytes() {
 
@@ -307,6 +325,13 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
         return statusReport.getReportEntry(this.connectionIdentifier);
     }
 
+    /**
+     * Convert time into valid prediction value (-1 indicates no prediction available).
+     * Valid time translates to prediction equal to current time or in the future
+     * @param prediction prediction value
+     * @param timeMillis time in milliseconds
+     * @return valid model boolean
+     */
     private Long convertTimePrediction(Double prediction, Long timeMillis) {
         if (Double.isNaN(prediction) || Double.isInfinite(prediction) || prediction < timeMillis) {
             return -1L;
@@ -315,6 +340,11 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
         }
     }
 
+    /**
+     * Convert count into valid prediction value (-1 indicates no prediction available)
+     * @param prediction prediction value
+     * @return prediction prediction value converted into valid value for consumption
+     */
     private Long convertCountPrediction(Double prediction) {
         if (Double.isNaN(prediction) || Double.isInfinite(prediction) || prediction < 0) {
             return -1L;
@@ -322,6 +352,12 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
             return Math.max(0, Math.round(prediction));
         }
     }
+
+    /**
+     * Check if model is valid for prediction based on score
+     * @param model StatusAnalyticsModel object
+     * @return valid model boolean
+     */
 
     private boolean validModel(StatusAnalyticsModel model) {
 
@@ -336,6 +372,12 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
             return true;
         }
     }
+
+    /**
+     * Get specific score from trained model
+     * @param model StatusAnalyticsModel object
+     * @return scoreValue
+     */
 
     private Double getScore(StatusAnalyticsModel model) {
         if (model != null && model.getScores() != null) {
