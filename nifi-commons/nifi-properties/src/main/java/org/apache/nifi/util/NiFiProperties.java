@@ -77,7 +77,6 @@ public abstract class NiFiProperties {
     public static final String REMOTE_CONTENTS_CACHE_EXPIRATION = "nifi.remote.contents.cache.expiration";
     public static final String TEMPLATE_DIRECTORY = "nifi.templates.directory";
     public static final String ADMINISTRATIVE_YIELD_DURATION = "nifi.administrative.yield.duration";
-    public static final String PERSISTENT_STATE_DIRECTORY = "nifi.persistent.state.directory";
     public static final String BORED_YIELD_DURATION = "nifi.bored.yield.duration";
     public static final String PROCESSOR_SCHEDULING_TIMEOUT = "nifi.processor.scheduling.timeout";
     public static final String BACKPRESSURE_COUNT = "nifi.queue.backpressure.count";
@@ -272,7 +271,6 @@ public abstract class NiFiProperties {
     public static final long DEFAULT_BACKPRESSURE_COUNT = 10_000L;
     public static final String DEFAULT_BACKPRESSURE_SIZE = "1 GB";
     public static final String DEFAULT_ADMINISTRATIVE_YIELD_DURATION = "30 sec";
-    public static final String DEFAULT_PERSISTENT_STATE_DIRECTORY = "./conf/state";
     public static final String DEFAULT_COMPONENT_STATUS_SNAPSHOT_FREQUENCY = "5 mins";
     public static final String DEFAULT_BORED_YIELD_DURATION = "10 millis";
     public static final String DEFAULT_ZOOKEEPER_CONNECT_TIMEOUT = "3 secs";
@@ -727,16 +725,6 @@ public abstract class NiFiProperties {
     public String getClusterNodeConnectionTimeout() {
         return getProperty(CLUSTER_NODE_CONNECTION_TIMEOUT,
                 DEFAULT_CLUSTER_NODE_CONNECTION_TIMEOUT);
-    }
-
-    public File getPersistentStateDirectory() {
-        final String dirName = getProperty(PERSISTENT_STATE_DIRECTORY,
-                DEFAULT_PERSISTENT_STATE_DIRECTORY);
-        final File file = new File(dirName);
-        if (!file.exists()) {
-            file.mkdirs();
-        }
-        return file;
     }
 
     // getters for cluster node properties //

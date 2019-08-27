@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.remote.client;
 
+import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.remote.Transaction;
 import org.apache.nifi.remote.TransferDirection;
@@ -164,6 +165,7 @@ public interface SiteToSiteClient extends Closeable {
         private KeystoreType truststoreType;
         private EventReporter eventReporter = EventReporter.NO_OP;
         private File peerPersistenceFile;
+        private StateManager stateManager;
         private boolean useCompression;
         private String portName;
         private String portIdentifier;
@@ -496,6 +498,11 @@ public interface SiteToSiteClient extends Closeable {
             return this;
         }
 
+        public Builder stateManager(final StateManager stateManager) {
+            this.stateManager = stateManager;
+            return this;
+        }
+
         /**
          * Specifies whether or not data should be compressed before being
          * transferred to or from the remote instance.
@@ -748,6 +755,7 @@ public interface SiteToSiteClient extends Closeable {
         private final KeystoreType truststoreType;
         private final EventReporter eventReporter;
         private final File peerPersistenceFile;
+        private final StateManager stateManager;
         private final boolean useCompression;
         private final SiteToSiteTransportProtocol transportProtocol;
         private final String portName;
@@ -773,6 +781,7 @@ public interface SiteToSiteClient extends Closeable {
             this.truststoreType = null;
             this.eventReporter = null;
             this.peerPersistenceFile = null;
+            this.stateManager = null;
             this.useCompression = false;
             this.portName = null;
             this.portIdentifier = null;
@@ -801,6 +810,7 @@ public interface SiteToSiteClient extends Closeable {
             this.truststoreType = builder.truststoreType;
             this.eventReporter = builder.eventReporter;
             this.peerPersistenceFile = builder.peerPersistenceFile;
+            this.stateManager = builder.stateManager;
             this.useCompression = builder.useCompression;
             this.portName = builder.portName;
             this.portIdentifier = builder.portIdentifier;
@@ -919,6 +929,11 @@ public interface SiteToSiteClient extends Closeable {
         @Override
         public File getPeerPersistenceFile() {
             return peerPersistenceFile;
+        }
+
+        @Override
+        public StateManager getStateManager() {
+            return stateManager;
         }
 
         @Override
