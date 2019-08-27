@@ -38,21 +38,20 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * A controller service that provides metric reporters for azure log analystics, can be used by {@link MetricsReportingTask}.
- *
- * @author Seokwon J. Yang
+ * 
  */
-@Tags({"metrics", "reporting", "azure", "loganalystics"})
-@CapabilityDescription("A controller service that provides metric reporters for azure log analystics. " +
-        "Used by MetricsReportingTask.")
-public class AzureLogAnalysticsMetricReporterService extends AbstractControllerService implements MetricReporterService {
+@Tags({"metrics", "reporting", "azure.log.analytics"})
+@CapabilityDescription("A controller service that provides metric reporters for azure log analytics. " +
+        "Used by MetricsReportingTask and AzureLogWSReportingTask.")
+public class AzureWSMetricReporterService extends AbstractControllerService implements MetricReporterService {
 
     /**
      * Azure Log Anaystics Workspace ID
      */
     public static final PropertyDescriptor AZ_WORKSPACE_ID = new PropertyDescriptor.Builder()
-            .name("Azure Log Anaystics Workspace Id")
-            .displayName("Azure Log Anaystics workspace id")
-            .description("Azure Log Anaystics workspace id")
+            .name("azure.log.analytics.workspace.id")
+            .displayName("azure.log.analytics.workspace.id")
+            .description("azure.log.analytics.workspace.id")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
@@ -63,9 +62,9 @@ public class AzureLogAnalysticsMetricReporterService extends AbstractControllerS
      * Azure Log Anaystice Workspace Key
      */
     public static final PropertyDescriptor AZ_WORKSPACE_KEY = new PropertyDescriptor.Builder()
-            .name("Azure Log Anaystics Workspace Key")
-            .displayName("Azure Log Anaystics workspace key")
-            .description("Azure Log Anaystics workspace key")
+            .name("azure.log.analytics.workspace.key")
+            .displayName("azure.log.analytics.workspace.key")
+            .description("azure.log.analytics.workspace.key")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
@@ -76,9 +75,9 @@ public class AzureLogAnalysticsMetricReporterService extends AbstractControllerS
      * LOG_TYPE name for custom logs collected thru Azure log analystics data collection API
      */
     public static final PropertyDescriptor AZ_WORKSPACE_LOG_TYPE = new PropertyDescriptor.Builder()
-            .name("Azure Log Anaystics Workspace Log type")
-            .displayName("Azure Log Anaystics Workspace Log type")
-            .description("Azure Log Anaystics Workspace Log type. Custom logs map to ${LOG_TYPE}_CL")
+            .name("azure.log.analytics.workspace.logtype")
+            .displayName("azure.log.analytics.workspace.logtype")
+            .description("azure.log.analytics.workspace.logtype, mapped to ${LOG_TYPE}_CL")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
@@ -129,7 +128,7 @@ public class AzureLogAnalysticsMetricReporterService extends AbstractControllerS
      */
     @Override
     public ScheduledReporter createReporter(MetricRegistry metricRegistry) {
-        AzureLogAnalysticsReporter azReporter = new AzureLogAnalysticsReporter(
+        AzureLogWSReporter azReporter = new AzureLogWSReporter(
             this.workspaceId,
             this.workspaceKey,
             this.logType,

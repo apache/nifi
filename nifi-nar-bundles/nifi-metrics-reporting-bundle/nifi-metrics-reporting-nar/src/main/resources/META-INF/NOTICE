@@ -28,3 +28,8 @@ The following binary components are provided under the Apache Software License v
       and can be found in
         nifi-commons/nifi-metrics/src/main/java/org/apache/nifi/metrics/jvm/JvmMetrics.java
         nifi-commons/nifi-metrics/src/main/java/org/apache/nifi/metrics/jvm/JmxJvmMetrics.java
+      
+      This derived work in nifi-metrics-reporting-task is adapted from
+        https://github.com/dropwizard/metrics/blob/4.1-development/metrics-json/src/test/java/com/codahale/metrics/json/MetricsModuleTest.java 
+      and can be found in
+        nifi-metrics-reporting-task/src/main/java/org/apache/nifi/metrics/reporting/task/AzureLogWSReporter.java

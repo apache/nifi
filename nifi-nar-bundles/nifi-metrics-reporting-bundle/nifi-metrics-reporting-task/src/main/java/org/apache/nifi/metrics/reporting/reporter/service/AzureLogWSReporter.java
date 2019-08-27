@@ -40,17 +40,17 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-
-//import org.apache.nifi.reporting.util.metrics.api.MetricsBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
+import javax.json.stream.JsonParsingException;
 import javax.net.ssl.HttpsURLConnection;
 import javax.xml.bind.DatatypeConverter;
 
 import java.io.DataOutputStream;
+import java.io.IOException;
 import java.net.InetAddress;
 import java.net.ProtocolException;
 import java.net.URL;
@@ -61,20 +61,19 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 
 /**
- * AzureLogAnalysticsReporter is a ScheduleReporter that sends metrics to Azure Log Analystics Workspace.
+ * AzureLogWSReporter is a ScheduleReporter that sends metrics to Azure Log Analytics Workspace.
  * For reference, look at <a href="https://docs.microsoft.com/en-us/azure/azure-monitor/platform/data-collector-api">Azure documentation</a>. 
- * @author Seokwon J. Yang
  */
-public class AzureLogAnalysticsReporter extends ScheduledReporter {
+public class AzureLogWSReporter extends ScheduledReporter {
+    private static final Logger logger = LoggerFactory.getLogger(AzureLogWSReporter.class);
 
-    private static final Logger logger = LoggerFactory.getLogger(AzureLogAnalysticsReporter.class);
     private final ObjectMapper mapper;
     private final String workspaceId;
     private final String workspaceKey;
     private final String logType;
 
     /**
-     * AzureLogAnalysticsReporter Constructor used by {@link AzureLogAnalysticsMetricReporterService}
+     * AzureLogWSReporter Constructor used by {@link AzureLogAnalysticsMetricReporterService}
      * 
      * @param workspaceId  Azure log analystics workspace id, retreived from the adavancned setting
      * @param workspaceKey Azure log analystics workspace key (either primary or secondary), retreived from the adavancned setting
@@ -84,14 +83,14 @@ public class AzureLogAnalysticsReporter extends ScheduledReporter {
      * @param rateUnit rate unite. By default, TimeUnit.MILLISECONDS
      * @param durationUnit duration unit. By default, TimeUnit.MILLISECONDS
      */
-    public AzureLogAnalysticsReporter(
+    public AzureLogWSReporter(
         String workspaceId,
         String workspaceKey,
         String logType,
         MetricRegistry registry, MetricFilter filter, TimeUnit rateUnit, TimeUnit durationUnit)
     {
         
-        super(registry, "AzureLogAnalysticsReporter", filter, rateUnit, durationUnit);
+        super(registry, "AzureLogWSReporter", filter, rateUnit, durationUnit);
         MetricsModule metricsModule = new MetricsModule(rateUnit, durationUnit, false, filter);
 
         mapper = new ObjectMapper().registerModule(metricsModule);
@@ -116,8 +115,7 @@ public class AzureLogAnalysticsReporter extends ScheduledReporter {
                 result = _mapper.writeValueAsString(map);
             }
 
-        }catch(Exception e) {
-            e.printStackTrace();
+        }catch( IOException | JsonParsingException e) {
             logger.debug(e.getMessage());
         }
         return result;
@@ -182,15 +180,15 @@ public class AzureLogAnalysticsReporter extends ScheduledReporter {
             // Documentation: https://docs.microsoft.com/en-us/rest/api/loganalytics/create-request
             String signature = String.format(
                 "POST\n%d\napplication/json\nx-ms-date:%s\n/api/logs", contentLength, rfc1123Date);
-            Mac mac = Mac.getInstance(AzureLogAnalysticsReporter.HMAC_SHA256_ALG);
+            Mac mac = Mac.getInstance(AzureLogWSReporter.HMAC_SHA256_ALG);
             mac.init(
                 new SecretKeySpec(
                     DatatypeConverter.parseBase64Binary(this.workspaceKey), 
-                    AzureLogAnalysticsReporter.HMAC_SHA256_ALG
+                    AzureLogWSReporter.HMAC_SHA256_ALG
                 )
             );
             String hmac = DatatypeConverter.printBase64Binary(
-                mac.doFinal(signature.getBytes(AzureLogAnalysticsReporter.UTF8))
+                mac.doFinal(signature.getBytes(AzureLogWSReporter.UTF8))
             );
             return String.format("SharedKey %s:%s", this.workspaceId, hmac);
         } catch (NoSuchAlgorithmException | InvalidKeyException e) {
@@ -211,7 +209,7 @@ public class AzureLogAnalysticsReporter extends ScheduledReporter {
         try {
             URL url = new URL(dataCollectorEndpoint);
             conn = (HttpsURLConnection) url.openConnection();
-        } catch (Exception e1) {
+        } catch (IOException e1) {
             e1.printStackTrace();
             logger.debug(e1.getMessage());
             return;
@@ -248,9 +246,8 @@ public class AzureLogAnalysticsReporter extends ScheduledReporter {
 			logger.debug("\nSending 'POST' request to URL : " + dataCollectorEndpoint);
 			logger.debug("Post parameters : " + jdata);
 			logger.debug("Response Code : " + responseCode);
-        } catch (Exception e) {
+        } catch (IOException e) {
             logger.error(e.getMessage());
-            e.printStackTrace();
             return;
         }
     }
