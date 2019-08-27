@@ -23,6 +23,7 @@ import org.apache.nifi.remote.PeerStatus;
 import org.apache.nifi.remote.RemoteDestination;
 import org.apache.nifi.remote.RemoteResourceInitiator;
 import org.apache.nifi.remote.TransferDirection;
+import org.apache.nifi.remote.client.PeerPersistence;
 import org.apache.nifi.remote.client.PeerSelector;
 import org.apache.nifi.remote.client.PeerStatusProvider;
 import org.apache.nifi.remote.client.SiteInfoProvider;
@@ -36,6 +37,7 @@ import org.apache.nifi.remote.exception.UnknownPortException;
 import org.apache.nifi.remote.exception.UnreachableClusterException;
 import org.apache.nifi.remote.io.socket.SocketCommunicationsSession;
 import org.apache.nifi.remote.protocol.CommunicationsSession;
+import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.remote.protocol.socket.SocketClientProtocol;
 import org.apache.nifi.security.util.CertificateUtils;
 import org.slf4j.Logger;
@@ -44,7 +46,6 @@ import org.slf4j.LoggerFactory;
 import javax.net.ssl.SSLContext;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -91,8 +92,9 @@ public class EndpointConnectionPool implements PeerStatusProvider {
     private final InetAddress localAddress;
 
     public EndpointConnectionPool(final RemoteDestination remoteDestination, final int commsTimeoutMillis, final int idleExpirationMillis,
-        final SSLContext sslContext, final EventReporter eventReporter, final File persistenceFile, final SiteInfoProvider siteInfoProvider,
-        final InetAddress localAddress) {
+                                  final SSLContext sslContext, final EventReporter eventReporter,
+                                  final PeerPersistence peerPersistence, final SiteInfoProvider siteInfoProvider,
+                                  final InetAddress localAddress) {
         Objects.requireNonNull(remoteDestination, "Remote Destination/Port Identifier cannot be null");
 
         this.remoteDestination = remoteDestination;
@@ -104,7 +106,7 @@ public class EndpointConnectionPool implements PeerStatusProvider {
 
         this.siteInfoProvider = siteInfoProvider;
 
-        peerSelector = new PeerSelector(this, persistenceFile);
+        peerSelector = new PeerSelector(this, peerPersistence);
         peerSelector.setEventReporter(eventReporter);
 
         // Initialize a scheduled executor and run some maintenance tasks in the background to kill off old, unused
@@ -563,5 +565,8 @@ public class EndpointConnectionPool implements PeerStatusProvider {
         }
     }
 
-
+    @Override
+    public SiteToSiteTransportProtocol getTransportProtocol() {
+        return SiteToSiteTransportProtocol.RAW;
+    }
 }

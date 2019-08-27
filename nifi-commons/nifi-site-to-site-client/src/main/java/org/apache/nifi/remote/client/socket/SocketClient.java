@@ -52,7 +52,7 @@ public class SocketClient extends AbstractSiteToSiteClient {
                 createRemoteDestination(config.getPortIdentifier(), config.getPortName()),
                 commsTimeout,
                 (int) config.getIdleConnectionExpiration(TimeUnit.MILLISECONDS),
-                config.getSslContext(), config.getEventReporter(), config.getPeerPersistenceFile(),
+                config.getSslContext(), config.getEventReporter(), config.getPeerPersistence(),
                 siteInfoProvider, config.getLocalAddress()
         );
 

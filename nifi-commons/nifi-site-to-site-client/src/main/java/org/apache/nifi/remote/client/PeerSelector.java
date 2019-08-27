@@ -21,20 +21,12 @@ import org.apache.nifi.remote.Peer;
 import org.apache.nifi.remote.PeerDescription;
 import org.apache.nifi.remote.PeerStatus;
 import org.apache.nifi.remote.TransferDirection;
+import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.remote.util.PeerStatusCache;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.BufferedOutputStream;
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -48,7 +40,6 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static org.apache.nifi.remote.util.EventReportUtil.error;
@@ -67,7 +58,7 @@ public class PeerSelector {
     private volatile long peerRefreshTime = 0L;
     private final AtomicLong peerIndex = new AtomicLong(0L);
     private volatile PeerStatusCache peerStatusCache;
-    private final File persistenceFile;
+    private final PeerPersistence peerPersistence;
 
     private EventReporter eventReporter;
 
@@ -90,70 +81,41 @@ public class PeerSelector {
         this.systemTime = systemTime;
     }
 
-    public PeerSelector(final PeerStatusProvider peerStatusProvider, final File persistenceFile) {
+    public PeerSelector(final PeerStatusProvider peerStatusProvider, final PeerPersistence peerPersistence) {
         this.peerStatusProvider = peerStatusProvider;
-        this.persistenceFile = persistenceFile;
-        Set<PeerStatus> recoveredStatuses;
-        if (persistenceFile != null && persistenceFile.exists()) {
-            try {
-                recoveredStatuses = recoverPersistedPeerStatuses(persistenceFile);
-                this.peerStatusCache = new PeerStatusCache(recoveredStatuses, persistenceFile.lastModified());
-            } catch (final IOException ioe) {
-                logger.warn("Failed to recover peer statuses from {} due to {}; will continue without loading information from file", persistenceFile, ioe);
+        this.peerPersistence = peerPersistence;
+
+        try {
+            PeerStatusCache restoredPeerStatusCache = null;
+            if (peerPersistence != null) {
+                restoredPeerStatusCache = peerPersistence.restore();
+                if (restoredPeerStatusCache != null) {
+                    final SiteToSiteTransportProtocol currentProtocol = peerStatusProvider.getTransportProtocol();
+                    final SiteToSiteTransportProtocol cachedProtocol = restoredPeerStatusCache.getTransportProtocol();
+                    if (!currentProtocol.equals(cachedProtocol)) {
+                        logger.info("Discard stored peer statuses in {} because transport protocol has changed from {} to {}",
+                            peerPersistence.getClass().getSimpleName(), cachedProtocol, currentProtocol);
+                        restoredPeerStatusCache = null;
+                    }
+                }
             }
-        } else {
-            peerStatusCache = null;
+            this.peerStatusCache = restoredPeerStatusCache;
+
+        } catch (final IOException ioe) {
+            logger.warn("Failed to recover peer statuses from {} due to {}; will continue without loading information from file",
+                peerPersistence.getClass().getSimpleName(), ioe);
         }
     }
 
-    private void persistPeerStatuses(final Set<PeerStatus> statuses) {
-        if (persistenceFile == null) {
-            return;
-        }
-
-        try (final OutputStream fos = new FileOutputStream(persistenceFile);
-             final OutputStream out = new BufferedOutputStream(fos)) {
-
-            for (final PeerStatus status : statuses) {
-                final PeerDescription description = status.getPeerDescription();
-                final String line = description.getHostname() + ":" + description.getPort() + ":" + description.isSecure() + ":" + status.isQueryForPeers() + "\n";
-                out.write(line.getBytes(StandardCharsets.UTF_8));
-            }
-
+    private void persistPeerStatuses() {
+        try {
+            peerPersistence.save(peerStatusCache);
         } catch (final IOException e) {
-            error(logger, eventReporter, "Failed to persist list of Peers due to {}; if restarted and peer's NCM is down," +
-                    " may be unable to transfer data until communications with NCM are restored", e.toString());
+            error(logger, eventReporter, "Failed to persist list of Peers due to {}; if restarted" +
+                " and the nodes specified at the RPG are down," +
+                " may be unable to transfer data until communications with those nodes are restored", e.toString());
             logger.error("", e);
         }
-    }
-
-    private static Set<PeerStatus> recoverPersistedPeerStatuses(final File file) throws IOException {
-        if (!file.exists()) {
-            return null;
-        }
-
-        final Set<PeerStatus> statuses = new HashSet<>();
-        try (final InputStream fis = new FileInputStream(file);
-             final BufferedReader reader = new BufferedReader(new InputStreamReader(fis))) {
-
-            String line;
-            while ((line = reader.readLine()) != null) {
-                final String[] splits = line.split(Pattern.quote(":"));
-                if (splits.length != 3 && splits.length != 4) {
-                    continue;
-                }
-
-                final String hostname = splits[0];
-                final int port = Integer.parseInt(splits[1]);
-                final boolean secure = Boolean.parseBoolean(splits[2]);
-
-                final boolean supportQueryForPeer = splits.length == 4 && Boolean.parseBoolean(splits[3]);
-
-                statuses.add(new PeerStatus(new PeerDescription(hostname, port, secure), 1, supportQueryForPeer));
-            }
-        }
-
-        return statuses;
     }
 
     List<PeerStatus> formulateDestinationList(final Set<PeerStatus> statuses, final TransferDirection direction) {
@@ -340,8 +302,8 @@ public class PeerSelector {
 
         try {
             final Set<PeerStatus> statuses = fetchRemotePeerStatuses();
-            persistPeerStatuses(statuses);
-            peerStatusCache = new PeerStatusCache(statuses);
+            peerStatusCache = new PeerStatusCache(statuses, System.currentTimeMillis(), peerStatusProvider.getTransportProtocol());
+            persistPeerStatuses();
             logger.info("{} Successfully refreshed Peer Status; remote instance consists of {} peers", this, statuses.size());
         } catch (Exception e) {
             warn(logger, eventReporter, "{} Unable to refresh Remote Group's peers due to {}", this, e.getMessage());

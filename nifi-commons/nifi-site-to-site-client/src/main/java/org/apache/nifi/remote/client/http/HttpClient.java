@@ -34,6 +34,7 @@ import org.apache.nifi.remote.exception.ProtocolException;
 import org.apache.nifi.remote.exception.UnknownPortException;
 import org.apache.nifi.remote.io.http.HttpCommunicationsSession;
 import org.apache.nifi.remote.protocol.CommunicationsSession;
+import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.remote.protocol.http.HttpClientTransaction;
 import org.apache.nifi.remote.util.SiteToSiteRestApiClient;
 import org.apache.nifi.web.api.dto.remote.PeerDTO;
@@ -64,7 +65,7 @@ public class HttpClient extends AbstractSiteToSiteClient implements PeerStatusPr
     public HttpClient(final SiteToSiteClientConfig config) {
         super(config);
 
-        peerSelector = new PeerSelector(this, config.getPeerPersistenceFile());
+        peerSelector = new PeerSelector(this, config.getPeerPersistence());
         peerSelector.setEventReporter(config.getEventReporter());
 
         taskExecutor = Executors.newScheduledThreadPool(1, new ThreadFactory() {
@@ -245,5 +246,10 @@ public class HttpClient extends AbstractSiteToSiteClient implements PeerStatusPr
         for (final HttpClientTransaction transaction : activeTransactions) {
             transaction.getCommunicant().getCommunicationsSession().interrupt();
         }
+    }
+
+    @Override
+    public SiteToSiteTransportProtocol getTransportProtocol() {
+        return SiteToSiteTransportProtocol.HTTP;
     }
 }

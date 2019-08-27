@@ -853,6 +853,14 @@ public final class StandardProcessGroup implements ProcessGroup {
             remoteGroup.getInputPorts().forEach(scheduler::onPortRemoved);
             remoteGroup.getOutputPorts().forEach(scheduler::onPortRemoved);
 
+            final StateManagerProvider stateManagerProvider = flowController.getStateManagerProvider();
+            scheduler.submitFrameworkTask(new Runnable() {
+                @Override
+                public void run() {
+                    stateManagerProvider.onComponentRemoved(remoteGroup.getIdentifier());
+                }
+            });
+
             remoteGroups.remove(remoteGroupId);
             LOG.info("{} removed from flow", remoteProcessGroup);
         } finally {
