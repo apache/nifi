@@ -26,7 +26,7 @@ import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.metrics.jvm.JmxJvmMetrics;
 import org.apache.nifi.metrics.jvm.JvmMetrics;
-import org.apache.nifi.metrics.reporting.reporter.service.AzureLogAnalysticsReporter;
+import org.apache.nifi.metrics.reporting.reporter.service.AzureLogWSReporter;
 import org.apache.nifi.metrics.reporting.reporter.service.MetricReporterService;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.AbstractReportingTask;
@@ -53,9 +53,9 @@ import java.util.Map;
 
 @Tags({"reporting", "azure", "metrics"})
 @CapabilityDescription("Publishes metrics from NiFi to Azure Log Analystics." +
-        "Configure this reporting task with AzureLogAnaysticsMetricsReporterService.")
+        "Configure this reporting task with AzureWSMetricReporterService.")
 @DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "1 min")
-public class AzureLogAnalysticReportingTask extends AbstractReportingTask {
+public class AzureLogWSReportingTask extends AbstractReportingTask {
 
     /**
      * Points to the service which provides {@link ScheduledReporter} instances.
@@ -79,7 +79,7 @@ public class AzureLogAnalysticReportingTask extends AbstractReportingTask {
     /**
      * Used for actually reporting metrics.
      */
-    private AzureLogAnalysticsReporter reporter;
+    private AzureLogWSReporter reporter;
 
     private volatile JvmMetrics virtualMachineMetrics;
 
@@ -97,7 +97,7 @@ public class AzureLogAnalysticReportingTask extends AbstractReportingTask {
     public void setup(final ConfigurationContext context) throws IOException {
         virtualMachineMetrics = JmxJvmMetrics.getInstance();
         if (reporter == null) {
-            reporter = (AzureLogAnalysticsReporter) ((MetricReporterService) context.getProperty(REPORTER_SERVICE).asControllerService())
+            reporter = (AzureLogWSReporter) ((MetricReporterService) context.getProperty(REPORTER_SERVICE).asControllerService())
                     .createReporter(new MetricRegistry());
         }
         
@@ -123,7 +123,6 @@ public class AzureLogAnalysticReportingTask extends AbstractReportingTask {
                 reportingHost = InetAddress.getLocalHost().getHostName();
                 jobjBuilder.add("Computer", reportingHost);
             } catch (UnknownHostException e) {
-                e.printStackTrace();
                 getLogger().error("Error in getting reporting host name: {}", e.getStackTrace());
                 return;
 			}
