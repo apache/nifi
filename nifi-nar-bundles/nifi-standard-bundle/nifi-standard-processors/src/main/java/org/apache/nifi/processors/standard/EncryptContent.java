@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.security.Security;
 import java.text.Normalizer;
@@ -63,7 +62,6 @@ import org.apache.nifi.security.util.crypto.OpenPGPKeyBasedEncryptor;
 import org.apache.nifi.security.util.crypto.OpenPGPPasswordBasedEncryptor;
 import org.apache.nifi.security.util.crypto.PasswordBasedEncryptor;
 import org.apache.nifi.util.StopWatch;
-import org.bouncycastle.bcpg.SymmetricKeyAlgorithmTags;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.openpgp.PGPEncryptedData;
 
@@ -146,9 +144,10 @@ public class EncryptContent extends AbstractProcessor {
             .name("pgp-symmetric-cipher")
             .displayName("PGP Symmetric Cipher")
             .description("When using PGP encryption, this is the symmetric cipher to be used. This property is ignored if "
-                    + "Encryption Algorithm is not PGP or PGP-ASCII-ARMOR")
+                    + "Encryption Algorithm is not PGP or PGP-ASCII-ARMOR\nNote that the provided cipher is only used during"
+                    + "the encryption phase, while is inferred from the ciphertext in the decryption phase")
             .required(false)
-            .allowableValues(buildPgpSymmetricCipherAllowableValues())
+            .allowableValues(buildPGPSymmetricCipherAllowableValues())
             .defaultValue(String.valueOf(PGPEncryptedData.AES_128))
             .build();
 
@@ -216,29 +215,21 @@ public class EncryptContent extends AbstractProcessor {
                 "if unsafe combinations of encryption algorithms and passwords are provided on a JVM with limited strength crypto. To fix this, see the Admin Guide.");
     }
 
-    private static AllowableValue[] buildPgpSymmetricCipherAllowableValues() {
-        // Note: the provided PGPUtil.getSymmetricCipherName() is unfeasible since it hides the key length in the cipher name
-        List<AllowableValue> allowableValues = new ArrayList<>();
-
-        Field[] fields = SymmetricKeyAlgorithmTags.class.getDeclaredFields();
-        for (Field classField : fields) {
-            classField.setAccessible(true);
-            String fieldName = classField.getName();
-            Integer fieldValue = null;
-            try {
-                if (classField.isAccessible() && classField.getType() == int.class) {
-                    fieldValue = classField.getInt(null);
-                }
-            } catch (IllegalAccessException e) {
-                // This exception should never happen and in case it happens the throwing value is ignored in the following check
-            }
-
-            // NULL and SAFER cipher are not supported and throw ClassNotFoundException in BouncyCastle when used.
-            if (fieldValue != null && fieldValue != SymmetricKeyAlgorithmTags.NULL && fieldValue != SymmetricKeyAlgorithmTags.SAFER) {
-                allowableValues.add(new AllowableValue(fieldValue.toString(), fieldName));
-            }
-        }
-        return allowableValues.toArray(new AllowableValue[0]);
+    private static AllowableValue[] buildPGPSymmetricCipherAllowableValues() {
+        // Allowed values are inferred from SymmetricKeyAlgorithmTags. Note that NULL and SAFER cipher are not supported and therefore not listed
+        return new AllowableValue[] {
+                new AllowableValue("1", "IDEA"),
+                new AllowableValue("2", "TRIPLE_DES"),
+                new AllowableValue("3", "CAST5"),
+                new AllowableValue("4", "BLOWFISH"),
+                new AllowableValue("6", "DES"),
+                new AllowableValue("7", "AES_128"),
+                new AllowableValue("8", "AES_192"),
+                new AllowableValue("9", "AES_256"),
+                new AllowableValue("10", "TWOFISH"),
+                new AllowableValue("11", "CAMELLIA_128"),
+                new AllowableValue("12", "CAMELLIA_192"),
+                new AllowableValue("13", "CAMELLIA_256") };
     }
 
     @Override
@@ -247,7 +238,6 @@ public class EncryptContent extends AbstractProcessor {
         properties.add(MODE);
         properties.add(KEY_DERIVATION_FUNCTION);
         properties.add(ENCRYPTION_ALGORITHM);
-        properties.add(PGP_SYMMETRIC_ENCRYPTION_CIPHER);
         properties.add(ALLOW_WEAK_CRYPTO);
         properties.add(PASSWORD);
         properties.add(RAW_KEY_HEX);
@@ -255,6 +245,7 @@ public class EncryptContent extends AbstractProcessor {
         properties.add(PUBLIC_KEY_USERID);
         properties.add(PRIVATE_KEYRING);
         properties.add(PRIVATE_KEYRING_PASSPHRASE);
+        properties.add(PGP_SYMMETRIC_ENCRYPTION_CIPHER);
         this.properties = Collections.unmodifiableList(properties);
 
         final Set<Relationship> relationships = new HashSet<>();
@@ -296,7 +287,9 @@ public class EncryptContent extends AbstractProcessor {
             final String publicUserId = context.getProperty(PUBLIC_KEY_USERID).getValue();
             final String privateKeyring = context.getProperty(PRIVATE_KEYRING).getValue();
             final String privateKeyringPassphrase = context.getProperty(PRIVATE_KEYRING_PASSPHRASE).evaluateAttributeExpressions().getValue();
-            validationResults.addAll(validatePGP(encryptionMethod, password, encrypt, publicKeyring, publicUserId, privateKeyring, privateKeyringPassphrase));
+            final Integer cipher = context.getProperty(PGP_SYMMETRIC_ENCRYPTION_CIPHER).asInteger();
+            validationResults.addAll(validatePGP(encryptionMethod, password, encrypt, publicKeyring, publicUserId,
+                    privateKeyring, privateKeyringPassphrase, cipher));
         } else { // Not PGP
             if (encryptionMethod.isKeyedCipher()) { // Raw key
                 validationResults.addAll(validateKeyed(encryptionMethod, kdf, keyHex));
@@ -308,9 +301,17 @@ public class EncryptContent extends AbstractProcessor {
         return validationResults;
     }
 
-    private List<ValidationResult> validatePGP(EncryptionMethod encryptionMethod, String password, boolean encrypt, String publicKeyring, String publicUserId, String privateKeyring,
-                                               String privateKeyringPassphrase) {
+    private List<ValidationResult> validatePGP(EncryptionMethod encryptionMethod, String password, boolean encrypt,
+                                               String publicKeyring, String publicUserId, String privateKeyring,
+                                               String privateKeyringPassphrase, Integer cipher) {
         List<ValidationResult> validationResults = new ArrayList<>();
+
+        if(encrypt && password != null && cipher == null) {
+            validationResults.add(new ValidationResult.Builder().subject(PGP_SYMMETRIC_ENCRYPTION_CIPHER.getDisplayName())
+                    .explanation("When performing an encryption with " + encryptionMethod.getAlgorithm() + " and a symmetric " +
+                            PASSWORD.getDisplayName() + ", a" + PGP_SYMMETRIC_ENCRYPTION_CIPHER.getDisplayName() + " is required")
+                    .build());
+        }
 
         if (password == null) {
             if (encrypt) {
