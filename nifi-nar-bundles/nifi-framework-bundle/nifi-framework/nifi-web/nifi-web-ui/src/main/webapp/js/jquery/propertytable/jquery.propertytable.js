@@ -723,7 +723,13 @@
                         } else {
                             parameterCombo.combo('setSelectedOption', initialOption);
                         }
+                    } else {
+                        // select the first option
+                        allowableValuesCombo.combo('setSelectedOption', allowableValueOptions[0]);
                     }
+                } else {
+                    // select the first option
+                    allowableValuesCombo.combo('setSelectedOption', allowableValueOptions[0]);
                 }
             };
 
