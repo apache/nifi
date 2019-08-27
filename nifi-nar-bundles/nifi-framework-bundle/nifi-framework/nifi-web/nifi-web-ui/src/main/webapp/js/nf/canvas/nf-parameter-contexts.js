@@ -199,18 +199,7 @@
         var parameterData = parameterGrid.getData();
         parameterData.setItems([]);
 
-        var affectedProcessorContainer = $('#parameter-context-affected-processors');
-        nfCommon.cleanUpTooltips(affectedProcessorContainer, 'div.referencing-component-state');
-        nfCommon.cleanUpTooltips(affectedProcessorContainer, 'div.referencing-component-bulletins');
-        affectedProcessorContainer.empty();
-
-        var affectedControllerServicesContainer = $('#parameter-context-affected-controller-services');
-        nfCommon.cleanUpTooltips(affectedControllerServicesContainer, 'div.referencing-component-state');
-        nfCommon.cleanUpTooltips(affectedControllerServicesContainer, 'div.referencing-component-bulletins');
-        affectedControllerServicesContainer.empty();
-
-        $('#parameter-context-affected-unauthorized-components').empty();
-        $('#parameter-referencing-components-container').empty();
+        resetUsage();
 
         // reset the last selected parameter
         lastSelectedId = null;
@@ -475,20 +464,9 @@
         var unauthorizedAffectedComponents = [];
 
         // clear the affected components from the previous selection
-        var affectedProcessorContainer = $('.parameter-context-affected-processors');
-        nfCommon.cleanUpTooltips(affectedProcessorContainer, 'div.referencing-component-state');
-        nfCommon.cleanUpTooltips(affectedProcessorContainer, 'div.referencing-component-bulletins');
-        affectedProcessorContainer.empty();
+        resetUsage();
 
-        var affectedControllerServiceContainer = $('.parameter-context-affected-controller-services');
-        nfCommon.cleanUpTooltips(affectedControllerServiceContainer, 'div.referencing-component-state');
-        nfCommon.cleanUpTooltips(affectedControllerServiceContainer, 'div.referencing-component-bulletins');
-        affectedControllerServiceContainer.empty();
-
-        var unauthorizedComponentsContainer = $('.parameter-context-affected-unauthorized-components');
-        unauthorizedComponentsContainer.empty();
-
-        var parameterReferencingComponentsContainer = $('#parameter-referencing-components-container').empty();
+        var parameterReferencingComponentsContainer = $('#parameter-referencing-components-container');
 
         // affected component will be undefined when a new parameter is added
         if (nfCommon.isUndefined(affectedComponents)) {
@@ -772,9 +750,6 @@
 
                     // expand the group twist
                     groupTwist.click();
-
-                    // update the border if necessary
-                    updateReferencingComponentsBorder($('#parameter-referencing-components-container'));
                 };
 
                 // get process group and show name or UUID based on user permissions
@@ -838,14 +813,15 @@
                 }
             });
 
-            if (matchingParameter === null) {
-                var isChecked = $('#parameter-set-empty-string-field').hasClass('checkbox-checked');
+            var isSensitive = $('#parameter-dialog').find('input[name="sensitive"]:checked').val() === "sensitive" ? true : false;
+            var isChecked = $('#parameter-set-empty-string-field').hasClass('checkbox-checked');
 
+            if (matchingParameter === null) {
                 var parameter = {
                     id: parameterCount,
                     hidden: false,
                     type: 'Parameter',
-                    sensitive: $('#parameter-dialog').find('input[name="sensitive"]:checked').val() === "sensitive" ? true : false,
+                    sensitive: isSensitive,
                     name: parameterName,
                     description: $('#parameter-description-field').val(),
                     previousValue: null,
@@ -879,16 +855,21 @@
                 parameterGrid.setActiveCell(row, parameterGrid.getColumnIndex('value'));
                 parameterCount++;
             } else {
-                // if this row is currently hidden, clear the value and show it
-                if (matchingParameter.hidden === true) {
+                // if this row is currently hidden, make sure the sensitivity is equivalent before we allow recreate
+                if (matchingParameter.hidden === true && matchingParameter.sensitive !== isSensitive) {
+                    nfDialog.showOkDialog({
+                        headerText: 'Parameter Exists',
+                        dialogContent: 'A parameter with this name has recently been marked for deletion. Please apply this change to the parameter context before recreating this parameter.'
+                    });
+                } else if (matchingParameter.hidden === true && matchingParameter.sensitive === isSensitive) {
                     var parameter = $.extend(matchingParameter, {
                         hidden: false,
-                        sensitive: $('#parameter-dialog').find('input[name="sensitive"]:checked').val() === "sensitive" ? true : false,
+                        sensitive: isSensitive,
                         previousValue: null,
                         description: $('#parameter-description-field').val(),
                         previousDescription: null,
                         isEditable: true,
-                        isEmptyStringSet: false,
+                        isEmptyStringSet: isChecked,
                         isModified: true,
                         hasValueChanged: false,
                         isNew: true
@@ -911,7 +892,7 @@
                     parameterData.reSort();
 
                     // select the new parameter row
-                    var row = parameterData.getRowById(parameterCount);
+                    var row = parameterData.getRowById(matchingParameter.id);
                     parameterGrid.setActiveCell(row, parameterGrid.getColumnIndex('value'));
                     parameterCount++;
                 } else {
@@ -1072,12 +1053,6 @@
         parameterContextEntity.component.name = $('#parameter-context-name').val();
         parameterContextEntity.component.description = $('#parameter-context-description-field').val();
 
-        // update the parameters context
-        var parameterNames = parameterContextEntity.component.parameters.map(function (parameterEntity) {
-            return parameterEntity.parameter.name;
-        });
-        $('#parameter-affected-components-context').removeClass('unset').text(parameterNames.join(', '));
-
         return $.Deferred(function (deferred) {
             // updates the button model to show the close button
             var updateToCloseButtonModel = function () {
@@ -1193,6 +1168,14 @@
                     // update the affected components
                     populateAffectedComponents(updateRequest.affectedComponents);
 
+                    // update the parameters context
+                    if (nfCommon.isDefinedAndNotNull(updateRequest.parameterContext)) {
+                        var parameterNames = updateRequest.parameterContext.parameters.map(function (parameterEntity) {
+                            return parameterEntity.parameter.name;
+                        });
+                        $('#parameter-affected-components-context').removeClass('unset').text(parameterNames.join(', '));
+                    }
+
                     // update the progress/steps
                     populateParameterContextUpdateStep(updateRequest.updateSteps, cancelled, errored);
 
@@ -1241,6 +1224,9 @@
 
                             // update the button model
                             updateToCloseButtonModel();
+
+                            // check if border is necessary
+                            updateReferencingComponentsBorder($('#parameter-referencing-components-container'));
                         } else {
                             // wait to get an updated status
                             setTimeout(function () {
@@ -1408,17 +1394,19 @@
 
     var resetUsage = function () {
         // empty the containers
-        var processorContainer = $('#parameter-context-affected-processors');
+        var processorContainer = $('.parameter-context-affected-processors');
         nfCommon.cleanUpTooltips(processorContainer, 'div.referencing-component-state');
         nfCommon.cleanUpTooltips(processorContainer, 'div.referencing-component-bulletins');
         processorContainer.empty();
 
-        var controllerServiceContainer = $('#parameter-context-affected-controller-services');
+        var controllerServiceContainer = $('.parameter-context-affected-controller-services');
         nfCommon.cleanUpTooltips(controllerServiceContainer, 'div.referencing-component-state');
         nfCommon.cleanUpTooltips(controllerServiceContainer, 'div.referencing-component-bulletins');
         controllerServiceContainer.empty();
 
-        var unauthorizedComponentsContainer = $('#parameter-context-affected-unauthorized-components').empty();
+        var unauthorizedComponentsContainer = $('.parameter-context-affected-unauthorized-components').empty();
+
+        $('#parameter-referencing-components-container').empty();
 
         // reset the last selected parameter
         lastSelectedId = null;
@@ -1430,6 +1418,9 @@
 
         // update the selection context
         $('#parameter-affected-components-context').addClass('unset').text('None');
+
+        // check if border is necessary
+        updateReferencingComponentsBorder($('#parameter-referencing-components-container'));
     };
 
     /**
@@ -1700,9 +1691,10 @@
 
                     // only populate affected components if this parameter is different than the last selected
                     if (lastSelectedId === null || lastSelectedId !== parameter.id) {
+                        populateAffectedComponents(parameter.referencingComponents);
+
                         // update the details for this parameter
                         $('#parameter-affected-components-context').removeClass('unset').text(parameter.name);
-                        populateAffectedComponents(parameter.referencingComponents);
 
                         updateReferencingComponentsBorder($('#parameter-referencing-components-container'));
 
@@ -2308,6 +2300,9 @@
 
                 // select the parameters tab
                 $('#parameter-context-tabs').find('li:last').click();
+
+                // check if border is necessary
+                updateReferencingComponentsBorder($('#parameter-referencing-components-container'));
             }).fail(nfErrorHandler.handleAjaxError);
         },
 
