@@ -25,6 +25,11 @@ import org.apache.nifi.util.Tuple;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * <p>
+ * An implementation of {@link StatusAnalyticsEngine} that supports creation of ConnectionStatusAnalytics objects
+ * </p>
+ */
 public class ConnectionStatusAnalyticsEngine implements StatusAnalyticsEngine {
     private static final Logger LOG = LoggerFactory.getLogger(ConnectionStatusAnalyticsEngine.class);
     protected final ComponentStatusRepository statusRepository;
@@ -46,6 +51,11 @@ public class ConnectionStatusAnalyticsEngine implements StatusAnalyticsEngine {
         this.scoreThreshold = scoreThreshold;
     }
 
+    /**
+     * Return a connection status analytics instance
+     * @param identifier connection identifier
+     * @return status analytics object
+     */
     @Override
     public StatusAnalytics getStatusAnalytics(String identifier) {
         ConnectionStatusAnalytics connectionStatusAnalytics = new ConnectionStatusAnalytics(statusRepository, flowManager, flowFileEventRepository, modelMap, identifier, false);

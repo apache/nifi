@@ -23,9 +23,17 @@ import java.util.stream.Stream;
 
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.math3.stat.regression.RegressionResults;
+import org.apache.nifi.controller.status.analytics.StatusAnalyticsModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * <p>
+ * An implementation of the {@link StatusAnalyticsModel} that uses the SimpleRegression class from math for computation of regression. It only supports Bivariates
+ * for x,y (multiple predictors are not supported by SimpleRegression). Online learning is supported for collecting multiple samples at different points in time
+ *
+ * </p>
+ */
 public class SimpleRegression extends BivariateStatusAnalyticsModel {
 
     private static final Logger LOG = LoggerFactory.getLogger(SimpleRegression.class);

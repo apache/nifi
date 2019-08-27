@@ -18,6 +18,9 @@ package org.apache.nifi.controller.status.analytics;
 
 import java.util.Date;
 
+/**
+ * QueryWindow is used to track time intervals for querying for observations
+ */
 public class QueryWindow {
 
     private long startTimeMillis;

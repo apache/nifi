@@ -27,6 +27,12 @@ import org.apache.nifi.controller.status.analytics.StatusAnalyticsModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * <p>
+ * An implementation of the {@link StatusAnalyticsModel} that uses Ordinary Least Squares computation for regression.
+ * This model support multiple regression
+ * </p>
+ */
 public class OrdinaryLeastSquares implements StatusAnalyticsModel {
 
     private static final Logger LOG = LoggerFactory.getLogger(OrdinaryLeastSquares.class);

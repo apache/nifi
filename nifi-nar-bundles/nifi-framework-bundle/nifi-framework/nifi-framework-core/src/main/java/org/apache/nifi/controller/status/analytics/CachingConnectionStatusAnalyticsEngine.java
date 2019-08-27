@@ -28,7 +28,12 @@ import org.slf4j.LoggerFactory;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-
+/**
+ * <p>
+ * An implementation of {@link StatusAnalyticsEngine} that supports caching of ConnectionStatusAnalytics objects.
+ * Caching engine in use is an in-memory cache where the caching policy is to expire 30 minutes after initial write to cache.
+ * </p>
+ */
 public class CachingConnectionStatusAnalyticsEngine extends ConnectionStatusAnalyticsEngine{
     private volatile Cache<String, StatusAnalytics> cache;
     private static final Logger LOG = LoggerFactory.getLogger(CachingConnectionStatusAnalyticsEngine.class);
@@ -43,6 +48,11 @@ public class CachingConnectionStatusAnalyticsEngine extends ConnectionStatusAnal
                 .build();
     }
 
+    /**
+     * Return a connection status analytics instance
+     * @param identifier connection identifier
+     * @return StatusAnalytics analytics object for given connection with id
+     */
     @Override
     public StatusAnalytics getStatusAnalytics(String identifier) {
 

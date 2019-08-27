@@ -23,5 +23,11 @@ import org.apache.nifi.util.Tuple;
 
 public interface StatusMetricExtractFunction {
 
+    /**
+     * Searches through status history to extract observations for a given metric
+     * @param metric metric value that should be extracted
+     * @param statusHistory StatusHistory object used to search metrics
+     * @return a Tuple with extracted observations (features and targets/labels)
+     */
     Tuple<Stream<Double[]>, Stream<Double>> extractMetric(String metric, StatusHistory statusHistory);
 }

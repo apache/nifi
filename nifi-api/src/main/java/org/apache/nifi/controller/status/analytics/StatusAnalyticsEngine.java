@@ -18,6 +18,11 @@ package org.apache.nifi.controller.status.analytics;
 
 public interface StatusAnalyticsEngine {
 
+    /**
+     * Retrieve status analytics object for given component
+     * @param componentId identifier for component
+     * @return componenet specific status analytics object
+     */
     StatusAnalytics getStatusAnalytics(String componentId);
 
 }

@@ -30,6 +30,11 @@ import org.apache.nifi.util.Tuple;
 import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
 import org.apache.nifi.web.api.dto.status.StatusSnapshotDTO;
 
+/**
+ * <p>
+ * This factory supports the creation of models and their associated extraction functions
+ * </p>
+ */
 public class StatusAnalyticsModelMapFactory {
 
     private final static String QUEUED_COUNT_METRIC = "queuedCount";
@@ -39,7 +44,12 @@ public class StatusAnalyticsModelMapFactory {
     private final static String OUTPUT_COUNT_METRIC = "outputCount";
     private final static String OUTPUT_BYTES_METRIC = "outputBytes";
 
-
+    /**
+     * Return mapping of models and extraction functions for connection status analytics prediction instances
+     * @param extensionManager Extension Manager object for instantiating classes
+     * @param niFiProperties NiFi Properties object
+     * @return
+     */
     public static Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> getConnectionStatusModelMap(ExtensionManager extensionManager, NiFiProperties niFiProperties){
             Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> modelMap = new HashMap<>();
             StatusMetricExtractFunction extract = getConnectionStatusExtractFunction();
@@ -50,6 +60,12 @@ public class StatusAnalyticsModelMapFactory {
             return modelMap;
     }
 
+    /**
+     * Create a connection model instance  using configurations set in NiFi properties
+     * @param extensionManager Extension Manager object for instantiating classes
+     * @param nifiProperties NiFi Properties object
+     * @return statusAnalyticsModel
+     */
     private static StatusAnalyticsModel createModelInstance(ExtensionManager extensionManager, NiFiProperties nifiProperties) {
         final String implementationClassName = nifiProperties.getProperty(NiFiProperties.ANALYTICS_CONNECTION_MODEL_IMPLEMENTATION, NiFiProperties.DEFAULT_ANALYTICS_CONNECTION_MODEL_IMPLEMENTATION);
         if (implementationClassName == null) {
@@ -63,6 +79,10 @@ public class StatusAnalyticsModelMapFactory {
         }
     }
 
+    /**
+     * Get a connection status extract function instance
+     * @return StatusMetricExtractFunction
+     */
     private static StatusMetricExtractFunction getConnectionStatusExtractFunction() {
 
         return (metric, statusHistory) -> {

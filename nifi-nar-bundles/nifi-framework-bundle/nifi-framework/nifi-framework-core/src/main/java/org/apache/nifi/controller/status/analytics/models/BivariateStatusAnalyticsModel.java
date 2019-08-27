@@ -20,7 +20,11 @@ import java.util.Map;
 import java.util.stream.Stream;
 
 import org.apache.nifi.controller.status.analytics.StatusAnalyticsModel;
-
+/**
+ * <p>
+ * An abstract class for implementations of {@link StatusAnalyticsModel} which makes bivariate models compatible with analytics interface
+ * </p>
+ */
 public abstract class BivariateStatusAnalyticsModel implements StatusAnalyticsModel {
 
     @Override

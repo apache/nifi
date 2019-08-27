@@ -19,12 +19,27 @@ package org.apache.nifi.controller.status.analytics;
 import java.util.Map;
 
 /**
- * The StatusAnalytics interface offers methods for accessing predicted and other values for a single component (Connection instance, e.g.)
+ * The StatusAnalytics interface offers methods for accessing predicted and other values for a single component (Connection instance, e.g.).
  */
 public interface StatusAnalytics {
 
+    /**
+     * Get the Query Window used by the analytics instance
+     * @return queryWindow
+     */
     QueryWindow getQueryWindow();
+
+    /**
+     * Get available predictions where the key (String) in the map is the name of the prediction and value (Long)
+     * is the value for the prediction
+     * @return map
+     */
     Map<String,Long> getPredictions();
+
+    /**
+     * Return if analytics object supports online learning
+     * @return boolean
+     */
     boolean supportsOnlineLearning();
 
 
