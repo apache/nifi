@@ -1281,6 +1281,12 @@
             }
         },
 
+        /**
+         * Formats a number (in milliseconds) to a human-readable textual description.
+         *
+         * @param duration number of milliseconds representing the duration
+         * @return {string|*} a human-readable string
+         */
         formatPredictedDuration: function (duration) {
             if (duration === 0) {
                 return 'now';

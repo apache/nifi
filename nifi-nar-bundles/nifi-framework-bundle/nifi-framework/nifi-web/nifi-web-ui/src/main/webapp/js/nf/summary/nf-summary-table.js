@@ -2351,8 +2351,20 @@
                     return aPercentUseDataSize - bPercentUseDataSize;
                 }
             } else if (sortDetails.columnId === 'backpressurePrediction') {
+                // if the connection is at backpressure currently, "now" displays and not the estimate. Should account for that when sorting.
+                var aMaxCurrentUsage = Math.max(_.get(a, 'percentUseBytes', 0), _.get(a, 'percentUseCount', 0));
+                var bMaxCurrentUsage = Math.max(_.get(b, 'percentUseBytes', 0), _.get(b, 'percentUseCount', 0));
+
                 var aMinTime = Math.min(_.get(a, 'predictedMillisUntilBytesBackpressure', Number.MAX_VALUE), _.get(a, 'predictedMillisUntilCountBackpressure', Number.MAX_VALUE));
                 var bMinTime = Math.min(_.get(b, 'predictedMillisUntilBytesBackpressure', Number.MAX_VALUE), _.get(b, 'predictedMillisUntilCountBackpressure', Number.MAX_VALUE));
+
+                if (aMaxCurrentUsage >= 100) {
+                    aMinTime = 0;
+                }
+                if (bMaxCurrentUsage >= 100) {
+                    bMinTime = 0;
+                }
+
                 return aMinTime - bMinTime;
             } else if (sortDetails.columnId === 'sent' || sortDetails.columnId === 'received' || sortDetails.columnId === 'input' || sortDetails.columnId === 'output' || sortDetails.columnId === 'transferred') {
                 var aSplit = a[sortDetails.columnId].split(/\(([^)]+)\)/);
