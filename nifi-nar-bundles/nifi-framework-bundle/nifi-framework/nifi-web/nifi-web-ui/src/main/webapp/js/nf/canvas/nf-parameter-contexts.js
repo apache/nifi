@@ -1427,7 +1427,7 @@
         var valueFormatter = function (row, cell, value, columnDef, dataContext) {
             if (dataContext.sensitive === true) {
                 return '<span class="table-cell sensitive">Sensitive value set</span>';
-            } else if (nfCommon.isBlank(value)) {
+            } else if (value === '') {
                 return '<span class="table-cell blank">Empty string set</span>';
             } else if (nfCommon.isNull(value)) {
                 return '<span class="unset">No value set</span>';
