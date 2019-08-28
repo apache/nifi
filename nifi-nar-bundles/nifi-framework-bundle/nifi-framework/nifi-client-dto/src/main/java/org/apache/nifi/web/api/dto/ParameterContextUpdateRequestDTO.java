@@ -25,7 +25,7 @@ import java.util.Set;
 @XmlType(name = "parameterContextUpdateRequest")
 public class ParameterContextUpdateRequestDTO extends AsynchronousRequestDTO<ParameterContextUpdateStepDTO> {
     private ParameterContextDTO parameterContext;
-    private Set<AffectedComponentEntity> affectedComponents;
+    private Set<AffectedComponentEntity> referencingComponents;
 
     @ApiModelProperty(value = "The Parameter Context that is being operated on. This may not be populated until the request has successfully completed.", readOnly = true)
     public ParameterContextDTO getParameterContext() {
@@ -36,12 +36,12 @@ public class ParameterContextUpdateRequestDTO extends AsynchronousRequestDTO<Par
         this.parameterContext = parameterContext;
     }
 
-    @ApiModelProperty(value = "The components that are affected by the update.", readOnly = true)
-    public Set<AffectedComponentEntity> getAffectedComponents() {
-        return affectedComponents;
+    @ApiModelProperty(value = "The components that are referenced by the update.", readOnly = true)
+    public Set<AffectedComponentEntity> getReferencingComponents() {
+        return referencingComponents;
     }
 
-    public void setAffectedComponents(final Set<AffectedComponentEntity> affectedComponents) {
-        this.affectedComponents = affectedComponents;
+    public void setReferencingComponents(final Set<AffectedComponentEntity> referencingComponents) {
+        this.referencingComponents = referencingComponents;
     }
 }

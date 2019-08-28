@@ -66,7 +66,7 @@ public class ParameterContextUpdateEndpointMerger extends AbstractSingleEntityEn
             clientUpdateRequestDto.setPercentCompleted(Math.min(clientUpdateRequestDto.getPercentCompleted(), updateRequestDto.getPercentCompleted()));
 
             // Merge the Affected Components.
-            for (final AffectedComponentEntity entity : requestEntity.getRequest().getAffectedComponents()) {
+            for (final AffectedComponentEntity entity : requestEntity.getRequest().getReferencingComponents()) {
                 final AffectedComponentEntity mergedAffectedComponentEntity = affectedComponentEntities.get(entity.getId());
                 if (mergedAffectedComponentEntity == null) {
                     affectedComponentEntities.put(entity.getId(), entity);
@@ -81,7 +81,7 @@ public class ParameterContextUpdateEndpointMerger extends AbstractSingleEntityEn
         entityMap.forEach( (nodeId, entity) -> contextDtoMap.put(nodeId, entity.getRequest().getParameterContext()));
 
         ParameterContextMerger.merge(clientUpdateRequestDto.getParameterContext(), contextDtoMap);
-        clientUpdateRequestDto.setAffectedComponents(new HashSet<>(affectedComponentEntities.values()));
+        clientUpdateRequestDto.setReferencingComponents(new HashSet<>(affectedComponentEntities.values()));
     }
 
 }

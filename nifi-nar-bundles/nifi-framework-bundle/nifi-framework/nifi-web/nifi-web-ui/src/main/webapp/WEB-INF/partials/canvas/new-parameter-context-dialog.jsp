@@ -65,7 +65,7 @@
                             Parameter
                         </div>
                         <div class="setting-field">
-                            <div id="parameter-affected-components-context"></div>
+                            <div id="parameter-referencing-components-context"></div>
                         </div>
                     </div>
                     <div class="setting">
@@ -124,7 +124,7 @@
             Referencing Processors
         </div>
         <div class="setting-field">
-            <ul class="parameter-context-affected-processors"></ul>
+            <ul class="parameter-context-referencing-processors"></ul>
         </div>
     </div>
     <div class="setting">
@@ -132,7 +132,7 @@
             Referencing Controller Services
         </div>
         <div class="setting-field">
-            <ul class="parameter-context-affected-controller-services"></ul>
+            <ul class="parameter-context-referencing-controller-services"></ul>
         </div>
     </div>
     <div class="setting">
@@ -140,7 +140,7 @@
             Unauthorized referencing components
         </div>
         <div class="setting-field">
-            <ul class="parameter-context-affected-unauthorized-components"></ul>
+            <ul class="parameter-context-referencing-unauthorized-components"></ul>
         </div>
     </div>
 </div>

@@ -81,10 +81,10 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
 
             final boolean deletion = parameterDto.getDescription() == null && parameterDto.getSensitive() == null && parameterDto.getValue() == null;
             if (deletion) {
-                parameterMap.put(parameterDto.getName(), null);
+                parameterMap.put(parameterDto.getName().trim(), null);
             } else {
                 final Parameter parameter = createParameter(parameterDto);
-                parameterMap.put(parameterDto.getName(), parameter);
+                parameterMap.put(parameterDto.getName().trim(), parameter);
             }
         }
 

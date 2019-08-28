@@ -2707,7 +2707,26 @@ public final class DtoFactory {
         final AffectedComponentDTO affectedComponent = createAffectedComponentDto(componentNode);
         final PermissionsDTO permissions = createPermissionsDto(componentNode);
         final RevisionDTO revision = createRevisionDTO(revisionManager.getRevision(componentNode.getIdentifier()));
-        return entityFactory.createAffectedComponentEntity(affectedComponent, revision, permissions);
+
+        final ProcessGroupNameDTO groupNameDto = new ProcessGroupNameDTO();
+        groupNameDto.setId(componentNode.getProcessGroupIdentifier());
+        groupNameDto.setName(componentNode.getProcessGroupIdentifier());
+
+        ProcessGroup processGroup = null;
+        if (componentNode instanceof ProcessorNode) {
+            processGroup = ((ProcessorNode) componentNode).getProcessGroup();
+        } else if (componentNode instanceof ControllerServiceNode) {
+            processGroup = ((ControllerServiceNode) componentNode).getProcessGroup();
+        }
+
+        if (processGroup != null) {
+            final boolean authorized = processGroup.isAuthorized(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+            if (authorized) {
+                groupNameDto.setName(processGroup.getName());
+            }
+        }
+
+        return entityFactory.createAffectedComponentEntity(affectedComponent, revision, permissions, groupNameDto);
     }
 
     public VariableRegistryDTO createVariableRegistryDto(final ProcessGroup processGroup, final RevisionManager revisionManager) {

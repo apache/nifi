@@ -1277,7 +1277,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             }
 
             final Parameter parameter = parameterOption.get();
-            final boolean updated = !Objects.equals(updatedValue, parameter.getValue());
+            final boolean valueUpdated = !Objects.equals(updatedValue, parameter.getValue());
+            final boolean descriptionUpdated = parameterDto.getDescription() != null && !parameterDto.getDescription().equals(parameter.getDescriptor().getDescription());
+            final boolean updated = valueUpdated || descriptionUpdated;
             if (updated) {
                 updatedParameters.add(parameterName);
             }
