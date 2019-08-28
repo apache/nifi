@@ -101,7 +101,7 @@ public class PutKudu extends AbstractKuduProcessor {
 
     protected static final PropertyDescriptor INSERT_OPERATION = new Builder()
         .name("Insert Operation")
-	      .displayName("Kudu Operation Type")
+        .displayName("Kudu Operation Type")
         .description("Specify operationType for this processor. Insert-Ignore will ignore duplicated rows")
         .defaultValue(OperationType.INSERT.toString())
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
