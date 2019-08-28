@@ -17,6 +17,7 @@
 package org.apache.nifi.properties.sensitive.keystore;
 
 import org.apache.nifi.properties.sensitive.AbstractSensitivePropertyProviderTest;
+import org.apache.nifi.properties.sensitive.ByteArrayKeyStoreProvider;
 import org.apache.nifi.properties.sensitive.SensitivePropertyConfigurationException;
 import org.apache.nifi.properties.sensitive.SensitivePropertyProvider;
 import org.apache.nifi.security.util.CipherUtils;
@@ -65,7 +66,7 @@ public class KeyStoreSensitivePropertyProviderIT extends AbstractSensitiveProper
         String keyPassword;    // and that key has a random password, too
     }
 
-    private static final String[] keyAlgos = {"RSA", "DSA", "ECDSA", "AES"};
+    private static final String[] keyAlgos = {"AES"};
     private static final int[] keySizes = {16, 24, 32};
 
     @Rule
@@ -78,7 +79,7 @@ public class KeyStoreSensitivePropertyProviderIT extends AbstractSensitiveProper
 
     @Before
     public void setUpTest() throws KeyStoreException, CertificateException, NoSuchAlgorithmException, IOException {
-        final byte[] keyBytes = new byte[32];
+        final byte[] keyBytes = new byte[16];
 
         // This builds one test case per key store type, each with unique passwords and shared keys:
         for (String keyStoreType : KeyStoreSensitivePropertyProvider.KEYSTORE_TYPES) {
@@ -309,7 +310,7 @@ public class KeyStoreSensitivePropertyProviderIT extends AbstractSensitiveProper
         }
     }
 
-    // These tests show we can use an AWS KMS key to encrypt/decrypt property values.
+    // These tests show we can use the provider to encrypt/decrypt property values.
     @Test
     public void testShouldProtectAndUnprotectProperties() throws Exception {
         for (final Map.Entry<String, KeyStoreTestCase> entry : testCases.entrySet()) {

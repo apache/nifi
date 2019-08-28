@@ -14,7 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.properties.sensitive.keystore;
+package org.apache.nifi.properties.sensitive;
+
+import org.apache.nifi.properties.sensitive.keystore.KeyStoreProvider;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -27,12 +29,12 @@ import java.security.cert.CertificateException;
  * Key Stores backed by byte arrays.  This class is used only by the KeyStore Sensitive Property Provider Integration Tests.
  *
  */
-class ByteArrayKeyStoreProvider implements KeyStoreProvider {
+public class ByteArrayKeyStoreProvider implements KeyStoreProvider {
     private final byte[] source;
     private final String storeType;
     private final String storePassword;
 
-    ByteArrayKeyStoreProvider(byte[] source, String storeType, String storePassword) {
+    public ByteArrayKeyStoreProvider(byte[] source, String storeType, String storePassword) {
         this.source = source;
         this.storeType = storeType;
         this.storePassword = storePassword;

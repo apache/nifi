@@ -31,5 +31,12 @@ public interface ExternalProperties {
 
     String get(String name);
 
+    /**
+     * Read an external property by name with default.
+     *
+     * @param name the name or key of the external property
+     * @param missing value to return if external value is not found
+     * @return external value if found, missing value if not
+     */
     String get(String name, String missing);
 }

@@ -33,6 +33,8 @@ import org.bouncycastle.util.encoders.DecoderException;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
 
 
 // Azure with Java:
@@ -47,9 +49,16 @@ import java.nio.charset.StandardCharsets;
 
 public class AzureKeyVaultSensitivePropertyProvider implements SensitivePropertyProvider {
     private static final String IMPLEMENTATION_NAME = "Azure Key Vault Sensitive Property Provider";
-    private static final String MATERIAL_PREFIX = "azure";
+    private static final String MATERIAL_PROVIDER = "azure";
     private static final String MATERIAL_KEY_TYPE = "vault";
+    private static final String IMPLEMENTATION_PREFIX = MATERIAL_PROVIDER + "/" + MATERIAL_KEY_TYPE;
     private static final JsonWebKeyEncryptionAlgorithm algo = JsonWebKeyEncryptionAlgorithm.RSA_OAEP;
+    private static final Map<Integer, Integer> maxValueSizes = new HashMap<>();
+    static {
+        maxValueSizes.put(1024, (1024/8) - 42); // 86   // rsa 1024 + oaep
+        maxValueSizes.put(2048, (2048/8) - 42); // 214  // rsa 2048 + oaep
+        // rsa 1_5?
+    }
 
     private final KeyVaultClient client;
     private final String vaultId;
@@ -63,7 +72,7 @@ public class AzureKeyVaultSensitivePropertyProvider implements SensitiveProperty
             throw new SensitivePropertyConfigurationException(e);
         }
 
-        String prefix = MATERIAL_PREFIX + "/" + MATERIAL_KEY_TYPE + "/";
+        String prefix = IMPLEMENTATION_PREFIX + "/";
         if (material.startsWith(prefix)) {
             material = material.substring(prefix.length());
         }
@@ -84,7 +93,7 @@ public class AzureKeyVaultSensitivePropertyProvider implements SensitiveProperty
     }
 
     public static boolean isProviderFor(String key) {
-        return key.startsWith(MATERIAL_PREFIX + "/" + MATERIAL_KEY_TYPE + "/");
+        return key.startsWith(IMPLEMENTATION_PREFIX + "/");
     }
 
     public static String toPrintableString(String key) {
@@ -108,7 +117,7 @@ public class AzureKeyVaultSensitivePropertyProvider implements SensitiveProperty
      */
     @Override
     public String getIdentifierKey() {
-        return MATERIAL_PREFIX + "/" + MATERIAL_KEY_TYPE  + "" + vaultId + "," + keyId;
+        return IMPLEMENTATION_PREFIX + vaultId + "," + keyId;
     }
 
     /**

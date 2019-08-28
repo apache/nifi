@@ -26,7 +26,13 @@ import java.util.Map;
 import java.util.Properties;
 
 /**
- * Slurps property values from the usual places in the usual order.
+ * External value lookup that cascades on failure.  Values are first selected from System properties, and failing that, environment
+ * variables, and failing that, config files.
+ *
+ * The class supports an optional, one-way mapping between System properties keys and environment variable names.  For example a client
+ * can specify that the System property "foo.bar" maps to the environment variable "FOO_BAR".
+ *
+ * This sort of behavior generally mimics how some libraries programmatically configure connections to external services (e.g., AWS).
  *
  */
 public class StandardExternalPropertyLookup implements ExternalProperties {

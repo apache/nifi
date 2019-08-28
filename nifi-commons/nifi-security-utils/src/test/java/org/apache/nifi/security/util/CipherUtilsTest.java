@@ -45,6 +45,9 @@ public class CipherUtilsTest {
             ivs[i] = CipherUtils.generateIV();
         }
 
+        // NB: It's not important for these tests (ad-hoc, non-production), but the code below is possibly susceptible to a timing attack.
+        // See https://codahale.com/a-lesson-in-timing-attacks/
+
         // Compare each IV to every other IV
         for (int i = 0; i < count; i++) {
             byte[] iv = ivs[i];

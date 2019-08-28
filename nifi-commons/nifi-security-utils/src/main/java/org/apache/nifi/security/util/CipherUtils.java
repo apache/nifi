@@ -32,6 +32,7 @@ import java.security.Security;
  */
 public class CipherUtils {
     final static SecureRandom random = new SecureRandom();
+    // IV of 12 bytes is recommended for AES/GCM.  See https://crypto.stackexchange.com/questions/41601/aes-gcm-recommended-iv-size-why-12-bytes
     public final static int IV_LENGTH = 12;
 
     /**
@@ -96,10 +97,6 @@ public class CipherUtils {
      * @return integer value such that upper >= value >= lower
      */
     public static int getRandomInt(int lower, int upper) {
-        int value = random.nextInt(upper);
-        while (value < lower) {
-            value = random.nextInt(upper);
-        }
-        return value;
+        return random.nextInt(upper - lower) + lower;
     }
 }

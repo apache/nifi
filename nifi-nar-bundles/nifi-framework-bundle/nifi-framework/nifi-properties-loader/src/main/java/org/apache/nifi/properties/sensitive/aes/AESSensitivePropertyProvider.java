@@ -19,6 +19,7 @@ package org.apache.nifi.properties.sensitive.aes;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.SecureRandom;
@@ -38,6 +39,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.properties.sensitive.SensitivePropertyConfigurationException;
 import org.apache.nifi.properties.sensitive.SensitivePropertyProtectionException;
 import org.apache.nifi.properties.sensitive.SensitivePropertyProvider;
+import org.bouncycastle.crypto.digests.SHA512Digest;
 import org.bouncycastle.util.encoders.Base64;
 import org.bouncycastle.util.encoders.DecoderException;
 import org.bouncycastle.util.encoders.EncoderException;
@@ -146,7 +148,7 @@ public class AESSensitivePropertyProvider implements SensitivePropertyProvider {
      */
     @Override
     public String getIdentifierKey() {
-        return IMPLEMENTATION_KEY + Hex.toHexString(key.getEncoded()); // getKeySize();
+        return IMPLEMENTATION_KEY + getKeySize(Hex.toHexString(key.getEncoded()));
     }
 
     private int getKeySize(String key) {
@@ -295,6 +297,14 @@ public class AESSensitivePropertyProvider implements SensitivePropertyProvider {
      * @return printable string
      */
     public static String toPrintableString(String key) {
-        return PRINTABLE_PREFIX + UUID.nameUUIDFromBytes(key.getBytes(StandardCharsets.UTF_8)).toString();
+        String printable = "{unprintable}";
+        try {
+            MessageDigest mda = MessageDigest.getInstance("SHA-512", "BC");
+            printable = UUID.nameUUIDFromBytes(mda.digest(key.getBytes(StandardCharsets.UTF_8))).toString();
+        } catch (NoSuchAlgorithmException | NoSuchProviderException e) {
+            e.printStackTrace();
+        }
+
+        return PRINTABLE_PREFIX + printable;
     }
 }

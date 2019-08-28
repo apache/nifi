@@ -79,10 +79,22 @@ public class ProtectedNiFiProperties extends StandardNiFiProperties {
         this(new StandardNiFiProperties(rawProps), sensitivePropertyProvider);
     }
 
+    /**
+     * Creates an instance containing the provided {@link NiFiProperties} and key or key id.
+     *
+     * @param props the NiFiProperties to contain
+     * @param keyOrKeyId key material or key id needed by the {@link SensitivePropertyProvider}, depending upon the provider implementation
+     */
     public ProtectedNiFiProperties(NiFiProperties props, String keyOrKeyId) {
         this(props, StandardSensitivePropertyProvider.fromKey(keyOrKeyId));
     }
 
+    /**
+     * Creates an instance containing the provided {@link Properties} and key or key id.
+     *
+     * @param rawProps the Properties to contain
+     * @param keyOrKeyId key material or key id needed by the {@link SensitivePropertyProvider}, depending upon the provider implementation
+     */
     public ProtectedNiFiProperties(Properties rawProps, String keyOrKeyId) {
         this(new StandardNiFiProperties(rawProps), keyOrKeyId);
     }
@@ -351,6 +363,8 @@ public class ProtectedNiFiProperties extends StandardNiFiProperties {
                     if (!sameScheme && StandardSensitivePropertyProvider.hasProviderFor(protectionScheme)) {
                         propertyProvider = StandardSensitivePropertyProvider.fromKey(value, protectionScheme);
                         logger.info("Selected specific sensitive property provider: " + propertyProvider.getName() + " for property: " + key);
+                    } else if (!sameScheme) {
+                        throw new SensitivePropertyProtectionException("Unknown sensitive property protection scheme:" + protectionScheme);
                     }
 
                     try {

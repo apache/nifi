@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.properties.sensitive.gcp.kms;
 
+import com.google.api.gax.rpc.InvalidArgumentException;
+import com.google.api.gax.rpc.NotFoundException;
 import com.google.cloud.kms.v1.CryptoKeyName;
 import com.google.cloud.kms.v1.DecryptResponse;
 import com.google.cloud.kms.v1.EncryptResponse;
@@ -26,9 +28,9 @@ import org.apache.nifi.properties.sensitive.SensitivePropertyConfigurationExcept
 import org.apache.nifi.properties.sensitive.SensitivePropertyProtectionException;
 import org.apache.nifi.properties.sensitive.SensitivePropertyProvider;
 import org.bouncycastle.util.encoders.Base64;
+import org.bouncycastle.util.encoders.DecoderException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.regex.Matcher;
@@ -47,6 +49,9 @@ public class GCPKMSSensitivePropertyProvider implements SensitivePropertyProvide
     private static final String MATERIAL_SEPARATOR = "/";
     private static final String IMPLEMENTATION_PREFIX = MATERIAL_PREFIX + MATERIAL_SEPARATOR + MATERIAL_KEY_TYPE + MATERIAL_SEPARATOR;
 
+    private static final Pattern simplePattern = Pattern.compile("([^/]+)/([^/]+)/([^/]+)/([^/]+)");
+    private static final Pattern verbosePattern = Pattern.compile("projects/([^/]+)/locations/([^/]+)/keyRings/([^/]+)/cryptoKeys/([^/]+)");
+
     private String keyId;
     private String projectId;
     private String locationId;
@@ -61,7 +66,7 @@ public class GCPKMSSensitivePropertyProvider implements SensitivePropertyProvide
         if (StringUtils.isBlank(System.getenv("GOOGLE_APPLICATION_CREDENTIALS"))) {
             throw new SensitivePropertyConfigurationException("Unable to find Google Application Credentials");
         }
-        extractKeyParts(keyId);
+        extractAndSetKeyParts(keyId);
         this.resource = CryptoKeyName.format(projectId, locationId, keyRingId, cryptoKeyId);
         try {
             this.client = KeyManagementServiceClient.create();
@@ -70,7 +75,13 @@ public class GCPKMSSensitivePropertyProvider implements SensitivePropertyProvide
         }
     }
 
-    private void extractKeyParts(String keyId) {
+    /**
+     * Extracts various values from the key identifier, namely project, location, key ring id, and key id.
+     * Supports both simple form (value/value/etc) and long form (projects/value/locations/value/etc).
+     *
+     * @param keyId key material in the form "gcp/kms/{values}"
+     */
+    private void extractAndSetKeyParts(String keyId) {
         if (StringUtils.isBlank(keyId)) throw new SensitivePropertyConfigurationException("The key cannot be empty");
 
         this.keyId = keyId;
@@ -80,8 +91,6 @@ public class GCPKMSSensitivePropertyProvider implements SensitivePropertyProvide
             throw new SensitivePropertyConfigurationException("Invalid GCP key");
 
         String path = parts[2];
-        Pattern simplePattern = Pattern.compile("([^/]+)/([^/]+)/([^/]+)/([^/]+)");
-        Pattern verbosePattern = Pattern.compile("projects/([^/]+)/locations/([^/]+)/keyRings/([^/]+)/cryptoKeys/([^/]+)");
 
         Matcher match = null;
         if (verbosePattern.asPredicate().test(path)) {
@@ -98,7 +107,7 @@ public class GCPKMSSensitivePropertyProvider implements SensitivePropertyProvide
         keyRingId = match.group(3);
         cryptoKeyId = match.group(4);
 
-        if (StringUtils.isBlank(projectId) || StringUtils.isBlank(locationId) || StringUtils.isBlank(keyRingId) || StringUtils.isBlank(cryptoKeyId))
+        if (StringUtils.isAnyBlank(projectId, locationId, keyRingId, cryptoKeyId))
             throw new SensitivePropertyConfigurationException("Invalid GCP key identifier");
     }
 
@@ -138,7 +147,7 @@ public class GCPKMSSensitivePropertyProvider implements SensitivePropertyProvide
         EncryptResponse response;
         try {
             response = client.encrypt(resource, ByteString.copyFrom(unprotectedValue, StandardCharsets.UTF_8));
-        } catch (final com.google.api.gax.rpc.NotFoundException e) {
+        } catch (final NotFoundException e) {
             throw new SensitivePropertyProtectionException(e);
         }
         return Base64.toBase64String(response.getCiphertext().toByteArray());
@@ -159,7 +168,7 @@ public class GCPKMSSensitivePropertyProvider implements SensitivePropertyProvide
         DecryptResponse response;
         try {
             response = client.decrypt(resource, ByteString.copyFrom(Base64.decode(protectedValue)));
-        } catch (final org.bouncycastle.util.encoders.DecoderException | com.google.api.gax.rpc.InvalidArgumentException | com.google.api.gax.rpc.NotFoundException e) {
+        } catch (final DecoderException | InvalidArgumentException | NotFoundException e) {
             throw new SensitivePropertyProtectionException(e);
         }
         return response.getPlaintext().toStringUtf8();

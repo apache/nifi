@@ -17,9 +17,9 @@
 mkdir -p /runtime
 
 openssl genrsa -out /runtime/root.key 4096
-openssl req -x509 -new -nodes -sha256 -days 1024 -subj "/C=US/ST=AK/O=Data in Motion/CN=localhost"  -key /runtime/root.key -out /runtime/root.crt
+openssl req -x509 -new -nodes -sha256 -days 1024 -subj "/C=US/ST=AK/O=Apache NiFi/CN=localhost"  -key /runtime/root.key -out /runtime/root.crt
 openssl genrsa -out /runtime/server.key 4096
-openssl req -new -sha256 -key /runtime/server.key -subj "/C=US/ST=AK/O=Data in Motion/CN=localhost" -reqexts SAN -config <(cat /etc/ssl/openssl.cnf <(printf "\n[SAN]\nsubjectAltName=DNS:localhost")) -out /runtime/server.csr
+openssl req -new -sha256 -key /runtime/server.key -subj "/C=US/ST=AK/O=Apache NiFi/CN=localhost" -reqexts SAN -config <(cat /etc/ssl/openssl.cnf <(printf "\n[SAN]\nsubjectAltName=DNS:localhost")) -out /runtime/server.csr
 openssl x509 -req -in /runtime/server.csr -CA /runtime/root.crt -CAkey /runtime/root.key -CAcreateserial -out /runtime/server.crt -days 500 -sha256
 
 chown vault:root /runtime/
