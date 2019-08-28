@@ -52,7 +52,7 @@ import java.util.Map;
 
 
 @Tags({"reporting", "azure", "metrics"})
-@CapabilityDescription("Publishes metrics from NiFi to Azure Log Analystics." +
+@CapabilityDescription("Publishes metrics from NiFi to Azure Log Analytics." +
         "Configure this reporting task with AzureWSMetricReporterService.")
 @DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "1 min")
 public class AzureLogWSReportingTask extends AbstractReportingTask {
@@ -142,9 +142,9 @@ public class AzureLogWSReportingTask extends AbstractReportingTask {
                 jsonWriter.writeArray(metricsObject);
             }
             String jdata = sWriter.toString();
-            getLogger().debug(String.format("jdata to send to Azure log analystics: %s", jdata));
+            getLogger().debug(String.format("jdata to send to Azure log analytics: %s", jdata));
 
-            reporter.sendToAzureLogAnalystics(jdata);
+            reporter.sendToAzureLogAnalytics(jdata);
 
 
         } else {

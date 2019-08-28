@@ -37,7 +37,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 /**
- * A controller service that provides metric reporters for azure log analystics, can be used by {@link MetricsReportingTask}.
+ * A controller service that provides metric reporters for azure log analytics, can be used by {@link MetricsReportingTask}.
  * 
  */
 @Tags({"metrics", "reporting", "azure.log.analytics"})
@@ -72,7 +72,7 @@ public class AzureWSMetricReporterService extends AbstractControllerService impl
             .build();
 
     /**
-     * LOG_TYPE name for custom logs collected thru Azure log analystics data collection API
+     * LOG_TYPE name for custom logs collected thru Azure log analytics data collection API
      */
     public static final PropertyDescriptor AZ_WORKSPACE_LOG_TYPE = new PropertyDescriptor.Builder()
             .name("azure.log.analytics.workspace.logtype")

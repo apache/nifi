@@ -73,10 +73,10 @@ public class AzureLogWSReporter extends ScheduledReporter {
     private final String logType;
 
     /**
-     * AzureLogWSReporter Constructor used by {@link AzureLogAnalysticsMetricReporterService}
+     * AzureLogWSReporter Constructor used by {@link AzureWSMetricReporterService}
      * 
-     * @param workspaceId  Azure log analystics workspace id, retreived from the adavancned setting
-     * @param workspaceKey Azure log analystics workspace key (either primary or secondary), retreived from the adavancned setting
+     * @param workspaceId  Azure log analytics workspace id, retreived from the adavancned setting
+     * @param workspaceKey Azure log analytics workspace key (either primary or secondary), retreived from the adavancned setting
      * @param logType Record type name (<a hef="https://docs.microsoft.com/en-us/azure/azure-monitor/platform/data-collector-api#record-type-and-properties">Ref</>)
      * @param registry registry with the metrics to report
      * @param filter metric filter. By default, all
@@ -122,7 +122,7 @@ public class AzureLogWSReporter extends ScheduledReporter {
     }
 
     /**
-     * Implemenation of report method for Azure log analystics
+     * Implemenation of report method for Azure log analytics
      */
 	@Override
 	public void report(
@@ -157,7 +157,7 @@ public class AzureLogWSReporter extends ScheduledReporter {
                 logger.debug(result);
 
                 if(this.workspaceId != null &&  !this.workspaceId.isEmpty()) {
-                    sendToAzureLogAnalystics(result);
+                    sendToAzureLogAnalytics(result);
                 }
             }
         }
@@ -197,10 +197,10 @@ public class AzureLogWSReporter extends ScheduledReporter {
         }
     }
     /**
-     * send json object in string to azure log analystics
+     * send json object in string to azure log analytics
      * @param jdata
      */
-    public void sendToAzureLogAnalystics(String jdata)
+    public void sendToAzureLogAnalytics(String jdata)
     {
         String dataCollectorEndpoint = String.format(
             "https://%s.ods.opinsights.azure.com/api/logs?api-version=2016-04-01", this.workspaceId);
