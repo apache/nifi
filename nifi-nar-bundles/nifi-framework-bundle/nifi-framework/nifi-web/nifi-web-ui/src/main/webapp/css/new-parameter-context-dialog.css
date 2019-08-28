@@ -95,3 +95,9 @@
     width: 470px;
     height: 470px;
 }
+
+span.parameter-context-referencing-component-name {
+    margin-left: 5px;
+    margin-right: 5px;
+    max-width: calc(100% - 10px);
+}

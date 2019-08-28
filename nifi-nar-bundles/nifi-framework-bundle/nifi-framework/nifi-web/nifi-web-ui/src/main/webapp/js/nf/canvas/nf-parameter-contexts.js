@@ -365,7 +365,7 @@
 
 
         // processor name
-        $('<span class="referencing-component-name link"></span>').text(referencingProcessor.name).on('click', function () {
+        $('<span class="parameter-context-referencing-component-name link ellipsis"></span>').prop('title', referencingProcessor.name).text(referencingProcessor.name).on('click', function () {
             // check if there are outstanding changes
             handleOutstandingChanges().done(function () {
                 // close the shell
@@ -428,7 +428,7 @@
         $('<div class="referencing-component-bulletins"></div>').addClass(referencingControllerService.id + '-referencing-bulletins').appendTo(referencingControllerServiceContainer);
 
         // controller service name
-        $('<span class="referencing-component-name link"></span>').text(referencingControllerService.name).on('click', function () {
+        $('<span class="parameter-context-referencing-component-name link ellipsis"></span>').prop('title', referencingControllerService.name).text(referencingControllerService.name).on('click', function () {
             // check if there are outstanding changes
             handleOutstandingChanges().done(function () {
                 // close the shell
@@ -670,7 +670,7 @@
                                         }
                                     } else {
                                         var referencingUnauthorizedComponentContainer = $('<li class="referencing-component-container"></li>').appendTo(unauthorizedComponentsContainer);
-                                        $('<span class="referencing-component-name link"></span>').text(unauthorizedReferencingComponentEntity.id).on('click', function () {
+                                        $('<span class="parameter-context-referencing-component-name link ellipsis"></span>').prop('title', unauthorizedReferencingComponentEntity.id).text(unauthorizedReferencingComponentEntity.id).on('click', function () {
                                             // check if there are outstanding changes
                                             handleOutstandingChanges().done(function () {
                                                 // close the shell
