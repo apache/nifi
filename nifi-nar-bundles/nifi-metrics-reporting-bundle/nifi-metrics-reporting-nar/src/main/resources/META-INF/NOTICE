@@ -33,3 +33,14 @@ The following binary components are provided under the Apache Software License v
         https://github.com/dropwizard/metrics/blob/4.1-development/metrics-json/src/test/java/com/codahale/metrics/json/MetricsModuleTest.java 
       and can be found in
         nifi-metrics-reporting-task/src/main/java/org/apache/nifi/metrics/reporting/task/AzureLogWSReporter.java
+
+
+************************
+Common Development and Distribution License 1.1
+************************
+
+The following binary components are provided under the Common Development and Distribution License 1.1. See project link for details.
+
+    (CDDL 1.1) (GPL2 w/ CPE) JSON Processing API (javax.json:javax.json-api:jar:1.0 - http://json-processing-spec.java.net)
+    (CDDL 1.1) (GPL2 w/ CPE) JSON Processing Default Provider (org.glassfish:javax.json:jar:1.0.4 - https://jsonp.java.net)
+
