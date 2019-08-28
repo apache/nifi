@@ -32,7 +32,7 @@ public class PullHttpChangeIngestorSSLTest extends PullHttpChangeIngestorCommonT
     public static void setUp() throws Exception {
         PullHttpChangeIngestorCommonTest.init();
 
-        SslContextFactory ssl = new SslContextFactory();
+        SslContextFactory.Server ssl = new SslContextFactory.Server();
 
         ssl.setKeyStorePath("./src/test/resources/localhost-ks.jks");
         ssl.setKeyStorePassword("localtest");
