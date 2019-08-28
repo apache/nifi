@@ -105,7 +105,6 @@ public class TestPutKudu {
         testRunner.setProperty(PutKudu.IGNORE_NULL, "true");
         testRunner.setProperty(PutKudu.RECORD_READER, "mock-reader-factory");
         testRunner.setProperty(PutKudu.INSERT_OPERATION, OperationType.INSERT.toString());
-        testRunner.setValidateExpressionUsage(false);
     }
 
     @After

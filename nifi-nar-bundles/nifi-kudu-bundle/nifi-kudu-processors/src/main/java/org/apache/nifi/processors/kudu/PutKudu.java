@@ -101,7 +101,7 @@ public class PutKudu extends AbstractKuduProcessor {
 
     protected static final PropertyDescriptor INSERT_OPERATION = new Builder()
         .name("Insert Operation")
-	.displayName("Kudu Operation Type")
+	      .displayName("Kudu Operation Type")
         .description("Specify operationType for this processor. Insert-Ignore will ignore duplicated rows")
         .defaultValue(OperationType.INSERT.toString())
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -150,7 +150,9 @@ public class PutKudu extends AbstractKuduProcessor {
         .description("Ignore NULL on Kudu Put Operation, Update only non-Null columns if set true")
         .defaultValue("false")
         .allowableValues("true", "false")
+        .required(true)
         .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .build();
 
     protected static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -169,8 +171,6 @@ public class PutKudu extends AbstractKuduProcessor {
 
     protected int batchSize = 100;
     protected int ffbatch   = 1;
-
-    protected KuduTable kuduTable;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -200,7 +200,6 @@ public class PutKudu extends AbstractKuduProcessor {
 
     protected KerberosUser kerberosUser;
     protected KuduSession kuduSession;
-    protected String tableName;
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) throws IOException, LoginException {
@@ -253,11 +252,11 @@ public class PutKudu extends AbstractKuduProcessor {
                 final List<String> fieldNames = recordReader.getSchema().getFieldNames();
                 final RecordSet recordSet = recordReader.createRecordSet();
                 final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions(flowFile).getValue();
-                kuduTable = kuduClient.openTable(tableName);
+                final KuduTable kuduTable = kuduClient.openTable(tableName);
 
                 Record record = recordSet.next();
                 while (record != null) {
-                    Operation operation = getKuduOperationType(operationType, record, fieldNames, ignoreNull);
+                    Operation operation = getKuduOperationType(operationType, record, fieldNames, ignoreNull, kuduTable);
                     // We keep track of mappings between Operations and their origins,
                     // so that we know which FlowFiles should be marked failure after buffered flush.
                     operationFlowFileMap.put(operation, flowFile);
@@ -344,7 +343,7 @@ public class PutKudu extends AbstractKuduProcessor {
         return kuduSession;
     }
 
-    private Operation getKuduOperationType(OperationType operationType, Record record, List<String> fieldNames, Boolean ignoreNull) {
+    private Operation getKuduOperationType(OperationType operationType, Record record, List<String> fieldNames, Boolean ignoreNull, KuduTable kuduTable) {
         switch (operationType) {
             case DELETE:
                 return deleteRecordFromKudu(kuduTable, record, fieldNames, ignoreNull);
