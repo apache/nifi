@@ -44,15 +44,14 @@ public class NifiSeekableInputStream extends DelegatingSeekableInputStream {
             return;
         }
 
-        if (newPos > currentPos) {
-            // seeking forward so skip ahead the difference from current pos to new pos
-            StreamUtils.skip(input, newPos - getPos());
-        } else {
+        if (newPos < currentPos) {
             // seeking backwards so first reset back to beginning of the stream then seek
             input.reset();
             input.mark(Integer.MAX_VALUE);
-            StreamUtils.skip(input, newPos - getPos());
         }
+
+        // must call getPos() again in case reset was called above
+        StreamUtils.skip(input, newPos - getPos());
     }
 
     @Override

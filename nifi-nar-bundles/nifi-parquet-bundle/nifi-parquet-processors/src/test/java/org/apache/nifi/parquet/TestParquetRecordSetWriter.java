@@ -26,9 +26,11 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.schema.access.SchemaAccessUtils;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.RecordSetWriter;
+import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.SchemaIdentifier;
 import org.apache.nifi.util.MockComponentLog;
 import org.apache.nifi.util.MockConfigurationContext;
 import org.apache.parquet.avro.AvroParquetReader;
@@ -61,9 +63,7 @@ public class TestParquetRecordSetWriter {
 
     @Test
     public void testWriteUsers() throws IOException, SchemaNotFoundException {
-        final File schemaFile = new File("src/test/resources/avro/user.avsc");
-        final Map<PropertyDescriptor,String> properties = createPropertiesWithSchema(schemaFile);
-        final ConfigurationContext configurationContext = new MockConfigurationContext(properties, null);
+        final ConfigurationContext configurationContext = getConfigurationContextWithSchema("src/test/resources/avro/user.avsc");
 
         // simulate enabling the service
         recordSetWriterFactory.onEnabled(configurationContext);
@@ -77,6 +77,39 @@ public class TestParquetRecordSetWriter {
         final int numUsers = 10;
         final File parquetFile = new File("target/testWriterUsers-" + System.currentTimeMillis());
 
+        // write some records...
+        writeUsers(writeSchema, parquetFile, numUsers);
+
+        // read the records back in to verify
+        verifyParquetRecords(parquetFile, numUsers);
+    }
+
+    @Test
+    public void testWriteUsersWhenSchemaFormatNotAvro() throws IOException, SchemaNotFoundException {
+        final ConfigurationContext configurationContext = getConfigurationContextWithSchema("src/test/resources/avro/user.avsc");
+
+        // simulate enabling the service
+        recordSetWriterFactory.onEnabled(configurationContext);
+        recordSetWriterFactory.storeSchemaWriteStrategy(configurationContext);
+        recordSetWriterFactory.storeSchemaAccessStrategy(configurationContext);
+
+        // get the schema from the writer factory
+        final RecordSchema writeSchema = recordSetWriterFactory.getSchema(Collections.emptyMap(), null);
+        final RecordSchema writeSchemaWithOtherFormat = new SimpleRecordSchema(writeSchema.getFields(), null, "OTHER-FORMAT", SchemaIdentifier.EMPTY);
+
+        // write some records
+        final int numUsers = 10;
+        final File parquetFile = new File("target/testWriterUsers-" + System.currentTimeMillis());
+
+        // write some records...
+        writeUsers(writeSchemaWithOtherFormat, parquetFile, numUsers);
+
+        // read the records back in to verify
+        verifyParquetRecords(parquetFile, numUsers);
+    }
+
+
+    private void writeUsers(final RecordSchema writeSchema, final File parquetFile, final int numUsers) throws IOException {
         try(final OutputStream output = new FileOutputStream(parquetFile);
             final RecordSetWriter recordSetWriter = recordSetWriterFactory.createWriter(componentLog, writeSchema, output, Collections.emptyMap())) {
             for (int i = 0; i < numUsers; i++) {
@@ -91,9 +124,6 @@ public class TestParquetRecordSetWriter {
 
             recordSetWriter.flush();
         }
-
-        // read the records back in to verify
-        verifyParquetRecords(parquetFile, numUsers);
     }
 
     private void verifyParquetRecords(final File parquetFile, final int expectedRecordCount) throws IOException {
@@ -110,6 +140,12 @@ public class TestParquetRecordSetWriter {
             }
             assertEquals(expectedRecordCount, recordCount);
         }
+    }
+
+    private ConfigurationContext getConfigurationContextWithSchema(String schemaPath) throws IOException {
+        final File schemaFile = new File(schemaPath);
+        final Map<PropertyDescriptor, String> properties = createPropertiesWithSchema(schemaFile);
+        return new MockConfigurationContext(properties, null);
     }
 
     private Map<PropertyDescriptor,String> createPropertiesWithSchema(final File schemaFile) throws IOException {

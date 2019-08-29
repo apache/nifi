@@ -38,7 +38,7 @@ import static org.apache.nifi.parquet.utils.ParquetUtils.applyCommonConfig;
 import static org.apache.nifi.parquet.utils.ParquetUtils.createParquetConfig;
 
 @Tags({"parquet", "parse", "record", "row", "reader"})
-@CapabilityDescription("Parses Parquet data and returns each Parquet record as an separate Record object. " +
+@CapabilityDescription("Parses Parquet data and returns each Parquet record as a separate Record object. " +
         "The schema will come from the Parquet data itself.")
 public class ParquetReader extends AbstractControllerService implements RecordReaderFactory {
 

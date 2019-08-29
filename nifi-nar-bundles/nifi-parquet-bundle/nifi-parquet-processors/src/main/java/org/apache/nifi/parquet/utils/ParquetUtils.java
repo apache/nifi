@@ -128,7 +128,7 @@ public class ParquetUtils {
             .required(true)
             .build();
 
-    public static List<AllowableValue> COMPRESSION_TYPES = getCompressionTypes();
+    public static final List<AllowableValue> COMPRESSION_TYPES = getCompressionTypes();
 
     private static List<AllowableValue> getCompressionTypes() {
         final List<AllowableValue> compressionTypes = new ArrayList<>();

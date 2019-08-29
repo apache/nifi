@@ -28,6 +28,7 @@ import org.apache.parquet.avro.AvroParquetReader;
 import org.apache.parquet.hadoop.ParquetReader;
 import org.apache.parquet.io.InputFile;
 
+import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Map;
@@ -54,8 +55,11 @@ public class ParquetRecordReader implements RecordReader {
 
         // Read the first record so that we can extract the schema
         lastParquetRecord = parquetReader.read();
+        if (lastParquetRecord == null) {
+            throw new EOFException("Unable to obtain schema because no records were available");
+        }
 
-        // TODO what if lastParquetRecord is null ?
+        // Convert Avro schema to RecordSchema
         recordSchema = AvroTypeUtil.createSchema(lastParquetRecord.getSchema());
     }
 
