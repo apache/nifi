@@ -196,7 +196,7 @@ public class StatelessFlow implements RunnableFlow {
                         break;
 
                     case REMOTE_INPUT_PORT:
-                        throw new IllegalArgumentException("Unsupported source type: " + source.getId());
+                        throw new IllegalArgumentException("Unsupported source type: " + source.getType());
 
                     case REMOTE_OUTPUT_PORT:
                         final StatelessRemoteProcessGroupPort remotePort = remotePorts.get(source.getId());
