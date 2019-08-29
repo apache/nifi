@@ -187,7 +187,7 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
       .displayName("Retry Policy")
       .description("Retry policy that can be configured on a specific service client using ClientConfiguration.")
       .allowableValues(new HashSet<>(Arrays.asList(
-        RETRY_POLICY_DEFAULT, RETRY_POLICY_DYNAMODB_DEFAULT, RETRY_POLICY_DEFAULT)))
+        RETRY_POLICY_DEFAULT, RETRY_POLICY_DYNAMODB_DEFAULT, RETRY_POLICY_CUSTOM)))
       .defaultValue(RETRY_POLICY_DEFAULT)
       .build();
 
@@ -301,8 +301,7 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
     protected ClientConfiguration createConfiguration(final ProcessContext context) {
         final ClientConfiguration config = new ClientConfiguration();
         config.setMaxConnections(context.getMaxConcurrentTasks());
-        PropertyValue property = context.getProperty(AWS_MAX_ERROR_RETRY);
-        config.setMaxErrorRetry(property.isSet()? property.asInteger() : 0);
+        config.setMaxErrorRetry(getMaxErrorRetry(context));
         setRetryPolicy(config, context);
         config.setUserAgent(DEFAULT_USER_AGENT);
         // If this is changed to be a property, ensure other uses are also changed
@@ -350,6 +349,7 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
 
         return config;
     }
+
     private void setRetryPolicy(ClientConfiguration config, ProcessContext context) {
         PropertyValue property = context.getProperty(AWS_RETRY_POLICY);
         if (property.isSet()) {
