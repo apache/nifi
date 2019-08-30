@@ -372,20 +372,15 @@
                 }
             };
 
-            // initialize the parameter context combo
-            var combo = $('#process-group-parameter-context-combo').combo('destroy').combo(comboOptions);
-
             // populate the parameter context
-            if (processGroupResult.permissions.canRead) {
-                var parameterContextId = null;
-                if ($.isEmptyObject(processGroupResult.component.parameterContext) === false) {
-                    parameterContextId = processGroupResult.component.parameterContext.id;
-                }
-
-                $('#process-group-parameter-context-combo').combo('setSelectedOption', {
-                    value: parameterContextId
-                });
+            if (processGroupResult.permissions.canRead && $.isEmptyObject(processGroupResult.component.parameterContext) === false) {
+                comboOptions.selectedOption = {
+                    value: processGroupResult.component.parameterContext.id
+                };
             }
+
+            // initialize the parameter context combo
+            $('#process-group-parameter-context-combo').combo('destroy').combo(comboOptions);
         }).fail(nfErrorHandler.handleAjaxError);
     };
 
