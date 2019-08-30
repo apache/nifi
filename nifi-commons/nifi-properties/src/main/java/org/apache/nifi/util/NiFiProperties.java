@@ -239,6 +239,7 @@ public abstract class NiFiProperties {
     public static final String VARIABLE_REGISTRY_PROPERTIES = "nifi.variable.registry.properties";
 
     // analytics properties
+    public static final String ANALYTICS_PREDICTION_ENABLED = "nifi.analytics.predict.enabled";
     public static final String ANALYTICS_PREDICTION_INTERVAL = "nifi.analytics.predict.interval";
     public static final String ANALYTICS_CONNECTION_MODEL_IMPLEMENTATION = "nifi.analytics.connection.model.implementation";
     public static final String ANALYTICS_CONNECTION_MODEL_SCORE_NAME= "nifi.analytics.connection.model.score.name";
@@ -315,6 +316,7 @@ public abstract class NiFiProperties {
     public static final String DEFAULT_KERBEROS_AUTHENTICATION_EXPIRATION = "12 hours";
 
     // analytics defaults
+    public static final String DEFAULT_ANALYTICS_PREDICTION_ENABLED = "false";
     public static final String DEFAULT_ANALYTICS_PREDICTION_INTERVAL = "3 mins";
     public final static String DEFAULT_ANALYTICS_CONNECTION_MODEL_IMPLEMENTATION = "org.apache.nifi.controller.status.analytics.models.OrdinaryLeastSquares";
     public static final String DEFAULT_ANALYTICS_CONNECTION_SCORE_NAME = "rSquared";

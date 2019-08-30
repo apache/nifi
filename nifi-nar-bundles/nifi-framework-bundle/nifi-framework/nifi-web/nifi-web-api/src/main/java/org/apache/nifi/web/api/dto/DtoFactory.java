@@ -1170,6 +1170,7 @@ public final class DtoFactory {
         snapshot.setName(connectionStatus.getName());
         snapshot.setSourceName(connectionStatus.getSourceName());
         snapshot.setDestinationName(connectionStatus.getDestinationName());
+        snapshot.setPredictionsAvailable(connectionStatus.getPredictionsAvailable());
 
         snapshot.setFlowFilesQueued(connectionStatus.getQueuedCount());
         snapshot.setBytesQueued(connectionStatus.getQueuedBytes());

@@ -712,7 +712,7 @@ public class ControllerFacade implements Authorizable {
         // get from flow controller
         final StatusAnalyticsEngine statusAnalyticsEngine = flowController.getStatusAnalyticsEngine();
         if (statusAnalyticsEngine == null) {
-            throw new ResourceNotFoundException(String.format("Unable to locate connection with id '%s'.", connectionId));
+            throw new ResourceNotFoundException(String.format("Unable to provide analytics for connection with id '%s'. Analytics may not be enabled", connectionId));
         }
 
         return statusAnalyticsEngine.getStatusAnalytics(connectionId);

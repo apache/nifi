@@ -480,6 +480,7 @@ public class StatusMerger {
             target.setSourceName(toMerge.getSourceName());
             target.setDestinationId(toMerge.getDestinationId());
             target.setDestinationName(toMerge.getDestinationName());
+            target.setPredictionsAvailable(toMerge.getPredictionsAvailable());
         }
 
         target.setFlowFilesIn(target.getFlowFilesIn() + toMerge.getFlowFilesIn());

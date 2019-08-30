@@ -30,6 +30,7 @@ public class ConnectionStatus implements Cloneable {
     private String destinationId;
     private String destinationName;
     private String backPressureDataSizeThreshold;
+    private Boolean predictionsAvailable;
     private long backPressureBytesThreshold;
     private long backPressureObjectThreshold;
     private int inputCount;
@@ -135,6 +136,14 @@ public class ConnectionStatus implements Cloneable {
 
     public void setBackPressureObjectThreshold(long backPressureObjectThreshold) {
         this.backPressureObjectThreshold = backPressureObjectThreshold;
+    }
+
+    public Boolean getPredictionsAvailable() {
+        return predictionsAvailable;
+    }
+
+    public void setPredictionsAvailable(Boolean predictionsAvailable) {
+        this.predictionsAvailable = predictionsAvailable;
     }
 
     public long getInputBytes() {
@@ -274,6 +283,8 @@ public class ConnectionStatus implements Cloneable {
         clonedObj.nextPredictedQueuedCount = nextPredictedQueuedCount;
         clonedObj.predictedTimeToBytesBackpressureMillis = predictedTimeToBytesBackpressureMillis;
         clonedObj.predictedTimeToCountBackpressureMillis = predictedTimeToCountBackpressureMillis;
+        clonedObj.predictedPercentCount = predictedPercentCount;
+        clonedObj.predictedPercentBytes = predictedPercentBytes;
         return clonedObj;
     }
 
@@ -298,6 +309,8 @@ public class ConnectionStatus implements Cloneable {
         builder.append(backPressureDataSizeThreshold);
         builder.append(", backPressureObjectThreshold=");
         builder.append(backPressureObjectThreshold);
+        builder.append(", predictionsAvailable=");
+        builder.append(predictionsAvailable);
         builder.append(", inputCount=");
         builder.append(inputCount);
         builder.append(", inputBytes=");
@@ -322,6 +335,10 @@ public class ConnectionStatus implements Cloneable {
         builder.append(predictedTimeToBytesBackpressureMillis);
         builder.append(", predictedTimeToCountBackpressureMillis=");
         builder.append(predictedTimeToCountBackpressureMillis);
+        builder.append(", predictedPercentCount=");
+        builder.append(predictedPercentCount);
+        builder.append(", predictedPercentBytes=");
+        builder.append(predictedPercentBytes);
         builder.append("]");
         return builder.toString();
     }

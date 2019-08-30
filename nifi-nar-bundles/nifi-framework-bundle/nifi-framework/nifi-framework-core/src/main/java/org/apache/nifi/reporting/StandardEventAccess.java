@@ -347,6 +347,7 @@ public class StandardEventAccess implements UserAwareEventAccess {
                 StatusAnalytics statusAnalytics =  statusAnalyticsEngine.getStatusAnalytics(conn.getIdentifier());
                 if (statusAnalytics != null) {
                     Map<String,Long> predictions = statusAnalytics.getPredictions();
+                    connStatus.setPredictionsAvailable(true);
                     connStatus.setPredictedTimeToBytesBackpressureMillis(predictions.get("timeToBytesBackpressureMillis"));
                     connStatus.setPredictedTimeToCountBackpressureMillis(predictions.get("timeToCountBackpressureMillis"));
                     connStatus.setNextPredictedQueuedBytes(predictions.get("nextIntervalBytes"));
@@ -355,6 +356,8 @@ public class StandardEventAccess implements UserAwareEventAccess {
                     connStatus.setPredictedPercentBytes(predictions.get("nextIntervalPercentageUseBytes").intValue());
                     connStatus.setPredictionIntervalMillis(predictions.get("intervalTimeMillis"));
                 }
+            }else{
+                connStatus.setPredictionsAvailable(false);
             }
 
             if (isConnectionAuthorized) {

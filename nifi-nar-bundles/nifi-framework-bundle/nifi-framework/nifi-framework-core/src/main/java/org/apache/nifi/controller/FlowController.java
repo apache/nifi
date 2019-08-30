@@ -597,33 +597,38 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
             zooKeeperStateServer = null;
         }
 
-        // Determine interval for predicting future feature values
-        final String predictionInterval = nifiProperties.getProperty(NiFiProperties.ANALYTICS_PREDICTION_INTERVAL, NiFiProperties.DEFAULT_ANALYTICS_PREDICTION_INTERVAL);
-        long predictionIntervalMillis;
-        try {
-            predictionIntervalMillis = FormatUtils.getTimeDuration(predictionInterval, TimeUnit.MILLISECONDS);
-        } catch (final Exception e) {
-            predictionIntervalMillis = FormatUtils.getTimeDuration(NiFiProperties.DEFAULT_ANALYTICS_PREDICTION_INTERVAL, TimeUnit.MILLISECONDS);
-        }
-
-        // Determine score name to use for evaluating model performance
-        String modelScoreName = nifiProperties.getProperty(NiFiProperties.ANALYTICS_CONNECTION_MODEL_SCORE_NAME, NiFiProperties.DEFAULT_ANALYTICS_CONNECTION_SCORE_NAME);
-
-        // Determine score threshold to use when evaluating acceptable model
-        Double modelScoreThreshold;
-        try {
-            modelScoreThreshold = Double.valueOf(nifiProperties.getProperty(NiFiProperties.ANALYTICS_CONNECTION_MODEL_SCORE_NAME, NiFiProperties.DEFAULT_ANALYTICS_PREDICTION_INTERVAL));
-        }catch (final Exception e) {
-            modelScoreThreshold = Double.valueOf(NiFiProperties.DEFAULT_ANALYTICS_CONNECTION_SCORE_THRESHOLD);
-        }
-
         componentStatusRepository = createComponentStatusRepository();
 
-        final Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> modelMap = StatusAnalyticsModelMapFactory
-                                                                                                    .getConnectionStatusModelMap(extensionManager, nifiProperties);
+        final boolean analyticsEnabled =  Boolean.parseBoolean(nifiProperties.getProperty(NiFiProperties.ANALYTICS_PREDICTION_ENABLED, NiFiProperties.DEFAULT_ANALYTICS_PREDICTION_ENABLED));
 
-        analyticsEngine = new CachingConnectionStatusAnalyticsEngine(flowManager, componentStatusRepository, flowFileEventRepository, modelMap,
-                                                                predictionIntervalMillis, modelScoreName, modelScoreThreshold);
+        if(analyticsEnabled) {
+
+            // Determine interval for predicting future feature values
+            final String predictionInterval = nifiProperties.getProperty(NiFiProperties.ANALYTICS_PREDICTION_INTERVAL, NiFiProperties.DEFAULT_ANALYTICS_PREDICTION_INTERVAL);
+            long predictionIntervalMillis;
+            try {
+                predictionIntervalMillis = FormatUtils.getTimeDuration(predictionInterval, TimeUnit.MILLISECONDS);
+            } catch (final Exception e) {
+                predictionIntervalMillis = FormatUtils.getTimeDuration(NiFiProperties.DEFAULT_ANALYTICS_PREDICTION_INTERVAL, TimeUnit.MILLISECONDS);
+            }
+
+            // Determine score name to use for evaluating model performance
+            String modelScoreName = nifiProperties.getProperty(NiFiProperties.ANALYTICS_CONNECTION_MODEL_SCORE_NAME, NiFiProperties.DEFAULT_ANALYTICS_CONNECTION_SCORE_NAME);
+
+            // Determine score threshold to use when evaluating acceptable model
+            Double modelScoreThreshold;
+            try {
+                modelScoreThreshold = Double.valueOf(nifiProperties.getProperty(NiFiProperties.ANALYTICS_CONNECTION_MODEL_SCORE_NAME, NiFiProperties.DEFAULT_ANALYTICS_PREDICTION_INTERVAL));
+            } catch (final Exception e) {
+                modelScoreThreshold = Double.valueOf(NiFiProperties.DEFAULT_ANALYTICS_CONNECTION_SCORE_THRESHOLD);
+            }
+
+            final Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> modelMap = StatusAnalyticsModelMapFactory
+                    .getConnectionStatusModelMap(extensionManager, nifiProperties);
+
+            analyticsEngine = new CachingConnectionStatusAnalyticsEngine(flowManager, componentStatusRepository, flowFileEventRepository, modelMap,
+                    predictionIntervalMillis, modelScoreName, modelScoreThreshold);
+        }
 
         eventAccess = new StandardEventAccess(this, flowFileEventRepository);
 
