@@ -1675,6 +1675,14 @@ public interface NiFiServiceFacade {
      */
     void clearReportingTaskState(String reportingTaskId);
 
+    /**
+     * Gets the state for the specified RemoteProcessGroup.
+     *
+     * @param remoteProcessGroupId the RemoteProcessGroup id
+     * @return  the component state
+     */
+    ComponentStateDTO getRemoteProcessGroupState(String remoteProcessGroupId);
+
 
     // ----------------------------------------
     // Label methods

@@ -1537,6 +1537,16 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
+    public ComponentStateDTO getRemoteProcessGroupState(String remoteProcessGroupId) {
+        final StateMap clusterState = isClustered() ? remoteProcessGroupDAO.getState(remoteProcessGroupId, Scope.CLUSTER) : null;
+        final StateMap localState = remoteProcessGroupDAO.getState(remoteProcessGroupId, Scope.LOCAL);
+
+        // processor will be non null as it was already found when getting the state
+        final RemoteProcessGroup remoteProcessGroup = remoteProcessGroupDAO.getRemoteProcessGroup(remoteProcessGroupId);
+        return dtoFactory.createComponentStateDTO(remoteProcessGroupId, remoteProcessGroup.getClass(), localState, clusterState);
+    }
+
+    @Override
     public ConnectionEntity deleteConnection(final Revision revision, final String connectionId) {
         final Connection connection = connectionDAO.getConnection(connectionId);
         final PermissionsDTO permissions = dtoFactory.createPermissionsDto(connection);
