@@ -135,7 +135,6 @@
 
                     // get the combo
                     var combo = $(this);
-                    var firstOption = null;
 
                     // clear any current contents, remote events, and store options
                     combo.empty().unbind().data('options', options);
@@ -187,10 +186,6 @@
 
                         // process the options
                         $.each(comboConfigOptions.options, function (i, option) {
-                            if (firstOption === null) {
-                                firstOption = option;
-                            }
-
                             var optionText = $('<span class="combo-option-text"></span>').attr('title', option.text).text(option.text);
                             var optionValue = $('<span class="hidden"></span>').text(option.value);
 
@@ -281,6 +276,12 @@
 
                     // add the drop down arrow
                     $('<div class="combo-arrow fa fa-chevron-down"></div>').appendTo(combo);
+
+                    // get the first option
+                    var firstOption = null;
+                    if (options.options.length > 0) {
+                        firstOption = options.options[0];
+                    }
 
                     // set the selection
                     if (isDefinedAndNotNull(options.selectedOption)) {
