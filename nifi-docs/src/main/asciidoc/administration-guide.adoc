@@ -2381,7 +2381,7 @@ root@kdc:~#
 
 [[analytics_framework]]
 == Analytics Framework
-NiFi has an internal analytics framework which is currently used to predict back pressure occurrence, given the configured settings for threshold on a queue.  The model used by default for prediction is an ordinary least squares linear regression with multiple predictors which uses recent observations from a queue to determine the next value or percentage of total threshold that will be reached within a given interval.
+NiFi has an internal analytics framework which can be enabled to predict back pressure occurrence, given the configured settings for threshold on a queue.  The model used by default for prediction is an ordinary least squares linear regression with multiple predictors. It uses recent observations from a queue to determine the next value or percentage of total threshold that will be reached within a given time interval.
 
 In order to generate predictions, snapshot history is reviewed on a regular basis to obtain enough data to generate a model.  By default snapshots are captured every minute. Models may need at least 2 or more observation in order to develop a reasonable prediction, therefore it may take up to 2 or more minutes for predictions to be available by default.  If predictions are needed sooner than what is provided by default the timing of snapshots can be adjusted using the  `nifi.components.status.snapshot.frequency` value in nifi.properties.
 
@@ -3335,6 +3335,7 @@ These properties determine the behavior of the internal NiFi predictive analytic
 
 |====
 |*Property*|*Description*
+|`nifi.analytics.predict.enabled`|This indicates whether prediction should be enabled for the cluster. The default is `false`.
 |`nifi.analytics.predict.interval`|This indicates a time interval for which analytical predictions (queue saturation, e.g.) should be made. The default value is `3 mins`.
 |`nifi.analytics.connection.model.implementation`|This is the implementation class for the status analytics model used to make connection predictions.  The default value is `org.apache.nifi.controller.status.analytics.models.OrdinaryLeastSquares`.
 |`nifi.analytics.connection.model.score.name`|This is the name of the scoring type that should be used to evaluate model.  The default value is `rSquared`.
