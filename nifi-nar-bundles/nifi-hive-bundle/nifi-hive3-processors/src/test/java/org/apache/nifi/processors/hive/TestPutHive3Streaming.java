@@ -53,15 +53,19 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.hadoop.SecurityUtil;
+import org.apache.nifi.json.JsonRecordSetWriter;
+import org.apache.nifi.json.JsonTreeReader;
 import org.apache.nifi.kerberos.KerberosCredentialsService;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.schema.access.SchemaAccessUtils;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.MockRecordParser;
+import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordSchema;
@@ -82,6 +86,8 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Arrays;
@@ -963,6 +969,73 @@ public class TestPutHive3Streaming {
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutHive3Streaming.REL_SUCCESS).get(0);
         assertEquals("1", flowFile.getAttribute(HIVE_STREAMING_RECORD_COUNT_ATTR));
         assertEquals("default.groups", flowFile.getAttribute(ATTR_OUTPUT_TABLES));
+    }
+
+    @Test
+    public void testNestedRecords() throws Exception {
+        runner = TestRunners.newTestRunner(processor);
+        MockRecordParser readerFactory = new MockRecordParser();
+
+        final String avroSchema = IOUtils.toString(new FileInputStream("src/test/resources/nested_record.avsc"), StandardCharsets.UTF_8);
+        schema = new Schema.Parser().parse(avroSchema);
+
+        final RecordSchema recordSchema = AvroTypeUtil.createSchema(schema);
+        for (final RecordField recordField : recordSchema.getFields()) {
+            readerFactory.addSchemaField(recordField);
+        }
+
+        Map<String,Object> nestedRecordMap = new HashMap<>();
+        nestedRecordMap.put("id", 11088000000001615L);
+        nestedRecordMap.put("x", "Hello World!");
+
+        RecordSchema nestedRecordSchema = AvroTypeUtil.createSchema(schema.getField("myField").schema());
+        MapRecord nestedRecord = new MapRecord(nestedRecordSchema, nestedRecordMap);
+        // This gets added in to its spot in the schema, which is already named "myField"
+        readerFactory.addRecord(nestedRecord);
+
+        runner.addControllerService("mock-reader-factory", readerFactory);
+        runner.enableControllerService(readerFactory);
+
+        runner.setProperty(PutHive3Streaming.RECORD_READER, "mock-reader-factory");
+        runner.setProperty(PutHive3Streaming.HIVE_CONFIGURATION_RESOURCES, TEST_CONF_PATH);
+        runner.setProperty(PutHive3Streaming.DB_NAME, "default");
+        runner.setProperty(PutHive3Streaming.TABLE_NAME, "groups");
+
+        runner.enqueue("trigger");
+        runner.run();
+        runner.assertAllFlowFilesTransferred(PutHive3Streaming.REL_SUCCESS, 1);
+    }
+
+    @Test
+    public void testValidateNestedMap() throws InitializationException, IOException {
+        final String validateSchema = new String(Files.readAllBytes(Paths.get("src/test/resources/nested-map-schema.avsc")), StandardCharsets.UTF_8);
+
+        final JsonTreeReader jsonReader = new JsonTreeReader();
+        runner = TestRunners.newTestRunner(processor);
+        runner.addControllerService("reader", jsonReader);
+        runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, "schema-text-property");
+        runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_TEXT, validateSchema);
+        runner.enableControllerService(jsonReader);
+
+        final JsonRecordSetWriter validWriter = new JsonRecordSetWriter();
+        runner.addControllerService("writer", validWriter);
+        runner.setProperty(validWriter, "Schema Write Strategy", "full-schema-attribute");
+        runner.enableControllerService(validWriter);
+
+        final MockRecordWriter invalidWriter = new MockRecordWriter("invalid", true);
+        runner.addControllerService("invalid-writer", invalidWriter);
+        runner.enableControllerService(invalidWriter);
+
+        runner.setProperty(PutHive3Streaming.RECORD_READER, "reader");
+        runner.setProperty(PutHive3Streaming.HIVE_CONFIGURATION_RESOURCES, TEST_CONF_PATH);
+        runner.setProperty(PutHive3Streaming.DB_NAME, "default");
+        runner.setProperty(PutHive3Streaming.TABLE_NAME, "groups");
+        runner.enqueue(Paths.get("src/test/resources/nested-map-input.json"));
+        runner.run();
+
+        runner.assertTransferCount(PutHive3Streaming.REL_SUCCESS, 1);
+        runner.assertTransferCount(PutHive3Streaming.REL_FAILURE, 0);
+        runner.clearTransferState();
     }
 
     @Test

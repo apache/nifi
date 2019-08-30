@@ -22,6 +22,7 @@ import org.apache.hadoop.hive.common.type.Timestamp;
 import org.apache.hadoop.hive.serde.serdeConstants;
 import org.apache.hadoop.hive.serde2.SerDeException;
 import org.apache.hadoop.io.ObjectWritable;
+import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.MapRecord;
@@ -32,12 +33,14 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.MockComponentLog;
 import org.junit.Test;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 
 public class TestNiFiRecordSerDe {
@@ -68,7 +71,7 @@ public class TestNiFiRecordSerDe {
 
         long currentTimeMillis = System.currentTimeMillis();
 
-        Object deserialized = serDe.deserialize(new ObjectWritable(new MapRecord(schema, new HashMap(){
+        Object deserialized = serDe.deserialize(new ObjectWritable(new MapRecord(schema, new HashMap<String,Object>(){
             {
                 put("bytec", Byte.valueOf((byte)2));
                 put("shortc", Short.valueOf((short)45));
@@ -80,7 +83,7 @@ public class TestNiFiRecordSerDe {
                 put("stringc", "test");
                 put("varcharc", "test2");
                 put("charc", 'c');
-                put("binaryc", new byte[]{ (byte)1 });
+                put("binaryc", new byte[]{ (byte)1, (byte)2 });
                 put("datec", new java.sql.Date(currentTimeMillis));
                 put("timestampc", new java.sql.Timestamp(currentTimeMillis));
                 put("decimalc", 0.45);
@@ -103,10 +106,34 @@ public class TestNiFiRecordSerDe {
         assertEquals("test", fields.get(7));
         assertEquals("test2", fields.get(8));
         assertEquals("c", fields.get(9));
-        //assertEquals(AvroTypeUtil.convertByteArray(new Object[]{ (byte)1 }).array(), (byte[])fields.get(10));
+        assertArrayEquals(AvroTypeUtil.convertByteArray(new Object[]{ (byte)1, (byte)2 }).array(), (byte[])fields.get(10));
         assertEquals(date, fields.get(11));
         assertEquals(ts, fields.get(12));
         assertEquals(HiveDecimal.create("0.45"), fields.get(13));
+
+        // Try a binary field with a String value
+        deserialized = serDe.deserialize(new ObjectWritable(new MapRecord(schema, new HashMap<String,Object>(){
+            {
+                put("bytec", Byte.valueOf((byte)2));
+                put("shortc", Short.valueOf((short)45));
+                put("intc", Integer.valueOf(95));
+                put("longc", Long.valueOf(876L));
+                put("boolc", Boolean.TRUE);
+                put("floatc", 4.56f);
+                put("doublec", 2.3445);
+                put("stringc", "test");
+                put("varcharc", "test2");
+                put("charc", 'c');
+                put("binaryc", "Hello");
+                put("datec", new java.sql.Date(currentTimeMillis));
+                put("timestampc", new java.sql.Timestamp(currentTimeMillis));
+                put("decimalc", 0.45);
+            }
+        })));
+        assert(deserialized instanceof  List);
+
+        fields = (List<Object>)deserialized;
+        assertArrayEquals("Hello".getBytes(StandardCharsets.UTF_8), (byte[]) fields.get(10));
     }
 
     @Test

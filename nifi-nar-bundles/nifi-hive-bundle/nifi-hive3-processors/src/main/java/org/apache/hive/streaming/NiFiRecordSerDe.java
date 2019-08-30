@@ -45,10 +45,10 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.type.MapDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 
-import java.io.IOException;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.util.ArrayList;
@@ -61,6 +61,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public class NiFiRecordSerDe extends AbstractSerDe {
 
@@ -138,49 +139,19 @@ public class NiFiRecordSerDe extends AbstractSerDe {
     public Object deserialize(Writable writable) throws SerDeException {
         ObjectWritable t = (ObjectWritable) writable;
         Record record = (Record) t.get();
-        return  deserialize(record, schema, true);
-    }
-
-    /**
-     * Deserialize a record object into a Hive struct.
-     * @param  record The record to deserialize, can be null
-     * @param structTypeInfo The hive table column info that corresponds to the Hive struct
-     * @param isParentStruct Whether or not this struct is the one contained by the Writable
-     */
-    Object deserialize(Record record, StructTypeInfo structTypeInfo, boolean isParentStruct) throws SerDeException{
-        if(record == null){
-            return  null;
-        }
-        Map<String, Integer> fieldPositionMap = null;
-        try {
-            fieldPositionMap = populateFieldPositionMap(record.getSchema(), structTypeInfo, log);
-        } catch (IOException ex) {
-            throw new SerDeException(ex);
-        }
-
-        List<Object> r = new ArrayList<>(Collections.nCopies(structTypeInfo.getAllStructFieldNames().size(), null));
+        List<Object> r = new ArrayList<>(Collections.nCopies(columnNames.size(), null));
         try {
             RecordSchema recordSchema = record.getSchema();
             for (RecordField field : recordSchema.getFields()) {
-                String fieldName = field.getFieldName();
-                String normalizedFieldName = fieldName.toLowerCase();
-
-                // Get column position of field name, and set field value there
-                Integer fpos = fieldPositionMap.get(normalizedFieldName);
-                if(fpos == null || fpos == -1) {
-                    // This is either a partition column or not a column in the target table, ignore either way
-                    continue;
-                }
-                Object fieldValue = record.getValue(fieldName);
-                Object currField = convertFieldValue(fieldValue, field, structTypeInfo.getStructFieldTypeInfo(normalizedFieldName));
-                r.set(fpos, currField);
+                populateRecord(r, record.getValue(field), field, schema);
             }
-            if(isParentStruct) {
-                stats.setRowCount(stats.getRowCount() + 1);
-            }
+            stats.setRowCount(stats.getRowCount() + 1);
 
+        } catch(SerDeException se) {
+            log.error("Error [{}] parsing Record [{}].", new Object[]{se.toString(), t}, se);
+            throw se;
         } catch (Exception e) {
-            log.warn("Error [{}] parsing Record [{}].", new Object[]{e.toString(), record}, e);
+            log.error("Error [{}] parsing Record [{}].", new Object[]{e.toString(), t}, e);
             throw new SerDeException(e);
         }
 
@@ -188,11 +159,11 @@ public class NiFiRecordSerDe extends AbstractSerDe {
     }
 
     @SuppressWarnings("unchecked")
-    private Object convertFieldValue(final Object fieldValue, final RecordField field, final TypeInfo fieldTypeInfo) throws SerDeException {
+    private Object extractCurrentField(final Object fieldValue, final RecordField field, final TypeInfo fieldTypeInfo) throws SerDeException {
         if(fieldValue == null){
             return null;
         }
-        //from here on fieldValue is never null no need for null checks
+
         Object val;
         switch (fieldTypeInfo.getCategory()) {
             case PRIMITIVE:
@@ -202,35 +173,42 @@ public class NiFiRecordSerDe extends AbstractSerDe {
                 }
                 switch (primitiveCategory) {
                     case BYTE:
-                        Integer bIntValue = DataTypeUtils.toInteger(fieldValue, field.getDataType().getFormat());
+                        Integer bIntValue = DataTypeUtils.toInteger(fieldValue, field.getFieldName());
                         val = bIntValue.byteValue();
                         break;
                     case SHORT:
-                        Integer sIntValue = DataTypeUtils.toInteger(fieldValue, field.getDataType().getFormat());
+                        Integer sIntValue = DataTypeUtils.toInteger(fieldValue, field.getFieldName());
                         val = sIntValue.shortValue();
                         break;
                     case INT:
-                        val = DataTypeUtils.toInteger(fieldValue, field.getDataType().getFormat());
+                        val = DataTypeUtils.toInteger(fieldValue, field.getFieldName());
                         break;
                     case LONG:
-                        val = DataTypeUtils.toLong(fieldValue, field.getDataType().getFormat());
+                        val = DataTypeUtils.toLong(fieldValue, field.getFieldName());
                         break;
                     case BOOLEAN:
-                        val = DataTypeUtils.toBoolean(fieldValue, field.getDataType().getFormat());
+                        val = DataTypeUtils.toBoolean(fieldValue, field.getFieldName());
                         break;
                     case FLOAT:
-                        val = DataTypeUtils.toFloat(fieldValue, field.getDataType().getFormat());
+                        val = DataTypeUtils.toFloat(fieldValue, field.getFieldName());
                         break;
                     case DOUBLE:
-                        val = DataTypeUtils.toDouble(fieldValue, field.getDataType().getFormat());
+                        val = DataTypeUtils.toDouble(fieldValue, field.getFieldName());
                         break;
                     case STRING:
                     case VARCHAR:
                     case CHAR:
-                        val = DataTypeUtils.toString(fieldValue, field.getDataType().getFormat());
+                        val = DataTypeUtils.toString(fieldValue, field.getFieldName());
                         break;
                     case BINARY:
-                        Object[] array = DataTypeUtils.toArray(fieldValue, field.getFieldName(), field.getDataType());
+                        final ArrayDataType arrayDataType;
+                        if(fieldValue instanceof String) {
+                            // Treat this as an array of bytes
+                            arrayDataType = (ArrayDataType) RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType());
+                        } else {
+                            arrayDataType = (ArrayDataType) field.getDataType();
+                        }
+                        Object[] array = DataTypeUtils.toArray(fieldValue, field.getFieldName(), arrayDataType.getElementType());
                         val = AvroTypeUtil.convertByteArray(array).array();
                         break;
                     case DATE:
@@ -268,7 +246,7 @@ public class NiFiRecordSerDe extends AbstractSerDe {
                 TypeInfo nestedType = listTypeInfo.getListElementTypeInfo();
                 List<Object> converted = new ArrayList<>(value.length);
                 for(int i=0; i<value.length; i++){
-                    converted.add(convertFieldValue(value[i], field, nestedType));
+                    converted.add(extractCurrentField(value[i], field, nestedType));
                 }
                 val = converted;
                 break;
@@ -283,15 +261,27 @@ public class NiFiRecordSerDe extends AbstractSerDe {
                 RecordField valueField = new RecordField(field.getFieldName() + ".value", ((MapDataType)field.getDataType()).getValueType());
                 for (Map.Entry<String, Object> entry: valueMap.entrySet()) {
                     convertedMap.put(
-                            convertFieldValue(entry.getKey(), keyField, mapTypeInfo.getMapKeyTypeInfo()),
-                            convertFieldValue(entry.getValue(), valueField, mapTypeInfo.getMapValueTypeInfo())
+                            extractCurrentField(entry.getKey(), keyField, mapTypeInfo.getMapKeyTypeInfo()),
+                            extractCurrentField(entry.getValue(), valueField, mapTypeInfo.getMapValueTypeInfo())
                     );
                 }
                 val = convertedMap;
                 break;
             case STRUCT:
                 Record nestedRecord = (Record) fieldValue;
-                val = deserialize(nestedRecord, (StructTypeInfo)fieldTypeInfo, false);
+                StructTypeInfo s = (StructTypeInfo) fieldTypeInfo;
+                int numNestedRecordFields = s.getAllStructFieldTypeInfos().size();
+                List<Object> struct = new ArrayList<>(Collections.nCopies(numNestedRecordFields, null));
+                try {
+                    RecordSchema recordSchema = nestedRecord.getSchema();
+                    for (RecordField nestedRecordField : recordSchema.getFields()) {
+                        populateRecord(struct, nestedRecord.getValue(nestedRecordField), nestedRecordField, s);
+                    }
+                    val = struct;
+                } catch (Exception e) {
+                    log.error("Error [{}] parsing child record [{}].", new Object[]{e.toString(), nestedRecord}, e);
+                    throw new SerDeException(e);
+                }
                 break;
             default:
                 log.error("Unknown type found: " + fieldTypeInfo + "for field of type: " + field.getDataType().toString());
@@ -309,41 +299,40 @@ public class NiFiRecordSerDe extends AbstractSerDe {
 
 
 
-    private static HashMap<String, Integer> populateFieldPositionMap(RecordSchema recordSchema, StructTypeInfo typeInfo, ComponentLog log) throws IOException {
-        // Populate the mapping of field names to column positions only once
-        HashMap<String, Integer> fieldPosition = new HashMap<>(typeInfo.getAllStructFieldNames().size());
-        for (RecordField field : recordSchema.getFields()) {
-            String fieldName = field.getFieldName();
-            String normalizedFieldName = fieldName.toLowerCase();
+    private void populateRecord(List<Object> r, Object value, RecordField field, StructTypeInfo typeInfo) throws SerDeException {
 
-            int fpos = typeInfo.getAllStructFieldNames().indexOf(fieldName.toLowerCase());
+        String fieldName = field.getFieldName();
+        String normalizedFieldName = fieldName.toLowerCase();
+
+        // Normalize struct field names and search for the specified (normalized) field name
+        int fpos = typeInfo.getAllStructFieldNames().stream().map((s) -> s == null ? null : s.toLowerCase()).collect(Collectors.toList()).indexOf(normalizedFieldName);
+        if (fpos == -1) {
+            Matcher m = INTERNAL_PATTERN.matcher(fieldName);
+            fpos = m.matches() ? Integer.parseInt(m.group(1)) : -1;
+
+            log.debug("NPE finding position for field [{}] in schema [{}],"
+                    + " attempting to check if it is an internal column name like _col0", new Object[]{fieldName, typeInfo});
             if (fpos == -1) {
-                Matcher m = INTERNAL_PATTERN.matcher(fieldName);
-                fpos = m.matches() ? Integer.parseInt(m.group(1)) : -1;
-
-                log.debug("NPE finding position for field [{}] in schema [{}],"
-                        + " attempting to check if it is an internal column name like _col0", new Object[]{fieldName, typeInfo});
-                if (fpos == -1) {
-                    // unknown field, we return. We'll continue from the next field onwards. Log at debug level because partition columns will be "unknown fields"
-                    log.debug("Field {} is not found in the target table, ignoring...", new Object[]{field.getFieldName()});
-                    continue;
-                }
-                // If we get past this, then the column name did match the hive pattern for an internal
-                // column name, such as _col0, etc, so it *MUST* match the schema for the appropriate column.
-                // This means people can't use arbitrary column names such as _col0, and expect us to ignore it
-                // if we find it.
-                if (!fieldName.equalsIgnoreCase(HiveConf.getColumnInternalName(fpos))) {
-                    log.error("Hive internal column name {} and position "
-                            + "encoding {} for the column name are at odds", new Object[]{fieldName, fpos});
-                    throw new IOException("Hive internal column name (" + fieldName
-                            + ") and position encoding (" + fpos
-                            + ") for the column name are at odds");
-                }
-                // If we reached here, then we were successful at finding an alternate internal
-                // column mapping, and we're about to proceed.
+                // unknown field, we return. We'll continue from the next field onwards. Log at debug level because partition columns will be "unknown fields"
+                log.debug("Field {} is not found in the target table, ignoring...", new Object[]{field.getFieldName()});
+                return;
             }
-            fieldPosition.put(normalizedFieldName, fpos);
+            // If we get past this, then the column name did match the hive pattern for an internal
+            // column name, such as _col0, etc, so it *MUST* match the schema for the appropriate column.
+            // This means people can't use arbitrary column names such as _col0, and expect us to ignore it
+            // if we find it.
+            if (!fieldName.equalsIgnoreCase(HiveConf.getColumnInternalName(fpos))) {
+                log.error("Hive internal column name {} and position "
+                        + "encoding {} for the column name are at odds", new Object[]{fieldName, fpos});
+                throw new SerDeException("Hive internal column name (" + fieldName
+                        + ") and position encoding (" + fpos
+                        + ") for the column name are at odds");
+            }
+            // If we reached here, then we were successful at finding an alternate internal
+            // column mapping, and we're about to proceed.
         }
-        return fieldPosition;
+        Object currField = extractCurrentField(value, field, typeInfo.getStructFieldTypeInfo(normalizedFieldName));
+        r.set(fpos, currField);
     }
+
 }
