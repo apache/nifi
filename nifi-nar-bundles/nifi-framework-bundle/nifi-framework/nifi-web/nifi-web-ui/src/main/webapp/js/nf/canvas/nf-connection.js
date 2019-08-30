@@ -1535,21 +1535,30 @@
         if (_.isNumber(percentUseCount)) {
             var objectThreshold = _.get(d, 'component.backPressureObjectThreshold');
 
+            var predictionsAvailable = _.get(d, 'status.aggregateSnapshot.predictionsAvailable', false);
             var predictedPercentCount = _.get(d, 'status.aggregateSnapshot.predictedPercentCount', -1);
             var timeToBackPressure = _.get(d, 'status.aggregateSnapshot.predictedMillisUntilCountBackpressure', -1);
 
             var tooltipLines = ['Queue: ' + _.clamp(percentUseCount, 0, 100) + '% full (based on ' + objectThreshold + ' object threshold)'];
 
-            // only show predicted percent if it is non-negative
-            if (_.isNumber(predictedPercentCount) && predictedPercentCount > -1) {
+            if (predictionsAvailable) {
+                // only show predicted percent if it is non-negative
                 var predictionIntervalSeconds = _.get(d, 'status.aggregateSnapshot.predictionIntervalSeconds', 60 * 5);
-                tooltipLines.push('Predicted queue (next ' + (predictionIntervalSeconds / 60 ) + ' mins): ' + _.clamp(predictedPercentCount, 0, 100) + '%')
-            }
+                if (_.isNumber(predictedPercentCount) && predictedPercentCount > -1) {
+                    tooltipLines.push('Predicted queue (next ' + (predictionIntervalSeconds / 60 ) + ' mins): ' + _.clamp(predictedPercentCount, 0, 100) + '%')
+                } else {
+                    tooltipLines.push('Predicted queue (next ' + (predictionIntervalSeconds / 60 ) + ' mins): NA' )
+                }
 
-            // only show an estimate if it is valid (non-negative but less than the max number supported)
-            if (_.isNumber(timeToBackPressure) && _.inRange(timeToBackPressure, 0, Number.MAX_SAFE_INTEGER) && !isAtBackPressure(d)) {
-                var duration = nfCommon.formatPredictedDuration(timeToBackPressure);
-                tooltipLines.push('Estimated time to back pressure: ' + duration);
+                // only show an estimate if it is valid (non-negative but less than the max number supported)
+                if (_.isNumber(timeToBackPressure) && _.inRange(timeToBackPressure, 0, Number.MAX_SAFE_INTEGER) && !isAtBackPressure(d)) {
+                    var duration = nfCommon.formatPredictedDuration(timeToBackPressure);
+                    tooltipLines.push('Estimated time to back pressure: ' + duration);
+                } else {
+                    tooltipLines.push('Estimated time to back pressure: ' + (isAtBackPressure(d) ? 'now' : 'NA'));
+                }
+            } else {
+                tooltipLines.push('Queue Prediction is not configured')
             }
 
             if (_.isEmpty(tooltipLines)) {
@@ -1577,21 +1586,30 @@
         if (_.isNumber(percentUseBytes)) {
             var dataSizeThreshold = _.get(d, 'component.backPressureDataSizeThreshold');
 
+            var predictionsAvailable = _.get(d, 'status.aggregateSnapshot.predictionsAvailable', false);
             var predictedPercentBytes = _.get(d, 'status.aggregateSnapshot.predictedPercentBytes', -1);
             var timeToBackPressure = _.get(d, 'status.aggregateSnapshot.predictedMillisUntilBytesBackpressure', -1);
 
             var tooltipLines = ['Queue: ' + _.clamp(percentUseBytes, 0, 100) + '% full (based on ' + dataSizeThreshold + ' data size threshold)'];
 
-            // only show predicted percent if it is non-negative
-            if (_.isNumber(predictedPercentBytes) && predictedPercentBytes > -1) {
+            if (predictionsAvailable) {
+                // only show predicted percent if it is non-negative
                 var predictionIntervalSeconds = _.get(d, 'status.aggregateSnapshot.predictionIntervalSeconds', 60 * 5);
-                tooltipLines.push('Predicted queue (next ' + (predictionIntervalSeconds / 60 ) + ' mins): ' + _.clamp(predictedPercentBytes, 0, 100) + '%')
-            }
+                if (_.isNumber(predictedPercentBytes) && predictedPercentBytes > -1) {
+                    tooltipLines.push('Predicted queue (next ' + (predictionIntervalSeconds / 60) + ' mins): ' + _.clamp(predictedPercentBytes, 0, 100) + '%')
+                } else {
+                    tooltipLines.push('Predicted queue (next ' + (predictionIntervalSeconds / 60 ) + ' mins): NA' )
+                }
 
-            // only show an estimate if it is valid (non-negative but less than the max number supported)
-            if (_.isNumber(timeToBackPressure) && _.inRange(timeToBackPressure, 0, Number.MAX_SAFE_INTEGER) && !isAtBackPressure(d)) {
-                var duration = nfCommon.formatPredictedDuration(timeToBackPressure);
-                tooltipLines.push('Estimated time to back pressure: ' + duration);
+                // only show an estimate if it is valid (non-negative but less than the max number supported)
+                if (_.isNumber(timeToBackPressure) && _.inRange(timeToBackPressure, 0, Number.MAX_SAFE_INTEGER) && !isAtBackPressure(d)) {
+                    var duration = nfCommon.formatPredictedDuration(timeToBackPressure);
+                    tooltipLines.push('Estimated time to back pressure: ' + duration);
+                } else {
+                    tooltipLines.push('Estimated time to back pressure: ' + (isAtBackPressure(d) ? 'now' : 'NA'));
+                }
+            } else {
+                tooltipLines.push('Queue Prediction is not configured')
             }
 
             if (_.isEmpty(tooltipLines)) {
