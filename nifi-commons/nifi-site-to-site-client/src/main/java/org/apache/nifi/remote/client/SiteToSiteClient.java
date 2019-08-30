@@ -68,7 +68,7 @@ import java.util.concurrent.TimeUnit;
  * interaction with the remote instance takes place. After data has been
  * exchanged or it is determined that no data is available, the Transaction can
  * then be canceled (via the {@link Transaction#cancel(String)} method) or can
- * be completed (via the {@link Transaction#complete(boolean)} method).
+ * be completed (via the {@link Transaction#complete()} method).
  * </p>
  *
  * <p>
@@ -934,6 +934,18 @@ public interface SiteToSiteClient extends Closeable {
         @Override
         public StateManager getStateManager() {
             return stateManager;
+        }
+
+        @Override
+        public PeerPersistence getPeerPersistence() {
+            if (stateManager != null) {
+                return new StatePeerPersistence(stateManager);
+
+            } else if (peerPersistenceFile != null) {
+                return new FilePeerPersistence(peerPersistenceFile);
+            }
+
+            return null;
         }
 
         @Override

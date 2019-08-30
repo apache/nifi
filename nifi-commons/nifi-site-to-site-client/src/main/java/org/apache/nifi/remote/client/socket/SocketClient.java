@@ -52,8 +52,8 @@ public class SocketClient extends AbstractSiteToSiteClient {
                 createRemoteDestination(config.getPortIdentifier(), config.getPortName()),
                 commsTimeout,
                 (int) config.getIdleConnectionExpiration(TimeUnit.MILLISECONDS),
-                config.getSslContext(), config.getEventReporter(), config.getPeerPersistenceFile(),
-                siteInfoProvider, config.getLocalAddress(), config.getStateManager()
+                config.getSslContext(), config.getEventReporter(), config.getPeerPersistence(),
+                siteInfoProvider, config.getLocalAddress()
         );
 
         this.compress = config.isUseCompression();

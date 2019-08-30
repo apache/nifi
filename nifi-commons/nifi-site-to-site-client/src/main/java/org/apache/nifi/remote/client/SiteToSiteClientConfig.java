@@ -111,7 +111,15 @@ public interface SiteToSiteClientConfig extends Serializable {
      */
     File getPeerPersistenceFile();
 
+    /**
+     * @return the StateManager to be used for persisting the nodes of a remote
+     */
     StateManager getStateManager();
+
+    /**
+     * @return a PeerPersistence implementation based on configured persistent target
+     */
+    PeerPersistence getPeerPersistence();
 
     /**
      * @return a boolean indicating whether or not compression will be used to

@@ -85,7 +85,7 @@ public class TestPeerSelector {
         collection.add(new PeerStatus(new PeerDescription("Node5", 5555, true), 4096, true));
 
         PeerStatusProvider peerStatusProvider = Mockito.mock(PeerStatusProvider.class);
-        PeerSelector peerSelector = new PeerSelector(peerStatusProvider, null, null);
+        PeerSelector peerSelector = new PeerSelector(peerStatusProvider, null);
 
         final List<PeerStatus> destinations = peerSelector.formulateDestinationList(collection, TransferDirection.RECEIVE);
         final Map<String, Integer> selectedCounts = calculateAverageSelectedCount(collection, destinations);
@@ -119,7 +119,7 @@ public class TestPeerSelector {
         collection.add(new PeerStatus(new PeerDescription("HasMedium", 5555, true), 4096, true));
 
         PeerStatusProvider peerStatusProvider = Mockito.mock(PeerStatusProvider.class);
-        PeerSelector peerSelector = new PeerSelector(peerStatusProvider, null, null);
+        PeerSelector peerSelector = new PeerSelector(peerStatusProvider, null);
 
         final List<PeerStatus> destinations = peerSelector.formulateDestinationList(collection, TransferDirection.RECEIVE);
         final Map<String, Integer> selectedCounts = calculateAverageSelectedCount(collection, destinations);
@@ -136,7 +136,7 @@ public class TestPeerSelector {
         collection.add(new PeerStatus(new PeerDescription("HasLots", 2222, true), 50000, true));
 
         PeerStatusProvider peerStatusProvider = Mockito.mock(PeerStatusProvider.class);
-        PeerSelector peerSelector = new PeerSelector(peerStatusProvider, null, null);
+        PeerSelector peerSelector = new PeerSelector(peerStatusProvider, null);
 
         final List<PeerStatus> destinations = peerSelector.formulateDestinationList(collection, TransferDirection.RECEIVE);
         final Map<String, Integer> selectedCounts = calculateAverageSelectedCount(collection, destinations);
@@ -155,7 +155,7 @@ public class TestPeerSelector {
         collection.add(new PeerStatus(new PeerDescription("HasMedium", 5555, true), 4096, true));
 
         PeerStatusProvider peerStatusProvider = Mockito.mock(PeerStatusProvider.class);
-        PeerSelector peerSelector = new PeerSelector(peerStatusProvider, null, null);
+        PeerSelector peerSelector = new PeerSelector(peerStatusProvider, null);
 
         final List<PeerStatus> destinations = peerSelector.formulateDestinationList(collection, TransferDirection.RECEIVE);
         final Map<String, Integer> selectedCounts = calculateAverageSelectedCount(collection, destinations);
@@ -172,7 +172,7 @@ public class TestPeerSelector {
         collection.add(new PeerStatus(new PeerDescription("HasLittle", 2222, true), 50000, true));
 
         PeerStatusProvider peerStatusProvider = Mockito.mock(PeerStatusProvider.class);
-        PeerSelector peerSelector = new PeerSelector(peerStatusProvider, null, null);
+        PeerSelector peerSelector = new PeerSelector(peerStatusProvider, null);
 
         final List<PeerStatus> destinations = peerSelector.formulateDestinationList(collection, TransferDirection.RECEIVE);
         final Map<String, Integer> selectedCounts = calculateAverageSelectedCount(collection, destinations);
@@ -213,7 +213,7 @@ public class TestPeerSelector {
         peerStatuses.add(node2Status);
 
         final PeerStatusProvider peerStatusProvider = Mockito.mock(PeerStatusProvider.class);
-        final PeerSelector peerSelector = new PeerSelector(peerStatusProvider, null, null);
+        final PeerSelector peerSelector = new PeerSelector(peerStatusProvider, null);
         final UnitTestSystemTime systemTime = new UnitTestSystemTime();
         peerSelector.setSystemTime(systemTime);
 
@@ -278,8 +278,8 @@ public class TestPeerSelector {
         final StateManager stateManager = Mockito.mock(StateManager.class);
         final StateMap stateMap = Mockito.mock(StateMap.class);
         final Map<String, String> state = new HashMap<>();
-        state.put(PeerSelector.STATE_KEY_PEERS, "RAW\nnifi1:8081:false:true\nnifi2:8081:false:true\n");
-        state.put(PeerSelector.STATE_KEY_PEERS_TIMESTAMP, String.valueOf(System.currentTimeMillis()));
+        state.put(StatePeerPersistence.STATE_KEY_PEERS, "RAW\nnifi1:8081:false:true\nnifi2:8081:false:true\n");
+        state.put(StatePeerPersistence.STATE_KEY_PEERS_TIMESTAMP, String.valueOf(System.currentTimeMillis()));
         when(peerStatusProvider.getTransportProtocol()).thenReturn(SiteToSiteTransportProtocol.RAW);
         when(stateManager.getState(eq(Scope.LOCAL))).thenReturn(stateMap);
         when(stateMap.get(anyString())).thenAnswer(invocation -> state.get(invocation.getArgument(0)));
@@ -296,17 +296,17 @@ public class TestPeerSelector {
             .thenReturn(Collections.singleton(new PeerStatus(bootstrapPeer, 1, true)));
 
         // PeerSelector should restore peer statuses from managed cache.
-        PeerSelector peerSelector = new PeerSelector(peerStatusProvider, null, stateManager);
+        PeerSelector peerSelector = new PeerSelector(peerStatusProvider, new StatePeerPersistence(stateManager));
         peerSelector.refreshPeers();
         assertEquals("Restored peers should be used",
-            "RAW\nnifi1:8081:false:true\nnifi2:8081:false:true\n", stateMap.get(PeerSelector.STATE_KEY_PEERS));
+            "RAW\nnifi1:8081:false:true\nnifi2:8081:false:true\n", stateMap.get(StatePeerPersistence.STATE_KEY_PEERS));
 
         // If the stored state is too old, PeerSelector refreshes peers.
-        state.put(PeerSelector.STATE_KEY_PEERS_TIMESTAMP, String.valueOf(System.currentTimeMillis() - 120_000));
-        peerSelector = new PeerSelector(peerStatusProvider, null, stateManager);
+        state.put(StatePeerPersistence.STATE_KEY_PEERS_TIMESTAMP, String.valueOf(System.currentTimeMillis() - 120_000));
+        peerSelector = new PeerSelector(peerStatusProvider, new StatePeerPersistence(stateManager));
         peerSelector.refreshPeers();
         assertEquals("Peers should be refreshed",
-            "RAW\nnifi0:8081:false:true\n", stateMap.get(PeerSelector.STATE_KEY_PEERS));
+            "RAW\nnifi0:8081:false:true\n", stateMap.get(StatePeerPersistence.STATE_KEY_PEERS));
     }
 
     @Test
@@ -315,8 +315,8 @@ public class TestPeerSelector {
         final StateManager stateManager = Mockito.mock(StateManager.class);
         final StateMap stateMap = Mockito.mock(StateMap.class);
         final Map<String, String> state = new HashMap<>();
-        state.put(PeerSelector.STATE_KEY_PEERS, "RAW\nnifi1:8081:false:true\nnifi2:8081:false:true\n");
-        state.put(PeerSelector.STATE_KEY_PEERS_TIMESTAMP, String.valueOf(System.currentTimeMillis()));
+        state.put(StatePeerPersistence.STATE_KEY_PEERS, "RAW\nnifi1:8081:false:true\nnifi2:8081:false:true\n");
+        state.put(StatePeerPersistence.STATE_KEY_PEERS_TIMESTAMP, String.valueOf(System.currentTimeMillis()));
         when(peerStatusProvider.getTransportProtocol()).thenReturn(SiteToSiteTransportProtocol.HTTP);
         when(stateManager.getState(eq(Scope.LOCAL))).thenReturn(stateMap);
         when(stateMap.get(anyString())).thenAnswer(invocation -> state.get(invocation.getArgument(0)));
@@ -333,10 +333,10 @@ public class TestPeerSelector {
             .thenReturn(Collections.singleton(new PeerStatus(bootstrapPeer, 1, true)));
 
         // PeerSelector should NOT restore peer statuses from managed cache because protocol changed.
-        PeerSelector peerSelector = new PeerSelector(peerStatusProvider, null, stateManager);
+        PeerSelector peerSelector = new PeerSelector(peerStatusProvider, new StatePeerPersistence(stateManager));
         peerSelector.refreshPeers();
         assertEquals("Restored peers should NOT be used",
-            "HTTP\nnifi0:8081:false:true\n", stateMap.get(PeerSelector.STATE_KEY_PEERS));
+            "HTTP\nnifi0:8081:false:true\n", stateMap.get(StatePeerPersistence.STATE_KEY_PEERS));
     }
 
     @Test
@@ -350,6 +350,7 @@ public class TestPeerSelector {
             .thenReturn(Collections.singleton(new PeerStatus(bootstrapPeer, 1, true)));
 
         final File file = File.createTempFile("peers", "txt");
+        file.deleteOnExit();
 
         try (final FileOutputStream fos = new FileOutputStream(file)) {
             fos.write("RAW\nnifi1:8081:false:true\nnifi2:8081:false:true\n".getBytes(StandardCharsets.UTF_8));
@@ -370,14 +371,14 @@ public class TestPeerSelector {
         };
 
         // PeerSelector should restore peer statuses from managed cache.
-        PeerSelector peerSelector = new PeerSelector(peerStatusProvider, file, null);
+        PeerSelector peerSelector = new PeerSelector(peerStatusProvider, new FilePeerPersistence(file));
         peerSelector.refreshPeers();
         assertEquals("Restored peers should be used",
             "RAW\nnifi1:8081:false:true\nnifi2:8081:false:true\n", readFile.get());
 
         // If the stored state is too old, PeerSelector refreshes peers.
         file.setLastModified(System.currentTimeMillis() - 120_000);
-        peerSelector = new PeerSelector(peerStatusProvider, file, null);
+        peerSelector = new PeerSelector(peerStatusProvider, new FilePeerPersistence(file));
         peerSelector.refreshPeers();
         assertEquals("Peers should be refreshed",
             "RAW\nnifi0:8081:false:true\n", readFile.get());

@@ -65,7 +65,7 @@ public class HttpClient extends AbstractSiteToSiteClient implements PeerStatusPr
     public HttpClient(final SiteToSiteClientConfig config) {
         super(config);
 
-        peerSelector = new PeerSelector(this, config.getPeerPersistenceFile(), config.getStateManager());
+        peerSelector = new PeerSelector(this, config.getPeerPersistence());
         peerSelector.setEventReporter(config.getEventReporter());
 
         taskExecutor = Executors.newScheduledThreadPool(1, new ThreadFactory() {
