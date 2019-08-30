@@ -315,6 +315,7 @@
             var comboOptions = {
                 options: options,
                 select: function (option) {
+                    var combo = this;
                     if (typeof option.value === 'undefined') {
                         $('#parameter-context-dialog').modal('setHeaderText', 'Add Parameter Context').modal('setButtonModel', [{
                             buttonText: 'Apply',

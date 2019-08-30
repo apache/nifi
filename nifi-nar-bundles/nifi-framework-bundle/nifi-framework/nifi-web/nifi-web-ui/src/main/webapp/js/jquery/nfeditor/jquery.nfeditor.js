@@ -235,7 +235,7 @@
         },
 
         /**
-         * Sets the size of the editor.
+         * Sets whether the editor is read only.
          *
          * @param {boolean|string} readOnly
          */
