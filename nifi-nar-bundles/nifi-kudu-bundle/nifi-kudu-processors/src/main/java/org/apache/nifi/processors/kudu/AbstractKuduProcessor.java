@@ -50,6 +50,7 @@ import org.apache.nifi.serialization.record.Record;
 import javax.security.auth.login.LoginException;
 import java.math.BigDecimal;
 import java.util.Arrays;
+import java.util.concurrent.TimeUnit;
 import java.util.List;
 
 public abstract class AbstractKuduProcessor extends AbstractProcessor {
@@ -72,21 +73,21 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
 
     static final PropertyDescriptor KUDU_OPERATION_TIMEOUT_MS = new Builder()
             .name("kudu-operations-timeout-ms")
-            .displayName("Kudu Operation Timeout in MS")
+            .displayName("Kudu Operation Timeout")
             .description("Default timeout used for user operations (using sessions and scanners)")
             .required(false)
-            .defaultValue(String.valueOf(AsyncKuduClient. DEFAULT_OPERATION_TIMEOUT_MS))
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .defaultValue(String.valueOf(AsyncKuduClient.DEFAULT_OPERATION_TIMEOUT_MS) + "ms")
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     static final PropertyDescriptor KUDU_KEEP_ALIVE_PERIOD_TIMEOUT_MS = new Builder()
             .name("kudu-keep-alive-period-timeout-ms")
-            .displayName("Kudu Keep Alive Period Timeout in MS")
+            .displayName("Kudu Keep Alive Period Timeout")
             .description("Default timeout used for user operations")
             .required(false)
-            .defaultValue(String.valueOf(AsyncKuduClient.DEFAULT_KEEP_ALIVE_PERIOD_MS))
-            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .defaultValue(String.valueOf(AsyncKuduClient.DEFAULT_KEEP_ALIVE_PERIOD_MS) + "ms")
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
@@ -120,12 +121,12 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
 
 
     protected KuduClient buildClient(final String masters, final ProcessContext context) {
-        final String operationTimeout = context.getProperty(KUDU_OPERATION_TIMEOUT_MS).evaluateAttributeExpressions().getValue();
-        final String adminOperationTimeout = context.getProperty(KUDU_KEEP_ALIVE_PERIOD_TIMEOUT_MS).evaluateAttributeExpressions().getValue();
+        final Integer operationTimeout = context.getProperty(KUDU_OPERATION_TIMEOUT_MS).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
+        final Integer adminOperationTimeout = context.getProperty(KUDU_KEEP_ALIVE_PERIOD_TIMEOUT_MS).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
 
         return new KuduClient.KuduClientBuilder(masters)
-                .defaultOperationTimeoutMs(Integer.parseInt(operationTimeout))
-                .defaultSocketReadTimeoutMs(Integer.parseInt(adminOperationTimeout))
+                .defaultOperationTimeoutMs(operationTimeout)
+                .defaultSocketReadTimeoutMs(adminOperationTimeout)
                 .build();
     }
 
