@@ -100,7 +100,6 @@ public class AzureLogWSReportingTask extends AbstractReportingTask {
             reporter = (AzureLogWSReporter) ((MetricReporterService) context.getProperty(REPORTER_SERVICE).asControllerService())
                     .createReporter(new MetricRegistry());
         }
-        
     }
 
 
@@ -125,9 +124,7 @@ public class AzureLogWSReportingTask extends AbstractReportingTask {
             } catch (UnknownHostException e) {
                 getLogger().error("Error in getting reporting host name: {}", e.getStackTrace());
                 return;
-			}
-            
-
+            }
             for (Map.Entry<String,String> entry : statusMetrics.entrySet()) {
                 jobjBuilder.add(entry.getKey(), entry.getValue());
             }

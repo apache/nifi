@@ -37,8 +37,9 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 /**
- * A controller service that provides metric reporters for azure log analytics, can be used by {@link MetricsReportingTask}.
- * 
+ * A controller service that provides metric reporters for azure log analytics,
+ * can be used by {@link MetricsReportingTask}.
+ *
  */
 @Tags({"metrics", "reporting", "azure.log.analytics"})
 @CapabilityDescription("A controller service that provides metric reporters for azure log analytics. " +
