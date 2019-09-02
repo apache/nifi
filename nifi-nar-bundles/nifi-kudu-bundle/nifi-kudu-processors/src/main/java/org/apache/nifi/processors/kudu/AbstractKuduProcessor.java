@@ -89,11 +89,11 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
 
     static final PropertyDescriptor KUDU_KEEP_ALIVE_PERIOD_TIMEOUT_MS = new Builder()
             .name("kudu-keep-alive-period-timeout-ms")
-            .displayName("Kudu Keep Alive Period Timeout in MS")
+            .displayName("Kudu Keep Alive Period Timeout")
             .description("Default timeout used for user operations")
             .required(false)
-            .defaultValue(String.valueOf(AsyncKuduClient.DEFAULT_KEEP_ALIVE_PERIOD_MS))
-            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .defaultValue(String.valueOf(AsyncKuduClient.DEFAULT_KEEP_ALIVE_PERIOD_MS) + "ms")
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 

@@ -105,7 +105,6 @@ public class TestPutKudu {
         testRunner.setProperty(PutKudu.IGNORE_NULL, "true");
         testRunner.setProperty(PutKudu.RECORD_READER, "mock-reader-factory");
         testRunner.setProperty(PutKudu.INSERT_OPERATION, OperationType.INSERT.toString());
-        testRunner.setValidateExpressionUsage(false);
     }
 
     @After
@@ -561,7 +560,6 @@ public class TestPutKudu {
         testRunner.setProperty(PutKudu.FLUSH_MODE, flushMode.name());
         testRunner.setProperty(PutKudu.BATCH_SIZE, String.valueOf(batchSize));
         testRunner.setProperty(PutKudu.FLOWFILE_BATCH_SIZE, String.valueOf(batchSize));
-        testRunner.setValidateExpressionUsage(false);
 
         IntStream.range(0, numFlowFiles).forEach(i -> testRunner.enqueue(""));
         testRunner.run(numFlowFiles);
