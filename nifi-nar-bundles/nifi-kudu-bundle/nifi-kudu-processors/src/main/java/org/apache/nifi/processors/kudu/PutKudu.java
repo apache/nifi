@@ -26,6 +26,7 @@ import org.apache.kudu.client.RowError;
 import org.apache.kudu.client.SessionConfiguration;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.RequiresInstanceClassLoading;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -40,7 +41,6 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.kudu.io.OperationType;
 import org.apache.nifi.security.krb.KerberosAction;
 import org.apache.nifi.security.krb.KerberosUser;
 import org.apache.nifi.serialization.RecordReader;
@@ -62,6 +62,7 @@ import java.util.stream.Collectors;
 
 @EventDriven
 @SupportsBatching
+@RequiresInstanceClassLoading // Because of calls to UserGroupInformation.setConfiguration
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"put", "database", "NoSQL", "kudu", "HDFS", "record"})
 @CapabilityDescription("Reads records from an incoming FlowFile using the provided Record Reader, and writes those records " +
@@ -99,7 +100,8 @@ public class PutKudu extends AbstractKuduProcessor {
         .build();
 
     protected static final PropertyDescriptor INSERT_OPERATION = new Builder()
-        .name("Kudu Operation Type")
+        .name("Insert Operation")
+        .displayName("Kudu Operation Type")
         .description("Specify operationType for this processor. Insert-Ignore will ignore duplicated rows")
         .defaultValue(OperationType.INSERT.toString())
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -145,11 +147,12 @@ public class PutKudu extends AbstractKuduProcessor {
 
     protected static final PropertyDescriptor IGNORE_NULL = new Builder()
         .name("Ignore NULL")
-        .displayName("Ignore NULL on Kudu Put Operation")
-        .description("Update only non-Null columns if set true")
-        .defaultValue("true")
+        .description("Ignore NULL on Kudu Put Operation, Update only non-Null columns if set true")
+        .defaultValue("false")
         .allowableValues("true", "false")
+        .required(true)
         .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .build();
 
     protected static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -169,16 +172,12 @@ public class PutKudu extends AbstractKuduProcessor {
     protected int batchSize = 100;
     protected int ffbatch   = 1;
 
-    protected KuduTable kuduTable;
-
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(KUDU_MASTERS);
-        properties.add(KERBEROS_CREDENTIALS_SERVICE);
-        properties.add(KUDU_OPERATION_TIMEOUT_MS);
-        properties.add(KUDU_KEEP_ALIVE_PERIOD_TIMEOUT_MS);
         properties.add(TABLE_NAME);
+        properties.add(KERBEROS_CREDENTIALS_SERVICE);
         properties.add(SKIP_HEAD_LINE);
         properties.add(RECORD_READER);
         properties.add(INSERT_OPERATION);
@@ -186,6 +185,8 @@ public class PutKudu extends AbstractKuduProcessor {
         properties.add(FLOWFILE_BATCH_SIZE);
         properties.add(BATCH_SIZE);
         properties.add(IGNORE_NULL);
+        properties.add(KUDU_OPERATION_TIMEOUT_MS);
+        properties.add(KUDU_KEEP_ALIVE_PERIOD_TIMEOUT_MS);
         return properties;
     }
 
@@ -199,16 +200,13 @@ public class PutKudu extends AbstractKuduProcessor {
 
     protected KerberosUser kerberosUser;
     protected KuduSession kuduSession;
-    protected String tableName;
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) throws IOException, LoginException {
-        tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions().getValue();
         batchSize = context.getProperty(BATCH_SIZE).evaluateAttributeExpressions().asInteger();
         ffbatch   = context.getProperty(FLOWFILE_BATCH_SIZE).evaluateAttributeExpressions().asInteger();
         flushMode = SessionConfiguration.FlushMode.valueOf(context.getProperty(FLUSH_MODE).getValue());
         createKuduClient(context);
-        kuduTable = getKuduClient().openTable(tableName);
     }
 
     @Override
@@ -258,7 +256,7 @@ public class PutKudu extends AbstractKuduProcessor {
 
                 Record record = recordSet.next();
                 while (record != null) {
-                    Operation operation = getKuduOperationType(operationType, record, fieldNames, ignoreNull);
+                    Operation operation = getKuduOperationType(operationType, record, fieldNames, ignoreNull, kuduTable);
                     // We keep track of mappings between Operations and their origins,
                     // so that we know which FlowFiles should be marked failure after buffered flush.
                     operationFlowFileMap.put(operation, flowFile);
@@ -345,7 +343,7 @@ public class PutKudu extends AbstractKuduProcessor {
         return kuduSession;
     }
 
-    private Operation getKuduOperationType(OperationType operationType, Record record, List<String> fieldNames, Boolean ignoreNull) {
+    private Operation getKuduOperationType(OperationType operationType, Record record, List<String> fieldNames, Boolean ignoreNull, KuduTable kuduTable) {
         switch (operationType) {
             case DELETE:
                 return deleteRecordFromKudu(kuduTable, record, fieldNames, ignoreNull);

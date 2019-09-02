@@ -25,7 +25,7 @@ import org.bouncycastle.asn1.x509.ExtendedKeyUsage
 import org.bouncycastle.asn1.x509.KeyPurposeId
 import org.bouncycastle.asn1.x509.KeyUsage
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo
-import org.bouncycastle.asn1.x509.X509Extension
+import org.bouncycastle.asn1.x509.Extension
 import org.bouncycastle.cert.X509CertificateHolder
 import org.bouncycastle.cert.X509v3CertificateBuilder
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter
@@ -162,14 +162,14 @@ public class OcspCertificateValidatorGroovyTest {
 
         // Set certificate extensions
         // (1) digitalSignature extension
-        certBuilder.addExtension(X509Extension.keyUsage, true,
+        certBuilder.addExtension(Extension.keyUsage, true,
                 new KeyUsage(KeyUsage.digitalSignature | KeyUsage.keyEncipherment | KeyUsage.dataEncipherment | KeyUsage.keyAgreement));
 
         // (2) extendedKeyUsage extension
         Vector<KeyPurposeId> ekUsages = new Vector<>();
         ekUsages.add(KeyPurposeId.id_kp_clientAuth);
         ekUsages.add(KeyPurposeId.id_kp_serverAuth);
-        certBuilder.addExtension(X509Extension.extendedKeyUsage, false, new ExtendedKeyUsage(ekUsages));
+        certBuilder.addExtension(Extension.extendedKeyUsage, false, new ExtendedKeyUsage(ekUsages));
 
         // Sign the certificate
         X509CertificateHolder certificateHolder = certBuilder.build(sigGen);

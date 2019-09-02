@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.authorization;
 
+import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.authorization.exception.AuthorizerCreationException;
 import org.apache.nifi.components.PropertyValue;
@@ -109,8 +110,8 @@ public class FileUserGroupProviderTest {
         when(properties.getRestoreDirectory()).thenReturn(restoreTenants.getParentFile());
 
         configurationContext = mock(AuthorizerConfigurationContext.class);
-        when(configurationContext.getProperty(eq(FileAuthorizer.PROP_LEGACY_AUTHORIZED_USERS_FILE))).thenReturn(new StandardPropertyValue(null, null));
-        when(configurationContext.getProperty(eq(FileUserGroupProvider.PROP_TENANTS_FILE))).thenReturn(new StandardPropertyValue(primaryTenants.getPath(), null));
+        when(configurationContext.getProperty(eq(FileAuthorizer.PROP_LEGACY_AUTHORIZED_USERS_FILE))).thenReturn(new StandardPropertyValue(null, null, ParameterLookup.EMPTY));
+        when(configurationContext.getProperty(eq(FileUserGroupProvider.PROP_TENANTS_FILE))).thenReturn(new StandardPropertyValue(primaryTenants.getPath(), null, ParameterLookup.EMPTY));
         when(configurationContext.getProperties()).then((invocation) -> {
             final Map<String, String> properties = new HashMap<>();
 
@@ -152,7 +153,7 @@ public class FileUserGroupProviderTest {
     @Test
     public void testOnConfiguredWhenLegacyUsersFileProvided() throws Exception {
         when(configurationContext.getProperty(eq(FileAuthorizer.PROP_LEGACY_AUTHORIZED_USERS_FILE)))
-                .thenReturn(new StandardPropertyValue("src/test/resources/authorized-users.xml", null));
+                .thenReturn(new StandardPropertyValue("src/test/resources/authorized-users.xml", null, ParameterLookup.EMPTY));
 
         writeFile(primaryTenants, EMPTY_TENANTS_CONCISE);
         userGroupProvider.onConfigured(configurationContext);
@@ -197,7 +198,7 @@ public class FileUserGroupProviderTest {
         userGroupProvider.setNiFiProperties(properties);
 
         when(configurationContext.getProperty(eq(FileAuthorizer.PROP_LEGACY_AUTHORIZED_USERS_FILE)))
-                .thenReturn(new StandardPropertyValue("src/test/resources/authorized-users-with-dns.xml", null));
+                .thenReturn(new StandardPropertyValue("src/test/resources/authorized-users-with-dns.xml", null, ParameterLookup.EMPTY));
 
         writeFile(primaryTenants, EMPTY_TENANTS_CONCISE);
         userGroupProvider.onConfigured(configurationContext);
@@ -243,7 +244,7 @@ public class FileUserGroupProviderTest {
         userGroupProvider.setNiFiProperties(properties);
 
         when(configurationContext.getProperty(eq(FileAuthorizer.PROP_LEGACY_AUTHORIZED_USERS_FILE)))
-                .thenReturn(new StandardPropertyValue("src/test/resources/authorized-users-with-dns.xml", null));
+                .thenReturn(new StandardPropertyValue("src/test/resources/authorized-users-with-dns.xml", null, ParameterLookup.EMPTY));
 
         writeFile(primaryTenants, EMPTY_TENANTS_CONCISE);
         userGroupProvider.onConfigured(configurationContext);
@@ -276,7 +277,7 @@ public class FileUserGroupProviderTest {
     @Test(expected = AuthorizerCreationException.class)
     public void testOnConfiguredWhenBadLegacyUsersFileProvided() throws Exception {
         when(configurationContext.getProperty(eq(FileAuthorizer.PROP_LEGACY_AUTHORIZED_USERS_FILE)))
-                .thenReturn(new StandardPropertyValue("src/test/resources/does-not-exist.xml", null));
+                .thenReturn(new StandardPropertyValue("src/test/resources/does-not-exist.xml", null, ParameterLookup.EMPTY));
 
         writeFile(primaryTenants, EMPTY_TENANTS_CONCISE);
         userGroupProvider.onConfigured(configurationContext);
@@ -298,11 +299,11 @@ public class FileUserGroupProviderTest {
         final String nodeIdentity2 = "node-identity-2";
 
         when(configurationContext.getProperty(eq(FileUserGroupProvider.PROP_INITIAL_USER_IDENTITY_PREFIX + "1")))
-                .thenReturn(new StandardPropertyValue(adminIdentity, null));
+                .thenReturn(new StandardPropertyValue(adminIdentity, null, ParameterLookup.EMPTY));
         when(configurationContext.getProperty(eq(FileUserGroupProvider.PROP_INITIAL_USER_IDENTITY_PREFIX + "2")))
-                .thenReturn(new StandardPropertyValue(nodeIdentity1, null));
+                .thenReturn(new StandardPropertyValue(nodeIdentity1, null, ParameterLookup.EMPTY));
         when(configurationContext.getProperty(eq(FileUserGroupProvider.PROP_INITIAL_USER_IDENTITY_PREFIX + "3")))
-                .thenReturn(new StandardPropertyValue(nodeIdentity2, null));
+                .thenReturn(new StandardPropertyValue(nodeIdentity2, null, ParameterLookup.EMPTY));
 
         writeFile(primaryTenants, EMPTY_TENANTS_CONCISE);
         userGroupProvider.onConfigured(configurationContext);
@@ -323,11 +324,11 @@ public class FileUserGroupProviderTest {
 
         // despite setting initial users, they will not be loaded as the tenants file is non-empty
         when(configurationContext.getProperty(eq(FileUserGroupProvider.PROP_INITIAL_USER_IDENTITY_PREFIX + "1")))
-                .thenReturn(new StandardPropertyValue(adminIdentity, null));
+                .thenReturn(new StandardPropertyValue(adminIdentity, null, ParameterLookup.EMPTY));
         when(configurationContext.getProperty(eq(FileUserGroupProvider.PROP_INITIAL_USER_IDENTITY_PREFIX + "2")))
-                .thenReturn(new StandardPropertyValue(nodeIdentity1, null));
+                .thenReturn(new StandardPropertyValue(nodeIdentity1, null, ParameterLookup.EMPTY));
         when(configurationContext.getProperty(eq(FileUserGroupProvider.PROP_INITIAL_USER_IDENTITY_PREFIX + "3")))
-                .thenReturn(new StandardPropertyValue(nodeIdentity2, null));
+                .thenReturn(new StandardPropertyValue(nodeIdentity2, null, ParameterLookup.EMPTY));
 
         writeFile(primaryTenants, SIMPLE_TENANTS_BY_USER);
         userGroupProvider.onConfigured(configurationContext);

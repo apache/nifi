@@ -576,7 +576,7 @@
                     // only populate affected components if this variable is different than the last selected
                     if (lastSelectedId === null || lastSelectedId !== variable.id) {
                         // update the details for this variable
-                        $('#affected-components-context').removeClass('unset').text(variable.name);
+                        $('#variable-affected-components-context').removeClass('unset').text(variable.name);
                         populateAffectedComponents(variable.affectedComponents);
 
                         // update the last selected id
@@ -1150,7 +1150,7 @@
                 $('<li class="affected-component-container"><span class="unset">None</span></li>').appendTo(unauthorizedComponentsContainer);
 
                 // update the selection context
-                $('#affected-components-context').addClass('unset').text('None');
+                $('#variable-affected-components-context').addClass('unset').text('None');
             } else {
                 // select the desired row
                 variableGrid.setSelectedRows([index]);
@@ -1202,7 +1202,7 @@
         var variableNames = variables.map(function (v) {
              return v.variable.name;
         });
-        $('#affected-components-context').removeClass('unset').text(variableNames.join(', '));
+        $('#variable-affected-components-context').removeClass('unset').text(variableNames.join(', '));
 
         // get the current group id
         var processGroupId = $('#variable-registry-process-group-id').text();
@@ -1533,7 +1533,7 @@
 
         $('#process-group-variable-registry').text('');
         $('#variable-registry-process-group-id').text('').removeData('revision');
-        $('#affected-components-context').removeClass('unset').text('');
+        $('#variable-affected-components-context').removeClass('unset').text('');
 
         var variableGrid = $('#variable-registry-table').data('gridInstance');
         var variableData = variableGrid.getData();

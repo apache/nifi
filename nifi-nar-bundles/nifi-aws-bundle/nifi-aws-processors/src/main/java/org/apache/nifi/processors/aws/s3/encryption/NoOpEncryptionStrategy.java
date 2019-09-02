@@ -14,38 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.nifi.processors.aws.s3.encryption;
 
-ul.CodeMirror-hints {
-    overflow-y: scroll;
-}
-
-div.el-section {
-    margin: 5px 0;
-}
-
-div.el-name {
-    font-weight: bold;
-    font-family: monospace;
-    font-size: 16px;
-    margin-bottom: 10px;
-}
-
-div.el-header {
-    float: left;
-    width: 75px;
-    font-weight: bold;
-}
-
-ul.el-arguments {
-    margin-top: 5px;
-    list-style-type: disc;
-    list-style-position: inside;
-}
-
-span.el-argument-name {
-    font-family: monospace;
-}
-
-div.nfel-tooltip {
-    max-width: 350px;
+public class NoOpEncryptionStrategy implements S3EncryptionStrategy {
 }

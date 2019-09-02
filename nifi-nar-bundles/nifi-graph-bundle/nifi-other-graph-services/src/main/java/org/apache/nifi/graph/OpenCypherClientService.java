@@ -40,14 +40,12 @@ import java.util.Map;
 @Tags({ "cypher", "opencypher", "graph", "database", "janus" })
 public class OpenCypherClientService extends AbstractTinkerpopClientService implements GraphClientService {
     private volatile Driver gremlinDriver;
-    private volatile String transitUrl;
 
     @OnEnabled
     public void onEnabled(ConfigurationContext context) {
         Cluster cluster = buildCluster(context);
 
         gremlinDriver = GremlinDatabase.driver(cluster);
-        transitUrl = String.format("gremlin://%s", context.getProperty(CONTACT_POINTS).getValue());
     }
 
     @OnDisabled

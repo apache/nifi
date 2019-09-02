@@ -59,13 +59,17 @@
         // setup custom checkbox
         $(document).on('click', 'div.nf-checkbox', function () {
             var checkbox = $(this);
-            if (checkbox.hasClass('checkbox-unchecked')) {
+            var transitionToChecked = checkbox.hasClass('checkbox-unchecked');
+
+            if (transitionToChecked) {
                 checkbox.removeClass('checkbox-unchecked').addClass('checkbox-checked');
             } else {
                 checkbox.removeClass('checkbox-checked').addClass('checkbox-unchecked');
             }
             // emit a state change event
-            checkbox.trigger('change');
+            checkbox.trigger('change', {
+                isChecked: transitionToChecked
+            });
         });
 
         // setup click areas for custom checkboxes
@@ -115,7 +119,11 @@
     }, {
         text: 'access the controller',
         value: 'controller',
-        description: 'Allows users to view/modify the controller including Reporting Tasks, Controller Services, and Nodes in the Cluster'
+        description: 'Allows users to view/modify the controller including Reporting Tasks, Controller Services, Parameter Contexts, and Nodes in the Cluster'
+    }, {
+        text: 'access parameter contexts',
+        value: 'parameter-contexts',
+        description: 'Allows users to view/modify Parameter Contexts'
     }, {
         text: 'query provenance',
         value: 'provenance',
@@ -703,6 +711,19 @@
         canModifyTenants: function () {
             if (nfCommon.isDefinedAndNotNull(nfCommon.currentUser)) {
                 return nfCommon.currentUser.tenantsPermissions.canRead === true && nfCommon.currentUser.tenantsPermissions.canWrite === true;
+            } else {
+                return false;
+            }
+        },
+
+        /**
+         * Determines whether the current user can modify parameter contexts.
+         *
+         * @returns {boolean}
+         */
+        canModifyParameterContexts: function () {
+            if (nfCommon.isDefinedAndNotNull(nfCommon.currentUser)) {
+                return nfCommon.currentUser.parameterContextPermissions.canRead === true && nfCommon.currentUser.parameterContextPermissions.canWrite === true;
             } else {
                 return false;
             }

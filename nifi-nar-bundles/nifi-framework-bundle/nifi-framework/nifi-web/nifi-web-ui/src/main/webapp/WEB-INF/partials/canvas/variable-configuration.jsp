@@ -48,7 +48,7 @@
                     Variables
                 </div>
                 <div class="setting-field">
-                    <div id="affected-components-context"></div>
+                    <div id="variable-affected-components-context"></div>
                 </div>
             </div>
             <div class="setting">

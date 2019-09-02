@@ -16,19 +16,18 @@
  */
 package org.apache.nifi.attribute.expression.language.evaluation.functions;
 
-import java.util.Date;
-import java.util.Map;
-
+import org.apache.nifi.attribute.expression.language.EvaluationContext;
 import org.apache.nifi.attribute.expression.language.evaluation.DateEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.DateQueryResult;
-import org.apache.nifi.attribute.expression.language.evaluation.EvaluatorState;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
+
+import java.util.Date;
 
 public class NowEvaluator extends DateEvaluator {
 
     @Override
-    public QueryResult<Date> evaluate(final Map<String, String> attributes, final EvaluatorState context) {
+    public QueryResult<Date> evaluate(final EvaluationContext evaluationContext) {
         return new DateQueryResult(new Date());
     }
 

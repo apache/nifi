@@ -76,6 +76,7 @@ import org.apache.nifi.integration.processors.GenerateProcessor;
 import org.apache.nifi.integration.processors.NopProcessor;
 import org.apache.nifi.integration.processors.TerminateAll;
 import org.apache.nifi.integration.processors.TerminateOnce;
+import org.apache.nifi.integration.processors.UsernamePasswordProcessor;
 import org.apache.nifi.logging.LogRepositoryFactory;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.SystemBundle;
@@ -143,7 +144,7 @@ public class FrameworkIntegrationTest {
 
     private FlowEngine flowEngine;
     private FlowController flowController;
-    private FlowRegistryClient flowRegistryClient = new StandardFlowRegistryClient();
+    private FlowRegistryClient flowRegistryClient = createFlowRegistryClient();
     private ProcessorNode nopProcessor;
     private ProcessorNode terminateProcessor;
     private ProcessorNode terminateAllProcessor;
@@ -193,6 +194,13 @@ public class FrameworkIntegrationTest {
         initialize(nifiProperties);
     }
 
+    /**
+     * This method exists for subclasses to override and return a different implementation.
+     */
+    protected FlowRegistryClient createFlowRegistryClient() {
+        return new StandardFlowRegistryClient();
+    }
+
     protected final void initialize(final NiFiProperties nifiProperties) throws IOException {
         this.nifiProperties = nifiProperties;
 
@@ -214,6 +222,7 @@ public class FrameworkIntegrationTest {
         extensionManager.injectExtensionType(Processor.class, TerminateOnce.class);
         extensionManager.injectExtensionType(Processor.class, TerminateAll.class);
         extensionManager.injectExtensionType(Processor.class, NopProcessor.class);
+        extensionManager.injectExtensionType(Processor.class, UsernamePasswordProcessor.class);
 
         injectExtensionTypes(extensionManager);
         systemBundle = SystemBundle.create(nifiProperties);

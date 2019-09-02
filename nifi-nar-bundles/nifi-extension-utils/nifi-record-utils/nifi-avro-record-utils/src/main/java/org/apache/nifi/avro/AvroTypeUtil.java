@@ -1012,6 +1012,11 @@ public class AvroTypeUtil {
                 return AvroTypeUtil.convertByteArray(bb.array());
             case FIXED:
                 final GenericFixed fixed = (GenericFixed) value;
+                final LogicalType fixedLogicalType = avroSchema.getLogicalType();
+                if (fixedLogicalType != null && LOGICAL_TYPE_DECIMAL.equals(fixedLogicalType.getName())) {
+                    final ByteBuffer fixedByteBuffer = ByteBuffer.wrap(fixed.bytes());
+                    return new Conversions.DecimalConversion().fromBytes(fixedByteBuffer, avroSchema, fixedLogicalType);
+                }
                 return AvroTypeUtil.convertByteArray(fixed.bytes());
             case ENUM:
                 return value.toString();

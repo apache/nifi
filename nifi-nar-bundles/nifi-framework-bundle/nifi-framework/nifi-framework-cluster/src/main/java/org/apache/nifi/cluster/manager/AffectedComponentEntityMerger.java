@@ -95,6 +95,10 @@ public class AffectedComponentEntityMerger {
                 } else {
                     affectedComponent.setPermissions(permissions);
                     affectedComponent.setComponent(null);
+
+                    if (affectedComponent.getProcessGroup() != null) {
+                        affectedComponent.getProcessGroup().setName(affectedComponent.getProcessGroup().getId());
+                    }
                 }
             }
         }

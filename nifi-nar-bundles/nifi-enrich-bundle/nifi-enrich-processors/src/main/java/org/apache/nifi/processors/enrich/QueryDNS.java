@@ -109,7 +109,7 @@ public class QueryDNS extends AbstractEnrichProcessor {
     private DirContext ictx;
 
     // Assign the default and generally used contextFactory value
-    private String contextFactory = com.sun.jndi.dns.DnsContextFactory.class.getName();;
+    private String contextFactory = "com.sun.jndi.dns.DnsContextFactory";
 
     static {
         List<PropertyDescriptor> props = new ArrayList<>();

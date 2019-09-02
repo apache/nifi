@@ -41,6 +41,12 @@
             <artifactId>hadoop-client</artifactId>
             <version>${hadoop.version}</version>
             <scope>provided</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-log4j12</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.apache.parquet</groupId>
@@ -92,6 +98,7 @@
                         <exclude>src/test/resources/avro/user.avsc</exclude>
                         <exclude>src/test/resources/avro/user-with-array.avsc</exclude>
                         <exclude>src/test/resources/avro/user-with-nullable-array.avsc</exclude>
+                        <exclude>src/test/resources/avro/user-with-fixed-decimal.avsc</exclude>
                         <exclude>src/test/resources/avro/all-minus-enum.avsc</exclude>
                     </excludes>
                 </configuration>

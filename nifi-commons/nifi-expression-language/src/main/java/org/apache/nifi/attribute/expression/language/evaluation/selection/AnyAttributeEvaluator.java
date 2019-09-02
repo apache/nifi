@@ -16,11 +16,9 @@
  */
 package org.apache.nifi.attribute.expression.language.evaluation.selection;
 
-import java.util.Map;
-
+import org.apache.nifi.attribute.expression.language.EvaluationContext;
 import org.apache.nifi.attribute.expression.language.evaluation.BooleanEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.BooleanQueryResult;
-import org.apache.nifi.attribute.expression.language.evaluation.EvaluatorState;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 
@@ -35,8 +33,8 @@ public class AnyAttributeEvaluator extends BooleanEvaluator implements Iterating
     }
 
     @Override
-    public QueryResult<Boolean> evaluate(final Map<String, String> attributes, final EvaluatorState context) {
-        QueryResult<Boolean> attributeValueQuery = booleanEvaluator.evaluate(attributes, context);
+    public QueryResult<Boolean> evaluate(final EvaluationContext evaluationContext) {
+        QueryResult<Boolean> attributeValueQuery = booleanEvaluator.evaluate(evaluationContext);
         Boolean result = attributeValueQuery.getValue();
         if (result == null) {
             return new BooleanQueryResult(false);
@@ -46,8 +44,8 @@ public class AnyAttributeEvaluator extends BooleanEvaluator implements Iterating
             return new BooleanQueryResult(true);
         }
 
-        while (multiAttributeEvaluator.getEvaluationsRemaining(context) > 0) {
-            attributeValueQuery = booleanEvaluator.evaluate(attributes, context);
+        while (multiAttributeEvaluator.getEvaluationsRemaining(evaluationContext) > 0) {
+            attributeValueQuery = booleanEvaluator.evaluate(evaluationContext);
             result = attributeValueQuery.getValue();
             if (result != null && result) {
                 return attributeValueQuery;
@@ -58,7 +56,7 @@ public class AnyAttributeEvaluator extends BooleanEvaluator implements Iterating
     }
 
     @Override
-    public int getEvaluationsRemaining(final EvaluatorState context) {
+    public int getEvaluationsRemaining(final EvaluationContext context) {
         return 0;
     }
 

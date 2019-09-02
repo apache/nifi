@@ -57,9 +57,11 @@ public class TestStandardPublicPort {
         final ProcessGroup processGroup = mock(ProcessGroup.class);
         doReturn("process-group-id").when(processGroup).getIdentifier();
 
-        return new StandardPublicPort("id", "name", processGroup,
-                TransferDirection.SEND, ConnectableType.INPUT_PORT, authorizer, bulletinRepository, processScheduler, true,
-                nifiProperties.getBoredYieldDuration(), IdentityMappingUtil.getIdentityMappings(nifiProperties));
+        final StandardPublicPort port = new StandardPublicPort("id", "name",
+            TransferDirection.SEND, ConnectableType.INPUT_PORT, authorizer, bulletinRepository, processScheduler, true,
+            nifiProperties.getBoredYieldDuration(), IdentityMappingUtil.getIdentityMappings(nifiProperties));
+        port.setProcessGroup(processGroup);
+        return port;
     }
 
     @Test

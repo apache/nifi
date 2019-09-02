@@ -26,7 +26,7 @@
         <link rel="stylesheet" href="js/codemirror/lib/codemirror.css" type="text/css" />
         <link rel="stylesheet" href="js/codemirror/addon/hint/show-hint.css" type="text/css" />
         <link rel="stylesheet" href="js/jquery/nfeditor/jquery.nfeditor.css?${project.version}" type="text/css" />
-        <link rel="stylesheet" href="js/jquery/nfeditor/languages/nfel.css?${project.version}" type="text/css" />
+        <link rel="stylesheet" href="js/jquery/nfeditor/languages/nfeditor.css?${project.version}" type="text/css" />
         <link rel="stylesheet" href="js/jquery/tabbs/jquery.tabbs.css?${project.version}" type="text/css" />
         <link rel="stylesheet" href="js/jquery/combo/jquery.combo.css?${project.version}" type="text/css" />
         <link rel="stylesheet" href="js/jquery/propertytable/jquery.propertytable.css?${project.version}" type="text/css" />
@@ -86,6 +86,7 @@
         <script type="text/javascript" src="js/nf/canvas/nf-ng-canvas-namespace.js?${project.version}"></script>
         ${nf.canvas.script.tags}
         <script type="text/javascript" src="js/jquery/nfeditor/languages/nfel.js?${project.version}"></script>
+        <script type="text/javascript" src="js/jquery/nfeditor/languages/nfpr.js?${project.version}"></script>
         <script type="text/javascript" src="js/jquery/nfeditor/jquery.nfeditor.js?${project.version}"></script>
         <script type="text/javascript" src="js/jquery/propertytable/jquery.propertytable.js?${project.version}"></script>
         <script type="text/javascript" src="js/jquery/tagcloud/jquery.tagcloud.js?${project.version}"></script>
@@ -110,6 +111,7 @@
         <jsp:include page="/WEB-INF/partials/canvas/enable-controller-service-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/new-controller-service-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/new-reporting-task-dialog.jsp"/>
+        <jsp:include page="/WEB-INF/partials/canvas/new-parameter-context-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/new-processor-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/new-port-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/new-process-group-dialog.jsp"/>
@@ -133,6 +135,7 @@
         </div>
         <jsp:include page="/WEB-INF/partials/canvas/navigation.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/settings-content.jsp"/>
+        <jsp:include page="/WEB-INF/partials/canvas/parameter-contexts-content.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/shell.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/controller-service-configuration.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/reporting-task-configuration.jsp"/>

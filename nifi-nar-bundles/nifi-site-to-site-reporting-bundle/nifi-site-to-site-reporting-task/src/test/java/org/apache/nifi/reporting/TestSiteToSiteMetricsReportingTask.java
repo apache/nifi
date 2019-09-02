@@ -74,7 +74,7 @@ public class TestSiteToSiteMetricsReportingTask {
         status.setBytesSent(20000);
         status.setQueuedCount(100);
         status.setQueuedContentSize(1024L);
-        status.setBytesRead(60000L);
+        status.setBytesRead(null);
         status.setBytesWritten(80000L);
         status.setActiveThreadCount(5);
 
@@ -234,6 +234,34 @@ public class TestSiteToSiteMetricsReportingTask {
             if(object.getString("metricname").equals("FlowFilesQueued")) {
                 for(Entry<String, JsonValue> kv : object.getJsonObject("metrics").entrySet()) {
                     assertEquals("\"100\"", kv.getValue().toString());
+                }
+                return;
+            }
+        }
+        fail();
+    }
+
+    @Test
+    public void testAmbariFormatWithNullValues() throws IOException, InitializationException {
+
+        final Map<PropertyDescriptor, String> properties = new HashMap<>();
+        properties.put(SiteToSiteMetricsReportingTask.FORMAT, SiteToSiteMetricsReportingTask.AMBARI_FORMAT.getValue());
+        properties.put(SiteToSiteMetricsReportingTask.ALLOW_NULL_VALUES, "true");
+
+        MockSiteToSiteMetricsReportingTask task = initTask(properties);
+        task.onTrigger(context);
+
+        assertEquals(1, task.dataSent.size());
+        final String msg = new String(task.dataSent.get(0), StandardCharsets.UTF_8);
+        JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
+        JsonArray array = jsonReader.readObject().getJsonArray("metrics");
+        for(int i = 0; i < array.size(); i++) {
+            JsonObject object = array.getJsonObject(i);
+            assertEquals("nifi", object.getString("appid"));
+            assertEquals("1234", object.getString("instanceid"));
+            if(object.getString("metricname").equals("BytesReadLast5Minutes")) {
+                for(Entry<String, JsonValue> kv : object.getJsonObject("metrics").entrySet()) {
+                    assertEquals("\"null\"", kv.getValue().toString());
                 }
                 return;
             }

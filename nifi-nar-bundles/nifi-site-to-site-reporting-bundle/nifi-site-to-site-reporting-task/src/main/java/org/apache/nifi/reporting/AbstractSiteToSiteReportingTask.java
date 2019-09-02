@@ -195,6 +195,15 @@ public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingT
             .required(false)
             .build();
 
+    static final PropertyDescriptor ALLOW_NULL_VALUES = new PropertyDescriptor.Builder()
+            .name("include-null-values")
+            .displayName("Include Null Values")
+            .description("Indicate if null values should be included in records. Default will be false")
+            .required(true)
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .build();
+
     protected volatile SiteToSiteClient siteToSiteClient;
     protected volatile RecordSchema recordSchema;
 
@@ -214,6 +223,7 @@ public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingT
         properties.add(HTTP_PROXY_USERNAME);
         properties.add(HTTP_PROXY_PASSWORD);
         properties.add(RECORD_WRITER);
+        properties.add(ALLOW_NULL_VALUES);
         return properties;
     }
 
@@ -327,33 +337,35 @@ public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingT
         }
     }
 
-    protected void addField(final JsonObjectBuilder builder, final String key, final Long value) {
+    protected void addField(final JsonObjectBuilder builder, final String key, final Boolean value, final boolean allowNullValues) {
         if (value != null) {
-            builder.add(key, value.longValue());
-        }
-    }
-
-    protected void addField(final JsonObjectBuilder builder, final String key, final Integer value) {
-        if (value != null) {
-            builder.add(key, value.intValue());
-        }
-    }
-
-    protected void addField(final JsonObjectBuilder builder, final String key, final String value) {
-        if (value == null) {
-            return;
-        }
-
-        builder.add(key, value);
-    }
-
-    protected void addField(final JsonObjectBuilder builder, final String key, final String value, final boolean allowNullValues) {
-        if (value == null) {
-            if (allowNullValues) {
-                builder.add(key, JsonValue.NULL);
-            }
-        } else {
             builder.add(key, value);
+        }else if(allowNullValues){
+            builder.add(key,JsonValue.NULL);
+        }
+    }
+
+    protected void addField(final JsonObjectBuilder builder, final String key, final Long value, boolean allowNullValues) {
+        if (value != null) {
+            builder.add(key, value);
+        }else if(allowNullValues){
+            builder.add(key,JsonValue.NULL);
+        }
+    }
+
+    protected void addField(final JsonObjectBuilder builder, final String key, final Integer value, boolean allowNullValues) {
+        if (value != null) {
+            builder.add(key, value);
+        }else if(allowNullValues){
+            builder.add(key,JsonValue.NULL);
+        }
+    }
+
+    protected void addField(final JsonObjectBuilder builder, final String key, final String value, boolean allowNullValues) {
+        if (value != null) {
+            builder.add(key, value);
+        }else if(allowNullValues){
+            builder.add(key,JsonValue.NULL);
         }
     }
 

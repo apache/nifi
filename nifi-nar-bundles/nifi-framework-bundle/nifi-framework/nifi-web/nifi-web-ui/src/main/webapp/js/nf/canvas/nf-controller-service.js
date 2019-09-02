@@ -1806,6 +1806,44 @@
                     supportsGoTo: true,
                     dialogContainer: '#new-controller-service-property-container',
                     descriptorDeferred: getControllerServicePropertyDescriptor,
+                    parameterDeferred: function (propertyDescriptor, groupId) {
+                        return $.Deferred(function (deferred) {
+                            if (nfCommon.isDefinedAndNotNull(groupId)) {
+                                var parameterContextId;
+
+                                // attempt to identify the parameter context id, conditional based on whether
+                                // the user is configuring the current process group
+                                if (groupId === nfCanvasUtils.getGroupId()) {
+                                    parameterContextId = nfCanvasUtils.getParameterContextId();
+                                } else {
+                                    var parentProcessGroup = nfCanvasUtils.getComponentByType('ProcessGroup').get(groupId);
+                                    parameterContextId = parentProcessGroup.parameterContextId;
+                                }
+
+                                if (nfCommon.isDefinedAndNotNull(parameterContextId)) {
+                                    $.ajax({
+                                        type: 'GET',
+                                        url: '../nifi-api/parameter-contexts/' + parameterContextId,
+                                        dataType: 'json'
+                                    }).done(function (response) {
+                                        var sensitive = nfCommon.isSensitiveProperty(propertyDescriptor);
+
+                                        deferred.resolve(response.component.parameters.map(function (parameterEntity) {
+                                            return parameterEntity.parameter;
+                                        }).filter(function (parameter) {
+                                            return parameter.sensitive === sensitive;
+                                        }));
+                                    }).fail(function () {
+                                        deferred.resolve([]);
+                                    });
+                                } else {
+                                    deferred.resolve([]);
+                                }
+                            } else {
+                                deferred.resolve([]);
+                            }
+                        }).promise();
+                    },
                     controllerServiceCreatedDeferred: function (response) {
                         var controllerServicesUri;
 

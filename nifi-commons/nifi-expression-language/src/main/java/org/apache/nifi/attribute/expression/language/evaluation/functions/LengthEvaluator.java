@@ -16,9 +16,7 @@
  */
 package org.apache.nifi.attribute.expression.language.evaluation.functions;
 
-import java.util.Map;
-
-import org.apache.nifi.attribute.expression.language.evaluation.EvaluatorState;
+import org.apache.nifi.attribute.expression.language.EvaluationContext;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.WholeNumberEvaluator;
@@ -33,8 +31,8 @@ public class LengthEvaluator extends WholeNumberEvaluator {
     }
 
     @Override
-    public QueryResult<Long> evaluate(final Map<String, String> attributes, final EvaluatorState context) {
-        final String subjectValue = subject.evaluate(attributes, context).getValue();
+    public QueryResult<Long> evaluate(final EvaluationContext evaluationContext) {
+        final String subjectValue = subject.evaluate(evaluationContext).getValue();
         return new WholeNumberQueryResult((long) (subjectValue == null ? 0 : subjectValue.length()));
     }
 

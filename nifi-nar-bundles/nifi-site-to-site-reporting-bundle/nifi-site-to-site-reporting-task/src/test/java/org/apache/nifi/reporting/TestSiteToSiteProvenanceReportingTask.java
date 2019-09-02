@@ -18,8 +18,26 @@
 package org.apache.nifi.reporting;
 
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.mockito.Mockito.when;
+
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import javax.json.Json;
+import javax.json.JsonObject;
+import javax.json.JsonReader;
+import javax.json.JsonValue;
+
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.state.Scope;
@@ -46,22 +64,8 @@ import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
-import javax.json.Json;
-import javax.json.JsonObject;
-import javax.json.JsonReader;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import static org.junit.Assert.assertEquals;
-import static org.mockito.Mockito.when;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class TestSiteToSiteProvenanceReportingTask {
 
@@ -210,10 +214,38 @@ public class TestSiteToSiteProvenanceReportingTask {
         assertEquals(3, task.dataSent.size());
         final String msg = new String(task.dataSent.get(0), StandardCharsets.UTF_8);
         JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
-        JsonObject msgArray = jsonReader.readArray().getJsonObject(0).getJsonObject("updatedAttributes");
+        JsonObject object = jsonReader.readArray().getJsonObject(0);
+        JsonValue details = object.get("details");
+        JsonObject msgArray = object.getJsonObject("updatedAttributes");
+        assertNull(details);
         assertEquals(msgArray.getString("abc"), event.getAttributes().get("abc"));
+        assertNull(msgArray.get("emptyVal"));
     }
 
+    @Test
+    public void testSerializedFormWithNullValues() throws IOException, InitializationException {
+        final Map<PropertyDescriptor, String> properties = new HashMap<>();
+        for (final PropertyDescriptor descriptor : new MockSiteToSiteProvenanceReportingTask().getSupportedPropertyDescriptors()) {
+            properties.put(descriptor, descriptor.getDefaultValue());
+        }
+        properties.put(SiteToSiteProvenanceReportingTask.BATCH_SIZE, "1000");
+        properties.put(SiteToSiteStatusReportingTask.ALLOW_NULL_VALUES,"true");
+
+        ProvenanceEventRecord event = createProvenanceEventRecord();
+
+        MockSiteToSiteProvenanceReportingTask task = setup(event, properties);
+        task.initialize(initContext);
+        task.onScheduled(confContext);
+        task.onTrigger(context);
+
+        final String msg = new String(task.dataSent.get(0), StandardCharsets.UTF_8);
+        JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
+        JsonObject object = jsonReader.readArray().getJsonObject(0);
+        JsonValue details = object.get("details");
+        JsonValue emptyVal = object.getJsonObject("updatedAttributes").get("emptyVal");
+        assertEquals(JsonValue.NULL,details);
+        assertEquals(JsonValue.NULL,emptyVal);
+    }
     @Test
     public void testFilterComponentIdSuccess() throws IOException, InitializationException {
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
@@ -618,6 +650,7 @@ public class TestSiteToSiteProvenanceReportingTask {
         attributes.put("abc", "xyz");
         attributes.put("xyz", "abc");
         attributes.put("filename", "file-" + uuid);
+        attributes.put("emptyVal",null);
 
         final Map<String, String> prevAttrs = new HashMap<>();
         attributes.put("filename", "1234.xyz");

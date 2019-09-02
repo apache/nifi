@@ -778,6 +778,67 @@ The following record path expression would decode the String using Base64:
 | `base64Decode(/name)` | John
 |==========================================================
 
+=== PadLeft
+
+Prepends characters to the input String until it reaches the desired length.
+
+----
+{
+  "type": "record",
+  "name": "events",
+  "fields": [
+    { "name": "name", "type": "string" }
+  ]
+}
+----
+
+and a record such as:
+
+----
+{
+  "name" : "john smith"
+}
+----
+
+The following record path expression would prepend '@' characters to the input String:
+
+|==========================================================
+| RecordPath | Return value
+| `padLeft(/name, 15, '@')` | @@@@@john smith
+|==========================================================
+
+
+
+=== PadRight
+
+Appends characters to the input String until it reaches the desired length.
+
+----
+{
+  "type": "record",
+  "name": "events",
+  "fields": [
+    { "name": "name", "type": "string" }
+  ]
+}
+----
+
+and a record such as:
+
+----
+{
+  "name" : "john smith"
+}
+----
+
+The following record path expression would append '@' characters to the input String:
+
+|==========================================================
+| RecordPath | Return value
+| `padRight(/name, 15, '@')` | john smith@@@@@
+|==========================================================
+
+
 
 [[filter_functions]]
 == Filter Functions

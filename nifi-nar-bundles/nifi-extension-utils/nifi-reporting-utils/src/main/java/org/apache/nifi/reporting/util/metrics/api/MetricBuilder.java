@@ -18,6 +18,8 @@ package org.apache.nifi.reporting.util.metrics.api;
 
 import javax.json.JsonBuilderFactory;
 import javax.json.JsonObject;
+import javax.json.JsonObjectBuilder;
+import javax.json.JsonValue;
 
 /**
  * Builds the JsonObject for an individual metric.
@@ -67,7 +69,11 @@ public class MetricBuilder {
         return this;
     }
 
-    public JsonObject build() {
+    public JsonObject build(final boolean allowNullValues) {
+        JsonObjectBuilder metricValueBuilder = this.metricValue == null && allowNullValues? factory.createObjectBuilder()
+                .add(String.valueOf(timestamp), JsonValue.NULL): factory.createObjectBuilder()
+                .add(String.valueOf(timestamp), this.metricValue);
+
         return factory.createObjectBuilder()
                 .add(MetricFields.METRIC_NAME, metricName)
                 .add(MetricFields.APP_ID, applicationId)
@@ -75,10 +81,12 @@ public class MetricBuilder {
                 .add(MetricFields.HOSTNAME, hostname)
                 .add(MetricFields.TIMESTAMP, timestamp)
                 .add(MetricFields.START_TIME, timestamp)
-                .add(MetricFields.METRICS,
-                        factory.createObjectBuilder()
-                                .add(String.valueOf(timestamp), metricValue)
-                ).build();
+                .add(MetricFields.METRICS, metricValueBuilder)
+                .build();
+    }
+
+    public JsonObject build() {
+       return build(false);
     }
 
 }

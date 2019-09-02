@@ -629,6 +629,36 @@
                         dataType: 'json'
                     }).fail(nfErrorHandler.handleAjaxError);
                 },
+                parameterDeferred: function (propertyDescriptor, groupId) {
+                    return $.Deferred(function (deferred) {
+                        if (nfCommon.isDefinedAndNotNull(groupId)) {
+                            // processors being configured must be in the current group
+                            var parameterContextId = nfCanvasUtils.getParameterContextId();
+
+                            if (nfCommon.isDefinedAndNotNull(parameterContextId)) {
+                                $.ajax({
+                                    type: 'GET',
+                                    url: '../nifi-api/parameter-contexts/' + parameterContextId,
+                                    dataType: 'json'
+                                }).done(function (response) {
+                                    var sensitive = nfCommon.isSensitiveProperty(propertyDescriptor);
+
+                                    deferred.resolve(response.component.parameters.map(function (parameterEntity) {
+                                        return parameterEntity.parameter;
+                                    }).filter(function (parameter) {
+                                        return parameter.sensitive === sensitive;
+                                    }));
+                                }).fail(function () {
+                                    deferred.resolve([]);
+                                });
+                            } else {
+                                deferred.resolve([]);
+                            }
+                        } else {
+                            deferred.resolve([]);
+                        }
+                    }).promise();
+                },
                 goToServiceDeferred: goToServiceFromProperty
             });
         },

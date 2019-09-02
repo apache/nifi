@@ -32,6 +32,8 @@ public class MongoWriteTestBase {
     protected static final String COLLECTION_NAME = "test";
     protected String DATABASE_NAME;
 
+    protected static Document oidDocument = Document.parse("{\"_id\": {\"$oid\": \"5cd1a7376264b959a71588c1\"}}");
+
     protected static final List<Document> DOCUMENTS = Arrays.asList(
             new Document("_id", "doc_1").append("a", 1).append("b", 2).append("c", 3),
             new Document("_id", "doc_2").append("a", 1).append("b", 2).append("c", 4),

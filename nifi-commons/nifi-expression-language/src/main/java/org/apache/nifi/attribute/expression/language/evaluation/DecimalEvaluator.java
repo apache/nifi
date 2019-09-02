@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.attribute.expression.language.evaluation;
 
+import org.apache.nifi.attribute.expression.language.EvaluationContext;
 import org.apache.nifi.expression.AttributeExpression.ResultType;
 
 public abstract class DecimalEvaluator implements Evaluator<Double> {
@@ -27,7 +28,7 @@ public abstract class DecimalEvaluator implements Evaluator<Double> {
     }
 
     @Override
-    public int getEvaluationsRemaining(final EvaluatorState context) {
+    public int getEvaluationsRemaining(final EvaluationContext context) {
         return 0;
     }
 

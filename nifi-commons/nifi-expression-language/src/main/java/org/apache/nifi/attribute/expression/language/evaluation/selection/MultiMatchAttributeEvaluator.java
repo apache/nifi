@@ -16,15 +16,14 @@
  */
 package org.apache.nifi.attribute.expression.language.evaluation.selection;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.regex.Pattern;
-
-import org.apache.nifi.attribute.expression.language.evaluation.EvaluatorState;
+import org.apache.nifi.attribute.expression.language.EvaluationContext;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.StringQueryResult;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.regex.Pattern;
 
 public class MultiMatchAttributeEvaluator extends MultiAttributeEvaluator {
 
@@ -46,25 +45,25 @@ public class MultiMatchAttributeEvaluator extends MultiAttributeEvaluator {
      * @return number of remaining evaluations
      */
     @Override
-    public int getEvaluationsRemaining(final EvaluatorState context) {
-        State state = context.getState(this, State.class);
+    public int getEvaluationsRemaining(final EvaluationContext context) {
+        State state = context.getEvaluatorState().getState(this, State.class);
         if (state == null) {
             state = new State();
-            context.putState(this, state);
+            context.getEvaluatorState().putState(this, state);
         }
         return state.attributeNames.size() - state.evaluationCount;
     }
 
     @Override
-    public QueryResult<String> evaluate(final Map<String, String> attributes, final EvaluatorState context) {
-        State state = context.getState(this, State.class);
+    public QueryResult<String> evaluate(final EvaluationContext evaluationContext) {
+        State state = evaluationContext.getEvaluatorState().getState(this, State.class);
         if (state == null) {
             state = new State();
-            context.putState(this, state);
+            evaluationContext.getEvaluatorState().putState(this, state);
         }
         if (state.evaluationCount == 0) {
             for (final Pattern pattern : attributePatterns) {
-                for (final String attrName : attributes.keySet()) {
+                for (final String attrName : evaluationContext.getExpressionKeys()) {
                     if (pattern.matcher(attrName).matches()) {
                         state.attributeNames.add(attrName);
                     }
@@ -76,7 +75,8 @@ public class MultiMatchAttributeEvaluator extends MultiAttributeEvaluator {
             return new StringQueryResult(null);
         }
 
-        return new StringQueryResult(attributes.get(state.attributeNames.get(state.evaluationCount++)));
+        final String attributeName = state.attributeNames.get(state.evaluationCount++);
+        return new StringQueryResult(evaluationContext.getExpressionValue(attributeName));
     }
 
     @Override

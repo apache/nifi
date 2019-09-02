@@ -16,9 +16,10 @@
  */
 package org.apache.nifi.attribute.expression.language.evaluation;
 
-import java.util.Date;
-
+import org.apache.nifi.attribute.expression.language.EvaluationContext;
 import org.apache.nifi.expression.AttributeExpression.ResultType;
+
+import java.util.Date;
 
 public abstract class DateEvaluator implements Evaluator<Date> {
     private String token;
@@ -29,7 +30,7 @@ public abstract class DateEvaluator implements Evaluator<Date> {
     }
 
     @Override
-    public int getEvaluationsRemaining(final EvaluatorState context) {
+    public int getEvaluationsRemaining(final EvaluationContext context) {
         return 0;
     }
 

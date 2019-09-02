@@ -85,10 +85,14 @@ public abstract class AbstractTinkerpopClientService extends AbstractControllerS
                     .keyStoreType(service.getKeyStoreType())
                     .trustStore(service.getTrustStoreFile())
                     .trustStorePassword(service.getTrustStorePassword());
+            usesSSL = true;
         }
 
         return builder;
     }
+
+    boolean usesSSL;
+    protected String transitUrl;
 
     protected Cluster buildCluster(ConfigurationContext context) {
         String contactProp = context.getProperty(CONTACT_POINTS).evaluateAttributeExpressions().getValue();
@@ -103,6 +107,9 @@ public abstract class AbstractTinkerpopClientService extends AbstractControllerS
         builder.port(port).path(path);
 
         builder = setupSSL(context, builder);
+
+        transitUrl = String.format("gremlin%s://%s:%s%s", usesSSL ? "+ssl" : "",
+                contactProp, port, path);
 
         return builder.create();
     }

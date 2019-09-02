@@ -17,43 +17,9 @@
 
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
-
 import javax.xml.bind.annotation.XmlType;
 
 @XmlType(name = "varaibleRegistryUpdateStep")
-public class VariableRegistryUpdateStepDTO {
-    private String description;
-    private boolean complete;
-    private String failureReason;
+public class VariableRegistryUpdateStepDTO extends UpdateStepDTO {
 
-    public VariableRegistryUpdateStepDTO() {
-    }
-
-    @ApiModelProperty(value = "Explanation of what happens in this step", readOnly = true)
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    @ApiModelProperty(value = "Whether or not this step has completed", readOnly = true)
-    public boolean isComplete() {
-        return complete;
-    }
-
-    public void setComplete(boolean complete) {
-        this.complete = complete;
-    }
-
-    @ApiModelProperty(value = "An explanation of why this step failed, or null if this step did not fail", readOnly = true)
-    public String getFailureReason() {
-        return failureReason;
-    }
-
-    public void setFailureReason(String reason) {
-        this.failureReason = reason;
-    }
 }

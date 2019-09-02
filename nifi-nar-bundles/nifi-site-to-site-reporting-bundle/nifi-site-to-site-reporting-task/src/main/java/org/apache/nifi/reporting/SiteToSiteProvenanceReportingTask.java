@@ -17,6 +17,31 @@
 
 package org.apache.nifi.reporting;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.TimeZone;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+
+import javax.json.Json;
+import javax.json.JsonArray;
+import javax.json.JsonArrayBuilder;
+import javax.json.JsonBuilderFactory;
+import javax.json.JsonObject;
+import javax.json.JsonObjectBuilder;
+import javax.json.JsonValue;
+
 import org.apache.avro.Schema;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.Restricted;
@@ -41,29 +66,6 @@ import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.remote.Transaction;
 import org.apache.nifi.remote.TransferDirection;
 import org.apache.nifi.reporting.util.provenance.ProvenanceEventConsumer;
-
-import javax.json.Json;
-import javax.json.JsonArray;
-import javax.json.JsonArrayBuilder;
-import javax.json.JsonBuilderFactory;
-import javax.json.JsonObject;
-import javax.json.JsonObjectBuilder;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.TimeZone;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 @Tags({"provenance", "lineage", "tracking", "site", "site to site"})
 @CapabilityDescription("Publishes Provenance events using the Site To Site protocol.")
@@ -289,6 +291,7 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
 
         final String hostname = url.getHost();
         final String platform = context.getProperty(PLATFORM).evaluateAttributeExpressions().getValue();
+        final Boolean allowNullValues = context.getProperty(ALLOW_NULL_VALUES).asBoolean();
 
         final Map<String, ?> config = Collections.emptyMap();
         final JsonBuilderFactory factory = Json.createBuilderFactory(config);
@@ -305,7 +308,7 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
                 final String componentName = mapHolder.getComponentName(event.getComponentId());
                 final String processGroupId = mapHolder.getProcessGroupId(event.getComponentId(), event.getComponentType());
                 final String processGroupName = mapHolder.getComponentName(processGroupId);
-                arrayBuilder.add(serialize(factory, builder, event, df, componentName, processGroupId, processGroupName, hostname, url, rootGroupName, platform, nodeId));
+                arrayBuilder.add(serialize(factory, builder, event, df, componentName, processGroupId, processGroupName, hostname, url, rootGroupName, platform, nodeId, allowNullValues));
             }
             final JsonArray jsonArray = arrayBuilder.build();
 
@@ -341,29 +344,29 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
 
 
     private JsonObject serialize(final JsonBuilderFactory factory, final JsonObjectBuilder builder, final ProvenanceEventRecord event, final DateFormat df,
-                                final String componentName, final String processGroupId, final String processGroupName, final String hostname, final URL nifiUrl, final String applicationName,
-                                final String platform, final String nodeIdentifier) {
-        addField(builder, "eventId", UUID.randomUUID().toString());
-        addField(builder, "eventOrdinal", event.getEventId());
-        addField(builder, "eventType", event.getEventType().name());
-        addField(builder, "timestampMillis", event.getEventTime());
-        addField(builder, "timestamp", df.format(event.getEventTime()));
-        addField(builder, "durationMillis", event.getEventDuration());
-        addField(builder, "lineageStart", event.getLineageStartDate());
-        addField(builder, "details", event.getDetails());
-        addField(builder, "componentId", event.getComponentId());
-        addField(builder, "componentType", event.getComponentType());
-        addField(builder, "componentName", componentName);
-        addField(builder, "processGroupId", processGroupId, true);
-        addField(builder, "processGroupName", processGroupName, true);
-        addField(builder, "entityId", event.getFlowFileUuid());
-        addField(builder, "entityType", "org.apache.nifi.flowfile.FlowFile");
-        addField(builder, "entitySize", event.getFileSize());
-        addField(builder, "previousEntitySize", event.getPreviousFileSize());
-        addField(builder, factory, "updatedAttributes", event.getUpdatedAttributes());
-        addField(builder, factory, "previousAttributes", event.getPreviousAttributes());
+            final String componentName, final String processGroupId, final String processGroupName, final String hostname, final URL nifiUrl, final String applicationName,
+            final String platform, final String nodeIdentifier, Boolean allowNullValues) {
+        addField(builder, "eventId", UUID.randomUUID().toString(), allowNullValues);
+        addField(builder, "eventOrdinal", event.getEventId(), allowNullValues);
+        addField(builder, "eventType", event.getEventType().name(), allowNullValues);
+        addField(builder, "timestampMillis", event.getEventTime(), allowNullValues);
+        addField(builder, "timestamp", df.format(event.getEventTime()), allowNullValues);
+        addField(builder, "durationMillis", event.getEventDuration(), allowNullValues);
+        addField(builder, "lineageStart", event.getLineageStartDate(), allowNullValues);
+        addField(builder, "details", event.getDetails(), allowNullValues);
+        addField(builder, "componentId", event.getComponentId(), allowNullValues);
+        addField(builder, "componentType", event.getComponentType(), allowNullValues);
+        addField(builder, "componentName", componentName, allowNullValues);
+        addField(builder, "processGroupId", processGroupId, allowNullValues);
+        addField(builder, "processGroupName", processGroupName, allowNullValues);
+        addField(builder, "entityId", event.getFlowFileUuid(), allowNullValues);
+        addField(builder, "entityType", "org.apache.nifi.flowfile.FlowFile", allowNullValues);
+        addField(builder, "entitySize", event.getFileSize(), allowNullValues);
+        addField(builder, "previousEntitySize", event.getPreviousFileSize(), allowNullValues);
+        addField(builder, factory, "updatedAttributes", event.getUpdatedAttributes(), allowNullValues);
+        addField(builder, factory, "previousAttributes", event.getPreviousAttributes(), allowNullValues);
 
-        addField(builder, "actorHostname", hostname);
+        addField(builder, "actorHostname", hostname, allowNullValues);
         if (nifiUrl != null) {
             // TO get URL Prefix, we just remove the /nifi from the end of the URL. We know that the URL ends with
             // "/nifi" because the Property Validator enforces it
@@ -372,44 +375,51 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
 
             final String contentUriBase = urlPrefix + "/nifi-api/provenance-events/" + event.getEventId() + "/content/";
             final String nodeIdSuffix = nodeIdentifier == null ? "" : "?clusterNodeId=" + nodeIdentifier;
-            addField(builder, "contentURI", contentUriBase + "output" + nodeIdSuffix);
-            addField(builder, "previousContentURI", contentUriBase + "input" + nodeIdSuffix);
+            addField(builder, "contentURI", contentUriBase + "output" + nodeIdSuffix, allowNullValues);
+            addField(builder, "previousContentURI", contentUriBase + "input" + nodeIdSuffix, allowNullValues);
         }
 
-        addField(builder, factory, "parentIds", event.getParentUuids());
-        addField(builder, factory, "childIds", event.getChildUuids());
-        addField(builder, "transitUri", event.getTransitUri());
-        addField(builder, "remoteIdentifier", event.getSourceSystemFlowFileIdentifier());
-        addField(builder, "alternateIdentifier", event.getAlternateIdentifierUri());
-        addField(builder, "platform", platform);
-        addField(builder, "application", applicationName);
+        addField(builder, factory, "parentIds", event.getParentUuids(), allowNullValues);
+        addField(builder, factory, "childIds", event.getChildUuids(), allowNullValues);
+        addField(builder, "transitUri", event.getTransitUri(), allowNullValues);
+        addField(builder, "remoteIdentifier", event.getSourceSystemFlowFileIdentifier(), allowNullValues);
+        addField(builder, "alternateIdentifier", event.getAlternateIdentifierUri(), allowNullValues);
+        addField(builder, "platform", platform, allowNullValues);
+        addField(builder, "application", applicationName, allowNullValues);
 
         return builder.build();
     }
 
-    private static void addField(final JsonObjectBuilder builder, final JsonBuilderFactory factory, final String key, final Map<String, String> values) {
-        if (values == null) {
-            return;
-        }
+    private static void addField(final JsonObjectBuilder builder, final JsonBuilderFactory factory, final String key, final Map<String, String> values, Boolean allowNullValues) {
+        if (values != null) {
 
-        final JsonObjectBuilder mapBuilder = factory.createObjectBuilder();
-        for (final Map.Entry<String, String> entry : values.entrySet()) {
-            if (entry.getKey() == null || entry.getValue() == null) {
-                continue;
+            final JsonObjectBuilder mapBuilder = factory.createObjectBuilder();
+            for (final Map.Entry<String, String> entry : values.entrySet()) {
+
+                if (entry.getKey() == null ) {
+                    continue;
+                }else if(entry.getValue() == null ){
+                    if(allowNullValues) {
+                        mapBuilder.add(entry.getKey(), JsonValue.NULL);
+                    }
+                }else {
+                    mapBuilder.add(entry.getKey(), entry.getValue());
+                }
             }
 
-            mapBuilder.add(entry.getKey(), entry.getValue());
-        }
+            builder.add(key, mapBuilder);
 
-        builder.add(key, mapBuilder);
+        }else if(allowNullValues){
+            builder.add(key,JsonValue.NULL);
+        }
     }
 
-    private void addField(final JsonObjectBuilder builder, final JsonBuilderFactory factory, final String key, final Collection<String> values) {
-        if (values == null) {
-            return;
+    private void addField(final JsonObjectBuilder builder, final JsonBuilderFactory factory, final String key, final Collection<String> values, Boolean allowNullValues) {
+        if (values != null) {
+            builder.add(key, createJsonArray(factory, values));
+        }else if(allowNullValues){
+            builder.add(key,JsonValue.NULL);
         }
-
-        builder.add(key, createJsonArray(factory, values));
     }
 
     private static JsonArrayBuilder createJsonArray(JsonBuilderFactory factory, final Collection<String> values) {

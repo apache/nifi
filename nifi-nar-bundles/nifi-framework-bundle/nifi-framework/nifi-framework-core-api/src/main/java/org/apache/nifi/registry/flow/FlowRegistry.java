@@ -23,6 +23,7 @@ import org.apache.nifi.registry.client.NiFiRegistryException;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.Collection;
 import java.util.Set;
 
 public interface FlowRegistry {
@@ -133,6 +134,7 @@ public interface FlowRegistry {
      * @param snapshot the snapshot of the flow
      * @param externalControllerServices a mapping of of Controller Service identifier to ExternalControllerServiceReference for any Controller Service that is referenced by the flow but that are
      * not included as part of the VersionedProcessGroup
+     * @param parameterContexts the Parameter Contexts to include in the snapshot
      * @param comments any comments for the snapshot
      * @param expectedVersion the version of the flow that we expect to save this snapshot as
      * @return the versioned flow snapshot
@@ -141,7 +143,8 @@ public interface FlowRegistry {
      * @throws NullPointerException if the VersionedFlow is null, or if its bucket identifier is null, or if the flow to snapshot is null
      * @throws NiFiRegistryException if the flow does not exist
      */
-    VersionedFlowSnapshot registerVersionedFlowSnapshot(VersionedFlow flow, VersionedProcessGroup snapshot, Map<String, ExternalControllerServiceReference> externalControllerServices, String comments,
+    VersionedFlowSnapshot registerVersionedFlowSnapshot(VersionedFlow flow, VersionedProcessGroup snapshot, Map<String, ExternalControllerServiceReference> externalControllerServices,
+                                                        Collection<VersionedParameterContext> parameterContexts, String comments,
                                                         int expectedVersion, NiFiUser user) throws IOException, NiFiRegistryException;
 
     /**

@@ -16,15 +16,15 @@
  */
 package org.apache.nifi.attribute.expression.language.evaluation.functions;
 
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.util.Map;
-
-import org.apache.nifi.attribute.expression.language.evaluation.EvaluatorState;
+import org.apache.nifi.attribute.expression.language.EvaluationContext;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.StringEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.StringQueryResult;
+
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+
 
 public class HostnameEvaluator extends StringEvaluator {
 
@@ -47,7 +47,7 @@ public class HostnameEvaluator extends StringEvaluator {
     }
 
     @Override
-    public QueryResult<String> evaluate(final Map<String, String> attributes, final EvaluatorState context) {
+    public QueryResult<String> evaluate(final EvaluationContext evaluationContext) {
         return hostname;
     }
 

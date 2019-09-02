@@ -23,6 +23,7 @@
 
 
     <artifactId>nifi-enrich-processors</artifactId>
+
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>

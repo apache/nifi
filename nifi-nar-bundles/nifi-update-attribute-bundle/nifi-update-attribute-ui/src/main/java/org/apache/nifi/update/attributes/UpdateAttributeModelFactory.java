@@ -16,16 +16,18 @@
  */
 package org.apache.nifi.update.attributes;
 
-import java.util.HashSet;
-import java.util.Set;
-
+import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.attribute.expression.language.Query;
 import org.apache.nifi.attribute.expression.language.StandardExpressionLanguageCompiler;
 import org.apache.nifi.attribute.expression.language.exception.AttributeExpressionLanguageParsingException;
 import org.apache.nifi.expression.AttributeExpression.ResultType;
+import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.update.attributes.dto.ActionDTO;
 import org.apache.nifi.update.attributes.dto.ConditionDTO;
 import org.apache.nifi.update.attributes.dto.RuleDTO;
+
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  *
@@ -75,7 +77,7 @@ public class UpdateAttributeModelFactory {
         }
 
         // validate the condition's expression
-        final StandardExpressionLanguageCompiler elCompiler = new StandardExpressionLanguageCompiler();
+        final StandardExpressionLanguageCompiler elCompiler = new StandardExpressionLanguageCompiler(VariableRegistry.EMPTY_REGISTRY, ParameterLookup.EMPTY);
         final String syntaxError = elCompiler.validateExpression(dto.getExpression(), false);
         if (syntaxError != null) {
             throw new IllegalArgumentException(syntaxError);

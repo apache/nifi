@@ -24,6 +24,7 @@ import io.swagger.annotations.ApiResponses;
 import io.swagger.annotations.Authorization;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.AuthorizeControllerServiceReference;
+import org.apache.nifi.authorization.AuthorizeParameterReference;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.ComponentAuthorizable;
 import org.apache.nifi.authorization.RequestAction;
@@ -518,7 +519,7 @@ public class ProcessorResource extends ApplicationResource {
             @ApiParam(
                     value = "The processor configuration details.",
                     required = true
-            ) final ProcessorEntity requestProcessorEntity) throws InterruptedException {
+            ) final ProcessorEntity requestProcessorEntity) {
 
         if (requestProcessorEntity == null || requestProcessorEntity.getComponent() == null) {
             throw new IllegalArgumentException("Processor details must be specified.");
@@ -563,6 +564,7 @@ public class ProcessorResource extends ApplicationResource {
                     final ProcessorConfigDTO config = requestProcessorDTO.getConfig();
                     if (config != null) {
                         AuthorizeControllerServiceReference.authorizeControllerServiceReferences(config.getProperties(), authorizable, authorizer, lookup);
+                        AuthorizeParameterReference.authorizeParameterReferences(config.getProperties(), authorizer, authorizable.getParameterContext(), user);
                     }
                 },
                 () -> serviceFacade.verifyUpdateProcessor(requestProcessorDTO),

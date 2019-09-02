@@ -2089,6 +2089,22 @@
         },
 
         /**
+         * Set the parameter context id.
+         *
+         * @argument {string} pcid       The parameter context id
+         */
+        setParameterContextId: function (pcid) {
+            return nfCanvas.setParameterContextId(pcid);
+        },
+
+        /**
+         * Get the parameter context id.
+         */
+        getParameterContextId: function () {
+            return nfCanvas.getParameterContextId();
+        },
+
+        /**
          * Get the group name.
          */
         getGroupName: function () {

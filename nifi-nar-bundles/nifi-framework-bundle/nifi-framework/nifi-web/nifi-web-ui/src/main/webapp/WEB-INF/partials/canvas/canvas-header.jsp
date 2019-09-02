@@ -132,6 +132,12 @@
                             <i class="fa fa-wrench"></i>Controller Settings
                         </a>
                     </md-menu-item>
+                    <md-menu-item layout-align="space-around center">
+                        <a id="parameter-contexts-link"
+                           ng-click="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.parameterContexts.shell.launch();">
+                            <i class="fa"></i>Parameter Contexts
+                        </a>
+                    </md-menu-item>
                     <md-menu-item ng-if="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.cluster.visible();"
                                   layout-align="space-around center">
                         <a id="cluster-link"

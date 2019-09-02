@@ -16,11 +16,9 @@
  */
 package org.apache.nifi.attribute.expression.language.evaluation.literals;
 
-import java.util.Map;
-
+import org.apache.nifi.attribute.expression.language.EvaluationContext;
 import org.apache.nifi.attribute.expression.language.evaluation.BooleanEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.BooleanQueryResult;
-import org.apache.nifi.attribute.expression.language.evaluation.EvaluatorState;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 
@@ -33,7 +31,7 @@ public class BooleanLiteralEvaluator extends BooleanEvaluator {
     }
 
     @Override
-    public QueryResult<Boolean> evaluate(final Map<String, String> attributes, final EvaluatorState context) {
+    public QueryResult<Boolean> evaluate(final EvaluationContext evaluationContext) {
         return new BooleanQueryResult(value);
     }
 

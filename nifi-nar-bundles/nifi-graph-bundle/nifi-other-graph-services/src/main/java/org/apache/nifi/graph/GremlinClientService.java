@@ -88,6 +88,6 @@ public class GremlinClientService extends AbstractTinkerpopClientService impleme
 
     @Override
     public String getTransitUrl() {
-        return null;
+        return transitUrl;
     }
 }

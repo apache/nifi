@@ -59,6 +59,7 @@
         ${nf.users.script.tags}
         <script type="text/javascript" src="js/jquery/propertytable/jquery.propertytable.js?${project.version}"></script>
         <script type="text/javascript" src="js/jquery/nfeditor/languages/nfel.js?${project.version}"></script>
+        <script type="text/javascript" src="js/jquery/nfeditor/languages/nfpr.js?${project.version}"></script>
         <script type="text/javascript" src="js/jquery/nfeditor/jquery.nfeditor.js?${project.version}"></script>
     </head>
     <body ng-controller="ngSummaryAppCtrl">

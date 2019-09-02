@@ -14,16 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.nifi.processors.kudu;
 
+import org.apache.kudu.shaded.com.google.common.annotations.VisibleForTesting;
 import org.apache.kudu.ColumnSchema;
 import org.apache.kudu.Schema;
 import org.apache.kudu.Type;
 import org.apache.kudu.client.AsyncKuduClient;
-import org.apache.kudu.client.KuduScanner;
 import org.apache.kudu.client.KuduClient;
 import org.apache.kudu.client.KuduTable;
 import org.apache.kudu.client.KuduSession;
+import org.apache.kudu.client.KuduScanner;
 import org.apache.kudu.client.KuduPredicate;
 import org.apache.kudu.client.KuduException;
 import org.apache.kudu.client.OperationResponse;
@@ -35,7 +37,6 @@ import org.apache.kudu.client.Delete;
 import org.apache.kudu.client.Insert;
 import org.apache.kudu.client.Upsert;
 import org.apache.kudu.client.Update;
-import org.apache.kudu.shaded.com.google.common.annotations.VisibleForTesting;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyDescriptor.Builder;
@@ -55,6 +56,7 @@ import javax.security.auth.login.LoginException;
 import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.concurrent.TimeUnit;
 import java.util.List;
 
 public abstract class AbstractKuduProcessor extends AbstractProcessor {
@@ -62,6 +64,7 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
     static final PropertyDescriptor KUDU_MASTERS = new Builder()
             .name("Kudu Masters")
             .description("Comma separated addresses of the Kudu masters to connect to.")
+            .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
@@ -76,11 +79,11 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
 
     static final PropertyDescriptor KUDU_OPERATION_TIMEOUT_MS = new Builder()
             .name("kudu-operations-timeout-ms")
-            .displayName("Kudu Operation Timeout in MS")
+            .displayName("Kudu Operation Timeout")
             .description("Default timeout used for user operations (using sessions and scanners)")
             .required(false)
-            .defaultValue(String.valueOf(AsyncKuduClient. DEFAULT_OPERATION_TIMEOUT_MS))
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .defaultValue(String.valueOf(AsyncKuduClient.DEFAULT_OPERATION_TIMEOUT_MS) + "ms")
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
@@ -124,12 +127,12 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
 
 
     protected KuduClient buildClient(final String masters, final ProcessContext context) {
-        final String operationTimeout = context.getProperty(KUDU_OPERATION_TIMEOUT_MS).evaluateAttributeExpressions().getValue();
-        final String adminOperationTimeout = context.getProperty(KUDU_KEEP_ALIVE_PERIOD_TIMEOUT_MS).evaluateAttributeExpressions().getValue();
+        final Integer operationTimeout = context.getProperty(KUDU_OPERATION_TIMEOUT_MS).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
+        final Integer adminOperationTimeout = context.getProperty(KUDU_KEEP_ALIVE_PERIOD_TIMEOUT_MS).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
 
         return new KuduClient.KuduClientBuilder(masters)
-                .defaultOperationTimeoutMs(Integer.parseInt(operationTimeout))
-                .defaultSocketReadTimeoutMs(Integer.parseInt(adminOperationTimeout))
+                .defaultOperationTimeoutMs(operationTimeout)
+                .defaultSocketReadTimeoutMs(adminOperationTimeout)
                 .build();
     }
 

@@ -63,6 +63,7 @@ public class TestPutTcpSSL extends TestPutTCPCommon {
         map.put(StandardSSLContextService.TRUSTSTORE.getName(), "src/test/resources/truststore.jks");
         map.put(StandardSSLContextService.TRUSTSTORE_PASSWORD.getName(), "passwordpassword");
         map.put(StandardSSLContextService.TRUSTSTORE_TYPE.getName(), "JKS");
+        map.put(StandardSSLContextService.SSL_ALGORITHM.getName(), "TLSv1.2");
         return map;
     }
 }

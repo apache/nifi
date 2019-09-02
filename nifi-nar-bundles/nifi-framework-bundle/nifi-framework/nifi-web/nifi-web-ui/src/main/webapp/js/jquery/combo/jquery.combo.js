@@ -80,13 +80,12 @@
         var selectedOption;
 
         // attempt to match on value first
-        if (isDefinedAndNotNull(value)) {
-            $.each(config.options, function (i, option) {
-                if (value === option.value) {
-                    selectedOption = option;
-                }
-            });
-        }
+        $.each(config.options, function (i, option) {
+            if (value === option.value) {
+                selectedOption = option;
+                return false;
+            }
+        });
 
         // if no option values matched, try the text
         if (isUndefined(selectedOption)) {
@@ -134,7 +133,7 @@
                 if (isDefinedAndNotNull(options) &&
                     isDefinedAndNotNull(options.options)) {
 
-                    // get the combo 
+                    // get the combo
                     var combo = $(this);
 
                     // clear any current contents, remote events, and store options
@@ -150,7 +149,7 @@
                         combo.removeClass('button-over').addClass('combo-button-normal');
                     }).click(function (event) {
                         var comboConfigOptions = combo.data('options');
-                        
+
                         //add active styles
                         $(this).addClass('combo-open');
 
@@ -278,11 +277,19 @@
                     // add the drop down arrow
                     $('<div class="combo-arrow fa fa-chevron-down"></div>').appendTo(combo);
 
+                    // get the first option
+                    var firstOption = null;
+                    if (options.options.length > 0) {
+                        firstOption = options.options[0];
+                    }
+
                     // set the selection
                     if (isDefinedAndNotNull(options.selectedOption)) {
                         selectOption(combo, options.selectedOption.text, options.selectedOption.value);
-                    } else {
+                    } else if (isNull(firstOption)) {
                         selectOption(combo);
+                    } else {
+                        selectOption(combo, firstOption.text, firstOption.value);
                     }
                 }
             });
@@ -315,7 +322,7 @@
 
         /**
          * Sets whether the specified option is enabled or disabled.
-         * 
+         *
          * @param option
          * @param enabled
          */
@@ -326,7 +333,7 @@
 
                 $.each(comboConfigOptions.options, function (i, configOption) {
                      if (configOption.value === option.value) {
-                        configOption.disabled = !enabled;   
+                        configOption.disabled = !enabled;
                      }
                 });
             });

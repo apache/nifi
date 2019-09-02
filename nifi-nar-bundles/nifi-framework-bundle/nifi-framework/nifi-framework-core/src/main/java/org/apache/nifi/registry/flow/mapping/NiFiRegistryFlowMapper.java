@@ -27,6 +27,8 @@ import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ProcessorNode;
+import org.apache.nifi.controller.ScheduledState;
+import org.apache.nifi.controller.PropertyConfiguration;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.service.ControllerServiceNode;
@@ -34,6 +36,9 @@ import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.parameter.Parameter;
+import org.apache.nifi.parameter.ParameterContext;
+import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.registry.VariableDescriptor;
 import org.apache.nifi.registry.flow.BatchSize;
@@ -53,6 +58,8 @@ import org.apache.nifi.registry.flow.VersionedControllerService;
 import org.apache.nifi.registry.flow.VersionedFlowCoordinates;
 import org.apache.nifi.registry.flow.VersionedFunnel;
 import org.apache.nifi.registry.flow.VersionedLabel;
+import org.apache.nifi.registry.flow.VersionedParameter;
+import org.apache.nifi.registry.flow.VersionedParameterContext;
 import org.apache.nifi.registry.flow.VersionedPort;
 import org.apache.nifi.registry.flow.VersionedProcessGroup;
 import org.apache.nifi.registry.flow.VersionedProcessor;
@@ -160,6 +167,9 @@ public class NiFiRegistryFlowMapper {
         versionedGroup.setName(group.getName());
         versionedGroup.setComments(group.getComments());
         versionedGroup.setPosition(mapPosition(group.getPosition()));
+
+        final ParameterContext parameterContext = group.getParameterContext();
+        versionedGroup.setParameterContextName(parameterContext == null ? null : parameterContext.getName());
 
         // If we are at the 'top level', meaning that the given Process Group is the group that we are creating a VersionedProcessGroup for,
         // then we don't want to include the RemoteFlowCoordinates; we want to include the group contents. The RemoteFlowCoordinates will be used
@@ -354,9 +364,9 @@ public class NiFiRegistryFlowMapper {
         final Map<String, String> mapped = new HashMap<>();
 
         component.getProperties().keySet().stream()
-            .filter(property -> !property.isSensitive())
+            .filter(property -> isMappable(property, component.getProperty(property)))
             .forEach(property -> {
-                String value = component.getProperty(property);
+                String value = component.getRawPropertyValue(property);
                 if (value == null) {
                     value = property.getDefaultValue();
                 }
@@ -376,6 +386,21 @@ public class NiFiRegistryFlowMapper {
         return mapped;
     }
 
+    private boolean isMappable(final PropertyDescriptor propertyDescriptor, final PropertyConfiguration propertyConfiguration) {
+        if (!propertyDescriptor.isSensitive()) { // If the property is not sensitive, it can be mapped.
+            return true;
+        }
+
+        if (propertyConfiguration == null) {
+            return false;
+        }
+
+        // Sensitive properties can be mapped if and only if they reference a Parameter. If a sensitive property references a parameter, it cannot contain any other value around it.
+        // For example, for a non-sensitive property, a value of "hello#{param}123" is valid, but for a sensitive property, it is invalid. Only something like "hello123" or "#{param}" is valid.
+        // Thus, we will map sensitive properties only if they reference a parameter.
+        return !propertyConfiguration.getParameterReferences().isEmpty();
+    }
+
     private Map<String, VersionedPropertyDescriptor> mapPropertyDescriptors(final ComponentNode component, final ControllerServiceProvider serviceProvider, final Set<String> includedGroupIds,
                                                                             final Map<String, ExternalControllerServiceReference> externalControllerServiceReferences) {
         final Map<String, VersionedPropertyDescriptor> descriptors = new HashMap<>();
@@ -383,12 +408,13 @@ public class NiFiRegistryFlowMapper {
             final VersionedPropertyDescriptor versionedDescriptor = new VersionedPropertyDescriptor();
             versionedDescriptor.setName(descriptor.getName());
             versionedDescriptor.setDisplayName(descriptor.getDisplayName());
+            versionedDescriptor.setSensitive(descriptor.isSensitive());
 
             final Class<?> referencedServiceType = descriptor.getControllerServiceDefinition();
             versionedDescriptor.setIdentifiesControllerService(referencedServiceType != null);
 
             if (referencedServiceType != null) {
-                final String value = component.getProperty(descriptor);
+                final String value = component.getProperty(descriptor).getRawValue();
                 if (value != null) {
                     final ControllerServiceNode serviceNode = serviceProvider.getControllerServiceNode(value);
                     if (serviceNode == null) {
@@ -519,6 +545,8 @@ public class NiFiRegistryFlowMapper {
         processor.setSchedulingStrategy(procNode.getSchedulingStrategy().name());
         processor.setStyle(procNode.getStyle());
         processor.setYieldDuration(procNode.getYieldPeriod());
+        processor.setScheduledState(procNode.getScheduledState() == ScheduledState.DISABLED ? org.apache.nifi.registry.flow.ScheduledState.DISABLED
+            : org.apache.nifi.registry.flow.ScheduledState.ENABLED);
 
         return processor;
     }
@@ -569,5 +597,36 @@ public class NiFiRegistryFlowMapper {
         batchSize.setDuration(remotePort.getBatchDuration());
         batchSize.setSize(remotePort.getBatchSize());
         return batchSize;
+    }
+
+    public VersionedParameterContext mapParameterContext(final ParameterContext context) {
+        if (context == null) {
+            return null;
+        }
+
+        final Set<VersionedParameter> parameters = context.getParameters().values().stream()
+            .map(this::mapParameter)
+            .collect(Collectors.toSet());
+
+        final VersionedParameterContext versionedContext = new VersionedParameterContext();
+        versionedContext.setName(context.getName());
+        versionedContext.setParameters(parameters);
+
+        return versionedContext;
+    }
+
+    public VersionedParameter mapParameter(final Parameter parameter) {
+        if (parameter == null) {
+            return null;
+        }
+
+        final ParameterDescriptor descriptor = parameter.getDescriptor();
+
+        final VersionedParameter versionedParameter = new VersionedParameter();
+        versionedParameter.setDescription(descriptor.getDescription());
+        versionedParameter.setName(descriptor.getName());
+        versionedParameter.setSensitive(descriptor.isSensitive());
+        versionedParameter.setValue(descriptor.isSensitive() ? null : parameter.getValue());
+        return versionedParameter;
     }
 }

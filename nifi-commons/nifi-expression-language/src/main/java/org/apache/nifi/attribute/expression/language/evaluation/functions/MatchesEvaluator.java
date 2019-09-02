@@ -16,15 +16,16 @@
  */
 package org.apache.nifi.attribute.expression.language.evaluation.functions;
 
-import java.util.Map;
-import java.util.regex.Pattern;
-
+import org.apache.nifi.attribute.expression.language.EvaluationContext;
+import org.apache.nifi.attribute.expression.language.StandardEvaluationContext;
 import org.apache.nifi.attribute.expression.language.evaluation.BooleanEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.BooleanQueryResult;
-import org.apache.nifi.attribute.expression.language.evaluation.EvaluatorState;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.literals.StringLiteralEvaluator;
+
+import java.util.Collections;
+import java.util.regex.Pattern;
 
 public class MatchesEvaluator extends BooleanEvaluator {
 
@@ -40,21 +41,21 @@ public class MatchesEvaluator extends BooleanEvaluator {
         // if the search string is a literal, we don't need to evaluate it each time; we can just
         // pre-compile it. Otherwise, it must be compiled every time.
         if (search instanceof StringLiteralEvaluator) {
-            this.compiledPattern = Pattern.compile(search.evaluate(null, new EvaluatorState()).getValue());
+            this.compiledPattern = Pattern.compile(search.evaluate(new StandardEvaluationContext(Collections.emptyMap())).getValue());
         } else {
             this.compiledPattern = null;
         }
     }
 
     @Override
-    public QueryResult<Boolean> evaluate(final Map<String, String> attributes, final EvaluatorState context) {
-        final String subjectValue = subject.evaluate(attributes, context).getValue();
+    public QueryResult<Boolean> evaluate(final EvaluationContext evaluationContext) {
+        final String subjectValue = subject.evaluate(evaluationContext).getValue();
         if (subjectValue == null) {
             return new BooleanQueryResult(false);
         }
         final Pattern pattern;
         if (compiledPattern == null) {
-            String expression = search.evaluate(attributes, context).getValue();
+            String expression = search.evaluate(evaluationContext).getValue();
             if (expression == null) {
                 return new BooleanQueryResult(false);
             }

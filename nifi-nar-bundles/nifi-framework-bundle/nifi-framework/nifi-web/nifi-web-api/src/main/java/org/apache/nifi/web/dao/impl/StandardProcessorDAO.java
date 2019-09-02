@@ -302,6 +302,15 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
             }
         }
 
+        final Map<String, String> properties = config.getProperties();
+        if (isNotNull(properties)) {
+            try {
+                processorNode.verifyCanUpdateProperties(properties);
+            } catch (final IllegalArgumentException | IllegalStateException iae) {
+                validationErrors.add(iae.getMessage());
+            }
+        }
+
         return validationErrors;
     }
 

@@ -431,6 +431,11 @@ public class PutHive3Streaming extends AbstractProcessor {
                 if (rollbackOnFailure) {
                     throw new ProcessException(rrfe);
                 } else {
+                    log.error(
+                            "Failed to create {} for {} - routing to failure",
+                            new Object[]{RecordReader.class.getSimpleName(), flowFile},
+                            rrfe
+                    );
                     session.transfer(flowFile, REL_FAILURE);
                 }
             }
@@ -445,6 +450,11 @@ public class PutHive3Streaming extends AbstractProcessor {
                 updateAttributes.put(HIVE_STREAMING_RECORD_COUNT_ATTR, Long.toString(hiveStreamingConnection.getConnectionStats().getRecordsWritten()));
                 updateAttributes.put(ATTR_OUTPUT_TABLES, options.getQualifiedTableName());
                 flowFile = session.putAllAttributes(flowFile, updateAttributes);
+                log.error(
+                        "Exception while processing {} - routing to failure",
+                        new Object[]{flowFile},
+                        e
+                );
                 session.transfer(flowFile, REL_FAILURE);
             }
         } catch (DiscontinuedException e) {
@@ -479,6 +489,11 @@ public class PutHive3Streaming extends AbstractProcessor {
                 updateAttributes.put(HIVE_STREAMING_RECORD_COUNT_ATTR, Long.toString(hiveStreamingConnection.getConnectionStats().getRecordsWritten()));
                 updateAttributes.put(ATTR_OUTPUT_TABLES, options.getQualifiedTableName());
                 flowFile = session.putAllAttributes(flowFile, updateAttributes);
+                log.error(
+                        "Exception while trying to stream {} to hive - routing to failure",
+                        new Object[]{flowFile},
+                        se
+                );
                 session.transfer(flowFile, REL_FAILURE);
             }
 

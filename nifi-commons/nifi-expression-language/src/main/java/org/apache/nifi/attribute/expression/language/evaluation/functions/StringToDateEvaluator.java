@@ -16,19 +16,18 @@
  */
 package org.apache.nifi.attribute.expression.language.evaluation.functions;
 
+import org.apache.nifi.attribute.expression.language.EvaluationContext;
+import org.apache.nifi.attribute.expression.language.evaluation.DateEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.DateQueryResult;
+import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
+import org.apache.nifi.attribute.expression.language.exception.IllegalAttributeException;
+
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
-import java.util.Map;
 import java.util.TimeZone;
-
-import org.apache.nifi.attribute.expression.language.evaluation.DateEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.DateQueryResult;
-import org.apache.nifi.attribute.expression.language.evaluation.EvaluatorState;
-import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
-import org.apache.nifi.attribute.expression.language.exception.IllegalAttributeException;
 
 public class StringToDateEvaluator extends DateEvaluator {
 
@@ -43,9 +42,9 @@ public class StringToDateEvaluator extends DateEvaluator {
     }
 
     @Override
-    public QueryResult<Date> evaluate(final Map<String, String> attributes, final EvaluatorState context) {
-        final String subjectValue = subject.evaluate(attributes, context).getValue();
-        final String formatValue = format.evaluate(attributes, context).getValue();
+    public QueryResult<Date> evaluate(final EvaluationContext evaluationContext) {
+        final String subjectValue = subject.evaluate(evaluationContext).getValue();
+        final String formatValue = format.evaluate(evaluationContext).getValue();
         if (subjectValue == null || formatValue == null) {
             return new DateQueryResult(null);
         }
@@ -53,7 +52,7 @@ public class StringToDateEvaluator extends DateEvaluator {
         final SimpleDateFormat sdf = new SimpleDateFormat(formatValue, Locale.US);
 
         if(timeZone != null) {
-            final QueryResult<String> tzResult = timeZone.evaluate(attributes, context);
+            final QueryResult<String> tzResult = timeZone.evaluate(evaluationContext);
             final String tz = tzResult.getValue();
             if(tz != null && TimeZone.getTimeZone(tz) != null) {
                 sdf.setTimeZone(TimeZone.getTimeZone(tz));

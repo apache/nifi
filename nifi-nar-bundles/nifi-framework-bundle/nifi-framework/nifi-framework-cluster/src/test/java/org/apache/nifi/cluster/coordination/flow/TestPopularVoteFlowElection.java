@@ -17,21 +17,6 @@
 
 package org.apache.nifi.cluster.coordination.flow;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.HashSet;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 import org.apache.nifi.cluster.protocol.DataFlow;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.cluster.protocol.StandardDataFlow;
@@ -44,6 +29,22 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.HashSet;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class TestPopularVoteFlowElection {
 
@@ -183,35 +184,6 @@ public class TestPopularVoteFlowElection {
         }
     }
 
-    @Test
-    public void testDifferentPopulatedFlowsElection() throws IOException {
-        final ExtensionManager extensionManager = new StandardExtensionDiscoveringManager();
-        final FingerprintFactory fingerprintFactory = new FingerprintFactory(createEncryptorFromProperties(getNiFiProperties()), extensionManager);
-        final PopularVoteFlowElection election = new PopularVoteFlowElection(1, TimeUnit.MINUTES, 4, fingerprintFactory);
-        final byte[] nonEmptyCandidateA = Files.readAllBytes(Paths.get("src/test/resources/conf/controller-service-flow.xml"));
-        final byte[] nonEmptyCandidateB = Files.readAllBytes(Paths.get("src/test/resources/conf/reporting-task-flow.xml"));
-
-        for (int i = 0; i < 4; i++) {
-            assertFalse(election.isElectionComplete());
-            assertNull(election.getElectedDataFlow());
-
-            final DataFlow dataFlow;
-            if (i % 2 == 0) {
-                dataFlow = createDataFlow(nonEmptyCandidateA);
-            } else {
-                dataFlow = createDataFlow(nonEmptyCandidateB);
-            }
-
-            final DataFlow electedDataFlow = election.castVote(dataFlow, createNodeId(i));
-
-            if (i == 3) {
-                assertNotNull(electedDataFlow);
-                assertEquals(new String(nonEmptyCandidateA), new String(electedDataFlow.getFlow()));
-            } else {
-                assertNull(electedDataFlow);
-            }
-        }
-    }
 
     private NiFiProperties getNiFiProperties() {
         final NiFiProperties nifiProperties = mock(NiFiProperties.class);

@@ -175,7 +175,7 @@ public class GrokReader extends SchemaRegistryService implements RecordReaderFac
                     .build());
         }
 
-        validator = new GrokExpressionValidator(validationContext.getProperty(PATTERN_FILE).getValue(),grokCompiler);
+        validator = new GrokExpressionValidator(validationContext.getProperty(PATTERN_FILE).evaluateAttributeExpressions().getValue(),grokCompiler);
         results.add(validator.validate(subject,input,validationContext));
         return results;
     }

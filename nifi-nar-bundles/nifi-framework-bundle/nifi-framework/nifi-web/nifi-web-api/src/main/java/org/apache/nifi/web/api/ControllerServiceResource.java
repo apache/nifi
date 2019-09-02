@@ -24,6 +24,7 @@ import io.swagger.annotations.ApiResponses;
 import io.swagger.annotations.Authorization;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.AuthorizeControllerServiceReference;
+import org.apache.nifi.authorization.AuthorizeParameterReference;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.ComponentAuthorizable;
 import org.apache.nifi.authorization.RequestAction;
@@ -635,6 +636,8 @@ public class ControllerServiceResource extends ApplicationResource {
 
                     // authorize any referenced services
                     AuthorizeControllerServiceReference.authorizeControllerServiceReferences(requestControllerServiceDTO.getProperties(), authorizable, authorizer, lookup);
+                        AuthorizeParameterReference.authorizeParameterReferences(requestControllerServiceDTO.getProperties(), authorizer, authorizable.getParameterContext(),
+                            NiFiUserUtils.getNiFiUser());
                 },
                 () -> serviceFacade.verifyUpdateControllerService(requestControllerServiceDTO),
                 (revision, controllerServiceEntity) -> {
