@@ -97,6 +97,11 @@ public class BigQueryAttributes {
             + "will skip when reading the data. The default value is 0. This property is useful if you have header rows in the "
             + "file that should be skipped.";
 
+    public static final String AVRO_USE_LOGICAL_TYPES_ATTR = "bq.avro.use.logical.types";
+    public static final String AVRO_USE_LOGICAL_TYPES_DESC = "If format is set to Avro and if this option is set to true, you "
+            + "can interpret logical types into their corresponding types (such as TIMESTAMP) instead of only using their raw "
+            + "types (such as INTEGER).";
+
 
 
     // Batch Attributes

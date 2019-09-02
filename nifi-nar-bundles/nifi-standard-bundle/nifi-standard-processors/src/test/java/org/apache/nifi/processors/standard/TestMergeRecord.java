@@ -486,4 +486,104 @@ public class TestMergeRecord {
         runner.assertTransferCount(MergeRecord.REL_ORIGINAL, 0);
         runner.assertTransferCount(MergeRecord.REL_FAILURE, 1);
     }
+
+    @Test
+    public void testMergeWithMinRecordsFromVariableRegistry() {
+        runner.setVariable("min_records", "3");
+        runner.setVariable("max_records", "3");
+        runner.setValidateExpressionUsage(true);
+
+        // Test MIN_RECORDS
+        runner.setProperty(MergeRecord.MIN_RECORDS, "${min_records}");
+        runner.setProperty(MergeRecord.MAX_RECORDS, "3");
+
+        runner.enqueue("Name, Age\nJohn, 35");
+        runner.enqueue("Name, Age\nJane, 34");
+        runner.enqueue("Name, Age\nAlex, 28");
+
+        runner.run(1);
+        runner.assertTransferCount(MergeRecord.REL_MERGED, 1);
+        runner.assertTransferCount(MergeRecord.REL_ORIGINAL, 3);
+
+        final MockFlowFile mff = runner.getFlowFilesForRelationship(MergeRecord.REL_MERGED).get(0);
+        mff.assertAttributeEquals("record.count", "3");
+        mff.assertContentEquals("header\nJohn,35\nJane,34\nAlex,28\n");
+        runner.clearTransferState();
+
+        // Test MAX_RECORDS
+        runner.setProperty(MergeRecord.MIN_RECORDS, "1");
+        runner.setProperty(MergeRecord.MAX_RECORDS, "${max_records}");
+
+        runner.enqueue("Name, Age\nJohn, 35");
+        runner.enqueue("Name, Age\nJane, 34");
+        runner.enqueue("Name, Age\nAlex, 28");
+        runner.enqueue("Name, Age\nDonna, 48");
+        runner.enqueue("Name, Age\nJoey, 45");
+
+        runner.run(2);
+        runner.assertTransferCount(MergeRecord.REL_MERGED, 2);
+        runner.assertTransferCount(MergeRecord.REL_ORIGINAL, 5);
+
+        final MockFlowFile mff1 = runner.getFlowFilesForRelationship(MergeRecord.REL_MERGED).get(0);
+        mff1.assertAttributeEquals("record.count", "3");
+        mff1.assertContentEquals("header\nJohn,35\nJane,34\nAlex,28\n");
+
+        final MockFlowFile mff2 = runner.getFlowFilesForRelationship(MergeRecord.REL_MERGED).get(1);
+        mff2.assertAttributeEquals("record.count", "2");
+        mff2.assertContentEquals("header\nDonna,48\nJoey,45\n");
+        runner.clearTransferState();
+
+        runner.removeProperty("min_records");
+        runner.removeProperty("max_records");
+    }
+
+    @Test
+    public void testNegativeMinAndMaxRecordsValidators(){
+
+        runner.setVariable("min_records", "-3");
+        runner.setVariable("max_records", "-1");
+
+        // This configuration breaks the "<Minimum Number of Records> property cannot be negative or zero" rule
+        runner.setProperty(MergeRecord.MIN_RECORDS, "${min_records}");
+        runner.setProperty(MergeRecord.MAX_RECORDS, "3");
+        runner.assertNotValid();
+
+        // This configuration breaks the "<Minimum Number of Records> property cannot be negative or zero" and the
+        // "<Maximum Number of Records> property cannot be negative or zero" rules
+        runner.setProperty(MergeRecord.MIN_RECORDS, "${min_records}");
+        runner.setProperty(MergeRecord.MAX_RECORDS, "${max_records}");
+        runner.assertNotValid();
+
+        // This configuration breaks the "<Maximum Number of Records> property cannot be smaller than <Minimum Number of Records> property"
+        // and the "<Maximum Number of Records> property cannot be negative or zero" rules
+        runner.setProperty(MergeRecord.MIN_RECORDS, "3");
+        runner.setProperty(MergeRecord.MAX_RECORDS, "${max_records}");
+        runner.assertNotValid();
+
+        // This configuration breaks the "<Maximum Number of Records> property cannot be smaller than <Minimum Number of Records> property"
+        // and the "<Maximum Number of Records> property cannot be negative or zero" rules
+        runner.removeProperty(MergeRecord.MIN_RECORDS); // Will use the default value of 1
+        runner.setProperty(MergeRecord.MAX_RECORDS, "${max_records}");
+        runner.assertNotValid();
+
+        // This configuration breaks the "<Maximum Number of Records> property cannot be smaller than <Minimum Number of Records> property",
+        // the "<Minimum Number of Records> property cannot be negative or zero" and the "<Maximum Number of Records>
+        // property cannot be negative or zero" rules
+        runner.setVariable("min_records", "-1");
+        runner.setVariable("max_records", "-3");
+        runner.setProperty(MergeRecord.MIN_RECORDS, "${min_records}");
+        runner.setProperty(MergeRecord.MAX_RECORDS, "${max_records}");
+        runner.assertNotValid();
+
+        // This configuration is valid
+        runner.setVariable("min_records", "1");
+        runner.setVariable("max_records", "5");
+        runner.setProperty(MergeRecord.MIN_RECORDS, "${min_records}");
+        runner.setProperty(MergeRecord.MAX_RECORDS, "${max_records}");
+        runner.assertValid();
+
+        runner.removeProperty("min_records");
+        runner.removeProperty("max_records");
+    }
+
 }

@@ -3371,7 +3371,8 @@ public final class StandardProcessGroup implements ProcessGroup {
                     if (ComponentType.CONTROLLER_SERVICE == component.getComponentType()) {
                         final ControllerServiceNode serviceNode = getVersionedControllerService(this, component.getIdentifier());
                         if (serviceNode != null) {
-                            final VersionedControllerService versionedService = mapper.mapControllerService(serviceNode, controllerServiceProvider);
+                            final VersionedControllerService versionedService = mapper.mapControllerService(serviceNode, controllerServiceProvider,
+                                Collections.singleton(serviceNode.getProcessGroupIdentifier()), new HashMap<>());
                             final Set<FlowDifference> differences = flowComparator.compareControllerServices(versionedService, (VersionedControllerService) component);
 
                             if (!differences.isEmpty()) {

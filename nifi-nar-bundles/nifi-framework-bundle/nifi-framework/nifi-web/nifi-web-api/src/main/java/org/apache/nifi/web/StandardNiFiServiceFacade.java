@@ -68,6 +68,7 @@ import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.ComponentNode;
+import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.Counter;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
@@ -91,21 +92,27 @@ import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.history.History;
 import org.apache.nifi.history.HistoryQuery;
 import org.apache.nifi.history.PreviousValue;
+import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.registry.authorization.Permissions;
 import org.apache.nifi.registry.bucket.Bucket;
 import org.apache.nifi.registry.client.NiFiRegistryException;
+import org.apache.nifi.registry.flow.ExternalControllerServiceReference;
 import org.apache.nifi.registry.flow.FlowRegistry;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.registry.flow.VersionedComponent;
+import org.apache.nifi.registry.flow.VersionedConfigurableComponent;
 import org.apache.nifi.registry.flow.VersionedConnection;
+import org.apache.nifi.registry.flow.VersionedControllerService;
 import org.apache.nifi.registry.flow.VersionedFlow;
 import org.apache.nifi.registry.flow.VersionedFlowCoordinates;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshotMetadata;
 import org.apache.nifi.registry.flow.VersionedFlowState;
 import org.apache.nifi.registry.flow.VersionedProcessGroup;
+import org.apache.nifi.registry.flow.VersionedProcessor;
+import org.apache.nifi.registry.flow.VersionedPropertyDescriptor;
 import org.apache.nifi.registry.flow.diff.ComparableDataFlow;
 import org.apache.nifi.registry.flow.diff.ConciseEvolvingDifferenceDescriptor;
 import org.apache.nifi.registry.flow.diff.DifferenceType;
@@ -3072,6 +3079,125 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
+    public void resolveInheritedControllerServices(final VersionedFlowSnapshot versionedFlowSnapshot, final String processGroupId, final NiFiUser user) {
+        final VersionedProcessGroup versionedGroup = versionedFlowSnapshot.getFlowContents();
+        resolveInheritedControllerServices(versionedGroup, processGroupId, versionedFlowSnapshot.getExternalControllerServices(), user);
+    }
+
+    private void resolveInheritedControllerServices(final VersionedProcessGroup versionedGroup, final String processGroupId,
+                                                    final Map<String, ExternalControllerServiceReference> externalControllerServiceReferences,
+                                                    final NiFiUser user) {
+        final Set<String> availableControllerServiceIds = findAllControllerServiceIds(versionedGroup);
+        final ProcessGroup parentGroup = processGroupDAO.getProcessGroup(processGroupId);
+        final Set<ControllerServiceNode> serviceNodes = parentGroup.getControllerServices(true).stream()
+            .filter(service -> service.isAuthorized(authorizer, RequestAction.READ, user))
+            .collect(Collectors.toSet());
+
+        final ExtensionManager extensionManager = controllerFacade.getExtensionManager();
+        for (final VersionedProcessor processor : versionedGroup.getProcessors()) {
+            final BundleCoordinate compatibleBundle = BundleUtils.discoverCompatibleBundle(extensionManager, processor.getType(), processor.getBundle());
+            final ConfigurableComponent tempComponent = extensionManager.getTempComponent(processor.getType(), compatibleBundle);
+
+            resolveInheritedControllerServices(processor, availableControllerServiceIds, serviceNodes, externalControllerServiceReferences, tempComponent::getPropertyDescriptor);
+        }
+
+        for (final VersionedControllerService service : versionedGroup.getControllerServices()) {
+            final BundleCoordinate compatibleBundle = BundleUtils.discoverCompatibleBundle(extensionManager, service.getType(), service.getBundle());
+            final ConfigurableComponent tempComponent = extensionManager.getTempComponent(service.getType(), compatibleBundle);
+
+            resolveInheritedControllerServices(service, availableControllerServiceIds, serviceNodes, externalControllerServiceReferences, tempComponent::getPropertyDescriptor);
+        }
+
+        for (final VersionedProcessGroup child : versionedGroup.getProcessGroups()) {
+            resolveInheritedControllerServices(child, processGroupId, externalControllerServiceReferences, user);
+        }
+    }
+
+
+    private void resolveInheritedControllerServices(final VersionedConfigurableComponent component, final Set<String> availableControllerServiceIds,
+                                                    final Set<ControllerServiceNode> availableControllerServices,
+                                                    final Map<String, ExternalControllerServiceReference> externalControllerServiceReferences,
+                                                    final Function<String, PropertyDescriptor> descriptorLookup) {
+        final Map<String, VersionedPropertyDescriptor> descriptors = component.getPropertyDescriptors();
+        final Map<String, String> properties = component.getProperties();
+
+        resolveInheritedControllerServices(descriptors, properties, availableControllerServiceIds, availableControllerServices, externalControllerServiceReferences, descriptorLookup);
+    }
+
+
+    private void resolveInheritedControllerServices(final Map<String, VersionedPropertyDescriptor> propertyDescriptors, final Map<String, String> componentProperties,
+                                                    final Set<String> availableControllerServiceIds, final Set<ControllerServiceNode> availableControllerServices,
+                                                    final Map<String, ExternalControllerServiceReference> externalControllerServiceReferences,
+                                                    final Function<String, PropertyDescriptor> descriptorLookup) {
+
+        for (final Map.Entry<String, String> entry : new HashMap<>(componentProperties).entrySet()) {
+            final String propertyName = entry.getKey();
+            final String propertyValue = entry.getValue();
+
+            final VersionedPropertyDescriptor propertyDescriptor = propertyDescriptors.get(propertyName);
+            if (propertyDescriptor == null) {
+                continue;
+            }
+
+            if (!propertyDescriptor.getIdentifiesControllerService()) {
+                continue;
+            }
+
+            // If the referenced Controller Service is available in this flow, there is nothing to resolve.
+            if (availableControllerServiceIds.contains(propertyValue)) {
+                continue;
+            }
+
+            final ExternalControllerServiceReference externalServiceReference = externalControllerServiceReferences == null ? null : externalControllerServiceReferences.get(propertyValue);
+            if (externalServiceReference == null) {
+                continue;
+            }
+
+            final PropertyDescriptor descriptor = descriptorLookup.apply(propertyName);
+            if (descriptor == null) {
+                continue;
+            }
+
+            final Class<? extends ControllerService> referencedServiceClass = descriptor.getControllerServiceDefinition();
+            if (referencedServiceClass == null) {
+                continue;
+            }
+
+            final String externalControllerServiceName = externalServiceReference.getName();
+            final List<ControllerServiceNode> matchingControllerServices = availableControllerServices.stream()
+                .filter(service -> service.getName().equals(externalControllerServiceName))
+                .filter(service -> referencedServiceClass.isAssignableFrom(service.getProxiedControllerService().getClass()))
+                .collect(Collectors.toList());
+
+            if (matchingControllerServices.size() != 1) {
+                continue;
+            }
+
+            final ControllerServiceNode matchingServiceNode = matchingControllerServices.get(0);
+            final Optional<String> versionedComponentId = matchingServiceNode.getVersionedComponentId();
+            final String resolvedId = versionedComponentId.orElseGet(matchingServiceNode::getIdentifier);
+
+            componentProperties.put(propertyName, resolvedId);
+        }
+    }
+
+    private Set<String> findAllControllerServiceIds(final VersionedProcessGroup group) {
+        final Set<String> ids = new HashSet<>();
+        findAllControllerServiceIds(group, ids);
+        return ids;
+    }
+
+    private void findAllControllerServiceIds(final VersionedProcessGroup group, final Set<String> ids) {
+        for (final VersionedControllerService service : group.getControllerServices()) {
+            ids.add(service.getIdentifier());
+        }
+
+        for (final VersionedProcessGroup childGroup : group.getProcessGroups()) {
+            findAllControllerServiceIds(childGroup, ids);
+        }
+    }
+
+    @Override
     public BundleCoordinate getCompatibleBundle(String type, BundleDTO bundleDTO) {
         return BundleUtils.getCompatibleBundle(controllerFacade.getExtensionManager(), type, bundleDTO);
     }
@@ -3797,7 +3923,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         try {
             // add a snapshot to the flow in the registry
-            registeredSnapshot = registerVersionedFlowSnapshot(registryId, registeredFlow, versionedProcessGroup, versionedFlowDto.getComments(), snapshotVersion);
+            registeredSnapshot = registerVersionedFlowSnapshot(registryId, registeredFlow, versionedProcessGroup, versionedProcessGroup.getExternalControllerServiceReferences(),
+                versionedFlowDto.getComments(), snapshotVersion);
         } catch (final NiFiCoreException e) {
             // If the flow has been created, but failed to add a snapshot,
             // then we need to capture the created versioned flow information as a partial successful result.
@@ -3977,15 +4104,16 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public VersionedFlowSnapshot registerVersionedFlowSnapshot(final String registryId, final VersionedFlow flow,
-        final VersionedProcessGroup snapshot, final String comments, final int expectedVersion) {
+    public VersionedFlowSnapshot registerVersionedFlowSnapshot(final String registryId, final VersionedFlow flow, final VersionedProcessGroup snapshot,
+                                                               final Map<String, ExternalControllerServiceReference> externalControllerServiceReferences, final String comments,
+                                                               final int expectedVersion) {
         final FlowRegistry registry = flowRegistryClient.getFlowRegistry(registryId);
         if (registry == null) {
             throw new ResourceNotFoundException("No Flow Registry exists with ID " + registryId);
         }
 
         try {
-            return registry.registerVersionedFlowSnapshot(flow, snapshot, comments, expectedVersion, NiFiUserUtils.getNiFiUser());
+            return registry.registerVersionedFlowSnapshot(flow, snapshot, externalControllerServiceReferences, comments, expectedVersion, NiFiUserUtils.getNiFiUser());
         } catch (final IOException | NiFiRegistryException e) {
             throw new NiFiCoreException("Failed to register flow with Flow Registry due to " + e.getMessage(), e);
         }
