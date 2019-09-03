@@ -1578,15 +1578,16 @@
 
                     if (options.readOnly !== true && !_.isNil(parameterContextId)) {
                         var descriptors = table.data('descriptors');
-                        var propertyDescriptor = descriptors[property.displayName];
+                        var propertyDescriptor = descriptors[property.property];
 
                         nfParameterContexts.convertPropertyToParameter(property, propertyDescriptor, parameterContextId)
                             .done(function (parameter) {
-                                // set the property value to the reference the parameter that was created
-                                propertyData.updateItem(property.id, $.extend(property, {
+                                var updatedItem = _.extend({}, property, {
                                     previousValue: property.value,
                                     value: '#{' + parameter.name + '}'
-                                }));
+                                });
+                                // set the property value to the reference the parameter that was created
+                                propertyData.updateItem(property.id, updatedItem);
                             });
                     }
                 }
