@@ -823,11 +823,11 @@
         }
 
         return {
-            name,
-            value,
-            description,
+            name: name,
+            value: value,
+            description: description,
             sensitive: isSensitive,
-            isEmptyStringSet
+            isEmptyStringSet: isEmptyStringSet
         }
     };
 
@@ -1850,7 +1850,21 @@
         initParameterTable();
     };
 
-    var openAddParameterDialog = function ({ onApply, onCancel }) {
+    /**
+     * Opens the Add Parameter Dialog.
+     * @param {Object} callbacks object with callbacks for handling the cancel and apply button functionality:
+     *
+     * @example
+     * openAddParameterDialog({
+     *     onApply: function () {
+     *         // handle the apply button being clicked
+     *     },
+     *     onCancel: function() {
+     *         // handle the cancel button being clicked
+     *     }
+     * });
+     */
+    var openAddParameterDialog = function (callbacks) {
         $('#parameter-dialog')
             .modal('setHeaderText', 'Add Parameter')
             .modal('setButtonModel', [{
@@ -1862,21 +1876,19 @@
                 },
                 disabled: function () {
                     var parameterName = $('#parameter-name').val();
-                    var parameterValue = $('#parameter-value-field').val();
-                    var isEmptyString = $('#parameter-dialog').find('.nf-checkbox').hasClass('checkbox-checked');
                     var isUpdatingParameterContext = $('#parameter-context-updating-status').hasClass('show-status');
 
                     if (isUpdatingParameterContext) {
                         return true;
                     }
 
-                    if ((parameterName !== '' && parameterValue !== '') || (parameterName !== '' && isEmptyString)) {
+                    if (parameterName !== '') {
                         return false;
                     }
                     return true;
                 },
                 handler: {
-                    click: onApply
+                    click: callbacks.onApply
                 }
             }, {
                 buttonText: 'Cancel',
@@ -1886,7 +1898,7 @@
                     text: '#004849'
                 },
                 handler: {
-                    click: onCancel
+                    click: callbacks.onCancel
                 }
             }])
             .modal('show');
