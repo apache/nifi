@@ -23,6 +23,7 @@ import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.registry.flow.ComponentType;
+import org.apache.nifi.registry.flow.ScheduledState;
 import org.apache.nifi.registry.flow.VersionedComponent;
 import org.apache.nifi.registry.flow.VersionedConnection;
 import org.apache.nifi.registry.flow.VersionedFlowCoordinates;
@@ -163,6 +164,21 @@ public class FlowDifferenceFilters {
         return false;
     }
 
+    public static boolean isScheduledStateNew(final FlowDifference fd) {
+        if (fd.getDifferenceType() != DifferenceType.SCHEDULED_STATE_CHANGED) {
+            return false;
+        }
+
+        // If Scheduled State transitions from null to ENABLED or ENABLED to null, consider it a "new" scheduled state.
+        if (fd.getValueA() == null && ScheduledState.ENABLED.equals(fd.getValueB())) {
+            return true;
+        }
+        if (fd.getValueB() == null && "ENABLED".equals(fd.getValueA())) {
+            return true;
+        }
+
+        return false;
+    }
 
     public static boolean isNewRelationshipAutoTerminatedAndDefaulted(final FlowDifference fd, final VersionedProcessGroup processGroup, final FlowManager flowManager) {
         if (fd.getDifferenceType() != DifferenceType.AUTO_TERMINATED_RELATIONSHIPS_CHANGED) {
