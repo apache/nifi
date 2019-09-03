@@ -2472,7 +2472,8 @@ public final class DtoFactory {
                 continue;
             }
 
-            final VersionedProcessGroup relevantProcessGroup = versionedGroups.get(difference.getComponentA().getGroupIdentifier());
+            final VersionedComponent componentA = difference.getComponentA();
+            final VersionedProcessGroup relevantProcessGroup = componentA == null ? null : versionedGroups.get(componentA.getGroupIdentifier());
             if (relevantProcessGroup != null && FlowDifferenceFilters.isNewRelationshipAutoTerminatedAndDefaulted(difference, relevantProcessGroup, flowManager)) {
                 continue;
             }
