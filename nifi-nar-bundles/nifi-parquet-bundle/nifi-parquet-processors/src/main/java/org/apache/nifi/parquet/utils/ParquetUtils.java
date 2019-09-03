@@ -27,6 +27,8 @@ import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.parquet.PutParquet;
 import org.apache.parquet.avro.AvroReadSupport;
+import org.apache.parquet.avro.AvroSchemaConverter;
+import org.apache.parquet.avro.AvroWriteSupport;
 import org.apache.parquet.column.ParquetProperties;
 import org.apache.parquet.hadoop.ParquetFileWriter;
 import org.apache.parquet.hadoop.ParquetWriter;
@@ -100,29 +102,25 @@ public class ParquetUtils {
     public static final PropertyDescriptor AVRO_READ_COMPATIBILITY = new PropertyDescriptor.Builder()
             .name("avro-read-compatibility")
             .displayName("Avro Read Compatibility")
-            .description("Specifies the value for 'parquet.avro.compatible' in the underlying Parquet library")
+            .description("Specifies the value for '" + AvroReadSupport.AVRO_COMPATIBILITY + "' in the underlying Parquet library")
             .allowableValues("true", "false")
             .defaultValue("true")
             .required(true)
             .build();
-
-    public static final String PARQUET_AVRO_ADD_LIST_ELEMENT_RECORDS = "parquet.avro.add-list-element-records";
 
     public static final PropertyDescriptor AVRO_ADD_LIST_ELEMENT_RECORDS = new PropertyDescriptor.Builder()
             .name("avro-add-list-element-records")
             .displayName("Avro Add List Element Records")
-            .description("Specifies the value for 'parquet.avro.add-list-element-records' in the underlying Parquet library")
+            .description("Specifies the value for '" + AvroSchemaConverter.ADD_LIST_ELEMENT_RECORDS + "' in the underlying Parquet library")
             .allowableValues("true", "false")
             .defaultValue("true")
             .required(true)
             .build();
 
-    public static final String PARQUET_AVRO_WRITE_OLD_LIST_STRUCTURE = "parquet.avro.write-old-list-structure";
-
     public static final PropertyDescriptor AVRO_WRITE_OLD_LIST_STRUCTURE = new PropertyDescriptor.Builder()
             .name("avro-write-old-list-structure")
             .displayName("Avro Write Old List Structure")
-            .description("Specifies the value for 'parquet.avro.write-old-list-structure' in the underlying Parquet library")
+            .description("Specifies the value for '" + AvroWriteSupport.WRITE_OLD_LIST_STRUCTURE + "' in the underlying Parquet library")
             .allowableValues("true", "false")
             .defaultValue("true")
             .required(true)
@@ -302,12 +300,12 @@ public class ParquetUtils {
         }
 
         if (parquetConfig.getAvroAddListElementRecords() != null) {
-            conf.setBoolean(PARQUET_AVRO_ADD_LIST_ELEMENT_RECORDS,
+            conf.setBoolean(AvroSchemaConverter.ADD_LIST_ELEMENT_RECORDS,
                     parquetConfig.getAvroAddListElementRecords().booleanValue());
         }
 
         if (parquetConfig.getAvroWriteOldListStructure() != null) {
-            conf.setBoolean(PARQUET_AVRO_WRITE_OLD_LIST_STRUCTURE,
+            conf.setBoolean(AvroWriteSupport.WRITE_OLD_LIST_STRUCTURE,
                     parquetConfig.getAvroWriteOldListStructure().booleanValue());
         }
     }

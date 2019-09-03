@@ -63,12 +63,7 @@ public class TestParquetRecordSetWriter {
 
     @Test
     public void testWriteUsers() throws IOException, SchemaNotFoundException {
-        final ConfigurationContext configurationContext = getConfigurationContextWithSchema("src/test/resources/avro/user.avsc");
-
-        // simulate enabling the service
-        recordSetWriterFactory.onEnabled(configurationContext);
-        recordSetWriterFactory.storeSchemaWriteStrategy(configurationContext);
-        recordSetWriterFactory.storeSchemaAccessStrategy(configurationContext);
+        initRecordSetWriter("src/test/resources/avro/user.avsc");
 
         // get the schema from the writer factory
         final RecordSchema writeSchema = recordSetWriterFactory.getSchema(Collections.emptyMap(), null);
@@ -86,12 +81,7 @@ public class TestParquetRecordSetWriter {
 
     @Test
     public void testWriteUsersWhenSchemaFormatNotAvro() throws IOException, SchemaNotFoundException {
-        final ConfigurationContext configurationContext = getConfigurationContextWithSchema("src/test/resources/avro/user.avsc");
-
-        // simulate enabling the service
-        recordSetWriterFactory.onEnabled(configurationContext);
-        recordSetWriterFactory.storeSchemaWriteStrategy(configurationContext);
-        recordSetWriterFactory.storeSchemaAccessStrategy(configurationContext);
+        initRecordSetWriter("src/test/resources/avro/user.avsc");
 
         // get the schema from the writer factory
         final RecordSchema writeSchema = recordSetWriterFactory.getSchema(Collections.emptyMap(), null);
@@ -108,6 +98,14 @@ public class TestParquetRecordSetWriter {
         verifyParquetRecords(parquetFile, numUsers);
     }
 
+    private void initRecordSetWriter(final String schemaFile) throws IOException {
+        final ConfigurationContext configurationContext = getConfigurationContextWithSchema(schemaFile);
+
+        // simulate enabling the service
+        recordSetWriterFactory.onEnabled(configurationContext);
+        recordSetWriterFactory.storeSchemaWriteStrategy(configurationContext);
+        recordSetWriterFactory.storeSchemaAccessStrategy(configurationContext);
+    }
 
     private void writeUsers(final RecordSchema writeSchema, final File parquetFile, final int numUsers) throws IOException {
         try(final OutputStream output = new FileOutputStream(parquetFile);
