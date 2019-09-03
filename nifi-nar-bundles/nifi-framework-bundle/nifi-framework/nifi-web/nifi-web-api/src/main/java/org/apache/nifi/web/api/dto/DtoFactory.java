@@ -2454,6 +2454,13 @@ public final class DtoFactory {
                 continue;
             }
 
+            // Ignore differences that are the result of the Versioned Flow not having a Scheduled State and the newer flow being "ENABLED". We do this because
+            // Scheduled State was not always part of the Versioned Flow - it was always assumed to be ENABLED. We don't want flows that were previously stored in this
+            // format to now be considered different than the local flow.
+            if (FlowDifferenceFilters.isScheduledStateNew(difference)) {
+                continue;
+            }
+
             // Ignore differences for adding remote ports
             if (FlowDifferenceFilters.isAddedOrRemovedRemotePort(difference)) {
                 continue;

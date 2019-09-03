@@ -4569,6 +4569,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             .filter(FlowDifferenceFilters.FILTER_IGNORABLE_VERSIONED_FLOW_COORDINATE_CHANGES)
             .filter(diff -> !FlowDifferenceFilters.isNewPropertyWithDefaultValue(diff, flowManager))
             .filter(diff -> !FlowDifferenceFilters.isNewRelationshipAutoTerminatedAndDefaulted(diff, proposedFlow.getContents(), flowManager))
+            .filter(diff -> !FlowDifferenceFilters.isScheduledStateNew(diff))
             .map(difference -> {
                 final VersionedComponent localComponent = difference.getComponentA();
 
