@@ -41,6 +41,7 @@ import org.apache.hive.common.util.TimestampParser;
 import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.serialization.RecordReader;
+import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
@@ -139,27 +140,35 @@ public class NiFiRecordSerDe extends AbstractSerDe {
     public Object deserialize(Writable writable) throws SerDeException {
         ObjectWritable t = (ObjectWritable) writable;
         Record record = (Record) t.get();
-        List<Object> r = new ArrayList<>(Collections.nCopies(columnNames.size(), null));
+
+        List<Object> result = deserialize(record, schema);
+
+        stats.setRowCount(stats.getRowCount() + 1);
+
+        return result;
+    }
+
+    private List<Object> deserialize(Record record, StructTypeInfo schema) throws SerDeException {
+        List<Object> result = new ArrayList<>(Collections.nCopies(schema.getAllStructFieldNames().size(), null));
+
         try {
             RecordSchema recordSchema = record.getSchema();
             for (RecordField field : recordSchema.getFields()) {
-                populateRecord(r, record.getValue(field), field, schema);
+                populateRecord(result, record.getValue(field), field, schema);
             }
-            stats.setRowCount(stats.getRowCount() + 1);
-
         } catch(SerDeException se) {
-            log.error("Error [{}] parsing Record [{}].", new Object[]{se.toString(), t}, se);
+            log.error("Error [{}] parsing Record [{}].", new Object[]{se.toString(), record}, se);
             throw se;
         } catch (Exception e) {
-            log.error("Error [{}] parsing Record [{}].", new Object[]{e.toString(), t}, e);
+            log.error("Error [{}] parsing Record [{}].", new Object[]{e.toString(), record}, e);
             throw new SerDeException(e);
         }
 
-        return r;
+        return result;
     }
 
     @SuppressWarnings("unchecked")
-    private Object extractCurrentField(final Object fieldValue, final RecordField field, final TypeInfo fieldTypeInfo) throws SerDeException {
+    private Object extractCurrentField(final Object fieldValue, final String fieldName, final DataType fieldDataType, final TypeInfo fieldTypeInfo) throws SerDeException {
         if(fieldValue == null){
             return null;
         }
@@ -173,32 +182,32 @@ public class NiFiRecordSerDe extends AbstractSerDe {
                 }
                 switch (primitiveCategory) {
                     case BYTE:
-                        Integer bIntValue = DataTypeUtils.toInteger(fieldValue, field.getFieldName());
+                        Integer bIntValue = DataTypeUtils.toInteger(fieldValue, fieldName);
                         val = bIntValue.byteValue();
                         break;
                     case SHORT:
-                        Integer sIntValue = DataTypeUtils.toInteger(fieldValue, field.getFieldName());
+                        Integer sIntValue = DataTypeUtils.toInteger(fieldValue, fieldName);
                         val = sIntValue.shortValue();
                         break;
                     case INT:
-                        val = DataTypeUtils.toInteger(fieldValue, field.getFieldName());
+                        val = DataTypeUtils.toInteger(fieldValue, fieldName);
                         break;
                     case LONG:
-                        val = DataTypeUtils.toLong(fieldValue, field.getFieldName());
+                        val = DataTypeUtils.toLong(fieldValue, fieldName);
                         break;
                     case BOOLEAN:
-                        val = DataTypeUtils.toBoolean(fieldValue, field.getFieldName());
+                        val = DataTypeUtils.toBoolean(fieldValue, fieldName);
                         break;
                     case FLOAT:
-                        val = DataTypeUtils.toFloat(fieldValue, field.getFieldName());
+                        val = DataTypeUtils.toFloat(fieldValue, fieldName);
                         break;
                     case DOUBLE:
-                        val = DataTypeUtils.toDouble(fieldValue, field.getFieldName());
+                        val = DataTypeUtils.toDouble(fieldValue, fieldName);
                         break;
                     case STRING:
                     case VARCHAR:
                     case CHAR:
-                        val = DataTypeUtils.toString(fieldValue, field.getFieldName());
+                        val = DataTypeUtils.toString(fieldValue, fieldName);
                         break;
                     case BINARY:
                         final ArrayDataType arrayDataType;
@@ -206,20 +215,20 @@ public class NiFiRecordSerDe extends AbstractSerDe {
                             // Treat this as an array of bytes
                             arrayDataType = (ArrayDataType) RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType());
                         } else {
-                            arrayDataType = (ArrayDataType) field.getDataType();
+                            arrayDataType = (ArrayDataType) fieldDataType;
                         }
-                        Object[] array = DataTypeUtils.toArray(fieldValue, field.getFieldName(), arrayDataType.getElementType());
+                        Object[] array = DataTypeUtils.toArray(fieldValue, fieldName, arrayDataType.getElementType());
                         val = AvroTypeUtil.convertByteArray(array).array();
                         break;
                     case DATE:
-                        Date d = DataTypeUtils.toDate(fieldValue, () -> DataTypeUtils.getDateFormat(field.getDataType().getFormat()), field.getFieldName());
+                        Date d = DataTypeUtils.toDate(fieldValue, () -> DataTypeUtils.getDateFormat(fieldDataType.getFormat()), fieldName);
                         org.apache.hadoop.hive.common.type.Date hiveDate = new org.apache.hadoop.hive.common.type.Date();
                         hiveDate.setTimeInMillis(d.getTime());
                         val = hiveDate;
                         break;
                     // ORC doesn't currently handle TIMESTAMPLOCALTZ
                     case TIMESTAMP:
-                        Timestamp ts = DataTypeUtils.toTimestamp(fieldValue, () -> DataTypeUtils.getDateFormat(field.getDataType().getFormat()), field.getFieldName());;
+                        Timestamp ts = DataTypeUtils.toTimestamp(fieldValue, () -> DataTypeUtils.getDateFormat(fieldDataType.getFormat()), fieldName);
                         // Convert to Hive's Timestamp type
                         org.apache.hadoop.hive.common.type.Timestamp hivetimestamp = new org.apache.hadoop.hive.common.type.Timestamp();
                         hivetimestamp.setTimeInMillis(ts.getTime(), ts.getNanos());
@@ -233,11 +242,11 @@ public class NiFiRecordSerDe extends AbstractSerDe {
                         } else if (fieldValue instanceof Number) {
                             val = HiveDecimal.create(((Number)fieldValue).doubleValue());
                         } else {
-                            val = HiveDecimal.create(DataTypeUtils.toDouble(fieldValue, field.getDataType().getFormat()));
+                            val = HiveDecimal.create(DataTypeUtils.toDouble(fieldValue, fieldDataType.getFormat()));
                         }
                         break;
                     default:
-                        throw new IllegalArgumentException("Field " + field.getFieldName() + " cannot be converted to type: " + primitiveCategory.name());
+                        throw new IllegalArgumentException("Field " + fieldName + " cannot be converted to type: " + primitiveCategory.name());
                 }
                 break;
             case LIST:
@@ -245,8 +254,8 @@ public class NiFiRecordSerDe extends AbstractSerDe {
                 ListTypeInfo listTypeInfo = (ListTypeInfo)fieldTypeInfo;
                 TypeInfo nestedType = listTypeInfo.getListElementTypeInfo();
                 List<Object> converted = new ArrayList<>(value.length);
-                for(int i=0; i<value.length; i++){
-                    converted.add(extractCurrentField(value[i], field, nestedType));
+                for (Object o : value) {
+                    converted.add(extractCurrentField(o, fieldName, ((ArrayDataType) fieldDataType).getElementType(), nestedType));
                 }
                 val = converted;
                 break;
@@ -257,12 +266,10 @@ public class NiFiRecordSerDe extends AbstractSerDe {
                 Map<Object, Object> convertedMap = new HashMap<>(valueMap.size());
                 //get a key record field, nifi map keys are always string. synthesize new
                 //record fields for the map field key and value.
-                RecordField keyField = new RecordField(field.getFieldName() + ".key", RecordFieldType.STRING.getDataType());
-                RecordField valueField = new RecordField(field.getFieldName() + ".value", ((MapDataType)field.getDataType()).getValueType());
-                for (Map.Entry<String, Object> entry: valueMap.entrySet()) {
+                for (Map.Entry<String, Object> entry : valueMap.entrySet()) {
                     convertedMap.put(
-                            extractCurrentField(entry.getKey(), keyField, mapTypeInfo.getMapKeyTypeInfo()),
-                            extractCurrentField(entry.getValue(), valueField, mapTypeInfo.getMapValueTypeInfo())
+                            extractCurrentField(entry.getKey(), fieldName + ".key", RecordFieldType.STRING.getDataType(), mapTypeInfo.getMapKeyTypeInfo()),
+                            extractCurrentField(entry.getValue(), fieldName + ".value", ((MapDataType) fieldDataType).getValueType(), mapTypeInfo.getMapValueTypeInfo())
                     );
                 }
                 val = convertedMap;
@@ -270,21 +277,10 @@ public class NiFiRecordSerDe extends AbstractSerDe {
             case STRUCT:
                 Record nestedRecord = (Record) fieldValue;
                 StructTypeInfo s = (StructTypeInfo) fieldTypeInfo;
-                int numNestedRecordFields = s.getAllStructFieldTypeInfos().size();
-                List<Object> struct = new ArrayList<>(Collections.nCopies(numNestedRecordFields, null));
-                try {
-                    RecordSchema recordSchema = nestedRecord.getSchema();
-                    for (RecordField nestedRecordField : recordSchema.getFields()) {
-                        populateRecord(struct, nestedRecord.getValue(nestedRecordField), nestedRecordField, s);
-                    }
-                    val = struct;
-                } catch (Exception e) {
-                    log.error("Error [{}] parsing child record [{}].", new Object[]{e.toString(), nestedRecord}, e);
-                    throw new SerDeException(e);
-                }
+                val = deserialize(nestedRecord, s);
                 break;
             default:
-                log.error("Unknown type found: " + fieldTypeInfo + "for field of type: " + field.getDataType().toString());
+                log.error("Unknown type found: " + fieldTypeInfo + "for field of type: " + fieldDataType.toString());
                 return null;
         }
         return val;
@@ -331,7 +327,7 @@ public class NiFiRecordSerDe extends AbstractSerDe {
             // If we reached here, then we were successful at finding an alternate internal
             // column mapping, and we're about to proceed.
         }
-        Object currField = extractCurrentField(value, field, typeInfo.getStructFieldTypeInfo(normalizedFieldName));
+        Object currField = extractCurrentField(value, fieldName, field.getDataType(), typeInfo.getStructFieldTypeInfo(normalizedFieldName));
         r.set(fpos, currField);
     }
 
