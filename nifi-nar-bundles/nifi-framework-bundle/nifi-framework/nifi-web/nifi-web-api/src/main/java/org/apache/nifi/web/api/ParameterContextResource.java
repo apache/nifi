@@ -1155,13 +1155,14 @@ public class ParameterContextResource extends ApplicationResource {
         updateRequestDto.setUpdateSteps(updateSteps);
 
         final ParameterContextEntity initialRequest = asyncRequest.getRequest();
+
+        // The AffectedComponentEntity itself does not evaluate equality based on component information. As a result, we want to de-dupe the entities based on their identifiers.
         final Map<String, AffectedComponentEntity> affectedComponents = new HashMap<>();
         for (final ParameterEntity entity : initialRequest.getComponent().getParameters()) {
             for (final AffectedComponentEntity affectedComponentEntity : entity.getParameter().getReferencingComponents()) {
-                affectedComponents.put(affectedComponentEntity.getId(), affectedComponentEntity);
+                affectedComponents.put(affectedComponentEntity.getId(), serviceFacade.getUpdatedAffectedComponentEntity(affectedComponentEntity));
             }
         }
-
         updateRequestDto.setReferencingComponents(new HashSet<>(affectedComponents.values()));
 
         // Populate the Affected Components

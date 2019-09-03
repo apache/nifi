@@ -1574,6 +1574,13 @@ public interface NiFiServiceFacade {
     Set<AffectedComponentEntity> getComponentsAffectedByParameterContextUpdate(ParameterContextDTO parameterContextDto);
 
     /**
+     * Returns an up-to-date representation of the component that is referenced by the given affected component
+     * @param affectedComponent the affected component
+     * @return an up-to-date representation of the affected component
+     */
+    AffectedComponentEntity getUpdatedAffectedComponentEntity(AffectedComponentEntity affectedComponent);
+
+    /**
      * Returns a Set representing all Processors that reference any Parameters and that belong to the group with the given ID
      *
      * @param groupId the id of the process group

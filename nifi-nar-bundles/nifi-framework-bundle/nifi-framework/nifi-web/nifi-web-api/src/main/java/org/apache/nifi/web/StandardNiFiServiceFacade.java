@@ -1195,6 +1195,46 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
+    public AffectedComponentEntity getUpdatedAffectedComponentEntity(final AffectedComponentEntity affectedComponent) {
+        final AffectedComponentDTO dto = affectedComponent.getComponent();
+        if (dto == null) {
+            return affectedComponent;
+        }
+
+        final String groupId = affectedComponent.getProcessGroup().getId();
+        final ProcessGroup processGroup = processGroupDAO.getProcessGroup(groupId);
+
+        final String componentType = dto.getReferenceType();
+        if (AffectedComponentDTO.COMPONENT_TYPE_CONTROLLER_SERVICE.equals(componentType)) {
+            final ControllerServiceNode serviceNode = processGroup.getControllerService(dto.getId());
+            return dtoFactory.createAffectedComponentEntity(serviceNode, revisionManager);
+        } else if (AffectedComponentDTO.COMPONENT_TYPE_PROCESSOR.equals(componentType)) {
+            final ProcessorNode processorNode = processGroup.getProcessor(dto.getId());
+            return dtoFactory.createAffectedComponentEntity(processorNode, revisionManager);
+        } else if (AffectedComponentDTO.COMPONENT_TYPE_INPUT_PORT.equals(componentType)) {
+            final Port inputPort = processGroup.getInputPort(dto.getId());
+            final PortEntity portEntity = createInputPortEntity(inputPort);
+            return dtoFactory.createAffectedComponentEntity(portEntity, AffectedComponentDTO.COMPONENT_TYPE_INPUT_PORT);
+        } else if (AffectedComponentDTO.COMPONENT_TYPE_OUTPUT_PORT.equals(componentType)) {
+            final Port outputPort = processGroup.getOutputPort(dto.getId());
+            final PortEntity portEntity = createOutputPortEntity(outputPort);
+            return dtoFactory.createAffectedComponentEntity(portEntity, AffectedComponentDTO.COMPONENT_TYPE_OUTPUT_PORT);
+        } else if (AffectedComponentDTO.COMPONENT_TYPE_REMOTE_INPUT_PORT.equals(componentType)) {
+            final RemoteGroupPort remoteGroupPort = processGroup.findRemoteGroupPort(dto.getId());
+            final RemoteProcessGroupEntity rpgEntity = createRemoteGroupEntity(remoteGroupPort.getRemoteProcessGroup(), NiFiUserUtils.getNiFiUser());
+            final RemoteProcessGroupPortDTO remotePortDto = dtoFactory.createRemoteProcessGroupPortDto(remoteGroupPort);
+            return dtoFactory.createAffectedComponentEntity(remotePortDto, AffectedComponentDTO.COMPONENT_TYPE_REMOTE_INPUT_PORT, rpgEntity);
+        } else if (AffectedComponentDTO.COMPONENT_TYPE_REMOTE_OUTPUT_PORT.equals(componentType)) {
+            final RemoteGroupPort remoteGroupPort = processGroup.findRemoteGroupPort(dto.getId());
+            final RemoteProcessGroupEntity rpgEntity = createRemoteGroupEntity(remoteGroupPort.getRemoteProcessGroup(), NiFiUserUtils.getNiFiUser());
+            final RemoteProcessGroupPortDTO remotePortDto = dtoFactory.createRemoteProcessGroupPortDto(remoteGroupPort);
+            return dtoFactory.createAffectedComponentEntity(remotePortDto, AffectedComponentDTO.COMPONENT_TYPE_REMOTE_OUTPUT_PORT, rpgEntity);
+        }
+
+        return affectedComponent;
+    }
+
+    @Override
     public Set<AffectedComponentEntity> getComponentsAffectedByParameterContextUpdate(final ParameterContextDTO parameterContextDto) {
         return getComponentsAffectedByParameterContextUpdate(parameterContextDto, true);
     }
