@@ -86,6 +86,50 @@
         }
     };
 
+
+    var backpressurePredictionFormatter = function (row, cell, value, columnDef, dataContext) {
+        var predictedMillisUntilBytesBackpressure = _.get(dataContext, 'predictedMillisUntilBytesBackpressure', -1);
+        var predictedMillisUntilCountBackpressure = _.get(dataContext, 'predictedMillisUntilCountBackpressure', -1);
+
+        var percentUseCount = _.get(dataContext, 'percentUseCount', 0);
+        var percentUseBytes = _.get(dataContext, 'percentUseBytes', 0);
+
+        var predictions = [
+            { label: 'object', timeToBackPressure: predictedMillisUntilCountBackpressure },
+            { label: 'size', timeToBackPressure: predictedMillisUntilBytesBackpressure },
+        ];
+        var actualQueuePercents = [
+            { label: 'object', percent: percentUseCount },
+            { label: 'size', percent: percentUseBytes }
+        ];
+
+        var minPrediction = _.minBy(predictions, 'timeToBackPressure');
+        var maxActual = _.maxBy(actualQueuePercents, 'percent');
+
+        if (maxActual.percent >= 100) {
+            // currently experiencing back pressure
+            return 'now (' + maxActual.label + ')';
+        } else if (minPrediction.timeToBackPressure < 0) {
+            // there is not a valid time-to-back-pressure prediction available
+            return 'NA';
+        }
+
+        var formatted = nfCommon.formatPredictedDuration(minPrediction.timeToBackPressure);
+        return nfCommon.escapeHtml(formatted) + ' (' + minPrediction.label + ')';
+    };
+
+    // define the column used to display backpressure predicted values (reused in both tables)
+    var backpressurePredictionColumn = {
+        id: 'backpressurePrediction',
+        field: 'backpressurePrediction',
+        name: 'Estimated Time to Back Pressure',
+        sortable: true,
+        defaultSortAsc: false,
+        formatter: backpressurePredictionFormatter,
+        resize: true,
+        toolTip: 'Estimated Time to Back Pressure'
+    };
+
     /**
      * Initializes the summary table.
      *
@@ -729,37 +773,6 @@
             return nfCommon.escapeHtml(percentUseCount) + DATA_SEPARATOR + nfCommon.escapeHtml(percentUseBytes);
         };
 
-        var backpressurePredictionFormatter = function (row, cell, value, columnDef, dataContext) {
-            var predictedMillisUntilBytesBackpressure = _.get(dataContext, 'predictedMillisUntilBytesBackpressure', -1);
-            var predictedMillisUntilCountBackpressure = _.get(dataContext, 'predictedMillisUntilCountBackpressure', -1);
-
-            var percentUseCount = _.get(dataContext, 'percentUseCount', 0);
-            var percentUseBytes = _.get(dataContext, 'percentUseBytes', 0);
-
-            var predictions = [
-                { label: 'object', timeToBackPressure: predictedMillisUntilCountBackpressure },
-                { label: 'size', timeToBackPressure: predictedMillisUntilBytesBackpressure },
-            ];
-            var actualQueuePercents = [
-                { label: 'object', percent: percentUseCount },
-                { label: 'size', percent: percentUseBytes }
-            ];
-
-            var minPrediction = _.minBy(predictions, 'timeToBackPressure');
-            var maxActual = _.maxBy(actualQueuePercents, 'percent');
-
-            if (maxActual.percent >= 100) {
-                // currently experiencing back pressure
-                return 'now (' + maxActual.label + ')';
-            } else if (minPrediction.timeToBackPressure < 0) {
-                // there is not a valid time-to-back-pressure prediction available
-                return 'NA';
-            }
-
-            var formatted = nfCommon.formatPredictedDuration(minPrediction.timeToBackPressure);
-            return nfCommon.escapeHtml(formatted) + ' (' + minPrediction.label + ')';
-        };
-
         // define the input, read, written, and output columns (reused between both tables)
         var queueColumn = {
             id: 'queued',
@@ -780,18 +793,6 @@
             defaultSortAsc: false,
             formatter: backpressureFormatter,
             resize: true
-        };
-
-        // define the column used to display backpressure predicted values (reused in both tables)
-        var backpressurePredictionColumn = {
-            id: 'backpressurePrediction',
-            field: 'backpressurePrediction',
-            name: 'Estimated Time to Back Pressure',
-            sortable: true,
-            defaultSortAsc: false,
-            formatter: backpressurePredictionFormatter,
-            resize: true,
-            toolTip: 'Estimated Time to Back Pressure'
         };
 
         // define the column model for the summary table
@@ -2856,9 +2857,39 @@
                         predictedMillisUntilBytesBackpressure: snapshot.predictedMillisUntilBytesBackpressure,
                         predictedMillisUntilCountBackpressure: snapshot.predictedMillisUntilCountBackpressure,
                         predictionIntervalSeconds: snapshot.predictionIntervalSeconds,
+                        predictionsAvailable: snapshot.predictionsAvailable,
                         output: snapshot.output
                     });
                 });
+
+                // determine if the backpressure prediction column should be displayed or not
+                var anyPredictionsDisabled = _.some(clusterConnections, function (connectionItem) {
+                    return connectionItem.predictionsAvailable !== true
+                });
+                var currentConnectionColumns = clusterConnectionsGrid.getColumns();
+                if (anyPredictionsDisabled) {
+                    var connectionColumnsNoPredictedBackPressure = currentConnectionColumns.filter(function (column) {
+                        return column.id !== backpressurePredictionColumn.id;
+                    });
+                    clusterConnectionsGrid.setColumns(connectionColumnsNoPredictedBackPressure);
+                } else {
+                    // make sure the prediction column is there
+                    var backPressurePredictionColumnIndex = currentConnectionColumns.findIndex(function (column) {
+                        return column.id === backpressurePredictionColumn.id;
+                    });
+                    // if it is not there, add it immediately after the backpressure column
+                    if (backPressurePredictionColumnIndex < 0) {
+                        var backpressureColumnIndex = currentConnectionColumns.findIndex(function (column) {
+                            return column.id === 'backpressure';
+                        });
+                        if (backpressureColumnIndex < 0) {
+                            currentConnectionColumns.push(backpressurePredictionColumn);
+                        } else {
+                            currentConnectionColumns.splice(backpressureColumnIndex + 1, 0, backpressurePredictionColumn);
+                        }
+                        clusterConnectionsGrid.setColumns(currentConnectionColumns);
+                    }
+                }
 
                 // update the processors
                 clusterConnectionsData.setItems(clusterConnections);
@@ -3279,6 +3310,34 @@
 
                     // populate the tables
                     populateProcessGroupStatus(processorItems, connectionItems, processGroupItems, inputPortItems, outputPortItems, remoteProcessGroupItems, aggregateSnapshot, [aggregateSnapshot]);
+
+                    var anyPredictionsDisabled = _.some(connectionItems, function (connectionItem) {
+                        return connectionItem.predictionsAvailable !== true
+                    });
+                    var currentConnectionColumns = connectionsGrid.getColumns();
+                    if (anyPredictionsDisabled) {
+                        var connectionColumnsNoPredictedBackPressure = currentConnectionColumns.filter(function (column) {
+                            return column.id !== backpressurePredictionColumn.id;
+                        });
+                        connectionsGrid.setColumns(connectionColumnsNoPredictedBackPressure);
+                    } else {
+                        // make sure the prediction column is there
+                        var backPressurePredictionColumnIndex = currentConnectionColumns.findIndex(function (column) {
+                            return column.id === backpressurePredictionColumn.id;
+                        });
+                        // if it is not there, add it immediately after the backpressure column
+                        if (backPressurePredictionColumnIndex < 0) {
+                            var backpressureColumnIndex = currentConnectionColumns.findIndex(function (column) {
+                                return column.id === 'backpressure';
+                            });
+                            if (backpressureColumnIndex < 0) {
+                                currentConnectionColumns.push(backpressurePredictionColumn);
+                            } else {
+                                currentConnectionColumns.splice(backpressureColumnIndex + 1, 0, backpressurePredictionColumn);
+                            }
+                            connectionsGrid.setColumns(currentConnectionColumns);
+                        }
+                    }
 
                     // update the processors
                     processorsData.setItems(processorItems);
