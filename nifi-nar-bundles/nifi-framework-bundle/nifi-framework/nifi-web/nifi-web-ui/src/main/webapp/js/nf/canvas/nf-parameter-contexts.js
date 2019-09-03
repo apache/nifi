@@ -1007,6 +1007,21 @@
     };
 
 
+    var hasParameterContextChanged = function (parameterContextEntity) {
+        var parameters = marshalParameters();
+        var proposedParamContextName = $('#parameter-context-name').val();
+        var proposedParamContextDesc = $('#parameter-context-description-field').val();
+
+        if (_.isEmpty(parameters) &&
+            proposedParamContextName === _.get(parameterContextEntity, 'component.name') &&
+            proposedParamContextDesc === _.get(parameterContextEntity, 'component.description')) {
+
+            return false;
+        } else {
+            return true;
+        }
+    };
+
     /**
      * Updates parameter contexts by issuing an update request and polling until it's completion.
      *
@@ -1060,7 +1075,7 @@
                         text: '#ffffff'
                     },
                     disabled: function () {
-                        if ($('#parameter-context-name').val() !== '') {
+                        if ($('#parameter-context-name').val() !== '' && hasParameterContextChanged(parameterContextEntity)) {
                             return false;
                         }
                         return true;
@@ -1849,6 +1864,11 @@
             $('#parameter-context-dialog').modal('refreshButtons');
         });
 
+        $('#parameter-context-description-field').on('keyup', function (evt) {
+            // update the buttons to possibly trigger the disabled state
+            $('#parameter-context-dialog').modal('refreshButtons');
+        });
+
         $('#parameter-name').on('keyup', function (evt) {
             // update the buttons to possibly trigger the disabled state
             $('#parameter-dialog').modal('refreshButtons');
@@ -2296,7 +2316,7 @@
                         text: '#ffffff'
                     },
                     disabled: function () {
-                        if ($('#parameter-context-name').val() !== '') {
+                        if ($('#parameter-context-name').val() !== '' && hasParameterContextChanged(currentParameterContextEntity)) {
                             return false;
                         }
                         return true;
