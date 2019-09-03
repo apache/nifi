@@ -360,7 +360,7 @@ public class ProtectedNiFiProperties extends StandardNiFiProperties {
                     boolean sameScheme = defaultScheme.equals(protectionScheme);
 
                     if (!sameScheme && StandardSensitivePropertyProvider.hasProviderFor(protectionScheme)) {
-                        propertyProvider = StandardSensitivePropertyProvider.fromKey(value, protectionScheme);
+                        propertyProvider = StandardSensitivePropertyProvider.fromKey(protectionScheme);
                         logger.info("Selected specific sensitive property provider: " + propertyProvider.getName() + " for property: " + key);
                     } else if (!sameScheme) {
                         throw new SensitivePropertyProtectionException("Unknown sensitive property protection scheme:" + protectionScheme);

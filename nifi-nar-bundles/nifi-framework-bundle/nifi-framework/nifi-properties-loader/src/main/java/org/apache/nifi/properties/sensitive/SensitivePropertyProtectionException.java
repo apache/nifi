@@ -58,7 +58,6 @@ public class SensitivePropertyProtectionException extends SensitivePropertyExcep
      *                {@link #getCause()} method).  (A {@code null} value is
      *                permitted, and indicates that the cause is nonexistent or
      *                unknown.)
-     * @since 1.4
      */
     public SensitivePropertyProtectionException(String message, Throwable cause) {
         super(message, cause);
@@ -78,7 +77,6 @@ public class SensitivePropertyProtectionException extends SensitivePropertyExcep
      *              {@link #getCause()} method).  (A {@code null} value is
      *              permitted, and indicates that the cause is nonexistent or
      *              unknown.)
-     * @since 1.4
      */
     public SensitivePropertyProtectionException(Throwable cause) {
         super(cause);

@@ -19,6 +19,7 @@ package org.apache.nifi.properties
 import org.apache.nifi.properties.sensitive.MultipleSensitivePropertyProtectionException
 import org.apache.nifi.properties.sensitive.ProtectedNiFiProperties
 import org.apache.nifi.properties.sensitive.SensitivePropertyConfigurationException
+import org.apache.nifi.properties.sensitive.SensitivePropertyException
 import org.apache.nifi.properties.sensitive.SensitivePropertyProtectionException
 import org.apache.nifi.properties.sensitive.SensitivePropertyProvider
 import org.apache.nifi.properties.sensitive.StandardSensitivePropertyProvider
@@ -28,7 +29,6 @@ import org.junit.After
 import org.junit.AfterClass
 import org.junit.Before
 import org.junit.BeforeClass
-import org.junit.Ignore
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
@@ -221,7 +221,7 @@ class ProtectedNiFiPropertiesGroovyTest extends GroovyTestCase {
 
         // Assert
         assert !bannerIsSensitive
-        // assert passwordIsSensitive
+        assert passwordIsSensitive
     }
 
     @Test
@@ -329,7 +329,6 @@ class ProtectedNiFiPropertiesGroovyTest extends GroovyTestCase {
      *
      * @throws Exception
      */
-    @Ignore
     @Test
     void testShouldGetUnprotectedValueOfSensitivePropertyWhenProtected() throws Exception {
         // Arrange
@@ -355,11 +354,8 @@ class ProtectedNiFiPropertiesGroovyTest extends GroovyTestCase {
     /**
      * In the protection enabled scenario, a call to retrieve a sensitive property should handle if the property is protected with an unknown protection scheme.
      * @throws Exception
-     *
-     *
-f     * TODO:  this test is failing because the ProtectedNiFiProperties class now throws an exception when it doesn't recognize a scheme.
      */
-    @Ignore
+    //@Ignore
     @Test
     void testGetValueOfSensitivePropertyShouldHandleUnknownProtectionScheme() throws Exception {
         // Arrange
@@ -379,21 +375,16 @@ f     * TODO:  this test is failing because the ProtectedNiFiProperties class no
         logger.info("The property is ${isSensitive ? "sensitive" : "not sensitive"} and ${isProtected ? "protected" : "not protected"}")
 
         // Act
-        NiFiProperties unprotectedProperties = properties.getUnprotectedProperties()
-        String retrievedKeystorePassword = unprotectedProperties.getProperty(KEYSTORE_PASSWORD_KEY)
-        logger.info("${KEYSTORE_PASSWORD_KEY}: ${retrievedKeystorePassword}")
-
-        // Assert
-        assert retrievedKeystorePassword == RAW_KEYSTORE_PASSWORD
-        // assert isSensitive
-        assert isProtected
+        def msg = shouldFail (SensitivePropertyProtectionException){
+            NiFiProperties unprotectedProperties = properties.getUnprotectedProperties()
+        }
     }
 
     /**
      * In the protection enabled scenario, a call to retrieve a sensitive property should handle if the property is unable to be unprotected due to a malformed value.
      * @throws Exception
      */
-    @Ignore
+    ///@Ignore
     @Test
     void testGetValueOfSensitivePropertyShouldHandleSingleMalformedValue() throws Exception {
         // Arrange
@@ -411,7 +402,7 @@ f     * TODO:  this test is failing because the ProtectedNiFiProperties class no
         logger.info("The property is ${isSensitive ? "sensitive" : "not sensitive"} and ${isProtected ? "protected" : "not protected"}")
 
         // Act
-        def msg = shouldFail(SensitivePropertyConfigurationException) {
+        def msg = shouldFail(SensitivePropertyException) {
             NiFiProperties unprotectedProperties = properties.getUnprotectedProperties()
             String retrievedKeystorePassword = unprotectedProperties.getProperty(KEYSTORE_PASSWORD_KEY)
             logger.info("${KEYSTORE_PASSWORD_KEY}: ${retrievedKeystorePassword}")
@@ -428,7 +419,6 @@ f     * TODO:  this test is failing because the ProtectedNiFiProperties class no
      * In the protection enabled scenario, a call to retrieve a sensitive property should handle if the property is unable to be unprotected due to a malformed value.
      * @throws Exception
      */
-    @Ignore
     @Test
     void testGetValueOfSensitivePropertyShouldHandleMultipleMalformedValues() throws Exception {
         // Arrange
@@ -455,15 +445,15 @@ f     * TODO:  this test is failing because the ProtectedNiFiProperties class no
         logger.expected("Malformed keys: ${malformedKeys.join(", ")}")
 
         // Act
-        def e = groovy.test.GroovyAssert.shouldFail(SensitivePropertyConfigurationException) {
+        def e = groovy.test.GroovyAssert.shouldFail(SensitivePropertyProtectionException) {
             NiFiProperties unprotectedProperties = properties.getUnprotectedProperties()
         }
         logger.expected(e.getMessage())
 
         // Assert
-        assert e instanceof SensitivePropertyConfigurationException
-        // assert e.getMessage() =~ "Failed to unprotect keys"
-        // assert e.getFailedKeys() == malformedKeys
+        assert e instanceof SensitivePropertyException
+        assert e.getMessage() =~ "Failed to unprotect keys"
+        assert e.getFailedKeys() == malformedKeys
 
     }
 
@@ -505,7 +495,6 @@ f     * TODO:  this test is failing because the ProtectedNiFiProperties class no
      * In the protection enabled scenario, a call to retrieve a sensitive property should return the raw value transparently.
      * @throws Exception
      */
-    @Ignore
     @Test
     void testShouldGetUnprotectedValueOfSensitivePropertyWhenProtectedWithDefault() throws Exception {
         // Arrange
@@ -650,7 +639,6 @@ f     * TODO:  this test is failing because the ProtectedNiFiProperties class no
         assert unprotectedNiFiProperties.hashCode() == hashCode
     }
 
-    @Ignore
     @Test
     void testGetUnprotectedPropertiesShouldDecryptProtectedProperties() {
         // Arrange

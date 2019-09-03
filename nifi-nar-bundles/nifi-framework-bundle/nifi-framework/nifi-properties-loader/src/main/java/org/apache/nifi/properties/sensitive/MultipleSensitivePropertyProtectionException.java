@@ -66,7 +66,6 @@ public class MultipleSensitivePropertyProtectionException extends SensitivePrope
      *                {@link #getCause()} method).  (A {@code null} value is
      *                permitted, and indicates that the cause is nonexistent or
      *                unknown.)
-     * @since 1.4
      */
     public MultipleSensitivePropertyProtectionException(String message, Throwable cause) {
         super(message, cause);
@@ -86,7 +85,6 @@ public class MultipleSensitivePropertyProtectionException extends SensitivePrope
      *              {@link #getCause()} method).  (A {@code null} value is
      *              permitted, and indicates that the cause is nonexistent or
      *              unknown.)
-     * @since 1.4
      */
     public MultipleSensitivePropertyProtectionException(Throwable cause) {
         super(cause);
