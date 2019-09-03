@@ -51,8 +51,8 @@ import java.util.Map;
 import java.util.regex.Pattern;
 
 
-public class KeyStoreSensitivePropertyProviderIT extends AbstractSensitivePropertyProviderTest {
-    private static final Logger logger = LoggerFactory.getLogger(KeyStoreSensitivePropertyProviderIT.class);
+public class KeyStoreWrappedSensitivePropertyProviderIT extends AbstractSensitivePropertyProviderTest {
+    private static final Logger logger = LoggerFactory.getLogger(KeyStoreWrappedSensitivePropertyProviderIT.class);
 
     private static SecureRandom random = new SecureRandom();
     private static Map<String, KeyStoreTestCase> testCases = new HashMap<>();
@@ -82,7 +82,7 @@ public class KeyStoreSensitivePropertyProviderIT extends AbstractSensitiveProper
         final byte[] keyBytes = new byte[16];
 
         // This builds one test case per key store type, each with unique passwords and shared keys:
-        for (String keyStoreType : KeyStoreSensitivePropertyProvider.KEYSTORE_TYPES) {
+        for (String keyStoreType : KeyStoreWrappedSensitivePropertyProvider.KEYSTORE_TYPES) {
             KeyStoreTestCase testCase = new KeyStoreTestCase();
             testCases.put(keyStoreType, testCase);
 
@@ -129,7 +129,7 @@ public class KeyStoreSensitivePropertyProviderIT extends AbstractSensitiveProper
         }
     }
 
-    // These tests show that the KeyStoreSensitivePropertyProvider loads Key Stores and Keys that have been protected
+    // These tests show that the KeyStoreWrappedSensitivePropertyProvider loads Key Stores and Keys that have been protected
     // with a password.
     @Test
     public void testStoreLoad() {
@@ -138,13 +138,13 @@ public class KeyStoreSensitivePropertyProviderIT extends AbstractSensitiveProper
 
         for (final Map.Entry<String, KeyStoreTestCase> entry : testCases.entrySet()) {
             final KeyStoreTestCase config = entry.getValue();
-            final String clientMaterial = KeyStoreSensitivePropertyProvider.formatForType(config.storeType, config.keyAlias);
+            final String clientMaterial = KeyStoreWrappedSensitivePropertyProvider.formatForType(config.storeType, config.keyAlias);
             byteKeyStore = new ByteArrayKeyStoreProvider(config.storeContents, config.storeType, config.storePassword);
             setTestProps(config.storePassword, config.keyPassword);
 
             // This shows we can load a store as expected, when we supply the correct store + key passwords:
             try {
-                spp = new KeyStoreSensitivePropertyProvider(clientMaterial, byteKeyStore, null);
+                spp = new KeyStoreWrappedSensitivePropertyProvider(clientMaterial, byteKeyStore, null);
                 Assert.assertNotNull(spp);
             } catch (final SensitivePropertyConfigurationException ignored) {
                 Assert.assertNull(ignored);
@@ -154,7 +154,7 @@ public class KeyStoreSensitivePropertyProviderIT extends AbstractSensitiveProper
             byteKeyStore = new ByteArrayKeyStoreProvider(config.storeContents, config.storeType, "unlikely store password");
             boolean failed = false;
             try {
-                spp = new KeyStoreSensitivePropertyProvider(clientMaterial, byteKeyStore, null);
+                spp = new KeyStoreWrappedSensitivePropertyProvider(clientMaterial, byteKeyStore, null);
                 failed = true;
             } catch (final SensitivePropertyConfigurationException ignored) {
             }
@@ -164,7 +164,7 @@ public class KeyStoreSensitivePropertyProviderIT extends AbstractSensitiveProper
             setTestProps(config.storePassword, "unlikely key password");
             failed = false;
             try {
-                spp = new KeyStoreSensitivePropertyProvider(clientMaterial, byteKeyStore, null);
+                spp = new KeyStoreWrappedSensitivePropertyProvider(clientMaterial, byteKeyStore, null);
                 failed = true;
             } catch (final SensitivePropertyConfigurationException ignored) {
             }
@@ -174,7 +174,7 @@ public class KeyStoreSensitivePropertyProviderIT extends AbstractSensitiveProper
         }
     }
 
-    // These tests show we can create KeyStoreSensitivePropertyProvider instances (for all known store types) and use
+    // These tests show we can create KeyStoreWrappedSensitivePropertyProvider instances (for all known store types) and use
     // them to protect and unprotect values.
     @Test
     public void testProtectUnprotect() {
@@ -189,11 +189,11 @@ public class KeyStoreSensitivePropertyProviderIT extends AbstractSensitiveProper
             int bytesCipher = 0;
 
             final KeyStoreTestCase config = entry.getValue();
-            final String clientMaterial = KeyStoreSensitivePropertyProvider.formatForType(config.storeType, config.keyAlias);
+            final String clientMaterial = KeyStoreWrappedSensitivePropertyProvider.formatForType(config.storeType, config.keyAlias);
             final ByteArrayKeyStoreProvider byteKeyStore = new ByteArrayKeyStoreProvider(config.storeContents, config.storeType, config.storePassword);
 
             setTestProps(config.storePassword, config.keyPassword);
-            final SensitivePropertyProvider spp = new KeyStoreSensitivePropertyProvider(clientMaterial, byteKeyStore, null);
+            final SensitivePropertyProvider spp = new KeyStoreWrappedSensitivePropertyProvider(clientMaterial, byteKeyStore, null);
 
             for (int i=0; i<tests; i++) {
                 int plainSize = CipherUtils.getRandomInt(2, 1024);
@@ -239,13 +239,13 @@ public class KeyStoreSensitivePropertyProviderIT extends AbstractSensitiveProper
     @Test
     public void testShouldThrowExceptionsWithBadKeys() throws Exception {
         try {
-            new KeyStoreSensitivePropertyProvider("");
+            new KeyStoreWrappedSensitivePropertyProvider("");
         } catch (final SensitivePropertyConfigurationException e) {
             Assert.assertTrue(Pattern.compile("The key cannot be empty").matcher(e.getMessage()).matches());
         }
 
         try {
-            new KeyStoreSensitivePropertyProvider("this is an invalid key and will not work");
+            new KeyStoreWrappedSensitivePropertyProvider("this is an invalid key and will not work");
         } catch (final SensitivePropertyConfigurationException e) {
             Assert.assertTrue(Pattern.compile("Invalid Key Store key").matcher(e.getMessage()).matches());
         }
@@ -256,11 +256,11 @@ public class KeyStoreSensitivePropertyProviderIT extends AbstractSensitiveProper
     public void testProtectAndUnprotect() {
         for (final Map.Entry<String, KeyStoreTestCase> entry : testCases.entrySet()) {
             final KeyStoreTestCase config = entry.getValue();
-            final String clientMaterial = KeyStoreSensitivePropertyProvider.formatForType(config.storeType, config.keyAlias);
+            final String clientMaterial = KeyStoreWrappedSensitivePropertyProvider.formatForType(config.storeType, config.keyAlias);
             final ByteArrayKeyStoreProvider byteKeyStore = new ByteArrayKeyStoreProvider(config.storeContents, config.storeType, config.storePassword);
             setTestProps(config.storePassword, config.keyPassword);
 
-            SensitivePropertyProvider sensitivePropertyProvider = new KeyStoreSensitivePropertyProvider(clientMaterial, byteKeyStore, null);
+            SensitivePropertyProvider sensitivePropertyProvider = new KeyStoreWrappedSensitivePropertyProvider(clientMaterial, byteKeyStore, null);
             int plainSize = CipherUtils.getRandomInt(32, 256);
             checkProviderCanProtectAndUnprotectValue(sensitivePropertyProvider, plainSize);
             logger.info("GCP SPP protected and unprotected string of " + plainSize + " bytes using material: " + clientMaterial);
@@ -273,11 +273,11 @@ public class KeyStoreSensitivePropertyProviderIT extends AbstractSensitiveProper
     public void testShouldHandleProtectEmptyValue() throws Exception {
         for (final Map.Entry<String, KeyStoreTestCase> entry : testCases.entrySet()) {
             final KeyStoreTestCase config = entry.getValue();
-            final String clientMaterial = KeyStoreSensitivePropertyProvider.formatForType(config.storeType, config.keyAlias);
+            final String clientMaterial = KeyStoreWrappedSensitivePropertyProvider.formatForType(config.storeType, config.keyAlias);
             final ByteArrayKeyStoreProvider byteKeyStore = new ByteArrayKeyStoreProvider(config.storeContents, config.storeType, config.storePassword);
             setTestProps(config.storePassword, config.keyPassword);
 
-            SensitivePropertyProvider sensitivePropertyProvider = new KeyStoreSensitivePropertyProvider(clientMaterial, byteKeyStore, null);
+            SensitivePropertyProvider sensitivePropertyProvider = new KeyStoreWrappedSensitivePropertyProvider(clientMaterial, byteKeyStore, null);
             checkProviderProtectDoesNotAllowBlankValues(sensitivePropertyProvider);
         }
     }
@@ -287,11 +287,11 @@ public class KeyStoreSensitivePropertyProviderIT extends AbstractSensitiveProper
     public void testProviderUnprotectWithBadValues() throws Exception {
         for (final Map.Entry<String, KeyStoreTestCase> entry : testCases.entrySet()) {
             final KeyStoreTestCase config = entry.getValue();
-            final String clientMaterial = KeyStoreSensitivePropertyProvider.formatForType(config.storeType, config.keyAlias);
+            final String clientMaterial = KeyStoreWrappedSensitivePropertyProvider.formatForType(config.storeType, config.keyAlias);
             final ByteArrayKeyStoreProvider byteKeyStore = new ByteArrayKeyStoreProvider(config.storeContents, config.storeType, config.storePassword);
             setTestProps(config.storePassword, config.keyPassword);
 
-            SensitivePropertyProvider sensitivePropertyProvider = new KeyStoreSensitivePropertyProvider(clientMaterial, byteKeyStore, null);
+            SensitivePropertyProvider sensitivePropertyProvider = new KeyStoreWrappedSensitivePropertyProvider(clientMaterial, byteKeyStore, null);
             checkProviderUnprotectDoesNotAllowInvalidBase64Values(sensitivePropertyProvider);
         }
     }
@@ -301,11 +301,11 @@ public class KeyStoreSensitivePropertyProviderIT extends AbstractSensitiveProper
     public void testShouldThrowExceptionWithValidBase64EncodedTextInvalidCipherText() throws Exception {
         for (final Map.Entry<String, KeyStoreTestCase> entry : testCases.entrySet()) {
             final KeyStoreTestCase config = entry.getValue();
-            final String clientMaterial = KeyStoreSensitivePropertyProvider.formatForType(config.storeType, config.keyAlias);
+            final String clientMaterial = KeyStoreWrappedSensitivePropertyProvider.formatForType(config.storeType, config.keyAlias);
             final ByteArrayKeyStoreProvider byteKeyStore = new ByteArrayKeyStoreProvider(config.storeContents, config.storeType, config.storePassword);
             setTestProps(config.storePassword, config.keyPassword);
 
-            SensitivePropertyProvider sensitivePropertyProvider = new KeyStoreSensitivePropertyProvider(clientMaterial, byteKeyStore, null);
+            SensitivePropertyProvider sensitivePropertyProvider = new KeyStoreWrappedSensitivePropertyProvider(clientMaterial, byteKeyStore, null);
             checkProviderUnprotectDoesNotAllowValidBase64InvalidCipherTextValues(sensitivePropertyProvider);
         }
     }
@@ -322,13 +322,13 @@ public class KeyStoreSensitivePropertyProviderIT extends AbstractSensitiveProper
             fos.write(config.storeContents);
             fos.close();
 
-            final String clientMaterial = KeyStoreSensitivePropertyProvider.formatForType(config.storeType, config.keyAlias);
+            final String clientMaterial = KeyStoreWrappedSensitivePropertyProvider.formatForType(config.storeType, config.keyAlias);
             final ByteArrayKeyStoreProvider byteKeyStore = new ByteArrayKeyStoreProvider(config.storeContents, config.storeType, config.storePassword);
 
             setTestProps(config.storePassword, config.keyPassword);
             System.setProperty("keystore.file", tmp.getAbsolutePath());
 
-            final SensitivePropertyProvider sensitivePropertyProvider = new KeyStoreSensitivePropertyProvider(clientMaterial, byteKeyStore, null);
+            final SensitivePropertyProvider sensitivePropertyProvider = new KeyStoreWrappedSensitivePropertyProvider(clientMaterial, byteKeyStore, null);
             checkProviderCanProtectAndUnprotectProperties(sensitivePropertyProvider);
         }
     }

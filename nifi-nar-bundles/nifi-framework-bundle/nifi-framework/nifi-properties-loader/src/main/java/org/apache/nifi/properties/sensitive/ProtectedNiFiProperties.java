@@ -83,7 +83,7 @@ public class ProtectedNiFiProperties extends StandardNiFiProperties {
      * Creates an instance containing the provided {@link NiFiProperties} and key or key id.
      *
      * @param props the NiFiProperties to contain
-     * @param keyOrKeyId key material or key id needed by the {@link SensitivePropertyProvider}, depending upon the provider implementation
+     * @param keyOrKeyId key material or key id as needed by the specific {@link SensitivePropertyProvider} implementation
      */
     public ProtectedNiFiProperties(NiFiProperties props, String keyOrKeyId) {
         this(props, StandardSensitivePropertyProvider.fromKey(keyOrKeyId));
@@ -93,12 +93,11 @@ public class ProtectedNiFiProperties extends StandardNiFiProperties {
      * Creates an instance containing the provided {@link Properties} and key or key id.
      *
      * @param rawProps the Properties to contain
-     * @param keyOrKeyId key material or key id needed by the {@link SensitivePropertyProvider}, depending upon the provider implementation
+     * @param keyOrKeyId key material or key id needed by the specific {@link SensitivePropertyProvider} implementation
      */
     public ProtectedNiFiProperties(Properties rawProps, String keyOrKeyId) {
         this(new StandardNiFiProperties(rawProps), keyOrKeyId);
     }
-
 
     /**
      * Retrieves the property value for the given property key.
@@ -334,7 +333,7 @@ public class ProtectedNiFiProperties extends StandardNiFiProperties {
      * @return the NiFiProperties instance with all raw values
      * @throws SensitivePropertyProtectionException if there is a problem unprotecting one or more keys
      */
-    public NiFiProperties getUnprotectedProperties() throws SensitivePropertyProtectionException {
+    public NiFiProperties getUnprotectedProperties() throws SensitivePropertyException {
         if (hasProtectedKeys()) {
             logger.info("There are {} protected properties of {} sensitive properties ({}%)",
                     getProtectedPropertyKeys().size(),
@@ -369,7 +368,7 @@ public class ProtectedNiFiProperties extends StandardNiFiProperties {
 
                     try {
                         rawProperties.setProperty(key, unprotectValue(key, value, propertyProvider));
-                    } catch (SensitivePropertyProtectionException e) {
+                    } catch (SensitivePropertyException e) {
                         logger.warn("Failed to unprotect '{}'", key, e);
                         failedKeys.add(key);
                     }
@@ -383,7 +382,7 @@ public class ProtectedNiFiProperties extends StandardNiFiProperties {
                     logger.warn("Combining {} failed keys [{}] into single exception", failedKeys.size(), StringUtils.join(failedKeys, ", "));
                     throw new MultipleSensitivePropertyProtectionException("Failed to unprotect keys", failedKeys);
                 } else {
-                    throw new SensitivePropertyProtectionException("Failed to unprotect key " + failedKeys.iterator().next());
+                    throw new SensitivePropertyException("Failed to unprotect key " + failedKeys.iterator().next());
                 }
             }
 
@@ -498,8 +497,8 @@ public class ProtectedNiFiProperties extends StandardNiFiProperties {
         // try and make one to unprotect, and if that fails...
         try {
             return propertyProvider.unprotect(retrievedValue);
-        } catch (final SensitivePropertyProtectionException e) {
-            throw new SensitivePropertyProtectionException("Error unprotecting value for " + key, e.getCause());
+        } catch (final SensitivePropertyException e) {
+            throw new SensitivePropertyException("Error unprotecting value for " + key, e.getCause());
         }
     }
 }

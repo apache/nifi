@@ -66,7 +66,7 @@ public class GCPKMSSensitivePropertyProvider implements SensitivePropertyProvide
         if (StringUtils.isBlank(System.getenv("GOOGLE_APPLICATION_CREDENTIALS"))) {
             throw new SensitivePropertyConfigurationException("Unable to find Google Application Credentials");
         }
-        extractAndSetKeyParts(keyId);
+        setKeyParts(keyId);
         this.resource = CryptoKeyName.format(projectId, locationId, keyRingId, cryptoKeyId);
         try {
             this.client = KeyManagementServiceClient.create();
@@ -81,7 +81,7 @@ public class GCPKMSSensitivePropertyProvider implements SensitivePropertyProvide
      *
      * @param keyId key material in the form "gcp/kms/{values}"
      */
-    private void extractAndSetKeyParts(String keyId) {
+    private void setKeyParts(String keyId) {
         if (StringUtils.isBlank(keyId)) throw new SensitivePropertyConfigurationException("The key cannot be empty");
 
         this.keyId = keyId;

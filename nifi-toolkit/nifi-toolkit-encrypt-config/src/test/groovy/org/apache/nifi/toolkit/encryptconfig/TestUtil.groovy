@@ -64,9 +64,9 @@ class TestUtil {
 
     static final String KEY_HEX_128 = "0123456789ABCDEFFEDCBA9876543210"
     static final String KEY_HEX_256 = KEY_HEX_128 * 2
-    static final String KEY_HEX = isUnlimitedStrengthCryptoAvailable() ? KEY_HEX_256 : KEY_HEX_128
+    public static final String KEY_HEX = isUnlimitedStrengthCryptoAvailable() ? KEY_HEX_256 : KEY_HEX_128
 
-    static final String PASSWORD = "thisIsABadPassword"
+    public static final String PASSWORD = "thisIsABadPassword"
     // From ToolUtilities.deriveKeyFromPassword("thisIsABadPassword")
     static final String PASSWORD_KEY_HEX_256 = "2C576A9585DB862F5ECBEE5B4FFFCCA14B18D8365968D7081651006507AD2BDE"
     static final String PASSWORD_KEY_HEX_128 = "2C576A9585DB862F5ECBEE5B4FFFCCA1"

@@ -557,7 +557,7 @@ class ConfigEncryptionTool {
      * @return the formatted hex string in uppercase
      * @throws KeyException if the key is not a valid length after parsing
      */
-    private static String parseKey(String rawKey) throws KeyException {
+    static String parseHexKey(String rawKey) throws KeyException {
         String hexKey = rawKey.replaceAll("[^0-9a-fA-F]", "")
         def validKeyLengths = getValidKeyLengths()
         if (!validKeyLengths.contains(hexKey.size() * 4)) {
@@ -1366,7 +1366,7 @@ class ConfigEncryptionTool {
         fileToWrite && ((!fileToWrite.exists() && fileToWrite.absoluteFile.parentFile.canWrite()) || (fileToWrite.exists() && fileToWrite.canWrite()))
     }
 
-    private static String deriveKeyFromPassword(String password) {
+    static String deriveKeyFromPassword(String password) {
         password = password?.trim()
         if (!password || password.length() < MIN_PASSWORD_LENGTH) {
             throw new KeyException("Cannot derive key from empty/short password -- password must be at least ${MIN_PASSWORD_LENGTH} characters")
@@ -1476,7 +1476,7 @@ class ConfigEncryptionTool {
 
                     try {
                         // Validate the length and format
-                        tool.keyOrKeyId = parseKey(tool.keyOrKeyId)
+                        // tool.keyOrKeyId = parseHexKey(tool.keyOrKeyId)
                     } catch (KeyException e) {
                         if (tool.isVerbose) {
                             logger.error("Encountered an error", e)
@@ -1493,7 +1493,8 @@ class ConfigEncryptionTool {
 
                         try {
                             // Validate the length and format
-                            tool.migrationKeyOrKeyId = parseKey(migrationKeyOrKeyId)
+                            //tool.migrationKeyOrKeyId = parseHexKey(migrationKeyOrKeyId)
+                            tool.migrationKeyOrKeyId = migrationKeyOrKeyId
                         } catch (KeyException e) {
                             if (tool.isVerbose) {
                                 logger.error("Encountered an error", e)

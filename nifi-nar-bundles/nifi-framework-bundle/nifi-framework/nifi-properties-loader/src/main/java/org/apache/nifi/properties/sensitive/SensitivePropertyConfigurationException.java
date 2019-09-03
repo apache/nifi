@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.properties.sensitive;
 
-public class SensitivePropertyProtectionException extends SensitivePropertyException {
+public class SensitivePropertyConfigurationException extends SensitivePropertyException {
     /**
      * Constructs a new throwable with {@code null} as its detail message.
      * The cause is not initialized, and may subsequently be initialized by a
@@ -25,7 +25,7 @@ public class SensitivePropertyProtectionException extends SensitivePropertyExcep
      * <p>The {@link #fillInStackTrace()} method is called to initialize
      * the stack trace data in the newly created throwable.
      */
-    public SensitivePropertyProtectionException() {
+    public SensitivePropertyConfigurationException() {
     }
 
     /**
@@ -39,7 +39,7 @@ public class SensitivePropertyProtectionException extends SensitivePropertyExcep
      * @param message the detail message. The detail message is saved for
      *                later retrieval by the {@link #getMessage()} method.
      */
-    public SensitivePropertyProtectionException(String message) {
+    public SensitivePropertyConfigurationException(String message) {
         super(message);
     }
 
@@ -60,7 +60,7 @@ public class SensitivePropertyProtectionException extends SensitivePropertyExcep
      *                unknown.)
      * @since 1.4
      */
-    public SensitivePropertyProtectionException(String message, Throwable cause) {
+    public SensitivePropertyConfigurationException(String message, Throwable cause) {
         super(message, cause);
     }
 
@@ -80,12 +80,12 @@ public class SensitivePropertyProtectionException extends SensitivePropertyExcep
      *              unknown.)
      * @since 1.4
      */
-    public SensitivePropertyProtectionException(Throwable cause) {
+    public SensitivePropertyConfigurationException(Throwable cause) {
         super(cause);
     }
 
     @Override
     public String toString() {
-        return "SensitivePropertyProtectionException: " + getLocalizedMessage();
+        return "SensitivePropertyConfigurationException: " + getLocalizedMessage();
     }
 }

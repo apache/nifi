@@ -22,11 +22,12 @@ import org.apache.nifi.properties.sensitive.aws.kms.AWSKMSSensitivePropertyProvi
 import org.apache.nifi.properties.sensitive.azure.keyvault.AzureKeyVaultSensitivePropertyProvider;
 import org.apache.nifi.properties.sensitive.gcp.kms.GCPKMSSensitivePropertyProvider;
 import org.apache.nifi.properties.sensitive.hashicorp.vault.VaultSensitivePropertyProvider;
-import org.apache.nifi.properties.sensitive.keystore.KeyStoreSensitivePropertyProvider;
-
-
+import org.apache.nifi.properties.sensitive.keystore.KeyStoreWrappedSensitivePropertyProvider;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.security.Security;
 
 /**
  * This class hides the various SPP subclass construction from clients.
@@ -34,6 +35,10 @@ import org.slf4j.LoggerFactory;
  */
 public class StandardSensitivePropertyProvider {
     private static final Logger logger = LoggerFactory.getLogger(StandardSensitivePropertyProvider.class);
+
+    static {
+        Security.addProvider(new BouncyCastleProvider());
+    }
 
     /**
      * Creates a {@link SensitivePropertyProvider} suitable for a given key or key id.
@@ -61,9 +66,9 @@ public class StandardSensitivePropertyProvider {
             logger.debug("StandardSensitivePropertyProvider selected specific HashiCorp Vault provider for key: " + VaultSensitivePropertyProvider.toPrintableString(key));
             return new VaultSensitivePropertyProvider(key);
 
-        } else if (KeyStoreSensitivePropertyProvider.isProviderFor(key) || KeyStoreSensitivePropertyProvider.isProviderFor(scheme)) {
-            logger.debug("StandardSensitivePropertyProvider selected specific KeyStore provider for key: " + KeyStoreSensitivePropertyProvider.toPrintableString(key));
-            return new KeyStoreSensitivePropertyProvider(key);
+        } else if (KeyStoreWrappedSensitivePropertyProvider.isProviderFor(key) || KeyStoreWrappedSensitivePropertyProvider.isProviderFor(scheme)) {
+            logger.debug("StandardSensitivePropertyProvider selected specific KeyStore provider for key: " + KeyStoreWrappedSensitivePropertyProvider.toPrintableString(key));
+            return new KeyStoreWrappedSensitivePropertyProvider(key);
 
         } else if (GCPKMSSensitivePropertyProvider.isProviderFor(key) || GCPKMSSensitivePropertyProvider.isProviderFor(scheme)) {
             logger.debug("StandardSensitivePropertyProvider selected specific GCP KMS provider for key: " + GCPKMSSensitivePropertyProvider.toPrintableString(key));
@@ -102,7 +107,7 @@ public class StandardSensitivePropertyProvider {
     public static boolean hasProviderFor(String scheme) {
         return AzureKeyVaultSensitivePropertyProvider.isProviderFor(scheme)
                 || VaultSensitivePropertyProvider.isProviderFor(scheme)
-                || KeyStoreSensitivePropertyProvider.isProviderFor(scheme)
+                || KeyStoreWrappedSensitivePropertyProvider.isProviderFor(scheme)
                 || GCPKMSSensitivePropertyProvider.isProviderFor(scheme)
                 || AWSKMSSensitivePropertyProvider.isProviderFor(scheme)
                 || AESSensitivePropertyProvider.isProviderFor(scheme);

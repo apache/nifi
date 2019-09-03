@@ -42,8 +42,8 @@ import java.util.Set;
 /**
  * Sensitive properties using KeyStore keys with an inner AES SPP.
  */
-public class KeyStoreSensitivePropertyProvider implements SensitivePropertyProvider {
-    private static final Logger logger = LoggerFactory.getLogger(KeyStoreSensitivePropertyProvider.class);
+public class KeyStoreWrappedSensitivePropertyProvider implements SensitivePropertyProvider {
+    private static final Logger logger = LoggerFactory.getLogger(KeyStoreWrappedSensitivePropertyProvider.class);
 
     private static final String PROVIDER_NAME = "KeyStore Sensitive Property Provider";
     private static final String MATERIAL_PREFIX = "keystore";
@@ -68,11 +68,11 @@ public class KeyStoreSensitivePropertyProvider implements SensitivePropertyProvi
      *
      * @param keyId string in the form "keystore/jcecks/user-key-alias"
      */
-    public KeyStoreSensitivePropertyProvider(String keyId)  {
+    public KeyStoreWrappedSensitivePropertyProvider(String keyId)  {
         this(keyId, null, null);
     }
 
-    public KeyStoreSensitivePropertyProvider(String keyId, KeyStoreProvider keyStoreProvider, ExternalProperties externalProperties)  {
+    public KeyStoreWrappedSensitivePropertyProvider(String keyId, KeyStoreProvider keyStoreProvider, ExternalProperties externalProperties)  {
         if (externalProperties == null) {
             externalProperties = new StandardExternalPropertyLookup(null, getKeyStorePropertiesMapping() );
         }
@@ -190,7 +190,7 @@ public class KeyStoreSensitivePropertyProvider implements SensitivePropertyProvi
             return false;
         }
         String[] parts = material.split(MATERIAL_SEPARATOR, 3);
-        return parts.length == 3 && parts[0].equals(MATERIAL_PREFIX) && KEYSTORE_TYPES.contains(parts[1]);
+        return parts.length == 3 && parts[0].toLowerCase().equals(MATERIAL_PREFIX) && KEYSTORE_TYPES.contains(parts[1].toLowerCase());
     }
 
     /**

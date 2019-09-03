@@ -27,6 +27,8 @@ import org.apache.nifi.properties.sensitive.ProtectedNiFiProperties
 import org.apache.nifi.properties.sensitive.SensitivePropertyProtectionException
 import org.apache.nifi.properties.sensitive.SensitivePropertyProvider
 import org.apache.nifi.properties.sensitive.StandardSensitivePropertyProvider
+import org.apache.nifi.properties.sensitive.keystore.KeyStoreWrappedSensitivePropertyProvider
+import org.apache.nifi.security.util.CipherUtils
 import org.apache.nifi.toolkit.tls.commandLine.CommandLineParseException
 import org.apache.nifi.util.NiFiProperties
 import org.apache.nifi.util.console.TextDevice
@@ -37,12 +39,14 @@ import org.junit.AfterClass
 import org.junit.Assume
 import org.junit.Before
 import org.junit.BeforeClass
+import org.junit.ClassRule
 import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.junit.contrib.java.lang.system.Assertion
 import org.junit.contrib.java.lang.system.ExpectedSystemExit
 import org.junit.contrib.java.lang.system.SystemOutRule
+import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
 import org.slf4j.Logger
@@ -57,9 +61,11 @@ import javax.crypto.SecretKey
 import javax.crypto.SecretKeyFactory
 import javax.crypto.spec.PBEKeySpec
 import javax.crypto.spec.PBEParameterSpec
+import javax.crypto.spec.SecretKeySpec
 import java.nio.file.Files
 import java.nio.file.attribute.PosixFilePermission
 import java.security.KeyException
+import java.security.KeyStore
 import java.security.Security
 
 @RunWith(JUnit4.class)
@@ -110,6 +116,13 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
     private static final String WFXCTR = ConfigEncryptionTool.WRAPPED_FLOW_XML_CIPHER_TEXT_REGEX
     private final String DEFAULT_LEGACY_SENSITIVE_PROPS_KEY = "nififtw!"
 
+    private static final String keyStoreKeyAlias = "secret-key-alias"
+    private static final String keyStoreType = "PKCS12"
+    private static String keyStorePath
+
+    @ClassRule
+    public static TemporaryFolder tmpDir = new TemporaryFolder();
+
     @BeforeClass
     static void setUpOnce() throws Exception {
         Security.addProvider(new BouncyCastleProvider())
@@ -119,6 +132,34 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         }
 
         setupTmpDir()
+    }
+
+    /**
+     * Static setup method that creates a temporary key store for the general Sensitive Property Provider tests.
+     *
+     * @throws Exception
+     */
+    @BeforeClass
+    public static void setUpSecretKeyAndKeyStore() throws Exception {
+        String keyBytes = CipherUtils.getRandomHex(32)
+        SecretKeySpec secretKey = new SecretKeySpec(keyBytes.getBytes(), 0, 32, "AES")
+
+        KeyStore testKeyStore = KeyStore.getInstance(keyStoreType)
+        testKeyStore.load(null, null)
+
+        KeyStore.Entry keyEntry = new KeyStore.SecretKeyEntry(secretKey) as KeyStore.Entry
+        testKeyStore.setEntry(keyStoreKeyAlias, keyEntry, new KeyStore.PasswordProtection("".toCharArray()))
+
+        ByteArrayOutputStream storeOutput = new ByteArrayOutputStream()
+        testKeyStore.store(storeOutput, "".toCharArray())
+
+        File tmp = tmpDir.newFile()
+        tmp.deleteOnExit()
+        OutputStream fos = new FileOutputStream(tmp)
+        fos.write(storeOutput.toByteArray())
+        fos.close()
+
+        keyStorePath = tmp.absolutePath;
     }
 
     @AfterClass
@@ -648,7 +689,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
     }
 
     @Test
-    void testShouldParseKey() {
+    void testShouldParseHexKey() {
         // Arrange
         Map<String, String> keyValues = [
                 (KEY_HEX)                         : KEY_HEX,
@@ -667,7 +708,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         // Act
         keyValues.each { String key, final String EXPECTED_KEY ->
             logger.info("Reading key: [${key}]")
-            String parsedKey = ConfigEncryptionTool.parseKey(key)
+            String parsedKey = ConfigEncryptionTool.parseHexKey(key)
             logger.info("Parsed key:  [${parsedKey}]")
 
             // Assert
@@ -694,7 +735,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         keyValues.each { String key ->
             logger.info("Reading key: [${key}]")
             def msg = shouldFail(KeyException) {
-                String parsedKey = ConfigEncryptionTool.parseKey(key)
+                String parsedKey = ConfigEncryptionTool.parseHexKey(key)
                 logger.info("Parsed key:  [${parsedKey}]")
             }
             logger.expected(msg)
@@ -5060,6 +5101,56 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
             assert msg == "When '-c'/'--translateCli' is specified, '-n'/'--niFiProperties' is required (and '-b'/'--bootstrapConf' is required if the properties are encrypted)"
             assert systemOutRule.getLog().contains("usage: org.apache.nifi.properties.ConfigEncryptionTool [")
         }
+    }
+
+    /**
+     * This method shows how the Sensitive Property Provider interoperates with the tool.
+     *
+     * @throws Exception
+     */
+    @Test
+    void testShouldUseSPP() throws Exception {
+        System.setProperty("keystore.file", keyStorePath)
+        String randomValue = CipherUtils.getRandomHex(32)
+        String key = KeyStoreWrappedSensitivePropertyProvider.formatForType(keyStoreType, keyStoreKeyAlias)
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+        SensitivePropertyProvider spp = StandardSensitivePropertyProvider.fromKey(key)
+
+        // Here we're verifying that the SPP works by using it directly:
+        String verificationValue = CipherUtils.getRandomHex(64)
+        assert spp.unprotect(spp.protect(verificationValue)) == verificationValue
+
+        // We show the tool parses these types of keys:
+        File propsFile = tmpDir.newFile()
+        propsFile.write(String.format(new String(new File("src/test/resources/nifi_with_key_template.properties").readBytes()), randomValue))
+        tool.parse(["-k", key, "-n", propsFile.absolutePath] as String[])
+        // need to do migration key too
+
+        // This shows the tool accepted our SPP key:
+        assert tool.keyOrKeyId == key
+
+        // This shows we can load raw props with the SPP key:
+        NiFiProperties plainProperties = tool.loadNiFiProperties()
+        assert plainProperties
+        assert plainProperties.size() > 0
+        assert plainProperties.getProperty("nifi.sensitive.props.key") == randomValue
+
+        // This shows our value is encrypted:
+        NiFiProperties encryptedProperties = tool.encryptSensitiveProperties(plainProperties, key)
+        assert encryptedProperties.getProperty("nifi.sensitive.props.key") != randomValue
+        assert encryptedProperties.getProperty("nifi.sensitive.props.key.protected") == key
+
+        // This shows our value is protected:
+        ProtectedNiFiProperties finalProperties = new ProtectedNiFiProperties(encryptedProperties, key)
+        assert finalProperties.hasProtectedKeys()
+        assert finalProperties.getProperty("nifi.sensitive.props.key") != randomValue
+        assert finalProperties.getProperty("nifi.sensitive.props.key.protected") == key
+
+        // This shows our value is re-read from disk and decrypted as expected:
+        ProtectedNiFiProperties reloadedProperties = NiFiPropertiesLoader.withKey(key).readProtectedPropertiesFromDisk(propsFile)
+        assert !reloadedProperties.hasProtectedKeys()
+        assert reloadedProperties.getProperty("nifi.sensitive.props.key") == randomValue
+        assert reloadedProperties.getProperty("nifi.sensitive.props.key.protected") != key
     }
 
     static boolean compareXMLFragments(String expectedXML, String actualXML) {
