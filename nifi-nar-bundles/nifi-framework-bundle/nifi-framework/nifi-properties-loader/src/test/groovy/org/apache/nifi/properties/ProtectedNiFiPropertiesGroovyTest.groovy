@@ -16,9 +16,7 @@
  */
 package org.apache.nifi.properties
 
-import org.apache.nifi.properties.sensitive.MultipleSensitivePropertyProtectionException
 import org.apache.nifi.properties.sensitive.ProtectedNiFiProperties
-import org.apache.nifi.properties.sensitive.SensitivePropertyConfigurationException
 import org.apache.nifi.properties.sensitive.SensitivePropertyException
 import org.apache.nifi.properties.sensitive.SensitivePropertyProtectionException
 import org.apache.nifi.properties.sensitive.SensitivePropertyProvider
@@ -355,7 +353,6 @@ class ProtectedNiFiPropertiesGroovyTest extends GroovyTestCase {
      * In the protection enabled scenario, a call to retrieve a sensitive property should handle if the property is protected with an unknown protection scheme.
      * @throws Exception
      */
-    //@Ignore
     @Test
     void testGetValueOfSensitivePropertyShouldHandleUnknownProtectionScheme() throws Exception {
         // Arrange
@@ -384,7 +381,6 @@ class ProtectedNiFiPropertiesGroovyTest extends GroovyTestCase {
      * In the protection enabled scenario, a call to retrieve a sensitive property should handle if the property is unable to be unprotected due to a malformed value.
      * @throws Exception
      */
-    ///@Ignore
     @Test
     void testGetValueOfSensitivePropertyShouldHandleSingleMalformedValue() throws Exception {
         // Arrange
@@ -410,7 +406,7 @@ class ProtectedNiFiPropertiesGroovyTest extends GroovyTestCase {
         logger.expected(msg)
 
         // Assert
-        // assert msg =~ "Failed to unprotect key ${KEYSTORE_PASSWORD_KEY}"
+        assert msg =~ "Failed to unprotect key ${KEYSTORE_PASSWORD_KEY}"
         assert isSensitive
         assert isProtected
     }

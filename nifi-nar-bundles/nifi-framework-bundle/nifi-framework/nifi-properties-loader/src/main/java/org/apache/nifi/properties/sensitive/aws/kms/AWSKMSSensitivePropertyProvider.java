@@ -76,7 +76,6 @@ public class AWSKMSSensitivePropertyProvider implements SensitivePropertyProvide
     @Override
     public String getName() {
         return IMPLEMENTATION_NAME;
-
     }
 
     /**
@@ -88,7 +87,6 @@ public class AWSKMSSensitivePropertyProvider implements SensitivePropertyProvide
     public String getIdentifierKey() {
         return IMPLEMENTATION_KEY + keyId;
     }
-
 
     /**
      * Returns the encrypted cipher text.
@@ -145,7 +143,6 @@ public class AWSKMSSensitivePropertyProvider implements SensitivePropertyProvide
     public static boolean isProviderFor(String material) {
         return StringUtils.isNotBlank(material) && material.startsWith(IMPLEMENTATION_KEY);
     }
-
 
     /**
      * Returns a printable representation of a key.

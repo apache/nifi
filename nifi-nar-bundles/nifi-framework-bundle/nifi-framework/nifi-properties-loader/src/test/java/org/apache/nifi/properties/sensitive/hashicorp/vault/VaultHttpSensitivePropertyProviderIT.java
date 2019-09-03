@@ -170,6 +170,11 @@ public class VaultHttpSensitivePropertyProviderIT extends AbstractSensitivePrope
         try {
             vaultContainer.stop();
         } catch (final Exception ignored) {
+        } finally {
+            try {
+                vaultContainer.stop();
+            } catch (final Exception ignored) {
+            }
         }
         logger.info("Stopped server container.");
     }

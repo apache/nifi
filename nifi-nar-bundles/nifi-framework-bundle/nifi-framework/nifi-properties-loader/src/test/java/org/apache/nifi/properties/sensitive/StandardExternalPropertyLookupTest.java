@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.properties.sensitive;
 
-import org.bouncycastle.util.encoders.Hex;
+import org.apache.nifi.security.util.CipherUtils;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -49,11 +49,11 @@ public class StandardExternalPropertyLookupTest {
 
     @BeforeClass
     public static void testCreateTestPropsFile() throws IOException {
-        MISSING_KEY = getRandomHex(getRandomInt(8, 24));
-        DEFAULT_VALUE = getRandomHex(getRandomInt(12, 64));
-        KNOWN_FILE_KEY = getRandomHex(8);
-        KNOWN_FILE_VALUE = getRandomHex(32);
-        KNOWN_OVERRIDE = getRandomHex(24);
+        MISSING_KEY = CipherUtils.getRandomHex(CipherUtils.getRandomInt(8, 24));
+        DEFAULT_VALUE = CipherUtils.getRandomHex(CipherUtils.getRandomInt(12, 64));
+        KNOWN_FILE_KEY = CipherUtils.getRandomHex(8);
+        KNOWN_FILE_VALUE = CipherUtils.getRandomHex(32);
+        KNOWN_OVERRIDE = CipherUtils.getRandomHex(24);
 
         File propsFile = testFolder.newFile();
         testFilename = propsFile.getAbsolutePath();
@@ -61,9 +61,9 @@ public class StandardExternalPropertyLookupTest {
         Properties props = new Properties();
         props.setProperty(KNOWN_FILE_KEY, KNOWN_FILE_VALUE);
 
-        int randomKeyCount = getRandomInt(12, 32);
-        for (int i = 0; i<randomKeyCount; i++) {
-            props.setProperty(getRandomHex(getRandomInt(4, 8)), getRandomHex(getRandomInt(12, 32)));
+        int randomKeyCount = CipherUtils.getRandomInt(12, 32);
+        for (int i = 0; i < randomKeyCount; i++) {
+            props.setProperty(CipherUtils.getRandomHex(CipherUtils.getRandomInt(4, 8)), CipherUtils.getRandomHex(CipherUtils.getRandomInt(12, 32)));
         }
         props.store(new FileOutputStream(propsFile), "");
     }
@@ -122,19 +122,5 @@ public class StandardExternalPropertyLookupTest {
         System.setProperty(KNOWN_ENV_KEY, KNOWN_OVERRIDE);
         Assert.assertNotEquals(envPath, lookup.get(KNOWN_ENV_KEY));
         Assert.assertEquals(KNOWN_OVERRIDE, lookup.get(KNOWN_ENV_KEY));
-    }
-
-    private static String getRandomHex(int size) {
-        byte[] tokenBytes = new byte[size];
-        random.nextBytes(tokenBytes);
-        return Hex.toHexString(tokenBytes);
-    }
-
-    private static int getRandomInt(int lower, int upper) {
-        int value = random.nextInt(upper);
-        while (value < lower) {
-            value = random.nextInt(upper);
-        }
-        return value;
     }
 }
