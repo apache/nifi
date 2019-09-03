@@ -5016,6 +5016,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 case Connection:
                     authorizable = authorizableLookup.getConnection(sourceId).getAuthorizable();
                     break;
+                case ParameterContext:
+                    authorizable = authorizableLookup.getParameterContext(sourceId);
+                    break;
                 case AccessPolicy:
                     authorizable = authorizableLookup.getAccessPolicyById(sourceId);
                     break;
