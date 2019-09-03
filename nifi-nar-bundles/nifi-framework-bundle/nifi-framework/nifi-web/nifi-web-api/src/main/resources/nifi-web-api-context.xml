@@ -546,6 +546,11 @@
         <property name="auditService" ref="auditService"/>
         <property name="processGroupDAO" ref="processGroupDAO"/>
     </bean>
+    <bean id="parameterContextAuditor" class="org.apache.nifi.audit.ParameterContextAuditor">
+        <property name="serviceFacade" ref="serviceFacade"/>
+        <property name="auditService" ref="auditService"/>
+        <property name="processGroupDAO" ref="processGroupDAO"/>
+    </bean>
     <bean id="policyAuditor" class="org.apache.nifi.audit.AccessPolicyAuditor">
         <property name="serviceFacade" ref="serviceFacade"/>
         <property name="auditService" ref="auditService"/>
