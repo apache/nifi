@@ -1510,6 +1510,52 @@
     };
 
     /**
+     * Gets the parameters for the specified property descriptor and group.
+     *
+     * @param propertyDescriptor    The property descriptor in question
+     * @param groupId               The group in question
+     * @returns {deferred}
+     */
+    var getParameters = function (propertyDescriptor, groupId) {
+        return $.Deferred(function (deferred) {
+            if (nfCommon.isDefinedAndNotNull(groupId)) {
+                var parameterContextId;
+
+                // attempt to identify the parameter context id, conditional based on whether
+                // the user is configuring the current process group
+                if (groupId === nfCanvasUtils.getGroupId()) {
+                    parameterContextId = nfCanvasUtils.getParameterContextId();
+                } else {
+                    var parentProcessGroup = nfCanvasUtils.getComponentByType('ProcessGroup').get(groupId);
+                    parameterContextId = parentProcessGroup.parameterContextId;
+                }
+
+                if (nfCommon.isDefinedAndNotNull(parameterContextId)) {
+                    $.ajax({
+                        type: 'GET',
+                        url: '../nifi-api/parameter-contexts/' + parameterContextId,
+                        dataType: 'json'
+                    }).done(function (response) {
+                        var sensitive = nfCommon.isSensitiveProperty(propertyDescriptor);
+
+                        deferred.resolve(response.component.parameters.map(function (parameterEntity) {
+                            return parameterEntity.parameter;
+                        }).filter(function (parameter) {
+                            return parameter.sensitive === sensitive;
+                        }));
+                    }).fail(function () {
+                        deferred.resolve([]);
+                    });
+                } else {
+                    deferred.resolve([]);
+                }
+            } else {
+                deferred.resolve([]);
+            }
+        }).promise();
+    };
+
+    /**
      * Goes to a service configuration from the property table.
      *
      * @param {jQuery} serviceTable
@@ -1800,50 +1846,19 @@
                 $('#controller-service-configuration .controller-service-read-only').hide();
                 $('#controller-service-configuration .controller-service-editable').show();
 
+                // conditionally get the parameter deferred function
+                var getParameterDeferred = null;
+                if (nfCommon.isDefinedAndNotNull(controllerServiceEntity.parentGroupId)) {
+                    getParameterDeferred = getParameters;
+                }
+
                 // initialize the property table
                 $('#controller-service-properties').propertytable('destroy').propertytable({
                     readOnly: false,
                     supportsGoTo: true,
                     dialogContainer: '#new-controller-service-property-container',
                     descriptorDeferred: getControllerServicePropertyDescriptor,
-                    parameterDeferred: function (propertyDescriptor, groupId) {
-                        return $.Deferred(function (deferred) {
-                            if (nfCommon.isDefinedAndNotNull(groupId)) {
-                                var parameterContextId;
-
-                                // attempt to identify the parameter context id, conditional based on whether
-                                // the user is configuring the current process group
-                                if (groupId === nfCanvasUtils.getGroupId()) {
-                                    parameterContextId = nfCanvasUtils.getParameterContextId();
-                                } else {
-                                    var parentProcessGroup = nfCanvasUtils.getComponentByType('ProcessGroup').get(groupId);
-                                    parameterContextId = parentProcessGroup.parameterContextId;
-                                }
-
-                                if (nfCommon.isDefinedAndNotNull(parameterContextId)) {
-                                    $.ajax({
-                                        type: 'GET',
-                                        url: '../nifi-api/parameter-contexts/' + parameterContextId,
-                                        dataType: 'json'
-                                    }).done(function (response) {
-                                        var sensitive = nfCommon.isSensitiveProperty(propertyDescriptor);
-
-                                        deferred.resolve(response.component.parameters.map(function (parameterEntity) {
-                                            return parameterEntity.parameter;
-                                        }).filter(function (parameter) {
-                                            return parameter.sensitive === sensitive;
-                                        }));
-                                    }).fail(function () {
-                                        deferred.resolve([]);
-                                    });
-                                } else {
-                                    deferred.resolve([]);
-                                }
-                            } else {
-                                deferred.resolve([]);
-                            }
-                        }).promise();
-                    },
+                    parameterDeferred: getParameterDeferred,
                     controllerServiceCreatedDeferred: function (response) {
                         var controllerServicesUri;
 
