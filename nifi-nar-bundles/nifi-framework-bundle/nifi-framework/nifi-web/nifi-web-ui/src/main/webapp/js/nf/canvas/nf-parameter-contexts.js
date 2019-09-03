@@ -761,7 +761,7 @@
      * Adds a new parameter.
      */
     var addNewParameter = function () {
-        var param = getParameterFromFieldValues();
+        var param = serializeParameter();
 
         var parameterGrid = $('#parameter-table').data('gridInstance');
         var parameterData = parameterGrid.getData();
@@ -809,25 +809,24 @@
     /**
      * Builds a parameter object from the user-entered parameter inputs
      *
+     * @param originalParameter Optional parameter to compare value against to determine if it has changed
      * @return {{isEmptyStringSet: *, name: *, description: *, sensitive: *, value: *}}
      */
-    var getParameterFromFieldValues = function () {
+    var serializeParameter = function (originalParameter) {
         var name = $.trim($('#parameter-name').val());
-        var value = $('#parameter-value-field').val();
-        var description = $('#parameter-description-field').val();
-        var isSensitive = $('#parameter-dialog').find('input[name="sensitive"]:checked').val() === 'sensitive' ? true : false;
         var isEmptyStringSet = $('#parameter-set-empty-string-field').hasClass('checkbox-checked');
 
-        if (_.isEmpty(value)) {
-            value = isEmptyStringSet ? '' : null;
-        }
+        var serializedValue = serializeValue($('#parameter-value-field'), originalParameter, isEmptyStringSet);
+        var description = $('#parameter-description-field').val();
+        var isSensitive = $('#parameter-dialog').find('input[name="sensitive"]:checked').val() === 'sensitive' ? true : false;
 
         return {
             name: name,
-            value: value,
+            value: serializedValue.value,
             description: description,
             sensitive: isSensitive,
-            isEmptyStringSet: isEmptyStringSet
+            isEmptyStringSet: isEmptyStringSet,
+            hasValueChanged: serializedValue.hasChanged
         }
     };
 
@@ -835,9 +834,10 @@
      * Checks the validity of a parameter
      * @param parameter Parameter to validate
      * @param existingParameters Existing parameters to verify there are no duplicates
+     * @param editMode boolean indicating if validation should account for editing an existing parameter
      * @return {boolean}
      */
-    var validateParameter = function (parameter, existingParameters) {
+    var validateParameter = function (parameter, existingParameters, editMode) {
         if (parameter.name === '') {
             nfDialog.showOkDialog({
                 headerText: 'Configuration Error',
@@ -859,7 +859,8 @@
         // validate the parameter is not a duplicate
         var matchingParameter = _.find(existingParameters, { name: parameter.name });
 
-        if (_.isNil(matchingParameter)) {
+        // Valid if no duplicate is found or it is edit mode and a matching parameter was found
+        if (_.isNil(matchingParameter) || (editMode === true && !_.isNil(matchingParameter))) {
             return true;
         } else {
             var matchingParamIsHidden = _.get(matchingParameter, 'hidden', false);
@@ -889,7 +890,7 @@
         var value = input.val();
         if (!nfCommon.isBlank(value)) {
             // if the value is sensitive and the user has not made a change
-            if (parameter.sensitive === true && input.hasClass('sensitive') && parameter.isNew === false) {
+            if (!_.isEmpty(parameter) && parameter.sensitive === true && input.hasClass('sensitive') && parameter.isNew === false) {
                 serializedValue = parameter.previousValue;
                 hasChanged = false;
             } else {
@@ -912,76 +913,52 @@
 
     /**
      * Update a parameter.
+     *
+     * @param originalParameter that is being edited
      */
-    var updateParameter = function () {
-        var parameterName = $('#parameter-name').val();
+    var updateParameter = function (originalParameter) {
+        var serializedParam = serializeParameter(originalParameter);
+        var parameterGrid = $('#parameter-table').data('gridInstance');
+        var parameterData = parameterGrid.getData();
 
-        // ensure the parameter name is specified
-        if (parameterName !== '') {
-            var parameterGrid = $('#parameter-table').data('gridInstance');
-            var parameterData = parameterGrid.getData();
+        var isValid = validateParameter(serializedParam, parameterData.getItems(), true);
 
-            // ensure the parameter name is unique
-            var matchingParameter = null;
-            $.each(parameterData.getItems(), function (_, item) {
-                if (parameterName === item.name) {
-                    matchingParameter = item;
-                    return false;
-                }
+        if (isValid) {
+            var parameter = _.extend({}, originalParameter, {
+                id: originalParameter.id,
+                hidden: false,
+                type: 'Parameter',
+                sensitive: originalParameter.sensitive,
+                name: originalParameter.name,
+                description: serializedParam.description,
+                referencingComponents: originalParameter.referencingComponents,
+                previousValue: originalParameter.value,
+                previousDescription: originalParameter.description,
+                isEditable: originalParameter.isEditable,
+                isEmptyStringSet: serializedParam.isEmptyStringSet,
+                isNew: originalParameter.isNew,
+                hasValueChanged: serializedParam.hasValueChanged,
+                isModified: serializedParam.value !== originalParameter.value || serializedParam.description !== originalParameter.description
             });
 
-            if (matchingParameter !== null) {
-                var isChecked = $('#parameter-set-empty-string-field').hasClass('checkbox-checked');
+            // update row for the parameter
+            parameterData.updateItem(originalParameter.id, parameter);
 
-                var parameter = {
-                    id: matchingParameter.id,
-                    hidden: false,
-                    type: 'Parameter',
-                    sensitive: matchingParameter.sensitive,
-                    name: parameterName,
-                    description: $('#parameter-description-field').val(),
-                    referencingComponents: matchingParameter.referencingComponents,
-                    previousValue: matchingParameter.value,
-                    previousDescription: matchingParameter.description,
-                    isEditable: matchingParameter.isEditable,
-                    isEmptyStringSet: isChecked,
-                    isNew: matchingParameter.isNew
-                };
+            // sort the data
+            parameterData.reSort();
 
-                var input = $('#parameter-value-field');
-                var serializedValue = serializeValue(input, parameter, isChecked);
-                parameter.value = serializedValue.value;
-                parameter.isModified = serializedValue.hasChanged || parameter.description !== parameter.previousDescription;
-                parameter.hasValueChanged = serializedValue.hasChanged;
-
-                // update row for the parameter
-                parameterData.updateItem(matchingParameter.id, parameter);
-
-                // sort the data
-                parameterData.reSort();
-
-                // select the parameter row
-                var row = parameterData.getRowById(matchingParameter.id);
-                parameterGrid.setActiveCell(row, parameterGrid.getColumnIndex('value'));
-            } else {
-                nfDialog.showOkDialog({
-                    headerText: 'Parameter Does Not Exists',
-                    dialogContent: 'A parameter with this name does not exist.'
-                });
-            }
+            // select the parameter row
+            var row = parameterData.getRowById(originalParameter.id);
+            parameterGrid.setActiveCell(row, parameterGrid.getColumnIndex('value'));
 
             // close the new parameter dialog
             $('#parameter-dialog').modal('hide');
-
-            // update the buttons to possibly trigger the disabled state
-            $('#parameter-context-dialog').modal('refreshButtons');
-        } else {
-            nfDialog.showOkDialog({
-                headerText: 'Create Parameter Error',
-                dialogContent: 'The name of the parameter must be specified.'
-            });
         }
+
+        // update the buttons to possibly trigger the disabled state
+        $('#parameter-context-dialog').modal('refreshButtons');
     };
+
 
     /**
      * Updates parameter contexts by issuing an update request and polling until it's completion.
@@ -1598,19 +1575,12 @@
                                 text: '#ffffff'
                             },
                             disabled: function () {
-                                var input = $('#parameter-value-field');
-                                var isChecked = $('#parameter-set-empty-string-field').hasClass('checkbox-checked');
-                                var serializedValue = serializeValue(input, parameter, isChecked);
-
-                                var description = $('#parameter-description-field').val();
-
-                                var hasChanged = serializedValue.hasChanged || description !== parameter.previousDescription;
-
-                                return !hasChanged;
+                                var param = serializeParameter(parameter);
+                                return param.value === parameter.value && param.description === parameter.description;
                             },
                             handler: {
                                 click: function () {
-                                    updateParameter();
+                                    updateParameter(parameter);
                                 }
                             }
                         }, {
@@ -1796,7 +1766,8 @@
                         text: '#ffffff'
                     },
                     disabled: function () {
-                        if ($('#parameter-name').val() !== '') {
+                        var param = serializeParameter();
+                        if (param.name !== '') {
                             return false;
                         }
                         return true;
@@ -1875,14 +1846,14 @@
                     text: '#ffffff'
                 },
                 disabled: function () {
-                    var parameterName = $('#parameter-name').val();
+                    var param = serializeParameter();
                     var isUpdatingParameterContext = $('#parameter-context-updating-status').hasClass('show-status');
 
                     if (isUpdatingParameterContext) {
                         return true;
                     }
 
-                    if (parameterName !== '') {
+                    if (param.name !== '') {
                         return false;
                     }
                     return true;
@@ -2401,7 +2372,7 @@
                                 showUpdateStatus(true);
 
                                 var existingParameters = parameterContextEntity.component.parameters.map(function(p) { return p.parameter });
-                                var parameter = getParameterFromFieldValues();
+                                var parameter = serializeParameter();
 
                                 var isValid = validateParameter(parameter, existingParameters);
 
