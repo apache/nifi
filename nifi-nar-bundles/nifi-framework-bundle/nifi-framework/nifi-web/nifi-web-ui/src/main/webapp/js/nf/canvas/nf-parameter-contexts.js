@@ -814,11 +814,22 @@
      */
     var serializeParameter = function (originalParameter) {
         var name = $.trim($('#parameter-name').val());
+        var value = $('#parameter-value-field').val();
         var isEmptyStringSet = $('#parameter-set-empty-string-field').hasClass('checkbox-checked');
-
-        var serializedValue = serializeValue($('#parameter-value-field'), originalParameter, isEmptyStringSet);
         var description = $('#parameter-description-field').val();
         var isSensitive = $('#parameter-dialog').find('input[name="sensitive"]:checked').val() === 'sensitive' ? true : false;
+
+        var parameter = {
+            name: name,
+            value: value,
+            description: description,
+            sensitive: isSensitive,
+            isEmptyStringSet: isEmptyStringSet,
+            previousValue: null,
+            isNew: true
+        };
+
+        var serializedValue = serializeValue($('#parameter-value-field'), _.isNil(originalParameter) ? parameter : originalParameter, isEmptyStringSet);
 
         return {
             name: name,
@@ -859,6 +870,14 @@
         // validate the parameter is not a duplicate
         var matchingParameter = _.find(existingParameters, { name: parameter.name });
 
+        // If in edit mode, the value can not be null
+        if (editMode === true && _.isNil(parameter.value)) {
+            nfDialog.showOkDialog({
+                headerText: 'Configuration Error',
+                dialogContent: 'The value of the parameter must be specified.'
+            });
+        }
+
         // Valid if no duplicate is found or it is edit mode and a matching parameter was found
         if (_.isNil(matchingParameter) || (editMode === true && !_.isNil(matchingParameter))) {
             return true;
@@ -885,7 +904,7 @@
 
     var serializeValue = function (input, parameter, isChecked) {
         var serializedValue;
-        var hasChanged = true;
+        var hasChanged = parameter.value !== parameter.previousValue;
 
         var value = input.val();
         if (!nfCommon.isBlank(value)) {
@@ -938,7 +957,7 @@
                 isEmptyStringSet: serializedParam.isEmptyStringSet,
                 isNew: originalParameter.isNew,
                 hasValueChanged: serializedParam.hasValueChanged,
-                isModified: serializedParam.value !== originalParameter.value || serializedParam.description !== originalParameter.description
+                isModified: serializedParam.hasValueChanged || serializedParam.description !== originalParameter.description
             });
 
             // update row for the parameter
@@ -1013,10 +1032,11 @@
                         text: '#ffffff'
                     },
                     disabled: function () {
-                        if ($('#parameter-context-name').val() !== '') {
-                            return false;
+                        var param = serializeParameter();
+                        if (_.isEmpty(param.name) || (_.isNil(param.value) && !param.isEmptyStringSet)) {
+                            return true;
                         }
-                        return true;
+                        return false;
                     },
                     handler: {
                         click: function () {
@@ -1400,7 +1420,7 @@
                 return '<span class="table-cell sensitive">Sensitive value set</span>';
             } else if (value === '') {
                 return '<span class="table-cell blank">Empty string set</span>';
-            } else if (nfCommon.isNull(value)) {
+            } else if (_.isNil(value)) {
                 return '<span class="unset">No value set</span>';
             } else {
                 return nfCommon.escapeHtml(value);
@@ -1576,7 +1596,7 @@
                             },
                             disabled: function () {
                                 var param = serializeParameter(parameter);
-                                return param.value === parameter.value && param.description === parameter.description;
+                                return !param.hasValueChanged && param.description === parameter.description;
                             },
                             handler: {
                                 click: function () {
@@ -1849,14 +1869,10 @@
                     var param = serializeParameter();
                     var isUpdatingParameterContext = $('#parameter-context-updating-status').hasClass('show-status');
 
-                    if (isUpdatingParameterContext) {
+                    if (isUpdatingParameterContext || _.isEmpty(param.name)) {
                         return true;
                     }
-
-                    if (param.name !== '') {
-                        return false;
-                    }
-                    return true;
+                    return false;
                 },
                 handler: {
                     click: callbacks.onApply
@@ -2477,6 +2493,7 @@
                         if (nfCommon.isSensitiveProperty(propertyDescriptor)) {
                             $('#parameter-sensitive-radio-button').prop('checked', true);
                             $('#parameter-not-sensitive-radio-button').prop('checked', false);
+                            $('#parameter-value-field').val(null);
                         } else {
                             $('#parameter-sensitive-radio-button').prop('checked', false);
                             $('#parameter-not-sensitive-radio-button').prop('checked', true);
