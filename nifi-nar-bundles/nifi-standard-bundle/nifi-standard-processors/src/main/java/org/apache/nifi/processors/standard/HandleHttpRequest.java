@@ -553,7 +553,8 @@ public class HandleHttpRequest extends AbstractProcessor {
             try {
                 shutdown();
             } catch (final Exception shutdownException) {
-                getLogger().debug("Failed to shutdown following the Primary Node role revoked: " + shutdownException);
+                getLogger().warn("Processor is configured to run only on Primary Node, but failed to shutdown HTTP server following revocation of primary node status due to {}",
+                        shutdownException);
             }
         }
     }
