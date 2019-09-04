@@ -69,6 +69,12 @@ public class VaultSensitivePropertyProvider implements SensitivePropertyProvider
     private final String transitKeyId;
     private final String authType;
 
+    /**
+     * Constructs a {@link SensitivePropertyProvider} that uses Vault encrypt and decrypt values.
+     *
+     * @param keyId vault key spec, in the form "vault/{auth-type}/{transit-key-id}"
+     *
+     */
     public VaultSensitivePropertyProvider(String keyId) {
         this(keyId, new StandardExternalPropertyLookup(null, getVaultPropertiesMapping()));
     }
@@ -77,6 +83,7 @@ public class VaultSensitivePropertyProvider implements SensitivePropertyProvider
      * Constructs a {@link SensitivePropertyProvider} that uses Vault encrypt and decrypt values.
      *
      * @param keyId vault key spec, in the form "vault/{auth-type}/{transit-key-id}"
+     * @param externalProperties External properties provider
      */
     public VaultSensitivePropertyProvider(String keyId, ExternalProperties externalProperties) {
         this.externalProperties = externalProperties;
@@ -91,12 +98,18 @@ public class VaultSensitivePropertyProvider implements SensitivePropertyProvider
         VaultEndpoint vaultEndpoint = VaultEndpoint.from(URI.create(serverUri));
         StandardVaultConfiguration config = new StandardVaultConfiguration(vaultEndpoint, externalProperties);
 
-        Resource keyStore = config.getVaultSslKeyStore();
         Resource trustStore = config.getVaultSslTrustStore();
-        SslConfiguration sslConf = SslConfiguration.NONE;
+        Resource keyStore = config.getVaultSslKeyStore();
 
-        if (keyStore != null || trustStore != null) {
-            String storeType = KeyStore.getDefaultType();
+        String storeType = KeyStore.getDefaultType();
+        SslConfiguration sslConf;
+
+
+        if (keyStore == null && trustStore == null) {
+            sslConf = SslConfiguration.NONE;
+        } else if ((keyStore == null) || (trustStore == null)) {
+            throw new SensitivePropertyConfigurationException("Vault TLS requires key store and trust store properties");
+        } else {
             SslConfiguration.KeyStoreConfiguration keyStoreConf = new SslConfiguration.KeyStoreConfiguration(keyStore, config.getVaultSslKeyStorePassword(), storeType);
             SslConfiguration.KeyStoreConfiguration trustStoreConf = new SslConfiguration.KeyStoreConfiguration(trustStore, config.getVaultSslTrustStorePassword(), storeType);
             sslConf = new SslConfiguration(keyStoreConf, trustStoreConf);
@@ -283,10 +296,11 @@ public class VaultSensitivePropertyProvider implements SensitivePropertyProvider
         map.put("vault.app-id.app-id", "VAULT_APP_ID");
         map.put("vault.app-id.user-id", "VAULT_USER_ID");
 
-        map.put("vault.ssl.key-store", "VAULT_SSL_KEY_STORE");
-        map.put("vault.ssl.key-store-password", "VAULT_SSL_KEY_STORE_PASSWORD");
         map.put("vault.ssl.trust-store", "VAULT_SSL_TRUST_STORE");
         map.put("vault.ssl.trust-store-password", "VAULT_SSL_TRUST_STORE_PASSWORD");
+
+        map.put("vault.ssl.key-store", "VAULT_SSL_KEY_STORE");
+        map.put("vault.ssl.key-store-password", "VAULT_SSL_KEY_STORE_PASSWORD");
 
         return map;
     }

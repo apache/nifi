@@ -27,7 +27,6 @@ import org.junit.After
 import org.junit.Assume
 import org.junit.Before
 import org.junit.BeforeClass
-import org.junit.Ignore
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
@@ -41,6 +40,11 @@ import java.nio.charset.StandardCharsets
 import java.security.SecureRandom
 import java.security.Security
 
+/**
+ * Tests the AES Sensitive Property Provider and related behavior.
+ *
+ * These tests are completely self-contained. They require no special configuration and do not use user keys at all, so there is no chance that a user key is deleted.
+ */
 @RunWith(JUnit4.class)
 class AESSensitivePropertyProviderTest extends GroovyTestCase {
     private static final Logger logger = LoggerFactory.getLogger(AESSensitivePropertyProviderTest.class)

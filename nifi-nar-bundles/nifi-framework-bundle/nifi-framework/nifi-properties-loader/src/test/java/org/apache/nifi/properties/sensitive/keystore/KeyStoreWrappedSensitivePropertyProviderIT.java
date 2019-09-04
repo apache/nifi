@@ -50,7 +50,13 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Pattern;
 
-
+/**
+ * Tests the Key Store (Wrapped) Sensitive Property Provider.
+ *
+ * These tests only need file system access to run, and no configuration is required.  These tests also construct their own
+ * keys and key stores, no user keys are ever referenced.
+ *
+ */
 public class KeyStoreWrappedSensitivePropertyProviderIT extends AbstractSensitivePropertyProviderTest {
     private static final Logger logger = LoggerFactory.getLogger(KeyStoreWrappedSensitivePropertyProviderIT.class);
 

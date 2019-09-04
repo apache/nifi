@@ -17,10 +17,7 @@
 package org.apache.nifi.properties.sensitive.gcp.kms;
 
 import com.google.cloud.kms.v1.CryptoKey;
-import com.google.cloud.kms.v1.CryptoKeyName;
 import com.google.cloud.kms.v1.CryptoKeyVersion;
-import com.google.cloud.kms.v1.CryptoKeyVersionName;
-import com.google.cloud.kms.v1.CryptoKeyVersionTemplate;
 import com.google.cloud.kms.v1.KeyManagementServiceClient;
 import com.google.cloud.kms.v1.KeyRing;
 import com.google.cloud.kms.v1.KeyRingName;
@@ -40,22 +37,26 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.regex.Pattern;
 
+/**
+ * Tests the GCP KMS Sensitive Property Provider.
+ *
+ * These tests rely on an environment with GCP credentials stored as environment variables, and require that those credentials support
+ * creating and using KMS keys.
+ *
+ * These tests create a key ring with a random name, and all of our tests use just that ring.  This ensures we cannot destroy and existing user key.
 
-/*
+ Configure your test environment like:
 
-Configure your test environment like:
-
-    $ export GOOGLE_APPLICATION_CREDENTIALS=/home/troy/var/nifi-gcp-it.json
-    $ export GOOGLE_PROJECT=nifi-gcp-unit-tests-project
-
-*/
+ $ export GOOGLE_APPLICATION_CREDENTIALS=/var/run/nifi-gcp-it.json
+ $ export GOOGLE_PROJECT=nifi-gcp-unit-tests-project
+ */
 public class GCPKMSSensitivePropertyProviderIT extends AbstractSensitivePropertyProviderTest {
     private static final Logger logger = LoggerFactory.getLogger(GCPKMSSensitivePropertyProviderIT.class);
     private static String keyId;
 
     private static final String locationId = "us-west2";
-    private static final String keyRingId = "key-ring-" + CipherUtils.getRandomHex(6);
-    private static final String cryptoKeyId = "key-name-" + CipherUtils.getRandomHex(6);
+    private static final String keyRingId = "key-ring-" + CipherUtils.getRandomHex(10);
+    private static final String cryptoKeyId = "key-name-" + CipherUtils.getRandomHex(10);
 
     private static KeyRing keyRing;
     private static CryptoKey createdKey;

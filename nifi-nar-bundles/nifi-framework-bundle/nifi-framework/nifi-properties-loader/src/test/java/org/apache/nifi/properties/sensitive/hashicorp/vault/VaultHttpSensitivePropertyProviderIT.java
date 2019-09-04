@@ -46,7 +46,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-
 /**
  * These tests use a containerized Vault server in "dev" mode to test our Vault Sensitive Property Provider.
  * The image starts a Vault server with an HTTP endpoint, and uses the random token we pass into it as
@@ -58,6 +57,9 @@ import java.util.stream.Stream;
  * Before the tests are run, we have a static method to configure the Vault server to match our expectations,
  * also much in the same way that a user would set Vault options by way of the Vault CLI or API.
  *
+ * These tests are completely self-contained by way of using Docker containers.  No user keys are ever referenced,
+ * and the entire test environment, including the Vault server itself, is constructed from scratch before each test
+ * session.
  */
 public class VaultHttpSensitivePropertyProviderIT extends AbstractSensitivePropertyProviderTest  {
     private static final Logger logger = LoggerFactory.getLogger(VaultHttpSensitivePropertyProviderIT.class);

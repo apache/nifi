@@ -16,10 +16,12 @@
  */
 package org.apache.nifi.properties.sensitive.hashicorp.vault;
 
+import junit.framework.Assert;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,8 +62,10 @@ public class VaultHttpsSensitivePropertyProviderIT extends VaultHttpSensitivePro
 
    @ClassRule
    public static TemporaryFolder tempFolder = new TemporaryFolder(new File("/tmp/"));
+    private static SslConfiguration.KeyStoreConfiguration keyStoreConfiguration;
+    private static SslConfiguration sslConfiguration;
 
-   @AfterClass
+    @AfterClass
    public static void deleteTempFolder() {
        tempFolder.delete();
    }
@@ -109,13 +113,13 @@ public class VaultHttpsSensitivePropertyProviderIT extends VaultHttpSensitivePro
            return;
        }
 
-       SslConfiguration sslConf = new SslConfiguration(
-               new SslConfiguration.KeyStoreConfiguration(new FileSystemResource(vaultServerKeyStoreHostCopy), null, KeyStore.getDefaultType()),
-               new SslConfiguration.KeyStoreConfiguration(new FileSystemResource(vaultServerKeyStoreHostCopy), null, KeyStore.getDefaultType()));
+       keyStoreConfiguration = new SslConfiguration.KeyStoreConfiguration(new FileSystemResource(vaultServerKeyStoreHostCopy), null, KeyStore.getDefaultType());
+       sslConfiguration = new SslConfiguration(keyStoreConfiguration, keyStoreConfiguration);
 
        // We're creating and using a dedicated vault client that's not tied to the SPP:
-       vaultOperations = new VaultTemplate(VaultEndpoint.from(URI.create(vaultUri)),
-               ClientHttpRequestFactoryFactory.create(new ClientOptions(), sslConf),
+       vaultOperations = new VaultTemplate(
+               VaultEndpoint.from(URI.create(vaultUri)),
+               ClientHttpRequestFactoryFactory.create(new ClientOptions(), sslConfiguration),
                new SimpleSessionManager(new TokenAuthentication(vaultToken)));
 
        configureVaultTestEnvironment(vaultOperations);
@@ -126,5 +130,53 @@ public class VaultHttpsSensitivePropertyProviderIT extends VaultHttpSensitivePro
    @Before
    public void setTrustStoreProperty() {
        System.setProperty("vault.ssl.trust-store", vaultServerKeyStoreHostCopy);
+       System.setProperty("vault.ssl.key-store", vaultServerKeyStoreHostCopy);
+   }
+
+   @Test
+    public void testHttpsShouldWorkWithTlsConfigs() {
+
+       // vault tls + (null key store, null trust store)
+       System.clearProperty("vault.ssl.trust-store");
+       boolean failed = false;
+       try  {
+           testShouldProtectAndUnprotectProperties();
+       } catch (final Exception e) {
+           failed = true;
+       }
+       Assert.assertTrue(failed);
+
+       // vault tls + (client key store, null trust store)
+       System.clearProperty("vault.ssl.trust-store");
+       System.setProperty("vault.ssl.key-store", vaultServerKeyStoreHostCopy);
+       failed = false;
+       try  {
+           testShouldProtectAndUnprotectProperties();
+       } catch (final Exception e) {
+           failed = true;
+       }
+       Assert.assertTrue(failed);
+
+       // vault tls + (client key store, trust store)
+       System.setProperty("vault.ssl.trust-store", vaultServerKeyStoreHostCopy);
+       System.setProperty("vault.ssl.key-store", vaultServerKeyStoreHostCopy);
+       failed = false;
+       try  {
+           testShouldProtectAndUnprotectProperties();
+       } catch (final Exception e) {
+           failed = true;
+       }
+       Assert.assertFalse(failed);
+
+       // vault tls + (null key store, trust store)
+       System.setProperty("vault.ssl.trust-store", vaultServerKeyStoreHostCopy);
+       System.clearProperty("vault.ssl.key-store");
+       failed = false;
+       try  {
+           testShouldProtectAndUnprotectProperties();
+       } catch (final Exception e) {
+           failed = true;
+       }
+       Assert.assertTrue(failed);
    }
 }

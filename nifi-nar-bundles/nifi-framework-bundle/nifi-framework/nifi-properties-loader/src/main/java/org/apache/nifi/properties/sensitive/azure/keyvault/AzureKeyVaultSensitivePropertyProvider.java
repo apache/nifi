@@ -37,21 +37,25 @@ import java.util.HashMap;
 import java.util.Map;
 
 
-// Azure with Java:
-// https://docs.microsoft.com/en-us/azure/java/?view=azure-java-stable
-
-// Azure auth with Java:
-// https://github.com/Azure/azure-libraries-for-java/blob/master/AUTH.md
-
-// Azure Key Vault with Java:
-// https://docs.microsoft.com/en-us/java/api/com.microsoft.azure.keyvault?view=azure-java-stable
-
-
+/**
+ * This provider uses the Azure SDK to interact with the Azure Key Vault service.
+ *
+ * Azure with Java:
+ * https://docs.microsoft.com/en-us/azure/java/?view=azure-java-stable
+ *
+ * Azure auth with Java:
+ * https://github.com/Azure/azure-libraries-for-java/blob/master/AUTH.md
+ *
+ * Azure Key Vault with Java:
+ * https://docs.microsoft.com/en-us/java/api/com.microsoft.azure.keyvault?view=azure-java-stable
+ */
 public class AzureKeyVaultSensitivePropertyProvider implements SensitivePropertyProvider {
     private static final String IMPLEMENTATION_NAME = "Azure Key Vault Sensitive Property Provider";
     private static final String MATERIAL_PROVIDER = "azure";
     private static final String MATERIAL_KEY_TYPE = "vault";
     private static final String IMPLEMENTATION_PREFIX = MATERIAL_PROVIDER + "/" + MATERIAL_KEY_TYPE;
+    private static final int MAX_PROTECT_LENGTH = 470;
+
     private static final JsonWebKeyEncryptionAlgorithm algo = JsonWebKeyEncryptionAlgorithm.RSA_OAEP;
     private static final Map<Integer, Integer> maxValueSizes = new HashMap<>();
     static {
@@ -63,6 +67,7 @@ public class AzureKeyVaultSensitivePropertyProvider implements SensitiveProperty
     private final KeyVaultClient client;
     private final String vaultId;
     private final String keyId;
+
 
     public AzureKeyVaultSensitivePropertyProvider(String material) {
         final File credFile = new File(System.getenv("AZURE_AUTH_LOCATION"));
@@ -130,8 +135,11 @@ public class AzureKeyVaultSensitivePropertyProvider implements SensitiveProperty
     @Override
     public String protect(String unprotectedValue) throws SensitivePropertyProtectionException {
         // TODO:  check length of value; azure limits length of encryption operations.
+
         if (StringUtils.isBlank(unprotectedValue)) {
             throw new IllegalArgumentException("Cannot encrypt an empty value");
+        } else if (unprotectedValue.length() > MAX_PROTECT_LENGTH) {
+            throw new IllegalArgumentException("Azure SPP cannot encrypt value longer than 128 characters, have " + unprotectedValue.length());
         }
 
         KeyOperationResult operation;

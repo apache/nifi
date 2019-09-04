@@ -37,6 +37,7 @@ import org.apache.nifi.security.util.CipherUtils;
 
 import org.junit.AfterClass;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -49,7 +50,18 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
-
+/**
+ * Tests the AWS KMS Sensitive Property Provider.
+ *
+ * These tests rely on an environment with AWS credentials stored on disk, and require that those credentials support
+ * creating and using AWS KMS keys.
+ *
+ * These tests do create and destroy keys and key material, but there is no chance that another existing user key is
+ * effected; all ids, keys, names and aliases are either unspecified or effectively random.
+ *
+ * To enable these tests, add the file `aws-credentials.properties` to your home directory.  The file should have
+ * `aws.accessKeyId` and `aws.secretKey` values set.
+ */
 public class AWSKMSSensitivePropertyProviderIT extends AbstractSensitivePropertyProviderTest {
     private static final Logger logger = LoggerFactory.getLogger(AWSKMSSensitivePropertyProviderIT.class);
 
@@ -72,11 +84,9 @@ public class AWSKMSSensitivePropertyProviderIT extends AbstractSensitiveProperty
         } catch (FileNotFoundException e1) {
             TestCase.fail("Could not open credentials file " + CREDENTIALS_FILE + ": " + e1.getLocalizedMessage());
             return;
-
         }
 
         final PropertiesCredentials credentials = new PropertiesCredentials(fis);
-
         credentialsDuringTest.put("aws.accessKeyId", credentials.getAWSAccessKeyId());
         credentialsDuringTest.put("aws.secretKey", credentials.getAWSSecretKey());
 

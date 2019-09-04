@@ -25,7 +25,29 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Tests the Azure Key Vault Sensitive Property Provider.
+ *
+ * These tests rely on an environment with Azure credentials stored as files identified by environment variables, and require that those credentials support
+ * creating and using Key Vault keys.
+ *
+ * These tests are more narrow than other Sensitive Property Provider tests in that we don't construct keys or key material,
+ * and instead rely on user values completely.  Because of that, no user keys are created or destroyed.
+ *
+To exercise these tests, set the Azure environment variables like so:
 
+ AZURE_AUTH_LOCATION=/var/run/secrets/nifi-azure-auth.json
+ AZURE_KEY_VAULT_MATERIAL=/subscriptions/your-subscription-uuid/resourceGroups/your-resource-group/providers/Microsoft.KeyVault/vaults/your-vault,https://your-vault.vault.azure.net/keys/your-key/your-key-id
+
+ Azure with Java:
+ https://docs.microsoft.com/en-us/azure/java/?view=azure-java-stable
+
+ Azure auth with Java:
+ https://github.com/Azure/azure-libraries-for-java/blob/master/AUTH.md
+
+ Azure Key Vault with Java:
+ https://docs.microsoft.com/en-us/java/api/com.microsoft.azure.keyvault?view=azure-java-stable
+ */
 public class AzureKeyVaultSensitivePropertyProviderIT extends AbstractSensitivePropertyProviderTest {
     private static final Logger logger = LoggerFactory.getLogger(AzureKeyVaultSensitivePropertyProviderIT.class);
     private SensitivePropertyProvider sensitivePropertyProvider;
@@ -47,9 +69,19 @@ public class AzureKeyVaultSensitivePropertyProviderIT extends AbstractSensitiveP
      */
     @Test
     public void testProtectAndUnprotect() throws Exception {
-        int plainSize = 128;
+        int plainSize = 127;
         checkProviderCanProtectAndUnprotectValue(sensitivePropertyProvider, plainSize);
         logger.info("Azure Key Vault SPP protected and unprotected string of " + plainSize);
+
+        /*
+
+         To determine max length, try something like this:
+
+         for (int i = 127; i<570/2; i++) {
+         checkProviderCanProtectAndUnprotectValue(sensitivePropertyProvider, i);
+         logger.info("Azure Key Vault SPP protected and unprotected string of " + i);
+         }
+         */
     }
 
     /**
