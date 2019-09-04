@@ -217,6 +217,21 @@
     };
 
     /**
+     * Resets all of the fields in the add/edit parameter dialog
+     */
+    var resetParameterDialog = function () {
+        $('#parameter-name').val('');
+        $('#parameter-value-field').val('');
+        $('#parameter-description-field').val('');
+        $('#parameter-sensitive-radio-button').prop('checked', false);
+        $('#parameter-not-sensitive-radio-button').prop('checked', false);
+        $('#parameter-name').prop('disabled', false);
+        $('#parameter-sensitive-radio-button').prop('disabled', false);
+        $('#parameter-not-sensitive-radio-button').prop('disabled', false);
+        $('#parameter-set-empty-string-field').removeClass('checkbox-checked').addClass('checkbox-unchecked');
+    };
+
+    /**
      * Marshals the parameters in the table.
      */
     var marshalParameters = function () {
@@ -1600,7 +1615,7 @@
                             },
                             disabled: function () {
                                 var param = serializeParameter(parameter);
-                                if (_.isEmpty(param.value) && !param.isEmptyStringSet) {
+                                if (_.isEmpty(param.value) && !param.isEmptyStringSet && !param.sensitive) {
                                     // must have a value when editing
                                     return true;
                                 } else {
@@ -1766,15 +1781,7 @@
 
         $('#add-parameter').on('click', function () {
             var closeHandler = function () {
-                $('#parameter-name').val('');
-                $('#parameter-value-field').val('');
-                $('#parameter-description-field').val('');
-                $('#parameter-sensitive-radio-button').prop('checked', false);
-                $('#parameter-not-sensitive-radio-button').prop('checked', false);
-                $('#parameter-name').prop('disabled', false);
-                $('#parameter-sensitive-radio-button').prop('disabled', false);
-                $('#parameter-not-sensitive-radio-button').prop('disabled', false);
-                $('#parameter-set-empty-string-field').removeClass('checkbox-checked').addClass('checkbox-unchecked');
+                resetParameterDialog();
             };
 
             var openHandler = function () {
@@ -2480,6 +2487,7 @@
                                         clearTimeout(updateTimeoutReference);
                                     }
                                 }
+                                resetParameterDialog();
 
                                 // hide the dialog
                                 $(this).modal('hide');
