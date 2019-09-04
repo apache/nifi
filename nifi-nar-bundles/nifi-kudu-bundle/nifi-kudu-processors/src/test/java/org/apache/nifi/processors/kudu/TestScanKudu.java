@@ -36,6 +36,7 @@ public class TestScanKudu {
     private MockKuduScan kuduScan;
     private TestRunner runner;
     public static final String DEFAULT_TABLE_NAME = "Nifi-Kudu-Table";
+    public static final String DEFAULT_MASTERS = "testLocalHost:7051";
 
     @Before
     public void setup() throws InitializationException {
@@ -46,6 +47,7 @@ public class TestScanKudu {
     }
 
     private void setUpTestRunner(TestRunner testRunner) throws InitializationException {
+        testRunner.setProperty(PutKudu.KUDU_MASTERS, DEFAULT_MASTERS);
         testRunner.setProperty(ScanKudu.TABLE_NAME, DEFAULT_TABLE_NAME);
     }
 
