@@ -439,6 +439,8 @@
                 // close the shell
                 $('#shell-dialog').modal('hide');
 
+                nfProcessGroup.enterGroup(referencingControllerService.processGroupId);
+
                 // show the component in question
                 nfProcessGroupConfiguration.showConfiguration(referencingControllerService.processGroupId).done(function () {
                     nfProcessGroupConfiguration.selectControllerService(referencingControllerService.id);
