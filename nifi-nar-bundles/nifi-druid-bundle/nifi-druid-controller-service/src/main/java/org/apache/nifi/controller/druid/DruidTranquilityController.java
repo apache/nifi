@@ -231,8 +231,7 @@ public class DruidTranquilityController extends AbstractControllerService implem
     public static final PropertyDescriptor DIMENSIONS_LIST = new PropertyDescriptor.Builder()
             .name("druid-cs-dimensions-list")
             .displayName("Dimension Fields")
-            .description("A comma separated list of field names that will be stored as dimensions on ingest.")
-            .required(true)
+            .description("A comma separated list of field names that will be stored as dimensions on ingest. Set to empty string for schema-less dimensions.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
@@ -400,7 +399,7 @@ public class DruidTranquilityController extends AbstractControllerService implem
 
         transitUri = String.format(FIREHOSE_PATTERN, dataSource) + ";indexServicePath=" + indexService;
 
-        final List<String> dimensions = getDimensions(dimensionsStringList);
+        final DruidDimensions dimensions = getDimensions(dimensionsStringList);
         final List<AggregatorFactory> aggregator = getAggregatorList(aggregatorJSON);
 
         final Timestamper<Map<String, Object>> timestamper = new Timestamper<Map<String, Object>>() {
@@ -446,14 +445,14 @@ public class DruidTranquilityController extends AbstractControllerService implem
     }
 
     Beam<Map<String, Object>> buildBeam(String dataSource, String indexService, String discoveryPath, int clusterPartitions, int clusterReplication,
-                                        String segmentGranularity, String queryGranularity, String windowPeriod, String firehoseGracePeriod, String indexRetryPeriod, List<String> dimensions,
+                                        String segmentGranularity, String queryGranularity, String windowPeriod, String firehoseGracePeriod, String indexRetryPeriod, DruidDimensions dimensions,
                                         List<AggregatorFactory> aggregator, Timestamper<Map<String, Object>> timestamper, TimestampSpec timestampSpec) {
         return DruidBeams.builder(timestamper)
                 .curator(curator)
                 .discoveryPath(discoveryPath)
                 .location(DruidLocation.create(DruidEnvironment.create(indexService, FIREHOSE_PATTERN), dataSource))
                 .timestampSpec(timestampSpec)
-                .rollup(DruidRollup.create(DruidDimensions.specific(dimensions), aggregator, QueryGranularity.fromString(queryGranularity)))
+                .rollup(DruidRollup.create(dimensions, aggregator, QueryGranularity.fromString(queryGranularity)))
                 .tuning(
                         ClusteredBeamTuning
                                 .builder()
@@ -518,7 +517,7 @@ public class DruidTranquilityController extends AbstractControllerService implem
         }
     }
 
-    private List<String> getDimensions(String dimensionStringList) {
+    private DruidDimensions getDimensions(String dimensionStringList) {
         List<String> dimensionList = new ArrayList<>();
         if (dimensionStringList != null) {
             Arrays.stream(dimensionStringList.split(","))
@@ -526,7 +525,12 @@ public class DruidTranquilityController extends AbstractControllerService implem
                     .map(String::trim)
                     .forEach(dimensionList::add);
         }
-        return dimensionList;
+        if(dimensionList.isEmpty()) {
+            getLogger().debug("Using schema-less dimensions");
+            return DruidDimensions.schemaless();
+        } else {
+            return DruidDimensions.specific(dimensionList);
+        }
     }
 
     private List<AggregatorFactory> getAggregatorList(String aggregatorJSON) {
