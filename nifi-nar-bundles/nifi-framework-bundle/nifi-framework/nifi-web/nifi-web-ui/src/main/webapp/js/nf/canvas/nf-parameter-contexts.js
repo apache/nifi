@@ -888,14 +888,6 @@
         // validate the parameter is not a duplicate
         var matchingParameter = _.find(existingParameters, { name: parameter.name });
 
-        // If in edit mode, the value can not be null
-        if (editMode === true && _.isNil(parameter.value)) {
-            nfDialog.showOkDialog({
-                headerText: 'Configuration Error',
-                dialogContent: 'The value of the parameter must be specified.'
-            });
-        }
-
         // Valid if no duplicate is found or it is edit mode and a matching parameter was found
         if (_.isNil(matchingParameter) || (editMode === true && !_.isNil(matchingParameter))) {
             return true;
@@ -1183,7 +1175,7 @@
                                     component: updateRequestEntity.request.parameterContext
                                 });
 
-                                var item = parameterContextData.getItemById(parameterContextEntity.component.id);
+                                var item = parameterContextData.getItemById(parameterContextEntity.id);
                                 if (nfCommon.isDefinedAndNotNull(item)) {
                                     parameterContextData.updateItem(parameterContextEntity.id, parameterContextEntity);
                                 }
@@ -1615,11 +1607,14 @@
                             },
                             disabled: function () {
                                 var param = serializeParameter(parameter);
-                                if (_.isEmpty(param.value) && !param.isEmptyStringSet && !param.sensitive) {
-                                    // must have a value when editing
-                                    return true;
+                                if (param.hasValueChanged) {
+                                    if (_.isEmpty(param.value) && !param.isEmptyStringSet) {
+                                        // must have a value when editing
+                                        return true;
+                                    }
+                                    return false;
                                 } else {
-                                    return !param.hasValueChanged && !param.hasDescriptionChanged;
+                                    return !param.hasDescriptionChanged;
                                 }
                             },
                             handler: {
@@ -1825,8 +1820,8 @@
                             $(this).modal('hide');
                         }
                     }
-                }]).modal('show');
-            $('#parameter-dialog').modal('show');
+                }])
+                .modal('show');
         });
 
         $('#parameter-context-name').on('keyup', function (evt) {
