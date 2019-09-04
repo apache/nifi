@@ -68,7 +68,9 @@ public interface RecordReaderFactory extends ControllerService {
      * @param variables A map containing variables which is used to resolve the Record Schema dynamically via Expression Language.
      *                 This can be null or empty.
      * @param in InputStream containing Records.
-     * @param inputLength the length of the content to read from the InputStream in bytes, a negative value indicates an unknown or unbound size
+     * @param inputLength A hint about the length of the content to read from the InputStream. This value is specified in bytes and a negative value indicates
+     *                    an unknown or unbound size. Some reader implementations must be able to seek to the end of the InputStream and will require knowing the length.
+     *                    Other implementations may be ignore this hint and may read the entire InputStream.
      * @param logger A logger bound to a component
      *
      * @return Created RecordReader instance
