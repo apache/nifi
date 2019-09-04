@@ -1183,7 +1183,7 @@
                                     component: updateRequestEntity.request.parameterContext
                                 });
 
-                                var item = parameterContextData.getItem(parameterContextEntity.id);
+                                var item = parameterContextData.getItemById(parameterContextEntity.component.id);
                                 if (nfCommon.isDefinedAndNotNull(item)) {
                                     parameterContextData.updateItem(parameterContextEntity.id, parameterContextEntity);
                                 }
