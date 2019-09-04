@@ -112,8 +112,10 @@ public class StandardParameterContext implements ParameterContext {
                     parameters.remove(parameterDescriptor);
                     changeAffectingComponents = true;
                 } else {
-                    final Parameter oldParameter = parameters.put(parameter.getDescriptor(), parameter);
-                    if (oldParameter == null || !Objects.equals(oldParameter.getValue(), parameter.getValue())) {
+                    final Parameter updatedParameter = createFullyPopulatedParameter(parameter);
+
+                    final Parameter oldParameter = parameters.put(updatedParameter.getDescriptor(), updatedParameter);
+                    if (oldParameter == null || !Objects.equals(oldParameter.getValue(), updatedParameter.getValue())) {
                         changeAffectingComponents = true;
                     }
                 }
@@ -131,6 +133,46 @@ public class StandardParameterContext implements ParameterContext {
         } finally {
             writeLock.unlock();
         }
+    }
+
+    /**
+     * When updating a Parameter, the provided 'updated' Parameter may or may not contain a value. This is done because once a Parameter is set,
+     * a user may want to change the description of the Parameter but cannot include the value of the Parameter in the request if the Parameter is sensitive (because
+     * the value of the Parameter, when retrieved, is masked for sensitive Parameters). As a result, a call may be made to {@link #setParameters(Map)} that includes
+     * a Parameter whose value is <code>null</code>. If we encounter this, we do not want to change the value of the Parameter, so we want to insert into our Map
+     * a Parameter object whose value is equal to the current value for that Parameter (if any). This method, then, takes a Parameter whose value may or may not be
+     * populated and returns a Parameter whose value is populated, if there is an appropriate value to populate it with.
+     *
+     * @param proposedParameter the proposed parameter
+     * @return a Parameter whose descriptor is the same as the given proposed parameter but whose value has been populated based on the existing value for that Parameter (if any)
+     * if the given proposed parameter does not have its value populated
+     */
+    private Parameter createFullyPopulatedParameter(final Parameter proposedParameter) {
+        final ParameterDescriptor descriptor = getFullyPopulatedDescriptor(proposedParameter);
+        final String value = getFullyPopulatedValue(proposedParameter);
+        return new Parameter(descriptor, value);
+    }
+
+    private String getFullyPopulatedValue(final Parameter proposedParameter) {
+        if (proposedParameter.getValue() != null) {
+            return proposedParameter.getValue();
+        }
+
+        final Parameter oldParameter = parameters.get(proposedParameter.getDescriptor());
+        return oldParameter == null ? null : oldParameter.getValue();
+    }
+
+    private ParameterDescriptor getFullyPopulatedDescriptor(final Parameter proposedParameter) {
+        final ParameterDescriptor descriptor = proposedParameter.getDescriptor();
+        if (descriptor.getDescription() != null) {
+            return descriptor;
+        }
+
+        final Parameter oldParameter = parameters.get(proposedParameter.getDescriptor());
+
+        // We know that the Parameters have the same name, since this is what the Descriptor's hashCode & equality are based on. The only thing that may be different
+        // is the description. And since the proposed Parameter does not have a Description, we want to use whatever is currently set.
+        return oldParameter == null ? null : oldParameter.getDescriptor();
     }
 
     @Override
