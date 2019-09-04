@@ -836,6 +836,16 @@
         var description = $('#parameter-description-field').val();
         var isSensitive = $('#parameter-dialog').find('input[name="sensitive"]:checked').val() === 'sensitive' ? true : false;
 
+        var validateValue = function () {
+            // updates to a parameter cannot have a null value
+            if (!this.isNew) {
+                if (_.isEmpty(this.value) && !this.isEmptyStringSet) {
+                    return false;
+                }
+            }
+            return true;
+        };
+
         var parameter = {
             name: name,
             value: null,
@@ -855,7 +865,8 @@
             sensitive: isSensitive,
             isEmptyStringSet: isEmptyStringSet,
             hasValueChanged: serializedValue.hasChanged,
-            hasDescriptionChanged: description !== _.get(originalParameter, 'description', '')
+            hasDescriptionChanged: description !== _.get(originalParameter, 'description', ''),
+            isValueValid: validateValue
         }
     };
 
@@ -969,6 +980,7 @@
                 isNew: originalParameter.isNew,
                 hasValueChanged: serializedParam.hasValueChanged,
                 hasDescriptionChanged: serializedParam.hasDescriptionChanged,
+                value: serializedParam.value,
                 isModified: serializedParam.hasValueChanged || serializedParam.hasDescriptionChanged
             });
 
@@ -1608,11 +1620,7 @@
                             disabled: function () {
                                 var param = serializeParameter(parameter);
                                 if (param.hasValueChanged) {
-                                    if (_.isEmpty(param.value) && !param.isEmptyStringSet) {
-                                        // must have a value when editing
-                                        return true;
-                                    }
-                                    return false;
+                                    return !param.isValueValid();
                                 } else {
                                     return !param.hasDescriptionChanged;
                                 }
