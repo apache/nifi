@@ -17,6 +17,7 @@
 package org.apache.nifi.controller.druid;
 
 import com.metamx.tranquility.beam.Beam;
+import com.metamx.tranquility.druid.DruidDimensions;
 import com.metamx.tranquility.tranquilizer.MessageDroppedException;
 import com.metamx.tranquility.tranquilizer.Tranquilizer;
 import com.metamx.tranquility.typeclass.Timestamper;
@@ -113,8 +114,7 @@ public class MockDruidTranquilityController extends DruidTranquilityController {
             }
         };
         when(t.send(any())).thenReturn(future);
-        when(t.status()).thenReturn(new Status() {
-        });
+        when(t.status());
         cf = mock(CuratorFramework.class);
     }
 
@@ -137,7 +137,7 @@ public class MockDruidTranquilityController extends DruidTranquilityController {
     @SuppressWarnings("unchecked")
     @Override
     Beam<Map<String, Object>> buildBeam(String dataSource, String indexService, String discoveryPath, int clusterPartitions, int clusterReplication,
-                                        String segmentGranularity, String queryGranularity, String windowPeriod, String firehoseGracePeriod, String indexRetryPeriod, List<String> dimensions,
+                                        String segmentGranularity, String queryGranularity, String windowPeriod, String firehoseGracePeriod, String indexRetryPeriod, DruidDimensions dimensions,
                                         List<AggregatorFactory> aggregator, Timestamper<Map<String, Object>> timestamper, TimestampSpec timestampSpec) {
         return mock(Beam.class);
     }
