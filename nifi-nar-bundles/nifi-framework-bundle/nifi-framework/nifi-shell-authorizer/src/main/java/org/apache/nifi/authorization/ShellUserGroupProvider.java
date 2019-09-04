@@ -16,21 +16,6 @@
  */
 package org.apache.nifi.authorization;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.regex.Pattern;
-import java.util.regex.PatternSyntaxException;
-
 import org.apache.nifi.authorization.exception.AuthorizationAccessException;
 import org.apache.nifi.authorization.exception.AuthorizerCreationException;
 import org.apache.nifi.authorization.exception.AuthorizerDestructionException;
@@ -39,6 +24,19 @@ import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.util.FormatUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 
 
 /*
@@ -475,14 +473,14 @@ public class ShellUserGroupProvider implements UserGroupProvider {
                 String name = record[0], id = record[1], gid = record[2];
 
                 if (name != null && id != null && !name.equals("") && !id.equals("") && !excludeUsers.matcher(name).matches()) {
-                    String identifier = getNameBasedUUID(id);
-                    User user = new User.Builder().identity(name).identifier(identifier).build();
-                    idToUser.put(identifier, user);
+                    User user = new User.Builder().identity(name).identifierGenerateFromSeed(id).build();
+                    idToUser.put(user.getIdentifier(), user);
                     usernameToUser.put(name, user);
 
                     if (gid != null && !gid.equals("")) {
-                        String groupIdentifier = getNameBasedUUID(gid);
-                        gidToUser.put(groupIdentifier, user);
+                        // create a temporary group to deterministically generate the group id and associate this user
+                        Group group = new Group.Builder().name(gid).identifierGenerateFromSeed(gid).build();
+                        gidToUser.put(group.getIdentifier(), user);
                     } else {
                         logger.warn("Null or empty primary group id for: " + name);
                     }
@@ -530,9 +528,8 @@ public class ShellUserGroupProvider implements UserGroupProvider {
                 }
 
                 if (name != null && id != null && !name.equals("") && !id.equals("") && !excludeGroups.matcher(name).matches()) {
-                    String groupIdentifier = getNameBasedUUID(id);
-                    Group group = new Group.Builder().name(name).identifier(groupIdentifier).addUsers(users).build();
-                    groupsById.put(groupIdentifier, group);
+                    Group group = new Group.Builder().name(name).identifierGenerateFromSeed(id).addUsers(users).build();
+                    groupsById.put(group.getIdentifier(), group);
                     logger.debug("Refreshed group: " + group);
                 } else {
                     logger.warn("Null, empty, or skipped group name: " + name + " or id: " + id);
@@ -561,22 +558,11 @@ public class ShellUserGroupProvider implements UserGroupProvider {
                 if (!groupUsers.contains(primaryUser.getIdentity())) {
                     Set<String> secondSet = new HashSet<>(groupUsers);
                     secondSet.add(primaryUser.getIdentity());
-                    String groupIdentifier = getNameBasedUUID(primaryGid);
-                    Group group = new Group.Builder().name(primaryGroup.getName()).identifier(groupIdentifier).addUsers(secondSet).build();
-                    gidToGroup.put(groupIdentifier, group);
+                    Group group = new Group.Builder().name(primaryGroup.getName()).identifierGenerateFromSeed(primaryGid).addUsers(secondSet).build();
+                    gidToGroup.put(group.getIdentifier(), group);
                 }
             }
         });
-    }
-
-    /**
-     * Returns a deterministic UUID derived from the input value.
-     *
-     * @param name determines UUID
-     * @return string UUID
-     */
-    private static String getNameBasedUUID(String name) {
-        return new Group.Builder().identifierGenerateFromSeed(name).name(name).build().getIdentifier();
     }
 
     /**
