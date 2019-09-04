@@ -101,3 +101,23 @@ span.parameter-context-referencing-component-name {
     margin-right: 5px;
     max-width: calc(100% - 10px);
 }
+
+#parameter-context-updating-status {
+    display: none;
+    position: absolute;
+    left: 12px;
+    bottom: 0;
+    height: 32px;
+    max-width: calc(100% - 230px);
+}
+
+#parameter-context-updating-status.show-status {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}
+
+#parameter-context-updating-status .status-message {
+    white-space: nowrap;
+    margin-left: 6px;
+}
