@@ -810,7 +810,7 @@
      * Builds a parameter object from the user-entered parameter inputs
      *
      * @param originalParameter Optional parameter to compare value against to determine if it has changed
-     * @return {{isEmptyStringSet: *, name: *, description: *, sensitive: *, value: *}}
+     * @return {{isEmptyStringSet: *, name: *, description: *, sensitive: *, value: *, hasValueChanged: *, hasDescriptionChanged: *}}
      */
     var serializeParameter = function (originalParameter) {
         var name = $.trim($('#parameter-name').val());
@@ -821,8 +821,8 @@
 
         var parameter = {
             name: name,
-            value: value,
-            description: description,
+            value: null,
+            description: null,
             sensitive: isSensitive,
             isEmptyStringSet: isEmptyStringSet,
             previousValue: null,
@@ -837,7 +837,8 @@
             description: description,
             sensitive: isSensitive,
             isEmptyStringSet: isEmptyStringSet,
-            hasValueChanged: serializedValue.hasChanged
+            hasValueChanged: serializedValue.hasChanged,
+            hasDescriptionChanged: description !== _.get(originalParameter, 'description', '')
         }
     };
 
@@ -904,9 +905,10 @@
 
     var serializeValue = function (input, parameter, isChecked) {
         var serializedValue;
-        var hasChanged = parameter.value !== parameter.previousValue;
 
         var value = input.val();
+        var hasChanged = parameter.value !== value;
+
         if (!nfCommon.isBlank(value)) {
             // if the value is sensitive and the user has not made a change
             if (!_.isEmpty(parameter) && parameter.sensitive === true && input.hasClass('sensitive') && parameter.isNew === false) {
@@ -957,7 +959,8 @@
                 isEmptyStringSet: serializedParam.isEmptyStringSet,
                 isNew: originalParameter.isNew,
                 hasValueChanged: serializedParam.hasValueChanged,
-                isModified: serializedParam.hasValueChanged || serializedParam.description !== originalParameter.description
+                hasDescriptionChanged: serializedParam.hasDescriptionChanged,
+                isModified: serializedParam.hasValueChanged || serializedParam.hasDescriptionChanged
             });
 
             // update row for the parameter
@@ -1032,11 +1035,10 @@
                         text: '#ffffff'
                     },
                     disabled: function () {
-                        var param = serializeParameter();
-                        if (_.isEmpty(param.name) || (_.isNil(param.value) && !param.isEmptyStringSet)) {
-                            return true;
+                        if ($('#parameter-context-name').val() !== '') {
+                            return false;
                         }
-                        return false;
+                        return true;
                     },
                     handler: {
                         click: function () {
@@ -1596,7 +1598,12 @@
                             },
                             disabled: function () {
                                 var param = serializeParameter(parameter);
-                                return !param.hasValueChanged && param.description === parameter.description;
+                                if (_.isEmpty(param.value) && !param.isEmptyStringSet) {
+                                    // must have a value when editing
+                                    return true;
+                                } else {
+                                    return !param.hasValueChanged && !param.hasDescriptionChanged;
+                                }
                             },
                             handler: {
                                 click: function () {
@@ -1889,8 +1896,6 @@
                 }
             }])
             .modal('show');
-
-        $('#parameter-dialog').modal('show');
     };
 
     /**
