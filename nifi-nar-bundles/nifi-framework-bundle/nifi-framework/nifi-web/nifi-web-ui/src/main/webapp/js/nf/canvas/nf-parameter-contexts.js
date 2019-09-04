@@ -927,6 +927,10 @@
         var serializedValue;
 
         var value = input.val();
+        if (!isChecked && _.isEmpty(value)) {
+            value = null;
+        }
+
         var hasChanged = parameter.value !== value;
 
         if (!nfCommon.isBlank(value)) {
