@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.controller.status.analytics;
 
-import org.apache.nifi.processor.DataUnit;
-
 /**
  */
 public class ConnectionStatusPredictions implements Cloneable {
