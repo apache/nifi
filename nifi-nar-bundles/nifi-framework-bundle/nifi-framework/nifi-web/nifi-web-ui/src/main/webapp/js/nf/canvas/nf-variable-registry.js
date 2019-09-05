@@ -926,6 +926,7 @@
                                         nfCanvasUtils.showComponent(unauthorizedAffectedComponentEntity.processGroup.id, unauthorizedAffectedComponentEntity.id);
                                     } else if (unauthorizedAffectedComponentEntity.referenceType === 'CONTROLLER_SERVICE') {
                                         nfProcessGroupConfiguration.showConfiguration(unauthorizedAffectedComponentEntity.processGroup.id).done(function () {
+                                            nfProcessGroup.enterGroup(unauthorizedAffectedComponentEntity.processGroup.id);
                                             nfProcessGroupConfiguration.selectControllerService(unauthorizedAffectedComponentEntity.id);
                                         });
                                     }
