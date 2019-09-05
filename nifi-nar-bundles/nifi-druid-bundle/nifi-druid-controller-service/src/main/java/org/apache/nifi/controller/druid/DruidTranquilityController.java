@@ -43,7 +43,10 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
-import org.apache.nifi.components.*;
+import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.api.druid.DruidTranquilityService;
@@ -229,8 +232,8 @@ public class DruidTranquilityController extends AbstractControllerService implem
             .name("druid-cs-dimensions-list")
             .displayName("Dimension Fields")
             .description("A comma separated list of field names that will be stored as dimensions on ingest. Set to empty string for schema-less dimensions.")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .addValidator(Validator.VALID)
             .build();
 
     public static final PropertyDescriptor SEGMENT_GRANULARITY = new PropertyDescriptor.Builder()
@@ -525,8 +528,7 @@ public class DruidTranquilityController extends AbstractControllerService implem
         if(dimensionList.isEmpty()) {
             getLogger().debug("Using schema-less dimensions");
             return DruidDimensions.schemaless();
-        }
-        else {
+        } else {
             return DruidDimensions.specific(dimensionList);
         }
     }
