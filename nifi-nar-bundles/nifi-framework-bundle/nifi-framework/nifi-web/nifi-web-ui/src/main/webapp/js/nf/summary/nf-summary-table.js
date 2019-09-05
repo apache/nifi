@@ -88,8 +88,8 @@
 
 
     var backpressurePredictionFormatter = function (row, cell, value, columnDef, dataContext) {
-        var predictedMillisUntilBytesBackpressure = _.get(dataContext, 'predictedMillisUntilBytesBackpressure', -1);
-        var predictedMillisUntilCountBackpressure = _.get(dataContext, 'predictedMillisUntilCountBackpressure', -1);
+        var predictedMillisUntilBytesBackpressure = _.get(dataContext, 'predictions.predictedMillisUntilBytesBackpressure', -1);
+        var predictedMillisUntilCountBackpressure = _.get(dataContext, 'predictions.predictedMillisUntilCountBackpressure', -1);
 
         var percentUseCount = _.get(dataContext, 'percentUseCount', 0);
         var percentUseBytes = _.get(dataContext, 'percentUseBytes', 0);
@@ -2356,8 +2356,8 @@
                 var aMaxCurrentUsage = Math.max(_.get(a, 'percentUseBytes', 0), _.get(a, 'percentUseCount', 0));
                 var bMaxCurrentUsage = Math.max(_.get(b, 'percentUseBytes', 0), _.get(b, 'percentUseCount', 0));
 
-                var aMinTime = Math.min(_.get(a, 'predictedMillisUntilBytesBackpressure', Number.MAX_VALUE), _.get(a, 'predictedMillisUntilCountBackpressure', Number.MAX_VALUE));
-                var bMinTime = Math.min(_.get(b, 'predictedMillisUntilBytesBackpressure', Number.MAX_VALUE), _.get(b, 'predictedMillisUntilCountBackpressure', Number.MAX_VALUE));
+                var aMinTime = Math.min(_.get(a, 'predictions.predictedMillisUntilBytesBackpressure', Number.MAX_VALUE), _.get(a, 'predictions.predictedMillisUntilCountBackpressure', Number.MAX_VALUE));
+                var bMinTime = Math.min(_.get(b, 'predictions.predictedMillisUntilBytesBackpressure', Number.MAX_VALUE), _.get(b, 'predictions.predictedMillisUntilCountBackpressure', Number.MAX_VALUE));
 
                 if (aMaxCurrentUsage >= 100) {
                     aMinTime = 0;
@@ -2850,21 +2850,14 @@
                         queuedSize: snapshot.queuedSize,
                         percentUseCount: snapshot.percentUseCount,
                         percentUseBytes: snapshot.percentUseBytes,
-                        predictedPercentBytes: snapshot.predictedPercentBytes,
-                        predictedPercentCount: snapshot.predictedPercentCount,
-                        predictedBytesAtNextInterval: snapshot.predictedBytesAtNextInterval,
-                        predictedCountAtNextInterval: snapshot.predictedCountAtNextInterval,
-                        predictedMillisUntilBytesBackpressure: snapshot.predictedMillisUntilBytesBackpressure,
-                        predictedMillisUntilCountBackpressure: snapshot.predictedMillisUntilCountBackpressure,
-                        predictionIntervalSeconds: snapshot.predictionIntervalSeconds,
-                        predictionsAvailable: snapshot.predictionsAvailable,
+                        predictions: snapshot.predictions,
                         output: snapshot.output
                     });
                 });
 
                 // determine if the backpressure prediction column should be displayed or not
                 var anyPredictionsDisabled = _.some(clusterConnections, function (connectionItem) {
-                    return connectionItem.predictionsAvailable !== true
+                    return _.isNil(connectionItem.predictions);
                 });
                 var currentConnectionColumns = clusterConnectionsGrid.getColumns();
                 if (anyPredictionsDisabled) {
@@ -3312,7 +3305,7 @@
                     populateProcessGroupStatus(processorItems, connectionItems, processGroupItems, inputPortItems, outputPortItems, remoteProcessGroupItems, aggregateSnapshot, [aggregateSnapshot]);
 
                     var anyPredictionsDisabled = _.some(connectionItems, function (connectionItem) {
-                        return connectionItem.predictionsAvailable !== true
+                        return _.isNil(connectionItem.predictions);
                     });
                     var currentConnectionColumns = connectionsGrid.getColumns();
                     if (anyPredictionsDisabled) {

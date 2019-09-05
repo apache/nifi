@@ -1535,15 +1535,16 @@
         if (_.isNumber(percentUseCount)) {
             var objectThreshold = _.get(d, 'component.backPressureObjectThreshold');
 
-            var predictionsAvailable = _.get(d, 'status.aggregateSnapshot.predictionsAvailable', false);
-            var predictedPercentCount = _.get(d, 'status.aggregateSnapshot.predictedPercentCount', -1);
-            var timeToBackPressure = _.get(d, 'status.aggregateSnapshot.predictedMillisUntilCountBackpressure', -1);
+            var predictions = _.get(d, 'status.aggregateSnapshot.predictions');
 
             var tooltipLines = ['Queue: ' + _.clamp(percentUseCount, 0, 100) + '% full (based on ' + objectThreshold + ' object threshold)'];
 
-            if (predictionsAvailable) {
+            if (!_.isNil(predictions)) {
+                var predictedPercentCount = _.get(predictions, 'predictedPercentCount', -1);
+                var timeToBackPressure = _.get(predictions, 'predictedMillisUntilCountBackpressure', -1);
+
                 // only show predicted percent if it is non-negative
-                var predictionIntervalSeconds = _.get(d, 'status.aggregateSnapshot.predictionIntervalSeconds', 60 * 5);
+                var predictionIntervalSeconds = _.get(predictions, 'predictionIntervalSeconds', 60 * 5);
                 if (_.isNumber(predictedPercentCount) && predictedPercentCount > -1) {
                     tooltipLines.push('Predicted queue (next ' + (predictionIntervalSeconds / 60 ) + ' mins): ' + _.clamp(predictedPercentCount, 0, 100) + '%')
                 } else {
@@ -1585,16 +1586,16 @@
 
         if (_.isNumber(percentUseBytes)) {
             var dataSizeThreshold = _.get(d, 'component.backPressureDataSizeThreshold');
-
-            var predictionsAvailable = _.get(d, 'status.aggregateSnapshot.predictionsAvailable', false);
-            var predictedPercentBytes = _.get(d, 'status.aggregateSnapshot.predictedPercentBytes', -1);
-            var timeToBackPressure = _.get(d, 'status.aggregateSnapshot.predictedMillisUntilBytesBackpressure', -1);
+            var predictions = _.get(d, 'status.aggregateSnapshot.predictions');
 
             var tooltipLines = ['Queue: ' + _.clamp(percentUseBytes, 0, 100) + '% full (based on ' + dataSizeThreshold + ' data size threshold)'];
 
-            if (predictionsAvailable) {
+            if (!_.isNil(predictions)) {
+                var predictedPercentBytes = _.get(predictions, 'predictedPercentBytes', -1);
+                var timeToBackPressure = _.get(predictions, 'predictedMillisUntilBytesBackpressure', -1);
+
                 // only show predicted percent if it is non-negative
-                var predictionIntervalSeconds = _.get(d, 'status.aggregateSnapshot.predictionIntervalSeconds', 60 * 5);
+                var predictionIntervalSeconds = _.get(predictions, 'predictionIntervalSeconds', 60 * 5);
                 if (_.isNumber(predictedPercentBytes) && predictedPercentBytes > -1) {
                     tooltipLines.push('Predicted queue (next ' + (predictionIntervalSeconds / 60) + ' mins): ' + _.clamp(predictedPercentBytes, 0, 100) + '%')
                 } else {
@@ -1673,11 +1674,11 @@
                 .attrs({
                     'x': function (d) {
                         // clamp the prediction between 0 and 100 percent
-                        var predicted = _.get(d, 'status.aggregateSnapshot.predictedPercentBytes', 0);
+                        var predicted = _.get(d, 'status.aggregateSnapshot.predictions.predictedPercentBytes', 0);
                         return (backpressureBarWidth * _.clamp(predicted, 0, 100)) / 100;
                     },
                     'display': function (d) {
-                        var predicted = _.get(d, 'status.aggregateSnapshot.predictedPercentBytes', -1);
+                        var predicted = _.get(d, 'status.aggregateSnapshot.predictions.predictedPercentBytes', -1);
                         if (predicted >= 0) {
                             return 'unset';
                         } else {
@@ -1687,8 +1688,8 @@
                     }
                 }).on('end', function () {
                     backpressurePercentDataSizePrediction.classed('prediction-down', function (d) {
-                        var actual = _.get(d, 'status.aggregateSnapshot.percentUseBytes', 0);
-                        var predicted = _.get(d, 'status.aggregateSnapshot.predictedPercentBytes', 0);
+                        var actual = _.get(d, 'status.aggregateSnapshot.predictions.percentUseBytes', 0);
+                        var predicted = _.get(d, 'status.aggregateSnapshot.predictions.predictedPercentBytes', 0);
                         return predicted < actual;
                 })
             });
@@ -1754,11 +1755,11 @@
                 .attrs({
                     'x': function (d) {
                         // clamp the prediction between 0 and 100 percent
-                        var predicted = _.get(d, 'status.aggregateSnapshot.predictedPercentCount', 0);
+                        var predicted = _.get(d, 'status.aggregateSnapshot.predictions.predictedPercentCount', 0);
                         return (backpressureBarWidth * _.clamp(predicted, 0, 100)) / 100;
                     },
                     'display': function (d) {
-                        var predicted = _.get(d, 'status.aggregateSnapshot.predictedPercentCount', -1);
+                        var predicted = _.get(d, 'status.aggregateSnapshot.predictions.predictedPercentCount', -1);
                         if (predicted >= 0) {
                             return 'unset';
                         } else {
@@ -1769,7 +1770,7 @@
                 }).on('end', function () {
                     backpressurePercentObjectPrediction.classed('prediction-down', function (d) {
                         var actual = _.get(d, 'status.aggregateSnapshot.percentUseCount', 0);
-                        var predicted = _.get(d, 'status.aggregateSnapshot.predictedPercentCount', 0);
+                        var predicted = _.get(d, 'status.aggregateSnapshot.predictions.predictedPercentCount', 0);
                         return predicted < actual;
                     })
                 });
