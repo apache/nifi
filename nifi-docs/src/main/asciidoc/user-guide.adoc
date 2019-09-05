@@ -371,6 +371,8 @@ NOTE: It is also possible to double-click on the Process Group to enter it.
 - *Group*: This option allows the user to create a new Process Group that contains the selected Process Group and any other components selected on the canvas.
 - *Create template*: This option allows the user to create a template from the selected Process Group.
 - *Copy*: This option places a copy of the selected Process Group on the clipboard, so that it may be pasted elsewhere on the canvas by right-clicking on the canvas and selecting Paste. The Copy/Paste actions also may be done using the keystrokes Ctrl-C (Command-C) and Ctrl-V (Command-V).
+- *Empty queues->selected process group*: This option allow the DFM to empty all queues inside the selected Process Group.
+- *Empty queues->selected process group (recursive)*: This option allow the DFM to empty all queues inside the selected Process Group and its nested Process Groups recursively.
 - *Delete*: This option allows the DFM to delete a Process Group.
 
 
@@ -1109,7 +1111,7 @@ The following options are available:
 - *Go to source*: This option can be useful if there is a long distance between the connection's source and destination components on the canvas. By clicking this option, the view of the canvas will jump to the source of the connection.
 - *Go to destination*: Similar to the "Go to source" option, this option changes the view to the destination component on the canvas and can be useful if there is a long distance between two connected components.
 - *Bring to front*: This option brings the connection to the front of the canvas if something else (such as another connection) is overlapping it.
-- *Empty queue*: This option allows the DFM to clear the queue of FlowFiles that may be waiting to be processed. This option can be especially useful during testing, when the DFM is not concerned about deleting data from the queue. When this option is selected, users must confirm that they want to delete the data in the queue.
+- *Empty queues->this queue*: This option allows the DFM to clear the queue of FlowFiles that may be waiting to be processed. This option can be especially useful during testing, when the DFM is not concerned about deleting data from the queue. When this option is selected, users must confirm that they want to delete the data in the queue.
 - *Delete*: This option allows the DFM to delete a connection between two components. Note that the components on both sides of the connection must be stopped and the connection must be empty before it can be deleted.
 
 ==== Bending Connections
@@ -1682,7 +1684,7 @@ If the source or destination of the Connection are actively running, there is a 
 no longer be in the active queue.
 
 The FlowFiles enqueued in a Connection can also be deleted when necessary. The removal of the FlowFiles is initiated
-via `Empty queue` in the Connection's context menu. This action can also be performed if the source and destination
+via `Empty queues->this queue` in the Connection's context menu. This action can also be performed if the source and destination
 are actively running.
 
 

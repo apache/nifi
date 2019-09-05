@@ -733,8 +733,47 @@
      *
      * @param {selection} selection
      */
-    var canEmptyQueue = function (selection) {
+    var canEmptySelectedQueue = function (selection) {
         return isConnection(selection);
+    };
+
+    /**
+     * Only DFMs can empty a queue.
+     *
+     * @param {selection} selection
+     */
+    var canEmptySelectedQueues = function (selection) {
+        // ensure the correct number of components are selected
+        return selection.size() > 1 && nfCanvasUtils.containsConnections(selection);
+    };
+
+    /**
+     * Only DFMs can empty a queue.
+     *
+     * @param {selection} selection
+     */
+    var canEmptyCurrentProcessGroupQueues = function (selection) {
+        // ensure the correct number of components are selected
+        return selection.size() === 0;
+    };
+
+    /**
+     * Only DFMs can empty a queue.
+     *
+     * @param {selection} selection
+     */
+    var canEmptySelectedProcessGroupQueues = function (selection) {
+        return isProcessGroup(selection);
+    };
+
+    /**
+     * Only DFMs can empty a queue.
+     *
+     * @param {selection} selection
+     */
+    var canEmptySelectedProcessGroupsQueues = function (selection) {
+        // ensure the correct number of components are selected
+        return selection.size() > 1 && nfCanvasUtils.containsProcessGroups(selection);
     };
 
     /**
@@ -909,7 +948,17 @@
         {id: 'copy-menu-item', condition: isCopyable, menuItem: {clazz: 'fa fa-copy', text: 'Copy', action: 'copy'}},
         {id: 'paste-menu-item', condition: isPastable, menuItem: {clazz: 'fa fa-paste', text: 'Paste', action: 'paste'}},
         {separator: true},
-        {id: 'empty-queue-menu-item', condition: canEmptyQueue, menuItem: {clazz: 'fa fa-minus-circle', text: 'Empty queue', action: 'emptyQueue'}},
+        {id: 'empty-queues-menu-item', groupMenuItem: {clazz: 'fa fa-minus-circle', text: 'Empty queues'}, menuItems: [
+                {id: 'empty-selected-queue-menu-item', condition: canEmptySelectedQueue, menuItem: {clazz: 'fa fa-mouse-pointer', text: 'this queue', action: 'emptySelectedQueues'}},
+                {id: 'empty-selected-queues-menu-item', condition: canEmptySelectedQueues, menuItem: {clazz: 'fa fa-object-ungroup', text: 'selected queues', action: 'emptySelectedQueues'}},
+                {id: 'empty-current-processor-group-queues-menu-item', condition: canEmptyCurrentProcessGroupQueues, menuItem: {clazz: 'fa fa-angle-down', text: 'current process group', action: 'emptyProcessGroupsQueues'}},
+                {id: 'empty-current-processor-group-queues-recursive-menu-item', condition: canEmptyCurrentProcessGroupQueues, menuItem: {clazz: 'fa fa-angle-double-down', text: 'current process group (recursive)', action: 'emptyProcessGroupsQueuesRecursive'}},
+                {id: 'empty-selected-processor-group-queues-menu-item', condition: canEmptySelectedProcessGroupQueues, menuItem: {clazz: 'fa fa-angle-down', text: 'selected process group', action: 'emptyProcessGroupsQueues'}},
+                {id: 'empty-selected-processor-group-queues-recursive-menu-item', condition: canEmptySelectedProcessGroupQueues, menuItem: {clazz: 'fa fa-angle-double-down', text: 'selected process group (recursive)', action: 'emptyProcessGroupsQueuesRecursive'}},
+                {id: 'empty-selected-processor-groups-queues-menu-item', condition: canEmptySelectedProcessGroupsQueues, menuItem: {clazz: 'fa fa-object-group', text: 'selected process groups', action: 'emptyProcessGroupsQueues'}},
+                {id: 'empty-selected-processor-groups-queues-recursive-menu-item', condition: canEmptySelectedProcessGroupsQueues, menuItem: {clazz: 'fa fa-object-group', text: 'selected process groups (recursive)', action: 'emptyProcessGroupsQueuesRecursive'}}
+            ]},
+        {separator: true},
         {id: 'delete-menu-item', condition: isDeletable, menuItem: {clazz: 'fa fa-trash', text: 'Delete', action: 'delete'}}
     ];
 

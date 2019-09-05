@@ -564,7 +564,7 @@ div.nifi-tooltip {
     background-color:rgba(249,250,251,0.97); /*tint base-color 96%*/
     border:1px solid #004849; /*link-color*/
     box-shadow: 0 3px 6px rgba(0,0,0,0.3);
-    width: 215px;
+    width: 235px;
     max-height: inherit;
     color:#004849
 }

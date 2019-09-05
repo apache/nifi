@@ -1391,6 +1391,24 @@
         },
 
         /**
+         * Converts a number of bytes into a readable format e.g KB, MB, GB, TB, YB
+         *
+         * @param {Int} bytes The number of bytes
+         * @returns {String}
+         */
+        toReadableBytes: function (bytes) {
+            var sizes = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+
+            if(bytes === 0) {
+                return '0 ' + sizes[0];
+            }
+
+            var i = Math.floor(Math.log(bytes) / Math.log(1024));
+
+            return (bytes / Math.pow(1024, i)).toFixed(2) * 1 + ' ' + sizes[i];
+        },
+
+        /**
          * Formats the specified DateTime.
          *
          * @param {Date} date

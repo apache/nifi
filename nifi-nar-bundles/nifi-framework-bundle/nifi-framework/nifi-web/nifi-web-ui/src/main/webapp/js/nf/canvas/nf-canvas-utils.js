@@ -1056,6 +1056,30 @@
         },
 
         /**
+         * Determines if the specified selection contains one or more connections.
+         *
+         * @argument {selection} selection      The selection
+         */
+        containsConnections: function (selection) {
+            return selection.filter(function(d) {
+                var selectionItem = d3.select(this);
+                return nfCanvasUtils.isConnection(selectionItem);
+            }).size() > 0;
+        },
+
+        /**
+         * Determines if the specified selection contains one or more process groups.
+         *
+         * @argument {selection} selection      The selection
+         */
+        containsProcessGroups: function (selection) {
+            return selection.filter(function(d) {
+                var selectionItem = d3.select(this);
+                return nfCanvasUtils.isProcessGroup(selectionItem);
+            }).size() > 0;
+        },
+
+        /**
          * Determines if the specified selection is a connection.
          *
          * @argument {selection} selection      The selection
