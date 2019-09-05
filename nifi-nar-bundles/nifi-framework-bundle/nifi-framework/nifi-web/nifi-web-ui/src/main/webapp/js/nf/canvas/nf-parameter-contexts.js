@@ -1443,7 +1443,7 @@
         };
 
         var valueFormatter = function (row, cell, value, columnDef, dataContext) {
-            if (dataContext.sensitive === true) {
+            if (dataContext.sensitive === true && !_.isNil(value)) {
                 return '<span class="table-cell sensitive">Sensitive value set</span>';
             } else if (value === '') {
                 return '<span class="table-cell blank">Empty string set</span>';
@@ -1598,7 +1598,9 @@
                         if (parameter.sensitive) {
                             $('#parameter-sensitive-radio-button').prop('checked', true);
                             $('#parameter-not-sensitive-radio-button').prop('checked', false);
-                            $('#parameter-value-field').addClass('sensitive').val(nfCommon.config.sensitiveText).select();
+                            if (!_.isNil(parameter.value)) {
+                                $('#parameter-value-field').addClass('sensitive').val(nfCommon.config.sensitiveText).select();
+                            }
                         } else {
                             $('#parameter-sensitive-radio-button').prop('checked', false);
                             $('#parameter-not-sensitive-radio-button').prop('checked', true);
