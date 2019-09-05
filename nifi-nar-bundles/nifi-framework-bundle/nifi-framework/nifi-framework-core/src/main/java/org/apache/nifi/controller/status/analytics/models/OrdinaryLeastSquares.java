@@ -53,46 +53,46 @@ public class OrdinaryLeastSquares implements StatusAnalyticsModel {
 
     @Override
     public Double predict(Double[] feature) {
-        if (coefficients != null) {
+        if (coefficients == null) {
+            return null;
+        } else {
             final double intercept = olsModel.isNoIntercept() ? 0 : coefficients[0];
             double sumX = 0;
 
             for (int i = 0; i < feature.length; i++) {
                 sumX += coefficients[i + 1] * feature[i];
             }
-
             return sumX + intercept;
-        } else {
-            return null;
         }
     }
 
     @Override
     public Double predictVariable(Integer predictVariableIndex, Map<Integer, Double> knownVariablesWithIndex, Double label) {
-        if (coefficients != null) {
+        if (coefficients == null) {
+            return null;
+        } else {
             final double intercept = olsModel.isNoIntercept() ? 0 : coefficients[0];
             final double predictorCoeff = coefficients[predictVariableIndex + 1];
             double sumX = 0;
             if (knownVariablesWithIndex.size() > 0) {
                 sumX = knownVariablesWithIndex.entrySet().stream().map(featureTuple -> coefficients[olsModel.isNoIntercept()
-                                                            ? featureTuple.getKey() : featureTuple.getKey() + 1] * featureTuple.getValue())
-                                                           .collect(Collectors.summingDouble(Double::doubleValue));
+                        ? featureTuple.getKey() : featureTuple.getKey() + 1] * featureTuple.getValue())
+                        .collect(Collectors.summingDouble(Double::doubleValue));
             }
             return (label - intercept - sumX) / predictorCoeff;
-        } else {
-            return null;
         }
     }
 
     @Override
     public Map<String, Double> getScores() {
-        if (coefficients != null) {
+        if (coefficients == null) {
+            return null;
+        } else {
             Map<String, Double> scores = new HashMap<>();
             scores.put("rSquared", olsModel.calculateRSquared());
             scores.put("totalSumOfSquares", olsModel.calculateTotalSumOfSquares());
             return scores;
-        } else {
-            return null;
+
         }
     }
 

@@ -42,8 +42,7 @@ public class SimpleRegression extends BivariateStatusAnalyticsModel {
     private RegressionResults results;
 
     public SimpleRegression() {
-        this.regression = new org.apache.commons.math3.stat.regression.SimpleRegression();
-        this.supportOnlineLearning = true;
+        this(true);
     }
 
     public SimpleRegression(Boolean supportOnlineLearning) {
