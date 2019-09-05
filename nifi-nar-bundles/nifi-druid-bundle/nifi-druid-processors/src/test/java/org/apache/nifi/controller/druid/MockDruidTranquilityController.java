@@ -114,7 +114,8 @@ public class MockDruidTranquilityController extends DruidTranquilityController {
             }
         };
         when(t.send(any())).thenReturn(future);
-        when(t.status());
+        when(t.status()).thenReturn(new Status() {
+        });
         cf = mock(CuratorFramework.class);
     }
 
