@@ -31,6 +31,7 @@ public class AffectedComponentEntity extends ComponentEntity implements Permissi
 
     private AffectedComponentDTO component;
     private ProcessGroupNameDTO processGroup;
+    private String referenceType;
 
     /**
      * @return variable referencing components that is being serialized
@@ -52,6 +53,18 @@ public class AffectedComponentEntity extends ComponentEntity implements Permissi
 
     public void setProcessGroup(ProcessGroupNameDTO processGroup) {
         this.processGroup = processGroup;
+    }
+
+    @ApiModelProperty(value="The type of component referenced",
+        allowableValues = AffectedComponentDTO.COMPONENT_TYPE_PROCESSOR + "," + AffectedComponentDTO.COMPONENT_TYPE_CONTROLLER_SERVICE + ", "
+                + AffectedComponentDTO.COMPONENT_TYPE_INPUT_PORT + ", " + AffectedComponentDTO.COMPONENT_TYPE_OUTPUT_PORT + ", "
+                + AffectedComponentDTO.COMPONENT_TYPE_REMOTE_INPUT_PORT + ", " + AffectedComponentDTO.COMPONENT_TYPE_REMOTE_OUTPUT_PORT)
+    public String getReferenceType() {
+        return referenceType;
+    }
+
+    public void setReferenceType(String referenceType) {
+        this.referenceType = referenceType;
     }
 
     @Override
