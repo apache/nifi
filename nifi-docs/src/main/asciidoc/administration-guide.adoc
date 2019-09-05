@@ -1538,13 +1538,126 @@ It is preferable to request upstream/downstream systems to switch to link:https:
 [[encrypt-config_tool]]
 == Encrypted Passwords in Configuration Files
 
-In order to facilitate the secure setup of NiFi, you can use the `encrypt-config` command line utility to encrypt raw configuration values that NiFi decrypts in memory on startup. This extensible protection scheme transparently allows NiFi to use raw values in operation, while protecting them at rest.  In the future, hardware security modules (HSM) and external secure storage mechanisms will be integrated, but for now, an AES encryption provider is the default implementation.
+In order to facilitate the secure setup of NiFi, you can use the `encrypt-config` command line utility to encrypt raw configuration values that NiFi decrypts in memory on startup. This extensible protection scheme transparently allows NiFi to use raw values in operation, while protecting them at rest.
 
 This is a change in behavior; prior to 1.0, all configuration values were stored in plaintext on the file system. POSIX file permissions were recommended to limit unauthorized access to these files.
 
 If no administrator action is taken, the configuration values remain unencrypted.
 
 For more information, see the <<toolkit-guide.adoc#encrypt_config_tool,Encrypt-Config Tool>> section in the link:toolkit-guide.html[NiFi Toolkit Guide].
+
+==== Sensitive Property Providers
+
+NiFi supports multiple sensitive property providers for the `bootstrap.conf` key `nifi.bootstrap.sensitive.key`.  The `encrypt-config` tool sets this value, and users are encouraged to use the tool when possible.  The value can also be set manually by editing the file, and when so edited, the value
+should match one of the formats given below.
+
+Note that these providers are configured outside of NiFi, and that they typically require explicit JVM system properties or environment variables. Refer to the documentation links in each section for further details.
+
+===== AES/GCM
+
+AES/GCM is the default protection scheme used by the Sensitive Property Provider classes.  No explicit configuration is necessary. Keys are hexadecimal strings, and must be either 32, 48, or 64 characters.  Random key material can be constructed easily on most modern machines:
+
+[literal]
+$ openssl rand -hex 16
+a3264310bbdebf3dbab510caaf4778bb
+
+===== AWS KMS
+
+To use the AWS KMS Sensitive Property Provider, specify the key like so:
+
+`aws/kms/4dac49d7-0edf-4439-9580-e2fb814939e8`
+
+The key portion (`4dac...39e8`) should be a full key ID, ARN, or alias.
+
+Ensure your NiFi environment is configured with your AWS credentials before using AWS KMS keys in your `bootstrap.conf`. Refer to link:https://docs.aws.amazon.com/sdk-for-java/v1/developer-guide/credentials.html[Working with AWS Credentials] for specifics.
+
+===== Azure Key Vault
+
+To use the Azure Key Vault Sensitive Property Provider, set an environment variable that points to the Azure authentication data.  For example:
+
+`AZURE_AUTH_LOCATION=/var/run/azure-auth.json`
+
+See link:https://github.com/Azure/azure-libraries-for-java/blob/master/AUTH.md[Authentication in Azure Management Libraries for Java] for details regarding the auth file.
+
+Then specify the Azure Key Vault key like so:
+
+`azure/vault/subscriptions/{subscription}/resourceGroups/{resource}/providers/Microsoft.KeyVault/vaults/{vault},{key id}`
+
+The `{subscription}` will be the Azure account subscription, a UUID.  The `{resource}` value names the resource group, and the `{vault}` value
+names the specific Key Vault within that resource group.  The `{key id}` portion will be a URL in this form:
+
+`https://{vault id}.vault.azure.net/keys/{key name}/{key version}`
+
+For example:
+
+`https://my-vault.vault.azure.net/keys/my-key/74a380e30a4c495ba00691671135931b`
+
+Putting this all together, a full example of an Azure Key Vault key might look like this:
+
+`azure/vault/subscriptions/00000000-c24b-44f9-b01b-69e1d97986ca/resourceGroups/example-group/providers/Microsoft.KeyVault/vaults/example-vault,https://my-vault.vault.azure.net/keys/my-key/74a380e30a4c495ba00691671135931b`
+
+===== GCP KMS
+
+To use GCP KMS to protect sensitive properties, specify the key like so:
+
+`gcp/kms/example-project/us-west2/example-key-ring/example-key`
+
+Where `example-project` is the project id, `us-west2` is the region id, `example-key-ring` is the key ring id, and `example-key` is the key id.
+
+For clarity, the above key identifier could also be written as:
+
+`gcp/kms/projects/example-project/locations/us-west2/keyRings/example-key-ring/cryptoKeys/example-key`
+
+Ensure your NiFi environment is configured with your GCP credentials before using these keys.  Refer to the Google guide
+link:https://cloud.google.com/docs/authentication/getting-started[Getting Started with Authentication^] for details.
+
+The GCP libraries expect a single environment variable:
+
+|===
+|*Name*|*Example*
+| `GOOGLE_APPLICATION_CREDENTIALS` | `/var/run/gcp/gcp-service-account.json`
+|===
+
+===== Key Store
+
+To use a key from a BK, JCECKS, or PCKS12 key store, set the NiFi property like so:
+
+`keystore/jceks/example-key`
+
+Where `example-key` is the name (or alias) of the key within the key store.
+
+Additionally, you must ensure your NiFi environment is configured with the following values before using these keys.
+
+|===
+|* System Property*|*Environment Variable* | *Notes*
+| `keystore.key-password`  | `KEYSTORE_KEY_PASSWORD` | Optional, no default.
+| `keystore.password` | `KEYSTORE_PASSWORD` | Optional, no default.
+| `keystore.file` | `KEYSTORE_FILE` | Required, no default.
+|===
+
+The `keytool` command line utility can be used to create key stores.
+
+===== HashiCorp Vault
+
+To use HashiCorp Vault with a token, set the key property like so:
+
+`vault/token/04b...8c9`.
+
+The token fragment (`04b...8c9`) should be the full token string.
+
+|===
+|* System Property*|*Environment Variable* | *Notes*
+| `vault.uri` | `VAULT_ADDR` | Vault server URI.  Required.
+| `vault.token` | `VAULT_TOKEN` | Token for token or cubbyhole authentication.  Optional.
+| `vault.app-role.role-id` | `VAULT_ROLE_ID` | Role ID for App Role authentication.  Required only when using App Role authentication.
+| `vault.app-role.secret-id` | `VAULT_SECRET_ID` | Secret ID for App Role authentication. Required only when using App Role authentication.
+| `vault.app-id.app-id` | `VAULT_APP_ID` | App ID for App ID authentication.  Required only when using App ID authentication.
+| `vault.app-id.user-id` | `VAULT_USER_ID`| User ID for App ID authentication.  Required only when using App ID authentication.
+| `vault.ssl.key-store` | `VAULT_SSL_KEY_STORE`| SSL Key store | Full path to the SSL key store used by the HTTP client.  Optional.
+| `vault.ssl.key-store-password` | `VAULT_SSL_KEY_STORE_PASSWORD`| Password to the key store.  Optional.
+| `vault.ssl.trust-store` | `VAULT_SSL_TRUST_STORE` | Full path to the SSL trust store used by the HTTP client.  Optional.
+| `vault.ssl.trust-store-password` | `VAULT_SSL_TRUST_STORE_PASSWORD`| Password to the trust store.  Optional.
+|===
 
 [[admin-toolkit]]
 == NiFi Toolkit Administrative Tools
@@ -3207,89 +3320,6 @@ in the file specified in `nifi.login.identity.provider.configuration.file`. Sett
 |`nifi.security.ocsp.responder.url`|This is the URL for the Online Certificate Status Protocol (OCSP) responder if one is being used. It is blank by default.
 |`nifi.security.ocsp.responder.certificate`|This is the location of the OCSP responder certificate if one is being used. It is blank by default.
 |====
-
-==== Additional Sensitive Property Providers
-
-## nifi.bootstrap.sensitive.key
-
-By default, the value of `nifi.bootstrap.sensitive.key` is treated as a secret key for use by the AES cipher algorithm, but NiFi allows for several
-other sources of property protection.  When the value of `nifi.bootstrap.sensitive.key` is set to match one of the types below, NiFi will use the
-provider specified to perform property encryption and decryption.
-
-Note that these providers are configured outside of NiFi; they typically require explicit JVM system properties or environment variables.  Refer to the
-documentation links in each section for further details.
-
-==== AWS KMS
-
-To use AWS KMS, set the key like so:
-
-`nifi.bootstrap.sensitive.key=aws/kms/4dac49d7-0edf-4439-9580-e2fb814939e8`
-
-The key portion (`4dac...39e8`) should be a full key ID, ARN, or alias.
-
-Ensure your NiFi environment is configured with your AWS credentials before using AWS KMS keys in your bootstrap.conf.  Refer to THIS.
-
-==== GCP KMS
-
-To use GCP KMS to protect sensitive properties, set the key like so:
-
-`nifi.bootstrap.sensitive.key=gcp/kms/example-nifi-project/us-west2/key-ring-0/key-037`
-
-Where `example-nifi-project` is the project id, `us-west2` is the region id, `key-ring-0` is the key ring id, and `key-037` is the key id.
-
-For clarity, the above key identifier could also be written as:
-
-`nifi.bootstrap.sensitive.key=gcp/kms/projects/example-nifi-project/locations/us-west2/keyRings/key-ring-0/cryptoKeys/key-037`
-
-Ensure your NiFi environment is configured with your GCP credentials before using these keys.  Refer to the Google guide
-link:https://cloud.google.com/docs/authentication/getting-started[Getting Started with Authentication^] for details.
-
-The GCP libraries expect a single environment variable:
-
-|===
-|*Name*|*Example*
-| `GOOGLE_APPLICATION_CREDENTIALS` | `/var/run/gcp/gcp-service-account.json`
-|===
-
-==== Key Store
-
-To use a key from a BK, JCECKS, or PCKS12 key store, set the NiFi property like so:
-
-`nifi.bootstrap.sensitive.key=keystore/jceks/example-key`
-
-Where `example-key` is the name (or alias) of the key within the key store.
-
-Additionally, you must ensure your NiFi environment is configured with the following values before using these keys.
-
-|===
-|* System Property*|*Environment Variable* | *Notes*
-| `keystore.key-password`  | `KEYSTORE_KEY_PASSWORD` | Optional, no default.
-| `keystore.password` | `KEYSTORE_PASSWORD` | Optional, no default.
-| `keystore.file` | `KEYSTORE_FILE` | Required, no default.
-|===
-
-==== HashiCorp Vault
-
-To use HashiCorp Vault with a token, set the key property like so:
-
-`nifi.bootstrap.sensitive.key=vault/token/04b...8c9`.
-
-The token fragment (`04b...8c9`) should be the full token string.
-
-|===
-|* System Property*|*Environment Variable* | *Notes*
-| `vault.uri` | `VAULT_ADDR` | Vault server URI.  Required.
-| `vault.token` | `VAULT_TOKEN` | Token for token or cubbyhole authentication.  Optional.
-| `vault.app-role.role-id` | `VAULT_ROLE_ID` | Role ID for App Role authentication.  Required only when using App Role authentication.
-| `vault.app-role.secret-id` | `VAULT_SECRET_ID` | Secret ID for App Role authentication. Required only when using App Role authentication.
-| `vault.app-id.app-id` | `VAULT_APP_ID` | App ID for App ID authentication.  Required only when using App ID authentication.
-| `vault.app-id.user-id` | `VAULT_USER_ID`| User ID for App ID authentication.  Required only when using App ID authentication.
-| `vault.ssl.key-store` | `VAULT_SSL_KEY_STORE`| SSL Key store | Full path to the SSL key store used by the HTTP client.  Optional.
-| `vault.ssl.key-store-password` | `VAULT_SSL_KEY_STORE_PASSWORD`| Password to the key store.  Optional.
-| `vault.ssl.trust-store` | `VAULT_SSL_TRUST_STORE` | Full path to the SSL trust store used by the HTTP client.  Optional.
-| `vault.ssl.trust-store-password` | `VAULT_SSL_TRUST_STORE_PASSWORD`| Password to the trust store.  Optional.
-|===
-
 
 === Identity Mapping Properties
 
