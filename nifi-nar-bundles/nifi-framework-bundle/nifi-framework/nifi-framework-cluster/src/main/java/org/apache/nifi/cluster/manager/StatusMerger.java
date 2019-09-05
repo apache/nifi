@@ -499,23 +499,27 @@ public class StatusMerger {
             if (targetPredictions.getPredictedMillisUntilBytesBackpressure() == null) {
                 targetPredictions.setPredictedMillisUntilBytesBackpressure(toMergePredictions.getPredictedMillisUntilBytesBackpressure());
             } else if (toMergePredictions.getPredictedMillisUntilBytesBackpressure() != null) {
-                targetPredictions.setPredictedMillisUntilBytesBackpressure(Math.min(targetPredictions.getPredictedMillisUntilBytesBackpressure(), toMergePredictions.getPredictedMillisUntilBytesBackpressure()));
+                targetPredictions.setPredictedMillisUntilBytesBackpressure(Math.min(targetPredictions.getPredictedMillisUntilBytesBackpressure(),
+                        toMergePredictions.getPredictedMillisUntilBytesBackpressure()));
             }
             if (targetPredictions.getPredictedMillisUntilCountBackpressure() == null) {
                 targetPredictions.setPredictedMillisUntilCountBackpressure(toMergePredictions.getPredictedMillisUntilCountBackpressure());
             } else if (toMergePredictions.getPredictedMillisUntilCountBackpressure() != null) {
-                targetPredictions.setPredictedMillisUntilCountBackpressure(Math.min(targetPredictions.getPredictedMillisUntilCountBackpressure(), toMergePredictions.getPredictedMillisUntilCountBackpressure()));
+                targetPredictions.setPredictedMillisUntilCountBackpressure(Math.min(targetPredictions.getPredictedMillisUntilCountBackpressure(),
+                        toMergePredictions.getPredictedMillisUntilCountBackpressure()));
             }
 
             if (targetPredictions.getPredictedPercentBytes() == null) {
                 targetPredictions.setPredictedPercentBytes(toMergePredictions.getPredictedPercentBytes());
             } else if (toMerge.getPercentUseBytes() != null) {
-                targetPredictions.setPredictedPercentBytes(Math.max(targetPredictions.getPredictedPercentBytes(), toMergePredictions.getPredictedPercentBytes()));
+                targetPredictions.setPredictedPercentBytes(Math.max(targetPredictions.getPredictedPercentBytes(),
+                        toMergePredictions.getPredictedPercentBytes()));
             }
             if (targetPredictions.getPredictedPercentCount() == null) {
                 targetPredictions.setPredictedPercentCount(toMergePredictions.getPredictedPercentCount());
             } else if (toMergePredictions.getPredictedPercentCount() != null) {
-                targetPredictions.setPredictedPercentCount(Math.max(targetPredictions.getPredictedPercentCount(), toMergePredictions.getPredictedPercentCount()));
+                targetPredictions.setPredictedPercentCount(Math.max(targetPredictions.getPredictedPercentCount(),
+                        toMergePredictions.getPredictedPercentCount()));
             }
         }
 
@@ -539,7 +543,8 @@ public class StatusMerger {
         merge(target.getRemoteProcessGroupStatusSnapshot(), target.getCanRead(), toMerge.getRemoteProcessGroupStatusSnapshot(), toMerge.getCanRead());
     }
 
-    public static void merge(final RemoteProcessGroupStatusSnapshotDTO target, final boolean targetReadablePermission, final RemoteProcessGroupStatusSnapshotDTO toMerge,
+    public static void merge(final RemoteProcessGroupStatusSnapshotDTO target, final boolean targetReadablePermission,
+                             final RemoteProcessGroupStatusSnapshotDTO toMerge,
                              final boolean toMergeReadablePermission) {
         if (target == null || toMerge == null) {
             return;
