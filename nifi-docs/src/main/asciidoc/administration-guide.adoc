@@ -97,11 +97,11 @@ The following table lists the default ports used by an <<embedded_zookeeper>> an
 [options="header,footer"]
 |==================================================================================================================================================
 | Function                                         | Property       | Default Value
-|Zookeeper Client Port                             | `clientPort`   | `2181`
+|Zookeeper Client Port (Deprecated: client port is no longer specified on a separate line as of NiFi 1.10.x)                             | `clientPort`   | `2181`
 |Zookeeper Server Quorum and Leader Election Ports | `server.1`     | _none_
 |==================================================================================================================================================
 
-NOTE: Commented examples for the Zookeeper server ports are included in the _zookeeper.properties_ file in the form `server.N=nifi-nodeN-hostname:2888:3888`.
+NOTE: Commented examples for the Zookeeper server ports are included in the _zookeeper.properties_ file in the form `server.N=nifi-nodeN-hostname:2888:3888;2181`.
 
 == Configuration Best Practices
 If you are running on Linux, consider these best practices. Typical Linux defaults are not necessarily well-tuned for the needs of an IO intensive application like NiFi.  For all of these areas, your distribution's requirements may vary. Use these sections as advice, but
@@ -1844,12 +1844,11 @@ However, it is up to the administrator to determine the number of nodes most app
 
 If the `nifi.state.management.embedded.zookeeper.start` property is set to `true`, the `nifi.state.management.embedded.zookeeper.properties` property
 in _nifi.properties_ also becomes relevant. This specifies the ZooKeeper properties file to use. At a minimum, this properties file needs to be populated
-with the list of ZooKeeper servers. The servers are specified as properties in the form of `server.1`, `server.2`, to `server.n`. Each of these servers is
-configured as <hostname>:<quorum port>[:<leader election port>]. For example, `myhost:2888:3888`. This list of nodes should be the same nodes in the NiFi
-cluster that have the `nifi.state.management.embedded.zookeeper.start` property set to `true`. Also note that because ZooKeeper will be listening on these
-ports, the firewall may need to be configured to open these ports for incoming traffic, at least between nodes in the cluster. Additionally, the port to
-listen on for client connections must be opened in the firewall. The default value for this is `2181` but can be configured via the _clientPort_ property
-in the _zookeeper.properties_ file.
+with the list of ZooKeeper servers. The servers are specified as properties in the form of `server.1`, `server.2`, to `server.n`. As of NiFi 1.10.x, Zookeeper
+has been upgraded to 3.5.5 and servers are now defined with the client port appended at the end as per the link:https://zookeeper.apache.org/doc/r3.5.2-alpha/zookeeperReconfig.html#sc_reconfig_clientport[Zookeeper Documentation].
+As such, each of these servers is configured as <hostname>:<quorum port>[:<leader election port>][:role];[<client port address>:]<client port>.
+As a simple example this would be `server.1 = myhost:2888:3888;2181`. This list of nodes should be the same nodes in the NiFi cluster that have the `nifi.state.management.embedded.zookeeper.start` property set to `true`.
+Also note that because ZooKeeper will be listening on these ports, the firewall may need to be configured to open these ports for incoming traffic, at least between nodes in the cluster.
 
 When using an embedded ZooKeeper, the ./__conf/zookeeper.properties__ file has a property named `dataDir`. By default, this value is set to `./state/zookeeper`.
 If more than one NiFi node is running an embedded ZooKeeper, it is important to tell the server which one it is. This is accomplished by creating a file named

@@ -232,7 +232,7 @@ public interface Authorizable {
                 })
                 .build();
 
-        final AuthorizationResult result = authorizer.authorize(request);
+            final AuthorizationResult result = authorizer.authorize(request);
         if (Result.ResourceNotFound.equals(result.getResult())) {
             final Authorizable parent = getParentAuthorizable();
             if (parent == null) {
