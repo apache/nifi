@@ -370,6 +370,7 @@ public final class EntityFactory {
         if (dto != null) {
             entity.setPermissions(permissions);
             entity.setId(dto.getId());
+            entity.setReferenceType(dto.getReferenceType());
 
             if (permissions != null && permissions.getCanRead()) {
                 entity.setComponent(dto);

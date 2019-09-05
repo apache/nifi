@@ -692,16 +692,26 @@
                                         }
                                     } else {
                                         var referencingUnauthorizedComponentContainer = $('<li class="referencing-component-container"></li>').appendTo(unauthorizedComponentsContainer);
-                                        $('<span class="parameter-context-referencing-component-name link ellipsis"></span>').prop('title', unauthorizedReferencingComponentEntity.id).text(unauthorizedReferencingComponentEntity.id).on('click', function () {
-                                            // check if there are outstanding changes
-                                            handleOutstandingChanges().done(function () {
-                                                // close the shell
-                                                $('#shell-dialog').modal('hide');
+                                        $('<span class="parameter-context-referencing-component-name link ellipsis"></span>')
+                                            .prop('title', unauthorizedReferencingComponentEntity.id)
+                                            .text(unauthorizedReferencingComponentEntity.id)
+                                            .on('click', function () {
+                                                // check if there are outstanding changes
+                                                handleOutstandingChanges().done(function () {
+                                                    // close the shell
+                                                    $('#shell-dialog').modal('hide');
 
-                                                // show the component in question
-                                                nfCanvasUtils.showComponent(unauthorizedReferencingComponentEntity.processGroup.id, unauthorizedReferencingComponentEntity.id);
-                                            });
-                                        }).appendTo(referencingUnauthorizedComponentContainer);
+                                                    // show the component in question
+                                                    if (unauthorizedReferencingComponentEntity.referenceType === 'PROCESSOR') {
+                                                        nfCanvasUtils.showComponent(unauthorizedReferencingComponentEntity.processGroup.id, unauthorizedReferencingComponentEntity.id);
+                                                    } else if (unauthorizedReferencingComponentEntity.referenceType === 'CONTROLLER_SERVICE') {
+                                                        nfProcessGroupConfiguration.showConfiguration(unauthorizedReferencingComponentEntity.processGroup.id).done(function () {
+                                                            nfProcessGroupConfiguration.selectControllerService(unauthorizedReferencingComponentEntity.id);
+                                                        });
+                                                    }
+                                                });
+                                            })
+                                            .appendTo(referencingUnauthorizedComponentContainer);
                                     }
                                 });
                             }
