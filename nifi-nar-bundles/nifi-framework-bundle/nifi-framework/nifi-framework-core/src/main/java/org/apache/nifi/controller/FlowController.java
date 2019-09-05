@@ -609,6 +609,8 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
             try {
                 predictionIntervalMillis = FormatUtils.getTimeDuration(predictionInterval, TimeUnit.MILLISECONDS);
             } catch (final Exception e) {
+                LOG.warn("Analytics is enabled however could not retrieve value for "+ NiFiProperties.ANALYTICS_PREDICTION_INTERVAL + ". This property has been set to '"
+                                                        + NiFiProperties.DEFAULT_ANALYTICS_PREDICTION_INTERVAL + "'");
                 predictionIntervalMillis = FormatUtils.getTimeDuration(NiFiProperties.DEFAULT_ANALYTICS_PREDICTION_INTERVAL, TimeUnit.MILLISECONDS);
             }
 
@@ -618,9 +620,12 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
             // Determine score threshold to use when evaluating acceptable model
             Double modelScoreThreshold;
             try {
-                modelScoreThreshold = Double.valueOf(nifiProperties.getProperty(NiFiProperties.ANALYTICS_CONNECTION_MODEL_SCORE_NAME, NiFiProperties.DEFAULT_ANALYTICS_PREDICTION_INTERVAL));
+                modelScoreThreshold = Double.valueOf(nifiProperties.getProperty(NiFiProperties.ANALYTICS_CONNECTION_MODEL_SCORE_THRESHOLD,
+                                                            Double.toString(NiFiProperties.DEFAULT_ANALYTICS_CONNECTION_SCORE_THRESHOLD)));
             } catch (final Exception e) {
-                modelScoreThreshold = Double.valueOf(NiFiProperties.DEFAULT_ANALYTICS_CONNECTION_SCORE_THRESHOLD);
+                LOG.warn("Analytics is enabled however could not retrieve value for "+ NiFiProperties.ANALYTICS_CONNECTION_MODEL_SCORE_THRESHOLD + ". This property has been set to '"
+                                                        + NiFiProperties.DEFAULT_ANALYTICS_CONNECTION_SCORE_THRESHOLD + "'.");
+                modelScoreThreshold = NiFiProperties.DEFAULT_ANALYTICS_CONNECTION_SCORE_THRESHOLD;
             }
 
             final Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> modelMap = StatusAnalyticsModelMapFactory
