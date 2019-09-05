@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.controller.status;
 
+import org.apache.nifi.controller.status.analytics.ConnectionStatusPredictions;
 import org.apache.nifi.processor.DataUnit;
 
 /**
@@ -30,7 +31,7 @@ public class ConnectionStatus implements Cloneable {
     private String destinationId;
     private String destinationName;
     private String backPressureDataSizeThreshold;
-    private Boolean predictionsAvailable;
+    private ConnectionStatusPredictions predictions;
     private long backPressureBytesThreshold;
     private long backPressureObjectThreshold;
     private int inputCount;
@@ -41,13 +42,6 @@ public class ConnectionStatus implements Cloneable {
     private long outputBytes;
     private int maxQueuedCount;
     private long maxQueuedBytes;
-    private long predictionIntervalMillis;
-    private int nextPredictedQueuedCount;
-    private long nextPredictedQueuedBytes;
-    private long predictedTimeToCountBackpressureMillis;
-    private long predictedTimeToBytesBackpressureMillis;
-    private int predictedPercentCount = 0;
-    private int predictedPercentBytes = 0;
 
     public String getId() {
         return id;
@@ -130,20 +124,20 @@ public class ConnectionStatus implements Cloneable {
         setBackPressureBytesThreshold(DataUnit.parseDataSize(backPressureDataSizeThreshold, DataUnit.B).longValue());
     }
 
+    public ConnectionStatusPredictions getPredictions() {
+        return predictions;
+    }
+
+    public void setPredictions(ConnectionStatusPredictions predictions) {
+        this.predictions = predictions;
+    }
+
     public long getBackPressureObjectThreshold() {
         return backPressureObjectThreshold;
     }
 
     public void setBackPressureObjectThreshold(long backPressureObjectThreshold) {
         this.backPressureObjectThreshold = backPressureObjectThreshold;
-    }
-
-    public Boolean getPredictionsAvailable() {
-        return predictionsAvailable;
-    }
-
-    public void setPredictionsAvailable(Boolean predictionsAvailable) {
-        this.predictionsAvailable = predictionsAvailable;
     }
 
     public long getInputBytes() {
@@ -202,63 +196,6 @@ public class ConnectionStatus implements Cloneable {
         this.backPressureBytesThreshold = backPressureBytesThreshold;
     }
 
-    public long getPredictionIntervalMillis() {
-        return predictionIntervalMillis;
-    }
-
-    public void setPredictionIntervalMillis(long predictionIntervalMillis) {
-        this.predictionIntervalMillis = predictionIntervalMillis;
-    }
-
-    public int getNextPredictedQueuedCount() {
-        return nextPredictedQueuedCount;
-    }
-
-    public void setNextPredictedQueuedCount(int nextPredictedQueuedCount) {
-        this.nextPredictedQueuedCount = nextPredictedQueuedCount;
-    }
-
-    public long getNextPredictedQueuedBytes() {
-        return nextPredictedQueuedBytes;
-    }
-
-    public void setNextPredictedQueuedBytes(long nextPredictedQueuedBytes) {
-        this.nextPredictedQueuedBytes = nextPredictedQueuedBytes;
-    }
-
-    public long getPredictedTimeToCountBackpressureMillis() {
-        return predictedTimeToCountBackpressureMillis;
-    }
-
-    public void setPredictedTimeToCountBackpressureMillis(long predictedTimeToCountBackpressureMillis) {
-        this.predictedTimeToCountBackpressureMillis = predictedTimeToCountBackpressureMillis;
-    }
-
-    public long getPredictedTimeToBytesBackpressureMillis() {
-        return predictedTimeToBytesBackpressureMillis;
-    }
-
-    public void setPredictedTimeToBytesBackpressureMillis(long predictedTimeToBytesBackpressureMillis) {
-        this.predictedTimeToBytesBackpressureMillis = predictedTimeToBytesBackpressureMillis;
-    }
-
-    public int getPredictedPercentCount() {
-        return predictedPercentCount;
-    }
-
-    public void setPredictedPercentCount(int predictedPercentCount) {
-        this.predictedPercentCount = predictedPercentCount;
-    }
-
-    public int getPredictedPercentBytes() {
-        return predictedPercentBytes;
-    }
-
-    public void setPredictedPercentBytes(int predictedPercentBytes) {
-        this.predictedPercentBytes = predictedPercentBytes;
-    }
-
-
     @Override
     public ConnectionStatus clone() {
         final ConnectionStatus clonedObj = new ConnectionStatus();
@@ -275,16 +212,15 @@ public class ConnectionStatus implements Cloneable {
         clonedObj.sourceName = sourceName;
         clonedObj.destinationId = destinationId;
         clonedObj.destinationName = destinationName;
+
+        if (predictions != null) {
+            clonedObj.setPredictions(predictions.clone());
+        }
+
         clonedObj.backPressureDataSizeThreshold = backPressureDataSizeThreshold;
         clonedObj.backPressureObjectThreshold = backPressureObjectThreshold;
         clonedObj.maxQueuedBytes = maxQueuedBytes;
         clonedObj.maxQueuedCount = maxQueuedCount;
-        clonedObj.nextPredictedQueuedBytes = nextPredictedQueuedBytes;
-        clonedObj.nextPredictedQueuedCount = nextPredictedQueuedCount;
-        clonedObj.predictedTimeToBytesBackpressureMillis = predictedTimeToBytesBackpressureMillis;
-        clonedObj.predictedTimeToCountBackpressureMillis = predictedTimeToCountBackpressureMillis;
-        clonedObj.predictedPercentCount = predictedPercentCount;
-        clonedObj.predictedPercentBytes = predictedPercentBytes;
         return clonedObj;
     }
 
@@ -309,8 +245,6 @@ public class ConnectionStatus implements Cloneable {
         builder.append(backPressureDataSizeThreshold);
         builder.append(", backPressureObjectThreshold=");
         builder.append(backPressureObjectThreshold);
-        builder.append(", predictionsAvailable=");
-        builder.append(predictionsAvailable);
         builder.append(", inputCount=");
         builder.append(inputCount);
         builder.append(", inputBytes=");
@@ -327,18 +261,6 @@ public class ConnectionStatus implements Cloneable {
         builder.append(maxQueuedCount);
         builder.append(", maxQueueBytes=");
         builder.append(maxQueuedBytes);
-        builder.append(", nextPredictedQueuedBytes=");
-        builder.append(nextPredictedQueuedBytes);
-        builder.append(", nextPredictedQueuedCount=");
-        builder.append(nextPredictedQueuedCount);
-        builder.append(", predictedTimeToBytesBackpressureMillis=");
-        builder.append(predictedTimeToBytesBackpressureMillis);
-        builder.append(", predictedTimeToCountBackpressureMillis=");
-        builder.append(predictedTimeToCountBackpressureMillis);
-        builder.append(", predictedPercentCount=");
-        builder.append(predictedPercentCount);
-        builder.append(", predictedPercentBytes=");
-        builder.append(predictedPercentBytes);
         builder.append("]");
         return builder.toString();
     }

@@ -36,22 +36,7 @@ import org.apache.nifi.web.api.dto.diagnostics.JVMControllerDiagnosticsSnapshotD
 import org.apache.nifi.web.api.dto.diagnostics.JVMDiagnosticsSnapshotDTO;
 import org.apache.nifi.web.api.dto.diagnostics.JVMFlowDiagnosticsSnapshotDTO;
 import org.apache.nifi.web.api.dto.diagnostics.JVMSystemDiagnosticsSnapshotDTO;
-import org.apache.nifi.web.api.dto.status.ConnectionStatusDTO;
-import org.apache.nifi.web.api.dto.status.ConnectionStatusSnapshotDTO;
-import org.apache.nifi.web.api.dto.status.ControllerStatusDTO;
-import org.apache.nifi.web.api.dto.status.NodeConnectionStatusSnapshotDTO;
-import org.apache.nifi.web.api.dto.status.NodePortStatusSnapshotDTO;
-import org.apache.nifi.web.api.dto.status.NodeProcessGroupStatusSnapshotDTO;
-import org.apache.nifi.web.api.dto.status.NodeProcessorStatusSnapshotDTO;
-import org.apache.nifi.web.api.dto.status.NodeRemoteProcessGroupStatusSnapshotDTO;
-import org.apache.nifi.web.api.dto.status.PortStatusDTO;
-import org.apache.nifi.web.api.dto.status.PortStatusSnapshotDTO;
-import org.apache.nifi.web.api.dto.status.ProcessGroupStatusDTO;
-import org.apache.nifi.web.api.dto.status.ProcessGroupStatusSnapshotDTO;
-import org.apache.nifi.web.api.dto.status.ProcessorStatusDTO;
-import org.apache.nifi.web.api.dto.status.ProcessorStatusSnapshotDTO;
-import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusDTO;
-import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusSnapshotDTO;
+import org.apache.nifi.web.api.dto.status.*;
 import org.apache.nifi.web.api.entity.ConnectionStatusSnapshotEntity;
 import org.apache.nifi.web.api.entity.PortStatusSnapshotEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusSnapshotEntity;
@@ -480,7 +465,6 @@ public class StatusMerger {
             target.setSourceName(toMerge.getSourceName());
             target.setDestinationId(toMerge.getDestinationId());
             target.setDestinationName(toMerge.getDestinationName());
-            target.setPredictionsAvailable(toMerge.getPredictionsAvailable());
         }
 
         target.setFlowFilesIn(target.getFlowFilesIn() + toMerge.getFlowFilesIn());
@@ -502,31 +486,37 @@ public class StatusMerger {
         }
 
         // Merge predicted values (minimum time to backpressure, maximum percent at next interval
+        ConnectionStatusPredictionsSnapshotDTO targetPredictions = target.getPredictions();
+        ConnectionStatusPredictionsSnapshotDTO toMergePredictions = toMerge.getPredictions();
 
-        if (target.getPredictionIntervalSeconds() == null) {
-            target.setPredictionIntervalSeconds(toMerge.getPredictionIntervalSeconds());
-        }
+        if (targetPredictions == null) {
+            target.setPredictions(toMergePredictions);
+        } else if (toMergePredictions != null) {
+            if (targetPredictions.getPredictionIntervalSeconds() == null) {
+                targetPredictions.setPredictionIntervalSeconds(toMergePredictions.getPredictionIntervalSeconds());
+            }
 
-        if (target.getPredictedMillisUntilBytesBackpressure() == null) {
-            target.setPredictedMillisUntilBytesBackpressure(toMerge.getPredictedMillisUntilBytesBackpressure());
-        } else if (toMerge.getPredictedMillisUntilBytesBackpressure() != null) {
-            target.setPredictedMillisUntilBytesBackpressure(Math.min(target.getPredictedMillisUntilBytesBackpressure(), toMerge.getPredictedMillisUntilBytesBackpressure()));
-        }
-        if (target.getPredictedMillisUntilCountBackpressure() == null) {
-            target.setPredictedMillisUntilCountBackpressure(toMerge.getPredictedMillisUntilCountBackpressure());
-        } else if (toMerge.getPredictedMillisUntilCountBackpressure() != null) {
-            target.setPredictedMillisUntilCountBackpressure(Math.min(target.getPredictedMillisUntilCountBackpressure(), toMerge.getPredictedMillisUntilCountBackpressure()));
-        }
+            if (targetPredictions.getPredictedMillisUntilBytesBackpressure() == null) {
+                targetPredictions.setPredictedMillisUntilBytesBackpressure(toMergePredictions.getPredictedMillisUntilBytesBackpressure());
+            } else if (toMergePredictions.getPredictedMillisUntilBytesBackpressure() != null) {
+                targetPredictions.setPredictedMillisUntilBytesBackpressure(Math.min(targetPredictions.getPredictedMillisUntilBytesBackpressure(), toMergePredictions.getPredictedMillisUntilBytesBackpressure()));
+            }
+            if (targetPredictions.getPredictedMillisUntilCountBackpressure() == null) {
+                targetPredictions.setPredictedMillisUntilCountBackpressure(toMergePredictions.getPredictedMillisUntilCountBackpressure());
+            } else if (toMergePredictions.getPredictedMillisUntilCountBackpressure() != null) {
+                targetPredictions.setPredictedMillisUntilCountBackpressure(Math.min(targetPredictions.getPredictedMillisUntilCountBackpressure(), toMergePredictions.getPredictedMillisUntilCountBackpressure()));
+            }
 
-        if (target.getPredictedPercentBytes() == null) {
-            target.setPredictedPercentBytes(toMerge.getPredictedPercentBytes());
-        } else if (toMerge.getPercentUseBytes() != null) {
-            target.setPredictedPercentBytes(Math.max(target.getPredictedPercentBytes(), toMerge.getPredictedPercentBytes()));
-        }
-        if (target.getPredictedPercentCount() == null) {
-            target.setPredictedPercentCount(toMerge.getPredictedPercentCount());
-        } else if (toMerge.getPredictedPercentCount() != null) {
-            target.setPredictedPercentCount(Math.max(target.getPredictedPercentCount(), toMerge.getPredictedPercentCount()));
+            if (targetPredictions.getPredictedPercentBytes() == null) {
+                targetPredictions.setPredictedPercentBytes(toMergePredictions.getPredictedPercentBytes());
+            } else if (toMerge.getPercentUseBytes() != null) {
+                targetPredictions.setPredictedPercentBytes(Math.max(targetPredictions.getPredictedPercentBytes(), toMergePredictions.getPredictedPercentBytes()));
+            }
+            if (targetPredictions.getPredictedPercentCount() == null) {
+                targetPredictions.setPredictedPercentCount(toMergePredictions.getPredictedPercentCount());
+            } else if (toMergePredictions.getPredictedPercentCount() != null) {
+                targetPredictions.setPredictedPercentCount(Math.max(targetPredictions.getPredictedPercentCount(), toMergePredictions.getPredictedPercentCount()));
+            }
         }
 
         updatePrettyPrintedFields(target);

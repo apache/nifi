@@ -52,6 +52,7 @@ import org.apache.nifi.controller.status.ProcessorStatus;
 import org.apache.nifi.controller.status.RemoteProcessGroupStatus;
 import org.apache.nifi.controller.status.RunStatus;
 import org.apache.nifi.controller.status.TransmissionStatus;
+import org.apache.nifi.controller.status.analytics.ConnectionStatusPredictions;
 import org.apache.nifi.controller.status.analytics.StatusAnalytics;
 import org.apache.nifi.controller.status.analytics.StatusAnalyticsEngine;
 import org.apache.nifi.groups.ProcessGroup;
@@ -346,18 +347,19 @@ public class StandardEventAccess implements UserAwareEventAccess {
             if (statusAnalyticsEngine != null) {
                 StatusAnalytics statusAnalytics =  statusAnalyticsEngine.getStatusAnalytics(conn.getIdentifier());
                 if (statusAnalytics != null) {
-                    Map<String,Long> predictions = statusAnalytics.getPredictions();
-                    connStatus.setPredictionsAvailable(true);
-                    connStatus.setPredictedTimeToBytesBackpressureMillis(predictions.get("timeToBytesBackpressureMillis"));
-                    connStatus.setPredictedTimeToCountBackpressureMillis(predictions.get("timeToCountBackpressureMillis"));
-                    connStatus.setNextPredictedQueuedBytes(predictions.get("nextIntervalBytes"));
-                    connStatus.setNextPredictedQueuedCount(predictions.get("nextIntervalCount").intValue());
-                    connStatus.setPredictedPercentCount(predictions.get("nextIntervalPercentageUseCount").intValue());
-                    connStatus.setPredictedPercentBytes(predictions.get("nextIntervalPercentageUseBytes").intValue());
-                    connStatus.setPredictionIntervalMillis(predictions.get("intervalTimeMillis"));
+                    Map<String,Long> predictionValues = statusAnalytics.getPredictions();
+                    ConnectionStatusPredictions predictions = new ConnectionStatusPredictions();
+                    connStatus.setPredictions(predictions);
+                    predictions.setPredictedTimeToBytesBackpressureMillis(predictionValues.get("timeToBytesBackpressureMillis"));
+                    predictions.setPredictedTimeToCountBackpressureMillis(predictionValues.get("timeToCountBackpressureMillis"));
+                    predictions.setNextPredictedQueuedBytes(predictionValues.get("nextIntervalBytes"));
+                    predictions.setNextPredictedQueuedCount(predictionValues.get("nextIntervalCount").intValue());
+                    predictions.setPredictedPercentCount(predictionValues.get("nextIntervalPercentageUseCount").intValue());
+                    predictions.setPredictedPercentBytes(predictionValues.get("nextIntervalPercentageUseBytes").intValue());
+                    predictions.setPredictionIntervalMillis(predictionValues.get("intervalTimeMillis"));
                 }
             }else{
-                connStatus.setPredictionsAvailable(false);
+                connStatus.setPredictions(null);
             }
 
             if (isConnectionAuthorized) {

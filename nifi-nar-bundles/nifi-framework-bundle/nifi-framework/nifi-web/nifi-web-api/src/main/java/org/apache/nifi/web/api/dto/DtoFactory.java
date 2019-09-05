@@ -134,6 +134,7 @@ import org.apache.nifi.controller.status.PortStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
 import org.apache.nifi.controller.status.RemoteProcessGroupStatus;
+import org.apache.nifi.controller.status.analytics.ConnectionStatusPredictions;
 import org.apache.nifi.controller.status.analytics.StatusAnalytics;
 import org.apache.nifi.controller.status.history.GarbageCollectionHistory;
 import org.apache.nifi.controller.status.history.GarbageCollectionStatus;
@@ -229,18 +230,7 @@ import org.apache.nifi.web.api.dto.provenance.lineage.LineageRequestDTO.LineageR
 import org.apache.nifi.web.api.dto.provenance.lineage.LineageResultsDTO;
 import org.apache.nifi.web.api.dto.provenance.lineage.ProvenanceLinkDTO;
 import org.apache.nifi.web.api.dto.provenance.lineage.ProvenanceNodeDTO;
-import org.apache.nifi.web.api.dto.status.ConnectionStatisticsDTO;
-import org.apache.nifi.web.api.dto.status.ConnectionStatisticsSnapshotDTO;
-import org.apache.nifi.web.api.dto.status.ConnectionStatusDTO;
-import org.apache.nifi.web.api.dto.status.ConnectionStatusSnapshotDTO;
-import org.apache.nifi.web.api.dto.status.PortStatusDTO;
-import org.apache.nifi.web.api.dto.status.PortStatusSnapshotDTO;
-import org.apache.nifi.web.api.dto.status.ProcessGroupStatusDTO;
-import org.apache.nifi.web.api.dto.status.ProcessGroupStatusSnapshotDTO;
-import org.apache.nifi.web.api.dto.status.ProcessorStatusDTO;
-import org.apache.nifi.web.api.dto.status.ProcessorStatusSnapshotDTO;
-import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusDTO;
-import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusSnapshotDTO;
+import org.apache.nifi.web.api.dto.status.*;
 import org.apache.nifi.web.api.entity.AccessPolicyEntity;
 import org.apache.nifi.web.api.entity.AccessPolicySummaryEntity;
 import org.apache.nifi.web.api.entity.AffectedComponentEntity;
@@ -1170,7 +1160,6 @@ public final class DtoFactory {
         snapshot.setName(connectionStatus.getName());
         snapshot.setSourceName(connectionStatus.getSourceName());
         snapshot.setDestinationName(connectionStatus.getDestinationName());
-        snapshot.setPredictionsAvailable(connectionStatus.getPredictionsAvailable());
 
         snapshot.setFlowFilesQueued(connectionStatus.getQueuedCount());
         snapshot.setBytesQueued(connectionStatus.getQueuedBytes());
@@ -1181,25 +1170,37 @@ public final class DtoFactory {
         snapshot.setFlowFilesOut(connectionStatus.getOutputCount());
         snapshot.setBytesOut(connectionStatus.getOutputBytes());
 
+        ConnectionStatusPredictions predictions = connectionStatus.getPredictions();
+        ConnectionStatusPredictionsSnapshotDTO predictionsDTO = null;
+        if (predictions != null) {
+            predictionsDTO = new ConnectionStatusPredictionsSnapshotDTO();
+        }
+
         if (connectionStatus.getBackPressureObjectThreshold() > 0) {
             snapshot.setPercentUseCount(Math.min(100, StatusMerger.getUtilization(connectionStatus.getQueuedCount(), connectionStatus.getBackPressureObjectThreshold())));
 
-            snapshot.setPredictionIntervalSeconds(((Long) (connectionStatus.getPredictionIntervalMillis() / 1000L)).intValue());
-            snapshot.setPredictedMillisUntilCountBackpressure(connectionStatus.getPredictedTimeToCountBackpressureMillis());
-            snapshot.setPredictedCountAtNextInterval(connectionStatus.getNextPredictedQueuedCount());
-            snapshot.setPredictedPercentCount(connectionStatus.getPredictedPercentCount());
-            snapshot.setPredictedPercentBytes(connectionStatus.getPredictedPercentBytes());
-            snapshot.setPredictionIntervalSeconds(((Long)(connectionStatus.getPredictionIntervalMillis() / 1000L)).intValue());
+            if (predictionsDTO != null) {
+                snapshot.setPredictions(predictionsDTO);
+                predictionsDTO.setPredictionIntervalSeconds(((Long) (predictions.getPredictionIntervalMillis() / 1000L)).intValue());
+                predictionsDTO.setPredictedMillisUntilCountBackpressure(predictions.getPredictedTimeToCountBackpressureMillis());
+                predictionsDTO.setPredictedCountAtNextInterval(predictions.getNextPredictedQueuedCount());
+                predictionsDTO.setPredictedPercentCount(predictions.getPredictedPercentCount());
+                predictionsDTO.setPredictedPercentBytes(predictions.getPredictedPercentBytes());
+                predictionsDTO.setPredictionIntervalSeconds(((Long) (predictions.getPredictionIntervalMillis() / 1000L)).intValue());
+            }
         }
         if (connectionStatus.getBackPressureBytesThreshold() > 0) {
             snapshot.setPercentUseBytes(Math.min(100, StatusMerger.getUtilization(connectionStatus.getQueuedBytes(), connectionStatus.getBackPressureBytesThreshold())));
 
-            snapshot.setPredictionIntervalSeconds(((Long) (connectionStatus.getPredictionIntervalMillis() / 1000L)).intValue());
-            snapshot.setPredictedMillisUntilBytesBackpressure(connectionStatus.getPredictedTimeToBytesBackpressureMillis());
-            snapshot.setPredictedBytesAtNextInterval(connectionStatus.getNextPredictedQueuedBytes());
-            snapshot.setPredictedPercentCount(connectionStatus.getPredictedPercentCount());
-            snapshot.setPredictedPercentBytes(connectionStatus.getPredictedPercentBytes());
-            snapshot.setPredictionIntervalSeconds(((Long)(connectionStatus.getPredictionIntervalMillis() / 1000L)).intValue());
+            if (predictionsDTO != null) {
+                snapshot.setPredictions(predictionsDTO);
+                predictionsDTO.setPredictionIntervalSeconds(((Long) (predictions.getPredictionIntervalMillis() / 1000L)).intValue());
+                predictionsDTO.setPredictedMillisUntilBytesBackpressure(predictions.getPredictedTimeToBytesBackpressureMillis());
+                predictionsDTO.setPredictedBytesAtNextInterval(predictions.getNextPredictedQueuedBytes());
+                predictionsDTO.setPredictedPercentCount(predictions.getPredictedPercentCount());
+                predictionsDTO.setPredictedPercentBytes(predictions.getPredictedPercentBytes());
+                predictionsDTO.setPredictionIntervalSeconds(((Long) (predictions.getPredictionIntervalMillis() / 1000L)).intValue());
+            }
         }
 
         StatusMerger.updatePrettyPrintedFields(snapshot);
