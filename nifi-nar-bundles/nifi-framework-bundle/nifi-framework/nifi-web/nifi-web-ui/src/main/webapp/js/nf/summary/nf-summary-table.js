@@ -103,16 +103,25 @@
             { label: 'size', percent: percentUseBytes }
         ];
 
-        var minPrediction = _.minBy(predictions, 'timeToBackPressure');
+        // if one of the queues is already at backpressure, return now as the prediction
         var maxActual = _.maxBy(actualQueuePercents, 'percent');
-
         if (maxActual.percent >= 100) {
             // currently experiencing back pressure
             return 'now (' + maxActual.label + ')';
-        } else if (minPrediction.timeToBackPressure < 0) {
+        }
+
+        // filter out the predictions that are unknown
+        var knownPredictions = predictions.filter(function(p) {
+            return p.timeToBackPressure >= 0;
+        });
+
+        if (_.isEmpty(knownPredictions)) {
             // there is not a valid time-to-back-pressure prediction available
             return 'NA';
         }
+
+        // there is at least one valid prediction, return the minimum time to back pressure
+        var minPrediction = _.minBy(knownPredictions, 'timeToBackPressure');
 
         var formatted = nfCommon.formatPredictedDuration(minPrediction.timeToBackPressure);
         return nfCommon.escapeHtml(formatted) + ' (' + minPrediction.label + ')';
