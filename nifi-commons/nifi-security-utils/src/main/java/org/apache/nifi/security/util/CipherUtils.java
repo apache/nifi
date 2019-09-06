@@ -63,9 +63,6 @@ public class CipherUtils {
      * Generates an un-initialized AES/GCM cipher.
      *
      * @return AES/GCM/NoPadding cipher, un-initialized
-     * @throws NoSuchPaddingException
-     * @throws NoSuchAlgorithmException
-     * @throws NoSuchProviderException
      */
     public static Cipher blockCipher() throws NoSuchPaddingException, NoSuchAlgorithmException, NoSuchProviderException {
         Security.addProvider(new BouncyCastleProvider());

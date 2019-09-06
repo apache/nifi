@@ -107,8 +107,8 @@ public class VaultSensitivePropertyProvider implements SensitivePropertyProvider
 
         if (keyStore == null && trustStore == null) {
             sslConf = SslConfiguration.NONE;
-        } else if ((keyStore == null) || (trustStore == null)) {
-            throw new SensitivePropertyConfigurationException("Vault TLS requires key store and trust store properties");
+        //} else if ((keyStore == null) || (trustStore == null)) {
+        //    throw new SensitivePropertyConfigurationException("Vault TLS requires key store and trust store properties");
         } else {
             SslConfiguration.KeyStoreConfiguration keyStoreConf = new SslConfiguration.KeyStoreConfiguration(keyStore, config.getVaultSslKeyStorePassword(), storeType);
             SslConfiguration.KeyStoreConfiguration trustStoreConf = new SslConfiguration.KeyStoreConfiguration(trustStore, config.getVaultSslTrustStorePassword(), storeType);

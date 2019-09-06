@@ -28,7 +28,6 @@ import com.amazonaws.services.kms.model.GenerateDataKeyRequest;
 import com.amazonaws.services.kms.model.GenerateDataKeyResult;
 import com.amazonaws.services.kms.model.ScheduleKeyDeletionRequest;
 
-import junit.framework.TestCase;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.properties.sensitive.AbstractSensitivePropertyProviderTest;
 import org.apache.nifi.properties.sensitive.SensitivePropertyConfigurationException;
@@ -44,7 +43,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -81,8 +79,9 @@ public class AWSKMSSensitivePropertyProviderIT extends AbstractSensitiveProperty
         final FileInputStream fis;
         try {
             fis = new FileInputStream(CREDENTIALS_FILE);
-        } catch (FileNotFoundException e1) {
-            TestCase.fail("Could not open credentials file " + CREDENTIALS_FILE + ": " + e1.getLocalizedMessage());
+        } catch (final Exception e1) {
+            logger.warn("Could not open credentials file " + CREDENTIALS_FILE + ": " + e1.getLocalizedMessage());
+            Assume.assumeNoException(e1);
             return;
         }
 
@@ -136,7 +135,7 @@ public class AWSKMSSensitivePropertyProviderIT extends AbstractSensitiveProperty
      */
     @AfterClass
     public static void tearDownOnce() {
-        if (knownGoodKeys.length > 0) {
+        if (knownGoodKeys != null && knownGoodKeys.length > 0) {
             ScheduleKeyDeletionRequest req = new ScheduleKeyDeletionRequest().withKeyId(knownGoodKeys[0]).withPendingWindowInDays(7);
             client.scheduleKeyDeletion(req);
         }

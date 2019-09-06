@@ -85,5 +85,5 @@ public class SensitivePropertyException extends RuntimeException  {
     @Override
     public String toString() {
         return "SensitivePropertyException: " + getLocalizedMessage();
-    }    
+    }
 }

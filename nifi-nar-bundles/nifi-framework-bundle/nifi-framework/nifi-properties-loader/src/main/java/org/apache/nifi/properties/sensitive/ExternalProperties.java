@@ -25,8 +25,8 @@ public interface ExternalProperties {
     /**
      * Looks up the Authorizer with the specified identifier
      *
-     * @param identifier        The identifier of the Authorizer
-     * @return                  The Authorizer
+     * @param name The identifier of the Authorizer
+     * @return The Authorizer
      */
 
     String get(String name);

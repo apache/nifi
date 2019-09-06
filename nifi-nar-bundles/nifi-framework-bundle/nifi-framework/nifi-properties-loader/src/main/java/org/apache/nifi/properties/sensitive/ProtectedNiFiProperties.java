@@ -331,7 +331,7 @@ public class ProtectedNiFiProperties extends StandardNiFiProperties {
      * properties should be gathered together.
      *
      * @return the NiFiProperties instance with all raw values
-     * @throws SensitivePropertyProtectionException if there is a problem unprotecting one or more keys
+     * @throws SensitivePropertyException if there is a problem unprotecting one or more keys
      */
     public NiFiProperties getUnprotectedProperties() throws SensitivePropertyException {
         if (hasProtectedKeys()) {

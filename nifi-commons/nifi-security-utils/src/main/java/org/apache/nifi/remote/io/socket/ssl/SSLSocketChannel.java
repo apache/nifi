@@ -291,7 +291,8 @@ public class SSLSocketChannel implements Closeable {
         do {
             readCount = channel.read(buffer);
             buffer.flip();
-        } while (readCount > 0);
+        }
+        while (readCount > 0);
     }
 
     private int readData(final ByteBuffer dest) throws IOException {

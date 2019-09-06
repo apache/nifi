@@ -23,6 +23,7 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -61,7 +62,7 @@ import java.util.stream.Stream;
  * and the entire test environment, including the Vault server itself, is constructed from scratch before each test
  * session.
  */
-public class VaultHttpSensitivePropertyProviderIT extends AbstractSensitivePropertyProviderTest  {
+public class VaultHttpSensitivePropertyProviderIT<x> extends AbstractSensitivePropertyProviderTest  {
     private static final Logger logger = LoggerFactory.getLogger(VaultHttpSensitivePropertyProviderIT.class);
     private static final SecureRandom random = new SecureRandom();
 
@@ -95,8 +96,6 @@ public class VaultHttpSensitivePropertyProviderIT extends AbstractSensitivePrope
             "vault.app-id.app-id",
             "vault.app-id.user-id"
     ).collect(Collectors.toSet());
-
-    private Set<String> keySpecs;
 
     /**
      * This method creates the Vault environment needed by the test cases.

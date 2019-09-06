@@ -48,7 +48,7 @@ public class StandardExternalPropertyLookup implements ExternalProperties {
 
     /**
      * Create a {@link StandardExternalPropertyLookup} with a named property file.
-     * @param defaultPropertiesFilename
+     * @param defaultPropertiesFilename default file name
      */
     public StandardExternalPropertyLookup(String defaultPropertiesFilename) {
         this(defaultPropertiesFilename, null);
