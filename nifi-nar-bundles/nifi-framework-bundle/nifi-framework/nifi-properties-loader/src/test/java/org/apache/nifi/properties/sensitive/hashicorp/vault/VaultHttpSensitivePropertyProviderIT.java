@@ -23,7 +23,6 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
-import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -88,6 +87,7 @@ public class VaultHttpSensitivePropertyProviderIT<x> extends AbstractSensitivePr
     // System property names that we clear and check before each test:
     private Set<String> vaultSystemPropertyNames = Stream.of(
             "vault.ssl.trust-store",
+            "vault.ssl.key-store",
             "vault.authentication",
             "vault.uri",
             "vault.token",
