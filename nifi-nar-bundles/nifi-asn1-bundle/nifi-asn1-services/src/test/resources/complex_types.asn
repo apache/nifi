@@ -1,0 +1,26 @@
+ORG-APACHE-NIFI-JASN1-COMPLEX
+
+DEFINITIONS IMPLICIT TAGS ::=
+
+BEGIN
+
+
+IntegerAndStringWrapper  ::= SEQUENCE {
+    i   [0] INTEGER OPTIONAL,
+    str [1] UTF8String OPTIONAL
+}
+
+ChoiceWrapper ::= SEQUENCE {
+    value SEQUENCE OF CHOICE {
+        integerAndString IntegerAndStringWrapper,
+        b BOOLEAN
+    }
+}
+
+SequenceOfIntegerWrapper  ::= SEQUENCE {
+    value SEQUENCE OF INTEGER
+}
+
+InheritingIntegerAndStringWrapper ::= IntegerAndStringWrapper
+
+END

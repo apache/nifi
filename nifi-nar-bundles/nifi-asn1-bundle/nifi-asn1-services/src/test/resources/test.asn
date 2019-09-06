@@ -1,0 +1,18 @@
+ORG-APACHE-NIFI-JASN1-TEST
+
+DEFINITIONS IMPLICIT TAGS ::=
+
+BEGIN
+
+RootType ::= SEQUENCE
+{
+    booleanField        [0] BOOLEAN,
+    integerField        [1] INTEGER
+}
+
+OtherType ::= SEQUENCE
+{
+    child               [0] RootType
+}
+
+END

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+    <head>
+        <meta charset="utf-8" />
+        <title>JASN1Reader</title>
+        <link rel="stylesheet" href="../../../../../css/component-usage.css" type="text/css" />
+    </head>
+
+    <body>
+        <h2>JASN1Reader</h2>
+
+        <p>
+            This service creates record readers for ASN.1 input.
+        </p>
+        <p>
+            ASN.1 schema files (with full path) can be defined via the <i>Root Model Name</i> property as a comma separated list.
+            The controller service preprocesses these files and generates sources that it uses for parsing data later.<br/>
+            <b>
+                Note that this preprocessing may take a while, especially when the schema files are large.
+                The service remains in the <i>Enabling</i> state until this preprocessing is finished.
+                Processors using the service are ready to be started at this point but probably won't work properly until the service is fully <i>Enabled</i>.
+            </b>
+        </p>
+        <p>
+            The root model type can be defined via the <i>Root Model Name</i> property. It's format should be "MODULE-NAME.ModelType".
+            "MODULE-NAME" is the name of the ASN module defined at the beginnig of the ASN schema file.
+            "ModelType" is an ASN type defined in the ASN files that is not referenced by any other type.
+            The reader created by this service expects ASN records of this root model type.</br>
+        </p>
+        <p>
+            More than one root model types can be defined in the ASN schema files but one service instance can only work with one such type at a time.
+            Multiple different ASN data types can be processed by creating multiple instances of this service.<br/>
+        </p>
+        <p>
+            The ASN schema files are ultimately compiled into Java classes in a temporary directory when the service is enabled.
+            (The directory is deleted when the service is disabled. Of course the ASN schema files remain.)
+            The service actually needs the fully qualified name of the class compiled from the root model type.
+            It usually guesses the name of this class correctly from <i>Root Model Name</i>.<br/>
+            However there may be situations where this is not the case.
+            Should this happen, one can take use of the fact that NiFi logs the temporary directory where the compiled Java classes can be found.
+            Once the proper class of the root model type is identified in that directory (should be easily done by looking for it by it's name)
+                it can be provided directly via the <i>Root Model Class Name</i> property.
+            (Note however that the service should be left <i>Enabled</i> while doing the search as it deletes the temporary directory when it is disabled.
+            To be able to set the property the service needs to be disabled in the end - and let it remove the directory,
+                however this shouldn't be an issue as the name of the root model class will be the same in the new temporary directory.)
+        </p>
+    </body>
+</html>
