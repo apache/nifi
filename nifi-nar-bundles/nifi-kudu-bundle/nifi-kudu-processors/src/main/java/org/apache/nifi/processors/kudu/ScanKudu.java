@@ -66,7 +66,8 @@ public class ScanKudu extends AbstractKuduProcessor {
     static final Pattern COLUMNS_PATTERN = Pattern.compile("\\w+((\\w)+)?(?:,\\w+((\\w)+)?)*");
 
     protected static final PropertyDescriptor TABLE_NAME = new PropertyDescriptor.Builder()
-            .name("Table Name")
+            .name("table-name")
+            .displayName("Table Name")
             .description("The name of the Kudu Table to put data into")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -95,9 +96,9 @@ public class ScanKudu extends AbstractKuduProcessor {
                     "Depending on your memory size, and data size per row set an appropriate batch size. " +
                     "Gradually increase this number to find out the best one for best performances.")
             .defaultValue("500")
-            .required(false)
+            .required(true)
             .addValidator(StandardValidators.createLongValidator(1, 100000, true))
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
     static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -112,7 +113,7 @@ public class ScanKudu extends AbstractKuduProcessor {
 
     protected static final Relationship REL_FAILURE = new Relationship.Builder()
             .name("failure")
-            .description("A FlowFile is routed to this relationship if it cannot be sent to Kudu")
+            .description("A FlowFile is routed to this relationship if it is not able to read from Kudu")
             .build();
 
     @Override
@@ -154,7 +155,6 @@ public class ScanKudu extends AbstractKuduProcessor {
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) throws LoginException {
-        batchSize = context.getProperty(BATCH_SIZE).evaluateAttributeExpressions().asInteger();
         createKuduClient(context);
     }
 
@@ -185,7 +185,7 @@ public class ScanKudu extends AbstractKuduProcessor {
         final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions(flowFile).getValue();
         if (StringUtils.isBlank(tableName)) {
             getLogger().error("Table Name is blank or null for {}, transferring to failure", new Object[] {flowFile});
-            session.transfer(session.penalize(flowFile), REL_FAILURE);
+            session.transfer(flowFile, REL_FAILURE);
             return;
         }
 
@@ -196,6 +196,8 @@ public class ScanKudu extends AbstractKuduProcessor {
         }
 
         String predicate = context.getProperty(PREDICATES).evaluateAttributeExpressions(flowFile).getValue();
+        batchSize = context.getProperty(BATCH_SIZE).evaluateAttributeExpressions(flowFile).asInteger();
+
         final AtomicReference<Long> rowsPulledHolder = new AtomicReference<>(0L);
         final AtomicReference<Long> ffCountHolder = new AtomicReference<>(0L);
         ScanKuduResultHandler handler = new ScanKuduResultHandler(session, flowFile, rowsPulledHolder, ffCountHolder, tableName, batchSize);
@@ -218,7 +220,6 @@ public class ScanKudu extends AbstractKuduProcessor {
             return;
         }
 
-        batchSize = context.getProperty(BATCH_SIZE).evaluateAttributeExpressions(flowFile).asInteger();
 
         flowFile = session.putAttribute(flowFile, "scankudu.results.found", Boolean.toString(handler.isHandledAny()));
 
