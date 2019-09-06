@@ -31,6 +31,7 @@ import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.specific.SpecificRecord;
 import org.apache.avro.util.Utf8;
 import org.apache.commons.compress.utils.IOUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.nifi.serialization.SimpleRecordSchema;
@@ -116,15 +117,15 @@ public class AvroTypeUtil {
     private static Schema buildAvroSchema(final RecordSchema recordSchema) {
         final List<Field> avroFields = new ArrayList<>(recordSchema.getFieldCount());
         for (final RecordField recordField : recordSchema.getFields()) {
-            avroFields.add(buildAvroField(recordField));
+            avroFields.add(buildAvroField(recordField, ""));
         }
 
         final Schema avroSchema = Schema.createRecord("nifiRecord", null, "org.apache.nifi", false, avroFields);
         return avroSchema;
     }
 
-    private static Field buildAvroField(final RecordField recordField) {
-        final Schema schema = buildAvroSchema(recordField.getDataType(), recordField.getFieldName(), recordField.isNullable());
+    private static Field buildAvroField(final RecordField recordField, String fieldNamePrefix) {
+        final Schema schema = buildAvroSchema(recordField.getDataType(), recordField.getFieldName(), fieldNamePrefix, recordField.isNullable());
 
         final Field field;
         final String recordFieldName = recordField.getFieldName();
@@ -193,7 +194,7 @@ public class AvroTypeUtil {
         return sb.toString();
     }
 
-    private static Schema buildAvroSchema(final DataType dataType, final String fieldName, final boolean nullable) {
+    private static Schema buildAvroSchema(final DataType dataType, final String fieldName, String fieldNamePrefix, final boolean nullable) {
         final Schema schema;
 
         switch (dataType.getFieldType()) {
@@ -203,7 +204,7 @@ public class AvroTypeUtil {
                 if (RecordFieldType.BYTE.equals(elementDataType.getFieldType())) {
                     schema = Schema.create(Type.BYTES);
                 } else {
-                    final Schema elementType = buildAvroSchema(elementDataType, fieldName, false);
+                    final Schema elementType = buildAvroSchema(elementDataType, fieldName, fieldNamePrefix, false);
                     schema = Schema.createArray(elementType);
                 }
                 break;
@@ -232,7 +233,7 @@ public class AvroTypeUtil {
                 final Set<Type> typesAdded = new HashSet<>();
 
                 for (final DataType option : options) {
-                    final Schema optionSchema = buildAvroSchema(option, fieldName, false);
+                    final Schema optionSchema = buildAvroSchema(option, fieldName, fieldNamePrefix, false);
                     if (!typesAdded.contains(optionSchema.getType())) {
                         unionTypes.add(optionSchema);
                         typesAdded.add(optionSchema.getType());
@@ -263,7 +264,7 @@ public class AvroTypeUtil {
                 LogicalTypes.decimal(decimalDataType.getPrecision(), decimalDataType.getScale()).addToSchema(schema);
                 break;
             case MAP:
-                schema = Schema.createMap(buildAvroSchema(((MapDataType) dataType).getValueType(), fieldName, false));
+                schema = Schema.createMap(buildAvroSchema(((MapDataType) dataType).getValueType(), fieldName, fieldNamePrefix, false));
                 break;
             case RECORD:
                 final RecordDataType recordDataType = (RecordDataType) dataType;
@@ -271,10 +272,11 @@ public class AvroTypeUtil {
 
                 final List<Field> childFields = new ArrayList<>(childSchema.getFieldCount());
                 for (final RecordField field : childSchema.getFields()) {
-                    childFields.add(buildAvroField(field));
+                    String childFieldNamePrefix = StringUtils.isBlank(fieldNamePrefix) ? fieldName + "_" : fieldNamePrefix + fieldName + "_";
+                    childFields.add(buildAvroField(field, childFieldNamePrefix));
                 }
 
-                schema = Schema.createRecord(fieldName + "Type", null, "org.apache.nifi", false, childFields);
+                schema = Schema.createRecord(fieldNamePrefix + fieldName + "Type", null, "org.apache.nifi", false, childFields);
                 break;
             case SHORT:
                 schema = Schema.create(Type.INT);

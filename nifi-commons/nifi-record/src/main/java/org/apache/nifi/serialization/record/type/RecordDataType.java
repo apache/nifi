@@ -22,13 +22,22 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 
 import java.util.Objects;
+import java.util.function.Supplier;
 
 public class RecordDataType extends DataType {
-    private final RecordSchema childSchema;
+    private RecordSchema childSchema;
+    private final Supplier<RecordSchema> childSchemaSupplier;
 
     public RecordDataType(final RecordSchema childSchema) {
         super(RecordFieldType.RECORD, null);
         this.childSchema = childSchema;
+        this.childSchemaSupplier = null;
+    }
+
+    public RecordDataType(final Supplier<RecordSchema> childSchemaSupplier) {
+        super(RecordFieldType.RECORD, null);
+        this.childSchema = null;
+        this.childSchemaSupplier = childSchemaSupplier;
     }
 
     @Override
@@ -37,6 +46,11 @@ public class RecordDataType extends DataType {
     }
 
     public RecordSchema getChildSchema() {
+        if (childSchema == null) {
+            if (childSchemaSupplier != null) {
+                childSchema = childSchemaSupplier.get();
+            }
+        }
         return childSchema;
     }
 
