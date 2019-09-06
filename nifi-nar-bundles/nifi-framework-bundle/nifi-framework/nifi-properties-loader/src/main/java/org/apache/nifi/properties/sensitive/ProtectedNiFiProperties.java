@@ -353,22 +353,9 @@ public class ProtectedNiFiProperties extends StandardNiFiProperties {
                 if (key.endsWith(".protected")) {
                     // Do nothing
                 } else if (isPropertyProtected(key)) {
-                    String value = getProperty(key);
-                    String protectionScheme = getProperty(getProtectionKey(key));
-                    SensitivePropertyProvider propertyProvider = sensitivePropertyProvider;
-                    String defaultScheme = sensitivePropertyProvider.getIdentifierKey();
-                    boolean sameScheme = defaultScheme.equals(protectionScheme);
-
-                    if (!sameScheme && StandardSensitivePropertyProvider.hasProviderFor(protectionScheme)) {
-                        propertyProvider = StandardSensitivePropertyProvider.fromKey(protectionScheme);
-                        logger.info("Selected specific sensitive property provider: " + propertyProvider.getName() + " for property: " + key);
-                    } else if (!sameScheme) {
-                        throw new SensitivePropertyProtectionException("Unknown sensitive property protection scheme:" + protectionScheme);
-                    }
-
                     try {
-                        rawProperties.setProperty(key, unprotectValue(key, value, propertyProvider));
-                    } catch (SensitivePropertyException e) {
+                        rawProperties.setProperty(key, unprotectValue(key, getProperty(key)));
+                    } catch (SensitivePropertyProtectionException e) {
                         logger.warn("Failed to unprotect '{}'", key, e);
                         failedKeys.add(key);
                     }
@@ -382,7 +369,7 @@ public class ProtectedNiFiProperties extends StandardNiFiProperties {
                     logger.warn("Combining {} failed keys [{}] into single exception", failedKeys.size(), StringUtils.join(failedKeys, ", "));
                     throw new MultipleSensitivePropertyProtectionException("Failed to unprotect keys", failedKeys);
                 } else {
-                    throw new SensitivePropertyException("Failed to unprotect key " + failedKeys.iterator().next());
+                    throw new SensitivePropertyProtectionException("Failed to unprotect key " + failedKeys.iterator().next());
                 }
             }
 
@@ -479,26 +466,19 @@ public class ProtectedNiFiProperties extends StandardNiFiProperties {
      *
      * @param key            the retrieved property key
      * @param retrievedValue the retrieved property value
-     * @param propertyProvider the property provider used to unprotect the value
      * @return the unprotected value
      */
-    private String unprotectValue(String key, String retrievedValue, SensitivePropertyProvider propertyProvider) {
+    private String unprotectValue(String key, String retrievedValue) {
         // Checks if the key is sensitive and marked as protected
-        if (!isPropertyProtected(key)) {
-            return retrievedValue;
+        if (isPropertyProtected(key)) {
+            final String protectionScheme = getProperty(getProtectionKey(key));
+            // If we don't have a provider for the scheme, we try match the identifier of default provider.  this gives us part of our compatibility across providers + schemes.
+            if (!StandardSensitivePropertyProvider.hasProviderFor(protectionScheme)) {
+                if (this.sensitivePropertyProvider != null && this.sensitivePropertyProvider.getIdentifierKey().equals(protectionScheme))
+                    return this.sensitivePropertyProvider.unprotect(retrievedValue);
+            }
+            throw new SensitivePropertyProtectionException("Error unprotecting value for " + key);
         }
-
-        final String protectionScheme = getProperty(getProtectionKey(key));
-
-        if (protectionScheme.equals("unknown")) {
-            return retrievedValue;
-        }
-
-        // try and make one to unprotect, and if that fails...
-        try {
-            return propertyProvider.unprotect(retrievedValue);
-        } catch (final SensitivePropertyException e) {
-            throw new SensitivePropertyException("Error unprotecting value for " + key, e.getCause());
-        }
+        return retrievedValue;
     }
 }

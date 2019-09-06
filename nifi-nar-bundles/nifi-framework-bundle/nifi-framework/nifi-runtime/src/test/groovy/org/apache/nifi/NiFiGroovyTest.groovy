@@ -20,14 +20,12 @@ import ch.qos.logback.classic.spi.LoggingEvent
 import ch.qos.logback.core.AppenderBase
 import org.apache.nifi.properties.NiFiPropertiesLoader
 import org.apache.nifi.properties.StandardNiFiProperties
-import org.apache.nifi.properties.sensitive.SensitivePropertyProvider
 import org.apache.nifi.properties.sensitive.StandardSensitivePropertyProvider
 import org.apache.nifi.util.NiFiProperties
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.junit.After
 import org.junit.AfterClass
 import org.junit.BeforeClass
-import org.junit.Ignore
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
@@ -135,7 +133,6 @@ class NiFiGroovyTest extends GroovyTestCase {
         assert TestAppender.events.last().getMessage() == "Failure to launch NiFi due to java.lang.IllegalArgumentException: The bootstrap process did not provide a valid key"
     }
 
-    @Ignore
     @Test
     void testMainShouldHandleMalformedBootstrapKeyFromFile() throws Exception {
         // Arrange
@@ -149,10 +146,9 @@ class NiFiGroovyTest extends GroovyTestCase {
         NiFi.main(args)
 
         // Assert
-        assert TestAppender.events.last().getMessage() == "Failure to launch NiFi due to java.lang.IllegalArgumentException: The bootstrap process did not provide a valid key"
+        assert TestAppender.events.last().getMessage() == "Failure to launch NiFi due to java.lang.IllegalArgumentException: There was an issue decrypting protected properties"
     }
 
-    @Ignore
     @Test
     void testInitializePropertiesShouldSetBootstrapKeyFromFile() throws Exception {
         // Arrange

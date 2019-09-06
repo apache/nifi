@@ -287,7 +287,7 @@ public class AESSensitivePropertyProvider implements SensitivePropertyProvider {
      * @return true if this class can provide protected values
      */
     public static boolean isProviderFor(String material) {
-        return material.startsWith(IMPLEMENTATION_KEY);
+        return isHexKeyValid(material);
     }
 
     /**

@@ -81,11 +81,7 @@ public class StandardSensitivePropertyProvider {
             return new AESSensitivePropertyProvider(key);
         }
 
-        try {
-            return new AESSensitivePropertyProvider(key);
-        } catch (final SensitivePropertyException ignored) {
-            throw new SensitivePropertyProtectionException("No sensitive property provider for key or key id.");
-        }
+        throw new SensitivePropertyProtectionException("No sensitive property provider for key or key id.");
     }
 
     /**
