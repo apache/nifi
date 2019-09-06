@@ -30,6 +30,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 
 public enum RecordFieldType {
     /**
@@ -122,7 +123,7 @@ public enum RecordFieldType {
      * </pre>
      * </code>
      */
-    RECORD("record", null, new RecordDataType(null)),
+    RECORD("record", null, new RecordDataType((RecordSchema) null)),
 
     /**
      * <p>
@@ -278,6 +279,22 @@ public enum RecordFieldType {
         }
 
         return new RecordDataType(childSchema);
+    }
+
+    /**
+     * Returns a Data Type that represents a "RECORD" or "ARRAY" type with the given schema which will be lazily evaluated later.
+     * This method can be used to define a DataType containing recursive type structure.
+     *
+     * @param childSchemaSupplier the Schema for the Record or Array, the child schema will be evaluated when it is accessed at the first time
+     * @return a DataType that represents a Record or Array with the given schema, or <code>null</code> if this RecordFieldType
+     *         is not the RECORD or ARRAY type.
+     */
+    public DataType getRecordDataType(final Supplier<RecordSchema> childSchemaSupplier) {
+        if (this != RECORD) {
+            return null;
+        }
+
+        return new RecordDataType(childSchemaSupplier);
     }
 
     /**
