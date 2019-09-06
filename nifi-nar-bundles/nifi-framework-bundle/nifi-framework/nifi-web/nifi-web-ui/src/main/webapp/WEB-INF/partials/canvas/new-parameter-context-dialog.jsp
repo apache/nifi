@@ -91,7 +91,10 @@
             <div class="clear"></div>
         </div>
         <div class="setting">
-            <div class="setting-name">Value</div>
+            <div class="setting-name">
+                Value
+                <div class="fa fa-question-circle" alt="Info" title="Parameter values do not support Expression Language or embedded parameter references."></div>
+            </div>
             <div class="setting-field new-parameter-value-container">
                 <textarea id="parameter-value-field"></textarea>
                 <div class="string-check-container">
