@@ -202,7 +202,7 @@
 
         $('#process-group-parameter').text('');
         $('#parameter-process-group-id').text('').removeData('revision');
-        $('#parameter-referencing-components-context').removeClass('unset').text('');
+        $('#parameter-referencing-components-context').removeClass('unset').attr('title', '').text('');
 
         var parameterGrid = $('#parameter-table').data('gridInstance');
         var parameterData = parameterGrid.getData();
@@ -1183,7 +1183,7 @@
                     $.each(parameters, function (_, parameterEntity) {
                         parameterNames.push(parameterEntity.parameter.name);
                     });
-                    $('#parameter-referencing-components-context').removeClass('unset').text(parameterNames.join(', '));
+                    $('#parameter-referencing-components-context').removeClass('unset').attr('title', parameterNames.join(', ')).text(parameterNames.join(', '));
 
                     // update the progress/steps
                     populateParameterContextUpdateStep(updateRequest.updateSteps, cancelled, errored);
@@ -1427,7 +1427,7 @@
         $('<li class="referencing-component-container"><span class="unset">None</span></li>').appendTo(unauthorizedComponentsContainer);
 
         // update the selection context
-        $('#parameter-referencing-components-context').addClass('unset').text('None');
+        $('#parameter-referencing-components-context').addClass('unset').attr('title', 'None').text('None');
 
         // check if border is necessary
         updateReferencingComponentsBorder($('#parameter-referencing-components-container'));
@@ -1717,7 +1717,7 @@
                         populateReferencingComponents(parameter.referencingComponents);
 
                         // update the details for this parameter
-                        $('#parameter-referencing-components-context').removeClass('unset').text(parameter.name);
+                        $('#parameter-referencing-components-context').removeClass('unset').attr('title', parameter.name).text(parameter.name);
 
                         updateReferencingComponentsBorder($('#parameter-referencing-components-container'));
 
