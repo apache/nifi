@@ -1222,13 +1222,7 @@ public final class DtoFactory {
     public ConnectionStatisticsDTO createConnectionStatisticsDto(final Connection connection, final StatusAnalytics statusAnalytics) {
         final ConnectionStatisticsDTO connectionStatisticsDTO = new ConnectionStatisticsDTO();
 
-        connectionStatisticsDTO.setGroupId(connection.getProcessGroup().getIdentifier());
         connectionStatisticsDTO.setId(connection.getIdentifier());
-        connectionStatisticsDTO.setName(connection.getName());
-        connectionStatisticsDTO.setSourceId(connection.getSource().getIdentifier());
-        connectionStatisticsDTO.setSourceName(connection.getSource().getName());
-        connectionStatisticsDTO.setDestinationId(connection.getDestination().getIdentifier());
-        connectionStatisticsDTO.setDestinationName(connection.getDestination().getName());
         connectionStatisticsDTO.setStatsLastRefreshed(new Date());
 
         final ConnectionStatisticsSnapshotDTO snapshot = new ConnectionStatisticsSnapshotDTO();

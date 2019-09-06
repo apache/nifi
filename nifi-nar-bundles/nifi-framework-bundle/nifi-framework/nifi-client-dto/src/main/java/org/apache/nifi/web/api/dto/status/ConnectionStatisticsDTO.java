@@ -29,15 +29,8 @@ import java.util.List;
 @XmlType(name = "connectionStatistics")
 public class ConnectionStatisticsDTO implements Cloneable {
     private String id;
-    private String groupId;
-    private String name;
     private Date statsLastRefreshed;
 
-    private String sourceId;
-    private String sourceName;
-    private String destinationId;
-
-    private String destinationName;
     private ConnectionStatisticsSnapshotDTO aggregateSnapshot;
 
     private List<NodeConnectionStatisticsSnapshotDTO> nodeSnapshots;
@@ -49,60 +42,6 @@ public class ConnectionStatisticsDTO implements Cloneable {
 
     public void setId(String id) {
         this.id = id;
-    }
-
-    @ApiModelProperty("The ID of the Process Group that the connection belongs to")
-    public String getGroupId() {
-        return groupId;
-    }
-
-    public void setGroupId(String groupId) {
-        this.groupId = groupId;
-    }
-
-    @ApiModelProperty("The name of the connection")
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    @ApiModelProperty("The ID of the source component")
-    public String getSourceId() {
-        return sourceId;
-    }
-
-    public void setSourceId(String sourceId) {
-        this.sourceId = sourceId;
-    }
-
-    @ApiModelProperty("The name of the source component")
-    public String getSourceName() {
-        return sourceName;
-    }
-
-    public void setSourceName(String sourceName) {
-        this.sourceName = sourceName;
-    }
-
-    @ApiModelProperty("The ID of the destination component")
-    public String getDestinationId() {
-        return destinationId;
-    }
-
-    public void setDestinationId(String destinationId) {
-        this.destinationId = destinationId;
-    }
-
-    @ApiModelProperty("The name of the destination component")
-    public String getDestinationName() {
-        return destinationName;
-    }
-
-    public void setDestinationName(String destinationName) {
-        this.destinationName = destinationName;
     }
 
     @ApiModelProperty("The status snapshot that represents the aggregate stats of the cluster")
@@ -139,13 +78,7 @@ public class ConnectionStatisticsDTO implements Cloneable {
     @Override
     public ConnectionStatisticsDTO clone() {
         final ConnectionStatisticsDTO other = new ConnectionStatisticsDTO();
-        other.setDestinationId(getDestinationId());
-        other.setDestinationName(getDestinationName());
-        other.setGroupId(getGroupId());
         other.setId(getId());
-        other.setName(getName());
-        other.setSourceId(getSourceId());
-        other.setSourceName(getSourceName());
         other.setAggregateSnapshot(getAggregateSnapshot().clone());
 
 
