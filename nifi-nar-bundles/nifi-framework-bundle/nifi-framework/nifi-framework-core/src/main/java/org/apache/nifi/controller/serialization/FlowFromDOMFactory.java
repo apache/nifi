@@ -37,7 +37,6 @@ import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 import org.apache.nifi.web.api.dto.FunnelDTO;
 import org.apache.nifi.web.api.dto.LabelDTO;
 import org.apache.nifi.web.api.dto.ParameterContextDTO;
-import org.apache.nifi.web.api.dto.ParameterContextReferenceDTO;
 import org.apache.nifi.web.api.dto.ParameterDTO;
 import org.apache.nifi.web.api.dto.PortDTO;
 import org.apache.nifi.web.api.dto.PositionDTO;
@@ -47,6 +46,7 @@ import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
 import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
+import org.apache.nifi.web.api.entity.ParameterContextReferenceEntity;
 import org.apache.nifi.web.api.entity.ParameterEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -198,7 +198,7 @@ public class FlowFromDOMFactory {
         dto.setVersionControlInformation(getVersionControlInformation(versionControlInfoElement));
 
         final String parameterContextId = getString(element, "parameterContextId");
-        final ParameterContextReferenceDTO parameterContextReference = new ParameterContextReferenceDTO();
+        final ParameterContextReferenceEntity parameterContextReference = new ParameterContextReferenceEntity();
         parameterContextReference.setId(parameterContextId);
         dto.setParameterContext(parameterContextReference);
 

@@ -36,10 +36,10 @@ import org.apache.nifi.registry.flow.VersionedProcessGroup;
 import org.apache.nifi.registry.flow.mapping.NiFiRegistryFlowMapper;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.web.ResourceNotFoundException;
-import org.apache.nifi.web.api.dto.ParameterContextReferenceDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.VariableRegistryDTO;
 import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
+import org.apache.nifi.web.api.entity.ParameterContextReferenceEntity;
 import org.apache.nifi.web.api.entity.VariableEntity;
 import org.apache.nifi.web.dao.ProcessGroupDAO;
 
@@ -78,7 +78,7 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
             group.setPosition(new Position(processGroup.getPosition().getX(), processGroup.getPosition().getY()));
         }
 
-        final ParameterContextReferenceDTO parameterContextReference = processGroup.getParameterContext();
+        final ParameterContextReferenceEntity parameterContextReference = processGroup.getParameterContext();
         if (parameterContextReference != null && parameterContextReference.getId() != null) {
             final ParameterContext parameterContext = flowController.getFlowManager().getParameterContextManager().getParameterContext(parameterContextReference.getId());
             group.setParameterContext(parameterContext);
@@ -98,7 +98,7 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
 
     @Override
     public void verifyUpdate(final ProcessGroupDTO processGroup) {
-        final ParameterContextReferenceDTO parameterContextReference = processGroup.getParameterContext();
+        final ParameterContextReferenceEntity parameterContextReference = processGroup.getParameterContext();
         if (parameterContextReference == null) {
             return;
         }
@@ -336,7 +336,7 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
         final String name = processGroupDTO.getName();
         final String comments = processGroupDTO.getComments();
 
-        final ParameterContextReferenceDTO parameterContextReference = processGroupDTO.getParameterContext();
+        final ParameterContextReferenceEntity parameterContextReference = processGroupDTO.getParameterContext();
         if (parameterContextReference != null) {
             final String parameterContextId = parameterContextReference.getId();
             if (parameterContextId == null) {

@@ -52,6 +52,7 @@ import org.apache.nifi.web.api.entity.FlowBreadcrumbEntity;
 import org.apache.nifi.web.api.entity.FunnelEntity;
 import org.apache.nifi.web.api.entity.LabelEntity;
 import org.apache.nifi.web.api.entity.ParameterContextEntity;
+import org.apache.nifi.web.api.entity.ParameterContextReferenceEntity;
 import org.apache.nifi.web.api.entity.PortEntity;
 import org.apache.nifi.web.api.entity.PortStatusEntity;
 import org.apache.nifi.web.api.entity.PortStatusSnapshotEntity;
@@ -269,9 +270,9 @@ public final class EntityFactory {
             entity.setLocallyModifiedAndStaleCount(dto.getLocallyModifiedAndStaleCount());
             entity.setSyncFailureCount(dto.getSyncFailureCount());
 
-            final ParameterContextReferenceDTO parameterContextReference = dto.getParameterContext();
+            final ParameterContextReferenceEntity parameterContextReference = dto.getParameterContext();
             if (parameterContextReference != null) {
-                entity.setParameterContextId(parameterContextReference.getId());
+                entity.setParameterContext(parameterContextReference);
             }
 
             if (dto.getVersionControlInformation() != null) {
@@ -414,6 +415,19 @@ public final class EntityFactory {
         final AccessPolicyEntity entity = new AccessPolicyEntity();
         entity.setRevision(revision);
         entity.setGenerated(new Date());
+        if (dto != null) {
+            entity.setPermissions(permissions);
+            entity.setId(dto.getId());
+
+            if (permissions != null && permissions.getCanRead()) {
+                entity.setComponent(dto);
+            }
+        }
+        return entity;
+    }
+
+    public ParameterContextReferenceEntity createParameterReferenceEntity(final ParameterContextReferenceDTO dto, final PermissionsDTO permissions) {
+        final ParameterContextReferenceEntity entity = new ParameterContextReferenceEntity();
         if (dto != null) {
             entity.setPermissions(permissions);
             entity.setId(dto.getId());

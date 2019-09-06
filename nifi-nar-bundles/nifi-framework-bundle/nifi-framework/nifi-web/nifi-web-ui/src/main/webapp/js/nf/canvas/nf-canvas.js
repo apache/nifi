@@ -86,7 +86,7 @@
     var polling = false;
     var allowPageRefresh = false;
     var groupId = 'root';
-    var parameterContextId;
+    var parameterContext;
     var groupName = null;
     var permissions = null;
     var parentGroupId = null;
@@ -150,7 +150,7 @@
 
             // set the group and parameter context details
             nfCanvas.setGroupId(processGroupFlow.id);
-            nfCanvas.setParameterContextId(processGroupFlow.parameterContextId);
+            nfCanvas.setParameterContext(processGroupFlow.parameterContext);
 
             // get the current group name from the breadcrumb
             var breadcrumb = processGroupFlow.breadcrumb;
@@ -220,7 +220,7 @@
     var changeProcessGroup = function (processGroupId, options) {
         // capture the current group id to reset to in case of failure
         var currentProcessGroup = nfCanvas.getGroupId();
-        var currentParameterContext = nfCanvas.getParameterContextId();
+        var currentParameterContext = nfCanvas.getParameterContext();
 
         // update process group id and attempt to reload
         nfCanvas.setGroupId(processGroupId);
@@ -230,7 +230,7 @@
         processGroupXhr
             .fail(function (xhr, status, error) {
                 nfCanvas.setGroupId(currentProcessGroup);
-                nfCanvas.setParameterContextId(currentParameterContext);
+                nfCanvas.setParameterContext(currentParameterContext);
             });
 
         return processGroupXhr;
@@ -908,19 +908,19 @@
         },
 
         /**
-         * Set the parameter context id.
+         * Set the parameter context.
          *
-         * @argument {string} pcid       The parameter context id
+         * @argument {string} pc       The parameter context
          */
-        setParameterContextId: function (pcid) {
-            parameterContextId = pcid;
+        setParameterContext: function (pc) {
+            parameterContext = pc;
         },
 
         /**
          * Get the parameter context id.
          */
-        getParameterContextId: function () {
-            return parameterContextId;
+        getParameterContext: function () {
+            return parameterContext;
         },
 
         /**

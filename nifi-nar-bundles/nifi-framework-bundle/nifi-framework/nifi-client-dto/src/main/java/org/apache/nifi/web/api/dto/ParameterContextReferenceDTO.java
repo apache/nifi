@@ -23,6 +23,7 @@ import javax.xml.bind.annotation.XmlType;
 @XmlType(name = "parameterContextReference")
 public class ParameterContextReferenceDTO {
     private String id;
+    private String name;
 
     public void setId(String id) {
         this.id = id;
@@ -31,5 +32,14 @@ public class ParameterContextReferenceDTO {
     @ApiModelProperty("The ID of the Parameter Context")
     public String getId() {
         return id;
+    }
+
+    @ApiModelProperty("The name of the Parameter Context")
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
     }
 }

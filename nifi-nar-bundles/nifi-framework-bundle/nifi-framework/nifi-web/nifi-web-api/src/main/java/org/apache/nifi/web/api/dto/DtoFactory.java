@@ -219,6 +219,7 @@ import org.apache.nifi.web.api.entity.ComponentReferenceEntity;
 import org.apache.nifi.web.api.entity.ConnectionStatusSnapshotEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.FlowBreadcrumbEntity;
+import org.apache.nifi.web.api.entity.ParameterContextReferenceEntity;
 import org.apache.nifi.web.api.entity.ParameterEntity;
 import org.apache.nifi.web.api.entity.PortEntity;
 import org.apache.nifi.web.api.entity.PortStatusSnapshotEntity;
@@ -2142,7 +2143,21 @@ public final class DtoFactory {
         }
 
         final ParameterContext parameterContext = group.getParameterContext();
-        dto.setParameterContextId(parameterContext == null ? null : parameterContext.getIdentifier());
+        if (parameterContext != null) {
+            dto.setParameterContext(entityFactory.createParameterReferenceEntity(createParameterContextReference(parameterContext), createPermissionsDto(parameterContext)));
+        }
+        return dto;
+    }
+
+    public ParameterContextReferenceDTO createParameterContextReference(final ParameterContext parameterContext) {
+        if (parameterContext == null) {
+            return null;
+        }
+
+        final ParameterContextReferenceDTO dto = new ParameterContextReferenceDTO();
+        dto.setId(parameterContext.getIdentifier());
+        dto.setName(parameterContext.getName());
+
         return dto;
     }
 
@@ -2409,9 +2424,10 @@ public final class DtoFactory {
         dto.setVersionedComponentId(group.getVersionedComponentId().orElse(null));
         dto.setVersionControlInformation(createVersionControlInformationDto(group));
 
-        final ParameterContextReferenceDTO parameterContextReference = new ParameterContextReferenceDTO();
-        parameterContextReference.setId(group.getParameterContext() == null ? null : group.getParameterContext().getIdentifier());
-        dto.setParameterContext(parameterContextReference);
+        final ParameterContext parameterContext = group.getParameterContext();
+        if (parameterContext != null) {
+            dto.setParameterContext(entityFactory.createParameterReferenceEntity(createParameterContextReference(parameterContext), createPermissionsDto(parameterContext)));
+        }
 
         final Map<String, String> variables = group.getVariableRegistry().getVariableMap().entrySet().stream()
             .collect(Collectors.toMap(entry -> entry.getKey().getName(), Entry::getValue));
@@ -4234,13 +4250,35 @@ public final class DtoFactory {
         return copy;
     }
 
-    public ParameterContextReferenceDTO copy(final ParameterContextReferenceDTO original) {
+    public ParameterContextReferenceEntity copy(final ParameterContextReferenceEntity original) {
         if (original == null) {
             return null;
         }
 
-        final ParameterContextReferenceDTO copy = new ParameterContextReferenceDTO();
+        final ParameterContextReferenceEntity copy = new ParameterContextReferenceEntity();
         copy.setId(original.getId());
+        copy.setPermissions(copy(original.getPermissions()));
+
+        if (original.getComponent() != null) {
+            final ParameterContextReferenceDTO dtoOriginal = original.getComponent();
+
+            final ParameterContextReferenceDTO dtoCopy = new ParameterContextReferenceDTO();
+            dtoCopy.setId(dtoOriginal.getId());
+            dtoCopy.setName(dtoOriginal.getName());
+            copy.setComponent(dtoCopy);
+        }
+
+        return copy;
+    }
+
+    public PermissionsDTO copy(final PermissionsDTO original) {
+        if (original == null) {
+            return null;
+        }
+
+        final PermissionsDTO copy = new PermissionsDTO();
+        copy.setCanRead(original.getCanRead());
+        copy.setCanWrite(original.getCanWrite());
         return copy;
     }
 

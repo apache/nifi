@@ -2089,19 +2089,19 @@
         },
 
         /**
-         * Set the parameter context id.
+         * Set the parameter context.
          *
-         * @argument {string} pcid       The parameter context id
+         * @argument {string} pc       The parameter context
          */
-        setParameterContextId: function (pcid) {
-            return nfCanvas.setParameterContextId(pcid);
+        setParameterContext: function (pc) {
+            return nfCanvas.setParameterContext(pc);
         },
 
         /**
-         * Get the parameter context id.
+         * Get the parameter context.
          */
-        getParameterContextId: function () {
-            return nfCanvas.getParameterContextId();
+        getParameterContext: function () {
+            return nfCanvas.getParameterContext();
         },
 
         /**
