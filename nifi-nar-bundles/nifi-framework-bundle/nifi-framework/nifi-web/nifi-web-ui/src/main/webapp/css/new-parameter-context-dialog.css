@@ -24,6 +24,14 @@
     height: 575px;
 }
 
+#parameter-context-dialog.edit-mode .read-only {
+    display: none;
+}
+
+#parameter-context-dialog.read-only .edit-mode {
+    display: none;
+}
+
 #parameter-context-dialog div.settings-left {
     float: left;
     width: 65%;
@@ -68,6 +76,11 @@
 
 #parameter-context-description-field {
     height: 85px;
+}
+
+#parameter-context-description-read-only {
+    max-height: 250px;
+    overflow-y: auto;
 }
 
 #parameter-referencing-components-container {

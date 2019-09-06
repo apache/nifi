@@ -190,7 +190,11 @@
      */
     var resetDialog = function () {
         $('#parameter-context-name').val('');
+        $('#parameter-context-name-read-only').text('');
+
         $('#parameter-context-description-field').val('');
+        $('#parameter-context-description-read-only').text('');
+
         $('#parameter-table, #add-parameter').show();
         $('#parameter-context-tabs').show();
         $('#parameter-context-tabs').find('.tab')[0].click();
@@ -1337,8 +1341,9 @@
      *
      * @param {object} parameterContext
      * @param {string} parameterToSelect to select
+     * @param {boolean} if the parameters should be displayed in a read-only state regardless of permissions
      */
-    var loadParameters = function (parameterContext, parameterToSelect) {
+    var loadParameters = function (parameterContext, parameterToSelect, readOnly) {
         if (nfCommon.isDefinedAndNotNull(parameterContext)) {
 
             var parameterGrid = $('#parameter-table').data('gridInstance');
@@ -1362,7 +1367,7 @@
                     description: parameterEntity.parameter.description,
                     previousValue: parameterEntity.parameter.value,
                     previousDescription: parameterEntity.parameter.description,
-                    isEditable: parameterEntity.canWrite,
+                    isEditable: _.defaultTo(readOnly, false) ? false : parameterEntity.canWrite,
                     referencingComponents: parameterEntity.parameter.referencingComponents
                 };
 
@@ -2034,8 +2039,29 @@
             return nfCommon.escapeHtml(dataContext.component.description);
         };
 
+        var parameterContextInfoFormatter = function (row, cell, value, columnDef, dataContext) {
+            var markup = '';
+
+            var canRead = dataContext.permissions.canRead;
+
+            if (canRead) {
+                markup += '<div title="View Details" class="pointer view-parameter-context fa fa-info-circle"></div>';
+            }
+
+            return markup;
+        };
+
         // define the column model for the parameter contexts table
         var parameterContextsColumnModel = [
+            {
+                id: 'info',
+                name: '&nbsp;',
+                resizable: false,
+                formatter: parameterContextInfoFormatter,
+                sortable: false,
+                width: 30,
+                maxWidth: 30
+            },
             {
                 id: 'name',
                 name: 'Name',
@@ -2106,6 +2132,10 @@
 
                     // close the settings dialog
                     $('#shell-close-button').click();
+                }
+            } else if (parameterContextsGrid.getColumns()[args.cell].id === 'info') {
+                if (target.hasClass('view-parameter-context')) {
+                    nfParameterContexts.showParameterContext(parameterContextEntity.id, true);
                 }
             }
         });
@@ -2303,9 +2333,10 @@
         /**
          * Shows the dialog for the specified parameter context.
          *
-         * @argument id      The parameter context id
+         * @param id         The parameter context id
+         * @param readOnly   Optional, boolean to open in read only mode even if the user has permission to write.
          */
-        showParameterContext: function (id) {
+        showParameterContext: function (id, readOnly) {
             parameterCount = 0;
 
             // reload the parameter context in case the parameters have changed
@@ -2317,9 +2348,25 @@
 
             // once everything is loaded, show the dialog
             reloadContext.done(function (parameterContextEntity) {
+                var canWrite = _.get(parameterContextEntity, 'permissions.canWrite', false);
+
+                // if specifically asked to open in read only mode, set canWrite to false to trigger that behavior
+                if (_.defaultTo(readOnly, false)) {
+                    canWrite = false;
+                }
+
                 currentParameterContextEntity = parameterContextEntity;
-                $('#parameter-context-name').val(parameterContextEntity.component.name);
-                $('#parameter-context-description-field').val(parameterContextEntity.component.description);
+                if (canWrite) {
+                    $('#parameter-context-dialog').removeClass('read-only');
+                    $('#parameter-context-dialog').addClass('edit-mode');
+                    $('#parameter-context-name').val(parameterContextEntity.component.name);
+                    $('#parameter-context-description-field').val(parameterContextEntity.component.description);
+                } else {
+                    $('#parameter-context-dialog').removeClass('edit-mode');
+                    $('#parameter-context-dialog').addClass('read-only');
+                    $('#parameter-context-name-read-only').text(parameterContextEntity.component.name);
+                    $('#parameter-context-description-read-only').text(parameterContextEntity.component.description);
+                }
 
                 // show the parameter context id
                 if ($('#parameter-context-id-setting').hasClass('hidden')) {
@@ -2327,10 +2374,9 @@
                 }
                 $('#parameter-context-id-field').text(parameterContextEntity.id);
 
-                loadParameters(parameterContextEntity);
+                loadParameters(parameterContextEntity, null, readOnly);
 
-                // show the context
-                $('#parameter-context-dialog').modal('setHeaderText', 'Update Parameter Context').modal('setButtonModel', [{
+                var editModeButtonModel = [{
                     buttonText: 'Apply',
                     color: {
                         base: '#728E9B',
@@ -2360,7 +2406,30 @@
                             $(this).modal('hide');
                         }
                     }
-                }]).modal('show');
+                }];
+
+                var readOnlyButtonModel = [{
+                    buttonText: 'Ok',
+                    color: {
+                        base: '#728E9B',
+                        hover: '#004849',
+                        text: '#ffffff'
+                    },
+                    disabled: function () {
+                        return false;
+                    },
+                    handler: {
+                        click: function () {
+                            $(this).modal('hide');
+                        }
+                    }
+                }];
+
+                // show the context
+                $('#parameter-context-dialog')
+                    .modal('setHeaderText', canWrite ? 'Update Parameter Context' : 'View Parameter Context')
+                    .modal('setButtonModel', canWrite ? editModeButtonModel : readOnlyButtonModel)
+                    .modal('show');
 
                 // select the parameters tab
                 $('#parameter-context-tabs').find('li:last').click();
