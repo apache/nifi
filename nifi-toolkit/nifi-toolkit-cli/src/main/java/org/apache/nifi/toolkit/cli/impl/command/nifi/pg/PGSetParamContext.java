@@ -25,8 +25,8 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.ProcessGroupClient;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.AbstractNiFiCommand;
 import org.apache.nifi.toolkit.cli.impl.result.VoidResult;
-import org.apache.nifi.web.api.dto.ParameterContextReferenceDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
+import org.apache.nifi.web.api.entity.ParameterContextReferenceEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 
 import java.io.IOException;
@@ -60,7 +60,7 @@ public class PGSetParamContext extends AbstractNiFiCommand<VoidResult> {
         final ProcessGroupClient pgClient = client.getProcessGroupClient();
         final ProcessGroupEntity pgEntity = pgClient.getProcessGroup(pgId);
 
-        final ParameterContextReferenceDTO parameterContextReference = new ParameterContextReferenceDTO();
+        final ParameterContextReferenceEntity parameterContextReference = new ParameterContextReferenceEntity();
         parameterContextReference.setId(paramContextId);
 
         final ProcessGroupDTO updatedDTO = new ProcessGroupDTO();

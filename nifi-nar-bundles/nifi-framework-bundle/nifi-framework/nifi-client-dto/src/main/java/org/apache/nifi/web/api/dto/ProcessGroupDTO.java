@@ -18,6 +18,7 @@ package org.apache.nifi.web.api.dto;
 
 import io.swagger.annotations.ApiModelProperty;
 import org.apache.nifi.web.api.dto.util.NumberUtil;
+import org.apache.nifi.web.api.entity.ParameterContextReferenceEntity;
 
 import javax.xml.bind.annotation.XmlType;
 import java.util.Map;
@@ -32,7 +33,7 @@ public class ProcessGroupDTO extends ComponentDTO {
     private String comments;
     private Map<String, String> variables;
     private VersionControlInformationDTO versionControlInformation;
-    private ParameterContextReferenceDTO parameterContext;
+    private ParameterContextReferenceEntity parameterContext;
 
     private Integer runningCount;
     private Integer stoppedCount;
@@ -344,11 +345,11 @@ public class ProcessGroupDTO extends ComponentDTO {
     }
 
     @ApiModelProperty("The Parameter Context that this Process Group is bound to.")
-    public ParameterContextReferenceDTO getParameterContext() {
+    public ParameterContextReferenceEntity getParameterContext() {
         return parameterContext;
     }
 
-    public void setParameterContext(final ParameterContextReferenceDTO parameterContext) {
+    public void setParameterContext(final ParameterContextReferenceEntity parameterContext) {
         this.parameterContext = parameterContext;
     }
 }

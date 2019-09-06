@@ -408,9 +408,9 @@
             };
 
             // populate the parameter context
-            if (processGroupResult.permissions.canRead && $.isEmptyObject(processGroupResult.component.parameterContext) === false) {
+            if (nfCommon.isDefinedAndNotNull(processGroupResult.parameterContext)) {
                 comboOptions.selectedOption = {
-                    value: processGroupResult.component.parameterContext.id
+                    value: processGroupResult.parameterContext.id
                 };
             }
 

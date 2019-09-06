@@ -56,7 +56,6 @@ import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 import org.apache.nifi.web.api.dto.FunnelDTO;
 import org.apache.nifi.web.api.dto.LabelDTO;
-import org.apache.nifi.web.api.dto.ParameterContextReferenceDTO;
 import org.apache.nifi.web.api.dto.PortDTO;
 import org.apache.nifi.web.api.dto.PositionDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
@@ -66,6 +65,7 @@ import org.apache.nifi.web.api.dto.RelationshipDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupContentsDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
+import org.apache.nifi.web.api.entity.ParameterContextReferenceEntity;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -458,9 +458,9 @@ public class StandardFlowSnippet implements FlowSnippet {
                 childGroup.setVariables(groupDTO.getVariables());
             }
 
-            final ParameterContextReferenceDTO parameterContextReferenceDto = groupDTO.getParameterContext();
-            if (parameterContextReferenceDto != null) {
-                final ParameterContext parameterContext = flowManager.getParameterContextManager().getParameterContext(parameterContextReferenceDto.getId());
+            final ParameterContextReferenceEntity parameterContextReference = groupDTO.getParameterContext();
+            if (parameterContextReference != null) {
+                final ParameterContext parameterContext = flowManager.getParameterContextManager().getParameterContext(parameterContextReference.getId());
                 if (parameterContext != null) {
                     childGroup.setParameterContext(parameterContext);
                 }

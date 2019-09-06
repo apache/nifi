@@ -1519,21 +1519,21 @@
     var getParameters = function (propertyDescriptor, groupId) {
         return $.Deferred(function (deferred) {
             if (nfCommon.isDefinedAndNotNull(groupId)) {
-                var parameterContextId;
+                var parameterContext;
 
                 // attempt to identify the parameter context id, conditional based on whether
                 // the user is configuring the current process group
                 if (groupId === nfCanvasUtils.getGroupId()) {
-                    parameterContextId = nfCanvasUtils.getParameterContextId();
+                    parameterContext = nfCanvasUtils.getParameterContext();
                 } else {
                     var parentProcessGroup = nfCanvasUtils.getComponentByType('ProcessGroup').get(groupId);
-                    parameterContextId = parentProcessGroup.parameterContextId;
+                    parameterContext = parentProcessGroup.parameterContext;
                 }
 
-                if (nfCommon.isDefinedAndNotNull(parameterContextId)) {
+                if (nfCommon.isDefinedAndNotNull(parameterContext)) {
                     $.ajax({
                         type: 'GET',
-                        url: '../nifi-api/parameter-contexts/' + parameterContextId,
+                        url: '../nifi-api/parameter-contexts/' + encodeURIComponent(parameterContext.id),
                         dataType: 'json'
                     }).done(function (response) {
                         var sensitive = nfCommon.isSensitiveProperty(propertyDescriptor);
@@ -1877,14 +1877,18 @@
                         return goToServiceFromProperty(serviceTable);
                     },
                     getParameterContextId: function (groupId) {
+                        var parameterContext;
+
                         // attempt to identify the parameter context id, conditional based on whether
                         // the user is configuring the current process group
                         if (_.isNil(groupId) || groupId === nfCanvasUtils.getGroupId()) {
-                            return nfCanvasUtils.getParameterContextId();
+                            parameterContext = nfCanvasUtils.getParameterContext();
                         } else {
                             var parentProcessGroup = nfCanvasUtils.getComponentByType('ProcessGroup').get(groupId);
-                            return parentProcessGroup.parameterContextId;
+                            parameterContext = parentProcessGroup.parameterContext;
                         }
+
+                        return nfCommon.isDefinedAndNotNull(parameterContext) ? parameterContext.id : null;
                     }
                 });
 

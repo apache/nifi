@@ -26,8 +26,8 @@ import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.AbstractNiFiCommand;
 import org.apache.nifi.toolkit.cli.impl.result.StringResult;
 import org.apache.nifi.util.StringUtils;
-import org.apache.nifi.web.api.dto.ParameterContextReferenceDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
+import org.apache.nifi.web.api.entity.ParameterContextReferenceEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 
 import java.io.IOException;
@@ -66,7 +66,7 @@ public class PGGetParamContext extends AbstractNiFiCommand<StringResult> {
             return "";
         }
 
-        final ParameterContextReferenceDTO parameterContextReference = processGroup.getParameterContext();
+        final ParameterContextReferenceEntity parameterContextReference = processGroup.getParameterContext();
         if (parameterContextReference == null) {
             return "";
         }
