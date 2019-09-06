@@ -2159,6 +2159,11 @@
             $('#new-parameter-context').on('click', function () {
                 resetUsage();
 
+                // new parameter contexts do not have an ID to show
+                if (!$('#parameter-context-id-setting').hasClass('hidden')) {
+                    $('#parameter-context-id-setting').addClass('hidden');
+                }
+
                 $('#parameter-context-dialog').modal('setHeaderText', 'Add Parameter Context').modal('setButtonModel', [{
                     buttonText: 'Apply',
                     color: {
@@ -2304,6 +2309,12 @@
                 currentParameterContextEntity = parameterContextEntity;
                 $('#parameter-context-name').val(parameterContextEntity.component.name);
                 $('#parameter-context-description-field').val(parameterContextEntity.component.description);
+
+                // show the parameter context id
+                if ($('#parameter-context-id-setting').hasClass('hidden')) {
+                    $('#parameter-context-id-setting').removeClass('hidden');
+                }
+                $('#parameter-context-id-field').text(parameterContextEntity.id);
 
                 loadParameters(parameterContextEntity);
 

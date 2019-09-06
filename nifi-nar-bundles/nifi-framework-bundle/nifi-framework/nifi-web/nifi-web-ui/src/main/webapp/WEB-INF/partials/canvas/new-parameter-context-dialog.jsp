@@ -22,6 +22,12 @@
         <div id="parameter-context-tabs-content">
             <div id="parameter-context-standard-settings-tab-content" class="configuration-tab">
                 <div class="settings-left">
+                    <div id="parameter-context-id-setting" class="setting hidden">
+                        <div class="setting-name">Id</div>
+                        <div class="setting-field">
+                            <div id="parameter-context-id-field"></div>
+                        </div>
+                    </div>
                     <div class="setting">
                         <div class="setting-name">Name</div>
                         <div id="parameter-context-name-container" class="setting-field">
