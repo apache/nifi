@@ -1193,8 +1193,8 @@ public final class DtoFactory {
             if (predictionsDTO != null) {
                 snapshot.setPredictions(predictionsDTO);
                 predictionsDTO.setPredictionIntervalSeconds(((Long) (predictions.getPredictionIntervalMillis() / 1000L)).intValue());
-                predictionsDTO.setPredictedMillisUntilCountBackpressure(predictions.getPredictedTimeToCountBackpressureMillis() > -1 ?
-                                                                        predictions.getPredictedTimeToCountBackpressureMillis(): null);
+                predictionsDTO.setPredictedMillisUntilCountBackpressure(predictions.getPredictedTimeToCountBackpressureMillis() > -1
+                                                                        ? predictions.getPredictedTimeToCountBackpressureMillis(): null);
                 predictionsDTO.setPredictedCountAtNextInterval(predictions.getNextPredictedQueuedCount() > -1 ? predictions.getNextPredictedQueuedCount() : null);
                 predictionsDTO.setPredictedPercentCount(predictions.getPredictedPercentCount() > -1 ? predictions.getPredictedPercentCount() : null);
                 predictionsDTO.setPredictedPercentBytes(predictions.getPredictedPercentBytes() > -1 ? predictions.getPredictedPercentBytes() : null);
@@ -1206,8 +1206,8 @@ public final class DtoFactory {
             if (predictionsDTO != null) {
                 snapshot.setPredictions(predictionsDTO);
                 predictionsDTO.setPredictionIntervalSeconds(((Long) (predictions.getPredictionIntervalMillis() / 1000L)).intValue());
-                predictionsDTO.setPredictedMillisUntilBytesBackpressure(predictions.getPredictedTimeToBytesBackpressureMillis() > -1 ?
-                                                                        predictions.getPredictedTimeToBytesBackpressureMillis(): null);
+                predictionsDTO.setPredictedMillisUntilBytesBackpressure(predictions.getPredictedTimeToBytesBackpressureMillis() > -1
+                                                                        ? predictions.getPredictedTimeToBytesBackpressureMillis(): null);
                 predictionsDTO.setPredictedBytesAtNextInterval(predictions.getNextPredictedQueuedBytes() > -1 ? predictions.getNextPredictedQueuedBytes() : null);
                 predictionsDTO.setPredictedPercentCount(predictions.getPredictedPercentCount() > -1 ? predictions.getPredictedPercentCount() : null);
                 predictionsDTO.setPredictedPercentBytes(predictions.getPredictedPercentBytes() > -1 ? predictions.getPredictedPercentBytes() : null);
