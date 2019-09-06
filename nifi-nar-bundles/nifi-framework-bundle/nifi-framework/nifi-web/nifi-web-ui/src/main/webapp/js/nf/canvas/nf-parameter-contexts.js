@@ -144,8 +144,8 @@
             if (a.permissions.canRead && b.permissions.canRead) {
 
                 // use _.get to try to access the piece of the object you want, but provide a default value it it is not there
-                var aString = _.get(a, 'component[' +  sortDetails.columnId + ']', '');
-                var bString = _.get(b, 'component[' +  sortDetails.columnId + ']', '');
+                var aString = _.get(a, 'component[' + sortDetails.columnId + ']', '');
+                var bString = _.get(b, 'component[' + sortDetails.columnId + ']', '');
                 return aString === bString ? 0 : aString > bString ? 1 : -1;
             } else {
                 if (!a.permissions.canRead && !b.permissions.canRead) {
@@ -175,8 +175,8 @@
         // defines a function for sorting
         var comparer = function (a, b) {
             if (sortDetails.columnId === 'name') {
-                var aString = _.get(a, '[' +  sortDetails.columnId + ']', '');
-                var bString = _.get(b, '[' +  sortDetails.columnId + ']', '');
+                var aString = _.get(a, '[' + sortDetails.columnId + ']', '');
+                var bString = _.get(b, '[' + sortDetails.columnId + ']', '');
                 return aString === bString ? 0 : aString > bString ? 1 : -1;
             }
         };
@@ -233,6 +233,7 @@
         $('#parameter-sensitive-radio-button').prop('disabled', false);
         $('#parameter-not-sensitive-radio-button').prop('disabled', false);
         $('#parameter-set-empty-string-field').removeClass('checkbox-checked').addClass('checkbox-unchecked');
+        $('#parameter-value-field').prop('disabled', false);
     };
 
     /**
@@ -912,7 +913,7 @@
         }
 
         // validate the parameter is not a duplicate
-        var matchingParameter = _.find(existingParameters, { name: parameter.name });
+        var matchingParameter = _.find(existingParameters, {name: parameter.name});
 
         // Valid if no duplicate is found or it is edit mode and a matching parameter was found
         if (_.isNil(matchingParameter) || (editMode === true && !_.isNil(matchingParameter))) {
@@ -1649,6 +1650,18 @@
                         $('#parameter-dialog').modal('refreshButtons');
                     };
 
+                    $('#parameter-set-empty-string-field').off().on('change', function (event, args) {
+                        // if we are setting as an empty string, disable the editor
+                        if (args.isChecked) {
+                            $('#parameter-value-field').prop('disabled', true).val('');
+                            $('#parameter-dialog').modal('refreshButtons');
+                        } else {
+                            var value = parameter.sensitive ? '' : parameter.previousValue;
+                            $('#parameter-value-field').prop('disabled', false).val(value);
+                            $('#parameter-dialog').modal('refreshButtons');
+                        }
+                    });
+
                     $('#parameter-dialog')
                         .modal('setHeaderText', 'Edit Parameter')
                         .modal('setOpenHandler', openHandler)
@@ -1875,6 +1888,17 @@
                 .modal('show');
         });
 
+        $('#parameter-set-empty-string-field').off().on('change', function (event, args) {
+            // if we are setting as an empty string, disable the editor
+            if (args.isChecked) {
+                $('#parameter-value-field').prop('disabled', true).val('');
+                $('#parameter-dialog').modal('refreshButtons');
+            } else {
+                $('#parameter-value-field').prop('disabled', false);
+                $('#parameter-dialog').modal('refreshButtons');
+            }
+        });
+
         $('#parameter-context-name').on('keyup', function (evt) {
             // update the buttons to possibly trigger the disabled state
             $('#parameter-context-dialog').modal('refreshButtons');
@@ -1956,6 +1980,17 @@
                 }
             }])
             .modal('show');
+
+        $('#parameter-set-empty-string-field').off().on('change', function (event, args) {
+            // if we are setting as an empty string, disable the editor
+            if (args.isChecked) {
+                $('#parameter-value-field').prop('disabled', true).val('');
+                $('#parameter-dialog').modal('refreshButtons');
+            } else {
+                $('#parameter-value-field').prop('disabled', false);
+                $('#parameter-dialog').modal('refreshButtons');
+            }
+        });
     };
 
     /**
@@ -2559,7 +2594,7 @@
 
                                 // initiate the parameter context update with the new parameter
                                 submitUpdateRequest(parameterContextEntity)
-                                    .done(function(response) {
+                                    .done(function (response) {
                                         var pollUpdateRequest = function (updateRequestEntity) {
                                             var updateRequest = updateRequestEntity.request;
                                             var errored = !_.isEmpty(updateRequest.failureReason);
@@ -2611,7 +2646,7 @@
                                         deferred.reject(e)
                                     });
                             },
-                            onCancel: function() {
+                            onCancel: function () {
                                 showUpdateStatus(false);
 
                                 if (!_.isNil(parameterContextEntity.id) && !_.isNil(requestId)) {
@@ -2653,7 +2688,7 @@
                         // update the buttons to possibly trigger the disabled state
                         $('#parameter-dialog').modal('refreshButtons');
                     })
-                    .fail(function(e) {
+                    .fail(function (e) {
                         deferred.reject(e);
                     });
             }).promise();
