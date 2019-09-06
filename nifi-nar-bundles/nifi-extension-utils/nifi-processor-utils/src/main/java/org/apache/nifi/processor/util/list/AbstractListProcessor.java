@@ -471,7 +471,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
             // track of when this last executed for consideration of the lag nanos
             entityList = performListing(context, minTimestampToListMillis);
         } catch (final IOException e) {
-            getLogger().error("Failed to perform listing on remote host due to {}", e);
+            getLogger().error("Failed to perform listing on remote host due to {}", new Object[]{e.getMessage()}, e);
             context.yield();
             return;
         }
@@ -740,7 +740,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
             try {
                 return performListing(context, minTimestampToList);
             } catch (final IOException e) {
-                getLogger().error("Failed to perform listing on remote host due to {}", e);
+                getLogger().error("Failed to perform listing on remote host due to {}", new Object[]{e.getMessage()}, e);
                 return Collections.emptyList();
             }
         }, entity -> createAttributes(entity, context));
