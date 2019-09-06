@@ -65,7 +65,7 @@
                             Parameter
                         </div>
                         <div class="setting-field">
-                            <div id="parameter-referencing-components-context"></div>
+                            <div id="parameter-referencing-components-context" class="ellipsis"></div>
                         </div>
                     </div>
                     <div class="setting">
