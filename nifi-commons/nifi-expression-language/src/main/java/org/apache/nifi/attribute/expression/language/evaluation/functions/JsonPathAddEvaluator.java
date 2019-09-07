@@ -18,21 +18,20 @@ package org.apache.nifi.attribute.expression.language.evaluation.functions;
 
 import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.JsonPath;
-
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 
 /**
- * JsonPathSetEvaluator allows setting values at the specified existing path
+ * JsonPathAddEvaluator allows adding a value to an array at the specified existing path
  */
-public class JsonPathSetEvaluator extends JsonPathUpdateEvaluator {
+public class JsonPathAddEvaluator extends JsonPathUpdateEvaluator {
 
-    public JsonPathSetEvaluator(final Evaluator<String> subject, final Evaluator<String> jsonPathExp, final Evaluator<?> valueEvaluator) {
+    public JsonPathAddEvaluator(final Evaluator<String> subject, final Evaluator<String> jsonPathExp, final Evaluator<?> valueEvaluator) {
         super(subject, jsonPathExp, valueEvaluator);
     }
 
     @Override
     public DocumentContext updateAttribute(DocumentContext documentContext, JsonPath jsonPath, Object value) {
-        return documentContext.set(jsonPath, value);
+        return documentContext.add(jsonPath, value);
     }
 }
 

@@ -1699,6 +1699,61 @@ form of the updated JSON.#
 An empty subject value or a subject value with an invalid JSON document results in an exception bulletin.
 
 [.function]
+=== jsonPathAdd
+
+*Description*: [.description]#The `jsonPathAdd` function adds a scalar value to an array at the specified JsonPath on
+a Subject JSON and returns string form of the updated JSON.#  If the expression target element is a non-array,
+an empty string is returned and an exception is logged indicating the error.  If the expression target element
+path is not in the JSON, the operation returns the original JSON without any modifications.
+
+*Subject Type*: [.subject]#String#
+
+*Arguments*:
+
+- [.argName]#_jsonPath_# : [.argDesc]#the JSON path expression to set value on the Subject.#
+- [.argName]#_value_# : [.argDesc]#the value expression to be added to the array at the specified path on Subject.#
+
+*Return Type*: [.returnType]#String#
+
+*Examples*: If the "myJson" attribute is
+
+..........
+{
+     "firstName": "John",
+     "lastName": "Smith",
+     "age": 25,
+     "voter" : true,
+     "height" : 6.1,
+     "address" : {
+         "streetAddress": "21 2nd Street",
+         "city": "New York",
+         "state": "NY",
+         "postalCode": "10021-3100"
+     },
+     "phoneNumbers": [
+         {
+             "type": "home",
+             "number": "212 555-1234"
+         },
+         {
+             "type": "office",
+             "number": "646 555-4567"
+         }
+     ],
+     "nicknames" : []
+ }
+..........
+
+.jsonPathAdd Examples
+|===================================================================
+| Expression | Value
+| `${myJson:jsonPathAdd('$.nicknames', 'Jimmy')}` | `{"firstName":"James", lastName":"Smith", "age":25, "voter":true, "height":6.1, "address":{"streetAddress":"21 2nd Street", "city":"New York", "state":"NY", "postalCode":"10021-3100"}, "phoneNumbers":[{"type":"home", "number":"212 555-1234"}, {"type":"office", "number":"646 555-4567"}],"nicknames":["Jimmy"]}`
+| `${myJson:jsonPathAdd('$.missingpath', 'Jimmy')}` | Returns original JSON document with no modifications
+| `${myJson:jsonPathAdd('$.firstName', 'Jimmy')}` | _empty_
+|===================================================================
+
+
+[.function]
 === jsonPathSet
 
 *Description*: [.description]#The `jsonPathSet` function sets the value at the specified JsonPath on a Subject JSON and returns string
@@ -1737,7 +1792,8 @@ form of the updated JSON.#
              "type": "office",
              "number": "646 555-4567"
          }
-     ]
+     ],
+     "nicknames" : []
  }
 ..........
 
