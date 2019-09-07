@@ -17,6 +17,7 @@
 package org.apache.nifi.attribute.expression.language;
 
 import org.antlr.runtime.tree.Tree;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.attribute.expression.language.Query.Range;
 import org.apache.nifi.attribute.expression.language.evaluation.NumberQueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
@@ -346,6 +347,10 @@ public class TestQuery {
 
     private void verifyAddressBookAttributes(String originalAddressBook, Map<String,String> attributes, String updatedAttribute, Object updatedValue) {
 
+        if (StringUtils.isBlank(attributes.get("json"))) {
+            throw new IllegalArgumentException("original Json attributes is empty");
+        }
+
         Map<String, String> originalAttributes = new HashMap<>();
         originalAttributes.put("json", originalAddressBook);
 
@@ -450,6 +455,35 @@ public class TestQuery {
             "",
             "${json:jsonPathSet('$.missing-path', 5.9)}",
             "");
+    }
+
+    @Test
+    public void testJsonPathAddNicknameJimmy() throws IOException {
+        Map<String,String> attributes = verifyJsonPathExpressions(
+                ADDRESS_BOOK_JSON_PATH_EMPTY,
+                "",
+                "${json:jsonPathAdd('$.nicknames', 'Jimmy')}",
+                "");
+        verifyEquals("${json:jsonPath('$.nicknames')}", attributes, "Jimmy");
+    }
+
+    @Test
+    public void testJsonPathAddNicknameJimmyAtNonexistantPath() throws IOException {
+        Map<String,String> attributes = verifyJsonPathExpressions(
+                ADDRESS_BOOK_JSON_PATH_EMPTY,
+                "",
+                "${json:jsonPathAdd('$.missing-path', 'Jimmy')}",
+                "");
+       verifyEquals("${json:jsonPath('$.missing-path')}", attributes, "");
+    }
+
+    @Test(expected=IllegalArgumentException.class)
+    public void testJsonPathAddNicknameJimmyAtNonArray() throws IOException {
+        Map<String,String> attributes = verifyJsonPathExpressions(
+                ADDRESS_BOOK_JSON_PATH_EMPTY,
+                "",
+                "${json:jsonPathAdd('$.firstName', 'Jimmy')}",
+                "");
     }
 
     @Test
