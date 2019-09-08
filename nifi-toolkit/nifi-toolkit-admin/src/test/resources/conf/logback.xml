@@ -105,40 +105,74 @@
 
     <!-- valid logging levels: TRACE, DEBUG, INFO, WARN, ERROR -->
 
-    <logger name="org.apache.nifi" level="INFO"/>
-    <logger name="org.apache.nifi.processors" level="WARN">
-        <appender-ref ref="APP_FILE"/>
+    <logger name="org.apache.nifi" level="INFO">
+        <appender-ref ref="FRAMEWORK_FILE"/>
     </logger>
-    <logger name="org.apache.nifi.processors.standard.LogAttribute" level="INFO">
-        <appender-ref ref="APP_FILE"/>
+    <logger name="org.apache.nifi.processors" level="WARN"/>
+    <logger name="org.apache.nifi.processors.standard.LogAttribute" level="INFO"/>
+    <logger name="org.apache.nifi.processors.standard.LogMessage" level="INFO"/>
+    <logger name="org.apache.nifi.controller.repository.StandardProcessSession" level="WARN"/>
+
+
+    <logger name="org.apache.zookeeper.ClientCnxn" level="ERROR">
+        <appender-ref ref="FRAMEWORK_FILE"/>
     </logger>
-    <logger name="org.apache.nifi.controller.repository.StandardProcessSession" level="WARN" />
+    <logger name="org.apache.zookeeper.server.NIOServerCnxn" level="ERROR">
+        <appender-ref ref="FRAMEWORK_FILE"/>
+    </logger>
+    <logger name="org.apache.zookeeper.server.NIOServerCnxnFactory" level="ERROR">
+        <appender-ref ref="FRAMEWORK_FILE"/>
+    </logger>
+    <logger name="org.apache.zookeeper.server.quorum" level="ERROR">
+        <appender-ref ref="FRAMEWORK_FILE"/>
+    </logger>
+    <logger name="org.apache.zookeeper.ZooKeeper" level="ERROR">
+        <appender-ref ref="FRAMEWORK_FILE"/>
+    </logger>
+    <logger name="org.apache.zookeeper.server.PrepRequestProcessor" level="ERROR">
+        <appender-ref ref="FRAMEWORK_FILE"/>
+    </logger>
 
+    <logger name="org.apache.calcite.runtime.CalciteException" level="OFF">
+        <appender-ref ref="FRAMEWORK_FILE"/>
+    </logger>
 
-    <logger name="org.apache.zookeeper.ClientCnxn" level="ERROR" />
-    <logger name="org.apache.zookeeper.server.NIOServerCnxn" level="ERROR" />
-    <logger name="org.apache.zookeeper.server.NIOServerCnxnFactory" level="ERROR" />
-    <logger name="org.apache.zookeeper.server.quorum" level="ERROR" />
-    <logger name="org.apache.zookeeper.ZooKeeper" level="ERROR" />
-    <logger name="org.apache.zookeeper.server.PrepRequestProcessor" level="ERROR" />
-
-    <logger name="org.apache.curator.framework.recipes.leader.LeaderSelector" level="OFF" />
-    <logger name="org.apache.curator.ConnectionState" level="OFF" />
+    <logger name="org.apache.curator.framework.recipes.leader.LeaderSelector" level="OFF">
+        <appender-ref ref="FRAMEWORK_FILE"/>
+    </logger>
+    <logger name="org.apache.curator.ConnectionState" level="OFF">
+        <appender-ref ref="FRAMEWORK_FILE"/>
+    </logger>
 
     <!-- Logger for managing logging statements for nifi clusters. -->
-    <logger name="org.apache.nifi.cluster" level="INFO"/>
+    <logger name="org.apache.nifi.cluster" level="INFO">
+        <appender-ref ref="FRAMEWORK_FILE"/>
+    </logger>
 
     <!-- Logger for logging HTTP requests received by the web server. -->
-    <logger name="org.apache.nifi.server.JettyServer" level="INFO"/>
+    <logger name="org.apache.nifi.server.JettyServer" level="INFO">
+        <appender-ref ref="FRAMEWORK_FILE"/>
+    </logger>
 
     <!-- Logger for managing logging statements for jetty -->
-    <logger name="org.eclipse.jetty" level="INFO"/>
+    <logger name="org.eclipse.jetty" level="INFO">
+        <appender-ref ref="FRAMEWORK_FILE"/>
+    </logger>
 
     <!-- Suppress non-error messages due to excessive logging by class or library -->
-    <logger name="org.springframework" level="ERROR"/>
+    <logger name="org.springframework" level="ERROR">
+        <appender-ref ref="FRAMEWORK_FILE"/>
+    </logger>
 
     <!-- Suppress non-error messages due to known warning about redundant path annotation (NIFI-574) -->
-    <logger name="org.glassfish.jersey.internal.Errors" level="ERROR"/>
+    <logger name="org.glassfish.jersey.internal.Errors" level="ERROR">
+        <appender-ref ref="FRAMEWORK_FILE"/>
+    </logger>
+
+    <!-- Suppress non-error messages due to Jetty AnnotationParser emitting a large amount of WARNS. Issue described in NIFI-5479. -->
+    <logger name="org.eclipse.jetty.annotations.AnnotationParser" level="ERROR">
+        <appender-ref ref="FRAMEWORK_FILE"/>
+    </logger>
 
     <!--
         Logger for capturing user events. We do not want to propagate these
@@ -185,7 +219,7 @@
 
 
     <root level="INFO">
-        <appender-ref ref="FRAMEWORK_FILE"/>
+        <appender-ref ref="APP_FILE"/>
     </root>
 
 </configuration>
