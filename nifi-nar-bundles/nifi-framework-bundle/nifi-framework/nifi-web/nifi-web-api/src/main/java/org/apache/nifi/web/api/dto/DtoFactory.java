@@ -1193,11 +1193,11 @@ public final class DtoFactory {
             if (predictionsDTO != null) {
                 snapshot.setPredictions(predictionsDTO);
                 predictionsDTO.setPredictionIntervalSeconds(((Long) (predictions.getPredictionIntervalMillis() / 1000L)).intValue());
-                predictionsDTO.setPredictedMillisUntilCountBackpressure(predictions.getPredictedTimeToCountBackpressureMillis() > -1
-                                                                        ? predictions.getPredictedTimeToCountBackpressureMillis(): null);
-                predictionsDTO.setPredictedCountAtNextInterval(predictions.getNextPredictedQueuedCount() > -1 ? predictions.getNextPredictedQueuedCount() : null);
-                predictionsDTO.setPredictedPercentCount(predictions.getPredictedPercentCount() > -1 ? predictions.getPredictedPercentCount() : null);
-                predictionsDTO.setPredictedPercentBytes(predictions.getPredictedPercentBytes() > -1 ? predictions.getPredictedPercentBytes() : null);
+                predictionsDTO.setPredictedMillisUntilCountBackpressure(predictions.getPredictedTimeToCountBackpressureMillis());
+                predictionsDTO.setPredictedCountAtNextInterval(predictions.getNextPredictedQueuedCount());
+                predictionsDTO.setPredictedPercentCount(predictions.getPredictedPercentCount());
+                predictionsDTO.setPredictedPercentBytes(predictions.getPredictedPercentBytes());
+                predictionsDTO.setPredictionIntervalSeconds(((Long) (predictions.getPredictionIntervalMillis() / 1000L)).intValue());
             }
         }
         if (connectionStatus.getBackPressureBytesThreshold() > 0) {
@@ -1206,11 +1206,11 @@ public final class DtoFactory {
             if (predictionsDTO != null) {
                 snapshot.setPredictions(predictionsDTO);
                 predictionsDTO.setPredictionIntervalSeconds(((Long) (predictions.getPredictionIntervalMillis() / 1000L)).intValue());
-                predictionsDTO.setPredictedMillisUntilBytesBackpressure(predictions.getPredictedTimeToBytesBackpressureMillis() > -1
-                                                                        ? predictions.getPredictedTimeToBytesBackpressureMillis(): null);
-                predictionsDTO.setPredictedBytesAtNextInterval(predictions.getNextPredictedQueuedBytes() > -1 ? predictions.getNextPredictedQueuedBytes() : null);
-                predictionsDTO.setPredictedPercentCount(predictions.getPredictedPercentCount() > -1 ? predictions.getPredictedPercentCount() : null);
-                predictionsDTO.setPredictedPercentBytes(predictions.getPredictedPercentBytes() > -1 ? predictions.getPredictedPercentBytes() : null);
+                predictionsDTO.setPredictedMillisUntilBytesBackpressure(predictions.getPredictedTimeToBytesBackpressureMillis());
+                predictionsDTO.setPredictedBytesAtNextInterval(predictions.getNextPredictedQueuedBytes());
+                predictionsDTO.setPredictedPercentCount(predictions.getPredictedPercentCount());
+                predictionsDTO.setPredictedPercentBytes(predictions.getPredictedPercentBytes());
+                predictionsDTO.setPredictionIntervalSeconds(((Long) (predictions.getPredictionIntervalMillis() / 1000L)).intValue());
             }
         }
 

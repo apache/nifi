@@ -515,13 +515,13 @@ public class StatusMerger {
             if (targetPredictions.getPredictedMillisUntilBytesBackpressure() == null) {
                 targetPredictions.setPredictedMillisUntilBytesBackpressure(toMergePredictions.getPredictedMillisUntilBytesBackpressure());
             } else if (toMergePredictions.getPredictedMillisUntilBytesBackpressure() != null) {
-                targetPredictions.setPredictedMillisUntilBytesBackpressure(Math.min(targetPredictions.getPredictedMillisUntilBytesBackpressure(),
+                targetPredictions.setPredictedMillisUntilBytesBackpressure(minNonNegative(targetPredictions.getPredictedMillisUntilBytesBackpressure(),
                         toMergePredictions.getPredictedMillisUntilBytesBackpressure()));
             }
             if (targetPredictions.getPredictedMillisUntilCountBackpressure() == null) {
                 targetPredictions.setPredictedMillisUntilCountBackpressure(toMergePredictions.getPredictedMillisUntilCountBackpressure());
             } else if (toMergePredictions.getPredictedMillisUntilCountBackpressure() != null) {
-                targetPredictions.setPredictedMillisUntilCountBackpressure(Math.min(targetPredictions.getPredictedMillisUntilCountBackpressure(),
+                targetPredictions.setPredictedMillisUntilCountBackpressure(minNonNegative(targetPredictions.getPredictedMillisUntilCountBackpressure(),
                         toMergePredictions.getPredictedMillisUntilCountBackpressure()));
             }
 
@@ -542,6 +542,15 @@ public class StatusMerger {
         updatePrettyPrintedFields(target);
     }
 
+    private static long minNonNegative(long a, long b){
+        if(a < 0){
+            return b;
+        }else if(b < 0){
+            return a;
+        }else{
+            return Math.min(a, b);
+        }
+    }
     public static void updatePrettyPrintedFields(final ConnectionStatusSnapshotDTO target) {
         target.setQueued(prettyPrint(target.getFlowFilesQueued(), target.getBytesQueued()));
         target.setQueuedCount(formatCount(target.getFlowFilesQueued()));
