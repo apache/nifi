@@ -27,13 +27,6 @@ import io.swagger.annotations.ApiModelProperty;
 public class ConnectionStatisticsSnapshotDTO implements Cloneable {
 
     private String id;
-    private String groupId;
-    private String name;
-
-    private String sourceId;
-    private String sourceName;
-    private String destinationId;
-    private String destinationName;
 
     private Long predictedMillisUntilCountBackpressure = 0L;
     private Long predictedMillisUntilBytesBackpressure = 0L;
@@ -54,78 +47,6 @@ public class ConnectionStatisticsSnapshotDTO implements Cloneable {
 
     public void setId(String id) {
         this.id = id;
-    }
-
-    /**
-     * @return the ID of the Process Group to which this connection belongs.
-     */
-    @ApiModelProperty("The id of the process group the connection belongs to.")
-    public String getGroupId() {
-        return groupId;
-    }
-
-    public void setGroupId(final String groupId) {
-        this.groupId = groupId;
-    }
-
-    /**
-     * @return name of this connection
-     */
-    @ApiModelProperty("The name of the connection.")
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    /**
-     * @return id of the source of this connection
-     */
-    @ApiModelProperty("The id of the source of the connection.")
-    public String getSourceId() {
-        return sourceId;
-    }
-
-    public void setSourceId(String sourceId) {
-        this.sourceId = sourceId;
-    }
-
-    /**
-     * @return name of the source of this connection
-     */
-    @ApiModelProperty("The name of the source of the connection.")
-    public String getSourceName() {
-        return sourceName;
-    }
-
-    public void setSourceName(String sourceName) {
-        this.sourceName = sourceName;
-    }
-
-    /**
-     * @return id of the destination of this connection
-     */
-    @ApiModelProperty("The id of the destination of the connection.")
-    public String getDestinationId() {
-        return destinationId;
-    }
-
-    public void setDestinationId(String destinationId) {
-        this.destinationId = destinationId;
-    }
-
-    /**
-     * @return name of the destination of this connection
-     */
-    @ApiModelProperty("The name of the destination of the connection.")
-    public String getDestinationName() {
-        return destinationName;
-    }
-
-    public void setDestinationName(String destinationName) {
-        this.destinationName = destinationName;
     }
 
     @ApiModelProperty("The predicted number of milliseconds before the connection will have backpressure applied, based on the queued count.")
@@ -194,13 +115,7 @@ public class ConnectionStatisticsSnapshotDTO implements Cloneable {
     @Override
     public ConnectionStatisticsSnapshotDTO clone() {
         final ConnectionStatisticsSnapshotDTO other = new ConnectionStatisticsSnapshotDTO();
-        other.setDestinationId(getDestinationId());
-        other.setDestinationName(getDestinationName());
-        other.setGroupId(getGroupId());
         other.setId(getId());
-        other.setName(getName());
-        other.setSourceId(getSourceId());
-        other.setSourceName(getSourceName());
 
         other.setPredictedMillisUntilCountBackpressure(getPredictedMillisUntilCountBackpressure());
         other.setPredictedMillisUntilBytesBackpressure(getPredictedMillisUntilBytesBackpressure());

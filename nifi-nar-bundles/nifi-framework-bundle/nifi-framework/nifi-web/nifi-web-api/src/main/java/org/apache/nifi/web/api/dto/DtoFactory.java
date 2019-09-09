@@ -1229,10 +1229,6 @@ public final class DtoFactory {
         connectionStatisticsDTO.setAggregateSnapshot(snapshot);
 
         snapshot.setId(connection.getIdentifier());
-        snapshot.setGroupId(connection.getProcessGroup().getIdentifier());
-        snapshot.setName(connection.getName());
-        snapshot.setSourceName(connection.getSource().getName());
-        snapshot.setDestinationName(connection.getDestination().getName());
 
         Map<String,Long> predictions = statusAnalytics.getPredictions();
         snapshot.setPredictedMillisUntilBytesBackpressure(predictions.get("timeToBytesBackpressureMillis"));
