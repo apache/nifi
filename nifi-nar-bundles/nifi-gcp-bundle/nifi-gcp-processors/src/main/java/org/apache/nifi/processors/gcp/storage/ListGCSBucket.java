@@ -266,7 +266,7 @@ public class ListGCSBucket extends AbstractGCSProcessor {
 
         Page<Blob> blobPage = storage.list(bucket, listOptions.toArray(new Storage.BlobListOption[listOptions.size()]));
         do {
-            int loadCount = 0;
+            int listCount = 0;
 
             for (Blob blob : blobPage.getValues()) {
                 long lastModified = blob.getUpdateTime();
@@ -389,10 +389,10 @@ public class ListGCSBucket extends AbstractGCSProcessor {
                 if (lastModified == maxTimestamp) {
                     maxKeys.add(blob.getName());
                 }
-                loadCount++;
+                listCount++;
             }
 
-            commit(context, session, loadCount);
+            commit(context, session, listCount);
 
             blobPage = blobPage.getNextPage();
         } while (blobPage != null);
@@ -402,7 +402,7 @@ public class ListGCSBucket extends AbstractGCSProcessor {
             currentKeys = maxKeys;
             persistState(context);
         } else {
-            getLogger().debug("No new objects in GCS bucket {} to load. Yielding.", new Object[]{bucket});
+            getLogger().debug("No new objects in GCS bucket {} to list. Yielding.", new Object[]{bucket});
             context.yield();
         }
 
@@ -410,9 +410,9 @@ public class ListGCSBucket extends AbstractGCSProcessor {
         getLogger().info("Successfully listed GCS bucket {} in {} millis", new Object[]{bucket, listMillis});
     }
 
-    private void commit(final ProcessContext context, final ProcessSession session, int loadCount) {
-        if (loadCount > 0) {
-            getLogger().info("Successfully loaded {} new files from GCS; routing to success", new Object[] {loadCount});
+    private void commit(final ProcessContext context, final ProcessSession session, int listCount) {
+        if (listCount > 0) {
+            getLogger().info("Successfully listed {} new files from GCS; routing to success", new Object[] {listCount});
             session.commit();
         }
     }
