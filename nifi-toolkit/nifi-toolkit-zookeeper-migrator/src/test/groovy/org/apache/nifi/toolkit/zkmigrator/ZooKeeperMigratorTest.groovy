@@ -25,7 +25,6 @@ import org.apache.zookeeper.WatchedEvent
 import org.apache.zookeeper.ZKUtil
 import org.apache.zookeeper.ZooDefs
 import org.apache.zookeeper.ZooKeeper
-import org.apache.zookeeper.data.ACL
 import org.apache.zookeeper.data.Stat
 import org.apache.zookeeper.server.auth.DigestAuthenticationProvider
 import spock.lang.Ignore
