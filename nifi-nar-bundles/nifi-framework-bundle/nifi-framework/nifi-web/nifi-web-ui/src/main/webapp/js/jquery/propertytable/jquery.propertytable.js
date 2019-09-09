@@ -1363,14 +1363,16 @@
             }
 
             if (options.readOnly !== true) {
-                var canModifyParamContext = false;
+                var canConvertPropertyToParam = false;
                 if (_.isFunction(options.getParameterContext)) {
                     var paramContext = options.getParameterContext(groupId);
-                    canModifyParamContext = _.get(paramContext, 'permissions.canWrite', false);
+                    var canWriteParamContext = _.get(paramContext, 'permissions.canWrite', false);
+                    var canReadParamContext = _.get(paramContext, 'permissions.canRead', false);
+                    canConvertPropertyToParam = canWriteParamContext && canReadParamContext;
                 }
                 var referencesParam = referencesParameter(dataContext.value);
 
-                if (canModifyParamContext && !referencesParam && !identifiesControllerService) {
+                if (canConvertPropertyToParam && !referencesParam && !identifiesControllerService) {
                     markup += '<div title="Convert to parameter" class="convert-to-parameter pointer fa fa-level-up"></div>';
                 }
 
@@ -1572,13 +1574,15 @@
                     }
                 } else if (target.hasClass('convert-to-parameter')) {
                     var parameterContext;
-                    var canModifyParamContext = false;
+                    var canConvertPropertyToParam = false;
                     if (_.isFunction(options.getParameterContext)) {
                         parameterContext = options.getParameterContext(groupId);
-                        canModifyParamContext = _.get(parameterContext, 'permissions.canWrite', false);
+                        var canWriteParamContext = _.get(parameterContext, 'permissions.canWrite', false);
+                        var canReadParamContext = _.get(parameterContext, 'permissions.canRead', false);
+                        canConvertPropertyToParam = canWriteParamContext && canReadParamContext;
                     }
 
-                    if (options.readOnly !== true && canModifyParamContext) {
+                    if (options.readOnly !== true && canConvertPropertyToParam) {
                         var descriptors = table.data('descriptors');
                         var propertyDescriptor = descriptors[property.property];
 

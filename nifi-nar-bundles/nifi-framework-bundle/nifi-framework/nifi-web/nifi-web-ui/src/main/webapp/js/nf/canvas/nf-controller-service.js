@@ -1877,6 +1877,10 @@
                         return goToServiceFromProperty(serviceTable);
                     },
                     getParameterContext: function (groupId) {
+                        if (_.isNil(controllerServiceEntity.parentGroupId)) {
+                            return null;
+                        }
+
                         var parameterContext;
 
                         // attempt to identify the parameter context, conditional based on whether
