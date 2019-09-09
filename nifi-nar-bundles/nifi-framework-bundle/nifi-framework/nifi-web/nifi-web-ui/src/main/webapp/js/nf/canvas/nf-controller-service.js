@@ -1876,10 +1876,10 @@
                     goToServiceDeferred: function () {
                         return goToServiceFromProperty(serviceTable);
                     },
-                    getParameterContextId: function (groupId) {
+                    getParameterContext: function (groupId) {
                         var parameterContext;
 
-                        // attempt to identify the parameter context id, conditional based on whether
+                        // attempt to identify the parameter context, conditional based on whether
                         // the user is configuring the current process group
                         if (_.isNil(groupId) || groupId === nfCanvasUtils.getGroupId()) {
                             parameterContext = nfCanvasUtils.getParameterContext();
@@ -1888,7 +1888,7 @@
                             parameterContext = parentProcessGroup.parameterContext;
                         }
 
-                        return nfCommon.isDefinedAndNotNull(parameterContext) ? parameterContext.id : null;
+                        return parameterContext;
                     }
                 });
 

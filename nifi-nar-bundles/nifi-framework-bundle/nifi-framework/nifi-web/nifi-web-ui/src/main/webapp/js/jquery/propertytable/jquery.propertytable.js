@@ -1363,14 +1363,14 @@
             }
 
             if (options.readOnly !== true) {
-                var canModifyParamContexts = nfCommon.canModifyParameterContexts();
-                var paramContextIsSet = false;
-                if (_.isFunction(options.getParameterContextId)) {
-                    paramContextIsSet = !_.isNil(options.getParameterContextId(groupId));
+                var canModifyParamContext = false;
+                if (_.isFunction(options.getParameterContext)) {
+                    var paramContext = options.getParameterContext(groupId);
+                    canModifyParamContext = _.get(paramContext, 'permissions.canWrite', false);
                 }
                 var referencesParam = referencesParameter(dataContext.value);
 
-                if (canModifyParamContexts && paramContextIsSet && !referencesParam && !identifiesControllerService) {
+                if (canModifyParamContext && !referencesParam && !identifiesControllerService) {
                     markup += '<div title="Convert to parameter" class="convert-to-parameter pointer fa fa-level-up"></div>';
                 }
 
@@ -1571,16 +1571,18 @@
                         }
                     }
                 } else if (target.hasClass('convert-to-parameter')) {
-                    var parameterContextId;
-                    if (_.isFunction(options.getParameterContextId)) {
-                        parameterContextId = options.getParameterContextId(groupId);
+                    var parameterContext;
+                    var canModifyParamContext = false;
+                    if (_.isFunction(options.getParameterContext)) {
+                        parameterContext = options.getParameterContext(groupId);
+                        canModifyParamContext = _.get(parameterContext, 'permissions.canWrite', false);
                     }
 
-                    if (options.readOnly !== true && !_.isNil(parameterContextId)) {
+                    if (options.readOnly !== true && canModifyParamContext) {
                         var descriptors = table.data('descriptors');
                         var propertyDescriptor = descriptors[property.property];
 
-                        nfParameterContexts.convertPropertyToParameter(property, propertyDescriptor, parameterContextId)
+                        nfParameterContexts.convertPropertyToParameter(property, propertyDescriptor, parameterContext.id)
                             .done(function (parameter) {
                                 var updatedItem = _.extend({}, property, {
                                     previousValue: property.value,
