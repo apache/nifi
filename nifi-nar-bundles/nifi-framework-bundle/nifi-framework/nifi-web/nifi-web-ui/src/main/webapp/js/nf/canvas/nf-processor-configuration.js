@@ -660,10 +660,9 @@
                     }).promise();
                 },
                 goToServiceDeferred: goToServiceFromProperty,
-                getParameterContextId: function (groupId) {
+                getParameterContext: function (groupId) {
                     // processors being configured must be in the current group
-                    var parameterContext = nfCanvasUtils.getParameterContext();
-                    return nfCommon.isDefinedAndNotNull(parameterContext) ? parameterContext.id : null;
+                    return nfCanvasUtils.getParameterContext();
                 }
             });
         },
