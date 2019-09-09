@@ -134,6 +134,11 @@
             <artifactId>commons-io</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-math3</artifactId>
+            <version>3.6.1</version>
+        </dependency>
+        <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-data-provenance-utils</artifactId>
             <version>1.10.0-SNAPSHOT</version>
@@ -235,6 +240,12 @@
             <artifactId>nifi-persistent-provenance-repository</artifactId>
             <version>1.10.0-SNAPSHOT</version>
             <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+            <version>1.0.1</version>
+            <scope>compile</scope>
         </dependency>
     </dependencies>
     <build>

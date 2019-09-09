@@ -208,6 +208,13 @@
         <nifi.kerberos.spnego.principal />
         <nifi.kerberos.spnego.keytab.location />
         <nifi.kerberos.spnego.authentication.expiration>12 hours</nifi.kerberos.spnego.authentication.expiration>
+
+        <!-- nifi.properties: analytics properties -->
+        <nifi.analytics.predict.enabled>false</nifi.analytics.predict.enabled>
+        <nifi.analytics.predict.interval>3 mins</nifi.analytics.predict.interval>
+        <nifi.analytics.connection.model.implementation>org.apache.nifi.controller.status.analytics.models.OrdinaryLeastSquares</nifi.analytics.connection.model.implementation>
+        <nifi.analytics.connection.model.score.name>rSquared</nifi.analytics.connection.model.score.name>
+        <nifi.analytics.connection.model.score.threshold>.90</nifi.analytics.connection.model.score.threshold>
     </properties>
     <build>
         <plugins>

@@ -2379,6 +2379,21 @@ root@kdc:~# ll /http*
 root@kdc:~#
 ....
 
+[[analytics_framework]]
+== Analytics Framework
+NiFi has an internal analytics framework which can be enabled to predict back pressure occurrence, given the configured settings for threshold on a queue.  The model used by default for prediction is an ordinary least squares (OLS) linear regression. It uses recent observations from a queue (either number of objects or content size over time) and calculates a regression line for that data. The line's equation is then used to determine the next value that will be reached within a given time interval (e.g. number of objects in queue in the next 5 minutes). Below is an example graph of the linear regression model for Queue/Object Count over time which is used for predictions:
+
+image:back_pressure_prediction_model_example.png["Back pressure prediction based on Queue/Object Count"]
+
+In order to generate predictions, local status snapshot history is queried to obtain enough data to generate a model.  By default component status snapshots are captured every minute. Internal models need at least 2 or more observations to generate a prediction, therefore it may take up to 2 or more minutes for predictions to be available by default.  If predictions are needed sooner than what is provided by default, the timing of snapshots can be adjusted using the `nifi.components.status.snapshot.frequency` value in nifi.properties.
+
+NiFi evaluates the model's effectiveness before sending prediction information by using the model's R-Squared score by default. One important note: R-Square is a measure of how close the regression line fits the observation data vs. how accurate the prediction will be; therefore there may be some measure of error. If the R-Squared score for the calculated model meets the configured threshold (as defined by `nifi.analytics.connection.model.score.threshold`) then the model will be used for prediction. Otherwise the model will not be used and predictions will not be available until a model is generated with a score that exceeds the threshold.  Default R-Squared threshold value is `.9` however this can be tuned based on prediction requirements.
+
+The prediction interval `nifi.analytics.predict.interval` can be configured to project out further when back pressure will occur.  Predictions further out in time require more observations stored locally to generate an effective model. This may also require tuning of the model's scoring threshold value to select a score which can offer reasonable predictions.
+
+See <<analytics_properties>> for complete information on configuring analytic properties.
+
+
 [[system_properties]]
 == System Properties
 The _nifi.properties_ file in the `conf` directory is the main configuration file for controlling how NiFi runs. This section provides an overview of the properties in this file and includes some notes on how to configure it in a way that will make upgrading easier. *After making changes to this file, restart NiFi in order
@@ -3315,6 +3330,21 @@ that is specified.
 |`nifi.kerberos.spnego.keytab.location`*|The file path of the NiFi Kerberos keytab, if used. It is blank by default. Note that this property is used to authenticate NiFi users.
   Example: `/etc/http-nifi.keytab`
 |`nifi.kerberos.spengo.authentication.expiration`*|The expiration duration of a successful Kerberos user authentication, if used. The default value is `12 hours`.
+|====
+
+[[analytics_properties]]
+=== Analytics Properties
+
+These properties determine the behavior of the internal NiFi predictive analytics capability, such as backpressure prediction, and should be configured the same way on all nodes.
+
+|====
+|*Property*|*Description*
+|`nifi.analytics.predict.enabled`|This indicates whether prediction should be enabled for the cluster. The default is `false`.
+|`nifi.analytics.predict.interval`|This indicates a time interval for which analytical predictions (queue saturation, e.g.) should be made. The default value is `3 mins`.
+|`nifi.analytics.connection.model.implementation`|This is the implementation class for the status analytics model used to make connection predictions.  The default value is `org.apache.nifi.controller.status.analytics.models.OrdinaryLeastSquares`.
+|`nifi.analytics.connection.model.score.name`|This is the name of the scoring type that should be used to evaluate model.  The default value is `rSquared`.
+|`nifi.analytics.connection.model.score.threshold`|This is the threshold for the scoring value (where model score should be above given threshold).  The default value is `.9`.
+
 |====
 
 [[custom_properties]]

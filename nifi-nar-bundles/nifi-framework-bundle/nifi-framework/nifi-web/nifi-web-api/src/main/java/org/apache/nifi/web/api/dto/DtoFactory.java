@@ -106,6 +106,8 @@ import org.apache.nifi.controller.status.PortStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
 import org.apache.nifi.controller.status.RemoteProcessGroupStatus;
+import org.apache.nifi.controller.status.analytics.ConnectionStatusPredictions;
+import org.apache.nifi.controller.status.analytics.StatusAnalytics;
 import org.apache.nifi.controller.status.history.GarbageCollectionHistory;
 import org.apache.nifi.controller.status.history.GarbageCollectionStatus;
 import org.apache.nifi.diagnostics.GarbageCollection;
@@ -200,7 +202,10 @@ import org.apache.nifi.web.api.dto.provenance.lineage.LineageRequestDTO.LineageR
 import org.apache.nifi.web.api.dto.provenance.lineage.LineageResultsDTO;
 import org.apache.nifi.web.api.dto.provenance.lineage.ProvenanceLinkDTO;
 import org.apache.nifi.web.api.dto.provenance.lineage.ProvenanceNodeDTO;
+import org.apache.nifi.web.api.dto.status.ConnectionStatisticsDTO;
+import org.apache.nifi.web.api.dto.status.ConnectionStatisticsSnapshotDTO;
 import org.apache.nifi.web.api.dto.status.ConnectionStatusDTO;
+import org.apache.nifi.web.api.dto.status.ConnectionStatusPredictionsSnapshotDTO;
 import org.apache.nifi.web.api.dto.status.ConnectionStatusSnapshotDTO;
 import org.apache.nifi.web.api.dto.status.PortStatusDTO;
 import org.apache.nifi.web.api.dto.status.PortStatusSnapshotDTO;
@@ -1177,16 +1182,65 @@ public final class DtoFactory {
         snapshot.setFlowFilesOut(connectionStatus.getOutputCount());
         snapshot.setBytesOut(connectionStatus.getOutputBytes());
 
+        ConnectionStatusPredictions predictions = connectionStatus.getPredictions();
+        ConnectionStatusPredictionsSnapshotDTO predictionsDTO = null;
+        if (predictions != null) {
+            predictionsDTO = new ConnectionStatusPredictionsSnapshotDTO();
+        }
+
         if (connectionStatus.getBackPressureObjectThreshold() > 0) {
             snapshot.setPercentUseCount(Math.min(100, StatusMerger.getUtilization(connectionStatus.getQueuedCount(), connectionStatus.getBackPressureObjectThreshold())));
+
+            if (predictionsDTO != null) {
+                snapshot.setPredictions(predictionsDTO);
+                predictionsDTO.setPredictionIntervalSeconds(((Long) (predictions.getPredictionIntervalMillis() / 1000L)).intValue());
+                predictionsDTO.setPredictedMillisUntilCountBackpressure(predictions.getPredictedTimeToCountBackpressureMillis());
+                predictionsDTO.setPredictedCountAtNextInterval(predictions.getNextPredictedQueuedCount());
+                predictionsDTO.setPredictedPercentCount(predictions.getPredictedPercentCount());
+                predictionsDTO.setPredictedPercentBytes(predictions.getPredictedPercentBytes());
+                predictionsDTO.setPredictionIntervalSeconds(((Long) (predictions.getPredictionIntervalMillis() / 1000L)).intValue());
+            }
         }
         if (connectionStatus.getBackPressureBytesThreshold() > 0) {
             snapshot.setPercentUseBytes(Math.min(100, StatusMerger.getUtilization(connectionStatus.getQueuedBytes(), connectionStatus.getBackPressureBytesThreshold())));
+
+            if (predictionsDTO != null) {
+                snapshot.setPredictions(predictionsDTO);
+                predictionsDTO.setPredictionIntervalSeconds(((Long) (predictions.getPredictionIntervalMillis() / 1000L)).intValue());
+                predictionsDTO.setPredictedMillisUntilBytesBackpressure(predictions.getPredictedTimeToBytesBackpressureMillis());
+                predictionsDTO.setPredictedBytesAtNextInterval(predictions.getNextPredictedQueuedBytes());
+                predictionsDTO.setPredictedPercentCount(predictions.getPredictedPercentCount());
+                predictionsDTO.setPredictedPercentBytes(predictions.getPredictedPercentBytes());
+                predictionsDTO.setPredictionIntervalSeconds(((Long) (predictions.getPredictionIntervalMillis() / 1000L)).intValue());
+            }
         }
 
         StatusMerger.updatePrettyPrintedFields(snapshot);
 
         return connectionStatusDto;
+    }
+
+    public ConnectionStatisticsDTO createConnectionStatisticsDto(final Connection connection, final StatusAnalytics statusAnalytics) {
+        final ConnectionStatisticsDTO connectionStatisticsDTO = new ConnectionStatisticsDTO();
+
+        connectionStatisticsDTO.setId(connection.getIdentifier());
+        connectionStatisticsDTO.setStatsLastRefreshed(new Date());
+
+        final ConnectionStatisticsSnapshotDTO snapshot = new ConnectionStatisticsSnapshotDTO();
+        connectionStatisticsDTO.setAggregateSnapshot(snapshot);
+
+        snapshot.setId(connection.getIdentifier());
+
+        Map<String,Long> predictions = statusAnalytics.getPredictions();
+        snapshot.setPredictedMillisUntilBytesBackpressure(predictions.get("timeToBytesBackpressureMillis"));
+        snapshot.setPredictedMillisUntilCountBackpressure(predictions.get("timeToCountBackpressureMillis"));
+        snapshot.setPredictedBytesAtNextInterval(predictions.get("nextIntervalBytes"));
+        snapshot.setPredictedCountAtNextInterval(predictions.get("nextIntervalCount").intValue());
+        snapshot.setPredictedPercentBytes(predictions.get("nextIntervalPercentageUseBytes").intValue());
+        snapshot.setPredictedPercentCount(predictions.get("nextIntervalPercentageUseCount").intValue());
+        snapshot.setPredictionIntervalMillis(predictions.get("intervalTimeMillis"));
+
+        return connectionStatisticsDTO;
     }
 
     public ProcessorStatusDTO createProcessorStatusDto(final ProcessorStatus procStatus) {

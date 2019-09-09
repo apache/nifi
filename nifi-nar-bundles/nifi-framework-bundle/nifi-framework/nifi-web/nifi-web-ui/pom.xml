@@ -239,6 +239,10 @@
                                         <include>lodash-core/distrib/lodash-core.min.js</include>
                                         <include>lodash-core/distrib/README.md</include>
 
+                                        <include>moment/min/moment.min.js</include>
+                                        <include>moment/README.md</include>
+                                        <include>moment/LICENSE</include>
+
                                     </includes>
                                 </resource>
                             </resources>

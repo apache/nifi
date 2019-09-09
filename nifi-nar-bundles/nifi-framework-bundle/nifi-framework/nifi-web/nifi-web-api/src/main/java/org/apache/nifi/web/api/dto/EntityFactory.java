@@ -20,6 +20,8 @@ import org.apache.nifi.web.api.dto.action.ActionDTO;
 import org.apache.nifi.web.api.dto.diagnostics.ProcessorDiagnosticsDTO;
 import org.apache.nifi.web.api.dto.flow.FlowBreadcrumbDTO;
 import org.apache.nifi.web.api.dto.flow.ProcessGroupFlowDTO;
+import org.apache.nifi.web.api.dto.status.ConnectionStatisticsDTO;
+import org.apache.nifi.web.api.dto.status.ConnectionStatisticsSnapshotDTO;
 import org.apache.nifi.web.api.dto.status.ConnectionStatusDTO;
 import org.apache.nifi.web.api.dto.status.ConnectionStatusSnapshotDTO;
 import org.apache.nifi.web.api.dto.status.ControllerServiceStatusDTO;
@@ -43,6 +45,8 @@ import org.apache.nifi.web.api.entity.BulletinEntity;
 import org.apache.nifi.web.api.entity.ComponentReferenceEntity;
 import org.apache.nifi.web.api.entity.ComponentValidationResultEntity;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
+import org.apache.nifi.web.api.entity.ConnectionStatisticsEntity;
+import org.apache.nifi.web.api.entity.ConnectionStatisticsSnapshotEntity;
 import org.apache.nifi.web.api.entity.ConnectionStatusEntity;
 import org.apache.nifi.web.api.entity.ConnectionStatusSnapshotEntity;
 import org.apache.nifi.web.api.entity.ControllerConfigurationEntity;
@@ -135,6 +139,21 @@ public final class EntityFactory {
         entity.setId(status.getId());
         entity.setCanRead(permissions.getCanRead());
         entity.setConnectionStatusSnapshot(status); // always set the status, as it's always allowed... just need to provide permission context for merging responses
+        return entity;
+    }
+
+    public ConnectionStatisticsEntity createConnectionStatisticsEntity(final ConnectionStatisticsDTO statistics, final PermissionsDTO permissions) {
+        final ConnectionStatisticsEntity entity = new ConnectionStatisticsEntity();
+        entity.setCanRead(permissions.getCanRead());
+        entity.setConnectionStatistics(statistics); // always set the statistics, as it's always allowed... just need to provide permission context for merging responses
+        return entity;
+    }
+
+    public ConnectionStatisticsSnapshotEntity createConnectionStatisticsSnapshotEntity(final ConnectionStatisticsSnapshotDTO statistics, final PermissionsDTO permissions) {
+        final ConnectionStatisticsSnapshotEntity entity = new ConnectionStatisticsSnapshotEntity();
+        entity.setId(statistics.getId());
+        entity.setCanRead(permissions.getCanRead());
+        entity.setConnectionStatisticsSnapshot(statistics); // always set the statistics, as it's always allowed... just need to provide permission context for merging responses
         return entity;
     }
 

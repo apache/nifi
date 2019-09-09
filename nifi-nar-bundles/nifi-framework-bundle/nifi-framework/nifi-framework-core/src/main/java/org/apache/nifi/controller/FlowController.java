@@ -16,13 +16,45 @@
  */
 package org.apache.nifi.controller;
 
+import static java.util.Objects.requireNonNull;
+
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.lang.management.GarbageCollectorMXBean;
+import java.lang.management.ManagementFactory;
+import java.net.InetSocketAddress;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.stream.Collectors;
+
+import javax.net.ssl.SSLContext;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.admin.service.AuditService;
 import org.apache.nifi.annotation.lifecycle.OnConfigurationRestored;
 import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.annotation.notification.OnPrimaryNodeStateChange;
 import org.apache.nifi.annotation.notification.PrimaryNodeState;
-import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.resource.Authorizable;
@@ -117,6 +149,11 @@ import org.apache.nifi.controller.service.StandardConfigurationContext;
 import org.apache.nifi.controller.service.StandardControllerServiceProvider;
 import org.apache.nifi.controller.state.manager.StandardStateManagerProvider;
 import org.apache.nifi.controller.state.server.ZooKeeperStateServer;
+import org.apache.nifi.controller.status.analytics.CachingConnectionStatusAnalyticsEngine;
+import org.apache.nifi.controller.status.analytics.StatusAnalyticsEngine;
+import org.apache.nifi.controller.status.analytics.StatusAnalyticsModel;
+import org.apache.nifi.controller.status.analytics.StatusAnalyticsModelMapFactory;
+import org.apache.nifi.controller.status.analytics.StatusMetricExtractFunction;
 import org.apache.nifi.controller.status.history.ComponentStatusRepository;
 import org.apache.nifi.controller.status.history.GarbageCollectionHistory;
 import org.apache.nifi.controller.status.history.GarbageCollectionStatus;
@@ -139,6 +176,7 @@ import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.nar.NarThreadContextClassLoader;
 import org.apache.nifi.parameter.ParameterContextManager;
+import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.parameter.StandardParameterContextManager;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
@@ -175,44 +213,13 @@ import org.apache.nifi.util.ComponentIdGenerator;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.ReflectionUtils;
+import org.apache.nifi.util.Tuple;
 import org.apache.nifi.util.concurrency.TimedLock;
 import org.apache.nifi.web.api.dto.PositionDTO;
 import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
 import org.apache.zookeeper.server.quorum.QuorumPeerConfig.ConfigException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.net.ssl.SSLContext;
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.lang.management.GarbageCollectorMXBean;
-import java.lang.management.ManagementFactory;
-import java.net.InetSocketAddress;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.stream.Collectors;
-
-import static java.util.Objects.requireNonNull;
 
 public class FlowController implements ReportingTaskProvider, Authorizable, NodeTypeProvider {
 
@@ -347,6 +354,8 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
 
     // guarded by rwLock
     private NodeConnectionStatus connectionStatus;
+
+    private StatusAnalyticsEngine analyticsEngine;
 
     // guarded by rwLock
     private String instanceId;
@@ -588,8 +597,46 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
             zooKeeperStateServer = null;
         }
 
-        eventAccess = new StandardEventAccess(this, flowFileEventRepository);
         componentStatusRepository = createComponentStatusRepository();
+
+        final boolean analyticsEnabled =  Boolean.parseBoolean(nifiProperties.getProperty(NiFiProperties.ANALYTICS_PREDICTION_ENABLED, NiFiProperties.DEFAULT_ANALYTICS_PREDICTION_ENABLED));
+
+        if(analyticsEnabled) {
+
+            // Determine interval for predicting future feature values
+            final String predictionInterval = nifiProperties.getProperty(NiFiProperties.ANALYTICS_PREDICTION_INTERVAL, NiFiProperties.DEFAULT_ANALYTICS_PREDICTION_INTERVAL);
+            long predictionIntervalMillis;
+            try {
+                predictionIntervalMillis = FormatUtils.getTimeDuration(predictionInterval, TimeUnit.MILLISECONDS);
+            } catch (final Exception e) {
+                LOG.warn("Analytics is enabled however could not retrieve value for "+ NiFiProperties.ANALYTICS_PREDICTION_INTERVAL + ". This property has been set to '"
+                                                        + NiFiProperties.DEFAULT_ANALYTICS_PREDICTION_INTERVAL + "'");
+                predictionIntervalMillis = FormatUtils.getTimeDuration(NiFiProperties.DEFAULT_ANALYTICS_PREDICTION_INTERVAL, TimeUnit.MILLISECONDS);
+            }
+
+            // Determine score name to use for evaluating model performance
+            String modelScoreName = nifiProperties.getProperty(NiFiProperties.ANALYTICS_CONNECTION_MODEL_SCORE_NAME, NiFiProperties.DEFAULT_ANALYTICS_CONNECTION_SCORE_NAME);
+
+            // Determine score threshold to use when evaluating acceptable model
+            Double modelScoreThreshold;
+            try {
+                modelScoreThreshold = Double.valueOf(nifiProperties.getProperty(NiFiProperties.ANALYTICS_CONNECTION_MODEL_SCORE_THRESHOLD,
+                                                            Double.toString(NiFiProperties.DEFAULT_ANALYTICS_CONNECTION_SCORE_THRESHOLD)));
+            } catch (final Exception e) {
+                LOG.warn("Analytics is enabled however could not retrieve value for "+ NiFiProperties.ANALYTICS_CONNECTION_MODEL_SCORE_THRESHOLD + ". This property has been set to '"
+                                                        + NiFiProperties.DEFAULT_ANALYTICS_CONNECTION_SCORE_THRESHOLD + "'.");
+                modelScoreThreshold = NiFiProperties.DEFAULT_ANALYTICS_CONNECTION_SCORE_THRESHOLD;
+            }
+
+            final Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> modelMap = StatusAnalyticsModelMapFactory
+                    .getConnectionStatusModelMap(extensionManager, nifiProperties);
+
+            analyticsEngine = new CachingConnectionStatusAnalyticsEngine(flowManager, componentStatusRepository, flowFileEventRepository, modelMap,
+                    predictionIntervalMillis, modelScoreName, modelScoreThreshold);
+        }
+
+        eventAccess = new StandardEventAccess(this, flowFileEventRepository);
+
         timerDrivenEngineRef.get().scheduleWithFixedDelay(new Runnable() {
             @Override
             public void run() {
@@ -1026,8 +1073,6 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
     }
 
 
-
-
     public KerberosConfig createKerberosConfig(final NiFiProperties nifiProperties) {
         final String principal = nifiProperties.getKerberosServicePrincipal();
         final String keytabLocation = nifiProperties.getKerberosServiceKeytabLocation();
@@ -1370,6 +1415,10 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
 
     public UserAwareEventAccess getEventAccess() {
         return eventAccess;
+    }
+
+    public StatusAnalyticsEngine getStatusAnalyticsEngine() {
+        return analyticsEngine;
     }
 
     /**

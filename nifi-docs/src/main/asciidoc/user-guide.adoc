@@ -1685,6 +1685,8 @@ The FlowFiles enqueued in a Connection can also be deleted when necessary. The r
 via `Empty queue` in the Connection's context menu. This action can also be performed if the source and destination
 are actively running.
 
+If the analytics prediction feature is enabled, hovering over the queue will also reveal predicted statistics on when the queue may encounter back pressure, either due to the object count or content size meeting the current threshold
+settings.  Predictions will only be available when NiFi has enough data in it's internal repository and if it's model is accurate enough to broadcast a prediction.
 
 [[Summary_Page]]
 === Summary Page
