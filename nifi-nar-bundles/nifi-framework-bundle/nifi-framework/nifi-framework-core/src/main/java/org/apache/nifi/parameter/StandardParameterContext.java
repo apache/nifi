@@ -172,7 +172,7 @@ public class StandardParameterContext implements ParameterContext {
 
         // We know that the Parameters have the same name, since this is what the Descriptor's hashCode & equality are based on. The only thing that may be different
         // is the description. And since the proposed Parameter does not have a Description, we want to use whatever is currently set.
-        return oldParameter == null ? null : oldParameter.getDescriptor();
+        return oldParameter == null ? descriptor : oldParameter.getDescriptor();
     }
 
     @Override

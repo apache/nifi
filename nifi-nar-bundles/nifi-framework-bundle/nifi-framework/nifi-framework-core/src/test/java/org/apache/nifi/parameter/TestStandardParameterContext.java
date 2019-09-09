@@ -125,7 +125,7 @@ public class TestStandardParameterContext {
         abcParam = context.getParameter("abc").get();
         assertEquals(abcDescriptor, abcParam.getDescriptor());
         assertEquals("Updated Again", abcParam.getDescriptor().getDescription());
-        assertNull(abcParam.getValue());
+        assertEquals("321", abcParam.getValue());
     }
 
     @Test
