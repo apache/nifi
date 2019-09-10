@@ -1,7 +1,7 @@
 [
   {
     "name": "boolean",
-	"mode": "NULLABLE",
+    "mode": "NULLABLE",
     "type": "BOOLEAN"
   }
 ]
