@@ -19,6 +19,7 @@ package org.apache.nifi.util;
 import java.text.NumberFormat;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -110,7 +111,7 @@ public class FormatUtils {
      */
     public static String formatDataSize(final double dataSize) {
         // initialize the formatter
-        final NumberFormat format = NumberFormat.getNumberInstance();
+        final NumberFormat format = NumberFormat.getNumberInstance(Locale.US);
         format.setMaximumFractionDigits(2);
 
         // check terabytes
