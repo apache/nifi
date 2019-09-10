@@ -78,6 +78,9 @@ public class WebSocketMessageRouter {
     }
 
     public void onWebSocketClose(final String sessionId, final int statusCode, final String reason) {
+         if (processor instanceof ConnectedListener) {
+            ((ConnectedListener)processor).disconnected(getSessionOrFail(sessionId));
+         }
         sessions.remove(sessionId);
     }
 

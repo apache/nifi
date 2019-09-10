@@ -115,6 +115,12 @@ public class TestConnectWebSocket extends TestListenWebSocket {
         binaryFlowFiles.forEach(ff -> {
             assertFlowFile(webSocketSession, serviceId, endpointId, ff, WebSocketMessage.Type.BINARY);
         });
+        List<MockFlowFile> disConnectedFlowFiles = transferredFlowFiles.get(AbstractWebSocketGatewayProcessor.REL_DISCONNECTED);
+        assertEquals(1, connectedFlowFiles.size());
+        disConnectedFlowFiles.forEach(ff -> {
+            assertFlowFile(webSocketSession, serviceId, endpointId, ff, null);
+        });
+
 
         final List<ProvenanceEventRecord> provenanceEvents = sharedSessionState.getProvenanceEvents();
         assertEquals(6, provenanceEvents.size());
