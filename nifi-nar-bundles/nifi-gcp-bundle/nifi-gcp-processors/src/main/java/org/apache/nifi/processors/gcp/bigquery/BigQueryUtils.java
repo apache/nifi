@@ -34,15 +34,15 @@ import com.google.gson.reflect.TypeToken;
  * Util class for schema manipulation
  */
 public class BigQueryUtils {
-	/**
-	 * Exception thrown when a given type can't be transformed into a valid BigQuery type.
-	 *
-	 */
-	public static class BadTypeNameException extends RuntimeException {
-	    public BadTypeNameException(String message) {
-	        super(message);
-	    }
-	}
+    /**
+     * Exception thrown when a given type can't be transformed into a valid BigQuery type.
+     *
+     */
+    public static class BadTypeNameException extends RuntimeException {
+        public BadTypeNameException(String message) {
+            super(message);
+        }
+    }
 
 
     private final static Type gsonSchemaType = new TypeToken<List<Map>>() { }.getType();
@@ -76,7 +76,7 @@ public class BigQueryUtils {
             type = LegacySQLTypeName.FLOAT;
             break;
         case "RECORD":
-        	type = LegacySQLTypeName.RECORD;
+            type = LegacySQLTypeName.RECORD;
             List<Map> fields = (List<Map>) fMap.get("fields");
             subFields.addAll(listToFields(fields));
             break;
