@@ -21,6 +21,7 @@ import org.apache.nifi.registry.client.FlowClient;
 import org.apache.nifi.registry.client.NiFiRegistryClient;
 import org.apache.nifi.registry.client.NiFiRegistryException;
 import org.apache.nifi.registry.diff.VersionedFlowDifference;
+import org.apache.nifi.registry.flow.VersionedFlow;
 import org.apache.nifi.toolkit.cli.api.Context;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 import org.apache.nifi.toolkit.cli.impl.command.registry.AbstractNiFiRegistryCommand;
@@ -42,7 +43,6 @@ public class DiffFlowVersions extends AbstractNiFiRegistryCommand<VersionedFlowD
 
     @Override
     public void doInitialize(final Context context) {
-        addOption(CommandOption.BUCKET_ID.createOption());
         addOption(CommandOption.FLOW_ID.createOption());
         addOption(CommandOption.FLOW_VERSION_1.createOption());
         addOption(CommandOption.FLOW_VERSION_2.createOption());
@@ -52,13 +52,14 @@ public class DiffFlowVersions extends AbstractNiFiRegistryCommand<VersionedFlowD
     public VersionedFlowDifferenceResult doExecute(final NiFiRegistryClient client, final Properties properties)
             throws IOException, NiFiRegistryException, ParseException {
 
-        final String bucketId = getRequiredArg(properties, CommandOption.BUCKET_ID);
         final String flowId = getRequiredArg(properties, CommandOption.FLOW_ID);
         final Integer version1 = getRequiredIntArg(properties, CommandOption.FLOW_VERSION_1);
         final Integer version2 = getRequiredIntArg(properties, CommandOption.FLOW_VERSION_2);
 
         final FlowClient flowClient = client.getFlowClient();
-        final VersionedFlowDifference flowDifference = flowClient.diff(bucketId, flowId, version1, version2);
+        final VersionedFlow flow = flowClient.get(flowId);
+
+        final VersionedFlowDifference flowDifference = flowClient.diff(flow.getBucketIdentifier(), flowId, version1, version2);
         return new VersionedFlowDifferenceResult(getResultType(properties), flowDifference);
     }
 }
