@@ -352,6 +352,7 @@ To add a NiFi Registry command, perform the same steps, but extend from `Abstrac
 The `encrypt-config` command line tool (invoked as `./bin/encrypt-config.sh` or `bin\encrypt-config.bat`) reads from a _nifi.properties_ file with plaintext sensitive configuration values, prompts for a master password or raw hexadecimal key, and encrypts each value. It replaces the plain values with the protected value in the same file, or writes to a new _nifi.properties_ file if specified.
 
 The default encryption algorithm utilized is AES/GCM 128/256-bit. 128-bit is used if the JCE Unlimited Strength Cryptographic Jurisdiction Policy files are not installed, and 256-bit is used if they are installed.
+In addition to AES/GCM keys, the Sensitive Property Providers described in the <<administration-guide.adoc#sensitive_property_providers,Sensitive Property Providers>> section of the Administrator's Guide can be used.
 
 === Usage
 To show help:
@@ -371,11 +372,11 @@ The following are available options:
  * `-i`,`--outputLoginIdentityProviders <arg>`   The destination _login-identity-providers.xml_ file containing protected config values (will not modify input _login-identity-providers.xml_)
  * `-u`,`--outputAuthorizers <arg>`              The destination _authorizers.xml_ file containing protected config values (will not modify input _authorizers.xml_)
  * `-g`,`--outputFlowXml <arg>`                  The destination _flow.xml.gz_ file containing protected config values (will not modify input _flow.xml.gz_)
- * `-k`,`--key <arg>`                            The raw hexadecimal key to use to encrypt the sensitive properties
- * `-e`,`--oldKey <arg>`                         The old raw hexadecimal key to use during key migration
+ * `-k`,`--key <arg>`                            The key to use to encrypt the sensitive properties
+ * `-e`,`--oldKey <arg>`                         The old key to use during key migration
  * `-p`,`--password <arg>`                       The password from which to derive the key to use to encrypt the sensitive properties
  * `-w`,`--oldPassword <arg>`                    The old password from which to derive the key during migration
- * `-r`,`--useRawKey`                            If provided, the secure console will prompt for the raw key value in hexadecimal form
+ * `-r`,`--useRawKey`                            If provided, the secure console will prompt for the key value
  * `-m`,`--migrate`                              If provided, the _nifi.properties_ and/or _login-identity-providers.xml_ sensitive properties will be re-encrypted with a new key
  * `-x`,`--encryptFlowXmlOnly`                   If provided, the properties in _flow.xml.gz_ will be re-encrypted with a new key but the _nifi.properties_ and/or _login-identity-providers.xml_ files will not be modified
  * `-s`,`--propsKey <arg>`                       The password or key to use to encrypt the sensitive processor properties in _flow.xml.gz_
