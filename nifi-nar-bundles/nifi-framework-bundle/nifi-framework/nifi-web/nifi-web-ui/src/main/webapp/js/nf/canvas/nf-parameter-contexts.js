@@ -2205,6 +2205,10 @@
                     $('#parameter-context-id-setting').addClass('hidden');
                 }
 
+                // make sure this dialog is not in read-only mode
+                $('#parameter-context-dialog').removeClass('read-only');
+                $('#parameter-context-dialog').addClass('edit-mode');
+
                 $('#parameter-context-dialog').modal('setHeaderText', 'Add Parameter Context').modal('setButtonModel', [{
                     buttonText: 'Apply',
                     color: {
@@ -2364,7 +2368,9 @@
                 } else {
                     $('#parameter-context-dialog').removeClass('edit-mode');
                     $('#parameter-context-dialog').addClass('read-only');
-                    $('#parameter-context-name-read-only').text(parameterContextEntity.component.name);
+                    $('#parameter-context-name-read-only')
+                        .prop('title', parameterContextEntity.component.name)
+                        .text(parameterContextEntity.component.name);
                     $('#parameter-context-description-read-only').text(parameterContextEntity.component.description);
                 }
 
@@ -2372,7 +2378,9 @@
                 if ($('#parameter-context-id-setting').hasClass('hidden')) {
                     $('#parameter-context-id-setting').removeClass('hidden');
                 }
-                $('#parameter-context-id-field').text(parameterContextEntity.id);
+                $('#parameter-context-id-field')
+                    .prop('title', parameterContextEntity.id)
+                    .text(parameterContextEntity.id);
 
                 loadParameters(parameterContextEntity, null, readOnly);
 

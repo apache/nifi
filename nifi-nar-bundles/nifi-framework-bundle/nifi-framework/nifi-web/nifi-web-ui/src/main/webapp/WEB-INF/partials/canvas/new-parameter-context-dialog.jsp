@@ -25,14 +25,14 @@
                     <div id="parameter-context-id-setting" class="setting hidden">
                         <div class="setting-name">Id</div>
                         <div class="setting-field">
-                            <div id="parameter-context-id-field"></div>
+                            <div id="parameter-context-id-field" class="ellipsis"></div>
                         </div>
                     </div>
                     <div class="setting">
                         <div class="setting-name">Name</div>
                         <div id="parameter-context-name-container" class="setting-field">
                             <input type="text" id="parameter-context-name" class="edit-mode" name="parameter-context-name"/>
-                            <div id="parameter-context-name-read-only" class="read-only"></div>
+                            <div id="parameter-context-name-read-only" class="read-only ellipsis"></div>
                         </div>
                     </div>
                     <div class="setting">
