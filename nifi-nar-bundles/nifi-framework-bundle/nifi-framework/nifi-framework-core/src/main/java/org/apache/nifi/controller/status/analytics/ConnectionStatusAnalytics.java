@@ -56,6 +56,7 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
     private final Boolean supportOnlineLearning;
     private Boolean extendWindow = false;
     private long intervalMillis = 3L * 60 * 1000; // Default is 3 minutes
+    private long queryIntervalMillis = 3L * 60 * 1000;  //Default is 3 minutes
     private String scoreName = "rSquared";
     private double scoreThreshold = .90;
 
@@ -78,7 +79,7 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
             //Obtain latest observations when available, extend window if needed to obtain minimum observations
             this.queryWindow = new QueryWindow(extendWindow ? queryWindow.getStartTimeMillis() : queryWindow.getEndTimeMillis(), System.currentTimeMillis());
         } else {
-            this.queryWindow = new QueryWindow(System.currentTimeMillis() - getIntervalTimeMillis(), System.currentTimeMillis());
+            this.queryWindow = new QueryWindow(System.currentTimeMillis() - getQueryIntervalMillis(), System.currentTimeMillis());
         }
 
         modelMap.forEach((metric, modelFunction) -> {
@@ -264,6 +265,14 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
 
     public void setIntervalTimeMillis(long intervalTimeMillis) {
         this.intervalMillis = intervalTimeMillis;
+    }
+
+    public long getQueryIntervalMillis() {
+        return queryIntervalMillis;
+    }
+
+    public void setQueryIntervalMillis(long queryIntervalMillis) {
+        this.queryIntervalMillis = queryIntervalMillis;
     }
 
     public String getScoreName() {

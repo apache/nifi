@@ -241,6 +241,7 @@ public abstract class NiFiProperties {
     // analytics properties
     public static final String ANALYTICS_PREDICTION_ENABLED = "nifi.analytics.predict.enabled";
     public static final String ANALYTICS_PREDICTION_INTERVAL = "nifi.analytics.predict.interval";
+    public static final String ANALYTICS_QUERY_INTERVAL = "nifi.analytics.query.interval";
     public static final String ANALYTICS_CONNECTION_MODEL_IMPLEMENTATION = "nifi.analytics.connection.model.implementation";
     public static final String ANALYTICS_CONNECTION_MODEL_SCORE_NAME= "nifi.analytics.connection.model.score.name";
     public static final String ANALYTICS_CONNECTION_MODEL_SCORE_THRESHOLD = "nifi.analytics.connection.model.score.threshold";
@@ -318,6 +319,7 @@ public abstract class NiFiProperties {
     // analytics defaults
     public static final String DEFAULT_ANALYTICS_PREDICTION_ENABLED = "false";
     public static final String DEFAULT_ANALYTICS_PREDICTION_INTERVAL = "3 mins";
+    public static final String DEFAULT_ANALYTICS_QUERY_INTERVAL = "3 mins";
     public final static String DEFAULT_ANALYTICS_CONNECTION_MODEL_IMPLEMENTATION = "org.apache.nifi.controller.status.analytics.models.OrdinaryLeastSquares";
     public static final String DEFAULT_ANALYTICS_CONNECTION_SCORE_NAME = "rSquared";
     public static final double DEFAULT_ANALYTICS_CONNECTION_SCORE_THRESHOLD = .90;

@@ -614,6 +614,17 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
                 predictionIntervalMillis = FormatUtils.getTimeDuration(NiFiProperties.DEFAULT_ANALYTICS_PREDICTION_INTERVAL, TimeUnit.MILLISECONDS);
             }
 
+            // Determine interval for querying past observations
+            final String queryInterval = nifiProperties.getProperty(NiFiProperties.ANALYTICS_QUERY_INTERVAL, NiFiProperties.DEFAULT_ANALYTICS_QUERY_INTERVAL);
+            long queryIntervalMillis;
+            try {
+                queryIntervalMillis = FormatUtils.getTimeDuration(queryInterval, TimeUnit.MILLISECONDS);
+            } catch (final Exception e) {
+                LOG.warn("Analytics is enabled however could not retrieve value for "+ NiFiProperties.ANALYTICS_QUERY_INTERVAL + ". This property has been set to '"
+                        + NiFiProperties.DEFAULT_ANALYTICS_QUERY_INTERVAL + "'");
+                queryIntervalMillis = FormatUtils.getTimeDuration(NiFiProperties.DEFAULT_ANALYTICS_QUERY_INTERVAL, TimeUnit.MILLISECONDS);
+            }
+
             // Determine score name to use for evaluating model performance
             String modelScoreName = nifiProperties.getProperty(NiFiProperties.ANALYTICS_CONNECTION_MODEL_SCORE_NAME, NiFiProperties.DEFAULT_ANALYTICS_CONNECTION_SCORE_NAME);
 
@@ -632,7 +643,7 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
                     .getConnectionStatusModelMap(extensionManager, nifiProperties);
 
             analyticsEngine = new CachingConnectionStatusAnalyticsEngine(flowManager, componentStatusRepository, flowFileEventRepository, modelMap,
-                    predictionIntervalMillis, modelScoreName, modelScoreThreshold);
+                    predictionIntervalMillis, queryIntervalMillis, modelScoreName, modelScoreThreshold);
         }
 
         eventAccess = new StandardEventAccess(this, flowFileEventRepository);

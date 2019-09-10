@@ -43,6 +43,7 @@ import org.mockito.stubbing.Answer;
 public abstract class TestStatusAnalyticsEngine {
 
     static final long DEFAULT_PREDICT_INTERVAL_MILLIS = 3L * 60 * 1000;
+    static final long DEFAULT_QUERY_INTERVAL_MILLIS = 3L * 60 * 1000;
     static final String DEFAULT_SCORE_NAME = "rSquared";
     static final double DEFAULT_SCORE_THRESHOLD = .9;
 
@@ -89,13 +90,13 @@ public abstract class TestStatusAnalyticsEngine {
     @Test
     public void testGetStatusAnalytics() {
         StatusAnalyticsEngine statusAnalyticsEngine = getStatusAnalyticsEngine(flowManager,flowFileEventRepository, statusRepository, modelMap, DEFAULT_PREDICT_INTERVAL_MILLIS,
-                                                                                DEFAULT_SCORE_NAME, DEFAULT_SCORE_THRESHOLD);
+                                                                                DEFAULT_QUERY_INTERVAL_MILLIS, DEFAULT_SCORE_NAME, DEFAULT_SCORE_THRESHOLD);
         StatusAnalytics statusAnalytics = statusAnalyticsEngine.getStatusAnalytics("1");
         assertNotNull(statusAnalytics);
     }
 
     public abstract StatusAnalyticsEngine getStatusAnalyticsEngine(FlowManager flowManager, FlowFileEventRepository flowFileEventRepository,
                                                                    ComponentStatusRepository componentStatusRepository, Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>>  modelMap,
-                                                                    long predictIntervalMillis, String scoreName, double scoreThreshold);
+                                                                    long predictIntervalMillis, long queryIntervalMillis, String scoreName, double scoreThreshold);
 
 }

@@ -28,8 +28,9 @@ public class TestConnectionStatusAnalyticsEngine extends TestStatusAnalyticsEngi
     @Override
     public StatusAnalyticsEngine getStatusAnalyticsEngine(FlowManager flowManager, FlowFileEventRepository flowFileEventRepository,
                                                           ComponentStatusRepository statusRepository, Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> modelMap,
-                                                            long predictIntervalMillis, String scoreName, double scoreThreshold) {
-        return new ConnectionStatusAnalyticsEngine(flowManager, statusRepository, flowFileEventRepository,modelMap, DEFAULT_PREDICT_INTERVAL_MILLIS, scoreName, scoreThreshold);
+                                                            long predictIntervalMillis, long queryIntervalMillis, String scoreName, double scoreThreshold) {
+        return new ConnectionStatusAnalyticsEngine(flowManager, statusRepository, flowFileEventRepository,modelMap,
+                                                   DEFAULT_PREDICT_INTERVAL_MILLIS, DEFAULT_QUERY_INTERVAL_MILLIS, scoreName, scoreThreshold);
     }
 
 }
