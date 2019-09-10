@@ -48,6 +48,8 @@ import org.apache.nifi.components.Validator;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.metrics.jvm.JmxJvmMetrics;
+import org.apache.nifi.metrics.jvm.JvmMetrics;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.remote.Transaction;
@@ -55,8 +57,6 @@ import org.apache.nifi.remote.TransferDirection;
 import org.apache.nifi.reporting.util.metrics.MetricNames;
 import org.apache.nifi.reporting.util.metrics.MetricsService;
 import org.apache.nifi.reporting.util.metrics.api.MetricsBuilder;
-
-import com.yammer.metrics.core.VirtualMachineMetrics;
 
 @Tags({"status", "metrics", "site", "site to site"})
 @CapabilityDescription("Publishes same metrics as the Ambari Reporting task using the Site To Site protocol.")
@@ -150,13 +150,14 @@ public class SiteToSiteMetricsReportingTask extends AbstractSiteToSiteReportingT
             return;
         }
 
-        final VirtualMachineMetrics virtualMachineMetrics = VirtualMachineMetrics.getInstance();
+        final JvmMetrics virtualMachineMetrics = JmxJvmMetrics.getInstance();
         final Map<String, ?> config = Collections.emptyMap();
         final JsonBuilderFactory factory = Json.createBuilderFactory(config);
 
         final String applicationId = context.getProperty(APPLICATION_ID).evaluateAttributeExpressions().getValue();
         final String hostname = context.getProperty(HOSTNAME).evaluateAttributeExpressions().getValue();
         final ProcessGroupStatus status = context.getEventAccess().getControllerStatus();
+        final Boolean allowNullValues = context.getProperty(ALLOW_NULL_VALUES).asBoolean();
 
         if(status != null) {
             final Map<String,String> statusMetrics = metricsService.getMetrics(status, false);
@@ -179,13 +180,13 @@ public class SiteToSiteMetricsReportingTask extends AbstractSiteToSiteReportingT
                         .addAllMetrics(jvmMetrics)
                         .metric(MetricNames.CORES, String.valueOf(os.getAvailableProcessors()))
                         .metric(MetricNames.LOAD1MN, String.valueOf(systemLoad >= 0 ? systemLoad : -1))
-                        .build();
+                        .build(allowNullValues);
 
                 data = metricsObject.toString().getBytes(StandardCharsets.UTF_8);
                 attributes.put(CoreAttributes.MIME_TYPE.key(), "application/json");
             } else {
                 final JsonObject metricsObject = metricsService.getMetrics(factory, status, virtualMachineMetrics, applicationId, status.getId(),
-                        hostname, System.currentTimeMillis(), os.getAvailableProcessors(), systemLoad >= 0 ? systemLoad : -1);
+                        hostname, System.currentTimeMillis(), os.getAvailableProcessors(), systemLoad >= 0 ? systemLoad : -1, allowNullValues);
                 data = getData(context, new ByteArrayInputStream(metricsObject.toString().getBytes(StandardCharsets.UTF_8)), attributes);
             }
 

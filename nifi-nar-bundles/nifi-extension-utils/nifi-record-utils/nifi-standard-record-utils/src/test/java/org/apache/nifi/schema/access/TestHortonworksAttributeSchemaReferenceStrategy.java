@@ -26,7 +26,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.junit.Assert.assertNotNull;
-import static org.mockito.Matchers.argThat;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.when;
 
 public class TestHortonworksAttributeSchemaReferenceStrategy extends AbstractSchemaAccessStrategyTest {

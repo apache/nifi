@@ -1229,11 +1229,11 @@
 
                     // open the documentation for this reporting task
                     nfShell.showPage('../nifi-docs/documentation?' + $.param({
-                            select: reportingTaskEntity.component.type,
-                            group: reportingTaskEntity.component.bundle.group,
-                            artifact: reportingTaskEntity.component.bundle.artifact,
-                            version: reportingTaskEntity.component.bundle.version
-                        })).done(function () {
+                        select: reportingTaskEntity.component.type,
+                        group: reportingTaskEntity.component.bundle.group,
+                        artifact: reportingTaskEntity.component.bundle.artifact,
+                        version: reportingTaskEntity.component.bundle.version
+                    })).done(function () {
                         nfSettings.showSettings();
                     });
                 }

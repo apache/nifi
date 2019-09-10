@@ -175,7 +175,7 @@ public class GrokReader extends SchemaRegistryService implements RecordReaderFac
                     .build());
         }
 
-        validator = new GrokExpressionValidator(validationContext.getProperty(PATTERN_FILE).getValue(),grokCompiler);
+        validator = new GrokExpressionValidator(validationContext.getProperty(PATTERN_FILE).evaluateAttributeExpressions().getValue(),grokCompiler);
         results.add(validator.validate(subject,input,validationContext));
         return results;
     }
@@ -267,7 +267,7 @@ public class GrokReader extends SchemaRegistryService implements RecordReaderFac
     }
 
     @Override
-    public RecordReader createRecordReader(final Map<String, String> variables, final InputStream in, final ComponentLog logger) throws IOException, SchemaNotFoundException {
+    public RecordReader createRecordReader(final Map<String, String> variables, final InputStream in, final long inputLength, final ComponentLog logger) throws IOException, SchemaNotFoundException {
         final RecordSchema schema = getSchema(variables, in, null);
         return new GrokRecordReader(in, grok, schema, recordSchemaFromGrok, appendUnmatchedLine);
     }

@@ -123,7 +123,7 @@ public abstract class AbstractRecordProcessor extends AbstractProcessor {
                 @Override
                 public void process(final InputStream in, final OutputStream out) throws IOException {
 
-                    try (final RecordReader reader = readerFactory.createRecordReader(originalAttributes, in, getLogger())) {
+                    try (final RecordReader reader = readerFactory.createRecordReader(originalAttributes, in, original.getSize(), getLogger())) {
 
                         // Get the first record and process it before we create the Record Writer. We do this so that if the Processor
                         // updates the Record's schema, we can provide an updated schema to the Record Writer. If there are no records,
@@ -131,7 +131,7 @@ public abstract class AbstractRecordProcessor extends AbstractProcessor {
                         Record firstRecord = reader.nextRecord();
                         if (firstRecord == null) {
                             final RecordSchema writeSchema = writerFactory.getSchema(originalAttributes, reader.getSchema());
-                            try (final RecordSetWriter writer = writerFactory.createWriter(getLogger(), writeSchema, out)) {
+                            try (final RecordSetWriter writer = writerFactory.createWriter(getLogger(), writeSchema, out, originalAttributes)) {
                                 writer.beginRecordSet();
 
                                 final WriteResult writeResult = writer.finishRecordSet();
@@ -147,7 +147,7 @@ public abstract class AbstractRecordProcessor extends AbstractProcessor {
                         firstRecord = AbstractRecordProcessor.this.process(firstRecord, original, context);
 
                         final RecordSchema writeSchema = writerFactory.getSchema(originalAttributes, firstRecord.getSchema());
-                        try (final RecordSetWriter writer = writerFactory.createWriter(getLogger(), writeSchema, out)) {
+                        try (final RecordSetWriter writer = writerFactory.createWriter(getLogger(), writeSchema, out, originalAttributes)) {
                             writer.beginRecordSet();
 
                             writer.write(firstRecord);

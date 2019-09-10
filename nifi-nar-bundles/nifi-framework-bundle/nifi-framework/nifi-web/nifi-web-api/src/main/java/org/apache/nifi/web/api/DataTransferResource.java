@@ -31,6 +31,7 @@ import org.apache.nifi.authorization.PublicPortAuthorizable;
 import org.apache.nifi.authorization.resource.ResourceType;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
+import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.remote.HttpRemoteSiteListener;
 import org.apache.nifi.remote.Peer;
 import org.apache.nifi.remote.PeerDescription;
@@ -77,6 +78,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.List;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
@@ -90,6 +92,7 @@ import static org.apache.nifi.remote.protocol.http.HttpHeaders.HANDSHAKE_PROPERT
 import static org.apache.nifi.remote.protocol.http.HttpHeaders.HANDSHAKE_PROPERTY_BATCH_SIZE;
 import static org.apache.nifi.remote.protocol.http.HttpHeaders.HANDSHAKE_PROPERTY_REQUEST_EXPIRATION;
 import static org.apache.nifi.remote.protocol.http.HttpHeaders.HANDSHAKE_PROPERTY_USE_COMPRESSION;
+import static org.apache.nifi.remote.protocol.http.HttpHeaders.PROTOCOL_VERSION;
 
 /**
  * RESTful endpoint for managing a SiteToSite connection.
@@ -205,9 +208,21 @@ public class DataTransferResource extends ApplicationResource {
         final int transportProtocolVersion = validationResult.transportProtocolVersion;
 
         try {
-            // Execute handshake.
-            initiateServerProtocol(req, peer, transportProtocolVersion);
+            HttpFlowFileServerProtocol serverProtocol = initiateServerProtocol(req, peer, transportProtocolVersion);
 
+            int protocolVersion = Integer.parseUnsignedInt(req.getHeader(PROTOCOL_VERSION));
+
+            if ((protocolVersion >= 2) && PORT_TYPE_OUTPUT.equals(portType)) {
+                List<Connection> connectionList = serverProtocol.getPort().getIncomingConnections();
+                if (connectionList.stream().allMatch(c -> c.getFlowFileQueue().isEmpty())) {
+                    // Transaction could be created, but there is nothing to transfer. Just return 200.
+                    logger.debug("Output port has no flowfiles to transfer, returning 200");
+                    transactionManager.cancelTransaction(transactionId);
+                    return noCache(Response.status(Response.Status.NO_CONTENT)).type(MediaType.TEXT_PLAIN).entity("No flowfiles available").build();
+                }
+            }
+
+            // Execute handshake.
             TransactionResultEntity entity = new TransactionResultEntity();
             entity.setResponseCode(ResponseCode.PROPERTIES_OK.getCode());
             entity.setMessage("Handshake properties are valid, and port is running. A transaction is created:" + transactionId);

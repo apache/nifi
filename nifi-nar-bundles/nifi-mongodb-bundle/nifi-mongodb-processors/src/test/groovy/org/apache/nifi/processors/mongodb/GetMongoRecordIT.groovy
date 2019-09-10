@@ -58,8 +58,8 @@ class GetMongoRecordIT {
 
     static final List<Map> SAMPLES = [
         [ name: "John Smith", failedLogins: 2, lastLogin: Calendar.instance.time ],
-        [ name: "Jane Doe", failedLogins: 1, lastLogin: Calendar.instance.time - 360000 ],
-        [ name: "John Brown", failedLogins: 4, lastLogin: Calendar.instance.time - 10000 ]
+        [ name: "Jane Doe", failedLogins: 1, lastLogin: new Date(Calendar.instance.time.time - 360000) ],
+        [ name: "John Brown", failedLogins: 4, lastLogin: new Date(Calendar.instance.time.time - 10000) ]
     ].collect { new Document(it) }
 
     @Before

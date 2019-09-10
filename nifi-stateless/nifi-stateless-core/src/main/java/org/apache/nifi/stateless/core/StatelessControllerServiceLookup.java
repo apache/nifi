@@ -25,6 +25,7 @@ import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;
+import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.reporting.InitializationException;
 
@@ -39,15 +40,20 @@ import java.util.concurrent.ConcurrentHashMap;
 import static java.util.Objects.requireNonNull;
 
 public class StatelessControllerServiceLookup implements ControllerServiceLookup {
-
+    private final ParameterContext parameterContext;
     private final Map<String, StatelessControllerServiceConfiguration> controllerServiceMap = new ConcurrentHashMap<>();
     private final Map<String, SLF4JComponentLog> controllerServiceLoggers = new HashMap<>();
     private final Map<String, StatelessStateManager> controllerServiceStateManagers = new HashMap<>();
 
+
+    public StatelessControllerServiceLookup(final ParameterContext parameterContext) {
+        this.parameterContext = parameterContext;
+    }
+
+
     public Map<String, StatelessControllerServiceConfiguration> getControllerServices() {
         return controllerServiceMap;
     }
-
 
     public void addControllerService(final ControllerService service, final String serviceName) throws InitializationException {
         final String identifier = service.getIdentifier();
@@ -57,7 +63,7 @@ public class StatelessControllerServiceLookup implements ControllerServiceLookup
         StatelessStateManager serviceStateManager = new StatelessStateManager();
         controllerServiceStateManagers.put(identifier, serviceStateManager);
 
-        final StatelessProcessContext initContext = new StatelessProcessContext(requireNonNull(service), this, serviceName, logger, serviceStateManager);
+        final StatelessProcessContext initContext = new StatelessProcessContext(requireNonNull(service), this, serviceName, logger, serviceStateManager, parameterContext);
         service.initialize(initContext);
 
         try {
@@ -139,8 +145,8 @@ public class StatelessControllerServiceLookup implements ControllerServiceLookup
     public Collection<ValidationResult> validate(final ControllerService service, final String serviceName, final VariableRegistry variableRegistry) {
         final StateManager stateManager = controllerServiceStateManagers.get(service.getIdentifier());
         final SLF4JComponentLog logger = controllerServiceLoggers.get(service.getIdentifier());
-        final StatelessProcessContext processContext = new StatelessProcessContext(service, this, serviceName, logger, stateManager, variableRegistry);
-        final StatelessValidationContext validationContext = new StatelessValidationContext(processContext, this, stateManager, variableRegistry);
+        final StatelessProcessContext processContext = new StatelessProcessContext(service, this, serviceName, logger, stateManager, variableRegistry, parameterContext);
+        final StatelessValidationContext validationContext = new StatelessValidationContext(processContext, this, stateManager, variableRegistry, parameterContext);
         return service.validate(validationContext);
     }
 
@@ -154,7 +160,7 @@ public class StatelessControllerServiceLookup implements ControllerServiceLookup
             throw new IllegalStateException("Cannot enable Controller Service " + service + " because it is not disabled");
         }
 
-        final ConfigurationContext configContext = new StatelessConfigurationContext(service, configuration.getProperties(), this, registry);
+        final ConfigurationContext configContext = new StatelessConfigurationContext(service, configuration.getProperties(), this, registry, parameterContext);
         ReflectionUtils.invokeMethodsWithAnnotation(OnEnabled.class, service, configContext);
 
         configuration.setEnabled(true);
@@ -186,7 +192,7 @@ public class StatelessControllerServiceLookup implements ControllerServiceLookup
             throw new IllegalStateException("Controller service " + service + " has not been added to this TestRunner via the #addControllerService method");
         }
 
-        final ValidationContext validationContext = new StatelessValidationContext(context, this, serviceStateManager, registry).getControllerServiceValidationContext(service);
+        final ValidationContext validationContext = new StatelessValidationContext(context, this, serviceStateManager, registry, parameterContext).getControllerServiceValidationContext(service);
         final ValidationResult validationResult = property.validate(value, validationContext);
 
         final StatelessControllerServiceConfiguration configuration = getControllerServiceConfigToUpdate(service);

@@ -57,7 +57,8 @@ public class VolatileComponentStatusRepository implements ComponentStatusReposit
 
     private final Map<String, ComponentStatusHistory> componentStatusHistories = new HashMap<>();
 
-    private final RingBuffer<Date> timestamps;
+    // Changed to protected to allow unit testing
+    protected final RingBuffer<Date> timestamps;
     private final RingBuffer<List<GarbageCollectionStatus>> gcStatuses;
     private final int numDataPoints;
     private volatile long lastCaptureTime = 0L;
@@ -145,34 +146,56 @@ public class VolatileComponentStatusRepository implements ComponentStatusReposit
 
     @Override
     public StatusHistory getProcessorStatusHistory(final String processorId, final Date start, final Date end, final int preferredDataPoints, final boolean includeCounters) {
-        return getStatusHistory(processorId, includeCounters, DEFAULT_PROCESSOR_METRICS);
+        return getStatusHistory(processorId, includeCounters, DEFAULT_PROCESSOR_METRICS, start, end, preferredDataPoints);
     }
 
     @Override
     public StatusHistory getConnectionStatusHistory(final String connectionId, final Date start, final Date end, final int preferredDataPoints) {
-        return getStatusHistory(connectionId, true, DEFAULT_CONNECTION_METRICS);
+        return getStatusHistory(connectionId, true, DEFAULT_CONNECTION_METRICS, start, end, preferredDataPoints);
     }
 
     @Override
     public StatusHistory getProcessGroupStatusHistory(final String processGroupId, final Date start, final Date end, final int preferredDataPoints) {
-        return getStatusHistory(processGroupId, true, DEFAULT_GROUP_METRICS);
+        return getStatusHistory(processGroupId, true, DEFAULT_GROUP_METRICS, start, end, preferredDataPoints);
     }
 
     @Override
     public StatusHistory getRemoteProcessGroupStatusHistory(final String remoteGroupId, final Date start, final Date end, final int preferredDataPoints) {
-        return getStatusHistory(remoteGroupId, true, DEFAULT_RPG_METRICS);
+        return getStatusHistory(remoteGroupId, true, DEFAULT_RPG_METRICS, start, end, preferredDataPoints);
     }
 
 
-    private synchronized StatusHistory getStatusHistory(final String componentId, final boolean includeCounters, final Set<MetricDescriptor<?>> defaultMetricDescriptors) {
+    // Updated getStatusHistory to utilize the start/end/preferredDataPoints parameters passed into
+    // the calling methods. Although for VolatileComponentStatusRepository the timestamps buffer is
+    // rather small it still seemed better that the parameters should be honored rather than
+    // silently ignored.
+    private synchronized StatusHistory getStatusHistory(final String componentId,
+        final boolean includeCounters, final Set<MetricDescriptor<?>> defaultMetricDescriptors,
+        final Date start, final Date end, final int preferredDataPoints) {
         final ComponentStatusHistory history = componentStatusHistories.get(componentId);
         if (history == null) {
             return createEmptyStatusHistory();
         }
-
-        final List<Date> dates = timestamps.asList();
+        final List<Date> dates = filterDates(start, end, preferredDataPoints);
         return history.toStatusHistory(dates, includeCounters, defaultMetricDescriptors);
     }
+
+    // Given a buffer, return a list of Dates based on start/end/preferredDataPoints
+    protected List<Date> filterDates(final Date start, final Date end, final int preferredDataPoints) {
+        Date startDate = (start == null) ? new Date(0L) : start;
+        Date endDate = (end == null) ? new Date() : end;
+
+        // Limit date information to a subset based upon input parameters
+        List<Date> filteredDates =
+            timestamps.asList()
+                .stream()
+                .filter(p -> (p.after(startDate) || p.equals(startDate))
+                    && (p.before(endDate) || p.equals(endDate))).collect(Collectors.toList());
+
+        // if preferredDataPoints != Integer.MAX_VALUE, Dates returned will be reduced further
+        return filteredDates.subList(Math.max(filteredDates.size() - preferredDataPoints, 0), filteredDates.size());
+    }
+
 
     private StatusHistory createEmptyStatusHistory() {
         final Date dateGenerated = new Date();

@@ -18,12 +18,13 @@ package org.apache.nifi.processors.script;
 
 
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.behavior.Restriction;
 import org.apache.nifi.annotation.behavior.Stateful;
-import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -45,6 +46,9 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.script.ScriptingComponentHelper;
 import org.apache.nifi.script.ScriptingComponentUtils;
+import org.apache.nifi.search.SearchContext;
+import org.apache.nifi.search.SearchResult;
+import org.apache.nifi.search.Searchable;
 
 import javax.script.Bindings;
 import javax.script.ScriptContext;
@@ -54,11 +58,13 @@ import javax.script.SimpleBindings;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Scanner;
 import java.util.Set;
 
 @Tags({"script", "execute", "groovy", "python", "jython", "jruby", "ruby", "javascript", "js", "lua", "luaj", "clojure"})
@@ -83,7 +89,7 @@ import java.util.Set;
 @Stateful(scopes = {Scope.LOCAL, Scope.CLUSTER},
         description = "Scripts can store and retrieve state using the State Management APIs. Consult the State Manager section of the Developer's Guide for more details.")
 @SeeAlso({InvokeScriptedProcessor.class})
-public class ExecuteScript extends AbstractSessionFactoryProcessor {
+public class ExecuteScript extends AbstractSessionFactoryProcessor implements Searchable {
 
     // Constants maintained for backwards compatibility
     public static final Relationship REL_SUCCESS = ScriptingComponentUtils.REL_SUCCESS;
@@ -263,5 +269,38 @@ public class ExecuteScript extends AbstractSessionFactoryProcessor {
     @OnStopped
     public void stop() {
         scriptingComponentHelper.stop();
+    }
+
+    @Override
+    public Collection<SearchResult> search(SearchContext context) {
+        Collection<SearchResult> results = new ArrayList<>();
+
+        String term = context.getSearchTerm();
+
+        String scriptFile = context.getProperty(ScriptingComponentUtils.SCRIPT_FILE).evaluateAttributeExpressions().getValue();
+        String script = context.getProperty(ScriptingComponentUtils.SCRIPT_BODY).getValue();
+
+        if (StringUtils.isBlank(script)) {
+            try {
+                script = IOUtils.toString(new FileInputStream(scriptFile), "UTF-8");
+            } catch (Exception e) {
+                getLogger().error(String.format("Could not read from path %s", scriptFile), e);
+                return results;
+            }
+        }
+
+        Scanner scanner = new Scanner(script);
+        int index = 1;
+
+        while (scanner.hasNextLine()) {
+            String line = scanner.nextLine();
+            if (StringUtils.containsIgnoreCase(line, term)) {
+                String text = String.format("Matched script at line %d: %s", index, line);
+                results.add(new SearchResult.Builder().label(text).match(term).build());
+            }
+            index++;
+        }
+
+        return results;
     }
 }

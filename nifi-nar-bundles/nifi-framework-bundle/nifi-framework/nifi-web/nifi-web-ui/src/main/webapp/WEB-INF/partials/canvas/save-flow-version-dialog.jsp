@@ -35,6 +35,7 @@
             <div class="setting-name">Flow Name</div>
             <div id="save-flow-version-registry-container" class="setting-field">
                 <span id="save-flow-version-process-group-id" class="hidden"></span>
+                <span id="save-flow-version-action" class="hidden"></span>
                 <input type="text" id="save-flow-version-name-field" class="setting-input hidden"/>
                 <div id="save-flow-version-name" class="hidden"></div>
                 <div id="save-flow-version-label"></div>

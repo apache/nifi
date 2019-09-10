@@ -48,20 +48,29 @@ public class StringUtilsTest {
 
   @Test
   public void testPadRight() {
-    assertEquals("sample", StringUtils.padRight("sample", 0, '0'));
-    assertEquals("sample0000", StringUtils.padRight("sample", 10, '0'));
-    assertEquals("0000000000", StringUtils.padRight("", 10, '0'));
+    assertEquals("sample", StringUtils.rightPad("sample", 0, '0'));
+    assertEquals("sample", StringUtils.rightPad("sample", -5, '0'));
+    assertEquals("sample0000", StringUtils.rightPad("sample", 10, '0'));
+    assertEquals("0000000000", StringUtils.rightPad("", 10, '0'));
+    assertEquals("samplexyxy", StringUtils.rightPad("sample", 10, "xy")); // multiple pads
+    assertEquals("samplexy", StringUtils.rightPad("sample", 8, "xyz"));   // less than 1 pad
+    assertEquals("samplexy", StringUtils.rightPad("sample", 8, "xy"));    // exactly 1 pad
+    assertEquals("sample    ", StringUtils.rightPad("sample", 10, null));     // null pad
 
-    assertNull(StringUtils.padRight(null, 0, '0'));
+    assertNull(StringUtils.rightPad(null, 0, '0'));
   }
 
   @Test
   public void testPadLeft() {
-    assertEquals("sample", StringUtils.padLeft("sample", 0, '0'));
-    assertEquals("0000sample", StringUtils.padLeft("sample", 10, '0'));
-    assertEquals("0000000000", StringUtils.padLeft("", 10, '0'));
+    assertEquals("sample", StringUtils.leftPad("sample", 0, '0'));
+    assertEquals("0000sample", StringUtils.leftPad("sample", 10, '0'));
+    assertEquals("0000000000", StringUtils.leftPad("", 10, '0'));
+    assertEquals("xyxysample", StringUtils.leftPad("sample", 10, "xy"));  // multiple pads
+    assertEquals("xysample", StringUtils.leftPad("sample", 8, "xyz"));    // less than 1 pad
+    assertEquals("xysample", StringUtils.leftPad("sample", 8, "xy"));     // exactly 1 pad
+    assertEquals("    sample", StringUtils.leftPad("sample", 10, null));      // null pad
 
-    assertNull(StringUtils.padLeft(null, 0, '0'));
+    assertNull(StringUtils.leftPad(null, 0, '0'));
   }
 
   @Test

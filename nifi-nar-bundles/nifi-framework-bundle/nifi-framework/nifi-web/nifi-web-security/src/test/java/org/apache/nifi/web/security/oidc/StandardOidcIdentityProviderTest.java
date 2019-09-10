@@ -17,10 +17,11 @@
 package org.apache.nifi.web.security.oidc;
 
 import com.nimbusds.oauth2.sdk.Scope;
+import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.junit.Test;
-import org.mockito.internal.util.reflection.Whitebox;
 
+import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.List;
 
@@ -32,7 +33,7 @@ import static org.mockito.Mockito.when;
 public class StandardOidcIdentityProviderTest {
 
     @Test
-    public void testValidateScopes() {
+    public void testValidateScopes() throws IllegalAccessException {
         final String additionalScope_profile = "profile";
         final String additionalScope_abc = "abc";
 
@@ -49,7 +50,7 @@ public class StandardOidcIdentityProviderTest {
     }
 
     @Test
-    public void testNoDuplicatedScopes() {
+    public void testNoDuplicatedScopes() throws IllegalAccessException {
         final String additionalScopeDuplicate = "abc";
 
         final StandardOidcIdentityProvider provider = createOidcProviderWithAdditionalScopes(additionalScopeDuplicate,
@@ -61,10 +62,11 @@ public class StandardOidcIdentityProviderTest {
         assertEquals(scope.toArray().length, 4);
     }
 
-    private StandardOidcIdentityProvider createOidcProviderWithAdditionalScopes(String... additionalScopes) {
+    private StandardOidcIdentityProvider createOidcProviderWithAdditionalScopes(String... additionalScopes) throws IllegalAccessException {
         final StandardOidcIdentityProvider provider = mock(StandardOidcIdentityProvider.class);
         NiFiProperties properties = createNiFiPropertiesMockWithAdditionalScopes(Arrays.asList(additionalScopes));
-        Whitebox.setInternalState(provider, "properties", properties);
+        Field propertiesField = FieldUtils.getDeclaredField(StandardOidcIdentityProvider.class, "properties", true);
+        propertiesField.set(provider, properties);
 
         when(provider.isOidcEnabled()).thenReturn(true);
         when(provider.getScope()).thenCallRealMethod();

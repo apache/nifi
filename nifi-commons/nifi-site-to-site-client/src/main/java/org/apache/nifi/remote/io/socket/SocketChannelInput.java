@@ -16,13 +16,14 @@
  */
 package org.apache.nifi.remote.io.socket;
 
+import org.apache.nifi.remote.io.InterruptableInputStream;
+import org.apache.nifi.remote.protocol.CommunicationsInput;
+import org.apache.nifi.stream.io.ByteCountingInputStream;
+
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.channels.SocketChannel;
-import org.apache.nifi.remote.io.InterruptableInputStream;
-import org.apache.nifi.remote.protocol.CommunicationsInput;
-import org.apache.nifi.stream.io.ByteCountingInputStream;
 
 public class SocketChannelInput implements CommunicationsInput {
 
@@ -62,6 +63,7 @@ public class SocketChannelInput implements CommunicationsInput {
 
     public void interrupt() {
         interruptableIn.interrupt();
+        socketIn.interrupt();
     }
 
     @Override

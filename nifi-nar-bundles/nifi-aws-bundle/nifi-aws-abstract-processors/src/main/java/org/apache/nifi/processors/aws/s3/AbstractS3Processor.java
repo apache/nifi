@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -126,19 +127,34 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
                     new AllowableValue("S3SignerType", "Signature v2"))
             .defaultValue("Default Signature")
             .build();
+    public static final PropertyDescriptor ENCRYPTION_SERVICE = new PropertyDescriptor.Builder()
+            .name("encryption-service")
+            .displayName("Encryption Service")
+            .description("Specifies the Encryption Service Controller used configure requests.  "
+                    + "For backward compatibility, this value is ignored when 'Server Side Encryption' is set.")
+            .required(false)
+            .identifiesControllerService(AmazonS3EncryptionService.class)
+            .build();
+
     /**
      * Create client using credentials provider. This is the preferred way for creating clients
      */
     @Override
     protected AmazonS3Client createClient(final ProcessContext context, final AWSCredentialsProvider credentialsProvider, final ClientConfiguration config) {
         getLogger().info("Creating client with credentials provider");
-
         initializeSignerOverride(context, config);
+        AmazonS3EncryptionService encryptionService = context.getProperty(ENCRYPTION_SERVICE).asControllerService(AmazonS3EncryptionService.class);
+        AmazonS3Client s3 = null;
 
-        final AmazonS3Client s3 = new AmazonS3Client(credentialsProvider, config);
+        if (encryptionService != null) {
+            s3 = encryptionService.createEncryptionClient(credentialsProvider, config);
+        }
+
+        if (s3 == null) {
+            s3 = new AmazonS3Client(credentialsProvider, config);
+        }
 
         initalizeEndpointOverride(context, s3);
-
         return s3;
     }
 
@@ -167,14 +183,7 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
     @Override
     protected AmazonS3Client createClient(final ProcessContext context, final AWSCredentials credentials, final ClientConfiguration config) {
         getLogger().info("Creating client with AWS credentials");
-
-        initializeSignerOverride(context, config);
-
-        final AmazonS3Client s3 = new AmazonS3Client(credentials, config);
-
-        initalizeEndpointOverride(context, s3);
-
-        return s3;
+        return createClient(context, new AWSStaticCredentialsProvider(credentials), config);
     }
 
     protected Grantee createGrantee(final String value) {

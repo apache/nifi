@@ -29,6 +29,7 @@ import org.apache.nifi.remote.client.SiteInfoProvider;
 import org.apache.nifi.remote.client.SiteToSiteClientConfig;
 import org.apache.nifi.remote.codec.FlowFileCodec;
 import org.apache.nifi.remote.exception.HandshakeException;
+import org.apache.nifi.remote.exception.NoValidPeerException;
 import org.apache.nifi.remote.exception.PortNotRunningException;
 import org.apache.nifi.remote.exception.TransmissionDisabledException;
 import org.apache.nifi.remote.exception.UnknownPortException;
@@ -165,14 +166,9 @@ public class EndpointConnectionPool implements PeerStatusProvider {
             throw new UnreachableClusterException("Unable to refresh details from any of the configured remote instances.", ioe);
         }
 
-        do {
+        for  (PeerStatus peerStatus : peerSelector.getPeerStatuses(direction)) {
             final List<EndpointConnection> addBack = new ArrayList<>();
-            logger.debug("{} getting next peer status", this);
-            final PeerStatus peerStatus = peerSelector.getNextPeerStatus(direction);
             logger.debug("{} next peer status = {}", this, peerStatus);
-            if (peerStatus == null) {
-                return null;
-            }
 
             final PeerDescription peerDescription = peerStatus.getPeerDescription();
             BlockingQueue<EndpointConnection> connectionQueue = connectionQueueMap.get(peerDescription);
@@ -192,7 +188,7 @@ public class EndpointConnectionPool implements PeerStatusProvider {
                 if (connection == null && !addBack.isEmpty()) {
                     // all available connections have been penalized.
                     logger.debug("{} all Connections for {} are penalized; returning no Connection", this, portId);
-                    return null;
+                    throw new NoValidPeerException("All peers are penalized");
                 }
 
                 if (connection != null && connection.getPeer().isPenalized(portId)) {
@@ -318,10 +314,13 @@ public class EndpointConnectionPool implements PeerStatusProvider {
                 }
             }
 
-        } while (connection == null || codec == null || commsSession == null || protocol == null);
+            if( connection != null && codec != null && commsSession != null && protocol != null) {
+                activeConnections.add(connection);
+                return connection;
+            }
+        }
+        throw new NoValidPeerException("Didn't find any valid peer to connect to");
 
-        activeConnections.add(connection);
-        return connection;
     }
 
     public boolean offer(final EndpointConnection endpointConnection) {

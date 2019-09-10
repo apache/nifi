@@ -187,11 +187,11 @@ public class PutDruidRecord extends AbstractSessionFactoryProcessor {
 
             final RecordReader reader = recordParserFactory.createRecordReader(flowFile, in, getLogger());
             final RecordSchema outSchema = writerFactory.getSchema(attributes, reader.getSchema());
-            droppedRecordWriter = writerFactory.createWriter(log, outSchema, droppedOutputStream);
+            droppedRecordWriter = writerFactory.createWriter(log, outSchema, droppedOutputStream, flowFile);
             droppedRecordWriter.beginRecordSet();
-            failedRecordWriter = writerFactory.createWriter(log, outSchema, failedOutputStream);
+            failedRecordWriter = writerFactory.createWriter(log, outSchema, failedOutputStream, flowFile);
             failedRecordWriter.beginRecordSet();
-            successfulRecordWriter = writerFactory.createWriter(log, outSchema, successfulOutputStream);
+            successfulRecordWriter = writerFactory.createWriter(log, outSchema, successfulOutputStream, flowFile);
             successfulRecordWriter.beginRecordSet();
 
             Record r;

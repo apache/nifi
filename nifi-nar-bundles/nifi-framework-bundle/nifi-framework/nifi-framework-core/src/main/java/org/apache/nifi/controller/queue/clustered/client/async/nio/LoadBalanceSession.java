@@ -136,14 +136,14 @@ public class LoadBalanceSession {
             return false;
         }
 
-        // If there's already a data frame prepared for writing, just write to the channel.
-        if (preparedFrame != null && preparedFrame.hasRemaining()) {
-            logger.trace("Current Frame is already available. Will continue writing current frame to channel");
-            final int bytesWritten = channel.write(preparedFrame);
-            return bytesWritten > 0;
-        }
-
         try {
+            // If there's already a data frame prepared for writing, just write to the channel.
+            if (preparedFrame != null && preparedFrame.hasRemaining()) {
+                logger.trace("Current Frame is already available. Will continue writing current frame to channel");
+                final int bytesWritten = channel.write(preparedFrame);
+                return bytesWritten > 0;
+            }
+
             // Check if the phase is one that needs to receive data and if so, call the appropriate method.
             switch (phase) {
                 case RECEIVE_SPACE_RESPONSE:
@@ -578,7 +578,8 @@ public class LoadBalanceSession {
             logger.debug("Peer {} has confirmed that the queue is full for Connection {}", peerDescription, connectionId);
             phase = TransactionPhase.RECOMMEND_PROTOCOL_VERSION;
             checksum.reset(); // We are restarting the session entirely so we need to reset our checksum
-            penalize();
+            complete = true; // consider complete because there's nothing else that we can do in this session. Allow client to move on to a different session.
+            partition.penalize(1000L);
         } else {
             throw new TransactionAbortedException("After requesting to know whether or not Peer " + peerDescription + " has space available in Connection " + connectionId
                 + ", received unexpected response of " + response + ". Aborting transaction.");

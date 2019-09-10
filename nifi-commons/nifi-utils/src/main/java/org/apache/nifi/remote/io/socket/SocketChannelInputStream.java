@@ -16,19 +16,24 @@
  */
 package org.apache.nifi.remote.io.socket;
 
+import org.apache.nifi.remote.exception.TransmissionDisabledException;
+
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.SocketTimeoutException;
 import java.nio.ByteBuffer;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
-import java.util.concurrent.TimeUnit;
+import java.util.Set;
 
 public class SocketChannelInputStream extends InputStream {
 
-    private static final long CHANNEL_EMPTY_WAIT_NANOS = TimeUnit.NANOSECONDS.convert(10, TimeUnit.MILLISECONDS);
     private final SocketChannel channel;
     private volatile int timeoutMillis = 30000;
+    private volatile boolean interrupted = false;
+    private final Selector readSelector;
 
     private final ByteBuffer oneByteBuffer = ByteBuffer.allocate(1);
     private Byte bufferedByte = null;
@@ -37,6 +42,9 @@ public class SocketChannelInputStream extends InputStream {
         // this class expects a non-blocking channel
         socketChannel.configureBlocking(false);
         this.channel = socketChannel;
+
+        readSelector = Selector.open();
+        this.channel.register(readSelector, SelectionKey.OP_READ);
     }
 
     public void setTimeout(final int timeoutMillis) {
@@ -68,32 +76,24 @@ public class SocketChannelInputStream extends InputStream {
 
         final long maxTime = System.currentTimeMillis() + timeoutMillis;
 
-        final boolean blocking = channel.isBlocking();
+        waitForReady();
 
-        try {
-            channel.configureBlocking(true);
-
-            int bytesRead;
-            do {
-                bytesRead = channel.read(oneByteBuffer);
-                if (bytesRead == 0) {
-                    if (System.currentTimeMillis() > maxTime) {
-                        throw new SocketTimeoutException("Timed out reading from socket");
-                    }
+        int bytesRead;
+        do {
+            bytesRead = channel.read(oneByteBuffer);
+            if (bytesRead == 0) {
+                if (System.currentTimeMillis() > maxTime) {
+                    throw new SocketTimeoutException("Timed out reading from socket");
                 }
-            } while (bytesRead == 0);
-
-            if (bytesRead == -1) {
-                return -1;
             }
+        } while (bytesRead == 0);
 
-            oneByteBuffer.flip();
-            return oneByteBuffer.get() & 0xFF;
-        } finally {
-            if (!blocking) {
-                channel.configureBlocking(false);
-            }
+        if (bytesRead == -1) {
+            return -1;
         }
+
+        oneByteBuffer.flip();
+        return oneByteBuffer.get() & 0xFF;
     }
 
     @Override
@@ -110,29 +110,35 @@ public class SocketChannelInputStream extends InputStream {
             return 1;
         }
 
+        waitForReady();
+
         final ByteBuffer buffer = ByteBuffer.wrap(b, off, len);
-
-        final boolean blocking = channel.isBlocking();
-        try {
-            channel.configureBlocking(true);
-
-            final long maxTime = System.currentTimeMillis() + timeoutMillis;
-            int bytesRead;
-            do {
-                bytesRead = channel.read(buffer);
-                if (bytesRead == 0) {
-                    if (System.currentTimeMillis() > maxTime) {
-                        throw new SocketTimeoutException("Timed out reading from socket");
-                    }
+        final long maxTime = System.currentTimeMillis() + timeoutMillis;
+        int bytesRead;
+        do {
+            bytesRead = channel.read(buffer);
+            if (bytesRead == 0) {
+                if (System.currentTimeMillis() > maxTime) {
+                    throw new SocketTimeoutException("Timed out reading from socket");
                 }
-            } while (bytesRead == 0);
-
-            return bytesRead;
-        } finally {
-            if (!blocking) {
-                channel.configureBlocking(false);
             }
+        } while (bytesRead == 0);
+
+        return bytesRead;
+    }
+
+    private void waitForReady() throws IOException {
+        int readyCount = readSelector.select(timeoutMillis);
+        if (readyCount < 1) {
+            if (interrupted) {
+                throw new TransmissionDisabledException();
+            }
+
+            throw new SocketTimeoutException("Timed out reading from socket");
         }
+
+        final Set<SelectionKey> selectedKeys = readSelector.selectedKeys();
+        selectedKeys.clear(); // clear the selected keys so that the Selector will be able to add them back to the ready set next time they are ready.
     }
 
     @Override
@@ -164,6 +170,11 @@ public class SocketChannelInputStream extends InputStream {
         return false;
     }
 
+    public void interrupt() {
+        interrupted = true;
+        readSelector.wakeup();
+    }
+
     /**
      * Closes the underlying socket channel.
      *
@@ -172,5 +183,6 @@ public class SocketChannelInputStream extends InputStream {
     @Override
     public void close() throws IOException {
         channel.close();
+        readSelector.close();
     }
 }

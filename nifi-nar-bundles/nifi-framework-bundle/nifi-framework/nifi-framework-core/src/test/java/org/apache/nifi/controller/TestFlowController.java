@@ -113,7 +113,6 @@ public class TestFlowController {
     private Bundle systemBundle;
     private BulletinRepository bulletinRepo;
     private VariableRegistry variableRegistry;
-    private volatile String propsFile = "src/test/resources/flowcontrollertest.nifi.properties";
     private ExtensionDiscoveringManager extensionManager;
 
     /**
@@ -139,6 +138,7 @@ public class TestFlowController {
         otherProps.put(NiFiProperties.PROVENANCE_REPO_IMPLEMENTATION_CLASS, MockProvenanceRepository.class.getName());
         otherProps.put("nifi.remote.input.socket.port", "");
         otherProps.put("nifi.remote.input.secure", "");
+        final String propsFile = "src/test/resources/flowcontrollertest.nifi.properties";
         nifiProperties = NiFiProperties.createBasicNiFiProperties(propsFile, otherProps);
         encryptor = createEncryptorFromProperties(nifiProperties);
 
@@ -239,9 +239,9 @@ public class TestFlowController {
 
         // verify the processor is still pointing at the controller service that got moved to the root group
         final ProcessorNode processorNode = processorNodes.stream().findFirst().get();
-        final PropertyDescriptor procControllerServiceProp = processorNode.getProperties().entrySet().stream()
+        final PropertyDescriptor procControllerServiceProp = processorNode.getEffectivePropertyValues().entrySet().stream()
                 .filter(e -> e.getValue().equals(rootGroupCs.getIdentifier()))
-                .map(e -> e.getKey())
+                .map(Map.Entry::getKey)
                 .findFirst()
                 .get();
         assertNotNull(procControllerServiceProp);
@@ -253,9 +253,9 @@ public class TestFlowController {
 
         // verify that the reporting task is pointing at the controller service at the controller level
         final ReportingTaskNode reportingTaskNode = reportingTaskNodes.stream().findFirst().get();
-        final PropertyDescriptor reportingTaskControllerServiceProp = reportingTaskNode.getProperties().entrySet().stream()
+        final PropertyDescriptor reportingTaskControllerServiceProp = reportingTaskNode.getEffectivePropertyValues().entrySet().stream()
                 .filter(e -> e.getValue().equals(controllerCs.getIdentifier()))
-                .map(e -> e.getKey())
+                .map(Map.Entry::getKey)
                 .findFirst()
                 .get();
         assertNotNull(reportingTaskControllerServiceProp);
@@ -293,9 +293,9 @@ public class TestFlowController {
 
         // verify the processor is still pointing at the controller service that got moved to the root group
         final ProcessorNode processorNode = processorNodes.stream().findFirst().get();
-        final PropertyDescriptor procControllerServiceProp = processorNode.getProperties().entrySet().stream()
+        final PropertyDescriptor procControllerServiceProp = processorNode.getRawPropertyValues().entrySet().stream()
                 .filter(e -> e.getValue().equals(rootGroupCs.getIdentifier()))
-                .map(e -> e.getKey())
+                .map(Map.Entry::getKey)
                 .findFirst()
                 .get();
         assertNotNull(procControllerServiceProp);

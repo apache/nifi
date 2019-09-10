@@ -83,7 +83,7 @@ class ScriptedReportingTaskGroovyTest {
     @Test
     void testProvenanceGroovyScript() {
         def uuid = "10000000-0000-0000-0000-000000000000"
-        def attributes = ['abc': 'xyz', 'xyz': 'abc', 'filename': "file-$uuid", 'uuid': uuid]
+        def attributes = ['abc': 'xyz', 'xyz': 'abc', 'filename': 'file-' + uuid, 'uuid': uuid]
         def prevAttrs = ['filename': '1234.xyz']
 
         def flowFile = new MockFlowFile(3L)

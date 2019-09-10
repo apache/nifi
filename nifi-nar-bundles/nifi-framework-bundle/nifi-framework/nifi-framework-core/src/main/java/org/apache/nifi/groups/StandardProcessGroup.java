@@ -47,6 +47,7 @@ import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
+import org.apache.nifi.controller.PropertyConfiguration;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.Snippet;
 import org.apache.nifi.controller.Template;
@@ -61,6 +62,7 @@ import org.apache.nifi.controller.scheduling.StandardProcessScheduler;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.service.ControllerServiceReference;
+import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.controller.service.StandardConfigurationContext;
 import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
@@ -68,6 +70,10 @@ import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.logging.LogRepository;
 import org.apache.nifi.logging.LogRepositoryFactory;
 import org.apache.nifi.nar.NarCloseable;
+import org.apache.nifi.parameter.Parameter;
+import org.apache.nifi.parameter.ParameterContext;
+import org.apache.nifi.parameter.ParameterDescriptor;
+import org.apache.nifi.parameter.ParameterReference;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.StandardProcessContext;
 import org.apache.nifi.registry.ComponentVariableRegistry;
@@ -91,6 +97,8 @@ import org.apache.nifi.registry.flow.VersionedFlowState;
 import org.apache.nifi.registry.flow.VersionedFlowStatus;
 import org.apache.nifi.registry.flow.VersionedFunnel;
 import org.apache.nifi.registry.flow.VersionedLabel;
+import org.apache.nifi.registry.flow.VersionedParameter;
+import org.apache.nifi.registry.flow.VersionedParameterContext;
 import org.apache.nifi.registry.flow.VersionedPort;
 import org.apache.nifi.registry.flow.VersionedProcessGroup;
 import org.apache.nifi.registry.flow.VersionedProcessor;
@@ -121,6 +129,7 @@ import org.apache.nifi.util.ReflectionUtils;
 import org.apache.nifi.util.SnippetUtils;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.api.dto.TemplateDTO;
+import org.apache.nifi.web.api.dto.VersionedFlowDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -146,6 +155,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static java.util.Objects.requireNonNull;
@@ -179,6 +189,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     private final StringEncryptor encryptor;
     private final MutableVariableRegistry variableRegistry;
     private final VersionControlFields versionControlFields = new VersionControlFields();
+    private volatile ParameterContext parameterContext;
 
     private final ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
     private final Lock readLock = rwLock.readLock();
@@ -447,6 +458,8 @@ public final class StandardProcessGroup implements ProcessGroup {
         } finally {
             readLock.unlock();
         }
+
+        onComponentModified();
     }
 
     @Override
@@ -466,6 +479,8 @@ public final class StandardProcessGroup implements ProcessGroup {
         } finally {
             readLock.unlock();
         }
+
+        onComponentModified();
     }
 
     private StateManager getStateManager(final String componentId) {
@@ -874,7 +889,7 @@ public final class StandardProcessGroup implements ProcessGroup {
      * @param component the component whose invalid references should be removed
      */
     private void updateControllerServiceReferences(final ComponentNode component) {
-        for (final Map.Entry<PropertyDescriptor, String> entry : component.getProperties().entrySet()) {
+        for (final Map.Entry<PropertyDescriptor, String> entry : component.getEffectivePropertyValues().entrySet()) {
             final String serviceId = entry.getValue();
             if (serviceId == null) {
                 continue;
@@ -888,9 +903,9 @@ public final class StandardProcessGroup implements ProcessGroup {
                 final ControllerServiceNode serviceNode = controllerServiceProvider.getControllerServiceNode(serviceId);
                 if (serviceNode != null) {
                     if (validReference) {
-                        serviceNode.addReference(component);
+                        serviceNode.addReference(component, propertyDescriptor);
                     } else {
-                        serviceNode.removeReference(component);
+                        serviceNode.removeReference(component, propertyDescriptor);
                     }
                 }
             }
@@ -924,14 +939,14 @@ public final class StandardProcessGroup implements ProcessGroup {
                 throw new ComponentLifeCycleException("Failed to invoke 'OnRemoved' methods of processor with id " + processor.getIdentifier(), e);
             }
 
-            for (final Map.Entry<PropertyDescriptor, String> entry : processor.getProperties().entrySet()) {
+            for (final Map.Entry<PropertyDescriptor, String> entry : processor.getEffectivePropertyValues().entrySet()) {
                 final PropertyDescriptor descriptor = entry.getKey();
                 if (descriptor.getControllerServiceDefinition() != null) {
                     final String value = entry.getValue() == null ? descriptor.getDefaultValue() : entry.getValue();
                     if (value != null) {
                         final ControllerServiceNode serviceNode = controllerServiceProvider.getControllerServiceNode(value);
                         if (serviceNode != null) {
-                            serviceNode.removeReference(processor);
+                            serviceNode.removeReference(processor, descriptor);
                         }
                     }
                 }
@@ -1638,6 +1653,20 @@ public final class StandardProcessGroup implements ProcessGroup {
         return findAllProcessGroups(this);
     }
 
+    @Override
+    public List<ProcessGroup> findAllProcessGroups(final Predicate<ProcessGroup> filter) {
+        final List<ProcessGroup> matching = new ArrayList<>();
+        if (filter.test(this)) {
+            matching.add(this);
+        }
+
+        for (final ProcessGroup group : getProcessGroups()) {
+            matching.addAll(group.findAllProcessGroups(filter));
+        }
+
+        return matching;
+    }
+
     private List<ProcessGroup> findAllProcessGroups(final ProcessGroup start) {
         final List<ProcessGroup> allProcessGroups = new ArrayList<>(start.getProcessGroups());
         for (final ProcessGroup childGroup : start.getProcessGroups()) {
@@ -2126,14 +2155,14 @@ public final class StandardProcessGroup implements ProcessGroup {
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, service.getControllerServiceImplementation(), configurationContext);
             }
 
-            for (final Map.Entry<PropertyDescriptor, String> entry : service.getProperties().entrySet()) {
+            for (final Map.Entry<PropertyDescriptor, String> entry : service.getEffectivePropertyValues().entrySet()) {
                 final PropertyDescriptor descriptor = entry.getKey();
                 if (descriptor.getControllerServiceDefinition() != null) {
                     final String value = entry.getValue() == null ? descriptor.getDefaultValue() : entry.getValue();
                     if (value != null) {
                         final ControllerServiceNode referencedNode = getControllerService(value);
                         if (referencedNode != null) {
-                            referencedNode.removeReference(service);
+                            referencedNode.removeReference(service, descriptor);
                         }
                     }
                 }
@@ -2797,6 +2826,13 @@ public final class StandardProcessGroup implements ProcessGroup {
                 }
             }
 
+            final ParameterContext currentParameterContext = getParameterContext();
+            final String currentParameterContextId = currentParameterContext == null ? null : currentParameterContext.getIdentifier();
+            final ParameterContext destinationParameterContext = newProcessGroup.getParameterContext();
+            final String destinationParameterContextId = destinationParameterContext == null ? null : destinationParameterContext.getIdentifier();
+
+            final boolean parameterContextsDiffer = !Objects.equals(currentParameterContextId, destinationParameterContextId);
+
             final Set<ProcessorNode> processors = findAllProcessors(snippet);
             for (final ProcessorNode processorNode : processors) {
                 for (final PropertyDescriptor descriptor : processorNode.getProperties().keySet()) {
@@ -2804,7 +2840,7 @@ public final class StandardProcessGroup implements ProcessGroup {
 
                     // if this descriptor identifies a controller service
                     if (serviceDefinition != null) {
-                        final String serviceId = processorNode.getProperty(descriptor);
+                        final String serviceId = processorNode.getEffectivePropertyValue(descriptor);
 
                         // if the processor is configured with a service
                         if (serviceId != null) {
@@ -2818,6 +2854,14 @@ public final class StandardProcessGroup implements ProcessGroup {
                                         + " references a service that is not available in the destination Process Group");
                             }
                         }
+                    }
+
+                    // If Parameter is used and the Parameter Contexts are different, then the Processor must be stopped.
+                    if (parameterContextsDiffer && processorNode.isRunning() && processorNode.isReferencingParameter()) {
+                        throw new IllegalStateException("Cannot perform Move Operation because Processor with ID " + processorNode.getIdentifier() + " references one or more Parameters, and the " +
+                            "Processor is running, and the destination Process Group is bound to a different Parameter Context that the current Process Group. This would result in changing the " +
+                            "configuration of the Processor while it is running, which is not allowed. You must first stop the Processor before moving it to another Process Group if the " +
+                            "destination's Parameter Context is not the same.");
                     }
                 }
             }
@@ -2838,6 +2882,112 @@ public final class StandardProcessGroup implements ProcessGroup {
         }
 
         return processors;
+    }
+
+    @Override
+    public ParameterContext getParameterContext() {
+        return parameterContext;
+    }
+
+    @Override
+    public void setParameterContext(final ParameterContext parameterContext) {
+        verifyCanSetParameterContext(parameterContext);
+        this.parameterContext = parameterContext;
+
+        getProcessors().forEach(ProcessorNode::resetValidationState);
+        getControllerServices(false).forEach(ControllerServiceNode::resetValidationState);
+    }
+
+    @Override
+    public void onParameterContextUpdated() {
+        readLock.lock();
+        try {
+            for (final ProcessorNode processorNode : getProcessors()) {
+                if (processorNode.isReferencingParameter() && processorNode.getScheduledState() != ScheduledState.RUNNING) {
+                    processorNode.resetValidationState();
+                }
+            }
+
+            for (final ControllerServiceNode serviceNode : getControllerServices(false)) {
+                if (serviceNode.isReferencingParameter() && serviceNode.getState() == ControllerServiceState.DISABLING || serviceNode.getState() == ControllerServiceState.DISABLED) {
+                    serviceNode.resetValidationState();
+                }
+            }
+        } finally {
+            readLock.unlock();
+        }
+    }
+
+    @Override
+    public void verifyCanSetParameterContext(final ParameterContext parameterContext) {
+        readLock.lock();
+        try {
+            if (Objects.equals(parameterContext, getParameterContext())) {
+                return;
+            }
+
+            for (final ProcessorNode processor : processors.values()) {
+                final boolean referencingParam = processor.isReferencingParameter();
+                if (!referencingParam) {
+                    continue;
+                }
+
+                if (processor.isRunning()) {
+                    throw new IllegalStateException("Cannot change Parameter Context for " + this + " because " + processor + " is referencing at least one Parameter and is running");
+                }
+
+                verifyParameterSensitivityIsValid(processor, parameterContext);
+            }
+
+            for (final ControllerServiceNode service : controllerServices.values()) {
+                final boolean referencingParam = service.isReferencingParameter();
+                if (!referencingParam) {
+                    continue;
+                }
+
+                if (service.getState() != ControllerServiceState.DISABLED) {
+                    throw new IllegalStateException("Cannot change Parameter Context for " + this + " because " + service + " is referencing at least one Parameter is is not disabled");
+                }
+
+                verifyParameterSensitivityIsValid(service, parameterContext);
+            }
+        } finally {
+            readLock.unlock();
+        }
+    }
+
+    private void verifyParameterSensitivityIsValid(final ComponentNode component, final ParameterContext parameterContext) {
+        if (parameterContext == null) {
+            return;
+        }
+
+        final Map<PropertyDescriptor, PropertyConfiguration> properties = component.getProperties();
+        for (final Map.Entry<PropertyDescriptor, PropertyConfiguration> entry : properties.entrySet()) {
+            final PropertyConfiguration configuration = entry.getValue();
+            if (configuration == null) {
+                continue;
+            }
+
+            for (final ParameterReference reference : configuration.getParameterReferences()) {
+                final String paramName = reference.getParameterName();
+                final Optional<Parameter> parameter = parameterContext.getParameter(paramName);
+
+                if (parameter.isPresent()) {
+                    final PropertyDescriptor propertyDescriptor = entry.getKey();
+                    if (parameter.get().getDescriptor().isSensitive() && !propertyDescriptor.isSensitive()) {
+                        throw new IllegalStateException("Cannot change Parameter Context for " + this + " because " + component + " is referencing Parameter '" + paramName
+                            + "' from the '" + propertyDescriptor.getDisplayName() + "' property and the Parameter is sensitive. Sensitive Parameters may only be referenced " +
+                            "by sensitive properties.");
+                    }
+
+                    if (!parameter.get().getDescriptor().isSensitive() && propertyDescriptor.isSensitive()) {
+                        throw new IllegalStateException("Cannot change Parameter Context for " + this + " because " + component + " is referencing Parameter '" + paramName
+                            + "' from a sensitive property and the Parameter is not sensitive. Sensitive properties may only reference " +
+                            "by Sensitive Parameters.");
+                    }
+                }
+            }
+        }
     }
 
     @Override
@@ -2996,9 +3146,9 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     private List<VariableImpact> getVariableImpact(final ComponentNode component) {
-        return component.getProperties().keySet().stream()
+        return component.getEffectivePropertyValues().keySet().stream()
                 .map(descriptor -> {
-                    final String configuredVal = component.getProperty(descriptor);
+                    final String configuredVal = component.getEffectivePropertyValue(descriptor);
                     return configuredVal == null ? descriptor.getDefaultValue() : configuredVal;
                 })
                 .map(propVal -> Query.prepare(propVal).getVariableImpact())
@@ -3319,7 +3469,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             if (latestVersion == vci.getVersion()) {
                 versionControlFields.setStale(false);
                 if (latestVersion == 0) {
-                    LOG.debug("{} does not have any version in the Registry", this, latestVersion);
+                    LOG.debug("{} does not have any version in the Registry", this);
                     versionControlFields.setLocallyModified(true);
                 } else {
                     LOG.debug("{} is currently at the most recent version ({}) of the flow that is under Version Control", this, latestVersion);
@@ -3370,7 +3520,8 @@ public final class StandardProcessGroup implements ProcessGroup {
                     if (ComponentType.CONTROLLER_SERVICE == component.getComponentType()) {
                         final ControllerServiceNode serviceNode = getVersionedControllerService(this, component.getIdentifier());
                         if (serviceNode != null) {
-                            final VersionedControllerService versionedService = mapper.mapControllerService(serviceNode, controllerServiceProvider);
+                            final VersionedControllerService versionedService = mapper.mapControllerService(serviceNode, controllerServiceProvider,
+                                Collections.singleton(serviceNode.getProcessGroupIdentifier()), new HashMap<>());
                             final Set<FlowDifference> differences = flowComparator.compareControllerServices(versionedService, (VersionedControllerService) component);
 
                             if (!differences.isEmpty()) {
@@ -3403,7 +3554,8 @@ public final class StandardProcessGroup implements ProcessGroup {
 
             final StandardVersionControlInformation originalVci = this.versionControlInfo.get();
             try {
-                updateProcessGroup(this, proposedSnapshot.getFlowContents(), componentIdSeed, updatedVersionedComponentIds, false, updateSettings, updateDescendantVersionedFlows, knownVariables);
+                updateProcessGroup(this, proposedSnapshot.getFlowContents(), componentIdSeed, updatedVersionedComponentIds, false, updateSettings, updateDescendantVersionedFlows, knownVariables,
+                    proposedSnapshot.getParameterContexts());
             } catch (final Throwable t) {
                 // The proposed snapshot may not have any Versioned Flow Coordinates. As a result, the call to #updateProcessGroup may
                 // set this PG's Version Control Info to null. During the normal flow of control,
@@ -3483,7 +3635,7 @@ public final class StandardProcessGroup implements ProcessGroup {
 
     private void updateProcessGroup(final ProcessGroup group, final VersionedProcessGroup proposed, final String componentIdSeed,
                                     final Set<String> updatedVersionedComponentIds, final boolean updatePosition, final boolean updateName, final boolean updateDescendantVersionedGroups,
-                                    final Set<String> variablesToSkip) throws ProcessorInstantiationException {
+                                    final Set<String> variablesToSkip, final Map<String, VersionedParameterContext> versionedParameterContexts) throws ProcessorInstantiationException {
 
         // During the flow update, we will use temporary names for process group ports. This is because port names must be
         // unique within a process group, but during an update we might temporarily be in a state where two ports have the same name.
@@ -3503,24 +3655,8 @@ public final class StandardProcessGroup implements ProcessGroup {
             group.setPosition(new Position(proposed.getPosition().getX(), proposed.getPosition().getY()));
         }
 
-        // Determine which variables have been added/removed and add/remove them from this group's variable registry.
-        // We don't worry about if a variable value has changed, because variables are designed to be 'environment specific.'
-        // As a result, once imported, we won't update variables to match the remote flow, but we will add any missing variables
-        // and remove any variables that are no longer part of the remote flow.
-        final Set<String> existingVariableNames = group.getVariableRegistry().getVariableMap().keySet().stream()
-                .map(VariableDescriptor::getName)
-                .collect(Collectors.toSet());
-
-        final Map<String, String> updatedVariableMap = new HashMap<>();
-
-        // If any new variables exist in the proposed flow, add those to the variable registry.
-        for (final Map.Entry<String, String> entry : proposed.getVariables().entrySet()) {
-            if (!existingVariableNames.contains(entry.getKey()) && !variablesToSkip.contains(entry.getKey())) {
-                updatedVariableMap.put(entry.getKey(), entry.getValue());
-            }
-        }
-
-        group.setVariables(updatedVariableMap);
+        updateParameterContext(group, proposed, versionedParameterContexts, componentIdSeed);
+        updateVariableRegistry(group, proposed, variablesToSkip);
 
         final VersionedFlowCoordinates remoteCoordinates = proposed.getVersionedFlowCoordinates();
         if (remoteCoordinates == null) {
@@ -3599,12 +3735,13 @@ public final class StandardProcessGroup implements ProcessGroup {
             final VersionedFlowCoordinates childCoordinates = proposedChildGroup.getVersionedFlowCoordinates();
 
             if (childGroup == null) {
-                final ProcessGroup added = addProcessGroup(group, proposedChildGroup, componentIdSeed, variablesToSkip);
+                final ProcessGroup added = addProcessGroup(group, proposedChildGroup, componentIdSeed, variablesToSkip, versionedParameterContexts);
                 flowManager.onProcessGroupAdded(added);
                 added.findAllRemoteProcessGroups().forEach(RemoteProcessGroup::initialize);
                 LOG.info("Added {} to {}", added, this);
             } else if (childCoordinates == null || updateDescendantVersionedGroups) {
-                updateProcessGroup(childGroup, proposedChildGroup, componentIdSeed, updatedVersionedComponentIds, true, true, updateDescendantVersionedGroups, variablesToSkip);
+                updateProcessGroup(childGroup, proposedChildGroup, componentIdSeed, updatedVersionedComponentIds, true, true, updateDescendantVersionedGroups,
+                    variablesToSkip, versionedParameterContexts);
                 LOG.info("Updated {}", childGroup);
             }
 
@@ -3873,6 +4010,102 @@ public final class StandardProcessGroup implements ProcessGroup {
         }
     }
 
+    private ParameterContext createParameterContext(final VersionedParameterContext versionedParameterContext, final String parameterContextId) {
+        final Map<String, Parameter> parameters = new HashMap<>();
+        for (final VersionedParameter versionedParameter : versionedParameterContext.getParameters()) {
+            final ParameterDescriptor descriptor = new ParameterDescriptor.Builder()
+                .name(versionedParameter.getName())
+                .description(versionedParameter.getDescription())
+                .sensitive(versionedParameter.isSensitive())
+                .build();
+
+            final Parameter parameter = new Parameter(descriptor, versionedParameter.getValue());
+            parameters.put(versionedParameter.getName(), parameter);
+        }
+
+        return flowController.getFlowManager().createParameterContext(parameterContextId, versionedParameterContext.getName(), parameters);
+    }
+
+    private void addMissingParameters(final VersionedParameterContext versionedParameterContext, final ParameterContext currentParameterContext) {
+        final Map<String, Parameter> parameters = new HashMap<>();
+        for (final VersionedParameter versionedParameter : versionedParameterContext.getParameters()) {
+            final Optional<Parameter> parameterOption = currentParameterContext.getParameter(versionedParameter.getName());
+            if (parameterOption.isPresent()) {
+                // Skip this parameter, since it is already defined. We only want to add missing parameters
+                continue;
+            }
+
+            final ParameterDescriptor descriptor = new ParameterDescriptor.Builder()
+                .name(versionedParameter.getName())
+                .description(versionedParameter.getDescription())
+                .sensitive(versionedParameter.isSensitive())
+                .build();
+
+            final Parameter parameter = new Parameter(descriptor, versionedParameter.getValue());
+            parameters.put(versionedParameter.getName(), parameter);
+        }
+
+        currentParameterContext.setParameters(parameters);
+    }
+
+    private ParameterContext getParameterContextByName(final String contextName) {
+        return flowController.getFlowManager().getParameterContextManager().getParameterContexts().stream()
+            .filter(context -> context.getName().equals(contextName))
+            .findAny()
+            .orElse(null);
+    }
+
+    private void updateParameterContext(final ProcessGroup group, final VersionedProcessGroup proposed, final Map<String, VersionedParameterContext> versionedParameterContexts,
+                                        final String componentIdSeed) {
+        // Update the Parameter Context
+        final ParameterContext currentParamContext = group.getParameterContext();
+        final String proposedParameterContextName = proposed.getParameterContextName();
+        if (proposedParameterContextName != null) {
+            if (currentParamContext == null) {
+                // Create a new Parameter Context based on the parameters provided
+                final VersionedParameterContext versionedParameterContext = versionedParameterContexts.get(proposedParameterContextName);
+
+                final ParameterContext contextByName = getParameterContextByName(versionedParameterContext.getName());
+                final ParameterContext selectedParameterContext;
+                if (contextByName == null) {
+                    final String parameterContextId = generateUuid(versionedParameterContext.getName(), versionedParameterContext.getName(), componentIdSeed);
+                    selectedParameterContext = createParameterContext(versionedParameterContext, parameterContextId);
+                } else {
+                    selectedParameterContext = contextByName;
+                    addMissingParameters(versionedParameterContext, selectedParameterContext);
+                }
+
+                group.setParameterContext(selectedParameterContext);
+            } else {
+                // Update the current Parameter Context so that it has any Parameters included in the proposed context
+                final VersionedParameterContext versionedParameterContext = versionedParameterContexts.get(proposedParameterContextName);
+                addMissingParameters(versionedParameterContext, currentParamContext);
+            }
+        }
+    }
+
+    private void updateVariableRegistry(final ProcessGroup group, final VersionedProcessGroup proposed, final Set<String> variablesToSkip) {
+        // Determine which variables have been added/removed and add/remove them from this group's variable registry.
+        // We don't worry about if a variable value has changed, because variables are designed to be 'environment specific.'
+        // As a result, once imported, we won't update variables to match the remote flow, but we will add any missing variables
+        // and remove any variables that are no longer part of the remote flow.
+        final Set<String> existingVariableNames = group.getVariableRegistry().getVariableMap().keySet().stream()
+            .map(VariableDescriptor::getName)
+            .collect(Collectors.toSet());
+
+        final Map<String, String> updatedVariableMap = new HashMap<>();
+
+        // If any new variables exist in the proposed flow, add those to the variable registry.
+        for (final Map.Entry<String, String> entry : proposed.getVariables().entrySet()) {
+            if (!existingVariableNames.contains(entry.getKey()) && !variablesToSkip.contains(entry.getKey())) {
+                updatedVariableMap.put(entry.getKey(), entry.getValue());
+            }
+        }
+
+        group.setVariables(updatedVariableMap);
+    }
+
+
     private String getPublicPortFinalName(final PublicPort publicPort, final String proposedFinalName) {
         final Optional<Port> existingPublicPort;
         if (TransferDirection.RECEIVE == publicPort.getDirection()) {
@@ -3930,12 +4163,13 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
 
-    private ProcessGroup addProcessGroup(final ProcessGroup destination, final VersionedProcessGroup proposed, final String componentIdSeed, final Set<String> variablesToSkip)
+    private ProcessGroup addProcessGroup(final ProcessGroup destination, final VersionedProcessGroup proposed, final String componentIdSeed, final Set<String> variablesToSkip,
+                                         final Map<String, VersionedParameterContext> versionedParameterContexts)
             throws ProcessorInstantiationException {
         final ProcessGroup group = flowManager.createProcessGroup(generateUuid(proposed.getIdentifier(), destination.getIdentifier(), componentIdSeed));
         group.setVersionedComponentId(proposed.getIdentifier());
         group.setParent(destination);
-        updateProcessGroup(group, proposed, componentIdSeed, Collections.emptySet(), true, true, true, variablesToSkip);
+        updateProcessGroup(group, proposed, componentIdSeed, Collections.emptySet(), true, true, true, variablesToSkip, versionedParameterContexts);
         destination.addProcessGroup(group);
         return group;
     }
@@ -4164,12 +4398,12 @@ public final class StandardProcessGroup implements ProcessGroup {
             service.setComments(proposed.getComments());
             service.setName(proposed.getName());
 
-            final Map<String, String> properties = populatePropertiesMap(service.getProperties(), proposed.getProperties(), proposed.getPropertyDescriptors(), service.getProcessGroup());
+            final Map<String, String> properties = populatePropertiesMap(service, proposed.getProperties(), proposed.getPropertyDescriptors(), service.getProcessGroup());
             service.setProperties(properties, true);
 
             if (!isEqual(service.getBundleCoordinate(), proposed.getBundle())) {
                 final BundleCoordinate newBundleCoordinate = toCoordinate(proposed.getBundle());
-                final List<PropertyDescriptor> descriptors = new ArrayList<>(service.getProperties().keySet());
+                final List<PropertyDescriptor> descriptors = new ArrayList<>(service.getRawPropertyValues().keySet());
                 final Set<URL> additionalUrls = service.getAdditionalClasspathResources(descriptors);
                 flowController.getReloadComponent().reload(service, proposed.getType(), newBundleCoordinate, additionalUrls);
             }
@@ -4303,7 +4537,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             processor.setName(proposed.getName());
             processor.setPenalizationPeriod(proposed.getPenaltyDuration());
 
-            final Map<String, String> properties = populatePropertiesMap(processor.getProperties(), proposed.getProperties(), proposed.getPropertyDescriptors(), processor.getProcessGroup());
+            final Map<String, String> properties = populatePropertiesMap(processor, proposed.getProperties(), proposed.getPropertyDescriptors(), processor.getProcessGroup());
             processor.setProperties(properties, true);
             processor.setRunDuration(proposed.getRunDurationMillis(), TimeUnit.MILLISECONDS);
             processor.setSchedulingStrategy(SchedulingStrategy.valueOf(proposed.getSchedulingStrategy()));
@@ -4313,6 +4547,12 @@ public final class StandardProcessGroup implements ProcessGroup {
             processor.setStyle(proposed.getStyle());
             processor.setYieldPeriod(proposed.getYieldDuration());
             processor.setPosition(new Position(proposed.getPosition().getX(), proposed.getPosition().getY()));
+
+            if (proposed.getScheduledState() == org.apache.nifi.registry.flow.ScheduledState.DISABLED) {
+                disableProcessor(processor);
+            } else if (processor.getScheduledState() == ScheduledState.DISABLED) {
+                enableProcessor(processor);
+            }
 
             if (!isEqual(processor.getBundleCoordinate(), proposed.getBundle())) {
                 final BundleCoordinate newBundleCoordinate = toCoordinate(proposed.getBundle());
@@ -4326,7 +4566,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
 
-    private Map<String, String> populatePropertiesMap(final Map<PropertyDescriptor, String> currentProperties, final Map<String, String> proposedProperties,
+    private Map<String, String> populatePropertiesMap(final ComponentNode componentNode, final Map<String, String> proposedProperties,
                                                       final Map<String, VersionedPropertyDescriptor> proposedDescriptors, final ProcessGroup group) {
 
         // since VersionedPropertyDescriptor currently doesn't know if it is sensitive or not,
@@ -4334,7 +4574,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         final Set<String> sensitiveProperties = new HashSet<>();
 
         final Map<String, String> fullPropertyMap = new HashMap<>();
-        for (final PropertyDescriptor property : currentProperties.keySet()) {
+        for (final PropertyDescriptor property : componentNode.getRawPropertyValues().keySet()) {
             if (property.isSensitive()) {
                 sensitiveProperties.add(property.getName());
             } else {
@@ -4343,25 +4583,46 @@ public final class StandardProcessGroup implements ProcessGroup {
         }
 
         if (proposedProperties != null) {
-            for (final Map.Entry<String, String> entry : proposedProperties.entrySet()) {
-                final String propertyName = entry.getKey();
-                final VersionedPropertyDescriptor descriptor = proposedDescriptors.get(propertyName);
+            // Build a Set of all properties that are included in either the currently configured property values or the proposed values.
+            final Set<String> updatedPropertyNames = new HashSet<>();
+            updatedPropertyNames.addAll(proposedProperties.keySet());
+            componentNode.getProperties().keySet().stream()
+                .map(PropertyDescriptor::getName)
+                .forEach(updatedPropertyNames::add);
 
-                // skip any sensitive properties so we can retain whatever is currently set
-                if (sensitiveProperties.contains(propertyName)) {
-                    continue;
-                }
+            for (final String propertyName : updatedPropertyNames) {
+                final VersionedPropertyDescriptor descriptor = proposedDescriptors.get(propertyName);
 
                 String value;
                 if (descriptor != null && descriptor.getIdentifiesControllerService()) {
                     // Property identifies a Controller Service. So the value that we want to assign is not the value given.
                     // The value given is instead the Versioned Component ID of the Controller Service. We want to resolve this
                     // to the instance ID of the Controller Service.
-                    final String serviceVersionedComponentId = entry.getValue();
+                    final String serviceVersionedComponentId = proposedProperties.get(propertyName);
                     String instanceId = getServiceInstanceId(serviceVersionedComponentId, group);
                     value = instanceId == null ? serviceVersionedComponentId : instanceId;
                 } else {
-                    value = entry.getValue();
+                    value = proposedProperties.get(propertyName);
+                }
+
+                // skip any sensitive properties that are not populated so we can retain whatever is currently set. We do this because sensitive properties are not stored in the registry
+                // unless the value is a reference to a Parameter. If the value in the registry is null, it indicates that the sensitive value was removed, so we want to keep the currently
+                // populated value. The exception to this rule is if the currently configured value is a Parameter Reference and the Versioned Flow is empty. In this case, it implies
+                // that the Versioned Flow has changed from a Parameter Reference to an explicit value. In this case, we do in fact want to change the value of the Sensitive Property from
+                // the current parameter reference to an unset value.
+                if (sensitiveProperties.contains(propertyName) && value == null) {
+                    final PropertyConfiguration propertyConfiguration = componentNode.getProperty(componentNode.getPropertyDescriptor(propertyName));
+                    if (propertyConfiguration == null) {
+                        continue;
+                    }
+
+                    // No parameter references. Property currently is set to an explicit value. We don't want to change it.
+                    if (propertyConfiguration.getParameterReferences().isEmpty()) {
+                        continue;
+                    }
+
+                    // Once we reach this point, the property is configured to reference a Parameter, and the value in the Versioned Flow is an explicit value,
+                    // so we want to continue on and update the value to null.
                 }
 
                 fullPropertyMap.put(propertyName, value);
@@ -4474,6 +4735,9 @@ public final class StandardProcessGroup implements ProcessGroup {
                 .filter(FlowDifferenceFilters.FILTER_ADDED_REMOVED_REMOTE_PORTS)
                 .filter(FlowDifferenceFilters.FILTER_PUBLIC_PORT_NAME_CHANGES)
                 .filter(FlowDifferenceFilters.FILTER_IGNORABLE_VERSIONED_FLOW_COORDINATE_CHANGES)
+                .filter(diff -> !FlowDifferenceFilters.isNewPropertyWithDefaultValue(diff, flowManager))
+                .filter(diff -> !FlowDifferenceFilters.isNewRelationshipAutoTerminatedAndDefaulted(diff, versionedGroup, flowManager))
+                .filter(diff -> !FlowDifferenceFilters.isScheduledStateNew(diff))
                 .collect(Collectors.toCollection(HashSet::new));
 
         LOG.debug("There are {} differences between this Local Flow and the Versioned Flow: {}", differences.size(), differences);
@@ -4526,8 +4790,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                 // any connection that does exist in the proposed flow. This results in us having a Map whose values are those Connections
                 // that were removed. We can then check for any connections that have data in them. If any Connection is to be removed but
                 // has data, then we should throw an IllegalStateException.
-                findAllConnections().stream()
-                        .forEach(conn -> removedConnectionByVersionedId.put(conn.getVersionedComponentId().orElse(conn.getIdentifier()), conn));
+                findAllConnections().forEach(conn -> removedConnectionByVersionedId.put(conn.getVersionedComponentId().orElse(conn.getIdentifier()), conn));
 
                 final Set<String> proposedFlowConnectionIds = new HashSet<>();
                 findAllConnectionIds(flowContents, proposedFlowConnectionIds);
@@ -4607,7 +4870,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                 }
             }
 
-            // Ensure that all Processors are instantiate-able.
+            // Ensure that all Processors are instantiable
             final Map<String, VersionedProcessor> proposedProcessors = new HashMap<>();
             findAllProcessors(updatedFlow.getFlowContents(), proposedProcessors);
 
@@ -4627,7 +4890,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                 }
             }
 
-            // Ensure that all Controller Services are instantiate-able.
+            // Ensure that all Controller Services are instantiable
             final Map<String, VersionedControllerService> proposedServices = new HashMap<>();
             findAllControllerServices(updatedFlow.getFlowContents(), proposedServices);
 
@@ -4730,7 +4993,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public void verifyCanSaveToFlowRegistry(final String registryId, final String bucketId, final String flowId) {
+    public void verifyCanSaveToFlowRegistry(final String registryId, final String bucketId, final String flowId, final String saveAction) {
         verifyNoDescendantsWithLocalModifications("be saved to a Flow Registry");
 
         final StandardVersionControlInformation vci = versionControlInfo.get();
@@ -4739,7 +5002,8 @@ public final class StandardProcessGroup implements ProcessGroup {
                 // Flow ID is the same. We want to publish the Process Group as the next version of the Flow.
                 // In order to do this, we have to ensure that the Process Group is 'current'.
                 final VersionedFlowState state = vci.getStatus().getState();
-                if (state == VersionedFlowState.STALE || state == VersionedFlowState.LOCALLY_MODIFIED_AND_STALE) {
+                if (state == VersionedFlowState.STALE
+                        || (state == VersionedFlowState.LOCALLY_MODIFIED_AND_STALE && VersionedFlowDTO.COMMIT_ACTION.equals(saveAction))) {
                     throw new IllegalStateException("Cannot update Version Control Information for Process Group with ID " + getIdentifier()
                             + " because the Process Group in the flow is not synchronized with the most recent version of the Flow in the Flow Registry. "
                             + "In order to publish a new version of the Flow, the Process Group must first be in synch with the latest version in the Flow Registry.");

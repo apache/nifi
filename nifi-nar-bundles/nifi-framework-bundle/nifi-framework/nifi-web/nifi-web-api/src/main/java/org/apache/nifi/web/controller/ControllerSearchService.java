@@ -261,7 +261,7 @@ public class ControllerSearchService {
         addIfAppropriate(searchStr, processor.getClass().getSimpleName(), "Type", matches);
         addIfAppropriate(searchStr, procNode.getComponentType(), "Type", matches);
 
-        for (final Map.Entry<PropertyDescriptor, String> entry : procNode.getProperties().entrySet()) {
+        for (final Map.Entry<PropertyDescriptor, String> entry : procNode.getRawPropertyValues().entrySet()) {
             final PropertyDescriptor descriptor = entry.getKey();
 
             addIfAppropriate(searchStr, descriptor.getName(), "Property name", matches);

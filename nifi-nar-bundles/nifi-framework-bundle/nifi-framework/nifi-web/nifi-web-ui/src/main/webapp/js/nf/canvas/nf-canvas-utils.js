@@ -2089,6 +2089,22 @@
         },
 
         /**
+         * Set the parameter context.
+         *
+         * @argument {string} pc       The parameter context
+         */
+        setParameterContext: function (pc) {
+            return nfCanvas.setParameterContext(pc);
+        },
+
+        /**
+         * Get the parameter context.
+         */
+        getParameterContext: function () {
+            return nfCanvas.getParameterContext();
+        },
+
+        /**
          * Get the group name.
          */
         getGroupName: function () {

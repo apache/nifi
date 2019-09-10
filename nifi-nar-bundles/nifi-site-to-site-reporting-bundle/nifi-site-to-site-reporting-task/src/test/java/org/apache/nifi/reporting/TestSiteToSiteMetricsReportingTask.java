@@ -74,7 +74,7 @@ public class TestSiteToSiteMetricsReportingTask {
         status.setBytesSent(20000);
         status.setQueuedCount(100);
         status.setQueuedContentSize(1024L);
-        status.setBytesRead(60000L);
+        status.setBytesRead(null);
         status.setBytesWritten(80000L);
         status.setActiveThreadCount(5);
 
@@ -109,7 +109,7 @@ public class TestSiteToSiteMetricsReportingTask {
         Mockito.doAnswer(new Answer<PropertyValue>() {
             @Override
             public PropertyValue answer(final InvocationOnMock invocation) throws Throwable {
-                final PropertyDescriptor descriptor = invocation.getArgumentAt(0, PropertyDescriptor.class);
+                final PropertyDescriptor descriptor = invocation.getArgument(0, PropertyDescriptor.class);
                 return new MockPropertyValue(properties.get(descriptor));
             }
         }).when(context).getProperty(Mockito.any(PropertyDescriptor.class));
@@ -158,7 +158,7 @@ public class TestSiteToSiteMetricsReportingTask {
         Mockito.doAnswer(new Answer<PropertyValue>() {
             @Override
             public PropertyValue answer(final InvocationOnMock invocation) throws Throwable {
-                final PropertyDescriptor descriptor = invocation.getArgumentAt(0, PropertyDescriptor.class);
+                final PropertyDescriptor descriptor = invocation.getArgument(0, PropertyDescriptor.class);
                 return new MockPropertyValue(properties.get(descriptor));
             }
         }).when(validationContext).getProperty(Mockito.any(PropertyDescriptor.class));
@@ -199,7 +199,7 @@ public class TestSiteToSiteMetricsReportingTask {
         Mockito.doAnswer(new Answer<PropertyValue>() {
             @Override
             public PropertyValue answer(final InvocationOnMock invocation) throws Throwable {
-                final PropertyDescriptor descriptor = invocation.getArgumentAt(0, PropertyDescriptor.class);
+                final PropertyDescriptor descriptor = invocation.getArgument(0, PropertyDescriptor.class);
                 return new MockPropertyValue(properties.get(descriptor));
             }
         }).when(validationContext).getProperty(Mockito.any(PropertyDescriptor.class));
@@ -242,6 +242,34 @@ public class TestSiteToSiteMetricsReportingTask {
     }
 
     @Test
+    public void testAmbariFormatWithNullValues() throws IOException, InitializationException {
+
+        final Map<PropertyDescriptor, String> properties = new HashMap<>();
+        properties.put(SiteToSiteMetricsReportingTask.FORMAT, SiteToSiteMetricsReportingTask.AMBARI_FORMAT.getValue());
+        properties.put(SiteToSiteMetricsReportingTask.ALLOW_NULL_VALUES, "true");
+
+        MockSiteToSiteMetricsReportingTask task = initTask(properties);
+        task.onTrigger(context);
+
+        assertEquals(1, task.dataSent.size());
+        final String msg = new String(task.dataSent.get(0), StandardCharsets.UTF_8);
+        JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
+        JsonArray array = jsonReader.readObject().getJsonArray("metrics");
+        for(int i = 0; i < array.size(); i++) {
+            JsonObject object = array.getJsonObject(i);
+            assertEquals("nifi", object.getString("appid"));
+            assertEquals("1234", object.getString("instanceid"));
+            if(object.getString("metricname").equals("BytesReadLast5Minutes")) {
+                for(Entry<String, JsonValue> kv : object.getJsonObject("metrics").entrySet()) {
+                    assertEquals("\"null\"", kv.getValue().toString());
+                }
+                return;
+            }
+        }
+        fail();
+    }
+
+    @Test
     public void testRecordFormat() throws IOException, InitializationException {
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
         properties.put(SiteToSiteMetricsReportingTask.FORMAT, SiteToSiteMetricsReportingTask.RECORD_FORMAT.getValue());
@@ -274,7 +302,7 @@ public class TestSiteToSiteMetricsReportingTask {
                 Mockito.doAnswer(new Answer<Object>() {
                     @Override
                     public Object answer(final InvocationOnMock invocation) throws Throwable {
-                        final byte[] data = invocation.getArgumentAt(0, byte[].class);
+                        final byte[] data = invocation.getArgument(0, byte[].class);
                         dataSent.add(data);
                         return null;
                     }

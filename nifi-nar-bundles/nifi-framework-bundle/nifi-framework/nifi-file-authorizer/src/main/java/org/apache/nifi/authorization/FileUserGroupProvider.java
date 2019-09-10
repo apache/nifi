@@ -93,7 +93,7 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
         try {
             return JAXBContext.newInstance(contextPath, FileAuthorizer.class.getClassLoader());
         } catch (JAXBException e) {
-            throw new RuntimeException("Unable to create JAXBContext.");
+            throw new RuntimeException("Unable to create JAXBContext.", e);
         }
     }
 

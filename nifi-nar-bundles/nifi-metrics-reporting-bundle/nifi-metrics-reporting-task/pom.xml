@@ -38,12 +38,11 @@
         <dependency>
             <groupId>io.dropwizard.metrics</groupId>
             <artifactId>metrics-graphite</artifactId>
-            <version>3.1.2</version>
+            <version>4.1.0</version>
         </dependency>
         <dependency>
-            <groupId>io.dropwizard.metrics</groupId>
-            <artifactId>metrics-jvm</artifactId>
-            <version>3.1.2</version>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-metrics</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>

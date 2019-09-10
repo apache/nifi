@@ -433,6 +433,7 @@ The LdapUserGroupProvider has the following properties:
 |`Read Timeout` | Duration of read timeout. (i.e. `10 secs`).
 |`Url` | Space-separated list of URLs of the LDAP servers (i.e. `ldap://<hostname>:<port>`).
 |`Page Size` | Sets the page size when retrieving users and groups. If not specified, no paging is performed.
+|`Group Membership - Enforce Case Sensitivity` | Sets whether group membership decisions are case sensitive. When a user or group is inferred (by not specifying or user or group search base or user identity attribute or group name attribute) case sensitivity is enforced since the value to use for the user identity or group name would be ambiguous. Defaults to false.
 |`Sync Interval` | Duration of time between syncing users and groups. (i.e. `30 mins`). Minimum allowable value is `10 secs`.
 |`User Search Base` | Base DN for searching for users (i.e. `ou=users,o=nifi`). Required to search users.
 |`User Object Class` | Object class for identifying users (i.e. `person`). Required if searching users.
@@ -451,6 +452,27 @@ The LdapUserGroupProvider has the following properties:
 |==================================================================================================================================================
 
 NOTE: Any identity mapping rules specified in _nifi.properties_ will also be applied to the user identities. Group names are not mapped.
+
+==== ShellUserGroupProvider
+
+The ShellUserGroupProvider fetches user and group details from Unix-like systems using shell commands.
+
+This provider executes various shell pipelines with commands such as `getent` on Linux and `dscl` on MacOS.
+
+Supported systems may be configured to retrieve users and groups from an external source, such as LDAP or NIS.  In these cases the shell commands
+will return those external users and groups.  This provides administrators another mechanism to integrate user and group directory services.
+
+The ShellUserGroupProvider has the following properties:
+
+[options="header,footer"]
+|==================================================================================================================================================
+| Property Name | Description
+|`Initial Refresh Delay` | Duration of initial delay before first user and group refresh. (i.e. `10 secs`).  Default is `5 mins`.
+|`Refresh Delay` | Duration of delay between each user and group refresh. (i.e. `10 secs`).  Default is `5 mins`.
+|==================================================================================================================================================
+
+Like LdapUserGroupProvider, the ShellUserGroupProvider is commented out in the _authorizers.xml_ file.  Refer to that comment for usage examples.
+
 
 ==== Composite Implementations
 
@@ -659,6 +681,7 @@ member: cn=User 2,ou=users,o=nifi
         <property name="Url">ldap://localhost:10389</property>
         <property name="Page Size"></property>
         <property name="Sync Interval">30 mins</property>
+        <property name="Group Membership - Enforce Case Sensitivity">false</property>
 
         <property name="User Search Base">ou=users,o=nifi</property>
         <property name="User Object Class">person</property>
@@ -747,6 +770,7 @@ memberUid: user2
         <property name="Url">ldap://localhost:10389</property>
         <property name="Page Size"></property>
         <property name="Sync Interval">30 mins</property>
+        <property name="Group Membership - Enforce Case Sensitivity">false</property>
 
         <property name="User Search Base">ou=Users,dc=local</property>
         <property name="User Object Class">posixAccount</property>
@@ -847,6 +871,7 @@ member: cn=User 2,ou=users,o=nifi
         <property name="Url">ldap://localhost:10389</property>
         <property name="Page Size"></property>
         <property name="Sync Interval">30 mins</property>
+        <property name="Group Membership - Enforce Case Sensitivity">false</property>
 
         <property name="User Search Base">ou=users,o=nifi</property>
         <property name="User Object Class">person</property>
@@ -2354,6 +2379,21 @@ root@kdc:~# ll /http*
 root@kdc:~#
 ....
 
+[[analytics_framework]]
+== Analytics Framework
+NiFi has an internal analytics framework which can be enabled to predict back pressure occurrence, given the configured settings for threshold on a queue.  The model used by default for prediction is an ordinary least squares (OLS) linear regression. It uses recent observations from a queue (either number of objects or content size over time) and calculates a regression line for that data. The line's equation is then used to determine the next value that will be reached within a given time interval (e.g. number of objects in queue in the next 5 minutes). Below is an example graph of the linear regression model for Queue/Object Count over time which is used for predictions:
+
+image:back_pressure_prediction_model_example.png["Back pressure prediction based on Queue/Object Count"]
+
+In order to generate predictions, local status snapshot history is queried to obtain enough data to generate a model.  By default component status snapshots are captured every minute. Internal models need at least 2 or more observations to generate a prediction, therefore it may take up to 2 or more minutes for predictions to be available by default.  If predictions are needed sooner than what is provided by default, the timing of snapshots can be adjusted using the `nifi.components.status.snapshot.frequency` value in nifi.properties.
+
+NiFi evaluates the model's effectiveness before sending prediction information by using the model's R-Squared score by default. One important note: R-Square is a measure of how close the regression line fits the observation data vs. how accurate the prediction will be; therefore there may be some measure of error. If the R-Squared score for the calculated model meets the configured threshold (as defined by `nifi.analytics.connection.model.score.threshold`) then the model will be used for prediction. Otherwise the model will not be used and predictions will not be available until a model is generated with a score that exceeds the threshold.  Default R-Squared threshold value is `.9` however this can be tuned based on prediction requirements.
+
+The prediction interval `nifi.analytics.predict.interval` can be configured to project out further when back pressure will occur.  Predictions further out in time require more observations stored locally to generate an effective model. This may also require tuning of the model's scoring threshold value to select a score which can offer reasonable predictions.
+
+See <<analytics_properties>> for complete information on configuring analytic properties.
+
+
 [[system_properties]]
 == System Properties
 The _nifi.properties_ file in the `conf` directory is the main configuration file for controlling how NiFi runs. This section provides an overview of the properties in this file and includes some notes on how to configure it in a way that will make upgrading easier. *After making changes to this file, restart NiFi in order
@@ -2432,16 +2472,26 @@ The H2 Settings section defines the settings for the H2 database, which keeps tr
 |`nifi.h2.url.append`|This property specifies additional arguments to add to the connection string for the H2 database. The default value should be used and should not be changed. It is: `;LOCK_TIMEOUT=25000;WRITE_DELAY=0;AUTO_SERVER=FALSE`.
 |====
 
-
 === FlowFile Repository
 
 The FlowFile repository keeps track of the attributes and current state of each FlowFile in the system. By default,
 this repository is installed in the same root installation directory as all the other repositories; however, it is advisable
 to configure it on a separate drive if available.
 
+There are currently three implementations of the FlowFile Repository, which are detailed below.
+
 |====
 |*Property*|*Description*
-|`nifi.flowfile.repository.implementation`|The FlowFile Repository implementation. The default value is `org.apache.nifi.controller.repository.WriteAheadFlowFileRepository` and should only be changed with caution. To store flowfiles in memory instead of on disk (accepting data loss in the event of power/machine failure or a restart of NiFi), set this property to `org.apache.nifi.controller.repository.VolatileFlowFileRepository`.
+|`nifi.flowfile.repository.implementation`|The FlowFile Repository implementation. The default value is `org.apache.nifi.controller.repository.WriteAheadFlowFileRepository`.  The other current options are `org.apache.nifi.controller.repository.VolatileFlowFileRepository` and `org.apache.nifi.controller.repository.RocksDBFlowFileRepository`.
+|====
+NOTE: Switching repository implementations should only be done on an instance with zero queued FlowFiles, and should only be done with caution.
+
+=== Write Ahead FlowFile Repository
+
+WriteAheadFlowFileRepository is the default implementation.  It persists FlowFiles to disk, and can optionally be configured to synchronize all changes to disk. This is very expensive and can significantly reduce NiFi performance. However, if it is `false`, there could be the potential for data loss if either there is a sudden power loss or the operating system crashes. The default value is `false`.
+
+|====
+|*Property*|*Description*
 |`nifi.flowfile.repository.wal.implementation`|If the repository implementation is configured to use the `WriteAheadFlowFileRepository`, this property can be used to specify which implementation of the
 Write-Ahead Log should be used. The default value is `org.apache.nifi.wali.SequentialAccessWriteAheadLog`. This version of the write-ahead log was added in version 1.6.0 of Apache NiFi and was developed
 in order to address an issue that exists in the older implementation. In the event of power loss or an operating system crash, the old implementation was susceptible to recovering FlowFiles
@@ -2454,6 +2504,112 @@ implementation.
 |`nifi.flowfile.repository.partitions`|The number of partitions. The default value is `256`.
 |`nifi.flowfile.repository.checkpoint.interval`| The FlowFile Repository checkpoint interval. The default value is `2 mins`.
 |`nifi.flowfile.repository.always.sync`|If set to `true`, any change to the repository will be synchronized to the disk, meaning that NiFi will ask the operating system not to cache the information. This is very expensive and can significantly reduce NiFi performance. However, if it is `false`, there could be the potential for data loss if either there is a sudden power loss or the operating system crashes. The default value is `false`.
+|====
+
+
+=== Volatile FlowFile Repository
+
+This implementation stores FlowFiles in memory instead of on disk.  It *will* result in data loss in the event of power/machine failure or a restart of NiFi.  To use this implementation, set  `nifi.flowfile.repository.implementation` to `org.apache.nifi.controller.repository.VolatileFlowFileRepository`.
+
+
+=== RocksDB FlowFile Repository
+
+This implementation makes use of the RocksDB key-value store.  It uses periodic synchronization to ensure that no created or received data is lost (as long as `nifi.flowfile.repository.rocksdb.accept.data.loss` is set `false`).  In the event of a failure (e.g. power loss), _work_ done on FlowFiles through the system (i.e. routing and transformation) may still be lost.  Specifically, the record of these actions may be lost, reverting the affected FlowFiles to a previous, valid state.  From there, they will resume their path through the flow as normal.  This guarantee comes at the expense of a delay on operations that add new data to the system.  This delay is configurable (as `nifi.flowfile.repository.rocksdb.sync.period`), and can be tuned to the individual system.
+
+The configuration parameters for this repository fall in to two categories, "NiFi-centric" and "RocksDB-centric".  The NiFi-centric settings have to do with the operations of the FlowFile Repository and its interaction with NiFi.  The RocksDB-centric settings directly correlate to settings on the underlying RocksDB repo.  More information on these settings can be found in the RocksDB documentation: https://github.com/facebook/rocksdb/wiki/RocksJava-Basics.
+
+NOTE:  Windows users will need to ensure "Microsoft Visual C++ 2015 Redistributable" is installed for this repository to work.  See the following link for more details: https://github.com/facebook/rocksdb/wiki/RocksJava-Basics#maven-windows.
+
+
+To use this implementation, set `nifi.flowfile.repository.implementation` to `org.apache.nifi.controller.repository.RocksDBFlowFileRepository`.
+
+*NiFi-centric Configuration Properties*:
+|====
+|*Property*|*Description*
+|`nifi.flowfile.repository.directory`|The location of the FlowFile Repository.
+The default value is`./flowfile_repository`.
+|`nifi.flowfile.repository.rocksdb.sync.warning.period`
+|How often to log warnings if unable to sync.
+The default value is 30 seconds.
+|`nifi.flowfile.repository.rocksdb.claim.cleanup.period`
+|How often to mark content claims destructible (so they can be removed from the content repo).
+The default value is 30 seconds.
+|`nifi.flowfile.repository.rocksdb.deserialization.threads`
+|How many threads to use on startup restoring the FlowFile state.
+The default value is 16.
+|`nifi.flowfile.repository.rocksdb.deserialization.buffer.size`
+|Size of the buffer to use on startup restoring the FlowFile state.
+The default value is 1000.
+|`nifi.flowfile.repository.rocksdb.sync.period`
+|Frequency at which to force a sync to disk.  This is the maximum period a data creation operation may block if `nifi.flowfile.repository.rocksdb.accept.data.loss` is `false`.
+The default value is 10 milliseconds.
+|`nifi.flowfile.repository.rocksdb.accept.data.loss`
+|Whether to accept the loss of received / created data.  Setting this `true` increases throughput if loss of data is acceptable.
+The default value is false.
+|`nifi.flowfile.repository.rocksdb.enable.stall.stop`
+|Whether to enable the stall / stop of writes to the repository based on configured limits.  Enabling this feature allows the system to protect itself by restricting (delaying or denying) operations that increase the total FlowFile count on the node to prevent the system from being overwhelmed.
+The default value is false.
+|`nifi.flowfile.repository.rocksdb.stall.period`
+|The period of time to stall when the specified criteria are encountered.
+The default value is 100 milliseconds.
+|`nifi.flowfile.repository.rocksdb.stall.flowfile.count`
+|The FlowFile count at which to begin stalling writes to the repo.
+The default value is 800000.
+|`nifi.flowfile.repository.rocksdb.stall.heap.usage.percent`
+|The heap usage at which to begin stalling writes to the repo.
+The default value is 95%.
+|`nifi.flowfile.repository.rocksdb.stop.flowfile.count`
+|The FlowFile count at which to begin stopping the creation of new FlowFiles.
+The default value is 1100000.
+|`nifi.flowfile.repository.rocksdb.stop.heap.usage.percent`
+|The heap usage at which to begin stopping the creation of new FlowFiles.
+The default value is 99.9%.
+|`nifi.flowfile.repository.rocksdb.remove.orphaned.flowfiles.on.startup`
+|Whether to allow the repository to remove FlowFiles it cannot identify on startup.  As this is often the result of a configuration or synchronization error, it is disabled by default.  This should only be enabled if you are absolutely certain you want to lose the data in question.
+The default value is false.
+|`nifi.flowfile.repository.rocksdb.enable.recovery.mode`
+|Whether to enable "recovery mode".  This limits the number of FlowFiles loaded into the graph at a time, while not actually removing any FlowFiles (or content) from the system.  This allows for the recovery of a system that is encountering OutOfMemory errors or similar on startup.  This should not be enabled unless necessary to recover a system, and should be disabled as soon as that has been accomplished.
+
+*WARNING:* While in recovery mode, *do not* make modifications to the graph.  Changes to the graph may result in the inability to restore further FlowFiles from the repository.
+The default value is false.
+|`nifi.flowfile.repository.rocksdb.recovery.mode.flowfile.count`
+|The number of FlowFiles to load into the graph when in "recovery mode".  As FlowFiles leave the system, additional FlowFiles will be loaded up to this limit.  This setting does not prevent FlowFiles from coming into the system via normal means.
+The default value is 5000.
+|====
+
+*RocksDB-centric Configuration Properties:*
+|====
+|*Property*|*Description*
+|`nifi.flowfile.repository.rocksdb.parallel.threads`
+|The number of threads to use for flush and compaction.  A good value is the number of cores.  See RockDB `DBOptions.setIncreaseParallelism()` for more information.
+The default value is 8.
+|`nifi.flowfile.repository.rocksdb.max.write.buffer.number`
+|The maximum number of write buffers that are built up in memory.  See RockDB `ColumnFamilyOptions.setMaxWriteBufferNumber()` / `max_write_buffer_number` for more information.
+The default value is 4.
+|`nifi.flowfile.repository.rocksdb.write.buffer.size`
+|The amount of data to build up in memory before converting to a sorted on disk file.  Larger values increase performance, especially during bulk loads.  Up to `max_write_buffer_number` write buffers may be held in memory at the same time, so you may wish to adjust this parameter to control memory usage.  See RockDB `ColumnFamilyOptions.setWriteBufferSize()` / `write_buffer_size` for more information.
+The default value is 256 MB.
+|`nifi.flowfile.repository.rocksdb.level.0.slowdown.writes.trigger`
+|A soft limit on number of level-0 files.  Writes are slowed at this point.  A values less than 0 means no write slow down will be triggered by the number of files in level-0.  See RocksDB `ColumnFamilyOptions.setLevel0SlowdownWritesTrigger()` / `level0_slowdown_writes_trigger` for more information.
+The default value is 20.
+|`nifi.flowfile.repository.rocksdb.level.0.stop.writes.trigger`
+|The maximum number of level-0 files.  Writes will be stopped at this point.  See RocksDB `ColumnFamilyOptions.setLevel0StopWritesTrigger()` / `level0_stop_writes_trigger` for more information.
+The default value is 40.
+|`nifi.flowfile.repository.rocksdb.delayed.write.bytes.per.second`
+|The limited write rate to the DB if slowdown is triggered.  RocksDB may decide to slow down more if the compaction gets behind further. See RocksDB `DBOptions.setDelayedWriteRate()` for more information.
+The default value is 16 MB.
+|`nifi.flowfile.repository.rocksdb.max.background.flushes`
+|Specifies the maximum number of concurrent background flush jobs.  See RocksDB `DBOptions.setMaxBackgroundFlushes()` / `max_background_flushes` for more information.
+The default value is 1.
+|`nifi.flowfile.repository.rocksdb.max.background.compactions`
+|Specifies the maximum number of concurrent background compaction jobs.  See RocksDB `DBOptions.setMaxBackgroundCompactions()` / `max_background_compactions` for more information.
+The default value is 1.
+|`nifi.flowfile.repository.rocksdb.min.write.buffer.number.to.merge`
+|The minimum number of write buffers to merge together before writing to storage.  See RocksDB `ColumnFamilyOptions.setMinWriteBufferNumberToMerge()` / `min_write_buffer_number_to_merge` for more information.
+The default value is 1.
+|`nifi.flowfile.repository.rocksdb.stat.dump.period`
+|The period at which to dump rocksdb.stats to the log.  See RocksDB `DBOptions.setStatsDumpPeriodSec()` / `stats_dump_period_sec` for more information.
+The default value is 600 sec.
 |====
 
 === Swap Management
@@ -3174,6 +3330,21 @@ that is specified.
 |`nifi.kerberos.spnego.keytab.location`*|The file path of the NiFi Kerberos keytab, if used. It is blank by default. Note that this property is used to authenticate NiFi users.
   Example: `/etc/http-nifi.keytab`
 |`nifi.kerberos.spengo.authentication.expiration`*|The expiration duration of a successful Kerberos user authentication, if used. The default value is `12 hours`.
+|====
+
+[[analytics_properties]]
+=== Analytics Properties
+
+These properties determine the behavior of the internal NiFi predictive analytics capability, such as backpressure prediction, and should be configured the same way on all nodes.
+
+|====
+|*Property*|*Description*
+|`nifi.analytics.predict.enabled`|This indicates whether prediction should be enabled for the cluster. The default is `false`.
+|`nifi.analytics.predict.interval`|This indicates a time interval for which analytical predictions (queue saturation, e.g.) should be made. The default value is `3 mins`.
+|`nifi.analytics.connection.model.implementation`|This is the implementation class for the status analytics model used to make connection predictions.  The default value is `org.apache.nifi.controller.status.analytics.models.OrdinaryLeastSquares`.
+|`nifi.analytics.connection.model.score.name`|This is the name of the scoring type that should be used to evaluate model.  The default value is `rSquared`.
+|`nifi.analytics.connection.model.score.threshold`|This is the threshold for the scoring value (where model score should be above given threshold).  The default value is `.9`.
+
 |====
 
 [[custom_properties]]

@@ -286,7 +286,7 @@ public class TestThreadPoolRequestReplicator {
         when(coordinator.getConnectionStatus(Mockito.any(NodeIdentifier.class))).thenAnswer(new Answer<NodeConnectionStatus>() {
             @Override
             public NodeConnectionStatus answer(InvocationOnMock invocation) throws Throwable {
-                return new NodeConnectionStatus(invocation.getArgumentAt(0, NodeIdentifier.class), NodeConnectionState.CONNECTED);
+                return new NodeConnectionStatus(invocation.getArgument(0), NodeConnectionState.CONNECTED);
             }
         });
 

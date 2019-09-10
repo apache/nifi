@@ -136,7 +136,7 @@ public class SyslogReader extends SchemaRegistryService implements RecordReaderF
     }
 
     @Override
-    public RecordReader createRecordReader(final Map<String, String> variables, final InputStream in, final ComponentLog logger) throws IOException, SchemaNotFoundException {
+    public RecordReader createRecordReader(final Map<String, String> variables, final InputStream in, final long inputLength, final ComponentLog logger) throws IOException, SchemaNotFoundException {
         final RecordSchema schema = getSchema(variables, in, null);
         return new SyslogRecordReader(parser, in, schema);
     }

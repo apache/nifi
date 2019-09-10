@@ -259,13 +259,16 @@ public class ListGCSBucket extends AbstractGCSProcessor {
         }
 
         final Storage storage = getCloudService();
-        int listCount = 0;
+
         long maxTimestamp = 0L;
+        Set<String> maxKeys = new HashSet<>();
 
 
-        Page<Blob> blobPages = storage.list(bucket, listOptions.toArray(new Storage.BlobListOption[listOptions.size()]));
+        Page<Blob> blobPage = storage.list(bucket, listOptions.toArray(new Storage.BlobListOption[listOptions.size()]));
         do {
-            for (Blob blob : blobPages.getValues()) {
+            int listCount = 0;
+
+            for (Blob blob : blobPage.getValues()) {
                 long lastModified = blob.getUpdateTime();
                 if (lastModified < currentTimestamp
                         || lastModified == currentTimestamp && currentKeys.contains(blob.getName())) {
@@ -381,40 +384,36 @@ public class ListGCSBucket extends AbstractGCSProcessor {
                 // Update state
                 if (lastModified > maxTimestamp) {
                     maxTimestamp = lastModified;
-                    currentKeys.clear();
+                    maxKeys.clear();
                 }
                 if (lastModified == maxTimestamp) {
-                    currentKeys.add(blob.getName());
+                    maxKeys.add(blob.getName());
                 }
                 listCount++;
             }
 
-            blobPages = blobPages.getNextPage();
             commit(context, session, listCount);
-            listCount = 0;
-        } while (blobPages != null);
 
-        currentTimestamp = maxTimestamp;
+            blobPage = blobPage.getNextPage();
+        } while (blobPage != null);
 
-        final long listMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
-        getLogger().info("Successfully listed GCS bucket {} in {} millis", new Object[]{bucket, listMillis});
-
-        if (!commit(context, session, listCount)) {
-            if (currentTimestamp > 0) {
-                persistState(context);
-            }
+        if (maxTimestamp != 0) {
+            currentTimestamp = maxTimestamp;
+            currentKeys = maxKeys;
+            persistState(context);
+        } else {
             getLogger().debug("No new objects in GCS bucket {} to list. Yielding.", new Object[]{bucket});
             context.yield();
         }
+
+        final long listMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
+        getLogger().info("Successfully listed GCS bucket {} in {} millis", new Object[]{bucket, listMillis});
     }
 
-    private boolean commit(final ProcessContext context, final ProcessSession session, int listCount) {
-        boolean willCommit = listCount > 0;
-        if (willCommit) {
+    private void commit(final ProcessContext context, final ProcessSession session, int listCount) {
+        if (listCount > 0) {
             getLogger().info("Successfully listed {} new files from GCS; routing to success", new Object[] {listCount});
             session.commit();
-            persistState(context);
         }
-        return willCommit;
     }
 }

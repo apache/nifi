@@ -44,8 +44,11 @@ import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.sql.Date;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -402,6 +405,40 @@ public class TestAvroTypeUtil {
     }
 
     @Test
+    public void testConvertAvroRecordToMapWithFieldTypeOfFixedAndLogicalTypeDecimal() {
+       // Create a field schema like {"type":"fixed","name":"amount","size":16,"logicalType":"decimal","precision":18,"scale":8}
+       final LogicalTypes.Decimal decimalType = LogicalTypes.decimal(18, 8);
+        final Schema fieldSchema = Schema.createFixed("amount", null, null, 16);;
+        decimalType.addToSchema(fieldSchema);
+
+        // Create a field named "amount" using the field schema above
+        final Schema.Field field = new Schema.Field("amount", fieldSchema, null, (Object)null);
+
+        // Create an overall record schema with the amount field
+        final Schema avroSchema = Schema.createRecord(Collections.singletonList(field));
+
+        // Create an example Avro record with the amount field of type fixed and a logical type of decimal
+        final BigDecimal expectedDecimalValue = new BigDecimal("1234567890.12345678");
+        final GenericRecord genericRecord = new GenericData.Record(avroSchema);
+        genericRecord.put("amount", new Conversions.DecimalConversion().toFixed(expectedDecimalValue, fieldSchema, decimalType));
+
+        // Convert the Avro schema to a Record schema
+        final RecordSchema recordSchema = AvroTypeUtil.createSchema(avroSchema);
+
+        // Convert the Avro record a Map and verify the object produced is the same BigDecimal that was converted to fixed
+        final Map<String,Object> convertedMap = AvroTypeUtil.convertAvroRecordToMap(genericRecord, recordSchema, StandardCharsets.UTF_8);
+        assertNotNull(convertedMap);
+        assertEquals(1, convertedMap.size());
+
+        final Object resultObject = convertedMap.get("amount");
+        assertNotNull(resultObject);
+        assertTrue(resultObject instanceof Double);
+
+        final Double resultDouble = (Double) resultObject;
+        assertEquals(Double.valueOf(expectedDecimalValue.doubleValue()), resultDouble);
+    }
+
+    @Test
     public void testBytesDecimalConversion(){
         final LogicalTypes.Decimal decimalType = LogicalTypes.decimal(18, 8);
         final Schema fieldSchema = Schema.create(Type.BYTES);
@@ -411,6 +448,20 @@ public class TestAvroTypeUtil {
         final ByteBuffer serializedBytes = (ByteBuffer)convertedValue;
         final BigDecimal bigDecimal = new Conversions.DecimalConversion().fromBytes(serializedBytes, fieldSchema, decimalType);
         assertEquals(new BigDecimal("2.5").setScale(8), bigDecimal);
+    }
+
+    @Test
+    public void testDateConversion() {
+        final Calendar c = Calendar.getInstance();
+        c.set(2019, Calendar.JANUARY, 1, 0, 0, 0);
+        final long epochMillis = c.getTimeInMillis();
+
+        final LogicalTypes.Date dateType = LogicalTypes.date();
+        final Schema fieldSchema = Schema.create(Type.INT);
+        dateType.addToSchema(fieldSchema);
+        final Object convertedValue = AvroTypeUtil.convertToAvroObject(new Date(epochMillis), fieldSchema);
+        assertTrue(convertedValue instanceof Integer);
+        assertEquals((int) convertedValue, LocalDate.of(2019, 1, 1).toEpochDay());
     }
 
     @Test

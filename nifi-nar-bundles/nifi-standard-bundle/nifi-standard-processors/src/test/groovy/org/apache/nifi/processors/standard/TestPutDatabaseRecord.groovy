@@ -49,11 +49,11 @@ import java.util.function.Supplier
 import static org.junit.Assert.assertEquals
 import static org.junit.Assert.assertFalse
 import static org.junit.Assert.assertNotNull
+import static org.junit.Assert.assertNull
 import static org.junit.Assert.assertTrue
 import static org.junit.Assert.fail
-import static org.mockito.Matchers.anyMap
+import static org.mockito.ArgumentMatchers.anyMap
 import static org.mockito.Mockito.doAnswer
-import static org.mockito.Mockito.only
 import static org.mockito.Mockito.spy
 import static org.mockito.Mockito.times
 import static org.mockito.Mockito.verify
@@ -240,6 +240,7 @@ class TestPutDatabaseRecord {
         parser.addRecord(2, 'rec2', 102)
         parser.addRecord(3, 'rec3', 103)
         parser.addRecord(4, 'rec4', 104)
+        parser.addRecord(5, null, 105)
 
         runner.setProperty(PutDatabaseRecord.RECORD_READER_FACTORY, 'parser')
         runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.INSERT_TYPE)
@@ -268,6 +269,10 @@ class TestPutDatabaseRecord {
         assertEquals(4, rs.getInt(1))
         assertEquals('rec4', rs.getString(2))
         assertEquals(104, rs.getInt(3))
+        assertTrue(rs.next())
+        assertEquals(5, rs.getInt(1))
+        assertNull(rs.getString(2))
+        assertEquals(105, rs.getInt(3))
         assertFalse(rs.next())
 
         stmt.close()
@@ -407,6 +412,82 @@ class TestPutDatabaseRecord {
         assertEquals(2, rs.getInt(1))
         assertEquals('rec2', rs.getString(2))
         assertEquals(102, rs.getInt(3))
+        assertFalse(rs.next())
+
+        stmt.close()
+        conn.close()
+    }
+
+    @Test
+    void testMultipleInsertsViaSqlStatementType() throws InitializationException, ProcessException, SQLException, IOException {
+        recreateTable("PERSONS", createPersons)
+        final MockRecordParser parser = new MockRecordParser()
+        runner.addControllerService("parser", parser)
+        runner.enableControllerService(parser)
+
+        parser.addSchemaField("sql", RecordFieldType.STRING)
+
+        parser.addRecord('''INSERT INTO PERSONS (id, name, code) VALUES (1, 'rec1',101);INSERT INTO PERSONS (id, name, code) VALUES (2, 'rec2',102)''')
+
+        runner.setProperty(PutDatabaseRecord.RECORD_READER_FACTORY, 'parser')
+        runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.USE_ATTR_TYPE)
+        runner.setProperty(PutDatabaseRecord.TABLE_NAME, 'PERSONS')
+        runner.setProperty(PutDatabaseRecord.FIELD_CONTAINING_SQL, 'sql')
+        runner.setProperty(PutDatabaseRecord.ALLOW_MULTIPLE_STATEMENTS, 'true')
+
+        def attrs = [:]
+        attrs[PutDatabaseRecord.STATEMENT_TYPE_ATTRIBUTE] = 'sql'
+        runner.enqueue(new byte[0], attrs)
+        runner.run()
+
+        runner.assertTransferCount(PutDatabaseRecord.REL_SUCCESS, 1)
+        final Connection conn = dbcp.getConnection()
+        final Statement stmt = conn.createStatement()
+        final ResultSet rs = stmt.executeQuery('SELECT * FROM PERSONS')
+        assertTrue(rs.next())
+        assertEquals(1, rs.getInt(1))
+        assertEquals('rec1', rs.getString(2))
+        assertEquals(101, rs.getInt(3))
+        assertTrue(rs.next())
+        assertEquals(2, rs.getInt(1))
+        assertEquals('rec2', rs.getString(2))
+        assertEquals(102, rs.getInt(3))
+        assertFalse(rs.next())
+
+        stmt.close()
+        conn.close()
+    }
+
+    @Test
+    void testMultipleInsertsViaSqlStatementTypeBadSQL() throws InitializationException, ProcessException, SQLException, IOException {
+        recreateTable("PERSONS", createPersons)
+        final MockRecordParser parser = new MockRecordParser()
+        runner.addControllerService("parser", parser)
+        runner.enableControllerService(parser)
+
+        parser.addSchemaField("sql", RecordFieldType.STRING)
+
+        parser.addRecord('''INSERT INTO PERSONS (id, name, code) VALUES (1, 'rec1',101);
+                        INSERT INTO PERSONS (id, name, code) VALUES (2, 'rec2',102);
+                        INSERT INTO PERSONS2 (id, name, code) VALUES (2, 'rec2',102);''')
+
+        runner.setProperty(PutDatabaseRecord.RECORD_READER_FACTORY, 'parser')
+        runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.USE_ATTR_TYPE)
+        runner.setProperty(PutDatabaseRecord.TABLE_NAME, 'PERSONS')
+        runner.setProperty(PutDatabaseRecord.FIELD_CONTAINING_SQL, 'sql')
+        runner.setProperty(PutDatabaseRecord.ALLOW_MULTIPLE_STATEMENTS, 'true')
+
+        def attrs = [:]
+        attrs[PutDatabaseRecord.STATEMENT_TYPE_ATTRIBUTE] = 'sql'
+        runner.enqueue(new byte[0], attrs)
+        runner.run()
+
+        runner.assertTransferCount(PutDatabaseRecord.REL_SUCCESS, 0)
+        runner.assertTransferCount(PutDatabaseRecord.REL_FAILURE, 1)
+        final Connection conn = dbcp.getConnection()
+        final Statement stmt = conn.createStatement()
+        final ResultSet rs = stmt.executeQuery('SELECT * FROM PERSONS')
+        // The first two legitimate statements should have been rolled back
         assertFalse(rs.next())
 
         stmt.close()

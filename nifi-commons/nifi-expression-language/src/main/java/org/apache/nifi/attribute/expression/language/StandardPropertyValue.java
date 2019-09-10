@@ -16,18 +16,19 @@
  */
 package org.apache.nifi.attribute.expression.language;
 
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.expression.AttributeValueDecorator;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.util.FormatUtils;
+
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 public class StandardPropertyValue implements PropertyValue {
 
@@ -35,13 +36,14 @@ public class StandardPropertyValue implements PropertyValue {
     private final ControllerServiceLookup serviceLookup;
     private final PreparedQuery preparedQuery;
     private final VariableRegistry variableRegistry;
+    private final ParameterLookup parameterLookup;
 
-    public StandardPropertyValue(final String rawValue, final ControllerServiceLookup serviceLookup) {
-        this(rawValue, serviceLookup, Query.prepare(rawValue), VariableRegistry.EMPTY_REGISTRY);
+    public StandardPropertyValue(final String rawValue, final ControllerServiceLookup serviceLookup, final ParameterLookup parameterLookup) {
+        this(rawValue, serviceLookup, parameterLookup, Query.prepare(rawValue), VariableRegistry.EMPTY_REGISTRY);
     }
 
-    public StandardPropertyValue(final String rawValue, final ControllerServiceLookup serviceLookup, final VariableRegistry variableRegistry) {
-        this(rawValue, serviceLookup, Query.prepare(rawValue), variableRegistry);
+    public StandardPropertyValue(final String rawValue, final ControllerServiceLookup serviceLookup, final ParameterLookup parameterLookup, final VariableRegistry variableRegistry) {
+        this(rawValue, serviceLookup, parameterLookup, Query.prepare(rawValue), variableRegistry);
     }
 
     /**
@@ -49,7 +51,7 @@ public class StandardPropertyValue implements PropertyValue {
      * lookup and indicates whether or not the rawValue contains any NiFi
      * Expressions. If it is unknown whether or not the value contains any NiFi
      * Expressions, the
-     * {@link #StandardPropertyValue(String, ControllerServiceLookup, VariableRegistry)}
+     * {@link #StandardPropertyValue(String, ControllerServiceLookup, ParameterLookup, VariableRegistry)}
      * constructor should be used or <code>true</code> should be passed.
      * However, if it is known that the value contains no NiFi Expression, that
      * information should be provided so that calls to
@@ -57,15 +59,17 @@ public class StandardPropertyValue implements PropertyValue {
      *
      * @param rawValue value
      * @param serviceLookup lookup
+     * @param  parameterLookup the parameter lookup
      * @param preparedQuery query
      * @param variableRegistry variableRegistry
      */
-    public StandardPropertyValue(final String rawValue, final ControllerServiceLookup serviceLookup, final PreparedQuery preparedQuery,
+    public StandardPropertyValue(final String rawValue, final ControllerServiceLookup serviceLookup, final ParameterLookup parameterLookup, final PreparedQuery preparedQuery,
             final VariableRegistry variableRegistry) {
         this.rawValue = rawValue;
         this.serviceLookup = serviceLookup;
         this.preparedQuery = preparedQuery;
         this.variableRegistry = variableRegistry;
+        this.parameterLookup = parameterLookup == null ? ParameterLookup.EMPTY : parameterLookup;
     }
 
     @Override
@@ -157,8 +161,10 @@ public class StandardPropertyValue implements PropertyValue {
         }
 
         final ValueLookup lookup = new ValueLookup(variableRegistry, flowFile, additionalAttributes);
-        final String evaluated = preparedQuery.evaluateExpressions(lookup, decorator, stateValues);
-        return new StandardPropertyValue(evaluated, serviceLookup, new EmptyPreparedQuery(evaluated), null);
+        final EvaluationContext evaluationContext = new StandardEvaluationContext(lookup, stateValues, parameterLookup);
+        final String evaluated = preparedQuery.evaluateExpressions(evaluationContext, decorator);
+
+        return new StandardPropertyValue(evaluated, serviceLookup, parameterLookup, new EmptyPreparedQuery(evaluated), null);
     }
 
     @Override

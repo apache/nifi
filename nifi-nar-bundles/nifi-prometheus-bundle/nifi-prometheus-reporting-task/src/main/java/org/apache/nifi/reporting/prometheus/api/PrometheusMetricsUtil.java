@@ -25,12 +25,12 @@ import org.apache.nifi.controller.status.PortStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
 
-import com.yammer.metrics.core.VirtualMachineMetrics;
-
 import io.prometheus.client.CollectorRegistry;
 import io.prometheus.client.Gauge;
 import org.apache.nifi.controller.status.RemoteProcessGroupStatus;
 import org.apache.nifi.controller.status.TransmissionStatus;
+import org.apache.nifi.metrics.jvm.JvmMetrics;
+import org.apache.nifi.processor.DataUnit;
 
 public class PrometheusMetricsUtil {
 
@@ -96,6 +96,12 @@ public class PrometheusMetricsUtil {
     private static final Gauge AMOUNT_THREADS_TOTAL_ACTIVE = Gauge.build()
             .name("nifi_amount_threads_active")
             .help("Total number of threads active for the component")
+            .labelNames("instance", "component_type", "component_name", "component_id", "parent_id")
+            .register(NIFI_REGISTRY);
+
+    private static final Gauge AMOUNT_THREADS_TOTAL_TERMINATED = Gauge.build()
+            .name("nifi_amount_threads_terminated")
+            .help("Total number of threads terminated for the component")
             .labelNames("instance", "component_type", "component_name", "component_id", "parent_id")
             .register(NIFI_REGISTRY);
 
@@ -272,7 +278,10 @@ public class PrometheusMetricsUtil {
         AMOUNT_ITEMS_QUEUED.labels(instanceId, componentType, componentName, componentId, parentPGId,"", "", "", "")
                 .set(status.getQueuedCount());
 
-        AMOUNT_THREADS_TOTAL_ACTIVE.labels(instanceId, componentType, componentName, componentId, parentPGId).set(status.getActiveThreadCount());
+        AMOUNT_THREADS_TOTAL_ACTIVE.labels(instanceId, componentType, componentName, componentId, parentPGId)
+                .set(status.getActiveThreadCount() == null ? 0 : status.getActiveThreadCount());
+        AMOUNT_THREADS_TOTAL_TERMINATED.labels(instanceId, componentType, componentName, componentId, parentPGId)
+                .set(status.getTerminatedThreadCount() == null ? 0 : status.getTerminatedThreadCount());
 
         // Report metrics for child process groups if specified
         if (METRICS_STRATEGY_PG.getValue().equals(metricsStrategy) || METRICS_STRATEGY_COMPONENTS.getValue().equals(metricsStrategy)) {
@@ -288,6 +297,16 @@ public class PrometheusMetricsUtil {
                     counters.entrySet().stream().forEach(entry -> PROCESSOR_COUNTERS
                             .labels(processorStatus.getName(), entry.getKey(), processorStatus.getId(), instanceId).set(entry.getValue()));
                 }
+
+                final String procComponentType = "Processor";
+                final String procComponentId = processorStatus.getId();
+                final String procComponentName = processorStatus.getName();
+                final String parentId = processorStatus.getGroupId();
+                AMOUNT_THREADS_TOTAL_ACTIVE.labels(instanceId, procComponentType, procComponentName, procComponentId, parentId)
+                        .set(status.getActiveThreadCount() == null ? 0 : status.getActiveThreadCount());
+                AMOUNT_THREADS_TOTAL_TERMINATED.labels(instanceId, procComponentType, procComponentName, procComponentId, parentId)
+                        .set(status.getTerminatedThreadCount() == null ? 0 : status.getTerminatedThreadCount());
+
             }
             for(ConnectionStatus connectionStatus : status.getConnectionStatus()) {
                 final String connComponentId = connectionStatus.getId();
@@ -398,8 +417,8 @@ public class PrometheusMetricsUtil {
         return NIFI_REGISTRY;
     }
 
-    public static CollectorRegistry createJvmMetrics(VirtualMachineMetrics jvmMetrics, String instanceId) {
-        JVM_HEAP_USED.labels(instanceId).set(jvmMetrics.heapUsed());
+    public static CollectorRegistry createJvmMetrics(JvmMetrics jvmMetrics, String instanceId) {
+        JVM_HEAP_USED.labels(instanceId).set(jvmMetrics.heapUsed(DataUnit.B));
         JVM_HEAP_USAGE.labels(instanceId).set(jvmMetrics.heapUsage());
         JVM_HEAP_NON_USAGE.labels(instanceId).set(jvmMetrics.nonHeapUsage());
 

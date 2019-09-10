@@ -22,8 +22,6 @@ import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.processors.kafka.pubsub.PublishResult;
-import org.apache.nifi.processors.kafka.pubsub.PublisherLease;
 import org.apache.nifi.processors.kafka.pubsub.util.MockRecordParser;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.MalformedRecordException;
@@ -52,8 +50,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -129,7 +127,7 @@ public class TestPublisherLease {
         doAnswer(new Answer<Object>() {
             @Override
             public Object answer(final InvocationOnMock invocation) throws Throwable {
-                final Callback callback = invocation.getArgumentAt(1, Callback.class);
+                final Callback callback = invocation.getArgument(1);
                 callback.onCompletion(null, new RuntimeException("Unit Test Intentional Exception"));
                 return null;
             }
@@ -161,7 +159,7 @@ public class TestPublisherLease {
         doAnswer(new Answer<Object>() {
             @Override
             public Object answer(InvocationOnMock invocation) throws Throwable {
-                final ProducerRecord<byte[], byte[]> record = invocation.getArgumentAt(0, ProducerRecord.class);
+                final ProducerRecord<byte[], byte[]> record = invocation.getArgument(0);
                 final byte[] value = record.value();
                 final String valueString = new String(value, StandardCharsets.UTF_8);
                 if ("1234567890".equals(valueString)) {
@@ -222,7 +220,7 @@ public class TestPublisherLease {
         doAnswer(new Answer<Object>() {
             @Override
             public Object answer(InvocationOnMock invocation) throws Throwable {
-                final ProducerRecord<byte[], byte[]> record = invocation.getArgumentAt(0, ProducerRecord.class);
+                final ProducerRecord<byte[], byte[]> record = invocation.getArgument(0);
                 final byte[] value = record.value();
                 final String valueString = new String(value, StandardCharsets.UTF_8);
                 if ("".equals(valueString)) {
@@ -267,7 +265,7 @@ public class TestPublisherLease {
         readerService.addSchemaField("name", RecordFieldType.STRING);
         readerService.addSchemaField("age", RecordFieldType.INT);
 
-        final RecordReader reader = readerService.createRecordReader(Collections.emptyMap(), new ByteArrayInputStream(exampleInput), logger);
+        final RecordReader reader = readerService.createRecordReader(Collections.emptyMap(), new ByteArrayInputStream(exampleInput), -1, logger);
         final RecordSet recordSet = reader.createRecordSet();
         final RecordSchema schema = reader.getSchema();
 
@@ -278,11 +276,11 @@ public class TestPublisherLease {
         final RecordSetWriter writer = Mockito.mock(RecordSetWriter.class);
         Mockito.when(writer.write(Mockito.any(Record.class))).thenReturn(WriteResult.of(1, Collections.emptyMap()));
 
-        Mockito.when(writerFactory.createWriter(eq(logger), eq(schema), any())).thenReturn(writer);
+        Mockito.when(writerFactory.createWriter(eq(logger), eq(schema), any(), eq(flowFile))).thenReturn(writer);
 
         lease.publish(flowFile, recordSet, writerFactory, schema, keyField, topic);
 
-        verify(writerFactory, times(2)).createWriter(eq(logger), eq(schema), any());
+        verify(writerFactory, times(2)).createWriter(eq(logger), eq(schema), any(), eq(flowFile));
         verify(writer, times(2)).write(any(Record.class));
         verify(producer, times(2)).send(any(), any());
     }

@@ -25,7 +25,7 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.PoliciesClient;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.AbstractNiFiCommand;
-import org.apache.nifi.toolkit.cli.impl.result.AccessPolicyResult;
+import org.apache.nifi.toolkit.cli.impl.result.nifi.AccessPolicyResult;
 
 import java.io.IOException;
 import java.util.Properties;

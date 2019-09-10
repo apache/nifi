@@ -16,12 +16,6 @@
  */
 package org.apache.nifi.hbase;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -29,21 +23,25 @@ import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
-
-import org.apache.nifi.distributed.cache.client.DistributedMapCacheClient;
+import org.apache.nifi.distributed.cache.client.AtomicCacheEntry;
+import org.apache.nifi.distributed.cache.client.AtomicDistributedMapCacheClient;
+import org.apache.nifi.distributed.cache.client.Deserializer;
 import org.apache.nifi.distributed.cache.client.Serializer;
 import org.apache.nifi.expression.ExpressionLanguageScope;
-import org.apache.nifi.distributed.cache.client.Deserializer;
-import org.apache.nifi.reporting.InitializationException;
-
-import java.nio.charset.StandardCharsets;
+import org.apache.nifi.hbase.put.PutColumn;
+import org.apache.nifi.hbase.scan.Column;
 import org.apache.nifi.hbase.scan.ResultCell;
 import org.apache.nifi.hbase.scan.ResultHandler;
-import org.apache.nifi.hbase.scan.Column;
-import org.apache.nifi.hbase.put.PutColumn;
-
-
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.reporting.InitializationException;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 import static org.apache.nifi.hbase.VisibilityLabelUtils.AUTHORIZATIONS;
 
@@ -52,7 +50,7 @@ import static org.apache.nifi.hbase.VisibilityLabelUtils.AUTHORIZATIONS;
 @CapabilityDescription("Provides the ability to use an HBase table as a cache, in place of a DistributedMapCache."
     + " Uses a HBase_1_1_2_ClientService controller to communicate with HBase.")
 
-public class HBase_1_1_2_ClientMapCacheService extends AbstractControllerService implements DistributedMapCacheClient {
+public class HBase_1_1_2_ClientMapCacheService extends AbstractControllerService implements AtomicDistributedMapCacheClient<byte[]> {
 
     static final PropertyDescriptor HBASE_CLIENT_SERVICE = new PropertyDescriptor.Builder()
         .name("HBase Client Service")
@@ -163,6 +161,7 @@ public class HBase_1_1_2_ClientMapCacheService extends AbstractControllerService
       final HBaseRowHandler handler = new HBaseRowHandler();
 
       final List<Column> columnsList = new ArrayList<Column>(0);
+      columnsList.add(new Column(hBaseColumnFamilyBytes, hBaseColumnQualifierBytes));
 
       hBaseClientService.scan(hBaseCacheTableName, rowIdBytes, rowIdBytes, columnsList, authorizations, handler);
       return (handler.numRows() > 0);
@@ -195,6 +194,7 @@ public class HBase_1_1_2_ClientMapCacheService extends AbstractControllerService
       final HBaseRowHandler handler = new HBaseRowHandler();
 
       final List<Column> columnsList = new ArrayList<Column>(0);
+      columnsList.add(new Column(hBaseColumnFamilyBytes, hBaseColumnQualifierBytes));
 
       hBaseClientService.scan(hBaseCacheTableName, rowIdBytes, rowIdBytes, columnsList, authorizations, handler);
       if (handler.numRows() > 1) {
@@ -211,7 +211,8 @@ public class HBase_1_1_2_ClientMapCacheService extends AbstractControllerService
         final boolean contains = containsKey(key, keySerializer);
         if (contains) {
             final byte[] rowIdBytes = serialize(key, keySerializer);
-            hBaseClientService.delete(hBaseCacheTableName, rowIdBytes);
+            final DeleteRequest deleteRequest = new DeleteRequest(rowIdBytes, hBaseColumnFamilyBytes, hBaseColumnQualifierBytes, null);
+            hBaseClientService.deleteCells(hBaseCacheTableName, Collections.singletonList(deleteRequest));
         }
         return contains;
     }
@@ -227,6 +228,36 @@ public class HBase_1_1_2_ClientMapCacheService extends AbstractControllerService
 
     @Override
     protected void finalize() throws Throwable {
+    }
+
+    @Override
+    public <K, V> AtomicCacheEntry<K, V, byte[]> fetch(K key, Serializer<K> keySerializer, Deserializer<V> valueDeserializer) throws IOException {
+        final byte[] rowIdBytes = serialize(key, keySerializer);
+        final HBaseRowHandler handler = new HBaseRowHandler();
+
+        final List<Column> columnsList = new ArrayList<>(1);
+        columnsList.add(new Column(hBaseColumnFamilyBytes, hBaseColumnQualifierBytes));
+
+        hBaseClientService.scan(hBaseCacheTableName, rowIdBytes, rowIdBytes, columnsList, authorizations, handler);
+
+        if (handler.numRows() > 1) {
+            throw new IOException("Found multiple rows in HBase for key");
+        } else if (handler.numRows() == 1) {
+            return new AtomicCacheEntry<>(key, deserialize(handler.getLastResultBytes(), valueDeserializer), handler.getLastResultBytes());
+        } else {
+            return null;
+        }
+    }
+
+    @Override
+    public <K, V> boolean replace(AtomicCacheEntry<K, V, byte[]> entry, Serializer<K> keySerializer, Serializer<V> valueSerializer) throws IOException {
+        final byte[] rowIdBytes = serialize(entry.getKey(), keySerializer);
+        final byte[] valueBytes = serialize(entry.getValue(), valueSerializer);
+        final byte[] revision = entry.getRevision().orElse(null);
+        final PutColumn putColumn = new PutColumn(hBaseColumnFamilyBytes, hBaseColumnQualifierBytes, valueBytes);
+
+        // If the current revision is unset then only insert the row if it doesn't already exist.
+        return hBaseClientService.checkAndPut(hBaseCacheTableName, rowIdBytes, hBaseColumnFamilyBytes, hBaseColumnQualifierBytes, revision, putColumn);
     }
 
     private class HBaseRowHandler implements ResultHandler {

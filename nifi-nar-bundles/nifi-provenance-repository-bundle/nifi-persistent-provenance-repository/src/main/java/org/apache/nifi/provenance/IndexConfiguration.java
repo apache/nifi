@@ -16,12 +16,19 @@
  */
 package org.apache.nifi.provenance;
 
+import org.apache.nifi.provenance.serialization.RecordReader;
+import org.apache.nifi.provenance.serialization.RecordReaders;
+import org.apache.nifi.provenance.util.DirectoryUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.EOFException;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -34,12 +41,6 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.nifi.provenance.serialization.RecordReader;
-import org.apache.nifi.provenance.serialization.RecordReaders;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 /**
  *
  */
@@ -47,7 +48,7 @@ public class IndexConfiguration {
 
     private final RepositoryConfiguration repoConfig;
     private final Map<File, List<File>> indexDirectoryMap = new HashMap<>();
-    private final Pattern indexNamePattern = Pattern.compile("index-(\\d+)");
+    private final Pattern indexNamePattern = DirectoryUtils.INDEX_DIRECTORY_NAME_PATTERN;
 
     private final Lock lock = new ReentrantLock();
     private static final Logger logger = LoggerFactory.getLogger(IndexConfiguration.class);
@@ -73,9 +74,7 @@ public class IndexConfiguration {
             });
 
             if (matching != null) {
-                for (final File matchingFile : matching) {
-                    indexDirectories.add(matchingFile);
-                }
+                indexDirectories.addAll(Arrays.asList(matching));
             }
 
             indexDirectoryMap.put(storageDirectory, indexDirectories);
@@ -171,7 +170,7 @@ public class IndexConfiguration {
         if (firstEntryTime == null) {
             firstEntryTime = newIndexTimestamp;
         }
-        return new File(storageDirectory, "index-" + firstEntryTime);
+        return new File(storageDirectory, "lucene-8-index-" + firstEntryTime);
     }
 
     public List<File> getIndexDirectories() {

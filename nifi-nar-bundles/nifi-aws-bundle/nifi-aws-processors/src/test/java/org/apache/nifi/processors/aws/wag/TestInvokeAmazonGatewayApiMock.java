@@ -16,8 +16,8 @@
  */
 package org.apache.nifi.processors.aws.wag;
 
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.argThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.times;
 
 import com.amazonaws.ClientConfiguration;
@@ -91,14 +91,11 @@ public class TestInvokeAmazonGatewayApiMock {
 
         // check
         Mockito.verify(mockSdkClient, times(1))
-               .execute(argThat(new RequestMatcher<HttpUriRequest>(x -> {
-                   return x.getMethod().equals("GET") && x.getFirstHeader("x-api-key").getValue()
-                                                          .equals("abcd") && x
-                       .getFirstHeader("Authorization").getValue().startsWith("AWS4") && x.getURI()
-                                                                                          .toString()
-                                                                                          .equals(
-                                                                                              "https://foobar.execute-api.us-east-1.amazonaws.com/TEST");
-               })), any(HttpContext.class));
+                .execute(argThat(argument -> argument.getMethod().equals("GET")
+                                && argument.getFirstHeader("x-api-key").getValue().equals("abcd")
+                                && argument.getFirstHeader("Authorization").getValue().startsWith("AWS4")
+                                && argument.getURI().toString().equals("https://foobar.execute-api.us-east-1.amazonaws.com/TEST")),
+                        any(HttpContext.class));
 
         runner.assertTransferCount(InvokeAWSGatewayApi.REL_SUCCESS_REQ, 0);
         runner.assertTransferCount(InvokeAWSGatewayApi.REL_RESPONSE, 1);
@@ -141,15 +138,13 @@ public class TestInvokeAmazonGatewayApiMock {
         runner.run(1);
 
         Mockito.verify(mockSdkClient, times(1))
-               .execute(argThat(new RequestMatcher<HttpUriRequest>(x -> {
-                   return x.getMethod().equals("GET") && x.getFirstHeader("x-api-key").getValue()
-                                                          .equals("abcd") && x
-                       .getFirstHeader("Authorization").getValue().startsWith("AWS4") && x
-                       .getFirstHeader("dynamicHeader").getValue().equals("yes!") && x
-                       .getFirstHeader("Foo").getValue().equals("Bar") && x.getURI().toString()
-                                                                           .equals(
-                                                                               "https://foobar.execute-api.us-east-1.amazonaws.com/TEST");
-               })), any(HttpContext.class));
+                .execute(argThat(argument -> argument.getMethod().equals("GET")
+                                && argument.getFirstHeader("x-api-key").getValue().equals("abcd")
+                                && argument.getFirstHeader("Authorization").getValue().startsWith("AWS4")
+                                && argument.getFirstHeader("dynamicHeader").getValue().equals("yes!")
+                                && argument.getFirstHeader("Foo").getValue().equals("Bar")
+                                && argument.getURI().toString().equals("https://foobar.execute-api.us-east-1.amazonaws.com/TEST")),
+                        any(HttpContext.class));
         // check
         runner.assertTransferCount(InvokeAWSGatewayApi.REL_SUCCESS_REQ, 1);
         runner.assertTransferCount(InvokeAWSGatewayApi.REL_RESPONSE, 1);
@@ -194,15 +189,13 @@ public class TestInvokeAmazonGatewayApiMock {
         runner.run(1);
 
         Mockito.verify(mockSdkClient, times(1))
-               .execute(argThat(new RequestMatcher<HttpUriRequest>(x -> {
-                   return x.getMethod().equals("GET") && x.getFirstHeader("x-api-key").getValue()
-                                                          .equals("abcd") && x
-                       .getFirstHeader("Authorization").getValue().startsWith("AWS4") && x
-                       .getFirstHeader("dynamicHeader").getValue().equals("yes!") && x
-                       .getFirstHeader("Foo").getValue().equals("Bar") && x.getURI().toString()
-                                                                           .equals(
-                                                                               "https://foobar.execute-api.us-east-1.amazonaws.com/TEST?dogs=cats&apples=oranges");
-               })), any(HttpContext.class));
+                .execute(argThat(argument -> argument.getMethod().equals("GET")
+                                && argument.getFirstHeader("x-api-key").getValue().equals("abcd")
+                                && argument.getFirstHeader("Authorization").getValue().startsWith("AWS4")
+                                && argument.getFirstHeader("dynamicHeader").getValue().equals("yes!")
+                                && argument.getFirstHeader("Foo").getValue().equals("Bar")
+                                && argument.getURI().toString().equals("https://foobar.execute-api.us-east-1.amazonaws.com/TEST?dogs=cats&apples=oranges")),
+                        any(HttpContext.class));
         // check
         runner.assertTransferCount(InvokeAWSGatewayApi.REL_SUCCESS_REQ, 1);
         runner.assertTransferCount(InvokeAWSGatewayApi.REL_RESPONSE, 1);

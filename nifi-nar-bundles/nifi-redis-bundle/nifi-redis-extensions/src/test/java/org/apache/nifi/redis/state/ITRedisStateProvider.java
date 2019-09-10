@@ -263,7 +263,7 @@ public class ITRedisStateProvider {
             public Map<PropertyDescriptor, PropertyValue> getProperties() {
                 final Map<PropertyDescriptor, PropertyValue> propValueMap = new HashMap<>();
                 for (final Map.Entry<PropertyDescriptor, String> entry : properties.entrySet()) {
-                    propValueMap.put(entry.getKey(), new StandardPropertyValue(entry.getValue(), null));
+                    propValueMap.put(entry.getKey(), new StandardPropertyValue(entry.getValue(), null, null));
                 }
                 return propValueMap;
             }
@@ -285,7 +285,7 @@ public class ITRedisStateProvider {
                     prop = property.getDefaultValue();
                 }
 
-                return new StandardPropertyValue(prop, null);
+                return new StandardPropertyValue(prop, null, null);
             }
 
             @Override

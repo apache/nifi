@@ -192,6 +192,20 @@ public interface AuthorizableLookup {
     ComponentAuthorizable getReportingTask(String id);
 
     /**
+     * Get the authorizable Parameter Context
+     *
+     * @param id the ID of the Parameter Context
+     * @return authorizable
+     */
+    Authorizable getParameterContext(String id);
+
+    /**
+     * Get the authorizable for Parameter Contexts
+     * @return authorizable
+     */
+    Authorizable getParameterContexts();
+
+    /**
      * Get the authorizable Template.
      *
      * @param id template id

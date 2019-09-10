@@ -34,12 +34,16 @@
         <module>nifi-toolkit-cli</module>
         <module>nifi-toolkit-api</module>
     </modules>
+    <properties>
+        <toolkit.groovy.version>2.5.4</toolkit.groovy.version>
+    </properties>
     <dependencyManagement>
         <dependencies>
             <dependency>
                 <groupId>org.codehaus.groovy</groupId>
                 <artifactId>groovy-all</artifactId>
-                <version>2.4.13</version>
+                <version>${toolkit.groovy.version}</version>
+                <type>pom</type>
                 <scope>compile</scope>
                 <exclusions>
                     <exclusion>

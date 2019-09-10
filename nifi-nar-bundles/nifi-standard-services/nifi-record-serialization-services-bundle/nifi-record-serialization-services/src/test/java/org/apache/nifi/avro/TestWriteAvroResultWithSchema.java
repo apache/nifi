@@ -20,6 +20,8 @@ package org.apache.nifi.avro;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.avro.Schema;
 import org.apache.avro.file.CodecFactory;
@@ -39,11 +41,25 @@ public class TestWriteAvroResultWithSchema extends TestWriteAvroResult {
 
     @Override
     protected GenericRecord readRecord(final InputStream in, final Schema schema) throws IOException {
-        final DataFileStream<GenericRecord> dataFileStream = new DataFileStream<>(in, new GenericDatumReader<GenericRecord>());
+        final DataFileStream<GenericRecord> dataFileStream = new DataFileStream<>(in, new GenericDatumReader<>());
         final Schema avroSchema = dataFileStream.getSchema();
         GenericData.setStringType(avroSchema, StringType.String);
         final GenericRecord avroRecord = dataFileStream.next();
 
         return avroRecord;
+    }
+
+    @Override
+    protected List<GenericRecord> readRecords(final InputStream in, final Schema schema, final int recordCount) throws IOException {
+        final DataFileStream<GenericRecord> dataFileStream = new DataFileStream<>(in, new GenericDatumReader<>());
+        final Schema avroSchema = dataFileStream.getSchema();
+        GenericData.setStringType(avroSchema, StringType.String);
+
+        List<GenericRecord> records = new ArrayList<>();
+        for (int i = 0; i < recordCount; i++) {
+            records.add(dataFileStream.next());
+        }
+
+        return records;
     }
 }

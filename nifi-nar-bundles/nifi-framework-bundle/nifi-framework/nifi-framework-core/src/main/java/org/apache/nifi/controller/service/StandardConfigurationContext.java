@@ -59,7 +59,7 @@ public class StandardConfigurationContext implements ConfigurationContext {
         }
 
         preparedQueries = new HashMap<>();
-        for (final Map.Entry<PropertyDescriptor, String> entry : component.getProperties().entrySet()) {
+        for (final Map.Entry<PropertyDescriptor, String> entry : component.getEffectivePropertyValues().entrySet()) {
             final PropertyDescriptor desc = entry.getKey();
             String value = entry.getValue();
             if (value == null) {
@@ -73,7 +73,7 @@ public class StandardConfigurationContext implements ConfigurationContext {
 
     @Override
     public PropertyValue getProperty(final PropertyDescriptor property) {
-        final String configuredValue = component.getProperty(property);
+        final String configuredValue = component.getEffectivePropertyValue(property);
         final String resolvedValue = (configuredValue == null) ? property.getDefaultValue() : configuredValue;
 
         if (resolvedValue == null) {
@@ -81,15 +81,15 @@ public class StandardConfigurationContext implements ConfigurationContext {
             // since the supplied PropertyDescriptor may have been built using only the name, and without the proper
             // default value.
             final PropertyDescriptor resolvedDescriptor = component.getPropertyDescriptor(property.getName());
-            return new StandardPropertyValue(resolvedDescriptor.getDefaultValue(), serviceLookup, preparedQueries.get(property), variableRegistry);
+            return new StandardPropertyValue(resolvedDescriptor.getDefaultValue(), serviceLookup, component.getParameterLookup(), preparedQueries.get(property), variableRegistry);
         }
 
-        return new StandardPropertyValue(resolvedValue, serviceLookup, preparedQueries.get(property), variableRegistry);
+        return new StandardPropertyValue(resolvedValue, serviceLookup, component.getParameterLookup(), preparedQueries.get(property), variableRegistry);
     }
 
     @Override
     public Map<PropertyDescriptor, String> getProperties() {
-        return component.getProperties();
+        return component.getEffectivePropertyValues();
     }
 
     @Override

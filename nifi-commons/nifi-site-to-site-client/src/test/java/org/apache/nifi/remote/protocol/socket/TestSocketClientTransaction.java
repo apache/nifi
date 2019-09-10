@@ -20,7 +20,6 @@ import static org.apache.nifi.remote.protocol.SiteToSiteTestUtils.createDataPack
 import static org.apache.nifi.remote.protocol.SiteToSiteTestUtils.execReceiveOneFlowFile;
 import static org.apache.nifi.remote.protocol.SiteToSiteTestUtils.execReceiveTwoFlowFiles;
 import static org.apache.nifi.remote.protocol.SiteToSiteTestUtils.execReceiveWithInvalidChecksum;
-import static org.apache.nifi.remote.protocol.SiteToSiteTestUtils.execReceiveZeroFlowFile;
 import static org.apache.nifi.remote.protocol.SiteToSiteTestUtils.execSendButDestinationFull;
 import static org.apache.nifi.remote.protocol.SiteToSiteTestUtils.execSendOneFlowFile;
 import static org.apache.nifi.remote.protocol.SiteToSiteTestUtils.execSendTwoFlowFiles;
@@ -43,6 +42,7 @@ import org.apache.nifi.remote.Transaction;
 import org.apache.nifi.remote.TransferDirection;
 import org.apache.nifi.remote.codec.FlowFileCodec;
 import org.apache.nifi.remote.codec.StandardFlowFileCodec;
+import org.apache.nifi.remote.exception.NoContentException;
 import org.apache.nifi.remote.io.socket.SocketChannelCommunicationsSession;
 import org.apache.nifi.remote.io.socket.SocketChannelInput;
 import org.apache.nifi.remote.io.socket.SocketChannelOutput;
@@ -51,6 +51,7 @@ import org.apache.nifi.remote.protocol.RequestType;
 import org.apache.nifi.remote.protocol.Response;
 import org.apache.nifi.remote.protocol.ResponseCode;
 import org.junit.Test;
+import static org.junit.Assert.fail;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -91,14 +92,12 @@ public class TestSocketClientTransaction {
         ByteArrayInputStream bis = new ByteArrayInputStream(serverResponseBos.toByteArray());
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
 
-        SocketClientTransaction transaction = getClientTransaction(bis, bos, TransferDirection.RECEIVE);
-
-        execReceiveZeroFlowFile(transaction);
-
-        // Verify what client has sent.
-        DataInputStream sentByClient = new DataInputStream(new ByteArrayInputStream(bos.toByteArray()));
-        assertEquals(RequestType.RECEIVE_FLOWFILES, RequestType.readRequestType(sentByClient));
-        assertEquals(-1, sentByClient.read());
+        try {
+            SocketClientTransaction transaction = getClientTransaction(bis, bos, TransferDirection.RECEIVE);
+            fail();
+        } catch (final NoContentException e) {
+            assertEquals("Remote side has no flowfiles to provide", e.getMessage());
+        }
     }
 
     @Test

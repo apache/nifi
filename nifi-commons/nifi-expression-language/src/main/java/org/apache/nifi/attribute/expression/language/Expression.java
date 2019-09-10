@@ -17,18 +17,15 @@
 
 package org.apache.nifi.attribute.expression.language;
 
-import java.util.Map;
-
 import org.apache.nifi.expression.AttributeValueDecorator;
 
 public interface Expression {
     /**
      * Evaluates this Expression against the given variables, attribute decorator, and state variables
      *
-     * @param variables variables to be evaluated
+     * @param evaluationContext the context used to evaluate the Expression
      * @param decorator decorator to decorate variable values
-     * @param stateVariables state variables to include in evaluation
      * @return the evaluated value
      */
-    String evaluate(Map<String, String> variables, AttributeValueDecorator decorator, Map<String, String> stateVariables);
+    String evaluate(EvaluationContext evaluationContext, AttributeValueDecorator decorator);
 }

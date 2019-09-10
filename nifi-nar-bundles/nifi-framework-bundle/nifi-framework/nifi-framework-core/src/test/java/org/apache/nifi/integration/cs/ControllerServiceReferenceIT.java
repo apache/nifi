@@ -28,6 +28,8 @@ import org.junit.Test;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 import static org.junit.Assert.assertEquals;
@@ -66,5 +68,39 @@ public class ControllerServiceReferenceIT extends FrameworkIntegrationTest {
         final Collection<ValidationResult> validationErrors = serviceNode.getValidationErrors();
         assertSame(validationStatus, ValidationStatus.VALID);
         assertEquals(0, validationErrors.size());
+    }
+
+    @Test
+    public void testReferenceCounts() {
+        final String FIRST_PROPERTY = "Counter Service";
+        final String SECOND_PROPERTY = "Another Counter Service";
+
+        final ControllerServiceNode serviceNode = createControllerServiceNode(LongValidatingControllerService.class.getName());
+        serviceNode.setProperties(Collections.singletonMap(LongValidatingControllerService.DELAY.getName(), "250 millis"));
+
+        final ProcessorNode counter = createProcessorNode(MultipleControllerServiceReferencingProcessor.class);
+        final Map<String, String> properties = new HashMap<>();
+
+        // Add a reference of the service node in the first property of the processor
+        properties.put(FIRST_PROPERTY, serviceNode.getIdentifier());
+        counter.setProperties(properties);
+        assertEquals(1, serviceNode.getReferences().getReferencingComponents().size());
+
+        // Add another reference of the same service node in the second property of the processor
+        properties.put(SECOND_PROPERTY, serviceNode.getIdentifier());
+        counter.setProperties(properties);
+        assertEquals(1, serviceNode.getReferences().getReferencingComponents().size());
+
+        // Remove the reference of the service node from the first property of the processor
+        properties.put(FIRST_PROPERTY, null);
+        counter.setProperties(properties);
+        // The counter should still be one because the service node is still referenced by the processor in its second property
+        assertEquals(1, serviceNode.getReferences().getReferencingComponents().size());
+
+        // Remove also the reference of the service node from the second property of the processor
+        properties.put(SECOND_PROPERTY, null);
+        counter.setProperties(properties);
+        // The counter should become 0 because now the service node is not reference anymore in any processor property
+        assertEquals(0, serviceNode.getReferences().getReferencingComponents().size());
     }
 }

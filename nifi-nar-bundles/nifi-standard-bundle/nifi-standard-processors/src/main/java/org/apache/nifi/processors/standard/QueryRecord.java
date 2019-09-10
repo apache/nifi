@@ -286,7 +286,7 @@ public class QueryRecord extends AbstractProcessor {
         final RecordSchema readerSchema;
         try (final InputStream rawIn = session.read(original)) {
             final Map<String, String> originalAttributes = original.getAttributes();
-            final RecordReader reader = recordReaderFactory.createRecordReader(originalAttributes, rawIn, getLogger());
+            final RecordReader reader = recordReaderFactory.createRecordReader(originalAttributes, rawIn, original.getSize(), getLogger());
             readerSchema = reader.getSchema();
 
             writerSchema = recordSetWriterFactory.getSchema(originalAttributes, readerSchema);
@@ -336,7 +336,7 @@ public class QueryRecord extends AbstractProcessor {
                                     throw new ProcessException(e);
                                 }
 
-                                try (final RecordSetWriter resultSetWriter = recordSetWriterFactory.createWriter(getLogger(), writeSchema, out)) {
+                                try (final RecordSetWriter resultSetWriter = recordSetWriterFactory.createWriter(getLogger(), writeSchema, out, original)) {
                                     writeResultRef.set(resultSetWriter.write(recordSet));
                                     mimeTypeRef.set(resultSetWriter.getMimeType());
                                 } catch (final Exception e) {

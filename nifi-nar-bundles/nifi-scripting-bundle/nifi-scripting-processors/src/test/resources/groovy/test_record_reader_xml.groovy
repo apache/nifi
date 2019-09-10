@@ -67,7 +67,7 @@ class GroovyXmlRecordReaderFactory extends AbstractControllerService implements 
     // Will be set by the ScriptedRecordReaderFactory
     ConfigurationContext configurationContext
 
-    RecordReader createRecordReader(Map<String, String> variables, InputStream inputStream, ComponentLog logger) throws MalformedRecordException, IOException, SchemaNotFoundException {
+    RecordReader createRecordReader(Map<String, String> variables, InputStream inputStream, long inputLength, ComponentLog logger) throws MalformedRecordException, IOException, SchemaNotFoundException {
         // Expecting 'schema.text' to have be an JSON array full of objects whose keys are the field name and the value maps to a RecordFieldType
         def schemaText = configurationContext.properties.find {p -> p.key.dynamic && p.key.name == 'schema.text'}?.getValue()
         if (!schemaText) return null

@@ -24,12 +24,13 @@ import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.stateless.bootstrap.InMemoryFlowFile;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.registry.VariableRegistry;
+import org.apache.nifi.stateless.bootstrap.InMemoryFlowFile;
 
 import java.io.Closeable;
 import java.lang.reflect.InvocationTargetException;
@@ -67,7 +68,7 @@ public class StatelessProcessorWrapper extends AbstractStatelessComponent implem
 
 
     public StatelessProcessorWrapper(final String id, final Processor processor, final StatelessProcessorWrapper parent, final StatelessControllerServiceLookup lookup, final VariableRegistry registry,
-                              final boolean materializeContent, final ClassLoader classLoader) throws InvocationTargetException, IllegalAccessException {
+                              final boolean materializeContent, final ClassLoader classLoader, final ParameterContext parameterContext) throws InvocationTargetException, IllegalAccessException {
 
         this.processor = processor;
         this.classLoader = classLoader;
@@ -81,7 +82,7 @@ public class StatelessProcessorWrapper extends AbstractStatelessComponent implem
         this.createdSessions = new CopyOnWriteArraySet<>();
         this.inputQueue = new LinkedList<>();
         this.variableRegistry = registry;
-        this.context = new StatelessProcessContext(processor, lookup, processor.getIdentifier(), new StatelessStateManager(), variableRegistry);
+        this.context = new StatelessProcessContext(processor, lookup, processor.getIdentifier(), new StatelessStateManager(), variableRegistry, parameterContext);
         this.context.setMaxConcurrentTasks(1);
 
         final StatelessProcessorInitializationContext initContext = new StatelessProcessorInitializationContext(id, processor, context);

@@ -576,7 +576,7 @@
                     // only populate affected components if this variable is different than the last selected
                     if (lastSelectedId === null || lastSelectedId !== variable.id) {
                         // update the details for this variable
-                        $('#affected-components-context').removeClass('unset').text(variable.name);
+                        $('#variable-affected-components-context').removeClass('unset').text(variable.name);
                         populateAffectedComponents(variable.affectedComponents);
 
                         // update the last selected id
@@ -912,7 +912,27 @@
                         }
                     } else {
                         var affectedUnauthorizedComponentContainer = $('<li class="affected-component-container"></li>').appendTo(unauthorizedComponentsContainer);
-                        $('<span class="unset"></span>').text(unauthorizedAffectedComponentEntity.id).appendTo(affectedUnauthorizedComponentContainer);
+                        $('<span class="referencing-component-name link ellipsis"></span>')
+                            .prop('title', unauthorizedAffectedComponentEntity.id)
+                            .text(unauthorizedAffectedComponentEntity.id)
+                            .on('click', function () {
+                                // check if there are outstanding changes
+                                handleOutstandingChanges().done(function () {
+                                    // close the shell
+                                    $('#shell-dialog').modal('hide');
+
+                                    // show the component in question
+                                    if (unauthorizedAffectedComponentEntity.referenceType === 'PROCESSOR') {
+                                        nfCanvasUtils.showComponent(unauthorizedAffectedComponentEntity.processGroup.id, unauthorizedAffectedComponentEntity.id);
+                                    } else if (unauthorizedAffectedComponentEntity.referenceType === 'CONTROLLER_SERVICE') {
+                                        nfProcessGroupConfiguration.showConfiguration(unauthorizedAffectedComponentEntity.processGroup.id).done(function () {
+                                            nfProcessGroup.enterGroup(unauthorizedAffectedComponentEntity.processGroup.id);
+                                            nfProcessGroupConfiguration.selectControllerService(unauthorizedAffectedComponentEntity.id);
+                                        });
+                                    }
+                                });
+                            })
+                            .appendTo(affectedUnauthorizedComponentContainer);
                     }
                 });
             }
@@ -1150,7 +1170,7 @@
                 $('<li class="affected-component-container"><span class="unset">None</span></li>').appendTo(unauthorizedComponentsContainer);
 
                 // update the selection context
-                $('#affected-components-context').addClass('unset').text('None');
+                $('#variable-affected-components-context').addClass('unset').text('None');
             } else {
                 // select the desired row
                 variableGrid.setSelectedRows([index]);
@@ -1202,7 +1222,7 @@
         var variableNames = variables.map(function (v) {
              return v.variable.name;
         });
-        $('#affected-components-context').removeClass('unset').text(variableNames.join(', '));
+        $('#variable-affected-components-context').removeClass('unset').text(variableNames.join(', '));
 
         // get the current group id
         var processGroupId = $('#variable-registry-process-group-id').text();
@@ -1533,7 +1553,7 @@
 
         $('#process-group-variable-registry').text('');
         $('#variable-registry-process-group-id').text('').removeData('revision');
-        $('#affected-components-context').removeClass('unset').text('');
+        $('#variable-affected-components-context').removeClass('unset').text('');
 
         var variableGrid = $('#variable-registry-table').data('gridInstance');
         var variableData = variableGrid.getData();

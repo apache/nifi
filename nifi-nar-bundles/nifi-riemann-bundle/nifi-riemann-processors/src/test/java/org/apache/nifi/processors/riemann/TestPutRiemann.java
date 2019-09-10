@@ -39,9 +39,9 @@ import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.anyInt;
-import static org.mockito.Mockito.anyListOf;
+import static org.mockito.Mockito.anyList;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -63,7 +63,7 @@ public class TestPutRiemann {
 
   private TestRunner getTestRunner(final boolean failOnWrite) {
     RiemannClient riemannClient = mock(RiemannClient.class);
-    when(riemannClient.sendEvents(anyListOf(Proto.Event.class))).thenAnswer(new Answer() {
+    when(riemannClient.sendEvents(anyList())).thenAnswer(new Answer() {
       @Override
       public Object answer(InvocationOnMock invocationOnMock) throws Throwable {
         List<Proto.Event> events = (List<Proto.Event>) invocationOnMock.getArguments()[0];
@@ -72,9 +72,9 @@ public class TestPutRiemann {
         }
         IPromise iPromise = mock(IPromise.class);
         if (!failOnWrite) {
-          when(iPromise.deref(anyInt(), any(TimeUnit.class))).thenReturn(Proto.Msg.getDefaultInstance());
+          when(iPromise.deref(anyLong(), any(TimeUnit.class))).thenReturn(Proto.Msg.getDefaultInstance());
         } else {
-          when(iPromise.deref(anyInt(), any(TimeUnit.class))).thenReturn(null);
+          when(iPromise.deref(anyLong(), any(TimeUnit.class))).thenReturn(null);
         }
         return iPromise;
       }

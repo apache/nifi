@@ -43,10 +43,13 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
+import org.apache.nifi.parameter.ParameterContext;
+import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.processor.SimpleProcessLogger;
 import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.util.CharacterFilterUtils;
 import org.apache.nifi.util.ReflectionUtils;
+import org.apache.nifi.util.Tuple;
 import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,6 +71,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.stream.Collectors;
 
 public class StandardControllerServiceNode extends AbstractComponentNode implements ControllerServiceNode {
 
@@ -82,7 +86,7 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
     private final Lock readLock = rwLock.readLock();
     private final Lock writeLock = rwLock.writeLock();
 
-    private final Set<ComponentNode> referencingComponents = new HashSet<>();
+    private final Set<Tuple<ComponentNode, PropertyDescriptor>> referencingComponents = new HashSet<>();
     private volatile String comment;
     private volatile ProcessGroup processGroup;
 
@@ -222,26 +226,35 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
     public ControllerServiceReference getReferences() {
         readLock.lock();
         try {
-            return new StandardControllerServiceReference(this, referencingComponents);
+            // In case a controller service is referenced multiple times by a component node, the latter is decoupled here
+            return new StandardControllerServiceReference(this, referencingComponents.stream().map(Tuple::getKey).collect(Collectors.toSet()));
         } finally {
             readLock.unlock();
         }
     }
 
     @Override
-    public void addReference(final ComponentNode referencingComponent) {
+    public void addReference(final ComponentNode referencingComponent, final PropertyDescriptor propertyDescriptor) {
         writeLock.lock();
         try {
-            referencingComponents.add(referencingComponent);
+            referencingComponents.add(new Tuple<>(referencingComponent, propertyDescriptor));
         } finally {
             writeLock.unlock();
         }
     }
 
+
+    @Override
+    protected ParameterContext getParameterContext() {
+        final ProcessGroup processGroup = getProcessGroup();
+        return processGroup == null ? null : processGroup.getParameterContext();
+    }
+
+
     @Override
     public List<ControllerServiceNode> getRequiredControllerServices() {
         Set<ControllerServiceNode> requiredServices = new HashSet<>();
-        for (Entry<PropertyDescriptor, String> entry : getProperties().entrySet()) {
+        for (Entry<PropertyDescriptor, String> entry : getEffectivePropertyValues().entrySet()) {
             PropertyDescriptor descriptor = entry.getKey();
             if (descriptor.getControllerServiceDefinition() != null && entry.getValue() != null) {
                 ControllerServiceNode requiredNode = serviceProvider.getControllerServiceNode(entry.getValue());
@@ -253,10 +266,10 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
 
 
     @Override
-    public void removeReference(final ComponentNode referencingComponent) {
+    public void removeReference(final ComponentNode referencingComponent, final PropertyDescriptor propertyDescriptor) {
         writeLock.lock();
         try {
-            referencingComponents.remove(referencingComponent);
+            referencingComponents.remove(new Tuple<>(referencingComponent, propertyDescriptor));
         } finally {
             writeLock.unlock();
         }
@@ -392,11 +405,13 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
                 this.active.set(true);
             }
 
+            final ControllerServiceProvider controllerServiceProvider = this.serviceProvider;
             final StandardControllerServiceNode service = this;
-            final ConfigurationContext configContext = new StandardConfigurationContext(this, this.serviceProvider, null, getVariableRegistry());
             scheduler.execute(new Runnable() {
                 @Override
                 public void run() {
+                    final ConfigurationContext configContext = new StandardConfigurationContext(StandardControllerServiceNode.this, controllerServiceProvider, null, getVariableRegistry());
+
                     if (!isActive()) {
                         LOG.debug("{} is no longer active so will not attempt to enable it", StandardControllerServiceNode.this);
                         stateTransition.disable();
@@ -407,7 +422,7 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
                     if (validationStatus != ValidationStatus.VALID) {
                         LOG.debug("Cannot enable {} because it is not currently valid. Will try again in 5 seconds", StandardControllerServiceNode.this);
                         scheduler.schedule(this, 5, TimeUnit.SECONDS);
-                        future.completeExceptionally(new RuntimeException(this + " cannot be enabled because it is not currently valid. Will try again in 5 seconds."));
+                        future.completeExceptionally(new ControllerServiceNotValidException(this + " cannot be enabled because it is not currently valid. Will try again in 5 seconds."));
                         return;
                     }
 
@@ -567,5 +582,10 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
                 ", processGroup=" + processGroup +
                 ", active=" + active +
                 '}';
+    }
+
+    @Override
+    public ParameterLookup getParameterLookup() {
+        return getParameterContext();
     }
 }

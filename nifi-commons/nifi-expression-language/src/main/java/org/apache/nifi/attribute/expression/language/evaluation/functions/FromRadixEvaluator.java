@@ -16,12 +16,11 @@
  */
 package org.apache.nifi.attribute.expression.language.evaluation.functions;
 
+import org.apache.nifi.attribute.expression.language.EvaluationContext;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.WholeNumberEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.WholeNumberQueryResult;
-
-import java.util.Map;
 
 public class FromRadixEvaluator extends WholeNumberEvaluator {
 
@@ -34,13 +33,13 @@ public class FromRadixEvaluator extends WholeNumberEvaluator {
     }
 
     @Override
-    public QueryResult<Long> evaluate(final Map<String, String> attributes) {
-        final String result = numberEvaluator.evaluate(attributes).getValue();
+    public QueryResult<Long> evaluate(final EvaluationContext evaluationContext) {
+        final String result = numberEvaluator.evaluate(evaluationContext).getValue();
         if (result == null) {
             return new WholeNumberQueryResult(null);
         }
 
-        final Long radix = radixEvaluator.evaluate(attributes).getValue();
+        final Long radix = radixEvaluator.evaluate(evaluationContext).getValue();
         if (radix == null) {
             return new WholeNumberQueryResult(null);
         }

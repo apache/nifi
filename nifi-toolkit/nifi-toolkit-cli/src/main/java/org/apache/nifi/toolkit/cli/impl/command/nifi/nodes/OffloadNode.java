@@ -24,7 +24,7 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.AbstractNiFiCommand;
-import org.apache.nifi.toolkit.cli.impl.result.NodeResult;
+import org.apache.nifi.toolkit.cli.impl.result.nifi.NodeResult;
 import org.apache.nifi.web.api.dto.NodeDTO;
 import org.apache.nifi.web.api.entity.NodeEntity;
 

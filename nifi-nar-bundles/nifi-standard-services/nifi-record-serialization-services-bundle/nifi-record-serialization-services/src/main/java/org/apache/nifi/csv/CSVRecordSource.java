@@ -33,12 +33,13 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 public class CSVRecordSource implements RecordSource<CSVRecordAndFieldNames> {
     private final Iterator<CSVRecord> csvRecordIterator;
     private final List<String> fieldNames;
 
-    public CSVRecordSource(final InputStream in, final PropertyContext context) throws IOException {
+    public CSVRecordSource(final InputStream in, final PropertyContext context, final Map<String, String> variables) throws IOException {
         final String charset = context.getProperty(CSVUtils.CHARSET).getValue();
 
         final Reader reader;
@@ -48,7 +49,7 @@ public class CSVRecordSource implements RecordSource<CSVRecordAndFieldNames> {
             throw new ProcessException(e);
         }
 
-        final CSVFormat csvFormat = CSVUtils.createCSVFormat(context).withFirstRecordAsHeader().withTrim();
+        final CSVFormat csvFormat = CSVUtils.createCSVFormat(context, variables).withFirstRecordAsHeader().withTrim();
         final CSVParser csvParser = new CSVParser(reader, csvFormat);
         fieldNames = Collections.unmodifiableList(new ArrayList<>(csvParser.getHeaderMap().keySet()));
 

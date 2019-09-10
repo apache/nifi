@@ -83,7 +83,6 @@ public class TemplateInstanceNodeTest extends BxmlNodeWithTokenTestBase {
         BinaryReader binaryReader = testBinaryReaderBuilder.build();
         TemplateNode templateNode = mock(TemplateNode.class);
         when(templateNode.getTemplateId()).thenReturn(UnsignedInteger.valueOf(templateId));
-        when(templateNode.hasEndOfStream()).thenReturn(true).thenReturn(false);
         when(chunkHeader.addTemplateNode(5, binaryReader)).thenAnswer(invocation -> {
             binaryReader.skip(templateLength);
             return templateNode;

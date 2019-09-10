@@ -33,28 +33,32 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.parquet.stream.NifiParquetOutputFile;
+import org.apache.nifi.parquet.utils.ParquetConfig;
+import org.apache.nifi.parquet.utils.ParquetUtils;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processors.parquet.stream.NifiParquetOutputFile;
-import org.apache.nifi.processors.parquet.utils.ParquetUtils;
 import org.apache.parquet.avro.AvroParquetWriter;
-import org.apache.parquet.avro.AvroReadSupport;
 import org.apache.parquet.hadoop.ParquetWriter;
-import java.io.InputStream;
-import java.io.OutputStream;
+
 import java.io.BufferedInputStream;
 import java.io.IOException;
-import java.util.Map;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
-import java.util.ArrayList;
+import java.util.Map;
 import java.util.Set;
-import java.util.Collections;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import static org.apache.nifi.parquet.utils.ParquetUtils.applyCommonConfig;
+import static org.apache.nifi.parquet.utils.ParquetUtils.createParquetConfig;
 
 @Tags({"avro", "parquet", "convert"})
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
@@ -191,12 +195,13 @@ public class ConvertAvroToParquet extends AbstractProcessor {
                 .<GenericRecord>builder(nifiParquetOutputFile)
                 .withSchema(schema);
 
-        Configuration conf = new Configuration();
-        conf.setBoolean(AvroReadSupport.AVRO_COMPATIBILITY, true);
-        conf.setBoolean("parquet.avro.add-list-element-records", false);
-        conf.setBoolean("parquet.avro.write-old-list-structure", false);
+        final ParquetConfig parquetConfig = createParquetConfig(context, flowFile.getAttributes());
+        parquetConfig.setAvroReadCompatibility(true);
+        parquetConfig.setAvroAddListElementRecords(false);
+        parquetConfig.setAvroWriteOldListStructure(false);
 
-        ParquetUtils.applyCommonConfig(parquetWriter, context, flowFile, conf, this);
+        final Configuration conf = new Configuration();
+        applyCommonConfig(parquetWriter, conf, parquetConfig);
 
         return parquetWriter.build();
     }

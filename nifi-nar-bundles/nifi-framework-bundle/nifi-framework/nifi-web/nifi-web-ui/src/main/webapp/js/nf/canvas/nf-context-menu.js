@@ -82,6 +82,28 @@
     };
 
     /**
+     * Determines whether the component in the specified selection has a parameter context.
+     *
+     * @param {selection} selection         The selection of currently selected components
+     */
+    var hasParameterContext = function (selection) {
+        var parameterContext;
+
+        if (selection.empty()) {
+            parameterContext = nfCanvasUtils.getParameterContext();
+        } else if (nfCanvasUtils.isProcessGroup(selection)) {
+            var pg = selection.datum();
+            parameterContext = pg.parameterContext;
+        }
+
+        if (nfCommon.isDefinedAndNotNull(parameterContext)) {
+            return nfCommon.isDefinedAndNotNull(parameterContext) && parameterContext.permissions.canRead === true;
+        }
+
+        return false;
+    };
+
+    /**
      * Determines whether the component in the specified selection has configuration details.
      *
      * @param {selection} selection         The selection of currently selected components
@@ -505,6 +527,46 @@
     };
 
     /**
+     * Returns whether the process group support supports force commit.
+     *
+     * @param selection
+     * @returns {boolean}
+     */
+    var supportsForceCommitFlowVersion = function (selection) {
+        // ensure this selection supports flow versioning above
+        if (supportsFlowVersioning(selection) === false) {
+            return false;
+        }
+
+        var versionControlInformation;
+        if (selection.empty()) {
+            // check bread crumbs for version control information in the current group
+            var breadcrumbEntities = nfNgBridge.injector.get('breadcrumbsCtrl').getBreadcrumbs();
+            if (breadcrumbEntities.length > 0) {
+                var breadcrumbEntity = breadcrumbEntities[breadcrumbEntities.length - 1];
+                if (breadcrumbEntity.permissions.canRead) {
+                    versionControlInformation = breadcrumbEntity.breadcrumb.versionControlInformation;
+                } else {
+                    return false;
+                }
+            } else {
+                return false;
+            }
+        } else {
+            var processGroupData = selection.datum();
+            versionControlInformation = processGroupData.component.versionControlInformation;
+        }
+
+        if (nfCommon.isUndefinedOrNull(versionControlInformation)) {
+            return false;
+        }
+
+        // check the selection for version control information
+        return versionControlInformation.state === 'LOCALLY_MODIFIED_AND_STALE';
+    };
+
+
+    /**
      * Returns whether the process group supports revert local changes.
      *
      * @param selection
@@ -792,12 +854,14 @@
         {separator: true},
         {id: 'show-configuration-menu-item', condition: isConfigurable, menuItem: {clazz: 'fa fa-gear', text: 'Configure', action: 'showConfiguration'}},
         {id: 'show-details-menu-item', condition: hasDetails, menuItem: {clazz: 'fa fa-gear', text: 'View configuration', action: 'showDetails'}},
+        {id: 'parameters-menu-item', condition: hasParameterContext, menuItem: {clazz: 'fa', text: 'Parameters', action: 'openParameterContext'}},
         {id: 'variable-registry-menu-item', condition: hasVariables, menuItem: {clazz: 'fa', text: 'Variables', action: 'openVariableRegistry'}},
         {separator: true},
         {id: 'version-menu-item', groupMenuItem: {clazz: 'fa', text: 'Version'}, menuItems: [
             {id: 'start-version-control-menu-item', condition: supportsStartFlowVersioning, menuItem: {clazz: 'fa fa-upload', text: 'Start version control', action: 'saveFlowVersion'}},
             {separator: true},
             {id: 'commit-menu-item', condition: supportsCommitFlowVersion, menuItem: {clazz: 'fa fa-upload', text: 'Commit local changes', action: 'saveFlowVersion'}},
+            {id: 'force-commit-menu-item', condition: supportsForceCommitFlowVersion, menuItem: {clazz: 'fa fa-upload', text: 'Commit local changes', action: 'forceSaveFlowVersion'}},
             {id: 'local-changes-menu-item', condition: hasLocalChanges, menuItem: {clazz: 'fa', text: 'Show local changes', action: 'showLocalChanges'}},
             {id: 'revert-menu-item', condition: hasLocalChanges, menuItem: {clazz: 'fa fa-undo', text: 'Revert local changes', action: 'revertLocalChanges'}},
             {id: 'change-version-menu-item', condition: supportsChangeFlowVersion, menuItem: {clazz: 'fa', text: 'Change version', action: 'changeFlowVersion'}},

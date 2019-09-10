@@ -782,6 +782,38 @@ language governing permissions and limitations under the License. -->
     </dependencies>
     <profiles>
         <profile>
+            <id>include-graph</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>org.apache.nifi</groupId>
+                    <artifactId>nifi-graph-client-service-api-nar</artifactId>
+                    <version>1.10.0-SNAPSHOT</version>
+                    <type>nar</type>
+                </dependency>
+                <dependency>
+                    <groupId>org.apache.nifi</groupId>
+                    <artifactId>nifi-neo4j-cypher-service-nar</artifactId>
+                    <version>1.10.0-SNAPSHOT</version>
+                    <type>nar</type>
+                </dependency>
+                <dependency>
+                    <groupId>org.apache.nifi</groupId>
+                    <artifactId>nifi-other-graph-services-nar</artifactId>
+                    <version>1.10.0-SNAPSHOT</version>
+                    <type>nar</type>
+                </dependency>
+                <dependency>
+                    <groupId>org.apache.nifi</groupId>
+                    <artifactId>nifi-graph-nar</artifactId>
+                    <version>1.10.0-SNAPSHOT</version>
+                    <type>nar</type>
+                </dependency>
+            </dependencies>
+        </profile>
+        <profile>
             <id>include-grpc</id>
             <!-- This profile handles the inclusion of grpc artifacts. They are notoriously
             environment specific in terms of build such as not working in os/arch=ppc64le

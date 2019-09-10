@@ -392,6 +392,26 @@ public class PutMongoIT extends MongoWriteTestBase {
     }
 
     @Test
+    public void testUpsertWithOid() throws Exception {
+        TestRunner runner = init(PutMongo.class);
+        runner.setProperty(PutMongo.UPDATE_QUERY_KEY, "_id");
+        byte[] bytes = documentToByteArray(oidDocument);
+
+        runner.setProperty(PutMongo.MODE, "update");
+        runner.setProperty(PutMongo.UPSERT, "true");
+        runner.enqueue(bytes);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(PutMongo.REL_SUCCESS, 1);
+        MockFlowFile out = runner.getFlowFilesForRelationship(PutMongo.REL_SUCCESS).get(0);
+        out.assertContentEquals(bytes);
+
+        // verify 1 doc inserted into the collection
+        assertEquals(1, collection.count());
+        assertEquals(oidDocument, collection.find().first());
+    }
+
+    @Test
     public void testUpdate() throws Exception {
         TestRunner runner = init(PutMongo.class);
         runner.setProperty(PutMongo.UPDATE_QUERY_KEY, "_id");

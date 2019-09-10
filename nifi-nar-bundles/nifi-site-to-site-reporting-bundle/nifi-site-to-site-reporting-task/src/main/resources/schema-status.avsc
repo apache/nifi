@@ -33,13 +33,18 @@
 	// PG + Processors
 	{ "name" : "bytesRead", "type" : ["long", "null"]},
 	{ "name" : "bytesWritten", "type" : ["long", "null"]},
-	
+	{ "name" : "terminatedThreadCount", "type" : ["long", "null"]},
+
+    // Processors + Ports
+	{ "name" : "runStatus", "type" : ["string", "null"]},
+
 	// fields for process group status
 	{ "name" : "bytesTransferred", "type" : ["long", "null"]},
 	{ "name" : "flowFilesTransferred", "type" : ["long", "null"]},
 	{ "name" : "inputContentSize", "type" : ["long", "null"]},
 	{ "name" : "outputContentSize", "type" : ["long", "null"]},
 	{ "name" : "queuedContentSize", "type" : ["long", "null"]},
+	{ "name" : "versionedFlowStatus", "type" : ["string", "null"]},
 	
 	// fields for remote process groups
 	{ "name" : "activeRemotePortCount", "type" : ["long", "null"]},
@@ -49,12 +54,15 @@
 	{ "name" : "sentContentSize", "type" : ["long", "null"]},
 	{ "name" : "sentCount", "type" : ["long", "null"]},
 	{ "name" : "averageLineageDuration", "type" : ["long", "null"]},
+	{ "name" : "transmissionStatus", "type" : ["string", "null"]},
+	{ "name" : "targetURI", "type" : ["string", "null"]},
 	
 	// fields for input/output ports + connections + PG
 	{ "name" : "inputBytes", "type" : ["long", "null"]},
 	{ "name" : "inputCount", "type" : ["long", "null"]},
 	{ "name" : "outputBytes", "type" : ["long", "null"]},
 	{ "name" : "outputCount", "type" : ["long", "null"]},
+	{ "name" : "transmitting", "type" : ["boolean", "null"]},
 	
 	// fields for connections
 	{ "name" : "sourceId", "type" : ["string", "null"]},
@@ -66,6 +74,7 @@
 	{ "name" : "queuedBytes", "type" : ["long", "null"]},
 	{ "name" : "backPressureBytesThreshold", "type" : ["long", "null"]},
 	{ "name" : "backPressureObjectThreshold", "type" : ["long", "null"]},
+	{ "name" : "backPressureDataSizeThreshold", "type" : ["string", "null"]},
 	{ "name" : "isBackPressureEnabled", "type" : ["string", "null"]},
 	
     // fields for processors
@@ -73,6 +82,8 @@
 	{ "name" : "averageLineageDurationMS", "type" : ["long", "null"]},
 	{ "name" : "flowFilesRemoved", "type" : ["long", "null"]},
 	{ "name" : "invocations", "type" : ["long", "null"]},
-	{ "name" : "processingNanos", "type" : ["long", "null"]}
+	{ "name" : "processingNanos", "type" : ["long", "null"]},
+	{ "name" : "executionNode", "type" : ["string", "null"]},
+	{ "name" : "counters", "type": { "type": "map", "values": "string" }}
   ]
 }

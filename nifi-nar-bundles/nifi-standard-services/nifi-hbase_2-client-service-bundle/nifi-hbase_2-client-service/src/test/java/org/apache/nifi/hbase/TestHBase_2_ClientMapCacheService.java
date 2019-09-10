@@ -20,6 +20,8 @@ import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Table;
+import org.apache.nifi.distributed.cache.client.AtomicCacheEntry;
+import org.apache.nifi.distributed.cache.client.AtomicDistributedMapCacheClient;
 import org.apache.nifi.distributed.cache.client.Deserializer;
 import org.apache.nifi.distributed.cache.client.DistributedMapCacheClient;
 import org.apache.nifi.distributed.cache.client.Serializer;
@@ -43,6 +45,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
@@ -249,6 +252,78 @@ public class TestHBase_2_ClientMapCacheService {
         assertEquals( result, content);
     }
 
+    @Test
+    public void testFetch() throws InitializationException, IOException {
+        final String key = "key1";
+        final String value = "value1";
+        final byte[] revision = value.getBytes();
+
+        final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
+
+        // Mock an HBase Table so we can verify the put operations later
+        final Table table = Mockito.mock(Table.class);
+        when(table.getName()).thenReturn(TableName.valueOf(tableName));
+
+        // create the controller service and link it to the test processor
+        final MockHBaseClientService service = configureHBaseClientService(runner, table);
+        runner.assertValid(service);
+
+        final HBaseClientService hBaseClientService = runner.getProcessContext().getProperty(TestProcessor.HBASE_CLIENT_SERVICE)
+                .asControllerService(HBaseClientService.class);
+
+        final AtomicDistributedMapCacheClient<byte[]> cacheService = configureHBaseCacheService(runner, hBaseClientService);
+        runner.assertValid(cacheService);
+
+        final AtomicDistributedMapCacheClient<byte[]> hBaseCacheService = runner.getProcessContext().getProperty(TestProcessor.HBASE_CACHE_SERVICE)
+                .asControllerService(AtomicDistributedMapCacheClient.class);
+
+        hBaseCacheService.put(key, value, stringSerializer, stringSerializer);
+
+        final AtomicCacheEntry<String, String, byte[]> atomicCacheEntry = hBaseCacheService.fetch(key, stringSerializer, stringDeserializer);
+
+        assertEquals(key, atomicCacheEntry.getKey());
+        assertEquals(value, atomicCacheEntry.getValue());
+        assertArrayEquals(revision, atomicCacheEntry.getRevision().get());
+    }
+
+    @Test
+    public void testReplace() throws InitializationException, IOException {
+        final String key = "key1";
+        final String value = "value1";
+        final byte[] revision = value.getBytes();
+
+        final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
+
+        // Mock an HBase Table so we can verify the put operations later
+        final Table table = Mockito.mock(Table.class);
+        when(table.getName()).thenReturn(TableName.valueOf(tableName));
+
+        // create the controller service and link it to the test processor
+        final MockHBaseClientService service = configureHBaseClientService(runner, table);
+        runner.assertValid(service);
+
+        final HBaseClientService hBaseClientService = runner.getProcessContext().getProperty(TestProcessor.HBASE_CLIENT_SERVICE)
+                .asControllerService(HBaseClientService.class);
+
+        final AtomicDistributedMapCacheClient<byte[]> cacheService = configureHBaseCacheService(runner, hBaseClientService);
+        runner.assertValid(cacheService);
+
+        final AtomicDistributedMapCacheClient<byte[]> hBaseCacheService = runner.getProcessContext().getProperty(TestProcessor.HBASE_CACHE_SERVICE)
+                .asControllerService(AtomicDistributedMapCacheClient.class);
+
+        // First time value should not already be in cache so this should return true
+        final boolean newResult = hBaseCacheService.replace(new AtomicCacheEntry(key,value,null), stringSerializer, stringSerializer);
+        assertTrue(newResult);
+
+        // Second time value is already in cache so this should return false
+        final boolean existingResult = hBaseCacheService.replace(new AtomicCacheEntry(key,value,revision), stringSerializer, stringSerializer);
+        assertTrue(existingResult);
+
+        // Third time we're replacing with a new value so this should return true
+        final boolean replaceResult = hBaseCacheService.replace(new AtomicCacheEntry(key,"value2",revision), stringSerializer, stringSerializer);
+        assertTrue(replaceResult);
+    }
+
 
     private MockHBaseClientService configureHBaseClientService(final TestRunner runner, final Table table) throws InitializationException {
         final MockHBaseClientService service = new MockHBaseClientService(table, "family1", kerberosPropsWithFile);
@@ -259,7 +334,7 @@ public class TestHBase_2_ClientMapCacheService {
         return service;
     }
 
-    private DistributedMapCacheClient configureHBaseCacheService(final TestRunner runner, final HBaseClientService service) throws InitializationException {
+    private AtomicDistributedMapCacheClient<byte[]> configureHBaseCacheService(final TestRunner runner, final HBaseClientService service) throws InitializationException {
         final HBase_2_ClientMapCacheService cacheService = new HBase_2_ClientMapCacheService();
         runner.addControllerService("hbaseCache", cacheService);
         runner.setProperty(cacheService, HBase_2_ClientMapCacheService.HBASE_CLIENT_SERVICE, "hbaseClient");

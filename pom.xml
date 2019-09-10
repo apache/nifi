@@ -94,9 +94,11 @@
         <inceptionYear>2014</inceptionYear>
         <org.slf4j.version>1.7.26</org.slf4j.version>
         <ranger.version>1.0.0</ranger.version>
-        <jetty.version>9.4.15.v20190215</jetty.version>
-        <jackson.version>2.9.8</jackson.version>
-        <nifi.registry.version>0.4.0</nifi.registry.version>
+        <jetty.version>9.4.19.v20190610</jetty.version>
+        <jackson.version>2.9.9</jackson.version>
+        <nifi.registry.version>0.5.0</nifi.registry.version>
+        <nifi.groovy.version>2.5.4</nifi.groovy.version>
+        <surefire.version>2.22.0</surefire.version>
     </properties>
 
     <repositories>
@@ -136,6 +138,20 @@
         </repository>
     </repositories>
 
+    <pluginRepositories>
+        <pluginRepository>
+            <id>bintray</id>
+            <name>Groovy Bintray</name>
+            <url>https://dl.bintray.com/groovy/maven</url>
+            <releases>
+                <updatePolicy>never</updatePolicy>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </pluginRepository>
+    </pluginRepositories>
+
     <dependencyManagement>
         <dependencies>
             <!-- The following dependency management entries exist because these are jars
@@ -162,6 +178,7 @@
                 <groupId>ch.qos.logback</groupId>
                 <artifactId>logback-classic</artifactId>
                 <version>1.2.3</version>
+                <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>ch.qos.logback</groupId>
@@ -219,25 +236,34 @@
             <dependency>
                 <groupId>org.mockito</groupId>
                 <artifactId>mockito-core</artifactId>
-                <version>1.10.19</version>
-            </dependency>
-            <dependency>
-                <groupId>org.mockito</groupId>
-                <artifactId>mockito-all</artifactId>
-                <version>1.10.19</version>
-                <scope>test</scope>
+                <version>2.28.2</version>
             </dependency>
             <dependency>
                 <groupId>org.codehaus.groovy</groupId>
                 <artifactId>groovy-all</artifactId>
-                <version>2.4.13</version>
+                <version>${nifi.groovy.version}</version>
+                <type>pom</type>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.codehaus.groovy</groupId>
+                <artifactId>groovy-test</artifactId>
+                <version>${nifi.groovy.version}</version>
                 <scope>test</scope>
             </dependency>
             <dependency>
                 <groupId>org.spockframework</groupId>
                 <artifactId>spock-core</artifactId>
-                <version>1.0-groovy-2.4</version>
+                <version>1.3-groovy-2.5</version>
                 <scope>test</scope>
+                <exclusions>
+                    <exclusion>
+                        <!-- exclude transitive groovy dependencies to force spock to use the the managed groovy dependencies
+                        inherited from the parent pom -->
+                        <groupId>org.codehaus.groovy</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>org.hamcrest</groupId>
@@ -245,7 +271,12 @@
                 <version>1.3</version>
                 <scope>test</scope>
             </dependency>
-
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>testcontainers</artifactId>
+                <version>1.11.3</version>
+                <scope>test</scope>
+            </dependency>
             <!-- These Jetty dependencies are required for the Jetty Web Server all nars extend from it so we dont want this getting overriden -->
             <dependency>
                 <groupId>org.eclipse.jetty</groupId>
@@ -316,7 +347,8 @@
         </dependency>
         <dependency>
             <groupId>org.codehaus.groovy</groupId>
-            <artifactId>groovy-all</artifactId>
+            <artifactId>groovy-test</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 
@@ -326,6 +358,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
+                    <version>3.8.1</version>
                     <configuration>
                         <fork>true</fork>
                         <optimize>true</optimize>
@@ -336,8 +369,13 @@
                 <plugin>
                     <groupId>org.codehaus.groovy</groupId>
                     <artifactId>groovy-eclipse-compiler</artifactId>
-                    <version>2.9.2-01</version>
+                    <version>3.4.0-01</version>
                     <extensions>true</extensions>
+                </plugin>
+                <plugin>
+                    <groupId>org.codehaus.groovy</groupId>
+                    <artifactId>groovy-eclipse-batch</artifactId>
+                    <version>${nifi.groovy.version}-01</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -441,12 +479,12 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-checkstyle-plugin</artifactId>
-                    <version>2.17</version>
+                    <version>3.0.0</version>
                     <dependencies>
                         <dependency>
                             <groupId>com.puppycrawl.tools</groupId>
                             <artifactId>checkstyle</artifactId>
-                            <version>8.12</version>
+                            <version>8.21</version>
                         </dependency>
                     </dependencies>
                 </plugin>
@@ -456,6 +494,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.8.1</version>
                 <executions>
                     <!-- Only run for tests -->
                     <execution>
@@ -469,19 +508,19 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <source>1.8</source>
-                    <target>1.8</target>
+                    <source>${maven.compiler.source}</source>
+                    <target>${maven.compiler.target}</target>
                 </configuration>
                 <dependencies>
                     <dependency>
                         <groupId>org.codehaus.groovy</groupId>
                         <artifactId>groovy-eclipse-compiler</artifactId>
-                        <version>2.9.2-01</version>
+                        <version>3.4.0-01</version>
                     </dependency>
                     <dependency>
                         <groupId>org.codehaus.groovy</groupId>
                         <artifactId>groovy-eclipse-batch</artifactId>
-                        <version>2.4.3-01</version>
+                        <version>${nifi.groovy.version}-01</version>
                     </dependency>
                 </dependencies>
             </plugin>
@@ -539,6 +578,7 @@
                         <module name="Checker">
                             <property name="charset" value="UTF-8" />
                             <property name="severity" value="warning" />
+                            <property name="cacheFile" value="target/checkstyleCache"/>
                             <!-- Checks for whitespace -->
                             <!-- See http://checkstyle.sf.net/config_whitespace.html -->
                             <module name="FileTabCharacter">
@@ -568,7 +608,7 @@
                                 <module name="LeftCurly" />
                                 <module name="RightCurly" />
                                 <module name="RightCurly">
-                                    <property name="option" value="alone" />
+                                    <property name="option" value="alone_or_singleline" />
                                     <property name="tokens" value="CLASS_DEF, METHOD_DEF, CTOR_DEF, LITERAL_FOR, LITERAL_WHILE, STATIC_INIT" />
                                 </module>
                                 <module name="SeparatorWrap">
@@ -599,6 +639,7 @@
                                 </module>
                                 <module name="NonEmptyAtclauseDescription" />
                                 <module name="JavadocMethod">
+                                    <property name="allowUndeclaredRTE" value="true" />
                                     <property name="allowMissingJavadoc" value="true" />
                                     <property name="allowMissingParamTags" value="true" />
                                     <property name="allowMissingThrowsTags" value="true" />
@@ -619,6 +660,7 @@
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
                     <consoleOutput>true</consoleOutput>
+                    <useIdeaDefaultExcludes>true</useIdeaDefaultExcludes>
                     <excludes>
                         <exclude>nb-configuration.xml</exclude> <!-- courtesy excludes for netbeans users -->
                         <exclude>nbactions.xml</exclude> <!-- courtesy excludes for netbeans users -->
@@ -703,9 +745,9 @@
             </build>
         </profile>
         <profile>
-            <!-- This profile will disable DocLint which performs strict 
-                JavaDoc processing which was introduced in JDK 8. These are technically errors 
-                in the JavaDoc which we need to eventually address. However, if a release 
+            <!-- This profile will disable DocLint which performs strict
+                JavaDoc processing which was introduced in JDK 8. These are technically errors
+                in the JavaDoc which we need to eventually address. However, if a release
                 is performed using JDK 8 or newer, the JavaDoc generation would fail. By activating
                 this profile when running on JDK 8 or newer we can ensure the JavaDocs continue to
                 generate successfully -->
@@ -726,6 +768,58 @@
                     </plugins>
                 </pluginManagement>
             </build>
+        </profile>
+        <profile>
+            <!-- This profile, activating when compiling on Java versions above 1.8, provides configuration changes to
+                 allow NiFi to be compiled on those JDKs. -->
+            <id>jigsaw</id>
+            <activation>
+                <jdk>(1.8,)</jdk>
+            </activation>
+            <properties>
+                <maven.compiler.source>11</maven.compiler.source>
+                <maven.compiler.target>11</maven.compiler.target>
+            </properties>
+            <build>
+                <pluginManagement>
+                    <plugins>
+                        <plugin>
+                            <groupId>org.jvnet.jaxb2.maven2</groupId>
+                            <artifactId>maven-jaxb2-plugin</artifactId>
+                            <version>0.14.0</version>
+                        </plugin>
+                    </plugins>
+                </pluginManagement>
+            </build>
+            <dependencyManagement>
+                <dependencies>
+                    <dependency>
+                        <groupId>javax.xml.bind</groupId>
+                        <artifactId>jaxb-api</artifactId>
+                        <version>2.3.0</version>
+                    </dependency>
+                    <dependency>
+                        <groupId>com.sun.xml.bind</groupId>
+                        <artifactId>jaxb-core</artifactId>
+                        <version>2.3.0</version>
+                    </dependency>
+                    <dependency>
+                        <groupId>com.sun.xml.bind</groupId>
+                        <artifactId>jaxb-impl</artifactId>
+                        <version>2.3.0</version>
+                    </dependency>
+                    <dependency>
+                        <groupId>com.sun.activation</groupId>
+                        <artifactId>javax.activation</artifactId>
+                        <version>1.2.0</version>
+                    </dependency>
+                    <dependency>
+                        <groupId>javax.annotation</groupId>
+                        <artifactId>javax.annotation-api</artifactId>
+                        <version>1.3.2</version>
+                    </dependency>
+                </dependencies>
+            </dependencyManagement>
         </profile>
         <!-- The following profiles are here as a convenience for folks that
             want to build against vendor-specific distributions of the various Hadoop

@@ -16,7 +16,16 @@
  */
 package org.apache.nifi.provenance.lucene;
 
-import static java.util.Objects.requireNonNull;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.search.BooleanClause;
+import org.apache.lucene.search.BooleanQuery;
+import org.apache.lucene.search.TermQuery;
+import org.apache.lucene.search.TopDocs;
+import org.apache.nifi.provenance.ProvenanceEventRecord;
+import org.apache.nifi.provenance.SearchableFields;
+import org.apache.nifi.provenance.index.EventIndexSearcher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -26,16 +35,7 @@ import java.util.Collections;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.lucene.index.Term;
-import org.apache.lucene.search.BooleanClause.Occur;
-import org.apache.lucene.search.BooleanQuery;
-import org.apache.lucene.search.TermQuery;
-import org.apache.lucene.search.TopDocs;
-import org.apache.nifi.provenance.ProvenanceEventRecord;
-import org.apache.nifi.provenance.SearchableFields;
-import org.apache.nifi.provenance.index.EventIndexSearcher;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static java.util.Objects.requireNonNull;
 
 public class LineageQuery {
 
@@ -63,11 +63,13 @@ public class LineageQuery {
                 if (flowFileUuids == null || flowFileUuids.isEmpty()) {
                     flowFileIdQuery = null;
                 } else {
-                    flowFileIdQuery = new BooleanQuery();
+                    final BooleanQuery.Builder queryBuilder = new BooleanQuery.Builder();
                     for (final String flowFileUuid : flowFileUuids) {
-                        flowFileIdQuery.add(new TermQuery(new Term(SearchableFields.FlowFileUUID.getSearchableFieldName(), flowFileUuid)), Occur.SHOULD);
+                        final TermQuery termQuery = new TermQuery(new Term(SearchableFields.FlowFileUUID.getSearchableFieldName(), flowFileUuid));
+                        queryBuilder.add(new BooleanClause(termQuery, BooleanClause.Occur.SHOULD));
                     }
-                    flowFileIdQuery.setMinimumNumberShouldMatch(1);
+
+                    flowFileIdQuery = queryBuilder.build();
                 }
 
                 final long searchStart = System.nanoTime();

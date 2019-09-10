@@ -17,6 +17,15 @@
 
 package org.apache.nifi.provenance.store;
 
+import org.apache.nifi.provenance.ProvenanceEventRecord;
+import org.apache.nifi.provenance.authorization.EventAuthorizer;
+import org.apache.nifi.provenance.authorization.EventTransformer;
+import org.apache.nifi.provenance.index.EventIndex;
+import org.apache.nifi.provenance.serialization.StorageSummary;
+import org.apache.nifi.provenance.store.iterator.EventIterator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -25,14 +34,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
-
-import org.apache.nifi.provenance.ProvenanceEventRecord;
-import org.apache.nifi.provenance.authorization.EventAuthorizer;
-import org.apache.nifi.provenance.authorization.EventTransformer;
-import org.apache.nifi.provenance.index.EventIndex;
-import org.apache.nifi.provenance.serialization.StorageSummary;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class ArrayListEventStore implements EventStore {
     private static final Logger logger = LoggerFactory.getLogger(ArrayListEventStore.class);
@@ -151,5 +152,10 @@ public class ArrayListEventStore implements EventStore {
 
     @Override
     public void reindexLatestEvents(EventIndex eventIndex) {
+    }
+
+    @Override
+    public EventIterator getEventsByTimestamp(final long minTimestamp, final long maxTimestamp) {
+        return null;
     }
 }

@@ -129,6 +129,14 @@ public interface NiFiClient extends Closeable {
 
     ReportingTasksClient getReportingTasksClientForToken(String token);
 
+    // ----- ParamContextClient -----
+
+    ParamContextClient getParamContextClient();
+
+    ParamContextClient getParamContextClientForProxiedEntities(String ... proxiedEntity);
+
+    ParamContextClient getParamContextClientForToken(String token);
+
     /**
      * The builder interface that implementations should provide for obtaining the client.
      */

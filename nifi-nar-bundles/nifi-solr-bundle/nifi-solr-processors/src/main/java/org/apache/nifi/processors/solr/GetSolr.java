@@ -376,11 +376,12 @@ public class GetSolr extends SolrProcessor {
                         final RecordSchema schema = writerFactory.getSchema(null, null);
                         final RecordSet recordSet = SolrUtils.solrDocumentsToRecordSet(response.getResults(), schema);
                         final StringBuffer mimeType = new StringBuffer();
+                        final FlowFile flowFileRef = flowFile;
                         flowFile = session.write(flowFile, new OutputStreamCallback() {
                             @Override
                             public void process(final OutputStream out) throws IOException {
                                 try {
-                                    final RecordSetWriter writer = writerFactory.createWriter(getLogger(), schema, out);
+                                    final RecordSetWriter writer = writerFactory.createWriter(getLogger(), schema, out, flowFileRef);
                                     writer.write(recordSet);
                                     writer.flush();
                                     mimeType.append(writer.getMimeType());

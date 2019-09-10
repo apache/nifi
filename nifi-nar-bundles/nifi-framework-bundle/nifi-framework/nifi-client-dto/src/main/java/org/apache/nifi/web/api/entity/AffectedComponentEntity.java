@@ -16,7 +16,9 @@
  */
 package org.apache.nifi.web.api.entity;
 
+import io.swagger.annotations.ApiModelProperty;
 import org.apache.nifi.web.api.dto.AffectedComponentDTO;
+import org.apache.nifi.web.api.dto.ProcessGroupNameDTO;
 
 import javax.xml.bind.annotation.XmlRootElement;
 
@@ -24,10 +26,12 @@ import javax.xml.bind.annotation.XmlRootElement;
  * A serialized representation of this class can be placed in the entity body of a response to the API.
  * This particular entity holds a reference to component that references a variable.
  */
-@XmlRootElement(name = "affectComponentEntity")
+@XmlRootElement(name = "affectedComponentEntity")
 public class AffectedComponentEntity extends ComponentEntity implements Permissible<AffectedComponentDTO> {
 
     private AffectedComponentDTO component;
+    private ProcessGroupNameDTO processGroup;
+    private String referenceType;
 
     /**
      * @return variable referencing components that is being serialized
@@ -40,5 +44,31 @@ public class AffectedComponentEntity extends ComponentEntity implements Permissi
     @Override
     public void setComponent(AffectedComponentDTO component) {
         this.component = component;
+    }
+
+    @ApiModelProperty("The Process Group that the component belongs to")
+    public ProcessGroupNameDTO getProcessGroup() {
+        return processGroup;
+    }
+
+    public void setProcessGroup(ProcessGroupNameDTO processGroup) {
+        this.processGroup = processGroup;
+    }
+
+    @ApiModelProperty(value="The type of component referenced",
+        allowableValues = AffectedComponentDTO.COMPONENT_TYPE_PROCESSOR + "," + AffectedComponentDTO.COMPONENT_TYPE_CONTROLLER_SERVICE + ", "
+                + AffectedComponentDTO.COMPONENT_TYPE_INPUT_PORT + ", " + AffectedComponentDTO.COMPONENT_TYPE_OUTPUT_PORT + ", "
+                + AffectedComponentDTO.COMPONENT_TYPE_REMOTE_INPUT_PORT + ", " + AffectedComponentDTO.COMPONENT_TYPE_REMOTE_OUTPUT_PORT)
+    public String getReferenceType() {
+        return referenceType;
+    }
+
+    public void setReferenceType(String referenceType) {
+        this.referenceType = referenceType;
+    }
+
+    @Override
+    public String toString() {
+        return component == null ? "AffectedComponent[No Component]" : component.toString();
     }
 }

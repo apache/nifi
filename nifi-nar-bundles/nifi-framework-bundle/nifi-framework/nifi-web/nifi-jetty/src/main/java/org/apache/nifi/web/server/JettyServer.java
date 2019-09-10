@@ -622,12 +622,15 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
 
             ServletHolder docs = new ServletHolder("docs", DefaultServlet.class);
             docs.setInitParameter("resourceBase", docsDir.getPath());
+            docs.setInitParameter("dirAllowed", "false");
 
             ServletHolder components = new ServletHolder("components", DefaultServlet.class);
             components.setInitParameter("resourceBase", workingDocsDirectory.getPath());
+            components.setInitParameter("dirAllowed", "false");
 
             ServletHolder restApi = new ServletHolder("rest-api", DefaultServlet.class);
             restApi.setInitParameter("resourceBase", webApiDocsDir.getPath());
+            restApi.setInitParameter("dirAllowed", "false");
 
             docsContext.addServlet(docs, "/html/*");
             docsContext.addServlet(components, "/components/*");

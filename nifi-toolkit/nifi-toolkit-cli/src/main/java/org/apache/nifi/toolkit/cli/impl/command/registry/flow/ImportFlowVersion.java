@@ -18,7 +18,6 @@ package org.apache.nifi.toolkit.cli.impl.command.registry.flow;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.cli.ParseException;
-import org.apache.commons.io.IOUtils;
 import org.apache.nifi.registry.client.FlowClient;
 import org.apache.nifi.registry.client.FlowSnapshotClient;
 import org.apache.nifi.registry.client.NiFiRegistryClient;
@@ -33,11 +32,6 @@ import org.apache.nifi.toolkit.cli.impl.result.StringResult;
 import org.apache.nifi.toolkit.cli.impl.util.JacksonUtils;
 
 import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URI;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Paths;
 import java.util.Properties;
 
 /**
@@ -67,16 +61,7 @@ public class ImportFlowVersion extends AbstractNiFiRegistryCommand<StringResult>
         final String flowId = getRequiredArg(properties, CommandOption.FLOW_ID);
         final String inputFile = getRequiredArg(properties, CommandOption.INPUT_SOURCE);
 
-        String contents;
-        try {
-            // try a public resource URL
-            URL url = new URL(inputFile);
-            contents = IOUtils.toString(url, StandardCharsets.UTF_8);
-        } catch (MalformedURLException e) {
-            // assume a local file then
-            URI uri = Paths.get(inputFile).toAbsolutePath().toUri();
-            contents = IOUtils.toString(uri, StandardCharsets.UTF_8);
-        }
+        final String contents = getInputSourceContent(inputFile);
 
         final FlowClient flowClient = client.getFlowClient();
         final FlowSnapshotClient snapshotClient = client.getFlowSnapshotClient();

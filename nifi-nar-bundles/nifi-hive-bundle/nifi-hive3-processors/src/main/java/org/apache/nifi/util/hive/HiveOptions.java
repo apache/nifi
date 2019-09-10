@@ -32,7 +32,6 @@ public class HiveOptions implements Serializable {
     protected Integer idleTimeout = 60000;
     protected Integer callTimeout = 0;
     protected List<String> staticPartitionValues = null;
-    protected Boolean autoCreatePartitions = true;
     protected String kerberosPrincipal;
     protected String kerberosKeytab;
     protected HiveConf hiveConf;
@@ -51,11 +50,6 @@ public class HiveOptions implements Serializable {
 
     public HiveOptions withStaticPartitionValues(List<String> staticPartitionValues) {
         this.staticPartitionValues = staticPartitionValues;
-        return this;
-    }
-
-    public HiveOptions withAutoCreatePartitions(Boolean autoCreatePartitions) {
-        this.autoCreatePartitions = autoCreatePartitions;
         return this;
     }
 

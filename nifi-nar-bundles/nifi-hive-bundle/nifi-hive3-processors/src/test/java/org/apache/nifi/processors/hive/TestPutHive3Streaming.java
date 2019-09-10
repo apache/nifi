@@ -97,14 +97,18 @@ import java.util.function.BiFunction;
 import static org.apache.nifi.processors.hive.AbstractHive3QLProcessor.ATTR_OUTPUT_TABLES;
 import static org.apache.nifi.processors.hive.PutHive3Streaming.HIVE_STREAMING_RECORD_COUNT_ATTR;
 import static org.apache.nifi.processors.hive.PutHive3Streaming.KERBEROS_CREDENTIALS_SERVICE;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.hasItem;
+import static org.hamcrest.Matchers.hasProperty;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -167,11 +171,11 @@ public class TestPutHive3Streaming {
         runner.setProperty(PutHive3Streaming.HIVE_CONFIGURATION_RESOURCES, TEST_CONF_PATH);
         MockRecordParser readerFactory = new MockRecordParser() {
             @Override
-            public RecordReader createRecordReader(Map<String, String> variables, InputStream in, ComponentLog logger) throws IOException, SchemaNotFoundException {
+            public RecordReader createRecordReader(Map<String, String> variables, InputStream in, long inputLength, ComponentLog logger) throws IOException, SchemaNotFoundException {
                 if (failOnCreateReader) {
                     throw new SchemaNotFoundException("test");
                 }
-                return super.createRecordReader(variables, in, logger);
+                return super.createRecordReader(variables, in, inputLength, logger);
             }
         };
         final RecordSchema recordSchema = AvroTypeUtil.createSchema(schema);
@@ -362,6 +366,10 @@ public class TestPutHive3Streaming {
         runner.run();
 
         runner.assertTransferCount(PutHive3Streaming.REL_FAILURE, 1);
+        assertThat(
+                runner.getLogger().getErrorMessages(),
+                hasItem(hasProperty("msg", containsString("Exception while trying to stream {} to hive - routing to failure")))
+        );
     }
 
     @Test
@@ -395,6 +403,10 @@ public class TestPutHive3Streaming {
         runner.run();
 
         runner.assertTransferCount(PutHive3Streaming.REL_FAILURE, 1);
+        assertThat(
+                runner.getLogger().getErrorMessages(),
+                hasItem(hasProperty("msg", containsString("Failed to create {} for {} - routing to failure")))
+        );
     }
 
     @Test
@@ -465,6 +477,10 @@ public class TestPutHive3Streaming {
         runner.assertTransferCount(PutHive3Streaming.REL_SUCCESS, 0);
         runner.assertTransferCount(PutHive3Streaming.REL_FAILURE, 1);
         runner.assertTransferCount(PutHive3Streaming.REL_RETRY, 0);
+        assertThat(
+                runner.getLogger().getErrorMessages(),
+                hasItem(hasProperty("msg", containsString("Exception while processing {} - routing to failure")))
+        );
     }
 
     @Test
@@ -577,6 +593,10 @@ public class TestPutHive3Streaming {
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutHive3Streaming.REL_FAILURE).get(0);
         assertEquals("0", flowFile.getAttribute(HIVE_STREAMING_RECORD_COUNT_ATTR));
         assertEquals("default.users", flowFile.getAttribute(ATTR_OUTPUT_TABLES));
+        assertThat(
+                runner.getLogger().getErrorMessages(),
+                hasItem(hasProperty("msg", containsString("Exception while processing {} - routing to failure")))
+        );
     }
 
     @Test
@@ -630,6 +650,10 @@ public class TestPutHive3Streaming {
 
         runner.assertTransferCount(PutHive3Streaming.REL_SUCCESS, 0);
         runner.assertTransferCount(PutHive3Streaming.REL_FAILURE, 1);
+        assertThat(
+                runner.getLogger().getErrorMessages(),
+                hasItem(hasProperty("msg", containsString("Exception while processing {} - routing to failure")))
+        );
     }
 
     @Test

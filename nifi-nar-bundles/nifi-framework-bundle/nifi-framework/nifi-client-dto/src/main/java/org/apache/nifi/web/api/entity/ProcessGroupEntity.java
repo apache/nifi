@@ -54,6 +54,8 @@ public class ProcessGroupEntity extends ComponentEntity implements Permissible<P
     private Integer publicInputPortCount;
     private Integer publicOutputPortCount;
 
+    private ParameterContextReferenceEntity parameterContext;
+
     /**
      * The ProcessGroupDTO that is being serialized.
      *
@@ -316,5 +318,14 @@ public class ProcessGroupEntity extends ComponentEntity implements Permissible<P
 
     public void setSyncFailureCount(Integer syncFailureCount) {
         this.syncFailureCount = syncFailureCount;
+    }
+
+    @ApiModelProperty("The Parameter Context, or null if no Parameter Context has been bound to the Process Group")
+    public ParameterContextReferenceEntity getParameterContext() {
+        return parameterContext;
+    }
+
+    public void setParameterContext(ParameterContextReferenceEntity parameterContext) {
+        this.parameterContext = parameterContext;
     }
 }

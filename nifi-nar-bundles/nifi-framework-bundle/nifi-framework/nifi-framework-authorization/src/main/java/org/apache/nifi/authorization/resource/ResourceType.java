@@ -41,7 +41,8 @@ public enum ResourceType {
     RestrictedComponents("/restricted-components"),
     Operation("/operation"),
     Template("/templates"),
-    Tenant("/tenants");
+    Tenant("/tenants"),
+    ParameterContext("/parameter-contexts");
 
     final String value;
 

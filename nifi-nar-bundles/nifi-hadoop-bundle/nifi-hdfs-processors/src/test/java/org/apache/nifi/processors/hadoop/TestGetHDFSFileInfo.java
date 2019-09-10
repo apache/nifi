@@ -302,8 +302,8 @@ public class TestGetHDFSFileInfo {
         mff.assertAttributeEquals("hdfs.owner", "owner");
         mff.assertAttributeEquals("hdfs.group", "group");
         mff.assertAttributeEquals("hdfs.lastModified", ""+1523456000000L);
-        mff.assertAttributeEquals("hdfs.length", ""+500);
-        mff.assertAttributeEquals("hdfs.count.files", ""+5);
+        mff.assertAttributeEquals("hdfs.length", ""+900);
+        mff.assertAttributeEquals("hdfs.count.files", ""+9);
         mff.assertAttributeEquals("hdfs.count.dirs", ""+10);
         mff.assertAttributeEquals("hdfs.replication", ""+3);
         mff.assertAttributeEquals("hdfs.permissions", "rwxr-xr-x");
@@ -329,7 +329,7 @@ public class TestGetHDFSFileInfo {
         runner.run();
 
         runner.assertTransferCount(GetHDFSFileInfo.REL_ORIGINAL, 0);
-        runner.assertTransferCount(GetHDFSFileInfo.REL_SUCCESS, 7);
+        runner.assertTransferCount(GetHDFSFileInfo.REL_SUCCESS, 9);
         runner.assertTransferCount(GetHDFSFileInfo.REL_FAILURE, 0);
         runner.assertTransferCount(GetHDFSFileInfo.REL_NOT_FOUND, 0);
 
@@ -342,8 +342,8 @@ public class TestGetHDFSFileInfo {
                 mff.assertAttributeEquals("hdfs.owner", "owner");
                 mff.assertAttributeEquals("hdfs.group", "group");
                 mff.assertAttributeEquals("hdfs.lastModified", ""+1523456000000L);
-                mff.assertAttributeEquals("hdfs.length", ""+500);
-                mff.assertAttributeEquals("hdfs.count.files", ""+5);
+                mff.assertAttributeEquals("hdfs.length", ""+900);
+                mff.assertAttributeEquals("hdfs.count.files", ""+9);
                 mff.assertAttributeEquals("hdfs.count.dirs", ""+10);
                 mff.assertAttributeEquals("hdfs.replication", ""+3);
                 mff.assertAttributeEquals("hdfs.permissions", "rwxr-xr-x");
@@ -426,11 +426,37 @@ public class TestGetHDFSFileInfo {
                 mff.assertAttributeEquals("hdfs.replication", ""+3);
                 mff.assertAttributeEquals("hdfs.permissions", "rw-r--r--");
                 mff.assertAttributeNotExists("hdfs.status");
+            }else if (mff.getAttribute("hdfs.objectName").equals("regFile4")) {
+                matchCount++;
+                mff.assertAttributeEquals("hdfs.path", "/some/home/mydir");
+                mff.assertAttributeEquals("hdfs.type", "file");
+                mff.assertAttributeEquals("hdfs.owner", "owner");
+                mff.assertAttributeEquals("hdfs.group", "group");
+                mff.assertAttributeEquals("hdfs.lastModified", ""+1523456000000L);
+                mff.assertAttributeEquals("hdfs.length", ""+100);
+                mff.assertAttributeNotExists("hdfs.count.files");
+                mff.assertAttributeNotExists("hdfs.count.dirs");
+                mff.assertAttributeEquals("hdfs.replication", ""+3);
+                mff.assertAttributeEquals("hdfs.permissions", "rw-r--r--");
+                mff.assertAttributeNotExists("hdfs.status");
+              }else if (mff.getAttribute("hdfs.objectName").equals("regFile5")) {
+              matchCount++;
+                mff.assertAttributeEquals("hdfs.path", "/some/home/mydir");
+                mff.assertAttributeEquals("hdfs.type", "file");
+                mff.assertAttributeEquals("hdfs.owner", "owner");
+                mff.assertAttributeEquals("hdfs.group", "group");
+                mff.assertAttributeEquals("hdfs.lastModified", ""+1523456000000L);
+                mff.assertAttributeEquals("hdfs.length", ""+100);
+                mff.assertAttributeNotExists("hdfs.count.files");
+                mff.assertAttributeNotExists("hdfs.count.dirs");
+                mff.assertAttributeEquals("hdfs.replication", ""+3);
+                mff.assertAttributeEquals("hdfs.permissions", "rw-r--r--");
+                mff.assertAttributeNotExists("hdfs.status");
             }else {
                runner.assertNotValid();
             }
         }
-        Assert.assertEquals(matchCount, 7);
+        Assert.assertEquals(matchCount, 9);
     }
 
     @Test
@@ -462,8 +488,8 @@ public class TestGetHDFSFileInfo {
                 mff.assertAttributeEquals("hdfs.owner", "owner");
                 mff.assertAttributeEquals("hdfs.group", "group");
                 mff.assertAttributeEquals("hdfs.lastModified", ""+1523456000000L);
-                mff.assertAttributeEquals("hdfs.length", ""+500);
-                mff.assertAttributeEquals("hdfs.count.files", ""+5);
+                mff.assertAttributeEquals("hdfs.length", ""+900);
+                mff.assertAttributeEquals("hdfs.count.files", ""+9);
                 mff.assertAttributeEquals("hdfs.count.dirs", ""+10);
                 mff.assertAttributeEquals("hdfs.replication", ""+3);
                 mff.assertAttributeEquals("hdfs.permissions", "rwxr-xr-x");
@@ -540,9 +566,14 @@ public class TestGetHDFSFileInfo {
     /*
      * For all basic tests, this provides a structure of files in dirs:
      * Total number of dirs:  9 (1 root, 4 dotted)
-     * Total number of files: 4 (2 dotted)
+     * Total number of files: 8 (4 dotted)
      */
     protected void setFileSystemBasicTree(final MockFileSystem fs) {
+        fs.addFileStatus(fs.newDir("/some/home/mydir"), fs.newFile("/some/home/mydir/regFile4"));
+        fs.addFileStatus(fs.newDir("/some/home/mydir"), fs.newFile("/some/home/mydir/regFile5"));
+        fs.addFileStatus(fs.newDir("/some/home/mydir"), fs.newFile("/some/home/mydir/.dotFile4"));
+        fs.addFileStatus(fs.newDir("/some/home/mydir"), fs.newFile("/some/home/mydir/.dotFile5"));
+
         fs.addFileStatus(fs.newDir("/some/home/mydir"), fs.newDir("/some/home/mydir/dir1"));
         fs.addFileStatus(fs.newDir("/some/home/mydir"), fs.newDir("/some/home/mydir/dir2"));
         fs.addFileStatus(fs.newDir("/some/home/mydir"), fs.newDir("/some/home/mydir/.dir3"));

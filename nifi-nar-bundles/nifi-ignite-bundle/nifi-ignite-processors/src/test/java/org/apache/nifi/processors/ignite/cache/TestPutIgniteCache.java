@@ -32,6 +32,7 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -45,46 +46,63 @@ public class TestPutIgniteCache {
     private Map<String,String> properties2;
     private static Ignite ignite;
 
+    // Check if the JDK running these tests is pre-Java 11, so that tests can be ignored if JDK is Java 11+
+    // TODO Once a version of Ignite that supports Java 11 is released, this check can be removed.
+    private static boolean preJava11;
+    static {
+        String javaVersion = System.getProperty("java.version");
+        preJava11 = Integer.parseInt(javaVersion.substring(0, javaVersion.indexOf('.'))) < 11;
+    }
+
     @BeforeClass
     public static void setUpClass() {
-        List<Ignite> grids = Ignition.allGrids();
-        if ( grids.size() == 1 )
-            ignite = grids.get(0);
-        else
-            ignite = Ignition.start("test-ignite.xml");
+        if (preJava11) {
+            List<Ignite> grids = Ignition.allGrids();
+            if ( grids.size() == 1 )
+                ignite = grids.get(0);
+            else
+                ignite = Ignition.start("test-ignite.xml");
+        }
 
     }
 
     @AfterClass
     public static void tearDownClass() {
-        if ( ignite != null )
-            ignite.close();
-        Ignition.stop(true);
+        if (preJava11) {
+            if ( ignite != null )
+                ignite.close();
+            Ignition.stop(true);
+        }
     }
 
     @Before
     public void setUp() throws IOException {
-        putIgniteCache = new PutIgniteCache() {
-            @Override
-            protected Ignite getIgnite() {
-                return TestPutIgniteCache.ignite;
-            }
+        if (preJava11) {
+            putIgniteCache = new PutIgniteCache() {
+                @Override
+                protected Ignite getIgnite() {
+                    return TestPutIgniteCache.ignite;
+                }
 
-        };
-        properties1 = new HashMap<String,String>();
-        properties1.put("igniteKey", "key1");
-        properties2 = new HashMap<String,String>();
-        properties2.put("igniteKey", "key2");
+            };
+            properties1 = new HashMap<String,String>();
+            properties1.put("igniteKey", "key1");
+            properties2 = new HashMap<String,String>();
+            properties2.put("igniteKey", "key2");
+        }
     }
 
     @After
     public void teardown() {
-        runner = null;
-        ignite.destroyCache(CACHE_NAME);
+        if (preJava11) {
+            runner = null;
+            ignite.destroyCache(CACHE_NAME);
+        }
     }
 
     @Test
     public void testPutIgniteCacheOnTriggerDefaultConfigurationOneFlowFileWithPlainKey() throws IOException, InterruptedException {
+        Assume.assumeTrue(preJava11);
 
         runner = TestRunners.newTestRunner(putIgniteCache);
         runner.setProperty(PutIgniteCache.BATCH_SIZE, "5");
@@ -116,6 +134,7 @@ public class TestPutIgniteCache {
 
     @Test
     public void testPutIgniteCacheOnTriggerDefaultConfigurationOneFlowFile() throws IOException, InterruptedException {
+        Assume.assumeTrue(preJava11);
 
         runner = TestRunners.newTestRunner(putIgniteCache);
         runner.setProperty(PutIgniteCache.BATCH_SIZE, "5");
@@ -147,6 +166,7 @@ public class TestPutIgniteCache {
 
     @Test
     public void testPutIgniteCacheOnTriggerDefaultConfigurationTwoFlowFilesAllowOverrideDefaultFalse() throws IOException, InterruptedException {
+        Assume.assumeTrue(preJava11);
 
         runner = TestRunners.newTestRunner(putIgniteCache);
         runner.setProperty(PutIgniteCache.BATCH_SIZE, "5");
@@ -191,6 +211,7 @@ public class TestPutIgniteCache {
 
     @Test
     public void testPutIgniteCacheOnTriggerDefaultConfigurationTwoFlowFilesAllowOverrideTrue() throws IOException, InterruptedException {
+        Assume.assumeTrue(preJava11);
 
         runner = TestRunners.newTestRunner(putIgniteCache);
         runner.setProperty(PutIgniteCache.BATCH_SIZE, "5");
@@ -237,6 +258,7 @@ public class TestPutIgniteCache {
 
     @Test
     public void testPutIgniteCacheOnTriggerDefaultConfigurationOneFlowFileNoKey() throws IOException, InterruptedException {
+        Assume.assumeTrue(preJava11);
 
         runner = TestRunners.newTestRunner(putIgniteCache);
         runner.setProperty(PutIgniteCache.BATCH_SIZE, "5");
@@ -270,6 +292,7 @@ public class TestPutIgniteCache {
 
     @Test
     public void testPutIgniteCacheOnTriggerDefaultConfigurationOneFlowFileNoBytes() throws IOException, InterruptedException {
+        Assume.assumeTrue(preJava11);
 
         runner = TestRunners.newTestRunner(putIgniteCache);
         runner.setProperty(PutIgniteCache.BATCH_SIZE, "5");
@@ -302,6 +325,7 @@ public class TestPutIgniteCache {
 
     @Test
     public void testPutIgniteCacheOnTriggerDefaultConfigurationTwoFlowFiles() throws IOException, InterruptedException {
+        Assume.assumeTrue(preJava11);
 
         runner = TestRunners.newTestRunner(putIgniteCache);
         runner.setProperty(PutIgniteCache.BATCH_SIZE, "5");
@@ -346,6 +370,7 @@ public class TestPutIgniteCache {
 
     @Test
     public void testPutIgniteCacheOnTriggerDefaultConfigurationTwoFlowFilesNoKey() throws IOException, InterruptedException {
+        Assume.assumeTrue(preJava11);
 
         runner = TestRunners.newTestRunner(putIgniteCache);
         runner.setProperty(PutIgniteCache.BATCH_SIZE, "5");
@@ -393,6 +418,7 @@ public class TestPutIgniteCache {
 
     @Test
     public void testPutIgniteCacheOnTriggerDefaultConfigurationTwoFlowFileFirstNoKey() throws IOException, InterruptedException {
+        Assume.assumeTrue(preJava11);
 
         runner = TestRunners.newTestRunner(putIgniteCache);
         runner.setProperty(PutIgniteCache.BATCH_SIZE, "5");
@@ -437,6 +463,7 @@ public class TestPutIgniteCache {
 
     @Test
     public void testPutIgniteCacheOnTriggerDefaultConfigurationTwoFlowFileSecondNoKey() throws IOException, InterruptedException {
+        Assume.assumeTrue(preJava11);
 
         runner = TestRunners.newTestRunner(putIgniteCache);
         runner.setProperty(PutIgniteCache.BATCH_SIZE, "5");
@@ -483,6 +510,7 @@ public class TestPutIgniteCache {
 
     @Test
     public void testPutIgniteCacheOnTriggerDefaultConfigurationTwoFlowFilesOneNoKeyOneNoBytes() throws IOException, InterruptedException {
+        Assume.assumeTrue(preJava11);
 
         runner = TestRunners.newTestRunner(putIgniteCache);
         runner.setProperty(PutIgniteCache.BATCH_SIZE, "5");
@@ -530,6 +558,7 @@ public class TestPutIgniteCache {
 
     @Test
     public void testPutIgniteCacheOnTriggerDefaultConfigurationTwoFlowFilesOneNoKeySecondOkThirdNoBytes() throws IOException, InterruptedException {
+        Assume.assumeTrue(preJava11);
 
         runner = TestRunners.newTestRunner(putIgniteCache);
         runner.setProperty(PutIgniteCache.BATCH_SIZE, "5");

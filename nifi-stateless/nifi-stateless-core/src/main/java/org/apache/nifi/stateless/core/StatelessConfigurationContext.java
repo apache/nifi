@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.stateless.core;
 
+import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.controller.ConfigurationContext;
@@ -34,15 +35,18 @@ public class StatelessConfigurationContext implements ConfigurationContext {
     private final ControllerServiceLookup serviceLookup;
     private final ControllerService service;
     private final VariableRegistry variableRegistry;
+    private final ParameterLookup parameterLookup;
 
     public StatelessConfigurationContext(final ControllerService service,
                                          final Map<PropertyDescriptor, String> properties,
                                          final ControllerServiceLookup serviceLookup,
-                                         final VariableRegistry variableRegistry) {
+                                         final VariableRegistry variableRegistry,
+                                         final ParameterLookup parameterLookup) {
         this.service = service;
         this.properties = properties;
         this.serviceLookup = serviceLookup;
         this.variableRegistry = variableRegistry;
+        this.parameterLookup = parameterLookup;
     }
 
     @Override
@@ -51,7 +55,7 @@ public class StatelessConfigurationContext implements ConfigurationContext {
         if (value == null) {
             value = getActualDescriptor(property).getDefaultValue();
         }
-        return new StatelessPropertyValue(value, serviceLookup, variableRegistry);
+        return new StatelessPropertyValue(value, serviceLookup, parameterLookup, variableRegistry);
     }
 
     @Override

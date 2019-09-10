@@ -19,6 +19,7 @@ package org.apache.nifi.processor;
 import org.apache.nifi.util.FormatUtils;
 import org.junit.Test;
 
+import java.text.DecimalFormatSymbols;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertEquals;
@@ -87,18 +88,19 @@ public class TestFormatUtils {
 
     @Test
     public void testFormatDataSize() {
+        DecimalFormatSymbols decimalFormatSymbols = DecimalFormatSymbols.getInstance();
         assertEquals("0 bytes", FormatUtils.formatDataSize(0d));
-        assertEquals("10.4 bytes", FormatUtils.formatDataSize(10.4d));
-        assertEquals("1,024 bytes", FormatUtils.formatDataSize(1024d));
+        assertEquals(String.format("10%s4 bytes", decimalFormatSymbols.getDecimalSeparator()), FormatUtils.formatDataSize(10.4d));
+        assertEquals(String.format("1%s024 bytes", decimalFormatSymbols.getGroupingSeparator()), FormatUtils.formatDataSize(1024d));
 
         assertEquals("1 KB", FormatUtils.formatDataSize(1025d));
-        assertEquals("1.95 KB", FormatUtils.formatDataSize(2000d));
-        assertEquals("195.31 KB", FormatUtils.formatDataSize(200_000d));
+        assertEquals(String.format("1%s95 KB", decimalFormatSymbols.getDecimalSeparator()), FormatUtils.formatDataSize(2000d));
+        assertEquals(String.format("195%s31 KB", decimalFormatSymbols.getDecimalSeparator()), FormatUtils.formatDataSize(200_000d));
 
-        assertEquals("190.73 MB", FormatUtils.formatDataSize(200_000_000d));
+        assertEquals(String.format("190%s73 MB", decimalFormatSymbols.getDecimalSeparator()), FormatUtils.formatDataSize(200_000_000d));
 
-        assertEquals("186.26 GB", FormatUtils.formatDataSize(200_000_000_000d));
+        assertEquals(String.format("186%s26 GB", decimalFormatSymbols.getDecimalSeparator()), FormatUtils.formatDataSize(200_000_000_000d));
 
-        assertEquals("181.9 TB", FormatUtils.formatDataSize(200_000_000_000_000d));
+        assertEquals(String.format("181%s9 TB", decimalFormatSymbols.getDecimalSeparator()), FormatUtils.formatDataSize(200_000_000_000_000d));
     }
 }

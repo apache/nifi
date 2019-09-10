@@ -63,6 +63,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 import static java.util.Objects.requireNonNull;
 
@@ -293,16 +294,16 @@ public final class StandardProcessScheduler implements ProcessScheduler {
 
     /**
      * Starts the given {@link Processor} by invoking its
-     * {@link ProcessorNode#start(ScheduledExecutorService, long, long, ProcessContext, SchedulingAgentCallback, boolean)}
+     * {@link ProcessorNode#start(ScheduledExecutorService, long, long, Supplier, SchedulingAgentCallback, boolean)}
      * method.
      *
-     * @see StandardProcessorNode#start(ScheduledExecutorService, long, long, ProcessContext, SchedulingAgentCallback, boolean)
+     * @see StandardProcessorNode#start(ScheduledExecutorService, long, long, Supplier, SchedulingAgentCallback, boolean)
      */
     @Override
     public synchronized CompletableFuture<Void> startProcessor(final ProcessorNode procNode, final boolean failIfStopping) {
         final LifecycleState lifecycleState = getLifecycleState(requireNonNull(procNode), true);
 
-        final StandardProcessContext processContext = new StandardProcessContext(procNode, getControllerServiceProvider(),
+        final Supplier<ProcessContext> processContextFactory = () -> new StandardProcessContext(procNode, getControllerServiceProvider(),
             this.encryptor, getStateManager(procNode.getIdentifier()), lifecycleState::isTerminated);
 
         final CompletableFuture<Void> future = new CompletableFuture<>();
@@ -327,7 +328,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
         };
 
         LOG.info("Starting {}", procNode);
-        procNode.start(componentMonitoringThreadPool, administrativeYieldMillis, processorStartTimeoutMillis, processContext, callback, failIfStopping);
+        procNode.start(componentMonitoringThreadPool, administrativeYieldMillis, processorStartTimeoutMillis, processContextFactory, callback, failIfStopping);
         return future;
     }
 
