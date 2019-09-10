@@ -1589,6 +1589,25 @@
         }).promise();
     };
 
+    var getParameterContext = function (groupId, controllerServiceEntity) {
+        if (_.isNil(controllerServiceEntity.parentGroupId)) {
+            return null;
+        }
+
+        var parameterContext;
+
+        // attempt to identify the parameter context, conditional based on whether
+        // the user is configuring the current process group
+        if (_.isNil(groupId) || groupId === nfCanvasUtils.getGroupId()) {
+            parameterContext = nfCanvasUtils.getParameterContext();
+        } else {
+            var parentProcessGroup = nfCanvasUtils.getComponentByType('ProcessGroup').get(groupId);
+            parameterContext = parentProcessGroup.parameterContext;
+        }
+
+        return parameterContext;
+    };
+
     var saveControllerService = function (serviceTable, controllerServiceEntity) {
         // marshal the settings and properties and update the controller service
         var updatedControllerService = marshalDetails();
@@ -1877,22 +1896,7 @@
                         return goToServiceFromProperty(serviceTable);
                     },
                     getParameterContext: function (groupId) {
-                        if (_.isNil(controllerServiceEntity.parentGroupId)) {
-                            return null;
-                        }
-
-                        var parameterContext;
-
-                        // attempt to identify the parameter context, conditional based on whether
-                        // the user is configuring the current process group
-                        if (_.isNil(groupId) || groupId === nfCanvasUtils.getGroupId()) {
-                            parameterContext = nfCanvasUtils.getParameterContext();
-                        } else {
-                            var parentProcessGroup = nfCanvasUtils.getComponentByType('ProcessGroup').get(groupId);
-                            parameterContext = parentProcessGroup.parameterContext;
-                        }
-
-                        return parameterContext;
+                        return getParameterContext(groupId, controllerServiceEntity);
                     }
                 });
 
@@ -2077,7 +2081,10 @@
                 // initialize the property table
                 $('#controller-service-properties').propertytable('destroy').propertytable({
                     supportsGoTo: true,
-                    readOnly: true
+                    readOnly: true,
+                    getParameterContext: function (groupId) {
+                        return getParameterContext(groupId, controllerServiceEntity);
+                    }
                 });
 
                 // update the mode

@@ -2372,10 +2372,11 @@
         /**
          * Shows the dialog for the specified parameter context.
          *
-         * @param id         The parameter context id
-         * @param readOnly   Optional, boolean to open in read only mode even if the user has permission to write.
+         * @param id                  The parameter context id
+         * @param readOnly            Optional, boolean to open in read only mode even if the user has permission to write.
+         * @param parameterToSelect   Optional, name of the parameter to select in the table.
          */
-        showParameterContext: function (id, readOnly) {
+        showParameterContext: function (id, readOnly, parameterToSelect) {
             parameterCount = 0;
 
             // reload the parameter context in case the parameters have changed
@@ -2417,7 +2418,7 @@
                     .prop('title', parameterContextEntity.id)
                     .text(parameterContextEntity.id);
 
-                loadParameters(parameterContextEntity, null, readOnly);
+                loadParameters(parameterContextEntity, parameterToSelect, readOnly || !canWrite);
 
                 var editModeButtonModel = [{
                     buttonText: 'Apply',
