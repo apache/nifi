@@ -114,8 +114,10 @@ public class RunNiFi {
     public static final String PING_CMD = "PING";
     public static final String DUMP_CMD = "DUMP";
 
+    private static final int UNINITIALIZED_CC_PORT = -1;
+
     private volatile boolean autoRestartNiFi = true;
-    private volatile int ccPort = -1;
+    private volatile int ccPort = UNINITIALIZED_CC_PORT;
     private volatile long nifiPid = -1L;
     private volatile String secretKey;
     private volatile ShutdownHook shutdownHook;
@@ -1337,6 +1339,12 @@ public class RunNiFi {
     }
 
     void setNiFiCommandControlPort(final int port, final String secretKey) throws IOException {
+
+        if (this.secretKey != null && this.ccPort != UNINITIALIZED_CC_PORT) {
+            defaultLogger.warn("Blocking attempt to change NiFi command port and secret after they have already been initialized. requestedPort={}", port);
+            return;
+        }
+
         this.ccPort = port;
         this.secretKey = secretKey;
 
