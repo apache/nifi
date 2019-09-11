@@ -42,7 +42,7 @@ public abstract class AbstractIgniteProcessor extends AbstractProcessor  {
         .name("ignite-spring-properties-xml-file")
         .description("Ignite spring configuration file, <path>/<ignite-configuration>.xml. If the " +
             "configuration file is not provided, default Ignite configuration " +
-            "configuration is used which binds to 127.0.0.1:47500..47509")
+            "is used which binds to 127.0.0.1:47500..47509")
         .required(false)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
