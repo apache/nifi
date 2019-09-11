@@ -47,6 +47,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
 
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 import javax.net.ssl.SSLContext;
 
 import org.apache.commons.lang3.StringUtils;
@@ -218,6 +220,7 @@ import org.apache.nifi.util.concurrency.TimedLock;
 import org.apache.nifi.web.api.dto.PositionDTO;
 import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
 import org.apache.zookeeper.server.quorum.QuorumPeerConfig.ConfigException;
+import org.bouncycastle.util.encoders.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -771,6 +774,16 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
                     @Override
                     public EventReporter getEventReporter() {
                         return eventReporter;
+                    }
+
+                    @Override
+                    public SecretKey getCipherSecretKey() {
+                        // this is a temporary bit of  copy pasta, goes away when we get an interface
+                        // for "repo encryption key"
+                        String key = nifiProperties.getProperty("nifi.flowfile.repository.encryrption.key.1");
+                        if (StringUtils.isNotBlank(key))
+                            return new SecretKeySpec(Hex.decode(key), "AES");
+                        return null;
                     }
                 };
 
@@ -1826,6 +1839,14 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
                 @Override
                 public EventReporter getEventReporter() {
                     return eventReporter;
+                }
+
+                @Override
+                public SecretKey getCipherSecretKey() {
+                    String key = nifiProperties.getProperty("nifi.flowfile.repository.encryrption.key.1");
+                    if (StringUtils.isNotBlank(key))
+                            return new SecretKeySpec(Hex.decode(key), "AES");
+                    return null;
                 }
             };
 

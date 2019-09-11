@@ -19,6 +19,7 @@ package org.apache.nifi.controller.repository;
 
 import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 import org.apache.nifi.events.EventReporter;
+import javax.crypto.SecretKey;
 
 public interface SwapManagerInitializationContext {
 
@@ -37,4 +38,9 @@ public interface SwapManagerInitializationContext {
      * @return an {@link EventReporter} that can be used to report events to users
      */
     EventReporter getEventReporter();
+
+    /**
+     * @return a {@link SecretKey} that can be use to provide transparent stream encryption and decryption
+     */
+    SecretKey getCipherSecretKey();
 }

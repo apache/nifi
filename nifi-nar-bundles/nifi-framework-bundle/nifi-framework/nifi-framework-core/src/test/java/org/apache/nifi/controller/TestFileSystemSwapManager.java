@@ -25,10 +25,13 @@ import org.apache.nifi.controller.repository.claim.ResourceClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.stream.io.StreamUtils;
+import org.bouncycastle.util.encoders.Hex;
 import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 import java.io.BufferedInputStream;
 import java.io.DataInputStream;
 import java.io.File;
@@ -52,106 +55,116 @@ public class TestFileSystemSwapManager {
 
     @Test
     public void testBackwardCompatible() throws IOException {
+        for (SecretKey secretKey : getSecretKeys()) {
+            try (final InputStream fis = new FileInputStream(new File("src/test/resources/old-swap-file.swap"));
+                 final DataInputStream in = new DataInputStream(new BufferedInputStream(fis))) {
 
-        try (final InputStream fis = new FileInputStream(new File("src/test/resources/old-swap-file.swap"));
-                final DataInputStream in = new DataInputStream(new BufferedInputStream(fis))) {
+                final FlowFileQueue flowFileQueue = Mockito.mock(FlowFileQueue.class);
+                when(flowFileQueue.getIdentifier()).thenReturn("87bb99fe-412c-49f6-a441-d1b0af4e20b4");
 
-            final FlowFileQueue flowFileQueue = Mockito.mock(FlowFileQueue.class);
-            when(flowFileQueue.getIdentifier()).thenReturn("87bb99fe-412c-49f6-a441-d1b0af4e20b4");
+                final FileSystemSwapManager swapManager = createSwapManager(secretKey);
+                final SwapContents swapContents = swapManager.peek("src/test/resources/old-swap-file.swap", flowFileQueue);
 
-            final FileSystemSwapManager swapManager = createSwapManager();
-            final SwapContents swapContents = swapManager.peek("src/test/resources/old-swap-file.swap", flowFileQueue);
+                final List<FlowFileRecord> records = swapContents.getFlowFiles();
+                assertEquals(10000, records.size());
 
-            final List<FlowFileRecord> records = swapContents.getFlowFiles();
-            assertEquals(10000, records.size());
-
-            for (final FlowFileRecord record : records) {
-                assertEquals(4, record.getAttributes().size());
-                assertEquals("value", record.getAttribute("key"));
+                for (final FlowFileRecord record : records) {
+                    assertEquals(4, record.getAttributes().size());
+                    assertEquals("value", record.getAttribute("key"));
+                }
             }
         }
     }
 
     @Test
     public void testFailureOnRepoSwapOut() throws IOException {
-        final FlowFileQueue flowFileQueue = Mockito.mock(FlowFileQueue.class);
-        when(flowFileQueue.getIdentifier()).thenReturn("87bb99fe-412c-49f6-a441-d1b0af4e20b4");
+        for (SecretKey secretKey : getSecretKeys()) {
+            final FlowFileQueue flowFileQueue = Mockito.mock(FlowFileQueue.class);
+            when(flowFileQueue.getIdentifier()).thenReturn("87bb99fe-412c-49f6-a441-d1b0af4e20b4");
 
-        final FlowFileRepository flowFileRepo = Mockito.mock(FlowFileRepository.class);
-        Mockito.doThrow(new IOException("Intentional IOException for unit test"))
-            .when(flowFileRepo).updateRepository(anyCollection());
+            final FlowFileRepository flowFileRepo = Mockito.mock(FlowFileRepository.class);
+            Mockito.doThrow(new IOException("Intentional IOException for unit test"))
+                    .when(flowFileRepo).updateRepository(anyCollection());
 
-        final FileSystemSwapManager swapManager = createSwapManager();
+            final FileSystemSwapManager swapManager = createSwapManager(secretKey);
 
-        final List<FlowFileRecord> flowFileRecords = new ArrayList<>();
-        for (int i=0; i < 10000; i++) {
-            flowFileRecords.add(new MockFlowFileRecord(i));
-        }
+            final List<FlowFileRecord> flowFileRecords = new ArrayList<>();
+            for (int i = 0; i < 10000; i++) {
+                flowFileRecords.add(new MockFlowFileRecord(i));
+            }
 
-        try {
-            swapManager.swapOut(flowFileRecords, flowFileQueue, "partition-1");
-            Assert.fail("Expected IOException");
-        } catch (final IOException ioe) {
-            // expected
+            try {
+                swapManager.swapOut(flowFileRecords, flowFileQueue, "partition-1");
+                Assert.fail("Expected IOException");
+            } catch (final IOException ioe) {
+                // expected
+            }
         }
     }
 
     @Test
     public void testSwapFileUnknownToRepoNotSwappedIn() throws IOException {
-        final FlowFileQueue flowFileQueue = Mockito.mock(FlowFileQueue.class);
-        when(flowFileQueue.getIdentifier()).thenReturn("");
+        for (SecretKey secretKey : getSecretKeys()) {
+            final FlowFileQueue flowFileQueue = Mockito.mock(FlowFileQueue.class);
+            when(flowFileQueue.getIdentifier()).thenReturn("");
 
-        final File targetDir = new File("target/swap");
-        targetDir.mkdirs();
+            final File targetDir = new File("target/swap");
+            targetDir.mkdirs();
 
-        final File targetFile = new File(targetDir, "444-old-swap-file.swap");
-        final File originalSwapFile = new File("src/test/resources/swap/444-old-swap-file.swap");
-        try (final OutputStream fos = new FileOutputStream(targetFile);
-             final InputStream fis = new FileInputStream(originalSwapFile)) {
-            StreamUtils.copy(fis, fos);
+            final File targetFile = new File(targetDir, "444-old-swap-file.swap");
+            final File originalSwapFile = new File("src/test/resources/swap/444-old-swap-file.swap");
+            try (final OutputStream fos = new FileOutputStream(targetFile);
+                 final InputStream fis = new FileInputStream(originalSwapFile)) {
+                StreamUtils.copy(fis, fos);
+            }
+
+            final FileSystemSwapManager swapManager = new FileSystemSwapManager(Paths.get("target"));
+            final ResourceClaimManager resourceClaimManager = new NopResourceClaimManager();
+            final FlowFileRepository flowFileRepo = Mockito.mock(FlowFileRepository.class);
+
+            swapManager.initialize(new SwapManagerInitializationContext() {
+                @Override
+                public ResourceClaimManager getResourceClaimManager() {
+                    return resourceClaimManager;
+                }
+
+                @Override
+                public FlowFileRepository getFlowFileRepository() {
+                    return flowFileRepo;
+                }
+
+                @Override
+                public EventReporter getEventReporter() {
+                    return EventReporter.NO_OP;
+                }
+
+                @Override
+                public SecretKey getCipherSecretKey() {
+                    return secretKey;
+                }
+            });
+
+            when(flowFileRepo.isValidSwapLocationSuffix(anyString())).thenReturn(false);
+            final List<String> recoveredLocations = swapManager.recoverSwapLocations(flowFileQueue, null);
+            assertEquals(1, recoveredLocations.size());
+
+            final String firstLocation = recoveredLocations.get(0);
+            final SwapContents emptyContents = swapManager.swapIn(firstLocation, flowFileQueue);
+            assertEquals(0, emptyContents.getFlowFiles().size());
+
+            when(flowFileRepo.isValidSwapLocationSuffix(anyString())).thenReturn(true);
+            when(flowFileQueue.getIdentifier()).thenReturn("87bb99fe-412c-49f6-a441-d1b0af4e20b4");
+            final SwapContents contents = swapManager.swapIn(firstLocation, flowFileQueue);
+            assertEquals(10000, contents.getFlowFiles().size());
         }
-
-        final FileSystemSwapManager swapManager = new FileSystemSwapManager(Paths.get("target"));
-        final ResourceClaimManager resourceClaimManager = new NopResourceClaimManager();
-        final FlowFileRepository flowFileRepo = Mockito.mock(FlowFileRepository.class);
-
-        swapManager.initialize(new SwapManagerInitializationContext() {
-            @Override
-            public ResourceClaimManager getResourceClaimManager() {
-                return resourceClaimManager;
-            }
-
-            @Override
-            public FlowFileRepository getFlowFileRepository() {
-                return flowFileRepo;
-            }
-
-            @Override
-            public EventReporter getEventReporter() {
-                return EventReporter.NO_OP;
-            }
-        });
-
-        when(flowFileRepo.isValidSwapLocationSuffix(anyString())).thenReturn(false);
-        final List<String> recoveredLocations = swapManager.recoverSwapLocations(flowFileQueue, null);
-        assertEquals(1, recoveredLocations.size());
-
-        final String firstLocation = recoveredLocations.get(0);
-        final SwapContents emptyContents = swapManager.swapIn(firstLocation, flowFileQueue);
-        assertEquals(0, emptyContents.getFlowFiles().size());
-
-        when(flowFileRepo.isValidSwapLocationSuffix(anyString())).thenReturn(true);
-        when(flowFileQueue.getIdentifier()).thenReturn("87bb99fe-412c-49f6-a441-d1b0af4e20b4");
-        final SwapContents contents = swapManager.swapIn(firstLocation, flowFileQueue);
-        assertEquals(10000, contents.getFlowFiles().size());
     }
 
-    private FileSystemSwapManager createSwapManager() {
+    private FileSystemSwapManager createSwapManager(SecretKey secretKey) {
         final FlowFileRepository flowFileRepo = Mockito.mock(FlowFileRepository.class);
-        return createSwapManager(flowFileRepo);
+        return createSwapManager(flowFileRepo, secretKey);
     }
 
-    private FileSystemSwapManager createSwapManager(final FlowFileRepository flowFileRepo) {
+    private FileSystemSwapManager createSwapManager(final FlowFileRepository flowFileRepo, SecretKey secretKey) {
         final FileSystemSwapManager swapManager = new FileSystemSwapManager();
         final ResourceClaimManager resourceClaimManager = new NopResourceClaimManager();
         swapManager.initialize(new SwapManagerInitializationContext() {
@@ -168,6 +181,11 @@ public class TestFileSystemSwapManager {
             @Override
             public EventReporter getEventReporter() {
                 return EventReporter.NO_OP;
+            }
+
+            @Override
+            public SecretKey getCipherSecretKey() {
+                return secretKey;
             }
         });
 
@@ -226,4 +244,9 @@ public class TestFileSystemSwapManager {
         }
     }
 
+    private static SecretKey[] getSecretKeys() {
+        SecretKey[] keys = new SecretKey[2];
+        keys[0] =  new SecretKeySpec(Hex.decode("00000000000000000000000000000000"), "AES");
+        return keys;
+    }
 }

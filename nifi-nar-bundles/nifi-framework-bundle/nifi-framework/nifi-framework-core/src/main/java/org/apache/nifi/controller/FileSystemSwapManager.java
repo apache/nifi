@@ -36,9 +36,12 @@ import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.wali.SimpleCipherInputStream;
+import org.apache.nifi.wali.SimpleCipherOutputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.crypto.SecretKey;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.DataInputStream;
@@ -87,6 +90,7 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
     private FlowFileRepository flowFileRepository;
     private EventReporter eventReporter;
     private ResourceClaimManager claimManager;
+    private SecretKey cipherKey;
 
     private static final byte[] MAGIC_HEADER = {'S', 'W', 'A', 'P'};
 
@@ -114,6 +118,7 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
         this.claimManager = initializationContext.getResourceClaimManager();
         this.eventReporter = initializationContext.getEventReporter();
         this.flowFileRepository = initializationContext.getFlowFileRepository();
+        this.cipherKey = initializationContext.getCipherSecretKey();
     }
 
 
@@ -133,7 +138,8 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
 
         final SwapSerializer serializer = new SchemaSwapSerializer();
         try (final FileOutputStream fos = new FileOutputStream(swapTempFile);
-            final OutputStream out = new BufferedOutputStream(fos)) {
+             final OutputStream cos = SimpleCipherOutputStream.wrapWithKey(fos, cipherKey);
+             final OutputStream out = new BufferedOutputStream(cos)) {
             out.write(MAGIC_HEADER);
             final DataOutputStream dos = new DataOutputStream(out);
             dos.writeUTF(serializer.getSerializationName());
@@ -186,8 +192,9 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
         }
 
         try (final InputStream fis = new FileInputStream(swapFile);
-                final InputStream bis = new BufferedInputStream(fis);
-                final DataInputStream in = new DataInputStream(bis)) {
+             final InputStream bis = new BufferedInputStream(fis);
+             final InputStream cis = SimpleCipherInputStream.wrapWithKey(bis, cipherKey);
+             final DataInputStream in = new DataInputStream(cis)) {
 
             final SwapDeserializer deserializer = createSwapDeserializer(in);
             return deserializer.deserializeFlowFiles(in, swapLocation, flowFileQueue, claimManager);
@@ -310,8 +317,9 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
 
             // Read the queue identifier from the swap file to check if the swap file is for this queue
             try (final InputStream fis = new FileInputStream(swapFile);
-                    final InputStream bufferedIn = new BufferedInputStream(fis);
-                    final DataInputStream in = new DataInputStream(bufferedIn)) {
+                    final InputStream bis = new BufferedInputStream(fis);
+                    final InputStream cis = SimpleCipherInputStream.wrapWithKey(bis, cipherKey);
+                    final DataInputStream in = new DataInputStream(cis)) {
 
                 final SwapDeserializer deserializer;
                 try {
@@ -343,8 +351,9 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
 
         // read record from disk via the swap file
         try (final InputStream fis = new FileInputStream(swapFile);
-                final InputStream bufferedIn = new BufferedInputStream(fis);
-                final DataInputStream in = new DataInputStream(bufferedIn)) {
+             final InputStream bis = new BufferedInputStream(fis);
+             final InputStream cis = SimpleCipherInputStream.wrapWithKey(bis, cipherKey);
+             final DataInputStream in = new DataInputStream(cis)) {
 
             final SwapDeserializer deserializer = createSwapDeserializer(in);
             return deserializer.getSwapSummary(in, swapLocation, claimManager);
