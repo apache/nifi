@@ -80,7 +80,9 @@
             </div>
         </div>
     </div>
-    <div id="variable-message">Variables do not support sensitive values and will be included when versioning a Process Group.</div>
+    <div id="variable-message" class="ellipsis" title="Parameters are replacing variables. Learn more about the greater power and security of parameters.">
+        Parameters are replacing variables. <span id="parameters-documentation-link" class="link" title="Learn more about parameters">Learn more</span> about the greater power and security of parameters.
+    </div>
 </div>
 <div id="new-variable-dialog" class="dialog cancellable small-dialog hidden">
     <div class="dialog-content">
