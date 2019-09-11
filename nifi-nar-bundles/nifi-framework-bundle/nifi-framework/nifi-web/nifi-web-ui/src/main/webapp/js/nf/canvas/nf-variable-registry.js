@@ -35,9 +35,10 @@
                 'nf.ng.Bridge',
                 'nf.Processor',
                 'nf.ProcessGroup',
-                'nf.ProcessGroupConfiguration'],
-            function ($, d3, Slick, nfCanvas, nfCanvasUtils, nfErrorHandler, nfDialog, nfStorage, nfClient, nfCommon, nfNgBridge, nfProcessor, nfProcessGroup, nfProcessGroupConfiguration) {
-                return (nf.ComponentState = factory($, d3, Slick, nfCanvas, nfCanvasUtils, nfErrorHandler, nfDialog, nfStorage, nfClient, nfCommon, nfNgBridge, nfProcessor, nfProcessGroup, nfProcessGroupConfiguration));
+                'nf.ProcessGroupConfiguration',
+                'nf.Shell'],
+            function ($, d3, Slick, nfCanvas, nfCanvasUtils, nfErrorHandler, nfDialog, nfStorage, nfClient, nfCommon, nfNgBridge, nfProcessor, nfProcessGroup, nfProcessGroupConfiguration, nfShell) {
+                return (nf.ComponentState = factory($, d3, Slick, nfCanvas, nfCanvasUtils, nfErrorHandler, nfDialog, nfStorage, nfClient, nfCommon, nfNgBridge, nfProcessor, nfProcessGroup, nfProcessGroupConfiguration, nfShell));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ComponentState =
@@ -54,7 +55,8 @@
                 require('nf.ng.Bridge'),
                 require('nf.Processor'),
                 require('nf.ProcessGroup'),
-                require('nf.ProcessGroupConfiguration')));
+                require('nf.ProcessGroupConfiguration'),
+                require('nf.Shell')));
     } else {
         nf.VariableRegistry = factory(root.$,
             root.d3,
@@ -69,9 +71,10 @@
             root.nf.ng.Bridge,
             root.nf.Processor,
             root.nf.ProcessGroup,
-            root.nf.ProcessGroupConfiguration);
+            root.nf.ProcessGroupConfiguration,
+            root.nf.Shell);
     }
-}(this, function ($, d3, Slick, nfCanvas, nfCanvasUtils, nfErrorHandler, nfDialog, nfStorage, nfClient, nfCommon, nfNgBridge, nfProcessor, nfProcessGroup, nfProcessGroupConfiguration) {
+}(this, function ($, d3, Slick, nfCanvas, nfCanvasUtils, nfErrorHandler, nfDialog, nfStorage, nfClient, nfCommon, nfNgBridge, nfProcessor, nfProcessGroup, nfProcessGroupConfiguration, nfShell) {
     'use strict';
 
     var lastSelectedId = null;
@@ -1642,6 +1645,10 @@
 
             $('#add-variable').on('click', function () {
                 $('#new-variable-dialog').modal('show');
+            });
+
+            $('#parameters-documentation-link').on('click', function() {
+                nfShell.showPage('../nifi-docs/html/user-guide.html#Parameters');
             });
 
             initVariableTable();
