@@ -127,6 +127,11 @@
         return false;
     };
 
+    var containsParameterReference = function (value) {
+        var paramRefsRegex = /#{[a-zA-Z0-9-_. ]+}/;
+        return paramRefsRegex.test(value);
+    };
+
     var getSupportTip = function (isEl, isSupported) {
         var supportContainer = $('<div></div>');
 
@@ -1362,7 +1367,7 @@
                 });
             }
 
-            var referencesParam = referencesParameter(dataContext.value);
+            var referencesParam = containsParameterReference(dataContext.value);
             var canConvertPropertyToParam = false;
             var canReadParamContext = false;
 
