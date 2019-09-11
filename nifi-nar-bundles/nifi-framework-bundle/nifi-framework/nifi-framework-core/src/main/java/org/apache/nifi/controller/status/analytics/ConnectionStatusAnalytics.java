@@ -24,6 +24,7 @@ import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.stream.Stream;
 
+import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.flow.FlowManager;
@@ -95,6 +96,13 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
                 try {
                     LOG.debug("Refreshing model with new data for connection id: {} ", connectionIdentifier);
                     model.learn(Stream.of(features), Stream.of(values));
+
+                    if(MapUtils.isNotEmpty(model.getScores())){
+                        model.getScores().forEach((key, value) -> {
+                            LOG.debug("Model Scores for prediction metric {} for connection id {}: {}={} ", metric, connectionIdentifier, key, value);
+                        });
+                    }
+
                     extendWindow = false;
                 } catch (Exception ex) {
                     LOG.debug("Exception encountered while training model for connection id {}: {}", connectionIdentifier, ex.getMessage());
@@ -138,6 +146,7 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
             predictFeatures.put(1, inOutRatio);
             return convertTimePrediction(bytesModel.predictVariable(0, predictFeatures, backPressureBytes), System.currentTimeMillis());
         } else {
+            LOG.debug("Model is not valid for calculating time back pressure by content size in bytes. Returning -1");
             return -1L;
         }
     }
@@ -165,6 +174,7 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
             predictFeatures.put(1, inOutRatio);
             return convertTimePrediction(countModel.predictVariable(0, predictFeatures, backPressureCountThreshold), System.currentTimeMillis());
         } else {
+            LOG.debug("Model is not valid for calculating time to back pressure by object count. Returning -1");
             return -1L;
         }
     }
@@ -187,6 +197,7 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
             predictFeatures.add(inOutRatio);
             return convertCountPrediction(bytesModel.predict(predictFeatures.toArray(new Double[2])));
         } else {
+            LOG.debug("Model is not valid for predicting content size in bytes for next interval. Returning -1");
             return -1L;
         }
     }
@@ -209,6 +220,7 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
             predictFeatures.add(inOutRatio);
             return convertCountPrediction(countModel.predict(predictFeatures.toArray(new Double[2])));
         } else {
+            LOG.debug("Model is not valid for predicting object count for next interval. Returning -1");
             return -1L;
         }
 
@@ -343,6 +355,7 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
      */
     private Long convertTimePrediction(Double prediction, Long timeMillis) {
         if (Double.isNaN(prediction) || Double.isInfinite(prediction) || prediction < timeMillis) {
+            LOG.debug("Time prediction value is invalid: {}. Returning -1.",prediction);
             return -1L;
         } else {
             return Math.max(0, Math.round(prediction) - timeMillis);
@@ -356,6 +369,7 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
      */
     private Long convertCountPrediction(Double prediction) {
         if (Double.isNaN(prediction) || Double.isInfinite(prediction) || prediction < 0) {
+            LOG.debug("Count prediction value is invalid: {}. Returning -1.",prediction);
             return -1L;
         } else {
             return Math.max(0, Math.round(prediction));
