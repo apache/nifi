@@ -227,8 +227,10 @@ public class RunMiNiFi implements QueryableStatusAggregator, ConfigurationFileHo
         BOOTSTRAP_KEYS_TO_YML_KEYS = Collections.unmodifiableMap(mutableMap);
     }
 
+    private static final int UNINITIALIZED_CC_PORT = -1;
+
     private volatile boolean autoRestartNiFi = true;
-    private volatile int ccPort = -1;
+    private volatile int ccPort = UNINITIALIZED_CC_PORT;
     private volatile long minifiPid = -1L;
     private volatile String secretKey;
     private volatile ShutdownHook shutdownHook;
@@ -1562,6 +1564,12 @@ public class RunMiNiFi implements QueryableStatusAggregator, ConfigurationFileHo
     }
 
     void setMiNiFiCommandControlPort(final int port, final String secretKey) throws IOException {
+
+        if (this.secretKey != null && this.ccPort != UNINITIALIZED_CC_PORT) {
+            defaultLogger.warn("Blocking attempt to change MiNiFi command port and secret after they have already been initialized. requestedPort={}", port);
+            return;
+        }
+
         this.ccPort = port;
         this.secretKey = secretKey;
 
