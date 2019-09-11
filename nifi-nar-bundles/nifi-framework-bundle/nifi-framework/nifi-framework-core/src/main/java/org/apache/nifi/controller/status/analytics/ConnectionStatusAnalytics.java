@@ -368,7 +368,7 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
      * @return prediction prediction value converted into valid value for consumption
      */
     private Long convertCountPrediction(Double prediction) {
-        if (Double.isNaN(prediction) || Double.isInfinite(prediction) || prediction < 0) {
+        if (Double.isNaN(prediction) || Double.isInfinite(prediction)) {
             LOG.debug("Count prediction value is invalid: {}. Returning -1.",prediction);
             return -1L;
         } else {
