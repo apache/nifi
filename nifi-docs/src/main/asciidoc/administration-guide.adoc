@@ -2613,6 +2613,8 @@ The default value is 600 sec.
 |====
 =======
 
+=======
+
 === Swap Management
 
 NiFi keeps FlowFile information in memory (the JVM)
