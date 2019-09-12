@@ -149,8 +149,8 @@ public class TestIndexDirectoryManager {
         }
 
         assertTrue(index1.mkdirs());
-        final long timestamp = System.currentTimeMillis();
         assertTrue(index2.mkdirs());
+        final long timestamp = System.currentTimeMillis();
 
         try {
             final IndexDirectoryManager mgr = new IndexDirectoryManager(config);
