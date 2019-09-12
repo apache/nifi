@@ -35,16 +35,16 @@ public class TestSimpleCipherOutputStream extends TestAbstractSimpleCipher {
         // This shows that the output stream works as expected with a variety of cipher keys.
         for (SecretKey cipherKey : cipherKeys) {
             ByteArrayOutputStream cipherByteOutputStream = new ByteArrayOutputStream();
-            OutputStream outputStream = SimpleCipherOutputStream.wrapWithKey(cipherByteOutputStream, cipherKey);
+            OutputStream outputStream = cipherKey == null ? cipherByteOutputStream : new SimpleCipherOutputStream(cipherByteOutputStream, cipherKey);
 
             outputStream.write(bigSecret);
             outputStream.close();
 
             byte[] cipherText = cipherByteOutputStream.toByteArray();
-            ByteArrayInputStream cipherByteInputStream = new ByteArrayInputStream(cipherText);
-            InputStream inputStream = SimpleCipherInputStream.wrapWithKey(cipherByteInputStream, cipherKey);
+            ByteArrayInputStream cipherByteIn = new ByteArrayInputStream(cipherText);
+            InputStream cipherIn = cipherKey != null && SimpleCipherInputStream.peekForMarker(cipherByteIn) ? new  SimpleCipherInputStream(cipherByteIn, cipherKey) : cipherByteIn;
 
-            byte[] plainText = readAll(inputStream, bigSecret.length * 2);
+            byte[] plainText = readAll(cipherIn, bigSecret.length * 2);
             Assert.assertArrayEquals(bigSecret, plainText);
         }
     }

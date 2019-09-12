@@ -369,7 +369,10 @@ public final class MinimalLockingWriteAheadLog<T> implements WriteAheadRepositor
 
         // at this point, we know the snapshotPath exists because if it didn't, then we either returned null
         // or we renamed partialPath to snapshotPath. So just Recover from snapshotPath.
-        try (final DataInputStream dataIn = new DataInputStream(new BufferedInputStream(SimpleCipherInputStream.wrapWithKey(Files.newInputStream(snapshotPath, StandardOpenOption.READ), cipherKey)))) {
+        try (final InputStream fis = Files.newInputStream(snapshotPath, StandardOpenOption.READ);
+             final InputStream bis = new BufferedInputStream(fis);
+             final InputStream cis = cipherKey != null && SimpleCipherInputStream.peekForMarker(bis) ? new SimpleCipherInputStream(bis, cipherKey) : bis;
+             final DataInputStream dataIn = new DataInputStream(cis)) {
             String waliImplementationClass;
             try {
                 waliImplementationClass = dataIn.readUTF();
@@ -590,7 +593,7 @@ public final class MinimalLockingWriteAheadLog<T> implements WriteAheadRepositor
 
             // perform checkpoint, writing to .partial file
             fileOut = new FileOutputStream(partialPath.toFile());
-            cipherOut = SimpleCipherOutputStream.wrapWithKey(fileOut, cipherKey);
+            cipherOut = cipherKey == null ? fileOut : new SimpleCipherOutputStream(fileOut, cipherKey);
             dataOut = new DataOutputStream(new BufferedOutputStream(cipherOut));
             dataOut.writeUTF(MinimalLockingWriteAheadLog.class.getName());
             dataOut.writeInt(getVersion());
@@ -804,7 +807,7 @@ public final class MinimalLockingWriteAheadLog<T> implements WriteAheadRepositor
             this.serde = serdeFactory.createSerDe(null);
             final Path editPath = getNewEditPath();
             final FileOutputStream fos = new FileOutputStream(editPath.toFile());
-            final OutputStream cipherOut = SimpleCipherOutputStream.wrapWithKey(fos, cipherKey);
+            final OutputStream cipherOut = cipherKey == null ? fos : new SimpleCipherOutputStream(fos, cipherKey);
 
             try {
                 final DataOutputStream outStream = new DataOutputStream(new BufferedOutputStream(cipherOut));
@@ -934,9 +937,9 @@ public final class MinimalLockingWriteAheadLog<T> implements WriteAheadRepositor
             final String expectedStartsWith = MinimalLockingWriteAheadLog.class.getName();
             try {
                 try (final FileInputStream fis = new FileInputStream(file);
-                     final InputStream cipherIn = SimpleCipherInputStream.wrapWithKey(fis, cipherKey);
-                     final InputStream bufferedIn = new BufferedInputStream(cipherIn);
-                     final DataInputStream in = new DataInputStream(bufferedIn)) {
+                     final InputStream bufferedIn = new BufferedInputStream(fis);
+                     final InputStream cipherIn = cipherKey != null  && SimpleCipherInputStream.peekForMarker(bufferedIn) ? new SimpleCipherInputStream(bufferedIn, cipherKey) : bufferedIn;
+                     final DataInputStream in = new DataInputStream(cipherIn)) {
                     final String waliImplClassName = in.readUTF();
                     if (!expectedStartsWith.equals(waliImplClassName)) {
                         return false;
@@ -986,7 +989,10 @@ public final class MinimalLockingWriteAheadLog<T> implements WriteAheadRepositor
         }
 
         private DataInputStream createDataInputStream(final Path path) throws IOException {
-            return new DataInputStream(new BufferedInputStream(SimpleCipherInputStream.wrapWithKey(Files.newInputStream(path), cipherKey)));
+            final InputStream fis = Files.newInputStream(path);
+            final InputStream bis = new BufferedInputStream(fis);
+            final InputStream in = cipherKey != null && SimpleCipherInputStream.peekForMarker(bis) ? new SimpleCipherInputStream(fis, cipherKey) : bis;
+            return new DataInputStream(in);
         }
 
         private DataInputStream getRecoveryStream() throws IOException {
@@ -1104,7 +1110,7 @@ public final class MinimalLockingWriteAheadLog<T> implements WriteAheadRepositor
 
             this.serde = serdeFactory.createSerDe(null);
             final FileOutputStream fos = new FileOutputStream(newEditPath.toFile());
-            final OutputStream cipherOut = SimpleCipherOutputStream.wrapWithKey(fos, cipherKey);
+            final OutputStream cipherOut = cipherKey == null ? fos : new SimpleCipherOutputStream(fos, cipherKey);
             final DataOutputStream outStream = new DataOutputStream(new BufferedOutputStream(cipherOut));
             outStream.writeUTF(MinimalLockingWriteAheadLog.class.getName());
             outStream.writeInt(writeAheadLogVersion);

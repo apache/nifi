@@ -138,7 +138,7 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
 
         final SwapSerializer serializer = new SchemaSwapSerializer();
         try (final FileOutputStream fos = new FileOutputStream(swapTempFile);
-             final OutputStream cos = SimpleCipherOutputStream.wrapWithKey(fos, cipherKey);
+             final OutputStream cos = cipherKey == null ? fos : new SimpleCipherOutputStream(fos, cipherKey);
              final OutputStream out = new BufferedOutputStream(cos)) {
             out.write(MAGIC_HEADER);
             final DataOutputStream dos = new DataOutputStream(out);
@@ -193,7 +193,7 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
 
         try (final InputStream fis = new FileInputStream(swapFile);
              final InputStream bis = new BufferedInputStream(fis);
-             final InputStream cis = SimpleCipherInputStream.wrapWithKey(bis, cipherKey);
+             final InputStream cis = cipherKey != null && SimpleCipherInputStream.peekForMarker(bis) ? new SimpleCipherInputStream(bis, cipherKey) : new BufferedInputStream(bis);
              final DataInputStream in = new DataInputStream(cis)) {
 
             final SwapDeserializer deserializer = createSwapDeserializer(in);
@@ -318,7 +318,7 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
             // Read the queue identifier from the swap file to check if the swap file is for this queue
             try (final InputStream fis = new FileInputStream(swapFile);
                     final InputStream bis = new BufferedInputStream(fis);
-                    final InputStream cis = SimpleCipherInputStream.wrapWithKey(bis, cipherKey);
+                    final InputStream cis = cipherKey != null && SimpleCipherInputStream.peekForMarker(bis) ? new SimpleCipherInputStream(bis, cipherKey) : bis;
                     final DataInputStream in = new DataInputStream(cis)) {
 
                 final SwapDeserializer deserializer;
@@ -352,7 +352,7 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
         // read record from disk via the swap file
         try (final InputStream fis = new FileInputStream(swapFile);
              final InputStream bis = new BufferedInputStream(fis);
-             final InputStream cis = SimpleCipherInputStream.wrapWithKey(bis, cipherKey);
+             final InputStream cis = cipherKey != null && SimpleCipherInputStream.peekForMarker(bis) ? new SimpleCipherInputStream(bis, cipherKey) : bis;
              final DataInputStream in = new DataInputStream(cis)) {
 
             final SwapDeserializer deserializer = createSwapDeserializer(in);

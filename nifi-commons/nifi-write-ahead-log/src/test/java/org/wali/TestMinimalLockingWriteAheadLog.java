@@ -874,9 +874,9 @@ public class TestMinimalLockingWriteAheadLog {
 
     private void verifyBlacklistedJournalContents(final File journalFile, final SerDe<?> serde) throws IOException {
         try (final FileInputStream fis = new FileInputStream(journalFile);
-             final InputStream cis = SimpleCipherInputStream.wrapWithKey(fis, cipherKey);
-            final InputStream bis = new BufferedInputStream(cis);
-            final DataInputStream in = new DataInputStream(bis)) {
+             final InputStream bis = new BufferedInputStream(fis);
+             final InputStream cis = (cipherKey != null && SimpleCipherInputStream.peekForMarker(bis)) ? new SimpleCipherInputStream(bis, cipherKey) : bis;
+            final DataInputStream in = new DataInputStream(cis)) {
 
             // Verify header info.
             final String waliClassName = in.readUTF();

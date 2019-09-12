@@ -44,20 +44,19 @@ public class SimpleCipherOutputStream extends CipherOutputStream {
     }
 
     /**
-     * Static factory for wrapping an output stream with a block cipher.
+     * Constructs an {@link OutputStream} from an existing {@link OutputStream} and secret key.
      *
-     * NB:  this function eagerly writes the initial cipher values to the plain output stream before returning the cipher stream.
+     * NB:  this function eagerly writes the initial cipher values to the given output stream before returning the cipher stream.
      *
      * @param out output stream to wrap.
      * @param key cipher key.
-     * @return wrapped output stream.
      * @throws IOException if the stream cannot be written eagerly, or if the cipher cannot be initialized.
      */
-    public static OutputStream wrapWithKey(OutputStream out, SecretKey key) throws IOException {
-        if (key == null) {
-            return out;
-        }
+    public SimpleCipherOutputStream(OutputStream out, SecretKey key) throws IOException {
+        super(out, createCipherAndWriteHeader(out, key));
+    }
 
+    private static AEADBlockCipher createCipherAndWriteHeader(OutputStream out, SecretKey key) throws IOException {
         byte[] iv = SimpleCipherUtil.createIV();
         byte[] aad = SimpleCipherUtil.createAAD();
         AEADBlockCipher cipher = SimpleCipherUtil.initCipher(key, true, iv, aad);
@@ -66,7 +65,6 @@ public class SimpleCipherOutputStream extends CipherOutputStream {
         out.write(SimpleCipherUtil.MARKER_BYTE);
         out.write(iv);
         out.write(aad);
-
-        return new SimpleCipherOutputStream(out, cipher);
+        return cipher;
     }
 }

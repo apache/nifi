@@ -32,7 +32,9 @@ import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FilterOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.util.Collection;
@@ -124,7 +126,10 @@ public class HashMapSnapshot<T> implements WriteAheadSnapshot<T>, RecordLookup<T
 
         // At this point, we know the snapshotPath exists because if it didn't, then we either returned null
         // or we renamed partialPath to snapshotPath. So just Recover from snapshotPath.
-        try (final DataInputStream dataIn = new DataInputStream(new BufferedInputStream(SimpleCipherInputStream.wrapWithKey(new FileInputStream(snapshotFile), cipherKey)))) {
+        try (final InputStream fis = new FileInputStream(snapshotFile);
+             final InputStream bis = new BufferedInputStream(fis);
+             final InputStream cis = cipherKey != null && SimpleCipherInputStream.peekForMarker(bis) ? new SimpleCipherInputStream(bis, cipherKey) : bis;
+             final DataInputStream dataIn = new DataInputStream(cis)) {
             // Ensure that the header contains the information that we expect and retrieve the relevant information from the header.
             final SnapshotHeader header = validateHeader(dataIn);
 
@@ -269,7 +274,7 @@ public class HashMapSnapshot<T> implements WriteAheadSnapshot<T>, RecordLookup<T
         // Write to the partial file.
         final FileOutputStream fileOut = new FileOutputStream(getPartialFile());
         final OutputStream bufferedOut = new BufferedOutputStream(fileOut);
-        final OutputStream cipherOut = SimpleCipherOutputStream.wrapWithKey(bufferedOut, cipherKey);
+        final OutputStream cipherOut = cipherKey == null ? new FilterOutputStream(bufferedOut) : new SimpleCipherOutputStream(bufferedOut, cipherKey);
 
         try (final DataOutputStream dataOut = new DataOutputStream(cipherOut)) {
             // Write out the header

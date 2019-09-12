@@ -36,6 +36,7 @@ import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -68,7 +69,8 @@ public class LengthDelimitedJournal<T> implements WriteAheadJournal<T> {
     private final int maxInHeapSerializationBytes;
 
     private SerDe<T> serde;
-    private OutputStream fileOut;
+    private OutputStream topOut;
+    private FileOutputStream fileOut;
     private BufferedOutputStream bufferedOut;
     private final SecretKey cipherKey;
 
@@ -136,9 +138,10 @@ public class LengthDelimitedJournal<T> implements WriteAheadJournal<T> {
     }
 
     private synchronized OutputStream getOutputStream() throws IOException {
-        if (fileOut == null) {
-            fileOut = SimpleCipherOutputStream.wrapWithKey(new FileOutputStream(journalFile), cipherKey);
-            bufferedOut = new BufferedOutputStream(fileOut);
+        if (topOut == null) {
+            fileOut = new FileOutputStream(journalFile);
+            topOut = cipherKey == null ? fileOut : new SimpleCipherOutputStream(fileOut, cipherKey);
+            bufferedOut = new BufferedOutputStream(topOut);
         }
 
         return bufferedOut;
@@ -267,7 +270,7 @@ public class LengthDelimitedJournal<T> implements WriteAheadJournal<T> {
                         logger.debug("Length of update with {} records exceeds in-memory max of {} bytes. Overflowing to {}", records.size(), maxInHeapSerializationBytes, overflowFile);
 
                         overflowFileOut = new FileOutputStream(overflowFile);
-                        overflowOut = SimpleCipherOutputStream.wrapWithKey(overflowFileOut, cipherKey);
+                        overflowOut = cipherKey == null ? new FilterOutputStream(overflowFileOut) : new SimpleCipherOutputStream(overflowFileOut, cipherKey);
                         bados.getByteArrayOutputStream().writeTo(overflowOut);
                         bados.getByteArrayOutputStream().reset();
 
@@ -378,8 +381,7 @@ public class LengthDelimitedJournal<T> implements WriteAheadJournal<T> {
 
         try {
             if (fileOut != null) {
-                // Before transparent crypto, this was: fileOut.getChannel().force(false);
-                fileOut.flush();
+                fileOut.getChannel().force(false);
             }
         } catch (final IOException ioe) {
             poison(ioe);
@@ -395,12 +397,12 @@ public class LengthDelimitedJournal<T> implements WriteAheadJournal<T> {
         closed = true;
 
         try {
-            if (fileOut != null) {
+            if (topOut != null) {
                 if (!poisoned) {
-                    fileOut.write(JOURNAL_COMPLETE);
+                    topOut.write(JOURNAL_COMPLETE);
                 }
 
-                fileOut.close();
+                topOut.close();
             }
         } catch (final IOException ioe) {
             poison(ioe);
@@ -418,9 +420,9 @@ public class LengthDelimitedJournal<T> implements WriteAheadJournal<T> {
 
         try (final InputStream fis = new FileInputStream(journalFile);
              final InputStream bufferedIn = new BufferedInputStream(fis);
-             final InputStream plainIn = SimpleCipherInputStream.wrapWithKey(bufferedIn, cipherKey);
-             final ByteCountingInputStream byteCountingIn = new ByteCountingInputStream(plainIn);
-             final DataInputStream in = new DataInputStream(byteCountingIn)) {
+             final ByteCountingInputStream byteCountingIn = new ByteCountingInputStream(bufferedIn);
+             final InputStream plainIn = cipherKey != null && SimpleCipherInputStream.peekForMarker(bufferedIn) ? new SimpleCipherInputStream(byteCountingIn, cipherKey) : byteCountingIn;
+             final DataInputStream in = new DataInputStream(plainIn)) {
 
             try {
                 // Validate that the header is what we expect and obtain the appropriate SerDe and Version information

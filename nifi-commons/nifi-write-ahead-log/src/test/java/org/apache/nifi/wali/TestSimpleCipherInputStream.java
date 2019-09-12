@@ -32,7 +32,7 @@ public class TestSimpleCipherInputStream extends TestAbstractSimpleCipher {
         // This shows we can use a variety of keys (some null) with the cipher streams.
         for (SecretKey cipherKey : cipherKeys) {
             ByteArrayOutputStream cipherByteOutputStream = new ByteArrayOutputStream();
-            OutputStream outputStream = SimpleCipherOutputStream.wrapWithKey(cipherByteOutputStream, cipherKey);
+            OutputStream outputStream = cipherKey == null ? cipherByteOutputStream : new SimpleCipherOutputStream(cipherByteOutputStream, cipherKey);
 
             if (cipherKey == null) {
                 Assert.assertNotEquals(SimpleCipherOutputStream.class, outputStream.getClass());
@@ -44,8 +44,8 @@ public class TestSimpleCipherInputStream extends TestAbstractSimpleCipher {
             outputStream.close();
 
             byte[] cipherText = cipherByteOutputStream.toByteArray();
-            ByteArrayInputStream cipherByteInputStream = new ByteArrayInputStream(cipherText);
-            InputStream cipherInputStream = SimpleCipherInputStream.wrapWithKey(cipherByteInputStream, cipherKey);
+            ByteArrayInputStream cipherByteIn = new ByteArrayInputStream(cipherText);
+            InputStream cipherInputStream = cipherKey != null && SimpleCipherInputStream.peekForMarker(cipherByteIn) ? new SimpleCipherInputStream(cipherByteIn, cipherKey) : cipherByteIn;
 
             if (cipherKey == null) {
                 Assert.assertNotEquals(SimpleCipherInputStream.class, cipherInputStream.getClass());
@@ -62,7 +62,7 @@ public class TestSimpleCipherInputStream extends TestAbstractSimpleCipher {
     @Test
     public void testCipherInputStreamTampering() throws IOException {
         ByteArrayOutputStream cipherByteOutputStream = new ByteArrayOutputStream();
-        OutputStream outputStream = SimpleCipherOutputStream.wrapWithKey(cipherByteOutputStream, cipherKey);
+        OutputStream outputStream = cipherKey == null ? cipherByteOutputStream : new SimpleCipherOutputStream(cipherByteOutputStream, cipherKey);
 
         outputStream.write(smallSecret);
         outputStream.close();
@@ -79,15 +79,15 @@ public class TestSimpleCipherInputStream extends TestAbstractSimpleCipher {
             // tamper with the byte:
             cipherCopy[i] += 1 + random.nextInt(253);
 
-            ByteArrayInputStream cipherByteInputStream = new ByteArrayInputStream(cipherCopy);
-            InputStream cipherInputStream = SimpleCipherInputStream.wrapWithKey(cipherByteInputStream, cipherKey);
+            ByteArrayInputStream cipherByteIn = new ByteArrayInputStream(cipherCopy);
+            InputStream cipherIn = cipherKey != null && SimpleCipherInputStream.peekForMarker(cipherByteIn) ? new SimpleCipherInputStream(cipherByteIn, cipherKey) : cipherByteIn;
             ByteArrayOutputStream buffer = new ByteArrayOutputStream();
 
             byte[] plainText = new byte[smallSecret.length*2];
             int len;
 
             try {
-                while ((len = cipherInputStream.read(plainText, 0, plainText.length)) != -1) {
+                while ((len = cipherIn.read(plainText, 0, plainText.length)) != -1) {
                     buffer.write(plainText, 0, len);
                 }
             } catch (final Exception ignored) {
@@ -105,15 +105,14 @@ public class TestSimpleCipherInputStream extends TestAbstractSimpleCipher {
     @Test
     public void testCipherTextOutputStreamPlainInputStream() throws IOException {
         ByteArrayOutputStream cipherByteOutputStream = new ByteArrayOutputStream();
-        OutputStream outputStream = SimpleCipherOutputStream.wrapWithKey(cipherByteOutputStream, cipherKey);
+        OutputStream outputStream = cipherKey == null ? cipherByteOutputStream : new SimpleCipherOutputStream(cipherByteOutputStream, cipherKey);
 
         outputStream.write(bigSecret);
         outputStream.close();
         byte[] cipherText = cipherByteOutputStream.toByteArray();
 
         ByteArrayInputStream cipherByteInputStream = new ByteArrayInputStream(cipherText);
-        InputStream inputStream = SimpleCipherInputStream.wrapWithKey(cipherByteInputStream, null);
-        Assert.assertArrayEquals(cipherText, readAll(inputStream, cipherText.length));
+        Assert.assertArrayEquals(cipherText, readAll(cipherByteInputStream, cipherText.length));
     }
 
     // This shows how a non-ciphered output stream interacts with a ciphered input stream.
@@ -122,15 +121,15 @@ public class TestSimpleCipherInputStream extends TestAbstractSimpleCipher {
     @Test
     public void testPlainTextOutputStreamCipherTextInputStream() throws IOException {
         ByteArrayOutputStream cipherByteOutputStream = new ByteArrayOutputStream();
-        OutputStream stream = SimpleCipherOutputStream.wrapWithKey(cipherByteOutputStream, null);
+        OutputStream stream = cipherByteOutputStream;
 
         stream.write(bigSecret);
         stream.close();
         byte[] cipherText = cipherByteOutputStream.toByteArray();
 
-        ByteArrayInputStream cipherByteInputStream = new ByteArrayInputStream(cipherText);
-        InputStream inputStream = SimpleCipherInputStream.wrapWithKey(cipherByteInputStream, cipherKey);
-        Assert.assertArrayEquals(cipherText, readAll(inputStream, cipherText.length));
+        ByteArrayInputStream cipherByteIn = new ByteArrayInputStream(cipherText);
+        InputStream cipherIn = cipherKey != null && SimpleCipherInputStream.peekForMarker(cipherByteIn) ? new SimpleCipherInputStream(cipherByteIn, cipherKey) : cipherByteIn;
+        Assert.assertArrayEquals(cipherText, readAll(cipherIn, cipherText.length));
     }
 
     // This shows how input streams are handled when the input stream is so short that the cipher cannot initialize.
@@ -149,8 +148,8 @@ public class TestSimpleCipherInputStream extends TestAbstractSimpleCipher {
 
         for (int size : sizes) {
             byte[] cipherText = randomBytes(size);
-            ByteArrayInputStream cipherByteInputStream = new ByteArrayInputStream(cipherText);
-            InputStream inputStream = SimpleCipherInputStream.wrapWithKey(cipherByteInputStream, cipherKey);
+            ByteArrayInputStream bis = new ByteArrayInputStream(cipherText);
+            InputStream inputStream = cipherKey != null && SimpleCipherInputStream.peekForMarker(bis) ? new SimpleCipherInputStream(bis, cipherKey) : bis;
             Assert.assertArrayEquals(cipherText, readAll(inputStream, cipherText.length));
         }
     }
