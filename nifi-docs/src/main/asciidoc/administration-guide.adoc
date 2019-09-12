@@ -958,20 +958,22 @@ The following tables summarize the global and component policies assigned to eac
 ===== Global Access Policies
 [cols=">s,^s,^s,^s,^s,^s,^s", options="header"]
 |==========================
-|                                  | Admin | DFM | Monitor | Provenance | NiFi | Proxy
-|view the UI                       |*      |*    |*        |            |      |
-|access the controller - view      |*      |*    |*        |            |*     |
-|access the controller - modify    |       |*    |         |            |      |
-|query provenance                  |       |     |         |*           |      |
-|access restricted components      |       |*    |         |            |      |
-|access all policies - view        |*      |     |         |            |      |
-|access all policies - modify      |*      |     |         |            |      |
-|access users/user groups - view   |*      |     |         |            |      |
-|access users/user groups - modify |*      |     |         |            |      |
-|retrieve site-to-site details     |       |     |         |            |*     |
-|view system diagnostics           |       |*    |*        |            |      |
-|proxy user requests               |       |     |         |            |      |*
-|access counters                   |       |     |         |            |      |
+|                                   | Admin | DFM | Monitor | Provenance | NiFi | Proxy
+|view the UI                        |*      |*    |*        |            |      |
+|access the controller - view       |*      |*    |*        |            |*     |
+|access the controller - modify     |       |*    |         |            |      |
+|access parameter contexts - view   |       |     |         |            |      |
+|access parameter contexts - modify |       |     |         |            |      |
+|query provenance                   |       |     |         |*           |      |
+|access restricted components       |       |*    |         |            |      |
+|access all policies - view         |*      |     |         |            |      |
+|access all policies - modify       |*      |     |         |            |      |
+|access users/user groups - view    |*      |     |         |            |      |
+|access users/user groups - modify  |*      |     |         |            |      |
+|retrieve site-to-site details      |       |     |         |            |*     |
+|view system diagnostics            |       |*    |*        |            |      |
+|proxy user requests                |       |     |         |            |      |*
+|access counters                    |       |     |         |            |      |
 |==========================
 
 ===== Component Access Policies on the Root Process Group
@@ -1095,9 +1097,14 @@ Global access policies govern the following system level authorizations:
 |`/flow`
 
 |access the controller
-|Allows users to view/modify the controller including Reporting Tasks, Controller Services, and Nodes in the Cluster
+|Allows users to view/modify the controller including Reporting Tasks, Controller Services, Parameter Contexts and Nodes in the Cluster
 |Controller Settings
 |`/controller`
+
+|access parameter contexts
+|Allows users to view/modify Parameter Contexts. Access to Parameter Contexts are inherited from the "access the controller" policies unless overridden.
+|Parameter Contexts
+|`/parameter-contexts`
 
 |query provenance
 |Allows users to submit a Provenance Search and request Event Lineage
