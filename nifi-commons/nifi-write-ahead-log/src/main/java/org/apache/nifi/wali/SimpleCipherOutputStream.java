@@ -24,25 +24,12 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 /**
- * This class extends {@link CipherOutputStream} with a static factory method for constructing
- * an output stream with an AEAD block cipher.
- *
  * Note that the {@link CipherOutputStream} implementation writes the MAC at the end of the stream during `close`.
  * If streams using this class aren't closed properly, the result may be a stream without a MAC written, which
  * causes a MAC authentication failure in the input stream.
  *
  */
 public class SimpleCipherOutputStream extends CipherOutputStream {
-    /**
-     * Constructs an {@link OutputStream} from an existing {@link OutputStream} and block cipher.
-     *
-     * @param out output stream to wrap.
-     * @param cipher block cipher, initialized for encryption.
-     */
-    public SimpleCipherOutputStream(OutputStream out, AEADBlockCipher cipher) {
-        super(out, cipher);
-    }
-
     /**
      * Constructs an {@link OutputStream} from an existing {@link OutputStream} and secret key.
      *

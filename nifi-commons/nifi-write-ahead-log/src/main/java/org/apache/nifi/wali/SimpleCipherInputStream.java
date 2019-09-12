@@ -25,24 +25,7 @@ import javax.crypto.SecretKey;
 import java.io.IOException;
 import java.io.InputStream;
 
-/**
- * This class extends {@link CipherInputStream} with a static factory method for constructing
- * an input stream with an AEAD block cipher.
- */
 public class SimpleCipherInputStream extends CipherInputStream {
-    protected AEADBlockCipher cipher;
-
-    /**
-     * Constructs an {@link InputStream} from an existing {@link InputStream} and block cipher.
-     *
-     * @param in input stream to wrap.
-     * @param cipher block cipher, initialized for decryption.
-     */
-    public SimpleCipherInputStream(InputStream in, AEADBlockCipher cipher) {
-        super(in, cipher);
-        this.cipher = cipher;
-    }
-
     /**
      * Constructs an {@link InputStream} from an existing {@link InputStream} and secret key.
      *
@@ -66,7 +49,6 @@ public class SimpleCipherInputStream extends CipherInputStream {
             throw new IOException("Input stream not cipher");
         }
 
-
         byte[] iv = new byte[SimpleCipherUtil.IV_BYTE_LEN];
         if (StreamUtils.fillBuffer(in, iv, true) != iv.length) {
             throw new IOException("Could not read IV.");
@@ -76,11 +58,13 @@ public class SimpleCipherInputStream extends CipherInputStream {
         if (StreamUtils.fillBuffer(in, aad, true) != aad.length) {
             throw new IOException("Could not read AAD.");
         }
+
         return SimpleCipherUtil.initCipher(key, false, iv, aad);
     }
 
     /**
      * Peeks at the next value in the input stream, returning true if that value matches our cipher stream marker.
+     *
      * @param in InputStream to check
      * @return false if input stream is not markable or does not have first byte marker
      * @throws IOException when the input stream throws {@link IOException}

@@ -272,11 +272,10 @@ public class HashMapSnapshot<T> implements WriteAheadSnapshot<T>, RecordLookup<T
         }
 
         // Write to the partial file.
-        final FileOutputStream fileOut = new FileOutputStream(getPartialFile());
-        final OutputStream bufferedOut = new BufferedOutputStream(fileOut);
-        final OutputStream cipherOut = cipherKey == null ? new FilterOutputStream(bufferedOut) : new SimpleCipherOutputStream(bufferedOut, cipherKey);
+        try (final FileOutputStream fileOut = new FileOutputStream(getPartialFile());
+             final OutputStream bufOut = new BufferedOutputStream(fileOut);
+             final DataOutputStream dataOut = new DataOutputStream(cipherKey == null ? bufOut : new SimpleCipherOutputStream(bufOut, cipherKey))) {
 
-        try (final DataOutputStream dataOut = new DataOutputStream(cipherOut)) {
             // Write out the header
             dataOut.writeUTF(HashMapSnapshot.class.getName());
             dataOut.writeInt(getVersion());
