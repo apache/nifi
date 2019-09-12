@@ -237,8 +237,6 @@ public class NiFiRecordSerDe extends AbstractSerDe {
                     case DECIMAL:
                         if(fieldValue instanceof BigDecimal){
                             val = HiveDecimal.create((BigDecimal) fieldValue);
-                        } else if (fieldValue instanceof Double){
-                            val = HiveDecimal.create((Double)fieldValue);
                         } else if (fieldValue instanceof Number) {
                             val = HiveDecimal.create(((Number)fieldValue).doubleValue());
                         } else {
