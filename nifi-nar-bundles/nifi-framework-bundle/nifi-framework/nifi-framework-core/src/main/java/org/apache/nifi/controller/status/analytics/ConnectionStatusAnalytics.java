@@ -97,7 +97,7 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
                     LOG.debug("Refreshing model with new data for connection id: {} ", connectionIdentifier);
                     model.learn(Stream.of(features), Stream.of(values));
 
-                    if(MapUtils.isNotEmpty(model.getScores())){
+                    if(LOG.isDebugEnabled() && MapUtils.isNotEmpty(model.getScores())){
                         model.getScores().forEach((key, value) -> {
                             LOG.debug("Model Scores for prediction metric {} for connection id {}: {}={} ", metric, connectionIdentifier, key, value);
                         });
