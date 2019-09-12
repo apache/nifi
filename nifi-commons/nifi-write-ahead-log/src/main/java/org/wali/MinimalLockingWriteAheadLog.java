@@ -377,7 +377,7 @@ public final class MinimalLockingWriteAheadLog<T> implements WriteAheadRepositor
             try {
                 waliImplementationClass = dataIn.readUTF();
             } catch (final java.io.UTFDataFormatException e) {
-                throw new IOException("malformed input");
+                throw new IOException("Unable to read Write-Ahead Log implementation class from " + snapshotPath, e);
             }
             final int waliImplementationVersion = dataIn.readInt();
 
