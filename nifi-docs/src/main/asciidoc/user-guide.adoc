@@ -282,7 +282,7 @@ be assigned access to specific restrictions. If the user has been granted access
 have access to that component assuming otherwise sufficient permissions. For more information refer to
 <<UI-with-multi-tenant-authorization>> and <<Restricted_Components_in_Versioned_Flows>>.
 
-Clicking the `Add` button or double-clicking on a Processor Type will add the selected Processor to the canvas at the
+Clicking the "Add" button or double-clicking on a Processor Type will add the selected Processor to the canvas at the
 location that it was dropped.
 
 NOTE: For any component added to the canvas, it is possible to select it with the mouse and move it anywhere on the canvas.
@@ -500,7 +500,7 @@ image::processor-cs-version-mismatch-config.png["Processor and Controller Servic
 
 To configure a processor, right-click on the Processor and select the `Configure` option from the context menu. Alternatively, just double-click on the Processor. The configuration dialog is opened with four
 different tabs, each of which is discussed below. Once you have finished configuring the Processor, you can apply
-the changes by clicking the `Apply` button or cancel all changes by clicking the `Cancel` button.
+the changes by clicking "Apply" or cancel all changes by clicking "Cancel".
 
 Note that after a Processor has been started, the context menu shown for the Processor no longer has a `Configure`
 option but rather has a `View Configuration` option. Processor configuration cannot be changed while the Processor is
@@ -675,8 +675,8 @@ must define which Properties make sense for its use case. Below, we see the Prop
 image::properties-tab.png["Properties Tab"]
 
 This Processor, by default, has only a single property: 'Routing Strategy'. The default value is 'Route to Property name'. Next to
-the name of this property is a small question-mark symbol (
-image:iconInfo.png["Question Mark"]
+the name of this property is a small question mark symbol (
+image:iconInfo.png["Info"]
 ). This help symbol is seen in other places throughout the User Interface, and it indicates that more information is available.
 Hovering over this symbol with the mouse will provide additional details about the property and the default value, as well as
 historical values that have been set for the Property.
@@ -697,7 +697,7 @@ Note that after a User-Defined property has been added, an icon will appear on t
 image:iconDelete.png["Delete Icon"]
 ). Clicking it will remove the User-Defined property from the Processor.
 
-Some processors also have an Advanced User Interface (UI) built into them. For example, the UpdateAttribute processor has an Advanced UI. To access the Advanced UI, click the `Advanced` button that appears at the bottom of the Configure Processor window. Only processors that have an Advanced UI will have this button.
+Some processors also have an Advanced User Interface (UI) built into them. For example, the UpdateAttribute processor has an Advanced UI. To access the Advanced UI, click the "Advanced" button that appears at the bottom of the Configure Processor window. Only processors that have an Advanced UI will have this button.
 
 Some processors have properties that refer to other components, such as Controller Services, which also need to be configured. For example, the GetHTTP processor has an SSLContextService property, which refers to the StandardSSLContextService controller service. When DFMs want to configure this property but have not yet created and configured the controller service, they have the option to create the service on the spot, as depicted in the image below. For more information about configuring Controller Services, see the <<Controller_Services>> section.
 
@@ -711,15 +711,215 @@ whatever comments are appropriate for this component. Use of the Comments tab is
 image::comments-tab.png["Comments Tab"]
 
 
-=== Additional Help
+==== Additional Help
 
 You can access additional documentation about each Processor's usage by right-clicking on the Processor and selecting 'Usage' from the context menu. Alternatively, select Help from the Global Menu in the top-right corner of the UI to display a Help page with all of the documentation, including usage documentation for all the Processors that are available. Click on the desired Processor to view usage documentation.
+
+[[Parameters]]
+=== Parameters
+The values of properties in the flow, including sensitive properties, can be parameterized using Parameters. Parameters are created and configured within the NiFi UI. Any property can be configured to reference a Parameter with the following conditions:
+
+ - A sensitive property can only reference a Sensitive Parameter
+ - A non-sensitive property can only reference a Non-Sensitive Parameter
+ - Properties that reference Controller Services can not use Parameters
+ - Parameters cannot be referenced in Reporting Tasks or in controller-level Controller Services
+
+The UI indicates whether a Parameter can be used for a property value.
+
+image::el-param-support-help-text.png[Expression Language and Parameters Help Text]
+
+NOTE: Parameters have numerous advantages over <<Variables>>. In addition to sensitive value support, Parameters offer more granular control over access policies. Additionally, properties that reference Parameters are validated against the substituted value, unlike most properties that reference Variables using Expression Language.
+
+[[parameter-contexts]]
+==== Parameter Contexts
+Parameters are created within Parameter Contexts. Parameter Contexts are globally defined/accessible to the NiFi instance. Access policies can be applied to Parameter Contexts to determine which users can create them. Once created, policies to read and write to a specific Parameter Context can also be applied (see <<accessing-parameters>> for more information).
+
+===== Creating a Parameter Context
+To create a Parameter Context, select Parameter Contexts from the Global Menu:
+
+image:parameter-contexts-selection.png["Global Menu - Parameter Contexts"]
+
+In the Parameter Contexts window, click the `+` button in the upper-right corner and the Add Parameter Context window opens. The window has two tabs: Settings and Parameters.
+
+image:parameter-contexts-settings.png["Parameter Contexts - Settings"]
+
+On the "Settings" tab, add a name for the Parameter Context and a description if desired.  Select "Apply" to save the Parameter Context or select the "Parameters" tab to add parameters to the context.
+
+==== Adding a Parameter to a Parameter Context
+Parameters can be added during Parameter Context creation or added to existing Parameter Contexts.
+
+During Parameter Context creation, select the "Parameters" tab. Click the `+` button to open the Add Parameter window.
+
+image:add-parameter-during-parameter-context-creation.png[Add Parameter]
+
+To add parameters to an existing Parameter Context, open the Parameter Context window and click the Edit button (image:iconEdit.png["Edit"]) in the row of the desired Parameter Context.
+
+image:edit-parameter-context.png[Edit Parameter Context]
+
+On the "Parameters" tab, click the `+` button to open the Add Parameter window.
+
+The Add Parameter window has the following settings:
+
+- *Name* - A name that is used to denote the Parameter. Only alpha-numeric characters (a-z, A-Z, 0-9), hyphens ( - ), underscores ( _ ), periods ( . ), and spaces are allowed.
+
+- *Value* - The value that will be used when the Parameter is referenced. Parameter values do not support Expression Language or embedded parameter references.
+
+- *Set empty string* - Check to explicitly set the value of the Parameter to an empty string. Unchecked by default. (Note: If checked but a value is set, the checkbox is ignored.)
+
+- *Sensitive Value* -  Set to "Yes" if the Parameter's Value should be considered sensitive. If sensitive, the value of the Parameter will not be shown in the UI once applied. The default setting is "No". Sensitive Parameters can only be referenced by sensitive properties and Non-Sensitive Parameters by non-sensitive properties. Once a Parameter is created, its sensitivity flag cannot be changed.
+
+- *Description* - A description that explains what the Parameter is, how it is to be used, etc. This field is optional.
+
+Once these settings are configured, select "Apply". The Referencing Components lists the components referenced by the currently selected parameter. Add additional Parameters or edit any existing Parameters.
+
+image:update-parameter-context.png[Update Parameter Context]
+
+To complete the process, select "Apply" from the Parameter Context window. The following operations are performed to validate all components that reference the added or modified parameters: Stopping/Restarting affected Processors, Disabling/Re-enabling affected Controller Services, Updating Parameter Context.
+
+image:parameters-validate-affected-components.png[Validate Affected Components]
+
+The Referencing Components section now lists an aggregation of all the components referenced by the set of parameters added/edited/deleted, organized by process group.
+
+
+[[assigning_parameter_context_to_PG]]
+==== Assigning a Parameter Context to a Process Group
+For a component to reference a Parameter, its Process Group must first be assigned a Parameter Context. Once assigned, processors and controller services within that Process Group may only reference Parameters within that Parameter Context.
+
+A Process Group can only be assigned one Parameter Context, while a given Parameter Context can be assigned to multiple Process Groups.
+
+NOTE: A user can only set the Parameter Context of a Process Group to one of the Parameter Contexts that the user has the view policy for. Additionally, in order to set the Parameter Context, the user must have the modify policy for the Process Group. See <<accessing-parameters>> for more information.
+
+To assign a Parameter Context to a Process Group, click Configure, either from the Operate Palette or from the Process Group context menu.
+
+image:process-group-configuration-parameters.png[Configure Process Group Parameter Context]
+
+In the Flow Configuration window, select the "General" tab. From the Process Group Parameter Context drop-down menu, select an existing Parameter Context or create a new one.
+
+image:process-group-parameter-context-menu.png[Process Group Parameter Context Menu]
+
+Select "Apply" to save the configuration changes. The Process Group context menu now includes a "Parameters" option which allows quick access to the Update Parameter Context window for the assigned Parameter Context.
+
+image:context-menu-parameters-option.png[Context Menu Parameters Option]
+
+If the Parameter Context for a Process Group is changed, all components that reference any Parameters in that Process Group will be stopped, validated, and restarted assuming the components were previously running and are still valid.
+
+NOTE: If a Parameter Context is unset from a Process Group, it does *NOT* inherit the Parameter Context from the parent Process Group. Instead, no Parameters can be referenced. Any component that does already reference a Parameter will become invalid.
+
+==== Referencing Parameters
+
+===== Parameter Reference Syntax
+To configure an eligible property to reference a Parameter, use the `#` symbol as the start, with the Parameter's name enclosed in curly braces:
+
+`#{Parameter.Name}`
+
+This can be escaped using an additional `#` character at the beginning. To illustrate this, assume that the Parameter `abc` has a value of `xxx` and Parameter `def` has a value of `yyy`. Then, the following user-defined property values will evaluate to these effective values:
+
+|================================================================================================================================================================
+| *User-Entered Literal Property Value* | *Effective Property Value*                 | *Explanation*
+| `#{abc}`                              | `xxx`                                      | Simple substitution
+| `+#{abc}/data+`                       | `xxx/data`                                 | Simple substitution with additional literal data
+| `+#{abc}/#{def}+`                     | `xxx/yyy`                                  | Multiple substitution with additional literal data
+| `+#{abc+`                             | `+#{abc+`                                  | No { } for parameter replacement
+| `+#abc+`                              | `+#abc+`                                   | No { } for parameter replacement
+| `+##{abc}+`                           | `+#{abc}+`                                 | Escaped # for literal interpretation
+| `+###{abc}+`                          | `#xxx`                                     | Escaped # for literal interpretation, followed by simple substitution
+| `+####{abc}+`                         | `+##{abc}+`                                | Escaped # for literal interpretation, twice
+| `+#####{abc}+`                        | `+##xxx+`                                  | Escaped # for literal interpretation, twice, followed by simple substitution
+| `+#{abc/data}+`                       | Exception thrown on property set operation | `/` not a valid parameter name character
+|================================================================================================================================================================
+
+When referencing a Parameter from within link:expression-language-guide.html[Expression Language], the Parameter reference is evaluated first. As an example, to replace `xxx` with `zzz` for the `abc` Parameter:
+
+`${ #{abc}:replace('xxx', 'zzz') }`
+
+===== Referencing and Creating Parameters During Component Configuration
+Parameters can be easily referenced or created as you configure the components in your flow. For example, assume a process group  has the Parameter Context "Kafka Settings" assigned to it. "Kafka Settings" contains the parameters `kafka.broker` and `kafka.topic1`.
+
+image::existing-parameters-example.png[Existing Parameters]
+
+To reference `kafka.broker` as the value for the "Kafka Brokers" property in the PublishKafka processor, clear the default value and begin a new entry with the start delimiter `#{`. Next use the keystroke `control+space` to show the list of available parameters:
+
+image::autocomplete-parameter-example.png[Autocomplete Parameter Example]
+
+Select `kafka.broker` and complete the entry with a closing curly brace `}`.
+
+image:existing-parameter-selected.png[Existing Parameter Selected]
+
+Help text describing this process is displayed when hovering over the Expression Language and Parameters eligibility indicators.
+
+image::el-param-support-help-text.png[Expression Language and Parameters Help Text]
+
+Parameters can also be created on the fly. For example, to create a parameter for the "Topic Name" property, select the "Convert to Parameter" icon (image:iconConvertToParameter.png["Convert to Parameter"]) in that property's row. This icon will only be available if the user has appropriate permissions to modify the Parameter Context (see <<accessing-parameters>> for more information).
+
+image::convert-property-to-parameter.png[Convert Property to Parameter]
+
+The Add Parameter dialog will open. Configure the new parameter as desired.
+
+image::configure-parameter-on-the-fly.png[Configure Parameter On the Fly]
+
+Select "Apply". The process group's Parameter Context will be updated and the new parameter will be referenced by the property with the proper syntax applied automatically.
+
+image::new-parameter-referenced.png[New Parameter Referenced]
+
+Properties values that are selectable can also reference parameters. In addition to applying the "Convert to Parameter" method described earlier, the option "Reference parameter.." is available in the value drop-down menu.
+
+image::reference-parameter-option.png[Reference Parameter Option]
+
+Selecting "Reference parameter..." will display a drop-down list of available parameters, determined by the parameter context assigned to the component's process group and the user's access policies.
+
+image::reference-parameter-available-parameters.png[Reference Parameter Available Parameters]
+
+Hovering over the question mark icon (image:iconInfo.png["Info"]) displays the parameter's description.
+
+
+===== Using Parameters with Sensitive Properties
+Sensitive properties may only reference sensitive Parameters. This is important for <<versioning_dataflow, versioned flows>>. The value of the sensitive Parameter itself will NOT be sent to the flow registry, only the fact that the property references the sensitive Parameter. For more information see <<parameters-and-versioned-flows>>.
+
+The value of a sensitive property must be set to a single Parameter reference. For example, values of `+#{password}123+` and `+#{password}#{suffix}+` are not allowed. Sending `+#{password}123+` would lead to exposing part of the sensitive property's value. This is in contrast to a non-sensitive property, where a value such as `+#{path}/child/file.txt+` is valid.
+
+[[accessing-parameters]]
+==== Accessing Parameters
+User privileges to Parameters are managed via access policies on the following levels:
+
+- Parameter Context
+- Process Group
+- Component
+
+NOTE: For additional information on how to configure access policies, see the <<administration-guide.adoc#access-policies,Access Policies>> section in the System Administrator's Guide.
+
+===== Parameter Context Access Policies
+For a user to see Parameter Contexts, they must be added to either the "access the controller" view policy or the "access parameter contexts" view policy. For a user to modify Parameter Contexts, they must also be added to the corresponding modify policies. These policies are accessed via "Policies" from the Global Menu. See the <<administration-guide.adoc#global-access-policies,Global Access Policies>> section in the System Administrator's Guide for more information.
+
+NOTE: The "access parameter contexts" policies are inherited from the "access the controller" policies unless overridden.
+
+View and modify policies can also be set on individual parameter contexts to determine which users can view or add parameters to the context. Select "Parameter Contexts" from the Global Menu. Select the "Access Policies" button (image:iconAccessPolicies.png["Access Policies"]) in the row of the desired parameter context to manage these policies.
+
+image::individual-parameter-context-polices.png[Individual Parameter Context Policies]
+
+See the <<administration-guide.adoc#component-level-access-policies,Component Level Access Policies>> section in the System Administrator's Guide for more information.
+
+===== Process Group Access Policies
+A user can only set the Parameter Context of a Process Group to one of the Parameter Contexts that the user has the view policy for. Additionally, in order to set the Parameter Context, the user must have the modify policy for the Process Group. The Process Group access policies can be managed by highlighting the Process Group and selecting the "Access Policies" button (image:iconAccessPolicies.png["Access Policies"]) from the Operate Palette.
+
+===== Component Access Policies
+To reference Parameters or convert properties to a Parameter in a component, a user needs to have the view and modify policies for the component. These policies are inherited if the user has view and modify policies to the component's process group, but these policies can be overridden on the component level.
+
+In order to modify a Parameter, a user must have view and modify policies for any and all components that reference that Parameter.  This is needed because changing the Parameter requires that the components be stopped/started and also because by taking that action, the user is modifying the behavior of the component.
+
+See the <<administration-guide.adoc#component-level-access-policies,Component Level Access Policies>> section in the System Administrator's Guide for more information.
+
+[[parameters-and-versioned-flows]]
+==== Parameters and Versioned Flows
+When exporting a flow to a Flow Registry, the name of the Parameter Context is sent for each process group that is stored. Additionally, the Parameters (names, descriptions, values, whether or not sensitive) are stored with the flow. Sensitive Parameter values are not stored.
+
+When a flow is imported, if no Parameter Context is set, NiFi will set the Parameter Context with the same name as the one stored in Flow Registry. If none exists with that name, NiFi will create one. If a Parameter Context has been set and the imported flow contains a Parameter Context with the same name and Parameters with the same names but different values, the existing Parameter values will not be overwritten by those from the imported flow. However, any Parameters missing from the assigned Parameter Context that exist in the Parameter Context of the imported flow will be added.
+
 
 [[Using_Custom_Properties]]
 === Using Custom Properties with Expression Language
 You can use NiFi Expression Language to reference FlowFile attributes, compare them to other values, and manipulate their values when you are creating and configuring dataflows. For more information on Expression Language, see the link:expression-language-guide.html[Expression Language Guide].
 
-In addition to using FlowFile attributes, system properties, and environment properties within Express
+In addition to using FlowFile attributes, system properties, and environment properties within Expression
 Language, you can also define custom properties for Expression Language use. Defining custom properties
 gives you more flexibility in handling and processing dataflows. You can also create custom properties
 for connection, server, and service properties, for easier dataflow configuration.
@@ -729,23 +929,33 @@ NiFi properties have resolution precedence of which you should be aware when cre
 * Processor-specific attributes
 * FlowFile properties 
 * FlowFile attributes 
-* From variable registry: 
+* From Variable Registry: 
 ** User defined properties (custom properties)
 ** System properties 
 ** Operating System environment variables
 
-When you are creating custom properties, ensure that each custom property contains a distinct property value,
-so that it is not overridden by existing environment properties, system properties, or FlowFile attributes.
+When you are creating custom properties, ensure that each custom property contains a distinct property value, so that it is not overridden by existing environment properties, system properties, or FlowFile attributes.
 
-There are two ways to use and manage custom properties:
+There are two ways to use and manage custom properties with Expression Language:
 
-* In the NiFi UI via the Variables window
-* Referencing custom properties via _nifi.properties_
+- *Variables*: Variables are created and configured within the NiFi UI. They can be used in any field that supports Expression Language. Variables cannot be used for sensitive properties. NiFi automatically picks up new or modified variables. Variables are defined at the Process Group level, as a result, the access policies for viewing and changing variables are derived from the access policies of the Process Group. See <<Variables>> for more information.
 
-[[Variables_Window]]
-==== Variables Window
+- *Custom Properties File*: Key/value pairs are defined in a custom properties file that is referenced via the `nifi.variable.registry.properties` in _nifi.properties_. NiFi must be restarted for updates to be picked up. See <<Custom_Properties>> for more information.
 
-Variables can be created and configured within the NiFi UI.  The variables can be used in any field that supports Expression Language.  NiFi automatically picks up new or modified variables created in the UI.
+WARNING: Custom properties via Variables and the _nifi.properties_ file are still supported for compatibility purposes but do not have the same power as Parameters such as support for sensitive properties and more granular control over who can create, modify or use them. Variables and the `nifi.variable.registry.properties` property will be removed in a future release. As a result, it is highly recommended to switch to Parameters.
+
+Expression Language support for a property is indicated in the UI.
+
+image::el-support-help-text.png[Expression Language Help Text]
+
+[[Variables]]
+==== Variables
+
+WARNING: Custom properties via Variables and the _nifi.properties_ file are still supported for compatibility purposes but do not have the same power as Parameters such as support for sensitive properties and more granular control over who can create, modify or use them. Variables and the `nifi.variable.registry.properties` property will be removed in a future release. As a result, it is highly recommended to switch to Parameters.
+
+Variables are created and configured within the NiFi UI. They can be used in any field that supports Expression Language. Variables cannot be used for sensitive properties. Variables are defined at the Process Group level, as a result, the access policies for viewing and changing variables are derived from the access policies of the Process Group. Variable values cannot reference other variables or make use of Expression Language.
+
+===== Variables Window
 
 To access the Variables window, right-click on the canvas with nothing selected:
 
@@ -805,7 +1015,7 @@ image::variable_insufficient-permissions.png["Insufficient Permissions to View V
 
 If a user has access to View a process group but does not have access to Modify the process group, the variables can be viewed but not modified.
 
-For information on how to manage privileges on components, see the  <<administration-guide.adoc#access-policies,Access Policies>> section in the System Administrator's Guide.
+For information on how to manage privileges on components, see the <<administration-guide.adoc#access-policies,Access Policies>> section in the System Administrator's Guide.
 
 ===== Referencing Controller Services
 
@@ -827,7 +1037,11 @@ In the above example, the variable `property1` is referenced by a processor that
 
 image::variable-unauthorized-ref-processor-canvas.png["Unauthorized Referencing Processor"]
 
+[[Custom_Properties]]
 ==== Referencing Custom Properties via nifi.properties
+
+WARNING: Custom properties via Variables and the _nifi.properties_ file are still supported for compatibility purposes but do not have the same power as Parameters such as support for sensitive properties and more granular control over who can create, modify or use them. Variables and the `nifi.variable.registry.properties` property will be removed in a future release. As a result, it is highly recommended to switch to Parameters.
+
 Identify one or more sets of key/value pairs, and give them to your system administrator.
 
 Once the new custom properties have been added, ensure that the `nifi.variable.registry.properties`
@@ -865,16 +1079,16 @@ The Add Controller Service window opens. This window is similar to the Add Proce
 
 image:add-controller-service-window.png["Add Controller Service Window"]
 
-Once you have added a Controller Service, you can configure it by clicking the `Configure` button in the
-far-right column. Other buttons in this column include `Enable`, `Remove` and `Access Policies`.
+Once you have added a Controller Service, you can configure it by clicking the "Configure" button in the
+far-right column. Other buttons in this column include "Enable", "Remove" and "Access Policies".
 
 image:controller-services-configure-buttons.png["Controller Services Buttons"]
 
-You can obtain information about Controller Services by clicking the `Usage` and `Alerts` buttons in the left-hand column.
+You can obtain information about Controller Services by clicking the "Usage" and "Alerts" buttons in the left-hand column.
 
 image:controller-services-info-buttons.png["Controller Services Information Buttons"]
 
-When the DFM clicks the `Configure` button, a Configure Controller Service window opens. It has three tabs: Settings, Properties,and Comments. This window is similar to the Configure Processor window. The Settings tab provides a place for the DFM to give the Controller Service a unique name (if desired). It also lists the UUID, Type, Bundle and Support information for the service and provides a list of other components (reporting tasks or other controller services) that reference the service.
+When the DFM clicks the "Configure" button, a Configure Controller Service window opens. It has three tabs: Settings, Properties,and Comments. This window is similar to the Configure Processor window. The Settings tab provides a place for the DFM to give the Controller Service a unique name (if desired). It also lists the UUID, Type, Bundle and Support information for the service and provides a list of other components (reporting tasks or other controller services) that reference the service.
 
 image:configure-controller-service-settings.png["Configure Controller Service Settings"]
 
@@ -882,7 +1096,7 @@ The Properties tab lists the various properties that apply to the particular con
 
 image:configure-controller-service-properties.png["Configure Controller Service Properties"]
 
-The Comments tab is just an open-text field, where the DFM may include comments about the service. After configuring a Controller Service, click the `Apply` button to apply the configuration and close the window, or click the `Cancel` button to cancel the changes and close the window.
+The Comments tab is just an open-text field, where the DFM may include comments about the service. After configuring a Controller Service, click  "Apply" to save the configuration and close the window, or click "Cancel" to discard the changes and close the window.
 
 
 [[Controller_Services_for_Dataflows]]
@@ -910,7 +1124,7 @@ image::process-group-configuration-window.png["Process Group Configuration Windo
 [[Enabling_Disabling_Controller_Services]]
 ==== Enabling/Disabling Controller Services
 
-After a Controller Service has been configured, it must be enabled in order to run. Do this using the `Enable` button (image:iconEnable.png["Enable Button"]) in the far-right column of the Controller Services tab. In order to modify an existing/running controller service, the DFM needs to stop/disable it (as well as all referencing reporting tasks and controller services). Do this using the `Disable` button (image:iconDisable.png["Disable Button"]). Rather than having to hunt down each component that is referenced by that controller service, the DFM has the ability to stop/disable them when disabling the controller service in question. When enabling a controller service, the DFM has the option to either start/enable the controller service and all referencing components or start/enable only the controller service itself.
+After a Controller Service has been configured, it must be enabled in order to run. Do this using the "Enable" button (image:iconEnable.png["Enable Button"]) in the far-right column of the Controller Services tab. In order to modify an existing/running controller service, the DFM needs to stop/disable it (as well as all referencing reporting tasks and controller services). Do this using the "Disable" button (image:iconDisable.png["Disable Button"]). Rather than having to hunt down each component that is referenced by that controller service, the DFM has the ability to stop/disable them when disabling the controller service in question. When enabling a controller service, the DFM has the option to either start/enable the controller service and all referencing components or start/enable only the controller service itself.
 
 image:enable-controller-service-scope.png["Enable Controller Service Scope"]
 
@@ -929,15 +1143,15 @@ The Add Reporting Task window opens. This window is similar to the Add Processor
 
 image:add-reporting-task-window.png["Add Reporting Task Window"]
 
-Once a Reporting Task has been added, the DFM may configure it by clicking the `Edit` button in the far-right column. Other buttons in this column include `Start`, `Remove`, `State` and `Access Policies`.
+Once a Reporting Task has been added, the DFM may configure it by clicking the "Edit" button in the far-right column. Other buttons in this column include "Start", "Remove", "State" and "Access Policies".
 
 image:reporting-tasks-edit-buttons.png["Reporting Tasks Edit Buttons"]
 
-You can obtain information about Reporting Tasks by clicking the `View Details`, `Usage`, and `Alerts` buttons in the left-hand column.
+You can obtain information about Reporting Tasks by clicking the "View Details", "Usage", and "Alerts" buttons in the left-hand column.
 
 image:reporting-tasks-info-buttons.png["Reporting Tasks Information Buttons"]
 
-When the DFM clicks the `Edit` button, a Configure Reporting Task window opens. It has three tabs: Settings, Properties, and Comments. This window is similar to the Configure Processor window. The Settings tab provides a place for the DFM to give the Reporting Task a unique name (if desired). It also lists the UUID, Type, and Bundle information for the task and provides settings for the task's Scheduling Strategy and Run Schedule (similar to the same settings in a processor). The DFM may hover the mouse over the question mark icons to see more information about each setting.
+When the DFM clicks the "Edit" button, a Configure Reporting Task window opens. It has three tabs: Settings, Properties, and Comments. This window is similar to the Configure Processor window. The Settings tab provides a place for the DFM to give the Reporting Task a unique name (if desired). It also lists the UUID, Type, and Bundle information for the task and provides settings for the task's Scheduling Strategy and Run Schedule (similar to the same settings in a processor). The DFM may hover the mouse over the question mark icons to see more information about each setting.
 
 image:configure-reporting-task-settings.png["Configure Reporting Task Settings"]
 
@@ -945,9 +1159,9 @@ The Properties tab lists the various properties that may be configured for the t
 
 image:configure-reporting-task-properties.png["Configure Reporting Task Properties"]
 
-The Comments tab is just an open-text field, where the DFM may include comments about the task. After configuring the Reporting Task, click the `Apply` button to apply the configuration and close the window, or click the `Cancel` button to cancel the changes and close the window.
+The Comments tab is just an open-text field, where the DFM may include comments about the task. After configuring the Reporting Task, click "Apply" to save the configuration and close the window, or click "Cancel" to discard the changes and close the window.
 
-When you want to run the Reporting Task, click the `Start` button (image:iconStart.png["Start Button"]).
+When you want to run the Reporting Task, click the "Start" button (image:iconStart.png["Start Button"]).
 
 
 [[Connecting_Components]]
@@ -1247,7 +1461,6 @@ NOTE: For information on how to configure access policies, see the
 link:administration-guide.html#access-policies[Access Policies] section of the
 link:administration-guide.html[System Administrator’s Guide].
 
-
 === Example Dataflow
 
 This section has described the steps required to build a dataflow. Now, to put it all together. The following example dataflow
@@ -1294,7 +1507,7 @@ In order to start a component, the following conditions must be met:
 - The component must have no active tasks. For more information about active tasks, see the "Anatomy of ..."
 sections under <<monitoring>> (<<processor_anatomy>>, <<process_group_anatomy>>, <<remote_group_anatomy>>).
 
-Components can be started by selecting all of the components to start and then clicking the `Start` button (
+Components can be started by selecting all of the components to start and then clicking the "Start" button (
 image:buttonStart.png["Start"]
 ) in the
 Operate Palette or by right-clicking a single component and choosing Start from the context menu.
@@ -1310,7 +1523,7 @@ image:iconRun.png["Run"]
 === Stopping a Component
 
 A component can be stopped any time that it is running. A component is stopped by right-clicking on the component
-and clicking Stop from the context menu, or by selecting the component and clicking the `Stop` button (
+and clicking Stop from the context menu, or by selecting the component and clicking the "Stop" button (
 image:buttonStop.png["Stop"]
 ) in the Operate Palette.
 
@@ -1334,8 +1547,7 @@ intentionally not running and those that may have been stopped temporarily (for 
 configuration) and inadvertently were never restarted.
 
 When it is desirable to re-enable a component, it can be enabled by selecting the component and
-clicking the `Enable` button (
-image:buttonEnable.png["Enable"]
+clicking the "Enable" button (image:buttonEnable.png["Enable"]
 ) in the Operate Palette. This is available only when the selected component or components are disabled.
 Alternatively, a component can be enabled by checking the checkbox next  to the "Enabled" option in
 the Settings tab of the Processor configuration dialog or the configuration dialog for a Port.
@@ -1346,7 +1558,7 @@ image:iconAlert.png["Invalid"]
 image:iconStop.png["Stopped"]
 ), depending on whether or not the component is valid.
 
-A component is then disabled by selecting the component and clicking the `Disable` button (
+A component is then disabled by selecting the component and clicking the "Disable" button (
 image:buttonDisable.png["Disable"]
 ) in the Operate Palette, or by clearing the checkbox next to the "Enabled" option in the Settings tab
 of the Processor configuration dialog or the configuration dialog for a Port.
@@ -1676,7 +1888,7 @@ The FlowFiles enqueued in a Connection can be viewed when necessary. The Queue l
 a Connection's context menu. The listing will return the top 100 FlowFiles in the active queue according to the
 configured priority. The listing can be performed even if the source and destination are actively running.
 
-Additionally, details for a Flowfile in the listing can be viewed by clicking the `Details` button (image:iconDetails.png["Details"]) in the left most column. From here, the FlowFile details and attributes are available as well as buttons for
+Additionally, details for a Flowfile in the listing can be viewed by clicking the "Details" button (image:iconDetails.png["Details"]) in the left most column. From here, the FlowFile details and attributes are available as well as buttons for
 downloading or viewing the content. Viewing the content is only available if the `nifi.content.viewer.url` has been configured.
 If the source or destination of the Connection are actively running, there is a chance that the desired FlowFile will
 no longer be in the active queue.
@@ -1686,7 +1898,8 @@ via `Empty queue` in the Connection's context menu. This action can also be perf
 are actively running.
 
 If the analytics prediction feature is enabled, hovering over the queue will also reveal predicted statistics on when the queue may encounter back pressure, either due to the object count or content size meeting the current threshold
-settings.  Predictions will only be available when NiFi has enough data in it's internal repository and if it's model is accurate enough to broadcast a prediction.
+settings.  Predictions will only be available when NiFi has enough data in its internal repository and if its model is accurate enough to broadcast a prediction. For more information, see the <<administration-guide.adoc#analytics_framework,Analytics Framework>> section in the System Administrator's Guide.
+
 
 [[Summary_Page]]
 === Summary Page
@@ -1729,8 +1942,8 @@ The Summary page also includes the following elements:
 - *Status History*: Clicking the Status History icon will open a new dialog that shows a historical view of the statistics that
 	are rendered for this component. See the section <<Status_History>> for more information.
 
-- *Refresh*: The `Refresh` button allows the user to refresh the information displayed without closing the dialog and opening it
-	again. The time at which the information was last refreshed is shown just to the right of the `Refresh` button. The information
+- *Refresh*: The "Refresh" button allows the user to refresh the information displayed without closing the dialog and opening it
+	again. The time at which the information was last refreshed is shown just to the right of the "Refresh" button. The information
 	on the page is not automatically refreshed.
 
 - *Filter*: The Filter element allows users to filter the contents of the Summary table by typing in all or part of some criteria,
@@ -1741,7 +1954,7 @@ The Summary page also includes the following elements:
 	entries exist in the table.
 
 - *Pop-Out*: When monitoring a flow, it is helpful to be able to open the Summary table in a separate browser tab or window. The
-	"Pop Out" button, next to the `Close` button, will cause the entire Summary dialog to be opened in a new browser tab or window
+	"Pop Out" button, next to the "Close" button, will cause the entire Summary dialog to be opened in a new browser tab or window
 	(depending on the configuration of the browser). Once the page is "popped out", the dialog is closed in the original
 	browser tab/window. In the new tab/window, the "Pop Out" button and the "Go To" button will no longer be available.
 
@@ -2127,16 +2340,14 @@ received from others can then be imported into an instance of NiFi and dragged o
 [[Create_Template]]
 === Creating a Template
 To create a Template, select the components that are to be a part of the template, and then click the
-`Create Template` (
-image:iconNewTemplate.png["Create Template"]
-) button in the Operate Palette (See <<User_Interface>> for more information on the Operate Palette).
+"Create Template" (image:iconNewTemplate.png["Create Template"]) button in the Operate Palette (See <<User_Interface>> for more information on the Operate Palette).
 
 Clicking this button without selecting anything will create a Template that contains all of the contents of the
 current Process Group. This means that creating a Template with nothing selected while on the Root Process Group
 will create a single Template that contains the entire flow.
 
 After clicking this button, the user is prompted to provide a name and an optional description for the template.
-Each template must have a unique name. After entering the name and optional description, clicking the `Create` button
+Each template must have a unique name. After entering the name and optional description, clicking the "Create" button
 will generate the template and notify the user that the template was successfully created, or provide an appropriate
 error message if unable to create the template for some reason.
 
@@ -2152,12 +2363,10 @@ After receiving a Template that has been exported from another NiFi, the first s
 the template into this instance of NiFi. You may import templates into any Process Group where you have the appropriate
 authorization.
 
-From the Operate Palette, click the `Upload Template` (
-image:iconUploadTemplate.png["Upload Template"]
-)  button (see <<User_Interface>> for more information on the Operate Palette).  This will display the Upload Template
+From the Operate Palette, click the "Upload Template" (image:iconUploadTemplate.png["Upload Template"]) button (see <<User_Interface>> for more information on the Operate Palette).  This will display the Upload Template
 dialog.  Click the find icon and use the File Selection dialog to choose which template file to upload.
 Select the file and click Open.
-Clicking the `Upload` button will attempt to import the Template into this instance of NiFi.
+Clicking the "Upload" button will attempt to import the Template into this instance of NiFi.
 The Upload Template dialog will update to show "Success" or an error message if there was a problem importing the template.
 
 
@@ -2169,7 +2378,7 @@ image:iconTemplate.png["Template"]
 ) from the Components Toolbar (see <<User_Interface>>) onto the canvas.
 
 This will present a dialog to choose which Template to add to the canvas. After choosing the Template to add, simply
-click the `Add` button. The Template will be added to the canvas with the upper-left-hand side of the Template
+click the "Add" button. The Template will be added to the canvas with the upper-left-hand side of the Template
 being placed wherever the user dropped the Template icon.
 
 This leaves the contents of the newly instantiated Template selected. If there was a mistake, and this Template is no
@@ -2190,16 +2399,13 @@ filter the templates to see only those of interest, export, and delete Templates
 ==== Exporting a Template
 Once a Template has been created, it can be shared with others in the Template Management page.
 To export a Template, locate the Template in the table. The Filter in the top-right corner
-can be used to help find the appropriate Template if several are available. Then click the `Download` button (
-image:iconDownloadTemplate.png["Export"]
-). This will download the template as an XML file to your computer. This XML file can then be sent to others and imported
-into other instances of NiFi (see <<Import_Template>>).
+can be used to help find the appropriate Template if several are available. Then click the "Download" button (image:iconDownloadTemplate.png["Export"]). This will download the template as an XML file to your computer. This XML file can then be sent to others and imported into other instances of NiFi (see <<Import_Template>>).
 
 
 ==== Removing a Template
 
 Once it is decided that a Template is no longer needed, it can be easily removed from the Template Management page. To delete a Template, locate it in the table (the Filter in the top-right corner
-may be used to find the appropriate Template if several are available) and click the `Delete` button (
+may be used to find the appropriate Template if several are available) and click the "Delete" button (
 image:iconDelete.png["Delete"]
 ). This will prompt for confirmation. After confirming the deletion, the Template will be removed from this table
 and will no longer be available to add to the canvas.
@@ -2257,7 +2463,7 @@ The provenance event types are:
 
 === Searching for Events
 One of the most common tasks performed in the Data Provenance page is a search for a given FlowFile to determine what happened to it. To do this,
-click the `Search` button in the upper-right corner of the Data Provenance page. This opens a dialog window with parameters that the user can
+click the "Search" button in the upper-right corner of the Data Provenance page. This opens a dialog window with parameters that the user can
 define for the search. The parameters include the processing event of interest, distinguishing characteristics about the FlowFile or the component that produced the event, the timeframe within which to search, and the size of the FlowFile.
 
 image:search-events.png["Search Events"]
@@ -2271,7 +2477,7 @@ image:search-receive-event-abc.png["Search for RECEIVE Event"]
 
 [[event_details]]
 === Details of an Event
-In the far-left column of the Data Provenance page, there is a `View Details` icon for each event (image:iconDetails.png["Details"]).
+In the far-left column of the Data Provenance page, there is a "View Details" icon for each event (image:iconDetails.png["Details"]).
 Clicking this button opens a dialog window with three tabs: Details, Attributes, and Content.
 
 image:event-details.png["Event Details", width=700]
@@ -2290,8 +2496,8 @@ image:event-attributes.png["Event Attributes", width=700]
 
 A DFM may need to inspect a FlowFile's content at some point in the dataflow to ensure that it is being processed as expected. And if it
 is not being processed properly, the DFM may need to make adjustments to the dataflow and replay the FlowFile again. The Content tab of the View Details dialog window is where the DFM can do these things. The Content tab shows information about the FlowFile's content, such as its location in the Content Repository
-and its size. In addition, it is here that the user may click the `Download` button to download a copy of the FlowFile's content as it existed
-at this point in the flow. The user may also click the `Submit` button to replay the FlowFile at this point in the flow. Upon clicking `Submit`,
+and its size. In addition, it is here that the user may click the "Download" button to download a copy of the FlowFile's content as it existed
+at this point in the flow. The user may also click the "Submit" button to replay the FlowFile at this point in the flow. Upon clicking "Submit",
 the FlowFile is sent to the connection feeding the component that produced this processing event.
 
 image:event-content.png["Event Content", width=700]
@@ -2360,7 +2566,7 @@ Many of the same system properties are supported by both the Persistent and Writ
 
 Once these property changes have been made, restart NiFi.
 
-**Note:** Detailed descriptions for each of these properties can be found in  <<administration-guide.adoc#system_properties,System Properties>>.
+**Note:** Detailed descriptions for each of these properties can be found in <<administration-guide.adoc#system_properties,System Properties>>.
 
 ==== Encrypted Provenance Considerations
 The above migration recommendations for `WriteAheadProvenanceRepository` also apply to the encrypted version of the configuration, `EncryptedWriteAheadProvenanceRepository`.
