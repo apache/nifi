@@ -412,6 +412,7 @@ public class TestSFTPTransferWithSSHTestServer {
             }
         }
     }
+
     @Test(expected = IOException.class)
     public void testDeleteDirectoryWhenDoesNotExist() throws IOException {
         final Map<PropertyDescriptor, String> properties = createBaseProperties();
