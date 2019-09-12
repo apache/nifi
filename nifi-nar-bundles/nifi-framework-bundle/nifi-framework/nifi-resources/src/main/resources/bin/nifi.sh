@@ -344,7 +344,7 @@ case "$1" in
     install)
         install "$@"
         ;;
-    start|stop|run|status|dump|env)
+    start|stop|run|status|dump|diagnostics|env)
         main "$@"
         ;;
     restart)
@@ -353,6 +353,6 @@ case "$1" in
         run "start"
         ;;
     *)
-        echo "Usage nifi {start|stop|run|restart|status|dump|install}"
+        echo "Usage nifi {start|stop|run|restart|status|dump|diagnostics|install}"
         ;;
 esac

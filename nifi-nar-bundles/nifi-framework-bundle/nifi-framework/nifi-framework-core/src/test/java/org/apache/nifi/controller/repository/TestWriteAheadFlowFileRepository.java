@@ -769,6 +769,11 @@ public class TestWriteAheadFlowFileRepository {
         }
 
         @Override
+        public String getQueueIdentifier(final String swapLocation) {
+            return null;
+        }
+
+        @Override
         public Set<String> getSwappedPartitionNames(FlowFileQueue queue) throws IOException {
             return Collections.emptySet();
         }

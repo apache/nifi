@@ -14,28 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi;
+package org.apache.nifi.diagnostics;
 
-import org.apache.nifi.bundle.Bundle;
-import org.apache.nifi.diagnostics.DiagnosticsFactory;
-import org.apache.nifi.nar.ExtensionMapping;
+import java.util.List;
 
-import java.util.Set;
+public class StandardDiagnosticsDumpElement implements DiagnosticsDumpElement {
+    private final String name;
+    private final List<String> details;
 
-/**
- *
- */
-public interface NiFiServer {
+    public StandardDiagnosticsDumpElement(final String name, final List<String> details) {
+        this.name = name;
+        this.details = details;
+    }
 
-    void start();
+    @Override
+    public String getName() {
+        return name;
+    }
 
-    void setExtensionMapping(ExtensionMapping extensionMapping);
-
-    void setBundles(Bundle systemBundle, Set<Bundle> bundles);
-
-    void stop();
-
-    DiagnosticsFactory getDiagnosticsFactory();
-
-    DiagnosticsFactory getThreadDumpFactory();
+    @Override
+    public List<String> getDetails() {
+        return details;
+    }
 }

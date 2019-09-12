@@ -167,6 +167,10 @@ public class NiFi {
         }
     }
 
+    NiFiServer getServer() {
+        return nifiServer;
+    }
+
     protected void setDefaultUncaughtExceptionHandler() {
         Thread.setDefaultUncaughtExceptionHandler(new UncaughtExceptionHandler() {
             @Override

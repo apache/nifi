@@ -793,6 +793,11 @@ public class TestRocksDBFlowFileRepository {
         }
 
         @Override
+        public String getQueueIdentifier(final String swapLocation) {
+            return null;
+        }
+
+        @Override
         public Set<String> getSwappedPartitionNames(FlowFileQueue queue) {
             return Collections.emptySet();
         }

@@ -224,6 +224,11 @@ public class TestFileSystemSwapManager {
         @Override
         public void freeze(ResourceClaim claim) {
         }
+
+        @Override
+        public boolean isDestructable(final ResourceClaim claim) {
+            return false;
+        }
     }
 
 }

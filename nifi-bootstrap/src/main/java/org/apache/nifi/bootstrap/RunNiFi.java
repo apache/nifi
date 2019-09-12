@@ -16,6 +16,13 @@
  */
 package org.apache.nifi.bootstrap;
 
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.bootstrap.notification.NotificationType;
+import org.apache.nifi.bootstrap.util.OSUtils;
+import org.apache.nifi.util.file.FileUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -60,12 +67,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.bootstrap.notification.NotificationType;
-import org.apache.nifi.bootstrap.util.OSUtils;
-import org.apache.nifi.util.file.FileUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * <p>
@@ -113,6 +114,7 @@ public class RunNiFi {
     public static final String SHUTDOWN_CMD = "SHUTDOWN";
     public static final String PING_CMD = "PING";
     public static final String DUMP_CMD = "DUMP";
+    public static final String DIAGNOSTICS_CMD = "DIAGNOSTICS";
 
     private volatile boolean autoRestartNiFi = true;
     private volatile int ccPort = -1;
@@ -137,7 +139,7 @@ public class RunNiFi {
     private volatile Set<Future<?>> loggingFutures = new HashSet<>(2);
     private final NotificationServiceManager serviceManager;
 
-    public RunNiFi(final File bootstrapConfigFile, final boolean verbose) throws IOException {
+    public RunNiFi(final File bootstrapConfigFile) throws IOException {
         this.bootstrapConfigFile = bootstrapConfigFile;
 
         loggingExecutor = Executors.newFixedThreadPool(2, new ThreadFactory() {
@@ -156,7 +158,7 @@ public class RunNiFi {
     private static void printUsage() {
         System.out.println("Usage:");
         System.out.println();
-        System.out.println("java org.apache.nifi.bootstrap.RunNiFi [<-verbose>] <command> [options]");
+        System.out.println("java org.apache.nifi.bootstrap.RunNiFi <command> [options]");
         System.out.println();
         System.out.println("Valid commands include:");
         System.out.println("");
@@ -165,6 +167,8 @@ public class RunNiFi {
         System.out.println("Restart : Stop Apache NiFi, if it is running, and then start a new instance");
         System.out.println("Status : Determine if there is a running instance of Apache NiFi");
         System.out.println("Dump : Write a Thread Dump to the file specified by [options], or to the log if no file is given");
+        System.out.println("Diagnostics : Write diagnostic information to the file specified by [options], or to the log if no file is given. The --verbose flag may be provided as an option before " +
+            "the filename, which may result in additional diagnostic information being written.");
         System.out.println("Run : Start a new instance of Apache NiFi and monitor the Process, restarting if the instance dies");
         System.out.println();
     }
@@ -181,17 +185,29 @@ public class RunNiFi {
 
         File dumpFile = null;
         boolean verbose = false;
-        if (args[0].equals("-verbose")) {
-            verbose = true;
-            args = shift(args);
-        }
 
         final String cmd = args[0];
-        if (cmd.equals("dump")) {
+        if (cmd.equalsIgnoreCase("dump")) {
             if (args.length > 1) {
                 dumpFile = new File(args[1]);
             } else {
                 dumpFile = null;
+            }
+        } else if (cmd.equalsIgnoreCase("diagnostics")) {
+            if (args.length > 2) {
+                verbose = args[1].equalsIgnoreCase("--verbose");
+                dumpFile = new File(args[2]);
+            } else if (args.length > 1) {
+                if (args[1].equalsIgnoreCase("--verbose")) {
+                    verbose = true;
+                    dumpFile = null;
+                } else {
+                    verbose = false;
+                    dumpFile = new File(args[1]);
+                }
+            } else {
+                dumpFile = null;
+                verbose = false;
             }
         }
 
@@ -201,6 +217,7 @@ public class RunNiFi {
             case "stop":
             case "status":
             case "dump":
+            case "diagnostics":
             case "restart":
             case "env":
                 break;
@@ -210,7 +227,7 @@ public class RunNiFi {
         }
 
         final File configFile = getDefaultBootstrapConfFile();
-        final RunNiFi runNiFi = new RunNiFi(configFile, verbose);
+        final RunNiFi runNiFi = new RunNiFi(configFile);
 
         Integer exitStatus = null;
         switch (cmd.toLowerCase()) {
@@ -233,6 +250,8 @@ public class RunNiFi {
             case "dump":
                 runNiFi.dump(dumpFile);
                 break;
+            case "diagnostics":
+                runNiFi.diagnostics(dumpFile, verbose);
             case "env":
                 runNiFi.env();
                 break;
@@ -672,6 +691,14 @@ public class RunNiFi {
     }
 
     /**
+     * Writes NiFi diagnostic information to the given file; if the file is null, logs at INFO level instead.
+     */
+    public void diagnostics(final File dumpFile, final boolean verbose) throws IOException {
+        final String args = verbose ? "--verbose=true" : null;
+        makeRequest(DIAGNOSTICS_CMD, args, dumpFile, "diagnostics information");
+    }
+
+    /**
      * Writes a NiFi thread dump to the given file; if file is null, logs at
      * INFO level instead.
      *
@@ -679,6 +706,10 @@ public class RunNiFi {
      * @throws IOException if any issues occur while writing the dump file
      */
     public void dump(final File dumpFile) throws IOException {
+        makeRequest(DUMP_CMD, null, dumpFile, "thread dump");
+    }
+
+    private void makeRequest(final String request, final String arguments, final File dumpFile, final String contentsDescription) throws IOException {
         final Logger logger = defaultLogger;    // dump to bootstrap log file by default
         final Integer port = getCurrentPort(logger);
         if (port == null) {
@@ -689,39 +720,47 @@ public class RunNiFi {
         final Properties nifiProps = loadProperties(logger);
         final String secretKey = nifiProps.getProperty("secret.key");
 
-        final StringBuilder sb = new StringBuilder();
-        try (final Socket socket = new Socket()) {
-            logger.debug("Connecting to NiFi instance");
-            socket.setSoTimeout(60000);
-            socket.connect(new InetSocketAddress("localhost", port));
-            logger.debug("Established connection to NiFi instance.");
-            socket.setSoTimeout(60000);
+        final OutputStream fileOut = dumpFile == null ? null : new FileOutputStream(dumpFile);
+        try {
+            try (final Socket socket = new Socket()) {
+                logger.debug("Connecting to NiFi instance");
+                socket.setSoTimeout(60000);
+                socket.connect(new InetSocketAddress("localhost", port));
+                logger.debug("Established connection to NiFi instance.");
+                socket.setSoTimeout(60000);
 
-            logger.debug("Sending DUMP Command to port {}", port);
-            final OutputStream out = socket.getOutputStream();
-            out.write((DUMP_CMD + " " + secretKey + "\n").getBytes(StandardCharsets.UTF_8));
-            out.flush();
+                logger.debug("Sending DUMP Command to port {}", port);
+                final OutputStream socketOut = socket.getOutputStream();
 
-            final InputStream in = socket.getInputStream();
-            try (final BufferedReader reader = new BufferedReader(new InputStreamReader(in))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    sb.append(line).append("\n");
+                if (arguments == null) {
+                    socketOut.write((request + " " + secretKey + "\n").getBytes(StandardCharsets.UTF_8));
+                } else {
+                    socketOut.write((request + " " + secretKey + " " + arguments + "\n").getBytes(StandardCharsets.UTF_8));
+                }
+
+                socketOut.flush();
+
+                final InputStream in = socket.getInputStream();
+                try (final BufferedReader reader = new BufferedReader(new InputStreamReader(in))) {
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        if (fileOut == null) {
+                            logger.info(line);
+                        } else {
+                            fileOut.write(line.getBytes(StandardCharsets.UTF_8));
+                            fileOut.write('\n');
+                        }
+                    }
                 }
             }
-        }
-
-        final String dump = sb.toString();
-        if (dumpFile == null) {
-            logger.info(dump);
-        } else {
-            try (final FileOutputStream fos = new FileOutputStream(dumpFile)) {
-                fos.write(dump.getBytes(StandardCharsets.UTF_8));
+        } finally {
+            if (fileOut != null) {
+                fileOut.close();
+                cmdLogger.info("Successfully wrote {} to {}", contentsDescription, dumpFile.getAbsolutePath());
             }
-            // we want to log to the console (by default) that we wrote the thread dump to the specified file
-            cmdLogger.info("Successfully wrote thread dump to {}", dumpFile.getAbsolutePath());
         }
     }
+
 
     public void notifyStop() {
         final String hostname = getHostname();
