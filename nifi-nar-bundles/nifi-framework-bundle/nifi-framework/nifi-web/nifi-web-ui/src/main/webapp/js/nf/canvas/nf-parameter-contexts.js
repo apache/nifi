@@ -1995,8 +1995,10 @@
 
     /**
      * Loads the parameter contexts.
+     *
+     * @param parameterContextToSelect   id of the parameter context to select in the grid
      */
-    var loadParameterContexts = function () {
+    var loadParameterContexts = function (parameterContextToSelect) {
         var parameterContexts = $.Deferred(function (deferred) {
             $.ajax({
                 type: 'GET',
@@ -2026,6 +2028,21 @@
             parameterContextsData.setItems(contexts);
             parameterContextsData.reSort();
             parameterContextsGrid.invalidate();
+
+            // if we are pre-selecting a specific parameter context, get the row to select
+            if (nfCommon.isDefinedAndNotNull(parameterContextToSelect)) {
+                var parameterContextRow = null;
+                $.each(contexts, function (i, contextEntity) {
+                    if (contextEntity.id === parameterContextToSelect) {
+                        parameterContextRow = parameterContextsData.getRowById(parameterContextToSelect);
+                        return false;
+                    }
+                });
+                if (parameterContextRow !== null) {
+                    // select the desired row
+                    parameterContextsGrid.setSelectedRows([parameterContextRow]);
+                }
+            }
         }).fail(nfErrorHandler.handleAjaxError);
     };
 
@@ -2360,13 +2377,15 @@
 
         /**
          * Shows the parameter context dialog.
+         *
+         * @param id         The parameter context id to select
          */
-        showParameterContexts: function () {
+        showParameterContexts: function (id) {
             // conditionally allow creation of new parameter contexts
             $('#new-parameter-context').prop('disabled', !nfCommon.canModifyParameterContexts());
 
             // load the parameter contexts
-            return loadParameterContexts().done(showParameterContexts);
+            return loadParameterContexts(id).done(showParameterContexts);
         },
 
         /**

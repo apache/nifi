@@ -26,9 +26,10 @@
                 'nf.ContextMenu',
                 'nf.ClusterSummary',
                 'nf.ErrorHandler',
-                'nf.Settings'],
-            function ($, nfCommon, nfDialog, nfCanvasUtils, nfContextMenu, nfClusterSummary, nfErrorHandler, nfSettings) {
-                return (nf.ng.Canvas.FlowStatusCtrl = factory($, nfCommon, nfDialog, nfCanvasUtils, nfContextMenu, nfClusterSummary, nfErrorHandler, nfSettings));
+                'nf.Settings',
+                'nf.ParameterContexts'],
+            function ($, nfCommon, nfDialog, nfCanvasUtils, nfContextMenu, nfClusterSummary, nfErrorHandler, nfSettings, nfParameterContexts) {
+                return (nf.ng.Canvas.FlowStatusCtrl = factory($, nfCommon, nfDialog, nfCanvasUtils, nfContextMenu, nfClusterSummary, nfErrorHandler, nfSettings, nfParameterContexts));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ng.Canvas.FlowStatusCtrl =
@@ -39,7 +40,8 @@
                 require('nf.ContextMenu'),
                 require('nf.ClusterSummary'),
                 require('nf.ErrorHandler'),
-                require('nf.Settings')));
+                require('nf.Settings'),
+                require('nf.ParameterContexts')));
     } else {
         nf.ng.Canvas.FlowStatusCtrl = factory(root.$,
             root.nf.Common,
@@ -48,9 +50,10 @@
             root.nf.ContextMenu,
             root.nf.ClusterSummary,
             root.nf.ErrorHandler,
-            root.nf.Settings);
+            root.nf.Settings,
+            root.nf.ParameterContexts);
     }
-}(this, function ($, nfCommon, nfDialog, nfCanvasUtils, nfContextMenu, nfClusterSummary, nfErrorHandler, nfSettings) {
+}(this, function ($, nfCommon, nfDialog, nfCanvasUtils, nfContextMenu, nfClusterSummary, nfErrorHandler, nfSettings, nfParameterContexts) {
     'use strict';
 
     return function (serviceProvider) {
@@ -145,7 +148,7 @@
                             if (!nfCommon.isEmpty(searchResults.processorResults)) {
                                 ul.append('<li class="search-header"><div class="search-result-icon icon icon-processor"></div>Processors</li>');
                                 $.each(searchResults.processorResults, function (i, processorMatch) {
-                                    nfSearchAutocomplete._renderItem(ul, processorMatch);
+                                    nfSearchAutocomplete._renderItem(ul, $.extend({}, processorMatch, { type: 'processor' }));
                                 });
                             }
 
@@ -153,7 +156,7 @@
                             if (!nfCommon.isEmpty(searchResults.processGroupResults)) {
                                 ul.append('<li class="search-header"><div class="search-result-icon icon icon-group"></div>Process Groups</li>');
                                 $.each(searchResults.processGroupResults, function (i, processGroupMatch) {
-                                    nfSearchAutocomplete._renderItem(ul, processGroupMatch);
+                                    nfSearchAutocomplete._renderItem(ul, $.extend({}, processGroupMatch, { type: 'process group' }));
                                 });
                             }
 
@@ -161,7 +164,7 @@
                             if (!nfCommon.isEmpty(searchResults.remoteProcessGroupResults)) {
                                 ul.append('<li class="search-header"><div class="search-result-icon icon icon-group-remote"></div>Remote Process Groups</li>');
                                 $.each(searchResults.remoteProcessGroupResults, function (i, remoteProcessGroupMatch) {
-                                    nfSearchAutocomplete._renderItem(ul, remoteProcessGroupMatch);
+                                    nfSearchAutocomplete._renderItem(ul, $.extend({}, remoteProcessGroupMatch, { type: 'remote process group' }));
                                 });
                             }
 
@@ -169,7 +172,7 @@
                             if (!nfCommon.isEmpty(searchResults.connectionResults)) {
                                 ul.append('<li class="search-header"><div class="search-result-icon icon icon-connect"></div>Connections</li>');
                                 $.each(searchResults.connectionResults, function (i, connectionMatch) {
-                                    nfSearchAutocomplete._renderItem(ul, connectionMatch);
+                                    nfSearchAutocomplete._renderItem(ul, $.extend({}, connectionMatch, { type: 'connection' }));
                                 });
                             }
 
@@ -177,7 +180,7 @@
                             if (!nfCommon.isEmpty(searchResults.inputPortResults)) {
                                 ul.append('<li class="search-header"><div class="search-result-icon icon icon-port-in"></div>Input Ports</li>');
                                 $.each(searchResults.inputPortResults, function (i, inputPortMatch) {
-                                    nfSearchAutocomplete._renderItem(ul, inputPortMatch);
+                                    nfSearchAutocomplete._renderItem(ul, $.extend({}, inputPortMatch, { type: 'input port' }));
                                 });
                             }
 
@@ -185,7 +188,7 @@
                             if (!nfCommon.isEmpty(searchResults.outputPortResults)) {
                                 ul.append('<li class="search-header"><div class="search-result-icon icon icon-port-out"></div>Output Ports</li>');
                                 $.each(searchResults.outputPortResults, function (i, outputPortMatch) {
-                                    nfSearchAutocomplete._renderItem(ul, outputPortMatch);
+                                    nfSearchAutocomplete._renderItem(ul, $.extend({}, outputPortMatch, { type: 'output port' }));
                                 });
                             }
 
@@ -193,7 +196,23 @@
                             if (!nfCommon.isEmpty(searchResults.funnelResults)) {
                                 ul.append('<li class="search-header"><div class="search-result-icon icon icon-funnel"></div>Funnels</li>');
                                 $.each(searchResults.funnelResults, function (i, funnelMatch) {
-                                    nfSearchAutocomplete._renderItem(ul, funnelMatch);
+                                    nfSearchAutocomplete._renderItem(ul, $.extend({}, funnelMatch, { type: 'funnel' }));
+                                });
+                            }
+
+                            // show all parameter contexts and parameters
+                            if (!nfCommon.isEmpty(searchResults.parameterContextResults)) {
+                                ul.append('<li class="search-header"><div class="search-result-icon icon"></div>Parameter Contexts</li>');
+                                $.each(searchResults.parameterContextResults, function (i, parameterContextMatch) {
+                                    nfSearchAutocomplete._renderItem(ul, $.extend({}, parameterContextMatch, { type: 'parameter context' }));
+                                });
+                            }
+
+                            // show all parameters
+                            if (!nfCommon.isEmpty(searchResults.parameterResults)) {
+                                ul.append('<li class="search-header"><div class="search-result-icon icon"></div>Parameters</li>');
+                                $.each(searchResults.parameterResults, function (i, parameterMatch) {
+                                    nfSearchAutocomplete._renderItem(ul, $.extend({}, parameterMatch, { type: 'parameter' }));
                                 });
                             }
 
@@ -204,21 +223,36 @@
                         },
                         _renderItem: function (ul, match) {
                             var itemHeader = $('<div class="search-match-header"></div>').text(match.name);
+                            var itemContent = $('<a></a>').append(itemHeader);
 
-                            var parentGroupHeader = $('<div class="search-match-header"></div>').append(document.createTextNode('Parent: '));
-                            var parentGroup = match.parentGroup.name ? match.parentGroup.name : match.parentGroup.id;
-                            parentGroupHeader = parentGroupHeader.append($('<span></span>').text(parentGroup));
+                            if (match.type !== 'parameter context' && match.type !== 'parameter') {
+                                var parentGroupHeader = $('<div class="search-match-header"></div>').append(document.createTextNode('Parent: '));
+                                var parentGroup = '-';
+                                if (nfCommon.isDefinedAndNotNull(match.parentGroup)) {
+                                    parentGroup = match.parentGroup.name ? match.parentGroup.name : match.parentGroup.id;
+                                }
+                                parentGroupHeader = parentGroupHeader.append($('<span></span>').text(parentGroup));
 
-                            var versionedGroupHeader = $('<div class="search-match-header"></div>').append(document.createTextNode('Versioned: '));
-                            var versionedGroup = '-';
+                                var versionedGroupHeader = $('<div class="search-match-header"></div>').append(document.createTextNode('Versioned: '));
+                                var versionedGroup = '-';
 
-                            if (nfCommon.isDefinedAndNotNull(match.versionedGroup)) {
-                                versionedGroup = match.versionedGroup.name ? match.versionedGroup.name : match.versionedGroup.id;
+                                if (nfCommon.isDefinedAndNotNull(match.versionedGroup)) {
+                                    versionedGroup = match.versionedGroup.name ? match.versionedGroup.name : match.versionedGroup.id;
+                                }
+
+                                versionedGroupHeader = versionedGroupHeader.append($('<span></span>').text(versionedGroup));
+                                // create a search item wrapper
+                                itemContent.append(parentGroupHeader).append(versionedGroupHeader);
+                            } else if (match.type === 'parameter') {
+                                var paramContextHeader = $('<div class="search-match-header"></div>').append(document.createTextNode('Parameter Context: '));
+                                var paramContext = '-';
+                                if (nfCommon.isDefinedAndNotNull(match.parentGroup)) {
+                                    paramContext = match.parentGroup.name ? match.parentGroup.name : match.parentGroup.id;
+                                }
+                                paramContextHeader = paramContextHeader.append($('<span></span>').text(paramContext));
+                                itemContent.append(paramContextHeader);
                             }
 
-                            versionedGroupHeader = versionedGroupHeader.append($('<span></span>').text(versionedGroup));
-                            // create a search item wrapper
-                            var itemContent = $('<a></a>').append(itemHeader).append(parentGroupHeader).append(versionedGroupHeader);
                             // append all matches
                             $.each(match.matches, function (i, match) {
                                 itemContent.append($('<div class="search-match"></div>').text(match));
@@ -251,10 +285,22 @@
                         },
                         select: function (event, ui) {
                             var item = ui.item;
-                            var group = item.parentGroup;
 
-                            // show the selected component
-                            nfCanvasUtils.showComponent(group.id, item.id);
+                            switch (item.type) {
+                                case 'parameter context':
+                                    nfParameterContexts.showParameterContexts(item.id);
+                                    break;
+                                case 'parameter':
+                                    var paramContext = item.parentGroup;
+                                    nfParameterContexts.showParameterContext(paramContext.id, null, item.name);
+                                    break;
+                                default:
+                                    var group = item.parentGroup;
+
+                                    // show the selected component
+                                    nfCanvasUtils.showComponent(group.id, item.id);
+                                    break;
+                            }
 
                             searchCtrl.getInputElement().val('').blur();
 
