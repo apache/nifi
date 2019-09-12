@@ -18,7 +18,8 @@
 package org.apache.nifi.hbase.mapcache;
 
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.components.Validator;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 
 public interface MapCacheVisibility {
     PropertyDescriptor VISIBILITY_EXPRESSION = new PropertyDescriptor.Builder()
@@ -26,7 +27,8 @@ public interface MapCacheVisibility {
         .displayName("Visibility Expression")
         .description("The default visibility expression to apply to cells when visibility expression support is enabled.")
         .defaultValue("")
-        .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
+        .addValidator(Validator.VALID)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .required(false)
         .build();
 }

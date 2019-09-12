@@ -125,7 +125,11 @@ public class HBase_2_ClientMapCacheService extends AbstractControllerService imp
         hBaseColumnQualifierBytes = hBaseColumnQualifier.getBytes(StandardCharsets.UTF_8);
 
         authorizations = VisibilityLabelUtils.getAuthorizations(context);
-        defaultVisibilityExpression = context.getProperty(VISIBILITY_EXPRESSION).evaluateAttributeExpressions().getValue();
+        if (context.getProperty(VISIBILITY_EXPRESSION).isSet()) {
+            defaultVisibilityExpression = context.getProperty(VISIBILITY_EXPRESSION).evaluateAttributeExpressions().getValue();
+        } else {
+            defaultVisibilityExpression = null;
+        }
     }
 
     private <T> byte[] serialize(final T value, final Serializer<T> serializer) throws IOException {
