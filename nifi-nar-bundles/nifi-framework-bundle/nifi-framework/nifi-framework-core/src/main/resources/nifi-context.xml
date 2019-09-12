@@ -30,7 +30,7 @@
     <!-- flow file event repository -->
     <bean id="flowFileEventRepository" class="org.apache.nifi.spring.RingBufferEventRepositoryBean">
     </bean>
-    
+
     <bean id="stringEncryptor" class="org.apache.nifi.encrypt.StringEncryptor" factory-method="createEncryptor">
         <constructor-arg ref="nifiProperties" />
     </bean>
@@ -64,9 +64,14 @@
         <property name="encryptor" ref="stringEncryptor" />
         <property name="authorizer" ref="authorizer" />
     </bean>
-    
+
     <!-- bulletin repository -->
     <bean id="bulletinRepository" class="org.apache.nifi.events.VolatileBulletinRepository" />
+
+    <bean id="diagnosticsFactory" class="org.apache.nifi.diagnostics.bootstrap.BootstrapDiagnosticsFactory">
+        <property name="flowController" ref="flowController" />
+        <property name="nifiProperties" ref="nifiProperties" />
+    </bean>
 
     <bean id="eventReporter" class="org.apache.nifi.events.StandardEventReporter">
         <constructor-arg ref="bulletinRepository" />

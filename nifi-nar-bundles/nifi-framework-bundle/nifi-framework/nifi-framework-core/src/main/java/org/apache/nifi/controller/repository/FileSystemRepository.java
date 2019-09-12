@@ -512,6 +512,32 @@ public class FileSystemRepository implements ContentRepository {
         }
     }
 
+    @Override
+    public boolean isActiveResourceClaimsSupported() {
+        return true;
+    }
+
+    @Override
+    public Set<ResourceClaim> getActiveResourceClaims(final String containerName) throws IOException {
+        final Path containerPath = containers.get(containerName);
+        if (containerPath == null) {
+            return Collections.emptySet();
+        }
+
+        final ScanForActiveResourceClaims scan = new ScanForActiveResourceClaims(containerPath, containerName, resourceClaimManager, containers.keySet());
+        Files.walkFileTree(containerPath, scan);
+
+        final Set<ResourceClaim> activeResourceClaims = scan.getActiveResourceClaims();
+
+        LOG.debug("Obtaining active resource claims, will return a list of {} resource claims for container {}", activeResourceClaims.size(), containerName);
+        if (LOG.isTraceEnabled()) {
+            LOG.trace("Listing of resource claims:");
+            activeResourceClaims.forEach(claim -> LOG.trace(claim.toString()));
+        }
+
+        return activeResourceClaims;
+    }
+
     private Path getPath(final ContentClaim claim) {
         final ResourceClaim resourceClaim = claim.getResourceClaim();
         return getPath(resourceClaim);
@@ -1789,4 +1815,81 @@ public class FileSystemRepository implements ContentRepository {
         }
         return cleanupInterval;
     }
+
+
+    private static class ScanForActiveResourceClaims extends SimpleFileVisitor<Path> {
+        private static final Pattern SECTION_NAME_PATTERN = Pattern.compile("\\d{0,4}");
+        private final String containerName;
+        private final ResourceClaimManager resourceClaimManager;
+        private final Set<String> containerNames;
+        private final Path rootPath;
+
+        private final Set<ResourceClaim> activeResourceClaims = new HashSet<>();
+        private String sectionName = null;
+
+        public ScanForActiveResourceClaims(final Path rootPath, final String containerName, final ResourceClaimManager resourceClaimManager, final Set<String> containerNames) {
+            this.rootPath = rootPath;
+            this.containerName = containerName;
+            this.resourceClaimManager = resourceClaimManager;
+            this.containerNames = containerNames;
+        }
+
+        public Set<ResourceClaim> getActiveResourceClaims() {
+            return activeResourceClaims;
+        }
+
+        @Override
+        public FileVisitResult visitFileFailed(Path file, IOException exc) throws IOException {
+            LOG.warn("Content repository contains un-readable file or directory '" + file.getFileName() + "'. Skipping. ", exc);
+            return FileVisitResult.SKIP_SUBTREE;
+        }
+
+        @Override
+        public FileVisitResult preVisitDirectory(final Path dir, final BasicFileAttributes attrs) throws IOException {
+            if (dir.equals(rootPath)) {
+                return FileVisitResult.CONTINUE;
+            }
+
+            // Check if this is an 'archive' directory
+            final String dirName = dir.toFile().getName();
+
+            if (containerNames.contains(dirName)) {
+                LOG.debug("Obtaining active resource claims, will traverse into Container {}", dirName);
+                return FileVisitResult.CONTINUE;
+            }
+
+            if (SECTION_NAME_PATTERN.matcher(dirName).matches()) {
+                LOG.debug("Obtaining active resource claims, will traverse into Section {}", dirName);
+                sectionName = dirName;
+                return FileVisitResult.CONTINUE;
+            } else {
+                LOG.debug("Obtaining active resource claims, will NOT traverse into sub-directory {}", dirName);
+                return FileVisitResult.SKIP_SUBTREE;
+            }
+        }
+
+        @Override
+        public FileVisitResult visitFile(final Path path, final BasicFileAttributes attrs) throws IOException {
+            if (attrs.isDirectory()) {
+                return FileVisitResult.CONTINUE;
+            }
+
+            final File file = path.toFile();
+            if (sectionName == null || !sectionName.equals(file.getParentFile().getName())) {
+                LOG.debug("Obtaining active resource claims, will NOT consider {} because its parent is not the current section", file);
+                return FileVisitResult.CONTINUE;
+            }
+
+            final String identifier = file.getName();
+            ResourceClaim resourceClaim = resourceClaimManager.getResourceClaim(containerName, sectionName, identifier);
+            if (resourceClaim == null) {
+                resourceClaim = resourceClaimManager.newResourceClaim(containerName, sectionName, identifier, false, false);
+            }
+
+            activeResourceClaims.add(resourceClaim);
+
+            return FileVisitResult.CONTINUE;
+        }
+    }
+
 }

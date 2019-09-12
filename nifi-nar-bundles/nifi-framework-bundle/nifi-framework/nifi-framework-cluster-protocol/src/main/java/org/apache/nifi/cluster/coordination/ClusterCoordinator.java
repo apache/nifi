@@ -281,4 +281,14 @@ public interface ClusterCoordinator {
      * @param eventListener the event listener to stop notifying
      */
     void unregisterEventListener(ClusterTopologyEventListener eventListener);
+
+    default String summarizeClusterState() {
+        final StringBuilder sb = new StringBuilder();
+        for (final NodeIdentifier nodeId : getNodeIdentifiers()) {
+            sb.append(nodeId.getFullDescription()).append(" : ").append(getConnectionStatus(nodeId));
+            sb.append("\n");
+        }
+
+        return sb.toString();
+    }
 }

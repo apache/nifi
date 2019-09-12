@@ -16,15 +16,16 @@
  */
 package org.apache.nifi.controller.repository;
 
+import org.apache.nifi.controller.repository.claim.ContentClaim;
+import org.apache.nifi.controller.repository.claim.ResourceClaim;
+import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Set;
-
-import org.apache.nifi.controller.repository.claim.ContentClaim;
-import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 
 /**
  * Defines the capabilities of a content repository. Append options are not
@@ -283,4 +284,24 @@ public interface ContentRepository {
      * @throws IOException if unable to determine accessibility
      */
     boolean isAccessible(ContentClaim contentClaim) throws IOException;
+
+    /**
+     * Optional operation that returns a List of all Resource Claims that exist in the given Container that are considered "active" (i.e., not archived)
+     * @param containerName the name of the container
+     * @return a List of all Resource Claims that exist in the given Container
+     * @throws IOException if unable to obtain a listing due to an IO failure
+     * @throws UnsupportedOperationException if this repository does not implement this capability.
+     * @see #isActiveResourceClaimsSupported()
+     */
+    default Set<ResourceClaim> getActiveResourceClaims(String containerName) throws IOException {
+        throw new UnsupportedOperationException();
+    }
+
+    /**
+     * Indicates whether or not the repository supports obtaining a list of active Resource Claims via the {@link #getActiveResourceClaims(String)} method
+     * @return <code>true</code> if the operation is supported, <code>false</code> otherwise
+     */
+    default boolean isActiveResourceClaimsSupported() {
+        return false;
+    }
 }

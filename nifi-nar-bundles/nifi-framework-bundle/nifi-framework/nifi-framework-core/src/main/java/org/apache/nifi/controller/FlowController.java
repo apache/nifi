@@ -1794,6 +1794,10 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
         return repositoryContextFactory;
     }
 
+    public ClusterCoordinator getClusterCoordinator() {
+        return clusterCoordinator;
+    }
+
     /**
      * Creates a connection between two Connectable objects.
      *
@@ -2299,7 +2303,9 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
         }
     }
 
-
+    public LeaderElectionManager getLeaderElectionManager() {
+        return leaderElectionManager;
+    }
 
     /**
      * @return true if this instance is the primary node in the cluster; false
