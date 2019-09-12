@@ -28,12 +28,14 @@ import org.apache.nifi.distributed.cache.client.AtomicDistributedMapCacheClient;
 import org.apache.nifi.distributed.cache.client.Deserializer;
 import org.apache.nifi.distributed.cache.client.Serializer;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.hbase.mapcache.MapCacheVisibility;
 import org.apache.nifi.hbase.put.PutColumn;
 import org.apache.nifi.hbase.scan.Column;
 import org.apache.nifi.hbase.scan.ResultCell;
 import org.apache.nifi.hbase.scan.ResultHandler;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.util.StringUtils;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -50,7 +52,8 @@ import static org.apache.nifi.hbase.VisibilityLabelUtils.AUTHORIZATIONS;
 @CapabilityDescription("Provides the ability to use an HBase table as a cache, in place of a DistributedMapCache."
     + " Uses a HBase_2_ClientService controller to communicate with HBase.")
 
-public class HBase_2_ClientMapCacheService extends AbstractControllerService implements AtomicDistributedMapCacheClient<byte[]> {
+public class HBase_2_ClientMapCacheService extends AbstractControllerService implements AtomicDistributedMapCacheClient<byte[]>,
+        MapCacheVisibility {
 
     static final PropertyDescriptor HBASE_CLIENT_SERVICE = new PropertyDescriptor.Builder()
         .name("HBase Client Service")
@@ -90,6 +93,7 @@ public class HBase_2_ClientMapCacheService extends AbstractControllerService imp
         final List<PropertyDescriptor> descriptors = new ArrayList<>();
         descriptors.add(HBASE_CACHE_TABLE_NAME);
         descriptors.add(AUTHORIZATIONS);
+        descriptors.add(VISIBILITY_EXPRESSION);
         descriptors.add(HBASE_CLIENT_SERVICE);
         descriptors.add(HBASE_COLUMN_FAMILY);
         descriptors.add(HBASE_COLUMN_QUALIFIER);
@@ -107,6 +111,7 @@ public class HBase_2_ClientMapCacheService extends AbstractControllerService imp
     private volatile byte[] hBaseColumnQualifierBytes;
 
     private List<String> authorizations;
+    private String defaultVisibilityExpression;
 
     @OnEnabled
     public void onConfigured(final ConfigurationContext context) throws InitializationException{
@@ -120,6 +125,7 @@ public class HBase_2_ClientMapCacheService extends AbstractControllerService imp
         hBaseColumnQualifierBytes = hBaseColumnQualifier.getBytes(StandardCharsets.UTF_8);
 
         authorizations = VisibilityLabelUtils.getAuthorizations(context);
+        defaultVisibilityExpression = context.getProperty(VISIBILITY_EXPRESSION).evaluateAttributeExpressions().getValue();
     }
 
     private <T> byte[] serialize(final T value, final Serializer<T> serializer) throws IOException {
@@ -137,7 +143,7 @@ public class HBase_2_ClientMapCacheService extends AbstractControllerService imp
 
       final byte[] rowIdBytes = serialize(key, keySerializer);
       final byte[] valueBytes = serialize(value, valueSerializer);
-      final PutColumn putColumn = new PutColumn(hBaseColumnFamilyBytes, hBaseColumnQualifierBytes, valueBytes);
+      final PutColumn putColumn = new PutColumn(hBaseColumnFamilyBytes, hBaseColumnQualifierBytes, valueBytes, defaultVisibilityExpression);
 
       return hBaseClientService.checkAndPut(hBaseCacheTableName, rowIdBytes, hBaseColumnFamilyBytes, hBaseColumnQualifierBytes, null, putColumn);
     }
@@ -149,7 +155,7 @@ public class HBase_2_ClientMapCacheService extends AbstractControllerService imp
         final byte[] rowIdBytes = serialize(key, keySerializer);
         final byte[] valueBytes = serialize(value, valueSerializer);
 
-        final PutColumn putColumn = new PutColumn(hBaseColumnFamilyBytes, hBaseColumnQualifierBytes, valueBytes);
+        final PutColumn putColumn = new PutColumn(hBaseColumnFamilyBytes, hBaseColumnQualifierBytes, valueBytes, defaultVisibilityExpression);
         putColumns.add(putColumn);
 
         hBaseClientService.put(hBaseCacheTableName, rowIdBytes, putColumns);
@@ -254,7 +260,7 @@ public class HBase_2_ClientMapCacheService extends AbstractControllerService imp
         final byte[] rowIdBytes = serialize(entry.getKey(), keySerializer);
         final byte[] valueBytes = serialize(entry.getValue(), valueSerializer);
         final byte[] revision = entry.getRevision().orElse(null);
-        final PutColumn putColumn = new PutColumn(hBaseColumnFamilyBytes, hBaseColumnQualifierBytes, valueBytes);
+        final PutColumn putColumn = new PutColumn(hBaseColumnFamilyBytes, hBaseColumnQualifierBytes, valueBytes, defaultVisibilityExpression);
 
         // If the current revision is unset then only insert the row if it doesn't already exist.
         return hBaseClientService.checkAndPut(hBaseCacheTableName, rowIdBytes, hBaseColumnFamilyBytes, hBaseColumnQualifierBytes, revision, putColumn);

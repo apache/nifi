@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.hbase.put;
 
+import org.apache.nifi.util.StringUtils;
+
 /**
  * Encapsulates the information for one column of a put operation.
  */
@@ -32,6 +34,10 @@ public class PutColumn {
         this(columnFamily, columnQualifier, buffer, null, null);
     }
 
+    public PutColumn(final byte[] columnFamily, final byte[] columnQualifier, final byte[] buffer, final String visibility) {
+        this(columnFamily, columnQualifier, buffer, null, visibility);
+    }
+
     public PutColumn(final byte[] columnFamily, final byte[] columnQualifier, final byte[] buffer, final Long timestamp) {
         this(columnFamily, columnQualifier, buffer, timestamp, null);
     }
@@ -41,7 +47,7 @@ public class PutColumn {
         this.columnQualifier = columnQualifier;
         this.buffer = buffer;
         this.timestamp = timestamp;
-        this.visibility = visibility;
+        this.visibility = !StringUtils.isEmpty(visibility) ? visibility : null;
     }
 
     public byte[] getColumnFamily() {
