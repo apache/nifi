@@ -615,7 +615,8 @@
                     // load the parameters
                     parametersLoaded = new $.Deferred(function (deferred) {
                         loadParameters(propertyDescriptor, function (parameterListing) {
-                            parameterListing.forEach(function (parameter) {
+                            var sortedParams = _.sortBy(parameterListing, 'name');
+                            sortedParams.forEach(function (parameter) {
                                 parameterOptions.push({
                                     text: parameter.name,
                                     value: '#{' + parameter.name + '}',
