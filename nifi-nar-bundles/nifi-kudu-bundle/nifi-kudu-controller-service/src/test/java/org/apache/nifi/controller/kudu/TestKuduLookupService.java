@@ -26,6 +26,7 @@ import org.apache.kudu.client.KuduSession;
 import org.apache.kudu.client.KuduTable;
 import org.apache.kudu.client.PartialRow;
 import org.apache.kudu.test.KuduTestHarness;
+import org.apache.kudu.util.DecimalUtil;
 import org.apache.nifi.lookup.LookupFailureException;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -38,6 +39,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
+import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -80,7 +82,11 @@ public class TestKuduLookupService {
         columns.add(new ColumnSchema.ColumnSchemaBuilder("string", Type.STRING).key(true).build());
         columns.add(new ColumnSchema.ColumnSchemaBuilder("binary", Type.BINARY).build());
         columns.add(new ColumnSchema.ColumnSchemaBuilder("bool", Type.BOOL).build());
-        //columns.add(new ColumnSchema.ColumnSchemaBuilder("decimal", Type.DECIMAL).build());
+        columns.add(new ColumnSchema
+                .ColumnSchemaBuilder("decimal", Type.DECIMAL)
+                .typeAttributes(DecimalUtil.typeAttributes(DecimalUtil.MAX_DECIMAL64_PRECISION, 1))
+                .build()
+        );
         columns.add(new ColumnSchema.ColumnSchemaBuilder("double", Type.DOUBLE).build());
         columns.add(new ColumnSchema.ColumnSchemaBuilder("float", Type.FLOAT).build());
         columns.add(new ColumnSchema.ColumnSchemaBuilder("int8", Type.INT8).build());
@@ -101,7 +107,7 @@ public class TestKuduLookupService {
         row.addString("string", "string1");
         row.addBinary("binary", "binary1".getBytes());
         row.addBoolean("bool",true);
-        //row.addDecimal("decimal", new BigDecimal(0.1));
+        row.addDecimal("decimal", BigDecimal.valueOf(0.1));
         row.addDouble("double",0.2);
         row.addFloat("float",0.3f);
         row.addByte("int8", (byte) 1);
@@ -116,7 +122,7 @@ public class TestKuduLookupService {
         row.addString("string", "string2");
         row.addBinary("binary", "binary2".getBytes());
         row.addBoolean("bool",false);
-        //row.addDecimal("decimal", new BigDecimal(1.1));
+        row.addDecimal("decimal", BigDecimal.valueOf(0.1));
         row.addDouble("double",1.2);
         row.addFloat("float",1.3f);
         row.addByte("int8", (byte) 11);
@@ -178,7 +184,7 @@ public class TestKuduLookupService {
         map.put("string", "string1");
         map.put("binary", "binary1".getBytes());
         map.put("bool",true);
-        //map.put("decimal", new BigDecimal(0.1));
+        map.put("decimal", BigDecimal.valueOf(0.1));
         map.put("double",0.2);
         map.put("float",0.3f);
         map.put("int8", (byte) 1);
@@ -209,14 +215,14 @@ public class TestKuduLookupService {
         assertEquals("string1", result.getAsString("string"));
         assertEquals(Base64.getEncoder().encodeToString("binary1".getBytes()), result.getValue("binary"));
         assertEquals(true, result.getAsBoolean("bool"));
-        //assertEquals(0.1, result.getValue("decimal"));
+        assertEquals(BigDecimal.valueOf(0.1), result.getValue("decimal"));
         assertEquals(0.2, result.getAsDouble("double"),0);
         assertEquals(0.3f, result.getAsFloat("float"),0);
         assertEquals((byte)1, result.getValue("int8"));
         assertEquals((short)2, result.getValue("int16"));
         assertEquals(3, (int)result.getAsInt("int32"));
         assertEquals(4L, (long)result.getAsLong("int64"));
-        assertEquals(nowMillis*1000, (long)result.getValue("unixtime_micros"),1000*1000*3600L); // 1 hour
+        assertEquals(new Timestamp(nowMillis), result.getValue("unixtime_micros"));
     }
 
 }

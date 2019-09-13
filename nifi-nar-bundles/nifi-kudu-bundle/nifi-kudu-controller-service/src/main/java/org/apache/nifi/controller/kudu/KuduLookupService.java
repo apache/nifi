@@ -26,7 +26,6 @@ import org.apache.kudu.client.KuduPredicate;
 import org.apache.kudu.client.KuduScanner;
 import org.apache.kudu.client.KuduTable;
 import org.apache.kudu.client.RowResult;
-import org.apache.kudu.client.RowResultIterator;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
@@ -37,7 +36,6 @@ import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.kerberos.KerberosCredentialsService;
-import org.apache.nifi.lookup.LookupFailureException;
 import org.apache.nifi.lookup.RecordLookupService;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
@@ -52,8 +50,6 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 
 import javax.security.auth.login.LoginException;
-import java.math.BigDecimal;
-import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
@@ -68,12 +64,13 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 
-@CapabilityDescription("Lookup a record from Kudu Server associated with the specified key. Binary columns are base64 encoded")
+@CapabilityDescription("Lookup a record from Kudu Server associated with the specified key. Binary columns are base64 encoded. Only one matched row will be returned")
 @Tags({"lookup", "enrich", "key", "value", "kudu"})
 public class KuduLookupService extends AbstractControllerService implements RecordLookupService {
 
     static final PropertyDescriptor KUDU_MASTERS = new PropertyDescriptor.Builder()
-            .name("Kudu Masters")
+            .name("kudu-lu-masters")
+            .displayName("Kudu Masters")
             .description("Comma separated addresses of the Kudu masters to connect to.")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -81,7 +78,7 @@ public class KuduLookupService extends AbstractControllerService implements Reco
             .build();
 
     static final PropertyDescriptor KERBEROS_CREDENTIALS_SERVICE = new PropertyDescriptor.Builder()
-            .name("kerberos-credentials-service")
+            .name("kudu-lu-kerberos-credentials-service")
             .displayName("Kerberos Credentials Service")
             .description("Specifies the Kerberos Credentials to use for authentication")
             .required(false)
@@ -89,7 +86,7 @@ public class KuduLookupService extends AbstractControllerService implements Reco
             .build();
 
     static final PropertyDescriptor KUDU_OPERATION_TIMEOUT_MS = new PropertyDescriptor.Builder()
-            .name("kudu-operations-timeout-ms")
+            .name("kudu-lu-operations-timeout-ms")
             .displayName("Kudu Operation Timeout")
             .description("Default timeout used for user operations (using sessions and scanners)")
             .required(false)
@@ -98,19 +95,9 @@ public class KuduLookupService extends AbstractControllerService implements Reco
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
-    static final PropertyDescriptor KUDU_KEEP_ALIVE_PERIOD_TIMEOUT_MS = new PropertyDescriptor.Builder()
-            .name("kudu-keep-alive-period-timeout-ms")
-            .displayName("Kudu Keep Alive Period Timeout")
-            .description("Default timeout used for user operations")
-            .required(false)
-            .defaultValue(AsyncKuduClient.DEFAULT_KEEP_ALIVE_PERIOD_MS + "ms")
-            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .build();
-
     public static final PropertyDescriptor TABLE_NAME = new PropertyDescriptor.Builder()
-            .name("table-name")
-            .displayName("Table Name")
+            .name("kudu-lu-table-name")
+            .displayName("Kudu Table Name")
             .description("Name of the table to access.")
             .required(true)
             .defaultValue("default")
@@ -120,7 +107,7 @@ public class KuduLookupService extends AbstractControllerService implements Reco
 
     static final PropertyDescriptor RETURN_COLUMNS = new PropertyDescriptor.Builder()
             .name("kudu-lu-return-cols")
-            .displayName("Columns")
+            .displayName("Kudu Return Columns")
             .description("A comma-separated list of columns to return when scanning. To return all columns set to \"*\"")
             .required(true)
             .defaultValue("*")
@@ -149,7 +136,6 @@ public class KuduLookupService extends AbstractControllerService implements Reco
         properties.add(KUDU_MASTERS);
         properties.add(KERBEROS_CREDENTIALS_SERVICE);
         properties.add(KUDU_OPERATION_TIMEOUT_MS);
-        properties.add(KUDU_KEEP_ALIVE_PERIOD_TIMEOUT_MS);
         properties.add(TABLE_NAME);
         properties.add(RETURN_COLUMNS);
         addProperties(properties);
@@ -181,11 +167,9 @@ public class KuduLookupService extends AbstractControllerService implements Reco
     }
     protected KuduClient buildClient(final String masters, final ConfigurationContext context) {
         final Integer operationTimeout = context.getProperty(KUDU_OPERATION_TIMEOUT_MS).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
-        final Integer adminOperationTimeout = context.getProperty(KUDU_KEEP_ALIVE_PERIOD_TIMEOUT_MS).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
 
         return new KuduClient.KuduClientBuilder(masters)
                 .defaultOperationTimeoutMs(operationTimeout)
-                .defaultSocketReadTimeoutMs(adminOperationTimeout)
                 .build();
     }
     /**
@@ -235,67 +219,37 @@ public class KuduLookupService extends AbstractControllerService implements Reco
         return properties;
     }
     @Override
-    public Optional<Record> lookup(Map<String, Object> coordinates) throws LookupFailureException {
+    public Optional<Record> lookup(Map<String, Object> coordinates) {
 
         //Scanner
         KuduScanner.KuduScannerBuilder builder = kuduClient.newScannerBuilder(table);
 
         builder.setProjectedColumnNames(columnNames);
 
+        //Only expecting one match
+        builder.limit(1);
+
         coordinates.forEach((key,value)->
-                builder.addPredicate(createPredicate(tableSchema.getColumn(key), KuduPredicate.ComparisonOp.EQUAL, value))
+                builder.addPredicate(KuduPredicate.newComparisonPredicate(tableSchema.getColumn(key), KuduPredicate.ComparisonOp.EQUAL, value))
         );
 
         KuduScanner kuduScanner = builder.build();
 
-        //run lookup
-        try {
-            if (kuduScanner.hasMoreRows()) {
-                RowResultIterator resultIterator = kuduScanner.nextRows();
-                final Map<String, Object> values = new HashMap<>();
-
-                //Only need first row
-                if (resultIterator.hasNext()) {
-                    RowResult result  = resultIterator.next();
-
-                    for(String columnName : columnNames){
-                        values.put(columnName,getObject(result,columnName));
-                    }
-                    return Optional.of(new MapRecord(resultSchema, values));
+        //Run lookup
+        for ( RowResult row : kuduScanner){
+            final Map<String, Object> values = new HashMap<>();
+            for(String columnName : columnNames){
+                Object object = row.getObject(columnName);
+                if(row.getColumnType(columnName) == Type.BINARY){
+                    object = Base64.getEncoder().encodeToString(row.getBinaryCopy(columnName));
                 }
+                values.put(columnName, object);
             }
-        } catch (KuduException ex) {
-            throw new LookupFailureException("Failed to lookup from Kudu using these coordinates " + coordinates,ex);
+            return Optional.of(new MapRecord(resultSchema, values));
         }
-        //no match
-        return Optional.empty();
-    }
 
-    private KuduPredicate createPredicate(ColumnSchema columnSchema,KuduPredicate.ComparisonOp comparisonOp, Object obj){
-        if(obj instanceof Boolean)
-            return KuduPredicate.newComparisonPredicate(columnSchema, comparisonOp, (Boolean)obj);
-        else if(obj instanceof Double)
-            return KuduPredicate.newComparisonPredicate(columnSchema, comparisonOp, (Double)obj);
-        else if(obj instanceof Float)
-            return KuduPredicate.newComparisonPredicate(columnSchema, comparisonOp, (Float)obj);
-        else if(obj instanceof String)
-            return KuduPredicate.newComparisonPredicate(columnSchema, comparisonOp, (String)obj);
-        else if(obj instanceof BigDecimal)
-            return KuduPredicate.newComparisonPredicate(columnSchema, comparisonOp, (BigDecimal)obj);
-        else if(obj instanceof Long)
-            return KuduPredicate.newComparisonPredicate(columnSchema, comparisonOp, (Long)obj);
-        else if(obj instanceof Integer)
-            return KuduPredicate.newComparisonPredicate(columnSchema, comparisonOp, (Integer)obj);
-        else if(obj instanceof Timestamp)
-            return KuduPredicate.newComparisonPredicate(columnSchema, comparisonOp, (Timestamp) obj);
-        else if(obj instanceof byte[])
-            return KuduPredicate.newComparisonPredicate(columnSchema, comparisonOp, (byte[]) obj);
-        else if(obj instanceof Byte)
-            return KuduPredicate.newComparisonPredicate(columnSchema, comparisonOp, (Byte) obj);
-        else if(obj instanceof Short)
-            return KuduPredicate.newComparisonPredicate(columnSchema, comparisonOp, (Short) obj);
-        else
-            throw new IllegalArgumentException("Unknown object type: "+obj.getClass().getCanonicalName());
+        //No match
+        return Optional.empty();
     }
     private List<String> getColumns(String columns){
         if(columns.equals("*")){
@@ -310,6 +264,9 @@ public class KuduLookupService extends AbstractControllerService implements Reco
     private RecordSchema kuduSchemaToNiFiSchema(Schema kuduTableSchema, List<String> columnNames){
         final List<RecordField> fields = new ArrayList<>();
         for(String columnName : columnNames) {
+            if(!kuduTableSchema.hasColumn(columnName)){
+                throw new IllegalArgumentException("Column not found in Kudu table schema " + columnName);
+            }
             ColumnSchema cs = kuduTableSchema.getColumn(columnName);
             switch (cs.getType()) {
                 case INT8:
@@ -322,13 +279,18 @@ public class KuduLookupService extends AbstractControllerService implements Reco
                     fields.add(new RecordField(cs.getName(), RecordFieldType.INT.getDataType()));
                     break;
                 case INT64:
-                case UNIXTIME_MICROS:
                     fields.add(new RecordField(cs.getName(), RecordFieldType.LONG.getDataType()));
+                    break;
+                case UNIXTIME_MICROS:
+                    fields.add(new RecordField(cs.getName(), RecordFieldType.TIMESTAMP.getDataType()));
                     break;
                 case BINARY:
                 case STRING:
-                case DECIMAL:
                     fields.add(new RecordField(cs.getName(), RecordFieldType.STRING.getDataType()));
+                    break;
+                case DECIMAL:
+                case DOUBLE:
+                    fields.add(new RecordField(cs.getName(), RecordFieldType.DOUBLE.getDataType()));
                     break;
                 case BOOL:
                     fields.add(new RecordField(cs.getName(), RecordFieldType.BOOLEAN.getDataType()));
@@ -336,40 +298,9 @@ public class KuduLookupService extends AbstractControllerService implements Reco
                 case FLOAT:
                     fields.add(new RecordField(cs.getName(), RecordFieldType.FLOAT.getDataType()));
                     break;
-                case DOUBLE:
-                    fields.add(new RecordField(cs.getName(), RecordFieldType.DOUBLE.getDataType()));
-                    break;
             }
         }
         return new SimpleRecordSchema(fields);
-    }
-    private Object getObject(RowResult result, String columnName) {
-        Type type = result.getColumnType(columnName);
-        switch (type) {
-            case INT8:
-                return result.getByte(columnName);
-            case INT16:
-                return result.getShort(columnName);
-            case INT32:
-                return result.getInt(columnName);
-            case INT64:
-            case UNIXTIME_MICROS:
-                return result.getLong(columnName);
-            case BINARY:
-                return  Base64.getEncoder().encodeToString(result.getBinaryCopy(columnName));
-            case STRING:
-            case DECIMAL:
-                return result.getString(columnName);
-            case BOOL:
-                return result.getBoolean(columnName);
-            case FLOAT:
-                return result.getFloat(columnName);
-            case DOUBLE:
-                return result.getDouble(columnName);
-            default:
-                throw new IllegalArgumentException("Unknown object type: "+type.getName());
-
-        }
     }
     /**
      * Disconnect from the Kudu cluster.
