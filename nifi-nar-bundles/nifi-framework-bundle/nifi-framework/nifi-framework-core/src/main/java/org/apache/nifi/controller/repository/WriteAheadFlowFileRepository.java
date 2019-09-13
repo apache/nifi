@@ -24,6 +24,7 @@ import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.wali.SequentialAccessWriteAheadLog;
+import org.bouncycastle.util.encoders.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.wali.MinimalLockingWriteAheadLog;
@@ -171,10 +172,11 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
                 final String dirName = nifiProperties.getProperty(propertyName);
                 recoveryFiles.add(new File(dirName));
             }
-            if (propertyName.startsWith(FLOWFILE_ENCRYPTION_KEY)) {
-                String keyMaterial = nifiProperties.getProperty(propertyName);
-                cipherKey = new SecretKeySpec(keyMaterial.getBytes(), "AES");
-            }
+        }
+
+        String keyMaterial = nifiProperties.getFlowFileRepositoryEncryptionKey();
+        if (StringUtils.isNotBlank(keyMaterial)) {
+            cipherKey = new SecretKeySpec(Hex.decode(keyMaterial), "AES");
         }
 
         if (walImplementation.equals(SEQUENTIAL_ACCESS_WAL)) {

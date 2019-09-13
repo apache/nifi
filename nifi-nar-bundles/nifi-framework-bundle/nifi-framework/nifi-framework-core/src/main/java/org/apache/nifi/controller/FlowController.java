@@ -778,12 +778,11 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
 
                     @Override
                     public SecretKey getCipherSecretKey() {
-                        // this is a temporary bit of  copy pasta, goes away when we get an interface
-                        // for "repo encryption key"
-                        String key = nifiProperties.getProperty("nifi.flowfile.repository.encryrption.key.1");
-                        if (StringUtils.isNotBlank(key))
-                            return new SecretKeySpec(Hex.decode(key), "AES");
-                        return null;
+                        String material = nifiProperties.getFlowFileRepositoryEncryptionKey();
+                        SecretKey key = null;
+                        if (StringUtils.isNotBlank(material))
+                            key = new SecretKeySpec(Hex.decode(material), "AES");
+                        return key;
                     }
                 };
 

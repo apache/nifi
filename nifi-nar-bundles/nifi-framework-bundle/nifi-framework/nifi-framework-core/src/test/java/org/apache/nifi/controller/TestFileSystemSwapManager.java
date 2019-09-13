@@ -25,7 +25,6 @@ import org.apache.nifi.controller.repository.claim.ResourceClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.stream.io.StreamUtils;
-import org.bouncycastle.util.encoders.Hex;
 import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -41,6 +40,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Paths;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -55,7 +55,7 @@ public class TestFileSystemSwapManager {
 
     @Test
     public void testBackwardCompatible() throws IOException {
-        for (SecretKey secretKey : getSecretKeys()) {
+        for (SecretKey secretKey : createSecretKeys()) {
             try (final InputStream fis = new FileInputStream(new File("src/test/resources/old-swap-file.swap"));
                  final DataInputStream in = new DataInputStream(new BufferedInputStream(fis))) {
 
@@ -78,7 +78,7 @@ public class TestFileSystemSwapManager {
 
     @Test
     public void testFailureOnRepoSwapOut() throws IOException {
-        for (SecretKey secretKey : getSecretKeys()) {
+        for (SecretKey secretKey : createSecretKeys()) {
             final FlowFileQueue flowFileQueue = Mockito.mock(FlowFileQueue.class);
             when(flowFileQueue.getIdentifier()).thenReturn("87bb99fe-412c-49f6-a441-d1b0af4e20b4");
 
@@ -104,7 +104,7 @@ public class TestFileSystemSwapManager {
 
     @Test
     public void testSwapFileUnknownToRepoNotSwappedIn() throws IOException {
-        for (SecretKey secretKey : getSecretKeys()) {
+        for (SecretKey secretKey : createSecretKeys()) {
             final FlowFileQueue flowFileQueue = Mockito.mock(FlowFileQueue.class);
             when(flowFileQueue.getIdentifier()).thenReturn("");
 
@@ -244,9 +244,11 @@ public class TestFileSystemSwapManager {
         }
     }
 
-    private static SecretKey[] getSecretKeys() {
-        SecretKey[] keys = new SecretKey[2];
-        keys[0] =  new SecretKeySpec(Hex.decode("00000000000000000000000000000000"), "AES");
-        return keys;
+    private static SecretKey[] createSecretKeys() {
+        SecureRandom random = new SecureRandom();
+        byte[] key = new byte[32];
+        random.nextBytes(key);
+
+        return new SecretKey[]{null, new SecretKeySpec(key, "AES")};
     }
 }

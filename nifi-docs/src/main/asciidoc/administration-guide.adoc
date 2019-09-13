@@ -2612,6 +2612,21 @@ The default value is 1.
 The default value is 600 sec.
 |====
 
+=== Encrypted FlowFile Repository
+
+When the `WriteAheadFlowFileRepository` implementation is used, FlowFile repositories can have transparent, authenticated encryption and decryption applied to FlowFile
+data as it is streamed to and from disk.
+
+The encryption is activated when the following keys are present:
+
+|====
+|*Property*|*Description*
+|`nifi.flowfile.repository.encryption.key`|The key to use for `StaticKeyProvider`. The key format is hex-encoded (`0123456789ABCDEFFEDCBA98765432100123456789ABCDEFFEDCBA9876543210`) but can also be encrypted using the `./encrypt-config.sh` tool in NiFi Toolkit (see the <<toolkit-guide.adoc#encrypt_config_tool,Encrypt-Config Tool>> section in the link:toolkit-guide.html[NiFi Toolkit Guide] for more information).
+|`nifi.flowfile.repository.encryption.key.id.*`|Allows for additional keys to be specified for the `StaticKeyProvider`. For example, the line `nifi.flowfile.repository.encryption.key.id.Key2=012...210` would provide an available key `Key2`.
+|====
+
+Refer to the <<user-guide.adoc#encrypted-flowfile,Encrypted FlowFile Repository in the User Guide>> for more information.
+
 === Swap Management
 
 NiFi keeps FlowFile information in memory (the JVM)

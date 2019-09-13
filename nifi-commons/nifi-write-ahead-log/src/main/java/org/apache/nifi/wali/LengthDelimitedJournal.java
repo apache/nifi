@@ -69,7 +69,6 @@ public class LengthDelimitedJournal<T> implements WriteAheadJournal<T> {
     private final int maxInHeapSerializationBytes;
 
     private SerDe<T> serde;
-    private OutputStream topOut;
     private FileOutputStream fileOut;
     private BufferedOutputStream bufferedOut;
     private final SecretKey cipherKey;
@@ -138,10 +137,9 @@ public class LengthDelimitedJournal<T> implements WriteAheadJournal<T> {
     }
 
     private synchronized OutputStream getOutputStream() throws IOException {
-        if (topOut == null) {
+        if (bufferedOut == null) {
             fileOut = new FileOutputStream(journalFile);
-            topOut = cipherKey == null ? fileOut : new SimpleCipherOutputStream(fileOut, cipherKey);
-            bufferedOut = new BufferedOutputStream(topOut);
+            bufferedOut = new BufferedOutputStream(cipherKey == null ? fileOut : new SimpleCipherOutputStream(fileOut, cipherKey));
         }
 
         return bufferedOut;
@@ -397,12 +395,12 @@ public class LengthDelimitedJournal<T> implements WriteAheadJournal<T> {
         closed = true;
 
         try {
-            if (topOut != null) {
+            if (bufferedOut != null) {
                 if (!poisoned) {
-                    topOut.write(JOURNAL_COMPLETE);
+                    bufferedOut.write(JOURNAL_COMPLETE);
                 }
 
-                topOut.close();
+                bufferedOut.close();
             }
         } catch (final IOException ioe) {
             poison(ioe);

@@ -2439,6 +2439,39 @@ When switching between implementation "families" (i.e. `VolatileProvenanceReposi
 * Multiple repositories -- No additional effort or testing has been applied to multiple repositories at this time. It is possible/likely issues will occur with repositories on different physical devices. There is no option to provide a heterogenous environment (i.e. one encrypted, one plaintext repository).
 * Corruption -- when a disk is filled or corrupted, there have been reported issues with the repository becoming corrupted and recovery steps are necessary. This is likely to continue to be an issue with the encrypted repository, although still limited in scope to individual records (i.e. an entire repository file won't be irrecoverable due to the encryption).
 
+[[encrypted-flowfile]]
+=== Encrypted FlowFile Repository
+In a manner similar to the other encrypted repository implementations, the FlowFile repository can be encrypted at rest.
+
+[WARNING]
+.Performance
+============
+The performance guidance for Encrypted FlowFiles Repositories is the same as for the Encrypted Provenance Repository.  Notably, switching back and forth between implementations is not recommended.
+============
+
+==== What is it?
+
+Each of the classes that interacts with disk streams for the FlowFile repository have been updated to include support for transparent encryption/decryption via cipher streams.
+
+==== How does it work?
+
+When activated, these streams use an AES cipher in AEAD mode to provide authenticated encryption.  Authenticated encryption ensures that encrypted data has not been altered, which
+means that FlowFile data that has been tampered with is not loaded or used.
+
+===== Keys and Key Rotation
+The `StaticKeyProvider` implementation (as described in the Encrypted Provenance Repository section) is used for Encrypted FlowFile keys.
+
+Keys can be rotated in the same manner as described in the Encrypted Provenance Repository section.
+
+==== Potential Issues
+
+In general, the guidance from other encrypted repository implementations applies to Encrypted FlowFile Repositories.  Specifically:
+
+* Switching between unencrypted and encrypted repositories is not supported.
+* Multiple repositories -- No additional effort or testing has been applied to multiple repositories at this time. It is possible/likely issues will occur with repositories on different physical devices. There is no option to provide a heterogeneous environment (i.e. one encrypted, one plaintext repository).
+* Corruption -- when an encrypted FlowFile is closed cleanly or corrupted, an error is logged and the FlowFile is not loaded.
+
+
 [[other_management_features]]
 == Other Management Features
 
