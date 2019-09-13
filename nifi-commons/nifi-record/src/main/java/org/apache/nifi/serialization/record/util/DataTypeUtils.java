@@ -33,6 +33,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.InputStream;
 import java.io.Reader;
+import java.lang.reflect.Array;
 import java.math.BigInteger;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -47,19 +48,25 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Queue;
 import java.util.Set;
 import java.util.TimeZone;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public class DataTypeUtils {
     private static final Logger logger = LoggerFactory.getLogger(DataTypeUtils.class);
@@ -225,17 +232,109 @@ public class DataTypeUtils {
     }
 
     public static DataType chooseDataType(final Object value, final ChoiceDataType choiceType) {
-        for (final DataType subType : choiceType.getPossibleSubTypes()) {
-            if (isCompatibleDataType(value, subType)) {
-                if (subType.getFieldType() == RecordFieldType.CHOICE) {
-                    return chooseDataType(value, (ChoiceDataType) subType);
-                }
+        Queue<DataType> possibleSubTypes = new LinkedList<>(choiceType.getPossibleSubTypes());
+        Set<DataType> possibleSimpleSubTypes = new HashSet<>();
 
-                return subType;
+        while (possibleSubTypes.peek() != null) {
+            DataType subType = possibleSubTypes.poll();
+            if (subType instanceof ChoiceDataType) {
+                possibleSubTypes.addAll(((ChoiceDataType) subType).getPossibleSubTypes());
+            } else {
+                possibleSimpleSubTypes.add(subType);
             }
         }
 
-        return null;
+        List<DataType> compatibleSimpleSubTypes = possibleSimpleSubTypes.stream()
+                .filter(subType -> isCompatibleDataType(value, subType))
+                .collect(Collectors.toList());
+
+        int nrOfCompatibleSimpleSubTypes = compatibleSimpleSubTypes.size();
+
+        DataType chosenSimpleType;
+        if (nrOfCompatibleSimpleSubTypes == 0) {
+            chosenSimpleType = null;
+        } else if (nrOfCompatibleSimpleSubTypes == 1) {
+            chosenSimpleType = compatibleSimpleSubTypes.get(0);
+        } else {
+            chosenSimpleType = findMostSuitableType(value, compatibleSimpleSubTypes, Function.identity())
+                    .orElse(compatibleSimpleSubTypes.get(0));
+        }
+
+        return chosenSimpleType;
+    }
+
+    public static <T> Optional<T> findMostSuitableType(Object value, List<T> types, Function<T, DataType> dataTypeMapper) {
+        final Optional<T> mostSuitableType;
+
+        Optional<DataType> inferredDataTypeOptional = Optional.ofNullable(inferDataType(value, null))
+                .filter(dataType -> !dataType.getFieldType().equals(RecordFieldType.STRING));
+
+        if (value instanceof String) {
+            mostSuitableType = findMostSuitableTypeByStringValue((String) value, types, dataTypeMapper);
+        } else if (inferredDataTypeOptional.isPresent()) {
+            DataType inferredDataType = inferredDataTypeOptional.get();
+
+            Optional<T> inferredTypeOptional = types.stream()
+                    .filter(type -> dataTypeMapper.apply(type).equals(inferredDataType))
+                    .findFirst();
+
+            if (inferredTypeOptional.isPresent()) {
+                mostSuitableType = inferredTypeOptional;
+            } else {
+                Optional<T> widerAvailableTypeOptional = types.stream()
+                        .map(type -> getWiderType(dataTypeMapper.apply(type), inferredDataType).isPresent() ? type : null)
+                        .filter(Objects::nonNull)
+                        .findFirst();
+
+                if (widerAvailableTypeOptional.isPresent()) {
+                    mostSuitableType = widerAvailableTypeOptional;
+                } else {
+                    mostSuitableType = Optional.empty();
+                }
+            }
+        } else {
+            mostSuitableType = Optional.empty();
+        }
+
+        return mostSuitableType;
+    }
+
+    public static <T> Optional<T> findMostSuitableTypeByStringValue(String valueAsString, List<T> types, Function<T, DataType> dataTypeMapper) {
+        Optional<T> mostSuitableType = types.stream()
+                // Sorting based on the RecordFieldType enum ordering looks appropriate here as we want simpler types
+                //  first and the enum's ordering seems to reflect that
+                .sorted((type1, type2) -> {
+                            int comparison;
+
+                            RecordFieldType dataType1 = dataTypeMapper.apply(type1).getFieldType();
+                            RecordFieldType dataType2 = dataTypeMapper.apply(type2).getFieldType();
+
+                            // Moving TIMESTAMP at the front (at least it should precede DATE)
+                            if (dataType1 == RecordFieldType.TIMESTAMP) {
+                                comparison = -1;
+                            } else if (dataType2 == RecordFieldType.TIMESTAMP) {
+                                comparison = 1;
+                            } else {
+                                comparison = dataType1.compareTo(dataType2);
+                            }
+
+                            return comparison;
+                        }
+                )
+                .filter(type -> {
+                    boolean compatible;
+
+                    try {
+                        compatible = isCompatibleDataType(valueAsString, dataTypeMapper.apply(type));
+                    } catch (Exception e) {
+                        compatible = false;
+                    }
+
+                    return compatible;
+                })
+                .findFirst();
+
+        return mostSuitableType;
     }
 
     public static Record toRecord(final Object value, final RecordSchema recordSchema, final String fieldName) {
@@ -440,12 +539,12 @@ public class DataTypeUtils {
 //            final DataType elementDataType = inferDataType(valueFromMap, RecordFieldType.STRING.getDataType());
 //            return RecordFieldType.MAP.getMapDataType(elementDataType);
         }
-        if (value instanceof Object[]) {
-            final Object[] array = (Object[]) value;
-
+        if (value.getClass().isArray()) {
             DataType mergedDataType = null;
-            for (final Object arrayValue : array) {
-                final DataType inferredDataType = inferDataType(arrayValue, RecordFieldType.STRING.getDataType());
+
+            int length = Array.getLength(value);
+            for(int index = 0; index < length; index++) {
+                final DataType inferredDataType = inferDataType(Array.get(value, index), RecordFieldType.STRING.getDataType());
                 mergedDataType = mergeDataTypes(mergedDataType, inferredDataType);
             }
 
@@ -1545,7 +1644,10 @@ public class DataTypeUtils {
                 possibleTypes.add(otherDataType);
             }
 
-            return RecordFieldType.CHOICE.getChoiceDataType(new ArrayList<>(possibleTypes));
+            ArrayList<DataType> possibleChildTypes = new ArrayList<>(possibleTypes);
+            Collections.sort(possibleChildTypes, Comparator.comparing(DataType::getFieldType));
+
+            return RecordFieldType.CHOICE.getChoiceDataType(possibleChildTypes);
         }
     }
 

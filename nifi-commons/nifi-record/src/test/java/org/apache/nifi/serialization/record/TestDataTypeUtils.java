@@ -18,6 +18,7 @@
 package org.apache.nifi.serialization.record;
 
 import org.apache.nifi.serialization.SimpleRecordSchema;
+import org.apache.nifi.serialization.record.type.ChoiceDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.apache.nifi.serialization.record.util.IllegalTypeConversionException;
 import org.junit.Test;
@@ -27,10 +28,17 @@ import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -323,5 +331,200 @@ public class TestDataTypeUtils {
             e = itce;
         }
         assertNotNull(e);
+    }
+    @Test
+    public void testChooseDataTypeWhenInt_vs_INT_FLOAT_ThenShouldReturnINT() {
+        // GIVEN
+        List<DataType> dataTypes = Arrays.asList(
+                RecordFieldType.INT.getDataType(),
+                RecordFieldType.FLOAT.getDataType()
+        );
+
+        Object value = 1;
+        DataType expected = RecordFieldType.INT.getDataType();
+
+        // WHEN
+        // THEN
+        runWithNormalAndReverseInput(this::testChooseDataType, input(dataTypes, value), expected);
+    }
+
+    @Test
+    public void testChooseDataTypeWhenFloat_vs_INT_FLOAT_ThenShouldReturnFLOAT() {
+        // GIVEN
+        List<DataType> dataTypes = Arrays.asList(
+                RecordFieldType.INT.getDataType(),
+                RecordFieldType.FLOAT.getDataType()
+        );
+
+        Object value = 1.5f;
+        DataType expected = RecordFieldType.FLOAT.getDataType();
+
+        // WHEN
+        // THEN
+        runWithNormalAndReverseInput(this::testChooseDataType, input(dataTypes, value), expected);
+    }
+
+    @Test
+    public void testChooseDataTypeWhenHasChoiceThenShouldReturnSingleMatchingFromChoice() {
+        // GIVEN
+        List<DataType> dataTypes = Arrays.asList(
+                RecordFieldType.INT.getDataType(),
+                RecordFieldType.DOUBLE.getDataType(),
+                RecordFieldType.CHOICE.getChoiceDataType(
+                        RecordFieldType.FLOAT.getDataType(),
+                        RecordFieldType.STRING.getDataType()
+                )
+        );
+
+        Object value = 1.5f;
+        DataType expected = RecordFieldType.FLOAT.getDataType();
+
+        // WHEN
+        // THEN
+        runWithNormalAndReverseInput(this::testChooseDataType, input(dataTypes, value), expected);
+    }
+
+    private <E> void runWithNormalAndReverseInput(BiFunction<Input, E, ?> test, Input input, E expected) {
+        test.apply(input, expected);
+        Collections.reverse(input.dataTypes);
+        test.apply(input, expected);
+    }
+
+    private Void testChooseDataType(Input input, DataType expected) {
+        // GIVEN
+        List<DataType> dataTypes = input.dataTypes;
+        Object value = input.value;
+
+        ChoiceDataType choiceDataType = (ChoiceDataType) RecordFieldType.CHOICE.getChoiceDataType(dataTypes.toArray(new DataType[dataTypes.size()]));
+
+        // WHEN
+        DataType actual = DataTypeUtils.chooseDataType(value, choiceDataType);
+
+        // THEN
+        assertEquals(expected, actual);
+
+        return null;
+    }
+
+    @Test
+    public void testFindMostSuitableTypeWithBoolean() {
+        testFindMostSuitableType(true, RecordFieldType.BOOLEAN.getDataType());
+    }
+
+    @Test
+    public void testFindMostSuitableTypeWithByte() {
+        testFindMostSuitableType(Byte.valueOf((byte) 123), RecordFieldType.BYTE.getDataType());
+    }
+
+    @Test
+    public void testFindMostSuitableTypeWithShort() {
+        testFindMostSuitableType(Short.valueOf((short) 123), RecordFieldType.SHORT.getDataType());
+    }
+
+    @Test
+    public void testFindMostSuitableTypeWithInt() {
+        testFindMostSuitableType(123, RecordFieldType.INT.getDataType());
+    }
+
+    @Test
+    public void testFindMostSuitableTypeWithLong() {
+        testFindMostSuitableType(123L, RecordFieldType.LONG.getDataType());
+    }
+
+    @Test
+    public void testFindMostSuitableTypeWithBigInt() {
+        testFindMostSuitableType(BigInteger.valueOf(123L), RecordFieldType.BIGINT.getDataType());
+    }
+
+    @Test
+    public void testFindMostSuitableTypeWithFloat() {
+        testFindMostSuitableType(12.3F, RecordFieldType.FLOAT.getDataType());
+    }
+
+    @Test
+    public void testFindMostSuitableTypeWithDouble() {
+        testFindMostSuitableType(12.3, RecordFieldType.DOUBLE.getDataType());
+    }
+
+    @Test
+    public void testFindMostSuitableTypeWithDate() {
+        testFindMostSuitableType("1111-11-11", RecordFieldType.DATE.getDataType());
+    }
+
+    @Test
+    public void testFindMostSuitableTypeWithTime() {
+        testFindMostSuitableType("11:22:33", RecordFieldType.TIME.getDataType());
+    }
+
+    @Test
+    public void testFindMostSuitableTypeWithTimeStamp() {
+        testFindMostSuitableType("1111-11-11 11:22:33", RecordFieldType.TIMESTAMP.getDataType());
+    }
+
+    @Test
+    public void testFindMostSuitableTypeWithChar() {
+        testFindMostSuitableType('a', RecordFieldType.CHAR.getDataType());
+    }
+
+    @Test
+    public void testFindMostSuitableTypeWithStringShouldReturnChar() {
+        testFindMostSuitableType("abc", RecordFieldType.CHAR.getDataType());
+    }
+
+    @Test
+    public void testFindMostSuitableTypeWithString() {
+        testFindMostSuitableType("abc", RecordFieldType.STRING.getDataType(), RecordFieldType.CHAR.getDataType());
+    }
+
+    @Test
+    public void testFindMostSuitableTypeWithArray() {
+        testFindMostSuitableType(new int[]{1, 2, 3}, RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.INT.getDataType()));
+    }
+
+    private void testFindMostSuitableType(Object value, DataType expected, DataType... filtered) {
+        List<DataType> filteredOutDataTypes = Arrays.stream(filtered).collect(Collectors.toList());
+
+        // GIVEN
+        List<DataType> unexpectedTypes = Arrays.stream(RecordFieldType.values())
+                .flatMap(recordFieldType -> {
+                    Stream<DataType> dataTypeStream;
+
+                    if (RecordFieldType.ARRAY.equals(recordFieldType)) {
+                        dataTypeStream = Arrays.stream(RecordFieldType.values()).map(elementType -> RecordFieldType.ARRAY.getArrayDataType(elementType.getDataType()));
+                    } else {
+                        dataTypeStream = Stream.of(recordFieldType.getDataType());
+                    }
+
+                    return dataTypeStream;
+                })
+                .filter(dataType -> !dataType.equals(expected))
+                .filter(dataType -> !filteredOutDataTypes.contains(dataType))
+                .collect(Collectors.toList());
+
+        IntStream.rangeClosed(0, unexpectedTypes.size()).forEach(insertIndex -> {
+            List<DataType> allTypes = new LinkedList<>(unexpectedTypes);
+            allTypes.add(insertIndex, expected);
+
+            // WHEN
+            Optional<DataType> actual = DataTypeUtils.findMostSuitableType(value, allTypes, Function.identity());
+
+            // THEN
+            assertEquals(Optional.ofNullable(expected), actual);
+        });
+
+    }
+
+    private Input input(List<DataType> dataTypes, Object value) {
+        return new Input(dataTypes, value);
+    }
+
+    private class Input {
+        private final List<DataType> dataTypes;
+        private final Object value;
+
+        public Input(List<DataType> dataTypes, Object value) {
+            this.dataTypes = dataTypes;
+            this.value = value;
+        }
     }
 }

@@ -33,7 +33,7 @@ public class FieldTypeInference {
     // unique value for the data type, and so this paradigm allows us to avoid the cost of creating
     // and using the HashSet.
     private DataType singleDataType = null;
-    private Set<DataType> possibleDataTypes;
+    private Set<DataType> possibleDataTypes = new HashSet<>();
 
     public void addPossibleDataType(final DataType dataType) {
         if (dataType == null) {
@@ -45,7 +45,7 @@ public class FieldTypeInference {
             return;
         }
 
-        if (possibleDataTypes == null && singleDataType.equals(dataType)) {
+        if (singleDataType.equals(dataType) || possibleDataTypes.contains(dataType)) {
             return;
         }
 
@@ -62,36 +62,44 @@ public class FieldTypeInference {
             final RecordSchema newSchema = ((RecordDataType) dataType).getChildSchema();
 
             final RecordSchema mergedSchema = DataTypeUtils.merge(singleDataTypeSchema, newSchema);
+            possibleDataTypes.remove(singleDataType);
             singleDataType = RecordFieldType.RECORD.getRecordDataType(mergedSchema);
+            possibleDataTypes.add(singleDataType);
             return;
         }
 
-        if (singleFieldType.isWiderThan(additionalFieldType)) {
-            // Assigned type is already wide enough to encompass the given type
-            return;
-        }
-
-        if (additionalFieldType.isWiderThan(singleFieldType)) {
-            // The given type is wide enough to encompass the assigned type. So changed the assigned type to the given type.
-            singleDataType = dataType;
-            return;
-        }
-
-        if (possibleDataTypes == null) {
-            possibleDataTypes = new HashSet<>();
+        if (possibleDataTypes.isEmpty()) {
             possibleDataTypes.add(singleDataType);
         }
 
-        possibleDataTypes.add(dataType);
-    }
+        boolean hasWiderNonString = possibleDataTypes.stream()
+                .map(DataType::getFieldType)
+                .filter(possibleDataType -> !possibleDataType.equals(RecordFieldType.STRING))
+                .filter(possibleDataType -> possibleDataType.isWiderThan(additionalFieldType))
+                .findAny()
+                .isPresent();
 
+        if (!hasWiderNonString) {
+            java.util.Iterator<DataType> possibleDataTypeIterator = possibleDataTypes.iterator();
+            while (possibleDataTypeIterator.hasNext()) {
+                DataType possibleDataType = possibleDataTypeIterator.next();
+                RecordFieldType possibleFieldType = possibleDataType.getFieldType();
+
+                if (!additionalFieldType.equals(RecordFieldType.STRING) && additionalFieldType.isWiderThan(possibleFieldType)) {
+                    possibleDataTypeIterator.remove();
+                }
+            }
+
+            possibleDataTypes.add(dataType);
+        }
+    }
 
     /**
      * Creates a single DataType that represents the field
      * @return a single DataType that represents the field
      */
     public DataType toDataType() {
-        if (possibleDataTypes == null) {
+        if (possibleDataTypes.isEmpty()) {
             if (singleDataType == null) {
                 return DEFAULT_DATA_TYPE;
             }
