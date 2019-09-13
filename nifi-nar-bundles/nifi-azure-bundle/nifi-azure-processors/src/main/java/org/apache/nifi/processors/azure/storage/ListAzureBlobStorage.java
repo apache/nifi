@@ -96,9 +96,10 @@ public class ListAzureBlobStorage extends AbstractListProcessor<BlobInfo> {
     private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
             LISTING_STRATEGY,
             AzureStorageUtils.CONTAINER,
-            AzureStorageUtils.PROP_SAS_TOKEN,
+            AzureStorageUtils.STORAGE_CREDENTIALS_SERVICE,
             AzureStorageUtils.ACCOUNT_NAME,
             AzureStorageUtils.ACCOUNT_KEY,
+            AzureStorageUtils.PROP_SAS_TOKEN,
             PROP_PREFIX,
             AzureStorageUtils.PROXY_CONFIGURATION_SERVICE,
             ListedEntityTracker.TRACKING_STATE_CACHE,
@@ -113,6 +114,7 @@ public class ListAzureBlobStorage extends AbstractListProcessor<BlobInfo> {
 
     @Override
     protected void customValidate(ValidationContext validationContext, Collection<ValidationResult> results) {
+        results.addAll(AzureStorageUtils.validateCredentialProperties(validationContext));
         AzureStorageUtils.validateProxySpec(validationContext, results);
     }
 

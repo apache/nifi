@@ -17,12 +17,10 @@
 package org.apache.nifi.processors.azure.storage.queue;
 
 import com.microsoft.azure.storage.CloudStorageAccount;
-import com.microsoft.azure.storage.StorageCredentials;
-import com.microsoft.azure.storage.StorageCredentialsSharedAccessSignature;
 import com.microsoft.azure.storage.queue.CloudQueueClient;
-
-import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -30,11 +28,11 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
+import org.apache.nifi.services.azure.storage.AzureStorageCredentialsDetails;
 
-import java.net.URI;
 import java.net.URISyntaxException;
-import java.security.InvalidKeyException;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
@@ -60,9 +58,6 @@ public abstract class AbstractAzureQueueStorage extends AbstractProcessor {
             .description("Unsuccessful operations will be transferred to the failure relationship.")
             .build();
 
-    private static final String FORMAT_QUEUE_CONNECTION_STRING = "DefaultEndpointsProtocol=https;AccountName=%s;AccountKey=%s";
-    private static final String FORMAT_QUEUE_BASE_URI = "https://%s.queue.core.windows.net";
-
     private static final Set<Relationship> relationships = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(REL_SUCCESS, REL_FAILURE)));
 
     @Override
@@ -70,41 +65,16 @@ public abstract class AbstractAzureQueueStorage extends AbstractProcessor {
         return relationships;
     }
 
-    protected final CloudQueueClient createCloudQueueClient(final ProcessContext context, final FlowFile flowFile) {
-        final String storageAccountName;
-        final String storageAccountKey;
-        final String sasToken;
-        final String connectionString;
+    protected final CloudQueueClient createCloudQueueClient(final ProcessContext context, final FlowFile flowFile) throws URISyntaxException {
+        final AzureStorageCredentialsDetails storageCredentialsDetails = AzureStorageUtils.getStorageCredentialsDetails(context, flowFile);
+        final CloudStorageAccount cloudStorageAccount = new CloudStorageAccount(storageCredentialsDetails.getStorageCredentials(), true, null, storageCredentialsDetails.getStorageAccountName());
+        final CloudQueueClient cloudQueueClient = cloudStorageAccount.createCloudQueueClient();
 
-        if (flowFile == null) {
-            storageAccountName = context.getProperty(AzureStorageUtils.ACCOUNT_NAME).evaluateAttributeExpressions().getValue();
-            storageAccountKey = context.getProperty(AzureStorageUtils.ACCOUNT_KEY).evaluateAttributeExpressions().getValue();
-            sasToken = context.getProperty(AzureStorageUtils.PROP_SAS_TOKEN).evaluateAttributeExpressions().getValue();
-        } else {
-            storageAccountName = context.getProperty(AzureStorageUtils.ACCOUNT_NAME).evaluateAttributeExpressions(flowFile).getValue();
-            storageAccountKey = context.getProperty(AzureStorageUtils.ACCOUNT_KEY).evaluateAttributeExpressions(flowFile).getValue();
-            sasToken = context.getProperty(AzureStorageUtils.PROP_SAS_TOKEN).evaluateAttributeExpressions(flowFile).getValue();
-        }
-
-        CloudQueueClient cloudQueueClient;
-        try {
-            if (StringUtils.isNoneBlank(sasToken)) {
-                connectionString = String.format(FORMAT_QUEUE_BASE_URI, storageAccountName);
-                StorageCredentials storageCredentials = new StorageCredentialsSharedAccessSignature(sasToken);
-                cloudQueueClient = new CloudQueueClient(new URI(connectionString), storageCredentials);
-            } else {
-                connectionString = String.format(FORMAT_QUEUE_CONNECTION_STRING, storageAccountName, storageAccountKey);
-                CloudStorageAccount storageAccount = CloudStorageAccount.parse(connectionString);
-                cloudQueueClient = storageAccount.createCloudQueueClient();
-            }
-        } catch (IllegalArgumentException | URISyntaxException e) {
-            getLogger().error("Invalid connection string URI for '{}'", new Object[]{context.getName()}, e);
-            throw new IllegalArgumentException(e);
-        } catch (InvalidKeyException e) {
-            getLogger().error("Invalid connection credentials for '{}'", new Object[]{context.getName()}, e);
-            throw new IllegalArgumentException(e);
-        }
         return cloudQueueClient;
     }
 
+    @Override
+    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+        return AzureStorageUtils.validateCredentialProperties(validationContext);
+    }
 }

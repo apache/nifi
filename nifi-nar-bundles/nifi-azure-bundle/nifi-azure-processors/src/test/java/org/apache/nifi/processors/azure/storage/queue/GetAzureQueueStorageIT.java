@@ -17,133 +17,119 @@
 package org.apache.nifi.processors.azure.storage.queue;
 
 import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.queue.CloudQueue;
 import com.microsoft.azure.storage.queue.CloudQueueMessage;
-import org.apache.nifi.processors.azure.storage.AzureTestUtil;
+import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.junit.AfterClass;
 import org.junit.Assert;
-import org.junit.BeforeClass;
+import org.junit.Before;
 import org.junit.Test;
 
-import java.net.URISyntaxException;
-import java.security.InvalidKeyException;
 import java.util.List;
 
-public class GetAzureQueueStorageIT {
+public class GetAzureQueueStorageIT extends AbstractAzureQueueStorageIT {
 
-    private final TestRunner runner = TestRunners.newTestRunner(GetAzureQueueStorage.class);
-    private static CloudQueue cloudQueue;
-
-    @BeforeClass
-    public static void setup() throws InvalidKeyException, StorageException, URISyntaxException {
-        cloudQueue = AzureTestUtil.getQueue(AzureTestUtil.TEST_STORAGE_QUEUE);
-        cloudQueue.createIfNotExists();
+    @Override
+    protected Class<? extends Processor> getProcessorClass() {
+        return GetAzureQueueStorage.class;
     }
 
-    @Test
-    public void testGetWithAutoDeleteFalse() throws StorageException, InterruptedException {
-        cloudQueue.clear();
-        insertDummyMessages();
-
-        runner.setProperty(AzureStorageUtils.ACCOUNT_NAME, AzureTestUtil.getAccountName());
-        runner.setProperty(AzureStorageUtils.ACCOUNT_KEY, AzureTestUtil.getAccountKey());
-        runner.setProperty(GetAzureQueueStorage.QUEUE, AzureTestUtil.TEST_STORAGE_QUEUE);
-        runner.setProperty(GetAzureQueueStorage.BATCH_SIZE, "10");
-        runner.setProperty(GetAzureQueueStorage.AUTO_DELETE, "false");
-        runner.setProperty(GetAzureQueueStorage.VISIBILITY_TIMEOUT, "1 secs");
-
-        runner.run(1);
-
-        final List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(GetAzureQueueStorage.REL_SUCCESS);
-        Assert.assertFalse(mockFlowFiles.isEmpty());
-
-        Thread.sleep(1500);
-        cloudQueue.downloadAttributes();
-        Assert.assertEquals(3, cloudQueue.getApproximateMessageCount());
-    }
-
-    @Test
-    public void testGetWithELAndAutoDeleteTrue() throws StorageException, InterruptedException {
-        cloudQueue.clear();
-        insertDummyMessages();
-
-        runner.setValidateExpressionUsage(true);
-
-        runner.setVariable("account.name", AzureTestUtil.getAccountName());
-        runner.setVariable("account.key", AzureTestUtil.getAccountKey());
-        runner.setVariable("queue.name", AzureTestUtil.TEST_STORAGE_QUEUE);
-
-        runner.setProperty(AzureStorageUtils.ACCOUNT_NAME, "${account.name}");
-        runner.setProperty(AzureStorageUtils.ACCOUNT_KEY, "${account.key}");
-        runner.setProperty(GetAzureQueueStorage.QUEUE, "${queue.name}");
-        runner.setProperty(GetAzureQueueStorage.BATCH_SIZE, "10");
-        runner.setProperty(GetAzureQueueStorage.AUTO_DELETE, "true");
-        runner.setProperty(GetAzureQueueStorage.VISIBILITY_TIMEOUT, "1 secs");
-
-        runner.run(1);
-
-        final List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(GetAzureQueueStorage.REL_SUCCESS);
-        Assert.assertFalse(mockFlowFiles.isEmpty());
-
-        Thread.sleep(1500);
-        cloudQueue.downloadAttributes();
-        Assert.assertEquals(0, cloudQueue.getApproximateMessageCount());
-    }
-
-    @Test
-    public void testGetWithVisibilityTimeout() throws StorageException, InterruptedException {
-        cloudQueue.clear();
-        insertDummyMessages();
-
-        runner.setProperty(AzureStorageUtils.ACCOUNT_NAME, AzureTestUtil.getAccountName());
-        runner.setProperty(AzureStorageUtils.ACCOUNT_KEY, AzureTestUtil.getAccountKey());
-        runner.setProperty(GetAzureQueueStorage.QUEUE, AzureTestUtil.TEST_STORAGE_QUEUE);
-        runner.setProperty(GetAzureQueueStorage.BATCH_SIZE, "10");
-        runner.setProperty(GetAzureQueueStorage.AUTO_DELETE, "false");
-        runner.setProperty(GetAzureQueueStorage.VISIBILITY_TIMEOUT, "1 secs");
-
-        runner.run(1);
-
-        final List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(GetAzureQueueStorage.REL_SUCCESS);
-        Assert.assertFalse(mockFlowFiles.isEmpty());
-        Assert.assertEquals(0, AzureTestUtil.getQueueCount());
-
-        Thread.sleep(1500);
-        Assert.assertEquals(3, AzureTestUtil.getQueueCount());
-    }
-
-    @Test
-    public void testGetWithBatchSize() throws StorageException {
-        cloudQueue.clear();
-        insertDummyMessages();
-
-        runner.setProperty(AzureStorageUtils.ACCOUNT_NAME, AzureTestUtil.getAccountName());
-        runner.setProperty(AzureStorageUtils.ACCOUNT_KEY, AzureTestUtil.getAccountKey());
-        runner.setProperty(GetAzureQueueStorage.QUEUE, AzureTestUtil.TEST_STORAGE_QUEUE);
-        runner.setProperty(GetAzureQueueStorage.BATCH_SIZE, "2");
-        runner.setProperty(GetAzureQueueStorage.AUTO_DELETE, "true");
-        runner.setProperty(GetAzureQueueStorage.VISIBILITY_TIMEOUT, "1 secs");
-
-        runner.run(1);
-        runner.assertAllFlowFilesTransferred(GetAzureQueueStorage.REL_SUCCESS, 2);
-
-        runner.run(1);
-        runner.assertAllFlowFilesTransferred(GetAzureQueueStorage.REL_SUCCESS, 3);
-
-    }
-
-    private static void insertDummyMessages() throws StorageException {
+    @Before
+    public void setUp() throws StorageException {
         cloudQueue.addMessage(new CloudQueueMessage("Dummy Message 1"), 604800, 0, null, null);
         cloudQueue.addMessage(new CloudQueueMessage("Dummy Message 2"), 604800, 0, null, null);
         cloudQueue.addMessage(new CloudQueueMessage("Dummy Message 3"), 604800, 0, null, null);
     }
 
-    @AfterClass
-    public static void cleanup() throws StorageException {
-        cloudQueue.deleteIfExists();
+    @Test
+    public void testSimpleGet() throws Exception {
+        runner.assertValid();
+        runner.run(1);
+
+        assertResult(0);
+    }
+
+    @Test
+    public void testSimpleGetWithCredentialsService() throws Exception {
+        configureCredentialsService();
+
+        runner.assertValid();
+        runner.run(1);
+
+        assertResult(0);
+    }
+
+    @Test
+    public void testSimpleGetWithEL() throws Exception {
+        runner.setValidateExpressionUsage(true);
+
+        runner.setVariable("account.name", getAccountName());
+        runner.setVariable("account.key", getAccountKey());
+        runner.setVariable("queue.name", cloudQueue.getName());
+
+        runner.setProperty(AzureStorageUtils.ACCOUNT_NAME, "${account.name}");
+        runner.setProperty(AzureStorageUtils.ACCOUNT_KEY, "${account.key}");
+        runner.setProperty(GetAzureQueueStorage.QUEUE, "${queue.name}");
+
+        runner.assertValid();
+        runner.run(1);
+
+        assertResult(0);
+    }
+
+    @Test
+    public void testGetWithAutoDeleteFalse() throws Exception {
+        runner.setProperty(GetAzureQueueStorage.AUTO_DELETE, "false");
+
+        runner.assertValid();
+        runner.run(1);
+
+        assertResult(3);
+    }
+
+    @Test
+    public void testGetWithVisibilityTimeout() throws Exception {
+        runner.setProperty(GetAzureQueueStorage.AUTO_DELETE, "false");
+        runner.setProperty(GetAzureQueueStorage.VISIBILITY_TIMEOUT, "1 secs");
+
+        runner.assertValid();
+        runner.run(1);
+
+        runner.assertAllFlowFilesTransferred(GetAzureQueueStorage.REL_SUCCESS, 3);
+        Assert.assertEquals(0, getMessageCount());
+
+        Thread.sleep(1500);
+        Assert.assertEquals(3, getMessageCount());
+    }
+
+    @Test
+    public void testGetWithBatchSize() throws Exception {
+        runner.setProperty(GetAzureQueueStorage.BATCH_SIZE, "2");
+
+        runner.assertValid();
+        runner.run(1);
+
+        runner.assertAllFlowFilesTransferred(GetAzureQueueStorage.REL_SUCCESS, 2);
+        cloudQueue.downloadAttributes();
+        Assert.assertEquals(1, cloudQueue.getApproximateMessageCount());
+
+        runner.run(1);
+
+        runner.assertAllFlowFilesTransferred(GetAzureQueueStorage.REL_SUCCESS, 3);
+        cloudQueue.downloadAttributes();
+        Assert.assertEquals(0, cloudQueue.getApproximateMessageCount());
+    }
+
+    private void assertResult(int expectedMessageCountInQueue) throws Exception {
+        runner.assertAllFlowFilesTransferred(GetAzureQueueStorage.REL_SUCCESS, 3);
+
+        List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(GetAzureQueueStorage.REL_SUCCESS);
+        int i = 1;
+        for (MockFlowFile mockFlowFile : mockFlowFiles) {
+            mockFlowFile.assertContentEquals("Dummy Message " + i++);
+        }
+
+        cloudQueue.downloadAttributes();
+        Assert.assertEquals(expectedMessageCountInQueue, cloudQueue.getApproximateMessageCount());
     }
 }

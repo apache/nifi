@@ -18,49 +18,55 @@ package org.apache.nifi.processors.azure.storage;
 
 import com.microsoft.azure.storage.blob.ListBlobItem;
 import org.apache.nifi.processor.Processor;
+import org.apache.nifi.util.MockFlowFile;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.junit.Assert.assertFalse;
+import java.util.List;
 
-public class ITDeleteAzureBlobStorage extends AbstractAzureBlobStorageIT {
+import static org.junit.Assert.assertTrue;
+
+public class ITPutAzureBlobStorage extends AbstractAzureBlobStorageIT {
 
     @Override
     protected Class<? extends Processor> getProcessorClass() {
-        return DeleteAzureBlobStorage.class;
+        return PutAzureBlobStorage.class;
     }
 
     @Before
-    public void setUp() throws Exception {
-        runner.setProperty(DeleteAzureBlobStorage.BLOB, TEST_BLOB_NAME);
-
-        uploadTestBlob();
+    public void setUp() {
+        runner.setProperty(PutAzureBlobStorage.BLOB, TEST_BLOB_NAME);
     }
 
     @Test
-    public void testDeleteBlob() {
+    public void testPutBlob() throws Exception {
         runner.assertValid();
-        runner.enqueue(new byte[0]);
-        runner.run(1);
+        runner.enqueue("0123456789".getBytes());
+        runner.run();
 
         assertResult();
     }
 
     @Test
-    public void testDeleteBlobUsingCredentialsService() throws Exception {
+    public void testPutBlobUsingCredentialsService() throws Exception {
         configureCredentialsService();
 
         runner.assertValid();
-        runner.enqueue(new byte[0]);
-        runner.run(1);
+        runner.enqueue("0123456789".getBytes());
+        runner.run();
 
         assertResult();
     }
 
-    private void assertResult() {
-        runner.assertAllFlowFilesTransferred(DeleteAzureBlobStorage.REL_SUCCESS);
+    private void assertResult() throws Exception {
+        runner.assertAllFlowFilesTransferred(PutAzureBlobStorage.REL_SUCCESS, 1);
+        List<MockFlowFile> flowFilesForRelationship = runner.getFlowFilesForRelationship(PutAzureBlobStorage.REL_SUCCESS);
+        for (MockFlowFile flowFile : flowFilesForRelationship) {
+            flowFile.assertContentEquals("0123456789".getBytes());
+            flowFile.assertAttributeEquals("azure.length", "10");
+        }
 
         Iterable<ListBlobItem> blobs = container.listBlobs(TEST_BLOB_NAME);
-        assertFalse(blobs.iterator().hasNext());
+        assertTrue(blobs.iterator().hasNext());
     }
 }
