@@ -16,38 +16,27 @@
  */
 package org.apache.nifi.processors.azure.storage;
 
-import static org.junit.Assert.fail;
+import com.microsoft.azure.storage.CloudStorageAccount;
+import org.apache.nifi.processor.Processor;
+import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
+import org.apache.nifi.services.azure.storage.AzureStorageCredentialsControllerService;
+import org.apache.nifi.services.azure.storage.AzureStorageCredentialsService;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.apache.nifi.util.file.FileUtils;
+import org.junit.Before;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.net.URISyntaxException;
-import java.security.InvalidKeyException;
-import java.util.Iterator;
 import java.util.Properties;
 
-import com.microsoft.azure.storage.queue.CloudQueue;
-import com.microsoft.azure.storage.queue.CloudQueueClient;
-import com.microsoft.azure.storage.queue.CloudQueueMessage;
-import org.apache.nifi.util.file.FileUtils;
+import static org.junit.Assert.fail;
 
-import com.microsoft.azure.storage.CloudStorageAccount;
-import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.blob.CloudBlobClient;
-import com.microsoft.azure.storage.blob.CloudBlobContainer;
-
-public class AzureTestUtil {
-
-    private static final Properties CONFIG;
+public abstract class AbstractAzureStorageIT {private static final Properties CONFIG;
 
     private static final String CREDENTIALS_FILE = System.getProperty("user.home") + "/azure-credentials.PROPERTIES";
     private static final String FORMAT_CONNECTION_STRING = "DefaultEndpointsProtocol=https;AccountName=%s;AccountKey=%s";
-
-    public static final String TEST_BLOB_NAME = "testing";
-    public static final String TEST_STORAGE_QUEUE = "testqueue";
-    public static final String TEST_CONTAINER_NAME_PREFIX = "nifitest";
-
-    public static CloudQueue cloudQueue;
 
     static {
         final FileInputStream fis;
@@ -64,42 +53,48 @@ public class AzureTestUtil {
         } catch (FileNotFoundException e) {
             fail("Could not open credentials file " + CREDENTIALS_FILE + ": " + e.getLocalizedMessage());
         }
-
     }
 
-    public static String getAccountName() {
+    protected static String getAccountName() {
         return CONFIG.getProperty("accountName");
     }
 
-    public static String getAccountKey() {
+    protected static String getAccountKey() {
         return CONFIG.getProperty("accountKey");
     }
 
-    public static CloudBlobContainer getContainer(String containerName) throws InvalidKeyException, URISyntaxException, StorageException {
-        CloudBlobClient blobClient = getStorageAccount().createCloudBlobClient();
-        return blobClient.getContainerReference(containerName);
+    protected TestRunner runner;
+
+    @Before
+    public void setUpAzureStorageIT() {
+        runner = TestRunners.newTestRunner(getProcessorClass());
+
+        runner.setProperty(AzureStorageUtils.ACCOUNT_NAME, getAccountName());
+        runner.setProperty(AzureStorageUtils.ACCOUNT_KEY, getAccountKey());
     }
 
-    public static CloudQueue getQueue(String queueName) throws URISyntaxException, InvalidKeyException, StorageException {
-        CloudQueueClient cloudQueueClient = getStorageAccount().createCloudQueueClient();
-        cloudQueue = cloudQueueClient.getQueueReference(queueName);
-        return cloudQueue;
-    }
+    protected abstract Class<? extends Processor> getProcessorClass();
 
-    private static CloudStorageAccount getStorageAccount() throws URISyntaxException, InvalidKeyException {
+    protected CloudStorageAccount getStorageAccount() throws Exception {
         String storageConnectionString = String.format(FORMAT_CONNECTION_STRING, getAccountName(), getAccountKey());
         return CloudStorageAccount.parse(storageConnectionString);
     }
 
-    public static int getQueueCount() throws StorageException {
-        Iterator<CloudQueueMessage> retrievedMessages = cloudQueue.retrieveMessages(10, 1, null, null).iterator();
-        int count = 0;
+    protected void configureCredentialsService() throws Exception {
+        runner.removeProperty(AzureStorageUtils.ACCOUNT_NAME);
+        runner.removeProperty(AzureStorageUtils.ACCOUNT_KEY);
 
-        while (retrievedMessages.hasNext()) {
-            retrievedMessages.next();
-            count++;
-        }
+        AzureStorageCredentialsService credentialsService = new AzureStorageCredentialsControllerService();
 
-        return count;
+        runner.addControllerService("credentials-service", credentialsService);
+
+        runner.setProperty(credentialsService, AzureStorageUtils.ACCOUNT_NAME, getAccountName());
+        runner.setProperty(credentialsService, AzureStorageUtils.ACCOUNT_KEY, getAccountKey());
+
+        runner.assertValid(credentialsService);
+
+        runner.enableControllerService(credentialsService);
+
+        runner.setProperty(AzureStorageUtils.STORAGE_CREDENTIALS_SERVICE, credentialsService.getIdentifier());
     }
 }

@@ -16,15 +16,16 @@
  */
 package org.apache.nifi.processors.azure.storage.utils;
 
-import com.microsoft.azure.storage.CloudStorageAccount;
 import com.microsoft.azure.storage.OperationContext;
 import com.microsoft.azure.storage.StorageCredentials;
+import com.microsoft.azure.storage.StorageCredentialsAccountAndKey;
 import com.microsoft.azure.storage.StorageCredentialsSharedAccessSignature;
 import com.microsoft.azure.storage.blob.CloudBlobClient;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
@@ -32,13 +33,16 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxySpec;
+import org.apache.nifi.services.azure.storage.AzureStorageCredentialsDetails;
+import org.apache.nifi.services.azure.storage.AzureStorageCredentialsService;
 
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.security.InvalidKeyException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 public final class AzureStorageUtils {
     public static final String BLOCK = "Block";
@@ -70,7 +74,7 @@ public final class AzureStorageUtils {
                     "In addition, the provenance repositories may be put on encrypted disk partitions.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .required(true)
+            .required(false)
             .sensitive(true)
             .build();
 
@@ -98,6 +102,15 @@ public final class AzureStorageUtils {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
+    public static final PropertyDescriptor STORAGE_CREDENTIALS_SERVICE = new PropertyDescriptor.Builder()
+            .name("storage-credentials-service")
+            .displayName("Storage Credentials")
+            .description("The Controller Service used to obtain Azure Storage Credentials. The credentials can be configured through a common/shared controller service " +
+                    "instead of the processor level properties.")
+            .identifiesControllerService(AzureStorageCredentialsService.class)
+            .required(false)
+            .build();
+
     // use HTTPS by default as per MSFT recommendation
     public static final String FORMAT_BLOB_CONNECTION_STRING = "DefaultEndpointsProtocol=https;AccountName=%s;AccountKey=%s";
     public static final String FORMAT_BASE_URI = "https://%s.blob.core.windows.net";
@@ -112,55 +125,76 @@ public final class AzureStorageUtils {
      *                 Account Name, Account Key or SAS Token. This can be null if not available.
      */
     public static CloudBlobClient createCloudBlobClient(ProcessContext context, ComponentLog logger, FlowFile flowFile) {
-        final String accountName;
-        final String accountKey;
-        final String sasToken;
+        final AzureStorageCredentialsDetails storageCredentialsDetails = getStorageCredentialsDetails(context, flowFile);
 
-        if (flowFile == null) {
-            accountName = context.getProperty(AzureStorageUtils.ACCOUNT_NAME).evaluateAttributeExpressions().getValue();
-            accountKey = context.getProperty(AzureStorageUtils.ACCOUNT_KEY).evaluateAttributeExpressions().getValue();
-            sasToken = context.getProperty(AzureStorageUtils.PROP_SAS_TOKEN).evaluateAttributeExpressions().getValue();
-        } else {
-            accountName = context.getProperty(AzureStorageUtils.ACCOUNT_NAME).evaluateAttributeExpressions(flowFile).getValue();
-            accountKey = context.getProperty(AzureStorageUtils.ACCOUNT_KEY).evaluateAttributeExpressions(flowFile).getValue();
-            sasToken = context.getProperty(AzureStorageUtils.PROP_SAS_TOKEN).evaluateAttributeExpressions(flowFile).getValue();
-        }
+        final URI baseUri = getBaseUri(FORMAT_BASE_URI, storageCredentialsDetails.getStorageAccountName(), context, logger);
 
-        CloudBlobClient cloudBlobClient;
-
-        try {
-            // sas token and acct name/key have different ways of creating a secure connection (e.g. new StorageCredentialsAccountAndKey didn't work)
-            if (StringUtils.isNotBlank(sasToken)) {
-                String storageConnectionString = String.format(AzureStorageUtils.FORMAT_BASE_URI, accountName);
-                StorageCredentials creds = new StorageCredentialsSharedAccessSignature(sasToken);
-                cloudBlobClient = new CloudBlobClient(new URI(storageConnectionString), creds);
-            } else {
-                String blobConnString = String.format(AzureStorageUtils.FORMAT_BLOB_CONNECTION_STRING, accountName, accountKey);
-                CloudStorageAccount storageAccount = CloudStorageAccount.parse(blobConnString);
-                cloudBlobClient = storageAccount.createCloudBlobClient();
-            }
-        } catch (IllegalArgumentException | URISyntaxException e) {
-            logger.error("Invalid connection string URI for '{}'", new Object[]{context.getName()}, e);
-            throw new IllegalArgumentException(e);
-        } catch (InvalidKeyException e) {
-            logger.error("Invalid connection credentials for '{}'", new Object[]{context.getName()}, e);
-            throw new IllegalArgumentException(e);
-        }
+        final CloudBlobClient cloudBlobClient = new CloudBlobClient(baseUri, storageCredentialsDetails.getStorageCredentials());
 
         return cloudBlobClient;
+    }
+
+    public static AzureStorageCredentialsDetails getStorageCredentialsDetails(PropertyContext context, FlowFile flowFile) {
+        final Map<String, String> attributes = flowFile != null ? flowFile.getAttributes() : Collections.emptyMap();
+
+        final AzureStorageCredentialsService storageCredentialsService = context.getProperty(STORAGE_CREDENTIALS_SERVICE).asControllerService(AzureStorageCredentialsService.class);
+
+        if (storageCredentialsService != null) {
+            return storageCredentialsService.getStorageCredentialsDetails(attributes);
+        } else {
+            return createStorageCredentialsDetails(context, attributes);
+        }
+    }
+
+    public static AzureStorageCredentialsDetails createStorageCredentialsDetails(PropertyContext context, Map<String, String> attributes) {
+        final String accountName = context.getProperty(ACCOUNT_NAME).evaluateAttributeExpressions(attributes).getValue();
+        final String accountKey = context.getProperty(ACCOUNT_KEY).evaluateAttributeExpressions(attributes).getValue();
+        final String sasToken = context.getProperty(PROP_SAS_TOKEN).evaluateAttributeExpressions(attributes).getValue();
+
+        if (StringUtils.isBlank(accountName)) {
+            throw new IllegalArgumentException(String.format("'%s' must not be empty.", ACCOUNT_NAME.getDisplayName()));
+        }
+
+        StorageCredentials storageCredentials;
+
+        if (StringUtils.isNotBlank(accountKey)) {
+            storageCredentials = new StorageCredentialsAccountAndKey(accountName, accountKey);
+        } else if (StringUtils.isNotBlank(sasToken)) {
+            storageCredentials = new StorageCredentialsSharedAccessSignature(sasToken);
+        } else {
+            throw new IllegalArgumentException(String.format("Either '%s' or '%s' must be defined.", ACCOUNT_KEY.getDisplayName(), PROP_SAS_TOKEN.getDisplayName()));
+        }
+
+        return new AzureStorageCredentialsDetails(accountName, storageCredentials);
+    }
+
+    public static URI getBaseUri(String baseUriFormat, String storageAccountName, ProcessContext context, ComponentLog logger) {
+        final String baseUriString = String.format(baseUriFormat, storageAccountName);
+        try {
+            return new URI(baseUriString);
+        } catch (URISyntaxException e) {
+            logger.error("Invalid base URI ({}) for '{}'", new Object[]{baseUriString, context.getName()}, e);
+            throw new IllegalArgumentException(e);
+        }
     }
 
     public static Collection<ValidationResult> validateCredentialProperties(ValidationContext validationContext) {
         final List<ValidationResult> results = new ArrayList<>();
 
-        String sasToken = validationContext.getProperty(PROP_SAS_TOKEN).getValue();
-        String acctName = validationContext.getProperty(ACCOUNT_KEY).getValue();
-        if ((StringUtils.isBlank(sasToken) && StringUtils.isBlank(acctName))
-                || (StringUtils.isNotBlank(sasToken) && StringUtils.isNotBlank(acctName))) {
+        final String storageCredentials = validationContext.getProperty(STORAGE_CREDENTIALS_SERVICE).getValue();
+        final String accountName = validationContext.getProperty(ACCOUNT_NAME).getValue();
+        final String accountKey = validationContext.getProperty(ACCOUNT_KEY).getValue();
+        final String sasToken = validationContext.getProperty(PROP_SAS_TOKEN).getValue();
+
+        if (!((StringUtils.isNotBlank(storageCredentials) && StringUtils.isBlank(accountName) && StringUtils.isBlank(accountKey) && StringUtils.isBlank(sasToken))
+                || (StringUtils.isBlank(storageCredentials) && StringUtils.isNotBlank(accountName) && StringUtils.isNotBlank(accountKey) && StringUtils.isBlank(sasToken))
+                || (StringUtils.isBlank(storageCredentials) && StringUtils.isNotBlank(accountName) && StringUtils.isBlank(accountKey) && StringUtils.isNotBlank(sasToken)))) {
             results.add(new ValidationResult.Builder().subject("AzureStorageUtils Credentials")
-                        .valid(false)
-                        .explanation("either Azure Account Key or Shared Access Signature required, but not both")
-                        .build());
+                    .valid(false)
+                    .explanation("either " + STORAGE_CREDENTIALS_SERVICE.getDisplayName()
+                            + ", or " + ACCOUNT_NAME.getDisplayName() + " with " + ACCOUNT_KEY.getDisplayName()
+                            + " or " + ACCOUNT_NAME.getDisplayName() + " with " + PROP_SAS_TOKEN.getDisplayName() + " must be specified")
+                    .build());
         }
 
         return results;
