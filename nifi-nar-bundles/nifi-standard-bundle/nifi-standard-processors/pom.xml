@@ -411,6 +411,14 @@
                         <exclude>src/test/resources/TestMergeContent/head</exclude>
                         <exclude>src/test/resources/TestMergeContent/user.avsc</exclude>
                         <exclude>src/test/resources/TestMergeContent/place.avsc</exclude>
+                        <exclude>src/test/resources/TestConversions/data.int_float_string.json</exclude>
+                        <exclude>src/test/resources/TestConversions/data.int_float_string.with_header.csv</exclude>
+                        <exclude>src/test/resources/TestConversions/data.int_float_string.without_header.csv</exclude>
+                        <exclude>src/test/resources/TestConversions/data.int_float_string.xml</exclude>
+                        <exclude>src/test/resources/TestConversions/data.int_float_string.with_schema.avro</exclude>
+                        <exclude>src/test/resources/TestConversions/data.int_float_string.with_schema.json.to.avro</exclude>
+                        <exclude>src/test/resources/TestConversions/data.int_float_string.without_schema.avro</exclude>
+                        <exclude>src/test/resources/TestConversions/explicit.schema.json</exclude>
                         <exclude>src/test/resources/TestConvertJSONToSQL/person-1.json</exclude>
                         <exclude>src/test/resources/TestConvertJSONToSQL/persons.json</exclude>
                         <exclude>src/test/resources/TestConvertJSONToSQL/malformed-person-extra-comma.json</exclude>
