@@ -21,6 +21,7 @@ import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.Validator;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.distributed.cache.client.AtomicCacheEntry;
@@ -28,7 +29,6 @@ import org.apache.nifi.distributed.cache.client.AtomicDistributedMapCacheClient;
 import org.apache.nifi.distributed.cache.client.Deserializer;
 import org.apache.nifi.distributed.cache.client.Serializer;
 import org.apache.nifi.expression.ExpressionLanguageScope;
-import org.apache.nifi.hbase.mapcache.MapCacheVisibility;
 import org.apache.nifi.hbase.put.PutColumn;
 import org.apache.nifi.hbase.scan.Column;
 import org.apache.nifi.hbase.scan.ResultCell;
@@ -51,8 +51,7 @@ import static org.apache.nifi.hbase.VisibilityLabelUtils.AUTHORIZATIONS;
 @CapabilityDescription("Provides the ability to use an HBase table as a cache, in place of a DistributedMapCache."
     + " Uses a HBase_2_ClientService controller to communicate with HBase.")
 
-public class HBase_2_ClientMapCacheService extends AbstractControllerService implements AtomicDistributedMapCacheClient<byte[]>,
-        MapCacheVisibility {
+public class HBase_2_ClientMapCacheService extends AbstractControllerService implements AtomicDistributedMapCacheClient<byte[]> {
 
     static final PropertyDescriptor HBASE_CLIENT_SERVICE = new PropertyDescriptor.Builder()
         .name("HBase Client Service")
@@ -85,6 +84,16 @@ public class HBase_2_ClientMapCacheService extends AbstractControllerService imp
         .required(true)
         .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .build();
+
+    public static final PropertyDescriptor VISIBILITY_EXPRESSION = new PropertyDescriptor.Builder()
+        .name("hbase-cache-visibility-expression")
+        .displayName("Visibility Expression")
+        .description("The default visibility expression to apply to cells when visibility expression support is enabled.")
+        .defaultValue("")
+        .addValidator(Validator.VALID)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .required(false)
         .build();
 
     @Override
