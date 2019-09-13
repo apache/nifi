@@ -76,6 +76,10 @@
         <nifi.content.repository.always.sync>false</nifi.content.repository.always.sync>
         <nifi.content.viewer.url>../nifi-content-viewer/</nifi.content.viewer.url>
 
+        <!-- volatile content repository properties -->
+        <nifi.volatile.content.repository.max.size>100 MB</nifi.volatile.content.repository.max.size>
+        <nifi.volatile.content.repository.block.size>32 KB</nifi.volatile.content.repository.block.size>
+
         <nifi.restore.directory />
         <nifi.ui.banner.text />
         <nifi.ui.autorefresh.interval>30 sec</nifi.ui.autorefresh.interval>
