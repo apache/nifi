@@ -25,7 +25,7 @@ import com.google.cloud.kms.v1.LocationName;
 import org.apache.nifi.properties.sensitive.AbstractSensitivePropertyProviderTest;
 import org.apache.nifi.properties.sensitive.SensitivePropertyConfigurationException;
 import org.apache.nifi.properties.sensitive.SensitivePropertyProvider;
-import org.apache.nifi.security.util.CipherUtils;
+import org.apache.nifi.properties.sensitive.CipherUtils;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Assume;

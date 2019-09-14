@@ -20,7 +20,7 @@ import org.apache.nifi.properties.sensitive.AbstractSensitivePropertyProviderTes
 import org.apache.nifi.properties.sensitive.SensitivePropertyConfigurationException
 import org.apache.nifi.properties.sensitive.SensitivePropertyProtectionException
 import org.apache.nifi.properties.sensitive.SensitivePropertyProvider
-import org.apache.nifi.security.util.CipherUtils
+import org.apache.nifi.properties.sensitive.CipherUtils
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.bouncycastle.util.encoders.Hex
 import org.junit.After

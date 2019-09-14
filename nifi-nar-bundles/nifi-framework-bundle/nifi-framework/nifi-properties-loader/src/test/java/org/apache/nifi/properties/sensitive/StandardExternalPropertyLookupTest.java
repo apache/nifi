@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.properties.sensitive;
 
-import org.apache.nifi.security.util.CipherUtils;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.BeforeClass;

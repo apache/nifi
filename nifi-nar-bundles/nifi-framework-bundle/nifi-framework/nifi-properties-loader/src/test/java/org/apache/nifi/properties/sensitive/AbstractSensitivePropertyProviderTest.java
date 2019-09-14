@@ -17,7 +17,6 @@
 package org.apache.nifi.properties.sensitive;
 
 import org.apache.nifi.properties.StandardNiFiProperties;
-import org.apache.nifi.security.util.CipherUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.bouncycastle.util.encoders.Base64;
 import org.junit.Assert;

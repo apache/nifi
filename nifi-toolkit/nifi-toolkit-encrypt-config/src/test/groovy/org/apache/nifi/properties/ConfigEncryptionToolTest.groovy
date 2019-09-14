@@ -28,12 +28,12 @@ import org.apache.nifi.properties.sensitive.SensitivePropertyProtectionException
 import org.apache.nifi.properties.sensitive.SensitivePropertyProvider
 import org.apache.nifi.properties.sensitive.StandardSensitivePropertyProvider
 import org.apache.nifi.properties.sensitive.keystore.KeyStoreWrappedSensitivePropertyProvider
-import org.apache.nifi.security.util.CipherUtils
 import org.apache.nifi.toolkit.tls.commandLine.CommandLineParseException
 import org.apache.nifi.util.NiFiProperties
 import org.apache.nifi.util.console.TextDevice
 import org.apache.nifi.util.console.TextDevices
 import org.bouncycastle.jce.provider.BouncyCastleProvider
+import org.bouncycastle.util.encoders.Hex
 import org.junit.After
 import org.junit.AfterClass
 import org.junit.Assume
@@ -66,11 +66,13 @@ import java.nio.file.Files
 import java.nio.file.attribute.PosixFilePermission
 import java.security.KeyException
 import java.security.KeyStore
+import java.security.SecureRandom
 import java.security.Security
 
 @RunWith(JUnit4.class)
 class ConfigEncryptionToolTest extends GroovyTestCase {
     private static final Logger logger = LoggerFactory.getLogger(ConfigEncryptionToolTest.class)
+    private static final SecureRandom random = new SecureRandom()
 
     @Rule
     public final ExpectedSystemExit exit = ExpectedSystemExit.none()
@@ -141,7 +143,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
      */
     @BeforeClass
     public static void setUpSecretKeyAndKeyStore() throws Exception {
-        String keyBytes = CipherUtils.getRandomHex(32)
+        String keyBytes = getRandomHex(32)
         SecretKeySpec secretKey = new SecretKeySpec(keyBytes.getBytes(), 0, 32, "AES")
 
         KeyStore testKeyStore = KeyStore.getInstance(keyStoreType)
@@ -5111,13 +5113,13 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
     @Test
     void testShouldUseSPP() throws Exception {
         System.setProperty("keystore.file", keyStorePath)
-        String randomValue = CipherUtils.getRandomHex(32)
+        String randomValue = getRandomHex(32)
         String key = KeyStoreWrappedSensitivePropertyProvider.formatForType(keyStoreType, keyStoreKeyAlias)
         ConfigEncryptionTool tool = new ConfigEncryptionTool()
         SensitivePropertyProvider spp = StandardSensitivePropertyProvider.fromKey(key)
 
         // Here we're verifying that the SPP works by using it directly:
-        String verificationValue = CipherUtils.getRandomHex(64)
+        String verificationValue = getRandomHex(64)
         assert spp.unprotect(spp.protect(verificationValue)) == verificationValue
 
         // We show the tool parses these types of keys:
@@ -5167,6 +5169,12 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
     }
 
 // TODO: Test with 128/256-bit available
+
+    static String getRandomHex(int size) {
+        byte[] bytes = new byte[size]
+        random.nextBytes(bytes)
+        return Hex.toHexString(bytes)
+    }
 }
 
 class TestAppender extends AppenderSkeleton {

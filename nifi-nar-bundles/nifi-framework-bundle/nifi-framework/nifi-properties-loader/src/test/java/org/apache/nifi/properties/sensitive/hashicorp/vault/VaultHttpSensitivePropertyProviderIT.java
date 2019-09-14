@@ -18,7 +18,7 @@ package org.apache.nifi.properties.sensitive.hashicorp.vault;
 
 import org.apache.nifi.properties.sensitive.AbstractSensitivePropertyProviderTest;
 import org.apache.nifi.properties.sensitive.SensitivePropertyProvider;
-import org.apache.nifi.security.util.CipherUtils;
+import org.apache.nifi.properties.sensitive.CipherUtils;
 import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.AfterClass;

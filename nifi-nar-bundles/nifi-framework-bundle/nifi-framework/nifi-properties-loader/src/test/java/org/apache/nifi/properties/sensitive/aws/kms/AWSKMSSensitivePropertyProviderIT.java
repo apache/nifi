@@ -32,7 +32,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.properties.sensitive.AbstractSensitivePropertyProviderTest;
 import org.apache.nifi.properties.sensitive.SensitivePropertyConfigurationException;
 import org.apache.nifi.properties.sensitive.SensitivePropertyProvider;
-import org.apache.nifi.security.util.CipherUtils;
+import org.apache.nifi.properties.sensitive.CipherUtils;
 
 import org.junit.AfterClass;
 import org.junit.Assert;
