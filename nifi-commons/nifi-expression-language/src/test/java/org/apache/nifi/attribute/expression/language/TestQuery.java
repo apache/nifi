@@ -997,7 +997,6 @@ public class TestQuery {
 
         verifyEquals("${hundred:toNumber():multiply(${two}):divide(${three}):plus(${one}):mod(${five})}", attributes, 2L);
 
-
         try {
             // The expected result is purposely an overflow
             verifyEquals("${max_long:plus(100)}", attributes, Long.MAX_VALUE + 100);
@@ -1007,7 +1006,6 @@ public class TestQuery {
         } catch (Exception e) {
             fail(e.getMessage());
         }
-
     }
 
     @Test
