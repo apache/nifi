@@ -18,7 +18,6 @@ package org.apache.nifi.attribute.expression.language.evaluation.functions;
 
 import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.JsonPath;
-import org.apache.commons.lang3.NotImplementedException;
 import org.apache.nifi.attribute.expression.language.EvaluationContext;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
@@ -27,19 +26,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * JsonPathUpdateEvaluator is base class for updating attributes
- *
- * Subclasses need to implement {@link #updateAttribute} method otherwise it throws {@link NotImplementedException}
+ * JsonPathPutEvaluator allows setting or adding a key and scalar value at the specified existing path
  */
-public abstract class JsonPathUpdateEvaluator extends JsonPathBaseEvaluator {
+public class JsonPathPutEvaluator extends JsonPathUpdateEvaluator {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(JsonPathUpdateEvaluator.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(JsonPathPutEvaluator.class);
 
-    protected Evaluator<?> valueEvaluator;
+    protected Evaluator<?> keyEvaluator;
 
-    public JsonPathUpdateEvaluator(final Evaluator<String> subject, final Evaluator<String> jsonPathExp, final Evaluator<?> valueEvaluator) {
-        super(subject, jsonPathExp);
-        this.valueEvaluator = valueEvaluator;
+    public JsonPathPutEvaluator(final Evaluator<String> subject, final Evaluator<String> jsonPathExp, final Evaluator<?> valueEvaluator, final Evaluator<?> keyEvaluator) {
+        super(subject, jsonPathExp, valueEvaluator);
+        this.keyEvaluator = keyEvaluator;
     }
 
     @Override
@@ -48,12 +45,13 @@ public abstract class JsonPathUpdateEvaluator extends JsonPathBaseEvaluator {
         final JsonPath compiledJsonPath = getJsonPath(context);
 
         final Object value = valueEvaluator.evaluate(context).getValue();
+        final String key = keyEvaluator.evaluate(context).getValue().toString();
 
         String result;
         try {
-            result = updateAttribute(documentContext, compiledJsonPath, value).jsonString();
+            result = documentContext.put(compiledJsonPath, key, value).jsonString();
         } catch (Exception e) {
-            LOGGER.error("Failed to update attribute " + e.getLocalizedMessage(), e);
+            LOGGER.error("Failed to put value " + value + " at key " + key + " at path " + compiledJsonPath + " with error " + e.getLocalizedMessage(), e);
             // assume the path did not match anything in the document
             return EMPTY_RESULT;
         }
@@ -61,16 +59,5 @@ public abstract class JsonPathUpdateEvaluator extends JsonPathBaseEvaluator {
         return new StringQueryResult(getResultRepresentation(result, EMPTY_RESULT.getValue()));
     }
 
-    /**
-     * Update the attribute at the specified path.  The subclasses will need to implement this method.
-     * @param documentContext the document to be updated
-     * @param jsonPath the path to update
-     * @param value the value to be applied at the specified path
-     * @return the updated DocumentContext
-     * @throws NotImplementedException if operation is not implemented
-     */
-    public DocumentContext updateAttribute(DocumentContext documentContext, JsonPath jsonPath, Object value) {
-        throw new NotImplementedException("Please implement updateAttribute method in the implementation class");
-    }
 }
 

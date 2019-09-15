@@ -190,6 +190,7 @@ REPLACE_ALL : 'replaceAll';
 IF_ELSE : 'ifElse';
 JSON_PATH_SET : 'jsonPathSet';
 JSON_PATH_ADD : 'jsonPathAdd';
+JSON_PATH_PUT : 'jsonPathPut';
 PAD_LEFT : 'padLeft';
 PAD_RIGHT : 'padRight';
 

@@ -68,6 +68,7 @@ import org.apache.nifi.attribute.expression.language.evaluation.functions.JsonPa
 import org.apache.nifi.attribute.expression.language.evaluation.functions.JsonPathDeleteEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.JsonPathEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.JsonPathSetEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.functions.JsonPathPutEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.LastIndexOfEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.LengthEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.LessThanEvaluator;
@@ -182,6 +183,7 @@ import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpre
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.JOIN;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.JSON_PATH;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.JSON_PATH_ADD;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.JSON_PATH_PUT;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.JSON_PATH_DELETE;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.JSON_PATH_SET;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.LAST_INDEX_OF;
@@ -969,6 +971,20 @@ public class ExpressionCompiler {
                 return addToken(new JsonPathAddEvaluator(toStringEvaluator(subjectEvaluator),
                         toStringEvaluator(argEvaluators.get(0), "first argument to jsonPathAdd"),
                         valueEvaluator), "jsonPathAdd");
+            }
+            case JSON_PATH_PUT: {
+                verifyArgCount(argEvaluators, 3, "jsonPathPut");
+                Evaluator<?> argValueEvaluator = argEvaluators.get(1);
+                String valueLocation = "second argument to jsonPathPut";
+                Evaluator<?> valueEvaluator = getJsonPathUpdateEvaluator(argValueEvaluator, valueLocation);
+                Evaluator<?> argKeyEvaluator = argEvaluators.get(2);
+                String keyLocation = "third argument to jsonPathPut";
+                Evaluator<?> keyEvaluator = getJsonPathUpdateEvaluator(argKeyEvaluator, keyLocation);
+
+                return addToken(new JsonPathPutEvaluator(toStringEvaluator(subjectEvaluator),
+                        toStringEvaluator(argEvaluators.get(0), "first argument to jsonPathPut"),
+                        toStringEvaluator(keyEvaluator, keyLocation),
+                        valueEvaluator), "jsonPathPut");
             }
             case IF_ELSE: {
                 verifyArgCount(argEvaluators, 2, "ifElse");
