@@ -2021,7 +2021,7 @@ Divide. This is to preserve backwards compatibility and to not force rounding er
 [.function]
 === multiply
 
-*Description*: [.description]#Multiplies a numeric value by the Subject and returns the product.#
+*Description*: [.description]#Multiplies a numeric value by the Subject and returns the product.# Does not provide handling for overflow.
 
 *Subject Type*: [.subject]#Number or Decimal#
 
