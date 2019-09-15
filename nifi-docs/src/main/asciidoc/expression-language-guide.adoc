@@ -1806,6 +1806,59 @@ form of the updated JSON.#
 
 An empty subject value or a subject value with an invalid JSON document results in an exception bulletin.
 
+[.function]
+=== jsonPathPut
+
+*Description*: [.description]#The `jsonPathPut` function puts the key and scalar value at the specified JsonPath on a Subject JSON and returns string
+form of the updated JSON.#
+
+*Subject Type*: [.subject]#String#
+
+*Arguments*:
+
+- [.argName]#_jsonPath_# : [.argDesc]#the JSON path expression to set value on the Subject.#
+- [.argName]#_value_# : [.argDesc]#the value expression to be set on the specified path on Subject.#
+- [.argName]#_key_# : [.argDesc]#the key expression with the associated value the specified path on Subject.#
+
+*Return Type*: [.returnType]#String#
+
+*Examples*: If the "myJson" attribute is
+
+..........
+{
+     "firstName": "John",
+     "lastName": "Smith",
+     "age": 25,
+     "voter" : true,
+     "height" : 6.1,
+     "address" : {
+         "streetAddress": "21 2nd Street",
+         "city": "New York",
+         "state": "NY",
+         "postalCode": "10021-3100"
+     },
+     "phoneNumbers": [
+         {
+             "type": "home",
+             "number": "212 555-1234"
+         },
+         {
+             "type": "office",
+             "number": "646 555-4567"
+         }
+     ],
+     "nicknames" : []
+ }
+..........
+
+.jsonPathPut Examples
+|===================================================================
+| Expression | Value
+| `${myJson:jsonPathPut('$','middlename','Turon')}` | `{"firstName":"James", lastName":"Smith", "middlename": "Turon", "age":25, "voter":true, "height":6.1, "address":{"streetAddress":"21 2nd Street", "city":"New York", "state":"NY", "postalCode":"10021-3100"}, "phoneNumbers":[{"type":"home", "number":"212 555-1234"}, {"type":"office", "number":"646 555-4567"}]}`
+|===================================================================
+
+An empty subject value or a subject value with an invalid JSON document results in an exception bulletin.
+
 [[numbers]]
 == Mathematical Operations and Numeric Manipulation
 

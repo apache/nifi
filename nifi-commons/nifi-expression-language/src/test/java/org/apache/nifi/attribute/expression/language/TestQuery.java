@@ -375,9 +375,9 @@ public class TestQuery {
             verifyEquals(targetAttribute, attributes, originalValue);
         }
 
-        String addressBookAfterDelete = Query.evaluateExpressions(updateExpression, attributes, ParameterLookup.EMPTY);
+        String addressBookAfterUpdate = Query.evaluateExpressions(updateExpression, attributes, ParameterLookup.EMPTY);
         attributes.clear();
-        attributes.put("json", addressBookAfterDelete);
+        attributes.put("json", addressBookAfterUpdate);
 
         verifyAddressBookAttributes(addressBook, attributes, targetAttribute, updatedValue);
 
@@ -484,6 +484,45 @@ public class TestQuery {
                 "",
                 "${json:jsonPathAdd('$.firstName', 'Jimmy')}",
                 "");
+    }
+
+    @Test
+    public void testJsonPathPutRootLevelMiddlenameTuron() throws IOException {
+        Map<String,String> attributes = verifyJsonPathExpressions(
+                ADDRESS_BOOK_JSON_PATH_EMPTY,
+                "",
+                "${json:jsonPathPut('$','middlename','Turon')}",
+                "");
+        verifyEquals("${json:jsonPath('$.middlename')}", attributes, "Turon");
+    }
+
+    @Test
+    public void testJsonPathPutCountryToMap() throws IOException {
+        Map<String,String> attributes = verifyJsonPathExpressions(
+                ADDRESS_BOOK_JSON_PATH_EMPTY,
+                "",
+                "${json:jsonPathPut('$.address','country','US')}",
+                "");
+        verifyEquals("${json:jsonPath('$.address.country')}", attributes, "US");
+    }
+
+    @Test
+    public void testJsonPathPutElementToArray() throws IOException {
+        Map<String,String> attributes = verifyJsonPathExpressions(
+                ADDRESS_BOOK_JSON_PATH_EMPTY,
+                "",
+                "${json:jsonPathPut('$.phoneNumbers[1]', 'backup', '212-555-1212')}",
+                "");
+        verifyEquals("${json:jsonPath('$.phoneNumbers[1].backup')}", attributes, "212-555-1212");
+    }
+
+    @Test
+    public void testJsonPathPutOverwriteFirstNameToJimmy() throws IOException {
+        Map<String,String> attributes = verifyJsonPathExpressions(
+                ADDRESS_BOOK_JSON_PATH_FIRST_NAME,
+                "John",
+                "${json:jsonPathPut('$','firstName','Jimmy')}",
+                "Jimmy");
     }
 
     @Test
