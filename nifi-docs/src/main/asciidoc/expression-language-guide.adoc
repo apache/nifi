@@ -2001,7 +2001,7 @@ Divide. This is to preserve backwards compatibility and to not force rounding er
 [.function]
 === minus
 
-*Description*: [.description]#Subtracts a numeric value from the Subject.#
+*Description*: [.description]#Subtracts a numeric value from the Subject. Does not provide handling for overflow.#
 
 *Subject Type*: [.subject]#Number or Decimal#
 
