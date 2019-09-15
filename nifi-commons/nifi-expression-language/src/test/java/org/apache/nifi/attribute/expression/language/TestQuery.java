@@ -993,8 +993,21 @@ public class TestQuery {
         attributes.put("four", "4");
         attributes.put("five", "5");
         attributes.put("hundred", "100");
+        attributes.put("max_long", String.valueOf(Long.MAX_VALUE));
 
         verifyEquals("${hundred:toNumber():multiply(${two}):divide(${three}):plus(${one}):mod(${five})}", attributes, 2L);
+
+
+        try {
+            // The expected result is purposely an overflow
+            verifyEquals("${max_long:plus(100)}", attributes, Long.MAX_VALUE + 100);
+            fail("Long.MAX_VALUE summed with integer number produced undetected overflow");
+        } catch (ArithmeticException e){
+            // This means the overflow has been detected
+        } catch (Exception e) {
+            fail(e.getMessage());
+        }
+
     }
 
     @Test
@@ -1006,9 +1019,12 @@ public class TestQuery {
         attributes.put("fourth", "4.201");
         attributes.put("fifth", "5.1");
         attributes.put("hundred", "100");
+        attributes.put("max_double", String.valueOf(Double.MAX_VALUE));
 
         // The expected resulted is calculated instead of a set number due to the inaccuracy of double arithmetic
         verifyEquals("${hundred:toNumber():multiply(${second}):divide(${third}):plus(${first}):mod(${fifth})}", attributes, (((100 * 12.3) / 3) + 1.5) %5.1);
+
+        verifyEquals("${max_double:plus(${max_double})}", attributes, Double.POSITIVE_INFINITY);
     }
 
     @Test
