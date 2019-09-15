@@ -1017,12 +1017,13 @@ public class TestQuery {
         attributes.put("fourth", "4.201");
         attributes.put("fifth", "5.1");
         attributes.put("hundred", "100");
+        attributes.put("max_double", String.valueOf(Double.MAX_VALUE));
         attributes.put("negative_max_double", String.valueOf(-Double.MAX_VALUE));
 
         // The expected resulted is calculated instead of a set number due to the inaccuracy of double arithmetic
         verifyEquals("${hundred:toNumber():multiply(${second}):divide(${third}):plus(${first}):mod(${fifth})}", attributes, (((100 * 12.3) / 3) + 1.5) %5.1);
 
-        verifyEquals("${negative_max_double:minus(${negative_max_double})}", attributes, Double.NEGATIVE_INFINITY);
+        verifyEquals("${negative_max_double:minus(${max_double})}", attributes, Double.NEGATIVE_INFINITY);
     }
 
     @Test
