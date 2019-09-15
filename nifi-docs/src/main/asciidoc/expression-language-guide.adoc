@@ -1981,7 +1981,7 @@ Divide. This is to preserve backwards compatibility and to not force rounding er
 === plus
 
 *Description*: [.description]#Adds a numeric value to the Subject. If either the argument or the Subject cannot be
-	coerced into a Number, returns `null`.#
+	coerced into a Number, returns `null`. Does not provide handling for overflow.
 
 *Subject Type*: [.subject]#Number or Decimal#
 
