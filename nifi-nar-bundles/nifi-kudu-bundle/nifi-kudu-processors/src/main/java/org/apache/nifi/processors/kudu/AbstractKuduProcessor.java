@@ -166,15 +166,18 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
     }
 
     @VisibleForTesting
-    protected void buildPartialRow(Schema schema, PartialRow row, Record record, List<String> fieldNames, Boolean ignoreNull) {
-
-        for (String colName : fieldNames) {
+    protected void buildPartialRow(Schema schema, PartialRow row, Record record, List<String> fieldNames, Boolean ignoreNull, Boolean lowercaseFields) {
+        for (String recordFieldName : fieldNames) {
+            String colName = recordFieldName;
+            if (lowercaseFields) {
+                colName = colName.toLowerCase();
+            }
             int colIdx = this.getColumnIndex(schema, colName);
             if (colIdx != -1) {
                 ColumnSchema colSchema = schema.getColumnByIndex(colIdx);
                 Type colType = colSchema.getType();
 
-                if (record.getValue(colName) == null) {
+                if (record.getValue(recordFieldName) == null) {
                     if (schema.getColumnByIndex(colIdx).isKey()) {
                         throw new IllegalArgumentException(String.format("Can't set primary key column %s to null ", colName));
                     } else if(!schema.getColumnByIndex(colIdx).isNullable()) {
@@ -188,37 +191,37 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
                 } else {
                     switch (colType.getDataType(colSchema.getTypeAttributes())) {
                         case BOOL:
-                            row.addBoolean(colIdx, record.getAsBoolean(colName));
+                            row.addBoolean(colIdx, record.getAsBoolean(recordFieldName));
                             break;
                         case FLOAT:
-                            row.addFloat(colIdx, record.getAsFloat(colName));
+                            row.addFloat(colIdx, record.getAsFloat(recordFieldName));
                             break;
                         case DOUBLE:
-                            row.addDouble(colIdx, record.getAsDouble(colName));
+                            row.addDouble(colIdx, record.getAsDouble(recordFieldName));
                             break;
                         case BINARY:
-                            row.addBinary(colIdx, record.getAsString(colName).getBytes());
+                            row.addBinary(colIdx, record.getAsString(recordFieldName).getBytes());
                             break;
                         case INT8:
-                            row.addByte(colIdx, record.getAsInt(colName).byteValue());
+                            row.addByte(colIdx, record.getAsInt(recordFieldName).byteValue());
                             break;
                         case INT16:
-                            row.addShort(colIdx, record.getAsInt(colName).shortValue());
+                            row.addShort(colIdx, record.getAsInt(recordFieldName).shortValue());
                             break;
                         case INT32:
-                            row.addInt(colIdx, record.getAsInt(colName));
+                            row.addInt(colIdx, record.getAsInt(recordFieldName));
                             break;
                         case INT64:
                         case UNIXTIME_MICROS:
-                            row.addLong(colIdx, record.getAsLong(colName));
+                            row.addLong(colIdx, record.getAsLong(recordFieldName));
                             break;
                         case STRING:
-                            row.addString(colIdx, record.getAsString(colName));
+                            row.addString(colIdx, record.getAsString(recordFieldName));
                             break;
                         case DECIMAL32:
                         case DECIMAL64:
                         case DECIMAL128:
-                            row.addDecimal(colIdx, new BigDecimal(record.getAsString(colName)));
+                            row.addDecimal(colIdx, new BigDecimal(record.getAsString(recordFieldName)));
                             break;
                         default:
                             throw new IllegalStateException(String.format("unknown column type %s", colType));
@@ -236,27 +239,27 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
         }
     }
 
-    protected Upsert upsertRecordToKudu(KuduTable kuduTable, Record record, List<String> fieldNames, Boolean ignoreNull) {
+    protected Upsert upsertRecordToKudu(KuduTable kuduTable, Record record, List<String> fieldNames, Boolean ignoreNull, Boolean lowercaseFields) {
         Upsert upsert = kuduTable.newUpsert();
-        buildPartialRow(kuduTable.getSchema(), upsert.getRow(), record, fieldNames, ignoreNull);
+        buildPartialRow(kuduTable.getSchema(), upsert.getRow(), record, fieldNames, ignoreNull, lowercaseFields);
         return upsert;
     }
 
-    protected Insert insertRecordToKudu(KuduTable kuduTable, Record record, List<String> fieldNames, Boolean ignoreNull) {
+    protected Insert insertRecordToKudu(KuduTable kuduTable, Record record, List<String> fieldNames, Boolean ignoreNull, Boolean lowercaseFields) {
         Insert insert = kuduTable.newInsert();
-        buildPartialRow(kuduTable.getSchema(), insert.getRow(), record, fieldNames, ignoreNull);
+        buildPartialRow(kuduTable.getSchema(), insert.getRow(), record, fieldNames, ignoreNull, lowercaseFields);
         return insert;
     }
 
-    protected Delete deleteRecordFromKudu(KuduTable kuduTable, Record record, List<String> fieldNames, Boolean ignoreNull) {
+    protected Delete deleteRecordFromKudu(KuduTable kuduTable, Record record, List<String> fieldNames, Boolean ignoreNull, Boolean lowercaseFields) {
         Delete delete = kuduTable.newDelete();
-        buildPartialRow(kuduTable.getSchema(), delete.getRow(), record, fieldNames, ignoreNull);
+        buildPartialRow(kuduTable.getSchema(), delete.getRow(), record, fieldNames, ignoreNull, lowercaseFields);
         return delete;
     }
 
-    protected Update updateRecordToKudu(KuduTable kuduTable, Record record, List<String> fieldNames, Boolean ignoreNull) {
+    protected Update updateRecordToKudu(KuduTable kuduTable, Record record, List<String> fieldNames, Boolean ignoreNull, Boolean lowercaseFields) {
         Update update = kuduTable.newUpdate();
-        buildPartialRow(kuduTable.getSchema(), update.getRow(), record, fieldNames, ignoreNull);
+        buildPartialRow(kuduTable.getSchema(), update.getRow(), record, fieldNames, ignoreNull, lowercaseFields);
         return update;
     }
 

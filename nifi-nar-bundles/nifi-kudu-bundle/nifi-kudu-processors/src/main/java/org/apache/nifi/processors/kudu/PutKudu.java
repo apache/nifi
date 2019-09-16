@@ -99,6 +99,15 @@ public class PutKudu extends AbstractKuduProcessor {
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
 
+    protected static final PropertyDescriptor LOWERCASE_FIELD_NAMES = new Builder()
+            .name("Lowercase Field Names")
+            .description("Convert column names to lowercase when finding index of Kudu table columns")
+            .defaultValue("false")
+            .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .build();
+
     protected static final PropertyDescriptor INSERT_OPERATION = new Builder()
         .name("Insert Operation")
         .displayName("Kudu Operation Type")
@@ -179,6 +188,7 @@ public class PutKudu extends AbstractKuduProcessor {
         properties.add(TABLE_NAME);
         properties.add(KERBEROS_CREDENTIALS_SERVICE);
         properties.add(SKIP_HEAD_LINE);
+        properties.add(LOWERCASE_FIELD_NAMES);
         properties.add(RECORD_READER);
         properties.add(INSERT_OPERATION);
         properties.add(FLUSH_MODE);
@@ -247,16 +257,17 @@ public class PutKudu extends AbstractKuduProcessor {
         for (FlowFile flowFile : flowFiles) {
             operationType = OperationType.valueOf(context.getProperty(INSERT_OPERATION).evaluateAttributeExpressions(flowFile).getValue());
             Boolean ignoreNull = Boolean.valueOf(context.getProperty(IGNORE_NULL).evaluateAttributeExpressions(flowFile).getValue());
+            Boolean lowercaseFields = Boolean.valueOf(context.getProperty(LOWERCASE_FIELD_NAMES).evaluateAttributeExpressions(flowFile).getValue());
             try (final InputStream in = session.read(flowFile);
                 final RecordReader recordReader = recordReaderFactory.createRecordReader(flowFile, in, getLogger())) {
-                final List<String> fieldNames = recordReader.getSchema().getFieldNames();
                 final RecordSet recordSet = recordReader.createRecordSet();
+                final List<String> fieldNames = recordReader.getSchema().getFieldNames();
                 final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions(flowFile).getValue();
                 final KuduTable kuduTable = kuduClient.openTable(tableName);
 
                 Record record = recordSet.next();
                 while (record != null) {
-                    Operation operation = getKuduOperationType(operationType, record, fieldNames, ignoreNull, kuduTable);
+                    Operation operation = getKuduOperationType(operationType, record, fieldNames, ignoreNull, lowercaseFields, kuduTable);
                     // We keep track of mappings between Operations and their origins,
                     // so that we know which FlowFiles should be marked failure after buffered flush.
                     operationFlowFileMap.put(operation, flowFile);
@@ -343,18 +354,18 @@ public class PutKudu extends AbstractKuduProcessor {
         return kuduSession;
     }
 
-    private Operation getKuduOperationType(OperationType operationType, Record record, List<String> fieldNames, Boolean ignoreNull, KuduTable kuduTable) {
+    private Operation getKuduOperationType(OperationType operationType, Record record, List<String> fieldNames, Boolean ignoreNull, Boolean lowercaseFields, KuduTable kuduTable) {
         switch (operationType) {
             case DELETE:
-                return deleteRecordFromKudu(kuduTable, record, fieldNames, ignoreNull);
+                return deleteRecordFromKudu(kuduTable, record, fieldNames, ignoreNull, lowercaseFields);
             case INSERT:
-                return insertRecordToKudu(kuduTable, record, fieldNames, ignoreNull);
+                return insertRecordToKudu(kuduTable, record, fieldNames, ignoreNull, lowercaseFields);
             case INSERT_IGNORE:
-                return insertRecordToKudu(kuduTable, record, fieldNames, ignoreNull);
+                return insertRecordToKudu(kuduTable, record, fieldNames, ignoreNull, lowercaseFields);
             case UPSERT:
-                return upsertRecordToKudu(kuduTable, record, fieldNames, ignoreNull);
+                return upsertRecordToKudu(kuduTable, record, fieldNames, ignoreNull, lowercaseFields);
             case UPDATE:
-                return updateRecordToKudu(kuduTable, record, fieldNames, ignoreNull);
+                return updateRecordToKudu(kuduTable, record, fieldNames, ignoreNull, lowercaseFields);
             default:
                 throw new IllegalArgumentException(String.format("OperationType: %s not supported by Kudu", operationType));
         }
