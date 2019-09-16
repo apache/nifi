@@ -66,7 +66,6 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 public class DataTypeUtils {
     private static final Logger logger = LoggerFactory.getLogger(DataTypeUtils.class);
@@ -233,24 +232,22 @@ public class DataTypeUtils {
 
     public static DataType chooseDataType(final Object value, final ChoiceDataType choiceType) {
         Queue<DataType> possibleSubTypes = new LinkedList<>(choiceType.getPossibleSubTypes());
-        Set<DataType> possibleSimpleSubTypes = new HashSet<>();
+        List<DataType> compatibleSimpleSubTypes = new ArrayList<>();
 
         while (possibleSubTypes.peek() != null) {
             DataType subType = possibleSubTypes.poll();
             if (subType instanceof ChoiceDataType) {
                 possibleSubTypes.addAll(((ChoiceDataType) subType).getPossibleSubTypes());
             } else {
-                possibleSimpleSubTypes.add(subType);
+                if (isCompatibleDataType(value, subType)) {
+                    compatibleSimpleSubTypes.add(subType);
+                }
             }
         }
 
-        List<DataType> compatibleSimpleSubTypes = possibleSimpleSubTypes.stream()
-                .filter(subType -> isCompatibleDataType(value, subType))
-                .collect(Collectors.toList());
-
         int nrOfCompatibleSimpleSubTypes = compatibleSimpleSubTypes.size();
 
-        DataType chosenSimpleType;
+        final DataType chosenSimpleType;
         if (nrOfCompatibleSimpleSubTypes == 0) {
             chosenSimpleType = null;
         } else if (nrOfCompatibleSimpleSubTypes == 1) {
@@ -264,77 +261,45 @@ public class DataTypeUtils {
     }
 
     public static <T> Optional<T> findMostSuitableType(Object value, List<T> types, Function<T, DataType> dataTypeMapper) {
-        final Optional<T> mostSuitableType;
-
-        Optional<DataType> inferredDataTypeOptional = Optional.ofNullable(inferDataType(value, null))
-                .filter(dataType -> !dataType.getFieldType().equals(RecordFieldType.STRING));
-
         if (value instanceof String) {
-            mostSuitableType = findMostSuitableTypeByStringValue((String) value, types, dataTypeMapper);
-        } else if (inferredDataTypeOptional.isPresent()) {
-            DataType inferredDataType = inferredDataTypeOptional.get();
+            return findMostSuitableTypeByStringValue((String) value, types, dataTypeMapper);
+        } else {
+            DataType inferredDataType = inferDataType(value, null);
 
-            Optional<T> inferredTypeOptional = types.stream()
-                    .filter(type -> dataTypeMapper.apply(type).equals(inferredDataType))
-                    .findFirst();
+            if (inferredDataType != null && !inferredDataType.getFieldType().equals(RecordFieldType.STRING)) {
+                for (T type : types) {
+                    if (inferredDataType.equals(dataTypeMapper.apply(type))) {
+                        return Optional.of(type);
+                    }
+                }
 
-            if (inferredTypeOptional.isPresent()) {
-                mostSuitableType = inferredTypeOptional;
-            } else {
-                Optional<T> widerAvailableTypeOptional = types.stream()
-                        .map(type -> getWiderType(dataTypeMapper.apply(type), inferredDataType).isPresent() ? type : null)
-                        .filter(Objects::nonNull)
-                        .findFirst();
-
-                if (widerAvailableTypeOptional.isPresent()) {
-                    mostSuitableType = widerAvailableTypeOptional;
-                } else {
-                    mostSuitableType = Optional.empty();
+                for (T type : types) {
+                    if (getWiderType(dataTypeMapper.apply(type), inferredDataType).isPresent()) {
+                        return Optional.of(type);
+                    }
                 }
             }
-        } else {
-            mostSuitableType = Optional.empty();
         }
 
-        return mostSuitableType;
+        return Optional.empty();
     }
 
     public static <T> Optional<T> findMostSuitableTypeByStringValue(String valueAsString, List<T> types, Function<T, DataType> dataTypeMapper) {
-        Optional<T> mostSuitableType = types.stream()
-                // Sorting based on the RecordFieldType enum ordering looks appropriate here as we want simpler types
-                //  first and the enum's ordering seems to reflect that
-                .sorted((type1, type2) -> {
-                            int comparison;
+        // Sorting based on the RecordFieldType enum ordering looks appropriate here as we want simpler types
+        //  first and the enum's ordering seems to reflect that
+        Collections.sort(types, Comparator.comparing(type -> dataTypeMapper.apply(type).getFieldType()));
 
-                            RecordFieldType dataType1 = dataTypeMapper.apply(type1).getFieldType();
-                            RecordFieldType dataType2 = dataTypeMapper.apply(type2).getFieldType();
+        for (T type : types) {
+            try {
+                if (isCompatibleDataType(valueAsString, dataTypeMapper.apply(type))) {
+                    return Optional.of(type);
+                }
+            } catch (Exception e) {
+                logger.error("Exception thrown while checking if '" + valueAsString + "' is compatible with '" + type + "'", e);
+            }
+        }
 
-                            // Moving TIMESTAMP at the front (at least it should precede DATE)
-                            if (dataType1 == RecordFieldType.TIMESTAMP) {
-                                comparison = -1;
-                            } else if (dataType2 == RecordFieldType.TIMESTAMP) {
-                                comparison = 1;
-                            } else {
-                                comparison = dataType1.compareTo(dataType2);
-                            }
-
-                            return comparison;
-                        }
-                )
-                .filter(type -> {
-                    boolean compatible;
-
-                    try {
-                        compatible = isCompatibleDataType(valueAsString, dataTypeMapper.apply(type));
-                    } catch (Exception e) {
-                        compatible = false;
-                    }
-
-                    return compatible;
-                })
-                .findFirst();
-
-        return mostSuitableType;
+        return Optional.empty();
     }
 
     public static Record toRecord(final Object value, final RecordSchema recordSchema, final String fieldName) {

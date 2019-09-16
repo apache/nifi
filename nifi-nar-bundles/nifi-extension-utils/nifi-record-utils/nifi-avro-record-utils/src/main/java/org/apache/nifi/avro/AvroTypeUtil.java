@@ -885,9 +885,7 @@ public class AvroTypeUtil {
                 subSchema -> AvroTypeUtil.determineDataType(subSchema)
         );
         if (mostSuitableType.isPresent()) {
-            Object convertedVAlue = conversion.apply(mostSuitableType.get());
-
-            return convertedVAlue;
+            return conversion.apply(mostSuitableType.get());
         }
 
         for (final Schema subSchema : fieldSchema.getTypes()) {

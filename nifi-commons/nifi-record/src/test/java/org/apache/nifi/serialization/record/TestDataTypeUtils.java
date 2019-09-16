@@ -34,7 +34,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.BiFunction;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -332,6 +332,47 @@ public class TestDataTypeUtils {
         }
         assertNotNull(e);
     }
+
+    @Test
+    public void testFindMostSuitableTypeByStringValueShouldReturnEvenWhenOneTypeThrowsException() {
+        String valueAsString = "value";
+
+        String nonMatchingType = "nonMatchingType";
+        String throwsExceptionType = "throwsExceptionType";
+        String matchingType = "matchingType";
+
+        List<String> types = Arrays.asList(
+                nonMatchingType,
+                throwsExceptionType,
+                matchingType
+        );
+        Optional<String> expected = Optional.of(matchingType);
+
+        AtomicBoolean exceptionThrown = new AtomicBoolean(false);
+
+        Function<String, DataType> dataTypeMapper = type -> {
+            if (type.equals(nonMatchingType)) {
+                return RecordFieldType.BOOLEAN.getDataType();
+            } else if (type.equals(throwsExceptionType)) {
+                return new DataType(RecordFieldType.DATE, null) {
+                    @Override
+                    public String getFormat() {
+                        exceptionThrown.set(true);
+                        throw new RuntimeException("maching error");
+                    }
+                };
+            } else if (type.equals(matchingType)) {
+                return RecordFieldType.STRING.getDataType();
+            }
+
+            return null;
+        };
+
+        Optional<String> actual = DataTypeUtils.findMostSuitableTypeByStringValue(valueAsString, types, dataTypeMapper);
+        assertTrue("Exception not thrown during test as intended.", exceptionThrown.get());
+        assertEquals(expected, actual);
+    }
+
     @Test
     public void testChooseDataTypeWhenInt_vs_INT_FLOAT_ThenShouldReturnINT() {
         // GIVEN
@@ -345,7 +386,7 @@ public class TestDataTypeUtils {
 
         // WHEN
         // THEN
-        runWithNormalAndReverseInput(this::testChooseDataType, input(dataTypes, value), expected);
+        testChooseDataTypeAlsoReverseTypes(value, dataTypes, expected);
     }
 
     @Test
@@ -361,7 +402,7 @@ public class TestDataTypeUtils {
 
         // WHEN
         // THEN
-        runWithNormalAndReverseInput(this::testChooseDataType, input(dataTypes, value), expected);
+        testChooseDataTypeAlsoReverseTypes(value, dataTypes, expected);
     }
 
     @Test
@@ -381,20 +422,17 @@ public class TestDataTypeUtils {
 
         // WHEN
         // THEN
-        runWithNormalAndReverseInput(this::testChooseDataType, input(dataTypes, value), expected);
+        testChooseDataTypeAlsoReverseTypes(value, dataTypes, expected);
     }
 
-    private <E> void runWithNormalAndReverseInput(BiFunction<Input, E, ?> test, Input input, E expected) {
-        test.apply(input, expected);
-        Collections.reverse(input.dataTypes);
-        test.apply(input, expected);
+    private <E> void testChooseDataTypeAlsoReverseTypes(Object value, List<DataType> dataTypes, DataType expected) {
+        testChooseDataType(dataTypes, value, expected);
+        Collections.reverse(dataTypes);
+        testChooseDataType(dataTypes, value, expected);
     }
 
-    private Void testChooseDataType(Input input, DataType expected) {
+    private void testChooseDataType(List<DataType> dataTypes, Object value, DataType expected) {
         // GIVEN
-        List<DataType> dataTypes = input.dataTypes;
-        Object value = input.value;
-
         ChoiceDataType choiceDataType = (ChoiceDataType) RecordFieldType.CHOICE.getChoiceDataType(dataTypes.toArray(new DataType[dataTypes.size()]));
 
         // WHEN
@@ -402,8 +440,6 @@ public class TestDataTypeUtils {
 
         // THEN
         assertEquals(expected, actual);
-
-        return null;
     }
 
     @Test
@@ -511,20 +547,5 @@ public class TestDataTypeUtils {
             // THEN
             assertEquals(Optional.ofNullable(expected), actual);
         });
-
-    }
-
-    private Input input(List<DataType> dataTypes, Object value) {
-        return new Input(dataTypes, value);
-    }
-
-    private class Input {
-        private final List<DataType> dataTypes;
-        private final Object value;
-
-        public Input(List<DataType> dataTypes, Object value) {
-            this.dataTypes = dataTypes;
-            this.value = value;
-        }
     }
 }

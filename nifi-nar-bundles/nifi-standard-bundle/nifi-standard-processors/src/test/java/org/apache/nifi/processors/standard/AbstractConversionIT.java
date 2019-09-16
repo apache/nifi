@@ -42,6 +42,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -49,7 +50,7 @@ import java.util.function.Consumer;
 
 import static org.junit.Assert.assertEquals;
 
-public abstract class AbstractTestConversion {
+public abstract class AbstractConversionIT {
     protected RecordReaderFactory reader;
     protected Consumer<TestRunner> inputHandler;
     protected Consumer<TestRunner> readerConfigurer;
@@ -279,8 +280,8 @@ public abstract class AbstractTestConversion {
         writer = new AvroRecordSetWriter();
         resultHandler = mockFlowFile -> {
             try {
-                ArrayList<Map<String, Object>> expected = getRecords(getByteContent(postfix));
-                ArrayList<Map<String, Object>> actual = getRecords(mockFlowFile.toByteArray());
+                List<Map<String, Object>> expected = getRecords(getByteContent(postfix));
+                List<Map<String, Object>> actual = getRecords(mockFlowFile.toByteArray());
 
                 assertEquals(expected, actual);
             } catch (Exception e) {
@@ -306,41 +307,32 @@ public abstract class AbstractTestConversion {
     }
 
     protected String getContent(String postfix) {
-        String content = new String(getByteContent(postfix));
-
-        return content;
+        return new String(getByteContent(postfix));
     }
 
     protected byte[] getByteContent(String postfix) {
-        byte[] content;
         try {
-            content = Files.readAllBytes(Paths.get("src/test/resources/TestConversions/data.int_float_string." + postfix));
+            return Files.readAllBytes(Paths.get("src/test/resources/TestConversions/data.int_float_string." + postfix));
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-
-        return content;
     }
 
-    protected ArrayList<Map<String, Object>> getRecords(byte[] avroData) throws IOException, MalformedRecordException {
-        RecordReader reader = new AvroReaderWithEmbeddedSchema(new ByteArrayInputStream(avroData));
-
-        return getRecords(reader);
-    }
-
-    protected ArrayList<Map<String, Object>> getRecords(RecordReader reader) throws IOException, MalformedRecordException {
-        try {
-            ArrayList<Map<String, Object>> records = new ArrayList<>();
-
-            Record record;
-            while ((record = reader.nextRecord()) != null) {
-                records.add(record.toMap());
-            }
-
-            return records;
-        } finally {
-            reader.close();
+    protected List<Map<String, Object>> getRecords(byte[] avroData) throws IOException, MalformedRecordException {
+        try (RecordReader reader = new AvroReaderWithEmbeddedSchema(new ByteArrayInputStream(avroData));) {
+            return getRecords(reader);
         }
+    }
+
+    protected List<Map<String, Object>> getRecords(RecordReader reader) throws IOException, MalformedRecordException {
+        List<Map<String, Object>> records = new ArrayList<>();
+
+        Record record;
+        while ((record = reader.nextRecord()) != null) {
+            records.add(record.toMap());
+        }
+
+        return records;
     }
 
     protected void testChain(RecordSetWriterFactory writer2, RecordReaderFactory reader2) throws InitializationException {

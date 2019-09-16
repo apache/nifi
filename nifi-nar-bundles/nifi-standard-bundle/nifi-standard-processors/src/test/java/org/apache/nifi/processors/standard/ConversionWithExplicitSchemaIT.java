@@ -31,10 +31,10 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
-public class TestConversionWithExplicitSchema extends AbstractTestConversion {
+public class ConversionWithExplicitSchemaIT extends AbstractConversionIT {
     private String schema;
 
     @Before
@@ -77,12 +77,12 @@ public class TestConversionWithExplicitSchema extends AbstractTestConversion {
     }
 
     @Override
-    protected ArrayList<Map<String, Object>> getRecords(byte[] avroData) throws IOException, MalformedRecordException {
+    protected List<Map<String, Object>> getRecords(byte[] avroData) throws IOException, MalformedRecordException {
         Schema avroSchema = new Schema.Parser().parse(schema);
         RecordSchema recordSchema = AvroTypeUtil.createSchema(avroSchema);
 
-        RecordReader reader = new AvroReaderWithExplicitSchema(new ByteArrayInputStream(avroData), recordSchema, avroSchema);
-
-        return getRecords(reader);
+        try (RecordReader reader = new AvroReaderWithExplicitSchema(new ByteArrayInputStream(avroData), recordSchema, avroSchema);) {
+            return getRecords(reader);
+        }
     }
 }

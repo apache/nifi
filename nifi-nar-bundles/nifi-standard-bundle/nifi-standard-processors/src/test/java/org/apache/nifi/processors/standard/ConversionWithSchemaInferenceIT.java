@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.processors.standard;
 
-public class TestConversionWithSchemaInference extends AbstractTestConversion {
+public class ConversionWithSchemaInferenceIT extends AbstractConversionIT {
     @Override
     protected String csvPostfix() {
         return "with_header.csv";

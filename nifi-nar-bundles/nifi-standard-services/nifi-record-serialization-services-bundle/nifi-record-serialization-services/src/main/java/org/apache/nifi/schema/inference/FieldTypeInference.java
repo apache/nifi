@@ -23,6 +23,7 @@ import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Set;
 
 public class FieldTypeInference {
@@ -72,26 +73,24 @@ public class FieldTypeInference {
             possibleDataTypes.add(singleDataType);
         }
 
-        boolean hasWiderNonString = possibleDataTypes.stream()
-                .map(DataType::getFieldType)
-                .filter(possibleDataType -> !possibleDataType.equals(RecordFieldType.STRING))
-                .filter(possibleDataType -> possibleDataType.isWiderThan(additionalFieldType))
-                .findAny()
-                .isPresent();
-
-        if (!hasWiderNonString) {
-            java.util.Iterator<DataType> possibleDataTypeIterator = possibleDataTypes.iterator();
-            while (possibleDataTypeIterator.hasNext()) {
-                DataType possibleDataType = possibleDataTypeIterator.next();
-                RecordFieldType possibleFieldType = possibleDataType.getFieldType();
-
-                if (!additionalFieldType.equals(RecordFieldType.STRING) && additionalFieldType.isWiderThan(possibleFieldType)) {
-                    possibleDataTypeIterator.remove();
-                }
+        for (DataType possibleDataType : possibleDataTypes) {
+            RecordFieldType possibleFieldType = possibleDataType.getFieldType();
+            if (!possibleFieldType.equals(RecordFieldType.STRING) && possibleFieldType.isWiderThan(additionalFieldType)) {
+                return;
             }
-
-            possibleDataTypes.add(dataType);
         }
+
+        Iterator<DataType> possibleDataTypeIterator = possibleDataTypes.iterator();
+        while (possibleDataTypeIterator.hasNext()) {
+            DataType possibleDataType = possibleDataTypeIterator.next();
+            RecordFieldType possibleFieldType = possibleDataType.getFieldType();
+
+            if (!additionalFieldType.equals(RecordFieldType.STRING) && additionalFieldType.isWiderThan(possibleFieldType)) {
+                possibleDataTypeIterator.remove();
+            }
+        }
+
+        possibleDataTypes.add(dataType);
     }
 
     /**

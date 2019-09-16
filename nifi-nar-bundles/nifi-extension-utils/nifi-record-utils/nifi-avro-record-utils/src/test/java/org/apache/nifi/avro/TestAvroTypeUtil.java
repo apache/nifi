@@ -590,38 +590,38 @@ public class TestAvroTypeUtil {
     }
 
     @Test
+    public void testConvertToAvroObjectWhenIntVSUnion_INT_FLOAT_ThenReturnInt() {
+        // GIVEN
+        List<Schema.Type> schemaTypes = Arrays.asList(
+                Schema.Type.INT,
+                Schema.Type.FLOAT
+        );
+        Integer rawValue = 1;
+
+        Object expected = 1;
+
+        // WHEN
+        // THEN
+        testConvertToAvroObjectAlsoReverseSchemaList(expected, rawValue, schemaTypes);
+    }
+
+    @Test
     public void testConvertToAvroObjectWhenFloatVSUnion_INT_FLOAT_ThenReturnFloat() {
         // GIVEN
         List<Schema.Type> schemaTypes = Arrays.asList(
                 Schema.Type.INT,
                 Schema.Type.FLOAT
         );
-        double rawValue = 1.5;
+        Float rawValue = 1.5f;
 
         Object expected = 1.5f;
 
         // WHEN
         // THEN
-        testConvertToAvroObject(expected, rawValue, schemaTypes);
+        testConvertToAvroObjectAlsoReverseSchemaList(expected, rawValue, schemaTypes);
     }
 
-    @Test
-    public void testConvertToAvroObjectWhenFloatVSUnion_FLOAT_INT_ThenReturnFloat() {
-        // GIVEN
-        List<Schema.Type> schemaTypes = Arrays.asList(
-                Schema.Type.FLOAT,
-                Schema.Type.INT
-        );
-        double rawValue = 1.5;
-
-        Object expected = 1.5f;
-
-        // WHEN
-        // THEN
-        testConvertToAvroObject(expected, rawValue, schemaTypes);
-    }
-
-    private void testConvertToAvroObject(Object expected, double rawValue, List<Schema.Type> schemaTypes) {
+    private void testConvertToAvroObjectAlsoReverseSchemaList(Object expected, Object rawValue, List<Schema.Type> schemaTypes) {
         // GIVEN
         List<Schema> schemaList = schemaTypes.stream()
                 .map(Schema::create)
@@ -632,5 +632,12 @@ public class TestAvroTypeUtil {
 
         // THEN
         assertEquals(expected, actual);
+
+        // WHEN
+        Collections.reverse(schemaList);
+        Object actualAfterReverse = AvroTypeUtil.convertToAvroObject(rawValue, Schema.createUnion(schemaList), StandardCharsets.UTF_16);
+
+        // THEN
+        assertEquals(expected, actualAfterReverse);
     }
 }
