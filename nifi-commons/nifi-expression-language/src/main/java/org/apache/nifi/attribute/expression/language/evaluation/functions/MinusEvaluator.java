@@ -48,7 +48,7 @@ public class MinusEvaluator extends NumberEvaluator {
         if (subjectValue instanceof Double || minus instanceof Double){
             result = subjectValue.doubleValue() - minus.doubleValue();
         } else {
-            result = Math.subtractExact(subjectValue.longValue(), minus.longValue());
+            result = subjectValue.longValue() - minus.longValue();
         }
         return new NumberQueryResult(result);
     }

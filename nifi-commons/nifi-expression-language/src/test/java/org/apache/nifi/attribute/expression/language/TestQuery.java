@@ -997,15 +997,8 @@ public class TestQuery {
 
         verifyEquals("${hundred:toNumber():multiply(${two}):divide(${three}):plus(${one}):mod(${five})}", attributes, 2L);
 
-        try {
-            // The expected result is purposely an overflow
-            verifyEquals("${min_long:minus(100)}", attributes, Long.MIN_VALUE - 100);
-            fail("Long.MIN_VALUE subtracted by an integer number produced undetected overflow");
-        } catch (ArithmeticException e){
-            // This means the overflow has been detected
-        } catch (Exception e) {
-            fail(e.getMessage());
-        }
+        // The expected result is purposely an overflow
+        verifyEquals("${min_long:minus(100)}", attributes, Long.MIN_VALUE - 100);
     }
 
     @Test
