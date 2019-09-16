@@ -998,25 +998,10 @@ public class TestQuery {
 
         verifyEquals("${hundred:toNumber():multiply(${two}):divide(${three}):plus(${one}):mod(${five})}", attributes, 2L);
 
-        try{
-            // The expected result is purposely an overflow
-            verifyEquals("${max_long:multiply(2)}", attributes, Long.MAX_VALUE*2);
-            fail("Long.MAX_VALUE times an integer number produced undetected overflow");
-        } catch (ArithmeticException e){
-            // This means the overflow has been detected
-        } catch(Exception e) {
-            fail(e.getMessage());
-        }
-
-        try{
-            // The expected result is purposely an overflow
-            verifyEquals("${min_long:multiply(2)}", attributes, Long.MIN_VALUE*2);
-            fail("Long.MIN_VALUE times an integer number produced undetected overflow");
-        } catch (ArithmeticException e){
-            // This means the overflow has been detected
-        } catch(Exception e) {
-            fail(e.getMessage());
-        }
+        // The expected result is purposely an overflow
+        verifyEquals("${max_long:multiply(2)}", attributes, Long.MAX_VALUE*2);
+        // The expected result is purposely an overflow
+        verifyEquals("${min_long:multiply(2)}", attributes, Long.MIN_VALUE*2);
     }
 
     @Test

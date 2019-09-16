@@ -48,7 +48,7 @@ public class MultiplyEvaluator extends NumberEvaluator {
         if (subjectValue instanceof Double || multiply instanceof Double){
             result = subjectValue.doubleValue() * multiply.doubleValue();
         } else {
-            result = Math.multiplyExact(subjectValue.longValue(), multiply.longValue());
+            result = subjectValue.longValue() * multiply.longValue();
         }
         return new NumberQueryResult(result);
     }
