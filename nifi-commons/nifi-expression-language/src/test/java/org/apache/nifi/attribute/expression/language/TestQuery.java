@@ -997,17 +997,8 @@ public class TestQuery {
 
         verifyEquals("${hundred:toNumber():multiply(${two}):divide(${three}):plus(${one}):mod(${five})}", attributes, 2L);
 
-
-        try {
-            // The expected result is purposely an overflow
-            verifyEquals("${max_long:plus(100)}", attributes, Long.MAX_VALUE + 100);
-            fail("Long.MAX_VALUE summed with integer number produced undetected overflow");
-        } catch (ArithmeticException e){
-            // This means the overflow has been detected
-        } catch (Exception e) {
-            fail(e.getMessage());
-        }
-
+        // The expected result is purposely an overflow
+        verifyEquals("${max_long:plus(100)}", attributes, Long.MAX_VALUE + 100);
     }
 
     @Test

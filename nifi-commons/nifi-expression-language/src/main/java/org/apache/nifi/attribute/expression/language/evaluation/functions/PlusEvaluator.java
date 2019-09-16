@@ -48,7 +48,7 @@ public class PlusEvaluator extends NumberEvaluator {
         if (subjectValue instanceof Double || plus instanceof Double){
             result = subjectValue.doubleValue() + plus.doubleValue();
         } else {
-            result = Math.addExact(subjectValue.longValue(), plus.longValue());
+            result = subjectValue.longValue() + plus.longValue();
         }
         return new NumberQueryResult(result);
     }
