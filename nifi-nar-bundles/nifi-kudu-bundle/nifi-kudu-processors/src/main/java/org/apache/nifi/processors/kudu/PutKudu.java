@@ -99,6 +99,15 @@ public class PutKudu extends AbstractKuduProcessor {
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
 
+    protected static final PropertyDescriptor LOWERCASE_FIELD_NAMES = new Builder()
+            .name("Lowercase Field Names")
+            .description("Convert incoming record field names to lowercase")
+            .defaultValue("false")
+            .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .build();
+
     protected static final PropertyDescriptor INSERT_OPERATION = new Builder()
         .name("Insert Operation")
         .displayName("Kudu Operation Type")
@@ -179,6 +188,7 @@ public class PutKudu extends AbstractKuduProcessor {
         properties.add(TABLE_NAME);
         properties.add(KERBEROS_CREDENTIALS_SERVICE);
         properties.add(SKIP_HEAD_LINE);
+        properties.add(LOWERCASE_FIELD_NAMES);
         properties.add(RECORD_READER);
         properties.add(INSERT_OPERATION);
         properties.add(FLUSH_MODE);
@@ -247,12 +257,20 @@ public class PutKudu extends AbstractKuduProcessor {
         for (FlowFile flowFile : flowFiles) {
             operationType = OperationType.valueOf(context.getProperty(INSERT_OPERATION).evaluateAttributeExpressions(flowFile).getValue());
             Boolean ignoreNull = Boolean.valueOf(context.getProperty(IGNORE_NULL).evaluateAttributeExpressions(flowFile).getValue());
+            Boolean lowercaseFields = Boolean.valueOf(context.getProperty(LOWERCASE_FIELD_NAMES).evaluateAttributeExpressions(flowFile).getValue());
             try (final InputStream in = session.read(flowFile);
                 final RecordReader recordReader = recordReaderFactory.createRecordReader(flowFile, in, getLogger())) {
-                final List<String> fieldNames = recordReader.getSchema().getFieldNames();
                 final RecordSet recordSet = recordReader.createRecordSet();
                 final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions(flowFile).getValue();
                 final KuduTable kuduTable = kuduClient.openTable(tableName);
+
+                List<String> fieldNames = recordReader.getSchema().getFieldNames();
+                // If LOWERCASE_FIELD_NAMES is set to true, convert each field to lowercase
+                if (lowercaseFields) {
+                    for (int i = 0; i < fieldNames.size(); i++) {
+                        fieldNames.set(i, fieldNames.get(i).toLowerCase());
+                    }
+                }
 
                 Record record = recordSet.next();
                 while (record != null) {

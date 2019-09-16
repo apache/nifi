@@ -103,6 +103,7 @@ public class TestPutKudu {
         testRunner.setProperty(PutKudu.KUDU_MASTERS, DEFAULT_MASTERS);
         testRunner.setProperty(PutKudu.SKIP_HEAD_LINE, SKIP_HEAD_LINE);
         testRunner.setProperty(PutKudu.IGNORE_NULL, "true");
+        testRunner.setProperty(PutKudu.LOWERCASE_FIELD_NAMES, "true");
         testRunner.setProperty(PutKudu.RECORD_READER, "mock-reader-factory");
         testRunner.setProperty(PutKudu.INSERT_OPERATION, OperationType.INSERT.toString());
     }
