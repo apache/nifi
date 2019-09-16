@@ -27,6 +27,7 @@ import org.apache.kudu.client.KuduSession;
 import org.apache.kudu.client.OperationResponse;
 import org.apache.kudu.client.RowError;
 import org.apache.kudu.client.RowErrorsAndOverflowStatus;
+import org.apache.kudu.client.PartialRow;
 import org.apache.kudu.client.SessionConfiguration.FlushMode;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.flowfile.FlowFile;
@@ -103,6 +104,7 @@ public class TestPutKudu {
         testRunner.setProperty(PutKudu.KUDU_MASTERS, DEFAULT_MASTERS);
         testRunner.setProperty(PutKudu.SKIP_HEAD_LINE, SKIP_HEAD_LINE);
         testRunner.setProperty(PutKudu.IGNORE_NULL, "true");
+        testRunner.setProperty(PutKudu.LOWERCASE_FIELD_NAMES, "true");
         testRunner.setProperty(PutKudu.RECORD_READER, "mock-reader-factory");
         testRunner.setProperty(PutKudu.INSERT_OPERATION, OperationType.INSERT.toString());
     }
@@ -366,27 +368,51 @@ public class TestPutKudu {
 
     @Test
     public void testBuildRow() {
-        buildPartialRow((long) 1, "foo", (short) 10);
+        buildPartialRow((long) 1, "foo", (short) 10, "id", "id", false);
     }
 
     @Test
     public void testBuildPartialRowNullable() {
-        buildPartialRow((long) 1, null, (short) 10);
+        buildPartialRow((long) 1, null, (short) 10, "id", "id",  false);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testBuildPartialRowNullPrimaryKey() {
-        buildPartialRow(null, "foo", (short) 10);
+        buildPartialRow(null, "foo", (short) 10, "id", "id",  false);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testBuildPartialRowNotNullable() {
-        buildPartialRow((long) 1, "foo", null);
+        buildPartialRow((long) 1, "foo", null, "id", "id", false);
     }
 
-    private void buildPartialRow(Long id, String name, Short age) {
+    @Test
+    public void testBuildPartialRowLowercaseFields() {
+        PartialRow row = buildPartialRow((long) 1, "foo", (short) 10, "id", "ID", true);
+        row.getLong("id");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testBuildPartialRowLowercaseFieldsFalse() {
+        PartialRow row = buildPartialRow((long) 1, "foo", (short) 10, "id", "ID", false);
+        row.getLong("id");
+    }
+
+    @Test
+    public void testBuildPartialRowLowercaseFieldsKuduUpper() {
+        PartialRow row = buildPartialRow((long) 1, "foo", (short) 10, "ID", "ID", false);
+        row.getLong("ID");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testBuildPartialRowLowercaseFieldsKuduUpperFail() {
+        PartialRow row = buildPartialRow((long) 1, "foo", (short) 10, "ID", "ID", true);
+        row.getLong("ID");
+    }
+
+    private PartialRow buildPartialRow(Long id, String name, Short age, String kuduIdName, String recordIdName, Boolean lowercaseFields) {
         final Schema kuduSchema = new Schema(Arrays.asList(
-            new ColumnSchema.ColumnSchemaBuilder("id", Type.INT64).key(true).build(),
+            new ColumnSchema.ColumnSchemaBuilder(kuduIdName, Type.INT64).key(true).build(),
             new ColumnSchema.ColumnSchemaBuilder("name", Type.STRING).nullable(true).build(),
             new ColumnSchema.ColumnSchemaBuilder("age", Type.INT16).nullable(false).build(),
             new ColumnSchema.ColumnSchemaBuilder("updated_at", Type.UNIXTIME_MICROS).nullable(false).build(),
@@ -395,25 +421,28 @@ public class TestPutKudu {
             ).build()));
 
         final RecordSchema schema = new SimpleRecordSchema(Arrays.asList(
-            new RecordField("id", RecordFieldType.BIGINT.getDataType()),
+            new RecordField(recordIdName, RecordFieldType.BIGINT.getDataType()),
             new RecordField("name", RecordFieldType.STRING.getDataType()),
             new RecordField("age", RecordFieldType.SHORT.getDataType()),
             new RecordField("updated_at", RecordFieldType.BIGINT.getDataType()),
             new RecordField("score", RecordFieldType.LONG.getDataType())));
 
         Map<String, Object> values = new HashMap<>();
-        values.put("id", id);
+        PartialRow row = kuduSchema.newPartialRow();
+        values.put(recordIdName, id);
         values.put("name", name);
         values.put("age", age);
         values.put("updated_at", System.currentTimeMillis() * 1000);
         values.put("score", 10000L);
         processor.buildPartialRow(
             kuduSchema,
-            kuduSchema.newPartialRow(),
+            row,
             new MapRecord(schema, values),
             schema.getFieldNames(),
-                true
+                true,
+            lowercaseFields
         );
+        return row;
     }
 
     private Tuple<Insert, OperationResponse> insert(boolean success) {
