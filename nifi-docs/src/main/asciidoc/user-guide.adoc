@@ -675,8 +675,8 @@ must define which Properties make sense for its use case. Below, we see the Prop
 image::properties-tab.png["Properties Tab"]
 
 This Processor, by default, has only a single property: 'Routing Strategy'. The default value is 'Route to Property name'. Next to
-the name of this property is a small question-mark symbol (
-image:iconInfo.png["Question Mark"]
+the name of this property is a small question mark symbol (
+image:iconInfo.png["Info"]
 ). This help symbol is seen in other places throughout the User Interface, and it indicates that more information is available.
 Hovering over this symbol with the mouse will provide additional details about the property and the default value, as well as
 historical values that have been set for the Property.
@@ -720,10 +720,15 @@ You can access additional documentation about each Processor's usage by right-cl
 The values of properties in the flow, including sensitive properties, can be parameterized using Parameters. Parameters are created and configured within the NiFi UI. Any property can be configured to reference a Parameter with the following conditions:
 
  - A sensitive property can only reference a Sensitive Parameter
- - A non-sensitive property can only reference a non-Sensitive Parameter
+ - A non-sensitive property can only reference a Non-Sensitive Parameter
  - Properties that reference Controller Services can not use Parameters
+ - Parameters cannot be referenced in Reporting Tasks or in controller-level Controller Services
 
-NOTE: NiFi automatically picks up new or modified parameters.
+The UI indicates whether a Parameter can be used for a property value.
+
+image::el-param-support-help-text.png[Expression Language and Parameters Help Text]
+
+NOTE: Parameters have numerous advantages over <<Variables>>. In addition to sensitive value support, Parameters offer more granular control over access policies. Additionally, properties that reference Parameters are validated against the substituted value, unlike most properties that reference Variables using Expression Language.
 
 [[parameter-contexts]]
 ==== Parameter Contexts
@@ -757,15 +762,15 @@ The Add Parameter window has the following settings:
 
 - *Name* - A name that is used to denote the Parameter. Only alpha-numeric characters (a-z, A-Z, 0-9), hyphens ( - ), underscores ( _ ), periods ( . ), and spaces are allowed.
 
-- *Value* - The value that will be used when the Parameter is referenced.
+- *Value* - The value that will be used when the Parameter is referenced. Parameter values do not support Expression Language or embedded parameter references.
 
-- *Set empty string* - Check to explicity set the value of the Parameter to an empty string. Unchecked by default.
+- *Set empty string* - Check to explicitly set the value of the Parameter to an empty string. Unchecked by default. (Note: If checked but a value is set, the checkbox is ignored.)
 
-- *Sensitive Value* -  Set to "Yes" if the Parameter's Value should be considered sensitive. If sensitive, the value of the Parameter will not be shown in the UI once applied. The default setting is "No".
+- *Sensitive Value* -  Set to "Yes" if the Parameter's Value should be considered sensitive. If sensitive, the value of the Parameter will not be shown in the UI once applied. The default setting is "No". Sensitive Parameters can only be referenced by sensitive properties and Non-Sensitive Parameters by non-sensitive properties. Once a Parameter is created, its sensitivity flag cannot be changed.
 
 - *Description* - A description that explains what the Parameter is, how it is to be used, etc. This field is optional.
 
-Once these settings are configured, select "Apply". Add additional Parameters or edit any existing Parameters.
+Once these settings are configured, select "Apply". The Referencing Components lists the components referenced by the currently selected parameter. Add additional Parameters or edit any existing Parameters.
 
 image:update-parameter-context.png[Update Parameter Context]
 
@@ -773,15 +778,18 @@ To complete the process, select "Apply" from the Parameter Context window. The f
 
 image:parameters-validate-affected-components.png[Validate Affected Components]
 
-The Referencing Components section lists any components referencing the parameters in the parameter context organized by process group.
+The Referencing Components section now lists an aggregation of all the components referenced by the set of parameters added/edited/deleted, organized by process group.
+
 
 [[assigning_parameter_context_to_PG]]
 ==== Assigning a Parameter Context to a Process Group
-For a component to reference a Parameter, its Process Group must first be assigned to a Parameter Context. Once assigned, processors and controller services within that Process Group may only reference Parameters within that Parameter Context.
+For a component to reference a Parameter, its Process Group must first be assigned a Parameter Context. Once assigned, processors and controller services within that Process Group may only reference Parameters within that Parameter Context.
+
+A Process Group can only be assigned one Parameter Context, while a given Parameter Context can be assigned to multiple Process Groups.
 
 NOTE: A user can only set the Parameter Context of a Process Group to one of the Parameter Contexts that the user has the view policy for. Additionally, in order to set the Parameter Context, the user must have the modify policy for the Process Group. See <<accessing-parameters>> for more information.
 
-To assign a Parameter Context to a Process group, click Configure, either from the Operate Palette or from the Process Group context menu.
+To assign a Parameter Context to a Process Group, click Configure, either from the Operate Palette or from the Process Group context menu.
 
 image:process-group-configuration-parameters.png[Configure Process Group Parameter Context]
 
@@ -793,7 +801,7 @@ Select "Apply" to save the configuration changes. The Process Group context menu
 
 image:context-menu-parameters-option.png[Context Menu Parameters Option]
 
-If the Parameter Context for a Process Group is changed, all components that reference any Parameters in that Process Group will be stopped, validated, and restarted (assuming the changes are valid).
+If the Parameter Context for a Process Group is changed, all components that reference any Parameters in that Process Group will be stopped, validated, and restarted assuming the components were previously running and are still valid.
 
 NOTE: If a Parameter Context is unset from a Process Group, it does *NOT* inherit the Parameter Context from the parent Process Group. Instead, no Parameters can be referenced. Any component that does already reference a Parameter will become invalid.
 
@@ -822,7 +830,7 @@ This can be escaped using an additional `#` character at the beginning. To illus
 
 When referencing a Parameter from within link:expression-language-guide.html[Expression Language], the Parameter reference is evaluated first. As an example, to replace `xxx` with `zzz` for the `abc` Parameter:
 
-`${ literal('#{abc}'):replace('xxx', 'zzz') }`
+`${ #{abc}:replace('xxx', 'zzz') }`
 
 ===== Referencing and Creating Parameters During Component Configuration
 Parameters can be easily referenced or created as you configure the components in your flow. For example, assume a process group  has the Parameter Context "Kafka Settings" assigned to it. "Kafka Settings" contains the parameters `kafka.broker` and `kafka.topic1`.
@@ -841,7 +849,7 @@ Help text describing this process is displayed when hovering over the Expression
 
 image::el-param-support-help-text.png[Expression Language and Parameters Help Text]
 
-Parameters can also be created on the fly. For example, to create a parameter for the "Topic Name" property, select the "Convert to Parameter" icon (image:iconConvertToParameter.png["Convert to Parameter"]) in that property's row.
+Parameters can also be created on the fly. For example, to create a parameter for the "Topic Name" property, select the "Convert to Parameter" icon (image:iconConvertToParameter.png["Convert to Parameter"]) in that property's row. This icon will only be available if the user has appropriate permissions to modify the Parameter Context (see <<accessing-parameters>> for more information).
 
 image::convert-property-to-parameter.png[Convert Property to Parameter]
 
@@ -853,11 +861,21 @@ Select "Apply". The process group's Parameter Context will be updated and the ne
 
 image::new-parameter-referenced.png[New Parameter Referenced]
 
+Properties values that are selectable can also reference parameters. In addition to applying the "Convert to Parameter" method described earlier, the option "Reference parameter.." is available in the value drop-down menu.
+
+image::reference-parameter-option.png[Reference Parameter Option]
+
+Selecting "Reference parameter..." will display a drop-down list of available parameters, determined by the parameter context assigned to the component's process group and the user's access policies.
+
+image::reference-parameter-available-parameters.png[Reference Parameter Available Parameters]
+
+Hovering over the question mark icon (image:iconInfo.png["Info"]) displays the parameter's description.
+
 
 ===== Using Parameters with Sensitive Properties
-Sensitive Properties may only reference sensitive Parameters. This is important for <<versioning_dataflow, versioned flows>> as it indicates to the Flow Registry that the property references a Parameter by including the value of a Sensitive Property if and only if the value is a reference to a sensitive Parameter.
+Sensitive properties may only reference sensitive Parameters. This is important for <<versioning_dataflow, versioned flows>>. The value of the sensitive Parameter itself will NOT be sent to the flow registry, only the fact that the property references the sensitive Parameter. For more information see <<parameters-and-versioned-flows>>.
 
-The value of a sensitive property must be set to a single Parameter reference. For example, values of `+#{password}123+` and `+#{password}#{suffix}+` are not allowed. Sending `+#{password}123+` would lead to exposing part of the Sensitive Property's value.
+The value of a sensitive property must be set to a single Parameter reference. For example, values of `+#{password}123+` and `+#{password}#{suffix}+` are not allowed. Sending `+#{password}123+` would lead to exposing part of the sensitive property's value. This is in contrast to a non-sensitive property, where a value such as `+#{path}/child/file.txt+` is valid.
 
 [[accessing-parameters]]
 ==== Accessing Parameters
@@ -884,7 +902,17 @@ See the <<administration-guide.adoc#component-level-access-policies,Component Le
 A user can only set the Parameter Context of a Process Group to one of the Parameter Contexts that the user has the view policy for. Additionally, in order to set the Parameter Context, the user must have the modify policy for the Process Group. The Process Group access policies can be managed by highlighting the Process Group and selecting the "Access Policies" button (image:iconAccessPolicies.png["Access Policies"]) from the Operate Palette.
 
 ===== Component Access Policies
-To reference Parameters or convert properties to a Parameter in a component, a user needs to have the view and modify policies for the component. These policies are inherited if the user has view and modify policies to the component's process group, but these policies can be overridden on the component level. See the <<administration-guide.adoc#component-level-access-policies,Component Level Access Policies>> section in the System Administrator's Guide for more information.
+To reference Parameters or convert properties to a Parameter in a component, a user needs to have the view and modify policies for the component. These policies are inherited if the user has view and modify policies to the component's process group, but these policies can be overridden on the component level.
+
+In order to modify a Parameter, a user must have view and modify policies for any and all components that reference that Parameter.  This is needed because changing the Parameter requires that the components be stopped/started and also because by taking that action, the user is modifying the behavior of the component.
+
+See the <<administration-guide.adoc#component-level-access-policies,Component Level Access Policies>> section in the System Administrator's Guide for more information.
+
+[[parameters-and-versioned-flows]]
+==== Parameters and Versioned Flows
+When exporting a flow to a Flow Registry, the name of the Parameter Context is sent for each process group that is stored. Additionally, the Parameters (names, descriptions, values, whether or not sensitive) are stored with the flow. Sensitive Parameter values are not stored.
+
+When a flow is imported, if no Parameter Context is set, NiFi will set the Parameter Context with the same name as the one stored in Flow Registry. If none exists with that name, NiFi will create one. If a Parameter Context has been set and the imported flow contains a Parameter Context with the same name and Parameters with the same names but different values, the existing Parameter values will not be overwritten by those from the imported flow. However, any Parameters missing from the assigned Parameter Context that exist in the Parameter Context of the imported flow will be added.
 
 
 [[Using_Custom_Properties]]
@@ -906,23 +934,26 @@ NiFi properties have resolution precedence of which you should be aware when cre
 ** System properties 
 ** Operating System environment variables
 
-When you are creating custom properties, ensure that each custom property contains a distinct property value,
-so that it is not overridden by existing environment properties, system properties, or FlowFile attributes.
+When you are creating custom properties, ensure that each custom property contains a distinct property value, so that it is not overridden by existing environment properties, system properties, or FlowFile attributes.
 
 There are two ways to use and manage custom properties with Expression Language:
 
 - *Variables*: Variables are created and configured within the NiFi UI. They can be used in any field that supports Expression Language. Variables cannot be used for sensitive properties. NiFi automatically picks up new or modified variables. Variables are defined at the Process Group level, as a result, the access policies for viewing and changing variables are derived from the access policies of the Process Group. See <<Variables>> for more information.
 
-WARNING: Variables are still supported for compatibility purposes but do not have the same power as Parameters such as support for sensitive properties and more granular control over who can create, modify or use them. Variables will be removed in a future release. As a result, it is highly recommended to switch to Parameters.
-
 - *Custom Properties File*: Key/value pairs are defined in a custom properties file that is referenced via the `nifi.variable.registry.properties` in _nifi.properties_. NiFi must be restarted for updates to be picked up. See <<Custom_Properties>> for more information.
+
+WARNING: Custom properties via Variables and the _nifi.properties_ file are still supported for compatibility purposes but do not have the same power as Parameters such as support for sensitive properties and more granular control over who can create, modify or use them. Variables and the `nifi.variable.registry.properties` property will be removed in a future release. As a result, it is highly recommended to switch to Parameters.
+
+Expression Language support for a property is indicated in the UI.
+
+image::el-support-help-text.png[Expression Language Help Text]
 
 [[Variables]]
 ==== Variables
 
-Variables are created and configured within the NiFi UI. They can be used in any field that supports Expression Language. Variables cannot be used for sensitive properties. Variables are defined at the Process Group level, as a result, the access policies for viewing and changing variables are derived from the access policies of the Process Group.
+WARNING: Custom properties via Variables and the _nifi.properties_ file are still supported for compatibility purposes but do not have the same power as Parameters such as support for sensitive properties and more granular control over who can create, modify or use them. Variables and the `nifi.variable.registry.properties` property will be removed in a future release. As a result, it is highly recommended to switch to Parameters.
 
-NOTE: NiFi automatically picks up new or modified variables.
+Variables are created and configured within the NiFi UI. They can be used in any field that supports Expression Language. Variables cannot be used for sensitive properties. Variables are defined at the Process Group level, as a result, the access policies for viewing and changing variables are derived from the access policies of the Process Group. Variable values cannot reference other variables or make use of Expression Language.
 
 ===== Variables Window
 
@@ -1008,6 +1039,9 @@ image::variable-unauthorized-ref-processor-canvas.png["Unauthorized Referencing 
 
 [[Custom_Properties]]
 ==== Referencing Custom Properties via nifi.properties
+
+WARNING: Custom properties via Variables and the _nifi.properties_ file are still supported for compatibility purposes but do not have the same power as Parameters such as support for sensitive properties and more granular control over who can create, modify or use them. Variables and the `nifi.variable.registry.properties` property will be removed in a future release. As a result, it is highly recommended to switch to Parameters.
+
 Identify one or more sets of key/value pairs, and give them to your system administrator.
 
 Once the new custom properties have been added, ensure that the `nifi.variable.registry.properties`
