@@ -25,11 +25,13 @@ import org.apache.kudu.client.KuduException;
 import org.apache.kudu.client.KuduPredicate;
 import org.apache.kudu.client.KuduScanner;
 import org.apache.kudu.client.KuduTable;
+import org.apache.kudu.client.ReplicaSelection;
 import org.apache.kudu.client.RowResult;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
@@ -68,7 +70,7 @@ import java.util.stream.Collectors;
 @Tags({"lookup", "enrich", "key", "value", "kudu"})
 public class KuduLookupService extends AbstractControllerService implements RecordLookupService {
 
-    static final PropertyDescriptor KUDU_MASTERS = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor KUDU_MASTERS = new PropertyDescriptor.Builder()
             .name("kudu-lu-masters")
             .displayName("Kudu Masters")
             .description("Comma separated addresses of the Kudu masters to connect to.")
@@ -77,7 +79,7 @@ public class KuduLookupService extends AbstractControllerService implements Reco
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
-    static final PropertyDescriptor KERBEROS_CREDENTIALS_SERVICE = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor KERBEROS_CREDENTIALS_SERVICE = new PropertyDescriptor.Builder()
             .name("kudu-lu-kerberos-credentials-service")
             .displayName("Kerberos Credentials Service")
             .description("Specifies the Kerberos Credentials to use for authentication")
@@ -85,7 +87,7 @@ public class KuduLookupService extends AbstractControllerService implements Reco
             .identifiesControllerService(KerberosCredentialsService.class)
             .build();
 
-    static final PropertyDescriptor KUDU_OPERATION_TIMEOUT_MS = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor KUDU_OPERATION_TIMEOUT_MS = new PropertyDescriptor.Builder()
             .name("kudu-lu-operations-timeout-ms")
             .displayName("Kudu Operation Timeout")
             .description("Default timeout used for user operations (using sessions and scanners)")
@@ -93,6 +95,22 @@ public class KuduLookupService extends AbstractControllerService implements Reco
             .defaultValue(AsyncKuduClient.DEFAULT_OPERATION_TIMEOUT_MS + "ms")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
+
+    public static final AllowableValue CLOSEST_REPLICA = new AllowableValue(ReplicaSelection.CLOSEST_REPLICA.toString(), ReplicaSelection.CLOSEST_REPLICA.name(),
+            "Select the closest replica to the client. Replicas are classified from closest to furthest as follows: "+
+                    "1) Local replicas 2) Replicas whose tablet server has the same location as the client 3) All other replicas");
+    public static final AllowableValue LEADER_ONLY = new AllowableValue(ReplicaSelection.LEADER_ONLY.toString(), ReplicaSelection.LEADER_ONLY.name(),
+            "Select the LEADER replica");
+    public static final PropertyDescriptor KUDU_REPLICA_SELECTION = new PropertyDescriptor.Builder()
+            .name("kudu-lu-replica-selection")
+            .displayName("Kudu Replica Selection")
+            .description("Policy with which to choose amongst multiple replicas")
+            .required(true)
+            .defaultValue(CLOSEST_REPLICA.getValue())
+            .allowableValues(CLOSEST_REPLICA, LEADER_ONLY)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
 
     public static final PropertyDescriptor TABLE_NAME = new PropertyDescriptor.Builder()
@@ -105,7 +123,7 @@ public class KuduLookupService extends AbstractControllerService implements Reco
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
-    static final PropertyDescriptor RETURN_COLUMNS = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor RETURN_COLUMNS = new PropertyDescriptor.Builder()
             .name("kudu-lu-return-cols")
             .displayName("Kudu Return Columns")
             .description("A comma-separated list of columns to return when scanning. To return all columns set to \"*\"")
@@ -123,6 +141,7 @@ public class KuduLookupService extends AbstractControllerService implements Reco
 
     protected String kuduMasters;
     protected KuduClient kuduClient;
+    protected ReplicaSelection replicaSelection;
     protected volatile String tableName;
     protected volatile KuduTable table;
     protected volatile List<String> columnNames;
@@ -136,6 +155,7 @@ public class KuduLookupService extends AbstractControllerService implements Reco
         properties.add(KUDU_MASTERS);
         properties.add(KERBEROS_CREDENTIALS_SERVICE);
         properties.add(KUDU_OPERATION_TIMEOUT_MS);
+        properties.add(KUDU_REPLICA_SELECTION);
         properties.add(TABLE_NAME);
         properties.add(RETURN_COLUMNS);
         addProperties(properties);
@@ -149,22 +169,24 @@ public class KuduLookupService extends AbstractControllerService implements Reco
         final String kuduMasters = context.getProperty(KUDU_MASTERS).evaluateAttributeExpressions().getValue();
         final KerberosCredentialsService credentialsService = context.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
 
-        if (credentialsService == null) {
-            return;
+        if (credentialsService != null) {
+            final String keytab = credentialsService.getKeytab();
+            final String principal = credentialsService.getPrincipal();
+            kerberosUser = loginKerberosUser(principal, keytab);
+
+            final KerberosAction<KuduClient> kerberosAction = new KerberosAction<>(kerberosUser, () -> buildClient(kuduMasters, context), getLogger());
+            this.kuduClient = kerberosAction.execute();
+        } else {
+            this.kuduClient = buildClient(kuduMasters, context);
         }
-
-        final String keytab = credentialsService.getKeytab();
-        final String principal = credentialsService.getPrincipal();
-        kerberosUser = loginKerberosUser(principal, keytab);
-
-        final KerberosAction<KuduClient> kerberosAction = new KerberosAction<>(kerberosUser, () -> buildClient(kuduMasters, context), getLogger());
-        this.kuduClient = kerberosAction.execute();
     }
+
     protected KerberosUser loginKerberosUser(final String principal, final String keytab) throws LoginException {
         final KerberosUser kerberosUser = new KerberosKeytabUser(principal, keytab);
         kerberosUser.login();
         return kerberosUser;
     }
+
     protected KuduClient buildClient(final String masters, final ConfigurationContext context) {
         final Integer operationTimeout = context.getProperty(KUDU_OPERATION_TIMEOUT_MS).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
 
@@ -172,6 +194,7 @@ public class KuduLookupService extends AbstractControllerService implements Reco
                 .defaultOperationTimeoutMs(operationTimeout)
                 .build();
     }
+
     /**
      * Establish a connection to a Kudu cluster.
      * @param context the configuration context
@@ -195,6 +218,7 @@ public class KuduLookupService extends AbstractControllerService implements Reco
             throw new InitializationException(ex);
         }
 
+        replicaSelection = ReplicaSelection.valueOf(context.getProperty(KUDU_REPLICA_SELECTION).getValue());
         tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions().getValue();
         try {
             table = kuduClient.openTable(tableName);
@@ -218,6 +242,7 @@ public class KuduLookupService extends AbstractControllerService implements Reco
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return properties;
     }
+
     @Override
     public Optional<Record> lookup(Map<String, Object> coordinates) {
 
@@ -225,6 +250,7 @@ public class KuduLookupService extends AbstractControllerService implements Reco
         KuduScanner.KuduScannerBuilder builder = kuduClient.newScannerBuilder(table);
 
         builder.setProjectedColumnNames(columnNames);
+        builder.replicaSelection(replicaSelection);
 
         //Only expecting one match
         builder.limit(1);
@@ -239,9 +265,11 @@ public class KuduLookupService extends AbstractControllerService implements Reco
         for ( RowResult row : kuduScanner){
             final Map<String, Object> values = new HashMap<>();
             for(String columnName : columnNames){
-                Object object = row.getObject(columnName);
+                Object object;
                 if(row.getColumnType(columnName) == Type.BINARY){
                     object = Base64.getEncoder().encodeToString(row.getBinaryCopy(columnName));
+                } else {
+                    object = row.getObject(columnName);
                 }
                 values.put(columnName, object);
             }
@@ -251,6 +279,7 @@ public class KuduLookupService extends AbstractControllerService implements Reco
         //No match
         return Optional.empty();
     }
+
     private List<String> getColumns(String columns){
         if(columns.equals("*")){
             return tableSchema
@@ -261,6 +290,7 @@ public class KuduLookupService extends AbstractControllerService implements Reco
             return Arrays.asList(columns.split(","));
         }
     }
+
     private RecordSchema kuduSchemaToNiFiSchema(Schema kuduTableSchema, List<String> columnNames){
         final List<RecordField> fields = new ArrayList<>();
         for(String columnName : columnNames) {
@@ -286,9 +316,9 @@ public class KuduLookupService extends AbstractControllerService implements Reco
                     break;
                 case BINARY:
                 case STRING:
+                case DECIMAL:
                     fields.add(new RecordField(cs.getName(), RecordFieldType.STRING.getDataType()));
                     break;
-                case DECIMAL:
                 case DOUBLE:
                     fields.add(new RecordField(cs.getName(), RecordFieldType.DOUBLE.getDataType()));
                     break;
@@ -302,6 +332,7 @@ public class KuduLookupService extends AbstractControllerService implements Reco
         }
         return new SimpleRecordSchema(fields);
     }
+
     /**
      * Disconnect from the Kudu cluster.
      */

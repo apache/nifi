@@ -26,8 +26,8 @@ import org.apache.kudu.client.KuduSession;
 import org.apache.kudu.client.KuduTable;
 import org.apache.kudu.client.PartialRow;
 import org.apache.kudu.test.KuduTestHarness;
+import org.apache.kudu.test.cluster.MiniKuduCluster;
 import org.apache.kudu.util.DecimalUtil;
-import org.apache.nifi.lookup.LookupFailureException;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -60,7 +60,11 @@ public class TestKuduLookupService {
     // if set, or under /tmp otherwise. That cluster data is deleted on
     // successful exit of the test. The cluster output is logged through slf4j.
     @Rule
-    public KuduTestHarness harness = new KuduTestHarness();
+    public KuduTestHarness harness = new KuduTestHarness(
+            new MiniKuduCluster.MiniKuduClusterBuilder()
+                .addMasterServerFlag("--use_hybrid_clock=false")
+                .addTabletServerFlag("--use_hybrid_clock=false")
+    );
     private TestRunner testRunner;
     private long nowMillis = System.currentTimeMillis();
     private KuduLookupService kuduLookupService;
@@ -68,6 +72,7 @@ public class TestKuduLookupService {
     public static class SampleProcessor extends AbstractProcessor {
         @Override
         public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+
         }
     }
 
@@ -136,13 +141,14 @@ public class TestKuduLookupService {
 
         kuduLookupService = new KuduLookupService();
         testRunner.addControllerService("kuduLookupService", kuduLookupService);
-        testRunner.setProperty(kuduLookupService, KuduLookupService.KUDU_MASTERS, "unused:7150");
+        testRunner.setProperty(kuduLookupService, KuduLookupService.KUDU_MASTERS, "testLocalHost:7051");
+        testRunner.setProperty(kuduLookupService, KuduLookupService.KUDU_REPLICA_SELECTION, KuduLookupService.LEADER_ONLY);
         testRunner.setProperty(kuduLookupService, KuduLookupService.TABLE_NAME, tableName);
         kuduLookupService.kuduClient = client;
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void invalid_key() throws LookupFailureException {
+    public void invalid_key() {
         testRunner.setProperty(kuduLookupService, KuduLookupService.RETURN_COLUMNS, "*");
 
         testRunner.enableControllerService(kuduLookupService);
@@ -152,7 +158,7 @@ public class TestKuduLookupService {
         kuduLookupService.lookup(map);
     }
     @Test
-    public void row_not_found() throws LookupFailureException {
+    public void row_not_found() {
         testRunner.setProperty(kuduLookupService, KuduLookupService.RETURN_COLUMNS, "*");
 
         testRunner.enableControllerService(kuduLookupService);
@@ -164,7 +170,7 @@ public class TestKuduLookupService {
     }
 
     @Test
-    public void single_key() throws LookupFailureException {
+    public void single_key() {
         testRunner.setProperty(kuduLookupService, KuduLookupService.RETURN_COLUMNS, "*");
 
         testRunner.enableControllerService(kuduLookupService);
@@ -175,7 +181,7 @@ public class TestKuduLookupService {
         validateRow1(result);
     }
     @Test
-    public void multi_key() throws LookupFailureException {
+    public void multi_key() {
         testRunner.setProperty(kuduLookupService, KuduLookupService.RETURN_COLUMNS, "*");
 
         testRunner.enableControllerService(kuduLookupService);
@@ -196,7 +202,7 @@ public class TestKuduLookupService {
         validateRow1(result);
     }
     @Test
-    public void specific_return_columns() throws LookupFailureException {
+    public void specific_return_columns() {
         testRunner.setProperty(kuduLookupService, KuduLookupService.RETURN_COLUMNS, "binary,bool");
 
         testRunner.enableControllerService(kuduLookupService);

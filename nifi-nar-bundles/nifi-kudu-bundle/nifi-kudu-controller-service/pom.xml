@@ -23,6 +23,11 @@
 
     <artifactId>nifi-kudu-controller-service</artifactId>
     <packaging>jar</packaging>
+
+
+    <properties>
+        <exclude.tests>None</exclude.tests>
+    </properties>
     <build>
         <extensions>
             <!-- Used to find the right kudu-binary artifact with the Maven
@@ -33,6 +38,17 @@
                 <version>1.6.2</version>
             </extension>
         </extensions>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <excludes>
+                        <exclude>${exclude.tests}</exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+        </plugins>
     </build>
     <dependencies>
         <dependency>
@@ -91,4 +107,18 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+    <profiles>
+        <profile>
+            <id>kudu-windows</id>
+            <activation>
+                <os>
+                    <family>Windows</family>
+                </os>
+            </activation>
+            <properties>
+                <!-- Kudu tests do not support Windows. -->
+                <exclude.tests>**/*.java</exclude.tests>
+            </properties>
+        </profile>
+    </profiles>
 </project>
