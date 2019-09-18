@@ -234,8 +234,8 @@ public class DataTypeUtils {
         Queue<DataType> possibleSubTypes = new LinkedList<>(choiceType.getPossibleSubTypes());
         List<DataType> compatibleSimpleSubTypes = new ArrayList<>();
 
-        while (possibleSubTypes.peek() != null) {
-            DataType subType = possibleSubTypes.poll();
+        DataType subType;
+        while ((subType = possibleSubTypes.poll()) != null) {
             if (subType instanceof ChoiceDataType) {
                 possibleSubTypes.addAll(((ChoiceDataType) subType).getPossibleSubTypes());
             } else {
