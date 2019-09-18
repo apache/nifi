@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.hbase.put;
 
-import org.apache.nifi.util.StringUtils;
-
 /**
  * Encapsulates the information for one column of a put operation.
  */
@@ -47,7 +45,7 @@ public class PutColumn {
         this.columnQualifier = columnQualifier;
         this.buffer = buffer;
         this.timestamp = timestamp;
-        this.visibility = !StringUtils.isEmpty(visibility) ? visibility : null;
+        this.visibility = (visibility != null && visibility.trim().length() > 0) ? visibility : null;
     }
 
     public byte[] getColumnFamily() {
