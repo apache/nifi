@@ -873,7 +873,7 @@ Hovering over the question mark icon (image:iconInfo.png["Info"]) displays the p
 
 
 ===== Using Parameters with Sensitive Properties
-Sensitive properties may only reference sensitive Parameters. This is important for <<versioning_dataflow, versioned flows>>. The value of the sensitive Parameter itself will NOT be sent to the flow registry, only the fact that the property references the sensitive Parameter. For more information see <<parameters-and-versioned-flows>>.
+Sensitive properties may only reference sensitive Parameters. This is important for <<versioning_dataflow, versioned flows>>. The value of the sensitive Parameter itself will NOT be sent to the flow registry, only the fact that the property references the sensitive Parameter. For more information see <<parameters-in-versioned-flows>>.
 
 The value of a sensitive property must be set to a single Parameter reference. For example, values of `+#{password}123+` and `+#{password}#{suffix}+` are not allowed. Sending `+#{password}123+` would lead to exposing part of the sensitive property's value. This is in contrast to a non-sensitive property, where a value such as `+#{path}/child/file.txt+` is valid.
 
@@ -907,12 +907,6 @@ To reference Parameters or convert properties to a Parameter in a component, a u
 In order to modify a Parameter, a user must have view and modify policies for any and all components that reference that Parameter.  This is needed because changing the Parameter requires that the components be stopped/started and also because by taking that action, the user is modifying the behavior of the component.
 
 See the <<administration-guide.adoc#component-level-access-policies,Component Level Access Policies>> section in the System Administrator's Guide for more information.
-
-[[parameters-and-versioned-flows]]
-==== Parameters and Versioned Flows
-When exporting a flow to a Flow Registry, the name of the Parameter Context is sent for each process group that is stored. Additionally, the Parameters (names, descriptions, values, whether or not sensitive) are stored with the flow. Sensitive Parameter values are not stored.
-
-When a flow is imported, if no Parameter Context is set, NiFi will set the Parameter Context with the same name as the one stored in Flow Registry. If none exists with that name, NiFi will create one. If a Parameter Context has been set and the imported flow contains a Parameter Context with the same name and Parameters with the same names but different values, the existing Parameter values will not be overwritten by those from the imported flow. However, any Parameters missing from the assigned Parameter Context that exist in the Parameter Context of the imported flow will be added.
 
 
 [[Using_Custom_Properties]]
@@ -2122,11 +2116,14 @@ The following actions are not considered local changes:
 * modifying sensitive property values
 * modifying remote process group URLs
 * updating a processor that was referencing a non-existent controller service to reference an externally available controller service
+* assigning, creating, modifying or deleting parameter contexts
 * creating, modifying or deleting variables
+
+NOTE: Assigning or creating a parameter context does not trigger a local change because assigning or creating a parameter context on its own has not changed anything about what the flow processes. A component will have to be created or modified that uses a parameter in the parameter context, which will trigger a local change. Modifying a parameter context does not trigger a local change because parameters are intended to be different in each environment. When a versioned flow is imported, it is assumed there is a one-time operation required to set those parameters specific for the given environment. Deleting a parameter context does not trigger a local change because any components that reference parameters in that parameter context will need need to be modified, which will trigger a local change.
 
 NOTE: Creating a variable does not trigger a local change because creating a variable on its own has not changed anything about what the flow processes. A component will have to be created or modified that uses the new variable, which will trigger a local change. Modifying a variable does not trigger a local change because variable values are intended to be different in each environment. When a versioned flow is imported, it is assumed there is a one-time operation required to set those variables specific for the given environment. Deleting a variable does not trigger a local change because the component that references that variable will need need to be modified, which will trigger a local change.
 
-WARNING: Variables do not support sensitive values and will be included when versioning a Process Group. See <<Variables_in_Versioned_Flows>> for more information.
+WARNING: Variables do not support sensitive values and will be included when versioning a Process Group. Variables are still supported for compatibility purposes but do not have the same power as Parameters such as support for sensitive properties and more granular control over who can create, modify or use them. Variables will be removed in a future release. As a result, it is highly recommended to switch to Parameters.
 
 ==== Show Local Changes
 The local changes made to a versioned process group can be viewed in the Show Local Changes dialog by selecting "Version->Show local changes" from the context menu.
@@ -2187,6 +2184,38 @@ image::process-group-version-control-stopped.png["Version Control Stopped on Pro
 
 === Nested Versioned Flows
 A versioned process group can contain other versioned process groups.  However, local changes to a parent process group cannot be reverted or saved if it contains a child process group that also has local changes.  The child process group must first be reverted or have its changes committed for those actions to be performed on the parent process group.
+
+[[parameters-in-versioned-flows]]
+=== Parameters in Versioned Flows
+When exporting a versioned flow to a Flow Registry, the name of the Parameter Context is sent for each process group that is stored. The Parameters (names, descriptions, values, whether or not sensitive) are also stored with the flow. However, Sensitive Parameter values are not stored.
+
+When a versioned flow is imported, a Parameter Context will be created for each one that doesn't already exist in the NiFi instance. When importing a versioned flow from Flow Registry, if NiFi has a Parameter Context with the same name, the values are merged, as described in the following example:
+
+A flow has a Parameter Context "PC1" with the following parameters:
+
+image::pc1_parameters.png[PC1 Parameters]
+
+The flow is exported and saved to the Flow Registry.
+
+A NiFi instance has a Parameter Context also named "PC1" with the following parameters:
+
+image::nifi_pc1_parameters.png[NiFi PC1 Parameters]
+
+The versioned flow is imported into the NiFi instance. The Parameter Context "PC1" now has the following parameters:
+
+image::nifi_pc1_parameters_new.png[New NiFi PC1 Parameters]
+
+The "Letters" parameter did not exist in the NiFi instance and was added. The "Numbers" parameter existed in both the versioned flow and NiFi instance with identical values, so no changes were made. "Password" is a sensitive Parameter missing from the NiFi instance, so it was added but with no value. "Port" existed in the NiFi instance with a different value than the versioned flow, so its value remained unchanged.
+
+Parameter Contexts are handled similarly when a flow version is changed. Consider the following two examples:
+
+If the versioned flow referenced earlier is changed to another version (Version 2) and Version 2's Parameter Context "PC1" has a "Colors" Parameter, "Colors" will be added to "PC1" in the NiFi instance.
+
+Version 1 of a flow does not have a Parameter Context associated with it. A new version (Version 2) does. When the flow is changed from Version 1 to Version 2, one of the following occurs:
+
+- A new Parameter Context is created if it does not already exist
+- An existing Parameter Context is assigned (by name) to the Process Group and the values of the Parameter Contexts are merged
+
 
 [[Variables_in_Versioned_Flows]]
 === Variables in Versioned Flows
