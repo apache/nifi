@@ -2429,6 +2429,7 @@ take effect only after NiFi has been stopped and restarted.
 |`java`|Specifies the fully qualified java command to run. By default, it is simply `java` but could be changed to an absolute path or a reference an environment variable, such as `$JAVA_HOME/bin/java`
 |`run.as`|The username to run NiFi as. For instance, if NiFi should be run as the `nifi` user, setting this value to `nifi` will cause the NiFi Process to be run as the `nifi` user.
         This property is ignored on Windows. For Linux, the specified user may require sudo permissions.
+|`preserve.environment`|Whether or not to preserve shell environment while using `run.as` (see "sudo -E" man page). By default, this is set to false.
 |`lib.dir`|The _lib_ directory to use for NiFi. By default, this is set to `./lib`
 |`conf.dir`|The _conf_ directory to use for NiFi. By default, this is set to `./conf`
 |`graceful.shutdown.seconds`|When NiFi is instructed to shutdown, the Bootstrap will wait this number of seconds for the process to shutdown cleanly. At this amount of time,
