@@ -59,34 +59,34 @@ import org.apache.nifi.util.StopWatch;
 @SupportsBatching
 @Tags({"microsoft", "azure", "cloud", "eventhub", "events", "streams", "streaming"})
 @InputRequirement(Requirement.INPUT_REQUIRED)
-@CapabilityDescription("Sends the contents of a FlowFile to a Windows Azure Event Hub. Note: the content of the FlowFile will be buffered into memory before being sent, "
+@CapabilityDescription("Sends the contents of a FlowFile to Windows Azure Event Hubs. Note: the content of the FlowFile will be buffered into memory before being sent, "
         + "so care should be taken to avoid sending FlowFiles to this Processor that exceed the amount of Java Heap Space available. "
         + "Also please be aware that this processor creates a thread pool of 4 threads for Event Hub Client. They will be extra threads other than the concurrent tasks scheduled for this processor.")
 @SystemResourceConsideration(resource = SystemResource.MEMORY)
 public class PutAzureEventHub extends AbstractProcessor {
     static final PropertyDescriptor EVENT_HUB_NAME = new PropertyDescriptor.Builder()
             .name("Event Hub Name")
-            .description("The name of the Azure Event Hub to send to")
+            .description("The name of the event hub to send to")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .required(true)
             .build();
     static final PropertyDescriptor NAMESPACE = new PropertyDescriptor.Builder()
             .name("Event Hub Namespace")
-            .description("The Azure Namespace that the Event Hub is assigned to. This is generally equal to <Event Hub Name>-ns")
+            .description("The namespace that the event hub is assigned to. This is generally equal to <Event Hubs Name>-ns")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .required(true)
             .build();
     static final PropertyDescriptor ACCESS_POLICY = new PropertyDescriptor.Builder()
             .name("Shared Access Policy Name")
-            .description("The name of the Event Hub Shared Access Policy. This Policy must have Send permissions.")
+            .description("The name of the shared access policy. This policy must have Send claims.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .required(true)
             .build();
     static final PropertyDescriptor POLICY_PRIMARY_KEY = new PropertyDescriptor.Builder()
             .name("Shared Access Policy Primary Key")
-            .description("The primary key of the Event Hub Shared Access Policy")
+            .description("The primary key of the shared access policy")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .sensitive(true)
@@ -95,11 +95,11 @@ public class PutAzureEventHub extends AbstractProcessor {
 
     static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
-            .description("Any FlowFile that is successfully sent to the Azure Event Hub will be transferred to this Relationship.")
+            .description("Any FlowFile that is successfully sent to the event hubs will be transferred to this Relationship.")
             .build();
     static final Relationship REL_FAILURE = new Relationship.Builder()
             .name("failure")
-            .description("Any FlowFile that could not be sent to the Azure Event Hub will be transferred to this Relationship.")
+            .description("Any FlowFile that could not be sent to the event hub will be transferred to this Relationship.")
             .build();
 
     private volatile BlockingQueue<EventHubClient> senderQueue = new LinkedBlockingQueue<>();
