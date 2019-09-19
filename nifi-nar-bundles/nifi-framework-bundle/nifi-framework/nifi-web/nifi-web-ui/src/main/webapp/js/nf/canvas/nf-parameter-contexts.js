@@ -212,6 +212,7 @@
 
         // reset the last selected parameter
         lastSelectedId = null;
+        parameterIndex = 0;
 
         // reset the current parameter context
         currentParameterContextEntity = null;
@@ -1391,6 +1392,8 @@
                         return false;
                     }
                 });
+            } else {
+                parameterIndex = 0;
             }
 
             if (parameters.length === 0) {
