@@ -16,10 +16,50 @@
  */
 package org.apache.nifi.processors.standard.util;
 
+import net.schmizz.keepalive.KeepAlive;
+import net.schmizz.keepalive.KeepAliveProvider;
+import net.schmizz.sshj.DefaultConfig;
+import net.schmizz.sshj.SSHClient;
+import net.schmizz.sshj.connection.ConnectionException;
+import net.schmizz.sshj.connection.ConnectionImpl;
+import net.schmizz.sshj.sftp.FileAttributes;
+import net.schmizz.sshj.sftp.FileMode;
+import net.schmizz.sshj.sftp.RemoteFile;
+import net.schmizz.sshj.sftp.RemoteResourceFilter;
+import net.schmizz.sshj.sftp.RemoteResourceInfo;
+import net.schmizz.sshj.sftp.Response;
+import net.schmizz.sshj.sftp.SFTPClient;
+import net.schmizz.sshj.sftp.SFTPException;
+import net.schmizz.sshj.transport.TransportException;
+import net.schmizz.sshj.transport.verification.PromiscuousVerifier;
+import net.schmizz.sshj.userauth.keyprovider.KeyProvider;
+import net.schmizz.sshj.userauth.method.AuthMethod;
+import net.schmizz.sshj.userauth.method.AuthPassword;
+import net.schmizz.sshj.userauth.method.AuthPublickey;
+import net.schmizz.sshj.userauth.password.PasswordFinder;
+import net.schmizz.sshj.userauth.password.PasswordUtils;
+import net.schmizz.sshj.xfer.FilePermission;
+import net.schmizz.sshj.xfer.LocalSourceFile;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.context.PropertyContext;
+import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.proxy.ProxyConfiguration;
+import org.apache.nifi.proxy.ProxySpec;
+
+import javax.net.SocketFactory;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.InetAddress;
+import java.net.Proxy;
+import java.net.Socket;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.DateFormat;
@@ -29,33 +69,9 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
-import java.util.Properties;
-import java.util.Vector;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
-
-import com.jcraft.jsch.ProxySOCKS5;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.PropertyValue;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.expression.ExpressionLanguageScope;
-import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.proxy.ProxyConfiguration;
-import org.apache.nifi.proxy.ProxySpec;
-import org.slf4j.LoggerFactory;
-
-import com.jcraft.jsch.ChannelSftp;
-import com.jcraft.jsch.ChannelSftp.LsEntry;
-import com.jcraft.jsch.ChannelSftp.LsEntrySelector;
-import com.jcraft.jsch.JSch;
-import com.jcraft.jsch.JSchException;
-import com.jcraft.jsch.ProxyHTTP;
-import com.jcraft.jsch.Session;
-import com.jcraft.jsch.SftpException;
 
 import static org.apache.nifi.processors.standard.util.FTPTransfer.createComponentProxyConfigSupplier;
 
@@ -107,8 +123,8 @@ public class SFTPTransfer implements FileTransfer {
 
 
     /**
-     * Property which is used to decide if the {@link #ensureDirectoryExists(FlowFile, File)} method should perform a {@link ChannelSftp#ls(String)} before calling
-     * {@link ChannelSftp#mkdir(String)}. In most cases, the code should call ls before mkdir, but some weird permission setups (chmod 100) on a directory would cause the 'ls' to throw a permission
+     * Property which is used to decide if the {@link #ensureDirectoryExists(FlowFile, File)} method should perform a {@link SFTPClient#ls(String)} before calling
+     * {@link SFTPClient#mkdir(String)}. In most cases, the code should call ls before mkdir, but some weird permission setups (chmod 100) on a directory would cause the 'ls' to throw a permission
      * exception.
      */
     public static final PropertyDescriptor DISABLE_DIRECTORY_LISTING = new PropertyDescriptor.Builder()
@@ -132,19 +148,21 @@ public class SFTPTransfer implements FileTransfer {
 
     private final ComponentLog logger;
 
-    private final ProcessContext ctx;
-    private Session session;
-    private ChannelSftp sftp;
-    private boolean closed = false;
+    private final PropertyContext ctx;
+
+    private SSHClient sshClient;
+    private SFTPClient sftpClient;
+
+    private volatile boolean closed = false;
     private String homeDir;
 
     private final boolean disableDirectoryListing;
 
-    public SFTPTransfer(final ProcessContext processContext, final ComponentLog logger) {
-        this.ctx = processContext;
+    public SFTPTransfer(final PropertyContext propertyContext, final ComponentLog logger) {
+        this.ctx = propertyContext;
         this.logger = logger;
 
-        final PropertyValue disableListing = processContext.getProperty(DISABLE_DIRECTORY_LISTING);
+        final PropertyValue disableListing = propertyContext.getProperty(DISABLE_DIRECTORY_LISTING);
         disableDirectoryListing = disableListing == null ? false : Boolean.TRUE.equals(disableListing.asBoolean());
     }
 
@@ -209,72 +227,67 @@ public class SFTPTransfer implements FileTransfer {
             }
         }
 
-        final ChannelSftp sftp = getChannel(null);
+        final SFTPClient sftpClient = getSFTPClient(null);
         final boolean isPathMatch = pathFilterMatches;
 
         //subDirs list is used for both 'sub directories' and 'symlinks'
-        final List<LsEntry> subDirs = new ArrayList<>();
+        final List<RemoteResourceInfo> subDirs = new ArrayList<>();
         try {
-            final LsEntrySelector filter = new LsEntrySelector() {
-                @Override
-                public int select(final LsEntry entry) {
-                    final String entryFilename = entry.getFilename();
+            final RemoteResourceFilter filter = (entry) -> {
+                final String entryFilename = entry.getName();
 
-                    // skip over 'this directory' and 'parent directory' special
-                    // files regardless of ignoring dot files
-                    if (entryFilename.equals(".") || entryFilename.equals("..")) {
-                        return LsEntrySelector.CONTINUE;
-                    }
-
-                    // skip files and directories that begin with a dot if we're
-                    // ignoring them
-                    if (ignoreDottedFiles && entryFilename.startsWith(".")) {
-                        return LsEntrySelector.CONTINUE;
-                    }
-
-                    // if is a directory and we're supposed to recurse
-                    // OR if is a link and we're supposed to follow symlink
-                    if ((recurse && entry.getAttrs().isDir()) || (symlink && entry.getAttrs().isLink())){
-                        subDirs.add(entry);
-                        return LsEntrySelector.CONTINUE;
-                    }
-
-                    // if is not a directory and is not a link and it matches
-                    // FILE_FILTER_REGEX - then let's add it
-                    if (!entry.getAttrs().isDir() && !entry.getAttrs().isLink() && isPathMatch) {
-                        if (pattern == null || pattern.matcher(entryFilename).matches()) {
-                            listing.add(newFileInfo(entry, path));
-                        }
-                    }
-
-                    if (listing.size() >= maxResults) {
-                        return LsEntrySelector.BREAK;
-                    }
-
-                    return LsEntrySelector.CONTINUE;
+                // skip over 'this directory' and 'parent directory' special files regardless of ignoring dot files
+                if (entryFilename.equals(".") || entryFilename.equals("..")) {
+                    return false;
                 }
 
+                // skip files and directories that begin with a dot if we're ignoring them
+                if (ignoreDottedFiles && entryFilename.startsWith(".")) {
+                    return false;
+                }
+
+                // if is a directory and we're supposed to recurse OR if is a link and we're supposed to follow symlink
+                if ((recurse && entry.isDirectory()) || (symlink && (entry.getAttributes().getType() == FileMode.Type.SYMLINK))){
+                    subDirs.add(entry);
+                    return false;
+                }
+
+                // Since SSHJ does not have the concept of BREAK that JSCH had, we need to move this before the call to listing.add
+                // below, otherwise we would keep adding to the listings since returning false here doesn't break
+                if (listing.size() >= maxResults) {
+                    return false;
+                }
+
+                // if is not a directory and is not a link and it matches FILE_FILTER_REGEX - then let's add it
+                if (!entry.isDirectory() && !(entry.getAttributes().getType() == FileMode.Type.SYMLINK) && isPathMatch) {
+                    if (pattern == null || pattern.matcher(entryFilename).matches()) {
+                        listing.add(newFileInfo(entry, path));
+                    }
+                }
+
+                return false;
             };
 
             if (path == null || path.trim().isEmpty()) {
-                sftp.ls(".", filter);
+                sftpClient.ls(".", filter);
             } else {
-                sftp.ls(path, filter);
+                sftpClient.ls(path, filter);
             }
-        } catch (final SftpException e) {
+        } catch (final SFTPException e) {
             final String pathDesc = path == null ? "current directory" : path;
-            switch (e.id) {
-                case ChannelSftp.SSH_FX_NO_SUCH_FILE:
+            switch (e.getStatusCode()) {
+                case NO_SUCH_FILE:
                     throw new FileNotFoundException("Could not perform listing on " + pathDesc + " because could not find the file on the remote server");
-                case ChannelSftp.SSH_FX_PERMISSION_DENIED:
+                case PERMISSION_DENIED:
                     throw new PermissionDeniedException("Could not perform listing on " + pathDesc + " due to insufficient permissions");
                 default:
-                    throw new IOException(String.format("Failed to obtain file listing for %s due to unexpected SSH_FXP_STATUS (%d)", pathDesc, e.id), e);
+                    throw new IOException(String.format("Failed to obtain file listing for %s due to unexpected SSH_FXP_STATUS (%d)",
+                            pathDesc, e.getStatusCode().getCode()), e);
             }
         }
 
-        for (final LsEntry entry : subDirs) {
-            final String entryFilename = entry.getFilename();
+        for (final RemoteResourceInfo entry : subDirs) {
+            final String entryFilename = entry.getName();
             final File newFullPath = new File(path, entryFilename);
             final String newFullForwardPath = newFullPath.getPath().replace("\\", "/");
 
@@ -287,28 +300,46 @@ public class SFTPTransfer implements FileTransfer {
 
     }
 
-    private FileInfo newFileInfo(final LsEntry entry, String path) {
+    private FileInfo newFileInfo(final RemoteResourceInfo entry, String path) {
         if (entry == null) {
             return null;
         }
-        final File newFullPath = new File(path, entry.getFilename());
+        final File newFullPath = new File(path, entry.getName());
         final String newFullForwardPath = newFullPath.getPath().replace("\\", "/");
 
-        String perms = entry.getAttrs().getPermissionsString();
-        if (perms.length() > 9) {
-            perms = perms.substring(perms.length() - 9);
-        }
+        final StringBuilder permsBuilder = new StringBuilder();
+        final Set<FilePermission> permissions = entry.getAttributes().getPermissions();
 
-        FileInfo.Builder builder = new FileInfo.Builder()
-            .filename(entry.getFilename())
+        appendPermission(permsBuilder, permissions, FilePermission.USR_R, "r");
+        appendPermission(permsBuilder, permissions, FilePermission.USR_W, "w");
+        appendPermission(permsBuilder, permissions, FilePermission.USR_X, "x");
+
+        appendPermission(permsBuilder, permissions, FilePermission.GRP_R, "r");
+        appendPermission(permsBuilder, permissions, FilePermission.GRP_W, "w");
+        appendPermission(permsBuilder, permissions, FilePermission.GRP_X, "x");
+
+        appendPermission(permsBuilder, permissions, FilePermission.OTH_R, "r");
+        appendPermission(permsBuilder, permissions, FilePermission.OTH_W, "w");
+        appendPermission(permsBuilder, permissions, FilePermission.OTH_X, "x");
+
+        final FileInfo.Builder builder = new FileInfo.Builder()
+            .filename(entry.getName())
             .fullPathFileName(newFullForwardPath)
-            .directory(entry.getAttrs().isDir())
-            .size(entry.getAttrs().getSize())
-            .lastModifiedTime(entry.getAttrs().getMTime() * 1000L)
-            .permissions(perms)
-            .owner(Integer.toString(entry.getAttrs().getUId()))
-            .group(Integer.toString(entry.getAttrs().getGId()));
+            .directory(entry.isDirectory())
+            .size(entry.getAttributes().getSize())
+            .lastModifiedTime(entry.getAttributes().getMtime() * 1000L)
+            .permissions(permsBuilder.toString())
+            .owner(Integer.toString(entry.getAttributes().getUID()))
+            .group(Integer.toString(entry.getAttributes().getGID()));
         return builder.build();
+    }
+
+    private void appendPermission(final StringBuilder builder, final Set<FilePermission> permissions, final FilePermission filePermission, final String permString) {
+        if (permissions.contains(filePermission)) {
+            builder.append(permString);
+        } else {
+            builder.append("-");
+        }
     }
 
     @Override
@@ -318,14 +349,18 @@ public class SFTPTransfer implements FileTransfer {
 
     @Override
     public InputStream getInputStream(final String remoteFileName, final FlowFile flowFile) throws IOException {
-        final ChannelSftp sftp = getChannel(flowFile);
+        final SFTPClient sftpClient = getSFTPClient(flowFile);
         try {
-            return sftp.get(remoteFileName);
-        } catch (final SftpException e) {
-            switch (e.id) {
-                case ChannelSftp.SSH_FX_NO_SUCH_FILE:
+            // The client has 'get' methods for downloading a file, but they don't offer a way to get access to an InputStream so
+            // this code is what the SFTPTransfer Downloader does to get a stream for the remote file contents
+            final RemoteFile rf = sftpClient.open(remoteFileName);
+            final RemoteFile.ReadAheadRemoteFileInputStream rfis = rf.new ReadAheadRemoteFileInputStream(16);
+            return rfis;
+        } catch (final SFTPException e) {
+            switch (e.getStatusCode()) {
+                case NO_SUCH_FILE:
                     throw new FileNotFoundException("Could not find file " + remoteFileName + " on remote SFTP Server");
-                case ChannelSftp.SSH_FX_PERMISSION_DENIED:
+                case PERMISSION_DENIED:
                     throw new PermissionDeniedException("Insufficient permissions to read file " + remoteFileName + " from remote SFTP Server", e);
                 default:
                     throw new IOException("Failed to obtain file content for " + remoteFileName, e);
@@ -345,14 +380,15 @@ public class SFTPTransfer implements FileTransfer {
 
     @Override
     public void deleteFile(final FlowFile flowFile, final String path, final String remoteFileName) throws IOException {
+        final SFTPClient sftpClient = getSFTPClient(flowFile);
         final String fullPath = (path == null) ? remoteFileName : (path.endsWith("/")) ? path + remoteFileName : path + "/" + remoteFileName;
         try {
-            sftp.rm(fullPath);
-        } catch (final SftpException e) {
-            switch (e.id) {
-                case ChannelSftp.SSH_FX_NO_SUCH_FILE:
+            sftpClient.rm(fullPath);
+        } catch (final SFTPException e) {
+            switch (e.getStatusCode()) {
+                case NO_SUCH_FILE:
                     throw new FileNotFoundException("Could not find file " + remoteFileName + " to remove from remote SFTP Server");
-                case ChannelSftp.SSH_FX_PERMISSION_DENIED:
+                case PERMISSION_DENIED:
                     throw new PermissionDeniedException("Insufficient permissions to delete file " + remoteFileName + " from remote SFTP Server", e);
                 default:
                     throw new IOException("Failed to delete remote file " + fullPath, e);
@@ -362,16 +398,17 @@ public class SFTPTransfer implements FileTransfer {
 
     @Override
     public void deleteDirectory(final FlowFile flowFile, final String remoteDirectoryName) throws IOException {
+        final SFTPClient sftpClient = getSFTPClient(flowFile);
         try {
-            sftp.rm(remoteDirectoryName);
-        } catch (final SftpException e) {
+            sftpClient.rmdir(remoteDirectoryName);
+        } catch (final SFTPException e) {
             throw new IOException("Failed to delete remote directory " + remoteDirectoryName, e);
         }
     }
 
     @Override
     public void ensureDirectoryExists(final FlowFile flowFile, final File directoryName) throws IOException {
-        final ChannelSftp channel = getChannel(flowFile);
+        final SFTPClient sftpClient = getSFTPClient(flowFile);
         final String remoteDirectory = directoryName.getAbsolutePath().replace("\\", "/").replaceAll("^.\\:", "");
 
         // if we disable the directory listing, we just want to blindly perform the mkdir command,
@@ -379,16 +416,16 @@ public class SFTPTransfer implements FileTransfer {
         if (disableDirectoryListing) {
             try {
                 // Blindly create the dir.
-                channel.mkdir(remoteDirectory);
+                sftpClient.mkdir(remoteDirectory);
                 // The remote directory did not exist, and was created successfully.
                 return;
-            } catch (SftpException e) {
-                if (e.id == ChannelSftp.SSH_FX_NO_SUCH_FILE) {
+            } catch (SFTPException e) {
+                if (e.getStatusCode() == Response.StatusCode.NO_SUCH_FILE) {
                     // No Such File. This happens when parent directory was not found.
                     logger.debug(String.format("Could not create %s due to 'No such file'. Will try to create the parent dir.", remoteDirectory));
-                } else if (e.id == ChannelSftp.SSH_FX_FAILURE) {
+                } else if (e.getStatusCode() == Response.StatusCode.FAILURE) {
                     // Swallow '4: Failure' including the remote directory already exists.
-                    logger.debug("Could not blindly create remote directory due to " + e.getMessage(), e);
+                    logger.debug("Could not blindly create remote directory due to " + getMessage(e), e);
                     return;
                 } else {
                     throw new IOException("Could not blindly create remote directory due to " + e.getMessage(), e);
@@ -397,12 +434,12 @@ public class SFTPTransfer implements FileTransfer {
         } else {
             try {
                 // Check dir existence.
-                channel.stat(remoteDirectory);
+                sftpClient.stat(remoteDirectory);
                 // The remote directory already exists.
                 return;
-            } catch (final SftpException e) {
-                if (e.id != ChannelSftp.SSH_FX_NO_SUCH_FILE) {
-                    throw new IOException("Failed to determine if remote directory exists at " + remoteDirectory + " due to " + e, e);
+            } catch (final SFTPException e) {
+                if (e.getStatusCode() != Response.StatusCode.NO_SUCH_FILE) {
+                    throw new IOException("Failed to determine if remote directory exists at " + remoteDirectory + " due to " + getMessage(e), e);
                 }
             }
         }
@@ -413,112 +450,181 @@ public class SFTPTransfer implements FileTransfer {
         }
         logger.debug("Remote Directory {} does not exist; creating it", new Object[] {remoteDirectory});
         try {
-            channel.mkdir(remoteDirectory);
+            sftpClient.mkdir(remoteDirectory);
             logger.debug("Created {}", new Object[] {remoteDirectory});
-        } catch (final SftpException e) {
-            throw new IOException("Failed to create remote directory " + remoteDirectory + " due to " + e, e);
+        } catch (final SFTPException e) {
+            throw new IOException("Failed to create remote directory " + remoteDirectory + " due to " + getMessage(e), e);
         }
     }
 
-    protected ChannelSftp getChannel(final FlowFile flowFile) throws IOException {
-        if (sftp != null) {
-            String sessionhost = session.getHost();
-            String desthost = ctx.getProperty(HOSTNAME).evaluateAttributeExpressions(flowFile).getValue();
-            if (sessionhost.equals(desthost)) {
+    private String getMessage(final SFTPException e) {
+        if (e.getStatusCode() != null) {
+            return e.getStatusCode().getCode() + ": " + e.getMessage();
+        } else {
+            return e.getMessage();
+        }
+    }
+
+    private static KeepAliveProvider NO_OP_KEEP_ALIVE = new KeepAliveProvider() {
+        @Override
+        public KeepAlive provide(final ConnectionImpl connection) {
+            return new KeepAlive(connection, "no-op-keep-alive") {
+                @Override
+                protected void doKeepAlive() throws TransportException, ConnectionException {
+                    // do nothing;
+                }
+            };
+        }
+    };
+
+    protected SFTPClient getSFTPClient(final FlowFile flowFile) throws IOException {
+        // If the client is already initialized then compare the host that the client is connected to with the current
+        // host from the properties/flow-file, and if different then we need to close and reinitialize, if same we can reuse
+        if (sftpClient != null) {
+            final String clientHost = sshClient.getRemoteHostname();
+            final String propertiesHost = ctx.getProperty(HOSTNAME).evaluateAttributeExpressions(flowFile).getValue();
+            if (clientHost.equals(propertiesHost)) {
                 // destination matches so we can keep our current session
-                return sftp;
+                return sftpClient;
             } else {
                 // this flowFile is going to a different destination, reset session
                 close();
             }
         }
 
-        final JSch jsch = new JSch();
-        try {
-            final String username = ctx.getProperty(USERNAME).evaluateAttributeExpressions(flowFile).getValue();
-            final Session session = jsch.getSession(username,
-                ctx.getProperty(HOSTNAME).evaluateAttributeExpressions(flowFile).getValue(),
-                ctx.getProperty(PORT).evaluateAttributeExpressions(flowFile).asInteger().intValue());
+        // Initialize a new SSHClient...
 
-            final ProxyConfiguration proxyConfig = ProxyConfiguration.getConfiguration(ctx, createComponentProxyConfigSupplier(ctx));
-            switch (proxyConfig.getProxyType()) {
-                case HTTP:
-                    final ProxyHTTP proxyHTTP = new ProxyHTTP(proxyConfig.getProxyServerHost(), proxyConfig.getProxyServerPort());
-                    // Check if Username is set and populate the proxy accordingly
-                    if (proxyConfig.hasCredential()) {
-                        proxyHTTP.setUserPasswd(proxyConfig.getProxyUserName(), proxyConfig.getProxyUserPassword());
-                    }
-                    session.setProxy(proxyHTTP);
-                    break;
-                case SOCKS:
-                    final ProxySOCKS5 proxySOCKS5 = new ProxySOCKS5(proxyConfig.getProxyServerHost(), proxyConfig.getProxyServerPort());
-                    if (proxyConfig.hasCredential()) {
-                        proxySOCKS5.setUserPasswd(proxyConfig.getProxyUserName(), proxyConfig.getProxyUserPassword());
-                    }
-                    session.setProxy(proxySOCKS5);
-                    break;
-
-            }
-
-            final String hostKeyVal = ctx.getProperty(HOST_KEY_FILE).getValue();
-            if (hostKeyVal != null) {
-                jsch.setKnownHosts(hostKeyVal);
-            }
-
-            final Properties properties = new Properties();
-            properties.setProperty("StrictHostKeyChecking", ctx.getProperty(STRICT_HOST_KEY_CHECKING).asBoolean() ? "yes" : "no");
-            properties.setProperty("PreferredAuthentications", "publickey,password,keyboard-interactive");
-
-            final PropertyValue compressionValue = ctx.getProperty(FileTransfer.USE_COMPRESSION);
-            if (compressionValue != null && "true".equalsIgnoreCase(compressionValue.getValue())) {
-                properties.setProperty("compression.s2c", "zlib@openssh.com,zlib,none");
-                properties.setProperty("compression.c2s", "zlib@openssh.com,zlib,none");
-            } else {
-                properties.setProperty("compression.s2c", "none");
-                properties.setProperty("compression.c2s", "none");
-            }
-
-            session.setConfig(properties);
-
-            final String privateKeyFile = ctx.getProperty(PRIVATE_KEY_PATH).evaluateAttributeExpressions(flowFile).getValue();
-            if (privateKeyFile != null) {
-                jsch.addIdentity(privateKeyFile, ctx.getProperty(PRIVATE_KEY_PASSPHRASE).evaluateAttributeExpressions(flowFile).getValue());
-            }
-
-            final String password = ctx.getProperty(FileTransfer.PASSWORD).evaluateAttributeExpressions(flowFile).getValue();
-            if (password != null) {
-                session.setPassword(password);
-            }
-
-            final int connectionTimeoutMillis = ctx.getProperty(FileTransfer.CONNECTION_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
-            session.setTimeout(connectionTimeoutMillis);
-            session.connect();
-            this.session = session;
-            this.closed = false;
-
-            sftp = (ChannelSftp) session.openChannel("sftp");
-            sftp.connect(connectionTimeoutMillis);
-            session.setTimeout(ctx.getProperty(FileTransfer.DATA_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue());
-            if (!ctx.getProperty(USE_KEEPALIVE_ON_TIMEOUT).asBoolean()) {
-                session.setServerAliveCountMax(0); // do not send keepalive message on SocketTimeoutException
-            }
-            try {
-                this.homeDir = sftp.getHome();
-            } catch (SftpException e) {
-                // For some combination of server configuration and user home directory, getHome() can fail with "2: File not found"
-                // Since  homeDir is only used tor SEND provenance event transit uri, this is harmless. Log and continue.
-                logger.debug("Failed to retrieve {} home directory due to {}", new Object[]{username, e.getMessage()});
-            }
-            return sftp;
-
-        } catch (JSchException e) {
-            throw new IOException("Failed to obtain connection to remote host due to " + e.toString(), e);
+        // If use keep-alive is set then set the provider which sends max of 5 keep-alives, otherwise set the no-op provider
+        final DefaultConfig sshClientConfig = new DefaultConfig();
+        final boolean useKeepAliveOnTimeout = ctx.getProperty(USE_KEEPALIVE_ON_TIMEOUT).asBoolean();
+        if (useKeepAliveOnTimeout) {
+            sshClientConfig.setKeepAliveProvider(KeepAliveProvider.KEEP_ALIVE);
+        } else {
+            sshClientConfig.setKeepAliveProvider(NO_OP_KEEP_ALIVE);
         }
+
+        final SSHClient sshClient = new SSHClient(sshClientConfig);
+
+        // Create a Proxy if the config was specified, proxy will be null if type was NO_PROXY
+        final Proxy proxy;
+        final ProxyConfiguration proxyConfig = ProxyConfiguration.getConfiguration(ctx, createComponentProxyConfigSupplier(ctx));
+        switch (proxyConfig.getProxyType()) {
+            case HTTP:
+            case SOCKS:
+                proxy = proxyConfig.createProxy();
+                break;
+            default:
+                proxy = null;
+                break;
+        }
+
+        // If a proxy was specified, configure the client to use a SocketFactory that creates Sockets using the proxy
+        if (proxy != null) {
+            sshClient.setSocketFactory(new SocketFactory() {
+                @Override
+                public Socket createSocket() {
+                    return new Socket(proxy);
+                }
+
+                @Override
+                public Socket createSocket(String s, int i) {
+                    return new Socket(proxy);
+                }
+
+                @Override
+                public Socket createSocket(String s, int i, InetAddress inetAddress, int i1) {
+                    return new Socket(proxy);
+                }
+
+                @Override
+                public Socket createSocket(InetAddress inetAddress, int i) {
+                    return new Socket(proxy);
+                }
+
+                @Override
+                public Socket createSocket(InetAddress inetAddress, int i, InetAddress inetAddress1, int i1) {
+                    return new Socket(proxy);
+                }
+            });
+        }
+
+        // Load known hosts file if specified, otherwise load default
+        final String hostKeyVal = ctx.getProperty(HOST_KEY_FILE).getValue();
+        if (hostKeyVal != null) {
+            sshClient.loadKnownHosts(new File(hostKeyVal));
+        } else {
+            sshClient.loadKnownHosts();
+        }
+
+        // If strict host key checking is false, add a HostKeyVerifier that always returns true
+        final boolean strictHostKeyChecking = ctx.getProperty(STRICT_HOST_KEY_CHECKING).asBoolean();
+        if (!strictHostKeyChecking) {
+            sshClient.addHostKeyVerifier(new PromiscuousVerifier());
+        }
+
+        // Enable compression on the client if specified in properties
+        final PropertyValue compressionValue = ctx.getProperty(FileTransfer.USE_COMPRESSION);
+        if (compressionValue != null && "true".equalsIgnoreCase(compressionValue.getValue())) {
+            sshClient.useCompression();
+        }
+
+        // Configure connection timeout
+        final int connectionTimeoutMillis = ctx.getProperty(FileTransfer.CONNECTION_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
+        sshClient.setTimeout(connectionTimeoutMillis);
+
+        // Connect to the host and port
+        final String hostname = ctx.getProperty(HOSTNAME).evaluateAttributeExpressions(flowFile).getValue();
+        final int port = ctx.getProperty(PORT).evaluateAttributeExpressions(flowFile).asInteger().intValue();
+        sshClient.connect(hostname, port);
+
+        // Setup authentication methods...
+        final List<AuthMethod> authMethods = new ArrayList<>();
+
+        // Add public-key auth if a private key is specified
+        final String privateKeyFile = ctx.getProperty(PRIVATE_KEY_PATH).evaluateAttributeExpressions(flowFile).getValue();
+        if (privateKeyFile != null) {
+            final String privateKeyPassphrase = ctx.getProperty(PRIVATE_KEY_PASSPHRASE).evaluateAttributeExpressions(flowFile).getValue();
+            final KeyProvider keyProvider = privateKeyPassphrase == null ? sshClient.loadKeys(privateKeyFile) : sshClient.loadKeys(privateKeyFile, privateKeyPassphrase);
+            final AuthMethod publicKeyAuth = new AuthPublickey(keyProvider);
+            authMethods.add(publicKeyAuth);
+        }
+
+        // Add password auth if a password is specified
+        final String password = ctx.getProperty(FileTransfer.PASSWORD).evaluateAttributeExpressions(flowFile).getValue();
+        if (password != null) {
+            final PasswordFinder passwordFinder = PasswordUtils.createOneOff(password.toCharArray());
+            final AuthMethod passwordAuth = new AuthPassword(passwordFinder);
+            authMethods.add(passwordAuth);
+        }
+
+        // Authenticate...
+        final String username = ctx.getProperty(USERNAME).evaluateAttributeExpressions(flowFile).getValue();
+        sshClient.auth(username, authMethods);
+
+        // At this point we are connected and can create a new SFTPClient which means everything is good
+        this.sshClient = sshClient;
+        this.sftpClient = sshClient.newSFTPClient();
+        this.closed = false;
+
+        // Configure timeout for sftp operations
+        final int dataTimeout = ctx.getProperty(FileTransfer.DATA_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
+        this.sftpClient.getSFTPEngine().setTimeoutMs(dataTimeout);
+
+        // Attempt to get the home dir
+        try {
+            this.homeDir = sftpClient.canonicalize("");
+        } catch (IOException e) {
+            // For some combination of server configuration and user home directory, getHome() can fail with "2: File not found"
+            // Since  homeDir is only used tor SEND provenance event transit uri, this is harmless. Log and continue.
+            logger.debug("Failed to retrieve {} home directory due to {}", new Object[]{username, e.getMessage()});
+        }
+
+        return sftpClient;
     }
 
     @Override
     public String getHomeDirectory(final FlowFile flowFile) throws IOException {
-        getChannel(flowFile);
+        getSFTPClient(flowFile);
         return this.homeDir;
     }
 
@@ -530,22 +636,22 @@ public class SFTPTransfer implements FileTransfer {
         closed = true;
 
         try {
-            if (null != sftp) {
-                sftp.exit();
+            if (null != sftpClient) {
+                sftpClient.close();
             }
         } catch (final Exception ex) {
-            logger.warn("Failed to close ChannelSftp due to {}", new Object[] {ex.toString()}, ex);
+            logger.warn("Failed to close SFTPClient due to {}", new Object[] {ex.toString()}, ex);
         }
-        sftp = null;
+        sftpClient = null;
 
         try {
-            if (null != session) {
-                session.disconnect();
+            if (null != sshClient) {
+                sshClient.disconnect();
             }
         } catch (final Exception ex) {
-            logger.warn("Failed to close session due to {}", new Object[] {ex.toString()}, ex);
+            logger.warn("Failed to close SSHClient due to {}", new Object[] {ex.toString()}, ex);
         }
-        session = null;
+        sshClient = null;
     }
 
     @Override
@@ -556,45 +662,39 @@ public class SFTPTransfer implements FileTransfer {
     @Override
     @SuppressWarnings("unchecked")
     public FileInfo getRemoteFileInfo(final FlowFile flowFile, final String path, String filename) throws IOException {
-        final ChannelSftp sftp = getChannel(flowFile);
-        final String fullPath;
+        final SFTPClient sftpClient = getSFTPClient(flowFile);
 
-        if (path == null) {
-            fullPath = filename;
-            int slashpos = filename.lastIndexOf('/');
-            if (slashpos >= 0 && !filename.endsWith("/")) {
-                filename = filename.substring(slashpos + 1);
-            }
-        } else {
-            fullPath = path + "/" + filename;
-        }
-
-        final Vector<LsEntry> vector;
+        final List<RemoteResourceInfo> remoteResources;
         try {
-            vector = sftp.ls(fullPath);
-        } catch (final SftpException e) {
-            // ls throws exception if filename is not present
-            if (e.id == ChannelSftp.SSH_FX_NO_SUCH_FILE) {
+            remoteResources = sftpClient.ls(path);
+        } catch (final SFTPException e) {
+            if (e.getStatusCode() == Response.StatusCode.NO_SUCH_FILE) {
                 return null;
             } else {
-                throw new IOException("Failed to obtain file listing for " + fullPath, e);
+                throw new IOException("Failed to obtain file listing for " + path, e);
             }
         }
 
-        LsEntry matchingEntry = null;
-        for (final LsEntry entry : vector) {
-            if (entry.getFilename().equalsIgnoreCase(filename)) {
+        RemoteResourceInfo matchingEntry = null;
+        for (final RemoteResourceInfo entry : remoteResources) {
+            if (entry.getName().equalsIgnoreCase(filename)) {
                 matchingEntry = entry;
                 break;
             }
         }
 
-        return newFileInfo(matchingEntry, path);
+        // Previously JSCH would perform a listing on the full path (path + filename) and would get an exception when it wasn't
+        // a file and then return null, so to preserve that behavior we return null if the matchingEntry is a directory
+        if (matchingEntry != null && matchingEntry.isDirectory()) {
+            return null;
+        } else {
+            return newFileInfo(matchingEntry, path);
+        }
     }
 
     @Override
     public String put(final FlowFile flowFile, final String path, final String filename, final InputStream content) throws IOException {
-        final ChannelSftp sftp = getChannel(flowFile);
+        final SFTPClient sftpClient = getSFTPClient(flowFile);
 
         // destination path + filename
         final String fullPath = (path == null) ? filename : (path.endsWith("/")) ? path + filename : path + "/" + filename;
@@ -607,10 +707,17 @@ public class SFTPTransfer implements FileTransfer {
         }
         final String tempPath = (path == null) ? tempFilename : (path.endsWith("/")) ? path + tempFilename : path + "/" + tempFilename;
 
+        int perms = 0;
+        final String permissions = ctx.getProperty(PERMISSIONS).evaluateAttributeExpressions(flowFile).getValue();
+        if (permissions != null && !permissions.trim().isEmpty()) {
+            perms = numberPermissions(permissions);
+        }
+
         try {
-            sftp.put(content, tempPath);
-        } catch (final SftpException e) {
-            throw new IOException("Unable to put content to " + fullPath + " due to " + e, e);
+            final LocalSourceFile sourceFile = new SFTPFlowFileSourceFile(filename, content, perms);
+            sftpClient.put(sourceFile, tempPath);
+        } catch (final SFTPException e) {
+            throw new IOException("Unable to put content to " + fullPath + " due to " + getMessage(e), e);
         }
 
         final String lastModifiedTime = ctx.getProperty(LAST_MODIFIED_TIME).evaluateAttributeExpressions(flowFile).getValue();
@@ -619,28 +726,23 @@ public class SFTPTransfer implements FileTransfer {
                 final DateFormat formatter = new SimpleDateFormat(FILE_MODIFY_DATE_ATTR_FORMAT, Locale.US);
                 final Date fileModifyTime = formatter.parse(lastModifiedTime);
                 int time = (int) (fileModifyTime.getTime() / 1000L);
-                sftp.setMtime(tempPath, time);
+
+                final FileAttributes tempAttributes = sftpClient.stat(tempPath);
+
+                final FileAttributes modifiedAttributes = new FileAttributes.Builder()
+                        .withAtimeMtime(tempAttributes.getAtime(), time)
+                        .build();
+
+                sftpClient.setattr(tempPath, modifiedAttributes);
             } catch (final Exception e) {
                 logger.error("Failed to set lastModifiedTime on {} to {} due to {}", new Object[] {tempPath, lastModifiedTime, e});
-            }
-        }
-
-        final String permissions = ctx.getProperty(PERMISSIONS).evaluateAttributeExpressions(flowFile).getValue();
-        if (permissions != null && !permissions.trim().isEmpty()) {
-            try {
-                int perms = numberPermissions(permissions);
-                if (perms >= 0) {
-                    sftp.chmod(perms, tempPath);
-                }
-            } catch (final Exception e) {
-                logger.error("Failed to set permission on {} to {} due to {}", new Object[] {tempPath, permissions, e});
             }
         }
 
         final String owner = ctx.getProperty(REMOTE_OWNER).evaluateAttributeExpressions(flowFile).getValue();
         if (owner != null && !owner.trim().isEmpty()) {
             try {
-                sftp.chown(Integer.parseInt(owner), tempPath);
+                sftpClient.chown(tempPath, Integer.parseInt(owner));
             } catch (final Exception e) {
                 logger.error("Failed to set owner on {} to {} due to {}", new Object[] {tempPath, owner, e});
             }
@@ -649,7 +751,7 @@ public class SFTPTransfer implements FileTransfer {
         final String group = ctx.getProperty(REMOTE_GROUP).evaluateAttributeExpressions(flowFile).getValue();
         if (group != null && !group.trim().isEmpty()) {
             try {
-                sftp.chgrp(Integer.parseInt(group), tempPath);
+                sftpClient.chgrp(tempPath, Integer.parseInt(group));
             } catch (final Exception e) {
                 logger.error("Failed to set group on {} to {} due to {}", new Object[] {tempPath, group, e});
             }
@@ -657,12 +759,12 @@ public class SFTPTransfer implements FileTransfer {
 
         if (!filename.equals(tempFilename)) {
             try {
-                sftp.rename(tempPath, fullPath);
-            } catch (final SftpException e) {
+                sftpClient.rename(tempPath, fullPath);
+            } catch (final SFTPException e) {
                 try {
-                    sftp.rm(tempPath);
-                    throw new IOException("Failed to rename dot-file to " + fullPath + " due to " + e, e);
-                } catch (final SftpException e1) {
+                    sftpClient.rm(tempPath);
+                    throw new IOException("Failed to rename dot-file to " + fullPath + " due to " + getMessage(e), e);
+                } catch (final SFTPException e1) {
                     throw new IOException("Failed to rename dot-file to " + fullPath + " and failed to delete it when attempting to clean up", e1);
                 }
             }
@@ -673,14 +775,14 @@ public class SFTPTransfer implements FileTransfer {
 
     @Override
     public void rename(final FlowFile flowFile, final String source, final String target) throws IOException {
-        final ChannelSftp sftp = getChannel(flowFile);
+        final SFTPClient sftpClient = getSFTPClient(flowFile);
         try {
-            sftp.rename(source, target);
-        } catch (final SftpException e) {
-            switch (e.id) {
-                case ChannelSftp.SSH_FX_NO_SUCH_FILE:
+            sftpClient.rename(source, target);
+        } catch (final SFTPException e) {
+            switch (e.getStatusCode()) {
+                case NO_SUCH_FILE:
                     throw new FileNotFoundException("No such file or directory");
-                case ChannelSftp.SSH_FX_PERMISSION_DENIED:
+                case PERMISSION_DENIED:
                     throw new PermissionDeniedException("Could not rename remote file " + source + " to " + target + " due to insufficient permissions");
                 default:
                     throw new IOException(e);
@@ -730,17 +832,4 @@ public class SFTPTransfer implements FileTransfer {
         return number;
     }
 
-    static {
-        JSch.setLogger(new com.jcraft.jsch.Logger() {
-            @Override
-            public boolean isEnabled(int level) {
-                return true;
-            }
-
-            @Override
-            public void log(int level, String message) {
-                LoggerFactory.getLogger(SFTPTransfer.class).debug("SFTP Log: {}", message);
-            }
-        });
-    }
 }

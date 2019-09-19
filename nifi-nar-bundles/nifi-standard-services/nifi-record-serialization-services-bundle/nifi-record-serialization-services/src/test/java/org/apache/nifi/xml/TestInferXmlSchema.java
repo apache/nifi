@@ -85,7 +85,13 @@ public class TestInferXmlSchema {
         assertSame(RecordFieldType.STRING, schema.getDataType("COUNTRY").get().getFieldType());
 
         assertEquals(RecordFieldType.DATE.getDataType(timeValueInference.getDateFormat()), schema.getDataType("DOB").get());
-        assertEquals(RecordFieldType.STRING.getDataType(), schema.getDataType("TOB").get());
+        assertEquals(
+                RecordFieldType.CHOICE.getChoiceDataType(
+                        RecordFieldType.TIME.getDataType("HH:mm:ss"),
+                        RecordFieldType.STRING.getDataType()
+                ),
+                schema.getDataType("TOB").get()
+        );
         assertEquals(RecordFieldType.TIMESTAMP.getDataType(timeValueInference.getTimestampFormat()), schema.getDataType("TSOB").get());
 
         final DataType addressDataType = schema.getDataType("ADDRESS").get();

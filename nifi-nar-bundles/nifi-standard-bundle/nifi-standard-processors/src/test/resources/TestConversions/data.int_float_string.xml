@@ -1,0 +1,31 @@
+<?xml version="1.0" ?>
+<root>
+  <nifiRecord>
+    <Id>1</Id>
+    <Int_Float_String>3</Int_Float_String>
+  </nifiRecord>
+  <nifiRecord>
+    <Id>2</Id>
+    <Int_Float_String>3.75</Int_Float_String>
+  </nifiRecord>
+  <nifiRecord>
+    <Id>3</Id>
+    <Int_Float_String>3.85</Int_Float_String>
+  </nifiRecord>
+  <nifiRecord>
+    <Id>4</Id>
+    <Int_Float_String>8</Int_Float_String>
+  </nifiRecord>
+  <nifiRecord>
+    <Id>5</Id>
+    <Int_Float_String>2.0</Int_Float_String>
+  </nifiRecord>
+  <nifiRecord>
+    <Id>6</Id>
+    <Int_Float_String>4.0</Int_Float_String>
+  </nifiRecord>
+  <nifiRecord>
+    <Id>7</Id>
+    <Int_Float_String>some_string</Int_Float_String>
+  </nifiRecord>
+</root>
