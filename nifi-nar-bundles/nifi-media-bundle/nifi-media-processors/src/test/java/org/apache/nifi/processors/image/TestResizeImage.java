@@ -30,6 +30,7 @@ import java.io.IOException;
 import java.nio.file.Paths;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class TestResizeImage {
 
@@ -72,6 +73,60 @@ public class TestResizeImage {
     }
 
     @Test
+    public void testReadImageFailure() throws IOException {
+        final TestRunner runner = TestRunners.newTestRunner(new ResizeImage());
+        runner.setProperty(ResizeImage.IMAGE_HEIGHT, "64");
+        runner.setProperty(ResizeImage.IMAGE_WIDTH, "64");
+        runner.setProperty(ResizeImage.SCALING_ALGORITHM, ResizeImage.RESIZE_FAST);
+
+        runner.enqueue(Paths.get("src/test/resources/peppers.jpg"));
+        runner.run();
+
+        // Should return REL_FAILURE and log an IllegalArgumentException
+        runner.assertAllFlowFilesTransferred(ResizeImage.REL_FAILURE, 1);
+        assertEquals(1, runner.getLogger().getErrorMessages().size());
+        assertEquals(4, runner.getLogger().getErrorMessages().get(0).getArgs().length);
+        assertTrue(runner.getLogger().getErrorMessages().get(0).getArgs()[3].toString()
+                .startsWith("java.lang.IllegalArgumentException"));
+    }
+
+    @Test
+    public void testNonImageInput() throws IOException {
+        final TestRunner runner = TestRunners.newTestRunner(new ResizeImage());
+        runner.setProperty(ResizeImage.IMAGE_HEIGHT, "64");
+        runner.setProperty(ResizeImage.IMAGE_WIDTH, "64");
+        runner.setProperty(ResizeImage.SCALING_ALGORITHM, ResizeImage.RESIZE_FAST);
+
+        runner.enqueue(Paths.get("src/test/resources/notImage.txt"));
+        runner.run();
+
+        // Should return REL_FAILURE and log a ProcessException
+        runner.assertAllFlowFilesTransferred(ResizeImage.REL_FAILURE, 1);
+        assertEquals(1, runner.getLogger().getErrorMessages().size());
+        assertEquals(4, runner.getLogger().getErrorMessages().get(0).getArgs().length);
+        assertTrue(runner.getLogger().getErrorMessages().get(0).getArgs()[3].toString()
+                .startsWith("org.apache.nifi.processor.exception.ProcessException"));
+    }
+
+    @Test
+    public void testWriteFailure() throws IOException {
+        final TestRunner runner = TestRunners.newTestRunner(new ResizeImage());
+        runner.setProperty(ResizeImage.IMAGE_HEIGHT, "1000000");
+        runner.setProperty(ResizeImage.IMAGE_WIDTH, "1000000");
+        runner.setProperty(ResizeImage.SCALING_ALGORITHM, ResizeImage.RESIZE_SMOOTH);
+
+        runner.enqueue(Paths.get("src/test/resources/photoshop-8x12-32colors-alpha.gif"));
+        runner.run();
+
+        // Should return REL_FAILURE and log a NegativeArraySizeException
+        runner.assertAllFlowFilesTransferred(ResizeImage.REL_FAILURE, 1);
+        assertEquals(1, runner.getLogger().getErrorMessages().size());
+        assertEquals(4, runner.getLogger().getErrorMessages().get(0).getArgs().length);
+        assertTrue(runner.getLogger().getErrorMessages().get(0).getArgs()[3].toString()
+                .startsWith("java.lang.NegativeArraySizeException"));
+    }
+
+    @Test
     public void testEnlarge() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new ResizeImage());
         runner.setProperty(ResizeImage.IMAGE_HEIGHT, "600");
@@ -91,7 +146,6 @@ public class TestResizeImage {
         File out = new File("target/enlarge.png");
         ImageIO.write(img, "PNG", out);
     }
-
 
     @Test
     public void testResizePNG() throws IOException {
