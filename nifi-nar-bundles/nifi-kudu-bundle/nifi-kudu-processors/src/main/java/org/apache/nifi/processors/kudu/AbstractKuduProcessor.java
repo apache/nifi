@@ -107,16 +107,16 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
         final String kuduMasters = context.getProperty(KUDU_MASTERS).evaluateAttributeExpressions().getValue();
         final KerberosCredentialsService credentialsService = context.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
 
-        if (credentialsService == null) {
-            return;
+        if (credentialsService != null) {
+            final String keytab = credentialsService.getKeytab();
+            final String principal = credentialsService.getPrincipal();
+            kerberosUser = loginKerberosUser(principal, keytab);
+
+            final KerberosAction<KuduClient> kerberosAction = new KerberosAction<>(kerberosUser, () -> buildClient(kuduMasters, context), getLogger());
+            this.kuduClient = kerberosAction.execute();
+        } else {
+            this.kuduClient = buildClient(kuduMasters, context);
         }
-
-        final String keytab = credentialsService.getKeytab();
-        final String principal = credentialsService.getPrincipal();
-        kerberosUser = loginKerberosUser(principal, keytab);
-
-        final KerberosAction<KuduClient> kerberosAction = new KerberosAction<>(kerberosUser, () -> buildClient(kuduMasters, context), getLogger());
-        this.kuduClient = kerberosAction.execute();
     }
 
 
