@@ -20,7 +20,9 @@ package org.apache.nifi.serialization.record;
 import org.apache.nifi.serialization.SchemaValidationException;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.type.ArrayDataType;
+import org.apache.nifi.serialization.record.type.ChoiceDataType;
 import org.apache.nifi.serialization.record.type.MapDataType;
+import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.apache.nifi.serialization.record.util.IllegalTypeConversionException;
 
@@ -434,22 +436,125 @@ public class MapRecord implements Record {
         this.schema = DataTypeUtils.merge(this.schema, other);
     }
 
+
+
+
     @Override
     public void incorporateInactiveFields() {
-        if (inactiveFields == null) {
-            return;
+        final List<RecordField> updatedFields = new ArrayList<>();
+
+        for (final RecordField field : schema.getFields()) {
+            updatedFields.add(getUpdatedRecordField(field));
         }
 
-        final List<RecordField> allFields = new ArrayList<>(schema.getFieldCount() + inactiveFields.size());
-        allFields.addAll(schema.getFields());
-
-        for (final RecordField field : inactiveFields) {
-            if (!allFields.contains(field)) {
-                allFields.add(field);
+        if (inactiveFields != null) {
+            for (final RecordField field : inactiveFields) {
+                if (!updatedFields.contains(field)) {
+                    updatedFields.add(field);
+                }
             }
         }
 
-        this.schema = new SimpleRecordSchema(allFields);
+        this.schema = new SimpleRecordSchema(updatedFields);
+    }
+
+    private RecordField getUpdatedRecordField(final RecordField field) {
+        final DataType dataType = field.getDataType();
+        final RecordFieldType fieldType = dataType.getFieldType();
+
+        if (isSimpleType(fieldType)) {
+            return field;
+        }
+
+        final Object value = getValue(field);
+        if (value == null) {
+            return field;
+        }
+
+        if (fieldType == RecordFieldType.RECORD && value instanceof Record) {
+            final Record childRecord = (Record) value;
+            childRecord.incorporateInactiveFields();
+
+            final RecordSchema definedChildSchema = ((RecordDataType) dataType).getChildSchema();
+            final RecordSchema actualChildSchema = childRecord.getSchema();
+            final RecordSchema combinedChildSchema = DataTypeUtils.merge(definedChildSchema, actualChildSchema);
+            final DataType combinedDataType = RecordFieldType.RECORD.getRecordDataType(combinedChildSchema);
+
+            final RecordField updatedField = new RecordField(field.getFieldName(), combinedDataType, field.getDefaultValue(), field.getAliases(), field.isNullable());
+            return updatedField;
+        }
+
+        if (fieldType == RecordFieldType.ARRAY && value instanceof Object[]) {
+            final DataType elementType = ((ArrayDataType) dataType).getElementType();
+            final RecordFieldType elementFieldType = elementType.getFieldType();
+
+            if (elementFieldType == RecordFieldType.RECORD) {
+                final Object[] array = (Object[]) value;
+                RecordSchema mergedSchema = ((RecordDataType) elementType).getChildSchema();
+
+                for (final Object element : array) {
+                    if (element == null) {
+                        continue;
+                    }
+
+                    final Record record = (Record) element;
+                    record.incorporateInactiveFields();
+                    mergedSchema = DataTypeUtils.merge(mergedSchema, record.getSchema());
+                }
+
+                final DataType mergedRecordType = RecordFieldType.RECORD.getRecordDataType(mergedSchema);
+                final DataType mergedDataType = RecordFieldType.ARRAY.getArrayDataType(mergedRecordType);
+                final RecordField updatedField = new RecordField(field.getFieldName(), mergedDataType, field.getDefaultValue(), field.getAliases(), field.isNullable());
+                return updatedField;
+            }
+
+            return field;
+        }
+
+        if (fieldType == RecordFieldType.CHOICE) {
+            final ChoiceDataType choiceDataType = (ChoiceDataType) dataType;
+            final List<DataType> possibleTypes = choiceDataType.getPossibleSubTypes();
+
+            final DataType chosenDataType = DataTypeUtils.chooseDataType(value, choiceDataType);
+            if (chosenDataType.getFieldType() != RecordFieldType.RECORD || !(value instanceof Record)) {
+                return field;
+            }
+
+            final RecordDataType recordDataType = (RecordDataType) chosenDataType;
+            final Record childRecord = (Record) value;
+            childRecord.incorporateInactiveFields();
+
+            final RecordSchema definedChildSchema = recordDataType.getChildSchema();
+            final RecordSchema actualChildSchema = childRecord.getSchema();
+            final RecordSchema combinedChildSchema = DataTypeUtils.merge(definedChildSchema, actualChildSchema);
+            final DataType combinedDataType = RecordFieldType.RECORD.getRecordDataType(combinedChildSchema);
+
+            final List<DataType> updatedPossibleTypes = new ArrayList<>(possibleTypes.size());
+            for (final DataType possibleType : possibleTypes) {
+                if (possibleType.equals(chosenDataType)) {
+                    updatedPossibleTypes.add(combinedDataType);
+                } else {
+                    updatedPossibleTypes.add(possibleType);
+                }
+            }
+
+            final DataType mergedDataType = RecordFieldType.CHOICE.getChoiceDataType(updatedPossibleTypes);
+            return new RecordField(field.getFieldName(), mergedDataType, field.getDefaultValue(), field.getAliases(), field.isNullable());
+        }
+
+        return field;
+    }
+
+    private boolean isSimpleType(final RecordFieldType fieldType) {
+        switch (fieldType) {
+            case ARRAY:
+            case RECORD:
+            case MAP:
+            case CHOICE:
+                return false;
+        }
+
+        return true;
     }
 
     @Override
