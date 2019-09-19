@@ -233,6 +233,52 @@ public class MoveHDFSTest {
         Assert.assertEquals(0, flowFiles.size());
     }
 
+    @Test
+    public void testPutWhenAlreadyExistingShouldFailWhenFAIL_RESOLUTION() throws IOException {
+        testPutWhenAlreadyExisting(MoveHDFS.FAIL_RESOLUTION, MoveHDFS.REL_FAILURE, "randombytes-1");
+    }
+
+    @Test
+    public void testPutWhenAlreadyExistingShouldIgnoreWhenIGNORE_RESOLUTION() throws IOException {
+        testPutWhenAlreadyExisting(MoveHDFS.IGNORE_RESOLUTION, MoveHDFS.REL_SUCCESS, "randombytes-1");
+    }
+
+    @Test
+    public void testPutWhenAlreadyExistingShouldReplaceWhenREPLACE_RESOLUTION() throws IOException {
+        testPutWhenAlreadyExisting(MoveHDFS.REPLACE_RESOLUTION, MoveHDFS.REL_SUCCESS, "randombytes-2");
+    }
+
+    private void testPutWhenAlreadyExisting(String conflictResolution, Relationship expectedDestination, String expectedContent) throws IOException {
+      // GIVEN
+      Files.createDirectories(Path.of(INPUT_DIRECTORY));
+      Files.createDirectories(Path.of(OUTPUT_DIRECTORY));
+      Files.copy(Path.of(TEST_DATA_DIRECTORY, "randombytes-2"), Path.of(INPUT_DIRECTORY, "randombytes-1"));
+      Files.copy(Path.of(TEST_DATA_DIRECTORY, "randombytes-1"), Path.of(OUTPUT_DIRECTORY, "randombytes-1"));
+
+      MoveHDFS processor = new MoveHDFS();
+
+      TestRunner runner = TestRunners.newTestRunner(processor);
+      runner.setProperty(MoveHDFS.INPUT_DIRECTORY_OR_FILE, INPUT_DIRECTORY);
+      runner.setProperty(MoveHDFS.OUTPUT_DIRECTORY, OUTPUT_DIRECTORY);
+      runner.setProperty(MoveHDFS.CONFLICT_RESOLUTION, conflictResolution);
+
+      byte[] expected = Files.readAllBytes(Path.of(TEST_DATA_DIRECTORY, expectedContent));
+
+      // WHEN
+      runner.enqueue(new byte[0]);
+      runner.run();
+
+      // THEN
+      runner.assertAllFlowFilesTransferred(expectedDestination);
+
+      List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(expectedDestination);
+      Assert.assertEquals(1, flowFiles.size());
+
+      byte[] actual = Files.readAllBytes(Path.of(OUTPUT_DIRECTORY, "randombytes-1"));
+
+      assertArrayEquals(expected, actual);
+    }
+
     private static class TestableMoveHDFS extends MoveHDFS {
 
         private KerberosProperties testKerberosProperties;
@@ -245,7 +291,5 @@ public class MoveHDFSTest {
         protected KerberosProperties getKerberosProperties(File kerberosConfigFile) {
             return testKerberosProperties;
         }
-
     }
-
 }
