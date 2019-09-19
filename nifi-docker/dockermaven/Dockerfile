@@ -23,6 +23,7 @@ ARG NIFI_VERSION
 ARG NIFI_BINARY
 ARG NIFI_TOOLKIT_BINARY
 
+ENV PATH ${PATH}
 ENV NIFI_BASE_DIR /opt/nifi
 ENV NIFI_HOME ${NIFI_BASE_DIR}/nifi-current
 ENV NIFI_TOOLKIT_HOME ${NIFI_BASE_DIR}/nifi-toolkit-current
@@ -99,4 +100,6 @@ WORKDIR ${NIFI_HOME}
 # Also we need to use relative path, because the exec form does not invoke a command shell,
 # thus normal shell processing does not happen:
 # https://docs.docker.com/engine/reference/builder/#exec-form-entrypoint-example
+
+RUN echo "export PATH=$PATH" > /etc/environment
 ENTRYPOINT ["../scripts/start.sh"]
