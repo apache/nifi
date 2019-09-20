@@ -46,6 +46,7 @@ import java.util.Optional;
 import java.util.Set;
 
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -371,18 +372,18 @@ public class ControllerSearchServiceTest {
 
         service.searchParameters(searchResultsDTO, "foo");
 
-        assertTrue(searchResultsDTO.getParameterContextResults().size() == 1);
-        assertTrue(searchResultsDTO.getParameterContextResults().get(0).getId().equals("fooId"));
-        assertTrue(searchResultsDTO.getParameterContextResults().get(0).getName().equals("foo"));
+        assertEquals(1, searchResultsDTO.getParameterContextResults().size());
+        assertEquals("fooId", searchResultsDTO.getParameterContextResults().get(0).getId());
+        assertEquals("foo", searchResultsDTO.getParameterContextResults().get(0).getName());
         // should have a match for the name, id, description
-        assertTrue(searchResultsDTO.getParameterContextResults().get(0).getMatches().size() == 3);
+        assertEquals(3, searchResultsDTO.getParameterContextResults().get(0).getMatches().size());
 
-        assertTrue(searchResultsDTO.getParameterResults().size() == 1);
+        assertEquals(1, searchResultsDTO.getParameterResults().size());
 
-        assertTrue(searchResultsDTO.getParameterResults().get(0).getParentGroup().getId().equals("fooId"));
-        assertTrue(searchResultsDTO.getParameterResults().get(0).getName().equals("foo_param_0"));
+        assertEquals("fooId", searchResultsDTO.getParameterResults().get(0).getParentGroup().getId());
+        assertEquals("foo_param_0", searchResultsDTO.getParameterResults().get(0).getName());
         // and the parameter name, parameter description, and the parameter value
-        assertTrue(searchResultsDTO.getParameterResults().get(0).getMatches().size() == 3);
+        assertEquals(3, searchResultsDTO.getParameterResults().get(0).getMatches().size());
     }
 
     @Test
@@ -398,8 +399,8 @@ public class ControllerSearchServiceTest {
         service.searchParameters(searchResultsDTO, "foo");
 
         // the matching parameter context is not readable by the user, so there should not be any results
-        assertTrue(searchResultsDTO.getParameterContextResults().size() == 0);
-        assertTrue(searchResultsDTO.getParameterResults().size() == 0);
+        assertEquals(0, searchResultsDTO.getParameterContextResults().size());
+        assertEquals(0, searchResultsDTO.getParameterResults().size());
     }
 
     /**
@@ -416,8 +417,9 @@ public class ControllerSearchServiceTest {
         Mockito.doReturn(name + "Id").when(parameterContext).getIdentifier();
         Mockito.doReturn(name).when(parameterContext).getName();
         Mockito.doReturn(description).when(parameterContext).getDescription();
-        Mockito.doReturn(authorizedToRead).when(parameterContext).isAuthorized(any(Authorizer.class), eq(RequestAction.READ), any(NiFiUser.class));
-        Mockito.doReturn(authorizedToRead).when(parameterContext).isAuthorized(eq(null), eq(RequestAction.READ), eq(null));
+
+        Mockito.doReturn(authorizedToRead).when(parameterContext).isAuthorized(AdditionalMatchers.or(any(Authorizer.class), isNull()), eq(RequestAction.READ),
+                AdditionalMatchers.or(any(NiFiUser.class), isNull()));
 
         Map<ParameterDescriptor, Parameter> parameters = new HashMap<>();
         for (int i = 0; i < numberOfParams; i++) {
