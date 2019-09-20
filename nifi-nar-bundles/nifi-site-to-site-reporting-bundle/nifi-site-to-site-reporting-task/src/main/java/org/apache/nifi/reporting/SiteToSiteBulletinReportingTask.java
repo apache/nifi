@@ -47,11 +47,10 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.RequiredPermission;
-import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.remote.Transaction;
 import org.apache.nifi.remote.TransferDirection;
+import org.apache.nifi.reporting.s2s.SiteToSiteUtils;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 
 @Tags({"bulletin", "site", "site to site"})
@@ -68,15 +67,6 @@ import org.apache.nifi.scheduling.SchedulingStrategy;
 @DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "1 min")
 public class SiteToSiteBulletinReportingTask extends AbstractSiteToSiteReportingTask {
 
-    static final PropertyDescriptor PLATFORM = new PropertyDescriptor.Builder()
-        .name("Platform")
-        .description("The value to use for the platform field in each provenance event.")
-        .required(true)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-        .defaultValue("nifi")
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .build();
-
     private volatile long lastSentBulletinId = -1L;
 
     public SiteToSiteBulletinReportingTask() throws IOException {
@@ -87,8 +77,8 @@ public class SiteToSiteBulletinReportingTask extends AbstractSiteToSiteReporting
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
-        properties.add(PLATFORM);
-        properties.remove(BATCH_SIZE);
+        properties.add(SiteToSiteUtils.PLATFORM);
+        properties.remove(SiteToSiteUtils.BATCH_SIZE);
         return properties;
     }
 
@@ -125,7 +115,7 @@ public class SiteToSiteBulletinReportingTask extends AbstractSiteToSiteReporting
             return;
         }
 
-        final String platform = context.getProperty(PLATFORM).evaluateAttributeExpressions().getValue();
+        final String platform = context.getProperty(SiteToSiteUtils.PLATFORM).evaluateAttributeExpressions().getValue();
         final Boolean allowNullValues = context.getProperty(ALLOW_NULL_VALUES).asBoolean();
 
         final Map<String, ?> config = Collections.emptyMap();
@@ -148,11 +138,11 @@ public class SiteToSiteBulletinReportingTask extends AbstractSiteToSiteReporting
 
         // Send the JSON document for the current batch
         try {
-            final Transaction transaction = getClient().createTransaction(TransferDirection.SEND);
-            if (transaction == null) {
-                getLogger().info("All destination nodes are penalized; will attempt to send data later");
-                return;
-            }
+                final Transaction transaction = getClient().createTransaction(TransferDirection.SEND);
+                if (transaction == null) {
+                    getLogger().info("All destination nodes are penalized; will attempt to send data later");
+                    return;
+                }
 
             final Map<String, String> attributes = new HashMap<>();
             final String transactionId = UUID.randomUUID().toString();
