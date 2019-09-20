@@ -58,9 +58,9 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-public class TestSFTPTransferWithSSHTestServer {
+public class ITestSFTPTransferWithSSHTestServer {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(TestSFTPTransferWithSSHTestServer.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(ITestSFTPTransferWithSSHTestServer.class);
 
     private static final String SFTP_ROOT_DIR = "target/test-sftp-transfer-vfs";
 
