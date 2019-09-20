@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.azure.storage.queue;
 
+import com.microsoft.azure.storage.CloudStorageAccount;
 import com.microsoft.azure.storage.queue.CloudQueueClient;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
@@ -29,7 +30,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 import org.apache.nifi.services.azure.storage.AzureStorageCredentialsDetails;
 
-import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -57,8 +58,6 @@ public abstract class AbstractAzureQueueStorage extends AbstractProcessor {
             .description("Unsuccessful operations will be transferred to the failure relationship.")
             .build();
 
-    private static final String FORMAT_QUEUE_BASE_URI = "https://%s.queue.core.windows.net";
-
     private static final Set<Relationship> relationships = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(REL_SUCCESS, REL_FAILURE)));
 
     @Override
@@ -66,12 +65,10 @@ public abstract class AbstractAzureQueueStorage extends AbstractProcessor {
         return relationships;
     }
 
-    protected final CloudQueueClient createCloudQueueClient(final ProcessContext context, final FlowFile flowFile) {
+    protected final CloudQueueClient createCloudQueueClient(final ProcessContext context, final FlowFile flowFile) throws URISyntaxException {
         final AzureStorageCredentialsDetails storageCredentialsDetails = AzureStorageUtils.getStorageCredentialsDetails(context, flowFile);
-
-        final URI baseUri = AzureStorageUtils.getBaseUri(FORMAT_QUEUE_BASE_URI, storageCredentialsDetails.getStorageAccountName(), context, getLogger());
-
-        final CloudQueueClient cloudQueueClient = new CloudQueueClient(baseUri, storageCredentialsDetails.getStorageCredentials());
+        final CloudStorageAccount cloudStorageAccount = new CloudStorageAccount(storageCredentialsDetails.getStorageCredentials(), true, null, storageCredentialsDetails.getStorageAccountName());
+        final CloudQueueClient cloudQueueClient = cloudStorageAccount.createCloudQueueClient();
 
         return cloudQueueClient;
     }

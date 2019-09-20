@@ -18,6 +18,7 @@ package org.apache.nifi.services.azure.storage;
 
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.util.MockProcessor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
@@ -34,7 +35,7 @@ public class TestAzureStorageCredentialsControllerService {
 
     @Before
     public void setUp() throws InitializationException {
-        runner = TestRunners.newTestRunner(MockAzureStorageProcessor.class);
+        runner = TestRunners.newTestRunner(MockProcessor.class);
         credentialsService = new AzureStorageCredentialsControllerService();
         runner.addControllerService("credentials-service", credentialsService);
     }

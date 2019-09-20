@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.azure.storage.utils;
 
+import com.microsoft.azure.storage.CloudStorageAccount;
 import com.microsoft.azure.storage.OperationContext;
 import com.microsoft.azure.storage.StorageCredentials;
 import com.microsoft.azure.storage.StorageCredentialsAccountAndKey;
@@ -36,7 +37,6 @@ import org.apache.nifi.proxy.ProxySpec;
 import org.apache.nifi.services.azure.storage.AzureStorageCredentialsDetails;
 import org.apache.nifi.services.azure.storage.AzureStorageCredentialsService;
 
-import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -111,8 +111,16 @@ public final class AzureStorageUtils {
             .required(false)
             .build();
 
-    // use HTTPS by default as per MSFT recommendation
+    /**
+     * @deprecated Not used, will be removed.
+     */
+    @Deprecated
     public static final String FORMAT_BLOB_CONNECTION_STRING = "DefaultEndpointsProtocol=https;AccountName=%s;AccountKey=%s";
+
+    /**
+     * @deprecated Not used, will be removed.
+     */
+    @Deprecated
     public static final String FORMAT_BASE_URI = "https://%s.blob.core.windows.net";
 
     private AzureStorageUtils() {
@@ -124,12 +132,10 @@ public final class AzureStorageUtils {
      * @param flowFile An incoming FlowFile can be used for NiFi Expression Language evaluation to derive
      *                 Account Name, Account Key or SAS Token. This can be null if not available.
      */
-    public static CloudBlobClient createCloudBlobClient(ProcessContext context, ComponentLog logger, FlowFile flowFile) {
+    public static CloudBlobClient createCloudBlobClient(ProcessContext context, ComponentLog logger, FlowFile flowFile) throws URISyntaxException {
         final AzureStorageCredentialsDetails storageCredentialsDetails = getStorageCredentialsDetails(context, flowFile);
-
-        final URI baseUri = getBaseUri(FORMAT_BASE_URI, storageCredentialsDetails.getStorageAccountName(), context, logger);
-
-        final CloudBlobClient cloudBlobClient = new CloudBlobClient(baseUri, storageCredentialsDetails.getStorageCredentials());
+        final CloudStorageAccount cloudStorageAccount = new CloudStorageAccount(storageCredentialsDetails.getStorageCredentials(), true, null, storageCredentialsDetails.getStorageAccountName());
+        final CloudBlobClient cloudBlobClient = cloudStorageAccount.createCloudBlobClient();
 
         return cloudBlobClient;
     }
@@ -166,16 +172,6 @@ public final class AzureStorageUtils {
         }
 
         return new AzureStorageCredentialsDetails(accountName, storageCredentials);
-    }
-
-    public static URI getBaseUri(String baseUriFormat, String storageAccountName, ProcessContext context, ComponentLog logger) {
-        final String baseUriString = String.format(baseUriFormat, storageAccountName);
-        try {
-            return new URI(baseUriString);
-        } catch (URISyntaxException e) {
-            logger.error("Invalid base URI ({}) for '{}'", new Object[]{baseUriString, context.getName()}, e);
-            throw new IllegalArgumentException(e);
-        }
     }
 
     public static Collection<ValidationResult> validateCredentialProperties(ValidationContext validationContext) {

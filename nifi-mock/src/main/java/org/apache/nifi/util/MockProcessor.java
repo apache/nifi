@@ -14,32 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.services.azure.storage;
+package org.apache.nifi.util;
 
-import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 
-import java.util.ArrayList;
-import java.util.List;
-
-public class MockAzureStorageProcessor extends AbstractProcessor {
+public class MockProcessor extends AbstractProcessor {
 
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
-    }
-
-    @Override
-    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        List<PropertyDescriptor> propDescs = new ArrayList<>();
-        propDescs.add(new PropertyDescriptor.Builder()
-                .name("AzureStorageCredentialsService test processor")
-                .description("AzureStorageCredentialsService test processor")
-                .identifiesControllerService(AzureStorageCredentialsService.class)
-                .required(true)
-                .build());
-        return propDescs;
     }
 }

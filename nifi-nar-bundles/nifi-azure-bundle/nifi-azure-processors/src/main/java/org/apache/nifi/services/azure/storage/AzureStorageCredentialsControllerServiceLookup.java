@@ -132,7 +132,8 @@ public class AzureStorageCredentialsControllerServiceLookup extends AbstractCont
 
         final AzureStorageCredentialsService service = serviceMap.get(storageCredentialService);
         if (service == null) {
-            throw new ProcessException("No " + AzureStorageCredentialsService.class.getSimpleName() + " was found for " + AZURE_STORAGE_CREDENTIALS_NAME_ATTRIBUTE + " '" + storageCredentialService + "'");
+            throw new ProcessException("No " + AzureStorageCredentialsService.class.getSimpleName() + " was found for " +
+                    AZURE_STORAGE_CREDENTIALS_NAME_ATTRIBUTE + " '" + storageCredentialService + "'");
         }
 
         return service;

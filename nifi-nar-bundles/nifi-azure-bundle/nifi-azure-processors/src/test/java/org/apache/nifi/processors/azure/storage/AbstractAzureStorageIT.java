@@ -17,6 +17,8 @@
 package org.apache.nifi.processors.azure.storage;
 
 import com.microsoft.azure.storage.CloudStorageAccount;
+import com.microsoft.azure.storage.StorageCredentials;
+import com.microsoft.azure.storage.StorageCredentialsAccountAndKey;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 import org.apache.nifi.services.azure.storage.AzureStorageCredentialsControllerService;
@@ -36,7 +38,6 @@ import static org.junit.Assert.fail;
 public abstract class AbstractAzureStorageIT {private static final Properties CONFIG;
 
     private static final String CREDENTIALS_FILE = System.getProperty("user.home") + "/azure-credentials.PROPERTIES";
-    private static final String FORMAT_CONNECTION_STRING = "DefaultEndpointsProtocol=https;AccountName=%s;AccountKey=%s";
 
     static {
         final FileInputStream fis;
@@ -76,8 +77,8 @@ public abstract class AbstractAzureStorageIT {private static final Properties CO
     protected abstract Class<? extends Processor> getProcessorClass();
 
     protected CloudStorageAccount getStorageAccount() throws Exception {
-        String storageConnectionString = String.format(FORMAT_CONNECTION_STRING, getAccountName(), getAccountKey());
-        return CloudStorageAccount.parse(storageConnectionString);
+        StorageCredentials storageCredentials = new StorageCredentialsAccountAndKey(getAccountName(), getAccountKey());
+        return new CloudStorageAccount(storageCredentials, true);
     }
 
     protected void configureCredentialsService() throws Exception {

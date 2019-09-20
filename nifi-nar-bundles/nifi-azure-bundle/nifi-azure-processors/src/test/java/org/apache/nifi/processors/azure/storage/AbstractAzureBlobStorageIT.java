@@ -54,6 +54,5 @@ public abstract class AbstractAzureBlobStorageIT extends AbstractAzureStorageIT 
         byte[] buf = "0123456789".getBytes();
         InputStream in = new ByteArrayInputStream(buf);
         blob.upload(in, 10);
-        Thread.sleep(1000); // wait for the blob to be visible
     }
 }

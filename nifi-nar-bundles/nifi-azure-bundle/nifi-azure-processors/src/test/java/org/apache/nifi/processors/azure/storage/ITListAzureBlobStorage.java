@@ -21,6 +21,8 @@ import org.apache.nifi.util.MockFlowFile;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.concurrent.TimeUnit;
+
 public class ITListAzureBlobStorage extends AbstractAzureBlobStorageIT {
 
     @Override
@@ -31,6 +33,8 @@ public class ITListAzureBlobStorage extends AbstractAzureBlobStorageIT {
     @Before
     public void setUp() throws Exception {
         uploadTestBlob();
+
+        Thread.sleep(ListAzureBlobStorage.LISTING_LAG_MILLIS.get(TimeUnit.SECONDS));
     }
 
     @Test
