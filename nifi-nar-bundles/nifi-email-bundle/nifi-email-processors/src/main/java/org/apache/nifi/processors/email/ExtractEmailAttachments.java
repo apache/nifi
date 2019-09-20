@@ -22,7 +22,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -133,11 +132,6 @@ public class ExtractEmailAttachments extends AbstractProcessor {
                         Address[] from = originalMessage.getFrom();
                         if (from == null) {
                             throw new MessagingException("Message failed RFC-2822 validation: No Sender");
-                        }
-                        Date sentDate = originalMessage.getSentDate();
-                        if (sentDate == null) {
-                            // Throws MessageException due to lack of minimum required headers
-                            throw new MessagingException("Message failed RFC2822 validation: No Sent Date");
                         }
                         originalFlowFilesList.add(originalFlowFile);
                         if (parser.hasAttachments()) {
