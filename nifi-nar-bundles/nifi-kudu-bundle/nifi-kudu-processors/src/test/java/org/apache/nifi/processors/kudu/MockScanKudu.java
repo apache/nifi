@@ -19,22 +19,16 @@ package org.apache.nifi.processors.kudu;
 import org.apache.kudu.ColumnSchema;
 import org.apache.kudu.Schema;
 import org.apache.kudu.Type;
-import org.apache.kudu.client.KuduClient;
 import org.apache.kudu.client.KuduTable;
-import org.apache.kudu.client.KuduSession;
 import org.apache.kudu.client.RowResult;
 import org.apache.kudu.client.RowResultIterator;
 import org.apache.kudu.client.Insert;
 import org.apache.nifi.processors.kudu.io.ResultHandler;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.security.krb.KerberosUser;
 
-import javax.security.auth.login.LoginException;
 import java.io.IOException;
-import java.security.PrivilegedAction;
-import java.security.PrivilegedActionException;
-import java.security.PrivilegedExceptionAction;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -42,7 +36,6 @@ import java.util.Map;
 import java.util.Iterator;
 import java.util.List;
 
-import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
