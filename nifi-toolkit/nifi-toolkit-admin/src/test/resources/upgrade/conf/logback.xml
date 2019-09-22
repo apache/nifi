@@ -81,278 +81,41 @@
         </encoder>
     </appender>
 
-    <appender name="FRAMEWORK_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${org.apache.nifi.bootstrap.config.log.dir}/nifi-framework.log</file>
-        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
-            <!--
-              For daily rollover, use 'app_%d.log'.
-              For hourly rollover, use 'app_%d{yyyy-MM-dd_HH}.log'.
-              To GZIP rolled files, replace '.log' with '.log.gz'.
-              To ZIP rolled files, replace '.log' with '.log.zip'.
-            -->
-            <fileNamePattern>${org.apache.nifi.bootstrap.config.log.dir}/nifi-framework_%d{yyyy-MM-dd_HH}.%i.log</fileNamePattern>
-            <maxFileSize>100MB</maxFileSize>
-            <!-- keep 30 log files worth of history -->
-            <maxHistory>30</maxHistory>
-        </rollingPolicy>
-        <immediateFlush>true</immediateFlush>
-        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
-            <pattern>%date %level [%thread] %logger{40} %msg%n</pattern>
-        </encoder>
-    </appender>
-
     <!-- valid logging levels: TRACE, DEBUG, INFO, WARN, ERROR -->
 
     <logger name="org.apache.nifi" level="INFO"/>
     <logger name="org.apache.nifi.processors" level="WARN"/>
     <logger name="org.apache.nifi.processors.standard.LogAttribute" level="INFO"/>
     <logger name="org.apache.nifi.processors.standard.LogMessage" level="INFO"/>
-    <logger name="org.apache.nifi.controller.repository.StandardProcessSession" level="WARN"/>
+    <logger name="org.apache.nifi.controller.repository.StandardProcessSession" level="WARN" />
 
 
-    <logger name="org.apache.nifi.cluster" level="INFO">
-        <appender-ref ref="FRAMEWORK_FILE"/>
-    </logger>
+    <logger name="org.apache.zookeeper.ClientCnxn" level="ERROR" />
+    <logger name="org.apache.zookeeper.server.NIOServerCnxn" level="ERROR" />
+    <logger name="org.apache.zookeeper.server.NIOServerCnxnFactory" level="ERROR" />
+    <logger name="org.apache.zookeeper.server.quorum" level="ERROR" />
+    <logger name="org.apache.zookeeper.ZooKeeper" level="ERROR" />
+    <logger name="org.apache.zookeeper.server.PrepRequestProcessor" level="ERROR" />
 
-    <logger name="org.apache.nifi.components" level="INFO">
-        <appender-ref ref="FRAMEWORK_FILE"/>
-    </logger>
+    <logger name="org.apache.calcite.runtime.CalciteException" level="OFF" />
 
-    <logger name="org.apache.nifi.connectable" level="INFO">
-        <appender-ref ref="FRAMEWORK_FILE"/>
-    </logger>
-
-    <logger name="org.apache.nifi.controller" level="INFO">
-        <appender-ref ref="FRAMEWORK_FILE"/>
-    </logger>
-
-    <logger name="org.apache.nifi.diagnostics" level="INFO">
-        <appender-ref ref="FRAMEWORK_FILE"/>
-    </logger>
-
-    <logger name="org.apache.nifi.encrypt" level="INFO">
-        <appender-ref ref="FRAMEWORK_FILE"/>
-    </logger>
-
-    <logger name="org.apache.nifi.engine" level="INFO">
-        <appender-ref ref="FRAMEWORK_FILE"/>
-    </logger>
-
-    <logger name="org.apache.nifi.events" level="INFO">
-        <appender-ref ref="FRAMEWORK_FILE"/>
-    </logger>
-
-    <logger name="org.apache.nifi.fingerprint" level="INFO">
-        <appender-ref ref="FRAMEWORK_FILE"/>
-    </logger>
-
-    <logger name="org.apache.nifi.groups" level="INFO">
-        <appender-ref ref="FRAMEWORK_FILE"/>
-    </logger>
-
-    <logger name="org.apache.nifi.jaxb" level="INFO">
-        <appender-ref ref="FRAMEWORK_FILE"/>
-    </logger>
-
-    <logger name="org.apache.nifi.logging" level="INFO">
-        <appender-ref ref="FRAMEWORK_FILE"/>
-    </logger>
-
-    <logger name="org.apache.nifi.parameter" level="INFO">
-        <appender-ref ref="FRAMEWORK_FILE"/>
-    </logger>
-
-    <logger name="org.apache.nifi.persistence" level="INFO">
-        <appender-ref ref="FRAMEWORK_FILE"/>
-    </logger>
-
-    <logger name="org.apache.nifi.processor" level="INFO">
-        <appender-ref ref="FRAMEWORK_FILE"/>
-    </logger>
-
-    <logger name="org.apache.nifi.provenance" level="INFO">
-        <appender-ref ref="FRAMEWORK_FILE"/>
-    </logger>
-
-    <logger name="org.apache.nifi.registry" level="INFO">
-        <appender-ref ref="FRAMEWORK_FILE"/>
-    </logger>
-
-    <logger name="org.apache.nifi.remote" level="INFO">
-        <appender-ref ref="FRAMEWORK_FILE"/>
-    </logger>
-
-    <logger name="org.apache.nifi.reporting" level="INFO">
-        <appender-ref ref="FRAMEWORK_FILE"/>
-    </logger>
-
-    <logger name="org.apache.nifi.admin" level="INFO">
-        <appender-ref ref="FRAMEWORK_FILE"/>
-    </logger>
-
-    <logger name="org.apache.nifi.history" level="INFO">
-        <appender-ref ref="FRAMEWORK_FILE"/>
-    </logger>
-
-    <logger name="org.apache.nifi.key" level="INFO">
-        <appender-ref ref="FRAMEWORK_FILE"/>
-    </logger>
-
-    <logger name="org.apache.nifi.user" level="INFO">
-        <appender-ref ref="FRAMEWORK_FILE"/>
-    </logger>
-
-    <logger name="org.apache.nifi.authorization" level="INFO">
-        <appender-ref ref="FRAMEWORK_FILE"/>
-    </logger>
-
-    <logger name="org.apache.nifi.web" level="INFO">
-        <appender-ref ref="FRAMEWORK_FILE"/>
-    </logger>
-
-    <logger name="org.apache.nifi.documentation" level="INFO">
-        <appender-ref ref="FRAMEWORK_FILE"/>
-    </logger>
-
-    <logger name="org.apache.nifi.authorization" level="INFO">
-        <appender-ref ref="FRAMEWORK_FILE"/>
-    </logger>
-
-    <logger name="org.apache.nifi.controller" level="INFO">
-        <appender-ref ref="FRAMEWORK_FILE"/>
-    </logger>
-
-    <logger name="org.apache.nifi.cluster" level="INFO">
-        <appender-ref ref="FRAMEWORK_FILE"/>
-    </logger>
-
-    <logger name="org.apache.nifi.components" level="INFO">
-        <appender-ref ref="FRAMEWORK_FILE"/>
-    </logger>
-
-    <logger name="org.apache.nifi.connectable" level="INFO">
-        <appender-ref ref="FRAMEWORK_FILE"/>
-    </logger>
-
-    <logger name="org.apache.nifi.events" level="INFO">
-        <appender-ref ref="FRAMEWORK_FILE"/>
-    </logger>
-
-    <logger name="org.apache.nifi.lifecycle" level="INFO">
-        <appender-ref ref="FRAMEWORK_FILE"/>
-    </logger>
-
-    <logger name="org.apache.nifi.groups" level="INFO">
-        <appender-ref ref="FRAMEWORK_FILE"/>
-    </logger>
-
-    <logger name="org.apache.nifi.services.FlowService" level="INFO">
-        <appender-ref ref="FRAMEWORK_FILE"/>
-    </logger>
-
-    <logger name="org.apache.nifi.properties" level="INFO">
-        <appender-ref ref="FRAMEWORK_FILE"/>
-    </logger>
-
-    <logger name="org.apache.nifi.BootstrapListener" level="INFO">
-        <appender-ref ref="FRAMEWORK_FILE"/>
-    </logger>
-
-    <logger name="org.apache.nifi.EmbeddedNiFi" level="INFO">
-        <appender-ref ref="FRAMEWORK_FILE"/>
-    </logger>
-
-    <logger name="org.apache.nifi.NiFi" level="INFO">
-        <appender-ref ref="FRAMEWORK_FILE"/>
-    </logger>
-
-    <logger name="org.apache.nifi.NiFiServer" level="INFO">
-        <appender-ref ref="FRAMEWORK_FILE"/>
-    </logger>
-
-    <logger name="org.apache.nifi.framework" level="INFO">
-        <appender-ref ref="FRAMEWORK_FILE"/>
-    </logger>
-
-    <logger name="org.apache.nifi.prioritizer" level="INFO">
-        <appender-ref ref="FRAMEWORK_FILE"/>
-    </logger>
-
-    <logger name="org.apache.nifi.action" level="INFO">
-        <appender-ref ref="FRAMEWORK_FILE"/>
-    </logger>
-
-    <logger name="org.apache.nifi.gcp" level="INFO">
-        <appender-ref ref="FRAMEWORK_FILE"/>
-    </logger>
-
-    <logger name="org.apache.nifi.graph" level="INFO">
-        <appender-ref ref="FRAMEWORK_FILE"/>
-    </logger>
-
-    <logger name="org.apache.nifi.spring" level="INFO">
-        <appender-ref ref="FRAMEWORK_FILE"/>
-    </logger>
-
-    <logger name="org.apache.zookeeper.ClientCnxn" level="ERROR">
-        <appender-ref ref="FRAMEWORK_FILE"/>
-    </logger>
-    <logger name="org.apache.zookeeper.server.NIOServerCnxn" level="ERROR">
-        <appender-ref ref="FRAMEWORK_FILE"/>
-    </logger>
-    <logger name="org.apache.zookeeper.server.NIOServerCnxnFactory" level="ERROR">
-        <appender-ref ref="FRAMEWORK_FILE"/>
-    </logger>
-    <logger name="org.apache.zookeeper.server.quorum" level="ERROR">
-        <appender-ref ref="FRAMEWORK_FILE"/>
-    </logger>
-    <logger name="org.apache.zookeeper.ZooKeeper" level="ERROR">
-        <appender-ref ref="FRAMEWORK_FILE"/>
-    </logger>
-    <logger name="org.apache.zookeeper.server.PrepRequestProcessor" level="ERROR">
-        <appender-ref ref="FRAMEWORK_FILE"/>
-    </logger>
-
-    <logger name="org.apache.calcite.runtime.CalciteException" level="OFF">
-        <appender-ref ref="FRAMEWORK_FILE"/>
-    </logger>
-
-    <logger name="org.apache.curator.framework.recipes.leader.LeaderSelector" level="OFF">
-        <appender-ref ref="FRAMEWORK_FILE"/>
-    </logger>
-    <logger name="org.apache.curator.ConnectionState" level="OFF">
-        <appender-ref ref="FRAMEWORK_FILE"/>
-    </logger>
+    <logger name="org.apache.curator.framework.recipes.leader.LeaderSelector" level="OFF" />
+    <logger name="org.apache.curator.ConnectionState" level="OFF" />
 
     <!-- Logger for managing logging statements for nifi clusters. -->
-    <logger name="org.apache.nifi.cluster" level="INFO">
-        <appender-ref ref="FRAMEWORK_FILE"/>
-    </logger>
+    <logger name="org.apache.nifi.cluster" level="INFO"/>
 
     <!-- Logger for logging HTTP requests received by the web server. -->
-    <logger name="org.apache.nifi.server.JettyServer" level="INFO">
-        <appender-ref ref="FRAMEWORK_FILE"/>
-    </logger>
+    <logger name="org.apache.nifi.server.JettyServer" level="INFO"/>
 
     <!-- Logger for managing logging statements for jetty -->
-    <logger name="org.eclipse.jetty" level="INFO">
-        <appender-ref ref="FRAMEWORK_FILE"/>
-    </logger>
+    <logger name="org.eclipse.jetty" level="INFO"/>
 
     <!-- Suppress non-error messages due to excessive logging by class or library -->
-    <logger name="org.springframework" level="ERROR">
-        <appender-ref ref="FRAMEWORK_FILE"/>
-    </logger>
+    <logger name="org.springframework" level="ERROR"/>
 
     <!-- Suppress non-error messages due to known warning about redundant path annotation (NIFI-574) -->
-    <logger name="org.glassfish.jersey.internal.Errors" level="ERROR">
-        <appender-ref ref="FRAMEWORK_FILE"/>
-    </logger>
-
-    <!-- Suppress non-error messages due to Jetty AnnotationParser emitting a large amount of WARNS. Issue described in NIFI-5479. -->
-    <logger name="org.eclipse.jetty.annotations.AnnotationParser" level="ERROR">
-        <appender-ref ref="FRAMEWORK_FILE"/>
-    </logger>
+    <logger name="org.glassfish.jersey.internal.Errors" level="ERROR"/>
 
     <!--
         Logger for capturing user events. We do not want to propagate these

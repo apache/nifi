@@ -205,19 +205,11 @@
         <appender-ref ref="FRAMEWORK_FILE"/>
     </logger>
 
-    <logger name="org.apache.nifi.authorization" level="INFO">
-        <appender-ref ref="FRAMEWORK_FILE"/>
-    </logger>
-
     <logger name="org.apache.nifi.web" level="INFO">
         <appender-ref ref="FRAMEWORK_FILE"/>
     </logger>
 
     <logger name="org.apache.nifi.documentation" level="INFO">
-        <appender-ref ref="FRAMEWORK_FILE"/>
-    </logger>
-
-    <logger name="org.apache.nifi.authorization" level="INFO">
         <appender-ref ref="FRAMEWORK_FILE"/>
     </logger>
 
@@ -309,10 +301,6 @@
         <appender-ref ref="FRAMEWORK_FILE"/>
     </logger>
     <logger name="org.apache.zookeeper.server.PrepRequestProcessor" level="ERROR">
-        <appender-ref ref="FRAMEWORK_FILE"/>
-    </logger>
-
-    <logger name="org.apache.calcite.runtime.CalciteException" level="OFF">
         <appender-ref ref="FRAMEWORK_FILE"/>
     </logger>
 
