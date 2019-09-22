@@ -17,7 +17,11 @@
 
 package org.apache.nifi.processors.kudu;
 
+import java.util.concurrent.atomic.AtomicLong;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.kudu.ColumnSchema;
+import org.apache.kudu.client.KuduPredicate;
+import org.apache.kudu.client.KuduScanner;
 import org.apache.kudu.client.KuduTable;
 import org.apache.kudu.client.RowResult;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -152,36 +156,19 @@ public class ScanKudu extends AbstractKuduProcessor {
 
     protected KuduTable kuduTable;
 
-
     @OnScheduled
     public void onScheduled(final ProcessContext context) throws LoginException {
         createKuduClient(context);
     }
 
     @Override
-    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-        final KerberosUser user = getKerberosUser();
-        if (user == null) {
-            trigger(context, session);
-            return;
-        }
-
-        final PrivilegedExceptionAction<Void> privelegedAction = () -> {
-            trigger(context, session);
-            return null;
-        };
-
-        final KerberosAction<Void> action = new KerberosAction<>(user, privelegedAction, getLogger());
-        action.execute();
-    }
-
     public void trigger(ProcessContext context, ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;
         }
 
-        final List<String> projctedColumnNames = Arrays.asList(context.getProperty(PROJECTED_COLUMNS).evaluateAttributeExpressions(flowFile).getValue().split(","));
+        final List<String> projectedColumnNames = Arrays.asList(context.getProperty(PROJECTED_COLUMNS).evaluateAttributeExpressions(flowFile).getValue().split(","));
         final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions(flowFile).getValue();
         if (StringUtils.isBlank(tableName)) {
             getLogger().error("Table Name is blank or null for {}, transferring to failure", new Object[] {flowFile});
@@ -192,14 +179,14 @@ public class ScanKudu extends AbstractKuduProcessor {
         try {
             this.kuduTable = getKuduClient().openTable(tableName);
         } catch (Exception e) {
-            e.printStackTrace();
+            getLogger().error("Unable to open Kudu table {} due to {}", new Object[] {tableName, e});
         }
 
         String predicate = context.getProperty(PREDICATES).evaluateAttributeExpressions(flowFile).getValue();
         batchSize = context.getProperty(BATCH_SIZE).evaluateAttributeExpressions(flowFile).asInteger();
 
-        final AtomicReference<Long> rowsPulledHolder = new AtomicReference<>(0L);
-        final AtomicReference<Long> ffCountHolder = new AtomicReference<>(0L);
+        final AtomicReference<AtomicLong> rowsPulledHolder = new AtomicReference<AtomicLong>(new AtomicLong(0));
+        final AtomicReference<AtomicLong> ffCountHolder = new AtomicReference<AtomicLong>(new AtomicLong(0));
         ScanKuduResultHandler handler = new ScanKuduResultHandler(session, flowFile, rowsPulledHolder, ffCountHolder, tableName, batchSize);
 
         try {
@@ -207,7 +194,7 @@ public class ScanKudu extends AbstractKuduProcessor {
                 session,
                 this.kuduTable,
                 predicate,
-                projctedColumnNames,
+                projectedColumnNames,
                 handler);
 
         } catch (Exception e) {
@@ -240,8 +227,8 @@ public class ScanKudu extends AbstractKuduProcessor {
 
         final private ProcessSession session;
         final private FlowFile origFF;
-        final private AtomicReference<Long> rowsPulledHolder;
-        final private AtomicReference<Long> ffCountHolder;
+        final private AtomicReference<AtomicLong> rowsPulledHolder;
+        final private AtomicReference<AtomicLong> ffCountHolder;
         final private String tableName;
         final private Integer bulkSize;
         private FlowFile flowFile = null;
@@ -250,7 +237,7 @@ public class ScanKudu extends AbstractKuduProcessor {
         private boolean handledAny = false;
 
         ScanKuduResultHandler(final ProcessSession session,
-                              final FlowFile origFF, final AtomicReference<Long> rowsPulledHolder, final AtomicReference<Long> ffCountHolder,
+                              final FlowFile origFF, final AtomicReference<AtomicLong> rowsPulledHolder, final AtomicReference<AtomicLong> ffCountHolder,
                               final String tableName, final Integer bulkSize){
             this.session = session;
             this.rowsPulledHolder = rowsPulledHolder;
@@ -264,8 +251,8 @@ public class ScanKudu extends AbstractKuduProcessor {
         @Override
         public void handle(final RowResult resultCells) {
 
-            long rowsPulled = rowsPulledHolder.get();
-            long ffUncommittedCount = ffCountHolder.get();
+            long rowsPulled = rowsPulledHolder.get().get();
+            long ffUncommittedCount = ffCountHolder.get().get();
 
             try{
                 if (flowFile == null){
@@ -274,7 +261,7 @@ public class ScanKudu extends AbstractKuduProcessor {
                 }
 
                 flowFile = session.append(flowFile, (out) -> {
-                    if (rowsPulledHolder.get() > 0){
+                    if (rowsPulledHolder.get().get() > 0){
                         out.write(JSON_ARRAY_DELIM);
                     }
                     final String json = convertToJson(resultCells);
@@ -293,18 +280,13 @@ public class ScanKudu extends AbstractKuduProcessor {
 
                 finalizeFlowFile(session, flowFile, tableName, rowsPulled, null);
                 flowFile = null;
-                rowsPulledHolder.set(0L);
-
+                rowsPulledHolder.set(new AtomicLong(0));
                 // we could potentially have a huge number of rows. If we get to batchSize, go ahead and commit the
                 // session so that we can avoid buffering tons of FlowFiles without ever sending any out.
-                if (getBatchSize()>0 && ffUncommittedCount*bulkSize > getBatchSize()) {
-                    session.commit();
-                    ffCountHolder.set(0L);
-                }else{
-                    ffCountHolder.set(ffUncommittedCount++);
-                }
+                session.commit();
             } else {
-                rowsPulledHolder.set(rowsPulled);
+                rowsPulledHolder.set(new AtomicLong(rowsPulled));
+                ffCountHolder.set(new AtomicLong(ffUncommittedCount++));
             }
         }
 
@@ -318,7 +300,7 @@ public class ScanKudu extends AbstractKuduProcessor {
         }
 
         public long getRecordsCount(){
-            return rowsPulledHolder.get();
+            return rowsPulledHolder.get().get();
         }
 
     }
@@ -371,7 +353,43 @@ public class ScanKudu extends AbstractKuduProcessor {
         session.transfer(flowFile, rel);
     }
 
-    private int getBatchSize(){
-        return this.batchSize;
+    private void addPredicate(KuduScanner.KuduScannerBuilder scannerBuilder, KuduTable kuduTable, String column, Object value, KuduPredicate.ComparisonOp comparisonOp) {
+        ColumnSchema columnSchema = kuduTable.getSchema().getColumn(column);
+        KuduPredicate predicate = KuduPredicate.newComparisonPredicate(columnSchema, comparisonOp, value);
+        scannerBuilder.addPredicate(predicate);
     }
+
+    protected void scan(ProcessContext context, ProcessSession session, KuduTable kuduTable, String predicates, List<String> projectedColumnNames, ResultHandler handler) throws Exception {
+        KuduScanner.KuduScannerBuilder scannerBuilder = this.kuduClient.newScannerBuilder(kuduTable);
+        final String[] arrayPredicates = (predicates == null || predicates.isEmpty() ? new String[0] : predicates.split(","));
+
+        for(String column : arrayPredicates){
+            if (column.contains("=")) {
+                final String[] parts = column.split("=");
+                addPredicate(scannerBuilder, kuduTable, parts[0], parts[1], KuduPredicate.ComparisonOp.EQUAL);
+            } else if(column.contains(">")) {
+                final String[] parts = column.split(">");
+                addPredicate(scannerBuilder, kuduTable, parts[0], parts[1], KuduPredicate.ComparisonOp.GREATER);
+            } else if(column.contains("<")) {
+                final String[] parts = column.split("<");
+                addPredicate(scannerBuilder, kuduTable, parts[0], parts[1], KuduPredicate.ComparisonOp.LESS);
+            } else if(column.contains(">=")) {
+                final String[] parts = column.split(">=");
+                addPredicate(scannerBuilder, kuduTable, parts[0], parts[1], KuduPredicate.ComparisonOp.GREATER_EQUAL);
+            } else if(column.contains("<=")) {
+                final String[] parts = column.split("<=");
+                addPredicate(scannerBuilder, kuduTable, parts[0], parts[1], KuduPredicate.ComparisonOp.LESS_EQUAL);
+            }
+        }
+
+        if(!projectedColumnNames.isEmpty()){
+            scannerBuilder.setProjectedColumnNames(projectedColumnNames);
+        }
+
+        KuduScanner scanner = scannerBuilder.build();
+        for (RowResult rowResult: scanner) {
+            handler.handle(rowResult);
+        }
+    }
+
 }

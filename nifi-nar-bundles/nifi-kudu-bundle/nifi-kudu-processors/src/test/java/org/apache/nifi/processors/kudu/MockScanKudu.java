@@ -46,56 +46,21 @@ import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class MockKuduScan extends ScanKudu {
+public class MockScanKudu extends AbstractMockKuduProcessor {
 
-    private KuduSession session;
     private LinkedList<Insert> insertQueue;
-
-    private boolean loggedIn = false;
-    private boolean loggedOut = false;
     private int numScans = 0;
     private boolean throwException = false;
     private int linesBeforeException = -1;
     RowResultIterator testRows = mock(RowResultIterator.class);
     List<RowResult> rowResultList = new ArrayList<>();
 
-    public MockKuduScan() {
-        this(mock(KuduSession.class));
-    }
-
-    public MockKuduScan(KuduSession session) {
-        this.session = session;
+    public MockScanKudu() {
         this.insertQueue = new LinkedList<>();
     }
 
     public void queue(Insert... operations) {
         insertQueue.addAll(Arrays.asList(operations));
-    }
-
-    @Override
-    public KuduClient buildClient(final String masters, ProcessContext context) {
-        final KuduClient client = mock(KuduClient.class);
-
-        try {
-            when(client.openTable(anyString())).thenReturn(mock(KuduTable.class));
-        } catch (final Exception e) {
-            throw new AssertionError(e);
-        }
-
-        return client;
-    }
-
-    @Override
-    public KuduClient getKuduClient() {
-        final KuduClient client = mock(KuduClient.class);
-
-        try {
-            when(client.openTable(anyString())).thenReturn(mock(KuduTable.class));
-        } catch (final Exception e) {
-            throw new AssertionError(e);
-        }
-
-        return client;
     }
 
     @Override
@@ -149,58 +114,6 @@ public class MockKuduScan extends ScanKudu {
         return row;
     }
 
-    public boolean loggedIn() {
-        return loggedIn;
-    }
-
-    public boolean loggedOut() {
-        return loggedOut;
-    }
-
-    @Override
-    protected KerberosUser loginKerberosUser(final String principal, final String keytab) throws LoginException {
-        return new KerberosUser() {
-
-            @Override
-            public void login() {
-                loggedIn = true;
-            }
-
-            @Override
-            public void logout() {
-                loggedOut = true;
-            }
-
-            @Override
-            public <T> T doAs(final PrivilegedAction<T> action) throws IllegalStateException {
-                return action.run();
-            }
-
-            @Override
-            public <T> T doAs(final PrivilegedExceptionAction<T> action) throws IllegalStateException, PrivilegedActionException {
-                try {
-                    return action.run();
-                } catch (Exception e) {
-                    throw new PrivilegedActionException(e);
-                }
-            }
-
-            @Override
-            public boolean checkTGTAndRelogin() {
-                return true;
-            }
-
-            @Override
-            public boolean isLoggedIn() {
-                return loggedIn && !loggedOut;
-            }
-
-            @Override
-            public String getPrincipal() {
-                return principal;
-            }
-        };
-    }
 
     public int getNumScans() {
         return numScans;

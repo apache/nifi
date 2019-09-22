@@ -33,14 +33,14 @@ import static org.junit.Assert.assertNotNull;
 
 public class TestScanKudu {
 
-    private MockKuduScan kuduScan;
+    private MockScanKudu kuduScan;
     private TestRunner runner;
     public static final String DEFAULT_TABLE_NAME = "Nifi-Kudu-Table";
     public static final String DEFAULT_MASTERS = "testLocalHost:7051";
 
     @Before
     public void setup() throws InitializationException {
-        kuduScan = new MockKuduScan();
+        kuduScan = new MockScanKudu();
         runner = TestRunners.newTestRunner(kuduScan);
 
         setUpTestRunner(runner);

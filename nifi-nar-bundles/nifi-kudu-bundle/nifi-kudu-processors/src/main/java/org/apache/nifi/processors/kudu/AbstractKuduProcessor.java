@@ -17,6 +17,7 @@
 
 package org.apache.nifi.processors.kudu;
 
+import java.security.PrivilegedExceptionAction;
 import org.apache.kudu.shaded.com.google.common.annotations.VisibleForTesting;
 import org.apache.kudu.ColumnSchema;
 import org.apache.kudu.Schema;
@@ -41,10 +42,12 @@ import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyDescriptor.Builder;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.kerberos.KerberosCredentialsService;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.kudu.io.ResultHandler;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.security.krb.KerberosAction;
@@ -97,6 +100,18 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
+    protected static final PropertyDescriptor FLOWFILE_BATCH_SIZE = new Builder()
+        .name("FlowFiles per Batch")
+        .description("The maximum number of FlowFiles to process in a single execution, between 1 - 100000. " +
+            "Depending on your memory size, and data size per row set an appropriate batch size " +
+            "for the number of FlowFiles to process per client connection setup." +
+            "Gradually increase this number, only if your FlowFiles typically contain a few records.")
+        .defaultValue("1")
+        .required(true)
+        .addValidator(StandardValidators.createLongValidator(1, 100000, true))
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .build();
+
     protected KuduClient kuduClient;
 
     private volatile KerberosUser kerberosUser;
@@ -125,6 +140,25 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
         this.kuduClient = kerberosAction.execute();
     }
 
+    @Override
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+        final KerberosUser user = getKerberosUser();
+
+        if (user == null) {
+            trigger(context, session);
+            return;
+        }
+
+        final PrivilegedExceptionAction<Void> privelegedAction = () -> {
+            trigger(context, session);
+            return null;
+        };
+
+        final KerberosAction<Void> action = new KerberosAction<>(user, privelegedAction, getLogger());
+        action.execute();
+    }
+
+    public abstract void trigger(ProcessContext context, ProcessSession session);
 
     protected KuduClient buildClient(final String masters, final ProcessContext context) {
         final Integer operationTimeout = context.getProperty(KUDU_OPERATION_TIMEOUT_MS).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
@@ -266,44 +300,6 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
         return update;
     }
 
-    private void addPredicate(KuduScanner.KuduScannerBuilder scannerBuilder, KuduTable kuduTable, String column, Object value, String comparisonOp) {
-        ColumnSchema columnSchema = kuduTable.getSchema().getColumn(column);
-        KuduPredicate predicate = KuduPredicate.newComparisonPredicate(columnSchema, KuduPredicate.ComparisonOp.valueOf(comparisonOp), value);
-        scannerBuilder.addPredicate(predicate);
-    }
-
-    protected void scan(ProcessContext context, ProcessSession session, KuduTable kuduTable, String predicates, List<String> projectedColumnNames, ResultHandler handler) throws Exception {
-        KuduScanner.KuduScannerBuilder scannerBuilder = this.kuduClient.newScannerBuilder(kuduTable);
-        final String[] arrayPredicates = (predicates == null || predicates.isEmpty() ? new String[0] : predicates.split(","));
-
-        for(String column : arrayPredicates){
-            if (column.contains("=")) {
-                final String[] parts = column.split("=");
-                addPredicate(scannerBuilder, kuduTable, parts[0], parts[1], "EQUAL");
-            } else if(column.contains(">")) {
-                final String[] parts = column.split(">");
-                addPredicate(scannerBuilder, kuduTable, parts[0], parts[1], "GREATER");
-            } else if(column.contains("<")) {
-                final String[] parts = column.split("<");
-                addPredicate(scannerBuilder, kuduTable, parts[0], parts[1], "LESS");
-            } else if(column.contains(">=")) {
-                final String[] parts = column.split(">=");
-                addPredicate(scannerBuilder, kuduTable, parts[0], parts[1], "GREATER_EQUAL");
-            } else if(column.contains("<=")) {
-                final String[] parts = column.split("<=");
-                addPredicate(scannerBuilder, kuduTable, parts[0], parts[1], "LESS_EQUAL");
-            }
-        }
-
-        if(!projectedColumnNames.isEmpty()){
-            scannerBuilder.setProjectedColumnNames(projectedColumnNames);
-        }
-
-        KuduScanner scanner = scannerBuilder.build();
-        for (RowResult rowResult: scanner) {
-            handler.handle(rowResult);
-        }
-    }
 
     /**
      * Serializes a row from Kudu to a JSON document of the form:
