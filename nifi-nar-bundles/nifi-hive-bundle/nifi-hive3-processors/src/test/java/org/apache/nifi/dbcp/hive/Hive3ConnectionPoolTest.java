@@ -133,6 +133,10 @@ public class Hive3ConnectionPoolTest {
         final int MAX_CONN = 7;
         final String MAX_WAIT = "10 sec"; // 10000 milliseconds
         final String CONF = "/path/to/hive-site.xml";
+        final String MIN_IDLE = "10";
+        final String MAX_IDLE = "20";
+        final String EVICTION_RUN_PERIOD = "1000 millis";
+        final String MIN_EVICTABLE_IDLE_TIME = "10 mins";
         hive3ConnectionPool = new Hive3ConnectionPool();
 
         Map<PropertyDescriptor, String> props = new HashMap<PropertyDescriptor, String>() {{
@@ -142,6 +146,11 @@ public class Hive3ConnectionPoolTest {
             put(Hive3ConnectionPool.MAX_TOTAL_CONNECTIONS, "${maxconn}");
             put(Hive3ConnectionPool.MAX_WAIT_TIME, "${maxwait}");
             put(Hive3ConnectionPool.HIVE_CONFIGURATION_RESOURCES, "${hiveconf}");
+            put(Hive3ConnectionPool.MIN_IDLE, "${minidle}");
+            put(Hive3ConnectionPool.MAX_IDLE, "${maxidle}");
+            put(Hive3ConnectionPool.EVICTION_RUN_PERIOD, "${evictionrunperiod}");
+            put(Hive3ConnectionPool.MIN_EVICTABLE_IDLE_TIME, "${minevictableidletime}");
+
         }};
 
         MockVariableRegistry registry = new MockVariableRegistry();
@@ -151,6 +160,10 @@ public class Hive3ConnectionPoolTest {
         registry.setVariable(new VariableDescriptor("maxconn"), Integer.toString(MAX_CONN));
         registry.setVariable(new VariableDescriptor("maxwait"), MAX_WAIT);
         registry.setVariable(new VariableDescriptor("hiveconf"), CONF);
+        registry.setVariable(new VariableDescriptor("minidle"), MIN_IDLE);
+        registry.setVariable(new VariableDescriptor("maxidle"), MAX_IDLE);
+        registry.setVariable(new VariableDescriptor("evictionrunperiod"), EVICTION_RUN_PERIOD);
+        registry.setVariable(new VariableDescriptor("minevictableidletime"), MIN_EVICTABLE_IDLE_TIME);
 
 
         MockConfigurationContext context = new MockConfigurationContext(props, null, registry);
@@ -165,6 +178,10 @@ public class Hive3ConnectionPoolTest {
         assertEquals(MAX_CONN, basicDataSource.getMaxActive());
         assertEquals(10000L, basicDataSource.getMaxWait());
         assertEquals(URL, hive3ConnectionPool.getConnectionURL());
+        assertEquals(MIN_IDLE, String.valueOf(basicDataSource.getMinIdle()));
+        assertEquals(MAX_IDLE, String.valueOf(basicDataSource.getMaxIdle()));
+        assertEquals(EVICTION_RUN_PERIOD, String.valueOf(basicDataSource.getTimeBetweenEvictionRunsMillis()));
+        assertEquals(EVICTION_RUN_PERIOD, String.valueOf(basicDataSource.getMinEvictableIdleTimeMillis()));
     }
 
     @Ignore("Kerberos does not seem to be properly handled in Travis build, but, locally, this test should successfully run")

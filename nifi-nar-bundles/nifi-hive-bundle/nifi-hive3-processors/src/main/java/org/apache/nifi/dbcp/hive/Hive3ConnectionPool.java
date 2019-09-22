@@ -27,9 +27,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.*;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
@@ -40,6 +38,7 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.hive.AuthenticationFailedException;
 import org.apache.nifi.util.hive.HiveConfigurator;
 import org.apache.nifi.util.hive.HiveUtils;
@@ -56,8 +55,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.Pattern;
 
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
+
+import static org.apache.nifi.util.FormatUtils.TIME_DURATION_PATTERN;
 
 /**
  * Implementation for Database Connection Pooling Service used for Apache Hive
@@ -68,6 +70,51 @@ import org.apache.nifi.controller.ControllerServiceInitializationContext;
 @CapabilityDescription("Provides Database Connection Pooling Service for Apache Hive 3.x. Connections can be asked from pool and returned after usage.")
 public class Hive3ConnectionPool extends AbstractControllerService implements Hive3DBCPService {
     private static final String ALLOW_EXPLICIT_KEYTAB = "NIFI_ALLOW_EXPLICIT_KEYTAB";
+
+    /**
+     * Copied from {GenericObjectPoolConfig.DEFAULT_MIN_IDLE} in Commons-DBCP 2.5.0
+     */
+    private static final String DEFAULT_MIN_IDLE = "0";
+    /**
+     * Copied from { GenericObjectPoolConfig.DEFAULT_MAX_IDLE} in Commons-DBCP 2.5.0
+     */
+    private static final String DEFAULT_MAX_IDLE = "8";
+    /**
+     * Copied from {GenericObjectPoolConfig.DEFAULT_TIME_BETWEEN_EVICTION_RUNS_MILLIS} in Commons-DBCP 2.5.0
+     */
+    private static final String DEFAULT_EVICTION_RUN_PERIOD = String.valueOf(-1L);
+    /**
+     * Copied from {GenericObjectPoolConfig.DEFAULT_MIN_EVICTABLE_IDLE_TIME_MILLIS} in Commons-DBCP 2.5.0
+     * and converted from 1800000L to "1800000 millis" to "30 mins"
+     */
+    private static final String DEFAULT_MIN_EVICTABLE_IDLE_TIME = "30 mins";
+
+    private static final Validator CUSTOM_TIME_PERIOD_VALIDATOR = new Validator() {
+        private final Pattern TIME_DURATION_PATTERN = Pattern.compile(FormatUtils.TIME_DURATION_REGEX);
+
+        @Override
+        public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
+            if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input)) {
+                return new ValidationResult.Builder().subject(subject).input(input).explanation("Expression Language Present").valid(true).build();
+            }
+
+            if (input == null) {
+                return new ValidationResult.Builder().subject(subject).input(input).valid(false).explanation("Time Period cannot be null").build();
+            }
+            if (TIME_DURATION_PATTERN.matcher(input.toLowerCase()).matches() || input.equals("-1")) {
+                return new ValidationResult.Builder().subject(subject).input(input).valid(true).build();
+            } else {
+                return new ValidationResult.Builder()
+                        .subject(subject)
+                        .input(input)
+                        .valid(false)
+                        .explanation("Must be of format <duration> <TimeUnit> where <duration> is a "
+                                + "non-negative integer and TimeUnit is a supported Time Unit, such "
+                                + "as: nanos, millis, secs, mins, hrs, days")
+                        .build();
+            }
+        }
+    };
 
     static final PropertyDescriptor DATABASE_URL = new PropertyDescriptor.Builder()
             .name("hive-db-connect-url")
@@ -153,6 +200,49 @@ public class Hive3ConnectionPool extends AbstractControllerService implements Hi
             .required(false)
             .build();
 
+    public static final PropertyDescriptor MIN_IDLE = new PropertyDescriptor.Builder()
+            .displayName("Minimum Idle Connections")
+            .name("dbcp-min-idle-conns")
+            .description("The minimum number of connections that can remain idle in the pool, without extra ones being " +
+                    "created, or zero to create none.")
+            .defaultValue(DEFAULT_MIN_IDLE)
+            .required(false)
+            .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
+
+    public static final PropertyDescriptor MAX_IDLE = new PropertyDescriptor.Builder()
+            .displayName("Max Idle Connections")
+            .name("dbcp-max-idle-conns")
+            .description("The maximum number of connections that can remain idle in the pool, without extra ones being " +
+                    "released, or negative for no limit.")
+            .defaultValue(DEFAULT_MAX_IDLE)
+            .required(false)
+            .addValidator(StandardValidators.INTEGER_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
+
+    public static final PropertyDescriptor EVICTION_RUN_PERIOD = new PropertyDescriptor.Builder()
+            .displayName("Time Between Eviction Runs")
+            .name("dbcp-time-between-eviction-runs")
+            .description("The number of milliseconds to sleep between runs of the idle connection evictor thread. When " +
+                    "non-positive, no idle connection evictor thread will be run.")
+            .defaultValue(DEFAULT_EVICTION_RUN_PERIOD)
+            .required(false)
+            .addValidator(CUSTOM_TIME_PERIOD_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
+
+    public static final PropertyDescriptor MIN_EVICTABLE_IDLE_TIME = new PropertyDescriptor.Builder()
+            .displayName("Minimum Evictable Idle Time")
+            .name("dbcp-min-evictable-idle-time")
+            .description("The minimum amount of time a connection may sit idle in the pool before it is eligible for eviction.")
+            .defaultValue(DEFAULT_MIN_EVICTABLE_IDLE_TIME)
+            .required(false)
+            .addValidator(CUSTOM_TIME_PERIOD_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
+
 
     private List<PropertyDescriptor> properties;
 
@@ -179,6 +269,10 @@ public class Hive3ConnectionPool extends AbstractControllerService implements Hi
         props.add(MAX_TOTAL_CONNECTIONS);
         props.add(VALIDATION_QUERY);
         props.add(KERBEROS_CREDENTIALS_SERVICE);
+        props.add(MAX_IDLE);
+        props.add(MIN_IDLE);
+        props.add(EVICTION_RUN_PERIOD);
+        props.add(MIN_EVICTABLE_IDLE_TIME);
 
         kerberosConfigFile = context.getKerberosConfigurationFile();
         kerberosProperties = new KerberosProperties(kerberosConfigFile);
@@ -236,6 +330,58 @@ public class Hive3ConnectionPool extends AbstractControllerService implements Hi
             }
         }
 
+        final Integer minIdle = validationContext.getProperty(MIN_IDLE).asInteger();
+        final Integer maxIdle = validationContext.getProperty(MAX_IDLE).asInteger();
+        final String evictionRunPeriod = validationContext.getProperty(EVICTION_RUN_PERIOD).getValue();
+        final String minEvictableIdleTime = validationContext.getProperty(MIN_EVICTABLE_IDLE_TIME).getValue();
+
+        if (minIdle < 0) {
+            problems.add(new ValidationResult.Builder()
+                    .subject("Minimum Idle Connections")
+                    .input(String.valueOf(minIdle))
+                    .valid(false)
+                    .explanation("Minimum Idle Connection must be greater or equal than zero.")
+                    .build());
+        }
+        if (maxIdle < 0) {
+            problems.add(new ValidationResult.Builder()
+                    .subject("Maximum Idle Connections")
+                    .input(String.valueOf(maxIdle))
+                    .valid(false)
+                    .explanation("Maximum Idle Connection must be greater or equal than zero.")
+                    .build());
+        }
+        if(minIdle > maxIdle) {
+            problems.add(new ValidationResult.Builder()
+                    .subject("Maximum Idle Connections")
+                    .input(String.valueOf(maxIdle))
+                    .valid(false)
+                    .explanation("Maximum Idle Connection must be greater or equal than Minimum Idle Connection.")
+                    .build());
+        }
+
+        if (!TIME_DURATION_PATTERN.matcher(evictionRunPeriod.toLowerCase()).matches() || evictionRunPeriod.equals("-1")) {
+            problems.add(new ValidationResult.Builder()
+                    .subject("Eviction Run Period")
+                    .input(evictionRunPeriod)
+                    .valid(false)
+                    .explanation("Eviction Run Period must be of format <duration> <TimeUnit> where <duration> is a "
+                            + "non-negative integer and TimeUnit is a supported Time Unit, such "
+                            + "as: nanos, millis, secs, mins, hrs, days")
+                    .build());
+        }
+
+        if (!TIME_DURATION_PATTERN.matcher(minEvictableIdleTime.toLowerCase()).matches() || minEvictableIdleTime.equals("-1")) {
+            problems.add(new ValidationResult.Builder()
+                    .subject("Minimum Evictable Idle Time")
+                    .input(minEvictableIdleTime)
+                    .valid(false)
+                    .explanation("Minimum Evictable Idle Time must be of format <duration> <TimeUnit> where <duration> is a "
+                            + "non-negative integer and TimeUnit is a supported Time Unit, such "
+                            + "as: nanos, millis, secs, mins, hrs, days")
+                    .build());
+        }
+
         return problems;
     }
 
@@ -280,6 +426,10 @@ public class Hive3ConnectionPool extends AbstractControllerService implements Hi
         final String configFiles = context.getProperty(HIVE_CONFIGURATION_RESOURCES).evaluateAttributeExpressions().getValue();
         final Configuration hiveConfig = hiveConfigurator.getConfigurationFromFiles(configFiles);
         final String validationQuery = context.getProperty(VALIDATION_QUERY).evaluateAttributeExpressions().getValue();
+        final Integer minIdle = context.getProperty(MIN_IDLE).asInteger();
+        final Integer maxIdle = context.getProperty(MAX_IDLE).asInteger();
+        final Long timeBetweenEvictionRunsMillis = extractMillisWithInfinite(context.getProperty(EVICTION_RUN_PERIOD));
+        final Long minEvictableIdleTimeMillis = extractMillisWithInfinite(context.getProperty(MIN_EVICTABLE_IDLE_TIME));
 
         // add any dynamic properties to the Hive configuration
         for (final Map.Entry<PropertyDescriptor, String> entry : context.getProperties().entrySet()) {
@@ -338,6 +488,10 @@ public class Hive3ConnectionPool extends AbstractControllerService implements Hi
         dataSource.setUrl(connectionUrl);
         dataSource.setUsername(user);
         dataSource.setPassword(passw);
+        dataSource.setMinIdle(minIdle);
+        dataSource.setMaxIdle(maxIdle);
+        dataSource.setTimeBetweenEvictionRunsMillis(timeBetweenEvictionRunsMillis);
+        dataSource.setMinEvictableIdleTimeMillis(minEvictableIdleTimeMillis);
     }
 
     /**
@@ -385,6 +539,10 @@ public class Hive3ConnectionPool extends AbstractControllerService implements Hi
         }
     }
 
+    private Long extractMillisWithInfinite(PropertyValue prop) {
+        return "-1".equals(prop.getValue()) ? -1 : prop.asTimePeriod(TimeUnit.MILLISECONDS);
+    }
+
     @Override
     public String toString() {
         return "Hive3ConnectionPool[id=" + getIdentifier() + "]";
@@ -394,5 +552,7 @@ public class Hive3ConnectionPool extends AbstractControllerService implements Hi
     public String getConnectionURL() {
         return connectionUrl;
     }
+
+
 
 }
