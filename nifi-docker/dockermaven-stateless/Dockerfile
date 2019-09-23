@@ -23,36 +23,20 @@ LABEL maintainer="Apache NiFi <dev@nifi.apache.org>"
 ARG UID=1000
 ARG GID=1000
 ARG NIFI_VERSION
-ARG STATELESS_LIB_DIR
+ARG LIB_DIR
 ARG WORKING_DIR
 
 ENV NIFI_BASE_DIR /opt/nifi
 ENV NIFI_HOME ${NIFI_BASE_DIR}/nifi-current
 
-
-#Use Maven-Ant until Docker squash is stable
-#COPY $NIFI_BINARY $NIFI_BASE_DIR
-#RUN unzip ${NIFI_BASE_DIR}/nifi-${NIFI_VERSION}-bin.zip -d ${NIFI_BASE_DIR} \
-#    && rm ${NIFI_BASE_DIR}/nifi-${NIFI_VERSION}-bin.zip \
-#    && mv ${NIFI_BASE_DIR}/nifi-${NIFI_VERSION} ${NIFI_HOME}
-#
-#COPY $NIFI_STATELESS_BINARY $NIFI_BASE_DIR
-#RUN unzip ${NIFI_BASE_DIR}/nifi-stateless-${NIFI_VERSION}-bin.zip -d ${NIFI_BASE_DIR} \
-#    && rm ${NIFI_BASE_DIR}/nifi-stateless-${NIFI_VERSION}-bin.zip \
-#    && mv ${NIFI_BASE_DIR}/nifi-stateless-${NIFI_VERSION}/lib ${NIFI_HOME}/stateless-lib \
-#    && rm -r ${NIFI_BASE_DIR}/nifi-stateless-${NIFI_VERSION}
-#
-#RUN java -cp "${NIFI_HOME}/stateless-lib/*" org.apache.nifi.stateless.NiFiStateless ExtractNars
-#RUN rm -r ${NIFI_HOME}/lib
-
 # Setup NiFi user
 RUN addgroup -g ${GID} nifi && adduser -s /bin/sh -u ${UID} -G nifi -D nifi
 
 RUN mkdir -p $NIFI_HOME && chown nifi:nifi $NIFI_HOME
-RUN mkdir -p ${NIFI_HOME}/work/ && chown nifi:nifi ${NIFI_HOME}/work/ && chmod 777 ${NIFI_HOME}/work/
+RUN mkdir -p ${NIFI_HOME}/work/stateless-nars && chown nifi:nifi ${NIFI_HOME}/work/stateless-nars && chmod 777 ${NIFI_HOME}/work/stateless-nars
 
-COPY --chown=nifi:nifi $WORKING_DIR ${NIFI_HOME}/work/
-COPY --chown=nifi:nifi $STATELESS_LIB_DIR ${NIFI_HOME}/stateless-lib/
+COPY --chown=nifi:nifi $WORKING_DIR ${NIFI_HOME}/work
+COPY --chown=nifi:nifi $LIB_DIR ${NIFI_HOME}/lib/
 
 
 #NiFi's HDFS processors require core-site.xml or hdfs-site.xml to exist on disk before they can be started...
@@ -75,5 +59,5 @@ EXPOSE 8080
 
 WORKDIR ${NIFI_HOME}
 
-ENTRYPOINT ["/usr/bin/java", "-cp", "stateless-lib/*", "org.apache.nifi.stateless.NiFiStateless"]
+ENTRYPOINT ["/usr/bin/java", "-cp", "lib/bootstrap/*", "org.apache.nifi.bootstrap.RunStatelessNiFi"]
 CMD ["RunOpenwhiskActionServer", "8080"]

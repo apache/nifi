@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.stateless;
+package org.apache.nifi;
 
 import org.apache.nifi.nar.NarUnpacker;
 import org.slf4j.Logger;
@@ -33,8 +33,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
-public class NiFiStateless {
-    private static final Logger logger = LoggerFactory.getLogger(NiFiStateless.class);
+public class StatelessNiFi {
+    private static final Logger logger = LoggerFactory.getLogger(StatelessNiFi.class);
 
     public static final String PROGRAM_CLASS_NAME = "org.apache.nifi.stateless.runtimes.Program";
 
@@ -43,15 +43,14 @@ public class NiFiStateless {
     public static void main(final String[] args) throws IOException, ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {
 
         String nifi_home = System.getenv("NIFI_HOME");
-        if(nifi_home == null || nifi_home.equals("")) {
+        if (nifi_home == null || nifi_home.equals("")) {
             nifi_home = ".";
         }
 
-        final File libDir = new File(nifi_home+"/lib");
-        final File statelesslibDir = new File(nifi_home+"/stateless-lib");
-        final File narWorkingDirectory = new File(nifi_home+"/work");
+        final File libDir = new File(nifi_home + "/lib");
+        final File narWorkingDirectory = new File(nifi_home + "/work/stateless-nars");
 
-        if(args.length >= 1 && args[0].equals(EXTRACT_NARS)){
+        if (args.length >= 1 && args[0].equals(EXTRACT_NARS)) {
             if (!libDir.exists()) {
                 System.out.println("Specified lib directory <" + libDir + "> does not exist");
                 return;
@@ -70,15 +69,7 @@ public class NiFiStateless {
             logger.info("Unpacking {} NARs", narFiles.length);
             final long startUnpack = System.nanoTime();
             for (final File narFile : narFiles) {
-                 NarUnpacker.unpackNar(narFile, narWorkingDirectory);
-            }
-            final File[] statelessNar = statelesslibDir.listFiles(file -> file.getName().endsWith(".nar"));
-            if (statelessNar == null) {
-                System.out.println("Could not find stateless nar in stateless-lib dir <" + statelesslibDir + ">");
-                return;
-            }
-            for (final File narFile : statelessNar) {
-                 NarUnpacker.unpackNar(narFile, narWorkingDirectory);
+                NarUnpacker.unpackNar(narFile, narWorkingDirectory);
             }
 
             final long millis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startUnpack);
@@ -87,34 +78,26 @@ public class NiFiStateless {
             System.exit(0);
         }
 
-        File statelessCoreWorkingDirectory;
+        File frameworkWorkingDirectory;
         try {
-            statelessCoreWorkingDirectory = Objects.requireNonNull(narWorkingDirectory.listFiles(file -> file.getName().startsWith("nifi-stateless")))[0];
-        }catch(Exception ex){
+            frameworkWorkingDirectory = Objects.requireNonNull(narWorkingDirectory.listFiles(file -> file.getName().startsWith("nifi-framework")))[0];
+        } catch (Exception ex) {
             throw new FileNotFoundException("Could not find core stateless dependencies in the working directory <" + narWorkingDirectory + ">");
         }
 
-        final File bundledDependenciesDir = new File(statelessCoreWorkingDirectory, NarUnpacker.BUNDLED_DEPENDENCIES_DIRECTORY);
-        final File[] statelessCoreFiles = bundledDependenciesDir.listFiles();
-        if (statelessCoreFiles == null) {
-            throw new IOException("Could not obtain listing of NiFi-Stateless NAR's bundled dependencies in working directory <" + bundledDependenciesDir + ">");
-        }
-        final URL[] statelessCoreUrls = toURLs(statelessCoreFiles);
-
-
-        final File[] jarFiles = statelesslibDir.listFiles(file -> file.getName().endsWith(".jar"));
+        final File bundledDependenciesDir = new File(frameworkWorkingDirectory, NarUnpacker.BUNDLED_DEPENDENCIES_DIRECTORY);
+        final File[] jarFiles = bundledDependenciesDir.listFiles();
         if (jarFiles == null) {
-            System.out.println("Could not obtain listing of NiFi-Stateless Lib directory <" + libDir + ">");
-            return;
+            throw new IOException("Could not obtain listing of NiFi-Framework NAR's bundled dependencies in working directory <" + bundledDependenciesDir + ">");
         }
-
         final URL[] jarUrls = toURLs(jarFiles);
 
-        final URLClassLoader rootClassLoader = new URLClassLoader(jarUrls);
-        final URLClassLoader statelessCoreClassLoader = new URLClassLoader(statelessCoreUrls, rootClassLoader);
-        Thread.currentThread().setContextClassLoader(statelessCoreClassLoader);
 
-        final Class<?> programClass = Class.forName(PROGRAM_CLASS_NAME, true, statelessCoreClassLoader);
+        final ClassLoader rootClassLoader = Thread.currentThread().getContextClassLoader();
+        final URLClassLoader frameworkClassLoader = new URLClassLoader(jarUrls, rootClassLoader);
+        Thread.currentThread().setContextClassLoader(frameworkClassLoader);
+
+        final Class<?> programClass = Class.forName(PROGRAM_CLASS_NAME, true, frameworkClassLoader);
         final Method launchMethod = programClass.getMethod("launch", String[].class, ClassLoader.class, File.class);
         launchMethod.setAccessible(true);
         launchMethod.invoke(null, args, rootClassLoader, narWorkingDirectory);

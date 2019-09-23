@@ -39,7 +39,6 @@ public class Program {
     public static final String RUN_YARN_SERVICE_FROM_REGISTRY = "RunYARNServiceFromRegistry";
     public static final String RUN_OPENWHISK_ACTION_SERVER = "RunOpenwhiskActionServer";
 
-
     public static void launch(final String[] args, final ClassLoader systemClassLoader, final File narWorkingDirectory) throws Exception {
 
         //Workaround for YARN
@@ -59,6 +58,7 @@ public class Program {
             }
             System.out.println("Created empty hadoop token file: " + System.getenv("HADOOP_TOKEN_FILE_LOCATION"));
         }
+
 
         if (args.length == 0) {
             printUsage();
