@@ -909,6 +909,12 @@ In order to modify a Parameter, a user must have view and modify policies for an
 See the <<administration-guide.adoc#component-level-access-policies,Component Level Access Policies>> section in the System Administrator's Guide for more information.
 
 
+==== Parameters and Versioned Flows
+When exporting a flow to a Flow Registry, the name of the Parameter Context is sent for each process group that is stored. Additionally, the Parameters (names, descriptions, values, whether or not sensitive) are stored with the flow. Sensitive Parameter values are not stored.
+
+When a flow is imported, if no Parameter Context is set, NiFi will set the Parameter Context with the same name as the one stored in Flow Registry. If none exists with that name, NiFi will create one. If a Parameter Context has been set and the imported flow contains a Parameter Context with the same name and Parameters with the same names but different values, the existing Parameter values will not be overwritten by those from the imported flow. However, any Parameters missing from the assigned Parameter Context that exist in the Parameter Context of the imported flow will be added.
+
+
 [[Using_Custom_Properties]]
 === Using Custom Properties with Expression Language
 You can use NiFi Expression Language to reference FlowFile attributes, compare them to other values, and manipulate their values when you are creating and configuring dataflows. For more information on Expression Language, see the link:expression-language-guide.html[Expression Language Guide].

@@ -206,10 +206,15 @@ public class GetAzureEventHubTest {
         public void onScheduled(final ProcessContext context) throws ProcessException {
 
         }
+<<<<<<< HEAD
+=======
+
         @Override
         public void tearDown() throws ProcessException {
         }
+>>>>>>> NIFI-6597-sburges
     }
+
     private void setUpStandardTestConfig() {
         testRunner.setProperty(GetAzureEventHub.EVENT_HUB_NAME,eventHubName);
         testRunner.setProperty(GetAzureEventHub.NAMESPACE,namespaceName);
