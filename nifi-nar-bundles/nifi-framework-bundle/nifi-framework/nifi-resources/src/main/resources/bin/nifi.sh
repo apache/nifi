@@ -333,7 +333,20 @@ run() {
     sleep 3
     echo
 }
+stateless(){
+    STATELESS_JAVA_OPTS="${STATELESS_JAVA_OPTS:=-Xms1024m -Xmx1024m}"
 
+    init
+    shift
+
+    echo
+    echo "Java home (JAVA_HOME): ${JAVA_HOME}"
+    echo "NiFi home (NIFI_HOME): ${NIFI_HOME}"
+    echo "Java options (STATELESS_JAVA_OPTS): ${STATELESS_JAVA_OPTS}"
+    echo
+    "${JAVA}" -cp "${NIFI_HOME}/lib/*" ${STATELESS_JAVA_OPTS} "org.apache.nifi.stateless.NiFiStateless" ExtractNars
+    "${JAVA}" -cp "${NIFI_HOME}/lib/*" ${STATELESS_JAVA_OPTS} "org.apache.nifi.stateless.NiFiStateless" "$@"
+}
 main() {
     init "$1"
     run "$@"
@@ -347,12 +360,15 @@ case "$1" in
     start|stop|run|status|dump|diagnostics|env)
         main "$@"
         ;;
+    stateless)
+        stateless "$@"
+        ;;
     restart)
         init
         run "stop"
         run "start"
         ;;
     *)
-        echo "Usage nifi {start|stop|run|restart|status|dump|diagnostics|install}"
+        echo "Usage nifi {start|stop|run|restart|status|dump|diagnostics|install|stateless}"
         ;;
 esac

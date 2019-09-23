@@ -30,7 +30,6 @@
     <modules>
         <module>nifi-stateless-core</module>
         <module>nifi-stateless-bootstrap</module>
-        <module>nifi-stateless-assembly</module>
         <module>nifi-stateless-nar</module>
     </modules>
 
