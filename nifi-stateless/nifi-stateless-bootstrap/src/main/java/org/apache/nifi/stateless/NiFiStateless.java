@@ -40,6 +40,11 @@ public class NiFiStateless {
 
     public static final String EXTRACT_NARS = "ExtractNars";
 
+    public static final String framework_nar_prefix = "nifi-framework-nar";
+
+    public static final String libPath = "lib";
+    public static final String narPath = "work/stateless-nars";
+
     public static void main(final String[] args) throws IOException, ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {
 
         String nifi_home = System.getenv("NIFI_HOME");
@@ -47,9 +52,8 @@ public class NiFiStateless {
             nifi_home = ".";
         }
 
-        final File libDir = new File(nifi_home+"/lib");
-        final File statelesslibDir = new File(nifi_home+"/stateless-lib");
-        final File narWorkingDirectory = new File(nifi_home+"/work");
+        final File libDir = new File(nifi_home+"/"+libPath);
+        final File narWorkingDirectory = new File(nifi_home+"/"+narPath);
 
         if(args.length >= 1 && args[0].equals(EXTRACT_NARS)){
             if (!libDir.exists()) {
@@ -57,7 +61,7 @@ public class NiFiStateless {
                 return;
             }
 
-            final File[] narFiles = libDir.listFiles(file -> file.getName().endsWith(".nar"));
+            final File[] narFiles = libDir.listFiles(file -> file.getName().endsWith(".nar") && !file.getName().startsWith(framework_nar_prefix));
             if (narFiles == null) {
                 System.out.println("Could not obtain listing of lib directory <" + libDir + ">");
                 return;
@@ -70,14 +74,6 @@ public class NiFiStateless {
             logger.info("Unpacking {} NARs", narFiles.length);
             final long startUnpack = System.nanoTime();
             for (final File narFile : narFiles) {
-                 NarUnpacker.unpackNar(narFile, narWorkingDirectory);
-            }
-            final File[] statelessNar = statelesslibDir.listFiles(file -> file.getName().endsWith(".nar"));
-            if (statelessNar == null) {
-                System.out.println("Could not find stateless nar in stateless-lib dir <" + statelesslibDir + ">");
-                return;
-            }
-            for (final File narFile : statelessNar) {
                  NarUnpacker.unpackNar(narFile, narWorkingDirectory);
             }
 
@@ -102,9 +98,9 @@ public class NiFiStateless {
         final URL[] statelessCoreUrls = toURLs(statelessCoreFiles);
 
 
-        final File[] jarFiles = statelesslibDir.listFiles(file -> file.getName().endsWith(".jar"));
+        final File[] jarFiles = libDir.listFiles(file -> file.getName().endsWith(".jar"));
         if (jarFiles == null) {
-            System.out.println("Could not obtain listing of NiFi-Stateless Lib directory <" + libDir + ">");
+            System.out.println("Could not obtain listing of lib directory <" + libDir + ">");
             return;
         }
 
