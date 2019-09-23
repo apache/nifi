@@ -22,10 +22,13 @@ Note: Provenance, metrics, logs are not extracted at this time. Docker and other
 Docker image will be tagged apache/nifi-stateless:1.10.0-SNAPSHOT-dockermaven
 
 ### Usage:
-After building, the image can be used as follows
+After building, the image can be used as follows:
 `docker run <options> apache/nifi-stateless:1.10.0-SNAPSHOT-dockermaven <arguments>`
 
-Where the arguments dictate the runtime to use:
+Stateless NiFi flows can also be run using nifi.sh
+`./bin/nifi.sh stateless <arguments>`
+
+The <arguments> dictate the runtime to use:
 ```
 1) RunFromRegistry [Once|Continuous] --json <JSON>
    RunFromRegistry [Once|Continuous] --file <File Name>   # Filename of JSON file that matches the examples below.
@@ -38,11 +41,12 @@ Where the arguments dictate the runtime to use:
 
 ### Examples:
 ```
-1) docker run --rm -it nifi-stateless:1.10.0-SNAPSHOT-dockermaven \
-    RunFromRegistry Once --file /Users/nifi/nifi-stateless-configs/flow-abc.json
+1) ${NIFI_HOME}/bin/nifi.sh stateless RunFromRegistry Once --file /Users/nifi/nifi-stateless-configs/flow-abc.json
 2) docker run --rm -it nifi-stateless:1.10.0-SNAPSHOT-dockermaven \
+    RunFromRegistry Once --file /Users/nifi/nifi-stateless-configs/flow-abc.json
+3) docker run --rm -it nifi-stateless:1.10.0-SNAPSHOT-dockermaven \
     RunYARNServiceFromRegistry http://127.0.0.1:8088 nifi-stateless:latest kafka-to-solr 3 --file kafka-to-solr.json
-3) docker run -d nifi-stateless:1.10.0-SNAPSHOT-dockermaven \
+4) docker run -d nifi-stateless:1.10.0-SNAPSHOT-dockermaven \
     RunOpenwhiskActionServer 8080
 ```
 
@@ -50,7 +54,6 @@ Where the arguments dictate the runtime to use:
 ```
 1) The configuration file must be in JSON format.
 2) When providing configurations via JSON, the following attributes must be provided: nifi_registry, nifi_bucket, nifi_flow.
-      All other attributes will be passed to the flow using the variable registry interface
 ```
 
 ### JSON Format
@@ -69,7 +72,7 @@ input FlowFile will be read as a stream of data and not buffered into heap. Howe
 Groups.
 - `flowFiles`: _Optional_ - An array of FlowFiles that should be provided to the flow's Input Port. Each element in the array is a JSON object. That JSON object can have multiple keys. If any of those
 keys is `nifi_content` then the String value of that element will be the FlowFile's content. Otherwise, the key/value pair is considered an attribute of the FlowFile.
-- `variables`: _Optional_ - Key/value pairs that will be passed to the NiFi Flow as variables of the root Process Group.
+- `parameters`: _Optional_ - Key-value pairs (or objects if sensitive) that will be passed to the NiFi Flow as parameters.
 
 
 ### Minimal JSON Sample:
@@ -98,16 +101,16 @@ keys is `nifi_content` then the String value of that element will be the FlowFil
         "truststoreType": "JKS"
       },
       "flowFiles":[{
-          "absolute.path": "/tmp/nifistateless/input/",
-          "filename": "test.txt",
+        "absolute.path": "/tmp/nifistateless/input/",
+        "filename": "test.txt",
 
-          "nifi_content": "hello"
+        "nifi_content": "hello"
       },
       {
-            "absolute.path": "/tmp/nifistateless/input/",
-            "filename": "test2.txt",
+        "absolute.path": "/tmp/nifistateless/input/",
+        "filename": "test2.txt",
 
-            "nifi_content": "hi"
+        "nifi_content": "hi"
       }],
       "parameters": {
         "DestinationDirectory" : "/tmp/nifistateless/output2/",
@@ -123,6 +126,6 @@ keys is `nifi_content` then the String value of that element will be the FlowFil
     -StatelessProvenanceReporter.send force option is not appreciated
     -StatelessProcessSession.adjustCounter immediate is not appreciated
 * Send logs, metrics, and provenance to kafka/solr (configure a flow ID for each?)
-* counters
-* tests
+* Counters
+* Tests
 * Processor and port IDs from the UI do not match IDs in templates or the registry
