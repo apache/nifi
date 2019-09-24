@@ -35,6 +35,8 @@ public abstract class AbstractMockKuduProcessor extends ScanKudu {
 
   private KuduSession session;
 
+  final KuduClient client = mock(KuduClient.class);
+
   private boolean loggedIn = false;
   private boolean loggedOut = false;
 
@@ -101,8 +103,6 @@ public abstract class AbstractMockKuduProcessor extends ScanKudu {
 
   @Override
   public KuduClient buildClient(final String masters, ProcessContext context) {
-    final KuduClient client = mock(KuduClient.class);
-
     try {
       when(client.openTable(anyString())).thenReturn(mock(KuduTable.class));
     } catch (final Exception e) {
@@ -114,15 +114,7 @@ public abstract class AbstractMockKuduProcessor extends ScanKudu {
 
   @Override
   public KuduClient getKuduClient() {
-    final KuduClient client = mock(KuduClient.class);
-
-    try {
-      when(client.openTable(anyString())).thenReturn(mock(KuduTable.class));
-    } catch (final Exception e) {
-      throw new AssertionError(e);
-    }
-
-    return client;
+    return this.client;
   }
 
 }

@@ -198,6 +198,9 @@ public class PutKudu extends AbstractKuduProcessor {
 
     public void trigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         final List<FlowFile> flowFiles = session.get(ffbatch);
+        if (flowFiles.isEmpty()) {
+            return;
+        }
         final RecordReaderFactory recordReaderFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
 
         final KuduClient kuduClient = getKuduClient();

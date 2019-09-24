@@ -91,7 +91,7 @@ public class MockScanKudu extends AbstractMockKuduProcessor {
     }
 
     public void addResult(Map<String, String> rows) {
-        rows.entrySet().forEach(kv -> rowResultList.add(createRowResult(kv.getKey(), kv.getValue())));
+        rows.forEach((key, value) -> rowResultList.add(createRowResult(key, value)));
         when(testRows.iterator()).thenReturn(rowResultList.iterator());
         when(testRows.getNumRows()).thenReturn(rowResultList.size());
     }

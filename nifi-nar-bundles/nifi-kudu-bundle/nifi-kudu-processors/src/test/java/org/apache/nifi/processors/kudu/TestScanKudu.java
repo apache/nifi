@@ -113,8 +113,8 @@ public class TestScanKudu {
 
     @Test
     public void testInvalidKuduTableName() {
-        runner.setProperty(ScanKudu.TABLE_NAME, "${kudu.table}");
-        runner.setProperty(ScanKudu.PREDICATES, "column1=val1");
+        runner.setProperty(ScanKudu.TABLE_NAME, "${table1}");
+        runner.setProperty(ScanKudu.PREDICATES, "column5=val2");
         runner.setProperty(ScanKudu.PROJECTED_COLUMNS, "column");
         runner.setValidateExpressionUsage(false);
         runner.enqueue("trigger flow file");
@@ -268,41 +268,6 @@ public class TestScanKudu {
         runner.assertTransferCount(ScanKudu.REL_ORIGINAL, 1);
 
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(ScanKudu.REL_SUCCESS).get(0);
-        flowFile.assertContentEquals("[{\"rows\":[{\"column1\":\"val1\"}]}]");
-
-        Assert.assertEquals(1, kuduScan.getNumScans());
-    }
-
-    @Test
-    public void testKuduBatchSize() {
-        final Map<String, String> rows = new HashMap<>();
-        rows.put("column1", "val1");
-        rows.put("column3", "val3");
-
-        kuduScan.addResult(rows);
-
-        runner.setProperty(ScanKudu.TABLE_NAME, "${kudu.table}");
-        runner.setProperty(ScanKudu.PREDICATES, "${kudu.predicate}");
-        runner.setProperty(ScanKudu.PROJECTED_COLUMNS, "${kudu.cols}");
-        runner.setProperty(ScanKudu.BATCH_SIZE, "${kudu.batchsize}");
-
-        runner.setValidateExpressionUsage(false);
-
-        final Map<String,String> attributes = new HashMap<>();
-        attributes.put("kudu.table", "table1");
-        attributes.put("kudu.predicate", "column1=val1");
-        attributes.put("kudu.cols", "column1");
-        attributes.put("kudu.batchsize", "200");
-
-        runner.enqueue("trigger flow file", attributes);
-        runner.run();
-
-        runner.assertTransferCount(ScanKudu.REL_FAILURE, 0);
-        runner.assertTransferCount(ScanKudu.REL_SUCCESS, 1);
-        runner.assertTransferCount(ScanKudu.REL_ORIGINAL, 1);
-
-        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(ScanKudu.REL_SUCCESS).get(0);
-        flowFile.assertAttributeEquals("kudu.batchsize", "200");
         flowFile.assertContentEquals("[{\"rows\":[{\"column1\":\"val1\"}]}]");
 
         Assert.assertEquals(1, kuduScan.getNumScans());
