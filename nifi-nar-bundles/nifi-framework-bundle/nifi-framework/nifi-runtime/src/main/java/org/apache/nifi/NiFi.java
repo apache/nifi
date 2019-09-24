@@ -123,7 +123,7 @@ public class NiFi {
         // redirect JUL log events
         initLogging();
 
-        final Bundle systemBundle = SystemBundle.create(properties);
+        final Bundle systemBundle = SystemBundle.create(properties, rootClassLoader);
 
         // expand the nars
         final ExtensionMapping extensionMapping = NarUnpacker.unpackNars(properties, systemBundle);
@@ -305,8 +305,11 @@ public class NiFi {
     }
 
     protected static NiFiProperties convertArgumentsToValidatedNiFiProperties(String[] args) {
-        final ClassLoader bootstrap = createBootstrapClassLoader();
-        NiFiProperties properties = initializeProperties(args, bootstrap);
+        return convertArgumentsToValidatedNiFiProperties(args, createBootstrapClassLoader());
+    }
+
+    protected static NiFiProperties convertArgumentsToValidatedNiFiProperties(String[] args, final ClassLoader bootstrapClassLoader) {
+        NiFiProperties properties = initializeProperties(args, bootstrapClassLoader);
         properties.validate();
         return properties;
     }

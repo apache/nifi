@@ -30,4 +30,9 @@ public interface ControllerServicesClient {
 
     ControllerServiceEntity activateControllerService(String id, ControllerServiceRunStatusEntity runStatusEntity) throws NiFiClientException, IOException;
 
+    ControllerServiceEntity createControllerService(String parentGroupdId, ControllerServiceEntity controllerServiceEntity) throws NiFiClientException, IOException;
+
+    ControllerServiceEntity updateControllerService(ControllerServiceEntity controllerServiceEntity) throws NiFiClientException, IOException;
+
+    ControllerServiceEntity deleteControllerService(ControllerServiceEntity controllerServiceEntity) throws NiFiClientException, IOException;
 }
