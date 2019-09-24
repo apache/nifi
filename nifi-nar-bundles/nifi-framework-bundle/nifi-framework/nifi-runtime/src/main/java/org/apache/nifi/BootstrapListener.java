@@ -179,6 +179,7 @@ public class BootstrapListener {
                                     case SHUTDOWN:
                                         logger.info("Received SHUTDOWN request from Bootstrap");
                                         echoShutdown(socket.getOutputStream());
+                                        socket.close();
                                         nifi.shutdownHook();
                                         return;
                                     case DUMP:
