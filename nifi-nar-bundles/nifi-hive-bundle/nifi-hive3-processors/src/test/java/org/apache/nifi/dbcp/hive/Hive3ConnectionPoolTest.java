@@ -31,7 +31,7 @@ import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.commons.dbcp.BasicDataSource;
+import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
@@ -162,8 +162,8 @@ public class Hive3ConnectionPoolTest {
         assertEquals(URL, basicDataSource.getUrl());
         assertEquals(USER, basicDataSource.getUsername());
         assertEquals(PASS, basicDataSource.getPassword());
-        assertEquals(MAX_CONN, basicDataSource.getMaxActive());
-        assertEquals(10000L, basicDataSource.getMaxWait());
+        assertEquals(MAX_CONN, basicDataSource.getMaxTotal());
+        assertEquals(10000L, basicDataSource.getMaxWaitMillis());
         assertEquals(URL, hive3ConnectionPool.getConnectionURL());
     }
 
