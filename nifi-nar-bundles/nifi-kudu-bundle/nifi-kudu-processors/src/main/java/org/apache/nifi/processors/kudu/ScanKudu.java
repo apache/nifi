@@ -154,8 +154,6 @@ public class ScanKudu extends AbstractKuduProcessor {
 
     static final String KUDU_ROWS_COUNT_ATTR = "kudu.rows.count";
 
-    protected int batchSize = 500;
-
     protected KuduTable kuduTable;
 
     @OnScheduled
@@ -272,7 +270,7 @@ public class ScanKudu extends AbstractKuduProcessor {
                 });
                 handledAny = true;
 
-            }catch(Exception e){
+            } catch (Exception e) {
                 throw new RuntimeException(e);
             }
 
@@ -343,7 +341,7 @@ public class ScanKudu extends AbstractKuduProcessor {
         flowFile = session.append(flowFile, (out) -> {
             try{
                 out.write("]".getBytes());
-            }catch(IOException ei){
+            } catch(IOException ei) {
                 ioe.set(ei);
             }
         });

@@ -17,12 +17,16 @@
 
 package org.apache.nifi.processors.kudu;
 
+import org.apache.kudu.client.KuduException;
+import org.apache.kudu.test.KuduTestHarness;
+import org.apache.kudu.test.cluster.MiniKuduCluster;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Assert;
+
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import java.util.List;
 import java.util.Map;
@@ -38,9 +42,17 @@ public class TestScanKudu {
     public static final String DEFAULT_TABLE_NAME = "Nifi-Kudu-Table";
     public static final String DEFAULT_MASTERS = "testLocalHost:7051";
 
+    @Rule
+    public KuduTestHarness harness = new KuduTestHarness(
+        new MiniKuduCluster.MiniKuduClusterBuilder()
+            .addMasterServerFlag("--use_hybrid_clock=false")
+            .addTabletServerFlag("--use_hybrid_clock=false")
+    );
+
     @Before
     public void setup() throws InitializationException {
         kuduScan = new MockScanKudu();
+        kuduScan.kuduClient = harness.getClient();
         runner = TestRunners.newTestRunner(kuduScan);
 
         setUpTestRunner(runner);
@@ -103,12 +115,10 @@ public class TestScanKudu {
         runner.setProperty(ScanKudu.TABLE_NAME, DEFAULT_TABLE_NAME);
         runner.setProperty(ScanKudu.PREDICATES, "column1=val1");
 
-        runner.run();
+        runner.run(1, false);
         runner.assertTransferCount(ScanKudu.REL_FAILURE, 0);
         runner.assertTransferCount(ScanKudu.REL_SUCCESS, 0);
         runner.assertTransferCount(ScanKudu.REL_ORIGINAL, 0);
-
-        Assert.assertEquals(0, kuduScan.getNumScans());
     }
 
     @Test
@@ -118,13 +128,12 @@ public class TestScanKudu {
         runner.setProperty(ScanKudu.PROJECTED_COLUMNS, "column");
         runner.setValidateExpressionUsage(false);
         runner.enqueue("trigger flow file");
-        runner.run();
+        runner.run(1, false);
 
         runner.assertTransferCount(ScanKudu.REL_FAILURE, 1);
         runner.assertTransferCount(ScanKudu.REL_SUCCESS, 0);
         runner.assertTransferCount(ScanKudu.REL_ORIGINAL, 0);
 
-        Assert.assertEquals(0, kuduScan.getNumScans());
     }
 
     @Test
@@ -134,24 +143,29 @@ public class TestScanKudu {
         runner.setProperty(ScanKudu.PROJECTED_COLUMNS, "column1");
         runner.setValidateExpressionUsage(false);
         runner.enqueue("trigger flow file");
-        runner.run();
+        runner.run(1, false);
 
         runner.assertTransferCount(ScanKudu.REL_FAILURE, 1);
         runner.assertTransferCount(ScanKudu.REL_SUCCESS, 0);
         runner.assertTransferCount(ScanKudu.REL_ORIGINAL, 0);
 
-        Assert.assertEquals(0, kuduScan.getNumScans());
     }
 
     @Test
-    public void testResultsNotFound() throws InitializationException {
+    public void testResultsNotFound() throws KuduException {
+        final Map<String, String> rows = new HashMap<>();
+        rows.put("key", "val1");
+        rows.put("key1", "val1");
+
+        kuduScan.insertTestRecordsToKuduTable(DEFAULT_TABLE_NAME, rows);
+
         runner.setProperty(ScanKudu.TABLE_NAME, DEFAULT_TABLE_NAME);
-        runner.setProperty(ScanKudu.PREDICATES, "column1=val1");
-        runner.setProperty(ScanKudu.PROJECTED_COLUMNS, "column1");
+        runner.setProperty(ScanKudu.PREDICATES, "key1=val3");
+        runner.setProperty(ScanKudu.PROJECTED_COLUMNS, "key1");
 
         runner.setValidateExpressionUsage(false);
         runner.enqueue("trigger flow file");
-        runner.run();
+        runner.run(1, false);
 
         runner.assertTransferCount(ScanKudu.REL_FAILURE, 0);
         runner.assertTransferCount(ScanKudu.REL_SUCCESS, 0);
@@ -159,21 +173,26 @@ public class TestScanKudu {
 
         MockFlowFile flowFile = runner.getFlowFilesForRelationship(ScanKudu.REL_ORIGINAL).get(0);
         flowFile.assertAttributeEquals("scankudu.results.found", Boolean.FALSE.toString());
-        Assert.assertEquals(1, kuduScan.getNumScans());
     }
 
     @Test
-    public void testScanKuduProcessorJsonOutput() throws InitializationException {
+    public void testScanKuduProcessorJsonOutput() throws KuduException {
+        final Map<String, String> rows = new HashMap<>();
+        rows.put("key", "val1");
+        rows.put("key1", "val1");
+
+        kuduScan.insertTestRecordsToKuduTable(DEFAULT_TABLE_NAME, rows);
+
         runner.setProperty(ScanKudu.TABLE_NAME, DEFAULT_TABLE_NAME);
-        runner.setProperty(ScanKudu.PREDICATES, "column1=val1");
-        runner.setProperty(ScanKudu.PROJECTED_COLUMNS, "column");
+        runner.setProperty(ScanKudu.PREDICATES, "key=val3");
+        runner.setProperty(ScanKudu.PROJECTED_COLUMNS, "key");
 
         runner.setValidateExpressionUsage(false);
         runner.setIncomingConnection(false);
 
         runner.enqueue("{\"user_id\":\"user1\",\"first_name\":\"Joe\",\"last_name\":\"Smith\"}");
         // Test JSON output
-        runner.run(1, true, true);
+        runner.run(1, false, true);
         runner.assertAllFlowFilesTransferred(ScanKudu.REL_ORIGINAL, 1);
         List<MockFlowFile> files = runner.getFlowFilesForRelationship(ScanKudu.REL_ORIGINAL);
         assertNotNull(files);
@@ -183,132 +202,170 @@ public class TestScanKudu {
     }
 
     @Test
-    public void testKuduScanToContentWithStringValues() throws InitializationException {
+    public void testKuduScanToContentWithStringValues() throws InitializationException, KuduException {
         final Map<String, String> rows = new HashMap<>();
-        rows.put("column1", "val1");
-        rows.put("column1", "val1");
-        rows.put("column2", "val2");
+        rows.put("key", "val1");
+        rows.put("key1", "val1");
 
-        kuduScan.addResult(rows);
+        kuduScan.insertTestRecordsToKuduTable(DEFAULT_TABLE_NAME, rows);
 
         runner.setProperty(ScanKudu.TABLE_NAME, DEFAULT_TABLE_NAME);
-        runner.setProperty(ScanKudu.PREDICATES, "column1=val1");
-        runner.setProperty(ScanKudu.PROJECTED_COLUMNS, "column1,column2");
+        runner.setProperty(ScanKudu.PREDICATES, "key=val1");
+        runner.setProperty(ScanKudu.PROJECTED_COLUMNS, "key,key1");
+        runner.setProperty(ScanKudu.BATCH_SIZE, "2");
 
         runner.setValidateExpressionUsage(false);
         runner.setIncomingConnection(false);
 
         runner.enqueue("trigger flow file");
-        runner.run();
+
+        runner.run(1, false);
 
         runner.assertTransferCount(ScanKudu.REL_FAILURE, 0);
         runner.assertTransferCount(ScanKudu.REL_SUCCESS, 1);
         runner.assertTransferCount(ScanKudu.REL_ORIGINAL, 1);
 
         MockFlowFile flowFile = runner.getFlowFilesForRelationship(ScanKudu.REL_SUCCESS).get(0);
-        flowFile.assertContentEquals("[{\"rows\":[{\"column1\":\"val1\"}]}]");
+        flowFile.assertContentEquals("[{\"rows\":[{\"key\":\"val1\",\"key1\":\"val1\"}]}]");
         flowFile.assertAttributeEquals(ScanKudu.KUDU_ROWS_COUNT_ATTR, "1");
 
         flowFile = runner.getFlowFilesForRelationship(ScanKudu.REL_ORIGINAL).get(0);
         flowFile.assertAttributeEquals("scankudu.results.found", Boolean.TRUE.toString());
 
-        Assert.assertEquals(1, kuduScan.getNumScans());
     }
 
     @Test
-    public void testKuduScanToContentWithPredicateAndValueJSON() {
+    public void testKuduScanToContentWithPredicateAndValueJSON() throws KuduException {
         final Map<String, String> rows = new HashMap<>();
-        rows.put("column1", "val1");
-        rows.put("column2", "val2");
+        rows.put("key", "val1");
+        rows.put("key1", "val2");
 
-        kuduScan.addResult( rows);
+        kuduScan.insertTestRecordsToKuduTable(DEFAULT_TABLE_NAME, rows);
 
         runner.setProperty(ScanKudu.TABLE_NAME, DEFAULT_TABLE_NAME);
-        runner.setProperty(ScanKudu.PREDICATES, "column1=val1");
-        runner.setProperty(ScanKudu.PROJECTED_COLUMNS, "column1");
+        runner.setProperty(ScanKudu.PREDICATES, "key=val1");
+        runner.setProperty(ScanKudu.PROJECTED_COLUMNS, "key1");
+        runner.setProperty(ScanKudu.BATCH_SIZE, "2");
         runner.setValidateExpressionUsage(false);
 
         runner.enqueue("trigger flow file");
-        runner.run();
+        runner.run(1, false);
 
         runner.assertTransferCount(ScanKudu.REL_FAILURE, 0);
         runner.assertTransferCount(ScanKudu.REL_SUCCESS, 1);
         runner.assertTransferCount(ScanKudu.REL_ORIGINAL, 1);
 
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(ScanKudu.REL_SUCCESS).get(0);
-        flowFile.assertContentEquals("[{\"rows\":[{\"column1\":\"val1\"}]}]");
+        flowFile.assertContentEquals("[{\"rows\":[{\"key1\":\"val2\"}]}]");
 
-        Assert.assertEquals(1, kuduScan.getNumScans());
     }
 
     @Test
-    public void testKuduScanWithExpressionLanguage() {
+    public void testKuduScanWithExpressionLanguage() throws KuduException {
         final Map<String, String> rows = new HashMap<>();
-        rows.put("column1", "val1");
-        rows.put("column2", "val2");
+        rows.put("key", "val1");
+        rows.put("key1", "val2");
 
-        kuduScan.addResult(rows);
+        kuduScan.insertTestRecordsToKuduTable(DEFAULT_TABLE_NAME, rows);
 
         runner.setProperty(ScanKudu.TABLE_NAME, "${kudu.table}");
         runner.setProperty(ScanKudu.PREDICATES, "${kudu.predicate}");
         runner.setProperty(ScanKudu.PROJECTED_COLUMNS, "${kudu.cols}");
+        runner.setProperty(ScanKudu.BATCH_SIZE, "2");
 
         runner.setValidateExpressionUsage(false);
 
         final Map<String,String> attributes = new HashMap<>();
-        attributes.put("kudu.table", "table1");
-        attributes.put("kudu.predicate", "column1=val1");
-        attributes.put("kudu.cols", "column1");
+        attributes.put("kudu.table", DEFAULT_TABLE_NAME);
+        attributes.put("kudu.predicate", "key=val1");
+        attributes.put("kudu.cols", "key1");
 
         runner.enqueue("trigger flow file", attributes);
-        runner.run();
+        runner.run(1, false);
 
         runner.assertTransferCount(ScanKudu.REL_FAILURE, 0);
         runner.assertTransferCount(ScanKudu.REL_SUCCESS, 1);
         runner.assertTransferCount(ScanKudu.REL_ORIGINAL, 1);
 
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(ScanKudu.REL_SUCCESS).get(0);
-        flowFile.assertContentEquals("[{\"rows\":[{\"column1\":\"val1\"}]}]");
+        flowFile.assertContentEquals("[{\"rows\":[{\"key1\":\"val2\"}]}]");
+    }
 
-        Assert.assertEquals(1, kuduScan.getNumScans());
+    @Test
+    public void testKuduScanWithMultiPredicates() throws KuduException {
+        final Map<String, String> rows = new HashMap<>();
+        rows.put("key", "val1");
+        rows.put("key1", "val2");
+
+        final Map<String, String> rows1 = new HashMap<>();
+        rows1.put("key", "val2");
+        rows1.put("key1", "val2");
+
+        final Map<String, String> rows2 = new HashMap<>();
+        rows2.put("key", "val3");
+        rows2.put("key1", "val3");
+
+        kuduScan.insertTestRecordsToKuduTable(DEFAULT_TABLE_NAME, rows);
+        kuduScan.insertTestRecordsToKuduTable(DEFAULT_TABLE_NAME, rows1);
+        kuduScan.insertTestRecordsToKuduTable(DEFAULT_TABLE_NAME, rows2);
+
+        runner.setProperty(ScanKudu.TABLE_NAME, "${kudu.table}");
+        runner.setProperty(ScanKudu.PREDICATES, "${kudu.predicate}");
+        runner.setProperty(ScanKudu.PROJECTED_COLUMNS, "${kudu.cols}");
+        runner.setProperty(ScanKudu.BATCH_SIZE, "2");
+
+        runner.setValidateExpressionUsage(false);
+
+        final Map<String,String> attributes = new HashMap<>();
+        attributes.put("kudu.table", DEFAULT_TABLE_NAME);
+        attributes.put("kudu.predicate", "key=val1,key1=val2");
+        attributes.put("kudu.cols", "key1");
+
+        runner.enqueue("trigger flow file", attributes);
+        runner.run(1, false);
+
+        runner.assertTransferCount(ScanKudu.REL_FAILURE, 0);
+        runner.assertTransferCount(ScanKudu.REL_SUCCESS, 1);
+        runner.assertTransferCount(ScanKudu.REL_ORIGINAL, 1);
+
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(ScanKudu.REL_SUCCESS).get(0);
+        flowFile.assertContentEquals("[{\"rows\":[{\"key1\":\"val2\"}]}]");
     }
 
     @Test
     public void testKuduScanWhenScanThrowsException() {
-        kuduScan.setThrowException(true);
 
         runner.setProperty(ScanKudu.TABLE_NAME, DEFAULT_TABLE_NAME);
-        runner.setProperty(ScanKudu.PREDICATES, "column1=val1");
-        runner.setProperty(ScanKudu.PROJECTED_COLUMNS, "column1");
+        runner.setProperty(ScanKudu.PREDICATES, "key1=val1");
+        runner.setProperty(ScanKudu.PROJECTED_COLUMNS, "key1");
         runner.setValidateExpressionUsage(false);
 
         runner.enqueue("trigger flow file");
-        runner.run();
+        runner.run(1, false);
 
         runner.assertTransferCount(ScanKudu.REL_FAILURE, 1);
         runner.assertTransferCount(ScanKudu.REL_SUCCESS, 0);
         runner.assertTransferCount(ScanKudu.REL_ORIGINAL, 0);
 
-        Assert.assertEquals(0, kuduScan.getNumScans());
     }
 
     @Test
-    public void testKuduScanWhenKuduScanThrowsExceptionAfterLineN() {
+    public void testKuduScanWhenKuduScanThrowsExceptionAfterLineN() throws KuduException {
         kuduScan.setLinesBeforeException(1);
 
         final Map<String, String> rows = new HashMap<>();
-        rows.put("column1", "val1");
-        rows.put("column2", "val2");
+        rows.put("key", "val1");
+        rows.put("key1", "val2");
 
-        kuduScan.addResult(rows);
+        kuduScan.insertTestRecordsToKuduTable(DEFAULT_TABLE_NAME, rows);
 
         runner.setProperty(ScanKudu.TABLE_NAME, DEFAULT_TABLE_NAME);
-        runner.setProperty(ScanKudu.PREDICATES, "column1=val");
-        runner.setProperty(ScanKudu.PROJECTED_COLUMNS, "column1");
+        runner.setProperty(ScanKudu.PREDICATES, "key2=val1");
+        runner.setProperty(ScanKudu.PROJECTED_COLUMNS, "key1");
         runner.setValidateExpressionUsage(false);
 
         runner.enqueue("trigger flow file");
-        runner.run();
+        runner.run(1, false);
 
         kuduScan.setLinesBeforeException(-1);
 
@@ -316,7 +373,6 @@ public class TestScanKudu {
         runner.assertTransferCount(ScanKudu.REL_SUCCESS, 0);
         runner.assertTransferCount(ScanKudu.REL_ORIGINAL, 0);
 
-        Assert.assertEquals(0, kuduScan.getNumScans());
     }
 
 }

@@ -17,36 +17,18 @@
 
 package org.apache.nifi.processors.kudu;
 
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
 import java.security.PrivilegedAction;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import javax.security.auth.login.LoginException;
 import org.apache.kudu.client.KuduClient;
-import org.apache.kudu.client.KuduSession;
-import org.apache.kudu.client.KuduTable;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.security.krb.KerberosUser;
 
 public abstract class AbstractMockKuduProcessor extends ScanKudu {
 
-  private KuduSession session;
-
-  final KuduClient client = mock(KuduClient.class);
-
   private boolean loggedIn = false;
   private boolean loggedOut = false;
-
-  public AbstractMockKuduProcessor() {
-    this(mock(KuduSession.class));
-  }
-
-  public AbstractMockKuduProcessor(KuduSession session) {
-    this.session = session;
-  }
 
   @Override
   protected KerberosUser loginKerberosUser(final String principal, final String keytab) throws LoginException {
@@ -103,18 +85,12 @@ public abstract class AbstractMockKuduProcessor extends ScanKudu {
 
   @Override
   public KuduClient buildClient(final String masters, ProcessContext context) {
-    try {
-      when(client.openTable(anyString())).thenReturn(mock(KuduTable.class));
-    } catch (final Exception e) {
-      throw new AssertionError(e);
-    }
-
-    return client;
+    return this.kuduClient;
   }
 
   @Override
   public KuduClient getKuduClient() {
-    return this.client;
+    return this.kuduClient;
   }
 
 }
