@@ -82,6 +82,7 @@ public class PutElasticsearchRecord extends AbstractProcessor implements Elastic
         .description("The number of records to send over in a single batch.")
         .defaultValue("100")
         .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .required(true)
         .build();
 
@@ -166,52 +167,55 @@ public class PutElasticsearchRecord extends AbstractProcessor implements Elastic
             return;
         }
 
-        try {
-            BulkOperation bundle = buildOperations(input, context, session);
-            IndexOperationResponse response = clientService.bulk(bundle.getOperationList());
-            if (response.hasErrors()) {
-                if(logErrors || getLogger().isDebugEnabled()) {
-                    List<Map<String, Object>> errors = response.getItems();
-                    ObjectMapper mapper = new ObjectMapper();
-                    mapper.enable(SerializationFeature.INDENT_OUTPUT);
-                    String output = String.format("An error was encountered while processing bulk operations. Server response below:\n\n%s", mapper.writeValueAsString(errors));
+        final String index = context.getProperty(INDEX).evaluateAttributeExpressions(input).getValue();
+        final String type  = context.getProperty(TYPE).evaluateAttributeExpressions(input).getValue();
+        final String idPath = context.getProperty(ID_RECORD_PATH).isSet()
+                ? context.getProperty(ID_RECORD_PATH).evaluateAttributeExpressions(input).getValue()
+                : null;
+        final String indexPath = context.getProperty(INDEX_RECORD_PATH).isSet()
+                ? context.getProperty(INDEX_RECORD_PATH).evaluateAttributeExpressions(input).getValue()
+                : null;
+        final String typePath = context.getProperty(TYPE_RECORD_PATH).isSet()
+                ? context.getProperty(TYPE_RECORD_PATH).evaluateAttributeExpressions(input).getValue()
+                : null;
 
-                    if (logErrors) {
-                        getLogger().error(output);
-                    } else {
-                        getLogger().debug(output);
-                    }
+        RecordPath path = idPath != null ? recordPathCache.getCompiled(idPath) : null;
+        RecordPath iPath = indexPath != null ? recordPathCache.getCompiled(indexPath) : null;
+        RecordPath tPath = typePath != null ? recordPathCache.getCompiled(typePath) : null;
+
+        int batchSize = context.getProperty(BATCH_SIZE).evaluateAttributeExpressions(input).asInteger();
+
+        try (final InputStream inStream = session.read(input);
+             final RecordReader reader = readerFactory.createRecordReader(input, inStream, getLogger())) {
+            Record record;
+            List<IndexOperationRequest> operationList = new ArrayList<>();
+            List<Record> originals = new ArrayList<>();
+
+            while ((record = reader.nextRecord()) != null) {
+                final String idx = getFromRecordPath(record, iPath, index);
+                final String t   = getFromRecordPath(record, tPath, type);
+                final IndexOperationRequest.Operation o = IndexOperationRequest.Operation.Index;
+                final String id  = path != null ? getFromRecordPath(record, path, null) : null;
+
+                Map<String, Object> contentMap = (Map<String, Object>) DataTypeUtils.convertRecordFieldtoObject(record, RecordFieldType.RECORD.getRecordDataType(record.getSchema()));
+
+                removeEmpty(contentMap);
+
+                operationList.add(new IndexOperationRequest(idx, t, id, contentMap, o));
+                originals.add(record);
+
+                if (operationList.size() == batchSize) {
+                    BulkOperation bundle = new BulkOperation(operationList, originals, reader.getSchema());
+                    indexDocuments(bundle, session, input);
+
+                    operationList.clear();
+                    originals.clear();
                 }
+            }
 
-                if (writerFactory != null) {
-                    FlowFile errorFF = session.create(input);
-                    try (OutputStream os = session.write(errorFF);
-                         RecordSetWriter writer = writerFactory.createWriter(getLogger(), bundle.getSchema(), os )) {
-
-                        int added = 0;
-                        writer.beginRecordSet();
-                        for (int index = 0; index < response.getItems().size(); index++) {
-                            Map<String, Object> current = response.getItems().get(index);
-                            String key = current.keySet().stream().findFirst().get();
-                            Map<String, Object> inner = (Map<String, Object>) current.get(key);
-                            if (inner.containsKey("error")) {
-                                writer.write(bundle.getOriginalRecords().get(index));
-                                added++;
-                            }
-                        }
-                        writer.finishRecordSet();
-                        writer.close();
-                        os.close();
-
-                        errorFF = session.putAttribute(errorFF, ATTR_RECORD_COUNT, String.valueOf(added));
-
-                        session.transfer(errorFF, REL_FAILED_RECORDS);
-                    } catch (Exception ex) {
-                        getLogger().error("", ex);
-                        session.remove(errorFF);
-                        throw ex;
-                    }
-                }
+            if (operationList.size() > 0) {
+                BulkOperation bundle = new BulkOperation(operationList, originals, reader.getSchema());
+                indexDocuments(bundle, session, input);
             }
 
             session.transfer(input, REL_SUCCESS);
@@ -227,46 +231,55 @@ public class PutElasticsearchRecord extends AbstractProcessor implements Elastic
         }
     }
 
-    private BulkOperation buildOperations(FlowFile flowFile, ProcessContext context, ProcessSession session) {
-        try (final InputStream inStream = session.read(flowFile);
-            final RecordReader reader = readerFactory.createRecordReader(flowFile, inStream, getLogger())) {
-            List<IndexOperationRequest> operationList = new ArrayList<>();
-            List<Record> originals = new ArrayList<>();
+    private boolean indexDocuments(BulkOperation bundle, ProcessSession session, FlowFile input) throws Exception {
+        IndexOperationResponse response = clientService.bulk(bundle.getOperationList());
+        if (response.hasErrors()) {
+            if(logErrors || getLogger().isDebugEnabled()) {
+                List<Map<String, Object>> errors = response.getItems();
+                ObjectMapper mapper = new ObjectMapper();
+                mapper.enable(SerializationFeature.INDENT_OUTPUT);
+                String output = String.format("An error was encountered while processing bulk operations. Server response below:\n\n%s", mapper.writeValueAsString(errors));
 
-            final String index = context.getProperty(INDEX).evaluateAttributeExpressions(flowFile).getValue();
-            final String type  = context.getProperty(TYPE).evaluateAttributeExpressions(flowFile).getValue();
-            final String idPath = context.getProperty(ID_RECORD_PATH).isSet()
-                ? context.getProperty(ID_RECORD_PATH).evaluateAttributeExpressions(flowFile).getValue()
-                : null;
-            final String indexPath = context.getProperty(INDEX_RECORD_PATH).isSet()
-                ? context.getProperty(INDEX_RECORD_PATH).evaluateAttributeExpressions(flowFile).getValue()
-                : null;
-            final String typePath = context.getProperty(TYPE_RECORD_PATH).isSet()
-                ? context.getProperty(TYPE_RECORD_PATH).evaluateAttributeExpressions(flowFile).getValue()
-                : null;
-
-            RecordPath path = idPath != null ? recordPathCache.getCompiled(idPath) : null;
-            RecordPath iPath = indexPath != null ? recordPathCache.getCompiled(indexPath) : null;
-            RecordPath tPath = typePath != null ? recordPathCache.getCompiled(typePath) : null;
-
-            Record record;
-            while ((record = reader.nextRecord()) != null) {
-                final String idx = getFromRecordPath(record, iPath, index);
-                final String t   = getFromRecordPath(record, tPath, type);
-                final IndexOperationRequest.Operation o = IndexOperationRequest.Operation.Index;
-                final String id  = path != null ? getFromRecordPath(record, path, null) : null;
-
-                Map<String, Object> contentMap = (Map<String, Object>) DataTypeUtils.convertRecordFieldtoObject(record, RecordFieldType.RECORD.getRecordDataType(record.getSchema()));
-
-                removeEmpty(contentMap);
-
-                operationList.add(new IndexOperationRequest(idx, t, id, contentMap, o));
-                originals.add(record);
+                if (logErrors) {
+                    getLogger().error(output);
+                } else {
+                    getLogger().debug(output);
+                }
             }
 
-            return new BulkOperation(operationList, originals, reader.getSchema());
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+            if (writerFactory != null) {
+                FlowFile errorFF = session.create(input);
+                try (OutputStream os = session.write(errorFF);
+                     RecordSetWriter writer = writerFactory.createWriter(getLogger(), bundle.getSchema(), os )) {
+
+                    int added = 0;
+                    writer.beginRecordSet();
+                    for (int index = 0; index < response.getItems().size(); index++) {
+                        Map<String, Object> current = response.getItems().get(index);
+                        String key = current.keySet().stream().findFirst().get();
+                        Map<String, Object> inner = (Map<String, Object>) current.get(key);
+                        if (inner.containsKey("error")) {
+                            writer.write(bundle.getOriginalRecords().get(index));
+                            added++;
+                        }
+                    }
+                    writer.finishRecordSet();
+                    writer.close();
+                    os.close();
+
+                    errorFF = session.putAttribute(errorFF, ATTR_RECORD_COUNT, String.valueOf(added));
+
+                    session.transfer(errorFF, REL_FAILED_RECORDS);
+                } catch (Exception ex) {
+                    getLogger().error("", ex);
+                    session.remove(errorFF);
+                    throw ex;
+                }
+            }
+
+            return false;
+        } else {
+            return true;
         }
     }
 
