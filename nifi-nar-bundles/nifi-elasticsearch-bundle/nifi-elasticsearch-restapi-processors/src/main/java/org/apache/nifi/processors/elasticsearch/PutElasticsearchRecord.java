@@ -36,6 +36,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.elasticsearch.api.BulkOperation;
 import org.apache.nifi.record.path.FieldValue;
 import org.apache.nifi.record.path.RecordPath;
@@ -54,6 +55,7 @@ import org.apache.nifi.util.StringUtils;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -71,6 +73,15 @@ public class PutElasticsearchRecord extends AbstractProcessor implements Elastic
         .displayName("Record Reader")
         .description("The record reader to use for reading incoming records from flowfiles.")
         .identifiesControllerService(RecordReaderFactory.class)
+        .required(true)
+        .build();
+
+    static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
+        .name("put-es-record-batch-size")
+        .displayName("Batch Size")
+        .description("The number of records to send over in a single batch.")
+        .defaultValue("100")
+        .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
         .required(true)
         .build();
 
@@ -114,31 +125,13 @@ public class PutElasticsearchRecord extends AbstractProcessor implements Elastic
         .required(false)
         .build();
 
-    static final List<PropertyDescriptor> DESCRIPTORS;
-    static final Set<Relationship> RELATIONSHIPS;
-
-    static {
-        Set<Relationship> _rels = new HashSet<>();
-        _rels.add(REL_SUCCESS);
-        _rels.add(REL_FAILURE);
-        _rels.add(REL_RETRY);
-        _rels.add(REL_FAILED_RECORDS);
-
-        RELATIONSHIPS = Collections.unmodifiableSet(_rels);
-
-        List<PropertyDescriptor> _temp = new ArrayList<>();
-        _temp.add(INDEX);
-        _temp.add(TYPE);
-        _temp.add(CLIENT_SERVICE);
-        _temp.add(RECORD_READER);
-        _temp.add(ID_RECORD_PATH);
-        _temp.add(INDEX_RECORD_PATH);
-        _temp.add(TYPE_RECORD_PATH);
-        _temp.add(LOG_ERROR_RESPONSES);
-        _temp.add(ERROR_RECORD_WRITER);
-
-        DESCRIPTORS = Collections.unmodifiableList(_temp);
-    }
+    static final List<PropertyDescriptor> DESCRIPTORS = Collections.unmodifiableList(Arrays.asList(
+        INDEX, TYPE, CLIENT_SERVICE, RECORD_READER, BATCH_SIZE, ID_RECORD_PATH, INDEX_RECORD_PATH, TYPE_RECORD_PATH,
+        LOG_ERROR_RESPONSES, ERROR_RECORD_WRITER
+    ));
+    static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
+        REL_SUCCESS, REL_FAILURE, REL_RETRY, REL_FAILED_RECORDS
+    )));
 
     @Override
     public Set<Relationship> getRelationships() {
