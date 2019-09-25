@@ -36,6 +36,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processors.elasticsearch.api.BulkOperation;
 import org.apache.nifi.record.path.FieldValue;
 import org.apache.nifi.record.path.RecordPath;
 import org.apache.nifi.record.path.RecordPathResult;
@@ -47,7 +48,6 @@ import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordFieldType;
-import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.apache.nifi.util.StringUtils;
 
@@ -72,16 +72,6 @@ public class PutElasticsearchRecord extends AbstractProcessor implements Elastic
         .description("The record reader to use for reading incoming records from flowfiles.")
         .identifiesControllerService(RecordReaderFactory.class)
         .required(true)
-        .build();
-
-    static final PropertyDescriptor OPERATION_RECORD_PATH = new PropertyDescriptor.Builder()
-        .name("put-es-record-operation-path")
-        .displayName("Operation Record Path")
-        .description("A record path expression to retrieve index operation setting from each record. If left blank, " +
-                "all operations will be assumed to be index operations.")
-        .addValidator(new RecordPathValidator())
-        .required(false)
-        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .build();
 
     static final PropertyDescriptor ID_RECORD_PATH = new PropertyDescriptor.Builder()
@@ -141,7 +131,6 @@ public class PutElasticsearchRecord extends AbstractProcessor implements Elastic
         _temp.add(TYPE);
         _temp.add(CLIENT_SERVICE);
         _temp.add(RECORD_READER);
-        _temp.add(OPERATION_RECORD_PATH);
         _temp.add(ID_RECORD_PATH);
         _temp.add(INDEX_RECORD_PATH);
         _temp.add(TYPE_RECORD_PATH);
@@ -262,19 +251,16 @@ public class PutElasticsearchRecord extends AbstractProcessor implements Elastic
             final String typePath = context.getProperty(TYPE_RECORD_PATH).isSet()
                 ? context.getProperty(TYPE_RECORD_PATH).evaluateAttributeExpressions(flowFile).getValue()
                 : null;
-            final String operationPath = context.getProperty(OPERATION_RECORD_PATH).isSet()
-                ? context.getProperty(OPERATION_RECORD_PATH).evaluateAttributeExpressions(flowFile).getValue()
-                : null;
 
             RecordPath path = idPath != null ? recordPathCache.getCompiled(idPath) : null;
             RecordPath iPath = indexPath != null ? recordPathCache.getCompiled(indexPath) : null;
             RecordPath tPath = typePath != null ? recordPathCache.getCompiled(typePath) : null;
-            RecordPath oPath = operationPath != null ? recordPathCache.getCompiled(operationPath) : null;
+
             Record record;
             while ((record = reader.nextRecord()) != null) {
                 final String idx = getFromRecordPath(record, iPath, index);
                 final String t   = getFromRecordPath(record, tPath, type);
-                final IndexOperationRequest.Operation o = getOperation(record, oPath);
+                final IndexOperationRequest.Operation o = IndexOperationRequest.Operation.Index;
                 final String id  = path != null ? getFromRecordPath(record, path, null) : null;
 
                 Map<String, Object> contentMap = (Map<String, Object>) DataTypeUtils.convertRecordFieldtoObject(record, RecordFieldType.RECORD.getRecordDataType(record.getSchema()));
@@ -316,43 +302,6 @@ public class PutElasticsearchRecord extends AbstractProcessor implements Elastic
         input.putAll(copy);
     }
 
-    private String getId(Record record, RecordPath path) {
-        RecordPathResult result = path.evaluate(record);
-        Optional<FieldValue> value = result.getSelectedFields().findFirst();
-        if (value.isPresent() && value.get().getValue() != null) {
-            return value.get().getValue().toString();
-        } else {
-            throw new RuntimeException("Missing ID field in one of the records.");
-        }
-    }
-
-    private IndexOperationRequest.Operation getOperation(Record record, RecordPath path) {
-        String val = getFromRecordPath(record, path, IndexOperationRequest.Operation.Index.name()).toLowerCase();
-        IndexOperationRequest.Operation retVal;
-
-        switch (val) {
-            case "create":
-                retVal = IndexOperationRequest.Operation.Create;
-                break;
-            case "delete":
-                retVal = IndexOperationRequest.Operation.Delete;
-                break;
-            case "index":
-                retVal = IndexOperationRequest.Operation.Index;
-                break;
-            case "update":
-                retVal = IndexOperationRequest.Operation.Update;
-                break;
-            case "upsert":
-                retVal = IndexOperationRequest.Operation.Upsert;
-                break;
-            default:
-                throw new ProcessException(String.format("Invalid Elasticsearch operation %s", val));
-        }
-
-        return retVal;
-    }
-
     private String getFromRecordPath(Record record, RecordPath path, final String fallback) {
         if (path == null) {
             return fallback;
@@ -375,30 +324,6 @@ public class PutElasticsearchRecord extends AbstractProcessor implements Elastic
             return retVal;
         } else {
             return fallback;
-        }
-    }
-
-    class BulkOperation {
-        private List<IndexOperationRequest> operationList;
-        private List<Record> originalRecords;
-        private RecordSchema schema;
-
-        BulkOperation(List<IndexOperationRequest> operationList, List<Record> originalRecords, RecordSchema schema) {
-            this.operationList = operationList;
-            this.originalRecords = originalRecords;
-            this.schema = schema;
-        }
-
-        public List<IndexOperationRequest> getOperationList() {
-            return operationList;
-        }
-
-        public List<Record> getOriginalRecords() {
-            return originalRecords;
-        }
-
-        public RecordSchema getSchema() {
-            return schema;
         }
     }
 }

@@ -117,7 +117,6 @@ class PutElasticsearchRecordTest {
                 [ name: "id", type: "string" ],
                 [ name: "index", type: "string" ],
                 [ name: "type", type: "string" ],
-                [ name: "operation", type: ["null", "string"]],
                 [ name: "msg", type: "string"]
             ]
         ]))
@@ -191,26 +190,18 @@ class PutElasticsearchRecordTest {
 
         runner.clearTransferState()
 
-        runner.setProperty(PutElasticsearchRecord.OPERATION_RECORD_PATH, "/operation")
-
         flowFileContents = prettyPrint(toJson([
-            [ id: "rec-1", index: "bulk_a", type: "message", msg: "Hello", operation: "index" ],
-            [ id: "rec-2", index: "bulk_b", type: "message", msg: "Hello", operation: "Index" ],
-            [ id: "rec-3", index: "bulk_a", type: "message", msg: "Hello", operation: "DeLEte" ],
-            [ id: "rec-4", index: "bulk_b", type: "message", msg: "Hello", operation: "updATE" ],
-            [ id: "rec-5", index: "bulk_a", type: "message", msg: "Hello", operation: "upsert" ],
-            [ id: "rec-6", index: "bulk_b", type: "message", msg: "Hello", operation: "uPSERT" ]
+            [ id: "rec-1", index: "bulk_a", type: "message", msg: "Hello" ],
+            [ id: "rec-2", index: "bulk_b", type: "message", msg: "Hello" ],
+            [ id: "rec-3", index: "bulk_a", type: "message", msg: "Hello" ],
+            [ id: "rec-4", index: "bulk_b", type: "message", msg: "Hello" ],
+            [ id: "rec-5", index: "bulk_a", type: "message", msg: "Hello" ],
+            [ id: "rec-6", index: "bulk_b", type: "message", msg: "Hello" ]
         ]))
 
         clientService.evalClosure = { List<IndexOperationRequest> items ->
             int index = items.findAll { it.operation == IndexOperationRequest.Operation.Index }.size()
-            int delete = items.findAll { it.operation == IndexOperationRequest.Operation.Delete }.size()
-            int update = items.findAll { it.operation == IndexOperationRequest.Operation.Update }.size()
-            int upsert = items.findAll { it.operation == IndexOperationRequest.Operation.Upsert }.size()
-            Assert.assertEquals(2, index)
-            Assert.assertEquals(1, delete)
-            Assert.assertEquals(1, update)
-            Assert.assertEquals(2, upsert)
+            Assert.assertEquals(6, index)
         }
 
         runner.enqueue(flowFileContents, [
@@ -242,17 +233,16 @@ class PutElasticsearchRecordTest {
             name: "RecordPathTestType",
             fields: [
                 [ name: "id", type: "string" ],
-                [ name: "operation", type: "string" ],
                 [ name: "field1", type: ["null", "string"]],
                 [ name: "field2", type: "string"]
             ]
         ]))
 
         def values = [
-            [ id: "1", operation: 'index', field1: 'value1', field2: '20' ],
-            [ id: "2", operation: 'create', field1: 'value1', field2: '20' ],
-            [ id: "2", operation: 'create', field1: 'value1', field2: '20' ],
-            [ id: "3", operation: 'index', field1: 'value1', field2: '20abcd' ]
+            [ id: "1", field1: 'value1', field2: '20' ],
+            [ id: "2", field1: 'value1', field2: '20' ],
+            [ id: "2", field1: 'value1', field2: '20' ],
+            [ id: "3", field1: 'value1', field2: '20abcd' ]
         ]
 
         clientService.response = IndexOperationResponse.fromJsonResponse(MockBulkLoadClientService.SAMPLE_ERROR_RESPONSE)
