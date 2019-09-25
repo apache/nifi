@@ -120,6 +120,18 @@ public class PutKudu extends AbstractKuduProcessor {
         .required(true)
         .build();
 
+    protected static final PropertyDescriptor FLOWFILE_BATCH_SIZE = new Builder()
+        .name("FlowFiles per Batch")
+        .description("The maximum number of FlowFiles to process in a single execution, between 1 - 100000. " +
+            "Depending on your memory size, and data size per row set an appropriate batch size " +
+            "for the number of FlowFiles to process per client connection setup." +
+            "Gradually increase this number, only if your FlowFiles typically contain a few records.")
+        .defaultValue("1")
+        .required(true)
+        .addValidator(StandardValidators.createLongValidator(1, 100000, true))
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .build();
+
     protected static final PropertyDescriptor BATCH_SIZE = new Builder()
         .name("Batch Size")
         .displayName("Max Records per Batch")

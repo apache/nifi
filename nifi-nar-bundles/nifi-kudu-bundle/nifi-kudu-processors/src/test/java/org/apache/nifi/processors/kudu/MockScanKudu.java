@@ -28,17 +28,11 @@ import org.apache.kudu.client.PartialRow;
 import org.apache.kudu.client.Insert;
 
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.Map;
 import java.util.List;
 
 
 public class MockScanKudu extends AbstractMockKuduProcessor {
-
-    private LinkedList<Insert> insertQueue;
-    private boolean throwException = false;
-    private int linesBeforeException = -1;
-
     public KuduTable getKuduTable(String tableName, List<ColumnSchema> columns) throws KuduException {
         Schema schema = new Schema(columns);
         CreateTableOptions opts = new CreateTableOptions().setRangePartitionColumns(Collections.singletonList("key"));
@@ -63,9 +57,5 @@ public class MockScanKudu extends AbstractMockKuduProcessor {
         KuduSession kuduSession = this.kuduClient.newSession();
         kuduSession.apply(insert);
         kuduSession.close();
-    }
-
-    public void setLinesBeforeException(int linesBeforeException) {
-        this.linesBeforeException = linesBeforeException;
     }
 }

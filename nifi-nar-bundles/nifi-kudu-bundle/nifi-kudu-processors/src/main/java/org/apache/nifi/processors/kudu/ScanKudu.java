@@ -155,6 +155,7 @@ public class ScanKudu extends AbstractKuduProcessor {
     static final String KUDU_ROWS_COUNT_ATTR = "kudu.rows.count";
 
     protected KuduTable kuduTable;
+    protected List<String> projectedColumnNames;
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) throws LoginException {
@@ -163,16 +164,27 @@ public class ScanKudu extends AbstractKuduProcessor {
 
     @Override
     public void trigger(ProcessContext context, ProcessSession session) throws ProcessException {
-        FlowFile flowFile = session.get();
-        if (flowFile == null) {
-            return;
+        FlowFile fileToProcess = null;
+        if (context.hasIncomingConnection()) {
+            fileToProcess = session.get();
+
+            // If we have no FlowFile, and all incoming connections are self-loops then we can continue on.
+            // However, if we have no FlowFile and we have connections coming from other Processors, then
+            // we know that we should run only if we have a FlowFile.
+            if (fileToProcess == null && context.hasNonLoopConnection()) {
+                return;
+            }
         }
 
-        final List<String> projectedColumnNames = Arrays.asList(context.getProperty(PROJECTED_COLUMNS).evaluateAttributeExpressions(flowFile).getValue().split(","));
-        final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions(flowFile).getValue();
+        projectedColumnNames = Arrays.asList(context.getProperty(PROJECTED_COLUMNS).evaluateAttributeExpressions(fileToProcess).getValue().split(","));
+        String predicate = context.getProperty(PREDICATES).evaluateAttributeExpressions(fileToProcess).getValue();
+        final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions(fileToProcess).getValue();
+        if (fileToProcess == null) {
+            fileToProcess = session.create();
+        }
         if (StringUtils.isBlank(tableName)) {
-            getLogger().error("Table Name is blank or null for {}, transferring to failure", new Object[] {flowFile});
-            session.transfer(flowFile, REL_FAILURE);
+            getLogger().error("Table Name is blank or null for {}, transferring to failure", new Object[] {fileToProcess});
+            session.transfer(fileToProcess, REL_FAILURE);
             return;
         }
 
@@ -180,16 +192,14 @@ public class ScanKudu extends AbstractKuduProcessor {
             this.kuduTable = getKuduClient().openTable(tableName);
         } catch (Exception e) {
             getLogger().error("Unable to open Kudu table {} due to {}", new Object[] {tableName, e});
-            session.transfer(flowFile, REL_FAILURE);
+            session.transfer(fileToProcess, REL_FAILURE);
             return;
         }
 
-        String predicate = context.getProperty(PREDICATES).evaluateAttributeExpressions(flowFile).getValue();
         Integer batchSize = Integer.valueOf(context.getProperty(BATCH_SIZE).getValue());
-
         final AtomicLong rowsPulledHolder = new AtomicLong(0);
         final AtomicLong ffCountHolder = new AtomicLong(0);
-        ScanKuduResultHandler handler = new ScanKuduResultHandler(session, flowFile, rowsPulledHolder, ffCountHolder, tableName, batchSize);
+        ScanKuduResultHandler handler = new ScanKuduResultHandler(session, fileToProcess, rowsPulledHolder, ffCountHolder, tableName, batchSize);
 
         try {
             scan(context,
@@ -204,19 +214,19 @@ public class ScanKudu extends AbstractKuduProcessor {
                 session.remove(handler.getFlowFile());
             }
             getLogger().error("Unable to fetch rows from Kudu table {} due to {}", new Object[] {tableName, e});
-            flowFile = session.putAttribute(flowFile, "scankudu.results.found", Boolean.toString(handler.isHandledAny()));
-            session.transfer(flowFile, REL_FAILURE);
+            fileToProcess = session.putAttribute(fileToProcess, "scankudu.results.found", Boolean.toString(handler.isHandledAny()));
+            session.transfer(fileToProcess, REL_FAILURE);
             return;
         }
 
-        flowFile = session.putAttribute(flowFile, "scankudu.results.found", Boolean.toString(handler.isHandledAny()));
+        fileToProcess = session.putAttribute(fileToProcess, "scankudu.results.found", Boolean.toString(handler.isHandledAny()));
 
         FlowFile openedFF = handler.getFlowFile();
         if (openedFF != null) {
             finalizeFlowFile(session, openedFF, tableName, handler.getRecordsCount(), null);
         }
 
-        session.transfer(flowFile, REL_ORIGINAL);
+        session.transfer(fileToProcess, REL_ORIGINAL);
         session.commit();
 
     }

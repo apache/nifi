@@ -184,21 +184,19 @@ public class TestScanKudu {
         kuduScan.insertTestRecordsToKuduTable(DEFAULT_TABLE_NAME, rows);
 
         runner.setProperty(ScanKudu.TABLE_NAME, DEFAULT_TABLE_NAME);
-        runner.setProperty(ScanKudu.PREDICATES, "key=val3");
+        runner.setProperty(ScanKudu.PREDICATES, "key1=val1");
         runner.setProperty(ScanKudu.PROJECTED_COLUMNS, "key");
 
         runner.setValidateExpressionUsage(false);
         runner.setIncomingConnection(false);
 
-        runner.enqueue("{\"user_id\":\"user1\",\"first_name\":\"Joe\",\"last_name\":\"Smith\"}");
         // Test JSON output
         runner.run(1, false, true);
-        runner.assertAllFlowFilesTransferred(ScanKudu.REL_ORIGINAL, 1);
-        List<MockFlowFile> files = runner.getFlowFilesForRelationship(ScanKudu.REL_ORIGINAL);
+        runner.assertTransferCount(ScanKudu.REL_ORIGINAL, 1);
+        List<MockFlowFile> files = runner.getFlowFilesForRelationship(ScanKudu.REL_SUCCESS);
         assertNotNull(files);
         assertEquals("One file should be transferred to success", 1, files.size());
-        assertEquals("{\"user_id\":\"user1\",\"first_name\":\"Joe\",\"last_name\":\"Smith\"}",
-                new String(files.get(0).toByteArray()));
+        assertEquals("[{\"rows\":[{\"key\":\"val1\"}]}]", new String(files.get(0).toByteArray()));
     }
 
     @Test
@@ -216,8 +214,6 @@ public class TestScanKudu {
 
         runner.setValidateExpressionUsage(false);
         runner.setIncomingConnection(false);
-
-        runner.enqueue("trigger flow file");
 
         runner.run(1, false);
 
@@ -350,9 +346,7 @@ public class TestScanKudu {
     }
 
     @Test
-    public void testKuduScanWhenKuduScanThrowsExceptionAfterLineN() throws KuduException {
-        kuduScan.setLinesBeforeException(1);
-
+    public void testKuduScanWhenKuduScanThrowsExceptionWithWrongColumn() throws KuduException {
         final Map<String, String> rows = new HashMap<>();
         rows.put("key", "val1");
         rows.put("key1", "val2");
@@ -366,8 +360,6 @@ public class TestScanKudu {
 
         runner.enqueue("trigger flow file");
         runner.run(1, false);
-
-        kuduScan.setLinesBeforeException(-1);
 
         runner.assertTransferCount(ScanKudu.REL_FAILURE, 1);
         runner.assertTransferCount(ScanKudu.REL_SUCCESS, 0);
