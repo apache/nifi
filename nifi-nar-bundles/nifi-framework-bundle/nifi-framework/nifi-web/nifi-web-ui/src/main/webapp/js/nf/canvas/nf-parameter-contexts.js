@@ -2544,6 +2544,45 @@
         },
 
         /**
+         * Get the parameter context for a process group. Will use the active process group id if null.
+         * @param processGroupId       Optional - id if the process group to get the parameter context for.
+         * @return Promise             A Promise that resolves with the parameter context
+         */
+        getParameterContext: function (processGroupId) {
+            return $.Deferred(function (deferred) {
+                var partialParameterContext;
+
+                // attempt to identify the parameter context id, conditional based on whether
+                // the user is configuring the current process group
+                if (_.isNil(processGroupId) || processGroupId === nfCanvasUtils.getGroupId()) {
+                    partialParameterContext = nfCanvasUtils.getParameterContext();
+                } else {
+                    var parentProcessGroup = nfCanvasUtils.getComponentByType('ProcessGroup').get(processGroupId);
+                    partialParameterContext = parentProcessGroup.parameterContext;
+                }
+                if (_.isNil(partialParameterContext)) {
+                    deferred.reject('No parameter context');
+                    return;
+                } else if (!_.get(partialParameterContext, 'permissions.canRead', false)) {
+                    // the partial context already has the permissions. no sense in asking for the whole thing
+                    // if the user can not read it
+                    deferred.reject('Unauthorized to read parameter context');
+                    return;
+                }
+
+                $.ajax({
+                    type: 'GET',
+                    url: config.urls.parameterContexts + '/' + encodeURIComponent(partialParameterContext.id),
+                    dataType: 'json'
+                }).done(function(response) {
+                    deferred.resolve(response);
+                }).fail(function (errorResponse) {
+                    deferred.reject(errorResponse);
+                });
+            }).promise();
+        },
+
+        /**
          * Converts a property in to a parameter and adds the parameter to the current parameter context.
          * @param property              property to convert
          * @param propertyDescriptor    property descriptor for the property bering converted

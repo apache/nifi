@@ -99,6 +99,7 @@
                   _) {
 
     var groupId = null;
+    var currentParameterContext = null;
     var COMBO_MIN_WIDTH = 212;
     var EDITOR_MIN_WIDTH = 212;
     var EDITOR_MIN_HEIGHT = 100;
@@ -130,6 +131,33 @@
     var containsParameterReference = function (value) {
         var paramRefsRegex = /#{[a-zA-Z0-9-_. ]+}/;
         return paramRefsRegex.test(value);
+    };
+
+    var getExistingParametersReferenced = function (parameterReference, parameterContext, sensitive) {
+        const parameters = _.get(parameterContext, 'component.parameters', []);
+        const existingParametersReferenced = [];
+        if (!_.isNil(parameterReference) && !_.isEmpty(parameters)) {
+            const paramRefsRegex = /#{([a-zA-Z0-9-_. ]+)}/gm;
+            let possibleMatch;
+            while ((possibleMatch = paramRefsRegex.exec(parameterReference)) !== null) {
+                // This is necessary to avoid infinite loops with zero-width matches
+                if (possibleMatch.index === paramRefsRegex.lastIndex) {
+                    paramRefsRegex.lastIndex++;
+                }
+
+                if (!_.isEmpty(possibleMatch) && possibleMatch.length === 2) {
+                    const parameterName = possibleMatch[1];
+                    const found = parameters.find(param => {
+                        // only parameters with the matching name and sensitive values are considered real matches
+                        return _.get(param, 'parameter.name') === parameterName && _.get(param, 'parameter.sensitive', false) === sensitive;
+                    });
+                    if (!_.isNil(found)) {
+                        existingParametersReferenced.push(found);
+                    }
+                }
+            }
+        }
+        return existingParametersReferenced;
     };
 
     var getSupportTip = function (isEl, isSupported) {
@@ -1372,14 +1400,13 @@
             var canConvertPropertyToParam = false;
             var canReadParamContext = false;
 
-            if (_.isFunction(options.getParameterContext)) {
-                var paramContext = options.getParameterContext(groupId);
-                var canWriteParamContext = _.get(paramContext, 'permissions.canWrite', false);
-                canReadParamContext = _.get(paramContext, 'permissions.canRead', false);
+            if (!_.isNil(currentParameterContext) && options.supportsParameters) {
+                const canWriteParamContext = _.get(currentParameterContext, 'permissions.canWrite', false);
+                canReadParamContext = _.get(currentParameterContext, 'permissions.canRead', false);
                 canConvertPropertyToParam = canWriteParamContext && canReadParamContext;
             }
 
-            if (referencesParam && canReadParamContext) {
+            if (referencesParam && canReadParamContext && !_.isEmpty(getExistingParametersReferenced(dataContext.value, currentParameterContext, propertyDescriptor.sensitive))) {
                 markup += '<div title="Go to parameter" class="goto-to-parameter pointer fa fa-long-arrow-right"></div>';
             }
 
@@ -1585,12 +1612,11 @@
                         }
                     }
                 } else if (target.hasClass('convert-to-parameter')) {
-                    var parameterContext;
-                    var canConvertPropertyToParam = false;
-                    if (_.isFunction(options.getParameterContext)) {
-                        parameterContext = options.getParameterContext(groupId);
-                        var canWriteParamContext = _.get(parameterContext, 'permissions.canWrite', false);
-                        var canReadParamContext = _.get(parameterContext, 'permissions.canRead', false);
+                    let canConvertPropertyToParam = false;
+
+                    if (!_.isNil(currentParameterContext) && options.supportsParameters) {
+                        const canWriteParamContext = _.get(currentParameterContext, 'permissions.canWrite', false);
+                        const canReadParamContext = _.get(currentParameterContext, 'permissions.canRead', false);
                         canConvertPropertyToParam = canWriteParamContext && canReadParamContext;
                     }
 
@@ -1598,29 +1624,37 @@
                         var descriptors = table.data('descriptors');
                         var propertyDescriptor = descriptors[property.property];
 
-                        nfParameterContexts.convertPropertyToParameter(property, propertyDescriptor, parameterContext.id)
+                        nfParameterContexts.convertPropertyToParameter(property, propertyDescriptor, currentParameterContext.id)
                             .done(function (parameter) {
                                 var updatedItem = _.extend({}, property, {
                                     previousValue: property.value,
                                     value: '#{' + parameter.name + '}'
                                 });
+
+                                if (!_.isNil(currentParameterContext)) {
+                                    // add the new parameter to the current list of parameters to support 'goto' parameter
+                                    currentParameterContext.component.parameters.push({
+                                        canWrite: true,
+                                        parameter: parameter
+                                    });
+                                }
                                 // set the property value to the reference the parameter that was created
                                 propertyData.updateItem(property.id, updatedItem);
                             });
                     }
                 } else if (target.hasClass('goto-to-parameter')) {
-                    var parameterContext;
-                    if (_.isFunction(options.getParameterContext)) {
-                        parameterContext = options.getParameterContext(groupId);
-                        var canReadParamContext = _.get(parameterContext, 'permissions.canRead', false);
+                    if (!_.isNil(currentParameterContext) && options.supportsParameters) {
+                        const descriptors = table.data('descriptors');
+                        const propertyDescriptor = descriptors[property.property];
+                        const canReadParamContext = _.get(currentParameterContext, 'permissions.canRead', false);
 
                         if (canReadParamContext && !_.isNil(property.value)) {
-                            // get the reference parameter
-                            var paramRefsRegex = /#{([a-zA-Z0-9-_. ]+)}/;
-                            var result = property.value.match(paramRefsRegex);
-                            if (!_.isEmpty(result) && result.length === 2) {
-                                var parameterName = result[1];
-                                nfParameterContexts.showParameterContext(parameterContext.id, null, parameterName);
+                            // get the reference parameters
+                            const referencedParameters = getExistingParametersReferenced(property.value, currentParameterContext, propertyDescriptor.sensitive);
+                            if (!_.isEmpty(referencedParameters)) {
+                                // show the parameter context with the first parameter referenced selected
+                                const paramNameToSelect = _.get(referencedParameters[0], 'parameter.name');
+                                nfParameterContexts.showParameterContext(currentParameterContext.id, null, paramNameToSelect);
                             }
                         }
                     }
@@ -2023,7 +2057,25 @@
         loadProperties: function (properties, descriptors, history) {
             return this.each(function () {
                 var table = $(this).find('div.property-table');
-                loadProperties(table, properties, descriptors, history);
+                var propertyTableContainer = $(this);
+                var options = propertyTableContainer.data('options');
+
+                if (options.supportsParameters) {
+                    nfParameterContexts.getParameterContext(groupId)
+                        .then(function (response) {
+                            // keep a local copy of the parameter context
+                            currentParameterContext = response;
+                            loadProperties(table, properties, descriptors, history);
+                        })
+                        .fail(function () {
+                            // no parameter context, just load up the properties
+                            currentParameterContext = null;
+                            loadProperties(table, properties, descriptors, history);
+                        });
+                } else {
+                    currentParameterContext = null;
+                    loadProperties(table, properties, descriptors, history);
+                }
             });
         },
 
@@ -2082,6 +2134,7 @@
                         $(options.dialogContainer).children('div.new-inline-controller-service-dialog').remove();
                     }
                 }
+                currentParameterContext = null;
             });
         },
 

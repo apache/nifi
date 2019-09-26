@@ -1895,9 +1895,7 @@
                     goToServiceDeferred: function () {
                         return goToServiceFromProperty(serviceTable);
                     },
-                    getParameterContext: function (groupId) {
-                        return getParameterContext(groupId, controllerServiceEntity);
-                    }
+                    supportsParameters: true
                 });
 
                 // update the mode
@@ -2082,9 +2080,7 @@
                 $('#controller-service-properties').propertytable('destroy').propertytable({
                     supportsGoTo: true,
                     readOnly: true,
-                    getParameterContext: function (groupId) {
-                        return getParameterContext(groupId, controllerServiceEntity);
-                    }
+                    supportsParameters: true
                 });
 
                 // update the mode
