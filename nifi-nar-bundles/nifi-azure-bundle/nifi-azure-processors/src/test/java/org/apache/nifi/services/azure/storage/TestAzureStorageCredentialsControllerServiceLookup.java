@@ -19,7 +19,7 @@ package org.apache.nifi.services.azure.storage;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.util.MockProcessor;
+import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
@@ -46,7 +46,7 @@ public class TestAzureStorageCredentialsControllerServiceLookup {
 
         lookupService = new AzureStorageCredentialsControllerServiceLookup();
 
-        runner = TestRunners.newTestRunner(MockProcessor.class);
+        runner = TestRunners.newTestRunner(NoOpProcessor.class);
 
         final String serviceAIdentifier = "service-a";
         runner.addControllerService(serviceAIdentifier, serviceA);
@@ -99,7 +99,7 @@ public class TestAzureStorageCredentialsControllerServiceLookup {
     @Test
     public void testCustomValidateAtLeaseOneServiceDefined() throws InitializationException {
         // enable lookup service with no services registered, verify not valid
-        runner = TestRunners.newTestRunner(MockProcessor.class);
+        runner = TestRunners.newTestRunner(NoOpProcessor.class);
         runner.addControllerService("lookup-service", lookupService);
         runner.assertNotValid(lookupService);
 
@@ -114,7 +114,7 @@ public class TestAzureStorageCredentialsControllerServiceLookup {
 
     @Test
     public void testCustomValidateSelfReferenceNotAllowed() throws InitializationException {
-        runner = TestRunners.newTestRunner(MockProcessor.class);
+        runner = TestRunners.newTestRunner(NoOpProcessor.class);
         runner.addControllerService("lookup-service", lookupService);
         runner.setProperty(lookupService, "lookup-service", "lookup-service");
         runner.assertNotValid(lookupService);

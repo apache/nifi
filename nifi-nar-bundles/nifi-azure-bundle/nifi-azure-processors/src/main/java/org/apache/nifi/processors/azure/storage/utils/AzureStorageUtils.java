@@ -64,14 +64,21 @@ public final class AzureStorageUtils {
             .sensitive(true)
             .build();
 
+    public static final String ACCOUNT_NAME_BASE_DESCRIPTION =
+            "The storage account name.  There are certain risks in allowing the account name to be stored as a flowfile " +
+            "attribute. While it does provide for a more flexible flow by allowing the account name to " +
+            "be fetched dynamically from a flowfile attribute, care must be taken to restrict access to " +
+            "the event provenance data (e.g. by strictly controlling the policies governing provenance for this Processor). " +
+            "In addition, the provenance repositories may be put on encrypted disk partitions.";
+
     public static final PropertyDescriptor ACCOUNT_NAME = new PropertyDescriptor.Builder()
             .name("storage-account-name")
             .displayName("Storage Account Name")
-            .description("The storage account name.  There are certain risks in allowing the account name to be stored as a flowfile " +
-                    "attribute. While it does provide for a more flexible flow by allowing the account name to " +
-                    "be fetched dynamically from a flowfile attribute, care must be taken to restrict access to " +
-                    "the event provenance data (e.g. by strictly controlling the policies governing provenance for this Processor). " +
-                    "In addition, the provenance repositories may be put on encrypted disk partitions.")
+            .description(ACCOUNT_NAME_BASE_DESCRIPTION +
+                    " Instead of defining the Storage Account Name, Storage Account Key and SAS Token properties directly on the processor, " +
+                    "the preferred way is to configure them through a controller service specified in the Storage Credentials property. " +
+                    "The controller service can provide a common/shared configuration for multiple/all AWS processors. Furthermore, the credentials " +
+                    "can also be looked up dynamically with the 'Lookup' version of the service.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(false)
@@ -105,23 +112,13 @@ public final class AzureStorageUtils {
     public static final PropertyDescriptor STORAGE_CREDENTIALS_SERVICE = new PropertyDescriptor.Builder()
             .name("storage-credentials-service")
             .displayName("Storage Credentials")
-            .description("The Controller Service used to obtain Azure Storage Credentials. The credentials can be configured through a common/shared controller service " +
-                    "instead of the processor level properties.")
+            .description("The Controller Service used to obtain Azure Storage Credentials. Instead of the processor level properties, " +
+                    "the credentials can be configured here through a common/shared controller service, which is the preferred way. " +
+                    "The 'Lookup' version of the service can also be used to select the credentials dynamically at runtime " +
+                    "based on a FlowFile attribute (if the processor has FlowFile input).")
             .identifiesControllerService(AzureStorageCredentialsService.class)
             .required(false)
             .build();
-
-    /**
-     * @deprecated Not used, will be removed.
-     */
-    @Deprecated
-    public static final String FORMAT_BLOB_CONNECTION_STRING = "DefaultEndpointsProtocol=https;AccountName=%s;AccountKey=%s";
-
-    /**
-     * @deprecated Not used, will be removed.
-     */
-    @Deprecated
-    public static final String FORMAT_BASE_URI = "https://%s.blob.core.windows.net";
 
     private AzureStorageUtils() {
         // do not instantiate
