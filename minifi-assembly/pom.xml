@@ -77,12 +77,11 @@ limitations under the License.
                                     </then>
                                     <else>
                                         <echo message="Downloading Commons Daemon Windows binaries." />
-                                        <property name="commons.daemon.file" value="commons-daemon-1.2.0-bin-windows.zip" />
-                                        <get src="https://apache.claz.org/commons/daemon/binaries/windows/${commons.daemon.file}" dest="${java.io.tmpdir}/${commons.daemon.file}" skipexisting="true" />
-                                        <local name="checksum.matches" />
-                                        <property name="sha512sum" value="8b6e0bb4172861338e0cb3238f6da715c3cef04a88e8bfab0cbb487ef638aa69fd34de9407b0b2ed54451fbbcbff8a999324289052a581a5d07d6f6ff84a83b6" />
-                                        <checksum file="${java.io.tmpdir}/${commons.daemon.file}" algorithm="SHA-512" property="${sha512sum}" verifyProperty="checksum.matches" />
-                                        <echo message="Checksum match = ${checksum.matches}" />
+                                        <property name="commons.daemon.file" value="commons-daemon-${commons.daemon.version}-bin-windows.zip"/>
+                                        <get src="https://apache.claz.org/commons/daemon/binaries/windows/${commons.daemon.file}" dest="${java.io.tmpdir}/${commons.daemon.file}" skipexisting="true"/>
+                                        <local name="checksum.matches"/>
+                                        <checksum file="${java.io.tmpdir}/${commons.daemon.file}" algorithm="SHA-512" property="${commons.daemon.sha512sum}" verifyProperty="checksum.matches"/>
+                                        <echo message="Checksum match = ${checksum.matches}"/>
                                         <condition property="checksum.matches.fail">
                                             <equals arg1="${checksum.matches}" arg2="false" />
                                         </condition>
@@ -336,6 +335,10 @@ limitations under the License.
         <minifi.jvm.heap.mb>256</minifi.jvm.heap.mb>
         <minifi.jvm.permgen.mb>128</minifi.jvm.permgen.mb>
         <minifi.run.as />
+
+        <!--Commons Daemon Properties-->
+        <commons.daemon.version>1.2.1</commons.daemon.version>
+        <commons.daemon.sha512sum>62777d2424361162736b4a9b39b9fb4155760d4d7c4a3489fe1868e0912158ae126ef5f42abbd1bcca1dbf5aa6204d8d0029be7c49f222293d6e1421a5173dd7</commons.daemon.sha512sum>
     </properties>
 
 </project>
