@@ -99,7 +99,12 @@ public class PutAzureEventHubTest {
         }
 
         @Override
-        protected EventHubClient createEventHubClient(final String namespace, final String eventHubName, final String policyName, final String policyKey, final ScheduledExecutorService executor ) throws ProcessException {
+        protected EventHubClient createEventHubClient(
+            final String namespace,
+            final String eventHubName,
+            final String policyName,
+            final String policyKey,
+            final ScheduledExecutorService executor) throws ProcessException {
             return null;
         }
 
@@ -110,7 +115,12 @@ public class PutAzureEventHubTest {
     }
     private static class OnSendThrowingMockPutAzureEventHub extends PutAzureEventHub{
         @Override
-        protected EventHubClient createEventHubClient(final String namespace, final String eventHubName, final String policyName, final String policyKey, final ScheduledExecutorService executor) throws ProcessException {
+        protected EventHubClient createEventHubClient(
+            final String namespace,
+            final String eventHubName,
+            final String policyName,
+            final String policyKey,
+            final ScheduledExecutorService executor) throws ProcessException {
             return null;
         }
     }

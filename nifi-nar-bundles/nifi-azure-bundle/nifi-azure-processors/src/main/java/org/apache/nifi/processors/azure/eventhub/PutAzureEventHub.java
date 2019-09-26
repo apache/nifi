@@ -16,7 +16,8 @@
  */
 package org.apache.nifi.processors.azure.eventhub;
 
-import com.microsoft.azure.eventhubs.*;
+import com.microsoft.azure.eventhubs.EventData;
+import com.microsoft.azure.eventhubs.EventHubClient;
 import com.microsoft.azure.eventhubs.ConnectionStringBuilder;
 import com.microsoft.azure.eventhubs.IllegalConnectionStringFormatException;
 import com.microsoft.azure.eventhubs.EventHubException;
@@ -47,7 +48,11 @@ import java.util.Set;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Collections;
-import java.util.concurrent.*;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 @SupportsBatching
 @Tags({"microsoft", "azure", "cloud", "eventhub", "events", "streams", "streaming"})
@@ -180,7 +185,13 @@ public class PutAzureEventHub extends AbstractProcessor {
 
     }
 
-    protected EventHubClient createEventHubClient(final String namespace, final String eventHubName, final String policyName, final String policyKey, final ScheduledExecutorService executor) throws ProcessException{
+    protected EventHubClient createEventHubClient(
+        final String namespace,
+        final String eventHubName,
+        final String policyName,
+        final String policyKey,
+        final ScheduledExecutorService executor)
+        throws ProcessException{
 
         try {
             return EventHubClient.createSync(getConnectionString(namespace, eventHubName, policyName, policyKey), executor);
