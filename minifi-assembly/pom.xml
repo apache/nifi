@@ -25,7 +25,21 @@ limitations under the License.
     <artifactId>minifi-assembly</artifactId>
     <packaging>pom</packaging>
     <description>This is the assembly of Apache NiFi - MiNiFi</description>
+
     <build>
+
+        <pluginManagement>
+            <plugins>
+                <!--
+                    Override the version of the plugin provided by the Apache parent pom as prior versions lead to an NPE
+                -->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-assembly-plugin</artifactId>
+                    <version>3.1.1</version>
+                </plugin>
+            </plugins>
+        </pluginManagement>
         <plugins>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
@@ -50,81 +64,9 @@ limitations under the License.
                     <scmBranchPropertyName>buildBranch</scmBranchPropertyName>
                 </configuration>
             </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-antrun-plugin</artifactId>
-                <dependencies>
-                    <dependency>
-                        <groupId>ant-contrib</groupId>
-                        <artifactId>ant-contrib</artifactId>
-                        <version>20020829</version>
-                    </dependency>
-                </dependencies>
-                <executions>
-                    <execution>
-                        <id>download-commons-daemon</id>
-                        <phase>prepare-package</phase>
-                        <goals>
-                            <goal>run</goal>
-                        </goals>
-                        <configuration>
-                            <target>
-                                <taskdef resource="net/sf/antcontrib/antcontrib.properties" />
-                                <if>
-                                    <available file="${basedir}/target/minifiw.exe" />
-                                    <then>
-                                        <echo message="Skipping download of commons-daemon." />
-                                    </then>
-                                    <else>
-                                        <echo message="Downloading Commons Daemon Windows binaries." />
-                                        <property name="commons.daemon.file" value="commons-daemon-${commons.daemon.version}-bin-windows.zip"/>
-                                        <get src="https://apache.claz.org/commons/daemon/binaries/windows/${commons.daemon.file}" dest="${java.io.tmpdir}/${commons.daemon.file}" skipexisting="true"/>
-                                        <local name="checksum.matches"/>
-                                        <checksum file="${java.io.tmpdir}/${commons.daemon.file}" algorithm="SHA-512" property="${commons.daemon.sha512sum}" verifyProperty="checksum.matches"/>
-                                        <echo message="Checksum match = ${checksum.matches}"/>
-                                        <condition property="checksum.matches.fail">
-                                            <equals arg1="${checksum.matches}" arg2="false" />
-                                        </condition>
-                                        <fail if="checksum.matches.fail">Checksum error</fail>
-                                        <unzip src="${java.io.tmpdir}/${commons.daemon.file}" dest="${java.io.tmpdir}" />
-                                        <copy file="${java.io.tmpdir}/prunmgr.exe" tofile="${basedir}/target/minifiw.exe" />
-                                        <copy file="${java.io.tmpdir}/amd64/prunsrv.exe" tofile="${basedir}/target/minifi.exe" />
-                                    </else>
-                                </if>
-                            </target>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <artifactId>maven-assembly-plugin</artifactId>
-                <configuration>
-                    <finalName>minifi-${project.version}</finalName>
-                    <attach>false</attach>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>make shared resource</id>
-                        <goals>
-                            <goal>single</goal>
-                        </goals>
-                        <phase>package</phase>
-                        <configuration>
-                            <archiverConfig>
-                                <defaultDirectoryMode>0775</defaultDirectoryMode>
-                                <directoryMode>0775</directoryMode>
-                                <fileMode>0664</fileMode>
-                            </archiverConfig>
-                            <descriptors>
-                                <descriptor>src/main/assembly/dependencies.xml</descriptor>
-                            </descriptors>
-                            <tarLongFileMode>posix</tarLongFileMode>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
         </plugins>
     </build>
+
     <dependencies>
         <!-- Logging -->
         <dependency>
@@ -340,5 +282,131 @@ limitations under the License.
         <commons.daemon.version>1.2.1</commons.daemon.version>
         <commons.daemon.sha512sum>62777d2424361162736b4a9b39b9fb4155760d4d7c4a3489fe1868e0912158ae126ef5f42abbd1bcca1dbf5aa6204d8d0029be7c49f222293d6e1421a5173dd7</commons.daemon.sha512sum>
     </properties>
+
+    <profiles>
+        <profile>
+            <id>default-assembly</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <artifactId>maven-assembly-plugin</artifactId>
+                        <configuration>
+                            <finalName>minifi-${project.version}</finalName>
+                            <attach>false</attach>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>make shared resource</id>
+                                <goals>
+                                    <goal>single</goal>
+                                </goals>
+                                <phase>package</phase>
+                                <configuration>
+                                    <archiverConfig>
+                                        <defaultDirectoryMode>0775</defaultDirectoryMode>
+                                        <directoryMode>0775</directoryMode>
+                                        <fileMode>0664</fileMode>
+                                    </archiverConfig>
+                                    <descriptors>
+                                        <descriptor>src/main/assembly/dependencies.xml</descriptor>
+                                    </descriptors>
+                                    <tarLongFileMode>posix</tarLongFileMode>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>windows-service-assembly</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+                <property>
+                    <name>!default-assembly</name>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-antrun-plugin</artifactId>
+                        <dependencies>
+                            <dependency>
+                                <groupId>ant-contrib</groupId>
+                                <artifactId>ant-contrib</artifactId>
+                                <version>20020829</version>
+                            </dependency>
+                        </dependencies>
+                        <executions>
+                            <execution>
+                                <id>download-commons-daemon</id>
+                                <phase>prepare-package</phase>
+                                <goals>
+                                    <goal>run</goal>
+                                </goals>
+                                <configuration>
+                                    <target>
+                                        <taskdef resource="net/sf/antcontrib/antcontrib.properties" />
+                                        <if>
+                                            <available file="${basedir}/target/minifiw.exe" />
+                                            <then>
+                                                <echo message="Skipping download of commons-daemon." />
+                                            </then>
+                                            <else>
+                                                <echo message="Downloading Commons Daemon Windows binaries." />
+                                                <property name="commons.daemon.file" value="commons-daemon-${commons.daemon.version}-bin-windows.zip"/>
+                                                <get src="https://apache.claz.org/commons/daemon/binaries/windows/${commons.daemon.file}" dest="${java.io.tmpdir}/${commons.daemon.file}" skipexisting="true"/>
+                                                <local name="checksum.matches"/>
+                                                <checksum file="${java.io.tmpdir}/${commons.daemon.file}" algorithm="SHA-512" property="${commons.daemon.sha512sum}" verifyProperty="checksum.matches"/>
+                                                <echo message="Checksum match = ${checksum.matches}"/>
+                                                <condition property="checksum.matches.fail">
+                                                    <equals arg1="${checksum.matches}" arg2="false" />
+                                                </condition>
+                                                <fail if="checksum.matches.fail">Checksum error</fail>
+                                                <unzip src="${java.io.tmpdir}/${commons.daemon.file}" dest="${java.io.tmpdir}" />
+                                                <copy file="${java.io.tmpdir}/prunmgr.exe" tofile="${basedir}/target/minifiw.exe" />
+                                                <copy file="${java.io.tmpdir}/amd64/prunsrv.exe" tofile="${basedir}/target/minifi.exe" />
+                                            </else>
+                                        </if>
+                                    </target>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <artifactId>maven-assembly-plugin</artifactId>
+                        <configuration>
+                            <finalName>minifi-${project.version}</finalName>
+                            <attach>false</attach>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>make shared resource</id>
+                                <goals>
+                                    <goal>single</goal>
+                                </goals>
+                                <phase>package</phase>
+                                <configuration>
+                                    <archiverConfig>
+                                        <defaultDirectoryMode>0775</defaultDirectoryMode>
+                                        <directoryMode>0775</directoryMode>
+                                        <fileMode>0664</fileMode>
+                                    </archiverConfig>
+                                    <descriptors>
+                                        <descriptor>src/main/assembly/dependencies-windows-service.xml</descriptor>
+                                    </descriptors>
+                                    <tarLongFileMode>posix</tarLongFileMode>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 
 </project>
