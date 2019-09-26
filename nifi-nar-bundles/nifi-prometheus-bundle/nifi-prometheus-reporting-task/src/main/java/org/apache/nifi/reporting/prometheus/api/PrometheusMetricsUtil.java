@@ -17,8 +17,11 @@
 
 package org.apache.nifi.reporting.prometheus.api;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.util.Map;
 
+import io.prometheus.client.SimpleCollector;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.controller.status.ConnectionStatus;
 import org.apache.nifi.controller.status.PortStatus;
@@ -253,6 +256,18 @@ public class PrometheusMetricsUtil {
 
         final String componentId = status.getId();
         final String componentName = status.getName();
+
+        // Clear all collectors to deal with removed/renamed components
+        try {
+            for (final Field field : PrometheusMetricsUtil.class.getDeclaredFields()) {
+                if (Modifier.isStatic(field.getModifiers()) && (field.get(null) instanceof SimpleCollector)) {
+                    SimpleCollector sc = (SimpleCollector)(field.get(null));
+                    sc.clear();
+                }
+            }
+        } catch (IllegalAccessException e) {
+            // ignore
+        }
 
         AMOUNT_FLOWFILES_SENT.labels(instanceId, componentType, componentName, componentId, parentPGId).set(status.getFlowFilesSent());
         AMOUNT_FLOWFILES_TRANSFERRED.labels(instanceId, componentType, componentName, componentId, parentPGId).set(status.getFlowFilesTransferred());
