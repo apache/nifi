@@ -21,6 +21,7 @@ import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.FormatOptions;
 import com.google.cloud.bigquery.Job;
+import com.google.cloud.bigquery.JobId;
 import com.google.cloud.bigquery.JobInfo;
 import com.google.cloud.bigquery.JobStatistics;
 import com.google.cloud.bigquery.JobStatus;
@@ -57,6 +58,9 @@ public class PutBigQueryBatchTest extends AbstractBQTest {
 
     @Mock
     Job job;
+
+    @Mock
+    JobId jobId;
 
     @Mock
     JobStatus jobStatus;
@@ -113,6 +117,8 @@ public class PutBigQueryBatchTest extends AbstractBQTest {
         when(stats.getCreationTime()).thenReturn(0L);
         when(stats.getStartTime()).thenReturn(1L);
         when(stats.getEndTime()).thenReturn(2L);
+        when(job.getJobId()).thenReturn(jobId);
+        when(jobId.getJob()).thenReturn("job-id");
 
         final TestRunner runner = buildNewRunner(getProcessor());
         addRequiredPropertiesToRunner(runner);

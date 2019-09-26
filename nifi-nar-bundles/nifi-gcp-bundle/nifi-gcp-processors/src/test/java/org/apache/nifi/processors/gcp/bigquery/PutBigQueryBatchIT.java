@@ -80,6 +80,7 @@ public class PutBigQueryBatchIT extends AbstractBigQueryIT {
             validateNoServiceExceptionAttribute(flowFile);
         }
         runner.assertAllFlowFilesTransferred(AbstractBigQueryProcessor.REL_SUCCESS, 1);
+        runner.assertAllFlowFilesContainAttribute(BigQueryAttributes.JOB_ID_ATTR);
     }
 
     @Test

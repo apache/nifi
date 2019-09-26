@@ -123,6 +123,9 @@ public class BigQueryAttributes {
     public static final String JOB_LINK_ATTR = "bq.job.link";
     public static final String JOB_LINK_DESC = "API Link to load job";
 
+    public static final String JOB_ID_ATTR = "bq.job.id";
+    public static final String JOB_ID_DESC = "ID of the BigQuery job";
+
     public static final String JOB_NB_RECORDS_ATTR = "bq.records.count";
     public static final String JOB_NB_RECORDS_DESC = "Number of records successfully inserted";
 
