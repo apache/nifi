@@ -484,8 +484,8 @@ public interface SiteToSiteClient extends Closeable {
         /**
          * Specifies a file that the client can write to in order to persist the
          * list of nodes in the remote cluster and recover the list of nodes
-         * upon restart. This allows the client to function if the remote
-         * Cluster Manager is unavailable, even after a restart of the client
+         * upon restart. This allows the client to function if the remote nodes
+         * specified by the urls are unavailable, even after a restart of the client
          * software. If not specified, the list of nodes will not be persisted
          * and a failure of the Cluster Manager will result in not being able to
          * communicate with the remote instance if a new client is created.
@@ -498,6 +498,27 @@ public interface SiteToSiteClient extends Closeable {
             return this;
         }
 
+        /**
+         * <p>Specifies StateManager that the client can persist the
+         * list of nodes in the remote cluster and recover the list of nodes
+         * upon restart. This allows the client to function if the remote nodes
+         * specified by the urls are unavailable, even after a restart of the client
+         * software. If not specified, the list of nodes will not be persisted
+         * and a failure of the Cluster Manager will result in not being able to
+         * communicate with the remote instance if a new client is created.</p>
+         * <p>Using a StateManager is preferable over using a File to persist the list of nodes
+         * if the SiteToSiteClient is used by a NiFi component having access to a NiFi context.
+         * So that the list of nodes can be persisted in the same manner with other stateful information.</p>
+         * <p>Since StateManager is not serializable, the specified StateManager
+         * will not be serialized, and a de-serialized SiteToSiteClientConfig
+         * instance will not have StateManager even if the original config has one.
+         * Use {@link #peerPersistenceFile(File)} instead
+         * if the same SiteToSiteClientConfig needs to be distributed among multiple
+         * clients via serialization, and also persistent connectivity is required
+         * in case of having no available remote node specified by the urls when a client restarts.</p>
+         * @param stateManager state manager
+         * @return the builder
+         */
         public Builder stateManager(final StateManager stateManager) {
             this.stateManager = stateManager;
             return this;
@@ -755,7 +776,7 @@ public interface SiteToSiteClient extends Closeable {
         private final KeystoreType truststoreType;
         private final EventReporter eventReporter;
         private final File peerPersistenceFile;
-        private final StateManager stateManager;
+        private final transient StateManager stateManager;
         private final boolean useCompression;
         private final SiteToSiteTransportProtocol transportProtocol;
         private final String portName;
