@@ -17,7 +17,6 @@
 
 package org.apache.nifi.processors.kudu;
 
-import java.util.Random;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kudu.ColumnSchema;
