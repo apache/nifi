@@ -122,10 +122,16 @@ public class TestScanKudu {
     }
 
     @Test
-    public void testInvalidKuduTableName() {
+    public void testInvalidKuduTableName() throws KuduException {
+        final Map<String, String> rows = new HashMap<>();
+        rows.put("key", "val1");
+        rows.put("key1", "val1");
+
+        kuduScan.insertTestRecordsToKuduTable(DEFAULT_TABLE_NAME, rows);
+
         runner.setProperty(ScanKudu.TABLE_NAME, "${table1}");
-        runner.setProperty(ScanKudu.PREDICATES, "column5=val2");
-        runner.setProperty(ScanKudu.PROJECTED_COLUMNS, "column");
+        runner.setProperty(ScanKudu.PREDICATES, "key1=val1");
+        runner.setProperty(ScanKudu.PROJECTED_COLUMNS, "key1");
         runner.setValidateExpressionUsage(false);
         runner.enqueue("trigger flow file");
         runner.run(1, false);
@@ -137,8 +143,14 @@ public class TestScanKudu {
     }
 
     @Test
-    public void testInvalidPredicatesPattern() {
-        runner.setProperty(ScanKudu.TABLE_NAME, "${kudu.table}");
+    public void testInvalidPredicatesPattern() throws KuduException {
+        final Map<String, String> rows = new HashMap<>();
+        rows.put("key", "val1");
+        rows.put("key1", "val1");
+
+        kuduScan.insertTestRecordsToKuduTable(DEFAULT_TABLE_NAME, rows);
+
+        runner.setProperty(ScanKudu.TABLE_NAME, DEFAULT_TABLE_NAME);
         runner.setProperty(ScanKudu.PREDICATES, "column1=val1");
         runner.setProperty(ScanKudu.PROJECTED_COLUMNS, "column1");
         runner.setValidateExpressionUsage(false);
@@ -257,6 +269,52 @@ public class TestScanKudu {
     }
 
     @Test
+    public void testBatchSizeKuduScan() throws KuduException {
+        final Map<String, String> rows = new HashMap<>();
+        rows.put("key", "val1");
+        rows.put("key1", "val2");
+
+        final Map<String, String> rows1 = new HashMap<>();
+        rows1.put("key", "val2");
+        rows1.put("key1", "val2");
+
+        final Map<String, String> rows2 = new HashMap<>();
+        rows2.put("key", "val3");
+        rows2.put("key1", "val2");
+
+        final Map<String, String> rows3 = new HashMap<>();
+        rows3.put("key", "val4");
+        rows3.put("key1", "val2");
+
+        final Map<String, String> rows4 = new HashMap<>();
+        rows4.put("key", "val5");
+        rows4.put("key1", "val2");
+
+        kuduScan.insertTestRecordsToKuduTable(DEFAULT_TABLE_NAME, rows);
+        kuduScan.insertTestRecordsToKuduTable(DEFAULT_TABLE_NAME, rows1);
+        kuduScan.insertTestRecordsToKuduTable(DEFAULT_TABLE_NAME, rows2);
+        kuduScan.insertTestRecordsToKuduTable(DEFAULT_TABLE_NAME, rows3);
+        kuduScan.insertTestRecordsToKuduTable(DEFAULT_TABLE_NAME, rows4);
+
+
+        runner.setProperty(ScanKudu.TABLE_NAME, DEFAULT_TABLE_NAME);
+        runner.setProperty(ScanKudu.PREDICATES, "key1=val2");
+        runner.setProperty(ScanKudu.PROJECTED_COLUMNS, "key,key1");
+        runner.setProperty(ScanKudu.BATCH_SIZE, "2");
+        runner.setValidateExpressionUsage(false);
+
+        runner.enqueue("trigger flow file");
+        runner.run(1, false);
+
+        runner.assertTransferCount(ScanKudu.REL_FAILURE, 0);
+        runner.assertTransferCount(ScanKudu.REL_SUCCESS, 3);
+        runner.assertTransferCount(ScanKudu.REL_ORIGINAL, 1);
+
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ScanKudu.REL_SUCCESS);
+        assertEquals(3, flowFiles.size());
+    }
+
+    @Test
     public void testKuduScanWithExpressionLanguage() throws KuduException {
         final Map<String, String> rows = new HashMap<>();
         rows.put("key", "val1");
@@ -266,7 +324,7 @@ public class TestScanKudu {
 
         runner.setProperty(ScanKudu.TABLE_NAME, "${kudu.table}");
         runner.setProperty(ScanKudu.PREDICATES, "${kudu.predicate}");
-        runner.setProperty(ScanKudu.PROJECTED_COLUMNS, "${kudu.cols}");
+        runner.setProperty(ScanKudu.PROJECTED_COLUMNS, "key1");
         runner.setProperty(ScanKudu.BATCH_SIZE, "2");
 
         runner.setValidateExpressionUsage(false);
@@ -274,7 +332,6 @@ public class TestScanKudu {
         final Map<String,String> attributes = new HashMap<>();
         attributes.put("kudu.table", DEFAULT_TABLE_NAME);
         attributes.put("kudu.predicate", "key=val1");
-        attributes.put("kudu.cols", "key1");
 
         runner.enqueue("trigger flow file", attributes);
         runner.run(1, false);
@@ -307,7 +364,7 @@ public class TestScanKudu {
 
         runner.setProperty(ScanKudu.TABLE_NAME, "${kudu.table}");
         runner.setProperty(ScanKudu.PREDICATES, "${kudu.predicate}");
-        runner.setProperty(ScanKudu.PROJECTED_COLUMNS, "${kudu.cols}");
+        runner.setProperty(ScanKudu.PROJECTED_COLUMNS, "key1");
         runner.setProperty(ScanKudu.BATCH_SIZE, "2");
 
         runner.setValidateExpressionUsage(false);
@@ -315,7 +372,6 @@ public class TestScanKudu {
         final Map<String,String> attributes = new HashMap<>();
         attributes.put("kudu.table", DEFAULT_TABLE_NAME);
         attributes.put("kudu.predicate", "key=val1,key1=val2");
-        attributes.put("kudu.cols", "key1");
 
         runner.enqueue("trigger flow file", attributes);
         runner.run(1, false);

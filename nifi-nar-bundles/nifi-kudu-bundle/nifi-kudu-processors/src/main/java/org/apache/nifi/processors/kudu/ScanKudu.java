@@ -17,6 +17,7 @@
 
 package org.apache.nifi.processors.kudu;
 
+import java.util.Random;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kudu.ColumnSchema;
@@ -93,13 +94,12 @@ public class ScanKudu extends AbstractKuduProcessor {
             .name("Projected Column Names")
             .description("A comma-separated list of \"<column>\" names to return when scanning, default all.")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.createRegexMatchingValidator(COLUMNS_PATTERN))
             .build();
 
     protected static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
             .name("Batch Size")
-            .description("The maximum number of RowResults to process in a single execution, between 1 - 100000. " +
+            .description("The maximum number of FlowFiles to generate in a single execution, between 1 - 100000. " +
                     "Depending on your memory size, and data size per row set an appropriate batch size. " +
                     "Gradually increase this number to find out the best one for best performances.")
             .defaultValue("500")
@@ -176,7 +176,7 @@ public class ScanKudu extends AbstractKuduProcessor {
             }
         }
 
-        projectedColumnNames = Arrays.asList(context.getProperty(PROJECTED_COLUMNS).evaluateAttributeExpressions(fileToProcess).getValue().split(","));
+        projectedColumnNames = Arrays.asList(context.getProperty(PROJECTED_COLUMNS).getValue().split(","));
         String predicate = context.getProperty(PREDICATES).evaluateAttributeExpressions(fileToProcess).getValue();
         final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions(fileToProcess).getValue();
         if (fileToProcess == null) {
@@ -197,9 +197,7 @@ public class ScanKudu extends AbstractKuduProcessor {
         }
 
         Integer batchSize = Integer.valueOf(context.getProperty(BATCH_SIZE).getValue());
-        final AtomicLong rowsPulledHolder = new AtomicLong(0);
-        final AtomicLong ffCountHolder = new AtomicLong(0);
-        ScanKuduResultHandler handler = new ScanKuduResultHandler(session, fileToProcess, rowsPulledHolder, ffCountHolder, tableName, batchSize);
+        ScanKuduResultHandler handler = new ScanKuduResultHandler(session, fileToProcess, tableName, batchSize);
 
         try {
             scan(context,
@@ -239,7 +237,6 @@ public class ScanKudu extends AbstractKuduProcessor {
         final private ProcessSession session;
         final private FlowFile origFF;
         final private AtomicLong rowsPulledHolder;
-        final private AtomicLong ffCountHolder;
         final private String tableName;
         final private Integer batchSize;
         private FlowFile flowFile = null;
@@ -248,27 +245,22 @@ public class ScanKudu extends AbstractKuduProcessor {
         private boolean handledAny = false;
 
         ScanKuduResultHandler(final ProcessSession session,
-                              final FlowFile origFF, final AtomicLong rowsPulledHolder, final AtomicLong ffCountHolder,
-                              final String tableName, final Integer batchSize){
+                              final FlowFile origFF, final String tableName, final Integer batchSize){
             this.session = session;
-            this.rowsPulledHolder = rowsPulledHolder;
-            this.ffCountHolder = ffCountHolder;
+            this.rowsPulledHolder = new AtomicLong(0);
             this.tableName = tableName;
             this.batchSize = batchSize == null ? 0 : batchSize;
             this.origFF = origFF;
-
         }
 
         @Override
         public void handle(final RowResult resultCells) {
 
             long rowsPulled = rowsPulledHolder.get();
-            long ffUncommittedCount = ffCountHolder.get();
 
             try{
                 if (flowFile == null){
                     flowFile = initNewFlowFile(session, origFF, tableName);
-                    ffUncommittedCount++;
                 }
 
                 flowFile = session.append(flowFile, (out) -> {
@@ -288,16 +280,11 @@ public class ScanKudu extends AbstractKuduProcessor {
 
             // bulkSize controls number of records per flow file.
             if (batchSize > 0 && rowsPulled >= batchSize) {
-
                 finalizeFlowFile(session, flowFile, tableName, rowsPulled, null);
                 flowFile = null;
                 rowsPulledHolder.set(0);
-                // we could potentially have a huge number of rows. If we get to batchSize, go ahead and commit the
-                // session so that we can avoid buffering tons of FlowFiles without ever sending any out.
-                session.commit();
             } else {
                 rowsPulledHolder.set(rowsPulled);
-                ffCountHolder.set(ffUncommittedCount++);
             }
         }
 
