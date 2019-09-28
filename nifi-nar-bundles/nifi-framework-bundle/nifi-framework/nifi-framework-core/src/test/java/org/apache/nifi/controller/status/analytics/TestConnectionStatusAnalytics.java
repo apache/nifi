@@ -287,12 +287,12 @@ public class TestConnectionStatusAnalytics {
     }
 
     @Test
-    public void testCannotPredictNextIntervalBytesNegative() {
+    public void testNextIntervalBytesZero() {
         Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> modelMap = getModelMap("queuedBytes",.9,-1.0,-1.0);
         ConnectionStatusAnalytics connectionStatusAnalytics = getConnectionStatusAnalytics(modelMap);
         Long nextIntervalBytes = connectionStatusAnalytics.getNextIntervalBytes();
         assertNotNull(nextIntervalBytes);
-        assert (nextIntervalBytes == -1);
+        assert (nextIntervalBytes == 0);
     }
 
     @Test
@@ -335,30 +335,30 @@ public class TestConnectionStatusAnalytics {
     }
 
     @Test
-    public void testCannotPredictNextIntervalCountNegative() {
+    public void testGetNextIntervalCountZero() {
         Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> modelMap = getModelMap("queuedCount",.9,-1.0,-1.0);
         ConnectionStatusAnalytics connectionStatusAnalytics = getConnectionStatusAnalytics(modelMap);
-        Long nextIntervalBytes = connectionStatusAnalytics.getNextIntervalCount();
-        assertNotNull(nextIntervalBytes);
-        assert (nextIntervalBytes == -1);
+        Long nextIntervalCount = connectionStatusAnalytics.getNextIntervalCount();
+        assertNotNull(nextIntervalCount);
+        assert (nextIntervalCount == 0);
     }
 
     @Test
     public void testCannotPredictNextIntervalCountNaN() {
         Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> modelMap = getModelMap("queuedCount",.9,Double.NaN,Double.NaN);
         ConnectionStatusAnalytics connectionStatusAnalytics = getConnectionStatusAnalytics(modelMap);
-        Long nextIntervalBytes = connectionStatusAnalytics.getNextIntervalCount();
-        assertNotNull(nextIntervalBytes);
-        assert (nextIntervalBytes == -1);
+        Long nextIntervalCount = connectionStatusAnalytics.getNextIntervalCount();
+        assertNotNull(nextIntervalCount);
+        assert (nextIntervalCount == -1);
     }
 
     @Test
     public void testCannotPredictNextIntervalCountInfinity() {
         Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> modelMap = getModelMap("queuedCount",.9,Double.POSITIVE_INFINITY,Double.POSITIVE_INFINITY);
         ConnectionStatusAnalytics connectionStatusAnalytics = getConnectionStatusAnalytics(modelMap);
-        Long nextIntervalBytes = connectionStatusAnalytics.getNextIntervalCount();
-        assertNotNull(nextIntervalBytes);
-        assert (nextIntervalBytes == -1);
+        Long nextIntervalCount = connectionStatusAnalytics.getNextIntervalCount();
+        assertNotNull(nextIntervalCount);
+        assert (nextIntervalCount == -1);
     }
 
     @Test

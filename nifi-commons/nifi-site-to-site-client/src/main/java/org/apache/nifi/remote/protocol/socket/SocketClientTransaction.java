@@ -63,7 +63,7 @@ public class SocketClientTransaction extends AbstractTransaction {
                         this.dataAvailable = true;
                         break;
                     case NO_MORE_DATA:
-                        logger.debug("{} No data available from {}", peer);
+                        logger.debug("{} No data available from {}", this, peer);
                         this.dataAvailable = false;
                         return;
                     default:

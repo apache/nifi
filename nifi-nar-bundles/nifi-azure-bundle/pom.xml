@@ -25,9 +25,30 @@
     <artifactId>nifi-azure-bundle</artifactId>
     <packaging>pom</packaging>
 
+    <properties>
+        <azure-storage.version>8.4.0</azure-storage.version>
+    </properties>
+
     <modules>
         <module>nifi-azure-processors</module>
         <module>nifi-azure-nar</module>
+        <module>nifi-azure-services-api</module>
+        <module>nifi-azure-services-api-nar</module>
     </modules>
 
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>com.microsoft.azure</groupId>
+                <artifactId>azure-storage</artifactId>
+                <version>${azure-storage.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>com.fasterxml.jackson.core</groupId>
+                        <artifactId>jackson-core</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 </project>

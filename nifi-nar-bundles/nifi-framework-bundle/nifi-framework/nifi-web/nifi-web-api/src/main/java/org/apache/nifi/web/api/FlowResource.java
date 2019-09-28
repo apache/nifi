@@ -129,7 +129,9 @@ import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import java.text.Collator;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -137,6 +139,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -1430,11 +1434,28 @@ public class FlowResource extends ApplicationResource {
         authorizeFlow();
 
         final Set<BucketEntity> buckets = serviceFacade.getBucketsForUser(id, NiFiUserUtils.getNiFiUser());
+        final SortedSet<BucketEntity> sortedBuckets = sortBuckets(buckets);
 
         final BucketsEntity bucketsEntity = new BucketsEntity();
-        bucketsEntity.setBuckets(buckets);
+        bucketsEntity.setBuckets(sortedBuckets);
 
         return generateOkResponse(bucketsEntity).build();
+    }
+
+    private SortedSet<BucketEntity> sortBuckets(final Set<BucketEntity> buckets) {
+        final SortedSet<BucketEntity> sortedBuckets = new TreeSet<>(new Comparator<BucketEntity>() {
+            @Override
+            public int compare(final BucketEntity entity1, final BucketEntity entity2) {
+                return Collator.getInstance().compare(getBucketName(entity1), getBucketName(entity2));
+            }
+        });
+
+        sortedBuckets.addAll(buckets);
+        return sortedBuckets;
+    }
+
+    private String getBucketName(final BucketEntity entity) {
+        return entity.getBucket() == null ? null : entity.getBucket().getName();
     }
 
     @GET
@@ -1466,11 +1487,28 @@ public class FlowResource extends ApplicationResource {
         authorizeFlow();
 
         final Set<VersionedFlowEntity> versionedFlows = serviceFacade.getFlowsForUser(registryId, bucketId, NiFiUserUtils.getNiFiUser());
+        final SortedSet<VersionedFlowEntity> sortedFlows = sortFlows(versionedFlows);
 
         final VersionedFlowsEntity versionedFlowsEntity = new VersionedFlowsEntity();
-        versionedFlowsEntity.setVersionedFlows(versionedFlows);
+        versionedFlowsEntity.setVersionedFlows(sortedFlows);
 
         return generateOkResponse(versionedFlowsEntity).build();
+    }
+
+    private SortedSet<VersionedFlowEntity> sortFlows(final Set<VersionedFlowEntity> versionedFlows) {
+        final SortedSet<VersionedFlowEntity> sortedFlows = new TreeSet<>(new Comparator<VersionedFlowEntity>() {
+            @Override
+            public int compare(final VersionedFlowEntity entity1, final VersionedFlowEntity entity2) {
+                return Collator.getInstance().compare(getFlowName(entity1), getFlowName(entity2));
+            }
+        });
+
+        sortedFlows.addAll(versionedFlows);
+        return sortedFlows;
+    }
+
+    private String getFlowName(final VersionedFlowEntity flowEntity) {
+        return flowEntity.getVersionedFlow() == null ? "" : flowEntity.getVersionedFlow().getFlowName();
     }
 
     @GET

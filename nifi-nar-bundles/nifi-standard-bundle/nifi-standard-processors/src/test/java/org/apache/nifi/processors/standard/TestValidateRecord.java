@@ -27,6 +27,8 @@ import org.apache.nifi.json.JsonTreeReader;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.schema.access.SchemaAccessUtils;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
+import org.apache.nifi.schema.inference.SchemaInferenceUtil;
+import org.apache.nifi.serialization.DateTimeUtils;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.record.MockRecordWriter;
@@ -41,6 +43,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
@@ -409,4 +412,65 @@ public class TestValidateRecord {
         runner.assertTransferCount(ValidateRecord.REL_FAILURE, 0);
     }
 
+
+    @Test
+    public void testValidateJsonTimestamp() throws IOException, InitializationException {
+        final String validateSchema = new String(Files.readAllBytes(Paths.get("src/test/resources/TestValidateRecord/timestamp.avsc")), StandardCharsets.UTF_8);
+
+        final JsonTreeReader jsonReader = new JsonTreeReader();
+        runner.addControllerService("reader", jsonReader);
+        runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, "schema-text-property");
+        runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_TEXT, validateSchema);
+        runner.setProperty(jsonReader, DateTimeUtils.TIMESTAMP_FORMAT, "yyyy/MM/dd HH:mm:ss");
+        runner.enableControllerService(jsonReader);
+
+        final JsonRecordSetWriter validWriter = new JsonRecordSetWriter();
+        runner.addControllerService("writer", validWriter);
+        runner.setProperty(validWriter, "Schema Write Strategy", "full-schema-attribute");
+        runner.setProperty(validWriter, DateTimeUtils.TIMESTAMP_FORMAT, "yyyy/MM/dd HH:mm:ss");
+        runner.enableControllerService(validWriter);
+
+        runner.setProperty(ValidateRecord.RECORD_READER, "reader");
+        runner.setProperty(ValidateRecord.RECORD_WRITER, "writer");
+        runner.setProperty(ValidateRecord.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
+        runner.setProperty(ValidateRecord.SCHEMA_TEXT, validateSchema);
+        runner.setProperty(ValidateRecord.INVALID_RECORD_WRITER, "writer");
+        runner.setProperty(ValidateRecord.ALLOW_EXTRA_FIELDS, "false");
+
+        runner.setProperty(ValidateRecord.STRICT_TYPE_CHECKING, "true");
+        runner.enqueue(Paths.get("src/test/resources/TestValidateRecord/timestamp.json"));
+        runner.run();
+
+        runner.assertTransferCount(ValidateRecord.REL_VALID, 1);
+        final MockFlowFile validFlowFile = runner.getFlowFilesForRelationship(ValidateRecord.REL_VALID).get(0);
+        validFlowFile.assertContentEquals(new File("src/test/resources/TestValidateRecord/timestamp.json"));
+
+        // Test with a timestamp that has an invalid format.
+        runner.clearTransferState();
+
+        runner.disableControllerService(jsonReader);
+        runner.setProperty(jsonReader, DateTimeUtils.TIMESTAMP_FORMAT, "yyyy-MM-dd HH:mm:ss");
+        runner.enqueue(Paths.get("src/test/resources/TestValidateRecord/timestamp.json"));
+        runner.enableControllerService(jsonReader);
+
+        runner.run();
+
+        runner.assertTransferCount(ValidateRecord.REL_INVALID, 1);
+        final MockFlowFile invalidFlowFile = runner.getFlowFilesForRelationship(ValidateRecord.REL_INVALID).get(0);
+        invalidFlowFile.assertContentEquals(new File("src/test/resources/TestValidateRecord/timestamp.json"));
+
+        // Test with an Inferred Schema.
+        runner.disableControllerService(jsonReader);
+        runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaInferenceUtil.INFER_SCHEMA.getValue());
+        runner.setProperty(jsonReader, DateTimeUtils.TIMESTAMP_FORMAT, "yyyy/MM/dd HH:mm:ss");
+        runner.enableControllerService(jsonReader);
+
+        runner.clearTransferState();
+        runner.enqueue(Paths.get("src/test/resources/TestValidateRecord/timestamp.json"));
+        runner.run();
+
+        runner.assertTransferCount(ValidateRecord.REL_VALID, 1);
+        final MockFlowFile validFlowFileInferredSchema = runner.getFlowFilesForRelationship(ValidateRecord.REL_VALID).get(0);
+        validFlowFileInferredSchema.assertContentEquals(new File("src/test/resources/TestValidateRecord/timestamp.json"));
+    }
 }

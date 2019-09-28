@@ -71,7 +71,13 @@ public class TestCSVSchemaInference {
         assertEquals(RecordFieldType.TIMESTAMP.getDataType("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"), schema.getDataType("timestamp").get());
         assertEquals(RecordFieldType.TIME.getDataType("HH:mm:ss"), schema.getDataType("eventTime").get());
         assertEquals(RecordFieldType.DATE.getDataType("yyyy-MM-dd"), schema.getDataType("eventDate").get());
-        assertEquals(RecordFieldType.STRING.getDataType(), schema.getDataType("maybeTime").get());
+        assertEquals(
+                RecordFieldType.CHOICE.getChoiceDataType(
+                        RecordFieldType.TIME.getDataType("HH:mm:ss"),
+                        RecordFieldType.STRING.getDataType()
+                ),
+                schema.getDataType("maybeTime").get()
+        );
         assertEquals(RecordFieldType.DATE.getDataType("yyyy-MM-dd"), schema.getDataType("maybeDate").get());
 
         assertSame(RecordFieldType.INT, schema.getDataType("parentIds").get().getFieldType());
@@ -118,7 +124,13 @@ public class TestCSVSchemaInference {
         assertEquals(RecordFieldType.TIMESTAMP.getDataType("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"), schema.getDataType("timestamp").get());
         assertEquals(RecordFieldType.TIME.getDataType("HH:mm:ss"), schema.getDataType("eventTime").get());
         assertEquals(RecordFieldType.DATE.getDataType("yyyy-MM-dd"), schema.getDataType("eventDate").get());
-        assertEquals(RecordFieldType.STRING.getDataType(), schema.getDataType("maybeTime").get());
+        assertEquals(
+                RecordFieldType.CHOICE.getChoiceDataType(
+                        RecordFieldType.TIME.getDataType("HH:mm:ss"),
+                        RecordFieldType.STRING.getDataType()
+                ),
+                schema.getDataType("maybeTime").get()
+        );
         assertEquals(RecordFieldType.DATE.getDataType("yyyy-MM-dd"), schema.getDataType("maybeDate").get());
 
         assertSame(RecordFieldType.INT, schema.getDataType("parentIds").get().getFieldType());

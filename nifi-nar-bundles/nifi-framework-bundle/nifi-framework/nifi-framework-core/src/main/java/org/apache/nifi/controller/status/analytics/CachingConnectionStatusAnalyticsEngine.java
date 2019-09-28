@@ -40,9 +40,10 @@ public class CachingConnectionStatusAnalyticsEngine extends ConnectionStatusAnal
 
     public CachingConnectionStatusAnalyticsEngine(FlowManager flowManager, ComponentStatusRepository statusRepository,
             FlowFileEventRepository flowFileEventRepository, Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> modelMap,
-            long predictionIntervalMillis, String scoreName, double scoreThreshold) {
+            long predictionIntervalMillis, long queryIntervalMillis, String scoreName, double scoreThreshold) {
 
-        super(flowManager,statusRepository,flowFileEventRepository,modelMap,predictionIntervalMillis,scoreName,scoreThreshold);
+        super(flowManager, statusRepository, flowFileEventRepository, modelMap, predictionIntervalMillis,
+                           queryIntervalMillis, scoreName, scoreThreshold);
         this.cache = Caffeine.newBuilder()
                 .expireAfterWrite(30, TimeUnit.MINUTES)
                 .build();

@@ -17,6 +17,7 @@
 package org.apache.nifi.attribute.expression.language;
 
 import org.antlr.runtime.tree.Tree;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.attribute.expression.language.Query.Range;
 import org.apache.nifi.attribute.expression.language.evaluation.NumberQueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
@@ -346,6 +347,10 @@ public class TestQuery {
 
     private void verifyAddressBookAttributes(String originalAddressBook, Map<String,String> attributes, String updatedAttribute, Object updatedValue) {
 
+        if (StringUtils.isBlank(attributes.get("json"))) {
+            throw new IllegalArgumentException("original Json attributes is empty");
+        }
+
         Map<String, String> originalAttributes = new HashMap<>();
         originalAttributes.put("json", originalAddressBook);
 
@@ -370,9 +375,9 @@ public class TestQuery {
             verifyEquals(targetAttribute, attributes, originalValue);
         }
 
-        String addressBookAfterDelete = Query.evaluateExpressions(updateExpression, attributes, ParameterLookup.EMPTY);
+        String addressBookAfterUpdate = Query.evaluateExpressions(updateExpression, attributes, ParameterLookup.EMPTY);
         attributes.clear();
-        attributes.put("json", addressBookAfterDelete);
+        attributes.put("json", addressBookAfterUpdate);
 
         verifyAddressBookAttributes(addressBook, attributes, targetAttribute, updatedValue);
 
@@ -450,6 +455,74 @@ public class TestQuery {
             "",
             "${json:jsonPathSet('$.missing-path', 5.9)}",
             "");
+    }
+
+    @Test
+    public void testJsonPathAddNicknameJimmy() throws IOException {
+        Map<String,String> attributes = verifyJsonPathExpressions(
+                ADDRESS_BOOK_JSON_PATH_EMPTY,
+                "",
+                "${json:jsonPathAdd('$.nicknames', 'Jimmy')}",
+                "");
+        verifyEquals("${json:jsonPath('$.nicknames')}", attributes, "Jimmy");
+    }
+
+    @Test
+    public void testJsonPathAddNicknameJimmyAtNonexistantPath() throws IOException {
+        Map<String,String> attributes = verifyJsonPathExpressions(
+                ADDRESS_BOOK_JSON_PATH_EMPTY,
+                "",
+                "${json:jsonPathAdd('$.missing-path', 'Jimmy')}",
+                "");
+       verifyEquals("${json:jsonPath('$.missing-path')}", attributes, "");
+    }
+
+    @Test(expected=IllegalArgumentException.class)
+    public void testJsonPathAddNicknameJimmyAtNonArray() throws IOException {
+        Map<String,String> attributes = verifyJsonPathExpressions(
+                ADDRESS_BOOK_JSON_PATH_EMPTY,
+                "",
+                "${json:jsonPathAdd('$.firstName', 'Jimmy')}",
+                "");
+    }
+
+    @Test
+    public void testJsonPathPutRootLevelMiddlenameTuron() throws IOException {
+        Map<String,String> attributes = verifyJsonPathExpressions(
+                ADDRESS_BOOK_JSON_PATH_EMPTY,
+                "",
+                "${json:jsonPathPut('$','middlename','Turon')}",
+                "");
+        verifyEquals("${json:jsonPath('$.middlename')}", attributes, "Turon");
+    }
+
+    @Test
+    public void testJsonPathPutCountryToMap() throws IOException {
+        Map<String,String> attributes = verifyJsonPathExpressions(
+                ADDRESS_BOOK_JSON_PATH_EMPTY,
+                "",
+                "${json:jsonPathPut('$.address','country','US')}",
+                "");
+        verifyEquals("${json:jsonPath('$.address.country')}", attributes, "US");
+    }
+
+    @Test
+    public void testJsonPathPutElementToArray() throws IOException {
+        Map<String,String> attributes = verifyJsonPathExpressions(
+                ADDRESS_BOOK_JSON_PATH_EMPTY,
+                "",
+                "${json:jsonPathPut('$.phoneNumbers[1]', 'backup', '212-555-1212')}",
+                "");
+        verifyEquals("${json:jsonPath('$.phoneNumbers[1].backup')}", attributes, "212-555-1212");
+    }
+
+    @Test
+    public void testJsonPathPutOverwriteFirstNameToJimmy() throws IOException {
+        Map<String,String> attributes = verifyJsonPathExpressions(
+                ADDRESS_BOOK_JSON_PATH_FIRST_NAME,
+                "John",
+                "${json:jsonPathPut('$','firstName','Jimmy')}",
+                "Jimmy");
     }
 
     @Test

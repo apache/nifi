@@ -328,6 +328,8 @@ div.slick-cell div.overridden {
     top: 550px;
     left: 20px;
     font-size: 13px;
+    max-width: calc(100% - 230px);
+    z-index: 999;
 }
 
 /*

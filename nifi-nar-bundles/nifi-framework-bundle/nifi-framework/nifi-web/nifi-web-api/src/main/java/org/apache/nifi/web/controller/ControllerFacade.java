@@ -1619,6 +1619,7 @@ public class ControllerFacade implements Authorizable {
         final SearchResultsDTO results = new SearchResultsDTO();
 
         controllerSearchService.search(results, search, rootGroup);
+        controllerSearchService.searchParameters(results, search);
 
         return results;
     }

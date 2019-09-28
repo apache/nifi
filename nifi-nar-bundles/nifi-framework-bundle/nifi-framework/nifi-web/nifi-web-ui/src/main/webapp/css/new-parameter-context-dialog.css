@@ -111,8 +111,7 @@
 
 span.parameter-context-referencing-component-name {
     margin-left: 5px;
-    margin-right: 5px;
-    max-width: calc(100% - 10px);
+    max-width: calc(100% - 70px);
 }
 
 #parameter-context-updating-status {

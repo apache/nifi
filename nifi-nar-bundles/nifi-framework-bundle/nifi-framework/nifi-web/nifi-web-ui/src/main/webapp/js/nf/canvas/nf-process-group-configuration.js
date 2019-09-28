@@ -401,6 +401,17 @@
                             }
                         }]).modal('show');
 
+                        // make sure the edit mode is properly set
+                        if ($('#parameter-context-dialog').hasClass('read-only')) {
+                            $('#parameter-context-dialog').removeClass('read-only');
+                            $('#parameter-context-dialog').addClass('edit-mode');
+                        }
+
+                        // there is no id yet, make sure the id field isn't shown
+                        if (!$('#parameter-context-id-setting').hasClass('hidden')) {
+                            $('#parameter-context-id-setting').addClass('hidden');
+                        }
+
                         // set the initial focus
                         $('#parameter-context-name').focus();
                     }

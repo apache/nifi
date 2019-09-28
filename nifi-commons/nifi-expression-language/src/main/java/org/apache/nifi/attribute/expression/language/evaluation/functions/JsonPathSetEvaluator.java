@@ -18,40 +18,21 @@ package org.apache.nifi.attribute.expression.language.evaluation.functions;
 
 import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.JsonPath;
-import org.apache.nifi.attribute.expression.language.EvaluationContext;
+
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
-import org.apache.nifi.attribute.expression.language.evaluation.StringQueryResult;
 
 /**
  * JsonPathSetEvaluator allows setting values at the specified existing path
  */
-public class JsonPathSetEvaluator extends JsonPathBaseEvaluator {
-
-    protected Evaluator<?> valueEvaluator;
+public class JsonPathSetEvaluator extends JsonPathUpdateEvaluator {
 
     public JsonPathSetEvaluator(final Evaluator<String> subject, final Evaluator<String> jsonPathExp, final Evaluator<?> valueEvaluator) {
-        super(subject, jsonPathExp);
-        this.valueEvaluator = valueEvaluator;
+        super(subject, jsonPathExp, valueEvaluator);
     }
 
     @Override
-    public QueryResult<String> evaluate(EvaluationContext context) {
-        DocumentContext documentContext = getDocumentContext(context);
-        final JsonPath compiledJsonPath = getJsonPath(context);
-
-        final Object value = valueEvaluator.evaluate(context).getValue();
-
-        String result;
-        try {
-            result = documentContext.set(compiledJsonPath, value).jsonString();
-        } catch (Exception e) {
-            // assume the path did not match anything in the document
-            return EMPTY_RESULT;
-        }
-
-        return new StringQueryResult(getResultRepresentation(result, EMPTY_RESULT.getValue()));
+    public DocumentContext updateAttribute(DocumentContext documentContext, JsonPath jsonPath, Object value) {
+        return documentContext.set(jsonPath, value);
     }
-
 }
 

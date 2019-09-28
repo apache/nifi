@@ -21,9 +21,11 @@ import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.wali.SequentialAccessWriteAheadLog;
+import org.apache.nifi.wali.SnapshotCapture;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.wali.MinimalLockingWriteAheadLog;
@@ -227,6 +229,158 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
     @Override
     public boolean isVolatile() {
         return false;
+    }
+
+    @Override
+    public Map<ResourceClaim, Set<ResourceClaimReference>> findResourceClaimReferences(final Set<ResourceClaim> resourceClaims, final FlowFileSwapManager swapManager) throws IOException {
+        if (!(wal instanceof SequentialAccessWriteAheadLog)) {
+            return null;
+        }
+
+        final Map<ResourceClaim, Set<ResourceClaimReference>> references = new HashMap<>();
+
+        final SnapshotCapture<RepositoryRecord> snapshot = ((SequentialAccessWriteAheadLog<RepositoryRecord>) wal).captureSnapshot();
+        for (final RepositoryRecord repositoryRecord : snapshot.getRecords().values()) {
+            final ContentClaim contentClaim = repositoryRecord.getCurrentClaim();
+            if (contentClaim == null) {
+                continue;
+            }
+
+            final ResourceClaim resourceClaim = contentClaim.getResourceClaim();
+            if (resourceClaims.contains(resourceClaim)) {
+                final Set<ResourceClaimReference> claimReferences = references.computeIfAbsent(resourceClaim, key -> new HashSet<>());
+                claimReferences.add(createResourceClaimReference(repositoryRecord));
+            }
+        }
+
+
+        for (final String swapLocation : snapshot.getSwapLocations()) {
+            final String queueIdentifier = swapManager.getQueueIdentifier(swapLocation);
+            final ResourceClaimReference swapReference = createResourceClaimReference(swapLocation, queueIdentifier);
+
+            try {
+                final SwapSummary swapSummary = swapManager.getSwapSummary(swapLocation);
+
+                for (final ResourceClaim resourceClaim : swapSummary.getResourceClaims()) {
+                    if (resourceClaims.contains(resourceClaim)) {
+                        final Set<ResourceClaimReference> claimReferences = references.computeIfAbsent(resourceClaim, key -> new HashSet<>());
+                        claimReferences.add(swapReference);
+                    }
+                }
+            } catch (final Exception e) {
+                logger.warn("Failed to read swap file " + swapLocation + " when attempting to find resource claim references", e);
+            }
+        }
+
+        return references;
+    }
+
+    private ResourceClaimReference createResourceClaimReference(final String swapLocation, final String queueIdentifier) {
+        return new ResourceClaimReference() {
+            @Override
+            public String getQueueIdentifier() {
+                return queueIdentifier;
+            }
+
+            @Override
+            public boolean isSwappedOut() {
+                return true;
+            }
+
+            @Override
+            public String getFlowFileUuid() {
+                return null;
+            }
+
+            @Override
+            public String getSwapLocation() {
+                return swapLocation;
+            }
+
+            @Override
+            public String toString() {
+                return "Swap File[location=" +  getSwapLocation() + ", queue=" + getQueueIdentifier() + "]";
+            }
+
+            @Override
+            public int hashCode() {
+                return Objects.hash(queueIdentifier, swapLocation);
+            }
+
+            @Override
+            public boolean equals(final Object obj) {
+                if (obj == null) {
+                    return false;
+                }
+                if (obj == this) {
+                    return true;
+                }
+                if (obj.getClass() != getClass()) {
+                    return false;
+                }
+
+                final ResourceClaimReference other = (ResourceClaimReference) obj;
+                return Objects.equals(queueIdentifier, other.getQueueIdentifier()) && Objects.equals(swapLocation, other.getSwapLocation());
+            }
+        };
+    }
+
+    private ResourceClaimReference createResourceClaimReference(final RepositoryRecord repositoryRecord) {
+        FlowFileQueue flowFileQueue = repositoryRecord.getDestination();
+        if (flowFileQueue == null) {
+            flowFileQueue = repositoryRecord.getOriginalQueue();
+        }
+
+        final String queueIdentifier = flowFileQueue == null ? null : flowFileQueue.getIdentifier();
+        final String flowFileUuid = repositoryRecord.getCurrent().getAttribute(CoreAttributes.UUID.key());
+
+        return new ResourceClaimReference() {
+            @Override
+            public String getQueueIdentifier() {
+                return queueIdentifier;
+            }
+
+            @Override
+            public boolean isSwappedOut() {
+                return false;
+            }
+
+            @Override
+            public String getFlowFileUuid() {
+                return flowFileUuid;
+            }
+
+            @Override
+            public String getSwapLocation() {
+                return null;
+            }
+
+            @Override
+            public String toString() {
+                return "FlowFile[uuid=" + getFlowFileUuid() + ", queue=" + getQueueIdentifier() + "]";
+            }
+
+            @Override
+            public int hashCode() {
+                return Objects.hash(queueIdentifier, flowFileUuid);
+            }
+
+            @Override
+            public boolean equals(final Object obj) {
+                if (obj == null) {
+                    return false;
+                }
+                if (obj == this) {
+                    return true;
+                }
+                if (obj.getClass() != getClass()) {
+                    return false;
+                }
+
+                final ResourceClaimReference other = (ResourceClaimReference) obj;
+                return Objects.equals(queueIdentifier, other.getQueueIdentifier()) && Objects.equals(flowFileUuid, other.getFlowFileUuid());
+            }
+        };
     }
 
     @Override

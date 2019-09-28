@@ -171,7 +171,6 @@ ul.links span.header-link-over {
     font-weight: bold !important;
 }
 
-
 .ellipsis {
     white-space: nowrap;
     overflow: hidden;
@@ -259,6 +258,12 @@ textarea {
     overflow-y: auto;
     overflow-x: hidden;
     text-overflow: ellipsis;
+}
+
+textarea[disabled] {
+    background: #b2b8c1;
+    color: #dbdee2;
+    border: 1px solid #b2b8c1;
 }
 
 ul.property-info {
