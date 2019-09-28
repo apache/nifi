@@ -172,7 +172,7 @@
 
 
     <root level="INFO">
-        <appender-ref ref="APP_FILE"/>
+        <appender-ref ref="APP_FILE"/>MockProcessContext
     </root>
     
 </configuration>
