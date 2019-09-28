@@ -399,7 +399,7 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
     @Override
     public String decrypt(final String encrypted) {
         if (encrypted.startsWith("enc{") && encrypted.endsWith("}")) {
-            return encrypted.substring(4, encrypted.length() - 2);
+            return encrypted.substring(4, encrypted.length() - 1);
         }
         return encrypted;
     }
