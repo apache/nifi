@@ -1200,6 +1200,7 @@ public class RunNiFi {
                     }
 
                     defaultLogger.warn("Apache NiFi appears to have died. Restarting...");
+                    secretKey = null;
                     process = builder.start();
                     handleLogging(process);
 
