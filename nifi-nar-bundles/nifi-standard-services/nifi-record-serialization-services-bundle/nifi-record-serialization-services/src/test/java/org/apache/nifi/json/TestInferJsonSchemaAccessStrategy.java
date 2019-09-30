@@ -153,7 +153,10 @@ public class TestInferJsonSchemaAccessStrategy {
 
         // TIME value and a STRING should be inferred as a STRING field
         final RecordField maybeTimeField = schema.getField("maybeTime").get();
-        assertEquals(RecordFieldType.STRING, maybeTimeField.getDataType().getFieldType());
+        assertEquals(
+                RecordFieldType.CHOICE.getChoiceDataType().getFieldType(),
+                maybeTimeField.getDataType().getFieldType())
+        ;
 
         // DATE value and a null value should be inferred as a DATE field
         final RecordField maybeDateField = schema.getField("maybeDate").get();
@@ -169,7 +172,7 @@ public class TestInferJsonSchemaAccessStrategy {
         final RecordSchema schema = inferSchema(file);
 
         assertSame(RecordFieldType.STRING, schema.getDataType("name").get().getFieldType());
-        assertSame(RecordFieldType.STRING, schema.getDataType("age").get().getFieldType());
+        assertSame(RecordFieldType.CHOICE, schema.getDataType("age").get().getFieldType());
 
         final DataType valuesDataType = schema.getDataType("values").get();
         assertSame(RecordFieldType.CHOICE, valuesDataType.getFieldType());
@@ -178,7 +181,10 @@ public class TestInferJsonSchemaAccessStrategy {
         final List<DataType> possibleTypes = valuesChoiceType.getPossibleSubTypes();
         assertEquals(2, possibleTypes.size());
         assertTrue(possibleTypes.contains(RecordFieldType.STRING.getDataType()));
-        assertTrue(possibleTypes.contains(RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.STRING.getDataType())));
+        assertTrue(possibleTypes.contains(RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.CHOICE.getChoiceDataType(
+                RecordFieldType.LONG.getDataType(),
+                RecordFieldType.STRING.getDataType()
+        ))));
 
         assertSame(RecordFieldType.STRING, schema.getDataType("nullValue").get().getFieldType());
     }

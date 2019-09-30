@@ -33,15 +33,17 @@ public class TestCachingConnectionStatusAnalyticsEngine extends TestStatusAnalyt
     public StatusAnalyticsEngine getStatusAnalyticsEngine(FlowManager flowManager, FlowFileEventRepository flowFileEventRepository,
                                                           ComponentStatusRepository componentStatusRepository,
                                                           Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> modelMap,
-                                                          long predictIntervalMillis, String scoreName, double scoreThreshold) {
+                                                          long predictIntervalMillis, long queryIntervalMillis, String scoreName, double scoreThreshold) {
 
-        return new CachingConnectionStatusAnalyticsEngine(flowManager, componentStatusRepository, flowFileEventRepository, modelMap, predictIntervalMillis, scoreName, scoreThreshold);
+        return new CachingConnectionStatusAnalyticsEngine(flowManager, componentStatusRepository, flowFileEventRepository, modelMap, predictIntervalMillis,
+                                                                                                queryIntervalMillis, scoreName, scoreThreshold);
     }
 
     @Test
     public void testCachedStatusAnalytics() {
         StatusAnalyticsEngine statusAnalyticsEngine = new CachingConnectionStatusAnalyticsEngine(flowManager, statusRepository, flowFileEventRepository, modelMap,
-                                                                                                    DEFAULT_PREDICT_INTERVAL_MILLIS, DEFAULT_SCORE_NAME, DEFAULT_SCORE_THRESHOLD);
+                                                                                                    DEFAULT_PREDICT_INTERVAL_MILLIS, DEFAULT_QUERY_INTERVAL_MILLIS,
+                                                                                                    DEFAULT_SCORE_NAME, DEFAULT_SCORE_THRESHOLD);
         StatusAnalytics statusAnalyticsA = statusAnalyticsEngine.getStatusAnalytics("A");
         StatusAnalytics statusAnalyticsB = statusAnalyticsEngine.getStatusAnalytics("B");
         StatusAnalytics statusAnalyticsTest = statusAnalyticsEngine.getStatusAnalytics("A");

@@ -78,8 +78,9 @@ zeroArgString : (TO_UPPER | TO_LOWER | TRIM | TO_STRING | URL_ENCODE | URL_DECOD
 oneArgString : ((SUBSTRING_BEFORE | SUBSTRING_BEFORE_LAST | SUBSTRING_AFTER | SUBSTRING_AFTER_LAST | REPLACE_NULL | REPLACE_EMPTY |
 				PREPEND | APPEND | STARTS_WITH | ENDS_WITH | CONTAINS | JOIN | JSON_PATH | JSON_PATH_DELETE | FROM_RADIX) LPAREN! anyArg RPAREN!) |
 			   (TO_RADIX LPAREN! anyArg (COMMA! anyArg)? RPAREN!);
-twoArgString : ((REPLACE | REPLACE_FIRST | REPLACE_ALL | IF_ELSE | JSON_PATH_SET) LPAREN! anyArg COMMA! anyArg RPAREN!) |
+twoArgString : ((REPLACE | REPLACE_FIRST | REPLACE_ALL | IF_ELSE | JSON_PATH_SET | JSON_PATH_ADD) LPAREN! anyArg COMMA! anyArg RPAREN!) |
 			   ((SUBSTRING | FORMAT | PAD_LEFT | PAD_RIGHT) LPAREN! anyArg (COMMA! anyArg)? RPAREN!);
+threeArgString: ((JSON_PATH_PUT) LPAREN! anyArg COMMA! anyArg COMMA! anyArg RPAREN!);
 fiveArgString : GET_DELIMITED_FIELD LPAREN! anyArg (COMMA! anyArg (COMMA! anyArg (COMMA! anyArg (COMMA! anyArg)?)?)?)? RPAREN!;
 
 // functions that return Booleans
@@ -98,7 +99,7 @@ oneArgNum	: ((INDEX_OF | LAST_INDEX_OF) LPAREN! anyArg RPAREN!) |
 oneOrTwoArgNum : MATH LPAREN! anyArg (COMMA! anyArg)? RPAREN!;
 zeroOrOneOrTwoArgNum : TO_DATE LPAREN! anyArg? (COMMA! anyArg)? RPAREN!;
 
-stringFunctionRef : zeroArgString | oneArgString | twoArgString | fiveArgString;
+stringFunctionRef : zeroArgString | oneArgString | twoArgString | threeArgString | fiveArgString;
 booleanFunctionRef : zeroArgBool | oneArgBool | multiArgBool;
 numberFunctionRef : zeroArgNum | oneArgNum | oneOrTwoArgNum | zeroOrOneOrTwoArgNum;
 

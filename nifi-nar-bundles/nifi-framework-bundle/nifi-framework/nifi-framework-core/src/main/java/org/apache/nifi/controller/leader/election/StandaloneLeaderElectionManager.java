@@ -17,6 +17,10 @@
 
 package org.apache.nifi.controller.leader.election;
 
+import java.util.Collections;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
 /**
  * <p>
  * A LeaderElectionManager to use when running a standalone (un-clustered) NiFi instance
@@ -57,6 +61,31 @@ public class StandaloneLeaderElectionManager implements LeaderElectionManager {
 
     @Override
     public void stop() {
+    }
+
+    @Override
+    public Map<String, Integer> getLeadershipChangeCount(final long duration, final TimeUnit timeUnit) {
+        return Collections.emptyMap();
+    }
+
+    @Override
+    public long getAveragePollTime(final TimeUnit timeUnit) {
+        return -1L;
+    }
+
+    @Override
+    public long getMinPollTime(final TimeUnit timeUnit) {
+        return -1L;
+    }
+
+    @Override
+    public long getMaxPollTime(final TimeUnit timeUnit) {
+        return -1L;
+    }
+
+    @Override
+    public long getPollCount() {
+        return -1L;
     }
 
     @Override

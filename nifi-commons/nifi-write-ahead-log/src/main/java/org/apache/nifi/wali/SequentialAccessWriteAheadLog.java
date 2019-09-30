@@ -246,6 +246,10 @@ public class SequentialAccessWriteAheadLog<T> implements WriteAheadRepository<T>
         return Collections.unmodifiableSet(this.recoveredSwapLocations);
     }
 
+    public SnapshotCapture<T> captureSnapshot() {
+        return snapshot.prepareSnapshot(nextTransactionId - 1);
+    }
+
     @Override
     public int checkpoint() throws IOException {
         return checkpoint(null);

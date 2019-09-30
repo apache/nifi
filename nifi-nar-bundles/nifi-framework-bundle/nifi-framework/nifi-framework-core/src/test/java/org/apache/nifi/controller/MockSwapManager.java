@@ -168,6 +168,11 @@ public class MockSwapManager implements FlowFileSwapManager {
     }
 
     @Override
+    public String getQueueIdentifier(final String swapLocation) {
+        return null;
+    }
+
+    @Override
     public Set<String> getSwappedPartitionNames(final FlowFileQueue queue) throws IOException {
         return swappedOut.keySet().stream()
             .filter(key -> key.contains("."))

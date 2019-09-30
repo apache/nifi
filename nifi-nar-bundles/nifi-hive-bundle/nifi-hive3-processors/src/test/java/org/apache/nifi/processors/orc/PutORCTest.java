@@ -141,6 +141,34 @@ public class PutORCTest {
     }
 
     @Test
+    public void testOverwriteFile() throws InitializationException {
+        configure(proc, 1);
+
+        final String filename = "testORCWithDefaults-" + System.currentTimeMillis();
+
+        final Map<String, String> flowFileAttributes = new HashMap<>();
+        flowFileAttributes.put(CoreAttributes.FILENAME.key(), filename);
+
+        testRunner.setProperty(PutORC.OVERWRITE, "true");
+
+        testRunner.enqueue("trigger", flowFileAttributes);
+        testRunner.run();
+        testRunner.assertAllFlowFilesTransferred(PutORC.REL_SUCCESS, 1);
+
+        MockRecordParser readerFactory = (MockRecordParser) testRunner.getControllerService("mock-reader-factory");
+        readerFactory.addRecord("name", 1, "blue", 10.0);
+        testRunner.enqueue("trigger", flowFileAttributes);
+        testRunner.run();
+        testRunner.assertAllFlowFilesTransferred(PutORC.REL_SUCCESS, 2);
+
+        testRunner.setProperty(PutORC.OVERWRITE, "false");
+        readerFactory.addRecord("name", 1, "blue", 10.0);
+        testRunner.enqueue("trigger", flowFileAttributes);
+        testRunner.run();
+        testRunner.assertTransferCount(PutORC.REL_FAILURE, 1);
+    }
+
+    @Test
     public void testWriteORCWithDefaults() throws IOException, InitializationException {
         configure(proc, 100);
 

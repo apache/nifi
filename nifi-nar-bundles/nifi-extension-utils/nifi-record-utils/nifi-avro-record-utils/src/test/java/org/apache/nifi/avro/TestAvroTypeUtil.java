@@ -55,6 +55,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -586,5 +587,57 @@ public class TestAvroTypeUtil {
             assertTrue(inner instanceof Record);
             assertNotNull(((Record)inner).get("Message"));
         }
+    }
+
+    @Test
+    public void testConvertToAvroObjectWhenIntVSUnion_INT_FLOAT_ThenReturnInt() {
+        // GIVEN
+        List<Schema.Type> schemaTypes = Arrays.asList(
+                Schema.Type.INT,
+                Schema.Type.FLOAT
+        );
+        Integer rawValue = 1;
+
+        Object expected = 1;
+
+        // WHEN
+        // THEN
+        testConvertToAvroObjectAlsoReverseSchemaList(expected, rawValue, schemaTypes);
+    }
+
+    @Test
+    public void testConvertToAvroObjectWhenFloatVSUnion_INT_FLOAT_ThenReturnFloat() {
+        // GIVEN
+        List<Schema.Type> schemaTypes = Arrays.asList(
+                Schema.Type.INT,
+                Schema.Type.FLOAT
+        );
+        Float rawValue = 1.5f;
+
+        Object expected = 1.5f;
+
+        // WHEN
+        // THEN
+        testConvertToAvroObjectAlsoReverseSchemaList(expected, rawValue, schemaTypes);
+    }
+
+    private void testConvertToAvroObjectAlsoReverseSchemaList(Object expected, Object rawValue, List<Schema.Type> schemaTypes) {
+        // GIVEN
+        List<Schema> schemaList = schemaTypes.stream()
+                .map(Schema::create)
+                .collect(Collectors.toList());
+
+        // WHEN
+        Object actual = AvroTypeUtil.convertToAvroObject(rawValue, Schema.createUnion(schemaList), StandardCharsets.UTF_16);
+
+        // THEN
+        assertEquals(expected, actual);
+
+        // WHEN
+        Collections.reverse(schemaList);
+        Object actualAfterReverse = AvroTypeUtil.convertToAvroObject(rawValue, Schema.createUnion(schemaList), StandardCharsets.UTF_16);
+
+        // THEN
+        assertEquals(expected, actualAfterReverse);
     }
 }
