@@ -16,9 +16,10 @@
  */
 package org.apache.nifi.amqp.processors;
 
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import com.rabbitmq.client.AMQP.BasicProperties;
+import com.rabbitmq.client.Connection;
+import com.rabbitmq.client.GetResponse;
+import org.junit.Test;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -26,19 +27,16 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeoutException;
 
-import org.junit.Test;
-
-import com.rabbitmq.client.AMQP.BasicProperties;
-import com.rabbitmq.client.Connection;
-import com.rabbitmq.client.GetResponse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 public class AMQPConsumerTest {
 
 
     @Test
-    public void testUnconsumedMessagesNacked() throws TimeoutException, IOException {
+    public void testUnconsumedMessagesNacked() throws IOException {
         final Map<String, List<String>> routingMap = Collections.singletonMap("key1", Arrays.asList("queue1", "queue2"));
         final Map<String, String> exchangeToRoutingKeymap = Collections.singletonMap("myExchange", "key1");
 
@@ -76,9 +74,9 @@ public class AMQPConsumerTest {
     }
 
     @Test
-    public void validateSuccessfullConsumeWithEmptyQueueDefaultExchange() throws Exception {
+    public void validateSuccessfulConsumeWithEmptyQueueDefaultExchange() throws Exception {
         Map<String, List<String>> routingMap = new HashMap<>();
-        routingMap.put("queue1", Arrays.asList("queue1"));
+        routingMap.put("queue1", Collections.singletonList("queue1"));
         Map<String, String> exchangeToRoutingKeymap = new HashMap<>();
         exchangeToRoutingKeymap.put("", "queue1");
 
@@ -90,9 +88,9 @@ public class AMQPConsumerTest {
     }
 
     @Test
-    public void validateSuccessfullConsumeWithEmptyQueue() throws Exception {
+    public void validateSuccessfulConsumeWithEmptyQueue() throws Exception {
         Map<String, List<String>> routingMap = new HashMap<>();
-        routingMap.put("key1", Arrays.asList("queue1"));
+        routingMap.put("key1", Collections.singletonList("queue1"));
         Map<String, String> exchangeToRoutingKeymap = new HashMap<>();
         exchangeToRoutingKeymap.put("myExchange", "key1");
 

@@ -16,14 +16,11 @@
  */
 package org.apache.nifi.amqp.processors;
 
-import java.io.IOException;
-
-import org.apache.nifi.logging.ComponentLog;
-
 import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ReturnListener;
+import org.apache.nifi.logging.ComponentLog;
 
 /**
  * Generic publisher of messages to AMQP-based messaging system. It is based on
@@ -50,12 +47,12 @@ final class AMQPPublisher extends AMQPWorker {
      * Publishes message with provided AMQP properties (see
      * {@link BasicProperties}) to a pre-defined AMQP Exchange.
      *
-     * @param bytes bytes representing a message.
+     * @param bytes      bytes representing a message.
      * @param properties instance of {@link BasicProperties}
-     * @param exchange the name of AMQP exchange to which messages will be published.
-     *            If not provided 'default' exchange will be used.
+     * @param exchange   the name of AMQP exchange to which messages will be published.
+     *                   If not provided 'default' exchange will be used.
      * @param routingKey (required) the name of the routingKey to be used by AMQP-based
-     *            system to route messages to its final destination (queue).
+     *                   system to route messages to its final destination (queue).
      */
     void publish(byte[] bytes, BasicProperties properties, String routingKey, String exchange) {
         this.validateStringProperty("routingKey", routingKey);
@@ -97,7 +94,7 @@ final class AMQPPublisher extends AMQPWorker {
      */
     private final class UndeliverableMessageLogger implements ReturnListener {
         @Override
-        public void handleReturn(int replyCode, String replyText, String exchangeName, String routingKey, BasicProperties properties, byte[] message) throws IOException {
+        public void handleReturn(int replyCode, String replyText, String exchangeName, String routingKey, BasicProperties properties, byte[] message) {
             String logMessage = "Message destined for '" + exchangeName + "' exchange with '" + routingKey
                     + "' as routing key came back with replyCode=" + replyCode + " and replyText=" + replyText + ".";
             processLog.warn(logMessage);

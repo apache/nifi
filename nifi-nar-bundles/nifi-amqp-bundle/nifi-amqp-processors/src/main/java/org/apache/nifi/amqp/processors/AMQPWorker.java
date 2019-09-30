@@ -16,14 +16,13 @@
  */
 package org.apache.nifi.amqp.processors;
 
-import java.io.IOException;
-import java.util.concurrent.TimeoutException;
-
+import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.Connection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.Connection;
+import java.io.IOException;
+import java.util.concurrent.TimeoutException;
 
 /**
  * Base class for implementing publishing and consuming AMQP workers.
@@ -44,7 +43,7 @@ abstract class AMQPWorker implements AutoCloseable {
      *
      * @param connection instance of {@link Connection}
      */
-    public AMQPWorker(final Connection connection) {
+    AMQPWorker(final Connection connection) {
         validateConnection(connection);
 
         try {
@@ -55,7 +54,7 @@ abstract class AMQPWorker implements AutoCloseable {
         }
     }
 
-    protected Channel getChannel() {
+    Channel getChannel() {
         return channel;
     }
 
@@ -83,7 +82,7 @@ abstract class AMQPWorker implements AutoCloseable {
      * Validates that a String property has value (not null nor empty)
      *
      * @param propertyName the name of the property
-     * @param value the value of the property
+     * @param value        the value of the property
      */
     void validateStringProperty(String propertyName, String value) {
         if (value == null || value.trim().length() == 0) {

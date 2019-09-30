@@ -49,7 +49,7 @@ import java.util.concurrent.LinkedBlockingQueue;
  */
 abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProcessor {
 
-    public static final PropertyDescriptor HOST = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor HOST = new PropertyDescriptor.Builder()
             .name("Host Name")
             .description("Network address of AMQP broker (e.g., localhost)")
             .required(true)
@@ -57,7 +57,7 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
             .build();
-    public static final PropertyDescriptor PORT = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor PORT = new PropertyDescriptor.Builder()
             .name("Port")
             .description("Numeric value identifying Port of AMQP broker (e.g., 5671)")
             .required(true)
@@ -65,14 +65,7 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.PORT_VALIDATOR)
             .build();
-    public static final PropertyDescriptor V_HOST = new PropertyDescriptor.Builder()
-            .name("Virtual Host")
-            .description("Virtual Host name which segregates AMQP system for enhanced security.")
-            .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
-            .build();
-    public static final PropertyDescriptor USER = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor USER = new PropertyDescriptor.Builder()
             .name("User Name")
             .description("User Name used for authentication and authorization.")
             .required(true)
@@ -80,7 +73,7 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
             .build();
-    public static final PropertyDescriptor PASSWORD = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor PASSWORD = new PropertyDescriptor.Builder()
             .name("Password")
             .description("Password used for authentication and authorization.")
             .required(true)
@@ -88,21 +81,14 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .sensitive(true)
             .build();
-    public static final PropertyDescriptor AMQP_VERSION = new PropertyDescriptor.Builder()
-            .name("AMQP Version")
-            .description("AMQP Version. Currently only supports AMQP v0.9.1.")
-            .required(true)
-            .allowableValues("0.9.1")
-            .defaultValue("0.9.1")
-            .build();
-    public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
             .name("ssl-context-service")
             .displayName("SSL Context Service")
             .description("The SSL Context Service used to provide client certificate information for TLS/SSL connections.")
             .required(false)
             .identifiesControllerService(SSLContextService.class)
             .build();
-    public static final PropertyDescriptor USE_CERT_AUTHENTICATION = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor USE_CERT_AUTHENTICATION = new PropertyDescriptor.Builder()
             .name("cert-authentication")
             .displayName("Use Certificate Authentication")
             .description("Authenticate using the SSL certificate common name rather than user name/password.")
@@ -111,7 +97,7 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
             .allowableValues("true", "false")
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .build();
-    public static final PropertyDescriptor CLIENT_AUTH = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor CLIENT_AUTH = new PropertyDescriptor.Builder()
             .name("ssl-client-auth")
             .displayName("Client Auth")
             .description("Client authentication policy when connecting to secure (TLS/SSL) AMQP broker. "
@@ -121,7 +107,20 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
             .allowableValues(SSLContextService.ClientAuth.values())
             .defaultValue("REQUIRED")
             .build();
-
+    private static final PropertyDescriptor V_HOST = new PropertyDescriptor.Builder()
+            .name("Virtual Host")
+            .description("Virtual Host name which segregates AMQP system for enhanced security.")
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
+            .build();
+    private static final PropertyDescriptor AMQP_VERSION = new PropertyDescriptor.Builder()
+            .name("AMQP Version")
+            .description("AMQP Version. Currently only supports AMQP v0.9.1.")
+            .required(true)
+            .allowableValues("0.9.1")
+            .defaultValue("0.9.1")
+            .build();
     private static final List<PropertyDescriptor> propertyDescriptors;
 
     static {
@@ -138,12 +137,11 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
         propertyDescriptors = Collections.unmodifiableList(properties);
     }
 
-    protected static List<PropertyDescriptor> getCommonPropertyDescriptors() {
-        return propertyDescriptors;
-    }
-
     private final BlockingQueue<AMQPResource<T>> resourceQueue = new LinkedBlockingQueue<>();
 
+    static List<PropertyDescriptor> getCommonPropertyDescriptors() {
+        return propertyDescriptors;
+    }
 
     /**
      * Will builds target resource ({@link AMQPPublisher} or {@link AMQPConsumer}) upon first invocation and will delegate to the
@@ -172,7 +170,7 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
 
 
     @OnStopped
-    public void close() {
+    void close() {
         AMQPResource<T> resource;
         while ((resource = resourceQueue.poll()) != null) {
             try {
@@ -249,8 +247,7 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
         }
 
         try {
-            Connection connection = cf.newConnection();
-            return connection;
+            return cf.newConnection();
         } catch (Exception e) {
             throw new IllegalStateException("Failed to establish connection with AMQP Broker: " + cf.toString(), e);
         }

@@ -35,11 +35,11 @@ import static org.mockito.Mockito.when;
  */
 public class AbstractAMQPProcessorTest {
 
-    MockAbstractAMQPProcessor processor;
+    private MockAbstractAMQPProcessor processor;
     private TestRunner testRunner;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         processor = new MockAbstractAMQPProcessor();
         testRunner = TestRunners.newTestRunner(processor);
     }
@@ -62,7 +62,7 @@ public class AbstractAMQPProcessorTest {
     }
 
     @Test(expected = IllegalStateException.class)
-    public void testInvalidSSLConfiguration() throws Exception {
+    public void testInvalidSSLConfiguration() {
         // it's invalid to have use_cert_auth enabled and not have the SSL Context Service configured
         testRunner.setProperty(AbstractAMQPProcessor.USE_CERT_AUTHENTICATION, "true");
         testRunner.setProperty(AbstractAMQPProcessor.HOST, "test");

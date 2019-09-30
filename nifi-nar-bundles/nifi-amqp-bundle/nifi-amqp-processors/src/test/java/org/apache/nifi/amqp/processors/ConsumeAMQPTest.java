@@ -16,18 +16,10 @@
  */
 package org.apache.nifi.amqp.processors;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
-
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.TimeoutException;
-
+import com.rabbitmq.client.AMQP.BasicProperties;
+import com.rabbitmq.client.Connection;
+import com.rabbitmq.client.Envelope;
+import com.rabbitmq.client.MessageProperties;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.exception.ProcessException;
@@ -36,16 +28,23 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Test;
 
-import com.rabbitmq.client.AMQP.BasicProperties;
-import com.rabbitmq.client.Connection;
-import com.rabbitmq.client.Envelope;
-import com.rabbitmq.client.MessageProperties;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeoutException;
+
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
 
 public class ConsumeAMQPTest {
 
     @Test
     public void testMessageAcked() throws TimeoutException, IOException {
-        final Map<String, List<String>> routingMap = Collections.singletonMap("key1", Arrays.asList("queue1"));
+        final Map<String, List<String>> routingMap = Collections.singletonMap("key1", Collections.singletonList("queue1"));
         final Map<String, String> exchangeToRoutingKeymap = Collections.singletonMap("myExchange", "key1");
 
         final Connection connection = new TestConnection(exchangeToRoutingKeymap, routingMap);
@@ -78,7 +77,7 @@ public class ConsumeAMQPTest {
 
     @Test
     public void testBatchSizeAffectsAcks() throws TimeoutException, IOException {
-        final Map<String, List<String>> routingMap = Collections.singletonMap("key1", Arrays.asList("queue1"));
+        final Map<String, List<String>> routingMap = Collections.singletonMap("key1", Collections.singletonList("queue1"));
         final Map<String, String> exchangeToRoutingKeymap = Collections.singletonMap("myExchange", "key1");
 
         final Connection connection = new TestConnection(exchangeToRoutingKeymap, routingMap);
@@ -111,7 +110,7 @@ public class ConsumeAMQPTest {
 
     @Test
     public void testMessagesRejectedOnStop() throws TimeoutException, IOException {
-        final Map<String, List<String>> routingMap = Collections.singletonMap("key1", Arrays.asList("queue1"));
+        final Map<String, List<String>> routingMap = Collections.singletonMap("key1", Collections.singletonList("queue1"));
         final Map<String, String> exchangeToRoutingKeymap = Collections.singletonMap("myExchange", "key1");
 
         final Connection connection = new TestConnection(exchangeToRoutingKeymap, routingMap);
@@ -150,7 +149,7 @@ public class ConsumeAMQPTest {
     }
 
     @Test
-    public void validateSuccessfullConsumeAndTransferToSuccess() throws Exception {
+    public void validateSuccessfulConsumeAndTransferToSuccess() throws Exception {
         final Map<String, List<String>> routingMap = Collections.singletonMap("key1", Arrays.asList("queue1", "queue2"));
         final Map<String, String> exchangeToRoutingKeymap = Collections.singletonMap("myExchange", "key1");
 
@@ -174,7 +173,7 @@ public class ConsumeAMQPTest {
         private final Connection connection;
         private AMQPConsumer consumer;
 
-        public LocalConsumeAMQP(Connection connection) {
+        LocalConsumeAMQP(Connection connection) {
             this.connection = connection;
         }
 
@@ -185,14 +184,15 @@ public class ConsumeAMQPTest {
                     throw new IllegalStateException("Consumer already created");
                 }
 
-                consumer = new AMQPConsumer(connection, context.getProperty(QUEUE).getValue(), context.getProperty(AUTO_ACKNOWLEDGE).asBoolean());
+                consumer = new AMQPConsumer(connection, context.getProperty(QUEUE).getValue(), context.getProperty(AUTO_ACKNOWLEDGE).asBoolean(),
+                        context.getProperty(PREFETCH_SIZE).asInteger(), context.getProperty(PREFETCH_COUNT).asInteger(), context.getProperty(GLOBAL_PREFETCH).asBoolean());
                 return consumer;
             } catch (IOException e) {
                 throw new ProcessException(e);
             }
         }
 
-        public AMQPConsumer getAMQPWorker() {
+        AMQPConsumer getAMQPWorker() {
             return consumer;
         }
 

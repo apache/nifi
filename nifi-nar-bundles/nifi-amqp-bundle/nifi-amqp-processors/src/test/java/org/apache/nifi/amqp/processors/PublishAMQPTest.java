@@ -16,10 +16,14 @@
  */
 package org.apache.nifi.amqp.processors;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.Connection;
+import com.rabbitmq.client.GetResponse;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -28,21 +32,16 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.junit.Test;
-
-import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.Connection;
-import com.rabbitmq.client.GetResponse;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 public class PublishAMQPTest {
 
     @Test
-    public void validateSuccessfullPublishAndTransferToSuccess() throws Exception {
-        final PublishAMQP pubProc = new LocalPublishAMQP();
+    public void validateSuccessfulPublishAndTransferToSuccess() throws Exception {
+        final LocalPublishAMQP pubProc = new LocalPublishAMQP();
         final TestRunner runner = TestRunners.newTestRunner(pubProc);
         runner.setProperty(PublishAMQP.HOST, "injvm");
         runner.setProperty(PublishAMQP.EXCHANGE, "myExchange");
@@ -72,7 +71,7 @@ public class PublishAMQPTest {
         final MockFlowFile successFF = runner.getFlowFilesForRelationship(PublishAMQP.REL_SUCCESS).get(0);
         assertNotNull(successFF);
 
-        final Channel channel = ((LocalPublishAMQP) pubProc).getConnection().createChannel();
+        final Channel channel = pubProc.getConnection().createChannel();
         final GetResponse msg1 = channel.basicGet("queue1", true);
         assertNotNull(msg1);
         assertEquals("foo/bar", msg1.getProps().getContentType());
@@ -104,7 +103,7 @@ public class PublishAMQPTest {
     }
 
     @Test
-    public void validateFailedPublishAndTransferToFailure() throws Exception {
+    public void validateFailedPublishAndTransferToFailure() {
         PublishAMQP pubProc = new LocalPublishAMQP();
         TestRunner runner = TestRunners.newTestRunner(pubProc);
         runner.setProperty(PublishAMQP.HOST, "injvm");
@@ -123,7 +122,7 @@ public class PublishAMQPTest {
     public static class LocalPublishAMQP extends PublishAMQP {
         private TestConnection connection;
 
-        public LocalPublishAMQP() {
+        LocalPublishAMQP() {
             final Map<String, List<String>> routingMap = Collections.singletonMap("key1", Arrays.asList("queue1", "queue2"));
             final Map<String, String> exchangeToRoutingKeymap = Collections.singletonMap("myExchange", "key1");
 
@@ -135,7 +134,7 @@ public class PublishAMQPTest {
             return connection;
         }
 
-        public Connection getConnection() {
+        Connection getConnection() {
             return connection;
         }
     }

@@ -16,24 +16,15 @@
  */
 package org.apache.nifi.amqp.processors;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Consumer;
-
-import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
+import com.rabbitmq.client.AMQP;
+import com.rabbitmq.client.AMQP.BasicProperties;
+import com.rabbitmq.client.Connection;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
-import org.apache.nifi.annotation.behavior.SystemResource;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.behavior.ReadsAttributes;
+import org.apache.nifi.annotation.behavior.SystemResource;
+import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -44,42 +35,45 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.stream.io.StreamUtils;
 
-import com.rabbitmq.client.AMQP;
-import com.rabbitmq.client.AMQP.BasicProperties;
-import com.rabbitmq.client.Connection;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Consumer;
 
-@Tags({ "amqp", "rabbit", "put", "message", "send", "publish" })
+@Tags({"amqp", "rabbit", "put", "message", "send", "publish"})
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @CapabilityDescription("Creates an AMQP Message from the contents of a FlowFile and sends the message to an AMQP Exchange. "
-    + "In a typical AMQP exchange model, the message that is sent to the AMQP Exchange will be routed based on the 'Routing Key' "
-    + "to its final destination in the queue (the binding). If due to some misconfiguration the binding between the Exchange, Routing Key "
-    + "and Queue is not set up, the message will have no final destination and will return (i.e., the data will not make it to the queue). If "
-    + "that happens you will see a log in both app-log and bulletin stating to that effect, and the FlowFile will be routed to the 'failure' relationship.")
+        + "In a typical AMQP exchange model, the message that is sent to the AMQP Exchange will be routed based on the 'Routing Key' "
+        + "to its final destination in the queue (the binding). If due to some misconfiguration the binding between the Exchange, Routing Key "
+        + "and Queue is not set up, the message will have no final destination and will return (i.e., the data will not make it to the queue). If "
+        + "that happens you will see a log in both app-log and bulletin stating to that effect, and the FlowFile will be routed to the 'failure' relationship.")
 @SystemResourceConsideration(resource = SystemResource.MEMORY)
 @ReadsAttributes({
-    @ReadsAttribute(attribute = "amqp$appId", description = "The App ID field to set on the AMQP Message"),
-    @ReadsAttribute(attribute = "amqp$contentEncoding", description = "The Content Encoding to set on the AMQP Message"),
-    @ReadsAttribute(attribute = "amqp$contentType", description = "The Content Type to set on the AMQP Message"),
-    @ReadsAttribute(attribute = "amqp$headers", description = "The headers to set on the AMQP Message"),
-    @ReadsAttribute(attribute = "amqp$deliveryMode", description = "The numeric indicator for the Message's Delivery Mode"),
-    @ReadsAttribute(attribute = "amqp$priority", description = "The Message priority"),
-    @ReadsAttribute(attribute = "amqp$correlationId", description = "The Message's Correlation ID"),
-    @ReadsAttribute(attribute = "amqp$replyTo", description = "The value of the Message's Reply-To field"),
-    @ReadsAttribute(attribute = "amqp$expiration", description = "The Message Expiration"),
-    @ReadsAttribute(attribute = "amqp$messageId", description = "The unique ID of the Message"),
-    @ReadsAttribute(attribute = "amqp$timestamp", description = "The timestamp of the Message, as the number of milliseconds since epoch"),
-    @ReadsAttribute(attribute = "amqp$type", description = "The type of message"),
-    @ReadsAttribute(attribute = "amqp$userId", description = "The ID of the user"),
-    @ReadsAttribute(attribute = "amqp$clusterId", description = "The ID of the AMQP Cluster"),
+        @ReadsAttribute(attribute = "amqp$appId", description = "The App ID field to set on the AMQP Message"),
+        @ReadsAttribute(attribute = "amqp$contentEncoding", description = "The Content Encoding to set on the AMQP Message"),
+        @ReadsAttribute(attribute = "amqp$contentType", description = "The Content Type to set on the AMQP Message"),
+        @ReadsAttribute(attribute = "amqp$headers", description = "The headers to set on the AMQP Message"),
+        @ReadsAttribute(attribute = "amqp$deliveryMode", description = "The numeric indicator for the Message's Delivery Mode"),
+        @ReadsAttribute(attribute = "amqp$priority", description = "The Message priority"),
+        @ReadsAttribute(attribute = "amqp$correlationId", description = "The Message's Correlation ID"),
+        @ReadsAttribute(attribute = "amqp$replyTo", description = "The value of the Message's Reply-To field"),
+        @ReadsAttribute(attribute = "amqp$expiration", description = "The Message Expiration"),
+        @ReadsAttribute(attribute = "amqp$messageId", description = "The unique ID of the Message"),
+        @ReadsAttribute(attribute = "amqp$timestamp", description = "The timestamp of the Message, as the number of milliseconds since epoch"),
+        @ReadsAttribute(attribute = "amqp$type", description = "The type of message"),
+        @ReadsAttribute(attribute = "amqp$userId", description = "The ID of the user"),
+        @ReadsAttribute(attribute = "amqp$clusterId", description = "The ID of the AMQP Cluster"),
 })
 public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
-    private static final String ATTRIBUTES_PREFIX = "amqp$";
-
-    public static final PropertyDescriptor EXCHANGE = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor EXCHANGE = new PropertyDescriptor.Builder()
             .name("Exchange Name")
             .description("The name of the AMQP Exchange the messages will be sent to. Usually provided by the AMQP administrator (e.g., 'amq.direct'). "
                     + "It is an optional property. If kept empty the messages will be sent to a default AMQP exchange.")
@@ -88,7 +82,7 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(Validator.VALID)
             .build();
-    public static final PropertyDescriptor ROUTING_KEY = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor ROUTING_KEY = new PropertyDescriptor.Builder()
             .name("Routing Key")
             .description("The name of the Routing Key that will be used by AMQP to route messages from the exchange to a destination queue(s). "
                     + "Usually provided by the administrator (e.g., 'myKey')In the event when messages are sent to a default exchange this property "
@@ -98,16 +92,15 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
-
-    public static final Relationship REL_SUCCESS = new Relationship.Builder()
+    static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("All FlowFiles that are sent to the AMQP destination are routed to this relationship")
             .build();
-    public static final Relationship REL_FAILURE = new Relationship.Builder()
+    static final Relationship REL_FAILURE = new Relationship.Builder()
             .name("failure")
             .description("All FlowFiles that cannot be routed to the AMQP destination are routed to this relationship")
             .build();
-
+    private static final String ATTRIBUTES_PREFIX = "amqp$";
     private final static List<PropertyDescriptor> propertyDescriptors;
 
     private final static Set<Relationship> relationships;
@@ -147,7 +140,7 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
         final String routingKey = context.getProperty(ROUTING_KEY).evaluateAttributeExpressions(flowFile).getValue();
         if (routingKey == null) {
             throw new IllegalArgumentException("Failed to determine 'routing key' with provided value '"
-                + context.getProperty(ROUTING_KEY) + "' after evaluating it as expression against incoming FlowFile.");
+                    + context.getProperty(ROUTING_KEY) + "' after evaluating it as expression against incoming FlowFile.");
         }
 
         final String exchange = context.getProperty(EXCHANGE).evaluateAttributeExpressions(flowFile).getValue();
@@ -182,14 +175,9 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
     /**
      * Extracts contents of the {@link FlowFile} as byte array.
      */
-    private byte[] extractMessage(FlowFile flowFile, ProcessSession session){
+    private byte[] extractMessage(FlowFile flowFile, ProcessSession session) {
         final byte[] messageContent = new byte[(int) flowFile.getSize()];
-        session.read(flowFile, new InputStreamCallback() {
-            @Override
-            public void process(final InputStream in) throws IOException {
-                StreamUtils.fillBuffer(in, messageContent, true);
-            }
-        });
+        session.read(flowFile, in -> StreamUtils.fillBuffer(in, messageContent, true));
         return messageContent;
     }
 
@@ -222,7 +210,6 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
      */
     private BasicProperties extractAmqpPropertiesFromFlowFile(FlowFile flowFile) {
         final AMQP.BasicProperties.Builder builder = new AMQP.BasicProperties.Builder();
-
         updateBuilderFromAttribute(flowFile, "contentType", builder::contentType);
         updateBuilderFromAttribute(flowFile, "contentEncoding", builder::contentEncoding);
         updateBuilderFromAttribute(flowFile, "deliveryMode", mode -> builder.deliveryMode(Integer.parseInt(mode)));

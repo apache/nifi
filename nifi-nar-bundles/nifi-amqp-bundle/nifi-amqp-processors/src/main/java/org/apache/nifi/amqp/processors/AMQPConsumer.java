@@ -16,15 +16,6 @@
  */
 package org.apache.nifi.amqp.processors;
 
-import java.io.IOException;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeoutException;
-
-import org.apache.nifi.processor.exception.ProcessException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
@@ -32,6 +23,13 @@ import com.rabbitmq.client.Consumer;
 import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
 import com.rabbitmq.client.GetResponse;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 /**
  * Generic consumer of messages from AMQP-based messaging system. It is based on
@@ -47,13 +45,16 @@ final class AMQPConsumer extends AMQPWorker {
 
     private volatile boolean closed = false;
 
-
     AMQPConsumer(final Connection connection, final String queueName, final boolean autoAcknowledge) throws IOException {
+        this(connection, queueName, autoAcknowledge, 0, 0, false);
+    }
+
+    AMQPConsumer(final Connection connection, final String queueName, final boolean autoAcknowledge, final int prefetchSize, final int prefetchCount, final boolean globalPrefetch) throws IOException {
         super(connection);
         this.validateStringProperty("queueName", queueName);
         this.queueName = queueName;
         this.autoAcknowledge = autoAcknowledge;
-        this.responseQueue = new LinkedBlockingQueue<>(10);
+        this.responseQueue = new LinkedBlockingQueue<>(prefetchCount != 0 ? prefetchCount : Integer.MAX_VALUE);
 
         logger.info("Successfully connected AMQPConsumer to " + connection.toString() + " and '" + queueName + "' queue");
 
@@ -75,10 +76,11 @@ final class AMQPConsumer extends AMQPWorker {
         };
 
         channel.basicConsume(queueName, autoAcknowledge, consumer);
+        channel.basicQos(prefetchSize, prefetchCount, globalPrefetch);
     }
 
     // Visible for unit tests
-    protected Consumer getConsumer() {
+    Consumer getConsumer() {
         return consumer;
     }
 
@@ -92,11 +94,11 @@ final class AMQPConsumer extends AMQPWorker {
      *
      * @return instance of {@link GetResponse}
      */
-    public GetResponse consume() {
+    GetResponse consume() {
         return responseQueue.poll();
     }
 
-    public void acknowledge(final GetResponse response) throws IOException {
+    void acknowledge(final GetResponse response) throws IOException {
         if (autoAcknowledge) {
             return;
         }
@@ -105,7 +107,7 @@ final class AMQPConsumer extends AMQPWorker {
     }
 
     @Override
-    public void close() throws TimeoutException, IOException {
+    public void close() throws IOException {
         closed = true;
 
         GetResponse lastMessage = null;

@@ -16,15 +16,9 @@
  */
 package org.apache.nifi.amqp.processors;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
+import com.rabbitmq.client.AMQP.BasicProperties;
+import com.rabbitmq.client.Connection;
+import com.rabbitmq.client.GetResponse;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -40,65 +34,94 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 
-import com.rabbitmq.client.AMQP.BasicProperties;
-import com.rabbitmq.client.Connection;
-import com.rabbitmq.client.GetResponse;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 @Tags({"amqp", "rabbit", "get", "message", "receive", "consume"})
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @CapabilityDescription("Consumes AMQP Messages from an AMQP Broker using the AMQP 0.9.1 protocol. Each message that is received from the AMQP Broker will be "
-    + "emitted as its own FlowFile to the 'success' relationship.")
+        + "emitted as its own FlowFile to the 'success' relationship.")
 @WritesAttributes({
-    @WritesAttribute(attribute = "amqp$appId", description = "The App ID field from the AMQP Message"),
-    @WritesAttribute(attribute = "amqp$contentEncoding", description = "The Content Encoding reported by the AMQP Message"),
-    @WritesAttribute(attribute = "amqp$contentType", description = "The Content Type reported by the AMQP Message"),
-    @WritesAttribute(attribute = "amqp$headers", description = "The headers present on the AMQP Message"),
-    @WritesAttribute(attribute = "amqp$deliveryMode", description = "The numeric indicator for the Message's Delivery Mode"),
-    @WritesAttribute(attribute = "amqp$priority", description = "The Message priority"),
-    @WritesAttribute(attribute = "amqp$correlationId", description = "The Message's Correlation ID"),
-    @WritesAttribute(attribute = "amqp$replyTo", description = "The value of the Message's Reply-To field"),
-    @WritesAttribute(attribute = "amqp$expiration", description = "The Message Expiration"),
-    @WritesAttribute(attribute = "amqp$messageId", description = "The unique ID of the Message"),
-    @WritesAttribute(attribute = "amqp$timestamp", description = "The timestamp of the Message, as the number of milliseconds since epoch"),
-    @WritesAttribute(attribute = "amqp$type", description = "The type of message"),
-    @WritesAttribute(attribute = "amqp$userId", description = "The ID of the user"),
-    @WritesAttribute(attribute = "amqp$clusterId", description = "The ID of the AMQP Cluster"),
+        @WritesAttribute(attribute = "amqp$appId", description = "The App ID field from the AMQP Message"),
+        @WritesAttribute(attribute = "amqp$contentEncoding", description = "The Content Encoding reported by the AMQP Message"),
+        @WritesAttribute(attribute = "amqp$contentType", description = "The Content Type reported by the AMQP Message"),
+        @WritesAttribute(attribute = "amqp$headers", description = "The headers present on the AMQP Message"),
+        @WritesAttribute(attribute = "amqp$deliveryMode", description = "The numeric indicator for the Message's Delivery Mode"),
+        @WritesAttribute(attribute = "amqp$priority", description = "The Message priority"),
+        @WritesAttribute(attribute = "amqp$correlationId", description = "The Message's Correlation ID"),
+        @WritesAttribute(attribute = "amqp$replyTo", description = "The value of the Message's Reply-To field"),
+        @WritesAttribute(attribute = "amqp$expiration", description = "The Message Expiration"),
+        @WritesAttribute(attribute = "amqp$messageId", description = "The unique ID of the Message"),
+        @WritesAttribute(attribute = "amqp$timestamp", description = "The timestamp of the Message, as the number of milliseconds since epoch"),
+        @WritesAttribute(attribute = "amqp$type", description = "The type of message"),
+        @WritesAttribute(attribute = "amqp$userId", description = "The ID of the user"),
+        @WritesAttribute(attribute = "amqp$clusterId", description = "The ID of the AMQP Cluster"),
 })
 public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
-    private static final String ATTRIBUTES_PREFIX = "amqp$";
-
-    public static final PropertyDescriptor QUEUE = new PropertyDescriptor.Builder()
-        .name("Queue")
-        .description("The name of the existing AMQP Queue from which messages will be consumed. Usually pre-defined by AMQP administrator. ")
-        .required(true)
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .build();
+    static final PropertyDescriptor QUEUE = new PropertyDescriptor.Builder()
+            .name("Queue")
+            .description("The name of the existing AMQP Queue from which messages will be consumed. Usually pre-defined by AMQP administrator. ")
+            .required(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+    private static final Relationship REL_SUCCESS = new Relationship.Builder()
+            .name("success")
+            .description("All FlowFiles that are received from the AMQP queue are routed to this relationship")
+            .build();
     static final PropertyDescriptor AUTO_ACKNOWLEDGE = new PropertyDescriptor.Builder()
-        .name("auto.acknowledge")
-        .displayName("Auto-Acknowledge messages")
-        .description("If true, messages that are received will be auto-acknowledged by the AMQP Broker. "
-            + "This generally will provide better throughput but could result in messages being lost upon restart of NiFi")
-        .allowableValues("true", "false")
-        .defaultValue("false")
-        .required(true)
-        .build();
+            .name("auto.acknowledge")
+            .displayName("Auto-Acknowledge messages")
+            .description("If true, messages that are received will be auto-acknowledged by the AMQP Broker. "
+                    + "This generally will provide better throughput but could result in messages being lost upon restart of NiFi")
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .required(true)
+            .build();
     static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
-        .name("batch.size")
-        .displayName("Batch Size")
-        .description("The maximum number of messages that should be pulled in a single session. Once this many messages have been received (or once no more messages are readily available), "
-            + "the messages received will be transferred to the 'success' relationship and the messages will be acknowledged with the AMQP Broker. Setting this value to a larger number "
-            + "could result in better performance, particularly for very small messages, but can also result in more messages being duplicated upon sudden restart of NiFi.")
-        .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
-        .defaultValue("10")
-        .required(true)
-        .build();
-
-    public static final Relationship REL_SUCCESS = new Relationship.Builder()
-        .name("success")
-        .description("All FlowFiles that are received from the AMQP queue are routed to this relationship")
-        .build();
-
+            .name("batch.size")
+            .displayName("Batch Size")
+            .description("The maximum number of messages that should be pulled in a single session. Once this many messages have been received (or once no more messages are readily available), "
+                    + "the messages received will be transferred to the 'success' relationship and the messages will be acknowledged with the AMQP Broker. Setting this value to a larger number "
+                    + "could result in better performance, particularly for very small messages, but can also result in more messages being duplicated upon sudden restart of NiFi.")
+            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .defaultValue("10")
+            .required(true)
+            .build();
+    static final PropertyDescriptor PREFETCH_SIZE = new PropertyDescriptor.Builder()
+            .name("Prefetch Size")
+            .displayName("Prefetch Size")
+            .description("The limit of unacknowledged messages in bytes on a channel (or connection) when consuming.")
+            .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .defaultValue("0")
+            .required(false)
+            .build();
+    static final PropertyDescriptor PREFETCH_COUNT = new PropertyDescriptor.Builder()
+            .name("Prefetch Count")
+            .displayName("Prefetch Count")
+            .description("The limit of unacknowledged messages on a channel (or connection) when consuming.")
+            .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .defaultValue("10")
+            .required(true)
+            .build();
+    static final PropertyDescriptor GLOBAL_PREFETCH = new PropertyDescriptor.Builder()
+            .name("Global Prefetch")
+            .displayName("Global Prefetch")
+            .description("If false, the prefetch should be shared across all consumers on the channel. If true, the prefetch should be shared across all consumers on the connection.")
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .defaultValue("false")
+            .required(true)
+            .build();
+    private static final String ATTRIBUTES_PREFIX = "amqp$";
     private static final List<PropertyDescriptor> propertyDescriptors;
     private static final Set<Relationship> relationships;
 
@@ -107,6 +130,9 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
         properties.add(QUEUE);
         properties.add(AUTO_ACKNOWLEDGE);
         properties.add(BATCH_SIZE);
+        properties.add(PREFETCH_SIZE);
+        properties.add(PREFETCH_COUNT);
+        properties.add(GLOBAL_PREFETCH);
         properties.addAll(getCommonPropertyDescriptors());
         propertyDescriptors = Collections.unmodifiableList(properties);
 
@@ -190,9 +216,11 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
         try {
             final String queueName = context.getProperty(QUEUE).getValue();
             final boolean autoAcknowledge = context.getProperty(AUTO_ACKNOWLEDGE).asBoolean();
-            final AMQPConsumer amqpConsumer = new AMQPConsumer(connection, queueName, autoAcknowledge);
+            final int prefetchSize = context.getProperty(PREFETCH_SIZE).asInteger();
+            final int prefetchCount = context.getProperty(PREFETCH_COUNT).asInteger();
+            final boolean globalPrefetch = context.getProperty(GLOBAL_PREFETCH).asBoolean();
 
-            return amqpConsumer;
+            return new AMQPConsumer(connection, queueName, autoAcknowledge, prefetchSize, prefetchCount, globalPrefetch);
         } catch (final IOException ioe) {
             throw new ProcessException("Failed to connect to AMQP Broker", ioe);
         }
