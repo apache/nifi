@@ -95,6 +95,10 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
     public static final String RETRY_POLICY_CUSTOM = "custom";
     public static final String RETRY_POLICY_DYNAMODB_DEFAULT = "dynamodb_default";
     public static final String RETRY_POLICY_DEFAULT = "default";
+    public static final int DEFAULT_BACKOFF_BASE_DELAY = 100;
+    public static final int DEFAULT_BACKOFF_MAX_BACKOFF_TIME = 20000;
+    public static final int DEFAULT_BACKOFF_THROTTLED_BASE_DELAY = 500;
+    public static final int DEFAULT_MAX_ERROR_RETRY = 0;
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success")
             .description("FlowFiles are routed to success relationship").build();
@@ -178,7 +182,7 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
       .name("max-error-retry")
       .displayName("Max Error Retry")
       .description("Maximum number of retry attempts for failed requests.")
-      .defaultValue("0")
+      .defaultValue(String.valueOf(DEFAULT_MAX_ERROR_RETRY))
       .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
       .build();
 
@@ -215,7 +219,7 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
       .displayName("Back-off Base Delay")
       .description("Base sleep time (milliseconds) for non-throttled exceptions")
       .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-      .defaultValue("100")
+      .defaultValue(String.valueOf(DEFAULT_BACKOFF_BASE_DELAY))
       .build();
 
     public static final PropertyDescriptor AWS_BACKOFF_THROTTLED_BASE_DELAY = new PropertyDescriptor.Builder()
@@ -223,7 +227,7 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
       .displayName("Back-off Throttled Base Delay")
       .description("Base sleep time (milliseconds) for throttled exceptions")
       .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-      .defaultValue("500")
+      .defaultValue(String.valueOf(DEFAULT_BACKOFF_THROTTLED_BASE_DELAY))
       .build();
 
     public static final PropertyDescriptor AWS_BACKOFF_MAX_BACKOFF_TIME = new PropertyDescriptor.Builder()
@@ -231,7 +235,7 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
       .displayName("Max Back-off Time")
       .description("Maximum back-off time before retrying a request")
       .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-      .defaultValue("20000")
+      .defaultValue(String.valueOf(DEFAULT_BACKOFF_MAX_BACKOFF_TIME))
       .build();
 
     protected volatile ClientType client;
@@ -393,9 +397,9 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
     private BackoffStrategy getBackoffStrategy(ProcessContext context) {
         PropertyValue property = context.getProperty(AWS_BACKOFF_STRATEGY);
         if (property.isSet()) {
-            int baseDelay = getPropertyValueOrDefault(context, AWS_BACKOFF_BASE_DELAY, 100);
-            int maxBackoffTime = getPropertyValueOrDefault(context, AWS_BACKOFF_MAX_BACKOFF_TIME, 20000);
-            int throttledBaseDelay = getPropertyValueOrDefault(context, AWS_BACKOFF_THROTTLED_BASE_DELAY, 500);
+            int baseDelay = getPropertyValueOrDefault(context, AWS_BACKOFF_BASE_DELAY, DEFAULT_BACKOFF_BASE_DELAY);
+            int maxBackoffTime = getPropertyValueOrDefault(context, AWS_BACKOFF_MAX_BACKOFF_TIME, DEFAULT_BACKOFF_MAX_BACKOFF_TIME);
+            int throttledBaseDelay = getPropertyValueOrDefault(context, AWS_BACKOFF_THROTTLED_BASE_DELAY, DEFAULT_BACKOFF_THROTTLED_BASE_DELAY);
             switch (property.getValue()) {
                 case BACKOFF_STRATEGY_EQUAL_JITTER:
                     return new EqualJitterBackoffStrategy(baseDelay, maxBackoffTime);
@@ -415,7 +419,7 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
     }
 
     private int getMaxErrorRetry(ProcessContext context) {
-        return getPropertyValueOrDefault(context, AWS_MAX_ERROR_RETRY, 0);
+        return getPropertyValueOrDefault(context, AWS_MAX_ERROR_RETRY, DEFAULT_MAX_ERROR_RETRY);
     }
 
     private Integer getPropertyValueOrDefault(ProcessContext context, PropertyDescriptor descriptor, int defaultValue) {
