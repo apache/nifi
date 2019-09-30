@@ -22,7 +22,7 @@ matrix:
       script: >-
         if [ ! -d "$HOME"/.m2/repository ] || [ ! "$(ls -A "$HOME"/.m2/repository)" ] ; then
           echo "Cached Maven repository does not exist, downloading dependencies..."
-          mvn -V -T 1C dependency:go-offline -Dsilent -ntp --fail-never \
+          mvn -V -T 1C -pl !./nifi-nar-bundles/nifi-hive-bundle/nifi-hive3-nar,!./nifi-nar-bundles/nifi-hive-bundle/nifi-hive3-processors dependency:go-offline -Dsilent -ntp --fail-never \
           | grep -v -F -f .travis-output-filters -e "Failed to execute goal on project"
         else
           echo "Cached Maven repository exists, skipping dependency cache"
@@ -33,7 +33,7 @@ matrix:
       script: >-
         if [ ! -d "$HOME"/.m2/repository ] || [ ! "$(ls -A "$HOME"/.m2/repository)" ] ; then
           echo "Cached Maven repository does not exist, downloading dependencies..."
-          mvn -V -T 1C dependency:go-offline -Dsilent -ntp --fail-never \
+          mvn -V -T 1C -pl !./nifi-nar-bundles/nifi-hive-bundle/nifi-hive3-nar,!./nifi-nar-bundles/nifi-hive-bundle/nifi-hive3-processors dependency:go-offline -Dsilent -ntp --fail-never \
           | grep -v -F -f .travis-output-filters -e "Failed to execute goal on project"
         else
           echo "Cached Maven repository exists, skipping dependency cache"
@@ -47,7 +47,7 @@ matrix:
       jdk: openjdk8
       script: >-
         mvn clean install -V -T 1C
-        -pl `find . -type d \( -name "*-nar" -or -name "*-assembly" \) -and -not -name "*api-nar" -and -not -path "*/target/*" -and -not -name "*__*" -printf "!./%P,"`
+        -pl `find . -type d \( -name "*-nar" -or -name "*-assembly" -or -name "*hive3*" \) -and -not -name "*api-nar" -and -not -path "*/target/*" -and -not -name "*__*" -printf "!./%P,"`
         -Pcontrib-check,include-grpc -Ddir-only
         -Dmaven.surefire.arguments="-Duser.language=en -Duser.region=US"
         | grep -v -F -f .travis-output-filters
@@ -57,7 +57,7 @@ matrix:
       jdk: openjdk8
       script: >-
         mvn clean install -V -T 1C
-        -pl `find . -type d \( -name "*-nar" -or -name "*-assembly" \) -and -not -name "*api-nar" -and -not -path "*/target/*" -and -not -name "*__*" -printf "!./%P,"`
+        -pl `find . -type d \( -name "*-nar" -or -name "*-assembly" -or -name "*hive3*" \) -and -not -name "*api-nar" -and -not -path "*/target/*" -and -not -name "*__*" -printf "!./%P,"`
         -Pcontrib-check,include-grpc -Ddir-only
         -Dmaven.surefire.arguments="-Duser.language=fr -Duser.region=FR"
         | grep -v -F -f .travis-output-filters
@@ -67,7 +67,7 @@ matrix:
       jdk: openjdk8
       script: >-
         mvn clean install -V -T 1C
-        -pl `find . -type d \( -name "*-nar" -or -name "*-assembly" \) -and -not -name "*api-nar" -and -not -path "*/target/*" -and -not -name "*__*" -printf "!./%P,"`
+        -pl `find . -type d \( -name "*-nar" -or -name "*-assembly" -or -name "*hive3*" \) -and -not -name "*api-nar" -and -not -name "*hive3*" -and -not -path "*/target/*" -and -not -name "*__*" -printf "!./%P,"`
         -Pcontrib-check,include-grpc -Ddir-only
         -Dmaven.surefire.arguments="-Duser.language=ja -Duser.region=JP"
         | grep -v -F -f .travis-output-filters
@@ -87,7 +87,7 @@ matrix:
       script:
         - >-
           mvn clean install -V -T 1C
-          -pl `find . -type d \( -name "*-nar" -or -name "*-assembly" \) -and -not -name "*api-nar" -and -not -path "*/target/*" -and -not -name "*__*" -printf "!./%P,"`
+          -pl `find . -type d \( -name "*-nar" -or -name "*-assembly" -or -name "*hive3*" \) -and -not -name "*api-nar" -and -not -path "*/target/*" -and -not -name "*__*" -printf "!./%P,"`
           -Pcontrib-check,include-grpc -Ddir-only
           -Dmaven.surefire.arguments="-Duser.language=en -Duser.region=US"
           | grep -v -F -f .travis-output-filters
