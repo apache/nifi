@@ -281,53 +281,14 @@ limitations under the License.
         <!--Commons Daemon Properties-->
         <commons.daemon.version>1.2.1</commons.daemon.version>
         <commons.daemon.sha512sum>62777d2424361162736b4a9b39b9fb4155760d4d7c4a3489fe1868e0912158ae126ef5f42abbd1bcca1dbf5aa6204d8d0029be7c49f222293d6e1421a5173dd7</commons.daemon.sha512sum>
+        <commons.daemon.mirror.url>https://repo1.maven.org/maven2/commons-daemon/commons-daemon/${commons.daemon.version}</commons.daemon.mirror.url>
     </properties>
 
     <profiles>
         <profile>
-            <id>default-assembly</id>
-            <activation>
-                <activeByDefault>false</activeByDefault>
-            </activation>
-            <build>
-                <plugins>
-                    <plugin>
-                        <artifactId>maven-assembly-plugin</artifactId>
-                        <configuration>
-                            <finalName>minifi-${project.version}</finalName>
-                            <attach>false</attach>
-                        </configuration>
-                        <executions>
-                            <execution>
-                                <id>make shared resource</id>
-                                <goals>
-                                    <goal>single</goal>
-                                </goals>
-                                <phase>package</phase>
-                                <configuration>
-                                    <archiverConfig>
-                                        <defaultDirectoryMode>0775</defaultDirectoryMode>
-                                        <directoryMode>0775</directoryMode>
-                                        <fileMode>0664</fileMode>
-                                    </archiverConfig>
-                                    <descriptors>
-                                        <descriptor>src/main/assembly/dependencies.xml</descriptor>
-                                    </descriptors>
-                                    <tarLongFileMode>posix</tarLongFileMode>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-        <profile>
             <id>windows-service-assembly</id>
             <activation>
                 <activeByDefault>true</activeByDefault>
-                <property>
-                    <name>!default-assembly</name>
-                </property>
             </activation>
             <build>
                 <plugins>
@@ -359,7 +320,7 @@ limitations under the License.
                                             <else>
                                                 <echo message="Downloading Commons Daemon Windows binaries." />
                                                 <property name="commons.daemon.file" value="commons-daemon-${commons.daemon.version}-bin-windows.zip"/>
-                                                <get src="https://apache.claz.org/commons/daemon/binaries/windows/${commons.daemon.file}" dest="${java.io.tmpdir}/${commons.daemon.file}" skipexisting="true"/>
+                                                <get src="${commons.daemon.mirror.url}/${commons.daemon.file}" dest="${java.io.tmpdir}/${commons.daemon.file}" skipexisting="true"/>
                                                 <local name="checksum.matches"/>
                                                 <checksum file="${java.io.tmpdir}/${commons.daemon.file}" algorithm="SHA-512" property="${commons.daemon.sha512sum}" verifyProperty="checksum.matches"/>
                                                 <echo message="Checksum match = ${checksum.matches}"/>
@@ -398,6 +359,43 @@ limitations under the License.
                                     </archiverConfig>
                                     <descriptors>
                                         <descriptor>src/main/assembly/dependencies-windows-service.xml</descriptor>
+                                    </descriptors>
+                                    <tarLongFileMode>posix</tarLongFileMode>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>minimal-assembly</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <artifactId>maven-assembly-plugin</artifactId>
+                        <configuration>
+                            <finalName>minifi-${project.version}</finalName>
+                            <attach>false</attach>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>make shared resource</id>
+                                <goals>
+                                    <goal>single</goal>
+                                </goals>
+                                <phase>package</phase>
+                                <configuration>
+                                    <archiverConfig>
+                                        <defaultDirectoryMode>0775</defaultDirectoryMode>
+                                        <directoryMode>0775</directoryMode>
+                                        <fileMode>0664</fileMode>
+                                    </archiverConfig>
+                                    <descriptors>
+                                        <descriptor>src/main/assembly/dependencies.xml</descriptor>
                                     </descriptors>
                                     <tarLongFileMode>posix</tarLongFileMode>
                                 </configuration>
