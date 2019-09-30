@@ -958,6 +958,11 @@
             } else {
                 // value is not sensitive or it is sensitive and the user has changed it then always take the current value
                 serializedValue = value;
+
+                // if the param is sensitive and the param value has not "changed", that means it matches the mask and it should still be considered changed
+                if (!hasChanged && !_.isEmpty(parameter) && parameter.sensitive === true && parameter.isNew === false) {
+                    hasChanged = true;
+                }
             }
         } else {
             if (isChecked) {
@@ -1610,15 +1615,7 @@
                     e.stopImmediatePropagation();
                 } else if (target.hasClass('edit-parameter')) {
                     var closeHandler = function () {
-                        $('#parameter-name').val('');
-                        $('#parameter-value-field').val('');
-                        $('#parameter-description-field').val('');
-                        $('#parameter-sensitive-radio-button').prop('checked', false);
-                        $('#parameter-not-sensitive-radio-button').prop('checked', false);
-                        $('#parameter-name').prop('disabled', false);
-                        $('#parameter-sensitive-radio-button').prop('disabled', false);
-                        $('#parameter-not-sensitive-radio-button').prop('disabled', false);
-                        $('#parameter-set-empty-string-field').removeClass('checkbox-checked').addClass('checkbox-unchecked');
+                        resetParameterDialog();
                     };
 
                     var openHandler = function () {
