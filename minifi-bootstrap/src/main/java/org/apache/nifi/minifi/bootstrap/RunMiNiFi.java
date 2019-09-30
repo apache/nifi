@@ -1388,6 +1388,7 @@ public class RunMiNiFi implements QueryableStatusAggregator, ConfigurationFileHo
                             setNiFiStarted(false);
                         }
 
+                        secretKey = null;
                         process = builder.start();
                         handleLogging(process);
 
