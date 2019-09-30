@@ -447,7 +447,7 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
 
         private volatile boolean leader;
         private long leaderUpdateTimestamp = 0L;
-        private final long MAX_CACHE_MILLIS = TimeUnit.SECONDS.toMillis(60L);
+        private final long MAX_CACHE_MILLIS = TimeUnit.SECONDS.toMillis(5L);
 
         public ElectionListener(final String roleName, final LeaderElectionStateChangeListener listener, final String participantId) {
             this.roleName = roleName;
