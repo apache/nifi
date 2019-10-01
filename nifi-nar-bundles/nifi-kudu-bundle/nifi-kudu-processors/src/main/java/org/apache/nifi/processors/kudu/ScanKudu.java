@@ -98,7 +98,7 @@ public class ScanKudu extends AbstractKuduProcessor {
 
     protected static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
             .name("Batch Size")
-            .description("The maximum number of FlowFiles to generate in a single execution, between 1 - 100000. " +
+            .description("The maximum number of rows to generate per output flowfiles, between 1 - 100000. " +
                     "Depending on your memory size, and data size per row set an appropriate batch size. " +
                     "Gradually increase this number to find out the best one for best performances.")
             .defaultValue("500")

@@ -143,15 +143,17 @@ public class TestScanKudu {
     }
 
     @Test
-    public void testInvalidPredicatesPattern() throws KuduException {
+    public void testInvalidPredicateReferencingNonExistingColumn() throws KuduException {
         final Map<String, String> rows = new HashMap<>();
         rows.put("key", "val1");
         rows.put("key1", "val1");
 
+        String patternReferencingNonExistingColumn = "column1=val1";
+
         kuduScan.insertTestRecordsToKuduTable(DEFAULT_TABLE_NAME, rows);
 
         runner.setProperty(ScanKudu.TABLE_NAME, DEFAULT_TABLE_NAME);
-        runner.setProperty(ScanKudu.PREDICATES, "column1=val1");
+        runner.setProperty(ScanKudu.PREDICATES, patternReferencingNonExistingColumn);
         runner.setProperty(ScanKudu.PROJECTED_COLUMNS, "column1");
         runner.setValidateExpressionUsage(false);
         runner.enqueue("trigger flow file");
@@ -160,7 +162,28 @@ public class TestScanKudu {
         runner.assertTransferCount(ScanKudu.REL_FAILURE, 1);
         runner.assertTransferCount(ScanKudu.REL_SUCCESS, 0);
         runner.assertTransferCount(ScanKudu.REL_ORIGINAL, 0);
+    }
 
+    @Test(expected = AssertionError.class)
+    public void testInvalidPredicatesPattern() throws KuduException {
+        final Map<String, String> rows = new HashMap<>();
+        rows.put("key", "val1");
+        rows.put("key1", "val1");
+
+        String invalidPattern = "key1==val1";
+
+        kuduScan.insertTestRecordsToKuduTable(DEFAULT_TABLE_NAME, rows);
+
+        runner.setProperty(ScanKudu.TABLE_NAME, DEFAULT_TABLE_NAME);
+        runner.setProperty(ScanKudu.PREDICATES, invalidPattern);
+        runner.setProperty(ScanKudu.PROJECTED_COLUMNS,  "column1");
+        runner.setValidateExpressionUsage(false);
+        runner.enqueue("trigger flow file");
+        runner.run(1, false);
+
+        runner.assertTransferCount(ScanKudu.REL_FAILURE, 0);
+        runner.assertTransferCount(ScanKudu.REL_SUCCESS, 0);
+        runner.assertTransferCount(ScanKudu.REL_ORIGINAL, 0);
     }
 
     @Test
