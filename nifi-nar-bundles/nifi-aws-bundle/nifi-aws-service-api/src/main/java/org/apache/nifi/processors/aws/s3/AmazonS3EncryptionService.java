@@ -31,6 +31,13 @@ import org.apache.nifi.controller.ControllerService;
  */
 public interface AmazonS3EncryptionService extends ControllerService {
 
+    String STRATEGY_NAME_NONE = "NONE";
+    String STRATEGY_NAME_SSE_S3 = "SSE_S3";
+    String STRATEGY_NAME_SSE_KMS = "SSE_KMS";
+    String STRATEGY_NAME_SSE_C = "SSE_C";
+    String STRATEGY_NAME_CSE_KMS = "CSE_KMS";
+    String STRATEGY_NAME_CSE_C = "CSE_C";
+
     /**
      * Configure a {@link PutObjectRequest} for encryption.
      * @param request the request to configure.
@@ -69,12 +76,17 @@ public interface AmazonS3EncryptionService extends ControllerService {
     AmazonS3Client createEncryptionClient(AWSCredentialsProvider credentialsProvider, ClientConfiguration clientConfiguration);
 
     /**
-     * @return The region associated with the service, as a String.
+     * @return The KMS region associated with the service, as a String.
      */
-    String getRegion();
+    String getKmsRegion();
 
     /**
      * @return The name of the encryption strategy associated with the service.
      */
     String getStrategyName();
+
+    /**
+     * @return The display name of the encryption strategy associated with the service.
+     */
+    String getStrategyDisplayName();
 }

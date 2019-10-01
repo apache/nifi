@@ -21,15 +21,15 @@
     <link rel="stylesheet" href="../../../../../css/component-usage.css" type="text/css" />
 </head>
 <body>
-
+<h2>Description</h2>
 <div>
-    The <code>S3EncryptionService</code> manages an encryption strategy and applies that strategy to various S3 operations.
+    The <code>StandardS3EncryptionService</code> manages an encryption strategy and applies that strategy to various S3 operations.
 
     <br>
 
-    <b>Note:</b> this service has no effect when a processor has the <code>SERVER_SIDE_ENCRYPTION</code> property set.  To use
+    <b>Note:</b> This service has no effect when a processor has the <code>Server Side Encryption</code> property set. To use
     this service with processors so configured, first create a service instance, set the <code>Encryption Strategy</code> to <code>Server-side S3</code>,
-    disable the <code>SERVER_SIDE_ENCRYPTION</code> processor setting, and finally, associate the processor with the service.
+    disable the <code>Server Side Encryption</code> processor setting, and finally, associate the processor with the service.
 </div>
 
 
@@ -44,27 +44,26 @@
         <li><code>Server-side S3</code> - encryption and decryption is managed by S3; no keys are required.</li>
         <li><code>Server-side KMS</code> - encryption and decryption are performed by S3 using the configured KMS key.</li>
         <li><code>Server-side Customer Key</code> - encryption and decryption are performed by S3 using the supplied customer key.</li>
-        <li><code>Client-side KMS</code> - like the server-side KMS strategy, with the encryption and decryption performed by the client.</li>
-        <li><code>Client-side Customer Master Key</code> - like the server-side CEK strategy, with the encryption and decryption performed by the client.</li>
+        <li><code>Client-side KMS</code> - like the Server-side KMS strategy, with the encryption and decryption performed by the client.</li>
+        <li><code>Client-side Customer Key</code> - like the Server-side Customer Key strategy, with the encryption and decryption performed by the client.</li>
     </ul>
 </div>
 
 <h3>Key ID or Key Material</h3>
 <p>
-    When configured for either the server-side or client-side KMS strategy, this field should contain the ID or alias
-    of that key.
+    When configured for either the Server-side or Client-side KMS strategies, this field should contain the KMS Key ID.
 </p>
 <p>
-    When configured for either the server-side or client-side customer key strategies, this field should contain the key
+    When configured for either the Server-side or Client-side Customer Key strategies, this field should contain the key
     material, and that material must be base64 encoded.
 </p>
 <p>
     All other encryption strategies ignore this field.
 </p>
 
-<h3>Region</h3>
+<h3>KMS Region</h3>
 <div>
-    KMS key region, if any.  This value must match the actual region of the KMS key if supplied.
+    KMS key region, if any. This value must match the actual region of the KMS key if supplied.
 </div>
 
 </body>

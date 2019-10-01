@@ -22,8 +22,9 @@ import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.SSECustomerKey;
 import com.amazonaws.services.s3.model.UploadPartRequest;
+import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.components.ValidationResult;
-import org.bouncycastle.util.encoders.Base64;
 
 /**
  * This strategy uses a customer key to perform server-side encryption.  Use this strategy when you want the server to perform the encryption,
@@ -32,7 +33,7 @@ import org.bouncycastle.util.encoders.Base64;
  * See https://docs.aws.amazon.com/AmazonS3/latest/dev/ServerSideEncryptionCustomerKeys.html
  *
  */
-public class ServerSideCEKEncryptionStrategy implements S3EncryptionStrategy {
+public class ServerSideCEncryptionStrategy implements S3EncryptionStrategy {
     @Override
     public void configurePutObjectRequest(PutObjectRequest request, ObjectMetadata objectMetadata, String keyValue) {
         SSECustomerKey customerKey = new SSECustomerKey(keyValue);
@@ -59,17 +60,37 @@ public class ServerSideCEKEncryptionStrategy implements S3EncryptionStrategy {
 
     @Override
     public ValidationResult validateKey(String keyValue) {
-        boolean decoded = false;
-        boolean sized = false;
+        if (StringUtils.isBlank(keyValue)) {
+            return new ValidationResult.Builder()
+                    .subject("Key Material")
+                    .valid(false)
+                    .explanation("it is empty")
+                    .build();
+        }
+
         byte[] keyMaterial;
 
         try {
-            keyMaterial = Base64.decode(keyValue);
-            decoded = true;
-            sized = (keyMaterial.length > 0) && (keyMaterial.length % 32) == 0;
-        } catch (final Exception ignored) {
+            if (!org.apache.commons.codec.binary.Base64.isBase64(keyValue)) {
+                throw new Exception();
+            }
+            keyMaterial = Base64.decodeBase64(keyValue);
+        } catch (Exception e) {
+            return new ValidationResult.Builder()
+                    .subject("Key Material")
+                    .valid(false)
+                    .explanation("it is not in Base64 encoded form")
+                    .build();
         }
 
-        return new ValidationResult.Builder().valid(decoded && sized).build();
+        if (keyMaterial.length != 32) {
+            return new ValidationResult.Builder()
+                    .subject("Key Material")
+                    .valid(false)
+                    .explanation("it is not a Base64 encoded AES-256 key")
+                    .build();
+        }
+
+        return new ValidationResult.Builder().valid(true).build();
     }
 }

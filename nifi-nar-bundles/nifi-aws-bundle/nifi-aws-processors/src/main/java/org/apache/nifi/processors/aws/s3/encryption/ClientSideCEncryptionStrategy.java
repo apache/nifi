@@ -18,11 +18,8 @@ package org.apache.nifi.processors.aws.s3.encryption;
 
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.regions.Region;
-import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.AmazonS3EncryptionClient;
-import com.amazonaws.services.s3.model.CryptoConfiguration;
 import com.amazonaws.services.s3.model.EncryptionMaterials;
 import com.amazonaws.services.s3.model.StaticEncryptionMaterialsProvider;
 import org.apache.commons.codec.binary.Base64;
@@ -38,58 +35,65 @@ import javax.crypto.spec.SecretKeySpec;
  * See https://docs.aws.amazon.com/AmazonS3/latest/dev/UsingClientSideEncryption.html#client-side-encryption-client-side-master-key-intro
  *
  */
-public class ClientSideCMKEncryptionStrategy implements S3EncryptionStrategy {
+public class ClientSideCEncryptionStrategy implements S3EncryptionStrategy {
     /**
      * Create an encryption client.
      *
      * @param credentialsProvider AWS credentials provider.
      * @param clientConfiguration Client configuration
-     * @param region AWS region
+     * @param kmsRegion not used by this encryption strategy
      * @param keyIdOrMaterial client master key, always base64 encoded
      * @return AWS S3 client
      */
     @Override
-    public AmazonS3Client createEncryptionClient(AWSCredentialsProvider credentialsProvider, ClientConfiguration clientConfiguration, String region, String keyIdOrMaterial) throws SecurityException {
-        if (!validateKey(keyIdOrMaterial).isValid()) {
-            throw new SecurityException("Invalid client key; ensure key material is base64 encoded.");
+    public AmazonS3Client createEncryptionClient(AWSCredentialsProvider credentialsProvider, ClientConfiguration clientConfiguration, String kmsRegion, String keyIdOrMaterial) {
+        ValidationResult keyValidationResult = validateKey(keyIdOrMaterial);
+        if (!keyValidationResult.isValid()) {
+            throw new IllegalArgumentException("Invalid client key; " + keyValidationResult.getExplanation());
         }
 
         byte[] keyMaterial = Base64.decodeBase64(keyIdOrMaterial);
         SecretKeySpec symmetricKey = new SecretKeySpec(keyMaterial, "AES");
         StaticEncryptionMaterialsProvider encryptionMaterialsProvider = new StaticEncryptionMaterialsProvider(new EncryptionMaterials(symmetricKey));
-        boolean haveRegion = StringUtils.isNotBlank(region);
-        CryptoConfiguration cryptoConfig = new CryptoConfiguration();
-        Region awsRegion = null;
 
-        if (haveRegion) {
-            awsRegion = Region.getRegion(Regions.fromName(region));
-            cryptoConfig.setAwsKmsRegion(awsRegion);
-        }
-
-        AmazonS3EncryptionClient client = new AmazonS3EncryptionClient(credentialsProvider, encryptionMaterialsProvider, cryptoConfig);
-        if (haveRegion && awsRegion != null) {
-            client.setRegion(awsRegion);
-        }
+        AmazonS3EncryptionClient client = new AmazonS3EncryptionClient(credentialsProvider, encryptionMaterialsProvider);
 
         return client;
     }
 
+    @Override
     public ValidationResult validateKey(String keyValue) {
-        if (StringUtils.isBlank(keyValue) || !Base64.isBase64(keyValue)) {
-            return new ValidationResult.Builder().valid(false).build();
+        if (StringUtils.isBlank(keyValue)) {
+            return new ValidationResult.Builder()
+                    .subject("Key Material")
+                    .valid(false)
+                    .explanation("it is empty")
+                    .build();
         }
 
-        boolean decoded = false;
-        boolean sized = false;
         byte[] keyMaterial;
 
         try {
+            if (!Base64.isBase64(keyValue)) {
+                throw new Exception();
+            }
             keyMaterial = Base64.decodeBase64(keyValue);
-            decoded = true;
-            sized = keyMaterial.length == 32 || keyMaterial.length == 24 || keyMaterial.length == 16;
-        } catch (final Exception ignored) {
+        } catch (Exception e) {
+            return new ValidationResult.Builder()
+                    .subject("Key Material")
+                    .valid(false)
+                    .explanation("it is not in Base64 encoded form")
+                    .build();
         }
 
-        return new ValidationResult.Builder().valid(decoded && sized).build();
+        if (!(keyMaterial.length == 32 || keyMaterial.length == 24 || keyMaterial.length == 16)) {
+            return new ValidationResult.Builder()
+                    .subject("Key Material")
+                    .valid(false)
+                    .explanation("it is not a Base64 encoded AES-256, AES-192 or AES-128 key")
+                    .build();
+        }
+
+        return new ValidationResult.Builder().valid(true).build();
     }
 }
