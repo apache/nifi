@@ -37,7 +37,7 @@ public class TestStandardS3EncryptionService {
     private ConfigurationContext context;
     private String strategyName;
     private String keyIdOrMaterial;
-    private String region;
+    private String kmsRegion;
 
     @Before
     public void setup() throws InitializationException {
@@ -46,17 +46,17 @@ public class TestStandardS3EncryptionService {
 
         strategyName = StandardS3EncryptionService.STRATEGY_NAME_NONE;
         keyIdOrMaterial = "test-key-id";
-        region = "us-west-1";
+        kmsRegion = "us-west-1";
 
         Mockito.when(context.getProperty(StandardS3EncryptionService.ENCRYPTION_STRATEGY)).thenReturn(new MockPropertyValue(strategyName));
         Mockito.when(context.getProperty(StandardS3EncryptionService.ENCRYPTION_VALUE)).thenReturn(new MockPropertyValue(keyIdOrMaterial));
-        Mockito.when(context.getProperty(StandardS3EncryptionService.REGION)).thenReturn(new MockPropertyValue(region));
+        Mockito.when(context.getProperty(StandardS3EncryptionService.KMS_REGION)).thenReturn(new MockPropertyValue(kmsRegion));
         service.onConfigured(context);
     }
 
     @Test
     public void testServiceProperties() {
-        Assert.assertEquals(service.getRegion(), region);
+        Assert.assertEquals(service.getKmsRegion(), kmsRegion);
         Assert.assertEquals(service.getStrategyName(), strategyName);
     }
 
@@ -97,6 +97,6 @@ public class TestStandardS3EncryptionService {
 
         Assert.assertEquals(properties.get(0).getName(), StandardS3EncryptionService.ENCRYPTION_STRATEGY.getName());
         Assert.assertEquals(properties.get(1).getName(), StandardS3EncryptionService.ENCRYPTION_VALUE.getName());
-        Assert.assertEquals(properties.get(2).getName(), StandardS3EncryptionService.REGION.getName());
+        Assert.assertEquals(properties.get(2).getName(), StandardS3EncryptionService.KMS_REGION.getName());
     }
 }

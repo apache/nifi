@@ -33,7 +33,7 @@ public class TestS3EncryptionStrategies {
 
     private String randomKeyMaterial = "";
     private String randomKeyId = "mock-key-id";
-    private String region = "us-west-1";
+    private String kmsRegion = "us-west-1";
 
     private ObjectMetadata metadata = null;
     private PutObjectRequest putObjectRequest = null;
@@ -60,7 +60,7 @@ public class TestS3EncryptionStrategies {
         S3EncryptionStrategy strategy = new ClientSideKMSEncryptionStrategy();
 
         // This shows that the strategy builds a client:
-        Assert.assertNotNull(strategy.createEncryptionClient(null, null, region, randomKeyMaterial));
+        Assert.assertNotNull(strategy.createEncryptionClient(null, null, kmsRegion, randomKeyMaterial));
 
         // This shows that the strategy does not modify the metadata or any of the requests:
         Assert.assertNull(metadata.getSSEAlgorithm());

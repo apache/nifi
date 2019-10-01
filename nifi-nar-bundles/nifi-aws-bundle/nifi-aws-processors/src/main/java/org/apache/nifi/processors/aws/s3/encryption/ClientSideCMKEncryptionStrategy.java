@@ -41,12 +41,12 @@ public class ClientSideCMKEncryptionStrategy implements S3EncryptionStrategy {
      *
      * @param credentialsProvider AWS credentials provider.
      * @param clientConfiguration Client configuration
-     * @param region AWS region
+     * @param kmsRegion not used by this encryption strategy
      * @param keyIdOrMaterial client master key, always base64 encoded
      * @return AWS S3 client
      */
     @Override
-    public AmazonS3Client createEncryptionClient(AWSCredentialsProvider credentialsProvider, ClientConfiguration clientConfiguration, String region, String keyIdOrMaterial) {
+    public AmazonS3Client createEncryptionClient(AWSCredentialsProvider credentialsProvider, ClientConfiguration clientConfiguration, String kmsRegion, String keyIdOrMaterial) {
         if (!validateKey(keyIdOrMaterial).isValid()) {
             throw new IllegalArgumentException("Invalid client key; ensure key material is base64 encoded.");
         }

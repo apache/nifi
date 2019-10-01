@@ -101,8 +101,8 @@ public class StandardS3EncryptionService extends AbstractControllerService imple
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
-    public static final PropertyDescriptor REGION = new PropertyDescriptor.Builder()
-            .name("region")
+    public static final PropertyDescriptor KMS_REGION = new PropertyDescriptor.Builder()
+            .name("kms-region")
             .displayName("KMS Region")
             .description("The Region of the AWS Key Management Service. Only used in case of Client-side KMS.")
             .required(false)
@@ -111,7 +111,7 @@ public class StandardS3EncryptionService extends AbstractControllerService imple
             .build();
 
     private String keyValue = "";
-    private String region = "";
+    private String kmsRegion = "";
     private S3EncryptionStrategy encryptionStrategy = new NoOpEncryptionStrategy();
     private String strategyName = STRATEGY_NAME_NONE;
 
@@ -120,10 +120,10 @@ public class StandardS3EncryptionService extends AbstractControllerService imple
         final String newStrategyName = context.getProperty(ENCRYPTION_STRATEGY).getValue();
         final String newKeyValue = context.getProperty(ENCRYPTION_VALUE).getValue();
         final S3EncryptionStrategy newEncryptionStrategy = namedStrategies.get(newStrategyName);
-        String newRegion = null;
+        String newKmsRegion = null;
 
-        if (context.getProperty(REGION) != null ) {
-            newRegion = context.getProperty(REGION).getValue();
+        if (context.getProperty(KMS_REGION) != null ) {
+            newKmsRegion = context.getProperty(KMS_REGION).getValue();
         }
 
         if (newEncryptionStrategy == null) {
@@ -135,7 +135,7 @@ public class StandardS3EncryptionService extends AbstractControllerService imple
         strategyName = newStrategyName;
         encryptionStrategy = newEncryptionStrategy;
         keyValue = newKeyValue;
-        region = newRegion;
+        kmsRegion = newKmsRegion;
     }
 
     @Override
@@ -150,7 +150,7 @@ public class StandardS3EncryptionService extends AbstractControllerService imple
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(ENCRYPTION_STRATEGY);
         properties.add(ENCRYPTION_VALUE);
-        properties.add(REGION);
+        properties.add(KMS_REGION);
         return Collections.unmodifiableList(properties);
     }
 
@@ -176,12 +176,12 @@ public class StandardS3EncryptionService extends AbstractControllerService imple
 
     @Override
     public AmazonS3Client createEncryptionClient(AWSCredentialsProvider credentialsProvider, ClientConfiguration clientConfiguration) {
-        return encryptionStrategy.createEncryptionClient(credentialsProvider, clientConfiguration, region, keyValue);
+        return encryptionStrategy.createEncryptionClient(credentialsProvider, clientConfiguration, kmsRegion, keyValue);
     }
 
     @Override
-    public String getRegion() {
-        return region;
+    public String getKmsRegion() {
+        return kmsRegion;
     }
 
     @Override

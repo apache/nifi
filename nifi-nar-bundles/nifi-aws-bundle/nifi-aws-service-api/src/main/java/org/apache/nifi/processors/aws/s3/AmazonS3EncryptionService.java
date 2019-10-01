@@ -69,9 +69,9 @@ public interface AmazonS3EncryptionService extends ControllerService {
     AmazonS3Client createEncryptionClient(AWSCredentialsProvider credentialsProvider, ClientConfiguration clientConfiguration);
 
     /**
-     * @return The region associated with the service, as a String.
+     * @return The KMS region associated with the service, as a String.
      */
-    String getRegion();
+    String getKmsRegion();
 
     /**
      * @return The name of the encryption strategy associated with the service.

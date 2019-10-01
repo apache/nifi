@@ -1147,7 +1147,7 @@ public class ITPutS3Object extends AbstractS3IT {
         runner.setProperty(PutS3Object.ENCRYPTION_SERVICE, service.getIdentifier());
         runner.setProperty(service, StandardS3EncryptionService.ENCRYPTION_STRATEGY, strategyName);
         runner.setProperty(service, StandardS3EncryptionService.ENCRYPTION_VALUE, keyIdOrMaterial);
-        runner.setProperty(service, StandardS3EncryptionService.REGION, REGION);
+        runner.setProperty(service, StandardS3EncryptionService.KMS_REGION, REGION);
 
         if (processor instanceof PutS3Object) {
             runner.setProperty(PutS3Object.MULTIPART_THRESHOLD, "50 MB");
@@ -1156,7 +1156,7 @@ public class ITPutS3Object extends AbstractS3IT {
 
         when(context.getProperty(StandardS3EncryptionService.ENCRYPTION_STRATEGY)).thenReturn(new MockPropertyValue(strategyName));
         when(context.getProperty(StandardS3EncryptionService.ENCRYPTION_VALUE)).thenReturn(new MockPropertyValue(keyIdOrMaterial));
-        when(context.getProperty(StandardS3EncryptionService.REGION)).thenReturn(new MockPropertyValue(REGION));
+        when(context.getProperty(StandardS3EncryptionService.KMS_REGION)).thenReturn(new MockPropertyValue(REGION));
 
         service.onConfigured(context);
         runner.enableControllerService(service);
