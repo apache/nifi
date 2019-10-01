@@ -155,6 +155,10 @@ public class TestS3EncryptionStrategies {
         // This shows that the strategy sets the SSE algorithm field as expected:
         strategy.configurePutObjectRequest(putObjectRequest, metadata, "");
         Assert.assertEquals(ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION, metadata.getSSEAlgorithm());
+
+        // Same for InitiateMultipartUploadRequest:
+        strategy.configureInitiateMultipartUploadRequest(initUploadRequest, metadata, "");
+        Assert.assertEquals(ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION, metadata.getSSEAlgorithm());
     }
 
     @Test
