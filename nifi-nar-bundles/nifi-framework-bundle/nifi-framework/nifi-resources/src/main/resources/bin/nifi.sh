@@ -333,6 +333,7 @@ run() {
     sleep 3
     echo
 }
+
 stateless(){
     STATELESS_JAVA_OPTS="${STATELESS_JAVA_OPTS:=-Xms1024m -Xmx1024m}"
 
@@ -340,12 +341,14 @@ stateless(){
     shift
 
     echo
+    echo "Note: Use of this command is considered experimental. The commands and approach used may change from time to time."
+    echo
     echo "Java home (JAVA_HOME): ${JAVA_HOME}"
     echo "NiFi home (NIFI_HOME): ${NIFI_HOME}"
     echo "Java options (STATELESS_JAVA_OPTS): ${STATELESS_JAVA_OPTS}"
     echo
-    "${JAVA}" -cp "${NIFI_HOME}/lib/*" ${STATELESS_JAVA_OPTS} "org.apache.nifi.stateless.NiFiStateless" ExtractNars
-    "${JAVA}" -cp "${NIFI_HOME}/lib/*" ${STATELESS_JAVA_OPTS} "org.apache.nifi.stateless.NiFiStateless" "$@"
+    "${JAVA}" -cp "${NIFI_HOME}/lib/*:${NIFI_HOME}/lib/java11/*" ${STATELESS_JAVA_OPTS} "org.apache.nifi.stateless.NiFiStateless" ExtractNars
+    "${JAVA}" -cp "${NIFI_HOME}/lib/*:${NIFI_HOME}/lib/java11/*" ${STATELESS_JAVA_OPTS} "org.apache.nifi.stateless.NiFiStateless" "$@"
 }
 main() {
     init "$1"
@@ -360,6 +363,8 @@ case "$1" in
     start|stop|run|status|dump|diagnostics|env)
         main "$@"
         ;;
+
+    #Note: Use of this command is considered experimental. The commands and approach used may change from time to time.
     stateless)
         stateless "$@"
         ;;

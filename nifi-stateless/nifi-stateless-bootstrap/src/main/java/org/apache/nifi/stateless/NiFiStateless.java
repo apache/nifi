@@ -42,6 +42,9 @@ public class NiFiStateless {
 
     public static final String framework_nar_prefix = "nifi-framework-nar";
 
+    public static final String libPath = "lib";
+    public static final String narPath = "work/stateless-nars";
+
     public static void main(final String[] args) throws IOException, ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {
 
         String nifi_home = System.getenv("NIFI_HOME");
@@ -49,8 +52,8 @@ public class NiFiStateless {
             nifi_home = ".";
         }
 
-        final File libDir = new File(nifi_home+"/lib");
-        final File narWorkingDirectory = new File(nifi_home+"/work");
+        final File libDir = new File(nifi_home+"/"+libPath);
+        final File narWorkingDirectory = new File(nifi_home+"/"+narPath);
 
         if(args.length >= 1 && args[0].equals(EXTRACT_NARS)){
             if (!libDir.exists()) {
