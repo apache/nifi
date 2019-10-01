@@ -24,27 +24,38 @@
         <version>1.10.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>nifi-stateless-core</artifactId>
+    <artifactId>nifi-stateless-assembly</artifactId>
+    <packaging>pom</packaging>
 
     <build>
         <plugins>
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-dependency-plugin</artifactId>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <configuration>
+                    <finalName>nifi-stateless-${project.version}</finalName>
+                    <attach>false</attach>
+                </configuration>
                 <executions>
                     <execution>
-                        <id>copy-dependencies</id>
-                        <phase>prepare-package</phase>
+                        <id>make shared resource</id>
                         <goals>
-                            <goal>copy-dependencies</goal>
+                            <goal>single</goal>
                         </goals>
+                        <phase>package</phase>
                         <configuration>
-                            <outputDirectory>${project.build.directory}/nifi-stateless-lib</outputDirectory>
-                            <overWriteReleases>false</overWriteReleases>
-                            <overWriteSnapshots>true</overWriteSnapshots>
-                            <overWriteIfNewer>true</overWriteIfNewer>
-                            <includeScope>compile</includeScope>
-                            <excludeTypes>nar</excludeTypes>
+                            <archiverConfig>
+                                <defaultDirectoryMode>0775</defaultDirectoryMode>
+                                <directoryMode>0775</directoryMode>
+                                <fileMode>0664</fileMode>
+                            </archiverConfig>
+                            <descriptors>
+                                <descriptor>src/main/assembly/dependencies.xml</descriptor>
+                            </descriptors>
+                            <tarLongFileMode>posix</tarLongFileMode>
+                            <formats>
+                                <format>dir</format>
+                                <format>zip</format>
+                            </formats>
                         </configuration>
                     </execution>
                 </executions>
@@ -53,9 +64,20 @@
     </build>
 
     <dependencies>
+        <!-- JARs for root lib/ directory -->
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-stateless-bootstrap</artifactId>
+            <version>1.10.0-SNAPSHOT</version>
+        </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-api</artifactId>
+            <version>1.10.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-utils</artifactId>
             <version>1.10.0-SNAPSHOT</version>
         </dependency>
         <dependency>
@@ -65,62 +87,58 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-framework-core-api</artifactId>
-            <version>1.10.0-SNAPSHOT</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-framework-nar-loading-utils</artifactId>
+            <artifactId>nifi-properties</artifactId>
             <version>1.10.0-SNAPSHOT</version>
         </dependency>
         <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-nar-utils</artifactId>
-            <version>1.10.0-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-expression-language</artifactId>
-            <version>1.10.0-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-data-provenance-utils</artifactId>
-            <version>1.10.0-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>com.google.code.gson</groupId>
-            <artifactId>gson</artifactId>
-            <version>2.7</version>
+            <groupId>javax.servlet</groupId>
+            <artifactId>javax.servlet-api</artifactId>
+            <version>3.1.0</version>
+            <scope>runtime</scope>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
             <version>1.7.25</version>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <scope>compile</scope>
         </dependency>
 
-
-        <!-- Test Dependencies -->
+        <!-- NARs to bring in -->
         <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <version>4.12</version>
-            <scope>test</scope>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-stateless-nar</artifactId>
+            <version>1.10.0-SNAPSHOT</version>
+            <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-standard-processors</artifactId>
+            <artifactId>nifi-standard-services-api-nar</artifactId>
             <version>1.10.0-SNAPSHOT</version>
-            <scope>test</scope>
+            <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-web-api</artifactId>
+            <artifactId>nifi-standard-nar</artifactId>
             <version>1.10.0-SNAPSHOT</version>
-            <type>war</type>
-            <scope>test</scope>
+            <type>nar</type>
         </dependency>
-
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-update-attribute-nar</artifactId>
+            <version>1.10.0-SNAPSHOT</version>
+            <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-jetty-bundle</artifactId>
+            <version>1.10.0-SNAPSHOT</version>
+            <type>nar</type>
+        </dependency>
     </dependencies>
+
 </project>

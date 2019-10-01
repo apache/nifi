@@ -36,8 +36,12 @@
                                 <configuration>
                                     <tasks>
                                         <unzip src="${project.basedir}/../../nifi-assembly/target/nifi-${nifi.version}-bin.zip" dest="${project.basedir}/target/"/>
+                                        <unzip src="${project.basedir}/../../nifi-stateless/nifi-stateless-assembly/target/nifi-stateless-${nifi.version}-bin.zip" dest="${project.basedir}/target/"/>
                                         <move todir="${project.basedir}/target/lib">
                                             <fileset dir="${project.basedir}/target/nifi-${nifi.version}/lib"/>
+                                        </move>
+                                        <move todir="${project.basedir}/target/stateless-lib">
+                                            <fileset dir="${project.basedir}/target/nifi-stateless-${nifi.version}/lib"/>
                                         </move>
                                     </tasks>
                                 </configuration>
@@ -52,7 +56,7 @@
                                     <target>
                                         <exec dir="${project.basedir}/target" executable="java">
                                             <arg value="-cp" />
-                                            <arg value="lib/*" />
+                                            <arg value="stateless-lib/*" />
                                             <arg value="org.apache.nifi.stateless.NiFiStateless" />
                                             <arg value="ExtractNars" />
                                         </exec>
@@ -68,7 +72,10 @@
                                 <configuration>
                                     <tasks>
                                         <!--Not needed in docker image-->
-                                        <delete dir="${project.basedir}/target/lib" includes="*.nar" />
+                                        <delete dir="${project.basedir}/target/lib" />
+
+                                        <!--Remove conflicting JAR. TODO: create custom assembly instead of using ..nifi-assembly/target/nifi-${nifi.version}-bin.zip-->
+                                        <delete dir="${project.basedir}/target/work/nifi-framework-nar-1.10.0-SNAPSHOT.nar-unpacked" />
                                     </tasks>
                                 </configuration>
                                 <goals>
@@ -92,7 +99,7 @@
                                         <UID>1000</UID>
                                         <GID>1000</GID>
                                         <NIFI_VERSION>${project.version}</NIFI_VERSION>
-                                        <LIB_DIR>target/lib</LIB_DIR>
+                                        <STATELESS_LIB_DIR>target/stateless-lib</STATELESS_LIB_DIR>
                                         <WORKING_DIR>target/work</WORKING_DIR>
                                     </buildArgs>
                                     <repository>apache/nifi-stateless</repository>

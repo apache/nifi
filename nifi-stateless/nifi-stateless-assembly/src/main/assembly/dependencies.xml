@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0"?>
 <!--
   Licensed to the Apache Software Foundation (ASF) under one or more
   contributor license agreements.  See the NOTICE file distributed with
@@ -13,25 +13,20 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <modelVersion>4.0.0</modelVersion>
+<assembly>
+    <id>bin</id>
+    <includeBaseDirectory>true</includeBaseDirectory>
+    <baseDirectory>nifi-stateless-${project.version}</baseDirectory>
 
-    <parent>
-        <groupId>org.apache.nifi</groupId>
-        <artifactId>nifi</artifactId>
-        <version>1.10.0-SNAPSHOT</version>
-    </parent>
+    <dependencySets>
+        <!-- Dependencies for nifi-stateless-core -->
+        <dependencySet>
+            <useProjectArtifact>false</useProjectArtifact>
+            <outputDirectory>lib</outputDirectory>
+            <directoryMode>0770</directoryMode>
+            <fileMode>0664</fileMode>
+            <useTransitiveFiltering>false</useTransitiveFiltering>
+        </dependencySet>
+    </dependencySets>
 
-    <artifactId>nifi-stateless</artifactId>
-    <packaging>pom</packaging>
-
-    <modules>
-        <module>nifi-stateless-core</module>
-        <module>nifi-stateless-bootstrap</module>
-        <module>nifi-stateless-assembly</module>
-        <module>nifi-stateless-nar</module>
-    </modules>
-
-</project>
+</assembly>
