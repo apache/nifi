@@ -47,18 +47,14 @@ public class ClientSideKMSEncryptionStrategy implements S3EncryptionStrategy {
     public AmazonS3Client createEncryptionClient(AWSCredentialsProvider credentialsProvider, ClientConfiguration clientConfiguration, String region, String keyIdOrMaterial) {
         KMSEncryptionMaterialsProvider materialProvider = new KMSEncryptionMaterialsProvider(keyIdOrMaterial);
         boolean haveRegion = StringUtils.isNotBlank(region);
-        Region awsRegion = null;
 
         CryptoConfiguration cryptoConfig = new CryptoConfiguration();
         if (haveRegion) {
-            awsRegion = Region.getRegion(Regions.fromName(region));
+            Region awsRegion = Region.getRegion(Regions.fromName(region));
             cryptoConfig.setAwsKmsRegion(awsRegion);
         }
 
         AmazonS3EncryptionClient client = new AmazonS3EncryptionClient(credentialsProvider, materialProvider, cryptoConfig);
-        if (haveRegion) {
-            client.setRegion(awsRegion);
-        }
 
         return client;
     }

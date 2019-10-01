@@ -80,7 +80,7 @@ public class TestS3EncryptionStrategies {
         S3EncryptionStrategy strategy = new ClientSideCMKEncryptionStrategy();
 
         // This shows that the strategy builds a client:
-        Assert.assertNotNull(strategy.createEncryptionClient(null, null, region, randomKeyMaterial));
+        Assert.assertNotNull(strategy.createEncryptionClient(null, null, null, randomKeyMaterial));
 
         // This shows that the strategy does not modify the metadata or any of the requests:
         Assert.assertNull(metadata.getSSEAlgorithm());

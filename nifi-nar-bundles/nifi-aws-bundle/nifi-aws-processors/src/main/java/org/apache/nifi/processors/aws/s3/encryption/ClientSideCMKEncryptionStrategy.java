@@ -18,11 +18,8 @@ package org.apache.nifi.processors.aws.s3.encryption;
 
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.regions.Region;
-import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.AmazonS3EncryptionClient;
-import com.amazonaws.services.s3.model.CryptoConfiguration;
 import com.amazonaws.services.s3.model.EncryptionMaterials;
 import com.amazonaws.services.s3.model.StaticEncryptionMaterialsProvider;
 import org.apache.commons.codec.binary.Base64;
@@ -49,31 +46,21 @@ public class ClientSideCMKEncryptionStrategy implements S3EncryptionStrategy {
      * @return AWS S3 client
      */
     @Override
-    public AmazonS3Client createEncryptionClient(AWSCredentialsProvider credentialsProvider, ClientConfiguration clientConfiguration, String region, String keyIdOrMaterial) throws SecurityException {
+    public AmazonS3Client createEncryptionClient(AWSCredentialsProvider credentialsProvider, ClientConfiguration clientConfiguration, String region, String keyIdOrMaterial) {
         if (!validateKey(keyIdOrMaterial).isValid()) {
-            throw new SecurityException("Invalid client key; ensure key material is base64 encoded.");
+            throw new IllegalArgumentException("Invalid client key; ensure key material is base64 encoded.");
         }
 
         byte[] keyMaterial = Base64.decodeBase64(keyIdOrMaterial);
         SecretKeySpec symmetricKey = new SecretKeySpec(keyMaterial, "AES");
         StaticEncryptionMaterialsProvider encryptionMaterialsProvider = new StaticEncryptionMaterialsProvider(new EncryptionMaterials(symmetricKey));
-        boolean haveRegion = StringUtils.isNotBlank(region);
-        CryptoConfiguration cryptoConfig = new CryptoConfiguration();
-        Region awsRegion = null;
 
-        if (haveRegion) {
-            awsRegion = Region.getRegion(Regions.fromName(region));
-            cryptoConfig.setAwsKmsRegion(awsRegion);
-        }
-
-        AmazonS3EncryptionClient client = new AmazonS3EncryptionClient(credentialsProvider, encryptionMaterialsProvider, cryptoConfig);
-        if (haveRegion && awsRegion != null) {
-            client.setRegion(awsRegion);
-        }
+        AmazonS3EncryptionClient client = new AmazonS3EncryptionClient(credentialsProvider, encryptionMaterialsProvider);
 
         return client;
     }
 
+    @Override
     public ValidationResult validateKey(String keyValue) {
         if (StringUtils.isBlank(keyValue) || !Base64.isBase64(keyValue)) {
             return new ValidationResult.Builder().valid(false).build();
