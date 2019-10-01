@@ -33,10 +33,10 @@ ENV NIFI_HOME ${NIFI_BASE_DIR}/nifi-current
 RUN addgroup -g ${GID} nifi && adduser -s /bin/sh -u ${UID} -G nifi -D nifi
 
 RUN mkdir -p $NIFI_HOME && chown nifi:nifi $NIFI_HOME
-RUN mkdir -p ${NIFI_HOME}/work/ && chown nifi:nifi ${NIFI_HOME}/work/ && chmod 777 ${NIFI_HOME}/work/
+RUN mkdir -p ${NIFI_HOME}/work/stateless-nars && chown nifi:nifi ${NIFI_HOME}/work/stateless-nars && chmod 777 ${NIFI_HOME}/work/stateless-nars
 
-COPY --chown=nifi:nifi $WORKING_DIR ${NIFI_HOME}/work/
-COPY --chown=nifi:nifi $LIB_DIR/target/lib ${NIFI_HOME}/lib/
+COPY --chown=nifi:nifi $WORKING_DIR ${NIFI_HOME}/work
+COPY --chown=nifi:nifi $LIB_DIR ${NIFI_HOME}/lib/
 
 
 #NiFi's HDFS processors require core-site.xml or hdfs-site.xml to exist on disk before they can be started...
