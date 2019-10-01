@@ -34,6 +34,7 @@
         <module>nifi-syslog-utils</module>
         <module>nifi-database-utils</module>
         <module>nifi-database-test-utils</module>
+        <module>nifi-service-utils</module>
     </modules>
 
 </project>

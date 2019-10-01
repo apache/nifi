@@ -39,7 +39,7 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-lookup-services</artifactId>
+            <artifactId>nifi-service-utils</artifactId>
             <version>1.10.0-SNAPSHOT</version>
         </dependency>
         <dependency>
