@@ -4603,12 +4603,32 @@ public final class StandardProcessGroup implements ProcessGroup {
 
                 String value;
                 if (descriptor != null && descriptor.getIdentifiesControllerService()) {
-                    // Property identifies a Controller Service. So the value that we want to assign is not the value given.
-                    // The value given is instead the Versioned Component ID of the Controller Service. We want to resolve this
-                    // to the instance ID of the Controller Service.
-                    final String serviceVersionedComponentId = proposedProperties.get(propertyName);
-                    String instanceId = getServiceInstanceId(serviceVersionedComponentId, group);
-                    value = instanceId == null ? serviceVersionedComponentId : instanceId;
+
+                    // Need to determine if the component's property descriptor for this service is already set to an id
+                    // of an existing service that is outside the current processor group, and if it is we want to leave
+                    // the property set to that value
+                    String existingExternalServiceId = null;
+                    final PropertyDescriptor componentDescriptor = componentNode.getPropertyDescriptor(propertyName);
+                    if (componentDescriptor != null) {
+                        final String componentDescriptorValue = componentNode.getEffectivePropertyValue(componentDescriptor);
+                        if (componentDescriptorValue != null) {
+                            final ControllerServiceNode serviceNode = findAncestorControllerService(componentDescriptorValue, getParent());
+                            if (serviceNode != null) {
+                                existingExternalServiceId = componentDescriptorValue;
+                            }
+                        }
+                    }
+
+                    // If the component's property descriptor is not already set to an id of an existing external service,
+                    // then we need to take the Versioned Component ID and resolve this to the instance ID of the service
+                    if (existingExternalServiceId == null) {
+                        final String serviceVersionedComponentId = proposedProperties.get(propertyName);
+                        String instanceId = getServiceInstanceId(serviceVersionedComponentId, group);
+                        value = instanceId == null ? serviceVersionedComponentId : instanceId;
+                    } else {
+                        value = existingExternalServiceId;
+                    }
+
                 } else {
                     value = proposedProperties.get(propertyName);
                 }
