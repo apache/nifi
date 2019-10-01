@@ -52,7 +52,7 @@ import java.util.List;
 import java.util.Map;
 
 
-@Tags({"service", "encryption", "encrypt", "decryption", "decrypt", "key"})
+@Tags({"service", "aws", "s3", "encryption", "encrypt", "decryption", "decrypt", "key"})
 @CapabilityDescription("Adds configurable encryption to S3 Put and S3 Fetch operations.")
 public class StandardS3EncryptionService extends AbstractControllerService implements AmazonS3EncryptionService {
     private static final Logger logger = LoggerFactory.getLogger(StandardS3EncryptionService.class);
@@ -92,7 +92,9 @@ public class StandardS3EncryptionService extends AbstractControllerService imple
     public static final PropertyDescriptor ENCRYPTION_VALUE = new PropertyDescriptor.Builder()
             .name("key-id-or-key-material")
             .displayName("Key ID or Key Material")
-            .description("For Server-side CEK and Client-side CMK, this is base64-encoded Key Material.  For all others (except 'None'), it is the KMS Key ID.")
+            .description("For None and Server-side S3: not used. For Server-side KMS and Client-side KMS: the KMS Key ID must be configured. " +
+                    "For Server-side Customer Key and Client-side Customer Master Key: the Key Material must be specified in Base64 encoded form. " +
+                    "In case of Server-side Customer Key, the key must be an AES-256 key. In case of Client-side Customer Master Key, it can be an AES-256, AES-192 or AES-128 key.")
             .required(false)
             .sensitive(true)
             .addValidator(new StandardValidators.StringLengthValidator(0, 4096))
@@ -101,6 +103,8 @@ public class StandardS3EncryptionService extends AbstractControllerService imple
 
     public static final PropertyDescriptor REGION = new PropertyDescriptor.Builder()
             .name("region")
+            .displayName("KMS Region")
+            .description("The Region of the AWS Key Management Service. Only used in case of Client-side KMS.")
             .required(false)
             .allowableValues(AbstractS3Processor.getAvailableRegions())
             .defaultValue(AbstractS3Processor.createAllowableValue(Regions.DEFAULT_REGION).getValue())
