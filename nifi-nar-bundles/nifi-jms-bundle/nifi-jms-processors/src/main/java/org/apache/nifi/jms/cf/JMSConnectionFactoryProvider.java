@@ -17,6 +17,7 @@
 package org.apache.nifi.jms.cf;
 
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -104,7 +105,7 @@ public class JMSConnectionFactoryProvider extends AbstractControllerService impl
             .name(BROKER)
             .displayName("Broker URI")
             .description("URI pointing to the network location of the JMS Message broker. Example for ActiveMQ: "
-                    + "'tcp://myhost:61616'. Examples for IBM MQ: 'myhost:1414' and 'myhost01(1414),myhost02(1414)'")
+                    + "'tcp://myhost:61616'. Examples for IBM MQ: 'myhost(1414)' and 'myhost01(1414),myhost02(1414)'")
             .addValidator(new NonEmptyBrokerURIValidator())
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
@@ -219,15 +220,26 @@ public class JMSConnectionFactoryProvider extends AbstractControllerService impl
             } else if (connectionFactoryValue.startsWith("com.tibco.tibjms")) {
                 this.setProperty("serverUrl", brokerValue);
             } else {
-                // Try to parse broker URI as colon separated host/port pair
-                String[] hostPort = brokerValue.split(":");
-                if (hostPort.length == 2) {
-                    // If broker URI indeed was colon separated host/port pair
-                    this.setProperty("hostName", hostPort[0]);
-                    this.setProperty("port", hostPort[1]);
-                } else if (connectionFactoryValue.startsWith("com.ibm.mq.jms")) {
-                    // Assuming broker is in hostname(port) format
-                    this.setProperty("connectionNameList", brokerValue);
+                String[] brokerList = brokerValue.split(",");
+                if (connectionFactoryValue.startsWith("com.ibm.mq.jms")) {
+                    List<String> ibmConList = new ArrayList<String>();
+                    for (String broker : brokerList) {
+                        String[] hostPort = broker.split(":");
+                        if (hostPort.length == 2) {
+                            ibmConList.add(hostPort[0]+"("+hostPort[1]+")");
+                        } else {
+                            ibmConList.add(broker);
+                        }
+                    }
+                    this.setProperty("connectionNameList", String.join(",", ibmConList));
+                } else {
+                    // Try to parse broker URI as colon separated host/port pair. Use first pair if multiple given.
+                    String[] hostPort = brokerList[0].split(":");
+                    if (hostPort.length == 2) {
+                        // If broker URI indeed was colon separated host/port pair
+                        this.setProperty("hostName", hostPort[0]);
+                        this.setProperty("port", hostPort[1]);
+                    }
                 }
             }
         }

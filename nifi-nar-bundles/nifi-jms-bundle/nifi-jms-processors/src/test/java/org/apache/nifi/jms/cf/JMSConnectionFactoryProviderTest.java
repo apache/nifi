@@ -52,6 +52,8 @@ public class JMSConnectionFactoryProviderTest {
     private static final String MULTIPLE_TIBCO_BROKERS = "tcp://myhost01:7222,tcp://myhost02:7222";
     private static final String SINGLE_IBM_MQ_BROKER = "myhost(1414)";
     private static final String MULTIPLE_IBM_MQ_BROKERS = "myhost01(1414),myhost02(1414)";
+    private static final String MULTIPLE_IBM_MQ_MIXED_BROKERS = "myhost01:1414,myhost02(1414)";
+    private static final String MULTIPLE_IBM_MQ_COLON_PAIR_BROKERS = "myhost01:1414,myhost02:1414";
 
     private static final String TEST_CONNECTION_FACTORY_IMPL = "org.apache.nifi.jms.testcflib.TestConnectionFactory";
     private static final String ACTIVEMQ_CONNECTION_FACTORY_IMPL = "org.apache.activemq.ActiveMQConnectionFactory";
@@ -262,6 +264,34 @@ public class JMSConnectionFactoryProviderTest {
     }
 
     @Test
+    public void validWithMultipleIbmMqMixedBrokers() throws InitializationException {
+        TestRunner runner = TestRunners.newTestRunner(mock(Processor.class));
+
+        JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
+        runner.addControllerService(controllerServiceId, cfProvider);
+
+        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.BROKER_URI, MULTIPLE_IBM_MQ_MIXED_BROKERS);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CLIENT_LIB_DIR_PATH, dummyResource);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CONNECTION_FACTORY_IMPL, IBM_MQ_CONNECTION_FACTORY_IMPL);
+
+        runner.assertValid(cfProvider);
+    }
+
+    @Test
+    public void validWithMultipleIbmMqColorPairBrokers() throws InitializationException {
+        TestRunner runner = TestRunners.newTestRunner(mock(Processor.class));
+
+        JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
+        runner.addControllerService(controllerServiceId, cfProvider);
+
+        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.BROKER_URI, MULTIPLE_IBM_MQ_COLON_PAIR_BROKERS);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CLIENT_LIB_DIR_PATH, dummyResource);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CONNECTION_FACTORY_IMPL, IBM_MQ_CONNECTION_FACTORY_IMPL);
+
+        runner.assertValid(cfProvider);
+    }
+
+    @Test
     public void propertiesSetOnSingleTestBrokerConnectionFactory() throws InitializationException {
         TestRunner runner = TestRunners.newTestRunner(mock(Processor.class));
 
@@ -306,7 +336,7 @@ public class JMSConnectionFactoryProviderTest {
 
         runner.enableControllerService(cfProvider);
 
-        assertEquals(cfProvider.getSetProperties(), ImmutableMap.of());
+        assertEquals(cfProvider.getSetProperties(), ImmutableMap.of("hostName", "myhost01", "port", "1234"));
     }
 
     @Test
@@ -406,6 +436,38 @@ public class JMSConnectionFactoryProviderTest {
     }
 
     @Test
+    public void propertiesSetOnMultipleIbmMqMixedBrokersConnectionFactory() throws InitializationException {
+        TestRunner runner = TestRunners.newTestRunner(mock(Processor.class));
+
+        JMSConnectionFactoryProviderForTest cfProvider = new JMSConnectionFactoryProviderForTest();
+        runner.addControllerService(controllerServiceId, cfProvider);
+
+        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.BROKER_URI, MULTIPLE_IBM_MQ_MIXED_BROKERS);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CLIENT_LIB_DIR_PATH, dummyResource);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CONNECTION_FACTORY_IMPL, IBM_MQ_CONNECTION_FACTORY_IMPL);
+
+        runner.enableControllerService(cfProvider);
+
+        assertEquals(cfProvider.getSetProperties(), ImmutableMap.of("connectionNameList", MULTIPLE_IBM_MQ_BROKERS));
+    }
+
+    @Test
+    public void propertiesSetOnMultipleIbmMqColonPairBrokersConnectionFactory() throws InitializationException {
+        TestRunner runner = TestRunners.newTestRunner(mock(Processor.class));
+
+        JMSConnectionFactoryProviderForTest cfProvider = new JMSConnectionFactoryProviderForTest();
+        runner.addControllerService(controllerServiceId, cfProvider);
+
+        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.BROKER_URI, MULTIPLE_IBM_MQ_COLON_PAIR_BROKERS);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CLIENT_LIB_DIR_PATH, dummyResource);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CONNECTION_FACTORY_IMPL, IBM_MQ_CONNECTION_FACTORY_IMPL);
+
+        runner.enableControllerService(cfProvider);
+
+        assertEquals(cfProvider.getSetProperties(), ImmutableMap.of("connectionNameList", MULTIPLE_IBM_MQ_BROKERS));
+    }
+
+    @Test
     public void propertiesSetOnSingleIbmMqColonSeparatedPairBrokerConnectionFactory() throws InitializationException {
         TestRunner runner = TestRunners.newTestRunner(mock(Processor.class));
 
@@ -418,6 +480,6 @@ public class JMSConnectionFactoryProviderTest {
 
         runner.enableControllerService(cfProvider);
 
-        assertEquals(cfProvider.getSetProperties(), ImmutableMap.of("hostName", HOSTNAME, "port", PORT));
+        assertEquals(cfProvider.getSetProperties(), ImmutableMap.of("connectionNameList", HOSTNAME+"("+PORT+")"));
     }
 }

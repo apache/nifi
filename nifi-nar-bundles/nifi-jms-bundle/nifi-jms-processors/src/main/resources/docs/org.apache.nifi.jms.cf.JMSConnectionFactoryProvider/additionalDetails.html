@@ -70,7 +70,7 @@
             <li>Apache ActiveMQ - <i>tcp://myhost:1234</i> for single broker and
                 <i>failover:(tcp://myhost01:1234,tcp://myhost02:1234)</i> for multiple brokers.
             </li>
-            <li>IBM MQ - <i>myhost:1234</i> for single broker. <i>myhost01(1234),myhost02(1234)</i> for multiple
+            <li>IBM MQ - <i>myhost(1234)</i> for single broker. <i>myhost01(1234),myhost02(1234)</i> for multiple
                 brokers.
             </li>
             <li>TIBCO EMS - <i>tcp://myhost:1234</i> for single broker and
@@ -124,7 +124,7 @@
         <td>mqhost01(1414),mqhost02(1414)</td>
         <td>Static</td>
         <td><a href="https://www.ibm.com/support/knowledgecenter/ro/SSAW57_9.0.0/com.ibm.websphere.nd.multiplatform.doc/ae/ucli_pqcfm.html#MQTopicConnectionFactory_enterporthostname" target="_blank">Connection Name List syntax</a>.
-            If connecting to single instance instead use colon separated host/port pair syntax.</td>
+            Colon separated host/port pair(s) is also supported</td>
     </tr>
     <tr>
         <td>SSL Context Service</td>
