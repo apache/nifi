@@ -67,7 +67,7 @@ matrix:
       jdk: openjdk8
       script: >-
         mvn clean install -V -T 1C
-        -pl `find . -type d \( -name "*-nar" -or -name "*-assembly" -or -name "*hive3*" \) -and -not -name "*api-nar" -and -not -name "*hive3*" -and -not -path "*/target/*" -and -not -name "*__*" -printf "!./%P,"`
+        -pl `find . -type d \( -name "*-nar" -or -name "*-assembly" -or -name "*hive3*" \) -and -not -name "*api-nar" -and -not -path "*/target/*" -and -not -name "*__*" -printf "!./%P,"`
         -Pcontrib-check,include-grpc -Ddir-only
         -Dmaven.surefire.arguments="-Duser.language=ja -Duser.region=JP"
         | grep -v -F -f .travis-output-filters
