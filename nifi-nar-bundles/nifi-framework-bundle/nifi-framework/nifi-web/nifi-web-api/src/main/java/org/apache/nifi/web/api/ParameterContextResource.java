@@ -867,6 +867,12 @@ public class ParameterContextResource extends ApplicationResource {
             updatedEntity = performParameterContextUpdate(asyncRequest, uri, replicateRequest, revision, updatedContextEntity);
             logger.info("Successfully updated Parameter Context with ID {}", updatedContextEntity.getId());
         } finally {
+            if (!asyncRequest.isCancelled()) {
+                // validate the components before attempting restart
+                final NiFiUser user = asyncRequest.getUser();
+                serviceFacade.validateComponents(updatedContextEntity.getComponent(), user);
+            }
+
             // TODO: can almost certainly be refactored so that the same code is shared between VersionsResource and ParameterContextResource.
             if (!asyncRequest.isCancelled()) {
                 enableControllerServices(enabledControllerServices, asyncRequest, componentLifecycle, uri);
