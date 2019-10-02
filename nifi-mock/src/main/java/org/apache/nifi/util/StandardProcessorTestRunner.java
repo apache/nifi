@@ -127,7 +127,6 @@ public class StandardProcessorTestRunner implements TestRunner {
         ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, processor);
     }
 
-
     @Override
     public void enforceReadStreamsClosed(final boolean enforce) {
         enforceReadStreamsClosed = enforce;
