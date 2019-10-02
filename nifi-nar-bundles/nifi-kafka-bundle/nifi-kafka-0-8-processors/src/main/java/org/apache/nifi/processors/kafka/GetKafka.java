@@ -507,5 +507,5 @@ public class GetKafka extends AbstractProcessor {
             }
             return new ValidationResult.Builder().subject(subject).explanation(topicName + " is not a valid topic name.").valid(isValidTopicName).build();
         }
-    };
+    }
 }
