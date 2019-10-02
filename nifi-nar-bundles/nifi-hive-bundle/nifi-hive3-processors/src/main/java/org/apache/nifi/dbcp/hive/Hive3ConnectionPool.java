@@ -28,9 +28,13 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
-import org.apache.nifi.components.*;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.dbcp.DBCPValidator;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.hadoop.KerberosProperties;
 import org.apache.nifi.hadoop.SecurityUtil;
@@ -39,7 +43,6 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.hive.AuthenticationFailedException;
 import org.apache.nifi.util.hive.HiveConfigurator;
 import org.apache.nifi.util.hive.HiveUtils;
@@ -94,33 +97,6 @@ public class Hive3ConnectionPool extends AbstractControllerService implements Hi
      * Copied from {@link GenericObjectPoolConfig.DEFAULT_SOFT_MIN_EVICTABLE_IDLE_TIME_MILLIS} in Commons-DBCP 2.5.0
      */
     private static final String DEFAULT_SOFT_MIN_EVICTABLE_IDLE_TIME = String.valueOf(-1L);
-
-    private static final Validator CUSTOM_TIME_PERIOD_VALIDATOR = new Validator() {
-        private final Pattern TIME_DURATION_PATTERN = Pattern.compile(FormatUtils.TIME_DURATION_REGEX);
-
-        @Override
-        public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
-            if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input)) {
-                return new ValidationResult.Builder().subject(subject).input(input).explanation("Expression Language Present").valid(true).build();
-            }
-
-            if (input == null) {
-                return new ValidationResult.Builder().subject(subject).input(input).valid(false).explanation("Time Period cannot be null").build();
-            }
-            if (TIME_DURATION_PATTERN.matcher(input.toLowerCase()).matches() || input.equals("-1")) {
-                return new ValidationResult.Builder().subject(subject).input(input).valid(true).build();
-            } else {
-                return new ValidationResult.Builder()
-                        .subject(subject)
-                        .input(input)
-                        .valid(false)
-                        .explanation("Must be of format <duration> <TimeUnit> where <duration> is a "
-                                + "non-negative integer and TimeUnit is a supported Time Unit, such "
-                                + "as: nanos, millis, secs, mins, hrs, days")
-                        .build();
-            }
-        }
-    };
 
     static final PropertyDescriptor DATABASE_URL = new PropertyDescriptor.Builder()
             .name("hive-db-connect-url")
@@ -228,7 +204,7 @@ public class Hive3ConnectionPool extends AbstractControllerService implements Hi
                     "means the connection has an infinite lifetime.")
             .defaultValue(DEFAULT_MAX_CONN_LIFETIME)
             .required(false)
-            .addValidator(CUSTOM_TIME_PERIOD_VALIDATOR)
+            .addValidator(DBCPValidator.CUSTOM_TIME_PERIOD_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
@@ -239,7 +215,7 @@ public class Hive3ConnectionPool extends AbstractControllerService implements Hi
                     "non-positive, no idle connection evictor thread will be run.")
             .defaultValue(DEFAULT_EVICTION_RUN_PERIOD)
             .required(false)
-            .addValidator(CUSTOM_TIME_PERIOD_VALIDATOR)
+            .addValidator(DBCPValidator.CUSTOM_TIME_PERIOD_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
@@ -249,7 +225,7 @@ public class Hive3ConnectionPool extends AbstractControllerService implements Hi
             .description("The minimum amount of time a connection may sit idle in the pool before it is eligible for eviction.")
             .defaultValue(DEFAULT_MIN_EVICTABLE_IDLE_TIME)
             .required(false)
-            .addValidator(CUSTOM_TIME_PERIOD_VALIDATOR)
+            .addValidator(DBCPValidator.CUSTOM_TIME_PERIOD_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
@@ -265,7 +241,7 @@ public class Hive3ConnectionPool extends AbstractControllerService implements Hi
                     "constraint.")
             .defaultValue(DEFAULT_SOFT_MIN_EVICTABLE_IDLE_TIME)
             .required(false)
-            .addValidator(CUSTOM_TIME_PERIOD_VALIDATOR)
+            .addValidator(DBCPValidator.CUSTOM_TIME_PERIOD_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
