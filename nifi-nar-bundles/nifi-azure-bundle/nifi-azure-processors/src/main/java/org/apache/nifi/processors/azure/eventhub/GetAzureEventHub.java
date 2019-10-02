@@ -130,7 +130,7 @@ public class GetAzureEventHub extends AbstractProcessor {
 
     static final PropertyDescriptor ENQUEUE_TIME = new PropertyDescriptor.Builder()
             .name("Event Hub Message Enqueue Time")
-            .description("A timestamp (ISO-8061 Instant) formatted as YYYY-MM-DDThhmmss.sssZ (2016-01-01T01:01:01.000Z) from which messages "
+            .description("A timestamp (ISO-8601 Instant) formatted as YYYY-MM-DDThhmmss.sssZ (2016-01-01T01:01:01.000Z) from which messages "
                     + "should have been enqueued in the EventHub to start reading from")
             .addValidator(StandardValidators.ISO8601_INSTANT_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
