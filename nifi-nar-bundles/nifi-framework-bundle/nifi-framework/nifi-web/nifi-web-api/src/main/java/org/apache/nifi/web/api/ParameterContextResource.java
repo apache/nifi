@@ -827,6 +827,7 @@ public class ParameterContextResource extends ApplicationResource {
         return Arrays.asList(new StandardUpdateStep("Stopping Affected Processors"),
             new StandardUpdateStep("Disabling Affected Controller Services"),
             new StandardUpdateStep("Updating Parameter Context"),
+            new StandardUpdateStep("Validating Components"),
             new StandardUpdateStep("Re-Enabling Affected Controller Services"),
             new StandardUpdateStep("Restarting Affected Processors"));
     }
@@ -865,12 +866,13 @@ public class ParameterContextResource extends ApplicationResource {
         final ParameterContextEntity updatedEntity;
         try {
             updatedEntity = performParameterContextUpdate(asyncRequest, uri, replicateRequest, revision, updatedContextEntity);
+            asyncRequest.markStepComplete();
             logger.info("Successfully updated Parameter Context with ID {}", updatedContextEntity.getId());
         } finally {
             if (!asyncRequest.isCancelled()) {
                 // validate the components before attempting restart
-                final NiFiUser user = asyncRequest.getUser();
-                serviceFacade.validateComponents(updatedContextEntity.getComponent(), user);
+                serviceFacade.validateComponents(updatedContextEntity.getComponent(), asyncRequest.getUser());
+                asyncRequest.markStepComplete();
             }
 
             // TODO: can almost certainly be refactored so that the same code is shared between VersionsResource and ParameterContextResource.
