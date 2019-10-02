@@ -111,7 +111,7 @@ public class FormatUtils {
      */
     public static String formatDataSize(final double dataSize) {
         // initialize the formatter
-        final NumberFormat format = NumberFormat.getNumberInstance(Locale.US);
+        final NumberFormat format = NumberFormat.getNumberInstance();
         format.setMaximumFractionDigits(2);
 
         // check terabytes
