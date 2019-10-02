@@ -100,7 +100,7 @@ public class TestS3EncryptionStrategies {
         S3EncryptionStrategy strategy = new ServerSideCEncryptionStrategy();
 
         // This shows that the strategy does *not* build a client:
-        Assert.assertNull(strategy.createEncryptionClient(null, null, "", ""));
+        Assert.assertNull(strategy.createEncryptionClient(null, null, null, ""));
 
         // This shows that the strategy sets the SSE customer key as expected:
         strategy.configurePutObjectRequest(putObjectRequest, metadata, randomKeyMaterial);
@@ -130,7 +130,7 @@ public class TestS3EncryptionStrategies {
         S3EncryptionStrategy strategy = new ServerSideKMSEncryptionStrategy();
 
         // This shows that the strategy does *not* build a client:
-        Assert.assertNull(strategy.createEncryptionClient(null, null, "", ""));
+        Assert.assertNull(strategy.createEncryptionClient(null, null, null, null));
 
         // This shows that the strategy sets the SSE KMS key id as expected:
         strategy.configurePutObjectRequest(putObjectRequest, metadata, randomKeyId);
@@ -150,14 +150,14 @@ public class TestS3EncryptionStrategies {
         S3EncryptionStrategy strategy = new ServerSideS3EncryptionStrategy();
 
         // This shows that the strategy does *not* build a client:
-        Assert.assertNull(strategy.createEncryptionClient(null, null, "", ""));
+        Assert.assertNull(strategy.createEncryptionClient(null, null, null, null));
 
         // This shows that the strategy sets the SSE algorithm field as expected:
-        strategy.configurePutObjectRequest(putObjectRequest, metadata, "");
+        strategy.configurePutObjectRequest(putObjectRequest, metadata, null);
         Assert.assertEquals(ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION, metadata.getSSEAlgorithm());
 
         // Same for InitiateMultipartUploadRequest:
-        strategy.configureInitiateMultipartUploadRequest(initUploadRequest, metadata, "");
+        strategy.configureInitiateMultipartUploadRequest(initUploadRequest, metadata, null);
         Assert.assertEquals(ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION, metadata.getSSEAlgorithm());
     }
 

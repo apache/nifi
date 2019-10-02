@@ -30,17 +30,18 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
-import org.apache.nifi.processor.util.StandardValidators;
 
 import org.apache.nifi.processors.aws.s3.AmazonS3EncryptionService;
 import org.apache.nifi.processors.aws.s3.AbstractS3Processor;
 
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -64,7 +65,7 @@ public class StandardS3EncryptionService extends AbstractControllerService imple
     public static final String STRATEGY_NAME_CSE_KMS = "CSE_KMS";
     public static final String STRATEGY_NAME_CSE_C = "CSE_C";
 
-    private static final Map<String, S3EncryptionStrategy> namedStrategies = new HashMap<String, S3EncryptionStrategy>() {{
+    private static final Map<String, S3EncryptionStrategy> NAMED_STRATEGIES = new HashMap<String, S3EncryptionStrategy>() {{
         put(STRATEGY_NAME_NONE, new NoOpEncryptionStrategy());
         put(STRATEGY_NAME_SSE_S3, new ServerSideS3EncryptionStrategy());
         put(STRATEGY_NAME_SSE_KMS, new ServerSideKMSEncryptionStrategy());
@@ -79,6 +80,15 @@ public class StandardS3EncryptionService extends AbstractControllerService imple
     private static final AllowableValue SSE_C = new AllowableValue(STRATEGY_NAME_SSE_C, "Server-side Customer Key","Use server-side, customer-supplied key to perform encryption.");
     private static final AllowableValue CSE_KMS = new AllowableValue(STRATEGY_NAME_CSE_KMS, "Client-side KMS","Use client-side, KMS key to perform encryption.");
     private static final AllowableValue CSE_C = new AllowableValue(STRATEGY_NAME_CSE_C, "Client-side Customer Key","Use client-side, customer-supplied key to perform encryption.");
+
+    private static final Map<String, AllowableValue> ENCRYPTION_STRATEGY_ALLOWABLE_VALUES = new HashMap<String, AllowableValue>() {{
+        put(STRATEGY_NAME_NONE, NONE);
+        put(STRATEGY_NAME_SSE_S3, SSE_S3);
+        put(STRATEGY_NAME_SSE_KMS, SSE_KMS);
+        put(STRATEGY_NAME_SSE_C, SSE_C);
+        put(STRATEGY_NAME_CSE_KMS, CSE_KMS);
+        put(STRATEGY_NAME_CSE_C, CSE_C);
+    }};
 
     public static final PropertyDescriptor ENCRYPTION_STRATEGY = new PropertyDescriptor.Builder()
             .name("encryption-strategy")
@@ -97,7 +107,7 @@ public class StandardS3EncryptionService extends AbstractControllerService imple
                     "In case of Server-side Customer Key, the key must be an AES-256 key. In case of Client-side Customer Key, it can be an AES-256, AES-192 or AES-128 key.")
             .required(false)
             .sensitive(true)
-            .addValidator(new StandardValidators.StringLengthValidator(0, 4096))
+            .addValidator((subject, input, context) -> new ValidationResult.Builder().valid(true).build()) // will be validated in customValidate()
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
@@ -118,8 +128,8 @@ public class StandardS3EncryptionService extends AbstractControllerService imple
     @OnEnabled
     public void onConfigured(final ConfigurationContext context) throws InitializationException {
         final String newStrategyName = context.getProperty(ENCRYPTION_STRATEGY).getValue();
-        final String newKeyValue = context.getProperty(ENCRYPTION_VALUE).getValue();
-        final S3EncryptionStrategy newEncryptionStrategy = namedStrategies.get(newStrategyName);
+        final String newKeyValue = context.getProperty(ENCRYPTION_VALUE).evaluateAttributeExpressions().getValue();
+        final S3EncryptionStrategy newEncryptionStrategy = NAMED_STRATEGIES.get(newStrategyName);
         String newKmsRegion = null;
 
         if (context.getProperty(KMS_REGION) != null ) {
@@ -141,7 +151,53 @@ public class StandardS3EncryptionService extends AbstractControllerService imple
     @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         Collection<ValidationResult> validationResults = new ArrayList<>();
-        validationResults.add(encryptionStrategy.validateKey(validationContext.getProperty(ENCRYPTION_VALUE).getValue()));
+
+        String encryptionStrategyName = validationContext.getProperty(ENCRYPTION_STRATEGY).getValue();
+        String encryptionStrategyDisplayName = ENCRYPTION_STRATEGY_ALLOWABLE_VALUES.get(encryptionStrategyName).getDisplayName();
+        PropertyValue encryptionValueProperty = validationContext.getProperty(ENCRYPTION_VALUE);
+        String encryptionValue = encryptionValueProperty.evaluateAttributeExpressions().getValue();
+
+        switch (encryptionStrategyName) {
+            case STRATEGY_NAME_NONE:
+            case STRATEGY_NAME_SSE_S3:
+                if (encryptionValueProperty.isSet()) {
+                    validationResults.add(new ValidationResult.Builder()
+                            .subject(ENCRYPTION_VALUE.getDisplayName())
+                            .valid(false)
+                            .explanation("the property cannot be specified for encryption strategy " + encryptionStrategyDisplayName)
+                            .build()
+                    );
+                }
+                break;
+            case STRATEGY_NAME_SSE_KMS:
+            case STRATEGY_NAME_CSE_KMS:
+                if (StringUtils.isEmpty(encryptionValue)) {
+                    validationResults.add(new ValidationResult.Builder()
+                            .subject(ENCRYPTION_VALUE.getDisplayName())
+                            .valid(false)
+                            .explanation("a non-empty Key ID must be specified for encryption strategy " + encryptionStrategyDisplayName)
+                            .build()
+                    );
+                }
+                break;
+            case STRATEGY_NAME_SSE_C:
+            case STRATEGY_NAME_CSE_C:
+                if (StringUtils.isEmpty(encryptionValue)) {
+                    validationResults.add(new ValidationResult.Builder()
+                            .subject(ENCRYPTION_VALUE.getDisplayName())
+                            .valid(false)
+                            .explanation("a non-empty Key Material must be specified for encryption strategy " + encryptionStrategyDisplayName)
+                            .build()
+                    );
+                } else {
+                    S3EncryptionStrategy encryptionStrategy = NAMED_STRATEGIES.get(encryptionStrategyName);
+                    String keyIdOrMaterial = validationContext.getProperty(ENCRYPTION_VALUE).evaluateAttributeExpressions().getValue();
+
+                    validationResults.add(encryptionStrategy.validateKey(keyIdOrMaterial));
+                }
+                break;
+        }
+
         return validationResults;
     }
 

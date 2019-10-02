@@ -47,8 +47,9 @@ public class ClientSideCEncryptionStrategy implements S3EncryptionStrategy {
      */
     @Override
     public AmazonS3Client createEncryptionClient(AWSCredentialsProvider credentialsProvider, ClientConfiguration clientConfiguration, String kmsRegion, String keyIdOrMaterial) {
-        if (!validateKey(keyIdOrMaterial).isValid()) {
-            throw new IllegalArgumentException("Invalid client key; ensure key material is base64 encoded.");
+        ValidationResult keyValidationResult = validateKey(keyIdOrMaterial);
+        if (!keyValidationResult.isValid()) {
+            throw new IllegalArgumentException("Invalid client key; " + keyValidationResult.getExplanation());
         }
 
         byte[] keyMaterial = Base64.decodeBase64(keyIdOrMaterial);
@@ -62,21 +63,37 @@ public class ClientSideCEncryptionStrategy implements S3EncryptionStrategy {
 
     @Override
     public ValidationResult validateKey(String keyValue) {
-        if (StringUtils.isBlank(keyValue) || !Base64.isBase64(keyValue)) {
-            return new ValidationResult.Builder().valid(false).build();
+        if (StringUtils.isBlank(keyValue)) {
+            return new ValidationResult.Builder()
+                    .subject("Key Material")
+                    .valid(false)
+                    .explanation("it is empty")
+                    .build();
         }
 
-        boolean decoded = false;
-        boolean sized = false;
         byte[] keyMaterial;
 
         try {
+            if (!Base64.isBase64(keyValue)) {
+                throw new Exception();
+            }
             keyMaterial = Base64.decodeBase64(keyValue);
-            decoded = true;
-            sized = keyMaterial.length == 32 || keyMaterial.length == 24 || keyMaterial.length == 16;
-        } catch (final Exception ignored) {
+        } catch (Exception e) {
+            return new ValidationResult.Builder()
+                    .subject("Key Material")
+                    .valid(false)
+                    .explanation("it is not in Base64 encoded form")
+                    .build();
         }
 
-        return new ValidationResult.Builder().valid(decoded && sized).build();
+        if (!(keyMaterial.length == 32 || keyMaterial.length == 24 || keyMaterial.length == 16)) {
+            return new ValidationResult.Builder()
+                    .subject("Key Material")
+                    .valid(false)
+                    .explanation("it is not a Base64 encoded AES-256, AES-192 or AES-128 key")
+                    .build();
+        }
+
+        return new ValidationResult.Builder().valid(true).build();
     }
 }
