@@ -507,6 +507,7 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
             if (leader == null) {
                 logger.debug("Reached out to ZooKeeper to determine which node is the elected leader for Role '{}' but found that there is no leader.", roleName);
                 setLeader(false);
+                return false;
             }
 
             final boolean match = leader.equals(participantId);
