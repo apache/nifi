@@ -46,8 +46,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLSocket;
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.DataInputStream;
 import java.io.EOFException;
 import java.io.IOException;
@@ -112,10 +110,7 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
 
 
     @Override
-    public void receiveFlowFiles(final Socket socket) throws IOException {
-        final InputStream in = new BufferedInputStream(socket.getInputStream());
-        final OutputStream out = new BufferedOutputStream(socket.getOutputStream());
-
+    public void receiveFlowFiles(final Socket socket, final InputStream in, final OutputStream out) throws IOException {
         String peerDescription = socket.getInetAddress().getHostName();
         if (socket instanceof SSLSocket) {
             logger.debug("Connection received from peer {}", peerDescription);
