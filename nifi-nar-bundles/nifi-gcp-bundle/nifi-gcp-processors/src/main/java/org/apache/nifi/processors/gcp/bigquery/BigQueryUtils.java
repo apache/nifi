@@ -22,6 +22,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.nifi.processor.exception.ProcessException;
+
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.Field.Mode;
 import com.google.cloud.bigquery.LegacySQLTypeName;
@@ -38,7 +40,7 @@ public class BigQueryUtils {
      * Exception thrown when a given type can't be transformed into a valid BigQuery type.
      *
      */
-    public static class BadTypeNameException extends RuntimeException {
+    public static class BadTypeNameException extends ProcessException {
         public BadTypeNameException(String message) {
             super(message);
         }
