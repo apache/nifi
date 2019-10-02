@@ -76,8 +76,8 @@ public class TestS3EncryptionStrategies {
     }
 
     @Test
-    public void testClientSideCMKEncryptionStrategy() {
-        S3EncryptionStrategy strategy = new ClientSideCMKEncryptionStrategy();
+    public void testClientSideCEncryptionStrategy() {
+        S3EncryptionStrategy strategy = new ClientSideCEncryptionStrategy();
 
         // This shows that the strategy builds a client:
         Assert.assertNotNull(strategy.createEncryptionClient(null, null, null, randomKeyMaterial));
@@ -96,8 +96,8 @@ public class TestS3EncryptionStrategies {
     }
 
     @Test
-    public void testServerSideCEKEncryptionStrategy() {
-        S3EncryptionStrategy strategy = new ServerSideCEKEncryptionStrategy();
+    public void testServerSideCEncryptionStrategy() {
+        S3EncryptionStrategy strategy = new ServerSideCEncryptionStrategy();
 
         // This shows that the strategy does *not* build a client:
         Assert.assertNull(strategy.createEncryptionClient(null, null, "", ""));

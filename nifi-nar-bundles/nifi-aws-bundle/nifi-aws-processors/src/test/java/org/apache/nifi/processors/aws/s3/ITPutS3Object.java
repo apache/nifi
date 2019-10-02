@@ -946,18 +946,18 @@ public class ITPutS3Object extends AbstractS3IT {
     }
 
     @Test
-    public void testEncryptionServiceWithServerSideS3ManagedEncryptionStrategy() throws IOException, InitializationException {
+    public void testEncryptionServiceWithServerSideS3EncryptionStrategyUsingSingleUpload() throws IOException, InitializationException {
         byte[] smallData = Files.readAllBytes(getResourcePath(SAMPLE_FILE_RESOURCE_NAME));
-        testEncryptionServiceWithServerSideS3ManagedEncryptionStrategy(smallData);
+        testEncryptionServiceWithServerSideS3EncryptionStrategy(smallData);
     }
 
     @Test
-    public void testEncryptionServiceWithServerSideS3ManagedEncryptionStrategyUsingMultipartUpload() throws IOException, InitializationException {
+    public void testEncryptionServiceWithServerSideS3EncryptionStrategyUsingMultipartUpload() throws IOException, InitializationException {
         byte[] largeData = new byte[51 * 1024 * 1024];
-        testEncryptionServiceWithServerSideS3ManagedEncryptionStrategy(largeData);
+        testEncryptionServiceWithServerSideS3EncryptionStrategy(largeData);
     }
 
-    private void testEncryptionServiceWithServerSideS3ManagedEncryptionStrategy(byte[] data) throws IOException, InitializationException {
+    private void testEncryptionServiceWithServerSideS3EncryptionStrategy(byte[] data) throws IOException, InitializationException {
         TestRunner runner = createPutEncryptionTestRunner(StandardS3EncryptionService.STRATEGY_NAME_SSE_S3, "");
 
         Map<String, String> attrs = new HashMap<>();
@@ -1014,18 +1014,18 @@ public class ITPutS3Object extends AbstractS3IT {
     }
 
     @Test
-    public void testEncryptionServiceWithServerSideCPEKEncryptionStrategy() throws IOException, InitializationException {
+    public void testEncryptionServiceWithServerSideCEncryptionStrategyUsingSingleUpload() throws IOException, InitializationException {
         byte[] smallData = Files.readAllBytes(getResourcePath(SAMPLE_FILE_RESOURCE_NAME));
-        testEncryptionServiceWithServerSideCPEKEncryptionStrategy(smallData);
+        testEncryptionServiceWithServerSideCEncryptionStrategy(smallData);
     }
 
     @Test
-    public void testEncryptionServiceWithServerSideCPEKEncryptionStrategyUsingMultipartUpload() throws IOException, InitializationException {
+    public void testEncryptionServiceWithServerSideCEncryptionStrategyUsingMultipartUpload() throws IOException, InitializationException {
         byte[] largeData = new byte[51 * 1024 * 1024];
-        testEncryptionServiceWithServerSideCPEKEncryptionStrategy(largeData);
+        testEncryptionServiceWithServerSideCEncryptionStrategy(largeData);
     }
 
-    private void testEncryptionServiceWithServerSideCPEKEncryptionStrategy(byte[] data) throws IOException, InitializationException {
+    private void testEncryptionServiceWithServerSideCEncryptionStrategy(byte[] data) throws IOException, InitializationException {
         TestRunner runner = createPutEncryptionTestRunner(StandardS3EncryptionService.STRATEGY_NAME_SSE_C, randomKeyMaterial);
 
         final Map<String, String> attrs = new HashMap<>();
@@ -1084,19 +1084,19 @@ public class ITPutS3Object extends AbstractS3IT {
     }
 
     @Test
-    public void testEncryptionServiceWithClientSideCMKEncryptionStrategy() throws InitializationException, IOException {
+    public void testEncryptionServiceWithClientSideCEncryptionStrategyUsingSingleUpload() throws InitializationException, IOException {
         byte[] smallData = Files.readAllBytes(getResourcePath(SAMPLE_FILE_RESOURCE_NAME));
-        testEncryptionServiceWithClientSideCMKEncryptionStrategy(smallData);
+        testEncryptionServiceWithClientSideCEncryptionStrategy(smallData);
     }
 
     @Test
-    public void testEncryptionServiceWithClientSideCMKEncryptionStrategyUsingMultipartUpload() throws IOException, InitializationException {
+    public void testEncryptionServiceWithClientSideCEncryptionStrategyUsingMultipartUpload() throws IOException, InitializationException {
         byte[] largeData = new byte[51 * 1024 * 1024];
-        testEncryptionServiceWithClientSideCMKEncryptionStrategy(largeData);
+        testEncryptionServiceWithClientSideCEncryptionStrategy(largeData);
     }
 
-    private void testEncryptionServiceWithClientSideCMKEncryptionStrategy(byte[] data) throws InitializationException, IOException {
-        TestRunner runner = createPutEncryptionTestRunner(StandardS3EncryptionService.STRATEGY_NAME_CSE_CMK, randomKeyMaterial);
+    private void testEncryptionServiceWithClientSideCEncryptionStrategy(byte[] data) throws InitializationException, IOException {
+        TestRunner runner = createPutEncryptionTestRunner(StandardS3EncryptionService.STRATEGY_NAME_CSE_C, randomKeyMaterial);
 
         final Map<String, String> attrs = new HashMap<>();
         attrs.put("filename", "test.txt");
@@ -1109,10 +1109,10 @@ public class ITPutS3Object extends AbstractS3IT {
         Assert.assertEquals(1, flowFiles.size());
         Assert.assertEquals(0, runner.getFlowFilesForRelationship(PutS3Object.REL_FAILURE).size());
         MockFlowFile putSuccess = flowFiles.get(0);
-        Assert.assertEquals(putSuccess.getAttribute(PutS3Object.S3_ENCRYPTION_STRATEGY), StandardS3EncryptionService.STRATEGY_NAME_CSE_CMK);
+        Assert.assertEquals(putSuccess.getAttribute(PutS3Object.S3_ENCRYPTION_STRATEGY), StandardS3EncryptionService.STRATEGY_NAME_CSE_C);
 
-        MockFlowFile flowFile = fetchEncryptedFlowFile(attrs, StandardS3EncryptionService.STRATEGY_NAME_CSE_CMK, randomKeyMaterial);
-        flowFile.assertAttributeEquals(PutS3Object.S3_ENCRYPTION_STRATEGY, StandardS3EncryptionService.STRATEGY_NAME_CSE_CMK);
+        MockFlowFile flowFile = fetchEncryptedFlowFile(attrs, StandardS3EncryptionService.STRATEGY_NAME_CSE_C, randomKeyMaterial);
+        flowFile.assertAttributeEquals(PutS3Object.S3_ENCRYPTION_STRATEGY, StandardS3EncryptionService.STRATEGY_NAME_CSE_C);
         flowFile.assertContentEquals(data);
 
         flowFile.assertAttributeExists("x-amz-key");

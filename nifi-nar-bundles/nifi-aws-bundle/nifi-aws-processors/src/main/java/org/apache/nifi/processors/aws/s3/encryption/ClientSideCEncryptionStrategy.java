@@ -35,7 +35,7 @@ import javax.crypto.spec.SecretKeySpec;
  * See https://docs.aws.amazon.com/AmazonS3/latest/dev/UsingClientSideEncryption.html#client-side-encryption-client-side-master-key-intro
  *
  */
-public class ClientSideCMKEncryptionStrategy implements S3EncryptionStrategy {
+public class ClientSideCEncryptionStrategy implements S3EncryptionStrategy {
     /**
      * Create an encryption client.
      *

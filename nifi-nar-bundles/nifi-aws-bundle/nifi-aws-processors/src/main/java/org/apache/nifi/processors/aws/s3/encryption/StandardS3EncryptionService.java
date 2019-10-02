@@ -62,29 +62,29 @@ public class StandardS3EncryptionService extends AbstractControllerService imple
     public static final String STRATEGY_NAME_SSE_KMS = "SSE_KMS";
     public static final String STRATEGY_NAME_SSE_C = "SSE_C";
     public static final String STRATEGY_NAME_CSE_KMS = "CSE_KMS";
-    public static final String STRATEGY_NAME_CSE_CMK = "CSE_CMK";
+    public static final String STRATEGY_NAME_CSE_C = "CSE_C";
 
     private static final Map<String, S3EncryptionStrategy> namedStrategies = new HashMap<String, S3EncryptionStrategy>() {{
         put(STRATEGY_NAME_NONE, new NoOpEncryptionStrategy());
         put(STRATEGY_NAME_SSE_S3, new ServerSideS3EncryptionStrategy());
         put(STRATEGY_NAME_SSE_KMS, new ServerSideKMSEncryptionStrategy());
-        put(STRATEGY_NAME_SSE_C, new ServerSideCEKEncryptionStrategy());
+        put(STRATEGY_NAME_SSE_C, new ServerSideCEncryptionStrategy());
         put(STRATEGY_NAME_CSE_KMS, new ClientSideKMSEncryptionStrategy());
-        put(STRATEGY_NAME_CSE_CMK, new ClientSideCMKEncryptionStrategy());
+        put(STRATEGY_NAME_CSE_C, new ClientSideCEncryptionStrategy());
     }};
 
     private static final AllowableValue NONE = new AllowableValue(STRATEGY_NAME_NONE, "None","No encryption.");
     private static final AllowableValue SSE_S3 = new AllowableValue(STRATEGY_NAME_SSE_S3, "Server-side S3","Use server-side, S3-managed encryption.");
     private static final AllowableValue SSE_KMS = new AllowableValue(STRATEGY_NAME_SSE_KMS, "Server-side KMS","Use server-side, KMS key to perform encryption.");
-    private static final AllowableValue SSE_C = new AllowableValue(STRATEGY_NAME_SSE_C, "Server-side Customer Key","Use server-side, customer-supplied key for encryption.");
+    private static final AllowableValue SSE_C = new AllowableValue(STRATEGY_NAME_SSE_C, "Server-side Customer Key","Use server-side, customer-supplied key to perform encryption.");
     private static final AllowableValue CSE_KMS = new AllowableValue(STRATEGY_NAME_CSE_KMS, "Client-side KMS","Use client-side, KMS key to perform encryption.");
-    private static final AllowableValue CSE_CMK = new AllowableValue(STRATEGY_NAME_CSE_CMK, "Client-side Customer Master Key","Use client-side, customer-supplied master key to perform encryption.");
+    private static final AllowableValue CSE_C = new AllowableValue(STRATEGY_NAME_CSE_C, "Client-side Customer Key","Use client-side, customer-supplied key to perform encryption.");
 
     public static final PropertyDescriptor ENCRYPTION_STRATEGY = new PropertyDescriptor.Builder()
             .name("encryption-strategy")
             .displayName("Encryption Strategy")
             .description("Strategy to use for S3 data encryption and decryption.")
-            .allowableValues(NONE, SSE_S3, SSE_KMS, SSE_C, CSE_KMS, CSE_CMK)
+            .allowableValues(NONE, SSE_S3, SSE_KMS, SSE_C, CSE_KMS, CSE_C)
             .required(true)
             .defaultValue(NONE.getValue())
             .build();
@@ -93,8 +93,8 @@ public class StandardS3EncryptionService extends AbstractControllerService imple
             .name("key-id-or-key-material")
             .displayName("Key ID or Key Material")
             .description("For None and Server-side S3: not used. For Server-side KMS and Client-side KMS: the KMS Key ID must be configured. " +
-                    "For Server-side Customer Key and Client-side Customer Master Key: the Key Material must be specified in Base64 encoded form. " +
-                    "In case of Server-side Customer Key, the key must be an AES-256 key. In case of Client-side Customer Master Key, it can be an AES-256, AES-192 or AES-128 key.")
+                    "For Server-side Customer Key and Client-side Customer Key: the Key Material must be specified in Base64 encoded form. " +
+                    "In case of Server-side Customer Key, the key must be an AES-256 key. In case of Client-side Customer Key, it can be an AES-256, AES-192 or AES-128 key.")
             .required(false)
             .sensitive(true)
             .addValidator(new StandardValidators.StringLengthValidator(0, 4096))

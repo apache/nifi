@@ -32,7 +32,7 @@ import org.bouncycastle.util.encoders.Base64;
  * See https://docs.aws.amazon.com/AmazonS3/latest/dev/ServerSideEncryptionCustomerKeys.html
  *
  */
-public class ServerSideCEKEncryptionStrategy implements S3EncryptionStrategy {
+public class ServerSideCEncryptionStrategy implements S3EncryptionStrategy {
     @Override
     public void configurePutObjectRequest(PutObjectRequest request, ObjectMetadata objectMetadata, String keyValue) {
         SSECustomerKey customerKey = new SSECustomerKey(keyValue);
