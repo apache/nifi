@@ -24,6 +24,7 @@ import java.util.concurrent.TimeUnit;
 
 import javax.net.ssl.SSLContext;
 
+import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.remote.protocol.DataPacket;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
@@ -109,6 +110,16 @@ public interface SiteToSiteClientConfig extends Serializable {
      *         cluster, if any
      */
     File getPeerPersistenceFile();
+
+    /**
+     * @return the StateManager to be used for persisting the nodes of a remote
+     */
+    StateManager getStateManager();
+
+    /**
+     * @return a PeerPersistence implementation based on configured persistent target
+     */
+    PeerPersistence getPeerPersistence();
 
     /**
      * @return a boolean indicating whether or not compression will be used to

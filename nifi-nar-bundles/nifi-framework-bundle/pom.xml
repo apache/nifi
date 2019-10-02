@@ -25,7 +25,7 @@
     <properties>
         <jersey.version>2.26</jersey.version>
         <spring.version>4.3.19.RELEASE</spring.version>
-        <spring.security.version>4.2.8.RELEASE</spring.security.version>
+        <spring.security.version>4.2.13.RELEASE</spring.security.version>
     </properties>
     <modules>
         <module>nifi-framework</module>
@@ -195,6 +195,11 @@
                 <version>1.10.0-SNAPSHOT</version>
             </dependency>
             <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-parameter</artifactId>
+                <version>1.10.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
                 <groupId>com.ibm.icu</groupId>
                 <artifactId>icu4j</artifactId>
                 <version>54.1.1</version>
@@ -202,7 +207,7 @@
             <dependency>
                 <groupId>org.apache.tika</groupId>
                 <artifactId>tika-core</artifactId>
-                <version>1.20</version>
+                <version>1.22</version>
             </dependency>
             <dependency>
                 <groupId>commons-codec</groupId>
@@ -320,7 +325,7 @@
             <dependency>
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
-                <version>18.0</version>
+                <version>28.0-jre</version>
             </dependency>
 
             <!-- open id connect - override transitive dependency version ranges -->
@@ -570,7 +575,7 @@
             <dependency>
                 <groupId>org.apache.curator</groupId>
                 <artifactId>curator-test</artifactId>
-                <version>2.9.1</version>
+                <version>4.2.0</version>
                 <scope>test</scope>
             </dependency>
             <dependency>
@@ -587,17 +592,29 @@
             <dependency>
                 <groupId>org.apache.zookeeper</groupId>
                 <artifactId>zookeeper</artifactId>
-                <version>3.4.6</version>
+                <version>3.5.5</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.curator</groupId>
                 <artifactId>curator-framework</artifactId>
-                <version>2.11.0</version>
+                <version>4.2.0</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.apache.zookeeper</groupId>
+                        <artifactId>zookeeper</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>org.apache.curator</groupId>
                 <artifactId>curator-recipes</artifactId>
-                <version>2.11.0</version>
+                <version>4.2.0</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.apache.zookeeper</groupId>
+                        <artifactId>zookeeper</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>org.apache.commons</groupId>

@@ -152,6 +152,7 @@ public class TestListenRELP {
     public void testTLS() throws InitializationException, IOException, InterruptedException {
         final SSLContextService sslContextService = new StandardSSLContextService();
         runner.addControllerService("ssl-context", sslContextService);
+        runner.setProperty(sslContextService, StandardSSLContextService.SSL_ALGORITHM, "TLSv1.2");
         runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE, "src/test/resources/truststore.jks");
         runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_PASSWORD, "passwordpassword");
         runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_TYPE, "JKS");

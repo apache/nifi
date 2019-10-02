@@ -520,7 +520,7 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
                     final RecordReader reader;
 
                     try {
-                        reader = readerFactory.createRecordReader(attributes, in, logger);
+                        reader = readerFactory.createRecordReader(attributes, in, recordBytes.length, logger);
                     } catch (final IOException e) {
                         yield();
                         rollback(topicPartition);
@@ -558,7 +558,7 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
                                     throw new ProcessException(e);
                                 }
 
-                                writer = writerFactory.createWriter(logger, writeSchema, rawOut);
+                                writer = writerFactory.createWriter(logger, writeSchema, rawOut, flowFile);
                                 writer.beginRecordSet();
 
                                 tracker = new BundleTracker(consumerRecord, topicPartition, keyEncoding, writer);

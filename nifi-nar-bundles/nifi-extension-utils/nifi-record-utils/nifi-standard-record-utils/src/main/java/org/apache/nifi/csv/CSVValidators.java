@@ -17,7 +17,6 @@
 
 package org.apache.nifi.csv;
 
-import org.apache.commons.text.StringEscapeUtils;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
@@ -47,23 +46,25 @@ public class CSVValidators {
                         .build();
             }
 
-            final String unescaped = CSVUtils.unescape(input);
-            if (unescaped.length() != 1) {
-                return new ValidationResult.Builder()
-                        .input(input)
-                        .subject(subject)
-                        .valid(false)
-                        .explanation("Value must be exactly 1 character but was " + input.length() + " in length")
-                        .build();
-            }
+            if (!context.isExpressionLanguageSupported(subject) || !context.isExpressionLanguagePresent(input)) {
+                final String unescaped = CSVUtils.unescape(input);
+                if (unescaped.length() != 1) {
+                    return new ValidationResult.Builder()
+                            .input(input)
+                            .subject(subject)
+                            .valid(false)
+                            .explanation("Value must be exactly 1 character but was " + input.length() + " in length")
+                            .build();
+                }
 
-            if (illegalChars.contains(unescaped)) {
-                return new ValidationResult.Builder()
-                        .input(input)
-                        .subject(subject)
-                        .valid(false)
-                        .explanation(input + " is not a valid character for this property")
-                        .build();
+                if (illegalChars.contains(unescaped)) {
+                    return new ValidationResult.Builder()
+                            .input(input)
+                            .subject(subject)
+                            .valid(false)
+                            .explanation(input + " is not a valid character for this property")
+                            .build();
+                }
             }
 
             return new ValidationResult.Builder()
@@ -88,21 +89,15 @@ public class CSVValidators {
                         .build();
             }
 
-            String unescapeString = unescapeString(input);
+            String unescaped = CSVUtils.unescapeJava(input);
 
             return new ValidationResult.Builder()
                     .subject(subject)
-                    .input(unescapeString)
+                    .input(unescaped)
                     .explanation("Only non-null single characters are supported")
-                    .valid((unescapeString.length() == 1 && unescapeString.charAt(0) != 0) || context.isExpressionLanguagePresent(input))
+                    .valid((unescaped.length() == 1 && unescaped.charAt(0) != 0)
+                            || (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input)))
                     .build();
-        }
-
-        private String unescapeString(String input) {
-            if (input != null && input.length() > 1) {
-                input = StringEscapeUtils.unescapeJava(input);
-            }
-            return input;
         }
     };
 

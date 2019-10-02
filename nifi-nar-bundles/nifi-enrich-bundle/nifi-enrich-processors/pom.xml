@@ -23,6 +23,7 @@
 
 
     <artifactId>nifi-enrich-processors</artifactId>
+
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -68,7 +69,7 @@
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
-            <version>18.0</version>
+            <version>28.0-jre</version>
         </dependency>
         <dependency>
             <groupId>org.powermock</groupId>

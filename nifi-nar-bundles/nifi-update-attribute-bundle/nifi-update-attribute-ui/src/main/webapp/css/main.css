@@ -310,7 +310,7 @@ input.editor-text {
     padding: 10px;
 }
 
-#new-condition-dialog .nfel-editor {
+#new-condition-dialog .nf-editor {
     margin-bottom: 32px;
 }
 
@@ -332,15 +332,15 @@ input.editor-text {
     padding: 10px;
 }
 
-#new-action-dialog .nfel-editor {
+#new-action-dialog .nf-editor {
     margin-bottom: 32px;
 }
 
-div.slickgrid-nfel-editor .nfel-editor {
+div.slickgrid-nf-editor .nf-editor {
     margin-bottom: 37px;
 }
 
-div.property-detail .nfel-editor {
+div.property-detail .nf-editor {
     margin-bottom: 30px;
 }
 

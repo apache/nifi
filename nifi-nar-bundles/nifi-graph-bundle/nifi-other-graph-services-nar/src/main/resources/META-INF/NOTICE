@@ -113,15 +113,19 @@ The following binary components are provided under the Apache Software License v
   (ASLv2) Exp4j
     Copyright 2017
 
-  (ASLv2) Groovy
+  (ASLv2) Groovy 2.4.16 (http://www.groovy-lang.org)
+        groovy-2.4.16-indy
+        groovy-json-2.4.16-indy
+        groovy-sql-2.4.16-indy
     The following NOTICE information applies:
-      Groovy Language
-         Copyright 2003-2015 The respective authors and developers
-         Developers and Contributors are listed in the project POM file
-         and Gradle build file
+        Apache Groovy
+        Copyright 2003-2018 The Apache Software Foundation
 
-         This product includes software developed by
-         The Groovy community (http://groovy.codehaus.org/).
+        This product includes software developed at
+        The Apache Software Foundation (http://www.apache.org/).
+
+        This product includes/uses ANTLR (http://www.antlr2.org/)
+        developed by Terence Parr 1989-2006
 
   (ASLv2) Jackson JSON processor
     The following NOTICE information applies:

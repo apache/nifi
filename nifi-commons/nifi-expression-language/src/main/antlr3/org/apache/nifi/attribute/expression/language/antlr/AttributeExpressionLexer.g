@@ -66,7 +66,10 @@ lexer grammar AttributeExpressionLexer;
 
 // PUNCTUATION & SPECIAL CHARACTERS
 WHITESPACE : (' '|'\t'|'\n'|'\r')+ { $channel = HIDDEN; };
-COMMENT : '#' ( ~('\n') )* '\n' { $channel = HIDDEN; };
+COMMENT : '#' ( ~('{') ) ( ~('\n') )* '\n' { $channel = HIDDEN; };
+
+// PARAMETERS
+PARAMETER_REFERENCE_START : '#{';
 
 DOLLAR : '$';
 LPAREN	: '(';
@@ -177,6 +180,7 @@ AND : 'and';
 JOIN : 'join';
 TO_LITERAL : 'literal';
 JSON_PATH : 'jsonPath';
+JSON_PATH_DELETE : 'jsonPathDelete';
 
 // 2 arg functions
 SUBSTRING	: 'substring';
@@ -184,6 +188,11 @@ REPLACE	: 'replace';
 REPLACE_FIRST	: 'replaceFirst';
 REPLACE_ALL : 'replaceAll';
 IF_ELSE : 'ifElse';
+JSON_PATH_SET : 'jsonPathSet';
+JSON_PATH_ADD : 'jsonPathAdd';
+JSON_PATH_PUT : 'jsonPathPut';
+PAD_LEFT : 'padLeft';
+PAD_RIGHT : 'padRight';
 
 // 4 arg functions
 GET_DELIMITED_FIELD	: 'getDelimitedField';

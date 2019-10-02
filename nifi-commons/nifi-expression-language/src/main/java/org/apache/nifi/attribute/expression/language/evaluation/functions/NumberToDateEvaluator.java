@@ -16,14 +16,13 @@
  */
 package org.apache.nifi.attribute.expression.language.evaluation.functions;
 
-import java.util.Date;
-import java.util.Map;
-
+import org.apache.nifi.attribute.expression.language.EvaluationContext;
 import org.apache.nifi.attribute.expression.language.evaluation.DateEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.DateQueryResult;
-import org.apache.nifi.attribute.expression.language.evaluation.EvaluatorState;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
+
+import java.util.Date;
 
 public class NumberToDateEvaluator extends DateEvaluator {
 
@@ -34,8 +33,8 @@ public class NumberToDateEvaluator extends DateEvaluator {
     }
 
     @Override
-    public QueryResult<Date> evaluate(final Map<String, String> attributes, final EvaluatorState context) {
-        final QueryResult<Long> result = subject.evaluate(attributes, context);
+    public QueryResult<Date> evaluate(final EvaluationContext evaluationContext) {
+        final QueryResult<Long> result = subject.evaluate(evaluationContext);
         final Long value = result.getValue();
         if (value == null) {
             return new DateQueryResult(null);

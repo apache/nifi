@@ -18,16 +18,23 @@ package org.apache.nifi.attribute.expression.language;
 
 import org.antlr.runtime.tree.Tree;
 import org.apache.nifi.attribute.expression.language.compile.ExpressionCompiler;
-import org.apache.nifi.attribute.expression.language.evaluation.EvaluatorState;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.EvaluatorState;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.selection.AttributeEvaluator;
 import org.apache.nifi.attribute.expression.language.exception.AttributeExpressionLanguageParsingException;
 import org.apache.nifi.expression.AttributeExpression.ResultType;
 import org.apache.nifi.expression.AttributeValueDecorator;
+import org.apache.nifi.parameter.ExpressionLanguageAwareParameterParser;
+import org.apache.nifi.parameter.ParameterLookup;
+import org.apache.nifi.parameter.ParameterParser;
+import org.apache.nifi.parameter.ParameterReference;
+import org.apache.nifi.parameter.ParameterToken;
+import org.apache.nifi.parameter.ParameterTokenList;
 import org.apache.nifi.processor.exception.ProcessException;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -85,12 +92,21 @@ public class Query {
         return expressions;
     }
 
+
     public static List<Range> extractExpressionRanges(final String value) throws AttributeExpressionLanguageParsingException {
+        return extractExpressionRanges(value, false);
+    }
+
+    public static List<Range> extractEscapedRanges(final String value) throws AttributeExpressionLanguageParsingException {
+        return extractExpressionRanges(value, true);
+    }
+
+    private static List<Range> extractExpressionRanges(final String value, final boolean extractEscapeSequences) throws AttributeExpressionLanguageParsingException {
         final List<Range> ranges = new ArrayList<>();
         char lastChar = 0;
         int embeddedCount = 0;
         int expressionStart = -1;
-        boolean oddDollarCount = false;
+        int dollarCount = 0;
         int backslashCount = 0;
 
         charLoop:
@@ -108,9 +124,10 @@ public class Query {
                 }
 
                 if (c == '{') {
-                    if (oddDollarCount && lastChar == '$') {
+                    final boolean evenDollarCount = dollarCount % 2 == 0;
+                    if ((evenDollarCount == extractEscapeSequences) && lastChar == '$') {
                         if (embeddedCount == 0) {
-                            expressionStart = i - 1;
+                            expressionStart = i - (extractEscapeSequences ? dollarCount : 1);
                         }
                     }
 
@@ -137,11 +154,11 @@ public class Query {
                         expressionStart = -1;
                     }
                 } else if (c == '$') {
-                    oddDollarCount = !oddDollarCount;
+                    dollarCount++;
                 } else if (c == '\\') {
                     backslashCount++;
                 } else {
-                    oddDollarCount = false;
+                    dollarCount = 0;
                 }
 
                 lastChar = c;
@@ -201,10 +218,11 @@ public class Query {
         return -1;
     }
 
-    static String evaluateExpression(final Tree tree, Evaluator<?> rootEvaluator, final String queryText, final Map<String, String> valueMap, final AttributeValueDecorator decorator,
-                                     final Map<String, String> stateVariables) throws ProcessException {
+    static String evaluateExpression(final Tree tree, final Evaluator<?> rootEvaluator, final String queryText, final EvaluationContext evaluationContext, final AttributeValueDecorator decorator)
+                throws ProcessException {
+
         Query query = new Query(queryText, tree, rootEvaluator);
-        final Object evaluated = query.evaluate(valueMap, stateVariables).getValue();
+        final Object evaluated = query.evaluate(evaluationContext).getValue();
         if (evaluated == null) {
             return null;
         }
@@ -213,17 +231,18 @@ public class Query {
         return decorator == null ? value : decorator.decorate(value);
     }
 
-    static String evaluateExpressions(final String rawValue, Map<String, String> expressionMap, final AttributeValueDecorator decorator, final Map<String, String> stateVariables)
+    static String evaluateExpressions(final String rawValue, Map<String, String> expressionMap, final AttributeValueDecorator decorator, final Map<String, String> stateVariables,
+                                      final ParameterLookup parameterLookup) throws ProcessException {
+        return Query.prepare(rawValue).evaluateExpressions(new StandardEvaluationContext(expressionMap, stateVariables, parameterLookup), decorator);
+    }
+
+    static String evaluateExpressions(final String rawValue, final Map<String, String> valueLookup, final ParameterLookup parameterLookup) throws ProcessException {
+        return evaluateExpressions(rawValue, valueLookup, null, parameterLookup);
+    }
+
+    static String evaluateExpressions(final String rawValue, final Map<String, String> valueLookup, final AttributeValueDecorator decorator, final ParameterLookup parameterLookup)
             throws ProcessException {
-        return Query.prepare(rawValue).evaluateExpressions(expressionMap, decorator, stateVariables);
-    }
-
-    static String evaluateExpressions(final String rawValue, final Map<String, String> valueLookup) throws ProcessException {
-        return evaluateExpressions(rawValue, valueLookup, null);
-    }
-
-    static String evaluateExpressions(final String rawValue, final Map<String, String> valueLookup, final AttributeValueDecorator decorator) throws ProcessException {
-        return Query.prepare(rawValue).evaluateExpressions(valueLookup, decorator);
+        return Query.prepare(rawValue).evaluateExpressions(new StandardEvaluationContext(valueLookup, Collections.emptyMap(), parameterLookup), decorator);
     }
 
 
@@ -279,19 +298,61 @@ public class Query {
     }
 
 
+    public static PreparedQuery prepareWithParametersPreEvaluated(final String query) throws AttributeExpressionLanguageParsingException {
+        return prepare(query, true);
+    }
+
     public static PreparedQuery prepare(final String query) throws AttributeExpressionLanguageParsingException {
-        if (query == null) {
+        return prepare(query, false);
+    }
+
+    private static PreparedQuery prepare(final String rawQuery, final boolean escapeParameterReferences) throws AttributeExpressionLanguageParsingException {
+        if (rawQuery == null) {
             return new EmptyPreparedQuery(null);
+        }
+
+        final ParameterParser parameterParser = new ExpressionLanguageAwareParameterParser();
+
+        final String query;
+        if (escapeParameterReferences) {
+            query = parameterParser.parseTokens(rawQuery).escape();
+        } else {
+            query = rawQuery;
         }
 
         final List<Range> ranges = extractExpressionRanges(query);
 
         if (ranges.isEmpty()) {
-            // While in the other cases below, we are simply replacing "$$" with "$", we have to do this
-            // a bit differently. We want to treat $$ as an escaped $ only if it immediately precedes the
-            // start of an Expression, which is the case below. Here, we did not detect the start of an Expression
-            // and as such as must use the #unescape method instead of a simple replace() function.
-            return new EmptyPreparedQuery(unescape(query));
+            final List<Expression> expressions = new ArrayList<>();
+
+            final List<Range> escapedRanges = extractEscapedRanges(query);
+            int lastIndex = 0;
+            for (final Range range : escapedRanges) {
+                final String treeText = unescapeLeadingDollarSigns(query.substring(range.getStart(), range.getEnd() + 1));
+
+                if (range.getStart() > lastIndex) {
+                    String substring = unescapeLeadingDollarSigns(query.substring(lastIndex, range.getStart()));
+                    addLiteralsAndParameters(parameterParser, substring, expressions);
+                }
+
+                addLiteralsAndParameters(parameterParser, treeText, expressions);
+            }
+
+            if (escapedRanges.isEmpty()) {
+                addLiteralsAndParameters(parameterParser, query, expressions);
+            } else {
+                final Range lastRange = escapedRanges.get(escapedRanges.size() - 1);
+                if (lastRange.getEnd() + 1 < query.length()) {
+                    final String treeText = unescapeLeadingDollarSigns(query.substring(lastRange.getEnd() + 1));
+                    addLiteralsAndParameters(parameterParser, treeText, expressions);
+                }
+            }
+
+            if (expressions.isEmpty()) {
+                return new EmptyPreparedQuery(query);
+            }
+
+            return new StandardPreparedQuery(expressions);
         }
 
         final ExpressionCompiler compiler = new ExpressionCompiler();
@@ -314,7 +375,7 @@ public class Query {
                         substring = unescapeTrailingDollarSigns(substring, false);
                     }
 
-                    expressions.add(new StringLiteralExpression(substring));
+                    addLiteralsAndParameters(parameterParser, substring, expressions);
                 }
 
                 expressions.add(compiledExpression);
@@ -325,12 +386,49 @@ public class Query {
             final Range lastRange = ranges.get(ranges.size() - 1);
             if (lastRange.getEnd() + 1 < query.length()) {
                 final String treeText = unescapeLeadingDollarSigns(query.substring(lastRange.getEnd() + 1));
-                expressions.add(new StringLiteralExpression(treeText));
+                addLiteralsAndParameters(parameterParser, treeText, expressions);
             }
 
             return new StandardPreparedQuery(expressions);
         } catch (final AttributeExpressionLanguageParsingException e) {
             return new InvalidPreparedQuery(query, e.getMessage());
+        }
+    }
+
+    private static void addLiteralsAndParameters(final ParameterParser parser, final String input, final List<Expression> expressions) {
+        final ParameterTokenList references = parser.parseTokens(input);
+        int index = 0;
+
+        ParameterToken lastReference = null;
+        for (final ParameterToken token : references) {
+            if (token.isEscapeSequence()) {
+                expressions.add(new StringLiteralExpression(token.getValue(ParameterLookup.EMPTY)));
+                index = token.getEndOffset() + 1;
+                lastReference = token;
+                continue;
+            }
+
+            final int start = token.getStartOffset();
+
+            if (start > index) {
+                expressions.add(new StringLiteralExpression(input.substring(index, start)));
+            }
+
+            if (token.isParameterReference()) {
+                final ParameterReference parameterReference = (ParameterReference) token;
+                expressions.add(new ParameterExpression(parameterReference.getParameterName()));
+            } else {
+                expressions.add(new StringLiteralExpression(token.getValue(ParameterLookup.EMPTY)));
+            }
+
+            index = token.getEndOffset() + 1;
+            lastReference = token;
+        }
+
+        if (lastReference == null) {
+            expressions.add(new StringLiteralExpression(input));
+        } else if (input.length() > lastReference.getEndOffset() + 1) {
+            expressions.add(new StringLiteralExpression(input.substring(lastReference.getEndOffset() + 1)));
         }
     }
 
@@ -351,20 +449,12 @@ public class Query {
         return evaluator.getResultType();
     }
 
-    QueryResult<?> evaluate(final Map<String, String> map) {
-        return evaluate(map, null);
-    }
-
-    QueryResult<?> evaluate(final Map<String, String> attributes, final Map<String, String> stateMap) {
+    QueryResult<?> evaluate(final EvaluationContext evaluationContext) {
         if (evaluated.getAndSet(true)) {
             throw new IllegalStateException("A Query cannot be evaluated more than once");
         }
-        if (stateMap != null) {
-            AttributesAndState attributesAndState = new AttributesAndState(attributes, stateMap);
-            return evaluator.evaluate(attributesAndState, context);
-        } else {
-            return evaluator.evaluate(attributes, context);
-        }
+
+        return evaluator.evaluate(evaluationContext);
     }
 
 

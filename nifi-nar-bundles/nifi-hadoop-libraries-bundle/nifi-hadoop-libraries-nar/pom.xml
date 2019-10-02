@@ -22,7 +22,7 @@
         <source.skip>true</source.skip>
         <avro.version>1.8.1</avro.version>
         <curator.version>2.11.0</curator.version>
-        <hadoop.version>3.0.0</hadoop.version>
+        <hadoop.version>3.2.0</hadoop.version>
     </properties>
     <dependencies>
         <dependency>

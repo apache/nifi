@@ -80,7 +80,6 @@ public class TestExtractMediaMetadata {
         assertTrue(flowFile0.getAttribute("txt.Content-Type").startsWith("text/plain"));
         flowFile0.assertAttributeExists("txt.X-Parsed-By");
         assertTrue(flowFile0.getAttribute("txt.X-Parsed-By").contains("org.apache.tika.parser.DefaultParser"));
-        assertTrue(flowFile0.getAttribute("txt.X-Parsed-By").contains("org.apache.tika.parser.txt.TXTParser"));
         flowFile0.assertAttributeExists("txt.Content-Encoding");
         flowFile0.assertAttributeEquals("txt.Content-Encoding", "ISO-8859-1");
         flowFile0.assertContentEquals("test1".getBytes("UTF-8"));
@@ -144,9 +143,7 @@ public class TestExtractMediaMetadata {
         assertTrue(flowFile0.getAttribute("txt.Content-Type").startsWith("text/plain"));
         flowFile0.assertAttributeExists("txt.X-Parsed-By");
         assertTrue(flowFile0.getAttribute("txt.X-Parsed-By").contains("org.apache.tika.parser.DefaultParser"));
-        assertTrue(flowFile0.getAttribute("txt.X-Parsed-By").contains("org.apache.tika.parser.txt.TXTParser"));
         flowFile0.assertAttributeExists("txt.Content-Encoding");
-        flowFile0.assertAttributeEquals("txt.Content-Encoding", "ISO-8859-1");
         flowFile0.assertContentEquals("This file is not an image and is used for testing the image metadata extractor.".getBytes("UTF-8"));
     }
 
@@ -172,9 +169,7 @@ public class TestExtractMediaMetadata {
         assertTrue(flowFile0.getAttribute("txt.Content-Type").startsWith("text/plain"));
         flowFile0.assertAttributeExists("txt.X-Parsed-By");
         assertTrue(flowFile0.getAttribute("txt.X-Parsed-By").contains("org.apache.tika.parser.DefaultParser"));
-        assertTrue(flowFile0.getAttribute("txt.X-Parsed-By").contains("org.apache.tika.parser.txt.TXTParser"));
         flowFile0.assertAttributeExists("txt.Content-Encoding");
-        flowFile0.assertAttributeEquals("txt.Content-Encoding", "ISO-8859-1");
         assertEquals(flowFile0.getSize(), textFile.length());
     }
 
@@ -226,7 +221,6 @@ public class TestExtractMediaMetadata {
         flowFile0.assertAttributeEquals("filename", "textFile.txt");
         flowFile0.assertAttributeExists("txt.X-Parsed-By");
         assertTrue(flowFile0.getAttribute("txt.X-Parsed-By").contains("org.apache.tika.parser.DefaultParser"));
-        assertTrue(flowFile0.getAttribute("txt.X-Parsed-By").contains("org.apache.tika.parser.txt.TXTParser"));
         flowFile0.assertAttributeNotExists("txt.Content-Encoding");
     }
 

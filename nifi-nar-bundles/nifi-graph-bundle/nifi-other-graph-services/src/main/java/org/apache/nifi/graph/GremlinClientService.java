@@ -37,9 +37,11 @@ public class GremlinClientService extends AbstractTinkerpopClientService impleme
     private Cluster cluster;
     protected Client client;
     public static final String NOT_SUPPORTED = "NOT_SUPPORTED";
+    private ConfigurationContext context;
 
     @OnEnabled
     public void onEnabled(ConfigurationContext context) {
+        this.context = context;
         cluster = buildCluster(context);
         client = cluster.connect();
     }
@@ -52,8 +54,7 @@ public class GremlinClientService extends AbstractTinkerpopClientService impleme
         cluster = null;
     }
 
-    @Override
-    public Map<String, String> executeQuery(String query, Map<String, Object> parameters, GraphQueryResultCallback handler) {
+    public Map<String, String> doQuery(String query, Map<String, Object> parameters, GraphQueryResultCallback handler) {
         try {
             Iterator<Result> iterator = client.submit(query, parameters).iterator();
             long count = 0;
@@ -87,7 +88,20 @@ public class GremlinClientService extends AbstractTinkerpopClientService impleme
     }
 
     @Override
+    public Map<String, String> executeQuery(String query, Map<String, Object> parameters, GraphQueryResultCallback handler) {
+        try {
+            return doQuery(query, parameters, handler);
+        } catch (Exception ex) {
+            cluster.close();
+            client.close();
+            cluster = buildCluster(context);
+            client = cluster.connect();
+            return doQuery(query, parameters, handler);
+        }
+    }
+
+    @Override
     public String getTransitUrl() {
-        return null;
+        return transitUrl;
     }
 }

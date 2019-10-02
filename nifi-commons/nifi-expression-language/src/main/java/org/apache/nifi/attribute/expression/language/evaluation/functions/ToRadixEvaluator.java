@@ -16,14 +16,13 @@
  */
 package org.apache.nifi.attribute.expression.language.evaluation.functions;
 
-import java.util.Arrays;
-import java.util.Map;
-
-import org.apache.nifi.attribute.expression.language.evaluation.EvaluatorState;
+import org.apache.nifi.attribute.expression.language.EvaluationContext;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.StringEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.StringQueryResult;
+
+import java.util.Arrays;
 
 public class ToRadixEvaluator extends StringEvaluator {
 
@@ -42,20 +41,20 @@ public class ToRadixEvaluator extends StringEvaluator {
     }
 
     @Override
-    public QueryResult<String> evaluate(final Map<String, String> attributes, final EvaluatorState context) {
-        final Long result = numberEvaluator.evaluate(attributes, context).getValue();
+    public QueryResult<String> evaluate(final EvaluationContext evaluationContext) {
+        final Long result = numberEvaluator.evaluate(evaluationContext).getValue();
         if (result == null) {
             return new StringQueryResult(null);
         }
 
-        final Long radix = radixEvaluator.evaluate(attributes, context).getValue();
+        final Long radix = radixEvaluator.evaluate(evaluationContext).getValue();
         if (radix == null) {
             return new StringQueryResult(null);
         }
 
         String stringValue = Long.toString(result.longValue(), radix.intValue());
         if (minimumWidthEvaluator != null) {
-            final Long minimumWidth = minimumWidthEvaluator.evaluate(attributes, context).getValue();
+            final Long minimumWidth = minimumWidthEvaluator.evaluate(evaluationContext).getValue();
             if (minimumWidth != null) {
                 final int paddingWidth = minimumWidth.intValue() - stringValue.length();
                 if (paddingWidth > 0) {

@@ -357,9 +357,10 @@ public class MoveHDFS extends AbstractHadoopProcessor {
                         if (destinationExists) {
                             switch (processorConfig.getConflictResolution()) {
                                 case REPLACE_RESOLUTION:
-                                    if (hdfs.delete(file, false)) {
+                                    // Remove destination file (newFile) to replace
+                                    if (hdfs.delete(newFile, false)) {
                                         getLogger().info("deleted {} in order to replace with the contents of {}",
-                                                new Object[]{file, flowFile});
+                                                new Object[]{newFile, flowFile});
                                     }
                                     break;
                                 case IGNORE_RESOLUTION:

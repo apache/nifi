@@ -86,6 +86,7 @@
     var polling = false;
     var allowPageRefresh = false;
     var groupId = 'root';
+    var parameterContext;
     var groupName = null;
     var permissions = null;
     var parentGroupId = null;
@@ -147,8 +148,9 @@
             // get the controller and its contents
             var processGroupFlow = flowResponse.processGroupFlow;
 
-            // set the group details
+            // set the group and parameter context details
             nfCanvas.setGroupId(processGroupFlow.id);
+            nfCanvas.setParameterContext(processGroupFlow.parameterContext);
 
             // get the current group name from the breadcrumb
             var breadcrumb = processGroupFlow.breadcrumb;
@@ -218,15 +220,17 @@
     var changeProcessGroup = function (processGroupId, options) {
         // capture the current group id to reset to in case of failure
         var currentProcessGroup = nfCanvas.getGroupId();
+        var currentParameterContext = nfCanvas.getParameterContext();
 
         // update process group id and attempt to reload
         nfCanvas.setGroupId(processGroupId);
         var processGroupXhr = reloadProcessGroup(options);
 
-        // if the request fails, ensure the process group id is reset
+        // if the request fails, ensure the process group id and parameter context id is reset
         processGroupXhr
             .fail(function (xhr, status, error) {
                 nfCanvas.setGroupId(currentProcessGroup);
+                nfCanvas.setParameterContext(currentParameterContext);
             });
 
         return processGroupXhr;
@@ -901,6 +905,22 @@
                     });
                 });
             }).promise();
+        },
+
+        /**
+         * Set the parameter context.
+         *
+         * @argument {string} pc       The parameter context
+         */
+        setParameterContext: function (pc) {
+            parameterContext = pc;
+        },
+
+        /**
+         * Get the parameter context id.
+         */
+        getParameterContext: function () {
+            return parameterContext;
         },
 
         /**

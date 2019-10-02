@@ -16,25 +16,6 @@
  */
 package org.apache.nifi.controller.service;
 
-import static java.util.Objects.requireNonNull;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.stream.Collectors;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ControllerService;
@@ -53,6 +34,26 @@ import org.apache.nifi.reporting.Severity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.stream.Collectors;
+
+import static java.util.Objects.requireNonNull;
+
 public class StandardControllerServiceProvider implements ControllerServiceProvider {
 
     private static final Logger logger = LoggerFactory.getLogger(StandardControllerServiceProvider.class);
@@ -63,7 +64,6 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
     private final FlowManager flowManager;
 
     private final ConcurrentMap<String, ControllerServiceNode> serviceCache = new ConcurrentHashMap<>();
-    private final String INVALID_CS_MESSAGE_SEGMENT = "cannot be enabled because it is not currently valid";
 
     public StandardControllerServiceProvider(final FlowController flowController, final StandardProcessScheduler scheduler, final BulletinRepository bulletinRepo) {
         this.flowController = flowController;
@@ -204,20 +204,11 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
                     if (!controllerServiceNode.isActive()) {
                         final Future<Void> future = enableControllerServiceDependenciesFirst(controllerServiceNode);
 
-                        try {
-                            future.get(30, TimeUnit.SECONDS);
-                            logger.debug("Successfully enabled {}; service state = {}", controllerServiceNode, controllerServiceNode.getState());
-                        } catch (final Exception e) {
-                            // If the service is not currently valid, there is no need to print the entire stacktrace
-                            if (e.getLocalizedMessage().contains(INVALID_CS_MESSAGE_SEGMENT)) {
-                                logger.warn("Failed to enable service {} because {}", controllerServiceNode, e.getLocalizedMessage());
-                            } else {
-                                // Print the whole stacktrace
-                                logger.warn("Failed to enable service {}", controllerServiceNode, e);
-                                // Nothing we can really do. Will attempt to enable this service anyway.
-                            }
-                        }
+                        future.get(30, TimeUnit.SECONDS);
+                        logger.debug("Successfully enabled {}; service state = {}", controllerServiceNode, controllerServiceNode.getState());
                     }
+                } catch (final ControllerServiceNotValidException csnve) {
+                    logger.warn("Failed to enable service {} because it is not currently valid", controllerServiceNode);
                 } catch (Exception e) {
                     logger.error("Failed to enable " + controllerServiceNode, e);
                     if (this.bulletinRepo != null) {
@@ -338,16 +329,14 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
         return orderedNodeLists;
     }
 
-    private static void determineEnablingOrder(
-            final Map<String, ControllerServiceNode> serviceNodeMap,
-            final ControllerServiceNode contextNode,
-            final List<ControllerServiceNode> orderedNodes,
-            final Set<ControllerServiceNode> visited) {
+    private static void determineEnablingOrder(final Map<String, ControllerServiceNode> serviceNodeMap, final ControllerServiceNode contextNode,
+            final List<ControllerServiceNode> orderedNodes, final Set<ControllerServiceNode> visited) {
+
         if (visited.contains(contextNode)) {
             return;
         }
 
-        for (final Map.Entry<PropertyDescriptor, String> entry : contextNode.getProperties().entrySet()) {
+        for (final Map.Entry<PropertyDescriptor, String> entry : contextNode.getEffectivePropertyValues().entrySet()) {
             if (entry.getKey().getControllerServiceDefinition() != null) {
                 final String referencedServiceId = entry.getValue();
                 if (referencedServiceId != null) {
@@ -533,7 +522,10 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
 
     @Override
     public void removeControllerService(final ControllerServiceNode serviceNode) {
-        final ProcessGroup group = requireNonNull(serviceNode).getProcessGroup();
+        requireNonNull(serviceNode);
+        serviceCache.remove(serviceNode.getIdentifier());
+
+        final ProcessGroup group = serviceNode.getProcessGroup();
         if (group == null) {
             flowManager.removeRootControllerService(serviceNode);
             return;
@@ -548,7 +540,9 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
 
     @Override
     public Collection<ControllerServiceNode> getNonRootControllerServices() {
-        return serviceCache.values();
+        return serviceCache.values().stream()
+            .filter(serviceNode -> serviceNode.getProcessGroup() != null)
+            .collect(Collectors.toSet());
     }
 
 

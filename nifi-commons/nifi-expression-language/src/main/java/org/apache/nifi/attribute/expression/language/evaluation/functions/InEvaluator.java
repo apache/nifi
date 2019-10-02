@@ -16,14 +16,13 @@
  */
 package org.apache.nifi.attribute.expression.language.evaluation.functions;
 
-import java.util.List;
-import java.util.Map;
-
+import org.apache.nifi.attribute.expression.language.EvaluationContext;
 import org.apache.nifi.attribute.expression.language.evaluation.BooleanEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.BooleanQueryResult;
-import org.apache.nifi.attribute.expression.language.evaluation.EvaluatorState;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
+
+import java.util.List;
 
 public class InEvaluator extends BooleanEvaluator {
 
@@ -36,15 +35,15 @@ public class InEvaluator extends BooleanEvaluator {
     }
 
     @Override
-    public QueryResult<Boolean> evaluate(final Map<String, String> attributes, final EvaluatorState context) {
-        final String subjectValue = subject.evaluate(attributes, context).getValue();
+    public QueryResult<Boolean> evaluate(final EvaluationContext evaluationContext) {
+        final String subjectValue = subject.evaluate(evaluationContext).getValue();
         if (subjectValue == null) {
             return new BooleanQueryResult(false);
         }
 
         boolean isInList = false;
         for (Evaluator<String> evaluator : search) {
-            final String searchString = evaluator.evaluate(attributes, context).getValue();
+            final String searchString = evaluator.evaluate(evaluationContext).getValue();
             isInList = searchString == null ? false : subjectValue.equals(searchString);
             if(isInList) {
                 break;

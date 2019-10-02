@@ -16,7 +16,7 @@
 <beans default-lazy-init="true"
        xmlns="http://www.springframework.org/schema/beans"
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-       xsi:schemaLocation="http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans-3.1.xsd">
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd">
 
     <!-- user/entity authorizer -->
     <bean id="authorizer" class="org.apache.nifi.authorization.AuthorizerFactoryBean">

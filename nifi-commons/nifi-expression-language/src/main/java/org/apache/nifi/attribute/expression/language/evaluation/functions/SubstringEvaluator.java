@@ -16,9 +16,7 @@
  */
 package org.apache.nifi.attribute.expression.language.evaluation.functions;
 
-import java.util.Map;
-
-import org.apache.nifi.attribute.expression.language.evaluation.EvaluatorState;
+import org.apache.nifi.attribute.expression.language.EvaluationContext;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.StringEvaluator;
@@ -43,16 +41,16 @@ public class SubstringEvaluator extends StringEvaluator {
     }
 
     @Override
-    public QueryResult<String> evaluate(final Map<String, String> attributes, final EvaluatorState context) {
-        final String subjectValue = subject.evaluate(attributes, context).getValue();
+    public QueryResult<String> evaluate(final EvaluationContext evaluationContext) {
+        final String subjectValue = subject.evaluate(evaluationContext).getValue();
         if (subjectValue == null) {
             return new StringQueryResult("");
         }
-        final int startIndexValue = startIndex.evaluate(attributes, context).getValue().intValue();
+        final int startIndexValue = startIndex.evaluate(evaluationContext).getValue().intValue();
         if (endIndex == null) {
             return new StringQueryResult(subjectValue.substring(startIndexValue));
         } else {
-            final int endIndexValue = endIndex.evaluate(attributes, context).getValue().intValue();
+            final int endIndexValue = endIndex.evaluate(evaluationContext).getValue().intValue();
             return new StringQueryResult(subjectValue.substring(startIndexValue, endIndexValue));
         }
     }

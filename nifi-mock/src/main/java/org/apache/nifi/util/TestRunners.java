@@ -32,6 +32,17 @@ public class TestRunners {
 
     /**
      * Returns a {@code TestRunner} for the given {@code Processor}.
+     * The processor name available from {@code TestRunner.getProcessContext().getName()} will have the default name of {@code processor.getClass().getName()}
+     * @param processor the {@code Processor} under test
+     * @param logger the {@code ComponentLog} used for logging
+     * @return a {@code TestRunner}
+     */
+    public static TestRunner newTestRunner(final Processor processor, MockComponentLog logger) {
+        return newTestRunner(processor,processor.getClass().getName(), logger);
+    }
+
+    /**
+     * Returns a {@code TestRunner} for the given {@code Processor}.
      * The processor name available from {@code TestRunner.getProcessContext().getName()} will be the passed name.
      * @param processor the {@code Processor} under test
      * @param name the name to give the {@code Processor}
@@ -42,6 +53,18 @@ public class TestRunners {
     }
 
     /**
+     * Returns a {@code TestRunner} for the given {@code Processor}.
+     * The processor name available from {@code TestRunner.getProcessContext().getName()} will be the passed name.
+     * @param processor the {@code Processor} under test
+     * @param name the name to give the {@code Processor}
+     * @param logger the {@code ComponentLog} used for logging
+     * @return a {@code TestRunner}
+     */
+    public static TestRunner newTestRunner(final Processor processor, String name, MockComponentLog logger) {
+        return new StandardProcessorTestRunner(processor, name, logger);
+    }
+
+    /**
      * Returns a {@code TestRunner} for the given {@code Processor} class.
      * The processor name available from {@code TestRunner.getProcessContext().getName()} will have the default name of {@code processor.getClass().getName()}
      * @param processorClass the {@code Processor} class
@@ -49,6 +72,17 @@ public class TestRunners {
      */
     public static TestRunner newTestRunner(final Class<? extends Processor> processorClass) {
         return newTestRunner(processorClass, processorClass.getName());
+    }
+
+    /**
+     * Returns a {@code TestRunner} for the given {@code Processor} class.
+     * The processor name available from {@code TestRunner.getProcessContext().getName()} will have the default name of {@code processor.getClass().getName()}
+     * @param processorClass the {@code Processor} class
+     * @param logger the {@code ComponentLog} used for logging
+     * @return a {@code TestRunner}
+     */
+    public static TestRunner newTestRunner(final Class<? extends Processor> processorClass, MockComponentLog logger) {
+        return newTestRunner(processorClass, processorClass.getName(), logger);
     }
 
     /**
@@ -67,4 +101,20 @@ public class TestRunners {
         }
     }
 
+    /**
+     * Returns a {@code TestRunner} for the given {@code Processor} class.
+     * The processor name available from {@code TestRunner.getProcessContext().getName()} will have the default name of {@code processor.getClass().getName()}
+     * @param processorClass the {@code Processor} class
+     * @param name the name to give the {@code Processor}
+     * @param logger the {@code ComponentLog} used for logging
+     * @return a {@code TestRunner}
+     */
+    public static TestRunner newTestRunner(final Class<? extends Processor> processorClass, String name, MockComponentLog logger) {
+        try {
+            return newTestRunner(processorClass.newInstance(), name, logger);
+        } catch (final Exception e) {
+            System.err.println("Could not instantiate instance of class " + processorClass.getName() + " due to: " + e);
+            throw new RuntimeException(e);
+        }
+    }
 }

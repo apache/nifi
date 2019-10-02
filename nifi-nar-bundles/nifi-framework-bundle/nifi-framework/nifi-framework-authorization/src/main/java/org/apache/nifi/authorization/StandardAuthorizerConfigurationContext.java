@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.authorization;
 
+import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.components.PropertyValue;
 
@@ -48,7 +49,7 @@ public class StandardAuthorizerConfigurationContext implements AuthorizerConfigu
 
     @Override
     public PropertyValue getProperty(String property) {
-        return new StandardPropertyValue(properties.get(property), null);
+        return new StandardPropertyValue(properties.get(property), null, ParameterLookup.EMPTY);
     }
 
 }

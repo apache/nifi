@@ -17,11 +17,14 @@
 
 package org.apache.nifi.processors.kudu;
 
-import org.apache.kudu.client.Insert;
 import org.apache.kudu.client.KuduClient;
 import org.apache.kudu.client.KuduSession;
 import org.apache.kudu.client.KuduTable;
+import org.apache.kudu.client.Delete;
+import org.apache.kudu.client.Insert;
 import org.apache.kudu.client.Upsert;
+import org.apache.kudu.client.Update;
+import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.security.krb.KerberosUser;
 import org.apache.nifi.serialization.record.Record;
 
@@ -30,14 +33,15 @@ import java.security.PrivilegedAction;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.util.Arrays;
-import java.util.LinkedList;
 import java.util.List;
+import java.util.LinkedList;
 
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class MockPutKudu extends PutKudu {
+
     private KuduSession session;
     private LinkedList<Insert> insertQueue;
 
@@ -58,18 +62,41 @@ public class MockPutKudu extends PutKudu {
     }
 
     @Override
-    protected Insert insertRecordToKudu(KuduTable kuduTable, Record record, List<String> fieldNames) {
+    protected Insert insertRecordToKudu(KuduTable kuduTable, Record record, List<String> fieldNames, Boolean ignoreNull) {
         Insert insert = insertQueue.poll();
         return insert != null ? insert : mock(Insert.class);
     }
 
     @Override
-    protected Upsert upsertRecordToKudu(KuduTable kuduTable, Record record, List<String> fieldNames) {
+    protected Upsert upsertRecordToKudu(KuduTable kuduTable, Record record, List<String> fieldNames, Boolean ignoreNull) {
         return mock(Upsert.class);
     }
 
     @Override
-    protected KuduClient buildClient(final String masters) {
+    protected Delete deleteRecordFromKudu(KuduTable kuduTable, Record record, List<String> fieldNames, Boolean ignoreNull) {
+        return mock(Delete.class);
+    }
+
+    @Override
+    protected Update updateRecordToKudu(KuduTable kuduTable, Record record, List<String> fieldNames, Boolean ignoreNull) {
+        return mock(Update.class);
+    }
+
+    @Override
+    public KuduClient buildClient(final String masters, ProcessContext context) {
+        final KuduClient client = mock(KuduClient.class);
+
+        try {
+            when(client.openTable(anyString())).thenReturn(mock(KuduTable.class));
+        } catch (final Exception e) {
+            throw new AssertionError(e);
+        }
+
+        return client;
+    }
+
+    @Override
+    public KuduClient getKuduClient() {
         final KuduClient client = mock(KuduClient.class);
 
         try {

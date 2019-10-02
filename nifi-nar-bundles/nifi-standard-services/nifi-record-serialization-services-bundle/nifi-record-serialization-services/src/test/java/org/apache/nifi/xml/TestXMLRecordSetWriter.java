@@ -39,6 +39,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Collections;
 
 import static org.junit.Assert.assertThat;
 
@@ -240,7 +241,7 @@ public class TestXMLRecordSetWriter {
         @Override
         public RecordSetWriter createWriter(ComponentLog logger, RecordSchema schema, OutputStream out)
                 throws SchemaNotFoundException, IOException {
-            return super.createWriter(logger, this.recordSchema, out);
+            return super.createWriter(logger, this.recordSchema, out, Collections.emptyMap());
         }
     }
 

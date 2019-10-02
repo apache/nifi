@@ -16,6 +16,14 @@
  */
 package org.apache.nifi.reporting;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+
 import org.apache.commons.collections4.Predicate;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.action.Action;
@@ -44,6 +52,9 @@ import org.apache.nifi.controller.status.ProcessorStatus;
 import org.apache.nifi.controller.status.RemoteProcessGroupStatus;
 import org.apache.nifi.controller.status.RunStatus;
 import org.apache.nifi.controller.status.TransmissionStatus;
+import org.apache.nifi.controller.status.analytics.ConnectionStatusPredictions;
+import org.apache.nifi.controller.status.analytics.StatusAnalytics;
+import org.apache.nifi.controller.status.analytics.StatusAnalyticsEngine;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.history.History;
@@ -54,20 +65,15 @@ import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.remote.PublicPort;
 import org.apache.nifi.remote.RemoteGroupPort;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-
 public class StandardEventAccess implements UserAwareEventAccess {
     private final FlowFileEventRepository flowFileEventRepository;
     private final FlowController flowController;
+    private final StatusAnalyticsEngine statusAnalyticsEngine;
 
     public StandardEventAccess(final FlowController flowController, final FlowFileEventRepository flowFileEventRepository) {
         this.flowController = flowController;
         this.flowFileEventRepository = flowFileEventRepository;
+        this.statusAnalyticsEngine = flowController.getStatusAnalyticsEngine();
     }
 
     /**
@@ -336,6 +342,24 @@ public class StandardEventAccess implements UserAwareEventAccess {
 
                 flowFilesTransferred += connectionStatusReport.getFlowFilesIn() + connectionStatusReport.getFlowFilesOut();
                 bytesTransferred += connectionStatusReport.getContentSizeIn() + connectionStatusReport.getContentSizeOut();
+            }
+
+            if (statusAnalyticsEngine != null) {
+                StatusAnalytics statusAnalytics =  statusAnalyticsEngine.getStatusAnalytics(conn.getIdentifier());
+                if (statusAnalytics != null) {
+                    Map<String,Long> predictionValues = statusAnalytics.getPredictions();
+                    ConnectionStatusPredictions predictions = new ConnectionStatusPredictions();
+                    connStatus.setPredictions(predictions);
+                    predictions.setPredictedTimeToBytesBackpressureMillis(predictionValues.get("timeToBytesBackpressureMillis"));
+                    predictions.setPredictedTimeToCountBackpressureMillis(predictionValues.get("timeToCountBackpressureMillis"));
+                    predictions.setNextPredictedQueuedBytes(predictionValues.get("nextIntervalBytes"));
+                    predictions.setNextPredictedQueuedCount(predictionValues.get("nextIntervalCount").intValue());
+                    predictions.setPredictedPercentCount(predictionValues.get("nextIntervalPercentageUseCount").intValue());
+                    predictions.setPredictedPercentBytes(predictionValues.get("nextIntervalPercentageUseBytes").intValue());
+                    predictions.setPredictionIntervalMillis(predictionValues.get("intervalTimeMillis"));
+                }
+            }else{
+                connStatus.setPredictions(null);
             }
 
             if (isConnectionAuthorized) {

@@ -77,7 +77,6 @@ public abstract class NiFiProperties {
     public static final String REMOTE_CONTENTS_CACHE_EXPIRATION = "nifi.remote.contents.cache.expiration";
     public static final String TEMPLATE_DIRECTORY = "nifi.templates.directory";
     public static final String ADMINISTRATIVE_YIELD_DURATION = "nifi.administrative.yield.duration";
-    public static final String PERSISTENT_STATE_DIRECTORY = "nifi.persistent.state.directory";
     public static final String BORED_YIELD_DURATION = "nifi.bored.yield.duration";
     public static final String PROCESSOR_SCHEDULING_TIMEOUT = "nifi.processor.scheduling.timeout";
     public static final String BACKPRESSURE_COUNT = "nifi.queue.backpressure.count";
@@ -238,6 +237,14 @@ public abstract class NiFiProperties {
     // expression language properties
     public static final String VARIABLE_REGISTRY_PROPERTIES = "nifi.variable.registry.properties";
 
+    // analytics properties
+    public static final String ANALYTICS_PREDICTION_ENABLED = "nifi.analytics.predict.enabled";
+    public static final String ANALYTICS_PREDICTION_INTERVAL = "nifi.analytics.predict.interval";
+    public static final String ANALYTICS_QUERY_INTERVAL = "nifi.analytics.query.interval";
+    public static final String ANALYTICS_CONNECTION_MODEL_IMPLEMENTATION = "nifi.analytics.connection.model.implementation";
+    public static final String ANALYTICS_CONNECTION_MODEL_SCORE_NAME= "nifi.analytics.connection.model.score.name";
+    public static final String ANALYTICS_CONNECTION_MODEL_SCORE_THRESHOLD = "nifi.analytics.connection.model.score.threshold";
+
     // defaults
     public static final Boolean DEFAULT_AUTO_RESUME_STATE = true;
     public static final String DEFAULT_AUTHORIZER_CONFIGURATION_FILE = "conf/authorizers.xml";
@@ -264,7 +271,6 @@ public abstract class NiFiProperties {
     public static final long DEFAULT_BACKPRESSURE_COUNT = 10_000L;
     public static final String DEFAULT_BACKPRESSURE_SIZE = "1 GB";
     public static final String DEFAULT_ADMINISTRATIVE_YIELD_DURATION = "30 sec";
-    public static final String DEFAULT_PERSISTENT_STATE_DIRECTORY = "./conf/state";
     public static final String DEFAULT_COMPONENT_STATUS_SNAPSHOT_FREQUENCY = "5 mins";
     public static final String DEFAULT_BORED_YIELD_DURATION = "10 millis";
     public static final String DEFAULT_ZOOKEEPER_CONNECT_TIMEOUT = "3 secs";
@@ -308,6 +314,13 @@ public abstract class NiFiProperties {
     // Kerberos defaults
     public static final String DEFAULT_KERBEROS_AUTHENTICATION_EXPIRATION = "12 hours";
 
+    // analytics defaults
+    public static final String DEFAULT_ANALYTICS_PREDICTION_ENABLED = "false";
+    public static final String DEFAULT_ANALYTICS_PREDICTION_INTERVAL = "3 mins";
+    public static final String DEFAULT_ANALYTICS_QUERY_INTERVAL = "3 mins";
+    public final static String DEFAULT_ANALYTICS_CONNECTION_MODEL_IMPLEMENTATION = "org.apache.nifi.controller.status.analytics.models.OrdinaryLeastSquares";
+    public static final String DEFAULT_ANALYTICS_CONNECTION_SCORE_NAME = "rSquared";
+    public static final double DEFAULT_ANALYTICS_CONNECTION_SCORE_THRESHOLD = .90;
 
     /**
      * Retrieves the property value for the given property key.
@@ -712,16 +725,6 @@ public abstract class NiFiProperties {
     public String getClusterNodeConnectionTimeout() {
         return getProperty(CLUSTER_NODE_CONNECTION_TIMEOUT,
                 DEFAULT_CLUSTER_NODE_CONNECTION_TIMEOUT);
-    }
-
-    public File getPersistentStateDirectory() {
-        final String dirName = getProperty(PERSISTENT_STATE_DIRECTORY,
-                DEFAULT_PERSISTENT_STATE_DIRECTORY);
-        final File file = new File(dirName);
-        if (!file.exists()) {
-            file.mkdirs();
-        }
-        return file;
     }
 
     // getters for cluster node properties //

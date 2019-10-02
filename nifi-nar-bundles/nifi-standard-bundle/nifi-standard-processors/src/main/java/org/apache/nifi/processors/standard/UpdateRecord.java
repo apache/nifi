@@ -203,8 +203,6 @@ public class UpdateRecord extends AbstractRecordProcessor {
             final List<FieldValue> selectedFields = replacementResult.getSelectedFields().collect(Collectors.toList());
             final Object replacementObject = getReplacementObject(selectedFields);
             updateFieldValue(fieldVal, replacementObject);
-
-            record = updateRecord(destinationFieldValues, selectedFields, record);
         }
 
         return record;

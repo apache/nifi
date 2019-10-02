@@ -63,6 +63,7 @@ import org.apache.nifi.security.util.crypto.OpenPGPPasswordBasedEncryptor;
 import org.apache.nifi.security.util.crypto.PasswordBasedEncryptor;
 import org.apache.nifi.util.StopWatch;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.openpgp.PGPEncryptedData;
 
 @EventDriven
 @SideEffectFree
@@ -138,6 +139,18 @@ public class EncryptContent extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .sensitive(true)
             .build();
+
+    public static final PropertyDescriptor PGP_SYMMETRIC_ENCRYPTION_CIPHER = new PropertyDescriptor.Builder()
+            .name("pgp-symmetric-cipher")
+            .displayName("PGP Symmetric Cipher")
+            .description("When using PGP encryption, this is the symmetric cipher to be used. This property is ignored if "
+                    + "Encryption Algorithm is not PGP or PGP-ASCII-ARMOR\nNote that the provided cipher is only used during"
+                    + "the encryption phase, while it is inferred from the ciphertext in the decryption phase")
+            .required(false)
+            .allowableValues(buildPGPSymmetricCipherAllowableValues())
+            .defaultValue(String.valueOf(PGPEncryptedData.AES_128))
+            .build();
+
     public static final PropertyDescriptor RAW_KEY_HEX = new PropertyDescriptor.Builder()
             .name("raw-key-hex")
             .displayName("Raw Key (hexadecimal)")
@@ -202,6 +215,23 @@ public class EncryptContent extends AbstractProcessor {
                 "if unsafe combinations of encryption algorithms and passwords are provided on a JVM with limited strength crypto. To fix this, see the Admin Guide.");
     }
 
+    private static AllowableValue[] buildPGPSymmetricCipherAllowableValues() {
+        // Allowed values are inferred from SymmetricKeyAlgorithmTags. Note that NULL and SAFER cipher are not supported and therefore not listed
+        return new AllowableValue[] {
+                new AllowableValue("1", "IDEA"),
+                new AllowableValue("2", "TRIPLE_DES"),
+                new AllowableValue("3", "CAST5"),
+                new AllowableValue("4", "BLOWFISH"),
+                new AllowableValue("6", "DES"),
+                new AllowableValue("7", "AES_128"),
+                new AllowableValue("8", "AES_192"),
+                new AllowableValue("9", "AES_256"),
+                new AllowableValue("10", "TWOFISH"),
+                new AllowableValue("11", "CAMELLIA_128"),
+                new AllowableValue("12", "CAMELLIA_192"),
+                new AllowableValue("13", "CAMELLIA_256") };
+    }
+
     @Override
     protected void init(final ProcessorInitializationContext context) {
         final List<PropertyDescriptor> properties = new ArrayList<>();
@@ -215,6 +245,7 @@ public class EncryptContent extends AbstractProcessor {
         properties.add(PUBLIC_KEY_USERID);
         properties.add(PRIVATE_KEYRING);
         properties.add(PRIVATE_KEYRING_PASSPHRASE);
+        properties.add(PGP_SYMMETRIC_ENCRYPTION_CIPHER);
         this.properties = Collections.unmodifiableList(properties);
 
         final Set<Relationship> relationships = new HashSet<>();
@@ -256,7 +287,9 @@ public class EncryptContent extends AbstractProcessor {
             final String publicUserId = context.getProperty(PUBLIC_KEY_USERID).getValue();
             final String privateKeyring = context.getProperty(PRIVATE_KEYRING).getValue();
             final String privateKeyringPassphrase = context.getProperty(PRIVATE_KEYRING_PASSPHRASE).evaluateAttributeExpressions().getValue();
-            validationResults.addAll(validatePGP(encryptionMethod, password, encrypt, publicKeyring, publicUserId, privateKeyring, privateKeyringPassphrase));
+            final Integer cipher = context.getProperty(PGP_SYMMETRIC_ENCRYPTION_CIPHER).asInteger();
+            validationResults.addAll(validatePGP(encryptionMethod, password, encrypt, publicKeyring, publicUserId,
+                    privateKeyring, privateKeyringPassphrase, cipher));
         } else { // Not PGP
             if (encryptionMethod.isKeyedCipher()) { // Raw key
                 validationResults.addAll(validateKeyed(encryptionMethod, kdf, keyHex));
@@ -268,9 +301,27 @@ public class EncryptContent extends AbstractProcessor {
         return validationResults;
     }
 
-    private List<ValidationResult> validatePGP(EncryptionMethod encryptionMethod, String password, boolean encrypt, String publicKeyring, String publicUserId, String privateKeyring,
-                                               String privateKeyringPassphrase) {
+    /**
+     * Returns true if the integer value provided maps to a valid {@code cipher} as contained in the {@code PGP_SYMMETRIC_ENCRYPTION_CIPHER}.
+     *
+     * @param cipher an integer indicating a particular cipher
+     * @return true if the cipher is supported
+     */
+    private static boolean isValidCipher(int cipher) {
+        return PGP_SYMMETRIC_ENCRYPTION_CIPHER.getAllowableValues().stream().anyMatch(av -> av.getValue().equals(String.valueOf(cipher)));
+    }
+
+    private List<ValidationResult> validatePGP(EncryptionMethod encryptionMethod, String password, boolean encrypt,
+                                               String publicKeyring, String publicUserId, String privateKeyring,
+                                               String privateKeyringPassphrase, int cipher) {
         List<ValidationResult> validationResults = new ArrayList<>();
+
+        if(encrypt && password != null && !isValidCipher(cipher)) {
+            validationResults.add(new ValidationResult.Builder().subject(PGP_SYMMETRIC_ENCRYPTION_CIPHER.getDisplayName())
+                    .explanation("When performing an encryption with " + encryptionMethod.getAlgorithm() + " and a symmetric " +
+                            PASSWORD.getDisplayName() + ", a" + PGP_SYMMETRIC_ENCRYPTION_CIPHER.getDisplayName() + " is required")
+                    .build());
+        }
 
         if (password == null) {
             if (encrypt) {
@@ -463,6 +514,7 @@ public class EncryptContent extends AbstractProcessor {
         final EncryptionMethod encryptionMethod = EncryptionMethod.valueOf(method);
         final String providerName = encryptionMethod.getProvider();
         final String algorithm = encryptionMethod.getAlgorithm();
+        final Integer pgpCipher = context.getProperty(PGP_SYMMETRIC_ENCRYPTION_CIPHER).asInteger();
         final String password = context.getProperty(PASSWORD).getValue();
         final KeyDerivationFunction kdf = KeyDerivationFunction.valueOf(context.getProperty(KEY_DERIVATION_FUNCTION).getValue());
         final boolean encrypt = context.getProperty(MODE).getValue().equalsIgnoreCase(ENCRYPT_MODE);
@@ -476,14 +528,13 @@ public class EncryptContent extends AbstractProcessor {
                 final String privateKeyring = context.getProperty(PRIVATE_KEYRING).getValue();
                 if (encrypt && publicKeyring != null) {
                     final String publicUserId = context.getProperty(PUBLIC_KEY_USERID).getValue();
-                    encryptor = new OpenPGPKeyBasedEncryptor(algorithm, providerName, publicKeyring, publicUserId, null, filename);
+                    encryptor = new OpenPGPKeyBasedEncryptor(algorithm, pgpCipher, providerName, publicKeyring, publicUserId, null, filename);
                 } else if (!encrypt && privateKeyring != null) {
                     final char[] keyringPassphrase = context.getProperty(PRIVATE_KEYRING_PASSPHRASE).evaluateAttributeExpressions().getValue().toCharArray();
-                    encryptor = new OpenPGPKeyBasedEncryptor(algorithm, providerName, privateKeyring, null, keyringPassphrase,
-                            filename);
+                    encryptor = new OpenPGPKeyBasedEncryptor(algorithm, pgpCipher, providerName, privateKeyring, null, keyringPassphrase, filename);
                 } else {
                     final char[] passphrase = Normalizer.normalize(password, Normalizer.Form.NFC).toCharArray();
-                    encryptor = new OpenPGPPasswordBasedEncryptor(algorithm, providerName, passphrase, filename);
+                    encryptor = new OpenPGPPasswordBasedEncryptor(algorithm, pgpCipher, providerName, passphrase, filename);
                 }
             } else if (kdf.equals(KeyDerivationFunction.NONE)) { // Raw key
                 final String keyHex = context.getProperty(RAW_KEY_HEX).getValue();

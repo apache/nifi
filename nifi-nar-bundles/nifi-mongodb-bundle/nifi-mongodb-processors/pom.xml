@@ -72,7 +72,7 @@
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
-            <version>18.0</version>
+            <version>28.0-jre</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -108,6 +108,12 @@
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mongodb-services</artifactId>
             <version>1.10.0-SNAPSHOT</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.codehaus.groovy</groupId>
+            <artifactId>groovy-json</artifactId>
+            <version>${nifi.groovy.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

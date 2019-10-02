@@ -17,6 +17,7 @@
 package org.apache.nifi.authorization;
 
 import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.groups.ProcessGroup;
 
 import java.util.Set;
 
@@ -30,6 +31,13 @@ public interface ProcessGroupAuthorizable {
      * @return authorizable
      */
     Authorizable getAuthorizable();
+
+    /**
+     * Returns the Process Group that this Authorizable represents. Non null
+     *
+     * @return the Process Group
+     */
+    ProcessGroup getProcessGroup();
 
     /**
      * The authorizables for all encapsulated processors. Non null

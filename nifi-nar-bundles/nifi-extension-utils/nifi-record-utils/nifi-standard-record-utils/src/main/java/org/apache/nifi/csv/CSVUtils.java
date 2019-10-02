@@ -26,8 +26,14 @@ import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.Map;
 
 public class CSVUtils {
+
+    private static Logger LOG = LoggerFactory.getLogger(CSVUtils.class);
 
     public static final AllowableValue CUSTOM = new AllowableValue("custom", "Custom Format",
         "The format of the CSV is configured by using the properties of this Controller Service, such as Value Separator");
@@ -49,17 +55,19 @@ public class CSVUtils {
         .build();
     public static final PropertyDescriptor VALUE_SEPARATOR = new PropertyDescriptor.Builder()
         .name("Value Separator")
-        .description("The character that is used to separate values/fields in a CSV Record")
+        .description("The character that is used to separate values/fields in a CSV Record. If the property has been specified via Expression Language " +
+                "but the expression gets evaluated to an invalid Value Separator at runtime, then it will be skipped and the default Value Separator will be used.")
         .addValidator(CSVValidators.UNESCAPED_SINGLE_CHAR_VALIDATOR)
-        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .defaultValue(",")
         .required(true)
         .build();
     public static final PropertyDescriptor QUOTE_CHAR = new PropertyDescriptor.Builder()
         .name("Quote Character")
-        .description("The character that is used to quote values so that escape characters do not have to be used")
+        .description("The character that is used to quote values so that escape characters do not have to be used. If the property has been specified via Expression Language " +
+                "but the expression gets evaluated to an invalid Quote Character at runtime, then it will be skipped and the default Quote Character will be used.")
         .addValidator(new CSVValidators.SingleCharacterValidator())
-        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .defaultValue("\"")
         .required(true)
         .build();
@@ -92,14 +100,15 @@ public class CSVUtils {
         .name("Comment Marker")
         .description("The character that is used to denote the start of a comment. Any line that begins with this comment will be ignored.")
         .addValidator(new CSVValidators.SingleCharacterValidator())
-        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .required(false)
         .build();
     public static final PropertyDescriptor ESCAPE_CHAR = new PropertyDescriptor.Builder()
         .name("Escape Character")
-        .description("The character that is used to escape characters that would otherwise have a specific meaning to the CSV Parser.")
+        .description("The character that is used to escape characters that would otherwise have a specific meaning to the CSV Parser. If the property has been specified via Expression Language " +
+                "but the expression gets evaluated to an invalid Escape Character at runtime, then it will be skipped and the default Escape Character will be used.")
         .addValidator(new CSVValidators.SingleCharacterValidator())
-        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .defaultValue("\\")
         .required(true)
         .build();
@@ -168,10 +177,19 @@ public class CSVUtils {
         .required(true)
         .build();
 
-    public static CSVFormat createCSVFormat(final PropertyContext context) {
+    public static boolean isDynamicCSVFormat(final PropertyContext context) {
+        final String formatName = context.getProperty(CSV_FORMAT).getValue();
+        return formatName.equalsIgnoreCase(CUSTOM.getValue())
+                && (context.getProperty(VALUE_SEPARATOR).isExpressionLanguagePresent()
+                || context.getProperty(QUOTE_CHAR).isExpressionLanguagePresent()
+                || context.getProperty(ESCAPE_CHAR).isExpressionLanguagePresent()
+                || context.getProperty(COMMENT_MARKER).isExpressionLanguagePresent());
+    }
+
+    public static CSVFormat createCSVFormat(final PropertyContext context, final Map<String, String> variables) {
         final String formatName = context.getProperty(CSV_FORMAT).getValue();
         if (formatName.equalsIgnoreCase(CUSTOM.getValue())) {
-            return buildCustomFormat(context);
+            return buildCustomFormat(context, variables);
         }
         if (formatName.equalsIgnoreCase(RFC_4180.getValue())) {
             return CSVFormat.RFC4180;
@@ -190,55 +208,99 @@ public class CSVUtils {
         }
     }
 
-    private static char getUnescapedChar(final PropertyContext context, final PropertyDescriptor property) {
-        return StringEscapeUtils.unescapeJava(context.getProperty(property).getValue()).charAt(0);
+    private static Character getCharUnescapedJava(final PropertyContext context, final PropertyDescriptor property, final Map<String, String> variables) {
+        String value = context.getProperty(property).evaluateAttributeExpressions(variables).getValue();
+
+        if (value != null) {
+            String unescaped = unescapeJava(value);
+            if (unescaped.length() == 1) {
+                return unescaped.charAt(0);
+            }
+        }
+
+        LOG.warn("'{}' property evaluated to an invalid value: \"{}\". It must be a single character. The property value will be ignored.", property.getName(), value);
+
+        if (property.getDefaultValue() != null) {
+            return property.getDefaultValue().charAt(0);
+        } else {
+            return null;
+        }
     }
 
-    private static char getChar(final PropertyContext context, final PropertyDescriptor property) {
-        return CSVUtils.unescape(context.getProperty(property).getValue()).charAt(0);
+    private static Character getCharUnescaped(final PropertyContext context, final PropertyDescriptor property, final Map<String, String> variables) {
+        String value = context.getProperty(property).evaluateAttributeExpressions(variables).getValue();
+
+        if (value != null) {
+            String unescaped = unescape(value);
+            if (unescaped.length() == 1) {
+                return unescaped.charAt(0);
+            }
+        }
+
+        LOG.warn("'{}' property evaluated to an invalid value: \"{}\". It must be a single character. The property value will be ignored.", property.getName(), value);
+
+        if (property.getDefaultValue() != null) {
+            return property.getDefaultValue().charAt(0);
+        } else {
+            return null;
+        }
     }
 
-    private static CSVFormat buildCustomFormat(final PropertyContext context) {
-        final char valueSeparator = getUnescapedChar(context, VALUE_SEPARATOR);
+    private static CSVFormat buildCustomFormat(final PropertyContext context, final Map<String, String> variables) {
+        final Character valueSeparator = getCharUnescapedJava(context, VALUE_SEPARATOR, variables);
         CSVFormat format = CSVFormat.newFormat(valueSeparator)
             .withAllowMissingColumnNames()
             .withIgnoreEmptyLines();
 
-        final PropertyValue skipHeaderPropertyValue = context.getProperty(FIRST_LINE_IS_HEADER);
-        if (skipHeaderPropertyValue.getValue() != null && skipHeaderPropertyValue.asBoolean()) {
+        final PropertyValue firstLineIsHeaderPropertyValue = context.getProperty(FIRST_LINE_IS_HEADER);
+        if (firstLineIsHeaderPropertyValue.getValue() != null && firstLineIsHeaderPropertyValue.asBoolean()) {
             format = format.withFirstRecordAsHeader();
         }
 
-        format = format.withQuote(getChar(context, QUOTE_CHAR));
-        format = format.withEscape(getChar(context, ESCAPE_CHAR));
+        final Character quoteChar = getCharUnescaped(context, QUOTE_CHAR, variables);
+        format = format.withQuote(quoteChar);
+
+        final Character escapeChar = getCharUnescaped(context, ESCAPE_CHAR, variables);
+        format = format.withEscape(escapeChar);
+
         format = format.withTrim(context.getProperty(TRIM_FIELDS).asBoolean());
 
         if (context.getProperty(COMMENT_MARKER).isSet()) {
-            format = format.withCommentMarker(getChar(context, COMMENT_MARKER));
+            final Character commentMarker = getCharUnescaped(context, COMMENT_MARKER, variables);
+            if (commentMarker != null) {
+                format = format.withCommentMarker(commentMarker);
+            }
         }
         if (context.getProperty(NULL_STRING).isSet()) {
-            format = format.withNullString(CSVUtils.unescape(context.getProperty(NULL_STRING).getValue()));
+            format = format.withNullString(unescape(context.getProperty(NULL_STRING).getValue()));
         }
 
         final PropertyValue quoteValue = context.getProperty(QUOTE_MODE);
-        if (quoteValue != null) {
+        if (quoteValue != null && quoteValue.isSet()) {
             final QuoteMode quoteMode = QuoteMode.valueOf(quoteValue.getValue());
             format = format.withQuoteMode(quoteMode);
         }
 
         final PropertyValue trailingDelimiterValue = context.getProperty(TRAILING_DELIMITER);
-        if (trailingDelimiterValue != null) {
+        if (trailingDelimiterValue != null && trailingDelimiterValue.isSet()) {
             final boolean trailingDelimiter = trailingDelimiterValue.asBoolean();
             format = format.withTrailingDelimiter(trailingDelimiter);
         }
 
         final PropertyValue recordSeparator = context.getProperty(RECORD_SEPARATOR);
-        if (recordSeparator != null) {
+        if (recordSeparator != null && recordSeparator.isSet()) {
             final String separator = unescape(recordSeparator.getValue());
             format = format.withRecordSeparator(separator);
         }
 
         return format;
+    }
+
+    public static String unescapeJava(String input) {
+        if (input != null && input.length() > 1) {
+            input = StringEscapeUtils.unescapeJava(input);
+        }
+        return input;
     }
 
 

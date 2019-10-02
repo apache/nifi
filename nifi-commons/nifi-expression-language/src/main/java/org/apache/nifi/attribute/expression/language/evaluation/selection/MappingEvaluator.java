@@ -16,9 +16,7 @@
  */
 package org.apache.nifi.attribute.expression.language.evaluation.selection;
 
-import java.util.Map;
-
-import org.apache.nifi.attribute.expression.language.evaluation.EvaluatorState;
+import org.apache.nifi.attribute.expression.language.EvaluationContext;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.reduce.ReduceEvaluator;
@@ -35,11 +33,11 @@ public class MappingEvaluator<T> implements Evaluator<T> {
     }
 
     @Override
-    public QueryResult<T> evaluate(final Map<String, String> attributes, final EvaluatorState context) {
-        QueryResult<T> result = mappingEvaluator.evaluate(attributes, context);
+    public QueryResult<T> evaluate(final EvaluationContext evaluationContext) {
+        QueryResult<T> result = mappingEvaluator.evaluate(evaluationContext);
 
-        while (multiAttributeEvaluator.getEvaluationsRemaining(context) > 0) {
-            result = mappingEvaluator.evaluate(attributes, context);
+        while (multiAttributeEvaluator.getEvaluationsRemaining(evaluationContext) > 0) {
+            result = mappingEvaluator.evaluate(evaluationContext);
         }
 
         return result;
@@ -51,7 +49,7 @@ public class MappingEvaluator<T> implements Evaluator<T> {
     }
 
     @Override
-    public int getEvaluationsRemaining(final EvaluatorState context) {
+    public int getEvaluationsRemaining(final EvaluationContext context) {
         return 0;
     }
 

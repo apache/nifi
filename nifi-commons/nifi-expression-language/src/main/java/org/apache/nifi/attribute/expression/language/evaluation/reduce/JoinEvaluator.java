@@ -16,9 +16,7 @@
  */
 package org.apache.nifi.attribute.expression.language.evaluation.reduce;
 
-import java.util.Map;
-
-import org.apache.nifi.attribute.expression.language.evaluation.EvaluatorState;
+import org.apache.nifi.attribute.expression.language.EvaluationContext;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.StringEvaluator;
@@ -35,17 +33,17 @@ public class JoinEvaluator extends StringEvaluator implements ReduceEvaluator<St
     }
 
     @Override
-    public QueryResult<String> evaluate(final Map<String, String> attributes, final EvaluatorState context) {
-        String subject = subjectEvaluator.evaluate(attributes, context).getValue();
+    public QueryResult<String> evaluate(final EvaluationContext evaluationContext) {
+        String subject = subjectEvaluator.evaluate(evaluationContext).getValue();
         if (subject == null) {
             subject = "";
         }
 
-        final String delimiter = delimiterEvaluator.evaluate(attributes, context).getValue();
-        State state = context.getState(this, State.class);
+        final String delimiter = delimiterEvaluator.evaluate(evaluationContext).getValue();
+        State state = evaluationContext.getEvaluatorState().getState(this, State.class);
         if (state == null) {
             state = new State();
-            context.putState(this, state);
+            evaluationContext.getEvaluatorState().putState(this, state);
         }
         if (state.evalCount > 0) {
             state.sb.append(delimiter);

@@ -44,6 +44,7 @@ import org.apache.avro.io.DatumReader;
 import org.apache.commons.compress.compressors.CompressorException;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.dbcp.DBCPService;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.flowfile.attributes.FragmentAttributes;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.reporting.InitializationException;
@@ -303,10 +304,15 @@ public class TestExecuteSQL {
             stmt.execute("insert into TEST_NULL_INT (id, val1, val2) VALUES (" + i + ", 1, 1)");
         }
 
+
+        Map<String, String> attrMap = new HashMap<>();
+        String testAttrName = "attr1";
+        String testAttrValue = "value1";
+        attrMap.put(testAttrName, testAttrValue);
         runner.setIncomingConnection(true);
         runner.setProperty(ExecuteSQL.MAX_ROWS_PER_FLOW_FILE, "5");
         runner.setProperty(ExecuteSQL.OUTPUT_BATCH_SIZE, "1");
-        runner.enqueue("SELECT * FROM TEST_NULL_INT");
+        MockFlowFile inputFlowFile = runner.enqueue("SELECT * FROM TEST_NULL_INT", attrMap);
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ExecuteSQL.REL_SUCCESS, 200);
@@ -322,9 +328,13 @@ public class TestExecuteSQL {
 
         MockFlowFile lastFlowFile = runner.getFlowFilesForRelationship(ExecuteSQL.REL_SUCCESS).get(199);
 
+
         lastFlowFile.assertAttributeEquals(ExecuteSQL.RESULT_ROW_COUNT, "5");
         lastFlowFile.assertAttributeEquals(FragmentAttributes.FRAGMENT_INDEX.key(), "199");
-        lastFlowFile.assertAttributeEquals(ExecuteSQL.RESULTSET_INDEX, "0");
+        lastFlowFile.assertAttributeEquals(testAttrName, testAttrValue);
+        lastFlowFile.assertAttributeEquals(AbstractExecuteSQL.INPUT_FLOWFILE_UUID, inputFlowFile.getAttribute(CoreAttributes.UUID.key()));
+
+
     }
 
     @Test

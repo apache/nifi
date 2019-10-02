@@ -37,6 +37,7 @@ import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.codehaus.jackson.JsonFactory;
 import org.codehaus.jackson.JsonGenerator;
+import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.util.MinimalPrettyPrinter;
 
 import java.io.IOException;
@@ -59,6 +60,8 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
     private final Supplier<DateFormat> LAZY_TIME_FORMAT;
     private final Supplier<DateFormat> LAZY_TIMESTAMP_FORMAT;
     private String mimeType = "application/json";
+
+    private static final ObjectMapper objectMapper = new ObjectMapper();
 
     public WriteJsonResult(final ComponentLog logger, final RecordSchema recordSchema, final SchemaAccessWriter schemaAccess, final OutputStream out, final boolean prettyPrint,
             final NullSuppression nullSuppression, final OutputGrouping outputGrouping, final String dateFormat, final String timeFormat, final String timestampFormat) throws IOException {
@@ -86,6 +89,8 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
         LAZY_TIMESTAMP_FORMAT = () -> tsf;
 
         final JsonFactory factory = new JsonFactory();
+        factory.setCodec(objectMapper);
+
         this.generator = factory.createJsonGenerator(out);
         if (prettyPrint) {
             generator.useDefaultPrettyPrinter();
@@ -270,7 +275,39 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
             return;
         }
 
+        if (value instanceof java.sql.Time) {
+            final Object formatted = format((java.sql.Time) value, LAZY_TIME_FORMAT);
+            generator.writeObject(formatted);
+            return;
+        }
+        if (value instanceof java.sql.Date) {
+            final Object formatted = format((java.sql.Date) value, LAZY_DATE_FORMAT);
+            generator.writeObject(formatted);
+            return;
+        }
+        if (value instanceof java.util.Date) {
+            final Object formatted = format((java.util.Date) value, LAZY_TIMESTAMP_FORMAT);
+            generator.writeObject(formatted);
+            return;
+        }
+
         generator.writeObject(value);
+    }
+
+    private Object format(final java.util.Date value, final Supplier<DateFormat> formatSupplier) {
+        if (value == null) {
+            return null;
+        }
+
+        if (formatSupplier == null) {
+            return value.getTime();
+        }
+        final DateFormat format = formatSupplier.get();
+        if (format == null) {
+            return value.getTime();
+        }
+
+        return format.format(value);
     }
 
     @SuppressWarnings("unchecked")

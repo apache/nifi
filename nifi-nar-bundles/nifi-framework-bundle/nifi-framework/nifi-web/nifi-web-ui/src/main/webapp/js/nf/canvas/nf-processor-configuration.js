@@ -629,7 +629,41 @@
                         dataType: 'json'
                     }).fail(nfErrorHandler.handleAjaxError);
                 },
-                goToServiceDeferred: goToServiceFromProperty
+                parameterDeferred: function (propertyDescriptor, groupId) {
+                    return $.Deferred(function (deferred) {
+                        if (nfCommon.isDefinedAndNotNull(groupId)) {
+                            // processors being configured must be in the current group
+                            var parameterContext = nfCanvasUtils.getParameterContext();
+
+                            if (nfCommon.isDefinedAndNotNull(parameterContext)) {
+                                $.ajax({
+                                    type: 'GET',
+                                    url: '../nifi-api/parameter-contexts/' + encodeURIComponent(parameterContext.id),
+                                    dataType: 'json'
+                                }).done(function (response) {
+                                    var sensitive = nfCommon.isSensitiveProperty(propertyDescriptor);
+
+                                    deferred.resolve(response.component.parameters.map(function (parameterEntity) {
+                                        return parameterEntity.parameter;
+                                    }).filter(function (parameter) {
+                                        return parameter.sensitive === sensitive;
+                                    }));
+                                }).fail(function () {
+                                    deferred.resolve([]);
+                                });
+                            } else {
+                                deferred.resolve([]);
+                            }
+                        } else {
+                            deferred.resolve([]);
+                        }
+                    }).promise();
+                },
+                goToServiceDeferred: goToServiceFromProperty,
+                getParameterContext: function (groupId) {
+                    // processors being configured must be in the current group
+                    return nfCanvasUtils.getParameterContext();
+                }
             });
         },
 

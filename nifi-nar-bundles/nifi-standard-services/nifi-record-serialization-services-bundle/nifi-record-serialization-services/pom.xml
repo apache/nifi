@@ -136,6 +136,7 @@
                         <exclude>src/test/resources/avro/logical-types.avsc</exclude>
                         <exclude>src/test/resources/avro/logical-types-nullable.avsc</exclude>
                         <exclude>src/test/resources/avro/multiple-types.avsc</exclude>
+                        <exclude>src/test/resources/avro/simple.avsc</exclude>
                         <exclude>src/test/resources/csv/extra-white-space.csv</exclude>
                         <exclude>src/test/resources/csv/multi-bank-account.csv</exclude>
                         <exclude>src/test/resources/csv/single-bank-account.csv</exclude>
@@ -153,6 +154,7 @@
                         <exclude>src/test/resources/json/bank-account-multiline.json</exclude>
                         <exclude>src/test/resources/json/bank-account-oneline.json</exclude>
                         <exclude>src/test/resources/json/data-types.json</exclude>
+                        <exclude>src/test/resources/json/timestamp.json</exclude>
                         <exclude>src/test/resources/json/json-with-unicode.json</exclude>
                         <exclude>src/test/resources/json/primitive-type-array.json</exclude>
                         <exclude>src/test/resources/json/single-bank-account.json</exclude>

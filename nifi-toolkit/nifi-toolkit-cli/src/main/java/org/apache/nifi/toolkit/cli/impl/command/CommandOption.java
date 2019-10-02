@@ -46,6 +46,9 @@ public enum CommandOption {
     FLOW_DESC("fd", "flowDesc", "A flow description", true),
     FLOW_VERSION("fv", "flowVersion", "A version of a flow", true),
 
+    FLOW_VERSION_1("fv1", "flowVersion1", "A version of a flow", true),
+    FLOW_VERSION_2("fv2", "flowVersion2", "A version of a flow", true),
+
     // Registry - Source options for when there are two registries involved and one is a source
     SRC_PROPS("sp", "sourceProps", "A properties file to load for the source", true, true),
     SRC_FLOW_ID("sf", "sourceFlowIdentifier", "A flow identifier from the source registry", true),
@@ -101,6 +104,16 @@ public enum CommandOption {
 
     // NiFi - Templates
     TEMPLATE_ID("tid", "templateId", "The id of a template", true),
+
+    // NiFI - Parameter Contexts
+    PARAM_CONTEXT_ID("pcid", "paramContextId", "The id of a parameter context", true),
+    PARAM_CONTEXT_NAME("pcn", "paramContextName", "The name of a parameter context", true),
+    PARAM_CONTEXT_DESC("pcd", "paramContextDescription", "The description of a parameter context", true),
+
+    PARAM_NAME("pn", "paramName", "The name of the parameter", true),
+    PARAM_DESC("pd", "paramDescription", "The description of the parameter", true),
+    PARAM_VALUE("pv", "paramValue", "The value of a parameter", true),
+    PARAM_SENSITIVE("ps", "paramSensitive", "Whether or not the parameter is sensitive", true),
 
     // Security related
     KEYSTORE("ks", "keystore", "A keystore to use for TLS/SSL connections", true),
@@ -160,4 +173,7 @@ public enum CommandOption {
         return Option.builder(shortName).longOpt(longName).desc(description).hasArg(hasArg).build();
     }
 
+    public Option createOption(final String description) {
+        return Option.builder(shortName).longOpt(longName).desc(description).hasArg(hasArg).build();
+    }
 }

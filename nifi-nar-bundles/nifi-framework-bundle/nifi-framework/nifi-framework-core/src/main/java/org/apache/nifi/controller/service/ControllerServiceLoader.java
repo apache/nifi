@@ -19,6 +19,7 @@ package org.apache.nifi.controller.service;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.FlowController;
+import org.apache.nifi.controller.serialization.FlowEncodingVersion;
 import org.apache.nifi.controller.serialization.FlowFromDOMFactory;
 import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.groups.ProcessGroup;
@@ -56,7 +57,7 @@ public class ControllerServiceLoader {
     private static final Logger logger = LoggerFactory.getLogger(ControllerServiceLoader.class);
 
     public static List<ControllerServiceNode> loadControllerServices(final FlowController controller, final InputStream serializedStream, final ProcessGroup parentGroup,
-        final StringEncryptor encryptor, final BulletinRepository bulletinRepo, final boolean autoResumeState) throws IOException {
+        final StringEncryptor encryptor, final BulletinRepository bulletinRepo, final boolean autoResumeState, final FlowEncodingVersion encodingVersion) throws IOException {
 
         final DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
         documentBuilderFactory.setNamespaceAware(true);
@@ -98,8 +99,8 @@ public class ControllerServiceLoader {
             final Element controllerServices = document.getDocumentElement();
             final List<Element> serviceElements = DomUtils.getChildElementsByTagName(controllerServices, "controllerService");
 
-            final Map<ControllerServiceNode, Element> controllerServiceMap = ControllerServiceLoader.loadControllerServices(serviceElements, controller, parentGroup, encryptor);
-            enableControllerServices(controllerServiceMap, controller, encryptor, autoResumeState);
+            final Map<ControllerServiceNode, Element> controllerServiceMap = ControllerServiceLoader.loadControllerServices(serviceElements, controller, parentGroup, encryptor, encodingVersion);
+            enableControllerServices(controllerServiceMap, controller, encryptor, autoResumeState, encodingVersion);
             return new ArrayList<>(controllerServiceMap.keySet());
         } catch (SAXException | ParserConfigurationException sxe) {
             throw new IOException(sxe);
@@ -107,11 +108,11 @@ public class ControllerServiceLoader {
     }
 
     public static Map<ControllerServiceNode, Element> loadControllerServices(final List<Element> serviceElements, final FlowController controller,
-                                                                             final ProcessGroup parentGroup, final StringEncryptor encryptor) {
+                                                                             final ProcessGroup parentGroup, final StringEncryptor encryptor, final FlowEncodingVersion encodingVersion) {
 
         final Map<ControllerServiceNode, Element> nodeMap = new HashMap<>();
         for (final Element serviceElement : serviceElements) {
-            final ControllerServiceNode serviceNode = createControllerService(controller, serviceElement, encryptor);
+            final ControllerServiceNode serviceNode = createControllerService(controller, serviceElement, encryptor, encodingVersion);
             if (parentGroup == null) {
                 controller.getFlowManager().addRootControllerService(serviceNode);
             } else {
@@ -123,14 +124,14 @@ public class ControllerServiceLoader {
             nodeMap.put(serviceNode, (Element) serviceElement.cloneNode(true));
         }
         for (final Map.Entry<ControllerServiceNode, Element> entry : nodeMap.entrySet()) {
-            configureControllerService(entry.getKey(), entry.getValue(), encryptor);
+            configureControllerService(entry.getKey(), entry.getValue(), encryptor, encodingVersion);
         }
 
         return nodeMap;
     }
 
     public static void enableControllerServices(final Map<ControllerServiceNode, Element> nodeMap, final FlowController controller,
-                                                final StringEncryptor encryptor, final boolean autoResumeState) {
+                                                final StringEncryptor encryptor, final boolean autoResumeState, final FlowEncodingVersion encodingVersion) {
         // Start services
         if (autoResumeState) {
             final Set<ControllerServiceNode> nodesToEnable = new HashSet<>();
@@ -140,7 +141,7 @@ public class ControllerServiceLoader {
 
                 final ControllerServiceDTO dto;
                 synchronized (controllerServiceElement.getOwnerDocument()) {
-                    dto = FlowFromDOMFactory.getControllerService(controllerServiceElement, encryptor);
+                    dto = FlowFromDOMFactory.getControllerService(controllerServiceElement, encryptor, encodingVersion);
                 }
 
                 final ControllerServiceState state = ControllerServiceState.valueOf(dto.getState());
@@ -181,7 +182,7 @@ public class ControllerServiceLoader {
 
         if (controllerService.getProperties() != null) {
             Map<String,String> properties = new HashMap<>();
-            for (Map.Entry<PropertyDescriptor, String> propEntry : controllerService.getProperties().entrySet()) {
+            for (Map.Entry<PropertyDescriptor, String> propEntry : controllerService.getRawPropertyValues().entrySet()) {
                 properties.put(propEntry.getKey().getName(), propEntry.getValue());
             }
             clone.setProperties(properties);
@@ -190,8 +191,9 @@ public class ControllerServiceLoader {
         return clone;
     }
 
-    private static ControllerServiceNode createControllerService(final FlowController flowController, final Element controllerServiceElement, final StringEncryptor encryptor) {
-        final ControllerServiceDTO dto = FlowFromDOMFactory.getControllerService(controllerServiceElement, encryptor);
+    private static ControllerServiceNode createControllerService(final FlowController flowController, final Element controllerServiceElement, final StringEncryptor encryptor,
+                                                                 final FlowEncodingVersion encodingVersion) {
+        final ControllerServiceDTO dto = FlowFromDOMFactory.getControllerService(controllerServiceElement, encryptor, encodingVersion);
 
         BundleCoordinate coordinate;
         try {
@@ -212,8 +214,9 @@ public class ControllerServiceLoader {
         return node;
     }
 
-    private static void configureControllerService(final ControllerServiceNode node, final Element controllerServiceElement, final StringEncryptor encryptor) {
-        final ControllerServiceDTO dto = FlowFromDOMFactory.getControllerService(controllerServiceElement, encryptor);
+    private static void configureControllerService(final ControllerServiceNode node, final Element controllerServiceElement, final StringEncryptor encryptor,
+                                                   final FlowEncodingVersion encodingVersion) {
+        final ControllerServiceDTO dto = FlowFromDOMFactory.getControllerService(controllerServiceElement, encryptor, encodingVersion);
         node.pauseValidationTrigger();
         try {
             node.setAnnotationData(dto.getAnnotationData());

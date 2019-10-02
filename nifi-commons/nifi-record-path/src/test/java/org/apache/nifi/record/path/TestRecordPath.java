@@ -46,6 +46,7 @@ import java.util.stream.IntStream;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 public class TestRecordPath {
@@ -1578,6 +1579,56 @@ public class TestRecordPath {
                 assertTrue(Arrays.equals((byte[]) expectedObject, (byte[]) actualObject));
             }
         });
+    }
+
+    @Test
+    public void testPadLeft() {
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("someString", RecordFieldType.STRING.getDataType()));
+        fields.add(new RecordField("emptyString", RecordFieldType.STRING.getDataType()));
+        fields.add(new RecordField("nullString", RecordFieldType.STRING.getDataType()));
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        final Map<String, Object> values = new HashMap<>();
+        values.put("someString", "MyString");
+        values.put("emptyString", "");
+        values.put("nullString", null);
+        final Record record = new MapRecord(schema, values);
+
+        assertEquals("##MyString", RecordPath.compile("padLeft(/someString, 10, '#')").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("__MyString", RecordPath.compile("padLeft(/someString, 10)").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("MyString", RecordPath.compile("padLeft(/someString, 3)").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("MyString", RecordPath.compile("padLeft(/someString, -10)").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("@@@@@@@@@@", RecordPath.compile("padLeft(/emptyString, 10, '@')").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertNull(RecordPath.compile("padLeft(/nullString, 10, '@')").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("xyMyString", RecordPath.compile("padLeft(/someString, 10, \"xy\")").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("aVMyString", RecordPath.compile("padLeft(/someString, 10, \"aVeryLongPadding\")").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("fewfewfewfewMyString", RecordPath.compile("padLeft(/someString, 20, \"few\")").evaluate(record).getSelectedFields().findFirst().get().getValue());
+    }
+
+    @Test
+    public void testPadRight() {
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("someString", RecordFieldType.STRING.getDataType()));
+        fields.add(new RecordField("emptyString", RecordFieldType.STRING.getDataType()));
+        fields.add(new RecordField("nullString", RecordFieldType.STRING.getDataType()));
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        final Map<String, Object> values = new HashMap<>();
+        values.put("someString", "MyString");
+        values.put("emptyString", "");
+        values.put("nullString", null);
+        final Record record = new MapRecord(schema, values);
+
+        assertEquals("MyString##", RecordPath.compile("padRight(/someString, 10, \"#\")").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("MyString__", RecordPath.compile("padRight(/someString, 10)").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("MyString", RecordPath.compile("padRight(/someString, 3)").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("MyString", RecordPath.compile("padRight(/someString, -10)").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("@@@@@@@@@@", RecordPath.compile("padRight(/emptyString, 10, '@')").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertNull(null, RecordPath.compile("padRight(/nullString, 10, '@')").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("MyStringxy", RecordPath.compile("padRight(/someString, 10, \"xy\")").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("MyStringaV", RecordPath.compile("padRight(/someString, 10, \"aVeryLongPadding\")").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("MyStringfewfewfewfew", RecordPath.compile("padRight(/someString, 20, \"few\")").evaluate(record).getSelectedFields().findFirst().get().getValue());
     }
 
     private List<RecordField> getDefaultFields() {

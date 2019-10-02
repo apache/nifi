@@ -35,6 +35,7 @@ import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.ProcessGroupCounts;
 import org.apache.nifi.groups.RemoteProcessGroup;
+import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.registry.flow.VersionControlInformation;
@@ -51,6 +52,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Predicate;
 
 public class MockProcessGroup implements ProcessGroup {
     private final Map<String, ControllerServiceNode> serviceMap = new HashMap<>();
@@ -58,6 +60,7 @@ public class MockProcessGroup implements ProcessGroup {
     private final FlowController flowController;
     private final MutableVariableRegistry variableRegistry = new MutableVariableRegistry(VariableRegistry.ENVIRONMENT_SYSTEM_REGISTRY);
     private VersionControlInformation versionControlInfo;
+    private ParameterContext parameterContext;
 
     public MockProcessGroup(final FlowController flowController) {
         this.flowController = flowController;
@@ -411,6 +414,11 @@ public class MockProcessGroup implements ProcessGroup {
     }
 
     @Override
+    public List<ProcessGroup> findAllProcessGroups(final Predicate<ProcessGroup> filter) {
+        return Collections.emptyList();
+    }
+
+    @Override
     public RemoteProcessGroup findRemoteProcessGroup(final String id) {
         return null;
     }
@@ -680,6 +688,24 @@ public class MockProcessGroup implements ProcessGroup {
 
     @Override
     public void onComponentModified() {
+    }
+
+    @Override
+    public void setParameterContext(final ParameterContext parameterContext) {
+        this.parameterContext = parameterContext;
+    }
+
+    @Override
+    public ParameterContext getParameterContext() {
+        return parameterContext;
+    }
+
+    @Override
+    public void verifyCanSetParameterContext(ParameterContext context) {
+    }
+
+    @Override
+    public void onParameterContextUpdated() {
     }
 
     @Override

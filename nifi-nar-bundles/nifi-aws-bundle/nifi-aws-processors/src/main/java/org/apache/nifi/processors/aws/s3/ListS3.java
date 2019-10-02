@@ -26,9 +26,19 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import com.amazonaws.services.s3.model.GetObjectMetadataRequest;
 import com.amazonaws.services.s3.model.GetObjectTaggingRequest;
 import com.amazonaws.services.s3.model.GetObjectTaggingResult;
+import com.amazonaws.services.s3.model.ListObjectsRequest;
+import com.amazonaws.services.s3.model.ListObjectsV2Request;
+import com.amazonaws.services.s3.model.ListObjectsV2Result;
+import com.amazonaws.services.s3.model.ListVersionsRequest;
+import com.amazonaws.services.s3.model.ObjectListing;
+import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.S3ObjectSummary;
+import com.amazonaws.services.s3.model.S3VersionSummary;
 import com.amazonaws.services.s3.model.Tag;
+import com.amazonaws.services.s3.model.VersionListing;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.PrimaryNodeOnly;
@@ -42,6 +52,9 @@ import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.Validator;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.expression.ExpressionLanguageScope;
@@ -53,14 +66,6 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
 
 import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.ListObjectsRequest;
-import com.amazonaws.services.s3.model.ListVersionsRequest;
-import com.amazonaws.services.s3.model.ObjectListing;
-import com.amazonaws.services.s3.model.S3ObjectSummary;
-import com.amazonaws.services.s3.model.S3VersionSummary;
-import com.amazonaws.services.s3.model.VersionListing;
-import com.amazonaws.services.s3.model.ListObjectsV2Request;
-import com.amazonaws.services.s3.model.ListObjectsV2Result;
 
 @PrimaryNodeOnly
 @TriggerSerially
@@ -85,6 +90,8 @@ import com.amazonaws.services.s3.model.ListObjectsV2Result;
         @WritesAttribute(attribute = "s3.storeClass", description = "The storage class of the object"),
         @WritesAttribute(attribute = "s3.version", description = "The version of the object, if applicable"),
         @WritesAttribute(attribute = "s3.tag.___", description = "If 'Write Object Tags' is set to 'True', the tags associated to the S3 object that is being listed " +
+                "will be written as part of the flowfile attributes"),
+        @WritesAttribute(attribute = "s3.user.metadata.___", description = "If 'Write User Metadata' is set to 'True', the user defined metadata associated to the S3 object that is being listed " +
                 "will be written as part of the flowfile attributes")})
 @SeeAlso({FetchS3Object.class, PutS3Object.class, DeleteS3Object.class})
 public class ListS3 extends AbstractS3Processor {
@@ -149,12 +156,35 @@ public class ListS3 extends AbstractS3Processor {
             .allowableValues(new AllowableValue("true", "True"), new AllowableValue("false", "False"))
             .defaultValue("false")
             .build();
+    public static final PropertyDescriptor REQUESTER_PAYS = new PropertyDescriptor.Builder()
+            .name("requester-pays")
+            .displayName("Requester Pays")
+            .required(true)
+            .description("If true, indicates that the requester consents to pay any charges associated with listing "
+                    + "the S3 bucket.  This sets the 'x-amz-request-payer' header to 'requester'.  Note that this "
+                    + "setting is not applicable when 'Use Versions' is 'true'.")
+            .addValidator(createRequesterPaysValidator())
+            .allowableValues(new AllowableValue("true", "True", "Indicates that the requester consents to pay any charges associated "
+                    + "with listing the S3 bucket."), new AllowableValue("false", "False", "Does not consent to pay "
+                            + "requester charges for listing the S3 bucket."))
+            .defaultValue("false")
+            .build();
+
+    public static final PropertyDescriptor WRITE_USER_METADATA = new PropertyDescriptor.Builder()
+            .name("write-s3-user-metadata")
+            .displayName("Write User Metadata")
+            .description("If set to 'True', the user defined metadata associated with the S3 object will be written as FlowFile attributes")
+            .required(true)
+            .allowableValues(new AllowableValue("true", "True"), new AllowableValue("false", "False"))
+            .defaultValue("false")
+            .build();
+
 
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
-            Arrays.asList(BUCKET, REGION, ACCESS_KEY, SECRET_KEY, WRITE_OBJECT_TAGS, CREDENTIALS_FILE,
+            Arrays.asList(BUCKET, REGION, ACCESS_KEY, SECRET_KEY, WRITE_OBJECT_TAGS, WRITE_USER_METADATA, CREDENTIALS_FILE,
                     AWS_CREDENTIALS_PROVIDER_SERVICE, TIMEOUT, SSL_CONTEXT_SERVICE, ENDPOINT_OVERRIDE,
                     SIGNER_OVERRIDE, PROXY_CONFIGURATION_SERVICE, PROXY_HOST, PROXY_HOST_PORT, PROXY_USERNAME,
-                    PROXY_PASSWORD, DELIMITER, PREFIX, USE_VERSIONS, LIST_TYPE, MIN_AGE));
+                    PROXY_PASSWORD, DELIMITER, PREFIX, USE_VERSIONS, LIST_TYPE, MIN_AGE, REQUESTER_PAYS));
 
     public static final Set<Relationship> relationships = Collections.unmodifiableSet(
             new HashSet<>(Collections.singletonList(REL_SUCCESS)));
@@ -165,6 +195,23 @@ public class ListS3 extends AbstractS3Processor {
     // State tracking
     private long currentTimestamp = 0L;
     private Set<String> currentKeys;
+
+    private static Validator createRequesterPaysValidator() {
+        return new Validator() {
+            @Override
+            public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
+                boolean requesterPays = Boolean.valueOf(input);
+                boolean useVersions = context.getProperty(USE_VERSIONS).asBoolean();
+                boolean valid = !requesterPays || !useVersions;
+                return new ValidationResult.Builder()
+                        .input(input)
+                        .subject(subject)
+                        .valid(valid)
+                        .explanation(valid ? null : "'Requester Pays' cannot be used when listing object versions.")
+                        .build();
+            }
+        };
+    }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -226,6 +273,7 @@ public class ListS3 extends AbstractS3Processor {
         final String bucket = context.getProperty(BUCKET).evaluateAttributeExpressions().getValue();
         final long minAgeMilliseconds = context.getProperty(MIN_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
         final long listingTimestamp = System.currentTimeMillis();
+        final boolean requesterPays = context.getProperty(REQUESTER_PAYS).asBoolean();
 
         final AmazonS3 client = getClient();
         int listCount = 0;
@@ -243,6 +291,7 @@ public class ListS3 extends AbstractS3Processor {
                     : new S3ObjectBucketLister(client);
 
         bucketLister.setBucketName(bucket);
+        bucketLister.setRequesterPays(requesterPays);
 
         if (delimiter != null && !delimiter.isEmpty()) {
             bucketLister.setDelimiter(delimiter);
@@ -285,6 +334,9 @@ public class ListS3 extends AbstractS3Processor {
 
                 if (context.getProperty(WRITE_OBJECT_TAGS).asBoolean()) {
                     attributes.putAll(writeObjectTags(client, versionSummary));
+                }
+                if (context.getProperty(WRITE_USER_METADATA).asBoolean()) {
+                    attributes.putAll(writeUserMetadata(client, versionSummary));
                 }
 
                 // Create the flowfile
@@ -354,10 +406,22 @@ public class ListS3 extends AbstractS3Processor {
         return tagMap;
     }
 
+    private Map<String, String> writeUserMetadata(AmazonS3 client, S3VersionSummary versionSummary) {
+        ObjectMetadata objectMetadata = client.getObjectMetadata(new GetObjectMetadataRequest(versionSummary.getBucketName(), versionSummary.getKey()));
+        final Map<String, String> metadata = new HashMap<>();
+        if (objectMetadata != null) {
+            for (Map.Entry<String, String> e : objectMetadata.getUserMetadata().entrySet()) {
+                metadata.put("s3.user.metadata." + e.getKey(), e.getValue());
+            }
+        }
+        return metadata;
+    }
+
     private interface S3BucketLister {
         public void setBucketName(String bucketName);
         public void setPrefix(String prefix);
         public void setDelimiter(String delimiter);
+        public void setRequesterPays(boolean requesterPays);
         // Versions have a superset of the fields that Objects have, so we'll use
         // them as a common interface
         public VersionListing listVersions();
@@ -387,6 +451,11 @@ public class ListS3 extends AbstractS3Processor {
         @Override
         public void setDelimiter(String delimiter) {
             listObjectsRequest.setDelimiter(delimiter);
+        }
+
+        @Override
+        public void setRequesterPays(boolean requesterPays) {
+            listObjectsRequest.setRequesterPays(requesterPays);
         }
 
         @Override
@@ -446,6 +515,11 @@ public class ListS3 extends AbstractS3Processor {
         }
 
         @Override
+        public void setRequesterPays(boolean requesterPays) {
+            listObjectsRequest.setRequesterPays(requesterPays);
+        }
+
+        @Override
         public VersionListing listVersions() {
             VersionListing versionListing = new VersionListing();
             this.objectListing = client.listObjectsV2(listObjectsRequest);
@@ -499,6 +573,11 @@ public class ListS3 extends AbstractS3Processor {
         @Override
         public void setDelimiter(String delimiter) {
             listVersionsRequest.setDelimiter(delimiter);
+        }
+
+        @Override
+        public void setRequesterPays(boolean requesterPays) {
+            // Not supported in versionListing, so this does nothing.
         }
 
         @Override

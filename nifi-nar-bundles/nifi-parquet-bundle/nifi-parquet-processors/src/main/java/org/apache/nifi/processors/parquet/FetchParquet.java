@@ -33,7 +33,7 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.hadoop.AbstractFetchHDFSRecord;
 import org.apache.nifi.processors.hadoop.record.HDFSRecordReader;
-import org.apache.nifi.processors.parquet.record.AvroParquetHDFSRecordReader;
+import org.apache.nifi.parquet.hadoop.AvroParquetHDFSRecordReader;
 import org.apache.parquet.avro.AvroParquetReader;
 import org.apache.parquet.hadoop.ParquetReader;
 import java.io.IOException;

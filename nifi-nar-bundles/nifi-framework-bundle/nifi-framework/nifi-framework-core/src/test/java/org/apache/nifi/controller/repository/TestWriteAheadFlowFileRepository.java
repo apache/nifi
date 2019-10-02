@@ -490,6 +490,10 @@ public class TestWriteAheadFlowFileRepository {
         assertFalse(repo.isValidSwapLocationSuffix("swap123"));
         repo.updateRepository(records);
         assertTrue(repo.isValidSwapLocationSuffix("swap123"));
+
+        repo.swapFlowFilesIn("/tmp/swap123", Collections.singletonList(flowFileRecord), queue);
+        assertFalse(repo.isValidSwapLocationSuffix("swap123"));
+
         repo.close();
     }
 
@@ -762,6 +766,11 @@ public class TestWriteAheadFlowFileRepository {
         @Override
         public void purge() {
             this.swappedRecords.clear();
+        }
+
+        @Override
+        public String getQueueIdentifier(final String swapLocation) {
+            return null;
         }
 
         @Override

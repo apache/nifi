@@ -19,6 +19,7 @@ package org.apache.nifi.controller.service;
 
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.components.validation.ValidationStatus;
@@ -459,7 +460,7 @@ public class TestStandardControllerServiceProvider {
         final ControllerServiceNode serviceNode = createControllerService(ServiceA.class.getName(), "1", systemBundle.getBundleDetails().getCoordinate(), provider);
 
         final ProcessorNode procNode = createProcessor(scheduler, provider);
-        serviceNode.addReference(procNode);
+        serviceNode.addReference(procNode, PropertyDescriptor.NULL_DESCRIPTOR);
 
         // procNode.setScheduledState(ScheduledState.STOPPED);
         provider.unscheduleReferencingComponents(serviceNode);

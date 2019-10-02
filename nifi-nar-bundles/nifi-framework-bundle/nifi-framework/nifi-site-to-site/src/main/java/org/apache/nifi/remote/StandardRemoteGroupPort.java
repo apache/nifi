@@ -28,7 +28,6 @@ import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.flowfile.attributes.SiteToSiteAttributes;
-import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
@@ -37,12 +36,12 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.remote.client.SiteToSiteClient;
 import org.apache.nifi.remote.client.SiteToSiteClientConfig;
+import org.apache.nifi.remote.exception.NoValidPeerException;
 import org.apache.nifi.remote.exception.PortNotRunningException;
 import org.apache.nifi.remote.exception.ProtocolException;
 import org.apache.nifi.remote.exception.UnknownPortException;
 import org.apache.nifi.remote.exception.UnreachableClusterException;
 import org.apache.nifi.remote.protocol.DataPacket;
-import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.remote.protocol.http.HttpProxy;
 import org.apache.nifi.remote.util.SiteToSiteRestApiClient;
 import org.apache.nifi.remote.util.StandardDataPacket;
@@ -56,7 +55,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLContext;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -99,13 +97,13 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
         return clientRef.get();
     }
 
-    public StandardRemoteGroupPort(final String id, final String targetId, final String name, final ProcessGroup processGroup, final RemoteProcessGroup remoteGroup,
+    public StandardRemoteGroupPort(final String id, final String targetId, final String name, final RemoteProcessGroup remoteGroup,
             final TransferDirection direction, final ConnectableType type, final SSLContext sslContext, final ProcessScheduler scheduler,
         final NiFiProperties nifiProperties) {
         // remote group port id needs to be unique but cannot just be the id of the port
         // in the remote group instance. this supports referencing the same remote
         // instance more than once.
-        super(id, name, processGroup, type, scheduler);
+        super(id, name, type, scheduler);
 
         this.targetId = targetId;
         this.remoteGroup = remoteGroup;
@@ -123,11 +121,6 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
 
     public void setTargetIdentifier(final String targetId) {
         this.targetId = targetId;
-    }
-
-    private static File getPeerPersistenceFile(final String portId, final NiFiProperties nifiProperties, final SiteToSiteTransportProtocol transportProtocol) {
-        final File stateDir = nifiProperties.getPersistentStateDirectory();
-        return new File(stateDir, String.format("%s_%s.peers", portId, transportProtocol.name()));
     }
 
     @Override
@@ -181,7 +174,7 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
                 .sslContext(sslContext)
                 .useCompression(isUseCompression())
                 .eventReporter(remoteGroup.getEventReporter())
-                .peerPersistenceFile(getPeerPersistenceFile(getIdentifier(), nifiProperties, remoteGroup.getTransportProtocol()))
+                .stateManager(remoteGroup.getStateManager())
                 .nodePenalizationPeriod(penalizationMillis, TimeUnit.MILLISECONDS)
                 .timeout(remoteGroup.getCommunicationsTimeout(TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS)
                 .transportProtocol(remoteGroup.getTransportProtocol())
@@ -233,9 +226,16 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
         }
 
         final SiteToSiteClient client = getSiteToSiteClient();
-        final Transaction transaction;
+        Transaction transaction = null;
         try {
             transaction = client.createTransaction(transferDirection);
+        } catch (final NoValidPeerException e) {
+            final String message = String.format("%s Unable to create transaction to communicate with; all peers must be penalized, so yielding context", this);
+            logger.debug(message);
+            session.rollback();
+            context.yield();
+            remoteGroup.getEventReporter().reportEvent(Severity.ERROR, CATEGORY, message);
+            return;
         } catch (final PortNotRunningException e) {
             context.yield();
             this.targetRunning.set(false);
@@ -271,11 +271,10 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
             remoteGroup.getEventReporter().reportEvent(Severity.ERROR, CATEGORY, message);
             return;
         }
-
         if (transaction == null) {
-            logger.debug("{} Unable to create transaction to communicate with; all peers must be penalized, so yielding context", this);
-            session.rollback();
             context.yield();
+            final String message = String.format("%s successfully connected to %s, but it has no flowfiles to provide, yielding", this, url);
+            logger.debug(message);
             return;
         }
 

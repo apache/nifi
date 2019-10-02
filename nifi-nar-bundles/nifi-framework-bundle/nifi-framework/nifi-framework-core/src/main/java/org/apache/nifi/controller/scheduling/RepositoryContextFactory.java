@@ -16,15 +16,15 @@
  */
 package org.apache.nifi.controller.scheduling;
 
-import java.util.concurrent.atomic.AtomicLong;
-
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.controller.repository.ContentRepository;
 import org.apache.nifi.controller.repository.CounterRepository;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.repository.FlowFileRepository;
 import org.apache.nifi.controller.repository.RepositoryContext;
-import org.apache.nifi.provenance.ProvenanceEventRepository;
+import org.apache.nifi.provenance.ProvenanceRepository;
+
+import java.util.concurrent.atomic.AtomicLong;
 
 public class RepositoryContextFactory {
 
@@ -32,11 +32,11 @@ public class RepositoryContextFactory {
     private final FlowFileRepository flowFileRepo;
     private final FlowFileEventRepository flowFileEventRepo;
     private final CounterRepository counterRepo;
-    private final ProvenanceEventRepository provenanceRepo;
+    private final ProvenanceRepository provenanceRepo;
 
     public RepositoryContextFactory(final ContentRepository contentRepository, final FlowFileRepository flowFileRepository,
             final FlowFileEventRepository flowFileEventRepository, final CounterRepository counterRepository,
-            final ProvenanceEventRepository provenanceRepository) {
+            final ProvenanceRepository provenanceRepository) {
 
         this.contentRepo = contentRepository;
         this.flowFileRepo = flowFileRepository;
@@ -47,5 +47,17 @@ public class RepositoryContextFactory {
 
     public RepositoryContext newProcessContext(final Connectable connectable, final AtomicLong connectionIndex) {
         return new RepositoryContext(connectable, connectionIndex, contentRepo, flowFileRepo, flowFileEventRepo, counterRepo, provenanceRepo);
+    }
+
+    public ContentRepository getContentRepository() {
+        return contentRepo;
+    }
+
+    public FlowFileRepository getFlowFileRepository() {
+        return flowFileRepo;
+    }
+
+    public ProvenanceRepository getProvenanceRepository() {
+        return provenanceRepo;
     }
 }

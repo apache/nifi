@@ -18,7 +18,6 @@ package org.apache.nifi.remote;
 
 import static java.util.Objects.requireNonNull;
 
-import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
@@ -54,6 +53,7 @@ import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.resource.ResourceType;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Port;
@@ -100,6 +100,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
     private final ProcessScheduler scheduler;
     private final EventReporter eventReporter;
     private final NiFiProperties nifiProperties;
+    private final StateManager stateManager;
     private final long remoteContentsCacheExpiration;
     private volatile boolean initialized = false;
 
@@ -146,8 +147,10 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
     private final ScheduledExecutorService backgroundThreadExecutor;
 
     public StandardRemoteProcessGroup(final String id, final String targetUris, final ProcessGroup processGroup, final ProcessScheduler processScheduler,
-                                      final BulletinRepository bulletinRepository, final SSLContext sslContext, final NiFiProperties nifiProperties) {
+                                      final BulletinRepository bulletinRepository, final SSLContext sslContext, final NiFiProperties nifiProperties,
+                                      final StateManager stateManager) {
         this.nifiProperties = nifiProperties;
+        this.stateManager = stateManager;
         this.id = requireNonNull(id);
 
         this.targetUris = targetUris;
@@ -234,11 +237,6 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
     @Override
     public void onRemove() {
         backgroundThreadExecutor.shutdown();
-
-        final File file = getPeerPersistenceFile();
-        if (file.exists() && !file.delete()) {
-            logger.warn("Failed to remove {}. This file should be removed manually.", file);
-        }
     }
 
     @Override
@@ -660,8 +658,9 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
                 throw new IllegalStateException("Output Port with ID " + descriptor.getId() + " already exists");
             }
 
-            final StandardRemoteGroupPort port = new StandardRemoteGroupPort(descriptor.getId(), descriptor.getTargetId(), descriptor.getName(), getProcessGroup(),
+            final StandardRemoteGroupPort port = new StandardRemoteGroupPort(descriptor.getId(), descriptor.getTargetId(), descriptor.getName(),
                     this, TransferDirection.RECEIVE, ConnectableType.REMOTE_OUTPUT_PORT, sslContext, scheduler, nifiProperties);
+            port.setProcessGroup(getProcessGroup());
             outputPorts.put(descriptor.getId(), port);
 
             if (descriptor.getConcurrentlySchedulableTaskCount() != null) {
@@ -741,8 +740,9 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
             // all nodes in a cluster to use the same UUID. However, we want the ID to be
             // unique for each Remote Group Port, so that if we have multiple RPG's pointing
             // to the same target, we have unique ID's for each of those ports.
-            final StandardRemoteGroupPort port = new StandardRemoteGroupPort(descriptor.getId(), descriptor.getTargetId(), descriptor.getName(), getProcessGroup(), this,
+            final StandardRemoteGroupPort port = new StandardRemoteGroupPort(descriptor.getId(), descriptor.getTargetId(), descriptor.getName(), this,
                     TransferDirection.SEND, ConnectableType.REMOTE_INPUT_PORT, sslContext, scheduler, nifiProperties);
+            port.setProcessGroup(getProcessGroup());
 
             if (descriptor.getConcurrentlySchedulableTaskCount() != null) {
                 port.setMaxConcurrentTasks(descriptor.getConcurrentlySchedulableTaskCount());
@@ -1364,11 +1364,6 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
         }
     }
 
-    private File getPeerPersistenceFile() {
-        final File stateDir = nifiProperties.getPersistentStateDirectory();
-        return new File(stateDir, getIdentifier() + ".peers");
-    }
-
     @Override
     public Optional<String> getVersionedComponentId() {
         return Optional.ofNullable(versionedComponentId.get());
@@ -1390,5 +1385,10 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
                 throw new IllegalStateException(this + " is already under version control");
             }
         }
+    }
+
+    @Override
+    public StateManager getStateManager() {
+        return stateManager;
     }
 }

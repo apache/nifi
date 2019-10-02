@@ -36,6 +36,7 @@ import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroupPortDescriptor;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.registry.flow.StandardVersionControlInformation;
@@ -64,6 +65,7 @@ import org.apache.nifi.web.api.dto.RelationshipDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupContentsDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
+import org.apache.nifi.web.api.entity.ParameterContextReferenceEntity;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -454,6 +456,14 @@ public class StandardFlowSnippet implements FlowSnippet {
             childGroup.setName(groupDTO.getName());
             if (groupDTO.getVariables() != null) {
                 childGroup.setVariables(groupDTO.getVariables());
+            }
+
+            final ParameterContextReferenceEntity parameterContextReference = groupDTO.getParameterContext();
+            if (parameterContextReference != null) {
+                final ParameterContext parameterContext = flowManager.getParameterContextManager().getParameterContext(parameterContextReference.getId());
+                if (parameterContext != null) {
+                    childGroup.setParameterContext(parameterContext);
+                }
             }
 
             // If this Process Group is 'top level' then we do not set versioned component ID's.

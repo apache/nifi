@@ -23,6 +23,7 @@ import java.util.concurrent.TimeUnit;
 import javax.json.JsonBuilderFactory;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
+import javax.json.JsonValue;
 
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
@@ -187,8 +188,18 @@ public class MetricsService {
         return metrics;
     }
 
+    private boolean addEmptyValue(Map<String,?>metricsMap, String metricskey, JsonObjectBuilder objectBuilder, boolean allowNullValues){
+        if(metricsMap.get(metricskey) == null){
+            if(allowNullValues) {
+                objectBuilder.add(metricskey, JsonValue.NULL);
+            }
+            return true;
+        }
+        return false;
+    }
+
     public JsonObject getMetrics(JsonBuilderFactory factory, ProcessGroupStatus status, JvmMetrics virtualMachineMetrics,
-            String applicationId, String id, String hostname, long currentTimeMillis, int availableProcessors, double systemLoad) {
+            String applicationId, String id, String hostname, long currentTimeMillis, int availableProcessors, double systemLoad, boolean allowNullValues) {
         JsonObjectBuilder objectBuilder = factory.createObjectBuilder()
                 .add(MetricFields.APP_ID, applicationId)
                 .add(MetricFields.HOSTNAME, hostname)
@@ -201,27 +212,38 @@ public class MetricsService {
 
         Map<String,Integer> integerMetrics = getIntegerMetrics(virtualMachineMetrics);
         for (String key : integerMetrics.keySet()) {
-            objectBuilder.add(key.replaceAll("\\.", ""), integerMetrics.get(key));
+            if(!addEmptyValue(integerMetrics,key,objectBuilder,allowNullValues)) {
+                objectBuilder.add(key.replaceAll("\\.", ""), integerMetrics.get(key));
+            }
         }
 
         Map<String,Long> longMetrics = getLongMetrics(virtualMachineMetrics);
         for (String key : longMetrics.keySet()) {
-            objectBuilder.add(key.replaceAll("\\.", ""), longMetrics.get(key));
+            if(!addEmptyValue(longMetrics,key,objectBuilder,allowNullValues)) {
+                objectBuilder.add(key.replaceAll("\\.", ""), longMetrics.get(key));
+            }
         }
 
         Map<String,Double> doubleMetrics = getDoubleMetrics(virtualMachineMetrics);
+
         for (String key : doubleMetrics.keySet()) {
-            objectBuilder.add(key.replaceAll("\\.", ""), doubleMetrics.get(key));
+            if(!addEmptyValue(doubleMetrics,key,objectBuilder,allowNullValues)){
+                objectBuilder.add(key.replaceAll("\\.", ""), doubleMetrics.get(key));
+            }
         }
 
         Map<String,Long> longPgMetrics = getLongMetrics(status, false);
         for (String key : longPgMetrics.keySet()) {
-            objectBuilder.add(key, longPgMetrics.get(key));
+            if(!addEmptyValue(longPgMetrics,key,objectBuilder,allowNullValues)) {
+                objectBuilder.add(key, longPgMetrics.get(key));
+            }
         }
 
         Map<String,Integer> integerPgMetrics = getIntegerMetrics(status, false);
         for (String key : integerPgMetrics.keySet()) {
-            objectBuilder.add(key, integerPgMetrics.get(key));
+            if(!addEmptyValue(integerPgMetrics,key,objectBuilder,allowNullValues)) {
+                objectBuilder.add(key, integerPgMetrics.get(key));
+            }
         }
 
         return objectBuilder.build();

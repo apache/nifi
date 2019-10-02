@@ -16,9 +16,7 @@
  */
 package org.apache.nifi.attribute.expression.language.evaluation.functions;
 
-import java.util.Map;
-
-import org.apache.nifi.attribute.expression.language.evaluation.EvaluatorState;
+import org.apache.nifi.attribute.expression.language.EvaluationContext;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.StringEvaluator;
@@ -35,9 +33,9 @@ public class PrependEvaluator extends StringEvaluator {
     }
 
     @Override
-    public QueryResult<String> evaluate(final Map<String, String> attributes, final EvaluatorState context) {
-        final String subjectValue = subject.evaluate(attributes, context).getValue();
-        final String prependValue = prependEvaluator.evaluate(attributes, context).getValue();
+    public QueryResult<String> evaluate(final EvaluationContext evaluationContext) {
+        final String subjectValue = subject.evaluate(evaluationContext).getValue();
+        final String prependValue = prependEvaluator.evaluate(evaluationContext).getValue();
 
         final String result = (prependValue == null ? "" : prependValue) + (subjectValue == null ? "" : subjectValue);
         return new StringQueryResult(result);

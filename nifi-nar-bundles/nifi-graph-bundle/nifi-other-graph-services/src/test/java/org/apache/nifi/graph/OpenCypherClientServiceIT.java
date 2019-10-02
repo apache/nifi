@@ -24,6 +24,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.neo4j.driver.v1.Driver;
@@ -62,6 +63,8 @@ public class OpenCypherClientServiceIT {
         runner.setProperty(MockProcessor.CLIENT, "clientService");
         runner.enableControllerService(service);
         runner.assertValid();
+
+        Assert.assertEquals("gremlin://localhost:8182/gremlin", service.getTransitUrl());
 
         driver = GremlinDatabase.driver("//localhost:8182");
         executeSession("MATCH (n) detach delete n");

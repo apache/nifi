@@ -40,6 +40,14 @@
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-groovyx-processors</artifactId>
         </dependency>
+
+        <!-- Groovy dependencies to include in the NAR for processors to use at runtime -->
+        <dependency>
+            <groupId>org.codehaus.groovy</groupId>
+            <artifactId>groovy-all</artifactId>
+            <type>pom</type>
+            <scope>runtime</scope>
+        </dependency>
     </dependencies>
 </project>
 

@@ -19,9 +19,15 @@ package org.apache.nifi.web.controller;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.user.NiFiUser;
+import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.StandardProcessorNode;
+import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.parameter.Parameter;
+import org.apache.nifi.parameter.ParameterContext;
+import org.apache.nifi.parameter.ParameterContextManager;
+import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.registry.flow.StandardVersionControlInformation;
@@ -33,25 +39,40 @@ import org.junit.Test;
 import org.mockito.AdditionalMatchers;
 import org.mockito.Mockito;
 
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 
 public class ControllerSearchServiceTest {
     private MutableVariableRegistry variableRegistry;
     private ControllerSearchService service;
     private SearchResultsDTO searchResultsDTO;
+    private FlowController flowController;
+    private ParameterContextManager parameterContextManager;
 
     @Before
     public void setUp() {
         variableRegistry = mock(MutableVariableRegistry.class);
         service = new ControllerSearchService();
         searchResultsDTO = new SearchResultsDTO();
+        flowController = mock(FlowController.class);
+
+        FlowManager mockFlowManager = mock(FlowManager.class);
+        parameterContextManager = mock(ParameterContextManager.class);
+
+        doReturn(mockFlowManager).when(flowController).getFlowManager();
+        doReturn(parameterContextManager).when(mockFlowManager).getParameterContextManager();
+        service.setFlowController(flowController);
     }
 
     @Test
@@ -337,6 +358,84 @@ public class ControllerSearchServiceTest {
         assertTrue(searchResultsDTO.getProcessorResults().get(0).getVersionedGroup() != null);
         assertTrue(searchResultsDTO.getProcessorResults().get(0).getVersionedGroup().getId().equals("thirdLevelAId"));
         assertTrue(searchResultsDTO.getProcessorResults().get(0).getVersionedGroup().getName() == null);
+    }
+
+    @Test
+    public void testSearchParameterContext() {
+        final ParameterContext paramContext1 = setupMockedParameterContext("foo", "description for parameter context foo", 1, "foo_param", true);
+        final ParameterContext paramContext2 = setupMockedParameterContext("bar", "description for parameter context bar", 2, "bar_param", true);
+        final Set<ParameterContext> mockedParameterContexts = new HashSet<ParameterContext>();
+        mockedParameterContexts.add(paramContext1);
+        mockedParameterContexts.add(paramContext2);
+
+        Mockito.doReturn(mockedParameterContexts).when(parameterContextManager).getParameterContexts();
+
+        service.searchParameters(searchResultsDTO, "foo");
+
+        assertEquals(1, searchResultsDTO.getParameterContextResults().size());
+        assertEquals("fooId", searchResultsDTO.getParameterContextResults().get(0).getId());
+        assertEquals("foo", searchResultsDTO.getParameterContextResults().get(0).getName());
+        // should have a match for the name, id, description
+        assertEquals(3, searchResultsDTO.getParameterContextResults().get(0).getMatches().size());
+
+        assertEquals(1, searchResultsDTO.getParameterResults().size());
+
+        assertEquals("fooId", searchResultsDTO.getParameterResults().get(0).getParentGroup().getId());
+        assertEquals("foo_param_0", searchResultsDTO.getParameterResults().get(0).getName());
+        // and the parameter name, parameter description, and the parameter value
+        assertEquals(3, searchResultsDTO.getParameterResults().get(0).getMatches().size());
+    }
+
+    @Test
+    public void testSearchParameterContextNotAuthorized() {
+        final ParameterContext paramContext1 = setupMockedParameterContext("foo", "description for parameter context foo", 1, "foo_param", false);
+        final ParameterContext paramContext2 = setupMockedParameterContext("bar", "description for parameter context bar", 2, "bar_param", true);
+        final Set<ParameterContext> mockedParameterContexts = new HashSet<ParameterContext>();
+        mockedParameterContexts.add(paramContext1);
+        mockedParameterContexts.add(paramContext2);
+
+        Mockito.doReturn(mockedParameterContexts).when(parameterContextManager).getParameterContexts();
+
+        service.searchParameters(searchResultsDTO, "foo");
+
+        // the matching parameter context is not readable by the user, so there should not be any results
+        assertEquals(0, searchResultsDTO.getParameterContextResults().size());
+        assertEquals(0, searchResultsDTO.getParameterResults().size());
+    }
+
+    /**
+     * Sets up a mock Parameter Context including isAuthorized()
+     * @param name                     name of the parameter context
+     * @param description              description of the parameter context
+     * @param numberOfParams           number of parameters to include as part of this context
+     * @param parameterNamePrefix      a prefix for the parameter names
+     * @param authorizedToRead         whether or not the user can read the parameter context
+     * @return ParameterContext
+     */
+    private ParameterContext setupMockedParameterContext(String name, String description, int numberOfParams, String parameterNamePrefix, boolean authorizedToRead) {
+        final ParameterContext parameterContext = mock(ParameterContext.class);
+        Mockito.doReturn(name + "Id").when(parameterContext).getIdentifier();
+        Mockito.doReturn(name).when(parameterContext).getName();
+        Mockito.doReturn(description).when(parameterContext).getDescription();
+
+        Mockito.doReturn(authorizedToRead).when(parameterContext).isAuthorized(AdditionalMatchers.or(any(Authorizer.class), isNull()), eq(RequestAction.READ),
+                AdditionalMatchers.or(any(NiFiUser.class), isNull()));
+
+        Map<ParameterDescriptor, Parameter> parameters = new HashMap<>();
+        for (int i = 0; i < numberOfParams; i++) {
+            final ParameterDescriptor descriptor = new ParameterDescriptor.Builder()
+                    .name(parameterNamePrefix + "_" + i)
+                    .description("Description for " + parameterNamePrefix + "_" + i)
+                    .sensitive(false)
+                    .build();
+
+            final Parameter param = new Parameter(descriptor, parameterNamePrefix + "_" + i + " value");
+            parameters.put(descriptor, param);
+        }
+
+        Mockito.doReturn(parameters).when(parameterContext).getParameters();
+
+        return parameterContext;
     }
 
     /**

@@ -16,37 +16,21 @@
  */
 package org.apache.nifi.processors.azure.storage.queue;
 
-import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.queue.CloudQueue;
-import org.apache.nifi.processors.azure.storage.AzureTestUtil;
+import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.junit.AfterClass;
 import org.junit.Assert;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
-import java.net.URISyntaxException;
-import java.security.InvalidKeyException;
+public class PutAzureQueueStorageIT extends AbstractAzureQueueStorageIT {
 
-public class PutAzureQueueStorageIT {
-
-    private final TestRunner runner = TestRunners.newTestRunner(PutAzureQueueStorage.class);
-    private static CloudQueue cloudQueue;
-
-    @BeforeClass
-    public static void setup() throws InvalidKeyException, StorageException, URISyntaxException {
-        cloudQueue = AzureTestUtil.getQueue(AzureTestUtil.TEST_STORAGE_QUEUE);
-        cloudQueue.createIfNotExists();
+    @Override
+    protected Class<? extends Processor> getProcessorClass() {
+        return PutAzureQueueStorage.class;
     }
 
     @Test
-    public void testSimplePut() throws InvalidKeyException, StorageException, URISyntaxException {
-        runner.setProperty(AzureStorageUtils.ACCOUNT_NAME, AzureTestUtil.getAccountName());
-        runner.setProperty(AzureStorageUtils.ACCOUNT_KEY, AzureTestUtil.getAccountKey());
-        runner.setProperty(PutAzureQueueStorage.QUEUE, AzureTestUtil.TEST_STORAGE_QUEUE);
-
+    public void testSimplePut() {
+        runner.assertValid();
         runner.enqueue("Dummy message");
         runner.run(1);
 
@@ -54,17 +38,29 @@ public class PutAzureQueueStorageIT {
     }
 
     @Test
-    public void testSimplePutWithEL() throws StorageException, URISyntaxException, InvalidKeyException {
+    public void testSimplePutWithCredentialsService() throws Exception {
+        configureCredentialsService();
+
+        runner.assertValid();
+        runner.enqueue("Dummy message");
+        runner.run(1);
+
+        runner.assertAllFlowFilesTransferred(PutAzureQueueStorage.REL_SUCCESS, 1);
+    }
+
+    @Test
+    public void testSimplePutWithEL() {
         runner.setValidateExpressionUsage(true);
 
-        runner.setVariable("account.name", AzureTestUtil.getAccountName());
-        runner.setVariable("account.key", AzureTestUtil.getAccountKey());
-        runner.setVariable("queue.name", AzureTestUtil.TEST_STORAGE_QUEUE);
+        runner.setVariable("account.name", getAccountName());
+        runner.setVariable("account.key", getAccountKey());
+        runner.setVariable("queue.name", cloudQueue.getName());
 
         runner.setProperty(AzureStorageUtils.ACCOUNT_NAME, "${account.name}");
         runner.setProperty(AzureStorageUtils.ACCOUNT_KEY, "${account.key}");
         runner.setProperty(PutAzureQueueStorage.QUEUE, "${queue.name}");
 
+        runner.assertValid();
         runner.enqueue("Dummy message");
         runner.run(1);
 
@@ -72,47 +68,32 @@ public class PutAzureQueueStorageIT {
     }
 
     @Test
-    public void testPutWithTTL() throws StorageException, InterruptedException {
-        cloudQueue.clear();
-
-        runner.setProperty(AzureStorageUtils.ACCOUNT_NAME, AzureTestUtil.getAccountName());
-        runner.setProperty(AzureStorageUtils.ACCOUNT_KEY, AzureTestUtil.getAccountKey());
-        runner.setProperty(PutAzureQueueStorage.QUEUE, AzureTestUtil.TEST_STORAGE_QUEUE);
+    public void testPutWithTTL() throws Exception {
         runner.setProperty(PutAzureQueueStorage.TTL, "2 secs");
 
-        runner.enqueue("Dummy message");
-        runner.run();
-
-        runner.assertAllFlowFilesTransferred(PutAzureQueueStorage.REL_SUCCESS, 1);
-        Assert.assertEquals(1, AzureTestUtil.getQueueCount());
-
-        Thread.sleep(2400);
-        Assert.assertEquals(0, AzureTestUtil.getQueueCount());
-    }
-
-    @Test
-    public void testPutWithVisibilityDelay() throws StorageException, InterruptedException {
-        cloudQueue.clear();
-
-        cloudQueue.clear();
-
-        runner.setProperty(AzureStorageUtils.ACCOUNT_NAME, AzureTestUtil.getAccountName());
-        runner.setProperty(AzureStorageUtils.ACCOUNT_KEY, AzureTestUtil.getAccountKey());
-        runner.setProperty(PutAzureQueueStorage.QUEUE, AzureTestUtil.TEST_STORAGE_QUEUE);
-        runner.setProperty(PutAzureQueueStorage.VISIBILITY_DELAY, "2 secs");
-
+        runner.assertValid();
         runner.enqueue("Dummy message");
         runner.run(1);
 
         runner.assertAllFlowFilesTransferred(PutAzureQueueStorage.REL_SUCCESS, 1);
-        Assert.assertEquals(0, AzureTestUtil.getQueueCount());
+        Assert.assertEquals(1, getMessageCount());
 
         Thread.sleep(2400);
-        Assert.assertEquals(1, AzureTestUtil.getQueueCount());
+        Assert.assertEquals(0, getMessageCount());
     }
 
-    @AfterClass
-    public static void cleanup() throws StorageException {
-        cloudQueue.deleteIfExists();
+    @Test
+    public void testPutWithVisibilityDelay() throws Exception {
+        runner.setProperty(PutAzureQueueStorage.VISIBILITY_DELAY, "2 secs");
+
+        runner.assertValid();
+        runner.enqueue("Dummy message");
+        runner.run(1);
+
+        runner.assertAllFlowFilesTransferred(PutAzureQueueStorage.REL_SUCCESS, 1);
+        Assert.assertEquals(0, getMessageCount());
+
+        Thread.sleep(2400);
+        Assert.assertEquals(1, getMessageCount());
     }
 }

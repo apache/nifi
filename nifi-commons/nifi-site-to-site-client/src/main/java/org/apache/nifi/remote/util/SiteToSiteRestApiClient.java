@@ -64,6 +64,7 @@ import org.apache.nifi.remote.Peer;
 import org.apache.nifi.remote.TransferDirection;
 import org.apache.nifi.remote.client.http.TransportProtocolVersionNegotiator;
 import org.apache.nifi.remote.exception.HandshakeException;
+import org.apache.nifi.remote.exception.NoContentException;
 import org.apache.nifi.remote.exception.PortNotRunningException;
 import org.apache.nifi.remote.exception.ProtocolException;
 import org.apache.nifi.remote.exception.UnknownPortException;
@@ -147,6 +148,7 @@ public class SiteToSiteRestApiClient implements Closeable {
     private static final int RESPONSE_CODE_OK = 200;
     private static final int RESPONSE_CODE_CREATED = 201;
     private static final int RESPONSE_CODE_ACCEPTED = 202;
+    private static final int RESPONSE_CODE_NO_CONTENT = 204;
     private static final int RESPONSE_CODE_BAD_REQUEST = 400;
     private static final int RESPONSE_CODE_FORBIDDEN = 403;
     private static final int RESPONSE_CODE_NOT_FOUND = 404;
@@ -171,7 +173,7 @@ public class SiteToSiteRestApiClient implements Closeable {
     private int batchCount = 0;
     private long batchSize = 0;
     private long batchDurationMillis = 0;
-    private TransportProtocolVersionNegotiator transportProtocolVersionNegotiator = new TransportProtocolVersionNegotiator(1);
+    private TransportProtocolVersionNegotiator transportProtocolVersionNegotiator = new TransportProtocolVersionNegotiator(2,1);
 
     private String trustedPeerDn;
     private final ScheduledExecutorService ttlExtendTaskExecutor;
@@ -498,6 +500,8 @@ public class SiteToSiteRestApiClient implements Closeable {
                 }
                 serverTransactionTtl = Integer.parseInt(serverTransactionTtlHeader.getValue());
                 break;
+            case RESPONSE_CODE_NO_CONTENT:
+                throw new NoContentException("Server has no flowfiles to provide");
 
             default:
                 try (InputStream content = response.getEntity().getContent()) {

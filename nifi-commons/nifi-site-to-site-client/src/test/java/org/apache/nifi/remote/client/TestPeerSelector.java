@@ -16,33 +16,48 @@
  */
 package org.apache.nifi.remote.client;
 
+import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.components.state.StateManager;
+import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.remote.PeerDescription;
 import org.apache.nifi.remote.PeerStatus;
 import org.apache.nifi.remote.TransferDirection;
+import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.reducing;
 import static java.util.stream.Collectors.toMap;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.when;
 
 public class TestPeerSelector {
 
@@ -212,10 +227,13 @@ public class TestPeerSelector {
             throw new IOException("Connection refused. " + peerFetchStatusesFrom + " is not running.");
         }).when(peerStatusProvider).fetchRemotePeerStatuses(any(PeerDescription.class));
 
+
+        ArrayList<PeerStatus> peers;
+
         // 1st attempt. It uses the bootstrap node.
         peerSelector.refreshPeers();
-        PeerStatus peerStatus = peerSelector.getNextPeerStatus(TransferDirection.RECEIVE);
-        assertNotNull(peerStatus);
+        peers = peerSelector.getPeerStatuses(TransferDirection.RECEIVE);
+        assert(!peers.isEmpty());
 
         // Proceed time so that peer selector refresh statuses.
         peerStatuses.remove(bootstrapNodeStatus);
@@ -223,33 +241,146 @@ public class TestPeerSelector {
 
         // 2nd attempt.
         peerSelector.refreshPeers();
-        peerStatus = peerSelector.getNextPeerStatus(TransferDirection.RECEIVE);
-        assertNotNull(peerStatus);
-        assertEquals("Node2 should be returned since node 2 is the only available node.", node2, peerStatus.getPeerDescription());
+        peers = peerSelector.getPeerStatuses(TransferDirection.RECEIVE);
+        assert(!peers.isEmpty());
+        assertEquals("Node2 should be returned since node 2 is the only available node.", node2, peers.get(0).getPeerDescription());
 
         // Proceed time so that peer selector refresh statuses.
         systemTime.offset += TimeUnit.MILLISECONDS.convert(1, TimeUnit.MINUTES) + 1;
 
         // 3rd attempt.
         peerSelector.refreshPeers();
-        peerStatus = peerSelector.getNextPeerStatus(TransferDirection.RECEIVE);
-        assertNotNull(peerStatus);
-        assertEquals("Node2 should be returned since node 2 is the only available node.", node2, peerStatus.getPeerDescription());
+        peers = peerSelector.getPeerStatuses(TransferDirection.RECEIVE);
+        assert(!peers.isEmpty());
+        assertEquals("Node2 should be returned since node 2 is the only available node.", node2, peers.get(0).getPeerDescription());
 
         // Remove node2 to simulate that it goes down. There's no available node at this point.
         peerStatuses.remove(node2Status);
         systemTime.offset += TimeUnit.MILLISECONDS.convert(1, TimeUnit.MINUTES) + 1;
 
         peerSelector.refreshPeers();
-        peerStatus = peerSelector.getNextPeerStatus(TransferDirection.RECEIVE);
-        assertNull("PeerSelector should return null as next peer status, since there's no available peer", peerStatus);
+        peers = peerSelector.getPeerStatuses(TransferDirection.RECEIVE);
+        assertTrue("PeerSelector should return an empty list as next peer statuses, since there's no available peer", peers.isEmpty());
 
         // Add node1 back. PeerSelector should be able to fetch peer statuses because it always tries to fetch at least from the bootstrap node.
         peerStatuses.add(bootstrapNodeStatus);
         systemTime.offset += TimeUnit.MILLISECONDS.convert(1, TimeUnit.MINUTES) + 1;
 
         peerSelector.refreshPeers();
-        peerStatus = peerSelector.getNextPeerStatus(TransferDirection.RECEIVE);
-        assertEquals("Node1 should be returned since node 1 is the only available node.", bootstrapNode, peerStatus.getPeerDescription());
+        peers = peerSelector.getPeerStatuses(TransferDirection.RECEIVE);
+        assert(!peers.isEmpty());
+        assertEquals("Node1 should be returned since node 1 is the only available node.", bootstrapNode, peers.get(0).getPeerDescription());
+    }
+
+    @Test
+    public void testPeerStatusManagedCache() throws Exception {
+        final PeerStatusProvider peerStatusProvider = Mockito.mock(PeerStatusProvider.class);
+        final StateManager stateManager = Mockito.mock(StateManager.class);
+        final StateMap stateMap = Mockito.mock(StateMap.class);
+        final Map<String, String> state = new HashMap<>();
+        state.put(StatePeerPersistence.STATE_KEY_PEERS, "RAW\nnifi1:8081:false:true\nnifi2:8081:false:true\n");
+        state.put(StatePeerPersistence.STATE_KEY_PEERS_TIMESTAMP, String.valueOf(System.currentTimeMillis()));
+        when(peerStatusProvider.getTransportProtocol()).thenReturn(SiteToSiteTransportProtocol.RAW);
+        when(stateManager.getState(eq(Scope.LOCAL))).thenReturn(stateMap);
+        when(stateMap.get(anyString())).thenAnswer(invocation -> state.get(invocation.getArgument(0)));
+        doAnswer(invocation -> {
+            final Map<String, String> updatedMap = invocation.getArgument(0);
+            state.clear();
+            state.putAll(updatedMap);
+            return null;
+        }).when(stateManager).setState(any(), eq(Scope.LOCAL));
+
+        final PeerDescription bootstrapPeer = new PeerDescription("nifi0", 8081, false);
+        when(peerStatusProvider.getBootstrapPeerDescription()).thenReturn(bootstrapPeer);
+        when(peerStatusProvider.fetchRemotePeerStatuses(eq(bootstrapPeer)))
+            .thenReturn(Collections.singleton(new PeerStatus(bootstrapPeer, 1, true)));
+
+        // PeerSelector should restore peer statuses from managed cache.
+        PeerSelector peerSelector = new PeerSelector(peerStatusProvider, new StatePeerPersistence(stateManager));
+        peerSelector.refreshPeers();
+        assertEquals("Restored peers should be used",
+            "RAW\nnifi1:8081:false:true\nnifi2:8081:false:true\n", stateMap.get(StatePeerPersistence.STATE_KEY_PEERS));
+
+        // If the stored state is too old, PeerSelector refreshes peers.
+        state.put(StatePeerPersistence.STATE_KEY_PEERS_TIMESTAMP, String.valueOf(System.currentTimeMillis() - 120_000));
+        peerSelector = new PeerSelector(peerStatusProvider, new StatePeerPersistence(stateManager));
+        peerSelector.refreshPeers();
+        assertEquals("Peers should be refreshed",
+            "RAW\nnifi0:8081:false:true\n", stateMap.get(StatePeerPersistence.STATE_KEY_PEERS));
+    }
+
+    @Test
+    public void testPeerStatusManagedCacheDifferentProtocol() throws Exception {
+        final PeerStatusProvider peerStatusProvider = Mockito.mock(PeerStatusProvider.class);
+        final StateManager stateManager = Mockito.mock(StateManager.class);
+        final StateMap stateMap = Mockito.mock(StateMap.class);
+        final Map<String, String> state = new HashMap<>();
+        state.put(StatePeerPersistence.STATE_KEY_PEERS, "RAW\nnifi1:8081:false:true\nnifi2:8081:false:true\n");
+        state.put(StatePeerPersistence.STATE_KEY_PEERS_TIMESTAMP, String.valueOf(System.currentTimeMillis()));
+        when(peerStatusProvider.getTransportProtocol()).thenReturn(SiteToSiteTransportProtocol.HTTP);
+        when(stateManager.getState(eq(Scope.LOCAL))).thenReturn(stateMap);
+        when(stateMap.get(anyString())).thenAnswer(invocation -> state.get(invocation.getArgument(0)));
+        doAnswer(invocation -> {
+            final Map<String, String> updatedMap = invocation.getArgument(0);
+            state.clear();
+            state.putAll(updatedMap);
+            return null;
+        }).when(stateManager).setState(any(), eq(Scope.LOCAL));
+
+        final PeerDescription bootstrapPeer = new PeerDescription("nifi0", 8081, false);
+        when(peerStatusProvider.getBootstrapPeerDescription()).thenReturn(bootstrapPeer);
+        when(peerStatusProvider.fetchRemotePeerStatuses(eq(bootstrapPeer)))
+            .thenReturn(Collections.singleton(new PeerStatus(bootstrapPeer, 1, true)));
+
+        // PeerSelector should NOT restore peer statuses from managed cache because protocol changed.
+        PeerSelector peerSelector = new PeerSelector(peerStatusProvider, new StatePeerPersistence(stateManager));
+        peerSelector.refreshPeers();
+        assertEquals("Restored peers should NOT be used",
+            "HTTP\nnifi0:8081:false:true\n", stateMap.get(StatePeerPersistence.STATE_KEY_PEERS));
+    }
+
+    @Test
+    public void testPeerStatusFileCache() throws Exception {
+        final PeerStatusProvider peerStatusProvider = Mockito.mock(PeerStatusProvider.class);
+
+        final PeerDescription bootstrapPeer = new PeerDescription("nifi0", 8081, false);
+        when(peerStatusProvider.getTransportProtocol()).thenReturn(SiteToSiteTransportProtocol.RAW);
+        when(peerStatusProvider.getBootstrapPeerDescription()).thenReturn(bootstrapPeer);
+        when(peerStatusProvider.fetchRemotePeerStatuses(eq(bootstrapPeer)))
+            .thenReturn(Collections.singleton(new PeerStatus(bootstrapPeer, 1, true)));
+
+        final File file = File.createTempFile("peers", "txt");
+        file.deleteOnExit();
+
+        try (final FileOutputStream fos = new FileOutputStream(file)) {
+            fos.write("RAW\nnifi1:8081:false:true\nnifi2:8081:false:true\n".getBytes(StandardCharsets.UTF_8));
+        }
+
+        final Supplier<String> readFile = () -> {
+            try (final FileInputStream fin = new FileInputStream(file);
+                 final BufferedReader reader = new BufferedReader(new InputStreamReader(fin))) {
+                final StringBuilder lines = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    lines.append(line).append("\n");
+                }
+                return lines.toString();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        };
+
+        // PeerSelector should restore peer statuses from managed cache.
+        PeerSelector peerSelector = new PeerSelector(peerStatusProvider, new FilePeerPersistence(file));
+        peerSelector.refreshPeers();
+        assertEquals("Restored peers should be used",
+            "RAW\nnifi1:8081:false:true\nnifi2:8081:false:true\n", readFile.get());
+
+        // If the stored state is too old, PeerSelector refreshes peers.
+        file.setLastModified(System.currentTimeMillis() - 120_000);
+        peerSelector = new PeerSelector(peerStatusProvider, new FilePeerPersistence(file));
+        peerSelector.refreshPeers();
+        assertEquals("Peers should be refreshed",
+            "RAW\nnifi0:8081:false:true\n", readFile.get());
     }
 }

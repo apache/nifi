@@ -24,6 +24,12 @@
 
     <artifactId>nifi-site-to-site-client</artifactId>
 
+    <properties>
+        <httpclient.group>org.apache.httpcomponents</httpclient.group>
+        <httpclient.artifact>httpclient</httpclient.artifact>
+        <httpclient.version>4.5.5</httpclient.version>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -61,14 +67,14 @@
             <version>1.10.0-SNAPSHOT</version>
         </dependency>
         <dependency>
-            <groupId>org.apache.httpcomponents</groupId>
-            <artifactId>httpclient</artifactId>
-            <version>4.5.5</version>
+            <groupId>${httpclient.group}</groupId>
+            <artifactId>${httpclient.artifact}</artifactId>
+            <version>${httpclient.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
             <artifactId>httpasyncclient</artifactId>
-            <version>4.1.3</version>
+            <version>4.1.4</version>
         </dependency>
         <dependency>
             <groupId>com.esotericsoftware.kryo</groupId>
@@ -79,11 +85,13 @@
         <dependency>
             <groupId>org.eclipse.jetty</groupId>
             <artifactId>jetty-server</artifactId>
+            <version>${jetty.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.eclipse.jetty</groupId>
             <artifactId>jetty-servlet</artifactId>
+            <!--<version>9.4.14.v20181114</version>-->
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -93,4 +101,33 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+    <profiles>
+        <profile>
+            <!-- This profile, activating when compiling on Java versions above 1.8, provides configuration changes to
+                 allow NiFi to be compiled on those JDKs. -->
+            <id>jigsaw</id>
+            <activation>
+                <jdk>(1.8,)</jdk>
+            </activation>
+            <properties>
+                <httpclient.group>org.apache.httpcomponents.client5</httpclient.group>
+                <httpclient.artifact>httpclient5</httpclient.artifact>
+                <httpclient.version>5.0-beta4</httpclient.version>
+            </properties>
+            <dependencies>
+                <dependency>
+                    <groupId>javax.xml.bind</groupId>
+                    <artifactId>jaxb-api</artifactId>
+                </dependency>
+                <dependency>
+                    <groupId>com.sun.xml.bind</groupId>
+                    <artifactId>jaxb-core</artifactId>
+                </dependency>
+                <dependency>
+                    <groupId>com.sun.xml.bind</groupId>
+                    <artifactId>jaxb-impl</artifactId>
+                </dependency>
+            </dependencies>
+        </profile>
+    </profiles>
 </project>

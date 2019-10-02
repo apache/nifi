@@ -82,7 +82,7 @@ public class ZooKeeperStateServer extends ZooKeeperServerMain {
         final ServerConfig config = new ServerConfig();
         config.readFrom(quorumPeerConfig);
         try {
-            transactionLog = new FileTxnSnapLog(new File(config.getDataLogDir()), new File(config.getDataDir()));
+            transactionLog = new FileTxnSnapLog(config.getDataLogDir(), config.getDataDir());
 
             embeddedZkServer = new ZooKeeperServer();
             embeddedZkServer.setTxnLogFactory(transactionLog);
@@ -107,15 +107,13 @@ public class ZooKeeperStateServer extends ZooKeeperServerMain {
         logger.info("Starting Embedded ZooKeeper Peer");
 
         try {
-            transactionLog = new FileTxnSnapLog(new File(quorumPeerConfig.getDataLogDir()), new File(quorumPeerConfig.getDataDir()));
+            transactionLog = new FileTxnSnapLog(quorumPeerConfig.getDataLogDir(), quorumPeerConfig.getDataDir());
 
             connectionFactory = ServerCnxnFactory.createFactory();
             connectionFactory.configure(quorumPeerConfig.getClientPortAddress(), quorumPeerConfig.getMaxClientCnxns());
 
             quorumPeer = new QuorumPeer();
-            quorumPeer.setClientPortAddress(quorumPeerConfig.getClientPortAddress());
-            quorumPeer.setTxnFactory(new FileTxnSnapLog(new File(quorumPeerConfig.getDataLogDir()), new File(quorumPeerConfig.getDataDir())));
-            quorumPeer.setQuorumPeers(quorumPeerConfig.getServers());
+            quorumPeer.setTxnFactory(new FileTxnSnapLog(quorumPeerConfig.getDataLogDir(), quorumPeerConfig.getDataDir()));
             quorumPeer.setElectionType(quorumPeerConfig.getElectionAlg());
             quorumPeer.setMyid(quorumPeerConfig.getServerId());
             quorumPeer.setTickTime(quorumPeerConfig.getTickTime());
@@ -123,7 +121,7 @@ public class ZooKeeperStateServer extends ZooKeeperServerMain {
             quorumPeer.setMaxSessionTimeout(quorumPeerConfig.getMaxSessionTimeout());
             quorumPeer.setInitLimit(quorumPeerConfig.getInitLimit());
             quorumPeer.setSyncLimit(quorumPeerConfig.getSyncLimit());
-            quorumPeer.setQuorumVerifier(quorumPeerConfig.getQuorumVerifier());
+            quorumPeer.setQuorumVerifier(quorumPeerConfig.getQuorumVerifier(), false);
             quorumPeer.setCnxnFactory(connectionFactory);
             quorumPeer.setZKDatabase(new ZKDatabase(quorumPeer.getTxnFactory()));
             quorumPeer.setLearnerType(quorumPeerConfig.getPeerType());

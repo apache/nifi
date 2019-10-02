@@ -34,7 +34,7 @@ public class ConnectionStatusSnapshotDTO implements Cloneable {
     private String sourceName;
     private String destinationId;
     private String destinationName;
-
+    private ConnectionStatusPredictionsSnapshotDTO predictions;
     private Integer flowFilesIn = 0;
     private Long bytesIn = 0L;
     private String input;
@@ -182,6 +182,18 @@ public class ConnectionStatusSnapshotDTO implements Cloneable {
     }
 
     /**
+     * @return predictions for this connection
+     */
+    @ApiModelProperty("Predictions, if available, for this connection (null if not available)")
+    public ConnectionStatusPredictionsSnapshotDTO getPredictions() {
+        return predictions;
+    }
+
+    public void setPredictions(ConnectionStatusPredictionsSnapshotDTO predictions) {
+        this.predictions = predictions;
+    }
+
+    /**
      * @return input for this connection
      */
     @ApiModelProperty("The input count/size for the connection in the last 5 minutes, pretty printed.")
@@ -281,6 +293,10 @@ public class ConnectionStatusSnapshotDTO implements Cloneable {
         other.setName(getName());
         other.setSourceId(getSourceId());
         other.setSourceName(getSourceName());
+
+        if (predictions != null) {
+            other.setPredictions(predictions.clone());
+        }
 
         other.setFlowFilesIn(getFlowFilesIn());
         other.setBytesIn(getBytesIn());

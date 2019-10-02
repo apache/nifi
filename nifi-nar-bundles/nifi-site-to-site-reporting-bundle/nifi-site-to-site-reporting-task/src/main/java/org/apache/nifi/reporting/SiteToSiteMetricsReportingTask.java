@@ -157,6 +157,7 @@ public class SiteToSiteMetricsReportingTask extends AbstractSiteToSiteReportingT
         final String applicationId = context.getProperty(APPLICATION_ID).evaluateAttributeExpressions().getValue();
         final String hostname = context.getProperty(HOSTNAME).evaluateAttributeExpressions().getValue();
         final ProcessGroupStatus status = context.getEventAccess().getControllerStatus();
+        final Boolean allowNullValues = context.getProperty(ALLOW_NULL_VALUES).asBoolean();
 
         if(status != null) {
             final Map<String,String> statusMetrics = metricsService.getMetrics(status, false);
@@ -179,13 +180,13 @@ public class SiteToSiteMetricsReportingTask extends AbstractSiteToSiteReportingT
                         .addAllMetrics(jvmMetrics)
                         .metric(MetricNames.CORES, String.valueOf(os.getAvailableProcessors()))
                         .metric(MetricNames.LOAD1MN, String.valueOf(systemLoad >= 0 ? systemLoad : -1))
-                        .build();
+                        .build(allowNullValues);
 
                 data = metricsObject.toString().getBytes(StandardCharsets.UTF_8);
                 attributes.put(CoreAttributes.MIME_TYPE.key(), "application/json");
             } else {
                 final JsonObject metricsObject = metricsService.getMetrics(factory, status, virtualMachineMetrics, applicationId, status.getId(),
-                        hostname, System.currentTimeMillis(), os.getAvailableProcessors(), systemLoad >= 0 ? systemLoad : -1);
+                        hostname, System.currentTimeMillis(), os.getAvailableProcessors(), systemLoad >= 0 ? systemLoad : -1, allowNullValues);
                 data = getData(context, new ByteArrayInputStream(metricsObject.toString().getBytes(StandardCharsets.UTF_8)), attributes);
             }
 

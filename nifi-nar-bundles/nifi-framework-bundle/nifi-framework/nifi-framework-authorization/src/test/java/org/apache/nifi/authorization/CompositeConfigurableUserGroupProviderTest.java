@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.authorization;
 
+import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.authorization.exception.AuthorizerCreationException;
 import org.junit.Test;
@@ -47,14 +48,14 @@ public class CompositeConfigurableUserGroupProviderTest extends CompositeUserGro
     @Test(expected = AuthorizerCreationException.class)
     public void testNoConfigurableUserGroupProviderSpecified() throws Exception {
         initCompositeUserGroupProvider(new CompositeConfigurableUserGroupProvider(), null, configurationContext -> {
-            when(configurationContext.getProperty(PROP_CONFIGURABLE_USER_GROUP_PROVIDER)).thenReturn(new StandardPropertyValue(null, null));
+            when(configurationContext.getProperty(PROP_CONFIGURABLE_USER_GROUP_PROVIDER)).thenReturn(new StandardPropertyValue(null, null, ParameterLookup.EMPTY));
         });
     }
 
     @Test(expected = AuthorizerCreationException.class)
     public void testUnknownConfigurableUserGroupProvider() throws Exception {
         initCompositeUserGroupProvider(new CompositeConfigurableUserGroupProvider(), null, configurationContext -> {
-            when(configurationContext.getProperty(PROP_CONFIGURABLE_USER_GROUP_PROVIDER)).thenReturn(new StandardPropertyValue("unknown-user-group-provider", null));
+            when(configurationContext.getProperty(PROP_CONFIGURABLE_USER_GROUP_PROVIDER)).thenReturn(new StandardPropertyValue("unknown-user-group-provider", null, ParameterLookup.EMPTY));
         });
     }
 
@@ -63,7 +64,7 @@ public class CompositeConfigurableUserGroupProviderTest extends CompositeUserGro
         initCompositeUserGroupProvider(new CompositeConfigurableUserGroupProvider(), lookup -> {
             when(lookup.getUserGroupProvider(eq(NOT_CONFIGURABLE_USER_GROUP_PROVIDER))).thenReturn(mock(UserGroupProvider.class));
         }, configurationContext -> {
-            when(configurationContext.getProperty(PROP_CONFIGURABLE_USER_GROUP_PROVIDER)).thenReturn(new StandardPropertyValue(NOT_CONFIGURABLE_USER_GROUP_PROVIDER, null));
+            when(configurationContext.getProperty(PROP_CONFIGURABLE_USER_GROUP_PROVIDER)).thenReturn(new StandardPropertyValue(NOT_CONFIGURABLE_USER_GROUP_PROVIDER, null, ParameterLookup.EMPTY));
         });
     }
 
@@ -81,7 +82,7 @@ public class CompositeConfigurableUserGroupProviderTest extends CompositeUserGro
 
         // Mock AuthorizerConfigurationContext to introduce the duplicate provider ids
         final AuthorizerConfigurationContext configurationContext = mock(AuthorizerConfigurationContext.class);
-        when(configurationContext.getProperty(PROP_CONFIGURABLE_USER_GROUP_PROVIDER)).thenReturn(new StandardPropertyValue(CONFIGURABLE_USER_GROUP_PROVIDER, null));
+        when(configurationContext.getProperty(PROP_CONFIGURABLE_USER_GROUP_PROVIDER)).thenReturn(new StandardPropertyValue(CONFIGURABLE_USER_GROUP_PROVIDER, null, ParameterLookup.EMPTY));
         Map<String, String> configurationContextProperties = new HashMap<>();
         configurationContextProperties.put(PROP_USER_GROUP_PROVIDER_PREFIX + "1", CONFIGURABLE_USER_GROUP_PROVIDER);
         configurationContextProperties.put(PROP_USER_GROUP_PROVIDER_PREFIX + "2", NOT_CONFIGURABLE_USER_GROUP_PROVIDER);
@@ -98,7 +99,7 @@ public class CompositeConfigurableUserGroupProviderTest extends CompositeUserGro
         final UserGroupProvider userGroupProvider = initCompositeUserGroupProvider(new CompositeConfigurableUserGroupProvider(), lookup -> {
             when(lookup.getUserGroupProvider(eq(CONFIGURABLE_USER_GROUP_PROVIDER))).thenReturn(getConfigurableUserGroupProvider());
         }, configurationContext -> {
-            when(configurationContext.getProperty(PROP_CONFIGURABLE_USER_GROUP_PROVIDER)).thenReturn(new StandardPropertyValue(CONFIGURABLE_USER_GROUP_PROVIDER, null));
+            when(configurationContext.getProperty(PROP_CONFIGURABLE_USER_GROUP_PROVIDER)).thenReturn(new StandardPropertyValue(CONFIGURABLE_USER_GROUP_PROVIDER, null, ParameterLookup.EMPTY));
         });
 
         // users and groups
@@ -123,7 +124,7 @@ public class CompositeConfigurableUserGroupProviderTest extends CompositeUserGro
         final UserGroupProvider userGroupProvider = initCompositeUserGroupProvider(new CompositeConfigurableUserGroupProvider(), lookup -> {
             when(lookup.getUserGroupProvider(eq(CONFIGURABLE_USER_GROUP_PROVIDER))).thenReturn(getConfigurableUserGroupProvider());
         }, configurationContext -> {
-            when(configurationContext.getProperty(PROP_CONFIGURABLE_USER_GROUP_PROVIDER)).thenReturn(new StandardPropertyValue(CONFIGURABLE_USER_GROUP_PROVIDER, null));
+            when(configurationContext.getProperty(PROP_CONFIGURABLE_USER_GROUP_PROVIDER)).thenReturn(new StandardPropertyValue(CONFIGURABLE_USER_GROUP_PROVIDER, null, ParameterLookup.EMPTY));
         }, getConflictingUserGroupProvider());
 
         // users and groups
@@ -162,7 +163,7 @@ public class CompositeConfigurableUserGroupProviderTest extends CompositeUserGro
         final UserGroupProvider userGroupProvider = initCompositeUserGroupProvider(new CompositeConfigurableUserGroupProvider(), lookup -> {
             when(lookup.getUserGroupProvider(eq(CONFIGURABLE_USER_GROUP_PROVIDER))).thenReturn(getConfigurableUserGroupProvider());
         }, configurationContext -> {
-            when(configurationContext.getProperty(PROP_CONFIGURABLE_USER_GROUP_PROVIDER)).thenReturn(new StandardPropertyValue(CONFIGURABLE_USER_GROUP_PROVIDER, null));
+            when(configurationContext.getProperty(PROP_CONFIGURABLE_USER_GROUP_PROVIDER)).thenReturn(new StandardPropertyValue(CONFIGURABLE_USER_GROUP_PROVIDER, null, ParameterLookup.EMPTY));
         }, getCollaboratingUserGroupProvider());
 
         // users and groups

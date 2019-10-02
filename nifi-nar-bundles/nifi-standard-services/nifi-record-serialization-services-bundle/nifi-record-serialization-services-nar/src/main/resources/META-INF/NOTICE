@@ -23,16 +23,6 @@ The following binary components are provided under the Apache Software License v
       Grok
       Copyright 2014 Anthony Corbacho, and contributors.
 
-  (ASLv2) Groovy (org.codehaus.groovy:groovy:jar:2.4.5 - http://www.groovy-lang.org)
-    The following NOTICE information applies:
-      Groovy Language
-         Copyright 2003-2015 The respective authors and developers
-         Developers and Contributors are listed in the project POM file
-         and Gradle build file
-
-         This product includes software developed by
-         The Groovy community (http://groovy.codehaus.org/).
-
   (ASLv2) Google GSON
     The following NOTICE information applies:
       Copyright 2008 Google Inc.

@@ -74,7 +74,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 
 import static org.apache.nifi.util.StringUtils.isEmpty;
 
@@ -90,6 +89,8 @@ import static org.apache.nifi.util.StringUtils.isEmpty;
         @WritesAttribute(attribute = "eventhub.partition", description = "The name of the Azure Partition from which the message was pulled")
 })
 public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
+
+    private static final String FORMAT_STORAGE_CONNECTION_STRING = "DefaultEndpointsProtocol=https;AccountName=%s;AccountKey=%s";
 
     static final PropertyDescriptor NAMESPACE = new PropertyDescriptor.Builder()
             .name("event-hub-namespace")
@@ -454,9 +455,9 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
 
             try (final OutputStream out = session.write(flowFile)) {
                 for (final EventData eventData : messages) {
-
-                    try (final InputStream in = new ByteArrayInputStream(eventData.getBytes())) {
-                        final RecordReader reader = readerFactory.createRecordReader(schemaRetrievalVariables, in, logger);
+                    final byte[] eventDataBytes = eventData.getBytes();
+                    try (final InputStream in = new ByteArrayInputStream(eventDataBytes)) {
+                        final RecordReader reader = readerFactory.createRecordReader(schemaRetrievalVariables, in, eventDataBytes.length, logger);
 
                         Record record;
                         while ((record = reader.nextRecord()) != null) {
@@ -465,7 +466,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
                                 // Initialize the writer when the first record is read.
                                 final RecordSchema readerSchema = record.getSchema();
                                 final RecordSchema writeSchema = writerFactory.getSchema(schemaRetrievalVariables, readerSchema);
-                                writer = writerFactory.createWriter(logger, writeSchema, out);
+                                writer = writerFactory.createWriter(logger, writeSchema, out, flowFile);
                                 writer.beginRecordSet();
                             }
 
@@ -626,7 +627,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
                 .evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS);
         options.setReceiveTimeOut(Duration.ofMillis(receiveTimeoutMillis));
 
-        final String storageConnectionString = String.format(AzureStorageUtils.FORMAT_BLOB_CONNECTION_STRING, storageAccountName, storageAccountKey);
+        final String storageConnectionString = String.format(FORMAT_STORAGE_CONNECTION_STRING, storageAccountName, storageAccountKey);
 
         final ConnectionStringBuilder eventHubConnectionString = new ConnectionStringBuilder(namespaceName, eventHubName, sasName, sasKey);
 

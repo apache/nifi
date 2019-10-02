@@ -70,7 +70,7 @@ public abstract class AbstractPort implements Port {
     private final AtomicReference<String> name;
     private final AtomicReference<Position> position;
     private final AtomicReference<String> comments;
-    private final AtomicReference<ProcessGroup> processGroup;
+    private final AtomicReference<ProcessGroup> processGroup = new AtomicReference<>();
     private final AtomicBoolean lossTolerant;
     private final AtomicReference<ScheduledState> scheduledState;
     private final AtomicInteger concurrentTaskCount;
@@ -89,7 +89,7 @@ public abstract class AbstractPort implements Port {
     private final Lock readLock = rwLock.readLock();
     private final Lock writeLock = rwLock.writeLock();
 
-    public AbstractPort(final String id, final String name, final ProcessGroup processGroup, final ConnectableType type, final ProcessScheduler scheduler) {
+    public AbstractPort(final String id, final String name, final ConnectableType type, final ProcessScheduler scheduler) {
         this.id = requireNonNull(id);
         this.name = new AtomicReference<>(requireNonNull(name));
         position = new AtomicReference<>(new Position(0D, 0D));
@@ -103,7 +103,6 @@ public abstract class AbstractPort implements Port {
         final List<Relationship> relationshipList = new ArrayList<>();
         relationshipList.add(PORT_RELATIONSHIP);
         relationships = Collections.unmodifiableList(relationshipList);
-        this.processGroup = new AtomicReference<>(processGroup);
         this.type = type;
         penalizationPeriod = new AtomicReference<>("30 sec");
         yieldPeriod = new AtomicReference<>("1 sec");

@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.controller;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.repository.FlowFileRecord;
@@ -210,14 +211,20 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
         }
     }
 
-    private String getOwnerQueueIdentifier(final File swapFile) {
-        final String[] splits = swapFile.getName().split("-");
+    @Override
+    public String getQueueIdentifier(final String swapLocation) {
+        final String filename = swapLocation.contains("/") ? StringUtils.substringAfterLast(swapLocation, "/") : swapLocation;
+        final String[] splits = filename.split("-");
         if (splits.length > 6) {
             final String queueIdentifier = splits[1] + "-" + splits[2] + "-" + splits[3] + "-" + splits[4] + "-" + splits[5];
             return queueIdentifier;
         }
 
         return null;
+    }
+
+    private String getOwnerQueueIdentifier(final File swapFile) {
+        return getQueueIdentifier(swapFile.getName());
     }
 
     private String getOwnerPartition(final File swapFile) {

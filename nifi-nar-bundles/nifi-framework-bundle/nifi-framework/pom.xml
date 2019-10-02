@@ -36,7 +36,7 @@
         <module>nifi-framework-cluster</module>
         <module>nifi-framework-nar-utils</module>
         <module>nifi-framework-nar-loading-utils</module>
-	<module>nifi-user-actions</module>
+	    <module>nifi-user-actions</module>
         <module>nifi-framework-authorization</module>
         <module>nifi-file-authorizer</module>
         <module>nifi-administration</module>
