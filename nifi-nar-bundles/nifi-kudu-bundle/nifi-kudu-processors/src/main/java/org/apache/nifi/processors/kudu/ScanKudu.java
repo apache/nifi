@@ -17,6 +17,7 @@
 
 package org.apache.nifi.processors.kudu;
 
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kudu.ColumnSchema;
@@ -31,6 +32,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -175,7 +177,11 @@ public class ScanKudu extends AbstractKuduProcessor {
             }
         }
 
-        projectedColumnNames = Arrays.asList(context.getProperty(PROJECTED_COLUMNS).getValue().split(","));
+        projectedColumnNames = Optional.ofNullable(context.getProperty(PROJECTED_COLUMNS))
+            .map(PropertyValue::getValue)
+            .map(value -> value.split(","))
+            .map(Arrays::asList)
+            .orElseGet(() -> Collections.emptyList());
         String predicate = context.getProperty(PREDICATES).evaluateAttributeExpressions(fileToProcess).getValue();
         final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions(fileToProcess).getValue();
         if (fileToProcess == null) {
@@ -345,7 +351,7 @@ public class ScanKudu extends AbstractKuduProcessor {
             flowFile = session.putAttribute(flowFile, "scankudu.error", (e==null?e:ioe.get()).toString());
             rel = REL_FAILURE;
         } else {
-            session.getProvenanceReporter().receive(flowFile, tableName, "{ids}");
+            session.getProvenanceReporter().receive(flowFile, tableName);
         }
         session.transfer(flowFile, rel);
     }

@@ -17,7 +17,19 @@
 
 package org.apache.nifi.processors.kudu;
 
+import java.math.BigDecimal;
+import java.sql.Timestamp;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.Arrays;
+import org.apache.kudu.ColumnSchema;
+import org.apache.kudu.ColumnTypeAttributes;
+import org.apache.kudu.Type;
+import org.apache.kudu.client.Insert;
 import org.apache.kudu.client.KuduException;
+import org.apache.kudu.client.KuduSession;
+import org.apache.kudu.client.KuduTable;
+import org.apache.kudu.client.PartialRow;
 import org.apache.kudu.test.KuduTestHarness;
 import org.apache.kudu.test.cluster.MiniKuduCluster;
 import org.apache.nifi.reporting.InitializationException;
@@ -164,7 +176,7 @@ public class TestScanKudu {
         runner.assertTransferCount(ScanKudu.REL_ORIGINAL, 0);
     }
 
-    @Test(expected = AssertionError.class)
+    @Test
     public void testInvalidPredicatesPattern() throws KuduException {
         final Map<String, String> rows = new HashMap<>();
         rows.put("key", "val1");
@@ -179,11 +191,70 @@ public class TestScanKudu {
         runner.setProperty(ScanKudu.PROJECTED_COLUMNS,  "column1");
         runner.setValidateExpressionUsage(false);
         runner.enqueue("trigger flow file");
-        runner.run(1, false);
 
+        runner.assertNotValid();
         runner.assertTransferCount(ScanKudu.REL_FAILURE, 0);
         runner.assertTransferCount(ScanKudu.REL_SUCCESS, 0);
         runner.assertTransferCount(ScanKudu.REL_ORIGINAL, 0);
+    }
+
+    @Test
+    public void testScanKuduWithMultipleTypes() throws KuduException {
+        List<ColumnSchema> columns = Arrays.asList(
+            new ColumnSchema.ColumnSchemaBuilder("key", Type.INT8).key(true).build(),
+            new ColumnSchema.ColumnSchemaBuilder(Type.INT16.getName(), Type.INT16).key(true).build(),
+            new ColumnSchema.ColumnSchemaBuilder(Type.INT32.getName(), Type.INT32).key(true).build(),
+            new ColumnSchema.ColumnSchemaBuilder(Type.INT64.getName(), Type.INT64).key(true).build(),
+            new ColumnSchema.ColumnSchemaBuilder(Type.BINARY.getName(), Type.BINARY).key(false).build(),
+            new ColumnSchema.ColumnSchemaBuilder(Type.STRING.getName(), Type.STRING).key(false).build(),
+            new ColumnSchema.ColumnSchemaBuilder(Type.BOOL.getName(), Type.BOOL).key(false).build(),
+            new ColumnSchema.ColumnSchemaBuilder(Type.FLOAT.getName(), Type.FLOAT).key(false).build(),
+            new ColumnSchema.ColumnSchemaBuilder(Type.DOUBLE.getName(), Type.DOUBLE).key(false).build(),
+            new ColumnSchema.ColumnSchemaBuilder(Type.UNIXTIME_MICROS.getName(), Type.UNIXTIME_MICROS).key(false).build(),
+            new ColumnSchema.ColumnSchemaBuilder(Type.DECIMAL.getName(), Type.DECIMAL).typeAttributes(
+                new ColumnTypeAttributes.ColumnTypeAttributesBuilder()
+                    .precision(20)
+                    .scale(4)
+                    .build()
+            ).key(false).build()
+        );
+
+        Instant now = Instant.now();
+
+        KuduTable kuduTable = kuduScan.getKuduTable(DEFAULT_TABLE_NAME, columns);
+        Insert insert = kuduTable.newInsert();
+        PartialRow rows = insert.getRow();
+        rows.addByte("key", (byte) 1);
+        rows.addShort(Type.INT16.getName(), (short)20);
+        rows.addInt(Type.INT32.getName(), 300);
+        rows.addLong(Type.INT64.getName(), 4000L);
+        rows.addBinary(Type.BINARY.getName(), new byte[]{55, 89});
+        rows.addString(Type.STRING.getName(), "stringValue");
+        rows.addBoolean(Type.BOOL.getName(), true);
+        rows.addFloat(Type.FLOAT.getName(), 1.5F);
+        rows.addDouble(Type.DOUBLE.getName(), 10.28);
+        rows.addTimestamp(Type.UNIXTIME_MICROS.getName(), Timestamp.from(now));
+        rows.addDecimal(Type.DECIMAL.getName(), new BigDecimal("3.1415"));
+
+        KuduSession kuduSession = kuduScan.kuduClient.newSession();
+        kuduSession.apply(insert);
+        kuduSession.close();
+
+        runner.setProperty(ScanKudu.TABLE_NAME, DEFAULT_TABLE_NAME);
+
+        runner.setIncomingConnection(false);
+        runner.enqueue();
+        runner.run(1, false);
+
+        runner.assertTransferCount(ScanKudu.REL_FAILURE, 0);
+        runner.assertTransferCount(ScanKudu.REL_SUCCESS, 1);
+        runner.assertTransferCount(ScanKudu.REL_ORIGINAL, 1);
+
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(ScanKudu.REL_SUCCESS).get(0);
+        Object timestamp = ChronoUnit.MICROS.between(Instant.EPOCH, now);
+        flowFile.assertContentEquals("[{\"rows\":[{\"key\":\"1\",\"int16\":\"20\",\"int32\":\"300\",\"int64\":"
+            + "\"4000\",\"binary\":\"0x3759\",\"string\":\"stringValue\",\"bool\":\"true\",\"float\":\"1.5\","
+            + "\"double\":\"10.28\",\"unixtime_micros\":\"" + timestamp + "\",\"decimal\":\"3.1415\"}]}]");
     }
 
     @Test

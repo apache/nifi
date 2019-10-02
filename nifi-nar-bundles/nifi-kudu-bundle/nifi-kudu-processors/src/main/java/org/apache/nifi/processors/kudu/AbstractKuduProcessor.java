@@ -18,6 +18,7 @@
 package org.apache.nifi.processors.kudu;
 
 import java.security.PrivilegedExceptionAction;
+import org.apache.commons.codec.binary.Hex;
 import org.apache.kudu.shaded.com.google.common.annotations.VisibleForTesting;
 import org.apache.kudu.ColumnSchema;
 import org.apache.kudu.Schema;
@@ -317,10 +318,10 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
                     jsonBuilder.append("\"" + row.getString(col.getName()) + "\"");
                     break;
                 case INT8:
-                    jsonBuilder.append("\"" + row.getInt(col.getName()) + "\"");
+                    jsonBuilder.append("\"" + row.getByte(col.getName()) + "\"");
                     break;
                 case INT16:
-                    jsonBuilder.append("\"" + row.getInt(col.getName()) + "\"");
+                    jsonBuilder.append("\"" + row.getShort(col.getName()) + "\"");
                     break;
                 case INT32:
                     jsonBuilder.append("\"" + row.getInt(col.getName()) + "\"");
@@ -337,11 +338,14 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
                 case FLOAT:
                     jsonBuilder.append("\"" + row.getFloat(col.getName()) + "\"");
                     break;
+                case DOUBLE:
+                    jsonBuilder.append("\"" + row.getDouble(col.getName()) + "\"");
+                    break;
                 case UNIXTIME_MICROS:
                     jsonBuilder.append("\"" + row.getLong(col.getName()) + "\"");
                     break;
                 case BINARY:
-                    jsonBuilder.append("\"" + row.getBinary(col.getName()) + "\"");
+                    jsonBuilder.append("\"0x" + Hex.encodeHexString(row.getBinaryCopy(col.getName())) + "\"");
                     break;
                 default:
                     break;
