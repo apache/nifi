@@ -22,6 +22,9 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
+import java.util.Date;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiConsumer;
 import org.apache.kudu.ColumnSchema;
 import org.apache.kudu.ColumnTypeAttributes;
 import org.apache.kudu.Type;
@@ -252,9 +255,9 @@ public class TestScanKudu {
 
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(ScanKudu.REL_SUCCESS).get(0);
         Object timestamp = ChronoUnit.MICROS.between(Instant.EPOCH, now);
-        flowFile.assertContentEquals("[{\"rows\":[{\"key\":\"1\",\"int16\":\"20\",\"int32\":\"300\",\"int64\":"
+        flowFile.assertContentEquals("[{\"key\":\"1\",\"int16\":\"20\",\"int32\":\"300\",\"int64\":"
             + "\"4000\",\"binary\":\"0x3759\",\"string\":\"stringValue\",\"bool\":\"true\",\"float\":\"1.5\","
-            + "\"double\":\"10.28\",\"unixtime_micros\":\"" + timestamp + "\",\"decimal\":\"3.1415\"}]}]");
+            + "\"double\":\"10.28\",\"unixtime_micros\":\"" + timestamp + "\",\"decimal\":\"3.1415\"}]");
     }
 
     @Test
@@ -302,7 +305,7 @@ public class TestScanKudu {
         List<MockFlowFile> files = runner.getFlowFilesForRelationship(ScanKudu.REL_SUCCESS);
         assertNotNull(files);
         assertEquals("One file should be transferred to success", 1, files.size());
-        assertEquals("[{\"rows\":[{\"key\":\"val1\"}]}]", new String(files.get(0).toByteArray()));
+        assertEquals("[{\"key\":\"val1\"}]", new String(files.get(0).toByteArray()));
     }
 
     @Test
@@ -328,7 +331,7 @@ public class TestScanKudu {
         runner.assertTransferCount(ScanKudu.REL_ORIGINAL, 1);
 
         MockFlowFile flowFile = runner.getFlowFilesForRelationship(ScanKudu.REL_SUCCESS).get(0);
-        flowFile.assertContentEquals("[{\"rows\":[{\"key\":\"val1\",\"key1\":\"val1\"}]}]");
+        flowFile.assertContentEquals("[{\"key\":\"val1\",\"key1\":\"val1\"}]");
         flowFile.assertAttributeEquals(ScanKudu.KUDU_ROWS_COUNT_ATTR, "1");
 
         flowFile = runner.getFlowFilesForRelationship(ScanKudu.REL_ORIGINAL).get(0);
@@ -358,7 +361,7 @@ public class TestScanKudu {
         runner.assertTransferCount(ScanKudu.REL_ORIGINAL, 1);
 
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(ScanKudu.REL_SUCCESS).get(0);
-        flowFile.assertContentEquals("[{\"rows\":[{\"key1\":\"val2\"}]}]");
+        flowFile.assertContentEquals("[{\"key1\":\"val2\"}]");
 
     }
 
@@ -435,7 +438,7 @@ public class TestScanKudu {
         runner.assertTransferCount(ScanKudu.REL_ORIGINAL, 1);
 
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(ScanKudu.REL_SUCCESS).get(0);
-        flowFile.assertContentEquals("[{\"rows\":[{\"key1\":\"val2\"}]}]");
+        flowFile.assertContentEquals("[{\"key1\":\"val2\"}]");
     }
 
     @Test
@@ -475,7 +478,7 @@ public class TestScanKudu {
         runner.assertTransferCount(ScanKudu.REL_ORIGINAL, 1);
 
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(ScanKudu.REL_SUCCESS).get(0);
-        flowFile.assertContentEquals("[{\"rows\":[{\"key1\":\"val2\"}]}]");
+        flowFile.assertContentEquals("[{\"key1\":\"val2\"}]");
     }
 
     @Test
@@ -517,4 +520,104 @@ public class TestScanKudu {
 
     }
 
+    @Test
+    public void testPredicateEqualsFalse() throws Exception {
+        List<Boolean> values = Arrays.asList(false, true, false);
+
+        String predicate = "value=false";
+        String expectedContent = "[{\"key\":\"1\",\"value\":\"false\"},\n{\"key\":\"3\",\"value\":\"false\"}]";
+
+        testPredicate(predicate, expectedContent, Type.BOOL, (row, value) -> row.addBoolean("value", value), values);
+    }
+
+    @Test
+    public void testPredicateGreaterThanInteger() throws Exception {
+        List<Integer> values = Arrays.asList(10, 15, 10, 12);
+
+        String predicate = "value>10";
+        String expectedContent = "[{\"key\":\"2\",\"value\":\"15\"},\n{\"key\":\"4\",\"value\":\"12\"}]";
+
+        testPredicate(predicate, expectedContent, Type.INT32, (row, value) -> row.addInt("value", value), values);
+    }
+
+    @Test
+    public void testPredicateTimestamp() throws Exception {
+        List<Timestamp> values = Arrays.asList(new Timestamp(1570138043));
+
+        String predicate = "value=1570138043000";
+        String expectedContent = "[{\"key\":\"1\",\"value\":\"1570138043000\"}]";
+
+        testPredicate(predicate, expectedContent, Type.UNIXTIME_MICROS, (row, value) -> row.addTimestamp("value", value), values);
+    }
+
+    @Test
+    public void testPredicateGreaterOrEqualsInteger() throws Exception {
+        List<Integer> values = Arrays.asList(9, 15, 8, 12);
+
+        String predicate = "value>=10";
+        String expectedContent = "[{\"key\":\"2\",\"value\":\"15\"},\n{\"key\":\"4\",\"value\":\"12\"}]";
+
+        testPredicate(predicate, expectedContent, Type.INT32, (row, value) -> row.addInt("value", value), values);
+    }
+
+    @Test
+    public void testPredicateLowerThanOrEqualsFloat() throws Exception {
+        List<Float> values = Arrays.asList(3.231F, 3.232F, 3.233F);
+
+        String predicate = "value<=3.232";
+        String expectedContent = "[{\"key\":\"1\",\"value\":\"3.231\"},\n{\"key\":\"2\",\"value\":\"3.232\"}]";
+
+        testPredicate(predicate, expectedContent, Type.FLOAT, (row, value) -> row.addFloat("value", value), values);
+    }
+
+    @Test
+    public void testPredicateLowerThanOrEqualsDouble() throws Exception {
+        List<Double> values = Arrays.asList(3.2312092090, 3.232090192, 3.23319829892);
+
+        String predicate = "value<=3.231392090";
+        String expectedContent = "[{\"key\":\"1\",\"value\":\"3.231209209\"}]";
+
+        testPredicate(predicate, expectedContent, Type.DOUBLE, (row, value) -> row.addDouble("value", value), values);
+    }
+
+    private <V> void testPredicate(String predicate, String expectedContent, Type valueType,
+        BiConsumer<PartialRow, V> valueSetter, List<V> values) throws Exception {
+        List<ColumnSchema> columns = Arrays.asList(
+            new ColumnSchema.ColumnSchemaBuilder("key", Type.INT32).key(true).build(),
+            new ColumnSchema.ColumnSchemaBuilder("value", valueType).key(false).build()
+        );
+
+        KuduTable kuduTable = kuduScan.getKuduTable(DEFAULT_TABLE_NAME, columns);
+        KuduSession kuduSession = kuduScan.kuduClient.newSession();
+        AtomicReference<Integer> key = new AtomicReference<>(1);
+        values.forEach(value -> {
+            Insert insert = kuduTable.newInsert();
+            PartialRow row = insert.getRow();
+            row.addInt("key", key.getAndSet(key.get() + 1));
+            valueSetter.accept(row, value);
+
+            try {
+                kuduSession.apply(insert);
+            } catch (KuduException e) {
+                throw new RuntimeException(e);
+            }
+        });
+        kuduSession.close();
+
+        runner.setProperty(ScanKudu.TABLE_NAME, DEFAULT_TABLE_NAME);
+        runner.setProperty(ScanKudu.PREDICATES, predicate);
+
+        runner.setValidateExpressionUsage(false);
+
+        runner.setIncomingConnection(false);
+        runner.enqueue();
+        runner.run(1, false);
+
+        runner.assertTransferCount(ScanKudu.REL_FAILURE, 0);
+        runner.assertTransferCount(ScanKudu.REL_SUCCESS, 1);
+        runner.assertTransferCount(ScanKudu.REL_ORIGINAL, 1);
+
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(ScanKudu.REL_SUCCESS).get(0);
+        flowFile.assertContentEquals(expectedContent);
+    }
 }

@@ -308,7 +308,7 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
      */
     protected String convertToJson(RowResult row) {
         final StringBuilder jsonBuilder = new StringBuilder();
-        jsonBuilder.append("{\"rows\":[{");
+        jsonBuilder.append("{");
         Iterator<ColumnSchema> columns = row.getSchema().getColumns().iterator();
         while (columns.hasNext()) {
             ColumnSchema col = columns.next();
@@ -353,7 +353,56 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
             if(columns.hasNext())
                 jsonBuilder.append(",");
         }
-        jsonBuilder.append("}]}");
+        jsonBuilder.append("}");
         return jsonBuilder.toString();
+    }
+
+    protected Object parseValue(String value, ColumnSchema columnSchema) {
+        Object  parsedValue;
+
+        Type type = columnSchema.getType();
+
+        switch (type) {
+            case STRING:
+                if (value.isEmpty()) {
+                    throw new IllegalStateException(String.format("give value is Empty for type %s", type));
+                }
+                parsedValue = value;
+                break;
+            case INT8:
+                parsedValue = Integer.valueOf(value);
+                break;
+            case INT16:
+                parsedValue = Integer.valueOf(value);
+                break;
+            case INT32:
+                parsedValue = Integer.valueOf(value);
+                break;
+            case INT64:
+                parsedValue = Long.valueOf(value);
+                break;
+            case BOOL:
+                parsedValue = Boolean.valueOf(value);
+                break;
+            case FLOAT:
+                parsedValue = Float.valueOf(value);
+                break;
+            case DOUBLE:
+                parsedValue = Double.valueOf(value);
+                break;
+            case DECIMAL:
+                parsedValue = new BigDecimal(value);
+                break;
+            case UNIXTIME_MICROS:
+                parsedValue = Long.valueOf(value);
+                break;
+            case BINARY:
+                parsedValue = Byte.valueOf(value);
+                break;
+            default:
+                throw new IllegalArgumentException("Couldn't parse '" + value + "' as '" + type + "'");
+        }
+
+        return parsedValue;
     }
 }

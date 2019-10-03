@@ -65,7 +65,7 @@ import java.util.regex.Pattern;
                 + "Could be null (not present) if transfered to FAILURE")})
 public class ScanKudu extends AbstractKuduProcessor {
 
-    static final Pattern PREDICATES_PATTERN = Pattern.compile("\\w+((<=|>=|[=<>])(\\w|-)+)?(?:,\\w+((<=|>=|[=<>])(\\w|-)+)?)*");
+    static final Pattern PREDICATES_PATTERN = Pattern.compile("\\w+((<=|>=|[=<>])(\\w|(.\\d+$)|-)+)?(?:,\\w+((<=|>=|[=<>])(\\w|(.\\d+$)|-)+)?)*");
     static final Pattern COLUMNS_PATTERN = Pattern.compile("\\w+((\\w)+)?(?:,\\w+((\\w)+)?)*");
 
     protected static final PropertyDescriptor TABLE_NAME = new PropertyDescriptor.Builder()
@@ -356,9 +356,10 @@ public class ScanKudu extends AbstractKuduProcessor {
         session.transfer(flowFile, rel);
     }
 
-    private void addPredicate(KuduScanner.KuduScannerBuilder scannerBuilder, KuduTable kuduTable, String column, Object value, KuduPredicate.ComparisonOp comparisonOp) {
+    private void addPredicate(KuduScanner.KuduScannerBuilder scannerBuilder, KuduTable kuduTable, String column, String value, KuduPredicate.ComparisonOp comparisonOp) {
         ColumnSchema columnSchema = kuduTable.getSchema().getColumn(column);
-        KuduPredicate predicate = KuduPredicate.newComparisonPredicate(columnSchema, comparisonOp, value);
+        Object parseValue = parseValue(value, columnSchema);
+        KuduPredicate predicate = KuduPredicate.newComparisonPredicate(columnSchema, comparisonOp, parseValue);
         scannerBuilder.addPredicate(predicate);
     }
 
@@ -367,7 +368,13 @@ public class ScanKudu extends AbstractKuduProcessor {
         final String[] arrayPredicates = (predicates == null || predicates.isEmpty() ? new String[0] : predicates.split(","));
 
         for(String column : arrayPredicates){
-            if (column.contains("=")) {
+            if(column.contains(">=")) {
+                final String[] parts = column.split(">=");
+                addPredicate(scannerBuilder, kuduTable, parts[0], parts[1], KuduPredicate.ComparisonOp.GREATER_EQUAL);
+            } else if(column.contains("<=")) {
+                final String[] parts = column.split("<=");
+                addPredicate(scannerBuilder, kuduTable, parts[0], parts[1], KuduPredicate.ComparisonOp.LESS_EQUAL);
+            } else if (column.contains("=")) {
                 final String[] parts = column.split("=");
                 addPredicate(scannerBuilder, kuduTable, parts[0], parts[1], KuduPredicate.ComparisonOp.EQUAL);
             } else if(column.contains(">")) {
@@ -376,12 +383,6 @@ public class ScanKudu extends AbstractKuduProcessor {
             } else if(column.contains("<")) {
                 final String[] parts = column.split("<");
                 addPredicate(scannerBuilder, kuduTable, parts[0], parts[1], KuduPredicate.ComparisonOp.LESS);
-            } else if(column.contains(">=")) {
-                final String[] parts = column.split(">=");
-                addPredicate(scannerBuilder, kuduTable, parts[0], parts[1], KuduPredicate.ComparisonOp.GREATER_EQUAL);
-            } else if(column.contains("<=")) {
-                final String[] parts = column.split("<=");
-                addPredicate(scannerBuilder, kuduTable, parts[0], parts[1], KuduPredicate.ComparisonOp.LESS_EQUAL);
             }
         }
 
