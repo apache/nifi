@@ -359,7 +359,6 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
 
     protected Object parseValue(String value, ColumnSchema columnSchema) {
         Object  parsedValue;
-
         Type type = columnSchema.getType();
 
         switch (type) {
