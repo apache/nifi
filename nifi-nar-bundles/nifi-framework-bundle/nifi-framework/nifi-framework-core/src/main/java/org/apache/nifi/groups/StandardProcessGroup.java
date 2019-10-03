@@ -3710,14 +3710,28 @@ public final class StandardProcessGroup implements ProcessGroup {
         final Map<ControllerServiceNode, VersionedControllerService> services = new HashMap<>();
 
         // Add any Controller Service that does not yet exist.
+        final Map<String, ControllerServiceNode> servicesAdded = new HashMap<>();
         for (final VersionedControllerService proposedService : proposed.getControllerServices()) {
             ControllerServiceNode service = servicesByVersionedId.get(proposedService.getIdentifier());
             if (service == null) {
                 service = addControllerService(group, proposedService, componentIdSeed);
                 LOG.info("Added {} to {}", service, this);
+                servicesAdded.put(proposedService.getIdentifier(), service);
             }
 
             services.put(service, proposedService);
+        }
+
+        // Because we don't know what order to instantiate the Controller Services, it's possible that we have two services such that Service A references Service B.
+        // If Service A happens to get created before Service B, the identifiers won't get matched up. As a result, we now iterate over all created Controller Services
+        // and update them again now that all Controller Services have been created at this level, so that the linkage can now be properly established.
+        for (final VersionedControllerService proposedService : proposed.getControllerServices()) {
+            final ControllerServiceNode addedService = servicesAdded.get(proposedService.getIdentifier());
+            if (addedService == null) {
+                continue;
+            }
+
+            updateControllerService(addedService, proposedService);
         }
 
         // Update all of the Controller Services to match the VersionedControllerService
