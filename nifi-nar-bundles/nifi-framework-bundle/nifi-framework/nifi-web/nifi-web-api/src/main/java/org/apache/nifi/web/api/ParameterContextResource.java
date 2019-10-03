@@ -827,7 +827,6 @@ public class ParameterContextResource extends ApplicationResource {
         return Arrays.asList(new StandardUpdateStep("Stopping Affected Processors"),
             new StandardUpdateStep("Disabling Affected Controller Services"),
             new StandardUpdateStep("Updating Parameter Context"),
-            new StandardUpdateStep("Validating Components"),
             new StandardUpdateStep("Re-Enabling Affected Controller Services"),
             new StandardUpdateStep("Restarting Affected Processors"));
     }
@@ -869,12 +868,6 @@ public class ParameterContextResource extends ApplicationResource {
             asyncRequest.markStepComplete();
             logger.info("Successfully updated Parameter Context with ID {}", updatedContextEntity.getId());
         } finally {
-            if (!asyncRequest.isCancelled()) {
-                // validate the components before attempting restart
-                serviceFacade.validateComponents(updatedContextEntity.getComponent(), asyncRequest.getUser());
-                asyncRequest.markStepComplete();
-            }
-
             // TODO: can almost certainly be refactored so that the same code is shared between VersionsResource and ParameterContextResource.
             if (!asyncRequest.isCancelled()) {
                 enableControllerServices(enabledControllerServices, asyncRequest, componentLifecycle, uri);
@@ -976,8 +969,6 @@ public class ParameterContextResource extends ApplicationResource {
             logger.info("Restarting {} Processors after having updated Parameter Context", processors.size());
         }
 
-        asyncRequest.markStepComplete();
-
         // Step 14. Restart all components
         final Set<AffectedComponentEntity> componentsToStart = getUpdatedEntities(processors);
 
@@ -986,6 +977,7 @@ public class ParameterContextResource extends ApplicationResource {
 
         try {
             componentLifecycle.scheduleComponents(uri, "root", componentsToStart, ScheduledState.RUNNING, startComponentsPause, InvalidComponentAction.SKIP);
+            asyncRequest.markStepComplete();
         } catch (final IllegalStateException ise) {
             // Component Lifecycle will restart the Processors only if they are valid. If IllegalStateException gets thrown, we need to provide
             // a more intelligent error message as to exactly what happened, rather than indicate that the flow could not be updated.
@@ -1011,8 +1003,6 @@ public class ParameterContextResource extends ApplicationResource {
             logger.info("Re-Enabling {} Controller Services after having updated Parameter Context", controllerServices.size());
         }
 
-        asyncRequest.markStepComplete();
-
         // Step 13. Re-enable all disabled controller services
         final CancellableTimedPause enableServicesPause = new CancellableTimedPause(250, Long.MAX_VALUE, TimeUnit.MILLISECONDS);
         asyncRequest.setCancelCallback(enableServicesPause::cancel);
@@ -1020,6 +1010,7 @@ public class ParameterContextResource extends ApplicationResource {
 
         try {
             componentLifecycle.activateControllerServices(uri, "root", servicesToEnable, ControllerServiceState.ENABLED, enableServicesPause, InvalidComponentAction.SKIP);
+            asyncRequest.markStepComplete();
         } catch (final IllegalStateException ise) {
             // Component Lifecycle will re-enable the Controller Services only if they are valid. If IllegalStateException gets thrown, we need to provide
             // a more intelligent error message as to exactly what happened, rather than indicate that the Parameter Context could not be updated.
