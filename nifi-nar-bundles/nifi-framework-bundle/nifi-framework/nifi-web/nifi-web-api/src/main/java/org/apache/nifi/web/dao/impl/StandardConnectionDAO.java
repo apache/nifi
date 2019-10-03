@@ -25,14 +25,15 @@ import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
-import org.apache.nifi.controller.queue.LoadBalanceCompression;
+import org.apache.nifi.controller.queue.DropFlowFileStatus;
+import org.apache.nifi.controller.queue.AbstractFlowFileQueue;
+import org.apache.nifi.controller.queue.FlowFileQueue;
+import org.apache.nifi.controller.queue.ListFlowFileStatus;
 import org.apache.nifi.controller.queue.LoadBalanceStrategy;
+import org.apache.nifi.controller.queue.LoadBalanceCompression;
 import org.apache.nifi.connectable.Position;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.exception.ValidationException;
-import org.apache.nifi.controller.queue.DropFlowFileStatus;
-import org.apache.nifi.controller.queue.FlowFileQueue;
-import org.apache.nifi.controller.queue.ListFlowFileStatus;
 import org.apache.nifi.controller.repository.ContentNotFoundException;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
@@ -64,6 +65,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
+import java.util.stream.Collectors;
 
 public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO {
 
@@ -101,16 +103,14 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
     }
 
     @Override
-    public DropFlowFileStatus getFlowFileDropRequest(String connectionId, String dropRequestId) {
-        final Connection connection = locateConnection(connectionId);
-        final FlowFileQueue queue = connection.getFlowFileQueue();
+    public Set<? extends DropFlowFileStatus> getFlowFileDropRequest(String dropRequestId) {
+        Set<? extends DropFlowFileStatus> dropFlowFileStatuses = AbstractFlowFileQueue.getDropFlowFileStatuses(dropRequestId);
 
-        final DropFlowFileStatus dropRequest = queue.getDropFlowFileStatus(dropRequestId);
-        if (dropRequest == null) {
+        if(dropFlowFileStatuses == null) {
             throw new ResourceNotFoundException(String.format("Unable to find drop request with id '%s'.", dropRequestId));
         }
 
-        return dropRequest;
+        return dropFlowFileStatuses;
     }
 
     @Override
@@ -338,16 +338,18 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
     }
 
     @Override
-    public DropFlowFileStatus createFlowFileDropRequest(String id, String dropRequestId) {
-        final Connection connection = locateConnection(id);
-        final FlowFileQueue queue = connection.getFlowFileQueue();
-
+    public Set<DropFlowFileStatus> createFlowFileDropRequest(Set<String> connectionIds, String dropRequestId) {
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
         if (user == null) {
             throw new WebApplicationException(new Throwable("Unable to access details for current user."));
         }
 
-        return queue.dropFlowFiles(dropRequestId, user.getIdentity());
+        return AbstractFlowFileQueue.dropFlowFiles(
+                connectionIds.stream()
+                        .map(id -> locateConnection(id).getFlowFileQueue())
+                        .collect(Collectors.toSet()),
+                dropRequestId,
+                user.getIdentity());
     }
 
     @Override
@@ -619,16 +621,14 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
     }
 
     @Override
-    public DropFlowFileStatus deleteFlowFileDropRequest(String connectionId, String dropRequestId) {
-        final Connection connection = locateConnection(connectionId);
-        final FlowFileQueue queue = connection.getFlowFileQueue();
+    public Set<? extends DropFlowFileStatus> deleteFlowFileDropRequest(String dropRequestId) {
+        final Set<? extends DropFlowFileStatus> dropFlowFileStatuses = AbstractFlowFileQueue.cancelMultiQueueDropFlowFileRequest(dropRequestId);
 
-        final DropFlowFileStatus dropFlowFileStatus = queue.cancelDropFlowFileRequest(dropRequestId);
-        if (dropFlowFileStatus == null) {
+        if (dropFlowFileStatuses == null) {
             throw new ResourceNotFoundException(String.format("Unable to find drop request with id '%s'.", dropRequestId));
         }
 
-        return dropFlowFileStatus;
+        return dropFlowFileStatuses;
     }
 
     @Override

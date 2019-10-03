@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
+import javafx.util.Pair;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -84,17 +85,17 @@ import org.apache.nifi.controller.Snippet;
 import org.apache.nifi.controller.Template;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.label.Label;
-import org.apache.nifi.controller.queue.DropFlowFileState;
+import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.queue.DropFlowFileStatus;
-import org.apache.nifi.controller.queue.FlowFileQueue;
+import org.apache.nifi.controller.queue.DropFlowFileState;
 import org.apache.nifi.controller.queue.FlowFileSummary;
 import org.apache.nifi.controller.queue.ListFlowFileState;
 import org.apache.nifi.controller.queue.ListFlowFileStatus;
+import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.queue.LoadBalanceStrategy;
 import org.apache.nifi.controller.queue.LocalQueuePartitionDiagnostics;
-import org.apache.nifi.controller.queue.QueueDiagnostics;
-import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.queue.RemoteQueuePartitionDiagnostics;
+import org.apache.nifi.controller.queue.QueueDiagnostics;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaim;
@@ -529,7 +530,7 @@ public final class DtoFactory {
         dto.setSubmissionTime(new Date(dropRequest.getRequestSubmissionTime()));
         dto.setLastUpdated(new Date(dropRequest.getLastUpdated()));
         dto.setState(dropRequest.getState().toString());
-        dto.setFailureReason(dropRequest.getFailureReason());
+        //dto.setFailureReason(dropRequest.getFailureReason());
         dto.setFinished(isDropRequestComplete(dropRequest.getState()));
 
         final QueueSize dropped = dropRequest.getDroppedSize();
@@ -548,6 +549,77 @@ public final class DtoFactory {
         dto.setOriginal(FormatUtils.formatCount(original.getObjectCount()) + " / " + FormatUtils.formatDataSize(original.getByteCount()));
 
         if (isDropRequestComplete(dropRequest.getState())) {
+            dto.setPercentCompleted(100);
+        } else {
+            dto.setPercentCompleted((dropped.getObjectCount() * 100) / original.getObjectCount());
+        }
+
+        return dto;
+    }
+
+    /**
+     * Creates a DropRequestDTO from the specified flow file statuses.
+     *
+     * @param dropRequestId the dropRequest id
+     * @param dropRequests dropRequests
+     * @return dto
+     */
+    public DropRequestDTO createDropRequestDTO(final String dropRequestId, final Set<? extends DropFlowFileStatus> dropRequests) {
+        final DropRequestDTO dto = new DropRequestDTO();
+        dto.setId(dropRequestId);
+        dto.setSubmissionTime(new Date(dropRequests.stream()
+                .mapToLong(DropFlowFileStatus::getRequestSubmissionTime)
+                .min()
+                .orElseGet(() -> new Date().getTime()))
+        );
+        dto.setLastUpdated(new Date(dropRequests.stream()
+                .mapToLong(DropFlowFileStatus::getLastUpdated)
+                .max()
+                .orElseGet(() -> dto.getSubmissionTime().getTime()))
+        );
+        //dto.setState(dropRequest.getState().toString());
+        dto.setFailureReasons(dropRequests.stream()
+                .filter(dropRequest -> dropRequest.getFailureReason() != null)
+                .map(dropRequest -> {
+                    return new Pair<>(dropRequest.getConnectionIdentifier(),dropRequest.getFailureReason()); })
+                .collect(Collectors.toList())
+        );
+        dto.setFinished(isDropRequestComplete(
+                dropRequests.stream()
+                    .map(DropFlowFileStatus::getState)
+                    .reduce(DropFlowFileState.COMPLETE,(a,b) -> {
+                        if (!isDropRequestComplete(a)) {
+                            return a;
+                        }
+                        if (!isDropRequestComplete(b)) {
+                            return b;
+                        }
+                        return DropFlowFileState.COMPLETE;
+                    })
+        ));
+
+        final QueueSize dropped = dropRequests.stream()
+                .map(DropFlowFileStatus::getDroppedSize)
+                .reduce(new QueueSize(0,0), (a,b) -> a.add(b));
+        dto.setDroppedCount(dropped.getObjectCount());
+        dto.setDroppedSize(dropped.getByteCount());
+        dto.setDropped(FormatUtils.formatCount(dropped.getObjectCount()) + " / " + FormatUtils.formatDataSize(dropped.getByteCount()));
+
+        final QueueSize current = dropRequests.stream()
+                .map(DropFlowFileStatus::getCurrentSize)
+                .reduce(new QueueSize(0,0), (a,b) -> a.add(b));
+        dto.setCurrentCount(current.getObjectCount());
+        dto.setCurrentSize(current.getByteCount());
+        dto.setCurrent(FormatUtils.formatCount(current.getObjectCount()) + " / " + FormatUtils.formatDataSize(current.getByteCount()));
+
+        final QueueSize original = dropRequests.stream()
+                .map(DropFlowFileStatus::getOriginalSize)
+                .reduce(new QueueSize(0,0), (a,b) -> a.add(b));
+        dto.setOriginalCount(original.getObjectCount());
+        dto.setOriginalSize(original.getByteCount());
+        dto.setOriginal(FormatUtils.formatCount(original.getObjectCount()) + " / " + FormatUtils.formatDataSize(original.getByteCount()));
+
+        if (dto.isFinished()) {
             dto.setPercentCompleted(100);
         } else {
             dto.setPercentCompleted((dropped.getObjectCount() * 100) / original.getObjectCount());

@@ -23,6 +23,7 @@ import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import io.swagger.annotations.Authorization;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.ConnectionAuthorizable;
 import org.apache.nifi.authorization.RequestAction;
@@ -33,15 +34,17 @@ import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.web.DownloadableContent;
 import org.apache.nifi.web.NiFiServiceFacade;
+import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.api.dto.DropRequestDTO;
 import org.apache.nifi.web.api.dto.FlowFileDTO;
 import org.apache.nifi.web.api.dto.FlowFileSummaryDTO;
 import org.apache.nifi.web.api.dto.ListingRequestDTO;
-import org.apache.nifi.web.api.entity.ConnectionEntity;
-import org.apache.nifi.web.api.entity.DropRequestEntity;
 import org.apache.nifi.web.api.entity.Entity;
 import org.apache.nifi.web.api.entity.FlowFileEntity;
 import org.apache.nifi.web.api.entity.ListingRequestEntity;
+import org.apache.nifi.web.api.entity.ConnectionEntity;
+import org.apache.nifi.web.api.entity.ConnectionsEntity;
+import org.apache.nifi.web.api.entity.DropRequestEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
 
 import javax.servlet.http.HttpServletRequest;
@@ -65,6 +68,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.Map;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * RESTful endpoint for managing a flowfile queue.
@@ -509,20 +518,22 @@ public class FlowFileQueueResource extends ApplicationResource {
     }
 
     /**
-     * Creates a request to delete the flowfiles in the queue of the specified connection.
+     * "Creates a request to drop the flowfiles in the specified components (queues and/or process groups)."
      *
      * @param httpServletRequest request
-     * @param id                 The id of the connection
+     * @param isRecursive a boolean indicating if the specified process groups should be emptied recursively or not
+     * @param componentsToEmpty the request body containing a set of components (queues and/or process groups) to empty
      * @return A dropRequestEntity
      */
     @POST
-    @Consumes(MediaType.WILDCARD)
+    @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    @Path("{id}/drop-requests")
+    @Path("drop-requests/{is-recursive}")
     @ApiOperation(
-            value = "Creates a request to drop the contents of the queue in this connection.",
+            value = "Creates a request to drop the flowfiles in the specified components (queues and/or process groups).",
             response = DropRequestEntity.class,
             authorizations = {
+                    @Authorization(value = "Read - /process-groups/{uuid}"),
                     @Authorization(value = "Write Source Data - /data/{component-type}/{uuid}")
             }
     )
@@ -536,41 +547,147 @@ public class FlowFileQueueResource extends ApplicationResource {
                     @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
             }
     )
-    public Response createDropRequest(
+    public Response createProcessGroupsDropRequest(
             @Context final HttpServletRequest httpServletRequest,
             @ApiParam(
-                    value = "The connection id.",
+                    value = "Indicates if the emptying process is recursive or not.",
                     required = true
             )
-            @PathParam("id") final String id) {
+            @PathParam("is-recursive") final Boolean isRecursive,
+            @ApiParam(
+                    value = "The list of components (queues and/or process groups) to empty.",
+                    required = true
+            ) final ComponentsToEmpty componentsToEmpty) {
 
+        if(componentsToEmpty == null || componentsToEmpty.getComponentsToEmpty().size() == 0) {
+            throw new IllegalArgumentException("The payload must include at least a queue or process group to be emptied.");
+        }
+
+        // for each process group, we need to authorize access to it, get its connections and authorize for all of them, finally get its sub process groups and
+        // repeat the whole process for each retrieved one. Connections with access authorization are added to the list of connections to empty.
+        class ConnectionsCollector {
+            private final Set<ConnectionEntity> connections = new HashSet<>();
+            private final boolean isRecursive;
+            private final List<DropRequestEntity.ComponentError> componentErrors;
+
+            public ConnectionsCollector(Set<String> processGroupIds, boolean isRecursive, List<DropRequestEntity.ComponentError> componentErrors) {
+                this.isRecursive = isRecursive;
+                this.componentErrors = componentErrors;
+                getConnections(processGroupIds);
+            }
+
+            public Set<ConnectionEntity> getConnections() {
+                return connections;
+            }
+
+            private void getConnections(Set<String> processGroupIds) {
+                processGroupIds.forEach(this::getConnections);
+            }
+
+            private void getConnections(String processGroupId) {
+                //authorize the process group
+                try {
+                    serviceFacade.authorizeAccess(lookup -> {
+                        final Authorizable processGroup = lookup.getProcessGroup(processGroupId).getAuthorizable();
+                        processGroup.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+                    });
+                } catch (ResourceNotFoundException | AccessDeniedException e) {
+                    componentErrors.add(new DropRequestEntity.ComponentError(
+                            processGroupId,
+                            "ProcessGroup",
+                            e.getMessage() != null ? e.getMessage() : "")
+                    );
+                    return;
+                }
+                //authorize each process group connection and collect it if authorization pass
+                serviceFacade.getConnections(processGroupId).forEach(connectionEntity -> {
+                    try {
+                        serviceFacade.authorizeAccess(lookup -> {
+                            final ConnectionAuthorizable connAuth = lookup.getConnection(connectionEntity.getId());
+                            final Authorizable dataAuthorizable = connAuth.getSourceData();
+                            dataAuthorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                        });
+                        connections.add(connectionEntity);
+                    } catch (ResourceNotFoundException | AccessDeniedException e) {
+                        componentErrors.add(new DropRequestEntity.ComponentError(
+                                connectionEntity.getId(),
+                                "Queue",
+                                e.getMessage() != null ? e.getMessage() : "")
+                        );
+                    }
+                });
+                //repeat the process for all sub process groups recursively if isRecursive is true
+                if(isRecursive) {
+                    serviceFacade.getProcessGroups(processGroupId).forEach(processGroupEntity -> getConnections(processGroupEntity.getId()));
+                }
+            }
+        }
+
+        //check if the request must be replicated to other cluster nodes
         if (isReplicateRequest()) {
             return replicate(HttpMethod.POST);
         }
 
-        final ConnectionEntity requestConnectionEntity = new ConnectionEntity();
-        requestConnectionEntity.setId(id);
+        List<DropRequestEntity.ComponentError> componentErrors = new ArrayList<>();
+
+        //collect the connections
+        ConnectionsEntity connectionsEntity = new ConnectionsEntity();
+        connectionsEntity.setConnections(
+                    new ConnectionsCollector(
+                        componentsToEmpty.getComponentsToEmpty().entrySet().stream()
+                            .filter(entry -> entry.getValue())
+                            .map(entry -> entry.getKey())
+                            .collect(Collectors.toSet()),
+                        isRecursive,
+                        componentErrors
+                    ).getConnections()
+        );
+        connectionsEntity.getConnections().addAll(
+                componentsToEmpty.getComponentsToEmpty().entrySet().stream()
+                .filter(entry -> !entry.getValue())
+                .map(entry -> {
+                    ConnectionEntity connectionEntity = null;
+                    try {
+                        serviceFacade.authorizeAccess(lookup -> {
+                            final ConnectionAuthorizable connAuth = lookup.getConnection(entry.getKey());
+                            final Authorizable dataAuthorizable = connAuth.getSourceData();
+                            dataAuthorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                        });
+                        connectionEntity = serviceFacade.getConnection(entry.getKey());
+                    } catch (ResourceNotFoundException | AccessDeniedException e) {
+                        componentErrors.add(new DropRequestEntity.ComponentError(
+                                entry.getKey(),
+                                "Queue",
+                                e.getMessage() != null ? e.getMessage() : "")
+                        );
+                    }
+                    return connectionEntity;
+                })
+                .filter(connectionEntity -> connectionEntity != null)
+                .collect(Collectors.toSet())
+        );
 
         return withWriteLock(
                 serviceFacade,
-                requestConnectionEntity,
-                lookup -> {
-                    final ConnectionAuthorizable connAuth = lookup.getConnection(id);
-                    final Authorizable dataAuthorizable = connAuth.getSourceData();
-                    dataAuthorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
-                },
+                connectionsEntity,
                 null,
-                (connectionEntity) -> {
+                null,
+                (connectionEntities) -> {
                     // ensure the id is the same across the cluster
                     final String dropRequestId = generateUuid();
 
                     // submit the drop request
-                    final DropRequestDTO dropRequest = serviceFacade.createFlowFileDropRequest(connectionEntity.getId(), dropRequestId);
-                    dropRequest.setUri(generateResourceUri("flowfile-queues", connectionEntity.getId(), "drop-requests", dropRequest.getId()));
+                    final DropRequestDTO dropRequest = serviceFacade.createFlowFileDropRequest(
+                            connectionEntities.getConnections().stream()
+                                    .map(ConnectionEntity::getId)
+                                    .collect(Collectors.toSet()),
+                            dropRequestId);
+                    dropRequest.setUri(generateResourceUri("flowfile-queues", "drop-requests", dropRequest.getId()));
 
                     // create the response entity
                     final DropRequestEntity entity = new DropRequestEntity();
                     entity.setDropRequest(dropRequest);
+                    entity.setComponentErrors(componentErrors);
 
                     // generate the URI where the response will be
                     final URI location = URI.create(dropRequest.getUri());
@@ -582,14 +699,13 @@ public class FlowFileQueueResource extends ApplicationResource {
     /**
      * Checks the status of an outstanding drop request.
      *
-     * @param connectionId  The id of the connection
      * @param dropRequestId The id of the drop request
      * @return A dropRequestEntity
      */
     @GET
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
-    @Path("{id}/drop-requests/{drop-request-id}")
+    @Path("drop-requests/{drop-request-id}")
     @ApiOperation(
             value = "Gets the current status of a drop request for the specified connection.",
             response = DropRequestEntity.class,
@@ -608,11 +724,6 @@ public class FlowFileQueueResource extends ApplicationResource {
     )
     public Response getDropRequest(
             @ApiParam(
-                    value = "The connection id.",
-                    required = true
-            )
-            @PathParam("id") final String connectionId,
-            @ApiParam(
                     value = "The drop request id.",
                     required = true
             )
@@ -622,16 +733,9 @@ public class FlowFileQueueResource extends ApplicationResource {
             return replicate(HttpMethod.GET);
         }
 
-        // authorize access
-        serviceFacade.authorizeAccess(lookup -> {
-            final ConnectionAuthorizable connAuth = lookup.getConnection(connectionId);
-            final Authorizable dataAuthorizable = connAuth.getSourceData();
-            dataAuthorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
-        });
-
         // get the drop request
-        final DropRequestDTO dropRequest = serviceFacade.getFlowFileDropRequest(connectionId, dropRequestId);
-        dropRequest.setUri(generateResourceUri("flowfile-queues", connectionId, "drop-requests", dropRequestId));
+        final DropRequestDTO dropRequest = serviceFacade.getFlowFileDropRequest(dropRequestId);
+        dropRequest.setUri(generateResourceUri("flowfile-queues", "drop-requests", dropRequestId));
 
         // create the response entity
         final DropRequestEntity entity = new DropRequestEntity();
@@ -644,16 +748,15 @@ public class FlowFileQueueResource extends ApplicationResource {
      * Deletes the specified drop request.
      *
      * @param httpServletRequest request
-     * @param connectionId       The connection id
      * @param dropRequestId      The drop request id
      * @return A dropRequestEntity
      */
     @DELETE
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
-    @Path("{id}/drop-requests/{drop-request-id}")
+    @Path("drop-requests/{drop-request-id}")
     @ApiOperation(
-            value = "Cancels and/or removes a request to drop the contents of this connection.",
+            value = "Cancels and/or removes a request to drop the contents of the connections the drop request refers to.",
             response = DropRequestEntity.class,
             authorizations = {
                     @Authorization(value = "Write Source Data - /data/{component-type}/{uuid}")
@@ -671,11 +774,6 @@ public class FlowFileQueueResource extends ApplicationResource {
     public Response removeDropRequest(
             @Context final HttpServletRequest httpServletRequest,
             @ApiParam(
-                    value = "The connection id.",
-                    required = true
-            )
-            @PathParam("id") final String connectionId,
-            @ApiParam(
                     value = "The drop request id.",
                     required = true
             )
@@ -687,17 +785,13 @@ public class FlowFileQueueResource extends ApplicationResource {
 
         return withWriteLock(
                 serviceFacade,
-                new DropEntity(connectionId, dropRequestId),
-                lookup -> {
-                    final ConnectionAuthorizable connAuth = lookup.getConnection(connectionId);
-                    final Authorizable dataAuthorizable = connAuth.getSourceData();
-                    dataAuthorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
-                },
+                new DropEntity(dropRequestId),
+                null,
                 null,
                 (dropEntity) -> {
                     // delete the drop request
-                    final DropRequestDTO dropRequest = serviceFacade.deleteFlowFileDropRequest(dropEntity.getConnectionId(), dropEntity.getDropRequestId());
-                    dropRequest.setUri(generateResourceUri("flowfile-queues", dropEntity.getConnectionId(), "drop-requests", dropEntity.getDropRequestId()));
+                    final DropRequestDTO dropRequest = serviceFacade.deleteFlowFileDropRequest(dropEntity.getDropRequestId());
+                    dropRequest.setUri(generateResourceUri("flowfile-queues", "drop-requests", dropEntity.getDropRequestId()));
 
                     // create the response entity
                     final DropRequestEntity entity = new DropRequestEntity();
@@ -709,20 +803,26 @@ public class FlowFileQueueResource extends ApplicationResource {
     }
 
     private static class DropEntity extends Entity {
-        final String connectionId;
         final String dropRequestId;
 
-        public DropEntity(String connectionId, String dropRequestId) {
-            this.connectionId = connectionId;
+        public DropEntity(String dropRequestId) {
             this.dropRequestId = dropRequestId;
-        }
-
-        public String getConnectionId() {
-            return connectionId;
         }
 
         public String getDropRequestId() {
             return dropRequestId;
+        }
+    }
+
+    private static class ComponentsToEmpty extends Entity {
+        private Map<String,Boolean> componentsToEmpty;
+
+        public Map<String,Boolean> getComponentsToEmpty() {
+            return componentsToEmpty;
+        }
+
+        public void setComponentsToEmpty(Map<String,Boolean> componentsToEmpty) {
+            this.componentsToEmpty = componentsToEmpty;
         }
     }
 

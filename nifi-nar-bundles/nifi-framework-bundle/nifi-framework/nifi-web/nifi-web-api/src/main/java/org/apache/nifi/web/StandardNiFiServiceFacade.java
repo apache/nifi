@@ -24,19 +24,20 @@ import org.apache.nifi.action.FlowChangeAction;
 import org.apache.nifi.action.Operation;
 import org.apache.nifi.action.details.FlowChangePurgeDetails;
 import org.apache.nifi.admin.service.AuditService;
-import org.apache.nifi.authorization.AccessDeniedException;
-import org.apache.nifi.authorization.AccessPolicy;
 import org.apache.nifi.authorization.AuthorizableLookup;
-import org.apache.nifi.authorization.AuthorizationRequest;
-import org.apache.nifi.authorization.AuthorizationResult;
-import org.apache.nifi.authorization.AuthorizationResult.Result;
 import org.apache.nifi.authorization.AuthorizeAccess;
+import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.Group;
-import org.apache.nifi.authorization.RequestAction;
+import org.apache.nifi.authorization.AccessPolicy;
+import org.apache.nifi.authorization.ConnectionAuthorizable;
 import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.User;
+import org.apache.nifi.authorization.AuthorizationResult;
+import org.apache.nifi.authorization.AuthorizationRequest;
 import org.apache.nifi.authorization.UserContextKeys;
+import org.apache.nifi.authorization.AccessDeniedException;
+import org.apache.nifi.authorization.AuthorizationResult.Result;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.EnforcePolicyPermissionsThroughBaseResource;
 import org.apache.nifi.authorization.resource.OperationAuthorizable;
@@ -80,6 +81,7 @@ import org.apache.nifi.controller.Template;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.leader.election.LeaderElectionManager;
+import org.apache.nifi.controller.queue.DropFlowFileStatus;
 import org.apache.nifi.controller.repository.claim.ContentDirection;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceReference;
@@ -1547,8 +1549,19 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public DropRequestDTO deleteFlowFileDropRequest(final String connectionId, final String dropRequestId) {
-        return dtoFactory.createDropRequestDTO(connectionDAO.deleteFlowFileDropRequest(connectionId, dropRequestId));
+    public DropRequestDTO deleteFlowFileDropRequest(final String dropRequestId) {
+        Set<? extends DropFlowFileStatus> dropFlowFileStatuses = connectionDAO.deleteFlowFileDropRequest(dropRequestId);
+
+        // authorize access to all connections
+        dropFlowFileStatuses.forEach(dropFlowFileStatus ->
+                authorizeAccess(lookup -> {
+                    final ConnectionAuthorizable connAuth = lookup.getConnection(dropFlowFileStatus.getConnectionIdentifier());
+                    final Authorizable dataAuthorizable = connAuth.getSourceData();
+                    dataAuthorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                })
+        );
+
+        return dtoFactory.createDropRequestDTO(dropRequestId, dropFlowFileStatuses);
     }
 
     @Override
@@ -1947,8 +1960,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public DropRequestDTO createFlowFileDropRequest(final String connectionId, final String dropRequestId) {
-        return dtoFactory.createDropRequestDTO(connectionDAO.createFlowFileDropRequest(connectionId, dropRequestId));
+    public DropRequestDTO createFlowFileDropRequest(final Set<String> connectionIds, final String dropRequestId) {
+        return dtoFactory.createDropRequestDTO(dropRequestId, connectionDAO.createFlowFileDropRequest(connectionIds,dropRequestId));
     }
 
     @Override
@@ -3193,8 +3206,19 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public DropRequestDTO getFlowFileDropRequest(final String connectionId, final String dropRequestId) {
-        return dtoFactory.createDropRequestDTO(connectionDAO.getFlowFileDropRequest(connectionId, dropRequestId));
+    public DropRequestDTO getFlowFileDropRequest(final String dropRequestId) {
+        Set<? extends DropFlowFileStatus> dropFlowFileStatuses = connectionDAO.getFlowFileDropRequest(dropRequestId);
+
+        // authorize access to all connections
+        dropFlowFileStatuses.forEach(dropFlowFileStatus ->
+                authorizeAccess(lookup -> {
+                    final ConnectionAuthorizable connAuth = lookup.getConnection(dropFlowFileStatus.getConnectionIdentifier());
+                    final Authorizable dataAuthorizable = connAuth.getSourceData();
+                    dataAuthorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                })
+        );
+
+        return dtoFactory.createDropRequestDTO(dropRequestId, dropFlowFileStatuses);
     }
 
     @Override

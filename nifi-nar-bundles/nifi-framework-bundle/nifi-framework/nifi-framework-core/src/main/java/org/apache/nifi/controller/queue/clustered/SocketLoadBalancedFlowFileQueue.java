@@ -1009,7 +1009,9 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
 
             try {
                 for (final QueuePartition partition : queuePartitions) {
-                    final DropFlowFileRequest partitionRequest = new DropFlowFileRequest(dropRequest.getRequestIdentifier() + "-" + localPartition.getNodeIdentifier());
+                    final DropFlowFileRequest partitionRequest = new DropFlowFileRequest(
+                            dropRequest.getRequestIdentifier() + "-" + localPartition.getNodeIdentifier(),
+                            dropRequest.getConnectionIdentifier());
 
                     partition.dropFlowFiles(partitionRequest, requestor);
 

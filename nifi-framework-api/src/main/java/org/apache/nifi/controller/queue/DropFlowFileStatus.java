@@ -37,6 +37,11 @@ public interface DropFlowFileStatus {
     String getRequestIdentifier();
 
     /**
+     * @return the identifier of the Connection the drop request refers to
+     */
+    String getConnectionIdentifier();
+
+    /**
      * @return the date/time (in milliseconds since epoch) at which the request to
      *         drop the FlowFiles from a queue was submitted
      */

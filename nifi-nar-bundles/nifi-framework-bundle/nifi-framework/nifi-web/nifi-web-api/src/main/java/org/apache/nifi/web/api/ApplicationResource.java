@@ -742,7 +742,9 @@ public abstract class ApplicationResource {
         if (isTwoPhaseRequest(httpServletRequest)) {
             if (isValidationPhase(httpServletRequest)) {
                 // authorize access
-                serviceFacade.authorizeAccess(authorizer);
+                if(authorizer != null) {
+                    serviceFacade.authorizeAccess(authorizer);
+                }
 
                 // verify if necessary
                 if (verifier != null) {
@@ -765,7 +767,9 @@ public abstract class ApplicationResource {
             }
         } else {
             // authorize access
-            serviceFacade.authorizeAccess(authorizer);
+            if(authorizer != null) {
+                serviceFacade.authorizeAccess(authorizer);
+            }
 
             // verify if necessary
             if (verifier != null) {

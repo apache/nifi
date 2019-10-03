@@ -17,11 +17,13 @@
 package org.apache.nifi.web.api.dto;
 
 import io.swagger.annotations.ApiModelProperty;
+import javafx.util.Pair;
 import org.apache.nifi.web.api.dto.util.TimestampAdapter;
 
 import javax.xml.bind.annotation.XmlType;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import java.util.Date;
+import java.util.List;
 
 /**
  * A request to drop the contents of a connection.
@@ -37,7 +39,7 @@ public class DropRequestDTO {
 
     private Integer percentCompleted;
     private Boolean finished;
-    private String failureReason;
+    private List<Pair<String,String>> failureReasons;
 
     private Integer currentCount;
     private Long currentSize;
@@ -133,12 +135,12 @@ public class DropRequestDTO {
     @ApiModelProperty(
         value = "The reason, if any, that this drop request failed."
     )
-    public String getFailureReason() {
-        return failureReason;
+    public List<Pair<String, String>> getFailureReasons() {
+        return failureReasons;
     }
 
-    public void setFailureReason(String failureReason) {
-        this.failureReason = failureReason;
+    public void setFailureReasons(List<Pair<String, String>> failureReasons) {
+        this.failureReasons = failureReasons;
     }
 
     /**

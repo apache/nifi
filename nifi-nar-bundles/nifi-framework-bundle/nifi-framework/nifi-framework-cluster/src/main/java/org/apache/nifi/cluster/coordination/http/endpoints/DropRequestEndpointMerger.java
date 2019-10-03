@@ -18,10 +18,12 @@
 package org.apache.nifi.cluster.coordination.http.endpoints;
 
 import java.net.URI;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+import javafx.util.Pair;
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.controller.queue.DropFlowFileState;
@@ -66,15 +68,15 @@ public class DropRequestEndpointMerger extends AbstractSingleDTOEndpoint<DropReq
 
         DropFlowFileState state = null;
         boolean allFinished = true;
-        String failureReason = null;
+        List<Pair<String, String>> failureReason = null;
         for (final Map.Entry<NodeIdentifier, DropRequestDTO> nodeEntry : dtoMap.entrySet()) {
             final DropRequestDTO nodeDropRequest = nodeEntry.getValue();
 
             if (!nodeDropRequest.isFinished()) {
                 allFinished = false;
             }
-            if (nodeDropRequest.getFailureReason() != null) {
-                failureReason = nodeDropRequest.getFailureReason();
+            if (nodeDropRequest.getFailureReasons() != null) {
+                failureReason = nodeDropRequest.getFailureReasons();
             }
 
             currentCount += nodeDropRequest.getCurrentCount();
@@ -104,7 +106,7 @@ public class DropRequestEndpointMerger extends AbstractSingleDTOEndpoint<DropReq
         clientDto.setDropped(FormatUtils.formatCount(droppedCount) + " / " + FormatUtils.formatDataSize(droppedSize));
 
         clientDto.setFinished(allFinished);
-        clientDto.setFailureReason(failureReason);
+        clientDto.setFailureReasons(failureReason);
         if (originalCount == 0) {
             clientDto.setPercentCompleted(allFinished ? 100 : 0);
         } else {

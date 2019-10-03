@@ -46,11 +46,10 @@ public interface ConnectionDAO {
     /**
      * Gets the specified flow file drop request.
      *
-     * @param id The id of the connection
      * @param dropRequestId The drop request id
-     * @return The drop request status
+     * @return The drop request statuses
      */
-    DropFlowFileStatus getFlowFileDropRequest(String id, String dropRequestId);
+    Set<? extends DropFlowFileStatus> getFlowFileDropRequest(String dropRequestId);
 
     /**
      * Gets the specified flowfile listing request.
@@ -88,13 +87,13 @@ public interface ConnectionDAO {
     Connection createConnection(String groupId, ConnectionDTO connectionDTO);
 
     /**
-     * Creates a new flow file drop request.
+     * Creates a new flow file drop request for multiple connections.
      *
-     * @param id connection id
+     * @param connectionIds connection ids
      * @param dropRequestId drop request id
-     * @return The drop request status
+     * @return The drop request statuses
      */
-    DropFlowFileStatus createFlowFileDropRequest(String id, String dropRequestId);
+    Set<DropFlowFileStatus> createFlowFileDropRequest(Set<String> connectionIds, String dropRequestId);
 
     /**
      * Creates a new flow file listing request.
@@ -152,11 +151,10 @@ public interface ConnectionDAO {
     /**
      * Deletes the specified flow file drop request.
      *
-     * @param id The id of the connection
      * @param dropRequestId The drop request id
-     * @return The drop request
+     * @return The drop requests
      */
-    DropFlowFileStatus deleteFlowFileDropRequest(String id, String dropRequestId);
+    Set<? extends DropFlowFileStatus> deleteFlowFileDropRequest(String dropRequestId);
 
     /**
      * Deletes the specified flow file listing request.

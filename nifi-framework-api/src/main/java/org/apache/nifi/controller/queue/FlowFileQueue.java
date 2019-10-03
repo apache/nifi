@@ -164,16 +164,17 @@ public interface FlowFileQueue {
      * methods in order to obtain the status later or cancel a request
      *
      * @param requestIdentifier the identifier of the Drop FlowFile Request
+     * @param connectionIdentifier the identifier of the connection this drop request refers to
      * @param requestor the entity that is requesting that the FlowFiles be dropped; this will be
      *            included in the Provenance Events that are generated.
      *
      * @return the status of the drop request.
      */
-    DropFlowFileStatus dropFlowFiles(String requestIdentifier, String requestor);
+    DropFlowFileStatus dropFlowFiles(String requestIdentifier, String connectionIdentifier, String requestor);
 
     /**
      * Returns the current status of a Drop FlowFile Request that was initiated via the
-     * {@link #dropFlowFiles(String, String)} method that has the given identifier
+     * {@link #dropFlowFiles(String, String, String)} method that has the given identifier
      *
      * @param requestIdentifier the identifier of the Drop FlowFile Request
      * @return the status for the request with the given identifier, or <code>null</code> if no

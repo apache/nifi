@@ -20,6 +20,8 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 import org.apache.nifi.web.api.dto.DropRequestDTO;
 
+import java.util.List;
+
 /**
  * A serialized representation of this class can be placed in the entity body of a request or response to or from the API. This particular entity holds a reference to a DropRequestDTO.
  */
@@ -27,6 +29,7 @@ import org.apache.nifi.web.api.dto.DropRequestDTO;
 public class DropRequestEntity extends Entity {
 
     private DropRequestDTO dropRequest;
+    private List<ComponentError> componentErrors;
 
     /**
      * The DropRequestDTO that is being serialized.
@@ -39,6 +42,57 @@ public class DropRequestEntity extends Entity {
 
     public void setDropRequest(DropRequestDTO dropRequest) {
         this.dropRequest = dropRequest;
+    }
+
+    /**
+     * The list of component errors (component not found, authorization failed, ecc)
+     *
+     * @return The DropRequestDTO object
+     */
+    public List<ComponentError> getComponentErrors() {
+        return componentErrors;
+    }
+
+    public void setComponentErrors(List<ComponentError> componentErrors) {
+        this.componentErrors = componentErrors;
+    }
+
+    public static class ComponentError {
+        private String componentId;
+        private String componentType;
+        private String errorMessage;
+
+        public ComponentError() {}
+
+        public ComponentError(String componentId, String componentType, String errorMessage) {
+            this.componentId = componentId;
+            this.componentType = componentType;
+            this.errorMessage = errorMessage;
+        }
+
+        public String getComponentId() {
+            return componentId;
+        }
+
+        public String getComponentType() {
+            return componentType;
+        }
+
+        public String getErrorMessage() {
+            return errorMessage;
+        }
+
+        public void setComponentId(String componentId) {
+            this.componentId = componentId;
+        }
+
+        public void setComponentType(String componentType) {
+            this.componentType = componentType;
+        }
+
+        public void setErrorMessage(String errorMessage) {
+            this.errorMessage = errorMessage;
+        }
     }
 
 }

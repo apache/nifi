@@ -36,14 +36,18 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Set;
+import java.util.HashSet;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.Map;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 public abstract class AbstractFlowFileQueue implements FlowFileQueue {
     private static final Logger logger = LoggerFactory.getLogger(AbstractFlowFileQueue.class);
@@ -58,6 +62,7 @@ public abstract class AbstractFlowFileQueue implements FlowFileQueue {
 
     private final ConcurrentMap<String, ListFlowFileRequest> listRequestMap = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, DropFlowFileRequest> dropRequestMap = new ConcurrentHashMap<>();
+    private static final ConcurrentMap<String, Set<DropFlowFileRequest>> multiQueueDropRequestMap = new ConcurrentHashMap<>();
 
     private LoadBalanceStrategy loadBalanceStrategy = LoadBalanceStrategy.DO_NOT_LOAD_BALANCE;
     private String partitioningAttribute = null;
@@ -250,7 +255,7 @@ public abstract class AbstractFlowFileQueue implements FlowFileQueue {
 
 
     @Override
-    public DropFlowFileStatus dropFlowFiles(final String requestIdentifier, final String requestor) {
+    public DropFlowFileStatus dropFlowFiles(final String requestIdentifier, final String connectionIdentifier, final String requestor) {
         logger.info("Initiating drop of FlowFiles from {} on behalf of {} (request identifier={})", this, requestor, requestIdentifier);
 
         // purge any old requests from the map just to keep it clean. But if there are very requests, which is usually the case, then don't bother
@@ -270,7 +275,7 @@ public abstract class AbstractFlowFileQueue implements FlowFileQueue {
             }
         }
 
-        final DropFlowFileRequest dropRequest = new DropFlowFileRequest(requestIdentifier);
+        final DropFlowFileRequest dropRequest = new DropFlowFileRequest(requestIdentifier, connectionIdentifier);
         final QueueSize originalSize = size();
         dropRequest.setCurrentSize(originalSize);
         dropRequest.setOriginalSize(originalSize);
@@ -295,6 +300,65 @@ public abstract class AbstractFlowFileQueue implements FlowFileQueue {
         return dropRequest;
     }
 
+    public static Set<DropFlowFileStatus> dropFlowFiles(final Set<FlowFileQueue> flowFileQueues, final String requestIdentifier, final String requestor) {
+        // purge any old requests from the map just to keep it clean. But if there are very requests, which is usually the case, then don't bother
+        if (multiQueueDropRequestMap.size() > 50) {
+            final Set<String> toDrop = new HashSet<>();
+
+            for (final Map.Entry<String, Set<DropFlowFileRequest>> entry : multiQueueDropRequestMap.entrySet()) {
+                final boolean completed = entry.getValue().stream()
+                        .allMatch(dropFlowFileRequest ->
+                                dropFlowFileRequest.getState() == DropFlowFileState.COMPLETE
+                                || dropFlowFileRequest.getState() == DropFlowFileState.FAILURE
+                        );
+
+                long lastUpdated = entry.getValue().stream()
+                        .max((Comparator.comparingLong(DropFlowFileStatus::getRequestSubmissionTime)))
+                        .get()
+                        .getLastUpdated();
+                if (completed && System.currentTimeMillis() - lastUpdated > TimeUnit.MINUTES.toMillis(5L)) {
+                    toDrop.add(entry.getKey());
+                }
+            }
+
+            for (final String requestId : toDrop) {
+                multiQueueDropRequestMap.remove(requestId);
+            }
+        }
+
+        multiQueueDropRequestMap.put(requestIdentifier,new HashSet<>());
+
+        return flowFileQueues.stream()
+                .map(flowFileQueue -> {
+                    logger.info("Initiating drop of FlowFiles from {} on behalf of {} (request identifier={})", flowFileQueue, requestor, requestIdentifier);
+
+                    final DropFlowFileRequest dropRequest = new DropFlowFileRequest(requestIdentifier, flowFileQueue.getIdentifier());
+                    final QueueSize originalSize = flowFileQueue.size();
+                    dropRequest.setCurrentSize(originalSize);
+                    dropRequest.setOriginalSize(originalSize);
+                    if (originalSize.getObjectCount() == 0) {
+                        dropRequest.setDroppedSize(originalSize);
+                        dropRequest.setState(DropFlowFileState.COMPLETE);
+                        multiQueueDropRequestMap.get(requestIdentifier).add(dropRequest);
+                        return dropRequest;
+                    }
+
+                    final Thread t = new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            ((AbstractFlowFileQueue)flowFileQueue).dropFlowFiles(dropRequest, requestor);
+                        }
+                    }, "Drop FlowFiles for Connection " + flowFileQueue.getIdentifier());
+                    t.setDaemon(true);
+                    t.start();
+
+                    multiQueueDropRequestMap.get(requestIdentifier).add(dropRequest);
+
+                    return dropRequest;
+                })
+                .collect(Collectors.toSet());
+    }
+
 
     @Override
     public DropFlowFileRequest cancelDropFlowFileRequest(final String requestIdentifier) {
@@ -307,9 +371,23 @@ public abstract class AbstractFlowFileQueue implements FlowFileQueue {
         return request;
     }
 
+    public static Set<DropFlowFileRequest> cancelMultiQueueDropFlowFileRequest(final String requestIdentifier) {
+        final Set<DropFlowFileRequest> requests = multiQueueDropRequestMap.remove(requestIdentifier);
+        if (requests == null) {
+            return null;
+        }
+
+        requests.forEach(DropFlowFileRequest::cancel);
+        return requests;
+    }
+
     @Override
     public DropFlowFileStatus getDropFlowFileStatus(final String requestIdentifier) {
         return dropRequestMap.get(requestIdentifier);
+    }
+
+    public static Set<? extends DropFlowFileStatus> getDropFlowFileStatuses(final String requestIdentifier) {
+        return multiQueueDropRequestMap.get(requestIdentifier);
     }
 
     /**
@@ -451,4 +529,5 @@ public abstract class AbstractFlowFileQueue implements FlowFileQueue {
     public synchronized LoadBalanceCompression getLoadBalanceCompression() {
         return compression;
     }
+
 }

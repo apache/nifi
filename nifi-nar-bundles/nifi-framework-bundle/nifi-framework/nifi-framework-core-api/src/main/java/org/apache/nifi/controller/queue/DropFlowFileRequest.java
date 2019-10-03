@@ -18,7 +18,8 @@
 package org.apache.nifi.controller.queue;
 
 public class DropFlowFileRequest implements DropFlowFileStatus {
-    private final String identifier;
+    private final String requestIdentifier;
+    private final String connectionIdentifier;
     private final long submissionTime = System.currentTimeMillis();
 
     private volatile QueueSize originalSize;
@@ -30,13 +31,19 @@ public class DropFlowFileRequest implements DropFlowFileStatus {
     private DropFlowFileState state = DropFlowFileState.WAITING_FOR_LOCK;
 
 
-    public DropFlowFileRequest(final String identifier) {
-        this.identifier = identifier;
+    public DropFlowFileRequest(final String requestIdentifier,final String connectionIdentifier) {
+        this.requestIdentifier = requestIdentifier;
+        this.connectionIdentifier = connectionIdentifier;
     }
 
     @Override
     public String getRequestIdentifier() {
-        return identifier;
+        return requestIdentifier;
+    }
+
+    @Override
+    public String getConnectionIdentifier() {
+        return connectionIdentifier;
     }
 
     @Override

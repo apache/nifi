@@ -722,31 +722,29 @@ public interface NiFiServiceFacade {
     ConnectionEntity deleteConnection(Revision revision, String connectionId);
 
     /**
-     * Creates a new flow file drop request.
+     * Creates a new set of flow file drop requests.
      *
-     * @param connectionId The ID of the connection
+     * @param connectionIds The IDs of the connections
      * @param dropRequestId The ID of the drop request
      * @return The DropRequest
      */
-    DropRequestDTO createFlowFileDropRequest(String connectionId, String dropRequestId);
+    DropRequestDTO createFlowFileDropRequest(Set<String> connectionIds, String dropRequestId);
 
     /**
      * Gets the specified flow file drop request.
      *
-     * @param connectionId The ID of the connection
      * @param dropRequestId The flow file drop request
      * @return The DropRequest
      */
-    DropRequestDTO getFlowFileDropRequest(String connectionId, String dropRequestId);
+    DropRequestDTO getFlowFileDropRequest(String dropRequestId);
 
     /**
      * Cancels/removes the specified flow file drop request.
      *
-     * @param connectionId The ID of the connection
      * @param dropRequestId The flow file drop request
      * @return The DropRequest
      */
-    DropRequestDTO deleteFlowFileDropRequest(String connectionId, String dropRequestId);
+    DropRequestDTO deleteFlowFileDropRequest(String dropRequestId);
 
     /**
      * Creates a new flow file listing request.
