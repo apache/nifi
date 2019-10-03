@@ -247,7 +247,7 @@
 
         // set the progress bar to a certain percentage
         var setProgressBar = function (percentComplete) {
-            if($("#drop-request-percent-complete .progress-label").length) {
+            if ($("#drop-request-percent-complete .progress-label").length) {
                 //set the request status text
                 $('#drop-request-status-message').text('');
 
@@ -261,7 +261,12 @@
             else {
                 var progressBar = $('#drop-request-percent-complete');
 
-                (nfNgBridge.injector.get('$compile')($('<md-progress-linear ng-cloak ng-value="' + percentComplete + '" class="md-hue-2" md-mode="determinate" aria-label="Drop request percent complete"></md-progress-linear>'))(nfNgBridge.rootScope)).appendTo(progressBar);
+                (nfNgBridge.injector.get('$compile')(
+                    $('<md-progress-linear ng-cloak ng-value="' +
+                        percentComplete +
+                        '" class="md-hue-2" md-mode="determinate" aria-label="Drop request percent complete"></md-progress-linear>'
+                    ))(nfNgBridge.rootScope))
+                    .appendTo(progressBar);
 
                 progressBar.append($('<div class="progress-label"></div>').text(percentComplete + '%'));
             }
@@ -274,7 +279,7 @@
             var droppedFlowfiles = 0;
             var totalFlowfilesToDrop = 0;
 
-            if( nfCommon.isDefinedAndNotNull(dropRequest) &&
+            if (nfCommon.isDefinedAndNotNull(dropRequest) &&
                 nfCommon.isDefinedAndNotNull(dropRequest.droppedCount) &&
                 nfCommon.isDefinedAndNotNull(dropRequest.originalCount)
             ) {
@@ -282,7 +287,7 @@
                 totalFlowfilesToDrop += dropRequest.originalCount;
             }
 
-            if(totalFlowfilesToDrop !== 0) {
+            if (totalFlowfilesToDrop !== 0) {
                 percentCompleted = (droppedFlowfiles / totalFlowfilesToDrop) * 100;
             }
 
@@ -366,7 +371,7 @@
             }).done(function (response) {
                 // process the drop request
                 dropRequest = response.dropRequest;
-                if(nfCommon.isDefinedAndNotNull(dropRequest.componentErrors)) {
+                if (nfCommon.isDefinedAndNotNull(dropRequest.componentErrors)) {
                     errors = dropRequest.componentErrors;
                 }
                 processDropRequestResponse();
@@ -424,7 +429,7 @@
             var errorMessages = "";
 
             //check for response error
-            if(nfCommon.isDefinedAndNotNull(errors)) {
+            if (nfCommon.isDefinedAndNotNull(errors)) {
                 errors.forEach(function (componentError) {
                     errorMessages += '<p> ' + componentError.componentType + 'ID ' + componentError.componentId +
                         ': <span style="color: red">' + nfCommon.escapeHtml(componentError.errorMessage) + '</span></p>';
@@ -433,12 +438,12 @@
             // build the results
             var results = $('<div></div>');
 
-            if(response.success === false) {
+            if (response.success === false) {
                 results.html('<p><span style="color: red">' + response.xhr.status + ' - ' + nfCommon.escapeHtml(response.xhr.responseText) + '</span></p>');
             }
-            else if(nfCommon.isDefinedAndNotNull(dropRequest)) {
+            else if (nfCommon.isDefinedAndNotNull(dropRequest)) {
                 //check for single empty queue errors
-                if(nfCommon.isDefinedAndNotNull(dropRequest.failureReasons)) {
+                if (nfCommon.isDefinedAndNotNull(dropRequest.failureReasons)) {
                     dropRequest.failureReasons.forEach(function (message) {
                         errorMessages += '<p>QueueID ' + message.key + ': <span style="color: red">' + nfCommon.escapeHtml(message.value) + '</span></p>';
                     });
@@ -448,7 +453,7 @@
                 droppedFlowfiles += dropRequest.droppedCount;
                 droppedFlowfilesSize += dropRequest.droppedSize;
 
-                if(droppedFlowfiles !== 0) {
+                if (droppedFlowfiles !== 0) {
                     $('<span class="label"></span>').text(droppedFlowfiles).appendTo(results);
                     $('<span></span>').text(' FlowFiles (' + nfCommon.toReadableBytes(droppedFlowfilesSize) + ')').appendTo(results);
                     $('<span></span>').text(' were removed.').appendTo(results);
@@ -457,7 +462,7 @@
                     results.text('No FlowFiles were removed.');
                 }
 
-                if(errorMessages !== "") {
+                if (errorMessages !== "") {
                     $('<br/><br/><p style="color: darkred">Failed Drop Requests:</p><br/>').appendTo(results);
                     $('<div style="color: darkred"></div>').html(errorMessages).appendTo(results);
                 }
@@ -473,416 +478,6 @@
             });
         });
     };
-
-    // /**
-    //  * Empty all the queues inside the array of connections.
-    //  *
-    //  * @Param {string} actionName
-    //  * @param {Array} connections
-    //  * @Param {Array} errors
-    //  */
-    // var emptyQueues = function (actionName, connections, errors) {
-    //     var cancelled = false;
-    //     var finished = false;
-    //     var progressBarRefreshingDelay = 100; //millis
-    //
-    //     var dropRequests = [];
-    //     var dropRequestTimers = [];
-    //     var progressBarRefreshTimer = null;
-    //     var singleEmptyQueuePromises = [];
-    //
-    //     var createFailedResponse = function (xhr, status, error) {
-    //         return {
-    //             success: false,
-    //             xhr: xhr,
-    //             status: status,
-    //             error: error
-    //         };
-    //     };
-    //
-    //     var createSuccessResponse = function () {
-    //         return {
-    //             success: true
-    //         };
-    //     };
-    //
-    //     // set the progress bar to a certain percentage
-    //     var setProgressBar = function (percentComplete) {
-    //         if($("#drop-request-percent-complete .progress-label").length) {
-    //             //set the request status text
-    //             $('#drop-request-status-message').text('');
-    //
-    //             //set progress bar
-    //             $('#drop-request-percent-complete .md-hue-2 .md-container.md-mode-determinate .md-bar.md-bar2:first')
-    //                 .attr('style','transform: translateX(' + ((percentComplete - 100) / 2) + '%) scale(' + (percentComplete * 0.01) + ', 1);');
-    //
-    //             //set percentage
-    //             $("#drop-request-percent-complete .progress-label:first").text(percentComplete.toFixed(2) + '%');
-    //         }
-    //         else {
-    //             var progressBar = $('#drop-request-percent-complete');
-    //
-    //             (nfNgBridge.injector.get('$compile')($('<md-progress-linear ng-cloak ng-value="' + percentComplete + '" class="md-hue-2" md-mode="determinate" aria-label="Drop request percent complete"></md-progress-linear>'))(nfNgBridge.rootScope)).appendTo(progressBar);
-    //
-    //             progressBar.append($('<div class="progress-label"></div>').text(percentComplete + '%'));
-    //         }
-    //     };
-    //
-    //     // process the drop request
-    //     var refreshProgressBar = function () {
-    //         // update the completed percentage
-    //         var percentCompleted = 0;
-    //         var droppedFlowfiles = 0;
-    //         var totalFlowfilesToDrop = 0;
-    //
-    //         dropRequests.forEach(function (dropRequest) {
-    //             if( nfCommon.isDefinedAndNotNull(dropRequest) &&
-    //                 nfCommon.isDefinedAndNotNull(dropRequest.droppedCount) &&
-    //                 nfCommon.isDefinedAndNotNull(dropRequest.originalCount) ) {
-    //                 droppedFlowfiles += dropRequest.droppedCount;
-    //                 totalFlowfilesToDrop += dropRequest.originalCount;
-    //             }
-    //         });
-    //
-    //         if(totalFlowfilesToDrop !== 0) {
-    //             percentCompleted = (droppedFlowfiles / totalFlowfilesToDrop) * 100;
-    //         }
-    //
-    //         setProgressBar(percentCompleted);
-    //
-    //         // check if can keep on refreshing the progress bar
-    //         if (finished !== true && cancelled !== true) {
-    //             // wait delay to refresh again
-    //             progressBarRefreshTimer = setTimeout(function () {
-    //                 // clear the progressBarRefreshTimer timer
-    //                 progressBarRefreshTimer = null;
-    //
-    //                 // schedule to poll the status again in nextDelay
-    //                 refreshProgressBar(progressBarRefreshingDelay);
-    //             }, progressBarRefreshingDelay);
-    //         }
-    //     };
-    //
-    //     var finalizeDropRequest = function (i) {
-    //         // tell the server to delete the drop request
-    //         if (nfCommon.isDefinedAndNotNull(dropRequests[i])) {
-    //             $.ajax({
-    //                 type: 'DELETE',
-    //                 url: dropRequests[i].uri,
-    //                 dataType: 'json'
-    //             }).done(function (response) {
-    //                 // report the results of this drop request
-    //                 dropRequests[i] = response.dropRequest;
-    //             }).always(function () {
-    //                 // reload the connection status from the server and refreshes the connection UI
-    //                 nfConnection.reloadStatus(connections[i].id);
-    //                 // resolve this request
-    //                 singleEmptyQueuePromises[i].resolve(createSuccessResponse());
-    //             });
-    //         }
-    //     };
-    //
-    //     // schedule for the next poll iteration
-    //     var getDropRequestStatus = function (i) {
-    //         $.ajax({
-    //             type: 'GET',
-    //             url: dropRequests[i].uri,
-    //             dataType: 'json'
-    //         }).done(function (response) {
-    //             dropRequests[i] = response.dropRequest;
-    //             processDropRequestResponse(i);
-    //         }).fail(function (xhr, status, error) {
-    //             singleEmptyQueuePromises[i].resolve(createFailedResponse(xhr,status,error));
-    //         });
-    //     };
-    //
-    //     // process the drop request
-    //     var processDropRequestResponse = function (i) {
-    //         // close the dialog if
-    //         if (dropRequests[i].finished === true || cancelled === true) {
-    //             finalizeDropRequest(i);
-    //         } else {
-    //             // wait delay to poll again
-    //             dropRequestTimers[i] = setTimeout(function () {
-    //                 // clear the drop request timer
-    //                 dropRequestTimers[i] = null;
-    //                 // schedule to poll the status again in nextDelay
-    //                 getDropRequestStatus(i);
-    //             }, progressBarRefreshingDelay);
-    //         }
-    //     };
-    //
-    //     // empty a single queue and return a deferred representing the emptying process status
-    //     var emptyQueueAsync = function (i) {
-    //         var deferred = $.Deferred();
-    //
-    //         // issue the request to delete the flow files
-    //         $.ajax({
-    //             type: 'POST',
-    //             url: '../nifi-api/flowfile-queues/' + encodeURIComponent(connections[i].id) + '/drop-requests',
-    //             dataType: 'json',
-    //             contentType: 'application/json'
-    //         }).done(function (response) {
-    //             // process the drop request
-    //             dropRequests[i] = response.dropRequest;
-    //             processDropRequestResponse(i);
-    //         }).fail(function (xhr, status, error) {
-    //             deferred.resolve(createFailedResponse(xhr,status,error));
-    //         });
-    //
-    //         return deferred;
-    //     };
-    //
-    //     //start the drop requests
-    //     connections.forEach(function (connection,i) {
-    //         dropRequests[i] = null;
-    //         dropRequestTimers[i] = null;
-    //         singleEmptyQueuePromises.push(emptyQueueAsync(i));
-    //     });
-    //
-    //     // initialize the progress bar value and auto refresh it each progressBarRefreshingDelay milliseconds
-    //     refreshProgressBar();
-    //
-    //     // update the button model and header of the drop request status dialog and show it
-    //     $('#drop-request-status-dialog')
-    //         .modal('setButtonModel', [{
-    //             buttonText: 'Stop',
-    //             color: {
-    //                 base: '#728E9B',
-    //                 hover: '#004849',
-    //                 text: '#ffffff'
-    //             },
-    //             handler: {
-    //                 click: function () {
-    //                     //tell the singleEmptyQueue async jobs that the user cancelled the operation and thus they need to terminate
-    //                     cancelled = true;
-    //
-    //                     // progressBarRefreshTimer !== null means there is a timeout in progress on the refreshProgressBar method
-    //                     if (progressBarRefreshTimer !== null) {
-    //                         // cancel it
-    //                         clearTimeout(progressBarRefreshTimer);
-    //                     }
-    //                 }
-    //             }}]
-    //         )
-    //         .modal('setHeaderText', actionName)
-    //         .modal('show');
-    //
-    //     $.when.apply($,singleEmptyQueuePromises).then(function () {
-    //         var responses = arguments;
-    //         finished = true;
-    //
-    //         if (progressBarRefreshTimer !== null) {
-    //             // remove the timeout from the refreshProgressBar method if present
-    //             clearTimeout(progressBarRefreshTimer);
-    //         }
-    //
-    //         //hide the status dialog
-    //         $('#drop-request-status-dialog').modal('hide');
-    //
-    //         var droppedFlowfiles = 0;
-    //         var droppedFlowfilesSize = 0;
-    //         var errorMessages = "";
-    //
-    //         if(nfCommon.isDefinedAndNotNull(errors)) {
-    //             errors.forEach(function (message) {
-    //                 errorMessages += '<p>ProcessGroupID ' + message.processGroupId + ': <span style="color: red">' +  nfCommon.escapeHtml(message.errorMessage) + '</span></p>';
-    //             });
-    //         }
-    //
-    //         //check for 403 error
-    //         for(var i = 0; i < responses.length; i++) {
-    //             var response = responses[i];
-    //             if(response.success === false && response.xhr.status === 403) {
-    //                 errorMessages += '<p>QueueID ' + connections[i].id + ': <span style="color: red">' + response.xhr.status + ' - ' + nfCommon.escapeHtml(response.xhr.responseText) + '</span></p>';
-    //             }
-    //         }
-    //
-    //         dropRequests.forEach(function (dropRequest) {
-    //             if(nfCommon.isDefinedAndNotNull(dropRequest)) {
-    //                 // build the results
-    //                 droppedFlowfiles += dropRequest.droppedCount;
-    //                 droppedFlowfilesSize += dropRequest.droppedSize;
-    //
-    //                 // if this request failed show the error
-    //                 if (nfCommon.isDefinedAndNotNull(dropRequest.failureReason)) {
-    //                     errorMessages += '<p>QueueID ' + dropRequest.id + ': <span style="color: red">' + dropRequest.failureReason + '</span></p>';
-    //                 }
-    //             }
-    //         });
-    //
-    //         var results = $('<div></div>');
-    //
-    //         if(droppedFlowfiles !== 0) {
-    //             $('<span class="label"></span>').text(droppedFlowfiles).appendTo(results);
-    //             $('<span></span>').text(' FlowFiles (' + nfCommon.toReadableBytes(droppedFlowfilesSize) + ')').appendTo(results);
-    //             $('<span></span>').text(' were removed from the ' + (connections.length > 1 ? 'queues.' : 'queue.' )).appendTo(results);
-    //         }
-    //         else {
-    //             results.text('No FlowFiles were removed.');
-    //         }
-    //
-    //         if(errorMessages !== "") {
-    //             $('<br/><br/><p style="color: darkred">Failed Drop Requests:</p><br/>').appendTo(results);
-    //             $('<div style="color: darkred"></div>').html(errorMessages).appendTo(results);
-    //         }
-    //
-    //         // display the results
-    //         nfDialog.showOkDialog({
-    //             headerText: actionName,
-    //             dialogContent: results,
-    //             okHandler: function () {
-    //                 nfCanvasUtils.reload();
-    //             }
-    //         });
-    //     });
-    // };
-    //
-    // /**
-    //  * Return the connections belonging to the specified process group.
-    //  *
-    //  * @param {string} processGroupId
-    //  * @param {boolean} recursive
-    //  */
-    // var getProcessGroupConnections = function (processGroupId, recursive) {
-    //     var deferredResponse = $.Deferred();
-    //     var deferredConnectionsResponse = $.Deferred();
-    //     var deferredProcessGroupsResponse = $.Deferred();
-    //
-    //     // get connections
-    //     $.ajax({
-    //         type: 'GET',
-    //         url: '../nifi-api/process-groups/' + encodeURIComponent(processGroupId) + '/connections',
-    //         dataType: 'json'
-    //     }).done(function (response) {
-    //         deferredConnectionsResponse.resolve({
-    //             success: true,
-    //             response: response.connections
-    //         });
-    //     }).fail(function (xhr, status, error) {
-    //         deferredConnectionsResponse.resolve({
-    //             success: false,
-    //             xhr: xhr,
-    //             status: status,
-    //             error: error
-    //         });
-    //     });
-    //
-    //     // get process groups if recursive
-    //     if(recursive) {
-    //         $.ajax({
-    //             type: 'GET',
-    //             url: '../nifi-api/process-groups/' + encodeURIComponent(processGroupId) + '/process-groups',
-    //             dataType: 'json'
-    //         }).done(function (response) {
-    //             deferredProcessGroupsResponse.resolve({
-    //                 success: true,
-    //                 response: response.processGroups
-    //             });
-    //         }).fail(function (xhr, status, error) {
-    //             deferredProcessGroupsResponse.resolve({
-    //                 success: false,
-    //                 xhr: xhr,
-    //                 status: status,
-    //                 error: error
-    //             });
-    //         });
-    //     }
-    //     else {
-    //         deferredProcessGroupsResponse.resolve();
-    //     }
-    //
-    //     $.when(deferredConnectionsResponse, deferredProcessGroupsResponse)
-    //         .done(function (connectionsResponse, processGroupsResponse) {
-    //             var response = {
-    //                 connections: [],
-    //                 errorMessages: []
-    //             };
-    //
-    //             if(connectionsResponse.success) {
-    //                 response.connections = connectionsResponse.response;
-    //             }
-    //             else {
-    //                 response.errorMessages.push({
-    //                     processGroupId: processGroupId,
-    //                     errorMessage: connectionsResponse.xhr.status + ' - Unable to get queues. ' + connectionsResponse.xhr.responseText
-    //                 });
-    //             }
-    //
-    //             if(!recursive) {
-    //                 deferredResponse.resolve(response);
-    //             }
-    //             else {
-    //                 if(!processGroupsResponse.success) {
-    //                     response.errorMessages.push({
-    //                         processGroupId: processGroupId,
-    //                         errorMessage: processGroupsResponse.xhr.status + ' - Unable to get process groups. ' + processGroupsResponse.xhr.responseText
-    //                     });
-    //                     deferredResponse.resolve(response);
-    //                 }
-    //                 else {
-    //                     var requests = processGroupsResponse.response.map(function (processGroup) {
-    //                         return getProcessGroupConnections(processGroup.id,true);
-    //                     });
-    //
-    //                     $.when.apply($,requests).then(function () {
-    //                         var responses = arguments;
-    //
-    //                         for(var i = 0; i < responses.length; i++) {
-    //                             responses[i].connections.forEach(function (connection) {
-    //                                 response.connections.push(connection);
-    //                             });
-    //
-    //                             responses[i].errorMessages.forEach(function (errorMessage) {
-    //                                 response.errorMessages.push(errorMessage);
-    //                             });
-    //                         }
-    //
-    //                         deferredResponse.resolve(response);
-    //                     });
-    //                 }
-    //             }
-    //         });
-    //
-    //     return deferredResponse;
-    // };
-    //
-    // /**
-    //  * Return the connections belonging to the specified process groups.
-    //  *
-    //  * @param {Array} processGroupIDs
-    //  * @param {boolean} recursive
-    //  */
-    // var getProcessGroupsConnections = function (processGroupIDs, recursive) {
-    //     var deferredResponse = $.Deferred();
-    //
-    //     var deferredResponses = processGroupIDs.map(function (processGroupId) {
-    //         return getProcessGroupConnections(processGroupId,recursive);
-    //     });
-    //
-    //     $.when.apply($,deferredResponses).then(function () {
-    //         var responses = arguments;
-    //
-    //         var response = {
-    //             connections: [],
-    //             errorMessages: []
-    //         };
-    //
-    //         for(var i = 0; i < responses.length; i++) {
-    //             responses[i].connections.forEach(function (connection) {
-    //                 response.connections.push(connection);
-    //             });
-    //
-    //             responses[i].errorMessages.forEach(function (errorMessage) {
-    //                 response.errorMessages.push(errorMessage);
-    //             });
-    //         }
-    //
-    //         deferredResponse.resolve(response);
-    //     });
-    //
-    //     return deferredResponse;
-    // };
 
     var nfActions = {
         /**
@@ -1430,11 +1025,11 @@
                     if (stopRequests.length > 0) {
                         $.when.apply(window, stopRequests).always(function () {
                             nfNgBridge.digest();
-                            if(typeof cb == 'function'){
+                            if (typeof cb == 'function'){
                                 cb();
                             }
                         });
-                    } else if(typeof cb == 'function'){
+                    } else if (typeof cb == 'function'){
                          cb();
                     }
                 }
@@ -1448,7 +1043,7 @@
          * @param {cb} callback              The function to call when complete
          */
         stopAndConfigure: function (selection,cb) {
-            if(selection.size() === 1 &&
+            if (selection.size() === 1 &&
                 nfCanvasUtils.isProcessor(selection) &&
                 nfCanvasUtils.canModify(selection)){
 
@@ -1474,7 +1069,7 @@
                     dataType: 'json'
                 }).done(function (response) {
                     nfProcessor.set(response);
-                    if(typeof cb == 'function'){
+                    if (typeof cb == 'function'){
                         cb();
                     }
                 }).fail(nfErrorHandler.handleAjaxError);
@@ -1575,7 +1170,7 @@
             } else if (selection.size() === 1) {
                 var selectionData = selection.datum();
                 if (nfCanvasUtils.isProcessor(selection)) {
-                    if(!nfCanvasUtils.isStoppable(selection) && nfCanvasUtils.canModify(selection)){
+                    if (!nfCanvasUtils.isStoppable(selection) && nfCanvasUtils.canModify(selection)){
                         nfProcessorConfiguration.showConfiguration(selection);
                     } else {
                         nfProcessorDetails.showDetails(nfCanvasUtils.getGroupId(), selectionData.id);
@@ -1786,7 +1381,7 @@
                 noText: 'Cancel',
                 yesText: 'Empty',
                 yesHandler: function () {
-                    emptyQueues(actionName,connectionsToEmpty,false);
+                    emptyQueues(actionName, connectionsToEmpty, false);
                 }
             });
         },
@@ -1802,7 +1397,7 @@
             var actionName = '';
             var dialogContent = '';
 
-            if(selectionSize === 0) {
+            if (selectionSize === 0) {
                 actionName = 'Empty Current Process Group Queues';
                 dialogContent = 'Are you sure you want to empty all queues inside the current process group? All FlowFiles waiting at the time of the request will be removed.';
                 componentsToEmpty = d3.selectAll('g.connection')
@@ -1813,7 +1408,7 @@
                         };
                     });
 
-                if(componentsToEmpty.length === 0) {
+                if (componentsToEmpty.length === 0) {
                     // display the "no queues to empty" dialog
                     nfDialog.showOkDialog({
                         headerText: actionName,
@@ -1822,7 +1417,7 @@
                     return;
                 }
             }
-            else if(selectionSize === 1) {
+            else if (selectionSize === 1) {
                 actionName = 'Empty Selected Process Group Queues';
                 dialogContent = 'Are you sure you want to empty all queues inside the selected process group? All FlowFiles waiting at the time of the request will be removed.';
             }
@@ -1838,8 +1433,8 @@
                 noText: 'Cancel',
                 yesText: 'Empty',
                 yesHandler: function () {
-                    if(selectionSize === 0) {
-                        emptyQueues(actionName,componentsToEmpty,false);
+                    if (selectionSize === 0) {
+                        emptyQueues(actionName, componentsToEmpty, false);
                     }
                     else {
                         componentsToEmpty = selection.filter(function (d) {
@@ -1852,7 +1447,7 @@
                             };
                         });
 
-                        emptyQueues(actionName,componentsToEmpty,false);
+                        emptyQueues(actionName, componentsToEmpty, false);
                     }
                 }
             });
@@ -1864,7 +1459,7 @@
             var actionName = '';
             var dialogContent = '';
 
-            if(selectionSize === 0) {
+            if (selectionSize === 0) {
                 actionName = 'Empty Current Process Group Queues (Recursive)';
                 dialogContent = 'Are you sure you want to empty all queues inside the current process group and all its sub process groups (recursive)? All FlowFiles waiting at the time of the request will be removed.';
                 componentsToEmpty = d3.selectAll('g.connection')
@@ -1875,7 +1470,7 @@
                         };
                     });
             }
-            else if(selectionSize === 1) {
+            else if (selectionSize === 1) {
                 actionName = 'Empty Selected Process Group Queues (Recursive)';
                 dialogContent = 'Are you sure you want to empty all queues inside the selected process group and all its sub process groups (recursive)? All FlowFiles waiting at the time of the request will be removed.';
             }
@@ -1891,7 +1486,7 @@
                 noText: 'Cancel',
                 yesText: 'Empty',
                 yesHandler: function () {
-                    if(selectionSize === 0) {
+                    if (selectionSize === 0) {
                         componentsToEmpty = componentsToEmpty.concat(d3.selectAll('g.process-group')
                             .data()
                             .map(function (processGroup) {
@@ -1914,7 +1509,7 @@
                         });
                     }
 
-                    emptyQueues(actionName,componentsToEmpty,true);
+                    emptyQueues(actionName, componentsToEmpty, true);
                 }
             });
         },
