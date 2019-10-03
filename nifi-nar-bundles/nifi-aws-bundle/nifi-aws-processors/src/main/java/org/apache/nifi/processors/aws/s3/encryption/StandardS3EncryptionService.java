@@ -58,13 +58,6 @@ import java.util.Map;
 public class StandardS3EncryptionService extends AbstractControllerService implements AmazonS3EncryptionService {
     private static final Logger logger = LoggerFactory.getLogger(StandardS3EncryptionService.class);
 
-    public static final String STRATEGY_NAME_NONE = "NONE";
-    public static final String STRATEGY_NAME_SSE_S3 = "SSE_S3";
-    public static final String STRATEGY_NAME_SSE_KMS = "SSE_KMS";
-    public static final String STRATEGY_NAME_SSE_C = "SSE_C";
-    public static final String STRATEGY_NAME_CSE_KMS = "CSE_KMS";
-    public static final String STRATEGY_NAME_CSE_C = "CSE_C";
-
     private static final Map<String, S3EncryptionStrategy> NAMED_STRATEGIES = new HashMap<String, S3EncryptionStrategy>() {{
         put(STRATEGY_NAME_NONE, new NoOpEncryptionStrategy());
         put(STRATEGY_NAME_SSE_S3, new ServerSideS3EncryptionStrategy());
@@ -81,7 +74,7 @@ public class StandardS3EncryptionService extends AbstractControllerService imple
     private static final AllowableValue CSE_KMS = new AllowableValue(STRATEGY_NAME_CSE_KMS, "Client-side KMS","Use client-side, KMS key to perform encryption.");
     private static final AllowableValue CSE_C = new AllowableValue(STRATEGY_NAME_CSE_C, "Client-side Customer Key","Use client-side, customer-supplied key to perform encryption.");
 
-    private static final Map<String, AllowableValue> ENCRYPTION_STRATEGY_ALLOWABLE_VALUES = new HashMap<String, AllowableValue>() {{
+    public static final Map<String, AllowableValue> ENCRYPTION_STRATEGY_ALLOWABLE_VALUES = new HashMap<String, AllowableValue>() {{
         put(STRATEGY_NAME_NONE, NONE);
         put(STRATEGY_NAME_SSE_S3, SSE_S3);
         put(STRATEGY_NAME_SSE_KMS, SSE_KMS);
@@ -243,6 +236,11 @@ public class StandardS3EncryptionService extends AbstractControllerService imple
     @Override
     public String getStrategyName() {
         return strategyName;
+    }
+
+    @Override
+    public String getStrategyDisplayName() {
+        return ENCRYPTION_STRATEGY_ALLOWABLE_VALUES.get(strategyName).getDisplayName();
     }
 }
 

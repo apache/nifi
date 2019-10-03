@@ -23,6 +23,7 @@ import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.UploadPartRequest;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.processors.aws.s3.AmazonS3EncryptionService;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockPropertyValue;
 import org.junit.Assert;
@@ -44,7 +45,7 @@ public class TestStandardS3EncryptionService {
         service = new StandardS3EncryptionService();
         context = Mockito.mock(ConfigurationContext.class);
 
-        strategyName = StandardS3EncryptionService.STRATEGY_NAME_NONE;
+        strategyName = AmazonS3EncryptionService.STRATEGY_NAME_NONE;
         keyIdOrMaterial = "test-key-id";
         kmsRegion = "us-west-1";
 

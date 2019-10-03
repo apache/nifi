@@ -23,13 +23,13 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
 import org.junit.Test;
 
+import static org.apache.nifi.processors.aws.s3.AmazonS3EncryptionService.STRATEGY_NAME_CSE_C;
+import static org.apache.nifi.processors.aws.s3.AmazonS3EncryptionService.STRATEGY_NAME_CSE_KMS;
+import static org.apache.nifi.processors.aws.s3.AmazonS3EncryptionService.STRATEGY_NAME_NONE;
+import static org.apache.nifi.processors.aws.s3.AmazonS3EncryptionService.STRATEGY_NAME_SSE_C;
+import static org.apache.nifi.processors.aws.s3.AmazonS3EncryptionService.STRATEGY_NAME_SSE_KMS;
+import static org.apache.nifi.processors.aws.s3.AmazonS3EncryptionService.STRATEGY_NAME_SSE_S3;
 import static org.apache.nifi.processors.aws.s3.encryption.S3EncryptionTestUtil.createKey;
-import static org.apache.nifi.processors.aws.s3.encryption.StandardS3EncryptionService.STRATEGY_NAME_CSE_C;
-import static org.apache.nifi.processors.aws.s3.encryption.StandardS3EncryptionService.STRATEGY_NAME_CSE_KMS;
-import static org.apache.nifi.processors.aws.s3.encryption.StandardS3EncryptionService.STRATEGY_NAME_NONE;
-import static org.apache.nifi.processors.aws.s3.encryption.StandardS3EncryptionService.STRATEGY_NAME_SSE_C;
-import static org.apache.nifi.processors.aws.s3.encryption.StandardS3EncryptionService.STRATEGY_NAME_SSE_KMS;
-import static org.apache.nifi.processors.aws.s3.encryption.StandardS3EncryptionService.STRATEGY_NAME_SSE_S3;
 
 public class TestStandardS3EncryptionServiceValidation {
 
