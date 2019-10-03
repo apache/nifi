@@ -255,7 +255,7 @@ public abstract class AbstractFlowFileQueue implements FlowFileQueue {
 
 
     @Override
-    public DropFlowFileStatus dropFlowFiles(final String requestIdentifier, final String connectionIdentifier, final String requestor) {
+    public DropFlowFileStatus dropFlowFiles(final String requestIdentifier, final String requestor) {
         logger.info("Initiating drop of FlowFiles from {} on behalf of {} (request identifier={})", this, requestor, requestIdentifier);
 
         // purge any old requests from the map just to keep it clean. But if there are very requests, which is usually the case, then don't bother
@@ -275,7 +275,7 @@ public abstract class AbstractFlowFileQueue implements FlowFileQueue {
             }
         }
 
-        final DropFlowFileRequest dropRequest = new DropFlowFileRequest(requestIdentifier, connectionIdentifier);
+        final DropFlowFileRequest dropRequest = new DropFlowFileRequest(requestIdentifier, getIdentifier());
         final QueueSize originalSize = size();
         dropRequest.setCurrentSize(originalSize);
         dropRequest.setOriginalSize(originalSize);
