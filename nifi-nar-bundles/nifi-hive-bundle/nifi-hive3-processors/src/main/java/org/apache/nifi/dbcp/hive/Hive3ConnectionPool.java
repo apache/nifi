@@ -18,7 +18,8 @@ package org.apache.nifi.dbcp.hive;
 
 import java.io.File;
 
-import org.apache.commons.dbcp.BasicDataSource;
+import org.apache.commons.dbcp2.BasicDataSource;
+import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hive.jdbc.HiveDriver;
@@ -28,10 +29,12 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.dbcp.DBCPValidator;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.hadoop.KerberosProperties;
 import org.apache.nifi.hadoop.SecurityUtil;
@@ -56,6 +59,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.Pattern;
 
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
 
@@ -68,6 +72,31 @@ import org.apache.nifi.controller.ControllerServiceInitializationContext;
 @CapabilityDescription("Provides Database Connection Pooling Service for Apache Hive 3.x. Connections can be asked from pool and returned after usage.")
 public class Hive3ConnectionPool extends AbstractControllerService implements Hive3DBCPService {
     private static final String ALLOW_EXPLICIT_KEYTAB = "NIFI_ALLOW_EXPLICIT_KEYTAB";
+    /**
+     * Copied from {@link GenericObjectPoolConfig.DEFAULT_MIN_IDLE} in Commons-DBCP 2.5.0
+     */
+    private static final String DEFAULT_MIN_IDLE = "0";
+    /**
+     * Copied from {@link GenericObjectPoolConfig.DEFAULT_MAX_IDLE} in Commons-DBCP 2.5.0
+     */
+    private static final String DEFAULT_MAX_IDLE = "8";
+    /**
+     * Copied from private variable {@link BasicDataSource.maxConnLifetimeMillis} in Commons-DBCP 2.5.0
+     */
+    private static final String DEFAULT_MAX_CONN_LIFETIME = "-1";
+    /**
+     * Copied from {@link GenericObjectPoolConfig.DEFAULT_TIME_BETWEEN_EVICTION_RUNS_MILLIS} in Commons-DBCP 2.5.0
+     */
+    private static final String DEFAULT_EVICTION_RUN_PERIOD = String.valueOf(-1L);
+    /**
+     * Copied from {@link GenericObjectPoolConfig.DEFAULT_MIN_EVICTABLE_IDLE_TIME_MILLIS} in Commons-DBCP 2.5.0
+     * and converted from 1800000L to "1800000 millis" to "30 mins"
+     */
+    private static final String DEFAULT_MIN_EVICTABLE_IDLE_TIME = "30 mins";
+    /**
+     * Copied from {@link GenericObjectPoolConfig.DEFAULT_SOFT_MIN_EVICTABLE_IDLE_TIME_MILLIS} in Commons-DBCP 2.5.0
+     */
+    private static final String DEFAULT_SOFT_MIN_EVICTABLE_IDLE_TIME = String.valueOf(-1L);
 
     static final PropertyDescriptor DATABASE_URL = new PropertyDescriptor.Builder()
             .name("hive-db-connect-url")
@@ -145,6 +174,77 @@ public class Hive3ConnectionPool extends AbstractControllerService implements Hi
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
+    public static final PropertyDescriptor MIN_IDLE = new PropertyDescriptor.Builder()
+            .displayName("Minimum Idle Connections")
+            .name("dbcp-min-idle-conns")
+            .description("The minimum number of connections that can remain idle in the pool, without extra ones being " +
+                    "created, or zero to create none.")
+            .defaultValue(DEFAULT_MIN_IDLE)
+            .required(false)
+            .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
+
+    public static final PropertyDescriptor MAX_IDLE = new PropertyDescriptor.Builder()
+            .displayName("Max Idle Connections")
+            .name("dbcp-max-idle-conns")
+            .description("The maximum number of connections that can remain idle in the pool, without extra ones being " +
+                    "released, or negative for no limit.")
+            .defaultValue(DEFAULT_MAX_IDLE)
+            .required(false)
+            .addValidator(StandardValidators.INTEGER_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
+
+    public static final PropertyDescriptor MAX_CONN_LIFETIME = new PropertyDescriptor.Builder()
+            .displayName("Max Connection Lifetime")
+            .name("dbcp-max-conn-lifetime")
+            .description("The maximum lifetime in milliseconds of a connection. After this time is exceeded the " +
+                    "connection will fail the next activation, passivation or validation test. A value of zero or less " +
+                    "means the connection has an infinite lifetime.")
+            .defaultValue(DEFAULT_MAX_CONN_LIFETIME)
+            .required(false)
+            .addValidator(DBCPValidator.CUSTOM_TIME_PERIOD_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
+
+    public static final PropertyDescriptor EVICTION_RUN_PERIOD = new PropertyDescriptor.Builder()
+            .displayName("Time Between Eviction Runs")
+            .name("dbcp-time-between-eviction-runs")
+            .description("The number of milliseconds to sleep between runs of the idle connection evictor thread. When " +
+                    "non-positive, no idle connection evictor thread will be run.")
+            .defaultValue(DEFAULT_EVICTION_RUN_PERIOD)
+            .required(false)
+            .addValidator(DBCPValidator.CUSTOM_TIME_PERIOD_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
+
+    public static final PropertyDescriptor MIN_EVICTABLE_IDLE_TIME = new PropertyDescriptor.Builder()
+            .displayName("Minimum Evictable Idle Time")
+            .name("dbcp-min-evictable-idle-time")
+            .description("The minimum amount of time a connection may sit idle in the pool before it is eligible for eviction.")
+            .defaultValue(DEFAULT_MIN_EVICTABLE_IDLE_TIME)
+            .required(false)
+            .addValidator(DBCPValidator.CUSTOM_TIME_PERIOD_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
+
+    public static final PropertyDescriptor SOFT_MIN_EVICTABLE_IDLE_TIME = new PropertyDescriptor.Builder()
+            .displayName("Soft Minimum Evictable Idle Time")
+            .name("dbcp-soft-min-evictable-idle-time")
+            .description("The minimum amount of time a connection may sit idle in the pool before it is eligible for " +
+                    "eviction by the idle connection evictor, with the extra condition that at least a minimum number of" +
+                    " idle connections remain in the pool. When the not-soft version of this option is set to a positive" +
+                    " value, it is examined first by the idle connection evictor: when idle connections are visited by " +
+                    "the evictor, idle time is first compared against it (without considering the number of idle " +
+                    "connections in the pool) and then against this soft option, including the minimum idle connections " +
+                    "constraint.")
+            .defaultValue(DEFAULT_SOFT_MIN_EVICTABLE_IDLE_TIME)
+            .required(false)
+            .addValidator(DBCPValidator.CUSTOM_TIME_PERIOD_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
+
     private static final PropertyDescriptor KERBEROS_CREDENTIALS_SERVICE = new PropertyDescriptor.Builder()
             .name("kerberos-credentials-service")
             .displayName("Kerberos Credentials Service")
@@ -178,6 +278,12 @@ public class Hive3ConnectionPool extends AbstractControllerService implements Hi
         props.add(MAX_WAIT_TIME);
         props.add(MAX_TOTAL_CONNECTIONS);
         props.add(VALIDATION_QUERY);
+        props.add(MIN_IDLE);
+        props.add(MAX_IDLE);
+        props.add(MAX_CONN_LIFETIME);
+        props.add(EVICTION_RUN_PERIOD);
+        props.add(MIN_EVICTABLE_IDLE_TIME);
+        props.add(SOFT_MIN_EVICTABLE_IDLE_TIME);
         props.add(KERBEROS_CREDENTIALS_SERVICE);
 
         kerberosConfigFile = context.getKerberosConfigurationFile();
@@ -321,14 +427,17 @@ public class Hive3ConnectionPool extends AbstractControllerService implements Hi
         final String passw = context.getProperty(DB_PASSWORD).evaluateAttributeExpressions().getValue();
         final Long maxWaitMillis = context.getProperty(MAX_WAIT_TIME).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS);
         final Integer maxTotal = context.getProperty(MAX_TOTAL_CONNECTIONS).evaluateAttributeExpressions().asInteger();
+        final Integer minIdle = context.getProperty(MIN_IDLE).asInteger();
+        final Integer maxIdle = context.getProperty(MAX_IDLE).asInteger();
+        final Long maxConnLifetimeMillis = extractMillisWithInfinite(context.getProperty(MAX_CONN_LIFETIME));
+        final Long timeBetweenEvictionRunsMillis = extractMillisWithInfinite(context.getProperty(EVICTION_RUN_PERIOD));
+        final Long minEvictableIdleTimeMillis = extractMillisWithInfinite(context.getProperty(MIN_EVICTABLE_IDLE_TIME));
+        final Long softMinEvictableIdleTimeMillis = extractMillisWithInfinite(context.getProperty(SOFT_MIN_EVICTABLE_IDLE_TIME));
 
         dataSource = new BasicDataSource();
         dataSource.setDriverClassName(drv);
 
         connectionUrl = context.getProperty(DATABASE_URL).evaluateAttributeExpressions().getValue();
-
-        dataSource.setMaxWait(maxWaitMillis);
-        dataSource.setMaxActive(maxTotal);
 
         if (validationQuery != null && !validationQuery.isEmpty()) {
             dataSource.setValidationQuery(validationQuery);
@@ -338,6 +447,18 @@ public class Hive3ConnectionPool extends AbstractControllerService implements Hi
         dataSource.setUrl(connectionUrl);
         dataSource.setUsername(user);
         dataSource.setPassword(passw);
+        dataSource.setMaxWaitMillis(maxWaitMillis);
+        dataSource.setMaxTotal(maxTotal);
+        dataSource.setMinIdle(minIdle);
+        dataSource.setMaxIdle(maxIdle);
+        dataSource.setMaxConnLifetimeMillis(maxConnLifetimeMillis);
+        dataSource.setTimeBetweenEvictionRunsMillis(timeBetweenEvictionRunsMillis);
+        dataSource.setMinEvictableIdleTimeMillis(minEvictableIdleTimeMillis);
+        dataSource.setSoftMinEvictableIdleTimeMillis(softMinEvictableIdleTimeMillis);
+    }
+
+    private Long extractMillisWithInfinite(PropertyValue prop) {
+        return "-1".equals(prop.getValue()) ? -1 : prop.asTimePeriod(TimeUnit.MILLISECONDS);
     }
 
     /**
