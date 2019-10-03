@@ -406,7 +406,7 @@ public class TestSwappablePriorityQueue {
         }
 
         assertEquals(2, swapManager.swappedOut.size());
-        final DropFlowFileRequest request = new DropFlowFileRequest("Unit Test");
+        final DropFlowFileRequest request = new DropFlowFileRequest("Unit Test", "Unit Test");
 
         queue.dropFlowFiles(request, "Unit Test");
 
