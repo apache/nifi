@@ -65,4 +65,19 @@ public class BigQueryUtilsTest {
         Assert.assertEquals(expected, BigQueryUtils.schemaFromString(jsonRead));
     }
 
+
+    @Test
+    public void can_create_a_nested_record_schema() throws IOException {
+        final String jsonRead = new String(
+                Files.readAllBytes(Paths.get("src/test/resources/schemas/nested_record_schema.json"))
+        );
+        Field booleanField = Field.newBuilder("boolean", LegacySQLTypeName.BOOLEAN).setMode(Mode.NULLABLE).build();
+        Field nestedRecord = Field.of("detail", LegacySQLTypeName.RECORD,
+                booleanField
+                ).toBuilder().setMode(Mode.NULLABLE).build();
+        Schema expected = Schema.of(Field.of("Consent", LegacySQLTypeName.RECORD,
+                nestedRecord
+                ).toBuilder().setMode(Mode.NULLABLE).build());
+        Assert.assertEquals(expected, BigQueryUtils.schemaFromString(jsonRead));
+    }
 }
