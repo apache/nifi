@@ -17,7 +17,6 @@
 package org.apache.nifi.web.api.dto;
 
 import io.swagger.annotations.ApiModelProperty;
-import javafx.util.Pair;
 import org.apache.nifi.web.api.dto.util.TimestampAdapter;
 
 import javax.xml.bind.annotation.XmlType;
@@ -39,7 +38,7 @@ public class DropRequestDTO {
 
     private Integer percentCompleted;
     private Boolean finished;
-    private List<Pair<String,String>> failureReasons;
+    private List<FailureReason> failureReasons;
 
     private Integer currentCount;
     private Long currentSize;
@@ -135,11 +134,11 @@ public class DropRequestDTO {
     @ApiModelProperty(
         value = "The reason, if any, that this drop request failed."
     )
-    public List<Pair<String, String>> getFailureReasons() {
+    public List<FailureReason> getFailureReasons() {
         return failureReasons;
     }
 
-    public void setFailureReasons(List<Pair<String, String>> failureReasons) {
+    public void setFailureReasons(List<FailureReason> failureReasons) {
         this.failureReasons = failureReasons;
     }
 
@@ -299,4 +298,29 @@ public class DropRequestDTO {
         this.state = state;
     }
 
+    public static class FailureReason {
+        private String componentId;
+        private String failureMessage;
+
+        public FailureReason(String componentId, String failureMessage) {
+            this.componentId = componentId;
+            this.failureMessage = failureMessage;
+        }
+
+        public String getFailureMessage() {
+            return failureMessage;
+        }
+
+        public void setFailureMessage(String failureMessage) {
+            this.failureMessage = failureMessage;
+        }
+
+        public void setComponentId(String componentId) {
+            this.componentId = componentId;
+        }
+
+        public String getComponentId() {
+            return componentId;
+        }
+    }
 }

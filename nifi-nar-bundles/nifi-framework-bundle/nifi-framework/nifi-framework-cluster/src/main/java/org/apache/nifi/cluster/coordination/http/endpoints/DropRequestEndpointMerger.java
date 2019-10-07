@@ -23,7 +23,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-import javafx.util.Pair;
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.controller.queue.DropFlowFileState;
@@ -68,7 +67,7 @@ public class DropRequestEndpointMerger extends AbstractSingleDTOEndpoint<DropReq
 
         DropFlowFileState state = null;
         boolean allFinished = true;
-        List<Pair<String, String>> failureReason = null;
+        List<DropRequestDTO.FailureReason> failureReason = null;
         for (final Map.Entry<NodeIdentifier, DropRequestDTO> nodeEntry : dtoMap.entrySet()) {
             final DropRequestDTO nodeDropRequest = nodeEntry.getValue();
 

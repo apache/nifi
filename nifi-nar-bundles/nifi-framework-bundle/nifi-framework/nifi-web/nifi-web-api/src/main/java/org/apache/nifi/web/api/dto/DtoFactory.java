@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import javafx.util.Pair;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -581,7 +580,7 @@ public final class DtoFactory {
         dto.setFailureReasons(dropRequests.stream()
                 .filter(dropRequest -> dropRequest.getFailureReason() != null)
                 .map(dropRequest -> {
-                    return new Pair<>(dropRequest.getConnectionIdentifier(),dropRequest.getFailureReason()); })
+                    return new DropRequestDTO.FailureReason(dropRequest.getConnectionIdentifier(),dropRequest.getFailureReason()); })
                 .collect(Collectors.toList())
         );
         dto.setFinished(isDropRequestComplete(

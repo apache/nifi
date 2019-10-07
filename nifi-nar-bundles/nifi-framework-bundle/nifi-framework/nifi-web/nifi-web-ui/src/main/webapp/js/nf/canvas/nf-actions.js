@@ -445,7 +445,7 @@
                 //check for single empty queue errors
                 if (nfCommon.isDefinedAndNotNull(dropRequest.failureReasons)) {
                     dropRequest.failureReasons.forEach(function (message) {
-                        errorMessages += '<p>QueueID ' + message.key + ': <span style="color: red">' + nfCommon.escapeHtml(message.value) + '</span></p>';
+                        errorMessages += '<p>QueueID ' + message.componentId + ': <span style="color: red">' + nfCommon.escapeHtml(message.failureMessage) + '</span></p>';
                     });
                 }
 
