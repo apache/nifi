@@ -31,6 +31,7 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.HttpClient;
+import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
@@ -328,7 +329,7 @@ public class LivySessionController extends AbstractControllerService implements 
     }
 
     @Override
-    public HttpClient getConnection() throws IOException, SessionManagerException {
+    public CloseableHttpClient getConnection() throws IOException, SessionManagerException {
         checkSessionManagerException();
 
         return LivyHelpers.openConnection(sslContextService, credentialsService, connectTimeout);
