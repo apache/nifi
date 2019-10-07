@@ -17,6 +17,7 @@ import org.apache.http.config.Lookup;
 import org.apache.http.config.RegistryBuilder;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.BasicCredentialsProvider;
+import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
@@ -219,7 +220,7 @@ public class LivyHelpers {
             .required(false)
             .build();
 
-    public static HttpClient openConnection(SSLContextService sslContextService,
+    public static CloseableHttpClient openConnection(SSLContextService sslContextService,
                                             KerberosCredentialsService credentialsService,
                                             int connectTimeout) throws IOException {
         HttpClientBuilder httpClientBuilder = HttpClientBuilder.create();
@@ -257,26 +258,27 @@ public class LivyHelpers {
             KerberosCredentialsService credentialsService,
             int connectTimeout,
             String urlString, Map<String, String> headers, String payload) throws IOException, JSONException {
-        HttpClient httpClient = openConnection(sslContextService, credentialsService, connectTimeout);
 
-        HttpPost request = new HttpPost(urlString);
-        for (Map.Entry<String, String> entry : headers.entrySet()) {
-            request.addHeader(entry.getKey(), entry.getValue());
+        try(CloseableHttpClient httpClient = openConnection(sslContextService, credentialsService, connectTimeout)){
+            HttpPost request = new HttpPost(urlString);
+            for (Map.Entry<String, String> entry : headers.entrySet()) {
+                request.addHeader(entry.getKey(), entry.getValue());
+            }
+
+            if(payload != null) {
+                HttpEntity httpEntity = new StringEntity(payload);
+                request.setEntity(httpEntity);
+            }
+
+            HttpResponse response = httpClient.execute(request);
+
+            if (response.getStatusLine().getStatusCode() != HttpStatus.SC_OK && response.getStatusLine().getStatusCode() != HttpStatus.SC_CREATED) {
+                throw new RuntimeException("Failed : HTTP error code : " + response.getStatusLine().getStatusCode() + " : " + response.getStatusLine().getReasonPhrase());
+            }
+
+            InputStream content = response.getEntity().getContent();
+            return readAllIntoJSONObject(content);
         }
-
-        if(payload != null) {
-            HttpEntity httpEntity = new StringEntity(payload);
-            request.setEntity(httpEntity);
-        }
-
-        HttpResponse response = httpClient.execute(request);
-
-        if (response.getStatusLine().getStatusCode() != HttpStatus.SC_OK && response.getStatusLine().getStatusCode() != HttpStatus.SC_CREATED) {
-            throw new RuntimeException("Failed : HTTP error code : " + response.getStatusLine().getStatusCode() + " : " + response.getStatusLine().getReasonPhrase());
-        }
-
-        InputStream content = response.getEntity().getContent();
-        return readAllIntoJSONObject(content);
     }
 
     public static JSONObject readJSONFromUrl(
@@ -284,16 +286,17 @@ public class LivyHelpers {
             KerberosCredentialsService credentialsService,
             int connectTimeout,
             String urlString, Map<String, String> headers) throws IOException, JSONException {
-        HttpClient httpClient = openConnection(sslContextService, credentialsService, connectTimeout);
 
-        HttpGet request = new HttpGet(urlString);
-        for (Map.Entry<String, String> entry : headers.entrySet()) {
-            request.addHeader(entry.getKey(), entry.getValue());
+        try(CloseableHttpClient httpClient = openConnection(sslContextService, credentialsService, connectTimeout)) {
+            HttpGet request = new HttpGet(urlString);
+            for (Map.Entry<String, String> entry : headers.entrySet()) {
+                request.addHeader(entry.getKey(), entry.getValue());
+            }
+            HttpResponse response = httpClient.execute(request);
+
+            InputStream content = response.getEntity().getContent();
+            return readAllIntoJSONObject(content);
         }
-        HttpResponse response = httpClient.execute(request);
-
-        InputStream content = response.getEntity().getContent();
-        return readAllIntoJSONObject(content);
     }
 
     public static JSONObject readJSONFromUrlDELETE(
@@ -301,16 +304,17 @@ public class LivyHelpers {
             KerberosCredentialsService credentialsService,
             int connectTimeout,
             String urlString, Map<String, String> headers) throws IOException, JSONException {
-        HttpClient httpClient = openConnection(sslContextService, credentialsService, connectTimeout);
 
-        HttpDelete request = new HttpDelete(urlString);
-        for (Map.Entry<String, String> entry : headers.entrySet()) {
-            request.addHeader(entry.getKey(), entry.getValue());
+        try(CloseableHttpClient httpClient = openConnection(sslContextService, credentialsService, connectTimeout)) {
+            HttpDelete request = new HttpDelete(urlString);
+            for (Map.Entry<String, String> entry : headers.entrySet()) {
+                request.addHeader(entry.getKey(), entry.getValue());
+            }
+            HttpResponse response = httpClient.execute(request);
+
+            InputStream content = response.getEntity().getContent();
+            return readAllIntoJSONObject(content);
         }
-        HttpResponse response = httpClient.execute(request);
-
-        InputStream content = response.getEntity().getContent();
-        return readAllIntoJSONObject(content);
     }
 
     public static JSONObject readAllIntoJSONObject(InputStream content) throws IOException, JSONException {

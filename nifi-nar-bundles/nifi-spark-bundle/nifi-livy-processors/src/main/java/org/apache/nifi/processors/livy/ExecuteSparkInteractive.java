@@ -43,6 +43,7 @@ import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -331,49 +332,49 @@ public class ExecuteSparkInteractive extends AbstractProcessor {
     }
 
     private JSONObject readJSONFromUrlDELETE(String urlString, LivySessionService livySessionService, Map<String, String> headers) throws IOException, JSONException, SessionManagerException {
-        HttpClient httpClient = livySessionService.getConnection();
+        try(CloseableHttpClient httpClient = (CloseableHttpClient)livySessionService.getConnection()) {
+            HttpDelete request = new HttpDelete(urlString);
+            for (Map.Entry<String, String> entry : headers.entrySet()) {
+                request.addHeader(entry.getKey(), entry.getValue());
+            }
+            HttpResponse response = httpClient.execute(request);
 
-        HttpDelete request = new HttpDelete(urlString);
-        for (Map.Entry<String, String> entry : headers.entrySet()) {
-            request.addHeader(entry.getKey(), entry.getValue());
+            InputStream content = response.getEntity().getContent();
+            return readAllIntoJSONObject(content);
         }
-        HttpResponse response = httpClient.execute(request);
-
-        InputStream content = response.getEntity().getContent();
-        return readAllIntoJSONObject(content);
     }
 
     private JSONObject readJSONObjectFromUrlPOST(String urlString, LivySessionService livySessionService, Map<String, String> headers, String payload)
         throws IOException, JSONException, SessionManagerException {
-        HttpClient httpClient = livySessionService.getConnection();
+        try(CloseableHttpClient httpClient = (CloseableHttpClient)livySessionService.getConnection()) {
+            HttpPost request = new HttpPost(urlString);
+            for (Map.Entry<String, String> entry : headers.entrySet()) {
+                request.addHeader(entry.getKey(), entry.getValue());
+            }
+            HttpEntity httpEntity = new StringEntity(payload);
+            request.setEntity(httpEntity);
+            HttpResponse response = httpClient.execute(request);
 
-        HttpPost request = new HttpPost(urlString);
-        for (Map.Entry<String, String> entry : headers.entrySet()) {
-            request.addHeader(entry.getKey(), entry.getValue());
+            if (response.getStatusLine().getStatusCode() != HttpStatus.SC_OK && response.getStatusLine().getStatusCode() != HttpStatus.SC_CREATED) {
+                throw new RuntimeException("Failed : HTTP error code : " + response.getStatusLine().getStatusCode() + " : " + response.getStatusLine().getReasonPhrase());
+            }
+
+            InputStream content = response.getEntity().getContent();
+            return readAllIntoJSONObject(content);
         }
-        HttpEntity httpEntity = new StringEntity(payload);
-        request.setEntity(httpEntity);
-        HttpResponse response = httpClient.execute(request);
-
-        if (response.getStatusLine().getStatusCode() != HttpStatus.SC_OK && response.getStatusLine().getStatusCode() != HttpStatus.SC_CREATED) {
-            throw new RuntimeException("Failed : HTTP error code : " + response.getStatusLine().getStatusCode() + " : " + response.getStatusLine().getReasonPhrase());
-        }
-
-        InputStream content = response.getEntity().getContent();
-        return readAllIntoJSONObject(content);
     }
 
     private JSONObject readJSONObjectFromUrl(String urlString, LivySessionService livySessionService, Map<String, String> headers) throws IOException, JSONException, SessionManagerException {
-        HttpClient httpClient = livySessionService.getConnection();
+        try(CloseableHttpClient httpClient = (CloseableHttpClient)livySessionService.getConnection()) {
+            HttpGet request = new HttpGet(urlString);
+            for (Map.Entry<String, String> entry : headers.entrySet()) {
+                request.addHeader(entry.getKey(), entry.getValue());
+            }
+            HttpResponse response = httpClient.execute(request);
 
-        HttpGet request = new HttpGet(urlString);
-        for (Map.Entry<String, String> entry : headers.entrySet()) {
-            request.addHeader(entry.getKey(), entry.getValue());
+            InputStream content = response.getEntity().getContent();
+            return readAllIntoJSONObject(content);
         }
-        HttpResponse response = httpClient.execute(request);
-
-        InputStream content = response.getEntity().getContent();
-        return readAllIntoJSONObject(content);
     }
 
     private JSONObject readAllIntoJSONObject(InputStream content) throws IOException, JSONException {
