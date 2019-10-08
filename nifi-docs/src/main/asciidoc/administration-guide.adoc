@@ -152,6 +152,15 @@ For the partitions handling the various NiFi repos, turn off things like `atime`
 Doing so can cause a surprising bump in throughput.  Edit the `/etc/fstab` file
 and for the partition(s) of interest, add the `noatime` option.
 
+== Recommended Antivirus Exclusions
+Antivirus software can take a long time to scan large directories and the numerous files within them. Additionally, if the antivirus software locks files or directories during a scan, those resources are unavailable to NiFi processes, causing latency or unavailability of these resources in a NiFi instance/cluster. To prevent these performance and reliability issues from occurring, it is highly recommended to configure your antivirus software to skip scans on the following NiFi directories:
+
+* `content_repository`
+* `flowfile_repository`
+* `logs`
+* `provenance_repository`
+* `state`
+
 [[security_configuration]]
 == Security Configuration
 
