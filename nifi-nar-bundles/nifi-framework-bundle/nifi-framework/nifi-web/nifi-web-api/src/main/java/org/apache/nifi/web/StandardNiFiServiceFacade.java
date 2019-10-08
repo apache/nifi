@@ -16,35 +16,7 @@
  */
 package org.apache.nifi.web;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
-import java.util.function.Predicate;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Response;
-
+import com.google.common.collect.Sets;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.nifi.action.Action;
 import org.apache.nifi.action.Component;
@@ -338,7 +310,33 @@ import org.apache.nifi.web.util.SnippetUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Sets;
+import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.Response;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Implementation of NiFiServiceFacade that performs revision checking.
@@ -1282,27 +1280,64 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             for (final ControllerServiceNode service : group.getControllerServices(false)) {
                 if (includeInactive || service.isActive()) {
                     final Set<String> referencedParams = service.getReferencedParameterNames();
-                    final boolean referencesUpdatedParam = referencedParams.stream().anyMatch(updatedParameterNames::contains);
+                    final Set<String> updatedReferencedParams = referencedParams.stream().filter(updatedParameterNames::contains).collect(Collectors.toSet());
 
-                    if (referencesUpdatedParam) {
-                        affectedComponents.add(service);
-
-                        final AffectedComponentEntity affectedComponentEntity = dtoFactory.createAffectedComponentEntity(service, revisionManager);
-
-                        for (final String referencedParam : referencedParams) {
-                            for (final ParameterEntity paramEntity : parameterContextDto.getParameters()) {
-                                final ParameterDTO paramDto = paramEntity.getParameter();
-                                if (referencedParam.equals(paramDto.getName())) {
-                                    paramDto.getReferencingComponents().add(affectedComponentEntity);
-                                }
+                    final List<ParameterDTO> affectedParameterDtos = new ArrayList<>();
+                    for (final String referencedParam : referencedParams) {
+                        for (final ParameterEntity paramEntity : parameterContextDto.getParameters()) {
+                            final ParameterDTO paramDto = paramEntity.getParameter();
+                            if (referencedParam.equals(paramDto.getName())) {
+                                affectedParameterDtos.add(paramDto);
                             }
                         }
+                    }
+
+                    if (!updatedReferencedParams.isEmpty()) {
+                        addReferencingComponents(service, affectedComponents, affectedParameterDtos, includeInactive);
                     }
                 }
             }
         }
 
         return dtoFactory.createAffectedComponentEntities(affectedComponents, revisionManager);
+    }
+
+    private void addReferencingComponents(final ControllerServiceNode service, final Set<ComponentNode> affectedComponents, final List<ParameterDTO> affectedParameterDtos,
+                                          final boolean includeInactive) {
+
+        // We keep a mapping of Affected Components for the Parameter Context Update as well as a set of all Affected Components for each updated Parameter.
+        // We must update both of these.
+        affectedComponents.add(service);
+
+        // Update Parameter DTO to also reflect the Affected Component.
+        final AffectedComponentEntity affectedComponentEntity = dtoFactory.createAffectedComponentEntity(service, revisionManager);
+        affectedParameterDtos.forEach(dto -> dto.getReferencingComponents().add(affectedComponentEntity));
+
+        for (final ComponentNode referencingComponent : service.getReferences().getReferencingComponents()) {
+            if (includeInactive || isActive(referencingComponent)) {
+                // We must update both the Set of Affected Components as well as the Affected Components for the referenced parameter.
+                affectedComponents.add(referencingComponent);
+
+                final AffectedComponentEntity referencingComponentEntity = dtoFactory.createAffectedComponentEntity(referencingComponent, revisionManager);
+                affectedParameterDtos.forEach(dto -> dto.getReferencingComponents().add(referencingComponentEntity));
+
+                if (referencingComponent instanceof ControllerServiceNode) {
+                    addReferencingComponents((ControllerServiceNode) referencingComponent, affectedComponents, affectedParameterDtos, includeInactive);
+                }
+            }
+        }
+    }
+
+    private boolean isActive(final ComponentNode componentNode) {
+        if (componentNode instanceof ControllerServiceNode) {
+            return ((ControllerServiceNode) componentNode).isActive();
+        }
+
+        if (componentNode instanceof ProcessorNode) {
+            return ((ProcessorNode) componentNode).isRunning();
+        }
+
+        return false;
     }
 
     private Set<String> getUpdatedParameterNames(final ParameterContextDTO parameterContextDto) {
