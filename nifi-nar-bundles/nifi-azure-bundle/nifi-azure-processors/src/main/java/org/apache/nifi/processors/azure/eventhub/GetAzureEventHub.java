@@ -22,6 +22,7 @@ import com.microsoft.azure.eventhubs.EventHubClient;
 import com.microsoft.azure.eventhubs.EventHubException;
 import com.microsoft.azure.eventhubs.EventPosition;
 import com.microsoft.azure.eventhubs.PartitionReceiver;
+import com.microsoft.azure.eventhubs.impl.EventHubClientImpl;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -202,6 +203,7 @@ public class GetAzureEventHub extends AbstractProcessor {
 
     protected void setupReceiver(final String connectionString, final ScheduledExecutorService executor) throws ProcessException {
         try {
+            EventHubClientImpl.USER_AGENT = "Nifi client, azureeventhub/2.3.2";
             eventHubClient = EventHubClient.createSync(connectionString, executor);
         } catch (IOException | EventHubException e) {
             throw new ProcessException(e);

@@ -21,6 +21,7 @@ import com.microsoft.azure.eventhubs.EventHubClient;
 import com.microsoft.azure.eventhubs.ConnectionStringBuilder;
 import com.microsoft.azure.eventhubs.IllegalConnectionStringFormatException;
 import com.microsoft.azure.eventhubs.EventHubException;
+import com.microsoft.azure.eventhubs.impl.EventHubClientImpl;
 import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -193,7 +194,8 @@ public class PutAzureEventHub extends AbstractProcessor {
         final ScheduledExecutorService executor)
         throws ProcessException{
 
-        try {
+        try {            
+            EventHubClientImpl.USER_AGENT = "Nifi client, azureeventhub/2.3.2";
             return EventHubClient.createSync(getConnectionString(namespace, eventHubName, policyName, policyKey), executor);
         } catch (IOException | EventHubException | IllegalConnectionStringFormatException e) {
             getLogger().error("Failed to create EventHubClient due to {}", e);
