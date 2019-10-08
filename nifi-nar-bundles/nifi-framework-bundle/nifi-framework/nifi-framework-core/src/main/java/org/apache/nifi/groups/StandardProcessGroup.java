@@ -1397,8 +1397,6 @@ public final class StandardProcessGroup implements ProcessGroup {
             final ScheduledState state = processor.getScheduledState();
             if (state == ScheduledState.DISABLED) {
                 throw new IllegalStateException("Processor is disabled");
-            } else if (state == ScheduledState.STOPPED) {
-                return CompletableFuture.completedFuture(null);
             }
 
             return scheduler.stopProcessor(processor);
@@ -2954,7 +2952,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                 }
 
                 if (service.getState() != ControllerServiceState.DISABLED) {
-                    throw new IllegalStateException("Cannot change Parameter Context for " + this + " because " + service + " is referencing at least one Parameter is is not disabled");
+                    throw new IllegalStateException("Cannot change Parameter Context for " + this + " because " + service + " is referencing at least one Parameter and is not disabled");
                 }
 
                 verifyParameterSensitivityIsValid(service, parameterContext);
