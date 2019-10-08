@@ -18,6 +18,7 @@ package org.apache.nifi.processors.ignite.cache;
 
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
+import org.apache.ignite.IgniteCheckedException;
 import org.apache.ignite.Ignition;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -30,10 +31,12 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.apache.ignite.internal.IgnitionEx.loadConfiguration;
 import static org.junit.Assert.assertEquals;
 
 public class TestGetIgniteCache {
@@ -46,8 +49,9 @@ public class TestGetIgniteCache {
     private Map<String, String> properties2;
 
     @BeforeClass
-    public static void setUpClass() {
-        ignite = Ignition.start("test-ignite.xml");
+    public static void setUpClass() throws IgniteCheckedException {
+        final String targetFolderPath = Paths.get("target/ignite/work/").toUri().getPath();
+        ignite = Ignition.start(loadConfiguration("test-ignite.xml").get1().setWorkDirectory(targetFolderPath));
     }
 
     @AfterClass
@@ -65,7 +69,6 @@ public class TestGetIgniteCache {
             }
 
         };
-
         properties1 = new HashMap<>();
         properties1.put("igniteKey", "key1");
         properties2 = new HashMap<>();
