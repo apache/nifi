@@ -52,8 +52,8 @@
                                     <target>
                                         <exec dir="${project.basedir}/target" executable="java">
                                             <arg value="-cp" />
-                                            <arg value="lib/*" />
-                                            <arg value="org.apache.nifi.stateless.NiFiStateless" />
+                                            <arg value="lib/*:lib/java11/*:lib/bootstrap/*" />
+                                            <arg value="org.apache.nifi.stateless.runtimes.Program" />
                                             <arg value="ExtractNars" />
                                         </exec>
                                     </target>

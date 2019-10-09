@@ -18,11 +18,14 @@ package org.apache.nifi.stateless.runtimes;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import org.apache.nifi.nar.NarUnpacker;
 import org.apache.nifi.stateless.bootstrap.InMemoryFlowFile;
 import org.apache.nifi.stateless.bootstrap.RunnableFlow;
 import org.apache.nifi.stateless.core.StatelessFlow;
 import org.apache.nifi.stateless.runtimes.openwhisk.StatelessNiFiOpenWhiskAction;
 import org.apache.nifi.stateless.runtimes.yarn.YARNServiceUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -32,15 +35,28 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.LinkedList;
 import java.util.Queue;
+import java.util.concurrent.TimeUnit;
 
 public class Program {
+    private static final Logger logger = LoggerFactory.getLogger(Program.class);
 
+    public static final String EXTRACT_NARS = "ExtractNars";
     public static final String RUN_FROM_REGISTRY = "RunFromRegistry";
     public static final String RUN_YARN_SERVICE_FROM_REGISTRY = "RunYARNServiceFromRegistry";
     public static final String RUN_OPENWHISK_ACTION_SERVER = "RunOpenwhiskActionServer";
 
+    public static final String libPath = "lib";
+    public static final String narPath = "work/stateless-nars";
 
-    public static void launch(final String[] args, final ClassLoader systemClassLoader, final File narWorkingDirectory) throws Exception {
+    public static void main(final String[] args) throws Exception {
+
+        String nifi_home = System.getenv("NIFI_HOME");
+        if(nifi_home == null || nifi_home.equals("")) {
+            nifi_home = ".";
+        }
+
+        final File libDir = new File(nifi_home+"/"+libPath);
+        final File narWorkingDirectory = new File(nifi_home+"/"+narPath);
 
         //Workaround for YARN
         //TODO make configurable
@@ -63,12 +79,14 @@ public class Program {
         if (args.length == 0) {
             printUsage();
             System.exit(1);
+        } else if(args[0].equals(EXTRACT_NARS)){
+            extractNars(libDir, narWorkingDirectory);
         } else if (args[0].equals(RUN_FROM_REGISTRY) && (args[1].equalsIgnoreCase("Once") || args[1].equalsIgnoreCase("Continuous")) && args.length >= 4) {
-            runLocal(args, systemClassLoader, narWorkingDirectory);
+            runLocal(args, narWorkingDirectory);
         } else if (args[0].equals(RUN_YARN_SERVICE_FROM_REGISTRY) && args.length >= 7) {
             runOnYarn(args);
         } else if (args[0].equals(RUN_OPENWHISK_ACTION_SERVER) && args.length == 2) {
-            runOnOpenWhisk(args, systemClassLoader, narWorkingDirectory);
+            runOnOpenWhisk(args, narWorkingDirectory);
         } else {
             System.out.println("Invalid input: " + String.join(",", args));
             printUsage();
@@ -76,8 +94,35 @@ public class Program {
         }
     }
 
-    private static void runOnOpenWhisk(final String[] args, final ClassLoader systemClassLoader, final File narWorkingDirectory) throws IOException {
-        StatelessNiFiOpenWhiskAction action = new StatelessNiFiOpenWhiskAction(Integer.parseInt(args[1]), systemClassLoader, narWorkingDirectory);
+    private static void extractNars(File libDir, File narWorkingDirectory) throws IOException {
+        if (!libDir.exists()) {
+            System.out.println("Specified lib directory <" + libDir + "> does not exist");
+            return;
+        }
+
+        final File[] narFiles = libDir.listFiles(file -> file.getName().endsWith(".nar"));
+        if (narFiles == null) {
+            System.out.println("Could not obtain listing of lib directory <" + libDir + ">");
+            return;
+        }
+
+        if (!narWorkingDirectory.exists() && !narWorkingDirectory.mkdirs()) {
+            throw new IOException("Could not create NAR working directory <" + narWorkingDirectory + ">");
+        }
+
+        logger.info("Unpacking {} NARs", narFiles.length);
+        final long startUnpack = System.nanoTime();
+        for (final File narFile : narFiles) {
+            NarUnpacker.unpackNar(narFile, narWorkingDirectory);
+        }
+
+        final long millis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startUnpack);
+        logger.info("Finished unpacking {} NARs in {} millis", narFiles.length, millis);
+
+        System.exit(0);
+    }
+    private static void runOnOpenWhisk(final String[] args, final File narWorkingDirectory) throws IOException {
+        StatelessNiFiOpenWhiskAction action = new StatelessNiFiOpenWhiskAction(Integer.parseInt(args[1]), narWorkingDirectory);
         action.start();
     }
 
@@ -111,7 +156,7 @@ public class Program {
         System.out.println(message);
     }
 
-    private static void runLocal(final String[] args, final ClassLoader systemClassLoader, final File narWorkingDirectory) throws Exception {
+    private static void runLocal(final String[] args, final File narWorkingDirectory) throws Exception {
         final boolean once = args[1].equalsIgnoreCase("Once");
 
         final String json;
@@ -130,7 +175,7 @@ public class Program {
         JsonObject jsonObject = new JsonParser().parse(json).getAsJsonObject();
         System.out.println("Running from json:");
         System.out.println(jsonObject.toString());
-        final RunnableFlow flow = StatelessFlow.createAndEnqueueFromJSON(jsonObject, systemClassLoader, narWorkingDirectory);
+        final RunnableFlow flow = StatelessFlow.createAndEnqueueFromJSON(jsonObject, narWorkingDirectory);
 
         // Run Flow
         final Queue<InMemoryFlowFile> outputFlowFiles = new LinkedList<>();
