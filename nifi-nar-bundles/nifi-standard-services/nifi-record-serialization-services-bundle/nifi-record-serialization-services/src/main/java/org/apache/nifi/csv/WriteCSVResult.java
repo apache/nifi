@@ -17,14 +17,6 @@
 
 package org.apache.nifi.csv;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
 import org.apache.nifi.schema.access.SchemaAccessWriter;
@@ -35,7 +27,16 @@ import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.RawRecordWriter;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
+import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
+
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 
 public class WriteCSVResult extends AbstractRecordSetWriter implements RecordSetWriter, RawRecordWriter {
     private final RecordSchema recordSchema;
@@ -142,11 +143,32 @@ public class WriteCSVResult extends AbstractRecordSetWriter implements RecordSet
 
         int i = 0;
         for (final RecordField recordField : recordSchema.getFields()) {
-            fieldValues[i++] = record.getAsString(recordField, getFormat(recordField));
+            fieldValues[i++] = getFieldValue(record, recordField);
         }
 
         printer.printRecord(fieldValues);
         return schemaWriter.getAttributes(recordSchema);
+    }
+
+    private Object getFieldValue(final Record record, final RecordField recordField) {
+        final RecordFieldType fieldType = recordField.getDataType().getFieldType();
+
+        switch (fieldType) {
+            case BIGINT:
+            case BYTE:
+            case DOUBLE:
+            case FLOAT:
+            case LONG:
+            case INT:
+            case SHORT:
+                final Object value = record.getValue(recordField);
+                if (value instanceof Number) {
+                    return value;
+                }
+                break;
+        }
+
+        return record.getAsString(recordField, getFormat(recordField));
     }
 
     @Override
