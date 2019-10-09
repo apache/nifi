@@ -255,7 +255,7 @@ public class TestScanKudu {
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(ScanKudu.REL_SUCCESS).get(0);
         Object timestamp = ChronoUnit.MICROS.between(Instant.EPOCH, now);
         flowFile.assertContentEquals("[{\"key\":\"1\",\"int16\":\"20\",\"int32\":\"300\",\"int64\":"
-            + "\"4000\",\"binary\":\"0x3759\",\"string\":\"stringValue\",\"bool\":\"true\",\"float\":\"1.5\","
+            + "\"4000\",\"binary\":\"3759\",\"string\":\"stringValue\",\"bool\":\"true\",\"float\":\"1.5\","
             + "\"double\":\"10.28\",\"unixtime_micros\":\"" + timestamp + "\",\"decimal\":\"3.1415\"}]");
     }
 
@@ -579,11 +579,92 @@ public class TestScanKudu {
         testPredicate(predicate, expectedContent, Type.DOUBLE, (row, value) -> row.addDouble("value", value), values);
     }
 
+    @Test
+    public void testPredicateLowerOrEqualsByte() throws Exception {
+        List<Byte> values = Arrays.asList((byte)11, (byte)9, (byte)10, (byte)8);
+
+        String predicate = "value<=10";
+        String expectedContent = "[{\"key\":\"2\",\"value\":\"9\"},\n{\"key\":\"3\",\"value\":\"10\"},\n{\"key\":\"4\",\"value\":\"8\"}]";
+
+        testPredicate(predicate, expectedContent, Type.INT8, (row, value) -> row.addByte("value", value), values);
+    }
+
+    @Test
+    public void testPredicateLowerThanShort() throws Exception {
+        List<Short> values = Arrays.asList((short)11, (short)9, (short)10, (short)-8);
+
+        String predicate = "value<10";
+        String expectedContent = "[{\"key\":\"2\",\"value\":\"9\"},\n{\"key\":\"4\",\"value\":\"-8\"}]";
+
+        testPredicate(predicate, expectedContent, Type.INT16, (row, value) -> row.addShort("value", value), values);
+    }
+
+    @Test
+    public void testPredicateEqualsLong() throws Exception {
+        List<Long> values = Arrays.asList(11L, 9L, 10L, 8L);
+
+        String predicate = "value=10";
+        String expectedContent = "[{\"key\":\"3\",\"value\":\"10\"}]";
+
+        testPredicate(predicate, expectedContent, Type.INT64, (row, value) -> row.addLong("value", value), values);
+    }
+
+    @Test
+    public void testPredicatesEqualsBinary() throws Exception {
+        List<byte[]> values = Arrays.asList(
+            new byte[] {127, 10, 28},
+            new byte[] {-128, 10, 28},
+            new byte[] {0, 10, 28}
+        );
+
+        String predicate = "value=7f0a1c";
+        String expectedContent = "[{\"key\":\"1\",\"value\":\"7f0a1c\"}]";
+
+        testPredicate(predicate, expectedContent, Type.BINARY, (row, value) -> row.addBinary("value", value), values);
+    }
+
+    @Test
+    public void testPredicateGreaterOrEqualsBigDecimal() throws Exception {
+        List<BigDecimal> values = Arrays.asList(
+            new BigDecimal("15643691156541351512356.1264865416"),
+            new BigDecimal("69879841523159494156164.3198491561316"),
+            new BigDecimal("99165198489191894987456.61561616")
+        );
+
+        String predicate = "value>=69879841523159494156164.3198491561316";
+        String expectedContent = "[{\"key\":\"2\",\"value\":\"69879841523159494156164.3198491561316\"},\n" +
+            "{\"key\":\"3\",\"value\":\"99165198489191894987456.6156161600000\"}]";
+
+        testPredicate(
+            predicate,
+            expectedContent,
+            new ColumnSchema.ColumnSchemaBuilder("value", Type.DECIMAL).key(false).typeAttributes(
+                new ColumnTypeAttributes.ColumnTypeAttributesBuilder()
+                    .precision(38)
+                    .scale(13)
+                    .build()
+            ).build(),
+            (row, value) -> row.addDecimal("value", value),
+            values
+        );
+    }
+
     private <V> void testPredicate(String predicate, String expectedContent, Type valueType,
         BiConsumer<PartialRow, V> valueSetter, List<V> values) throws Exception {
+        testPredicate(
+            predicate,
+            expectedContent,
+            new ColumnSchema.ColumnSchemaBuilder("value", valueType).key(false).build(),
+            valueSetter,
+            values
+        );
+    }
+
+    private <V> void testPredicate(String predicate, String expectedContent,
+        ColumnSchema valueColumnSchema, BiConsumer<PartialRow, V> valueSetter, List<V> values) throws Exception {
         List<ColumnSchema> columns = Arrays.asList(
             new ColumnSchema.ColumnSchemaBuilder("key", Type.INT32).key(true).build(),
-            new ColumnSchema.ColumnSchemaBuilder("value", valueType).key(false).build()
+            valueColumnSchema
         );
 
         KuduTable kuduTable = kuduScan.getKuduTable(DEFAULT_TABLE_NAME, columns);

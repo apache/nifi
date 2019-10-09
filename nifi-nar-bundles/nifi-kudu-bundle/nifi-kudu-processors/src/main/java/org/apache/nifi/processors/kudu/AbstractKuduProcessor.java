@@ -18,6 +18,7 @@
 package org.apache.nifi.processors.kudu;
 
 import java.security.PrivilegedExceptionAction;
+import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.kudu.shaded.com.google.common.annotations.VisibleForTesting;
 import org.apache.kudu.ColumnSchema;
@@ -345,7 +346,7 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
                     jsonBuilder.append("\"" + row.getLong(col.getName()) + "\"");
                     break;
                 case BINARY:
-                    jsonBuilder.append("\"0x" + Hex.encodeHexString(row.getBinaryCopy(col.getName())) + "\"");
+                    jsonBuilder.append("\"" + Hex.encodeHexString(row.getBinaryCopy(col.getName())) + "\"");
                     break;
                 default:
                     break;
@@ -360,12 +361,11 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
     protected Object parseValue(String value, ColumnSchema columnSchema) {
         Object  parsedValue;
         Type type = columnSchema.getType();
-
+        if (value.isEmpty()) {
+            throw new IllegalStateException(String.format("No value provided for %s", columnSchema.getName()));
+        }
         switch (type) {
             case STRING:
-                if (value.isEmpty()) {
-                    throw new IllegalStateException(String.format("give value is Empty for type %s", type));
-                }
                 parsedValue = value;
                 break;
             case INT8:
@@ -396,7 +396,11 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
                 parsedValue = Long.valueOf(value);
                 break;
             case BINARY:
-                parsedValue = Byte.valueOf(value);
+                try {
+                    parsedValue = Hex.decodeHex(value);
+                } catch (DecoderException e) {
+                    throw new RuntimeException(e);
+                }
                 break;
             default:
                 throw new IllegalArgumentException("Couldn't parse '" + value + "' as '" + type + "'");
