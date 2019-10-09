@@ -76,11 +76,12 @@ public class JASN1Reader extends AbstractConfigurableComponent implements Record
         .description("A canonical class name implementing record iteration logic.")
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .required(true)
+        .required(false)
         .build();
 
     private final List<PropertyDescriptor> propertyDescriptors = Arrays.asList(
         ROOT_CLASS_NAME,
+        ITERATOR_PROVIDER_CLASS_NAME,
         RECORD_FIELD,
         MODEL_CLASS_PATHS
     );
@@ -135,7 +136,7 @@ public class JASN1Reader extends AbstractConfigurableComponent implements Record
     }
 
     @Override
-    public RecordReader createRecordReader(Map<String, String> variables, InputStream in, long inputLength, ComponentLog logger) throws MalformedRecordException, IOException, SchemaNotFoundException {
+    public RecordReader createRecordReader(Map<String, String> variables, InputStream in, ComponentLog logger) throws MalformedRecordException, IOException, SchemaNotFoundException {
         final String rootClassName = rootClassNameProperty.evaluateAttributeExpressions(variables).getValue();
         final String recordField = recordFieldProperty.evaluateAttributeExpressions(variables).getValue();
         final String iteratorProviderClassName = iteratorProviderProperty.evaluateAttributeExpressions(variables).getValue();
