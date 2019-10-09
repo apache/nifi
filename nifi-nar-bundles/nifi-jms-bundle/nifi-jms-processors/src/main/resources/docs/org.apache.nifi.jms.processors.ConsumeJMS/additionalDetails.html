@@ -52,6 +52,13 @@
     <li><b>Connection Factory Service</b> - [REQUIRED] link to a pre-configured instance of org.apache.nifi.jms.cf.JMSConnectionFactoryProvider.
     </li>
 </ol>
-
+<p>
+    The rest of the properties are set as Dynamic Properties following <a href="http://docstore.mik.ua/orelly/java-ent/jnut/ch06_02.htm">Java Beans</a> 
+    convention where a property name is derived from the <i>set*</i> method of the vendor specific ConnectionFactory's implementation.
+    For example, <i>com.ibm.mq.jms.MQDestination.setMessageBodyStyle(int)</i> would imply 'messageBodyStyle' property and 
+    <i>com.ibm.mq.jms.MQDestination.setMQMDReadEnabled((boolean)</i> would imply 'mQMDReadEnabled' property.
+    For the list of available properties please consult vendor provided documentation. Here is an example for 
+    <a href="https://www-01.ibm.com/support/knowledgecenter/SSFKSJ_8.0.0/com.ibm.mq.javadoc.doc/WMQJMSClasses/com/ibm/mq/jms/MQDestination.html">IBM's com.ibm.mq.jms.MQDestination</a>
+</p>
 </body>
 </html>

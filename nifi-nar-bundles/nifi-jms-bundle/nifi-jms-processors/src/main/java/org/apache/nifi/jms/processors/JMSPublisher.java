@@ -17,6 +17,7 @@
 package org.apache.nifi.jms.processors;
 
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.ProcessContext;
 import org.springframework.jms.connection.CachingConnectionFactory;
 import org.springframework.jms.core.JmsTemplate;
 import org.springframework.jms.core.MessageCreator;
@@ -48,33 +49,47 @@ final class JMSPublisher extends JMSWorker {
     }
 
     void publish(String destinationName, byte[] messageBytes) {
-        this.publish(destinationName, messageBytes, null);
+        this.publish(destinationName, messageBytes, null, null);
     }
 
     void publish(final String destinationName, final byte[] messageBytes, final Map<String, String> flowFileAttributes) {
-        this.jmsTemplate.send(destinationName, new MessageCreator() {
+        this.publish(destinationName, messageBytes, flowFileAttributes, null);
+    }
+
+    void publish(final String destinationName, final byte[] messageBytes, final Map<String, String> flowFileAttributes, final ProcessContext context) {
+
+        Destination destination = this.resolveDestination(destinationName, context);
+
+        this.jmsTemplate.send(destination, new MessageCreator() {
             @Override
             public Message createMessage(Session session) throws JMSException {
                 BytesMessage message = session.createBytesMessage();
                 message.writeBytes(messageBytes);
-                setMessageHeaderAndProperties(message, flowFileAttributes);
+                setMessageHeaderAndProperties(message, flowFileAttributes, context);
                 return message;
             }
         });
     }
 
     void publish(String destinationName, String messageText, final Map<String, String> flowFileAttributes) {
-        this.jmsTemplate.send(destinationName, new MessageCreator() {
+        this.publish(destinationName, messageText, flowFileAttributes, null);
+    }
+
+    void publish(String destinationName, String messageText, final Map<String, String> flowFileAttributes, final ProcessContext context) {
+
+        Destination destination = this.resolveDestination(destinationName, context);
+
+        this.jmsTemplate.send(destination, new MessageCreator() {
             @Override
             public Message createMessage(Session session) throws JMSException {
                 TextMessage message = session.createTextMessage(messageText);
-                setMessageHeaderAndProperties(message, flowFileAttributes);
+                setMessageHeaderAndProperties(message, flowFileAttributes, context);
                 return message;
             }
         });
     }
 
-    void setMessageHeaderAndProperties(final Message message, final Map<String, String> flowFileAttributes) throws JMSException {
+    void setMessageHeaderAndProperties(final Message message, final Map<String, String> flowFileAttributes, final ProcessContext context) throws JMSException {
         if (flowFileAttributes != null && !flowFileAttributes.isEmpty()) {
 
             Map<String, String> flowFileAttributesToSend = flowFileAttributes.entrySet().stream()
@@ -101,14 +116,14 @@ final class JMSPublisher extends JMSWorker {
                     } else if (entry.getKey().equals(JmsHeaders.TYPE)) {
                         message.setJMSType(entry.getValue());
                     } else if (entry.getKey().equals(JmsHeaders.REPLY_TO)) {
-                        Destination destination = buildDestination(entry.getValue());
+                        Destination destination = buildDestination(entry.getValue(), context);
                         if (destination != null) {
                             message.setJMSReplyTo(destination);
                         } else {
                             logUnbuildableDestination(entry.getKey(), JmsHeaders.REPLY_TO);
                         }
                     } else if (entry.getKey().equals(JmsHeaders.DESTINATION)) {
-                        Destination destination = buildDestination(entry.getValue());
+                        Destination destination = buildDestination(entry.getValue(), context);
                         if (destination != null) {
                             message.setJMSDestination(destination);
                         } else {
@@ -132,8 +147,22 @@ final class JMSPublisher extends JMSWorker {
         this.processLog.warn("Failed to determine destination type from destination name '{}'. The '{}' header will not be set.", new Object[] {destinationName, headerName});
     }
 
+    private Destination resolveDestination(final String destinationName, final ProcessContext context) {
+        Destination destination = this.jmsTemplate.execute(new SessionCallback<Destination>() {
+            @Override
+            public Destination doInJms(Session session) throws JMSException {
+                return jmsTemplate.getDestinationResolver().resolveDestinationName(session, destinationName, jmsTemplate.isPubSubDomain());
+            }
+        });
 
-    private Destination buildDestination(final String destinationName) {
+        if (context != null) {
+            setDestinationProperties(destination, context);
+        }
+
+        return destination;
+    }
+
+    private Destination buildDestination(final String destinationName, final ProcessContext context) {
         Destination destination;
         if (destinationName.toLowerCase().contains("topic")) {
             destination = this.jmsTemplate.execute(new SessionCallback<Topic>() {
@@ -151,6 +180,10 @@ final class JMSPublisher extends JMSWorker {
             });
         } else {
             destination = null;
+        }
+
+        if (destination != null && context != null) {
+            setDestinationProperties(destination, context);
         }
 
         return destination;

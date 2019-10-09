@@ -17,6 +17,7 @@
 package org.apache.nifi.jms.processors;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
@@ -77,6 +78,10 @@ import java.util.Set;
         + " `delay.type` with value `integer` will cause a JMS message property `delay` to be sent as an Integer rather than a String. Supported types are boolean, byte,"
         + " short, integer, long, float, double, and string (which is the default).")
 })
+@DynamicProperty(name = "The name of a Destination configuration property.", value = "The value of a given Destination configuration property.",
+        description = "The properties that are set following Java Beans convention where a property name is derived from the 'set*' method of the vendor "
+                + "specific ConnectionFactory's implementation. For example, 'com.ibm.mq.jms.MQDestination.setMessageBodyStyle(int)' would imply 'messageBodyStyle' "
+                + "property and 'com.ibm.mq.jms.MQDestination.setMQMDWriteEnabled(boolean)' would imply 'mQMDWriteEnabled' property.")
 @SeeAlso(value = { ConsumeJMS.class, JMSConnectionFactoryProvider.class })
 @SystemResourceConsideration(resource = SystemResource.MEMORY)
 public class PublishJMS extends AbstractJMSProcessor<JMSPublisher> {
@@ -124,7 +129,7 @@ public class PublishJMS extends AbstractJMSProcessor<JMSPublisher> {
                 switch (context.getProperty(MESSAGE_BODY).getValue()) {
                     case TEXT_MESSAGE:
                         try {
-                            publisher.publish(destinationName, this.extractTextMessageBody(flowFile, processSession, charset), flowFile.getAttributes());
+                            publisher.publish(destinationName, this.extractTextMessageBody(flowFile, processSession, charset), flowFile.getAttributes(), context);
                         } catch(Exception e) {
                             publisher.setValid(false);
                             throw e;
@@ -133,7 +138,7 @@ public class PublishJMS extends AbstractJMSProcessor<JMSPublisher> {
                     case BYTES_MESSAGE:
                     default:
                         try {
-                            publisher.publish(destinationName, this.extractMessageBody(flowFile, processSession), flowFile.getAttributes());
+                            publisher.publish(destinationName, this.extractMessageBody(flowFile, processSession), flowFile.getAttributes(), context);
                         } catch(Exception e) {
                             publisher.setValid(false);
                             throw e;

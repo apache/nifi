@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.jms.processors;
 
+import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -74,6 +75,10 @@ import java.util.concurrent.TimeUnit;
         @WritesAttribute(attribute = JmsHeaders.DESTINATION, description = "The JMSDestination from the message header."),
         @WritesAttribute(attribute = "other attributes", description = "Each message property is written to an attribute.")
 })
+@DynamicProperty(name = "The name of a Destination configuration property.", value = "The value of a given Destination configuration property.",
+        description = "The properties that are set following Java Beans convention where a property name is derived from the 'set*' method of the vendor "
+                + "specific ConnectionFactory's implementation. For example, 'com.ibm.mq.jms.MQDestination.setMessageBodyStyle(int)' would imply 'messageBodyStyle' "
+                + "property and 'com.ibm.mq.jms.MQDestination.setMQMDWriteEnabled(boolean)' would imply 'mQMDWriteEnabled' property.")
 @SeeAlso(value = { PublishJMS.class, JMSConnectionFactoryProvider.class })
 public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
 
@@ -189,7 +194,7 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
         final String charset = context.getProperty(CHARSET).evaluateAttributeExpressions().getValue();
 
         try {
-            consumer.consume(destinationName, durable, shared, subscriptionName, charset, new ConsumerCallback() {
+            consumer.consume(destinationName, durable, shared, subscriptionName, charset, context, new ConsumerCallback() {
                 @Override
                 public void accept(final JMSResponse response) {
                     if (response == null) {

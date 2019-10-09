@@ -17,10 +17,15 @@
 package org.apache.nifi.jms.processors;
 
 import java.nio.channels.Channel;
+import java.util.Map.Entry;
 
 import javax.jms.Connection;
+import javax.jms.Destination;
 
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.jms.utils.Utils;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.ProcessContext;
 import org.springframework.jms.connection.CachingConnectionFactory;
 import org.springframework.jms.core.JmsTemplate;
 
@@ -69,5 +74,15 @@ abstract class JMSWorker {
 
     public void setValid(boolean isValid) {
         this.isValid = isValid;
+    }
+
+    protected void setDestinationProperties(final Destination destination, final ProcessContext context) {
+        for (final Entry<PropertyDescriptor, String> entry : context.getProperties().entrySet()) {
+            PropertyDescriptor descriptor = entry.getKey();
+            String propertyName = descriptor.getName();
+            if (descriptor.isDynamic()) {
+                Utils.setProperty(destination, propertyName, entry.getValue());
+            }
+        }
     }
 }

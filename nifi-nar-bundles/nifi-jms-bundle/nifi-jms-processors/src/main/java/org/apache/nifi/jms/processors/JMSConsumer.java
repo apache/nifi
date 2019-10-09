@@ -35,6 +35,7 @@ import javax.jms.Topic;
 import org.apache.nifi.jms.processors.MessageBodyToBytesConverter.MessageConversionException;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.ProcessContext;
 import org.springframework.jms.connection.CachingConnectionFactory;
 import org.springframework.jms.core.JmsTemplate;
 import org.springframework.jms.core.SessionCallback;
@@ -52,9 +53,13 @@ final class JMSConsumer extends JMSWorker {
     }
 
 
-    private MessageConsumer createMessageConsumer(final Session session, final String destinationName, final boolean durable, final boolean shared, final String subscriberName) throws JMSException {
+    private MessageConsumer createMessageConsumer(final Session session, final String destinationName, final boolean durable, final boolean shared,
+        final String subscriberName,final ProcessContext context) throws JMSException {
         final boolean isPubSub = JMSConsumer.this.jmsTemplate.isPubSubDomain();
         final Destination destination = JMSConsumer.this.jmsTemplate.getDestinationResolver().resolveDestinationName(session, destinationName, isPubSub);
+        if (context != null) {
+            setDestinationProperties(destination, context);
+        }
 
         if (isPubSub) {
             if (shared) {
@@ -79,14 +84,18 @@ final class JMSConsumer extends JMSWorker {
         }
     }
 
-
     public void consume(final String destinationName, final boolean durable, final boolean shared, final String subscriberName, final String charset,
                         final ConsumerCallback consumerCallback) {
+        this.consume(destinationName, durable, shared, subscriberName, charset, null, consumerCallback);
+    }
+
+    public void consume(final String destinationName, final boolean durable, final boolean shared, final String subscriberName, final String charset,
+                        final ProcessContext context, final ConsumerCallback consumerCallback) {
         this.jmsTemplate.execute(new SessionCallback<Void>() {
             @Override
             public Void doInJms(final Session session) throws JMSException {
 
-                final MessageConsumer msgConsumer = createMessageConsumer(session, destinationName, durable, shared, subscriberName);
+                final MessageConsumer msgConsumer = createMessageConsumer(session, destinationName, durable, shared, subscriberName, context);
                 try {
                     final Message message = msgConsumer.receive(JMSConsumer.this.jmsTemplate.getReceiveTimeout());
                     JMSResponse response = null;

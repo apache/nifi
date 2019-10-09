@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.jms.cf;
+package org.apache.nifi.jms.utils;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -37,7 +37,7 @@ public final class Utils {
      * constructor.
      */
     @SuppressWarnings("unchecked")
-    static <T> T newDefaultInstance(String className) {
+    public static <T> T newDefaultInstance(String className) {
         try {
             Class<T> clazz = (Class<T>) Class.forName(className, false, Thread.currentThread().getContextClassLoader());
             return clazz.newInstance();
@@ -54,7 +54,7 @@ public final class Utils {
      * @param targetClass instance of target class
      * @return instance of {@link Method}
      */
-    public static Method findMethod(String name, Class<?> targetClass) {
+    private static Method findMethod(String name, Class<?> targetClass) {
         Class<?> searchType = targetClass;
         while (searchType != null) {
             Method[] methods = (searchType.isInterface() ? searchType.getMethods() : searchType.getDeclaredMethods());
@@ -76,7 +76,7 @@ public final class Utils {
      * @param targetClass instance of target class
      * @return Array of {@link Method}
      */
-    public static Method[] findMethods(String name, Class<?> targetClass) {
+    private static Method[] findMethods(String name, Class<?> targetClass) {
         Class<?> searchType = targetClass;
         ArrayList<Method> fittingMethods = new ArrayList<>();
         while (searchType != null) {
@@ -98,4 +98,62 @@ public final class Utils {
         }
     }
 
+    /**
+     * Sets corresponding {@link ConnectionFactory}'s property to a
+     * 'propertyValue' by invoking a 'setter' method that corresponds to
+     * 'propertyName'. For example, 'channel' property will correspond to
+     * 'setChannel(..) method and 'queueManager' property will correspond to
+     * setQueueManager(..) method with a single argument.
+     * <p>
+     * NOTE: There is a limited type conversion to accommodate property value
+     * types since all NiFi configuration properties comes as String. It is
+     * accomplished by checking the argument type of the method and executing
+     * its corresponding conversion to target primitive (e.g., value 'true' will
+     * go thru Boolean.parseBoolean(propertyValue) if method argument is of type
+     * boolean). None-primitive values are not supported at the moment and will
+     * result in {@link IllegalArgumentException}. It is OK though since based
+     * on analysis of several ConnectionFactory implementation the all seem to
+     * follow bean convention and all their properties using Java primitives as
+     * arguments.
+     */
+    public static boolean setProperty(Object target, String propertyName, Object propertyValue) {
+        String methodName = toMethodName(propertyName);
+        Method[] methods = findMethods(methodName, target.getClass());
+        if (methods != null && methods.length > 0) {
+            try {
+                for (Method method : methods) {
+                    Class<?> returnType = method.getParameterTypes()[0];
+                    if (String.class.isAssignableFrom(returnType)) {
+                        method.invoke(target, propertyValue);
+                        return true;
+                    } else if (int.class.isAssignableFrom(returnType)) {
+                        method.invoke(target, Integer.parseInt((String) propertyValue));
+                        return true;
+                    } else if (long.class.isAssignableFrom(returnType)) {
+                        method.invoke(target, Long.parseLong((String) propertyValue));
+                        return true;
+                    } else if (boolean.class.isAssignableFrom(returnType)) {
+                        method.invoke(target, Boolean.parseBoolean((String) propertyValue));
+                        return true;
+                    }
+                }
+                methods[0].invoke(target, propertyValue);
+                return true;
+            } catch (Exception e) {
+                throw new IllegalStateException("Failed to set property " + propertyName, e);
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Will convert propertyName to a method name following bean convention. For
+     * example, 'channel' property will correspond to 'setChannel method and
+     * 'queueManager' property will correspond to setQueueManager method name
+     */
+    private static String toMethodName(String propertyName) {
+        char c[] = propertyName.toCharArray();
+        c[0] = Character.toUpperCase(c[0]);
+        return "set" + new String(c);
+    }
 }

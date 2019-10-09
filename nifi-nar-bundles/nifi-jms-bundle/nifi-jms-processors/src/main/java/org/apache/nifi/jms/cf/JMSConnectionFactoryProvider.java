@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.jms.cf;
 
-import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -38,6 +37,7 @@ import org.apache.nifi.components.Validator;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.jms.utils.Utils;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.ssl.SSLContextService;
@@ -262,32 +262,10 @@ public class JMSConnectionFactoryProvider extends AbstractControllerService impl
      * arguments.
      */
     private void setProperty(String propertyName, Object propertyValue) {
-        String methodName = this.toMethodName(propertyName);
-        Method[] methods = Utils.findMethods(methodName, this.connectionFactory.getClass());
-        if (methods != null && methods.length > 0) {
-            try {
-                for (Method method : methods) {
-                    Class<?> returnType = method.getParameterTypes()[0];
-                    if (String.class.isAssignableFrom(returnType)) {
-                        method.invoke(this.connectionFactory, propertyValue);
-                        return;
-                    } else if (int.class.isAssignableFrom(returnType)) {
-                        method.invoke(this.connectionFactory, Integer.parseInt((String) propertyValue));
-                        return;
-                    } else if (long.class.isAssignableFrom(returnType)) {
-                        method.invoke(this.connectionFactory, Long.parseLong((String) propertyValue));
-                        return;
-                    } else if (boolean.class.isAssignableFrom(returnType)) {
-                        method.invoke(this.connectionFactory, Boolean.parseBoolean((String) propertyValue));
-                        return;
-                    }
-                }
-                methods[0].invoke(this.connectionFactory, propertyValue);
-            } catch (Exception e) {
-                throw new IllegalStateException("Failed to set property " + propertyName, e);
+        if (!Utils.setProperty(this.connectionFactory, propertyName, propertyValue)) {
+            if (propertyName.equals("hostName")) {
+                this.setProperty("host", propertyValue); // try 'host' as another common convention.
             }
-        } else if (propertyName.equals("hostName")) {
-            this.setProperty("host", propertyValue); // try 'host' as another common convention.
         }
     }
 
@@ -298,17 +276,6 @@ public class JMSConnectionFactoryProvider extends AbstractControllerService impl
     private void createConnectionFactoryInstance(ConfigurationContext context) {
         String connectionFactoryImplName = context.getProperty(CONNECTION_FACTORY_IMPL).evaluateAttributeExpressions().getValue();
         this.connectionFactory = Utils.newDefaultInstance(connectionFactoryImplName);
-    }
-
-    /**
-     * Will convert propertyName to a method name following bean convention. For
-     * example, 'channel' property will correspond to 'setChannel method and
-     * 'queueManager' property will correspond to setQueueManager method name
-     */
-    private String toMethodName(String propertyName) {
-        char c[] = propertyName.toCharArray();
-        c[0] = Character.toUpperCase(c[0]);
-        return "set" + new String(c);
     }
 
     /**
