@@ -21,8 +21,6 @@ import com.beanit.jasn1.ber.types.BerInteger;
 import com.beanit.jasn1.ber.types.BerOctetString;
 import com.beanit.jasn1.ber.types.BerType;
 import com.beanit.jasn1.ber.types.string.BerUTF8String;
-import com.github.benmanes.caffeine.cache.Caffeine;
-import com.github.benmanes.caffeine.cache.LoadingCache;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
@@ -34,22 +32,26 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.util.StringUtils;
-import org.apache.nifi.util.Tuple;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.function.Supplier;
 
+import static org.apache.nifi.jasn1.JASN1Utils.getSeqOfElementType;
+import static org.apache.nifi.jasn1.JASN1Utils.getSeqOfField;
+import static org.apache.nifi.jasn1.JASN1Utils.invokeGetter;
+import static org.apache.nifi.jasn1.JASN1Utils.toGetterMethod;
+
 public class JASN1RecordReader implements RecordReader {
 
     private final Class<? extends BerType> rootClass;
     private final Class<? extends BerType> recordModelClass;
+    private final Class<? extends RecordModelIteratorProvider> iteratorProviderClass;
     private final String recordField;
     private final Field seqOfField;
     private final RecordSchemaProvider schemaProvider;
@@ -57,8 +59,6 @@ public class JASN1RecordReader implements RecordReader {
     private final InputStream inputStream;
     private final ComponentLog logger;
 
-    private BerType model;
-    private List<BerType> recordModels;
     private Iterator<BerType> recordModelIterator;
 
     private <T> T withClassLoader(Supplier<T> supplier) {
@@ -79,6 +79,7 @@ public class JASN1RecordReader implements RecordReader {
     @SuppressWarnings("unchecked")
     public JASN1RecordReader(String rootClassName, String recordField,
                              RecordSchemaProvider schemaProvider, ClassLoader classLoader,
+                             String iteratorProviderClassName,
                              InputStream inputStream, ComponentLog logger) {
 
         this.schemaProvider = schemaProvider;
@@ -95,6 +96,18 @@ public class JASN1RecordReader implements RecordReader {
             }
         });
 
+        this.iteratorProviderClass = withClassLoader(() -> {
+            if (StringUtils.isEmpty(iteratorProviderClassName)) {
+                return StandardRecordModelIteratorProvider.class;
+            }
+
+            try {
+                return (Class<? extends RecordModelIteratorProvider>) classLoader.loadClass(iteratorProviderClassName);
+            } catch (ClassNotFoundException e) {
+                throw new RuntimeException("The iterator provider class " + iteratorProviderClassName + " was not found.", e);
+            }
+        });
+
         if (StringUtils.isEmpty(recordField)) {
             recordModelClass = rootClass;
             seqOfField = null;
@@ -102,9 +115,9 @@ public class JASN1RecordReader implements RecordReader {
             try {
                 final Method recordModelGetter = rootClass.getMethod(toGetterMethod(recordField));
                 final Class<?> readPointType = recordModelGetter.getReturnType();
-                seqOfField = JASN1Utils.getSeqOfField(readPointType);
+                seqOfField = getSeqOfField(readPointType);
                 if (seqOfField != null) {
-                    recordModelClass = JASN1Utils.getSeqOfElementType(seqOfField);
+                    recordModelClass = getSeqOfElementType(seqOfField);
                 } else {
                     recordModelClass = (Class<? extends BerType>) readPointType;
                 }
@@ -120,38 +133,16 @@ public class JASN1RecordReader implements RecordReader {
     public Record nextRecord(boolean coerceTypes, boolean dropUnknownFields) throws IOException, MalformedRecordException {
 
         return withClassLoader(() -> {
-            if (model == null) {
+            if (recordModelIterator == null) {
+
+                final RecordModelIteratorProvider recordModelIteratorProvider;
                 try {
-                    model = rootClass.getDeclaredConstructor().newInstance();
+                    recordModelIteratorProvider = iteratorProviderClass.newInstance();
                 } catch (ReflectiveOperationException e) {
-                    throw new RuntimeException("Failed to instantiate " + rootClass.getCanonicalName(), e);
+                    throw new RuntimeException("Failed to instantiate " + iteratorProviderClass.getCanonicalName(), e);
                 }
 
-                try {
-                    final int decode = model.decode(inputStream);
-                    logger.debug("Decoded {} bytes into {}", new Object[]{decode, model.getClass()});
-                } catch (IOException e) {
-                    throw new RuntimeException("Failed to decode " + rootClass.getCanonicalName(), e);
-                }
-
-                if (StringUtils.isEmpty(recordField)) {
-                    recordModels = Collections.singletonList(model);
-                } else {
-                    try {
-                        final Method recordModelGetter = rootClass.getMethod(toGetterMethod(recordField));
-                        final BerType readPointModel = (BerType) recordModelGetter.invoke(model);
-                        if (seqOfField != null) {
-                            final Class seqOf = JASN1Utils.getSeqOfElementType(seqOfField);
-                            recordModels = (List<BerType>) invokeGetter(readPointModel, toGetterMethod(seqOf.getSimpleName()));
-                        } else {
-                            recordModels = Collections.singletonList(readPointModel);
-                        }
-                    } catch (ReflectiveOperationException e) {
-                        throw new RuntimeException("Failed to get record models due to " + e, e);
-                    }
-                }
-
-                recordModelIterator = recordModels.iterator();
+                recordModelIterator = recordModelIteratorProvider.iterator(inputStream, logger, rootClass, recordField, seqOfField);
             }
 
             if (recordModelIterator.hasNext()) {
@@ -161,10 +152,6 @@ public class JASN1RecordReader implements RecordReader {
             }
 
         });
-    }
-
-    private String toGetterMethod(String fieldName) {
-        return "get" + fieldName.substring(0, 1).toUpperCase() + fieldName.substring(1);
     }
 
     @SuppressWarnings("unchecked")
@@ -211,7 +198,7 @@ public class JASN1RecordReader implements RecordReader {
                     throw new RuntimeException(seqOfContainer + " doesn't have the expected 'seqOf' field.");
                 }
 
-                final Class seqOf = JASN1Utils.getSeqOfElementType(seqOfField);
+                final Class seqOf = getSeqOfElementType(seqOfField);
                 final String getterMethod = toGetterMethod(seqOf.getSimpleName());
 
                 final DataType elementType = ((ArrayDataType) dataType).getElementType();
@@ -238,35 +225,6 @@ public class JASN1RecordReader implements RecordReader {
 
         return record;
     }
-
-    /**
-     * Since the same class can be read many times in case reading an array, having a cache can reduce processing time.
-     * Class.getDeclaredMethod is time consuming.
-     */
-    private final LoadingCache<Tuple<Class<? extends BerType>, String>, Method> getterCache = Caffeine.newBuilder()
-        .maximumSize(1000)
-        .build(this::getGetter);
-
-    private Method getGetter(Tuple<Class<? extends BerType>, String> methodKey) {
-        try {
-            return methodKey.getKey().getDeclaredMethod(methodKey.getValue());
-        } catch (ReflectiveOperationException e) {
-            throw new RuntimeException("Failed to get method from " + methodKey, e);
-        }
-    }
-
-    private Object invokeGetter(BerType model, String methodName) {
-        final Object value;
-        final Class<? extends BerType> type = model.getClass();
-        try {
-            value = getterCache.get(new Tuple<>(type, methodName)).invoke(model);
-        } catch (ReflectiveOperationException e) {
-            throw new RuntimeException("Failed to invoke getter method " + methodName + " of model", e);
-        }
-        logger.trace("get value from {} by {}={}", new Object[]{model, methodName, value});
-        return value;
-    }
-
 
     @Override
     public RecordSchema getSchema() throws MalformedRecordException {

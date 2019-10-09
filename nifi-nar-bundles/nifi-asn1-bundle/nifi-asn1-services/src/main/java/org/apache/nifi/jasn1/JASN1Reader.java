@@ -70,6 +70,15 @@ public class JASN1Reader extends AbstractConfigurableComponent implements Record
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
 
+    private static PropertyDescriptor ITERATOR_PROVIDER_CLASS_NAME = new PropertyDescriptor.Builder()
+        .name("iterator-provider-class-name")
+        .displayName("Iterator Provider Class Name")
+        .description("A canonical class name implementing record iteration logic.")
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .required(true)
+        .build();
+
     private final List<PropertyDescriptor> propertyDescriptors = Arrays.asList(
         ROOT_CLASS_NAME,
         RECORD_FIELD,
@@ -84,6 +93,7 @@ public class JASN1Reader extends AbstractConfigurableComponent implements Record
     private volatile ClassLoader customClassLoader;
     private volatile PropertyValue rootClassNameProperty;
     private volatile PropertyValue recordFieldProperty;
+    private volatile PropertyValue iteratorProviderProperty;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -112,6 +122,7 @@ public class JASN1Reader extends AbstractConfigurableComponent implements Record
 
         rootClassNameProperty = context.getProperty(ROOT_CLASS_NAME);
         recordFieldProperty = context.getProperty(RECORD_FIELD);
+        iteratorProviderProperty = context.getProperty(ITERATOR_PROVIDER_CLASS_NAME);
     }
 
     @Override
@@ -127,7 +138,8 @@ public class JASN1Reader extends AbstractConfigurableComponent implements Record
     public RecordReader createRecordReader(Map<String, String> variables, InputStream in, long inputLength, ComponentLog logger) throws MalformedRecordException, IOException, SchemaNotFoundException {
         final String rootClassName = rootClassNameProperty.evaluateAttributeExpressions(variables).getValue();
         final String recordField = recordFieldProperty.evaluateAttributeExpressions(variables).getValue();
-        return new JASN1RecordReader(rootClassName, recordField, schemaProvider, customClassLoader, in, logger);
+        final String iteratorProviderClassName = iteratorProviderProperty.evaluateAttributeExpressions(variables).getValue();
+        return new JASN1RecordReader(rootClassName, recordField, schemaProvider, customClassLoader, iteratorProviderClassName, in, logger);
     }
 
 }

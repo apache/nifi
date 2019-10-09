@@ -46,7 +46,7 @@ public class TestJASN1RecordReader {
         try (final InputStream input = TestJASN1RecordReader.class.getResourceAsStream("/examples/basic-types.dat")) {
 
             final JASN1RecordReader reader = new JASN1RecordReader("org.apache.nifi.jasn1.example.BasicTypes", null,
-                new RecordSchemaProvider(), Thread.currentThread().getContextClassLoader(),
+                new RecordSchemaProvider(), Thread.currentThread().getContextClassLoader(), null,
                 input, new MockComponentLog("id", new JASN1Reader()));
 
             final RecordSchema schema = reader.getSchema();
@@ -70,7 +70,7 @@ public class TestJASN1RecordReader {
         try (final InputStream input = TestJASN1RecordReader.class.getResourceAsStream("/examples/composite.dat")) {
 
             final JASN1RecordReader reader = new JASN1RecordReader("org.apache.nifi.jasn1.example.Composite", null,
-                new RecordSchemaProvider(), Thread.currentThread().getContextClassLoader(),
+                new RecordSchemaProvider(), Thread.currentThread().getContextClassLoader(), null,
                 input, new MockComponentLog("id", new JASN1Reader()));
 
             final RecordSchema schema = reader.getSchema();
