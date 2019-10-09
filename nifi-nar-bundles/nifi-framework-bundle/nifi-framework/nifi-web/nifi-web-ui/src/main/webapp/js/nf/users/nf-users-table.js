@@ -1342,7 +1342,7 @@
                 });
 
                 // set the rows
-                usersData.setItems(users, 'uri');
+                usersData.setItems(users);
 
                 // end the update
                 usersData.endUpdate();
