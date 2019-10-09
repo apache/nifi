@@ -618,7 +618,7 @@ When connecting via Site to Site, MiNiFi needs to know which input or output por
 
 ## Provenance Reporting
 
-MiNiFi is currently designed only to report provenance data using the Site to Site protocol. 
+MiNiFi is currently designed only to report provenance data using the Site to Site protocol.
 
 **Note:** In order to send via HTTPS, the "Security Properties" must be fully configured. A StandardSSLContextService will be made automatically with the ID "SSL-Context-Service" and used by the Provenance Reporting.
 
@@ -656,8 +656,8 @@ NiFi Properties Overrides:
 Currently, it is possible to specify keystore and truststore information to allow mutual TLS communication across the Site to Site protocol as well as provisioning an SSL Context for components in the config.yml
 
 Security can be configured in two ways for instances via:
-    
-* **config.yml**:  These properties are specified as outlined in the 'Security Properties' and 'Sensitive Properties' in the config.yml sections above.  These allow the specification of security properties to be versioned with the flow and consumed via Change Ingestors. 
+
+* **config.yml**:  These properties are specified as outlined in the 'Security Properties' and 'Sensitive Properties' in the config.yml sections above.  These allow the specification of security properties to be versioned with the flow and consumed via Change Ingestors.
 * **bootstrap.conf**:   This is an alternative means of configuration that takes precedence over the config.yml configuration and is a way of separating security concerns from the processing flow.  The following properties should be defined:
 
 ## Security Properties in bootstrap.conf
@@ -951,3 +951,15 @@ Provenance Reporting:
     timeout: 30 secs
     batch size: 1000
 ```
+
+# Recommended Antivirus Exclusions
+
+Antivirus software can take a long time to scan directories and the files within them. Additionally, if the antivirus software locks files or directories during a scan, those resources are unavailable to MiNiFi processes, causing latency or unavailability of these resources in a MiNiFi instance. To prevent these performance and reliability issues from occurring, it is highly recommended to configure your antivirus software to skip scans on the following MiNiFi directories:
+
+### MiNiFi Java:
+
+  - content_repository
+  - flowfile_repository
+  - logs
+  - provenance_repository
+  - state
