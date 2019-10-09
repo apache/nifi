@@ -166,6 +166,7 @@ public class ConnectionLoadBalanceServer {
 
                     logger.error("Failed to communicate with Peer {}", peerDescription, e);
                     eventReporter.reportEvent(Severity.ERROR, "Load Balanced Connection", "Failed to receive FlowFiles for Load Balancing due to " + e);
+                    return;
                 }
             }
         }
