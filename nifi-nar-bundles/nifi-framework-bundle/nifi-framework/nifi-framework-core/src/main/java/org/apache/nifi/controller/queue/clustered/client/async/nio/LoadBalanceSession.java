@@ -319,16 +319,15 @@ public class LoadBalanceSession {
                 final byte[] compressed = compressDataFrame(byteBuffer, bytesRead);
                 final int compressedMaxLen = compressed.length;
 
-                buffer = ByteBuffer.allocate(3 + compressedMaxLen);
+                buffer = ByteBuffer.allocate(5 + compressedMaxLen);
                 buffer.put((byte) LoadBalanceProtocolConstants.DATA_FRAME_FOLLOWS);
-                buffer.putShort((short) compressedMaxLen);
+                buffer.putInt(compressedMaxLen);
 
                 buffer.put(compressed, 0, compressedMaxLen);
-
             } else {
-                buffer = ByteBuffer.allocate(3 + bytesRead);
+                buffer = ByteBuffer.allocate(5 + bytesRead);
                 buffer.put((byte) LoadBalanceProtocolConstants.DATA_FRAME_FOLLOWS);
-                buffer.putShort((short) bytesRead);
+                buffer.putInt(bytesRead);
 
                 buffer.put(byteBuffer, 0, bytesRead);
             }
