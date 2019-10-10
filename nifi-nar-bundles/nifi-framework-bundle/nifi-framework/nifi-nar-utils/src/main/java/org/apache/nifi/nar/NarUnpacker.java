@@ -201,9 +201,9 @@ public final class NarUnpacker {
     }
 
     /**
-     * Creates a map containing the nar directory mapped to it's bundle-coordinate. 
-     * @param extensionsWorkingDir
-     * @return
+     * Creates a map containing the nar directory mapped to it's bundle-coordinate.
+     * @param extensionsWorkingDir where to find extensions
+     * @return map of coordinates for bundles
      */
     private static Map<File, BundleCoordinate> createUnpackedNarBundleCoordinateMap(File extensionsWorkingDir) {
         Map<File, BundleCoordinate> result = new HashMap<>();
@@ -216,7 +216,7 @@ public final class NarUnpacker {
                 result.put(unpackedDir, bundleCoordinate);
             } catch (IOException e) {
                 logger.error(format("Unable to parse NAR information from unpacked nar directory [%s].", unpackedDir.getAbsoluteFile()), e);
-            } 
+            }
         }
         return result;
     }
