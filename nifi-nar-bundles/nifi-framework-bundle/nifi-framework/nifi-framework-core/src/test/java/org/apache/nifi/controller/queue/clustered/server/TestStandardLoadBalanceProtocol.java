@@ -655,7 +655,7 @@ public class TestStandardLoadBalanceProtocol {
             final int length = Math.min(content.length - offset, 65535);
 
             out.write(DATA_FRAME_FOLLOWS);
-            out.writeShort(length);
+            out.writeInt(length);
             out.write(content, offset, length);
         }
 
