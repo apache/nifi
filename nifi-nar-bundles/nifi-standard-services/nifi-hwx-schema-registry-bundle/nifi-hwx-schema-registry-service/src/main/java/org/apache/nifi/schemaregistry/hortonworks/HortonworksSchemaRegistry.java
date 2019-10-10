@@ -142,11 +142,13 @@ public class HortonworksSchemaRegistry extends AbstractControllerService impleme
         ImmutableMap.Builder<String, String> propertiesBuilder = ImmutableMap.builder();
         if (sslContextService != null) {
             propertiesBuilder.put("protocol", sslContextService.getSslAlgorithm());
-            propertiesBuilder.put("keyPassword", sslContextService.getKeyPassword());
             if (sslContextService.isKeyStoreConfigured()) {
                 propertiesBuilder.put("keyStorePath", sslContextService.getKeyStoreFile());
                 propertiesBuilder.put("keyStorePassword", sslContextService.getKeyStorePassword());
                 propertiesBuilder.put("keyStoreType", sslContextService.getKeyStoreType());
+                if (sslContextService.getKeyPassword() != null) {
+                    propertiesBuilder.put("keyPassword", sslContextService.getKeyPassword());
+                }
             }
             if (sslContextService.isTrustStoreConfigured()) {
                 propertiesBuilder.put("trustStorePath", sslContextService.getTrustStoreFile());
