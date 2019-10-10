@@ -16,30 +16,6 @@
  */
 package org.apache.nifi.web.controller;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.text.Collator;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-import java.util.SortedSet;
-import java.util.TimeZone;
-import java.util.TreeSet;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-
-import javax.ws.rs.WebApplicationException;
-
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -135,6 +111,29 @@ import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.ws.rs.WebApplicationException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.text.Collator;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.TimeZone;
+import java.util.TreeSet;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class ControllerFacade implements Authorizable {
 
@@ -870,6 +869,10 @@ public class ControllerFacade implements Authorizable {
         resources.add(ResourceFactory.getProxyResource());
         resources.add(ResourceFactory.getResourceResource());
         resources.add(ResourceFactory.getSiteToSiteResource());
+        resources.add(ResourceFactory.getParameterContextsResource());
+
+        // add each parameter context
+        flowController.getFlowManager().getParameterContextManager().getParameterContexts().forEach(parameterContext -> resources.add(parameterContext.getResource()));
 
         // restricted components
         resources.add(ResourceFactory.getRestrictedComponentsResource());
