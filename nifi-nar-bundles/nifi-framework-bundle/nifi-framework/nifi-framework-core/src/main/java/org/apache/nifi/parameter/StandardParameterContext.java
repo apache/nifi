@@ -67,6 +67,11 @@ public class StandardParameterContext implements ParameterContext {
         return id;
     }
 
+    @Override
+    public String getProcessGroupIdentifier() {
+        return null;
+    }
+
     public String getName() {
         readLock.lock();
         try {

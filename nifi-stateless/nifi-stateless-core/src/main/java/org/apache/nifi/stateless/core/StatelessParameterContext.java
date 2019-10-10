@@ -43,6 +43,11 @@ public class StatelessParameterContext implements ParameterContext {
     }
 
     @Override
+    public String getProcessGroupIdentifier() {
+        return null;
+    }
+
+    @Override
     public String getName() {
         return "NiFi Stateless Parameter Context";
     }
