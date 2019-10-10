@@ -606,6 +606,8 @@
             policyLabel += 'reporting task ';
         } else if (resource.startsWith('/templates')) {
             policyLabel += 'template ';
+        } else if (resource.startsWith('/parameter-contexts')) {
+            policyLabel += 'parameter context '
         }
 
         if (dataContext.component.componentReference.permissions.canRead === true) {
@@ -658,6 +660,8 @@
                         //TODO: implement go to for RT
                     } else if (dataContext.component.resource.indexOf('/templates') >= 0) {
                         //TODO: implement go to for Templates
+                    } else if (dataContext.component.resource.indexOf('/parameter-contexts') >= 0) {
+                        markup += '<div title="Go To" class="pointer go-to-parameter-context fa fa-long-arrow-right" style="float: left;"></div>';
                     }
                 }
             }
@@ -756,6 +760,11 @@
                     parent.$('#shell-close-button').click();
                 } else if (target.hasClass('go-to-process-group')) {
                     parent.$('body').trigger('GoTo:ProcessGroup', {
+                        id: item.component.componentReference.id
+                    });
+                    parent.$('#shell-close-button').click();
+                } else if (target.hasClass('go-to-parameter-context')) {
+                    parent.$('body').trigger('GoTo:ParameterContext', {
                         id: item.component.componentReference.id
                     });
                     parent.$('#shell-close-button').click();
