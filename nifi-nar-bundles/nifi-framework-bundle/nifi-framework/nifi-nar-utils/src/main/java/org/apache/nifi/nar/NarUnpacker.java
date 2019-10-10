@@ -210,8 +210,8 @@ public final class NarUnpacker {
         File[] unpackedDirs = extensionsWorkingDir.listFiles(file -> file.isDirectory() && file.getName().endsWith("nar-unpacked"));
         for (File unpackedDir : unpackedDirs) {
             Path mf = Paths.get(unpackedDir.getAbsolutePath(), "META-INF", "MANIFEST.MF");
-            try {
-                Manifest manifest = new Manifest(Files.newInputStream(mf));
+            try(InputStream is = Files.newInputStream(mf)) {
+                Manifest manifest = new Manifest(is);
                 BundleCoordinate bundleCoordinate = createBundleCoordinate(manifest);
                 result.put(unpackedDir, bundleCoordinate);
             } catch (IOException e) {
