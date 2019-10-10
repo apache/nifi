@@ -627,7 +627,7 @@ For example:
 * The string `0 20 14 ? * MON-FRI` indicates that you want to schedule the processor to run at 2:20 PM every Monday through Friday.
 * The string `0 15 10 ? * 6L 2011-2017` indicates that you want to schedule the processor to run at 10:15 AM, on the last Friday of every month, between 2011 and 2017.
 
-For additional information and examples, see the link:http://www.quartz-scheduler.org/documentation/quartz-2.x/tutorials/crontrigger.html[Chron Trigger Tutorial^] in the Quartz documentation.
+For additional information and examples, see the link:https://www.quartz-scheduler.org/documentation/quartz-2.2.2/tutorials/tutorial-lesson-06.html[cron triggers tutorial] in the link:https://www.quartz-scheduler.org/documentation/[Quartz Documentation^].
 
 ===== Concurrent Tasks
 Next, the Scheduling tab provides a configuration option named 'Concurrent Tasks'. This controls how many threads the Processor
