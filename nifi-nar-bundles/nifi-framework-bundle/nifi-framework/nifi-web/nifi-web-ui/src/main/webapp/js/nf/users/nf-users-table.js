@@ -556,7 +556,7 @@
         }
 
         var subResource = nfCommon.substringAfterFirst(resource, '/restricted-components/');
-        return "Restricted components requiring '" + subResource + "'";
+        return "Restricted components requiring '" + nfCommon.escapeHtml(subResource) + "'";
     };
 
     /**
@@ -609,9 +609,9 @@
         }
 
         if (dataContext.component.componentReference.permissions.canRead === true) {
-            policyLabel += '<span style="font-weight: 500">' + dataContext.component.componentReference.component.name + '</span>';
+            policyLabel += '<span style="font-weight: 500">' + nfCommon.escapeHtml(dataContext.component.componentReference.component.name) + '</span>';
         } else {
-            policyLabel += '<span class="unset">' + dataContext.component.componentReference.id + '</span>'
+            policyLabel += '<span class="unset">' + nfCommon.escapeHtml(dataContext.component.componentReference.id) + '</span>'
         }
 
         return policyLabel;
