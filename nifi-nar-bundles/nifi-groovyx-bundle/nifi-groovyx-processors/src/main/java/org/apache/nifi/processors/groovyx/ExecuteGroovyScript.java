@@ -233,7 +233,10 @@ public class ExecuteGroovyScript extends AbstractProcessor {
      */
     @Override
     public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
-        this.shell = null;
+        // Only re-create the shell if necessary, this helps if loading native libraries
+        if (ExecuteGroovyScript.ADD_CLASSPATH.equals(descriptor)) {
+            this.shell = null;
+        }
         this.compiled = null;
         this.scriptLastModified = 0;
     }
