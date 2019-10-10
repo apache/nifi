@@ -534,12 +534,21 @@
     /**
      * Generates a human readable global policy string.
      *
+     * @param policy
+     * @returns {string}
+     */
+    var globalResourceParser = function (policy) {
+        return 'Global policy to ' + policy.text;
+    };
+
+    /**
+     * Generates a human readable policy string for an unknown resource.
+     *
      * @param dataContext
      * @returns {string}
      */
-    var globalResourceParser = function (dataContext) {
-        return 'Global policy to ' +
-            nfCommon.getPolicyTypeListing(nfCommon.substringAfterFirst(dataContext.component.resource, '/')).text;
+    var unknownResourceParser = function (dataContext) {
+        return '<span class="unset">Unknown resource ' + nfCommon.escapeHtml(dataContext.component.resource) + '</span>';
     };
 
     /**
@@ -991,12 +1000,19 @@
         if (dataContext.component.resource.startsWith('/restricted-components')) {
             // restricted components policy
             return restrictedComponentResourceParser(dataContext);
-        } else if (nfCommon.isUndefinedOrNull(dataContext.component.componentReference)) {
-            // global policy
-            return globalResourceParser(dataContext);
-        } else {
+        } else if (nfCommon.isDefinedAndNotNull(dataContext.component.componentReference)) {
             // not restricted/global policy... check if user has access to the component reference
             return componentResourceParser(dataContext);
+        } else {
+            // may be a global policy
+            var policy = nfCommon.getPolicyTypeListing(nfCommon.substringAfterFirst(dataContext.component.resource, '/'));
+
+            // if known global policy, format it otherwise format as unknown
+            if (nfCommon.isDefinedAndNotNull(policy)) {
+                return globalResourceParser(policy);
+            } else {
+                return unknownResourceParser(dataContext);
+            }
         }
     };
 
