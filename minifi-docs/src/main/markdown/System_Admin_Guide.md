@@ -694,6 +694,14 @@ You can now install the MiNiFi service by running the `install-service.bat` scri
 
 The *minifi.exe* in MiNiFi `bin` directory is used to run MiNiFi Windows service. The bundled one is for 64 bit architecture and requires 64 bit JRE. If you have to use 32 bit JRE for some reason, you need to replace the *minifi.exe* file with the one for 32 bit to make MiNiFi service runs successfully. To do so, go to [Commons Daemon project download page](https://commons.apache.org/proper/commons-daemon/download_daemon.cgi), download the binary (e.g. _commons-daemon-1.1.0-bin.zip_), extract it and replace *bin/minifi.exe* by copying `commons-daemon-x.x.x-bin/prunsrv.exe` into MiNiFi `bin` directory as *minifi.exe* to overwrite the 64 bit exe with the 32 bit one.
 
+# Flow overriding with bootstrap.conf
+
+ The following options can be set to override flow properties in the config.yml
+
+ *bootstrap.conf Property*         | *Description*
+ ----------------------------------|--------------------
+ `nifi.minifi.flow.use.parent.ssl` | When set to true, all processors will reference the MiNiFi parent SSL controller service defined in the security properties, instead of custom controller services.
+
 # Example Config File
 
 Below are two example config YAML files. The first tails the *minifi-app.log* and sends the tailed log and provenance data back to a secure instance of NiFi. The second uses a series of processors to tail the app log, routes off only lines that contain "WriteAheadFlowFileRepository" and puts it as a file in the "./" directory.

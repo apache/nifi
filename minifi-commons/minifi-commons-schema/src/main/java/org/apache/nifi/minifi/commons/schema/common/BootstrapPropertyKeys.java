@@ -42,6 +42,8 @@ public class BootstrapPropertyKeys {
     public static final String STATUS_REPORTER_PROPERTY_PREFIX = "nifi.minifi.status.reporter";
     public static final String STATUS_REPORTER_COMPONENTS_KEY = STATUS_REPORTER_PROPERTY_PREFIX + ".components";
 
+    public static final String USE_PARENT_SSL = "nifi.minifi.flow.use.parent.ssl";
+
     public static final String SECURITY_KEYSTORE_KEY = "nifi.minifi.security.keystore";
     public static final String SECURITY_KEYSTORE_TYPE_KEY = "nifi.minifi.security.keystoreType";
     public static final String SECURITY_KEYSTORE_PASSWORD_KEY = "nifi.minifi.security.keystorePasswd";

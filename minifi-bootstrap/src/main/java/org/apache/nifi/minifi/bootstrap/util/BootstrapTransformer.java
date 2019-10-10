@@ -31,6 +31,7 @@ import static org.apache.nifi.minifi.commons.schema.common.BootstrapPropertyKeys
 import static org.apache.nifi.minifi.commons.schema.common.BootstrapPropertyKeys.BOOTSTRAP_PROVENANCE_REPORTING_KEYS;
 import static org.apache.nifi.minifi.commons.schema.common.BootstrapPropertyKeys.BOOTSTRAP_SECURITY_PROPERTY_KEYS;
 import static org.apache.nifi.minifi.commons.schema.common.BootstrapPropertyKeys.BOOTSTRAP_SENSITIVE_PROPERTY_KEYS;
+import static org.apache.nifi.minifi.commons.schema.common.BootstrapPropertyKeys.USE_PARENT_SSL;
 
 public class BootstrapTransformer {
 
@@ -86,6 +87,16 @@ public class BootstrapTransformer {
         }
 
         return provenanceReportingPropsOptional;
+    }
+
+    public static boolean processorSSLOverride(final Properties bootstrapProperties) {
+        boolean shouldOverride = false;
+
+        if (bootstrapProperties != null) {
+            shouldOverride = Boolean.parseBoolean(bootstrapProperties.getProperty(USE_PARENT_SSL));
+        }
+
+        return shouldOverride;
     }
 
 }

@@ -53,6 +53,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.StringBufferInputStream;
 import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Collections;
@@ -64,7 +65,9 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.zip.GZIPInputStream;
 
+import static org.apache.nifi.minifi.bootstrap.RunMiNiFiTest.getTestBootstrapProperties;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -463,6 +466,39 @@ public class ConfigTransformerTest {
         }
     }
 
+    @Test
+    public void checkSSLOverrides() throws Exception {
+        File inputFile = new File("./src/test/resources/MINIFI-516/config.yml");
+        final Properties bootstrapProperties = getTestBootstrapProperties("MINIFI-516/bootstrap.conf");
+        ConfigTransformer.transformConfigFile(new FileInputStream(inputFile), "./target/", bootstrapProperties);
+
+        // nifi.properties testing
+        File nifiPropertiesFile = new File("./target/nifi.properties");
+        assertTrue(nifiPropertiesFile.exists());
+        assertTrue(nifiPropertiesFile.canRead());
+
+        nifiPropertiesFile.deleteOnExit();
+
+        // flow.xml.gz testing
+        File flowXml = new File("./target/flow.xml.gz");
+        assertTrue(flowXml.exists());
+        assertTrue(flowXml.canRead());
+
+        String flow = loadFlowXML(new FileInputStream(flowXml));
+
+        DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+        DocumentBuilder db = dbf.newDocumentBuilder();
+        Document xml = db.parse(new StringBufferInputStream(flow));
+
+        XPath xPath = XPathFactory.newInstance().newXPath();
+        String result = xPath.evaluate("/flowController/rootGroup/processor/property[name = \"SSL Context Service\"]/value/text()", xml);
+
+        assertEquals(result, "SSL-Context-Service");
+
+        flowXml.deleteOnExit();
+
+    }
+
     public void testConfigFileTransform(String configFile) throws Exception {
         ConfigSchema configSchema = SchemaLoader.loadConfigSchemaFromYaml(ConfigTransformerTest.class.getClassLoader().getResourceAsStream(configFile));
 
@@ -663,5 +699,26 @@ public class ConfigTransformerTest {
                 elementOrderList = index;
             }
         }
+    }
+
+    public static Properties getTestBootstrapProperties(final String fileName) throws IOException {
+        final Properties bootstrapProperties = new Properties();
+        try (final InputStream fis = ConfigTransformerTest.class.getClassLoader().getResourceAsStream(fileName)) {
+            bootstrapProperties.load(fis);
+        }
+        return bootstrapProperties;
+    }
+
+    public static String loadFlowXML(InputStream compressedData) throws IOException {
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        GZIPInputStream gzipInputStream = new GZIPInputStream(compressedData);
+
+        byte[] buffer = new byte[1024];
+        int len;
+        while ((len = gzipInputStream.read(buffer)) != -1) {
+            byteArrayOutputStream.write(buffer, 0, len);
+        }
+
+        return byteArrayOutputStream.toString();
     }
 }

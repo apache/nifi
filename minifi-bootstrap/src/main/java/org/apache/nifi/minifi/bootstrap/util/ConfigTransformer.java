@@ -45,6 +45,8 @@ import org.apache.nifi.minifi.commons.schema.common.ConvertableSchema;
 import org.apache.nifi.minifi.commons.schema.common.Schema;
 import org.apache.nifi.minifi.commons.schema.common.StringUtil;
 import org.apache.nifi.minifi.commons.schema.serialization.SchemaLoader;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.w3c.dom.DOMException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -82,6 +84,8 @@ public final class ConfigTransformer {
     public static final String DEFAULT_PROV_REPORTING_TASK_CLASS = "org.apache.nifi.reporting.SiteToSiteProvenanceReportingTask";
     public static final String NIFI_VERSION_KEY = "nifi.version";
 
+    public static final Logger logger = LoggerFactory.getLogger(ConfigTransformer.class);
+
     // Final util classes should have private constructor
     private ConfigTransformer() {
     }
@@ -96,9 +100,19 @@ public final class ConfigTransformer {
         // See if we are providing defined properties from the filesystem configurations and use those as the definitive values
         if (securityProperties != null) {
             configSchema.setSecurityProperties(securityProperties);
+            logger.info("Bootstrap flow override: Replaced security properties");
         }
         if (provenanceReportingProperties != null) {
             configSchema.setProvenanceReportingProperties(provenanceReportingProperties);
+            logger.info("Bootstrap flow override: Replaced provenance reporting properties");
+        }
+
+        // Replace all processor SSL controller services with MiNiFi parent, if bootstrap boolean is set to true
+        if (BootstrapTransformer.processorSSLOverride(bootstrapProperties)) {
+            for (ProcessorSchema processorConfig : configSchema.getProcessGroupSchema().getProcessors()) {
+                processorConfig.getProperties().replace("SSL Context Service", processorConfig.getProperties().get("SSL Context Service"), "SSL-Context-Service");
+                logger.info("Bootstrap flow override: Replaced {} SSL Context Service with parent MiNiFi SSL", processorConfig.getName());
+            }
         }
 
         // Create nifi.properties and flow.xml.gz in memory
