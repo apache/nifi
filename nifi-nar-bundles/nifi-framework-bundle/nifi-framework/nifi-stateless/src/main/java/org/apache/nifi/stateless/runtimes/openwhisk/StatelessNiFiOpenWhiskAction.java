@@ -45,10 +45,12 @@ public class StatelessNiFiOpenWhiskAction {
     private HttpServer server;
     private boolean initialized = false;
     private RunnableFlow flow = null;
+    private ClassLoader systemClassLoader;
     private File narWorkingDirectory;
 
-    public StatelessNiFiOpenWhiskAction(int port, final File narWorkingDirectory) throws IOException {
+    public StatelessNiFiOpenWhiskAction(int port, final ClassLoader systemClassLoader, final File narWorkingDirectory) throws IOException {
 
+        this.systemClassLoader = systemClassLoader;
         this.narWorkingDirectory = narWorkingDirectory;
 
         this.server = HttpServer.create(new InetSocketAddress(port), -1);
@@ -100,7 +102,7 @@ public class StatelessNiFiOpenWhiskAction {
                 } else {
 
                     final JsonObject config = new JsonParser().parse(code).getAsJsonObject();
-                    flow = StatelessFlow.createAndEnqueueFromJSON(config, narWorkingDirectory);
+                    flow = StatelessFlow.createAndEnqueueFromJSON(config, systemClassLoader, narWorkingDirectory);
 
                     initialized = true;
                     writeResponse(t, 200, "Initialized Flow");
@@ -157,7 +159,7 @@ public class StatelessNiFiOpenWhiskAction {
                     System.out.println(inputObject.toString());
 
                     final JsonObject config = new JsonParser().parse(inputObject.get("code").getAsJsonPrimitive().getAsString()).getAsJsonObject();
-                    RunnableFlow tempFlow = StatelessFlow.createAndEnqueueFromJSON(config, narWorkingDirectory);
+                    RunnableFlow tempFlow = StatelessFlow.createAndEnqueueFromJSON(config, systemClassLoader, narWorkingDirectory);
                     successful = tempFlow.runOnce(output);
                 } else {
                     System.out.println("Input:");

@@ -377,7 +377,7 @@ public class StatelessFlow implements RunnableFlow {
         return null;
     }
 
-    public static StatelessFlow createAndEnqueueFromJSON(final JsonObject args, final File narWorkingDir)
+    public static StatelessFlow createAndEnqueueFromJSON(final JsonObject args, final ClassLoader systemClassLoader, final File narWorkingDir)
             throws InitializationException, IOException, ProcessorInstantiationException, NiFiRegistryException {
         if (args == null) {
             throw new IllegalArgumentException("Flow arguments can not be null");
@@ -465,7 +465,7 @@ public class StatelessFlow implements RunnableFlow {
         }
 
         final ParameterContext parameterContext = new StatelessParameterContext(parameters);
-        final ExtensionManager extensionManager = ExtensionDiscovery.discover(narWorkingDir, Thread.currentThread().getContextClassLoader());
+        final ExtensionManager extensionManager = ExtensionDiscovery.discover(narWorkingDir, systemClassLoader);
         final StatelessFlow flow = new StatelessFlow(snapshot.getFlowContents(), extensionManager, () -> inputVariables, failurePorts, materializeContent, sslContext, parameterContext);
         flow.enqueueFromJSON(args);
         return flow;
