@@ -51,7 +51,6 @@ public class BootstrapDiagnosticsFactory implements DiagnosticsFactory {
 
     @Override
     public DiagnosticsDump create(final boolean verbose) {
-        // TODO: Allow for a 'verbose' flag to indicate scanning content repo
         final List<DiagnosticsDumpElement> dumpElements = new ArrayList<>();
         for (final DiagnosticTask dumpTask : getDiagnosticTasks()) {
             try {
@@ -76,7 +75,7 @@ public class BootstrapDiagnosticsFactory implements DiagnosticsFactory {
         tasks.add(new FlowConfigurationDiagnosticTask(flowController));
         tasks.add(new LongRunningProcessorTask(flowController));
         tasks.add(new ClusterDiagnosticTask(flowController));
-        tasks.add(new GarbageCollectionDiagnosticTask());
+        tasks.add(new GarbageCollectionDiagnosticTask(flowController));
         tasks.add(new MemoryPoolPeakUsageTask());
         tasks.add(new RepositoryDiagnosticTask(flowController));
         tasks.add(new ComponentCountTask(flowController));

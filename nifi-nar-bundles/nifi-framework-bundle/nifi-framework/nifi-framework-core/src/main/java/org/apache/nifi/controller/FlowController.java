@@ -47,6 +47,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
 
+import javax.management.NotificationEmitter;
 import javax.net.ssl.SSLContext;
 
 import org.apache.commons.lang3.StringUtils;
@@ -307,6 +308,7 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
     private final ParameterContextManager parameterContextManager;
     private final StandardFlowManager flowManager;
     private final RepositoryContextFactory repositoryContextFactory;
+    private final RingBufferGarbageCollectionLog gcLog;
 
     /**
      * true if controller is configured to operate in a clustered environment
@@ -469,6 +471,13 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
         flowFileRepository = flowFileRepo;
         flowFileEventRepository = flowFileEventRepo;
         counterRepositoryRef = new AtomicReference<>(new StandardCounterRepository());
+
+        gcLog = new RingBufferGarbageCollectionLog(1000, 20L);
+        for (final GarbageCollectorMXBean mxBean : ManagementFactory.getGarbageCollectorMXBeans()) {
+            if (mxBean instanceof NotificationEmitter) {
+                ((NotificationEmitter) mxBean).addNotificationListener(gcLog, null, null);
+            }
+        }
 
         bulletinRepository = bulletinRepo;
         this.variableRegistry = variableRegistry == null ? VariableRegistry.EMPTY_REGISTRY : variableRegistry;
@@ -1788,6 +1797,10 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
 
     public FlowManager getFlowManager() {
         return flowManager;
+    }
+
+    public GarbageCollectionLog getGarbageCollectionLog() {
+        return gcLog;
     }
 
     public RepositoryContextFactory getRepositoryContextFactory() {
