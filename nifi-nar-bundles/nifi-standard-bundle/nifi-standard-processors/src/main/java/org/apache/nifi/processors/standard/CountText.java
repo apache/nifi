@@ -144,7 +144,7 @@ public class CountText extends AbstractProcessor {
     public static final PropertyDescriptor ADJUST_IMMEDIATELY = new PropertyDescriptor.Builder()
             .name("ajust-immediately")
             .displayName("Call Immediate Adjustment")
-            .description("If enabled, it will call the processSession.adjustCounter method to expose the counters immediately.")
+            .description("If true, the counter will be updated immediately, without regard to whether the ProcessSession is commit or rolled back; otherwise, the counter will be incremented only if and when the ProcessSession is committed.")
             .required(true)
             .allowableValues("true", "false")
             .defaultValue("false")
