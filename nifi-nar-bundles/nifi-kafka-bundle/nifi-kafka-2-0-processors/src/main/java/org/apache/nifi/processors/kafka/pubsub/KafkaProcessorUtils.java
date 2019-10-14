@@ -16,20 +16,6 @@
  */
 package org.apache.nifi.processors.kafka.pubsub;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
-import java.util.regex.Pattern;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -52,6 +38,20 @@ import org.apache.nifi.util.FormatUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
+import java.util.regex.Pattern;
+
 final class KafkaProcessorUtils {
     private static final String ALLOW_EXPLICIT_KEYTAB = "NIFI_ALLOW_EXPLICIT_KEYTAB";
 
@@ -69,10 +69,25 @@ final class KafkaProcessorUtils {
     static final String KAFKA_OFFSET = "kafka.offset";
     static final String KAFKA_TIMESTAMP = "kafka.timestamp";
     static final String KAFKA_COUNT = "kafka.count";
+
     static final AllowableValue SEC_PLAINTEXT = new AllowableValue("PLAINTEXT", "PLAINTEXT", "PLAINTEXT");
     static final AllowableValue SEC_SSL = new AllowableValue("SSL", "SSL", "SSL");
     static final AllowableValue SEC_SASL_PLAINTEXT = new AllowableValue("SASL_PLAINTEXT", "SASL_PLAINTEXT", "SASL_PLAINTEXT");
     static final AllowableValue SEC_SASL_SSL = new AllowableValue("SASL_SSL", "SASL_SSL", "SASL_SSL");
+
+    static final String GSSAPI_VALUE = "GSSAPI";
+    static final AllowableValue SASL_MECHANISM_GSSAPI = new AllowableValue(GSSAPI_VALUE, GSSAPI_VALUE,
+            "The mechanism for authentication via Kerberos. The principal and keytab must be provided to the processor " +
+                    "by using a Keytab Credential service, or by specifying the properties directly in the processor.");
+
+    static final String PLAIN_VALUE = "PLAIN";
+    static final AllowableValue SASL_MECHANISM_PLAIN = new AllowableValue(PLAIN_VALUE, PLAIN_VALUE,
+            "The mechanism for authentication via username and password. The username and password properties must " +
+                    "be populated when using this mechanism.");
+
+    static final String SCRAM_SHA256_VALUE = "SCRAM-SHA-256";
+    static final AllowableValue SASL_MECHANISM_SCRAM = new AllowableValue(SCRAM_SHA256_VALUE, SCRAM_SHA256_VALUE,"The Salted Challenge Response Authentication Mechanism. " +
+            "The username and password properties must be set when using this mechanism.");
 
     static final PropertyDescriptor BOOTSTRAP_SERVERS = new PropertyDescriptor.Builder()
             .name(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG)
@@ -91,6 +106,15 @@ final class KafkaProcessorUtils {
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .allowableValues(SEC_PLAINTEXT, SEC_SSL, SEC_SASL_PLAINTEXT, SEC_SASL_SSL)
             .defaultValue(SEC_PLAINTEXT.getValue())
+            .build();
+    static final PropertyDescriptor SASL_MECHANISM = new PropertyDescriptor.Builder()
+            .name("sasl.mechanism")
+            .displayName("SASL Mechanism")
+            .description("The SASL mechanism to use for authentication. Corresponds to Kafka's 'sasl.mechanism' property.")
+            .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .allowableValues(SASL_MECHANISM_GSSAPI, SASL_MECHANISM_PLAIN, SASL_MECHANISM_SCRAM)
+            .defaultValue(GSSAPI_VALUE)
             .build();
     static final PropertyDescriptor JAAS_SERVICE_NAME = new PropertyDescriptor.Builder()
             .name("sasl.kerberos.service.name")
@@ -121,6 +145,31 @@ final class KafkaProcessorUtils {
             .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
+    static final PropertyDescriptor USERNAME = new PropertyDescriptor.Builder()
+            .name("sasl.username")
+            .displayName("Username")
+            .description("The username when the SASL Mechanism is " + PLAIN_VALUE + " or " + SCRAM_SHA256_VALUE)
+            .required(false)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
+    static final PropertyDescriptor PASSWORD = new PropertyDescriptor.Builder()
+            .name("sasl.password")
+            .displayName("Password")
+            .description("The password for the given username when the SASL Mechanism is " + PLAIN_VALUE + " or " + SCRAM_SHA256_VALUE)
+            .required(false)
+            .sensitive(true)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
+    static final PropertyDescriptor TOKEN_AUTH = new PropertyDescriptor.Builder()
+            .name("sasl.token.auth")
+            .displayName("Token Auth")
+            .description("When " + SASL_MECHANISM.getDisplayName() + " is " + SCRAM_SHA256_VALUE + ", this property indicates if token authentication should be used.")
+            .required(false)
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .build();
     static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
             .name("ssl.context.service")
             .displayName("SSL Context Service")
@@ -140,10 +189,14 @@ final class KafkaProcessorUtils {
         return Arrays.asList(
                 BOOTSTRAP_SERVERS,
                 SECURITY_PROTOCOL,
+                SASL_MECHANISM,
                 JAAS_SERVICE_NAME,
                 KERBEROS_CREDENTIALS_SERVICE,
                 USER_PRINCIPAL,
                 USER_KEYTAB,
+                USERNAME,
+                PASSWORD,
+                TOKEN_AUTH,
                 SSL_CONTEXT_SERVICE
         );
     }
@@ -151,7 +204,8 @@ final class KafkaProcessorUtils {
     static Collection<ValidationResult> validateCommonProperties(final ValidationContext validationContext) {
         List<ValidationResult> results = new ArrayList<>();
 
-        String securityProtocol = validationContext.getProperty(SECURITY_PROTOCOL).getValue();
+        final String securityProtocol = validationContext.getProperty(SECURITY_PROTOCOL).getValue();
+        final String saslMechanism = validationContext.getProperty(SASL_MECHANISM).getValue();
 
         final String explicitPrincipal = validationContext.getProperty(USER_PRINCIPAL).evaluateAttributeExpressions().getValue();
         final String explicitKeytab = validationContext.getProperty(USER_KEYTAB).evaluateAttributeExpressions().getValue();
@@ -185,9 +239,10 @@ final class KafkaProcessorUtils {
                 .build());
         }
 
-        // validates that if one of SASL (Kerberos) option is selected for
-        // security protocol, then Kerberos principal is provided as well
-        if (SEC_SASL_PLAINTEXT.getValue().equals(securityProtocol) || SEC_SASL_SSL.getValue().equals(securityProtocol)) {
+        // validates that if the SASL mechanism is GSSAPI (kerberos) AND one of the SASL options is selected
+        // for security protocol, then Kerberos principal is provided as well
+        if (SASL_MECHANISM_GSSAPI.getValue().equals(saslMechanism)
+                && (SEC_SASL_PLAINTEXT.getValue().equals(securityProtocol) || SEC_SASL_SSL.getValue().equals(securityProtocol))) {
             String jaasServiceName = validationContext.getProperty(JAAS_SERVICE_NAME).evaluateAttributeExpressions().getValue();
             if (jaasServiceName == null || jaasServiceName.trim().length() == 0) {
                 results.add(new ValidationResult.Builder().subject(JAAS_SERVICE_NAME.getDisplayName()).valid(false)
@@ -204,6 +259,29 @@ final class KafkaProcessorUtils {
                     .explanation("Both <" + USER_KEYTAB.getDisplayName() + "> and <" + USER_PRINCIPAL.getDisplayName() + "> "
                         + "must be set or neither must be set.")
                     .build());
+            }
+        }
+
+        // validate that if SASL Mechanism is PLAIN or SCRAM, then username and password are both provided
+        if (SASL_MECHANISM_PLAIN.getValue().equals(saslMechanism) || SASL_MECHANISM_SCRAM.getValue().equals(saslMechanism)) {
+            final String username = validationContext.getProperty(USERNAME).evaluateAttributeExpressions().getValue();
+            if (StringUtils.isBlank(username)) {
+                results.add(new ValidationResult.Builder()
+                        .subject(USERNAME.getDisplayName())
+                        .valid(false)
+                        .explanation("A username is required when " + SASL_MECHANISM.getDisplayName()
+                                + " is " + PLAIN_VALUE + " or " + SCRAM_SHA256_VALUE)
+                        .build());
+            }
+
+            final String password = validationContext.getProperty(PASSWORD).evaluateAttributeExpressions().getValue();
+            if (StringUtils.isBlank(password)) {
+                results.add(new ValidationResult.Builder()
+                        .subject(PASSWORD.getDisplayName())
+                        .valid(false)
+                        .explanation("A password is required when " + SASL_MECHANISM.getDisplayName()
+                                + " is " + PLAIN_VALUE + " or " + SCRAM_SHA256_VALUE)
+                        .build());
             }
         }
 
@@ -356,6 +434,23 @@ final class KafkaProcessorUtils {
      * @param context Context
      */
     private static void setJaasConfig(Map<String, Object> mapToPopulate, ProcessContext context) {
+        final String saslMechanism = context.getProperty(SASL_MECHANISM).getValue();
+        switch (saslMechanism) {
+            case GSSAPI_VALUE:
+                setGssApiJaasConfig(mapToPopulate, context);
+                break;
+            case PLAIN_VALUE:
+                setPlainJaasConfig(mapToPopulate, context);
+                break;
+            case SCRAM_SHA256_VALUE:
+                setScramJaasConfig(mapToPopulate, context);
+                break;
+            default:
+                throw new IllegalStateException("Unknown " + SASL_MECHANISM.getDisplayName() + ": " + saslMechanism);
+        }
+    }
+
+    private static void setGssApiJaasConfig(final Map<String, Object> mapToPopulate, final ProcessContext context) {
         String keytab = context.getProperty(USER_KEYTAB).evaluateAttributeExpressions().getValue();
         String principal = context.getProperty(USER_PRINCIPAL).evaluateAttributeExpressions().getValue();
 
@@ -369,7 +464,7 @@ final class KafkaProcessorUtils {
 
 
         String serviceName = context.getProperty(JAAS_SERVICE_NAME).evaluateAttributeExpressions().getValue();
-        if(StringUtils.isNotBlank(keytab) && StringUtils.isNotBlank(principal) && StringUtils.isNotBlank(serviceName)) {
+        if (StringUtils.isNotBlank(keytab) && StringUtils.isNotBlank(principal) && StringUtils.isNotBlank(serviceName)) {
             mapToPopulate.put(SaslConfigs.SASL_JAAS_CONFIG, "com.sun.security.auth.module.Krb5LoginModule required "
                     + "useTicketCache=false "
                     + "renewTicket=true "
@@ -378,6 +473,32 @@ final class KafkaProcessorUtils {
                     + "keyTab=\"" + keytab + "\" "
                     + "principal=\"" + principal + "\";");
         }
+    }
+
+    private static void setPlainJaasConfig(final Map<String, Object> mapToPopulate, final ProcessContext context) {
+        final String username = context.getProperty(USERNAME).evaluateAttributeExpressions().getValue();
+        final String password = context.getProperty(PASSWORD).evaluateAttributeExpressions().getValue();
+
+        mapToPopulate.put(SaslConfigs.SASL_JAAS_CONFIG, "org.apache.kafka.common.security.plain.PlainLoginModule required "
+                + "username=\"" + username + "\" "
+                + "password=\"" + password + "\";");
+    }
+
+    private static void setScramJaasConfig(final Map<String, Object> mapToPopulate, final ProcessContext context) {
+        final String username = context.getProperty(USERNAME).evaluateAttributeExpressions().getValue();
+        final String password = context.getProperty(PASSWORD).evaluateAttributeExpressions().getValue();
+
+        final StringBuilder builder = new StringBuilder("org.apache.kafka.common.security.scram.ScramLoginModule required ")
+                .append("username=\"" + username + "\" ")
+                .append("password=\"" + password + "\"");
+
+        final Boolean tokenAuth = context.getProperty(TOKEN_AUTH).asBoolean();
+        if (tokenAuth != null && tokenAuth) {
+            builder.append(" tokenauth=\"true\"");
+        }
+
+        builder.append(";");
+        mapToPopulate.put(SaslConfigs.SASL_JAAS_CONFIG, builder.toString());
     }
 
     private static boolean isStaticStringFieldNamePresent(final String name, final Class<?>... classes) {

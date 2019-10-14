@@ -192,7 +192,7 @@ public class TestConsumeKafkaRecord_2_0 {
     }
 
     @Test
-    public void testJaasConfiguration() throws Exception {
+    public void testJaasConfigurationWithDefaultMechanism() {
         runner.setProperty(ConsumeKafkaRecord_2_0.TOPICS, "foo");
         runner.setProperty(ConsumeKafkaRecord_2_0.GROUP_ID, "foo");
         runner.setProperty(ConsumeKafkaRecord_2_0.AUTO_OFFSET_RESET, ConsumeKafkaRecord_2_0.OFFSET_EARLIEST);
@@ -210,6 +210,60 @@ public class TestConsumeKafkaRecord_2_0 {
         runner.assertNotValid();
 
         runner.setProperty(KafkaProcessorUtils.USER_KEYTAB, "src/test/resources/server.properties");
+        runner.assertValid();
+    }
+
+    @Test
+    public void testJaasConfigurationWithPlainMechanism() {
+        runner.setProperty(ConsumeKafkaRecord_2_0.TOPICS, "foo");
+        runner.setProperty(ConsumeKafkaRecord_2_0.GROUP_ID, "foo");
+        runner.setProperty(ConsumeKafkaRecord_2_0.AUTO_OFFSET_RESET, ConsumeKafkaRecord_2_0.OFFSET_EARLIEST);
+
+        runner.setProperty(KafkaProcessorUtils.SECURITY_PROTOCOL, KafkaProcessorUtils.SEC_SASL_PLAINTEXT);
+        runner.assertNotValid();
+
+        runner.setProperty(KafkaProcessorUtils.SASL_MECHANISM, KafkaProcessorUtils.PLAIN_VALUE);
+        runner.assertNotValid();
+
+        runner.setProperty(KafkaProcessorUtils.USERNAME, "user1");
+        runner.assertNotValid();
+
+        runner.setProperty(KafkaProcessorUtils.PASSWORD, "password");
+        runner.assertValid();
+
+        runner.removeProperty(KafkaProcessorUtils.USERNAME);
+        runner.assertNotValid();
+    }
+
+    @Test
+    public void testJaasConfigurationWithScramMechanism() {
+        runner.setProperty(ConsumeKafkaRecord_2_0.TOPICS, "foo");
+        runner.setProperty(ConsumeKafkaRecord_2_0.GROUP_ID, "foo");
+        runner.setProperty(ConsumeKafkaRecord_2_0.AUTO_OFFSET_RESET, ConsumeKafkaRecord_2_0.OFFSET_EARLIEST);
+
+        runner.setProperty(KafkaProcessorUtils.SECURITY_PROTOCOL, KafkaProcessorUtils.SEC_SASL_PLAINTEXT);
+        runner.assertNotValid();
+
+        runner.setProperty(KafkaProcessorUtils.SASL_MECHANISM, KafkaProcessorUtils.SCRAM_SHA256_VALUE);
+        runner.assertNotValid();
+
+        runner.setProperty(KafkaProcessorUtils.USERNAME, "user1");
+        runner.assertNotValid();
+
+        runner.setProperty(KafkaProcessorUtils.PASSWORD, "password");
+        runner.assertValid();
+
+        runner.removeProperty(KafkaProcessorUtils.USERNAME);
+        runner.assertNotValid();
+    }
+
+    @Test
+    public void testNonSaslSecurityProtocol() {
+        runner.setProperty(ConsumeKafkaRecord_2_0.TOPICS, "foo");
+        runner.setProperty(ConsumeKafkaRecord_2_0.GROUP_ID, "foo");
+        runner.setProperty(ConsumeKafkaRecord_2_0.AUTO_OFFSET_RESET, ConsumeKafkaRecord_2_0.OFFSET_EARLIEST);
+
+        runner.setProperty(KafkaProcessorUtils.SECURITY_PROTOCOL, KafkaProcessorUtils.SEC_PLAINTEXT);
         runner.assertValid();
     }
 

@@ -266,10 +266,14 @@ public class PublishKafkaRecord_2_0 extends AbstractProcessor {
         properties.add(ATTRIBUTE_NAME_REGEX);
         properties.add(MESSAGE_HEADER_ENCODING);
         properties.add(KafkaProcessorUtils.SECURITY_PROTOCOL);
+        properties.add(KafkaProcessorUtils.SASL_MECHANISM);
         properties.add(KafkaProcessorUtils.KERBEROS_CREDENTIALS_SERVICE);
         properties.add(KafkaProcessorUtils.JAAS_SERVICE_NAME);
         properties.add(KafkaProcessorUtils.USER_PRINCIPAL);
         properties.add(KafkaProcessorUtils.USER_KEYTAB);
+        properties.add(KafkaProcessorUtils.USERNAME);
+        properties.add(KafkaProcessorUtils.PASSWORD);
+        properties.add(KafkaProcessorUtils.TOKEN_AUTH);
         properties.add(KafkaProcessorUtils.SSL_CONTEXT_SERVICE);
         properties.add(MESSAGE_KEY_FIELD);
         properties.add(MAX_REQUEST_SIZE);

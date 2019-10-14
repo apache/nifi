@@ -232,10 +232,14 @@ public class ConsumeKafkaRecord_2_0 extends AbstractProcessor {
         descriptors.add(RECORD_WRITER);
         descriptors.add(HONOR_TRANSACTIONS);
         descriptors.add(KafkaProcessorUtils.SECURITY_PROTOCOL);
+        descriptors.add(KafkaProcessorUtils.SASL_MECHANISM);
         descriptors.add(KafkaProcessorUtils.KERBEROS_CREDENTIALS_SERVICE);
         descriptors.add(KafkaProcessorUtils.JAAS_SERVICE_NAME);
         descriptors.add(KafkaProcessorUtils.USER_PRINCIPAL);
         descriptors.add(KafkaProcessorUtils.USER_KEYTAB);
+        descriptors.add(KafkaProcessorUtils.USERNAME);
+        descriptors.add(KafkaProcessorUtils.PASSWORD);
+        descriptors.add(KafkaProcessorUtils.TOKEN_AUTH);
         descriptors.add(KafkaProcessorUtils.SSL_CONTEXT_SERVICE);
         descriptors.add(GROUP_ID);
         descriptors.add(AUTO_OFFSET_RESET);
