@@ -18,14 +18,11 @@ package org.apache.nifi.stateless.runtimes;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import org.apache.nifi.nar.NarUnpacker;
 import org.apache.nifi.stateless.bootstrap.InMemoryFlowFile;
 import org.apache.nifi.stateless.bootstrap.RunnableFlow;
 import org.apache.nifi.stateless.core.StatelessFlow;
 import org.apache.nifi.stateless.runtimes.openwhisk.StatelessNiFiOpenWhiskAction;
 import org.apache.nifi.stateless.runtimes.yarn.YARNServiceUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -35,10 +32,8 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.LinkedList;
 import java.util.Queue;
-import java.util.concurrent.TimeUnit;
 
 public class Program {
-    private static final Logger logger = LoggerFactory.getLogger(Program.class);
 
     public static final String RUN_FROM_REGISTRY = "RunFromRegistry";
     public static final String RUN_YARN_SERVICE_FROM_REGISTRY = "RunYARNServiceFromRegistry";
