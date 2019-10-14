@@ -49,7 +49,7 @@ public class KeyStoreWrappedSensitivePropertyProvider implements SensitiveProper
     private static final String MATERIAL_PREFIX = "keystore";
     private static final String MATERIAL_SEPARATOR = "/";
 
-    private static final String KEYSTORE_TYPE_JCECKS = "jceks";
+    public static final String KEYSTORE_TYPE_JCECKS = "jceks";
     private static final String KEYSTORE_TYPE_PKCS12 = "pkcs12";
     private static final String KEYSTORE_TYPE_BKS = "bks";
 

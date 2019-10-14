@@ -1575,6 +1575,7 @@ This table summarizes the various providers and their common use cases.
 | GCP KMS | Google Cloud Platform KMS | Existing GCP infrastructure | GCP project, region, and KMS access
 | Key Store | PCKS12, JCKS Key Store files | Existing keys in key store files | Key store file
 | Vault | HashiCorp Vault client | Existing Vault server | Vault authorization token
+| Hadoop Credentials | Hadoop Credentials File | Existing Hadoop credentials | Hadoop installation
 |===
 
 ==== Advanced Encryption Standard in Galois/Counter Mode (AES/GCM)
@@ -1759,6 +1760,29 @@ these values accordingly:
 | `VAULT_SSL_KEY_STORE_PASSWORD` | `vault.ssl.key-store-password` | Password to the key store.  Optional.
 | `VAULT_SSL_TRUST_STORE` | `vault.ssl.trust-store` | Full path to the SSL trust store used by the HTTP client.  Optional.
 | `VAULT_SSL_TRUST_STORE_PASSWORD` | `vault.ssl.trust-store-password` | Password to the trust store.  Optional.
+|===
+
+==== Hadoop Credentials
+
+Apache Hadoop is a software framework for distributed computing. NiFi includes a Hadoop Credentials Sensitive Property Provider that can read Hadoop credential files and use values within them.
+
+The Hadoop Sensitive Property Provider supports the following key formats:
+
+[options="header"]
+|===
+| Format | Example
+| `hadoop/{paths}` | `hadoop//tmp/credentials.jceks,/tmp/other.jceks`
+|===
+
+The Hadoop Credentials Sensitive Property Provider requires external configuration via environment variables or system properties.  Set
+these values accordingly:
+
+[options="header"]
+|===
+| Environment Variable | System Property | Notes
+| &nbsp; | `hadoop.security.credential.provider.path` | Comma-separated list of file system paths of credential files.  Required.
+| &nbsp; | `hadoop.security.credstore.java-keystore-provider.password-file` | File system path to file containing credentials file password.  Optional.
+| `HADOOP_CREDSTORE_PASSWORD` | &nbsp; |  Store password, defaults to "none".  Optional.
 |===
 
 [[admin-toolkit]]

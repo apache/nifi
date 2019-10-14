@@ -21,6 +21,7 @@ import org.apache.nifi.properties.sensitive.aes.AESSensitivePropertyProvider;
 import org.apache.nifi.properties.sensitive.aws.kms.AWSKMSSensitivePropertyProvider;
 import org.apache.nifi.properties.sensitive.azure.keyvault.AzureKeyVaultSensitivePropertyProvider;
 import org.apache.nifi.properties.sensitive.gcp.kms.GCPKMSSensitivePropertyProvider;
+import org.apache.nifi.properties.sensitive.hadoop.HadoopCredentialsSensitivePropertyProvider;
 import org.apache.nifi.properties.sensitive.hashicorp.vault.VaultSensitivePropertyProvider;
 import org.apache.nifi.properties.sensitive.keystore.KeyStoreWrappedSensitivePropertyProvider;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
@@ -55,6 +56,10 @@ public class StandardSensitivePropertyProvider {
     public static SensitivePropertyProvider fromKey(String key) {
         if (StringUtils.isBlank(key)) {
             return null;
+
+        } else if (HadoopCredentialsSensitivePropertyProvider.isProviderFor(key)) {
+            logger.debug("StandardSensitivePropertyProvider selected specific Hadoop Credential provider for key: " + HadoopCredentialsSensitivePropertyProvider.toPrintableString(key));
+            return new HadoopCredentialsSensitivePropertyProvider(key);
 
         } else if (AzureKeyVaultSensitivePropertyProvider.isProviderFor(key)) {
             logger.debug("StandardSensitivePropertyProvider selected specific Azure Key Vault provider for key: " + AzureKeyVaultSensitivePropertyProvider.toPrintableString(key));
@@ -91,7 +96,8 @@ public class StandardSensitivePropertyProvider {
      * @return true if at least one provider handles scheme
      */
     public static boolean hasProviderFor(String scheme) {
-        return AzureKeyVaultSensitivePropertyProvider.isProviderFor(scheme)
+        return HadoopCredentialsSensitivePropertyProvider.isProviderFor(scheme)
+                || AzureKeyVaultSensitivePropertyProvider.isProviderFor(scheme)
                 || VaultSensitivePropertyProvider.isProviderFor(scheme)
                 || KeyStoreWrappedSensitivePropertyProvider.isProviderFor(scheme)
                 || GCPKMSSensitivePropertyProvider.isProviderFor(scheme)

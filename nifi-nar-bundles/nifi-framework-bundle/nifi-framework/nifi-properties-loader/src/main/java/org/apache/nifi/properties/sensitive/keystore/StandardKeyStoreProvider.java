@@ -40,7 +40,7 @@ public class StandardKeyStoreProvider implements KeyStoreProvider {
      * @param storeType key store type, e.g., JCEKS
      * @param storePassword key store password
      */
-    StandardKeyStoreProvider(String filename, String storeType, String storePassword) {
+    public StandardKeyStoreProvider(String filename, String storeType, String storePassword) {
         this.filename = filename;
         this.storeType = storeType;
         this.storePassword = storePassword;
