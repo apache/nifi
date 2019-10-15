@@ -58,7 +58,6 @@ import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -443,7 +442,7 @@ public class TestNodeClusterCoordinator {
         assertTrue(conflictingResponse instanceof ConnectionResponseMessage);
         final ConnectionResponseMessage conflictingResponseMessage = (ConnectionResponseMessage) conflictingResponse;
         final NodeIdentifier conflictingNodeId = conflictingResponseMessage.getConnectionResponse().getNodeIdentifier();
-        assertNotSame(id1.getId(), conflictingNodeId.getId());
+        assertEquals(id1.getId(), conflictingNodeId.getId());
         assertEquals(conflictingId.getApiAddress(), conflictingNodeId.getApiAddress());
         assertEquals(conflictingId.getApiPort(), conflictingNodeId.getApiPort());
         assertEquals(conflictingId.getSiteToSiteAddress(), conflictingNodeId.getSiteToSiteAddress());
