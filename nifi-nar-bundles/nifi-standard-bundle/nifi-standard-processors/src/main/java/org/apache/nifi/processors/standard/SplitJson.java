@@ -184,53 +184,52 @@ public class SplitJson extends AbstractJsonPathProcessor {
         final ComponentLog logger = getLogger();
 
         DocumentContext documentContext;
+        Object jsonPathResult;
+        final JsonPath jsonPath = JSON_PATH_REF.get();
         try {
             documentContext = validateAndEstablishJsonContext(processSession, original);
+            jsonPathResult = documentContext.read(jsonPath);
+
+            if (!(jsonPathResult instanceof List)) {
+                logger.error("The evaluated value {} of {} was not a JSON Array compatible type and cannot be split.", new Object[]{jsonPathResult, jsonPath.getPath()});
+                processSession.transfer(original, REL_FAILURE);
+                return;
+            }
+            List resultList = (List) jsonPathResult;
+
+            Map<String, String> attributes = new HashMap<>();
+            final String fragmentId = UUID.randomUUID().toString();
+            attributes.put(FRAGMENT_ID.key(), fragmentId);
+            attributes.put(FRAGMENT_COUNT.key(), Integer.toString(resultList.size()));
+
+            for (int i = 0; i < resultList.size(); i++) {
+                Object resultSegment = resultList.get(i);
+                FlowFile split = processSession.create(original);
+                split = processSession.write(split, (out) -> {
+                            String resultSegmentContent = getResultRepresentation(resultSegment, nullDefaultValue);
+                            out.write(resultSegmentContent.getBytes(StandardCharsets.UTF_8));
+                        }
+                );
+                attributes.put(SEGMENT_ORIGINAL_FILENAME.key(), split.getAttribute(CoreAttributes.FILENAME.key()));
+                attributes.put(FRAGMENT_INDEX.key(), Integer.toString(i));
+                processSession.transfer(processSession.putAllAttributes(split, attributes), REL_SPLIT);
+            }
+
+            original = copyAttributesToOriginal(processSession, original, fragmentId, resultList.size());
+            processSession.transfer(original, REL_ORIGINAL);
+            logger.info("Split {} into {} FlowFiles", new Object[]{original, resultList.size()});
         } catch (InvalidJsonException e) {
             logger.error("FlowFile {} did not have valid JSON content.", new Object[]{original});
             processSession.transfer(original, REL_FAILURE);
             return;
-        }
-
-        final JsonPath jsonPath = JSON_PATH_REF.get();
-
-        Object jsonPathResult;
-        try {
-            jsonPathResult = documentContext.read(jsonPath);
         } catch (PathNotFoundException e) {
-            logger.warn("JsonPath {} could not be found for FlowFile {}", new Object[]{jsonPath.getPath(), original});
+            logger.error("JsonPath {} could not be found for FlowFile {}", new Object[]{jsonPath.getPath(), original});
+            processSession.transfer(original, REL_FAILURE);
+            return;
+        }catch (Throwable t) {
+            logger.error("Failed to split json due to {}.", new Object[]{t});
             processSession.transfer(original, REL_FAILURE);
             return;
         }
-
-        if (!(jsonPathResult instanceof List)) {
-            logger.error("The evaluated value {} of {} was not a JSON Array compatible type and cannot be split.", new Object[]{jsonPathResult, jsonPath.getPath()});
-            processSession.transfer(original, REL_FAILURE);
-            return;
-        }
-
-        List resultList = (List) jsonPathResult;
-
-        Map<String, String> attributes = new HashMap<>();
-        final String fragmentId = UUID.randomUUID().toString();
-        attributes.put(FRAGMENT_ID.key(), fragmentId);
-        attributes.put(FRAGMENT_COUNT.key(), Integer.toString(resultList.size()));
-
-        for (int i = 0; i < resultList.size(); i++) {
-            Object resultSegment = resultList.get(i);
-            FlowFile split = processSession.create(original);
-            split = processSession.write(split, (out) -> {
-                        String resultSegmentContent = getResultRepresentation(resultSegment, nullDefaultValue);
-                        out.write(resultSegmentContent.getBytes(StandardCharsets.UTF_8));
-                    }
-            );
-            attributes.put(SEGMENT_ORIGINAL_FILENAME.key(), split.getAttribute(CoreAttributes.FILENAME.key()));
-            attributes.put(FRAGMENT_INDEX.key(), Integer.toString(i));
-            processSession.transfer(processSession.putAllAttributes(split, attributes), REL_SPLIT);
-        }
-
-        original = copyAttributesToOriginal(processSession, original, fragmentId, resultList.size());
-        processSession.transfer(original, REL_ORIGINAL);
-        logger.info("Split {} into {} FlowFiles", new Object[]{original, resultList.size()});
     }
 }
