@@ -31,6 +31,7 @@
 
     <modules>
         <module>nifi-azure-processors</module>
+        <module>nifi-azure-reporting-task</module>
         <module>nifi-azure-nar</module>
         <module>nifi-azure-services-api</module>
         <module>nifi-azure-services-api-nar</module>
