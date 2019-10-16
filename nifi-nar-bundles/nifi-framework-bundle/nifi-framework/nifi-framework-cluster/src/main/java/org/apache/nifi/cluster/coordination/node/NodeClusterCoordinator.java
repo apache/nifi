@@ -1104,12 +1104,13 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
         final NodeConnectionStatus proposedConnectionStatus = new NodeConnectionStatus(nodeIdentifier, DisconnectionCode.NOT_YET_CONNECTED);
         final NodeConnectionStatus existingStatus = nodeStatuses.putIfAbsent(nodeIdentifier.getId(), proposedConnectionStatus);
 
+        removeConflictingNodeIds(nodeIdentifier);
+
         if (existingStatus == null) {
             // there is no node with that ID
             logger.info("No existing node with ID {}; will add Node as {}", nodeIdentifier.getId(), nodeIdentifier.getFullDescription());
             logger.debug("After adding node {}, node statuses are {}", nodeIdentifier, nodeStatuses);
 
-            removeConflictingNodeIds(nodeIdentifier);
             onNodeAdded(nodeIdentifier, true);
         } else {
             // there is a node with that ID but it's the same node.
@@ -1135,7 +1136,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
     private Set<NodeIdentifier> findConflictingNodeIds(final NodeIdentifier nodeId) {
         return nodeStatuses.values().stream()
             .map(NodeConnectionStatus::getNodeIdentifier)
-            .filter(potential -> potential != nodeId)
+            .filter(potential -> !potential.equals(nodeId))
             .filter(nodeId::logicallyEquals)
             .collect(Collectors.toSet());
     }
