@@ -43,14 +43,14 @@ public class StatelessNiFi {
     public static void main(final String[] args) throws IOException, ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {
 
         String nifi_home = System.getenv("NIFI_HOME");
-        if(nifi_home == null || nifi_home.equals("")) {
+        if (nifi_home == null || nifi_home.equals("")) {
             nifi_home = ".";
         }
 
-        final File libDir = new File(nifi_home+"/lib");
-        final File narWorkingDirectory = new File(nifi_home+"/work/stateless-nars");
+        final File libDir = new File(nifi_home + "/lib");
+        final File narWorkingDirectory = new File(nifi_home + "/work/stateless-nars");
 
-        if(args.length >= 1 && args[0].equals(EXTRACT_NARS)){
+        if (args.length >= 1 && args[0].equals(EXTRACT_NARS)) {
             if (!libDir.exists()) {
                 System.out.println("Specified lib directory <" + libDir + "> does not exist");
                 return;
@@ -81,7 +81,7 @@ public class StatelessNiFi {
         File frameworkWorkingDirectory;
         try {
             frameworkWorkingDirectory = Objects.requireNonNull(narWorkingDirectory.listFiles(file -> file.getName().startsWith("nifi-framework")))[0];
-        }catch(Exception ex){
+        } catch (Exception ex) {
             throw new FileNotFoundException("Could not find core stateless dependencies in the working directory <" + narWorkingDirectory + ">");
         }
 
@@ -93,10 +93,11 @@ public class StatelessNiFi {
         final URL[] jarUrls = toURLs(jarFiles);
 
 
-        final URLClassLoader rootClassLoader = new URLClassLoader(jarUrls);
-        Thread.currentThread().setContextClassLoader(rootClassLoader);
+        final ClassLoader rootClassLoader = Thread.currentThread().getContextClassLoader();
+        final URLClassLoader frameworkClassLoader = new URLClassLoader(jarUrls, rootClassLoader);
+        Thread.currentThread().setContextClassLoader(frameworkClassLoader);
 
-        final Class<?> programClass = Class.forName(PROGRAM_CLASS_NAME, true, rootClassLoader);
+        final Class<?> programClass = Class.forName(PROGRAM_CLASS_NAME, true, frameworkClassLoader);
         final Method launchMethod = programClass.getMethod("launch", String[].class, ClassLoader.class, File.class);
         launchMethod.setAccessible(true);
         launchMethod.invoke(null, args, rootClassLoader, narWorkingDirectory);

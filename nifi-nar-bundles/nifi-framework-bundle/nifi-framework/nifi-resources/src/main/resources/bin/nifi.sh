@@ -347,8 +347,8 @@ stateless(){
     echo "NiFi home (NIFI_HOME): ${NIFI_HOME}"
     echo "Java options (STATELESS_JAVA_OPTS): ${STATELESS_JAVA_OPTS}"
     echo
-    "${JAVA}" -cp "${NIFI_HOME}/lib/*:${NIFI_HOME}/lib/java11/*:${NIFI_HOME}/lib/bootstrap/*" ${STATELESS_JAVA_OPTS} "org.apache.nifi.StatelessNiFi" ExtractNars
-    "${JAVA}" -cp "${NIFI_HOME}/lib/*:${NIFI_HOME}/lib/java11/*:${NIFI_HOME}/lib/bootstrap/*" ${STATELESS_JAVA_OPTS} "org.apache.nifi.StatelessNiFi" "$@"
+    "${JAVA}" -cp "${NIFI_HOME}/lib/bootstrap/*" ${STATELESS_JAVA_OPTS} "org.apache.nifi.bootstrap.RunStatelessNiFi" ExtractNars
+    "${JAVA}" -cp "${NIFI_HOME}/lib/bootstrap/*" ${STATELESS_JAVA_OPTS} "org.apache.nifi.bootstrap.RunStatelessNiFi" "$@"
 }
 main() {
     init "$1"

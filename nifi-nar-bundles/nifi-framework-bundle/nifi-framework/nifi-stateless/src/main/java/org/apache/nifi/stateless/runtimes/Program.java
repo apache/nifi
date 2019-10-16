@@ -39,7 +39,7 @@ public class Program {
     public static final String RUN_YARN_SERVICE_FROM_REGISTRY = "RunYARNServiceFromRegistry";
     public static final String RUN_OPENWHISK_ACTION_SERVER = "RunOpenwhiskActionServer";
 
-    public static void launch(final String[] args, ClassLoader systemClassLoader, File narWorkingDirectory) throws Exception {
+    public static void launch(final String[] args, final ClassLoader systemClassLoader, final File narWorkingDirectory) throws Exception {
 
         //Workaround for YARN
         //TODO make configurable

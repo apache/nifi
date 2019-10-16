@@ -59,5 +59,5 @@ EXPOSE 8080
 
 WORKDIR ${NIFI_HOME}
 
-ENTRYPOINT ["/usr/bin/java", "-cp", "lib/*:lib/java11/*:lib/bootstrap/*", "org.apache.nifi.StatelessNiFi"]
+ENTRYPOINT ["/usr/bin/java", "-cp", "lib/bootstrap/*", "org.apache.nifi.bootstrap.RunStatelessNiFi"]
 CMD ["RunOpenwhiskActionServer", "8080"]
