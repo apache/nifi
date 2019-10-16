@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.apache.nifi.annotation.behavior.EventDriven;
@@ -220,10 +221,10 @@ public class CountText extends AbstractProcessor {
         }
         AtomicBoolean error = new AtomicBoolean();
 
-        final int[] lineCount = {0};
-        final int[] lineNonEmptyCount = {0};
-        final int[] wordCount = {0};
-        final int[] characterCount = {0};
+        final AtomicInteger lineCount = new AtomicInteger(0);
+        final AtomicInteger lineNonEmptyCount = new AtomicInteger(0);
+        final AtomicInteger wordCount = new AtomicInteger(0);
+        final AtomicInteger characterCount = new AtomicInteger(0);
 
         processSession.read(sourceFlowFile, in -> {
             long start = System.nanoTime();
@@ -234,21 +235,21 @@ public class CountText extends AbstractProcessor {
                 String line;
                 while ((line = bufferedReader.readLine()) != null) {
                     if (countLines) {
-                        lineCount[0]++;
+                        lineCount.incrementAndGet();
                     }
 
                     if (countLinesNonEmpty) {
                         if (line.trim().length() > 0) {
-                            lineNonEmptyCount[0]++;
+                            lineNonEmptyCount.incrementAndGet();
                         }
                     }
 
                     if (countWords) {
-                        wordCount[0] += countWordsInLine(line, splitWordsOnSymbols);
+                        wordCount.addAndGet(countWordsInLine(line, splitWordsOnSymbols));
                     }
 
                     if (countCharacters) {
-                        characterCount[0] += line.length();
+                        characterCount.addAndGet(line.length());
                     }
                 }
                 long stop = System.nanoTime();
@@ -258,15 +259,15 @@ public class CountText extends AbstractProcessor {
                     getLogger().debug("Computed metrics in " + durationNanos + " nanoseconds (" + df.format(durationNanos / 1_000_000_000.0) + " seconds).");
                 }
                 if (getLogger().isInfoEnabled()) {
-                    String message = generateMetricsMessage(lineCount[0], lineNonEmptyCount[0], wordCount[0], characterCount[0]);
+                    String message = generateMetricsMessage(lineCount.get(), lineNonEmptyCount.get(), wordCount.get(), characterCount.get());
                     getLogger().info(message);
                 }
 
                 // Update session counters
-                processSession.adjustCounter("Lines Counted", (long) lineCount[0], adjustImmediately);
-                processSession.adjustCounter("Lines (non-empty) Counted", (long) lineNonEmptyCount[0], adjustImmediately);
-                processSession.adjustCounter("Words Counted", (long) wordCount[0], adjustImmediately);
-                processSession.adjustCounter("Characters Counted", (long) characterCount[0], adjustImmediately);
+                processSession.adjustCounter("Lines Counted", (long) lineCount.get(), adjustImmediately);
+                processSession.adjustCounter("Lines (non-empty) Counted", (long) lineNonEmptyCount.get(), adjustImmediately);
+                processSession.adjustCounter("Words Counted", (long) wordCount.get(), adjustImmediately);
+                processSession.adjustCounter("Characters Counted", (long) characterCount.get(), adjustImmediately);
             } catch (IOException e) {
                 error.set(true);
                 getLogger().error(e.getMessage() + " Routing to failure.", e);
@@ -278,23 +279,23 @@ public class CountText extends AbstractProcessor {
         } else {
             Map<String, String> metricAttributes = new HashMap<>();
             if (countLines) {
-                metricAttributes.put(TEXT_LINE_COUNT, String.valueOf(lineCount[0]));
+                metricAttributes.put(TEXT_LINE_COUNT, String.valueOf(lineCount.get()));
             }
             if (countLinesNonEmpty) {
-                metricAttributes.put(TEXT_LINE_NONEMPTY_COUNT, String.valueOf(lineNonEmptyCount[0]));
+                metricAttributes.put(TEXT_LINE_NONEMPTY_COUNT, String.valueOf(lineNonEmptyCount.get()));
             }
             if (countWords) {
-                metricAttributes.put(TEXT_WORD_COUNT, String.valueOf(wordCount[0]));
+                metricAttributes.put(TEXT_WORD_COUNT, String.valueOf(wordCount.get()));
             }
             if (countCharacters) {
-                metricAttributes.put(TEXT_CHARACTER_COUNT, String.valueOf(characterCount[0]));
+                metricAttributes.put(TEXT_CHARACTER_COUNT, String.valueOf(characterCount.get()));
             }
             FlowFile updatedFlowFile = processSession.putAllAttributes(sourceFlowFile, metricAttributes);
             processSession.transfer(updatedFlowFile, REL_SUCCESS);
         }
     }
 
-    private String generateMetricsMessage(int lineCount,int lineNonEmptyCount, int wordCount, int characterCount) {
+    private String generateMetricsMessage(int lineCount, int lineNonEmptyCount, int wordCount, int characterCount) {
         StringBuilder sb = new StringBuilder("Counted ");
         List<String> metrics = new ArrayList<>();
         if (countLines) {
