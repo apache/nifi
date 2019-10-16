@@ -50,7 +50,7 @@ The <arguments> dictate the runtime to use:
     RunOpenwhiskActionServer 8080
 ```
 
-###Notes:
+### Notes:
 ```
 1) The configuration file must be in JSON format.
 2) When providing configurations via JSON, the following attributes must be provided: nifi_registry, nifi_bucket, nifi_flow.

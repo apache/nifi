@@ -101,26 +101,6 @@
                             </execution>
                         </executions>
                     </plugin>
-                    <plugin>
-                        <artifactId>exec-maven-plugin</artifactId>
-                        <groupId>org.codehaus.mojo</groupId>
-                        <executions>
-                            <execution>
-                                <id>Docker integration tests</id>
-                                <phase>integration-test</phase>
-                                <goals>
-                                    <goal>exec</goal>
-                                </goals>
-                                <configuration>
-                                    <arguments>
-                                        <argument>${project.version}-dockermaven</argument>
-                                        <argument>${project.version}</argument>
-                                    </arguments>
-                                    <executable>${project.basedir}/integration-test.sh</executable>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
                 </plugins>
             </build>
         </profile>
