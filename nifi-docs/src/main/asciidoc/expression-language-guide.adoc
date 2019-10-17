@@ -1123,6 +1123,48 @@ Expressions will provide the following results:
 	then the Expression `${query:evaluateELString()}` will return SELECT * FROM TABLE WHERE ID = 20
 
 
+
+
+[.function]
+=== repeat
+
+*Description*:
+[.description]#Returns a string that is the Subject repeated a random number of times between _min repeats_ and
+_max repeats_. If _max repeats_ is not supplied, it will return the Subject repeated exactly _min repeats_ times.#
+
+[.description]#The _min repeats_ and _max repeats_ must be positive numbers, with _max repeats_ greater than or equal
+to _min repeats_#
+
+[.description]#If either _min repeats_ or _max repeats_ is not a number, this function call will result
+in an error.#
+
+
+*Subject Type*: [.subject]#String#
+
+*Arguments*:
+
+- [.argName]#_min repeats_# : [.argDesc]#The minimum number (inclusive) of times to repeat the subject, or the exact number
+of times to repeat the subject if _max repeats_ is not supplied.#
+- [.argName]#_max repeats_# : [.argDesc]#The maximum number (inclusive) of times to repeat the subject.#
+
+*Return Type*: [.returnType]#String#
+
+*Examples*:
+
+If we have an attribute named "str" with the value "abc",
+then the following Expressions will result in the following values:
+
+.Repeat Examples
+|================================================================
+| Expression | Value
+| `${str:repeat(1)}` | `abc`
+| `${str:repeat(2)}` | `abcabc`
+| `${str:repeat(1,2)}` | `abc` or `abcabc` (at random)
+| `${str:repeat( ${str:length()} )}` | `abc` or `abcabc` or `abcabcabc` (at random)
+|================================================================
+
+
+
 [[encode]]
 == Encode/Decode Functions
 
