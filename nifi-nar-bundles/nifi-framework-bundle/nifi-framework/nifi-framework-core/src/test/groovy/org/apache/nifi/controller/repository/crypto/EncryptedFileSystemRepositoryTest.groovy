@@ -362,7 +362,7 @@ class EncryptedFileSystemRepositoryTest {
 
         // Assert
         assert msg.localizedMessage == "Error creating encrypted content repository output stream"
-        assert msg.cause.localizedMessage =~ "The .* record and key ID cannot be missing"
+        assert msg.cause.localizedMessage =~ "The .* and key ID cannot be missing"
     }
 
     /**
