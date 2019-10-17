@@ -42,11 +42,11 @@ The <arguments> dictate the runtime to use:
 ### Examples:
 ```
 1) ${NIFI_HOME}/bin/nifi.sh stateless RunFromRegistry Once --file /Users/nifi/nifi-stateless-configs/flow-abc.json
-2) docker run --rm -it nifi-stateless:1.10.0-SNAPSHOT-dockermaven \
-    RunFromRegistry Once --file /Users/nifi/nifi-stateless-configs/flow-abc.json
-3) docker run --rm -it nifi-stateless:1.10.0-SNAPSHOT-dockermaven \
-    RunYARNServiceFromRegistry http://127.0.0.1:8088 nifi-stateless:latest kafka-to-solr 3 --file kafka-to-solr.json
-4) docker run -d nifi-stateless:1.10.0-SNAPSHOT-dockermaven \
+2) docker run --rm -it apache/nifi-stateless:1.10.0-SNAPSHOT-dockermaven \
+    RunFromRegistry Once --json "`cat /Users/nifi/nifi-stateless-configs/flow-abc.json`"
+3) docker run --rm -it -v /Users/nifi/nifi-stateless-configs/kafka-to-solr.json:/home/nifi/flow.json apache/nifi-stateless:1.10.0-SNAPSHOT-dockermaven \
+    RunYARNServiceFromRegistry http://127.0.0.1:8088 apache/nifi-stateless:latest kafka-to-solr 3 --file /home/nifi/flow.json
+4) docker run -d apache/nifi-stateless:1.10.0-SNAPSHOT-dockermaven \
     RunOpenwhiskActionServer 8080
 ```
 
@@ -54,6 +54,7 @@ The <arguments> dictate the runtime to use:
 ```
 1) The configuration file must be in JSON format.
 2) When providing configurations via JSON, the following attributes must be provided: nifi_registry, nifi_bucket, nifi_flow.
+3) When running in docker, the configuration can either be provided as a string or by localizing the file into the docker container such as through the "-v" option.
 ```
 
 ### JSON Format
