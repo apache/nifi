@@ -92,6 +92,7 @@ public class TestListenHTTP {
     @After
     public void teardown() {
         proc.shutdownHttpServer();
+        new File("/Users/alopresto/Workspace/nifi/nifi-nar-bundles/nifi-standard-bundle/nifi-standard-processors/my-file-text.txt").delete();
     }
 
     @Test
@@ -482,7 +483,7 @@ public class TestListenHTTP {
       return bytes;
     }
      private File createTextFile(String fileName, String... lines) throws IOException {
-      File file = new File(fileName);
+      File file = new File("target/" + fileName);
       file.deleteOnExit();
       for (String string : lines) {
         Files.append(string, file, Charsets.UTF_8);

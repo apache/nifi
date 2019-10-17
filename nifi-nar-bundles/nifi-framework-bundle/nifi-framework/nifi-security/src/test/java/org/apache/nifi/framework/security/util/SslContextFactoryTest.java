@@ -16,16 +16,15 @@
  */
 package org.apache.nifi.framework.security.util;
 
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.io.File;
 import org.apache.nifi.security.util.KeystoreType;
 import org.apache.nifi.util.NiFiProperties;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.io.File;
-
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 /**
  */
@@ -33,12 +32,14 @@ public class SslContextFactoryTest {
 
     private NiFiProperties mutualAuthProps;
     private NiFiProperties authProps;
+    private NiFiProperties noPasswordTruststore;
 
     @Before
     public void setUp() throws Exception {
 
         final File ksFile = new File(SslContextFactoryTest.class.getResource("/keystore.jks").toURI());
         final File trustFile = new File(SslContextFactoryTest.class.getResource("/truststore.jks").toURI());
+        final File noPasswordTrustFile = new File(SslContextFactoryTest.class.getResource("/no-password-truststore.jks").toURI());
 
         authProps = mock(NiFiProperties.class);
         when(authProps.getProperty(NiFiProperties.SECURITY_KEYSTORE)).thenReturn(ksFile.getAbsolutePath());
@@ -53,6 +54,13 @@ public class SslContextFactoryTest {
         when(mutualAuthProps.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_TYPE)).thenReturn(KeystoreType.JKS.toString());
         when(mutualAuthProps.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD)).thenReturn("passwordpassword");
 
+        noPasswordTruststore = mock(NiFiProperties.class);
+        when(noPasswordTruststore.getProperty(NiFiProperties.SECURITY_KEYSTORE)).thenReturn(ksFile.getAbsolutePath());
+        when(noPasswordTruststore.getProperty(NiFiProperties.SECURITY_KEYSTORE_TYPE)).thenReturn(KeystoreType.JKS.toString());
+        when(noPasswordTruststore.getProperty(NiFiProperties.SECURITY_KEYSTORE_PASSWD)).thenReturn("passwordpassword");
+        when(noPasswordTruststore.getProperty(NiFiProperties.SECURITY_TRUSTSTORE)).thenReturn(noPasswordTrustFile.getAbsolutePath());
+        when(noPasswordTruststore.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_TYPE)).thenReturn(KeystoreType.JKS.toString());
+        when(noPasswordTruststore.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD)).thenReturn("");
     }
 
     @Test
@@ -65,4 +73,8 @@ public class SslContextFactoryTest {
         SslContextFactory.createSslContext(authProps);
     }
 
+    @Test
+    public void testCreateSslContextWithNoPasswordTruststore() {
+        Assert.assertNotNull(SslContextFactory.createSslContext(noPasswordTruststore));
+    }
 }
