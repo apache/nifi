@@ -2098,6 +2098,45 @@ public class TestQuery {
         verifyEmpty("${nullString:padRight(10, \"@\")}", attributes);
     }
 
+    @Test
+    public void testRepeat() {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("str", "abc");
+
+        verifyEquals("${not_exist:repeat(1, 2)}", attributes, "");
+        verifyEquals("${str:repeat(1, 1)}", attributes, "abc");
+
+        // Custom verify because the result could be one of multiple options
+        String multipleResultExpression = "${str:repeat(1, 3)}";
+        String multipleResultExpectedResult1 = "abc";
+        String multipleResultExpectedResult2 = "abcabc";
+        String multipleResultExpectedResult3 = "abcabcabc";
+        List<String> multipleResultExpectedResults = Arrays.asList(multipleResultExpectedResult1, multipleResultExpectedResult2, multipleResultExpectedResult3);
+        Query.validateExpression(multipleResultExpression, false);
+        final String actualResult = Query.evaluateExpressions(multipleResultExpression, attributes, null, null, ParameterLookup.EMPTY);
+        assertTrue(multipleResultExpectedResults.contains(actualResult));
+
+        verifyEquals("${str:repeat(4)}", attributes, "abcabcabcabc");
+        try {
+            verifyEquals("${str:repeat(-1)}", attributes, "");
+            fail("Should have failed on numRepeats < 0");
+        } catch(AttributeExpressionLanguageException aele) {
+            // Do nothing, it is expected
+        }
+        try {
+            verifyEquals("${str:repeat(0)}", attributes, "");
+            fail("Should have failed on numRepeats = 0");
+        } catch(AttributeExpressionLanguageException aele) {
+            // Do nothing, it is expected
+        }
+        try {
+            verifyEquals("${str:repeat(2,1)}", attributes, "");
+            fail("Should have failed on minRepeats > maxRepeats");
+        } catch(AttributeExpressionLanguageException aele) {
+            // Do nothing, it is expected
+        }
+    }
+
     private void verifyEquals(final String expression, final Map<String, String> attributes, final Object expectedResult) {
         verifyEquals(expression,attributes, null, ParameterLookup.EMPTY, expectedResult);
     }
