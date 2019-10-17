@@ -317,8 +317,7 @@ public class GetAzureEventHub extends AbstractProcessor {
             receiverFetchTimeout = null;
         }
 
-        final int numThreads = context.getMaxConcurrentTasks();
-        executor = Executors.newScheduledThreadPool(numThreads);
+        executor = Executors.newScheduledThreadPool(4);
         final String connectionString = new ConnectionStringBuilder().setEndpoint(
             new URI("amqps://"+namespace+serviceBusEndpoint)).setEventHubName(eventHubName).setSasKeyName(policyName).setSasKey(policyKey).toString();
         setupReceiver(connectionString, executor);

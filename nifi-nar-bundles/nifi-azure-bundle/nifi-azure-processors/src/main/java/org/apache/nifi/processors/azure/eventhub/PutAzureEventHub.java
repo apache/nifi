@@ -143,7 +143,7 @@ public class PutAzureEventHub extends AbstractProcessor {
 
         final int numThreads = context.getMaxConcurrentTasks();
         senderQueue = new LinkedBlockingQueue<>(numThreads);
-        executor = Executors.newScheduledThreadPool(numThreads);
+        executor = Executors.newScheduledThreadPool(4);
         for (int i = 0; i < numThreads; i++) {
             final EventHubClient client = createEventHubClient(namespace, eventHubName, policyName, policyKey, executor);
             if(null != client) {
