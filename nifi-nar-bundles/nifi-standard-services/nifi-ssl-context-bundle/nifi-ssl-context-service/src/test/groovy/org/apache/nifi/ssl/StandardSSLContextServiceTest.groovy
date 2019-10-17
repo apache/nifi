@@ -48,10 +48,12 @@ class StandardSSLContextServiceTest {
 
     private static final String KEYSTORE_PATH = "src/test/resources/keystore.jks"
     private static final String TRUSTSTORE_PATH = "src/test/resources/truststore.jks"
+    private static final String NO_PASSWORD_TRUSTSTORE_PATH = "src/test/resources/no-password-truststore.jks"
     private static final String TRUSTSTORE_PATH_WITH_EL = "\${someAttribute}/truststore.jks"
 
     private static final String KEYSTORE_PASSWORD = "passwordpassword"
     private static final String TRUSTSTORE_PASSWORD = "passwordpassword"
+    private static final String TRUSTSTORE_NO_PASSWORD = ""
 
     private static final String KEYSTORE_TYPE = "JKS"
     private static final String TRUSTSTORE_TYPE = "JKS"
@@ -98,6 +100,26 @@ class StandardSSLContextServiceTest {
         // Assert
         final MockProcessContext processContext = (MockProcessContext) runner.getProcessContext()
         assert processContext.getControllerServiceProperties(sslContextService).get(StandardSSLContextService.TRUSTSTORE, "") == TRUSTSTORE_PATH
+    }
+
+    @Test
+    void testKeystoreWithNoPasswordIsValid() {
+        // Arrange
+        TestRunner runner = TestRunners.newTestRunner(TestProcessor.class)
+        String controllerServiceId = "ssl-context"
+        final SSLContextService sslContextService = new StandardSSLContextService()
+        runner.addControllerService(controllerServiceId, sslContextService)
+        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE, NO_PASSWORD_TRUSTSTORE_PATH)
+        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_PASSWORD, TRUSTSTORE_NO_PASSWORD)
+        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_TYPE, TRUSTSTORE_TYPE)
+        runner.enableControllerService(sslContextService)
+
+        // Act
+        runner.assertValid(sslContextService)
+
+        // Assert
+        final MockProcessContext processContext = (MockProcessContext) runner.getProcessContext()
+        assert processContext.getControllerServiceProperties(sslContextService).get(StandardSSLContextService.TRUSTSTORE, "") == NO_PASSWORD_TRUSTSTORE_PATH
     }
 
     @Test

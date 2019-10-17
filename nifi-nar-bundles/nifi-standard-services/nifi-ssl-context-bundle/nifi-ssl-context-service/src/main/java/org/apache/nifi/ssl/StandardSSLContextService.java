@@ -70,7 +70,7 @@ public class StandardSSLContextService extends AbstractControllerService impleme
             .name("Truststore Password")
             .description("The password for the Truststore")
             .defaultValue(null)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .addValidator(Validator.VALID)
             .sensitive(true)
             .build();
     public static final PropertyDescriptor KEYSTORE = new PropertyDescriptor.Builder()
