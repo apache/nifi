@@ -195,7 +195,7 @@ public class PutAzureEventHub extends AbstractProcessor {
         throws ProcessException{
 
         try {
-            EventHubClientImpl.USER_AGENT = "ApacheNifi-azureeventhub/2.3.2";
+            EventHubClientImpl.USER_AGENT = "ApacheNiFi-azureeventhub/2.3.2";
             return EventHubClient.createSync(getConnectionString(namespace, eventHubName, policyName, policyKey), executor);
         } catch (IOException | EventHubException | IllegalConnectionStringFormatException e) {
             getLogger().error("Failed to create EventHubClient due to {}", e);

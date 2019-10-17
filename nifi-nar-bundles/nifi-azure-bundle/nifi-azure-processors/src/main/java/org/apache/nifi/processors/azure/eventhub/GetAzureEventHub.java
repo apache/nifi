@@ -203,7 +203,7 @@ public class GetAzureEventHub extends AbstractProcessor {
 
     protected void setupReceiver(final String connectionString, final ScheduledExecutorService executor) throws ProcessException {
         try {
-            EventHubClientImpl.USER_AGENT = "ApacheNifi-azureeventhub/2.3.2";
+            EventHubClientImpl.USER_AGENT = "ApacheNiFi-azureeventhub/2.3.2";
             eventHubClient = EventHubClient.createSync(connectionString, executor);
         } catch (IOException | EventHubException e) {
             throw new ProcessException(e);
