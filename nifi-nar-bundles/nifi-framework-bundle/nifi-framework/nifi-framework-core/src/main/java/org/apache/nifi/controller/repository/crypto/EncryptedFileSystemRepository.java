@@ -43,6 +43,15 @@ import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * This class is an implementation of the {@link FileSystemRepository} content repository which provides transparent
+ * streaming encryption/decryption of content claim data during file system interaction. As of Apache NiFi 1.10.0
+ * (October 2019), this implementation is considered <a href="https://nifi.apache.org/docs/nifi-docs/html/user-guide.html#experimental-warning">*experimental*</a>. For further details, review the
+ * <a href="https://nifi.apache.org/docs/nifi-docs/html/user-guide.html#encrypted-content">Apache NiFi User Guide -
+ * Encrypted Content Repository</a> and
+ * <a href="https://nifi.apache.org/docs/nifi-docs/html/administration-guide.html#encrypted-file-system-content-repository-properties">Apache NiFi Admin Guide - Encrypted File System Content
+ * Repository Properties</a>.
+ */
 public class EncryptedFileSystemRepository extends FileSystemRepository {
     private static final Logger logger = LoggerFactory.getLogger(EncryptedFileSystemRepository.class);
 
