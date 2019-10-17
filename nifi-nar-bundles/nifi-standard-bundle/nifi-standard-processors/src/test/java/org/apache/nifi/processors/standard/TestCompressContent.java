@@ -18,7 +18,6 @@ package org.apache.nifi.processors.standard;
 
 import static org.junit.Assert.assertTrue;
 
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.HashMap;
