@@ -2404,14 +2404,18 @@ See <<analytics_properties>> for complete information on configuring analytic pr
 
 [[system_properties]]
 == System Properties
-The _nifi.properties_ file in the `conf` directory is the main configuration file for controlling how NiFi runs. This section provides an overview of the properties in this file and includes some notes on how to configure it in a way that will make upgrading easier. *After making changes to this file, restart NiFi in order
-for the changes to take effect.*
+The _nifi.properties_ file in the `conf` directory is the main configuration file for controlling how NiFi runs. This section provides an overview of the properties in this file and their setting options.
 
-NOTE: The contents of this file are relatively stable but do change from time to time. It is always a good idea to
-review this file when upgrading and pay attention for any changes. Consider configuring items
-below marked with an asterisk (*) in such a way that upgrading will be easier. For details, see a full discussion on upgrading
-at the end of this section. Note that values for periods of time and data sizes must include the unit of measure,
-for example "10 secs" or "10 MB", not simply "10".
+NOTE: Values for periods of time and data sizes must include the unit of measure, for example "10 secs" or "10 MB", not simply "10".
+
+WARNING: After making changes to _nifi.properties_, restart NiFi in order for the changes to take effect.
+
+
+=== Upgrade Recommendations
+The contents of the _nifi.properties_ file are relatively stable but can change from version to version. It is always a good idea to review this file when upgrading and pay attention to any changes.
+
+Consider configuring items below marked with an asterisk (`*`) in such a way that upgrading will be easier. For example, change the default directory configurations to locations outside the main root installation. In this way, these items can remain in their configured location through an upgrade, allowing NiFi to find all the repositories and configuration files and pick up where it left off as soon as the old version is stopped and the new version is started. Furthermore, the administrator may reuse this _nifi.properties_ file and any other configuration files without having to re-configure them each time an upgrade takes place. See <<upgrading_nifi>> for more details.
+
 
 === Core Properties +
 
@@ -2421,7 +2425,7 @@ The first section of the _nifi.properties_ file is for the Core Properties. Thes
 |*Property*|*Description*
 |`nifi.flow.configuration.file`*|The location of the flow configuration file (i.e., the file that contains what is currently displayed on the NiFi graph). The default value is `./conf/flow.xml.gz`.
 |`nifi.flow.configuration.archive.enabled`*|Specifies whether NiFi creates a backup copy of the flow automatically when the flow is updated. The default value is `true`.
-|`nifi.flow.configuration.archive.dir`*|The location of the archive directory where backup copies of the _flow.xml_ are saved. The default value is `./conf/archive`. NiFi removes old archive files to limit disk usage based on archived file lifespan, total size, and number of files, as specified with `nifi.flow.configuration.archive.max.time`, `max.storage` and `max.count` properties respectively. If none of these limitation for archiving is specified, NiFi uses default conditions, that is `30 days` for max.time and `500 MB` for max.storage. +
+|`nifi.flow.configuration.archive.dir`*|The location of the archive directory where backup copies of the _flow.xml_ are saved. The default value is `./conf/archive`. NiFi removes old archive files to limit disk usage based on archived file lifespan, total size, and number of files, as specified with `nifi.flow.configuration.archive.max.time`, `max.storage` and `max.count` properties respectively. If none of these limitation for archiving is specified, NiFi uses default conditions, that is `30 days` for `max.time` and `500 MB` for `max.storage`. +
 This cleanup mechanism takes into account only automatically created archived _flow.xml_ files. If there are other files or directories in this archive directory, NiFi will ignore them. Automatically created archives have filename with ISO 8601 format timestamp prefix followed by `<original-filename>`. That is `<year><month><day>T<hour><minute><second>+<timezone offset>_<original filename>`. For example, `20160706T160719+0900_flow.xml.gz`. NiFi checks filenames when it cleans archive directory. If you would like to keep a particular archive in this directory without worrying about NiFi deleting it, you can do so by copying it with a different filename pattern.
 |`nifi.flow.configuration.archive.max.time`*|The lifespan of archived _flow.xml_ files. NiFi will delete expired archive files when it updates _flow.xml_ if this property is specified. Expiration is determined based on current system time and the last modified timestamp of an archived _flow.xml_. If no archive limitation is specified in _nifi.properties_, NiFi removes archives older than `30 days`.
 |`nifi.flow.configuration.archive.max.storage`*|The total data size allowed for the archived _flow.xml_ files. NiFi will delete the oldest archive files until the total archived file size becomes less than this configuration value, if this property is specified. If no archive limitation is specified in _nifi.properties_, NiFi uses `500 MB` for this.
@@ -3375,8 +3379,190 @@ To configure custom properties for use with NiFi’s Expression Language:
 
 Custom properties can also be configured in the NiFi UI.  See the <<user-guide.adoc#Variables_Window,Variables Window>> section in the User Guide for more information.
 
-[WARNING]
-.Upgrading
-============
-Take care when configuring the properties above that are marked with an asterisk (*). To make the upgrade process easier, it is advisable to change the default configurations to locations outside the main root installation directory. In this way, these items can remain in their configured location through an upgrade, and NiFi can find all the repositories and configuration files and pick up where it left off as soon as the old version is stopped and the new version is started. Furthermore, the administrator may reuse this _nifi.properties_ file and any other configuration files without having to re-configure them each time an upgrade takes place. As previously noted, it is important to check for any changes in the _nifi.properties_ file of the new version when upgrading and make sure they are reflected in the _nifi.properties_ file you use.
-============
+
+[[upgrading_nifi]]
+== Upgrading NiFi
+
+The instructions below are general steps to follow when upgrading from a 1.x.0 release to another.
+
+Prior to upgrade you should review the link:https://cwiki.apache.org/confluence/display/NIFI/Release+Notes[Release Notes^] carefully to ensure that you understand the changes made in the new version and the impact they may have on your existing dataflows and/or environment. Additionally, check the link:https://cwiki.apache.org/confluence/display/NIFI/Migration+Guidance[Migration Guidance^] page for items that you should be aware of when moving between specific NiFi versions.
+
+WARNING: All nodes in a cluster must be upgraded to the same NiFi version as nodes with different NiFi versions are not supported in the same cluster.
+
+=== Preserve Custom Processors
+
+If you have any custom NARs, preserve them during upgrade by storing them in a centralized location as follows:
+
+1. Create a second library directory called `custom_lib`.
+2. Move your custom NARs to this new lib directory.
+3. Add a new line to the _nifi.properties_ file to specify this new lib directory:
+
+   nifi.nar.library.directory=./lib
+   nifi.nar.library.directory.custom=/opt/configuration_resources/custom_lib
+
+=== Preserve Modified NARs
+
+If you have modified any of the default NAR files, an upgrade will overwrite these changes. Preserve your customizations as follows:
+
+1. Identify and save the changes you made to the default NAR files.
+2. Perform your NiFi upgrade.
+3. Implement the same NAR file changes in your new NiFi instance.
+
+=== Clear Activity and Shutdown Existing NiFi
+
+On your existing NiFi installation:
+
+1. Stop all the source processors to prevent the ingestion of new data.
+2. Allow NiFi to run until there is no active data in any of the queues in the dataflow(s).
+3. Shutdown your existing NiFi instance(s).
+
+=== Install the new NiFi Version
+
+Install the new NiFi into a directory parallel to the existing NiFi installation.
+
+1. Download the link:https://nifi.apache.org/download.html[latest version^] of Apache NiFi.
+2. Uncompress the NiFi _.tar_ file (`tar -xvzf file-name`) into a directory parallel to your existing NiFi directory. For example, if your existing NiFi installation is installed in `/opt/nifi/existing-nifi/`, install your new NiFi version in `/opt/nifi/new-nifi/`.
+3. If you are upgrading a NiFi cluster, repeat these steps on each node in the cluster.
+
+  Host Machine - Node 1
+  |--> opt/
+     |--> existing-nifi
+     |--> new-nifi
+
+  Host Machine - Node 2
+  |--> opt/
+     |--> existing-nifi
+     |--> new-nifi
+
+  Host Machine - Node 3
+  |--> opt/
+     |--> existing-nifi
+     |--> new-nifi
+
+NOTE: Make sure that all file and directory ownerships for your new NiFi directories match what you set on the existing directories.
+
+=== Update the Configuration Files for Your New NiFi Installation
+
+Use the configuration files from your existing NiFi installation to manually update the corresponding properties in your new NiFi deployment.
+
+WARNING: In general, do not copy configuration files from your existing NiFi version to the new NiFi version. The newer configuration files may introduce new properties that would be lost if you copy and paste configuration files.
+
+Use the following table to guide the update of configuration files located in `<installation-directory>/conf`.
+
+[options="header"]
+|===
+| Configuration file	                       |  Necessary changes
+|_authorizers.xml_                           | Copy the `<authorizer>...</authorizer>` configured in the existing _authorizers.xml_  to the new NiFi file.
+
+If you are using the `file-provider` authorizer, ensure that you copy the _users.xml_ and _authorizations.xml_ files from the existing to the new NiFi.
+
+Configuration best practices recommend creating a separate location outside of the NiFi base directory for storing such configuration files, for example: `/opt/nifi/configuration-resources/`. If you are storing these files in a separate directory, you do not need to move them. Instead, ensure that the new NiFi is pointing to the same files.
+|_bootstrap-notification-services.xml_       | Use the existing NiFi _bootstrap-notification-services.xml_  file to update properties in the new NiFi.
+|_bootstrap.conf_                            | Use the existing NiFi _bootstrap.conf_ file to update properties in the new NiFi.
+|_flow.xml.gz_                               | If you retained the default location for storing flows (`<installation-directory>/conf/`), copy _flow.xml.gz_ from the existing to the new NiFi base install `conf` directory. If you stored flows to an external location via _nifi.properties_, update the property `nifi.flow.configuration.file` to point there.
+
+If you are encrypting sensitive component properties in your dataflow via the sensitive properties key in _nifi.properties_, make sure the same key is used when copying over your _flow.xml.gz_.  If you need to change the key, see the <<sensitive_flow_migration>> section below.
+
+.8+|_nifi.properties_
+|Use the existing _nifi.properties_ to populate the same properties in the new NiFi file.
+
+*Note:* This file contains the majority of NiFi configuration settings, so ensure that you have copied the values correctly.
+
+|If you followed NiFi best practices, the following properties should be pointing to external directories outside of the base NiFi installation path.
+
+If the below properties point to directories inside the NiFi base installation path, you must copy the target directories to the new NiFi. Stop your existing NiFi installation before you do this.
+
+|`nifi.flow.configuration.file=`
+
+If you have retained the default value (`./conf/flow.xml.gz`), copy _flow.xml.gz_ from the existing to the new NiFi base install conf directory.
+
+If you stored flows to an external location, update the property value to point there.
+
+|`nifi.flow.configuration.archive.dir=`
+
+Same applies as above if you want to retain archived copies of the _flow.xml.gz_.
+
+|`nifi.database.directory=`
+
+Best practices recommends that you use an external location for each repository. Point the new NiFi at the same external database repository location.
+
+|`nifi.flowfile.repository.directory=`
+
+Best practices recommends that you use an external location for each repository. Point the new NiFi at the same external flowfile repository location.
+
+*Warning:* You may experience data loss if flowfile repositories are not accessible to the new NiFi.
+
+|`nifi.content.repository.directory.default=`
+
+Best practices recommends that you use an external location for each repository. Point the new NiFi at the same external content repository location.
+
+Your existing NiFi may have multiple content repos defined. Make sure the exact same property names are used and point to the appropriate matching content repo locations. For example:
+
+`nifi.content.repository.directory.content1=`
+`nifi.content.repository.directory.content2=`
+
+*Warning:* You may experience data loss if content repositories are not accessible to the new NiFi.
+
+*Warning:* You may experience data loss if property names are wrong or the property points to the wrong content repository.
+|`nifi.provenance.repository.directory.default=`
+
+Best practices recommends that you use an external location for each repository. Point the new NiFi at the same external provenance repository location.
+
+Your existing NiFi may have multiple content repos defined. Make sure the exact same property names are used and point to the appropriate matching provenance repo locations. For example:
+
+`nifi.provenance.repository.directory.provenance1=`
+`nifi.provenance.repository.directory.provenance2=`
+
+*Note:* You may not be able to query old events if provenance repos are not moved correctly or properties are not updated correctly.
+
+.4+| _state-management.xml_ |For the `local-provider` state provider, verify the location of the local directory.
+
+If you have retained the default location (`./state/local`), copy the complete directory tree to the new NiFi. The existing NiFi should be stopped if you are copying this directory because it may be constantly writing to this directory while running.
+
+Configuration best practices recommend that you move the state to an external directory like `/opt/nifi/configuration-resources/` to facilitate easier upgrading later.
+| For a NiFi cluster, the `cluster-provider`
+ZooKeeper “Connect String" property should be set to the same external ZooKeeper as the existing NiFi installation.
+| For a NiFi cluster, make sure the `cluster-provider` ZooKeeper "Root Node" property matches exactly the value used in the existing NiFi.
+| If you are also setting up a new external ZooKeeper, see the <<zookeeper_migrator>> section for instructions on how to move ZooKeeper information from one cluster to another and migrate ZooKeeper node ownership.
+
+|===
+
+WARNING: Double check all configured properties for typos.
+
+[[sensitive_flow_migration]]
+==== Migrating a Flow with Sensitive Properties
+
+When a value is set for `nifi.sensitive.props.key` in _nifi.properties_, the specified key is used to encrypt sensitive properties in the flow (e.g. password fields in components). If the key needs to change, the Encrypt-Config tool in the NiFi Toolkit can migrate the sensitive properties key and update the _flow.xml.gz_. Specifically, Encrypt-Config:
+
+1. Reads the existing _flow.xml.gz_ and decrypts the sensitive values using the current key.
+2. Encrypts all the sensitive values with a specified new key.
+3. Updates the _nifi.properties_ and _flow.xml.gz_ files or creates new versions of them.
+
+As an example, assume version 1.9.2 is the existing NiFi instance and the sensitive properties key is set to `password`. The goal is to move the 1.9.2 _flow.xml.gz_ to a 1.10.0 instance with a new sensitive properties key: `new_password`. Running the following Encrypt-Config command would read in the _flow.xml.gz_ and _nifi.properties_ files from 1.9.2 using the original sensitive properties key and write out new versions in 1.10.0 with the sensitive properties encrypted with the new password:
+
+```
+$ ./nifi-toolkit-1.10.0/bin/encrypt-config.sh -f /path/to/nifi/nifi-1.9.2/conf/flow.xml.gz -g /path/to/nifi/nifi-1.10.0/conf/flow.xml.gz -s new_password -n /path/to/nifi/nifi-1.9.2/conf/nifi.properties -o /path/to/nifi/nifi-1.10.0/conf/nifi.properties -x
+```
+
+where:
+
+    * `-f` specifies the source _flow.xml.gz_ (nifi-1.9.2)
+    * `-g` specifies the destination _flow.xml.gz_ (nifi-1.10.0)
+    * `-s` specifies the new sensitive properties key (`new_password`)
+    * `-n` specifies the source _nifi.properties_ (nifi-1.9.2)
+    * `-o` specifies the destination _nifi.properties_ (nifi-1.10.0)
+    * `-x` tells Encrypt-Config to only process the sensitive properties
+
+For more information see the <<toolkit-guide.adoc#encrypt_config_tool,Encrypt-Config Tool>> section in the NiFi Toolkit Guide.
+
+=== Start New NiFi
+
+In your new NiFi installation:
+
+1. Start each of your new NiFi instances.
+2. Verify that:
+   * All your dataflows have returned to a running state. Some processors may have new properties that need to be configured, in which case they will be stopped and marked Invalid (image:iconAlert.png["Invalid"]).
+   * All your expected controller services and reporting tasks are running again. Address any controller services or reporting tasks that are marked Invalid (image:iconAlert.png["Invalid"]).
+3. After confirming your new NiFi instances are stable and working as expected, the old installation can be removed.
+
+NOTE:  If the original NiFi was setup to run as a service, update any symlinks or service scripts to point to the new NiFi version executables.
