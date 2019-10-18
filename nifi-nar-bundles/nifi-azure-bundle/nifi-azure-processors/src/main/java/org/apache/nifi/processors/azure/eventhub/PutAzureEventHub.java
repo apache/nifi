@@ -16,17 +16,30 @@
  */
 package org.apache.nifi.processors.azure.eventhub;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
+import com.microsoft.azure.eventhubs.ConnectionStringBuilder;
 import com.microsoft.azure.eventhubs.EventData;
 import com.microsoft.azure.eventhubs.EventHubClient;
-import com.microsoft.azure.eventhubs.ConnectionStringBuilder;
-import com.microsoft.azure.eventhubs.IllegalConnectionStringFormatException;
 import com.microsoft.azure.eventhubs.EventHubException;
+import com.microsoft.azure.eventhubs.IllegalConnectionStringFormatException;
 import com.microsoft.azure.eventhubs.impl.EventHubClientImpl;
-import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
+
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.SystemResource;
+import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -43,23 +56,12 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.StopWatch;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.Set;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Collections;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-
 @SupportsBatching
 @Tags({"microsoft", "azure", "cloud", "eventhub", "events", "streams", "streaming"})
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @CapabilityDescription("Sends the contents of a FlowFile to a Windows Azure Event Hub. Note: the content of the FlowFile will be buffered into memory before being sent, "
-        + "so care should be taken to avoid sending FlowFiles to this Processor that exceed the amount of Java Heap Space available.")
+        + "so care should be taken to avoid sending FlowFiles to this Processor that exceed the amount of Java Heap Space available. "
+        + "Also please be aware that this processor creates a thread pool of 4 threads for Event Hub Client. They will be extra threads other than the concurrent tasks scheduled for this processor.")
 @SystemResourceConsideration(resource = SystemResource.MEMORY)
 public class PutAzureEventHub extends AbstractProcessor {
     static final PropertyDescriptor EVENT_HUB_NAME = new PropertyDescriptor.Builder()
@@ -136,20 +138,6 @@ public class PutAzureEventHub extends AbstractProcessor {
 
     @OnScheduled
     public final void setupClient(final ProcessContext context) throws ProcessException{
-        final String policyName = context.getProperty(ACCESS_POLICY).getValue();
-        final String policyKey = context.getProperty(POLICY_PRIMARY_KEY).getValue();
-        final String namespace = context.getProperty(NAMESPACE).getValue();
-        final String eventHubName = context.getProperty(EVENT_HUB_NAME).getValue();
-
-        final int numThreads = context.getMaxConcurrentTasks();
-        senderQueue = new LinkedBlockingQueue<>(numThreads);
-        executor = Executors.newScheduledThreadPool(4);
-        for (int i = 0; i < numThreads; i++) {
-            final EventHubClient client = createEventHubClient(namespace, eventHubName, policyName, policyKey, executor);
-            if(null != client) {
-                senderQueue.offer(client);
-            }
-        }
     }
 
     @OnStopped
@@ -162,6 +150,22 @@ public class PutAzureEventHub extends AbstractProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+        if(senderQueue.size() == 0){
+            final int numThreads = context.getMaxConcurrentTasks();
+            senderQueue = new LinkedBlockingQueue<>(numThreads);
+            executor = Executors.newScheduledThreadPool(4);
+            final String policyName = context.getProperty(ACCESS_POLICY).getValue();
+            final String policyKey = context.getProperty(POLICY_PRIMARY_KEY).getValue();
+            final String namespace = context.getProperty(NAMESPACE).getValue();
+            final String eventHubName = context.getProperty(EVENT_HUB_NAME).getValue();
+            for (int i = 0; i < numThreads; i++) {
+                final EventHubClient client = createEventHubClient(namespace, eventHubName, policyName, policyKey, executor);
+                if(null != client) {
+                    senderQueue.offer(client);
+                }
+            }
+        }
+
         FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;
