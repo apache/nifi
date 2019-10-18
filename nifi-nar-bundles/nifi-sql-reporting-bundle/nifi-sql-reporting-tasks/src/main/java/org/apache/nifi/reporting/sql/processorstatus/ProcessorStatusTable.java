@@ -84,7 +84,7 @@ public class ProcessorStatusTable extends AbstractTable implements QueryableTabl
     public Enumerable<Object> project(final int[] fields) {
         return new AbstractEnumerable<Object>() {
             @Override
-            @SuppressWarnings({"unchecked", "rawtypes"})
+            @SuppressWarnings({"rawtypes"})
             public Enumerator<Object> enumerator() {
                 final ProcessorStatusEnumerator processorStatusEnumerator = new ProcessorStatusEnumerator(context, logger, fields) {
                     @Override
@@ -180,6 +180,7 @@ public class ProcessorStatusTable extends AbstractTable implements QueryableTabl
                 typeFactory.createJavaType(String.class),
                 typeFactory.createJavaType(String.class),
                 typeFactory.createJavaType(String.class),
+                typeFactory.createJavaType(long.class),
                 typeFactory.createJavaType(long.class),
                 typeFactory.createJavaType(long.class),
                 typeFactory.createJavaType(long.class),

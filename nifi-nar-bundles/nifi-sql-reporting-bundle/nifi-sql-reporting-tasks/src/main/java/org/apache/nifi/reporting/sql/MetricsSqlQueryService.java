@@ -79,12 +79,7 @@ public class MetricsSqlQueryService implements MetricsQueryService {
 
         final CachedStatement cachedStatement = getStatement(sql, statementBuilder, statementQueues);
         final PreparedStatement stmt = cachedStatement.getStatement();
-        final ResultSet rs;
-        try {
-            rs = stmt.executeQuery();
-        } catch (final Throwable t) {
-            throw t;
-        }
+        final ResultSet rs = stmt.executeQuery();
 
         return new QueryResult() {
             @Override
@@ -159,7 +154,6 @@ public class MetricsSqlQueryService implements MetricsQueryService {
         final BulletinTable bulletinTable = new BulletinTable(context, getLogger());
         rootSchema.add("BULLETINS", bulletinTable);
 
-        // TODO add the others
         rootSchema.setCacheEnabled(false);
 
         try {
@@ -216,5 +210,4 @@ public class MetricsSqlQueryService implements MetricsQueryService {
     private void onCacheEviction(final String key, final BlockingQueue<CachedStatement> queue, final RemovalCause cause) {
         clearQueue(queue);
     }
-
 }

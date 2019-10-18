@@ -180,13 +180,12 @@ public class JvmMetricsTable extends AbstractTable implements QueryableTable, Tr
         types.add(typeFactory.createJavaType(int.class));
         types.add(typeFactory.createJavaType(int.class));
         types.add(typeFactory.createJavaType(int.class));
+        types.add(typeFactory.createJavaType(int.class));
         types.add(typeFactory.createJavaType(long.class));
         types.add(typeFactory.createJavaType(double.class));
-        types.add(typeFactory.createJavaType(String.class));
-        types.add(typeFactory.createJavaType(long.class));
-        types.add(typeFactory.createJavaType(long.class));
-        types.add(typeFactory.createJavaType(long.class));
-
+        types.add(typeFactory.createJavaType(double.class));
+        types.add(typeFactory.createJavaType(double.class));
+        types.add(typeFactory.createJavaType(double.class));
 
         // Add fields for the garbage collectors
         metricsService.getMetrics(virtualMachineMetrics);

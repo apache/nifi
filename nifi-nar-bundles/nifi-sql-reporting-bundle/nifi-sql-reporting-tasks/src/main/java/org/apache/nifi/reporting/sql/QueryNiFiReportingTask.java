@@ -28,7 +28,6 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.record.sink.RecordSinkService;
 import org.apache.nifi.reporting.AbstractReportingTask;
-import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.reporting.ReportingInitializationContext;
 import org.apache.nifi.serialization.record.ResultSetRecordSet;
@@ -42,14 +41,15 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-@Tags({"status", "connection", "processor", "jvm", "metrics", "history", "bulletin", "sql"}) // TODO
-@CapabilityDescription("Publishes NiFi status information based on the results of a user-specified SQL query.")
+@Tags({"status", "connection", "processor", "jvm", "metrics", "history", "bulletin", "prediction", "process", "group", "record", "sql"})
+@CapabilityDescription("Publishes NiFi status information based on the results of a user-specified SQL query. The query may make use of the CONNECTION_STATUS, PROCESSOR_STATUS, "
+        + "BULLETINS, PROCESS_GROUP_STATUS, JVM_METRICS, or CONNECTION_STATUS_PREDICTIONS tables, and can use any functions or capabilities provided by Apache Calcite.")
 public class QueryNiFiReportingTask extends AbstractReportingTask {
 
     static final PropertyDescriptor RECORD_SINK = new PropertyDescriptor.Builder()
             .name("sql-reporting-record-sink")
             .displayName("Record Destination Service")
-            .description("Specifies the Controller Service to use for writing out the records to some destination.")
+            .description("Specifies the Controller Service to use for writing out the query result records to some destination.")
             .identifiesControllerService(RecordSinkService.class)
             .required(true)
             .build();
@@ -58,7 +58,7 @@ public class QueryNiFiReportingTask extends AbstractReportingTask {
             .name("sql-reporting-query")
             .displayName("SQL Query")
             .description("SQL SELECT statement specifies which tables to query and how data should be filtered/transformed. "
-                    + "SQL SELECT can select from the CONNECTION_STATUS,PROCESSOR_STATUS,BULLETINS or JVM_METRICS tables") // TODO
+                    + "SQL SELECT can select from the CONNECTION_STATUS, PROCESSOR_STATUS, BULLETINS, PROCESS_GROUP_STATUS, JVM_METRICS, or CONNECTION_STATUS_PREDICTIONS tables.")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(new SqlValidator())
@@ -67,8 +67,7 @@ public class QueryNiFiReportingTask extends AbstractReportingTask {
     static final PropertyDescriptor INCLUDE_ZERO_RECORD_RESULTS = new PropertyDescriptor.Builder()
             .name("sql-reporting-include-zero-record-results")
             .displayName("Include Zero Record Results")
-            .description("When running the SQL statement, if the result has no data, "
-                    + "this property specifies whether or not a Site-to-Site message (flow file, e.g.) will be transmitted.")
+            .description("When running the SQL statement, if the result has no data, this property specifies whether or not the empty result set will be transmitted.")
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .allowableValues("true", "false")
             .defaultValue("false")
@@ -76,13 +75,10 @@ public class QueryNiFiReportingTask extends AbstractReportingTask {
             .build();
 
     private List<PropertyDescriptor> properties;
-
-    private volatile RecordSinkService recordSinkService;
-
     private MetricsQueryService metricsQueryService;
 
     @Override
-    protected void init(final ReportingInitializationContext config) throws InitializationException {
+    protected void init(final ReportingInitializationContext config) {
         metricsQueryService = new MetricsSqlQueryService(getLogger());
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(QUERY);
@@ -93,14 +89,14 @@ public class QueryNiFiReportingTask extends AbstractReportingTask {
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return this.properties;
+        return properties;
     }
 
     @Override
     public void onTrigger(ReportingContext context) {
         final StopWatch stopWatch = new StopWatch(true);
         try {
-            recordSinkService = context.getProperty(RECORD_SINK).asControllerService(RecordSinkService.class);
+            final RecordSinkService recordSinkService = context.getProperty(RECORD_SINK).asControllerService(RecordSinkService.class);
             final String sql = context.getProperty(QUERY).evaluateAttributeExpressions().getValue();
             final QueryResult queryResult = metricsQueryService.query(context, sql);
             final ResultSetRecordSet recordSet;
