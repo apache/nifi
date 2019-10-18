@@ -51,20 +51,20 @@ import java.util.Map;
  * @see RulesEngineService
  */
 @CapabilityDescription("Defines and execute the rules stored in NiFi or EasyRules file formats for a given set of facts. Supports " +
-        "rules stored as JSON or YAML.")
+        "rules stored as JSON or YAML file types.")
 @Tags({ "rules","rules-engine","engine","actions","facts" })
 public class EasyRulesEngineService  extends AbstractControllerService implements RulesEngineService {
 
     static final AllowableValue YAML = new AllowableValue("YAML", "YAML", "YAML file configuration type.");
     static final AllowableValue JSON = new AllowableValue("JSON", "JSON", "JSON file configuration type.");
-    static final AllowableValue NIFI = new AllowableValue("NIFI", "NiFi", "NIFI rules formatted file.");
+    static final AllowableValue NIFI = new AllowableValue("NIFI", "NIFI", "NiFi rules formatted file.");
     static final AllowableValue MVEL = new AllowableValue("MVEL", "Easy Rules MVEL", "Easy Rules File format using MVFLEX Expression Language");
     static final AllowableValue SPEL = new AllowableValue("SPEL", "Easy Rules SpEL", "Easy Rules File format using Spring Expression Language");
 
     static final PropertyDescriptor RULES_FILE_PATH = new PropertyDescriptor.Builder()
             .name("rules-file-path")
             .displayName("Rules File Path")
-            .description("Rules File Location")
+            .description("Path to location of rules file.")
             .required(true)
             .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
@@ -82,7 +82,8 @@ public class EasyRulesEngineService  extends AbstractControllerService implement
     static final PropertyDescriptor RULES_FILE_FORMAT = new PropertyDescriptor.Builder()
             .name("rules-file-format")
             .displayName("Rules File Format")
-            .description("File format for rules. Supported formats are NiFi Rules.")
+            .description("File format for rules. Supported formats are NiFi Rules, Easy Rules files with MVEL Expression Language" +
+                    " and Easy Rules files with Spring Expression Language.")
             .required(true)
             .allowableValues(NIFI,MVEL,SPEL)
             .defaultValue(NIFI.getValue())
