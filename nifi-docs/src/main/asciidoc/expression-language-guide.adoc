@@ -1107,6 +1107,22 @@ Expressions will provide the following results:
 	will return 0.
 
 
+[.function]
+=== evaluateELString
+
+*Description*: [.description]#This function evaluates the Expression Language inside the variable value.#
+
+*Subject Type*: [.subject]#String#
+
+*Arguments*: No arguments
+
+*Return Type*: [.returnType]#String#
+
+*Examples*: If one of the registry variable named "query" has value "SELECT * FROM TABLE WHERE ID = ${id}"
+	and the value of the "id" field, we are getting from the flowfile attributes (i.e. id=20)
+	then the Expression `${query:evaluateELString()}` will return SELECT * FROM TABLE WHERE ID = 20
+
+
 [[encode]]
 == Encode/Decode Functions
 

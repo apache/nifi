@@ -142,6 +142,7 @@ UNESCAPE_HTML4 : 'unescapeHtml4';
 BASE64_ENCODE : 'base64Encode';
 BASE64_DECODE : 'base64Decode';
 GET_STATE_VALUE: 'getStateValue';
+EVALUATE_EL_STRING: 'evaluateELString';
 
 // 1 arg functions
 SUBSTRING_AFTER	: 'substringAfter';

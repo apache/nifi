@@ -158,6 +158,25 @@ public class TestQuery {
     }
 
     @Test
+    public void testStringEL() {
+        final Map<String, String> attrs = new HashMap<>();
+        attrs.put("employee.gender", "male  ");
+        attrs.put("employee.name", "Harry Potter");
+        attrs.put("id", "1234");
+        attrs.put("sql.query", "SELECT * FROM table WHERE ID = ${id}");
+
+        String query = "${sql.query:evaluateELString()}";
+        String query1 = "${employee.name:evaluateELString()}";
+        String query2 = "${employee.name:evaluateELString():toUpper()}";
+        String query3 = "${employee.gender:trim():evaluateELString()}";
+
+        verifyEquals(query, attrs, "SELECT * FROM table WHERE ID = 1234");
+        verifyEquals(query1, attrs, "Harry Potter");
+        verifyEquals(query2, attrs, "HARRY POTTER");
+        verifyEquals(query3, attrs, "male");
+    }
+
+    @Test
     public void testCompileEmbedded() {
         final String expression = "${x:equals( ${y} )}";
         final Query query = Query.compile(expression);
