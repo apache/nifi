@@ -75,7 +75,13 @@ public class MetricsSqlQueryService implements MetricsQueryService {
     public QueryResult query(final ReportingContext context, final String sql)
             throws Exception {
 
-        final Supplier<CachedStatement> statementBuilder = () -> buildCachedStatement(sql, context);
+        final Supplier<CachedStatement> statementBuilder = () -> {
+            try {
+                return buildCachedStatement(sql, context);
+            } catch(Exception e) {
+                throw new PreparedStatementException(e);
+            }
+        };
 
         final CachedStatement cachedStatement = getStatement(sql, statementBuilder, statementQueues);
         final PreparedStatement stmt = cachedStatement.getStatement();
@@ -136,15 +142,19 @@ public class MetricsSqlQueryService implements MetricsQueryService {
         return statementBuilder.get();
     }
 
-    private CachedStatement buildCachedStatement(final String sql, final ReportingContext context) {
+    private CachedStatement buildCachedStatement(final String sql, final ReportingContext context) throws Exception {
 
         final CalciteConnection connection = createConnection();
         final SchemaPlus rootSchema = createRootSchema(connection);
 
         final ConnectionStatusTable connectionStatusTable = new ConnectionStatusTable(context, getLogger());
         rootSchema.add("CONNECTION_STATUS", connectionStatusTable);
-        final ConnectionStatusPredictionsTable connectionStatusPredictionsTable = new ConnectionStatusPredictionsTable(context, getLogger());
-        rootSchema.add("CONNECTION_STATUS_PREDICTIONS", connectionStatusPredictionsTable);
+        if (context.isAnalyticsEnabled()) {
+            final ConnectionStatusPredictionsTable connectionStatusPredictionsTable = new ConnectionStatusPredictionsTable(context, getLogger());
+            rootSchema.add("CONNECTION_STATUS_PREDICTIONS", connectionStatusPredictionsTable);
+        } else {
+            getLogger().debug("Analytics is not enabled, CONNECTION_STATUS_PREDICTIONS table is not available for querying");
+        }
         final ProcessorStatusTable processorStatusTable = new ProcessorStatusTable(context, getLogger());
         rootSchema.add("PROCESSOR_STATUS", processorStatusTable);
         final ProcessGroupStatusTable processGroupStatusTable = new ProcessGroupStatusTable(context, getLogger());
@@ -156,12 +166,8 @@ public class MetricsSqlQueryService implements MetricsQueryService {
 
         rootSchema.setCacheEnabled(false);
 
-        try {
-            final PreparedStatement stmt = connection.prepareStatement(sql);
-            return new CachedStatement(stmt, connection);
-        } catch (final SQLException e) {
-            throw new ProcessException(e);
-        }
+        final PreparedStatement stmt = connection.prepareStatement(sql);
+        return new CachedStatement(stmt, connection);
     }
 
     private SchemaPlus createRootSchema(final CalciteConnection calciteConnection) {
@@ -209,5 +215,28 @@ public class MetricsSqlQueryService implements MetricsQueryService {
 
     private void onCacheEviction(final String key, final BlockingQueue<CachedStatement> queue, final RemovalCause cause) {
         clearQueue(queue);
+    }
+
+    private class PreparedStatementException extends RuntimeException {
+
+        public PreparedStatementException() {
+            super();
+        }
+
+        public PreparedStatementException(String message) {
+            super(message);
+        }
+
+        public PreparedStatementException(String message, Throwable cause) {
+            super(message, cause);
+        }
+
+        public PreparedStatementException(Throwable cause) {
+            super(cause);
+        }
+
+        public PreparedStatementException(String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
+            super(message, cause, enableSuppression, writableStackTrace);
+        }
     }
 }

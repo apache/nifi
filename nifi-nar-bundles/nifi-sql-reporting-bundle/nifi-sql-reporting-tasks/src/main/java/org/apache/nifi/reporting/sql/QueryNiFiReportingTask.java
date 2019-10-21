@@ -25,7 +25,6 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.ExpressionLanguageScope;
-import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.record.sink.RecordSinkService;
 import org.apache.nifi.reporting.AbstractReportingTask;
 import org.apache.nifi.reporting.ReportingContext;
@@ -125,8 +124,8 @@ public class QueryNiFiReportingTask extends AbstractReportingTask {
             }
             final long elapsedMillis = stopWatch.getElapsed(TimeUnit.MILLISECONDS);
             getLogger().debug("Successfully queried and sent in {} millis", new Object[]{elapsedMillis});
-        } catch (Exception se) {
-            throw new ProcessException(se);
+        } catch (Exception e) {
+            getLogger().error("Error processing the query due to {}", new Object[]{e.getMessage()}, e);
         }
     }
 
