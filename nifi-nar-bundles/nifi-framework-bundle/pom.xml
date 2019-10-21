@@ -332,7 +332,7 @@
             <dependency>
                 <groupId>com.nimbusds</groupId>
                 <artifactId>oauth2-oidc-sdk</artifactId>
-                <version>5.34.2</version>
+                <version>6.16.2</version>
             </dependency>
             <dependency>
                 <groupId>net.minidev</groupId>
@@ -347,7 +347,7 @@
             <dependency>
                 <groupId>com.nimbusds</groupId>
                 <artifactId>nimbus-jose-jwt</artifactId>
-                <version>5.7</version>
+                <version>7.9</version>
             </dependency>
 
             <dependency>
