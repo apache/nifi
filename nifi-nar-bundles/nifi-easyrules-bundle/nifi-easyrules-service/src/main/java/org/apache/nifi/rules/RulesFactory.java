@@ -16,8 +16,8 @@
  */
 package org.apache.nifi.rules;
 
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.jeasy.rules.support.JsonRuleDefinitionReader;
 import org.jeasy.rules.support.RuleDefinition;
 import org.jeasy.rules.support.RuleDefinitionReader;
@@ -31,7 +31,6 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -120,10 +119,9 @@ public class RulesFactory {
 
     private static List<Rule> jsonToRules(String rulesFile) throws Exception {
         List<Rule> rules;
-        Gson gson = new Gson();
         InputStreamReader isr = new InputStreamReader(new FileInputStream(rulesFile));
-        Type rulesListType = new TypeToken<ArrayList<Rule>>() {}.getType();
-        rules = gson.fromJson(isr, rulesListType);
+        final ObjectMapper objectMapper = new ObjectMapper();
+        rules = objectMapper.readValue(isr, new TypeReference<List<Rule>>(){});
         return rules;
     }
 }

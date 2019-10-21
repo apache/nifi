@@ -37,11 +37,6 @@
             <version>1.25</version>
         </dependency>
         <dependency>
-            <groupId>com.google.code.gson</groupId>
-            <artifactId>gson</artifactId>
-            <version>2.8.5</version>
-        </dependency>
-        <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-utils</artifactId>
             <version>1.10.0-SNAPSHOT</version>
@@ -60,6 +55,11 @@
             <groupId>org.jeasy</groupId>
             <artifactId>easy-rules-spel</artifactId>
             <version>3.3.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>2.9.10</version>
         </dependency>
         <!-- test -->
         <dependency>
