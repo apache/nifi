@@ -22,7 +22,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.lookup.AbstractSingleAttributeBasedControllerServiceLookup;
+import org.apache.nifi.service.lookup.AbstractSingleAttributeBasedControllerServiceLookup;
 
 import java.sql.Connection;
 import java.util.Map;

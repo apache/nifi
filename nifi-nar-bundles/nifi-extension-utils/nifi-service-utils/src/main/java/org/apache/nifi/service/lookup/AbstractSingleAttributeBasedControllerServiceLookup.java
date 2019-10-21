@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions andf
  * limitations under the License.
  */
-package org.apache.nifi.lookup;
+package org.apache.nifi.service.lookup;
 
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
@@ -31,14 +31,12 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 
 /**
- * {@link LookupService} that can select a ControllerService of the given type {@link S}.
+ * A lookup ControllerService that can choose one (from probably multiple) ControllerServices of the given type {@link S}.
  * <p>
  * Selection is based on a single {@linkplain String} lookup key.
  * <p>
@@ -47,11 +45,11 @@ import java.util.Set;
  *
  * @param <S> The type of service to be looked up
  */
-public abstract class AbstractSingleAttributeBasedControllerServiceLookup<S extends ControllerService> extends AbstractControllerService implements LookupService<S> {
+public abstract class AbstractSingleAttributeBasedControllerServiceLookup<S extends ControllerService> extends AbstractControllerService {
     protected volatile Map<String, S> serviceMap;
 
     /**
-     * @return the Class that represents the type of service that will be returned by {@link #lookup(Map)}
+     * @return the Class that represents the type of service that will be returned by {@link #lookupService(Map)}
      */
     public abstract Class<S> getServiceType();
 
@@ -61,25 +59,13 @@ public abstract class AbstractSingleAttributeBasedControllerServiceLookup<S exte
      */
     protected abstract String lookupAttribute();
 
-    @Override
-    public Class<S> getValueType() {
-        return getServiceType();
-    }
-
+    /**
+     * Returns a ControllerService (of type {@link S}) based on the provided attributes map (usually by retrieving
+     *  a lookup attribute from it via {@link #lookupAttribute()} and use it to identify the appropriate service).
+     * @param attributes Map containing the lookup attribute based on which ControllerService is chosen
+     * @return the chosen ControllerService
+     */
     public S lookupService(Map<String, String> attributes) {
-        S service = lookup(new HashMap<>(), attributes)
-                .orElseThrow(() -> new ProcessException("No " + getServiceName() + " found for " + lookupAttribute()));
-
-        return service;
-    }
-
-    @Override
-    public Optional<S> lookup(Map<String, Object> unsupported) {
-        throw new UnsupportedOperationException("This service only supports attribute-based lookup!");
-    }
-
-    @Override
-    public Optional<S> lookup(Map<String, Object> unused, Map<String, String> attributes) {
         if (attributes == null) {
             throw new ProcessException("Attributes map is null");
         } else if (!attributes.containsKey(lookupAttribute())) {
@@ -92,12 +78,11 @@ public abstract class AbstractSingleAttributeBasedControllerServiceLookup<S exte
 
         S service = serviceMap.get(lookupKey);
 
-        return Optional.ofNullable(service);
-    }
+        if (service == null) {
+            throw new ProcessException("No " + getServiceName() + " found for " + lookupAttribute());
+        }
 
-    @Override
-    public Set<String> getRequiredKeys() {
-        return new HashSet<>(Collections.singletonList(lookupAttribute()));
+        return service;
     }
 
     @OnEnabled

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions andf
  * limitations under the License.
  */
-package org.apache.nifi.lookup;
+package org.apache.nifi.service.lookup;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
@@ -253,11 +253,6 @@ public class TestAbstractSingleAttributeBasedControllerServiceLookup {
     public void testLookupAttribute() {
         String actual = testSubject.lookupAttribute();
         assertEquals(LOOKUP_ATTRIBUTE, actual);
-    }
-
-    @Test(expected = UnsupportedOperationException.class)
-    public void testLookupWithSingleMapShouldThrowException() {
-        testSubject.lookup(new HashMap<>());
     }
 
     private void mapService(String dynamicProperty, String registeredService) {

@@ -20,7 +20,7 @@ import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.expression.ExpressionLanguageScope;
-import org.apache.nifi.lookup.AbstractSingleAttributeBasedControllerServiceLookup;
+import org.apache.nifi.service.lookup.AbstractSingleAttributeBasedControllerServiceLookup;
 import java.util.Map;
 
 @Tags({ "azure", "microsoft", "cloud", "storage", "blob", "queue", "credentials" })
