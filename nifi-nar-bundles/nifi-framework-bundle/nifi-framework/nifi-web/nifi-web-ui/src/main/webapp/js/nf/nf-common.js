@@ -1709,13 +1709,25 @@
             return formattedGarbageCollections;
         },
 
+        /**
+         * Returns whether the specified resource is for a global policy.
+         *
+         * @param resource
+         */
+        isGlobalPolicy: function (value) {
+            return nfCommon.getPolicyTypeListing(value) !== null;
+        },
+
+        /**
+         * Gets the policy type for the specified resource.
+         *
+         * @param value
+         * @returns {*}
+         */
         getPolicyTypeListing: function (value) {
-            var nest = d3.nest()
-                .key(function (d) {
-                    return d.value;
-                })
-                .map(policyTypeListing, d3.map);
-            return nest.get(value)[0];
+            return policyTypeListing.find(function (policy) {
+                return value === policy.value;
+            });
         },
 
         /**

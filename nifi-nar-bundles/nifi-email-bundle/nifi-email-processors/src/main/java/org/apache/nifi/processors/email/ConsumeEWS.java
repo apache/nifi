@@ -454,7 +454,8 @@ public class ConsumeEWS extends AbstractProcessor {
                     FileAttachment file = (FileAttachment)x;
                     file.load();
 
-                    ByteArrayDataSource bds = new ByteArrayDataSource(file.getContent(), file.getContentType());
+                    String type = file.getContentType() == null ? "text/plain" : file.getContentType();
+                    ByteArrayDataSource bds = new ByteArrayDataSource(file.getContent(), type);
 
                     mm.attach(bds,file.getName(), "", EmailAttachment.ATTACHMENT);
                 } catch (MessagingException e) {

@@ -33,9 +33,10 @@
                 'nf.Birdseye',
                 'nf.ContextMenu',
                 'nf.Actions',
-                'nf.ProcessGroup'],
-            function ($, d3, nfCommon, nfDialog, nfGraph, nfShell, nfNgBridge, nfClusterSummary, nfErrorHandler, nfStorage, nfCanvasUtils, nfBirdseye, nfContextMenu, nfActions, nfProcessGroup) {
-                return (nf.Canvas = factory($, d3, nfCommon, nfDialog, nfGraph, nfShell, nfNgBridge, nfClusterSummary, nfErrorHandler, nfStorage, nfCanvasUtils, nfBirdseye, nfContextMenu, nfActions, nfProcessGroup));
+                'nf.ProcessGroup',
+                'nf.ParameterContexts'],
+            function ($, d3, nfCommon, nfDialog, nfGraph, nfShell, nfNgBridge, nfClusterSummary, nfErrorHandler, nfStorage, nfCanvasUtils, nfBirdseye, nfContextMenu, nfActions, nfProcessGroup, nfParameterContexts) {
+                return (nf.Canvas = factory($, d3, nfCommon, nfDialog, nfGraph, nfShell, nfNgBridge, nfClusterSummary, nfErrorHandler, nfStorage, nfCanvasUtils, nfBirdseye, nfContextMenu, nfActions, nfProcessGroup, nfParameterContexts));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.Canvas =
@@ -53,7 +54,8 @@
                 require('nf.Birdseye'),
                 require('nf.ContextMenu'),
                 require('nf.Actions'),
-                require('nf.ProcessGroup')));
+                require('nf.ProcessGroup'),
+                require('nf.ParameterContexts')));
     } else {
         nf.Canvas = factory(root.$,
             root.d3,
@@ -69,9 +71,10 @@
             root.nf.Birdseye,
             root.nf.ContextMenu,
             root.nf.Actions,
-            root.nf.ProcessGroup);
+            root.nf.ProcessGroup,
+            root.nf.ParameterContexts);
     }
-}(this, function ($, d3, nfCommon, nfDialog, nfGraph, nfShell, nfNgBridge, nfClusterSummary, nfErrorHandler, nfStorage, nfCanvasUtils, nfBirdseye, nfContextMenu, nfActions, nfProcessGroup) {
+}(this, function ($, d3, nfCommon, nfDialog, nfGraph, nfShell, nfNgBridge, nfClusterSummary, nfErrorHandler, nfStorage, nfCanvasUtils, nfBirdseye, nfContextMenu, nfActions, nfProcessGroup, nfParameterContexts) {
     'use strict';
 
     var SCALE = 1;
@@ -687,6 +690,11 @@
                     // inform Angular app that values have changed
                     nfNgBridge.digest();
                 });
+            });
+
+            // listen for events to go to parameter contexts
+            $('body').on('GoTo:ParameterContext', function (e, item) {
+                nfParameterContexts.showParameterContexts(item.id);
             });
 
             // don't let the reload action get called more than once every second

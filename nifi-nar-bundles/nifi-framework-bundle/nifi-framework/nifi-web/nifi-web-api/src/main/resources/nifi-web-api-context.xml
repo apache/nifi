@@ -82,6 +82,7 @@
     </bean>
     <bean id="remoteProcessGroupDAO" class="org.apache.nifi.web.dao.impl.StandardRemoteProcessGroupDAO">
         <property name="flowController" ref="flowController"/>
+        <property name="componentStateDAO" ref="componentStateDAO"/>
     </bean>
     <bean id="labelDAO" class="org.apache.nifi.web.dao.impl.StandardLabelDAO">
         <property name="flowController" ref="flowController"/>

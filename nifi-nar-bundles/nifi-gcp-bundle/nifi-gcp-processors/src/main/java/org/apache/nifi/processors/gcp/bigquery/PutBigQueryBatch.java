@@ -1,12 +1,12 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
+ * contributor license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
  * The ASF licenses this file to You under the Apache License, Version 2.0
  * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * the License. You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,16 +17,14 @@
 
 package org.apache.nifi.processors.gcp.bigquery;
 
-import com.google.cloud.RetryOption;
-import com.google.cloud.bigquery.FormatOptions;
-import com.google.cloud.bigquery.Job;
-import com.google.cloud.bigquery.JobInfo;
-import com.google.cloud.bigquery.JobStatistics.LoadStatistics;
-import com.google.cloud.bigquery.Schema;
-import com.google.cloud.bigquery.TableDataWriteChannel;
-import com.google.cloud.bigquery.TableId;
-import com.google.cloud.bigquery.WriteChannelConfiguration;
-import com.google.common.collect.ImmutableList;
+import java.nio.ByteBuffer;
+import java.nio.channels.Channels;
+import java.nio.channels.ReadableByteChannel;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -52,39 +50,33 @@ import org.apache.nifi.util.StringUtils;
 import org.threeten.bp.Duration;
 import org.threeten.bp.temporal.ChronoUnit;
 
-import java.nio.ByteBuffer;
-import java.nio.channels.Channels;
-import java.nio.channels.ReadableByteChannel;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
+import com.google.cloud.RetryOption;
+import com.google.cloud.bigquery.FormatOptions;
+import com.google.cloud.bigquery.Job;
+import com.google.cloud.bigquery.JobInfo;
+import com.google.cloud.bigquery.JobStatistics.LoadStatistics;
+import com.google.cloud.bigquery.Schema;
+import com.google.cloud.bigquery.TableDataWriteChannel;
+import com.google.cloud.bigquery.TableId;
+import com.google.cloud.bigquery.WriteChannelConfiguration;
+import com.google.common.collect.ImmutableList;
 
 /**
  * A processor for batch loading data into a Google BigQuery table
  */
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
-@Tags({"google", "google cloud", "bq", "bigquery"})
+@Tags({ "google", "google cloud", "bq", "bigquery" })
 @CapabilityDescription("Batch loads flow files content to a Google BigQuery table.")
-@SeeAlso({PutGCSObject.class, DeleteGCSObject.class})
+@SeeAlso({ PutGCSObject.class, DeleteGCSObject.class })
 @WritesAttributes({
-    @WritesAttribute(attribute = BigQueryAttributes.DATASET_ATTR, description = BigQueryAttributes.DATASET_DESC),
-    @WritesAttribute(attribute = BigQueryAttributes.TABLE_NAME_ATTR, description = BigQueryAttributes.TABLE_NAME_DESC),
-    @WritesAttribute(attribute = BigQueryAttributes.TABLE_SCHEMA_ATTR, description = BigQueryAttributes.TABLE_SCHEMA_DESC),
-    @WritesAttribute(attribute = BigQueryAttributes.SOURCE_TYPE_ATTR, description = BigQueryAttributes.SOURCE_TYPE_DESC),
-    @WritesAttribute(attribute = BigQueryAttributes.IGNORE_UNKNOWN_ATTR, description = BigQueryAttributes.IGNORE_UNKNOWN_DESC),
-    @WritesAttribute(attribute = BigQueryAttributes.CREATE_DISPOSITION_ATTR, description = BigQueryAttributes.CREATE_DISPOSITION_DESC),
-    @WritesAttribute(attribute = BigQueryAttributes.WRITE_DISPOSITION_ATTR, description = BigQueryAttributes.WRITE_DISPOSITION_DESC),
-    @WritesAttribute(attribute = BigQueryAttributes.MAX_BADRECORDS_ATTR, description = BigQueryAttributes.MAX_BADRECORDS_DESC),
-    @WritesAttribute(attribute = BigQueryAttributes.JOB_CREATE_TIME_ATTR, description = BigQueryAttributes.JOB_CREATE_TIME_DESC),
-    @WritesAttribute(attribute = BigQueryAttributes.JOB_END_TIME_ATTR, description = BigQueryAttributes.JOB_END_TIME_DESC),
-    @WritesAttribute(attribute = BigQueryAttributes.JOB_START_TIME_ATTR, description = BigQueryAttributes.JOB_START_TIME_DESC),
-    @WritesAttribute(attribute = BigQueryAttributes.JOB_LINK_ATTR, description = BigQueryAttributes.JOB_LINK_DESC),
-    @WritesAttribute(attribute = BigQueryAttributes.JOB_ERROR_MSG_ATTR, description = BigQueryAttributes.JOB_ERROR_MSG_DESC),
-    @WritesAttribute(attribute = BigQueryAttributes.JOB_ERROR_REASON_ATTR, description = BigQueryAttributes.JOB_ERROR_REASON_DESC),
-    @WritesAttribute(attribute = BigQueryAttributes.JOB_ERROR_LOCATION_ATTR, description = BigQueryAttributes.JOB_ERROR_LOCATION_DESC),
-    @WritesAttribute(attribute = BigQueryAttributes.JOB_NB_RECORDS_ATTR, description = BigQueryAttributes.JOB_NB_RECORDS_DESC)
+        @WritesAttribute(attribute = BigQueryAttributes.JOB_CREATE_TIME_ATTR, description = BigQueryAttributes.JOB_CREATE_TIME_DESC),
+        @WritesAttribute(attribute = BigQueryAttributes.JOB_END_TIME_ATTR, description = BigQueryAttributes.JOB_END_TIME_DESC),
+        @WritesAttribute(attribute = BigQueryAttributes.JOB_START_TIME_ATTR, description = BigQueryAttributes.JOB_START_TIME_DESC),
+        @WritesAttribute(attribute = BigQueryAttributes.JOB_LINK_ATTR, description = BigQueryAttributes.JOB_LINK_DESC),
+        @WritesAttribute(attribute = BigQueryAttributes.JOB_ERROR_MSG_ATTR, description = BigQueryAttributes.JOB_ERROR_MSG_DESC),
+        @WritesAttribute(attribute = BigQueryAttributes.JOB_ERROR_REASON_ATTR, description = BigQueryAttributes.JOB_ERROR_REASON_DESC),
+        @WritesAttribute(attribute = BigQueryAttributes.JOB_ERROR_LOCATION_ATTR, description = BigQueryAttributes.JOB_ERROR_LOCATION_DESC),
+        @WritesAttribute(attribute = BigQueryAttributes.JOB_NB_RECORDS_ATTR, description = BigQueryAttributes.JOB_NB_RECORDS_DESC)
 })
 public class PutBigQueryBatch extends AbstractBigQueryProcessor {
 
@@ -99,7 +91,7 @@ public class PutBigQueryBatch extends AbstractBigQueryProcessor {
                 return builder.valid(true).explanation("Contains Expression Language").build();
             }
 
-            if(TYPES.contains(input.toUpperCase())) {
+            if (TYPES.contains(input.toUpperCase())) {
                 builder.valid(true);
             } else {
                 builder.valid(false).explanation("Load File Type must be one of the following options: " + StringUtils.join(TYPES, ", "));
@@ -109,23 +101,31 @@ public class PutBigQueryBatch extends AbstractBigQueryProcessor {
         }
     };
 
-    public static final PropertyDescriptor SOURCE_TYPE = new PropertyDescriptor
-            .Builder().name(BigQueryAttributes.SOURCE_TYPE_ATTR)
+    public static final PropertyDescriptor READ_TIMEOUT = new PropertyDescriptor.Builder()
+            .name(BigQueryAttributes.JOB_READ_TIMEOUT_ATTR)
+            .displayName("Read Timeout")
+            .description(BigQueryAttributes.JOB_READ_TIMEOUT_DESC)
+            .required(true)
+            .defaultValue("5 minutes")
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor TABLE_SCHEMA = new PropertyDescriptor.Builder()
+            .name(BigQueryAttributes.TABLE_SCHEMA_ATTR)
+            .displayName("Table Schema")
+            .description(BigQueryAttributes.TABLE_SCHEMA_DESC)
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor SOURCE_TYPE = new PropertyDescriptor.Builder().name(BigQueryAttributes.SOURCE_TYPE_ATTR)
             .displayName("Load file type")
             .description(BigQueryAttributes.SOURCE_TYPE_DESC)
             .required(true)
             .addValidator(FORMAT_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .build();
-
-    public static final PropertyDescriptor IGNORE_UNKNOWN = new PropertyDescriptor.Builder()
-            .name(BigQueryAttributes.IGNORE_UNKNOWN_ATTR)
-            .displayName("Ignore Unknown Values")
-            .description(BigQueryAttributes.IGNORE_UNKNOWN_DESC)
-            .required(true)
-            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
-            .allowableValues("true", "false")
-            .defaultValue("false")
             .build();
 
     public static final PropertyDescriptor CREATE_DISPOSITION = new PropertyDescriptor.Builder()
@@ -225,13 +225,14 @@ public class PutBigQueryBatch extends AbstractBigQueryProcessor {
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return ImmutableList.<PropertyDescriptor>builder()
+        return ImmutableList.<PropertyDescriptor> builder()
                 .addAll(super.getSupportedPropertyDescriptors())
+                .add(TABLE_SCHEMA)
+                .add(READ_TIMEOUT)
                 .add(SOURCE_TYPE)
                 .add(CREATE_DISPOSITION)
                 .add(WRITE_DISPOSITION)
                 .add(MAXBAD_RECORDS)
-                .add(IGNORE_UNKNOWN)
                 .add(CSV_ALLOW_JAGGED_ROWS)
                 .add(CSV_ALLOW_QUOTED_NEW_LINES)
                 .add(CSV_CHARSET)
@@ -271,7 +272,7 @@ public class PutBigQueryBatch extends AbstractBigQueryProcessor {
 
             FormatOptions formatOption;
 
-            if(type.equals(FormatOptions.csv().getType())) {
+            if (type.equals(FormatOptions.csv().getType())) {
                 formatOption = FormatOptions.csv().toBuilder()
                         .setAllowJaggedRows(context.getProperty(CSV_ALLOW_JAGGED_ROWS).asBoolean())
                         .setAllowQuotedNewLines(context.getProperty(CSV_ALLOW_QUOTED_NEW_LINES).asBoolean())
@@ -285,18 +286,17 @@ public class PutBigQueryBatch extends AbstractBigQueryProcessor {
             }
 
             final Schema schema = BigQueryUtils.schemaFromString(context.getProperty(TABLE_SCHEMA).evaluateAttributeExpressions(flowFile).getValue());
-            final WriteChannelConfiguration writeChannelConfiguration =
-                    WriteChannelConfiguration.newBuilder(tableId)
+            final WriteChannelConfiguration writeChannelConfiguration = WriteChannelConfiguration.newBuilder(tableId)
                     .setCreateDisposition(JobInfo.CreateDisposition.valueOf(context.getProperty(CREATE_DISPOSITION).getValue()))
                     .setWriteDisposition(JobInfo.WriteDisposition.valueOf(context.getProperty(WRITE_DISPOSITION).getValue()))
-                    .setIgnoreUnknownValues(context.getProperty(IGNORE_UNKNOWN).asBoolean())
+                    .setIgnoreUnknownValues(context.getProperty(IGNORE_UNKNOWN).evaluateAttributeExpressions(flowFile).asBoolean())
                     .setUseAvroLogicalTypes(context.getProperty(AVRO_USE_LOGICAL_TYPES).asBoolean())
                     .setMaxBadRecords(context.getProperty(MAXBAD_RECORDS).asInteger())
                     .setSchema(schema)
                     .setFormatOptions(formatOption)
                     .build();
 
-            try ( TableDataWriteChannel writer = getCloudService().writer(writeChannelConfiguration) ) {
+            try (TableDataWriteChannel writer = getCloudService().writer(writeChannelConfiguration)) {
 
                 session.read(flowFile, rawIn -> {
                     ReadableByteChannel readableByteChannel = Channels.newChannel(rawIn);
@@ -337,7 +337,7 @@ public class PutBigQueryBatch extends AbstractBigQueryProcessor {
                         flowFile = session.removeAttribute(flowFile, BigQueryAttributes.JOB_ERROR_LOCATION_ATTR);
 
                         // add the number of records successfully added
-                        if(job.getStatistics() instanceof LoadStatistics) {
+                        if (job.getStatistics() instanceof LoadStatistics) {
                             final LoadStatistics stats = (LoadStatistics) job.getStatistics();
                             attributes.put(BigQueryAttributes.JOB_NB_RECORDS_ATTR, Long.toString(stats.getOutputRows()));
                         }

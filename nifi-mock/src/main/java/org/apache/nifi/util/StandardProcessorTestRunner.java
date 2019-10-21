@@ -99,6 +99,10 @@ public class StandardProcessorTestRunner implements TestRunner {
     }
 
     StandardProcessorTestRunner(final Processor processor, String processorName) {
+        this(processor, processorName, null);
+    }
+
+    StandardProcessorTestRunner(final Processor processor, String processorName, MockComponentLog logger) {
         this.processor = processor;
         this.idGenerator = new AtomicLong(0L);
         this.sharedState = new SharedSessionState(processor, idGenerator);
@@ -108,9 +112,9 @@ public class StandardProcessorTestRunner implements TestRunner {
         this.variableRegistry = new MockVariableRegistry();
         this.context = new MockProcessContext(processor, processorName, processorStateManager, variableRegistry);
 
-        final MockProcessorInitializationContext mockInitContext = new MockProcessorInitializationContext(processor, context);
+        final MockProcessorInitializationContext mockInitContext = new MockProcessorInitializationContext(processor, context, logger);
         processor.initialize(mockInitContext);
-        logger =  mockInitContext.getLogger();
+        this.logger =  mockInitContext.getLogger();
 
         try {
             ReflectionUtils.invokeMethodsWithAnnotation(OnAdded.class, processor);

@@ -853,6 +853,14 @@ public final class StandardProcessGroup implements ProcessGroup {
             remoteGroup.getInputPorts().forEach(scheduler::onPortRemoved);
             remoteGroup.getOutputPorts().forEach(scheduler::onPortRemoved);
 
+            final StateManagerProvider stateManagerProvider = flowController.getStateManagerProvider();
+            scheduler.submitFrameworkTask(new Runnable() {
+                @Override
+                public void run() {
+                    stateManagerProvider.onComponentRemoved(remoteGroup.getIdentifier());
+                }
+            });
+
             remoteGroups.remove(remoteGroupId);
             LOG.info("{} removed from flow", remoteProcessGroup);
         } finally {
@@ -1389,8 +1397,6 @@ public final class StandardProcessGroup implements ProcessGroup {
             final ScheduledState state = processor.getScheduledState();
             if (state == ScheduledState.DISABLED) {
                 throw new IllegalStateException("Processor is disabled");
-            } else if (state == ScheduledState.STOPPED) {
-                return CompletableFuture.completedFuture(null);
             }
 
             return scheduler.stopProcessor(processor);
@@ -2946,7 +2952,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                 }
 
                 if (service.getState() != ControllerServiceState.DISABLED) {
-                    throw new IllegalStateException("Cannot change Parameter Context for " + this + " because " + service + " is referencing at least one Parameter is is not disabled");
+                    throw new IllegalStateException("Cannot change Parameter Context for " + this + " because " + service + " is referencing at least one Parameter and is not disabled");
                 }
 
                 verifyParameterSensitivityIsValid(service, parameterContext);
@@ -3702,14 +3708,28 @@ public final class StandardProcessGroup implements ProcessGroup {
         final Map<ControllerServiceNode, VersionedControllerService> services = new HashMap<>();
 
         // Add any Controller Service that does not yet exist.
+        final Map<String, ControllerServiceNode> servicesAdded = new HashMap<>();
         for (final VersionedControllerService proposedService : proposed.getControllerServices()) {
             ControllerServiceNode service = servicesByVersionedId.get(proposedService.getIdentifier());
             if (service == null) {
                 service = addControllerService(group, proposedService, componentIdSeed);
                 LOG.info("Added {} to {}", service, this);
+                servicesAdded.put(proposedService.getIdentifier(), service);
             }
 
             services.put(service, proposedService);
+        }
+
+        // Because we don't know what order to instantiate the Controller Services, it's possible that we have two services such that Service A references Service B.
+        // If Service A happens to get created before Service B, the identifiers won't get matched up. As a result, we now iterate over all created Controller Services
+        // and update them again now that all Controller Services have been created at this level, so that the linkage can now be properly established.
+        for (final VersionedControllerService proposedService : proposed.getControllerServices()) {
+            final ControllerServiceNode addedService = servicesAdded.get(proposedService.getIdentifier());
+            if (addedService == null) {
+                continue;
+            }
+
+            updateControllerService(addedService, proposedService);
         }
 
         // Update all of the Controller Services to match the VersionedControllerService
@@ -4595,12 +4615,32 @@ public final class StandardProcessGroup implements ProcessGroup {
 
                 String value;
                 if (descriptor != null && descriptor.getIdentifiesControllerService()) {
-                    // Property identifies a Controller Service. So the value that we want to assign is not the value given.
-                    // The value given is instead the Versioned Component ID of the Controller Service. We want to resolve this
-                    // to the instance ID of the Controller Service.
-                    final String serviceVersionedComponentId = proposedProperties.get(propertyName);
-                    String instanceId = getServiceInstanceId(serviceVersionedComponentId, group);
-                    value = instanceId == null ? serviceVersionedComponentId : instanceId;
+
+                    // Need to determine if the component's property descriptor for this service is already set to an id
+                    // of an existing service that is outside the current processor group, and if it is we want to leave
+                    // the property set to that value
+                    String existingExternalServiceId = null;
+                    final PropertyDescriptor componentDescriptor = componentNode.getPropertyDescriptor(propertyName);
+                    if (componentDescriptor != null) {
+                        final String componentDescriptorValue = componentNode.getEffectivePropertyValue(componentDescriptor);
+                        if (componentDescriptorValue != null) {
+                            final ControllerServiceNode serviceNode = findAncestorControllerService(componentDescriptorValue, getParent());
+                            if (serviceNode != null) {
+                                existingExternalServiceId = componentDescriptorValue;
+                            }
+                        }
+                    }
+
+                    // If the component's property descriptor is not already set to an id of an existing external service,
+                    // then we need to take the Versioned Component ID and resolve this to the instance ID of the service
+                    if (existingExternalServiceId == null) {
+                        final String serviceVersionedComponentId = proposedProperties.get(propertyName);
+                        String instanceId = getServiceInstanceId(serviceVersionedComponentId, group);
+                        value = instanceId == null ? serviceVersionedComponentId : instanceId;
+                    } else {
+                        value = existingExternalServiceId;
+                    }
+
                 } else {
                     value = proposedProperties.get(propertyName);
                 }

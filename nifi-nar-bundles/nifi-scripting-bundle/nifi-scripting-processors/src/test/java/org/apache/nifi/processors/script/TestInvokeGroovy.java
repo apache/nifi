@@ -21,6 +21,8 @@ import org.apache.commons.codec.binary.Hex;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.script.ScriptingComponentUtils;
+import org.apache.nifi.serialization.record.MockRecordParser;
+import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.MockProcessorInitializationContext;
@@ -35,6 +37,7 @@ import java.security.MessageDigest;
 import java.util.List;
 import java.util.Set;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -208,5 +211,39 @@ public class TestInvokeGroovy extends BaseScriptTest {
         final MockFlowFile outputFlowFile = result.get(0);
         outputFlowFile.assertContentEquals(expectedOutput);
         outputFlowFile.assertAttributeEquals("outAttr", expectedOutput);
+    }
+
+    /**
+     * Tests a script that has a Groovy Processor that reads records and outputs a comma-delimited list of fields selected by a given RecordPath expression
+     *
+     * @throws Exception Any error encountered while testing
+     */
+    @Test
+    public void testReadRecordsWithRecordPath() throws Exception {
+        runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "Groovy");
+        runner.setProperty(ScriptingComponentUtils.SCRIPT_FILE, "target/test/resources/groovy/test_record_path.groovy");
+        runner.setProperty(ScriptingComponentUtils.MODULES, "target/test/resources/groovy");
+
+        final MockRecordParser readerService = new MockRecordParser();
+        runner.addControllerService("reader", readerService);
+        runner.enableControllerService(readerService);
+        runner.setProperty("record-reader", "reader");
+        runner.setProperty("record-path", "/age");
+        readerService.addSchemaField("name", RecordFieldType.STRING);
+        readerService.addSchemaField("age", RecordFieldType.INT);
+
+        readerService.addRecord("John Doe", 48);
+        readerService.addRecord("Jane Doe", 47);
+        readerService.addRecord("Jimmy Doe", 14);
+
+        runner.assertValid();
+        runner.enqueue("".getBytes(StandardCharsets.UTF_8));
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred("success", 1);
+        final List<MockFlowFile> result = runner.getFlowFilesForRelationship("success");
+        assertEquals(1, result.size());
+        MockFlowFile ff = result.get(0);
+        ff.assertContentEquals("48\n47\n14\n");
     }
 }

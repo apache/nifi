@@ -16,12 +16,12 @@
  */
 package org.apache.nifi.parameter;
 
-import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.authorization.resource.ComponentAuthorizable;
 
 import java.util.Map;
 import java.util.Optional;
 
-public interface ParameterContext extends ParameterLookup, Authorizable {
+public interface ParameterContext extends ParameterLookup, ComponentAuthorizable {
 
     /**
      * @return the UUID for this Parameter Context

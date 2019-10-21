@@ -1,12 +1,12 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
+ * contributor license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
  * The ASF licenses this file to You under the Apache License, Version 2.0
  * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * the License. You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,11 +17,13 @@
 
 package org.apache.nifi.processors.gcp.bigquery;
 
-import com.google.api.gax.retrying.RetrySettings;
-import com.google.auth.oauth2.GoogleCredentials;
-import com.google.cloud.bigquery.BigQuery;
-import com.google.cloud.bigquery.BigQueryOptions;
-import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
@@ -35,13 +37,11 @@ import org.apache.nifi.processors.gcp.ProxyAwareTransportFactory;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.util.StringUtils;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import com.google.api.gax.retrying.RetrySettings;
+import com.google.auth.oauth2.GoogleCredentials;
+import com.google.cloud.bigquery.BigQuery;
+import com.google.cloud.bigquery.BigQueryOptions;
+import com.google.common.collect.ImmutableList;
 
 /**
  * Base class for creating processors that connect to GCP BiqQuery service
@@ -50,14 +50,12 @@ public abstract class AbstractBigQueryProcessor extends AbstractGCPProcessor<Big
 
     static final int BUFFER_SIZE = 65536;
 
-    public static final Relationship REL_SUCCESS =
-            new Relationship.Builder().name("success")
-                    .description("FlowFiles are routed to this relationship after a successful Google BigQuery operation.")
-                    .build();
-    public static final Relationship REL_FAILURE =
-            new Relationship.Builder().name("failure")
-                    .description("FlowFiles are routed to this relationship if the Google BigQuery operation fails.")
-                    .build();
+    public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success")
+            .description("FlowFiles are routed to this relationship after a successful Google BigQuery operation.")
+            .build();
+    public static final Relationship REL_FAILURE = new Relationship.Builder().name("failure")
+            .description("FlowFiles are routed to this relationship if the Google BigQuery operation fails.")
+            .build();
 
     public static final Set<Relationship> relationships = Collections.unmodifiableSet(
             new HashSet<>(Arrays.asList(REL_SUCCESS, REL_FAILURE)));
@@ -82,23 +80,14 @@ public abstract class AbstractBigQueryProcessor extends AbstractGCPProcessor<Big
             .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
             .build();
 
-    public static final PropertyDescriptor TABLE_SCHEMA = new PropertyDescriptor.Builder()
-            .name(BigQueryAttributes.TABLE_SCHEMA_ATTR)
-            .displayName("Table Schema")
-            .description(BigQueryAttributes.TABLE_SCHEMA_DESC)
-            .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .build();
-
-    public static final PropertyDescriptor READ_TIMEOUT = new PropertyDescriptor.Builder()
-            .name(BigQueryAttributes.JOB_READ_TIMEOUT_ATTR)
-            .displayName("Read Timeout")
-            .description(BigQueryAttributes.JOB_READ_TIMEOUT_DESC)
+    public static final PropertyDescriptor IGNORE_UNKNOWN = new PropertyDescriptor.Builder()
+            .name(BigQueryAttributes.IGNORE_UNKNOWN_ATTR)
+            .displayName("Ignore Unknown Values")
+            .description(BigQueryAttributes.IGNORE_UNKNOWN_DESC)
             .required(true)
-            .defaultValue("5 minutes")
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .defaultValue("false")
             .build();
 
     @Override
@@ -108,12 +97,11 @@ public abstract class AbstractBigQueryProcessor extends AbstractGCPProcessor<Big
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return ImmutableList.<PropertyDescriptor>builder()
+        return ImmutableList.<PropertyDescriptor> builder()
                 .addAll(super.getSupportedPropertyDescriptors())
                 .add(DATASET)
                 .add(TABLE_NAME)
-                .add(TABLE_SCHEMA)
-                .add(READ_TIMEOUT)
+                .add(IGNORE_UNKNOWN)
                 .build();
     }
 
@@ -153,7 +141,8 @@ public abstract class AbstractBigQueryProcessor extends AbstractGCPProcessor<Big
     }
 
     /**
-     * If sub-classes needs to implement any custom validation, override this method then add validation result to the results.
+     * If sub-classes needs to implement any custom validation, override this method then add
+     * validation result to the results.
      */
     protected void customValidate(ValidationContext validationContext, Collection<ValidationResult> results) {
     }

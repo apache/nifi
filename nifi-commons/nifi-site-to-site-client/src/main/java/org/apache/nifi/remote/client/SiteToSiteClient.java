@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.remote.client;
 
+import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.remote.Transaction;
 import org.apache.nifi.remote.TransferDirection;
@@ -67,7 +68,7 @@ import java.util.concurrent.TimeUnit;
  * interaction with the remote instance takes place. After data has been
  * exchanged or it is determined that no data is available, the Transaction can
  * then be canceled (via the {@link Transaction#cancel(String)} method) or can
- * be completed (via the {@link Transaction#complete(boolean)} method).
+ * be completed (via the {@link Transaction#complete()} method).
  * </p>
  *
  * <p>
@@ -164,6 +165,7 @@ public interface SiteToSiteClient extends Closeable {
         private KeystoreType truststoreType;
         private EventReporter eventReporter = EventReporter.NO_OP;
         private File peerPersistenceFile;
+        private StateManager stateManager;
         private boolean useCompression;
         private String portName;
         private String portIdentifier;
@@ -482,8 +484,8 @@ public interface SiteToSiteClient extends Closeable {
         /**
          * Specifies a file that the client can write to in order to persist the
          * list of nodes in the remote cluster and recover the list of nodes
-         * upon restart. This allows the client to function if the remote
-         * Cluster Manager is unavailable, even after a restart of the client
+         * upon restart. This allows the client to function if the remote nodes
+         * specified by the urls are unavailable, even after a restart of the client
          * software. If not specified, the list of nodes will not be persisted
          * and a failure of the Cluster Manager will result in not being able to
          * communicate with the remote instance if a new client is created.
@@ -493,6 +495,32 @@ public interface SiteToSiteClient extends Closeable {
          */
         public Builder peerPersistenceFile(final File peerPersistenceFile) {
             this.peerPersistenceFile = peerPersistenceFile;
+            return this;
+        }
+
+        /**
+         * <p>Specifies StateManager that the client can persist the
+         * list of nodes in the remote cluster and recover the list of nodes
+         * upon restart. This allows the client to function if the remote nodes
+         * specified by the urls are unavailable, even after a restart of the client
+         * software. If not specified, the list of nodes will not be persisted
+         * and a failure of the Cluster Manager will result in not being able to
+         * communicate with the remote instance if a new client is created.</p>
+         * <p>Using a StateManager is preferable over using a File to persist the list of nodes
+         * if the SiteToSiteClient is used by a NiFi component having access to a NiFi context.
+         * So that the list of nodes can be persisted in the same manner with other stateful information.</p>
+         * <p>Since StateManager is not serializable, the specified StateManager
+         * will not be serialized, and a de-serialized SiteToSiteClientConfig
+         * instance will not have StateManager even if the original config has one.
+         * Use {@link #peerPersistenceFile(File)} instead
+         * if the same SiteToSiteClientConfig needs to be distributed among multiple
+         * clients via serialization, and also persistent connectivity is required
+         * in case of having no available remote node specified by the urls when a client restarts.</p>
+         * @param stateManager state manager
+         * @return the builder
+         */
+        public Builder stateManager(final StateManager stateManager) {
+            this.stateManager = stateManager;
             return this;
         }
 
@@ -748,6 +776,7 @@ public interface SiteToSiteClient extends Closeable {
         private final KeystoreType truststoreType;
         private final EventReporter eventReporter;
         private final File peerPersistenceFile;
+        private final transient StateManager stateManager;
         private final boolean useCompression;
         private final SiteToSiteTransportProtocol transportProtocol;
         private final String portName;
@@ -773,6 +802,7 @@ public interface SiteToSiteClient extends Closeable {
             this.truststoreType = null;
             this.eventReporter = null;
             this.peerPersistenceFile = null;
+            this.stateManager = null;
             this.useCompression = false;
             this.portName = null;
             this.portIdentifier = null;
@@ -801,6 +831,7 @@ public interface SiteToSiteClient extends Closeable {
             this.truststoreType = builder.truststoreType;
             this.eventReporter = builder.eventReporter;
             this.peerPersistenceFile = builder.peerPersistenceFile;
+            this.stateManager = builder.stateManager;
             this.useCompression = builder.useCompression;
             this.portName = builder.portName;
             this.portIdentifier = builder.portIdentifier;
@@ -919,6 +950,23 @@ public interface SiteToSiteClient extends Closeable {
         @Override
         public File getPeerPersistenceFile() {
             return peerPersistenceFile;
+        }
+
+        @Override
+        public StateManager getStateManager() {
+            return stateManager;
+        }
+
+        @Override
+        public PeerPersistence getPeerPersistence() {
+            if (stateManager != null) {
+                return new StatePeerPersistence(stateManager);
+
+            } else if (peerPersistenceFile != null) {
+                return new FilePeerPersistence(peerPersistenceFile);
+            }
+
+            return null;
         }
 
         @Override

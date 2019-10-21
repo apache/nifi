@@ -42,7 +42,6 @@ import org.apache.nifi.remote.exception.ProtocolException;
 import org.apache.nifi.remote.exception.UnknownPortException;
 import org.apache.nifi.remote.exception.UnreachableClusterException;
 import org.apache.nifi.remote.protocol.DataPacket;
-import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.remote.protocol.http.HttpProxy;
 import org.apache.nifi.remote.util.SiteToSiteRestApiClient;
 import org.apache.nifi.remote.util.StandardDataPacket;
@@ -56,7 +55,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLContext;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -125,11 +123,6 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
         this.targetId = targetId;
     }
 
-    private static File getPeerPersistenceFile(final String portId, final NiFiProperties nifiProperties, final SiteToSiteTransportProtocol transportProtocol) {
-        final File stateDir = nifiProperties.getPersistentStateDirectory();
-        return new File(stateDir, String.format("%s_%s.peers", portId, transportProtocol.name()));
-    }
-
     @Override
     public boolean isTargetRunning() {
         return targetRunning.get();
@@ -181,7 +174,7 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
                 .sslContext(sslContext)
                 .useCompression(isUseCompression())
                 .eventReporter(remoteGroup.getEventReporter())
-                .peerPersistenceFile(getPeerPersistenceFile(getIdentifier(), nifiProperties, remoteGroup.getTransportProtocol()))
+                .stateManager(remoteGroup.getStateManager())
                 .nodePenalizationPeriod(penalizationMillis, TimeUnit.MILLISECONDS)
                 .timeout(remoteGroup.getCommunicationsTimeout(TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS)
                 .transportProtocol(remoteGroup.getTransportProtocol())

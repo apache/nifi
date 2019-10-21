@@ -20,6 +20,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.hadoop.KerberosProperties;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.NiFiProperties;
@@ -38,6 +39,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -233,6 +235,52 @@ public class MoveHDFSTest {
         Assert.assertEquals(0, flowFiles.size());
     }
 
+    @Test
+    public void testPutWhenAlreadyExistingShouldFailWhenFAIL_RESOLUTION() throws IOException {
+        testPutWhenAlreadyExisting(MoveHDFS.FAIL_RESOLUTION, MoveHDFS.REL_FAILURE, "randombytes-1");
+    }
+
+    @Test
+    public void testPutWhenAlreadyExistingShouldIgnoreWhenIGNORE_RESOLUTION() throws IOException {
+        testPutWhenAlreadyExisting(MoveHDFS.IGNORE_RESOLUTION, MoveHDFS.REL_SUCCESS, "randombytes-1");
+    }
+
+    @Test
+    public void testPutWhenAlreadyExistingShouldReplaceWhenREPLACE_RESOLUTION() throws IOException {
+        testPutWhenAlreadyExisting(MoveHDFS.REPLACE_RESOLUTION, MoveHDFS.REL_SUCCESS, "randombytes-2");
+    }
+
+    private void testPutWhenAlreadyExisting(String conflictResolution, Relationship expectedDestination, String expectedContent) throws IOException {
+      // GIVEN
+      Files.createDirectories(Paths.get(INPUT_DIRECTORY));
+      Files.createDirectories(Paths.get(OUTPUT_DIRECTORY));
+      Files.copy(Paths.get(TEST_DATA_DIRECTORY, "randombytes-2"), Paths.get(INPUT_DIRECTORY, "randombytes-1"));
+      Files.copy(Paths.get(TEST_DATA_DIRECTORY, "randombytes-1"), Paths.get(OUTPUT_DIRECTORY, "randombytes-1"));
+
+      MoveHDFS processor = new MoveHDFS();
+
+      TestRunner runner = TestRunners.newTestRunner(processor);
+      runner.setProperty(MoveHDFS.INPUT_DIRECTORY_OR_FILE, INPUT_DIRECTORY);
+      runner.setProperty(MoveHDFS.OUTPUT_DIRECTORY, OUTPUT_DIRECTORY);
+      runner.setProperty(MoveHDFS.CONFLICT_RESOLUTION, conflictResolution);
+
+      byte[] expected = Files.readAllBytes(Paths.get(TEST_DATA_DIRECTORY, expectedContent));
+
+      // WHEN
+      runner.enqueue(new byte[0]);
+      runner.run();
+
+      // THEN
+      runner.assertAllFlowFilesTransferred(expectedDestination);
+
+      List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(expectedDestination);
+      Assert.assertEquals(1, flowFiles.size());
+
+      byte[] actual = Files.readAllBytes(Paths.get(OUTPUT_DIRECTORY, "randombytes-1"));
+
+      assertArrayEquals(expected, actual);
+    }
+
     private static class TestableMoveHDFS extends MoveHDFS {
 
         private KerberosProperties testKerberosProperties;
@@ -245,7 +293,5 @@ public class MoveHDFSTest {
         protected KerberosProperties getKerberosProperties(File kerberosConfigFile) {
             return testKerberosProperties;
         }
-
     }
-
 }

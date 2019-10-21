@@ -19,19 +19,19 @@ package org.apache.nifi.remote.util;
 import java.util.Set;
 
 import org.apache.nifi.remote.PeerStatus;
+import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 
 public class PeerStatusCache {
 
     private final Set<PeerStatus> statuses;
     private final long timestamp;
+    private final SiteToSiteTransportProtocol transportProtocol;
 
-    public PeerStatusCache(final Set<PeerStatus> statuses) {
-        this(statuses, System.currentTimeMillis());
-    }
-
-    public PeerStatusCache(final Set<PeerStatus> statuses, final long timestamp) {
+    public PeerStatusCache(final Set<PeerStatus> statuses, final long timestamp,
+                           final SiteToSiteTransportProtocol transportProtocol) {
         this.statuses = statuses;
         this.timestamp = timestamp;
+        this.transportProtocol = transportProtocol;
     }
 
     public Set<PeerStatus> getStatuses() {
@@ -40,5 +40,9 @@ public class PeerStatusCache {
 
     public long getTimestamp() {
         return timestamp;
+    }
+
+    public SiteToSiteTransportProtocol getTransportProtocol() {
+        return transportProtocol;
     }
 }

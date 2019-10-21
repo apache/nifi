@@ -91,6 +91,26 @@ public class TestPrometheusReportingTask {
         reportingContextStub.getEventAccess().setProcessGroupStatus(rootGroupStatus);
         testedReportingTask.onTrigger(reportingContextStub);
 
+        String content = getMetrics();
+        Assert.assertTrue(content.contains(
+                "nifi_amount_flowfiles_received{instance=\"localhost\",component_type=\"RootProcessGroup\",component_name=\"root\",component_id=\"1234\",parent_id=\"\",} 5.0"));
+        Assert.assertTrue(content.contains(
+                "nifi_amount_threads_active{instance=\"localhost\",component_type=\"RootProcessGroup\",component_name=\"root\",component_id=\"1234\",parent_id=\"\",} 5.0"));
+
+        // Rename the component
+        rootGroupStatus.setName("rootroot");
+        content = getMetrics();
+        Assert.assertFalse(content.contains(
+                "nifi_amount_flowfiles_received{instance=\"localhost\",component_type=\"RootProcessGroup\",component_name=\"root\",component_id=\"1234\",parent_id=\"\",} 5.0"));
+        Assert.assertFalse(content.contains(
+                "nifi_amount_threads_active{instance=\"localhost\",component_type=\"RootProcessGroup\",component_name=\"root\",component_id=\"1234\",parent_id=\"\",} 5.0"));
+        Assert.assertTrue(content.contains(
+                "nifi_amount_flowfiles_received{instance=\"localhost\",component_type=\"RootProcessGroup\",component_name=\"rootroot\",component_id=\"1234\",parent_id=\"\",} 5.0"));
+        Assert.assertTrue(content.contains(
+                "nifi_amount_threads_active{instance=\"localhost\",component_type=\"RootProcessGroup\",component_name=\"rootroot\",component_id=\"1234\",parent_id=\"\",} 5.0"));
+    }
+
+    private String getMetrics() throws IOException {
         URL url = new URL("http://localhost:9092/metrics");
         HttpURLConnection con = (HttpURLConnection) url.openConnection();
         con.setRequestMethod("GET");
@@ -102,10 +122,8 @@ public class TestPrometheusReportingTask {
         HttpResponse response = client.execute(request);
         HttpEntity entity = response.getEntity();
         String content = EntityUtils.toString(entity);
-        Assert.assertEquals(true, content.contains(
-                "nifi_amount_flowfiles_received{instance=\"localhost\",component_type=\"RootProcessGroup\",component_name=\"root\",component_id=\"1234\",parent_id=\"\",} 5.0"));
-        Assert.assertEquals(true, content.contains(
-                "nifi_amount_threads_active{instance=\"localhost\",component_type=\"RootProcessGroup\",component_name=\"root\",component_id=\"1234\",parent_id=\"\",} 5.0"));
+
+        return content;
     }
 
 }

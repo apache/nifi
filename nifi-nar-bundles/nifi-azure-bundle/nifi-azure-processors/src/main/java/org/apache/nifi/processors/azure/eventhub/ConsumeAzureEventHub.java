@@ -48,7 +48,6 @@ import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
@@ -90,6 +89,8 @@ import static org.apache.nifi.util.StringUtils.isEmpty;
         @WritesAttribute(attribute = "eventhub.partition", description = "The name of the Azure Partition from which the message was pulled")
 })
 public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
+
+    private static final String FORMAT_STORAGE_CONNECTION_STRING = "DefaultEndpointsProtocol=https;AccountName=%s;AccountKey=%s";
 
     static final PropertyDescriptor NAMESPACE = new PropertyDescriptor.Builder()
             .name("event-hub-namespace")
@@ -626,7 +627,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
                 .evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS);
         options.setReceiveTimeOut(Duration.ofMillis(receiveTimeoutMillis));
 
-        final String storageConnectionString = String.format(AzureStorageUtils.FORMAT_BLOB_CONNECTION_STRING, storageAccountName, storageAccountKey);
+        final String storageConnectionString = String.format(FORMAT_STORAGE_CONNECTION_STRING, storageAccountName, storageAccountKey);
 
         final ConnectionStringBuilder eventHubConnectionString = new ConnectionStringBuilder(namespaceName, eventHubName, sasName, sasKey);
 

@@ -30,6 +30,6 @@
     <modules>
         <module>nifi-kudu-processors</module>
         <module>nifi-kudu-nar</module>
+        <module>nifi-kudu-controller-service</module>
     </modules>
-
 </project>
