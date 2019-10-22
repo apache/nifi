@@ -17,19 +17,6 @@
 
 package org.apache.nifi.processors.kafka.pubsub;
 
-import java.io.ByteArrayOutputStream;
-import java.io.Closeable;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
-import java.util.Collections;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.regex.Pattern;
-
 import org.apache.kafka.clients.producer.Callback;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -47,6 +34,20 @@ import org.apache.nifi.serialization.record.RecordSet;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.stream.io.exception.TokenTooLargeException;
 import org.apache.nifi.stream.io.util.StreamDemarcator;
+
+import java.io.ByteArrayOutputStream;
+import java.io.Closeable;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Function;
+import java.util.regex.Pattern;
 
 public class PublisherLease implements Closeable {
     private final ComponentLog logger;
@@ -111,7 +112,7 @@ public class PublisherLease implements Closeable {
         rollback();
     }
 
-    void publish(final FlowFile flowFile, final InputStream flowFileContent, final byte[] messageKey, final byte[] demarcatorBytes, final String topic) throws IOException {
+    void publish(final FlowFile flowFile, final InputStream flowFileContent, final byte[] messageKey, final byte[] demarcatorBytes, final String topic, final Integer partition) throws IOException {
         if (tracker == null) {
             tracker = new InFlightMessageTracker(logger);
         }
@@ -126,13 +127,13 @@ public class PublisherLease implements Closeable {
                 // Send FlowFile content as it is, to support sending 0 byte message.
                 messageContent = new byte[(int) flowFile.getSize()];
                 StreamUtils.fillBuffer(flowFileContent, messageContent);
-                publish(flowFile, messageKey, messageContent, topic, tracker);
+                publish(flowFile, messageKey, messageContent, topic, tracker, partition);
                 return;
             }
 
             try (final StreamDemarcator demarcator = new StreamDemarcator(flowFileContent, demarcatorBytes, maxMessageSize)) {
                 while ((messageContent = demarcator.nextToken()) != null) {
-                    publish(flowFile, messageKey, messageContent, topic, tracker);
+                    publish(flowFile, messageKey, messageContent, topic, tracker, partition);
 
                     if (tracker.isFailed(flowFile)) {
                         // If we have a failure, don't try to send anything else.
@@ -150,7 +151,7 @@ public class PublisherLease implements Closeable {
     }
 
     void publish(final FlowFile flowFile, final RecordSet recordSet, final RecordSetWriterFactory writerFactory, final RecordSchema schema,
-        final String messageKeyField, final String topic) throws IOException {
+                 final String messageKeyField, final String topic, final Function<Record, Integer> partitioner) throws IOException {
         if (tracker == null) {
             tracker = new InFlightMessageTracker(logger);
         }
@@ -176,7 +177,8 @@ public class PublisherLease implements Closeable {
                 final String key = messageKeyField == null ? null : record.getAsString(messageKeyField);
                 final byte[] messageKey = (key == null) ? null : key.getBytes(StandardCharsets.UTF_8);
 
-                publish(flowFile, additionalAttributes, messageKey, messageContent, topic, tracker);
+                final Integer partition = partitioner == null ? null : partitioner.apply(record);
+                publish(flowFile, additionalAttributes, messageKey, messageContent, topic, tracker, partition);
 
                 if (tracker.isFailed(flowFile)) {
                     // If we have a failure, don't try to send anything else.
@@ -217,14 +219,15 @@ public class PublisherLease implements Closeable {
         }
     }
 
-    protected void publish(final FlowFile flowFile, final byte[] messageKey, final byte[] messageContent, final String topic, final InFlightMessageTracker tracker) {
-        publish(flowFile, Collections.emptyMap(), messageKey, messageContent, topic, tracker);
+    protected void publish(final FlowFile flowFile, final byte[] messageKey, final byte[] messageContent, final String topic, final InFlightMessageTracker tracker, final Integer partition) {
+        publish(flowFile, Collections.emptyMap(), messageKey, messageContent, topic, tracker, partition);
     }
 
-    protected void publish(final FlowFile flowFile, final Map<String, String> additionalAttributes,
-        final byte[] messageKey, final byte[] messageContent, final String topic, final InFlightMessageTracker tracker) {
+    protected void publish(final FlowFile flowFile, final Map<String, String> additionalAttributes, final byte[] messageKey, final byte[] messageContent,
+                           final String topic, final InFlightMessageTracker tracker, final Integer partition) {
 
-        final ProducerRecord<byte[], byte[]> record = new ProducerRecord<>(topic, null, messageKey, messageContent);
+        final Integer moddedPartition = partition == null ? null : Math.abs(partition) % (producer.partitionsFor(topic).size());
+        final ProducerRecord<byte[], byte[]> record = new ProducerRecord<>(topic, moddedPartition, messageKey, messageContent);
         addHeaders(flowFile, additionalAttributes, record);
 
         producer.send(record, new Callback() {
