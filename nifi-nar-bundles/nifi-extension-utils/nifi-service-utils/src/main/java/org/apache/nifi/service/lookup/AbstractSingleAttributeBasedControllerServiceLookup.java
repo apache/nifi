@@ -41,7 +41,7 @@ import java.util.Optional;
  * Selection is based on a single {@linkplain String} lookup key.
  * <p>
  * Lookup key is provided as a value in an attribute map (usually coming form a flowfile)
- * with a predefined key (see {@link #lookupAttribute()}).
+ * with a predefined key (see {@link #getLookupAttribute()}).
  *
  * @param <S> The type of service to be looked up
  */
@@ -57,29 +57,29 @@ public abstract class AbstractSingleAttributeBasedControllerServiceLookup<S exte
      * @return the name of attribute (usually from a flowfile) the value of which serves as the lookup key
      * for the desired service (of type {@link S})
      */
-    protected abstract String lookupAttribute();
+    protected abstract String getLookupAttribute();
 
     /**
      * Returns a ControllerService (of type {@link S}) based on the provided attributes map (usually by retrieving
-     *  a lookup attribute from it via {@link #lookupAttribute()} and use it to identify the appropriate service).
+     *  a lookup attribute from it via {@link #getLookupAttribute()} and use it to identify the appropriate service).
      * @param attributes Map containing the lookup attribute based on which ControllerService is chosen
      * @return the chosen ControllerService
      */
     public S lookupService(Map<String, String> attributes) {
         if (attributes == null) {
             throw new ProcessException("Attributes map is null");
-        } else if (!attributes.containsKey(lookupAttribute())) {
-            throw new ProcessException("Attributes must contain an attribute name '" + lookupAttribute() + "'");
+        } else if (!attributes.containsKey(getLookupAttribute())) {
+            throw new ProcessException("Attributes must contain an attribute name '" + getLookupAttribute() + "'");
         }
 
-        Object lookupKey = Optional.of(lookupAttribute())
+        Object lookupKey = Optional.of(getLookupAttribute())
                 .map(attributes::get)
-                .orElseThrow(() -> new ProcessException(lookupAttribute() + " cannot be null or blank"));
+                .orElseThrow(() -> new ProcessException(getLookupAttribute() + " cannot be null or blank"));
 
         S service = serviceMap.get(lookupKey);
 
         if (service == null) {
-            throw new ProcessException("No " + getServiceName() + " found for " + lookupAttribute());
+            throw new ProcessException("No " + getServiceName() + " found for " + getLookupAttribute());
         }
 
         return service;
@@ -118,7 +118,7 @@ public abstract class AbstractSingleAttributeBasedControllerServiceLookup<S exte
     protected PropertyDescriptor lookupKeyPropertyDescriptor(String propertyDescriptorName) {
         return new PropertyDescriptor.Builder()
                 .name(propertyDescriptorName)
-                .description("The " + getServiceName() + " to return when " + lookupAttribute() + " = '" + propertyDescriptorName + "'")
+                .description("The " + getServiceName() + " to return when " + getLookupAttribute() + " = '" + propertyDescriptorName + "'")
                 .identifiesControllerService(getServiceType())
                 .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
                 .build();

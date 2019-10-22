@@ -33,15 +33,16 @@ import java.util.Map;
         "if the attribute is missing. The value of 'database.name' will be used to select the DBCPService that has been " +
         "registered with that name. This will allow multiple DBCPServices to be defined and registered, and then selected " +
         "dynamically at runtime by tagging flow files with the appropriate 'database.name' attribute.")
-@DynamicProperty(name = "The ", value = "JDBC property value", expressionLanguageScope = ExpressionLanguageScope.NONE,
-        description = "")
+@DynamicProperty(name = "The name to register DBCPService", value = "The DBCPService",
+        description = "If '"+ DBCPConnectionPoolLookup.DATABASE_NAME_ATTRIBUTE +"' attribute contains the name of the dynamic property, then the DBCPService (registered in the value) will be selected.",
+        expressionLanguageScope = ExpressionLanguageScope.NONE)
 public class DBCPConnectionPoolLookup
         extends AbstractSingleAttributeBasedControllerServiceLookup<DBCPService> implements DBCPService {
 
     public static final String DATABASE_NAME_ATTRIBUTE = "database.name";
 
     @Override
-    protected String lookupAttribute() {
+    protected String getLookupAttribute() {
         return DATABASE_NAME_ATTRIBUTE;
     }
 

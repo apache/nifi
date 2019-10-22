@@ -57,7 +57,7 @@ public class TestAbstractSingleAttributeBasedControllerServiceLookup {
 
     @Before
     public void setUp() throws Exception {
-        when(testSubject.lookupAttribute()).thenReturn(LOOKUP_ATTRIBUTE);
+        when(testSubject.getLookupAttribute()).thenReturn(LOOKUP_ATTRIBUTE);
         when(testSubject.getServiceType()).thenReturn(SERVICE_TYPE);
         when(testSubject.getIdentifier()).thenReturn(TEST_SUBJECT_IDENTIFIER);
 
@@ -251,7 +251,7 @@ public class TestAbstractSingleAttributeBasedControllerServiceLookup {
 
     @Test
     public void testLookupAttribute() {
-        String actual = testSubject.lookupAttribute();
+        String actual = testSubject.getLookupAttribute();
         assertEquals(LOOKUP_ATTRIBUTE, actual);
     }
 
