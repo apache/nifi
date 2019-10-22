@@ -15,7 +15,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-docker</artifactId>
-        <version>1.10.0-SNAPSHOT</version>
+        <version>1.10.0</version>
     </parent>
 
     <artifactId>dockermaven-stateless</artifactId>
@@ -35,9 +35,9 @@
                                 <phase>process-sources</phase>
                                 <configuration>
                                     <tasks>
-                                        <unzip src="${project.basedir}/../../nifi-assembly/target/nifi-${nifi.version}-bin.zip" dest="${project.basedir}/target/"/>
+                                        <unzip src="${project.basedir}/../../nifi-assembly/target/nifi-${nifi.version}-bin.zip" dest="${project.basedir}/target/" />
                                         <move todir="${project.basedir}/target/lib">
-                                            <fileset dir="${project.basedir}/target/nifi-${nifi.version}/lib"/>
+                                            <fileset dir="${project.basedir}/target/nifi-${nifi.version}/lib" />
                                         </move>
                                     </tasks>
                                 </configuration>
