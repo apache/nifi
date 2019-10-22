@@ -48,6 +48,7 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.remote.Transaction;
 import org.apache.nifi.remote.TransferDirection;
 import org.apache.nifi.remote.client.SiteToSiteClient;
+import org.apache.nifi.reporting.s2s.SiteToSiteUtils;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.state.MockStateManager;
@@ -145,9 +146,9 @@ public class TestSiteToSiteMetricsReportingTask {
         }
 
         properties.put(SiteToSiteMetricsReportingTask.FORMAT, SiteToSiteMetricsReportingTask.AMBARI_FORMAT.getValue());
-        properties.put(SiteToSiteMetricsReportingTask.DESTINATION_URL, url);
-        properties.put(SiteToSiteMetricsReportingTask.INSTANCE_URL, url);
-        properties.put(SiteToSiteMetricsReportingTask.PORT_NAME, "port");
+        properties.put(SiteToSiteUtils.DESTINATION_URL, url);
+        properties.put(SiteToSiteUtils.INSTANCE_URL, url);
+        properties.put(SiteToSiteUtils.PORT_NAME, "port");
 
         final PropertyValue pValueUrl = Mockito.mock(StandardPropertyValue.class);
         Mockito.when(validationContext.newPropertyValue(url)).thenReturn(pValueUrl);
@@ -186,9 +187,9 @@ public class TestSiteToSiteMetricsReportingTask {
         }
 
         properties.put(SiteToSiteMetricsReportingTask.FORMAT, SiteToSiteMetricsReportingTask.RECORD_FORMAT.getValue());
-        properties.put(SiteToSiteMetricsReportingTask.DESTINATION_URL, url);
-        properties.put(SiteToSiteMetricsReportingTask.INSTANCE_URL, url);
-        properties.put(SiteToSiteMetricsReportingTask.PORT_NAME, "port");
+        properties.put(SiteToSiteUtils.DESTINATION_URL, url);
+        properties.put(SiteToSiteUtils.INSTANCE_URL, url);
+        properties.put(SiteToSiteUtils.PORT_NAME, "port");
 
         final PropertyValue pValueUrl = Mockito.mock(StandardPropertyValue.class);
         Mockito.when(validationContext.newPropertyValue(url)).thenReturn(pValueUrl);
