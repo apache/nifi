@@ -3384,7 +3384,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                 if (this.countersOnCommit.isEmpty()) {
                     this.countersOnCommit.putAll(session.countersOnCommit);
                 } else {
-                    session.countersOnCommit.forEach((key, value) -> this.countersOnCommit.merge(key, value, (v1, v2) -> v1 = v1 + v2));
+                    session.countersOnCommit.forEach((key, value) -> this.countersOnCommit.merge(key, value, (v1, v2) -> v1 + v2));
                 }
             }
 
