@@ -2660,6 +2660,7 @@ key5=c6FzfnKm7UR7xqI2NFpZ+fEKBfSU7+1NvRw+XWQ9U39MONWqk5gvoyOCdFR1kUgeg46jrN5dGXk
 
 Each line defines a key ID and then the Base64-encoded cipher text of a 16 byte IV and wrapped AES-128, AES-192, or AES-256 key depending on the JCE policies available. The individual keys are wrapped by AES/GCM encryption using the **master key** defined by `nifi.bootstrap.sensitive.key` in _conf/bootstrap.conf_.
 
+[[provenance-repository-key-rotation]]
 ===== Key Rotation
 Simply update _nifi.properties_ to reference a new key ID in `nifi.provenance.repository.encryption.key.id`. Previously-encrypted events can still be decrypted as long as that key is still available in the key definition file or `nifi.provenance.repository.encryption.key.id.<OldKeyID>` as the key ID is serialized alongside the encrypted record.
 
@@ -2682,15 +2683,15 @@ When switching between implementation "families" (i.e. `VolatileProvenanceReposi
 
 * Switching between unencrypted and encrypted repositories
 ** If a user has an existing repository (`WriteAheadProvenanceRepository` only -- **not** `PersistentProvenanceRepository`) that is not encrypted and switches their configuration to use an encrypted repository, the application writes an error to the log but starts up. However, previous events are not accessible through the provenance query interface and new events will overwrite the existing events. The same behavior occurs if a user switches from an encrypted repository to an unencrypted repository. Automatic roll-over is a future effort (link:https://issues.apache.org/jira/browse/NIFI-3722[NIFI-3722^]) but NiFi is not intended for long-term storage of provenance events so the impact should be minimal. There are two scenarios for roll-over:
-*** Encrypted -> unencrypted -- if the previous repository implementation was encrypted, these events should be handled seamlessly as long as the key provider available still has the keys used to encrypt the events (see **Key Rotation**)
+*** Encrypted -> unencrypted -- if the previous repository implementation was encrypted, these events should be handled seamlessly as long as the key provider available still has the keys used to encrypt the events (see <<provenance-repository-key-rotation,Key Rotation>>)
 *** Unencrypted -> encrypted -- if the previous repository implementation was unencrypted, these events should be handled seamlessly as the previously recorded events simply need to be read with a plaintext schema record reader and then written back with the encrypted record writer
 ** There is also a future effort to provide a standalone tool in NiFi Toolkit to encrypt/decrypt an existing provenance repository to make the transition easier. The translation process could take a long time depending on the size of the existing repository, and being able to perform this task outside of application startup would be valuable (link:https://issues.apache.org/jira/browse/NIFI-3723[NIFI-3723^]).
 * Multiple repositories -- No additional effort or testing has been applied to multiple repositories at this time. It is possible/likely issues will occur with repositories on different physical devices. There is no option to provide a heterogenous environment (i.e. one encrypted, one plaintext repository).
 * Corruption -- when a disk is filled or corrupted, there have been reported issues with the repository becoming corrupted and recovery steps are necessary. This is likely to continue to be an issue with the encrypted repository, although still limited in scope to individual records (i.e. an entire repository file won't be irrecoverable due to the encryption).
 
 [[encrypted-content]]
-=== Encrypted Content Repository
-While OS-level access control can offer some security over the flowfile content data written to the disk in a repository, there are scenarios where the data may be sensitive, compliance and regulatory requirements exist, or NiFi is running on hardware not under the direct control of the organization (cloud, etc.). In this case, the content repository allows for all data to be encrypted before being persisted to the disk.
+== Encrypted Content Repository
+While OS-level access control can offer some security over the flowfile content data written to the disk in a repository, there are scenarios where the data may be sensitive, compliance and regulatory requirements exist, or NiFi is running on hardware not under the direct control of the organization (cloud, etc.). In this case, the content repository allows for all data to be encrypted before being persisted to the disk. For more information on the internal workings of the content repository, see <<nifi-in-depth.adoc#content-repository,NiFi In-Depth - Content Repository>>.
 
 [WARNING]
 .Experimental
@@ -2704,17 +2705,17 @@ This implementation is marked <<experimental_warning, *experimental*>> as of Apa
 The current implementation of the encrypted content repository intercepts the serialization of content data via the `EncryptedContentRepositoryOutputStream` and uses the `AES/CTR` algorithm, which is fairly performant on commodity hardware. This use of a stream cipher (because the content is operated on in a streaming manner for performance) differs from the use of an authenticated encryption algorithm (AEAD) like `AES/GCM` in the <<encrypted-provenance,Encrypted Provenance Repository>>. In most scenarios, the added cost will not be significant (unnoticable on a flow with hundreds of content read/write events per second, moderately noticable on a flow with thousands - tens of thousands of events per second). However, administrators should perform their own risk assessment and performance analysis and decide how to move forward. Switching back and forth between encrypted/unencrypted implementations is not recommended at this time.
 ============
 
-==== What is it?
+=== What is it?
 
 The `EncryptedFileSystemRepository` is a new implementation of the content repository which encrypts all content data before it is written to the repository. This allows for storage on systems where OS-level access controls are not sufficient to protect the data while still allowing querying and access to the data through the NiFi UI/API.
 
-==== How does it work?
+=== How does it work?
 
 The `FileSystemRepository` was introduced in NiFi 0.2.1 and provided the only persistent content repository implementation. The encrypted version wraps that implementation with functionality to return to the `Session` (usually `StandardProcessSession`) a special `OutputStream`/`InputStream` which encrypt and decrypt the serialized bytes respectively. This allows all components to continue interacting with the content repository interface in the same way as before and continue operating on content data in a streaming manner, without requiring any changes to handle the data protection.
 
 The fully qualified class `org.apache.nifi.content.EncryptedFileSystemRepository` is specified as the content repository implementation in _nifi.properties_ as the value of `nifi.content.repository.implementation`. In addition, <<administration-guide.adoc#encrypted-file-system-content-repository-properties,new properties>> must be populated to allow successful initialization.
 
-===== StaticKeyProvider
+==== StaticKeyProvider
 The `StaticKeyProvider` implementation defines keys directly in _nifi.properties_. Individual keys are provided in hexadecimal encoding. The keys can also be encrypted like any other sensitive property in _nifi.properties_ using the <<administration-guide.adoc#encrypt-config_tool,`./encrypt-config.sh`>> tool in the NiFi Toolkit.
 
 The following configuration section would result in a key provider with two available keys, "Key1" (active) and "AnotherKey".
@@ -2725,7 +2726,7 @@ nifi.content.repository.encryption.key=0123456789ABCDEFFEDCBA9876543210012345678
 nifi.content.repository.encryption.key.id.AnotherKey=0101010101010101010101010101010101010101010101010101010101010101
 ....
 
-===== FileBasedKeyProvider
+==== FileBasedKeyProvider
 The `FileBasedKeyProvider` implementation reads from an encrypted definition file of the format:
 
 ....
@@ -2745,10 +2746,11 @@ Tool_ or `FileBasedKeyProvider`, those _keys_ will be protected using `AES/GCM` 
 over the key material.
 ****
 
-===== Key Rotation
+[[content-repository-key-rotation]]
+==== Key Rotation
 Simply update _nifi.properties_ to reference a new key ID in `nifi.content.repository.encryption.key.id`. Previously-encrypted content claims can still be decrypted as long as that key is still available in the key definition file or `nifi.content.repository.encryption.key.id.<OldKeyID>` as the key ID is serialized alongside the encrypted content.
 
-==== Writing and Reading Content Claims
+=== Writing and Reading Content Claims
 Once the repository is initialized, all content claim write operations are serialized using `RepositoryObjectStreamEncryptor` (the only currently existing implementation is `RepositoryObjectAESCTREncryptor`) to an `OutputStream`. The actual implementation is `EncryptedContentRepositoryOutputStream`, which encrypts the data written by the component via `StandardProcessSession` inline and the encryption metadata (`keyId`, `algorithm`, `version`, `IV`) is serialized and prepended. The complete `OutputStream` is then written to the repository on disk as normal.
 
 image:encrypted-content-hex.png["Encrypted content repository file on disk"]
@@ -2757,7 +2759,7 @@ On content claim read, the process is reversed. The encryption metadata (`Reposi
 
 Within the NiFi UI/API, there is no detectable difference between an encrypted and unencrypted content repository. The Provenance Query operations to view content work as expected with no change to the process.
 
-==== Potential Issues
+=== Potential Issues
 
 [WARNING]
 .Switching Implementations
@@ -2767,11 +2769,92 @@ When switching between implementation "families" (i.e. `VolatileContentRepositor
 
 * Switching between unencrypted and encrypted repositories
 ** If a user has an existing repository (`FileSystemRepository`) that is not encrypted and switches their configuration to use an encrypted repository, the application writes an error to the log but starts up. However, previous content claims are not accessible through the provenance query interface and new content claims will overwrite the existing claims. The same behavior occurs if a user switches from an encrypted repository to an unencrypted repository. Automatic roll-over is a future effort (link:https://issues.apache.org/jira/browse/NIFI-6783[NIFI-6783^]) but NiFi is not intended for long-term storage of content claims so the impact should be minimal. There are two scenarios for roll-over:
-*** Encrypted -> unencrypted -- if the previous repository implementation was encrypted, these claims should be handled seamlessly as long as the key provider available still has the keys used to encrypt the claims (see **Key Rotation**)
+*** Encrypted -> unencrypted -- if the previous repository implementation was encrypted, these claims should be handled seamlessly as long as the key provider available still has the keys used to encrypt the claims (see <<content-repository-key-rotation,Key Rotation>>)
 *** Unencrypted -> encrypted -- if the previous repository implementation was unencrypted, these claims should be handled seamlessly as the previously written claims simply need to be read with a plaintext `InputStream` and then be written back with the `EncryptedContentRepositoryOutputStream`
 ** There is also a future effort to provide a standalone tool in NiFi Toolkit to encrypt/decrypt an existing content repository to make the transition easier. The translation process could take a long time depending on the size of the existing repository, and being able to perform this task outside of application startup would be valuable (link:https://issues.apache.org/jira/browse/NIFI-6783[NIFI-6783^]).
 * Multiple repositories -- No additional effort or testing has been applied to multiple repositories at this time. It is possible/likely issues will occur with repositories on different physical devices. There is no option to provide a heterogenous environment (i.e. one encrypted, one plaintext repository).
 * Corruption -- when a disk is filled or corrupted, there have been reported issues with the repository becoming corrupted and recovery steps are necessary. This is likely to continue to be an issue with the encrypted repository, although still limited in scope to individual claims (i.e. an entire repository file won't be irrecoverable due to the encryption). Some testing has been performed on scenarios where disk space is exhausted. While the flow can no longer write additional content claims to the repository in that case, the NiFi application continues to function properly, and successfully written content claims are still available via the Provenance Query operations. Stopping NiFi and removing the content repository (or moving it to a larger disk) resolves the issue.
+
+[[encrypted-flowfile]]
+== Encrypted FlowFile Repository
+While OS-level access control can offer some security over the flowfile attribute and content claim data written to the disk in a repository, there are scenarios where the data may be sensitive, compliance and regulatory requirements exist, or NiFi is running on hardware not under the direct control of the organization (cloud, etc.). In this case, the flowfile repository allows for all data to be encrypted before being persisted to the disk. For more information on the internal workings of the flowfile repository, see <<nifi-in-depth.adoc#flowfile-repository,NiFi In-Depth - FlowFile Repository>>.
+
+[WARNING]
+.Experimental
+============
+This implementation is marked <<experimental_warning, *experimental*>> as of Apache NiFi 1.11.0 (January 2020). The API, configuration, and internal behavior may change without warning, and such changes may occur during a minor release. Use at your own risk.
+============
+
+[WARNING]
+.Performance
+============
+The current implementation of the encrypted flowfile repository intercepts the serialization of flowfile record data via the `EncryptedSchemaRepositoryRecordSerde` and uses the `AES/GCM` algorithm, which is fairly performant on commodity hardware. This use of an authenticated encryption algorithm (AEAD) block cipher (because the content length is limited and known a priori) is the same as the <<encrypted-provenance,Encrypted Provenance Repository>>, but differs from the unauthenticated stream cipher used in the <<encrypted-content,Encrypted Content Repository>>. In low volume flowfile scenarios, the added cost will be minimal. However, administrators should perform their own risk assessment and performance analysis and decide how to move forward. Switching back and forth between encrypted/unencrypted implementations is not recommended at this time.
+============
+
+=== What is it?
+
+The `EncryptedSequentialAccessWriteAheadLog` is a new implementation of the flowfile write-ahead log which encrypts all flowfile attribute data before it is written to the repository. This allows for storage on systems where OS-level access controls are not sufficient to protect the data while still allowing querying and access to the data through the NiFi UI/API.
+
+=== How does it work?
+
+The `SequentialAccessWriteAheadLog` was introduced in NiFi 1.6.0 and provided a faster flowfile repository implementation. The encrypted version wraps that implementation with functionality to transparently encrypt and decrypt the serialized `RepositoryRecord` objects during file system interaction. During all writes to disk (swapping, snapshotting, journaling, and checkpointing), the flowfile containers are serialized to bytes based on a schema, and this serialized form is encrypted before writing. This allows the snapshot handler to continue interacting with the flowfile repository interface in the same way as before and continue operating on flowfile data in a random access manner, without requiring any changes to handle the data protection.
+
+The fully qualified class `org.apache.nifi.wali.EncryptedSequentialAccessWriteAheadLog` is specified as the flowfile repository write-ahead log implementation in _nifi.properties_ as the value of `nifi.flowfile.repository.wal.implementation`. In addition, <<administration-guide.adoc#encrypted-write-ahead-flowfile-repository-properties,new properties>> must be populated to allow successful initialization.
+
+==== StaticKeyProvider
+The `StaticKeyProvider` implementation defines keys directly in _nifi.properties_. Individual keys are provided in hexadecimal encoding. The keys can also be encrypted like any other sensitive property in _nifi.properties_ using the <<administration-guide.adoc#encrypt-config_tool,`./encrypt-config.sh`>> tool in the NiFi Toolkit.
+
+The following configuration section would result in a key provider with two available keys, "Key1" (active) and "AnotherKey".
+....
+nifi.flowfile.repository.encryption.key.provider.implementation=org.apache.nifi.security.kms.StaticKeyProvider
+nifi.flowfile.repository.encryption.key.id=Key1
+nifi.flowfile.repository.encryption.key=0123456789ABCDEFFEDCBA98765432100123456789ABCDEFFEDCBA9876543210
+nifi.flowfile.repository.encryption.key.id.AnotherKey=0101010101010101010101010101010101010101010101010101010101010101
+....
+
+==== FileBasedKeyProvider
+The `FileBasedKeyProvider` implementation reads from an encrypted definition file of the format:
+
+....
+key1=NGCpDpxBZNN0DBodz0p1SDbTjC2FG5kp1pCmdUKJlxxtcMSo6GC4fMlTyy1mPeKOxzLut3DRX+51j6PCO5SznA==
+key2=GYxPbMMDbnraXs09eGJudAM5jTvVYp05XtImkAg4JY4rIbmHOiVUUI6OeOf7ZW+hH42jtPgNW9pSkkQ9HWY/vQ==
+key3=SFe11xuz7J89Y/IQ7YbJPOL0/YKZRFL/VUxJgEHxxlXpd/8ELA7wwN59K1KTr3BURCcFP5YGmwrSKfr4OE4Vlg==
+key4=kZprfcTSTH69UuOU3jMkZfrtiVR/eqWmmbdku3bQcUJ/+UToecNB5lzOVEMBChyEXppyXXC35Wa6GEXFK6PMKw==
+key5=c6FzfnKm7UR7xqI2NFpZ+fEKBfSU7+1NvRw+XWQ9U39MONWqk5gvoyOCdFR1kUgeg46jrN5dGXk13sRqE0GETQ==
+....
+
+Each line defines a key ID and then the Base64-encoded cipher text of a 16 byte IV and wrapped AES-128, AES-192, or AES-256 key depending on the JCE policies available. The individual keys are wrapped by AES/GCM encryption using the **master key** defined by `nifi.bootstrap.sensitive.key` in _conf/bootstrap.conf_.
+
+[[flowfile-repository-key-rotation]]
+==== Key Rotation
+Simply update _nifi.properties_ to reference a new key ID in `nifi.flowfile.repository.encryption.key.id`. Previously-encrypted flowfile records can still be decrypted as long as that key is still available in the key definition file or `nifi.flowfile.repository.encryption.key.id.<OldKeyID>` as the key ID is serialized alongside the encrypted record.
+
+=== Writing and Reading FlowFiles
+Once the repository is initialized, all flowfile record write operations are serialized using `RepositoryObjectBlockEncryptor` (the only currently existing implementation is `RepositoryObjectAESGCMEncryptor`) to the provided `DataOutputStream`. The original stream is swapped with a temporary wrapped stream, which encrypts the data written by the wrapped serializer/deserializer via `EncryptedSchemaRepositoryRecordSerde` inline and the encryption metadata (`keyId`, `algorithm`, `version`, `IV`, `cipherByteLength`) is serialized and prepended. The complete length and encrypted bytes are then written to the original `DataOutputStream` on disk as normal.
+
+image:encrypted-flowfile-hex.png["Encrypted flowfile repository journal file on disk"]
+
+On flowfile record read, the process is reversed. The encryption metadata (`RepositoryObjectEncryptionMetadata`) is parsed and used to decrypt the serialized bytes, which are then deserialized into a `DataInputStream` object.
+
+During swaps and recoveries, the flowfile records are deserialized and reserialized, so if the active key has been changed, the flowfile records will be re-encrypted with the new active key.
+
+Within the NiFi UI/API, there is no detectable difference between an encrypted and unencrypted flowfile repository. All framework interactions with flowfiles work as expected with no change to the process.
+
+=== Potential Issues
+
+[WARNING]
+.Switching Implementations
+============
+It is not recommended to switch between any implementation other than `SequentialAccessWriteAheadLog` and the `EncryptedSequentialAccessWriteAheadLog`. To migrate from a different provider, first migrate to the plaintext sequential log, allow NiFi to automatically recover the flowfiles, then stop NiFi and change the configuration to enable encryption. NiFi will automatically recover the plaintext flowfiles from the repository, and begin encrypting them on subsequent writes.
+============
+
+* Switching between unencrypted and encrypted repositories
+** If a user has an existing write-ahead repository (`WriteAheadFlowFileRepository`) that is not encrypted (uses the `SequentialAccessWriteAheadLog`) and switches their configuration to use an encrypted repository, the application handles this and all flowfile records will be recovered on startup. Future writes (including re-serialization of these same flowfiles) will be encrypted. If a user switches from an encrypted repository to an unencrypted repository, the flowfiles cannot be recovered, and it is recommended to delete the existing flowfile repository before switching in this direction. Automatic roll-over is a future effort (link:https://issues.apache.org/jira/browse/NIFI-6994[NIFI-6994^]) but NiFi is not intended for long-term storage of flowfile records so the impact should be minimal. There are two scenarios for roll-over:
+*** Encrypted -> unencrypted -- if the previous repository implementation was encrypted, these records should be handled seamlessly as long as the key provider available still has the keys used to encrypt the claims (see <<flowfile-repository-key-rotation,Key Rotation>>)
+*** Unencrypted -> encrypted -- currently handled seamlesssly for `SequentialAccessWriteAheadLog` but there are other initial implementations which could be handled
+** There is also a future effort to provide a standalone tool in NiFi Toolkit to encrypt/decrypt an existing flowfile repository to make the transition easier. The translation process could take a long time depending on the size of the existing repository, and being able to perform this task outside of application startup would be valuable (link:https://issues.apache.org/jira/browse/NIFI-6994[NIFI-6994^]).
+* Multiple repositories -- No additional effort or testing has been applied to multiple repositories at this time. Current implementations of the flowfile repository allow only for one repository, though it can reside across multiple volumes and partitions. It is possible/likely issues will occur with repositories on different physical devices. There is no option to provide a heterogenous environment (i.e. one encrypted, one plaintext partition/directory).
+* Corruption -- when a disk is filled or corrupted, there have been reported issues with the repository becoming corrupted and recovery steps are necessary. This is likely to continue to be an issue with the encrypted repository, although still limited in scope to individual records (i.e. an entire repository file won't be irrecoverable due to the encryption). It is important for the continued operation of NiFi to ensure that the disk storing the flowfile repository does not run out of available space.
 
 
 [[experimental_warning]]

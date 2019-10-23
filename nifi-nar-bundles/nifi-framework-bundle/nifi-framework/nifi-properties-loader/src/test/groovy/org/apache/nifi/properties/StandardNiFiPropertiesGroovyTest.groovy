@@ -38,6 +38,9 @@ class StandardNiFiPropertiesGroovyTest extends GroovyTestCase {
     private static final String CREK = NiFiProperties.CONTENT_REPOSITORY_ENCRYPTION_KEY
     private static final String CREKID = NiFiProperties.CONTENT_REPOSITORY_ENCRYPTION_KEY_ID
 
+    private static final String FFREK = NiFiProperties.FLOWFILE_REPOSITORY_ENCRYPTION_KEY
+    private static final String FFREKID = NiFiProperties.FLOWFILE_REPOSITORY_ENCRYPTION_KEY_ID
+
     @BeforeClass
     static void setUpOnce() throws Exception {
         logger.metaClass.methodMissing = { String name, args ->
@@ -209,6 +212,222 @@ class StandardNiFiPropertiesGroovyTest extends GroovyTestCase {
         assert keyId == KEY_ID
         assert key == KEY_HEX
         assert keys == [(KEY_ID): KEY_HEX, (KEY_ID_2): KEY_HEX_2, (KEY_ID_3): KEY_HEX_3]
+    }
+
+    @Test
+    void testShouldGetFlowFileRepoEncryptionKeysFromMultiplePropertiesAfterMigration() throws Exception {
+        // Arrange
+        Properties rawProperties = new Properties()
+        final String KEY_ID = "K1"
+        final String KEY_HEX = "0123456789ABCDEFFEDCBA9876543210"
+        final String KEY_ID_2 = "K2"
+        final String KEY_HEX_2 = "AAAABBBBCCCCDDDDEEEEFFFF00001111"
+
+        /**
+         * This simulates after the initial key migration (K1 -> K2). The {@code nifi.properties} will look like:
+         *
+         * nifi.flowfile.repository.encryption.key.id=K2
+         * nifi.flowfile.repository.encryption.key=
+         * nifi.flowfile.repository.encryption.key.id.K1=0123456789ABCDEFFEDCBA9876543210
+         * nifi.flowfile.repository.encryption.key.id.K2=00000000000000000000000000000000
+         */
+
+        rawProperties.setProperty(FFREKID, KEY_ID_2)
+        rawProperties.setProperty(FFREK, "")
+        rawProperties.setProperty("${FFREK}.id.${KEY_ID}", KEY_HEX)
+        rawProperties.setProperty("${FFREK}.id.${KEY_ID_2}", KEY_HEX_2)
+        NiFiProperties niFiProperties = new StandardNiFiProperties(rawProperties)
+        logger.info("niFiProperties has ${niFiProperties.size()} properties: ${niFiProperties.getPropertyKeys()}")
+
+        // Act
+        def keyId = niFiProperties.getFlowFileRepoEncryptionKeyId()
+        def key = niFiProperties.getFlowFileRepoEncryptionKey()
+        def keys = niFiProperties.getFlowFileRepoEncryptionKeys()
+
+        logger.info("Retrieved key ID: ${keyId}")
+        logger.info("Retrieved key: ${key}")
+        logger.info("Retrieved keys: ${keys}")
+
+        // Assert
+        assert keyId == KEY_ID_2
+        assert key == KEY_HEX_2
+        assert keys == [(KEY_ID): KEY_HEX, (KEY_ID_2): KEY_HEX_2]
+    }
+
+    @Test
+    void testShouldGetFlowFileRepoEncryptionKeysFromMultiplePropertiesWithoutExplicitKey() throws Exception {
+        // Arrange
+        Properties rawProperties = new Properties()
+        final String KEY_ID = "K1"
+        final String KEY_HEX = "0123456789ABCDEFFEDCBA9876543210"
+        final String KEY_ID_2 = "K2"
+        final String KEY_HEX_2 = "AAAABBBBCCCCDDDDEEEEFFFF00001111"
+
+        /**
+         * This simulates after the initial key migration (K1 -> K2). The {@code nifi.properties} will look like:
+         *
+         * (note no nifi.flowfile.repository.encryption.key=)
+         * nifi.flowfile.repository.encryption.key.id=K2
+         * nifi.flowfile.repository.encryption.key.id.K1=0123456789ABCDEFFEDCBA9876543210
+         * nifi.flowfile.repository.encryption.key.id.K2=00000000000000000000000000000000
+         */
+
+        rawProperties.setProperty(FFREKID, KEY_ID_2)
+//        rawProperties.setProperty(FFREK, "")
+        rawProperties.setProperty("${FFREK}.id.${KEY_ID}", KEY_HEX)
+        rawProperties.setProperty("${FFREK}.id.${KEY_ID_2}", KEY_HEX_2)
+        NiFiProperties niFiProperties = new StandardNiFiProperties(rawProperties)
+        logger.info("niFiProperties has ${niFiProperties.size()} properties: ${niFiProperties.getPropertyKeys()}")
+
+        // Act
+        def keyId = niFiProperties.getFlowFileRepoEncryptionKeyId()
+        def key = niFiProperties.getFlowFileRepoEncryptionKey()
+        def keys = niFiProperties.getFlowFileRepoEncryptionKeys()
+
+        logger.info("Retrieved key ID: ${keyId}")
+        logger.info("Retrieved key: ${key}")
+        logger.info("Retrieved keys: ${keys}")
+
+        // Assert
+        assert keyId == KEY_ID_2
+        assert key == KEY_HEX_2
+        assert keys == [(KEY_ID): KEY_HEX, (KEY_ID_2): KEY_HEX_2]
+    }
+
+    @Test
+    void testGetFlowFileRepoEncryptionKeysShouldWarnOnMisformattedProperties() throws Exception {
+        // Arrange
+        Properties rawProperties = new Properties()
+        final String KEY_ID = "K1"
+        final String KEY_HEX = "0123456789ABCDEFFEDCBA9876543210"
+        final String KEY_ID_2 = "K2"
+        final String KEY_HEX_2 = "AAAABBBBCCCCDDDDEEEEFFFF00001111"
+
+        /**
+         * This simulates after the initial key migration (K1 -> K2) when the admin has mistyped. The {@code nifi.properties} will look like:
+         *
+         * (note no nifi.flowfile.repository.encryption.key=)
+         * nifi.flowfile.repository.encryption.key.id=K2
+         * nifi.flowfile.repository.encryption.key.K1=0123456789ABCDEFFEDCBA9876543210
+         * nifi.flowfile.repository.encryption.key.K2=00000000000000000000000000000000
+         *
+         * The above properties should have ...key.id.K1= but they are missing the "id" segment
+         */
+
+        rawProperties.setProperty(FFREKID, KEY_ID_2)
+//        rawProperties.setProperty(FFREK, "")
+        rawProperties.setProperty("${FFREK}.${KEY_ID}", KEY_HEX)
+        rawProperties.setProperty("${FFREK}.${KEY_ID_2}", KEY_HEX_2)
+        NiFiProperties niFiProperties = new StandardNiFiProperties(rawProperties)
+        logger.info("niFiProperties has ${niFiProperties.size()} properties: ${niFiProperties.getPropertyKeys()}")
+
+        // Act
+        def keyId = niFiProperties.getFlowFileRepoEncryptionKeyId()
+        def key = niFiProperties.getFlowFileRepoEncryptionKey()
+        def keys = niFiProperties.getFlowFileRepoEncryptionKeys()
+
+        logger.info("Retrieved key ID: ${keyId}")
+        logger.info("Retrieved key: ${key}")
+        logger.info("Retrieved keys: ${keys}")
+
+        // Assert
+        assert keyId == KEY_ID_2
+        assert !key
+        assert keys == [:]
+    }
+
+    @Test
+    void testShouldGetFlowFileRepoEncryptionKeysFromMultiplePropertiesWithDuplicates() throws Exception {
+        // Arrange
+        Properties rawProperties = new Properties()
+        final String KEY_ID = "K1"
+        final String KEY_HEX = "0123456789ABCDEFFEDCBA9876543210"
+        final String KEY_ID_2 = "K2"
+        final String KEY_HEX_2 = "AAAABBBBCCCCDDDDEEEEFFFF00001111"
+        final String KEY_HEX_DUP = "AA" * 16
+
+        /**
+         * This simulates after the initial key migration (K1 -> K2) with a mistaken duplication. The
+         * {@code nifi.properties} will look like:
+         *
+         * nifi.flowfile.repository.encryption.key.id=K2
+         * nifi.flowfile.repository.encryption.key=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+         * nifi.flowfile.repository.encryption.key.id.K1=0123456789ABCDEFFEDCBA9876543210
+         * nifi.flowfile.repository.encryption.key.id.K2=00000000000000000000000000000000
+         *
+         * The value of K2 wil be AAAA..., overriding key.K2 as .key will always win
+         */
+
+        /**
+         * The properties loading code will print a warning if it detects duplicates, but will not stop execution
+         */
+        rawProperties.setProperty(FFREKID, KEY_ID_2)
+        rawProperties.setProperty(FFREK, KEY_HEX_DUP)
+        rawProperties.setProperty("${FFREK}.id.${KEY_ID}", KEY_HEX)
+        rawProperties.setProperty("${FFREK}.id.${KEY_ID_2}", KEY_HEX_2)
+        NiFiProperties niFiProperties = new StandardNiFiProperties(rawProperties)
+        logger.info("niFiProperties has ${niFiProperties.size()} properties: ${niFiProperties.getPropertyKeys()}")
+
+        // Act
+        def keyId = niFiProperties.getFlowFileRepoEncryptionKeyId()
+        def key = niFiProperties.getFlowFileRepoEncryptionKey()
+        def keys = niFiProperties.getFlowFileRepoEncryptionKeys()
+
+        logger.info("Retrieved key ID: ${keyId}")
+        logger.info("Retrieved key: ${key}")
+        logger.info("Retrieved keys: ${keys}")
+
+        // Assert
+        assert keyId == KEY_ID_2
+        assert key == KEY_HEX_2
+        assert keys == [(KEY_ID): KEY_HEX, (KEY_ID_2): KEY_HEX_DUP]
+    }
+
+    @Test
+    void testShouldGetFlowFileRepoEncryptionKeysFromMultiplePropertiesWithDuplicatesInReverseOrder() throws Exception {
+        // Arrange
+        Properties rawProperties = new Properties()
+        final String KEY_ID = "K1"
+        final String KEY_HEX = "0123456789ABCDEFFEDCBA9876543210"
+        final String KEY_ID_2 = "K2"
+        final String KEY_HEX_2 = "AAAABBBBCCCCDDDDEEEEFFFF00001111"
+        final String KEY_HEX_DUP = "AA" * 16
+
+        /**
+         * This simulates after the initial key migration (K1 -> K2) with a mistaken duplication. The
+         * {@code nifi.properties} will look like:
+         *
+         * nifi.flowfile.repository.encryption.key.id.K1=0123456789ABCDEFFEDCBA9876543210
+         * nifi.flowfile.repository.encryption.key.id.K2=00000000000000000000000000000000
+         * nifi.flowfile.repository.encryption.key=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+         * nifi.flowfile.repository.encryption.key.id=K2
+         *
+         * The value of K2 wil be AAAA..., overriding key.K2 as .key will always win
+         */
+
+        /**
+         * The properties loading code will print a warning if it detects duplicates, but will not stop execution
+         */
+        rawProperties.setProperty("${FFREK}.id.${KEY_ID_2}", KEY_HEX_2)
+        rawProperties.setProperty("${FFREK}.id.${KEY_ID}", KEY_HEX)
+        rawProperties.setProperty(FFREK, KEY_HEX_DUP)
+        rawProperties.setProperty(FFREKID, KEY_ID_2)
+        NiFiProperties niFiProperties = new StandardNiFiProperties(rawProperties)
+        logger.info("niFiProperties has ${niFiProperties.size()} properties: ${niFiProperties.getPropertyKeys()}")
+
+        // Act
+        def keyId = niFiProperties.getFlowFileRepoEncryptionKeyId()
+        def key = niFiProperties.getFlowFileRepoEncryptionKey()
+        def keys = niFiProperties.getFlowFileRepoEncryptionKeys()
+
+        logger.info("Retrieved key ID: ${keyId}")
+        logger.info("Retrieved key: ${key}")
+        logger.info("Retrieved keys: ${keys}")
+
+        // Assert
+        assert keyId == KEY_ID_2
+        assert key == KEY_HEX_2
+        assert keys == [(KEY_ID): KEY_HEX, (KEY_ID_2): KEY_HEX_DUP]
     }
 
     @Test

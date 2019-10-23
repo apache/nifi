@@ -18,6 +18,9 @@ package org.apache.nifi.security.kms;
 
 import java.security.PrivilegedActionException;
 
+/**
+ * Class used to denote a problem configuring encryption services or encrypting/decrypting data.
+ */
 public class EncryptionException extends Exception {
     /**
      * Constructs a new exception with the specified detail message.  The

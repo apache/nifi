@@ -107,6 +107,7 @@ public abstract class RepositoryEncryptionConfiguration {
             case PROVENANCE:
                 return new ProvenanceRepositoryEncryptionConfiguration(niFiProperties);
             case FLOWFILE:
+                return new FlowFileRepositoryEncryptionConfiguration(niFiProperties);
             default:
                 throw new IllegalArgumentException("The specified repository does not support encryption");
         }

@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.security.repository;
 
+import static org.apache.nifi.security.kms.CryptoUtils.isValidKeyProvider;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -27,6 +29,7 @@ import java.util.Arrays;
 import java.util.List;
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
+import org.apache.nifi.security.kms.CryptoUtils;
 import org.apache.nifi.security.kms.EncryptionException;
 import org.apache.nifi.security.kms.KeyProvider;
 import org.apache.nifi.security.kms.KeyProviderFactory;
@@ -48,6 +51,7 @@ public class RepositoryEncryptorUtils {
     private static final List<String> SUPPORTED_VERSIONS = Arrays.asList(VERSION);
     private static final int MIN_METADATA_LENGTH = IV_LENGTH + 3 + 3; // 3 delimiters and 3 non-zero elements
     private static final int METADATA_DEFAULT_LENGTH = (20 + 17 + IV_LENGTH + VERSION.length()) * 2; // Default to twice the expected length
+    private static final String EWAPR_CLASS_NAME = "org.apache.nifi.provenance.EncryptedWriteAheadProvenanceRepository";
 
     // TODO: Add Javadoc
 
@@ -108,14 +112,216 @@ public class RepositoryEncryptorUtils {
         return Arrays.copyOfRange(encryptedRecord, cipherBytesStart, encryptedRecord.length);
     }
 
+    /**
+     * Returns {@code true} if the specified repository is correctly configured for an
+     * encrypted implementation. Requires the repository implementation to support encryption
+     * and at least one valid key to be configured.
+     *
+     * @param niFiProperties the {@link NiFiProperties} instance to validate
+     * @param repositoryType the specific repository configuration to check
+     * @return true if encryption is successfully configured for the specified repository
+     */
+    public static boolean isRepositoryEncryptionConfigured(NiFiProperties niFiProperties, RepositoryType repositoryType) {
+        switch (repositoryType) {
+            case CONTENT:
+                return isContentRepositoryEncryptionConfigured(niFiProperties);
+            case PROVENANCE:
+                return isProvenanceRepositoryEncryptionConfigured(niFiProperties);
+            case FLOWFILE:
+                return isFlowFileRepositoryEncryptionConfigured(niFiProperties);
+            default:
+                logger.warn("Repository encryption configuration validation attempted for {}, an invalid repository type", repositoryType);
+                return false;
+        }
+    }
+
+    /**
+     * Returns {@code true} if the provenance repository is correctly configured for an
+     * encrypted implementation. Requires the repository implementation to support encryption
+     * and at least one valid key to be configured.
+     *
+     * @param niFiProperties the {@link NiFiProperties} instance to validate
+     * @return true if encryption is successfully configured for the provenance repository
+     */
+    static boolean isProvenanceRepositoryEncryptionConfigured(NiFiProperties niFiProperties) {
+        final String implementationClassName = niFiProperties.getProperty(NiFiProperties.PROVENANCE_REPO_IMPLEMENTATION_CLASS);
+        // Referencing EWAPR.class.getName() would require a dependency on the module
+        boolean encryptedRepo = EWAPR_CLASS_NAME.equals(implementationClassName);
+        if (encryptedRepo) {
+            return isValidKeyProvider(
+                    niFiProperties.getProperty(NiFiProperties.PROVENANCE_REPO_ENCRYPTION_KEY_PROVIDER_IMPLEMENTATION_CLASS),
+                    niFiProperties.getProperty(NiFiProperties.PROVENANCE_REPO_ENCRYPTION_KEY_PROVIDER_LOCATION),
+                    niFiProperties.getProvenanceRepoEncryptionKeyId(),
+                    niFiProperties.getProvenanceRepoEncryptionKeys());
+        } else {
+            return false;
+        }
+    }
+
+    /**
+     * Returns {@code true} if the content repository is correctly configured for an encrypted
+     * implementation. Requires the repository implementation to support encryption and at least
+     * one valid key to be configured.
+     *
+     * @param niFiProperties the {@link NiFiProperties} instance to validate
+     * @return true if encryption is successfully configured for the content repository
+     */
+    static boolean isContentRepositoryEncryptionConfigured(NiFiProperties niFiProperties) {
+        final String implementationClassName = niFiProperties.getProperty(NiFiProperties.CONTENT_REPOSITORY_IMPLEMENTATION);
+        // Referencing EFSR.class.getName() would require a dependency on the module
+        boolean encryptedRepo = CryptoUtils.ENCRYPTED_FSR_CLASS_NAME.equals(implementationClassName);
+        if (encryptedRepo) {
+            return isValidKeyProvider(
+                    niFiProperties.getProperty(NiFiProperties.CONTENT_REPOSITORY_ENCRYPTION_KEY_PROVIDER_IMPLEMENTATION_CLASS),
+                    niFiProperties.getProperty(NiFiProperties.CONTENT_REPOSITORY_ENCRYPTION_KEY_PROVIDER_LOCATION),
+                    niFiProperties.getContentRepositoryEncryptionKeyId(),
+                    niFiProperties.getContentRepositoryEncryptionKeys());
+        } else {
+            return false;
+        }
+    }
+
+    /**
+     * Returns {@code true} if the flowfile repository is correctly configured for an encrypted
+     * implementation. Requires the repository implementation to support encryption and at least
+     * one valid key to be configured.
+     *
+     * @param niFiProperties the {@link NiFiProperties} instance to validate
+     * @return true if encryption is successfully configured for the flowfile repository
+     */
+    static boolean isFlowFileRepositoryEncryptionConfigured(NiFiProperties niFiProperties) {
+        final String implementationClassName = niFiProperties.getProperty(NiFiProperties.FLOWFILE_REPOSITORY_IMPLEMENTATION);
+        boolean encryptedRepo = CryptoUtils.EWAFFR_CLASS_NAME.equals(implementationClassName);
+        if (encryptedRepo) {
+            return isValidKeyProvider(
+                    niFiProperties.getProperty(NiFiProperties.FLOWFILE_REPOSITORY_ENCRYPTION_KEY_PROVIDER_IMPLEMENTATION_CLASS),
+                    niFiProperties.getProperty(NiFiProperties.FLOWFILE_REPOSITORY_ENCRYPTION_KEY_PROVIDER_LOCATION),
+                    niFiProperties.getFlowFileRepoEncryptionKeyId(),
+                    niFiProperties.getFlowFileRepoEncryptionKeys());
+        } else {
+            return false;
+        }
+    }
+
+    /**
+     * Returns a configured {@link KeyProvider} instance that does not require a {@code master key} to use (usually a {@link org.apache.nifi.security.kms.StaticKeyProvider}).
+     *
+     * @param niFiProperties the {@link NiFiProperties} object
+     * @param repositoryType the {@link RepositoryType} indicator
+     * @return the configured KeyProvider
+     * @throws KeyManagementException if there is a problem with the configuration
+     */
+    private static KeyProvider buildKeyProvider(NiFiProperties niFiProperties, RepositoryType repositoryType) throws KeyManagementException {
+        return buildKeyProvider(niFiProperties, null, repositoryType);
+    }
+
+    /**
+     * Returns a configured {@link KeyProvider} instance that requires a {@code master key} to use
+     * (usually a {@link org.apache.nifi.security.kms.FileBasedKeyProvider} or an encrypted
+     * {@link org.apache.nifi.security.kms.StaticKeyProvider}).
+     *
+     * @param niFiProperties the {@link NiFiProperties} object
+     * @param masterKey      the master encryption key used to encrypt the data encryption keys in the key provider configuration
+     * @param repositoryType the {@link RepositoryType} indicator
+     * @return the configured KeyProvider
+     * @throws KeyManagementException if there is a problem with the configuration
+     */
     public static KeyProvider buildKeyProvider(NiFiProperties niFiProperties, SecretKey masterKey, RepositoryType repositoryType) throws KeyManagementException {
         RepositoryEncryptionConfiguration rec = RepositoryEncryptionConfiguration.fromNiFiProperties(niFiProperties, repositoryType);
 
+        return buildKeyProviderFromConfig(masterKey, rec);
+    }
+
+    /**
+     * Returns a configured {@link KeyProvider} instance given the {@link RepositoryEncryptionConfiguration}.
+     *
+     * @param masterKey the master encryption key used to encrypt the data encryption keys in the key provider configuration
+     * @param rec       the repository-specific encryption configuration
+     * @return the configured KeyProvider
+     * @throws KeyManagementException if there is a problem with the configuration
+     */
+    public static KeyProvider buildKeyProviderFromConfig(SecretKey masterKey, RepositoryEncryptionConfiguration rec) throws KeyManagementException {
         if (rec.getKeyProviderImplementation() == null) {
+            final String keyProviderImplementationClass = determineKeyProviderImplementationClassName(rec.getRepositoryType());
             throw new KeyManagementException("Cannot create key provider because the NiFi properties are missing the following property: "
-                    + NiFiProperties.CONTENT_REPOSITORY_ENCRYPTION_KEY_PROVIDER_IMPLEMENTATION_CLASS);
+                    + keyProviderImplementationClass);
         }
 
         return KeyProviderFactory.buildKeyProvider(rec, masterKey);
+    }
+
+    /**
+     * Utility method which returns the {@link KeyProvider} implementation class name for a given repository type.
+     *
+     * @param repositoryType the {@link RepositoryType} indicator
+     * @return the FQCN of the implementation or {@code "no_such_key_provider_defined"} for unsupported repository types
+     */
+    static String determineKeyProviderImplementationClassName(RepositoryType repositoryType) {
+        // TODO: Change to build string directly using repository type packagePath property or universal in NIFI-6617
+        if (repositoryType == null) {
+            logger.warn("Could not determine key provider implementation class name for null repository");
+            return "no_such_key_provider_defined";
+        }
+        switch (repositoryType) {
+            case FLOWFILE:
+                return NiFiProperties.FLOWFILE_REPOSITORY_ENCRYPTION_KEY_PROVIDER_IMPLEMENTATION_CLASS;
+            case CONTENT:
+                return NiFiProperties.CONTENT_REPOSITORY_ENCRYPTION_KEY_PROVIDER_IMPLEMENTATION_CLASS;
+            case PROVENANCE:
+                return NiFiProperties.PROVENANCE_REPO_ENCRYPTION_KEY_PROVIDER_IMPLEMENTATION_CLASS;
+            default:
+                logger.warn("Could not determine key provider implementation class name for " + repositoryType.getName());
+                return "no_such_key_provider_defined";
+        }
+    }
+
+    /**
+     * Returns a configured {@link KeyProvider} instance for the specified repository type given the configuration values in {@code nifi.properties}.
+     *
+     * @param niFiProperties the {@link NiFiProperties} object
+     * @param repositoryType the {@link RepositoryType} indicator
+     * @return the configured KeyProvider
+     * @throws IOException if there is a problem reading the properties or they are not valid & complete
+     */
+    public static KeyProvider validateAndBuildRepositoryKeyProvider(NiFiProperties niFiProperties, RepositoryType repositoryType) throws IOException {
+        // Initialize the encryption-specific fields
+        if (isRepositoryEncryptionConfigured(niFiProperties, repositoryType)) {
+            try {
+                KeyProvider keyProvider;
+                final String keyProviderImplementation = niFiProperties.getProperty(determineKeyProviderImplementationClassName(repositoryType));
+                if (KeyProviderFactory.requiresMasterKey(keyProviderImplementation)) {
+                    SecretKey masterKey = CryptoUtils.getMasterKey();
+                    keyProvider = buildKeyProvider(niFiProperties, masterKey, repositoryType);
+                } else {
+                    keyProvider = buildKeyProvider(niFiProperties, repositoryType);
+                }
+                return keyProvider;
+            } catch (KeyManagementException e) {
+                String msg = "Encountered an error building the key provider";
+                logger.error(msg, e);
+                throw new IOException(msg, e);
+            }
+        } else {
+            throw new IOException("The provided configuration does not support an encrypted " + repositoryType.getName());
+        }
+    }
+
+    /**
+     * Returns a configured {@link KeyProvider} instance for the specified repository type given the configuration values.
+     *
+     * @param repositoryEncryptionConfiguration the {@link RepositoryEncryptionConfiguration} object
+     * @return the configured KeyProvider
+     * @throws IOException if there is a problem reading the properties or they are not valid & complete
+     */
+    public static KeyProvider validateAndBuildRepositoryKeyProvider(RepositoryEncryptionConfiguration repositoryEncryptionConfiguration) throws IOException {
+        // Initialize the encryption-specific fields
+        try {
+            SecretKey masterKey = KeyProviderFactory.requiresMasterKey(repositoryEncryptionConfiguration.getKeyProviderImplementation()) ? CryptoUtils.getMasterKey() : null;
+            return buildKeyProviderFromConfig(masterKey, repositoryEncryptionConfiguration);
+        } catch (KeyManagementException e) {
+            String msg = "Encountered an error building the key provider";
+            logger.error(msg, e);
+            throw new IOException(msg, e);
+        }
     }
 }

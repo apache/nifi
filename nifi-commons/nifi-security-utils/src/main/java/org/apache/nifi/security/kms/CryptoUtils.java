@@ -43,6 +43,7 @@ import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.security.repository.config.RepositoryEncryptionConfiguration;
 import org.apache.nifi.security.util.EncryptionMethod;
 import org.apache.nifi.security.util.crypto.AESKeyedCipherProvider;
 import org.apache.nifi.util.NiFiProperties;
@@ -52,11 +53,12 @@ import org.slf4j.LoggerFactory;
 
 public class CryptoUtils {
     private static final Logger logger = LoggerFactory.getLogger(CryptoUtils.class);
-    private static final String STATIC_KEY_PROVIDER_CLASS_NAME = "org.apache.nifi.security.kms.StaticKeyProvider";
-    private static final String FILE_BASED_KEY_PROVIDER_CLASS_NAME = "org.apache.nifi.security.kms.FileBasedKeyProvider";
+    public static final String STATIC_KEY_PROVIDER_CLASS_NAME = "org.apache.nifi.security.kms.StaticKeyProvider";
+    public static final String FILE_BASED_KEY_PROVIDER_CLASS_NAME = "org.apache.nifi.security.kms.FileBasedKeyProvider";
 
-    private static final String LEGACY_SKP_FQCN = "org.apache.nifi.provenance.StaticKeyProvider";
-    private static final String LEGACY_FBKP_FQCN = "org.apache.nifi.provenance.FileBasedKeyProvider";
+    // TODO: Move to RepositoryEncryptionUtils in NIFI-6617
+    public static final String LEGACY_SKP_FQCN = "org.apache.nifi.provenance.StaticKeyProvider";
+    public static final String LEGACY_FBKP_FQCN = "org.apache.nifi.provenance.FileBasedKeyProvider";
 
     private static final String RELATIVE_NIFI_PROPS_PATH = "conf/nifi.properties";
     private static final String BOOTSTRAP_KEY_PREFIX = "nifi.bootstrap.sensitive.key=";
@@ -67,7 +69,8 @@ public class CryptoUtils {
     private static final List<Integer> UNLIMITED_KEY_LENGTHS = Arrays.asList(32, 48, 64);
 
     public static final int IV_LENGTH = 16;
-    private static final String ENCRYPTED_FSR_CLASS_NAME = "org.apache.nifi.controller.repository.crypto.EncryptedFileSystemRepository";
+    public static final String ENCRYPTED_FSR_CLASS_NAME = "org.apache.nifi.controller.repository.crypto.EncryptedFileSystemRepository";
+    public static final String EWAFFR_CLASS_NAME = "org.apache.nifi.controller.repository.crypto.EncryptedWriteAheadFlowFileRepository";
 
     public static boolean isUnlimitedStrengthCryptoAvailable() {
         try {
@@ -110,6 +113,18 @@ public class CryptoUtils {
     }
 
     /**
+     * Returns true if the provided configuration values are valid (shallow evaluation only; does not validate the keys
+     * contained in a {@link FileBasedKeyProvider}).
+     *
+     * @param rec the configuration to validate
+     * @return true if the config is valid
+     */
+    public static boolean isValidRepositoryEncryptionConfiguration(RepositoryEncryptionConfiguration rec) {
+        return isValidKeyProvider(rec.getKeyProviderImplementation(), rec.getKeyProviderLocation(), rec.getEncryptionKeyId(), rec.getEncryptionKeys());
+
+    }
+
+    /**
      * Returns true if the provided configuration values successfully define the specified {@link KeyProvider}.
      *
      * @param keyProviderImplementation the FQ class name of the {@link KeyProvider} implementation
@@ -120,18 +135,18 @@ public class CryptoUtils {
      */
     public static boolean isValidKeyProvider(String keyProviderImplementation, String keyProviderLocation, String keyId, Map<String, String> encryptionKeys) {
         logger.debug("Attempting to validate the key provider: keyProviderImplementation = "
-                + keyProviderImplementation + " , keyProviderLocation = "
-                + keyProviderLocation + " , keyId = "
-                + keyId + " , encryptionKeys = "
+                + keyProviderImplementation + ", keyProviderLocation = "
+                + keyProviderLocation + ", keyId = "
+                + keyId + ", encryptionKeys = "
                 + ((encryptionKeys == null) ? "0" : encryptionKeys.size()));
 
         try {
             keyProviderImplementation = handleLegacyPackages(keyProviderImplementation);
         } catch (KeyManagementException e) {
-            logger.error("The attempt to validate the key provider failed keyProviderImplementation = "
-                    + keyProviderImplementation + " , keyProviderLocation = "
-                    + keyProviderLocation + " , keyId = "
-                    + keyId + " , encryptionKeys = "
+            logger.warn("The attempt to validate the key provider failed keyProviderImplementation = "
+                    + keyProviderImplementation + ", keyProviderLocation = "
+                    + keyProviderLocation + ", keyId = "
+                    + keyId + ", encryptionKeys = "
                     + ((encryptionKeys == null) ? "0" : encryptionKeys.size()));
 
             return false;
@@ -150,10 +165,10 @@ public class CryptoUtils {
             final File kpf = new File(keyProviderLocation);
             return kpf.exists() && kpf.canRead() && StringUtils.isNotEmpty(keyId);
         } else {
-            logger.error("The attempt to validate the key provider failed keyProviderImplementation = "
-                    + keyProviderImplementation + " , keyProviderLocation = "
-                    + keyProviderLocation + " , keyId = "
-                    + keyId + " , encryptionKeys = "
+            logger.warn("The attempt to validate the key provider failed keyProviderImplementation = "
+                    + keyProviderImplementation + ", keyProviderLocation = "
+                    + keyProviderLocation + ", keyId = "
+                    + keyId + ", encryptionKeys = "
                     + ((encryptionKeys == null) ? "0" : encryptionKeys.size()));
 
             return false;
@@ -284,52 +299,6 @@ public class CryptoUtils {
             throw new KeyManagementException("Error reading FileBasedKeyProvider definition at " + filepath, e);
         }
 
-    }
-
-    /**
-     * Returns {@code true} if the provenance repository is correctly configured for an
-     * encrypted implementation. Requires the repository implementation to support encryption
-     * and at least one valid key to be configured.
-     *
-     * @param niFiProperties the {@link NiFiProperties} instance to validate
-     * @return true if encryption is successfully configured for the provenance repository
-     */
-    public static boolean isProvenanceRepositoryEncryptionConfigured(NiFiProperties niFiProperties) {
-        final String implementationClassName = niFiProperties.getProperty(NiFiProperties.PROVENANCE_REPO_IMPLEMENTATION_CLASS);
-        // Referencing EWAPR.class.getName() would require a dependency on the module
-        boolean encryptedRepo = "org.apache.nifi.provenance.EncryptedWriteAheadProvenanceRepository".equals(implementationClassName);
-        if (encryptedRepo) {
-            return isValidKeyProvider(
-                    niFiProperties.getProperty(NiFiProperties.PROVENANCE_REPO_ENCRYPTION_KEY_PROVIDER_IMPLEMENTATION_CLASS),
-                    niFiProperties.getProperty(NiFiProperties.PROVENANCE_REPO_ENCRYPTION_KEY_PROVIDER_LOCATION),
-                    niFiProperties.getProvenanceRepoEncryptionKeyId(),
-                    niFiProperties.getProvenanceRepoEncryptionKeys());
-        } else {
-            return false;
-        }
-    }
-
-    /**
-     * Returns {@code true} if the content repository is correctly configured for an encrypted
-     * implementation. Requires the repository implementation to support encryption and at least
-     * one valid key to be configured.
-     *
-     * @param niFiProperties the {@link NiFiProperties} instance to validate
-     * @return true if encryption is successfully configured for the content repository
-     */
-    public static boolean isContentRepositoryEncryptionConfigured(NiFiProperties niFiProperties) {
-        final String implementationClassName = niFiProperties.getProperty(NiFiProperties.CONTENT_REPOSITORY_IMPLEMENTATION);
-        // Referencing EFSR.class.getName() would require a dependency on the module
-        boolean encryptedRepo = ENCRYPTED_FSR_CLASS_NAME.equals(implementationClassName);
-        if (encryptedRepo) {
-            return isValidKeyProvider(
-                    niFiProperties.getProperty(NiFiProperties.CONTENT_REPOSITORY_ENCRYPTION_KEY_PROVIDER_IMPLEMENTATION_CLASS),
-                    niFiProperties.getProperty(NiFiProperties.CONTENT_REPOSITORY_ENCRYPTION_KEY_PROVIDER_LOCATION),
-                    niFiProperties.getContentRepositoryEncryptionKeyId(),
-                    niFiProperties.getContentRepositoryEncryptionKeys());
-        } else {
-            return false;
-        }
     }
 
     /**
