@@ -21,6 +21,9 @@ import java.nio.charset.Charset;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.text.MessageFormat;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -45,18 +48,13 @@ import org.apache.nifi.controller.status.ConnectionStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.metrics.jvm.JmxJvmMetrics;
+import org.apache.nifi.metrics.jvm.JvmMetrics;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.AbstractReportingTask;
 import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.reporting.azure.loganalytics.api.AzureLogAnalyticsMetricsFactory;
 import org.apache.nifi.scheduling.SchedulingStrategy;
-import org.apache.nifi.annotation.lifecycle.OnScheduled;
-import org.apache.nifi.controller.ConfigurationContext;
-import org.apache.nifi.metrics.jvm.JmxJvmMetrics;
-import org.apache.nifi.metrics.jvm.JvmMetrics;
-import java.time.ZoneOffset;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
 
 
 /**
@@ -69,10 +67,10 @@ import java.time.format.DateTimeFormatter;
 public class AzureLogAnalyticsReportingTask extends AbstractReportingTask {
 
     private static final String JVM_JOB_NAME = "jvm_global";
-    private static final Charset            UTF8                = Charset.forName("UTF-8");
-    private static final String             HMAC_SHA256_ALG     = "HmacSHA256";
-    static final DateTimeFormatter   RFC_1123_DATE_TIME  = DateTimeFormatter.ofPattern("EEE, dd MMM yyyy HH:mm:ss O");
-    private volatile JvmMetrics virtualMachineMetrics;
+    private static final Charset UTF8 = Charset.forName("UTF-8");
+    private static final String HMAC_SHA256_ALG = "HmacSHA256";
+    private static final DateTimeFormatter RFC_1123_DATE_TIME  = DateTimeFormatter.ofPattern("EEE, dd MMM yyyy HH:mm:ss O");
+    private final JvmMetrics virtualMachineMetrics = JmxJvmMetrics.getInstance();
 
 
     static final PropertyDescriptor LOG_ANALYTICS_WORKSPACE_ID = new PropertyDescriptor.Builder()
@@ -91,9 +89,9 @@ public class AzureLogAnalyticsReportingTask extends AbstractReportingTask {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
-    static final PropertyDescriptor LINUX_PRIMARY_KEY = new PropertyDescriptor.Builder()
-            .name("Linux Primary Key")
-            .description("Connected Sources - Linux Primary Key")
+    static final PropertyDescriptor LOG_ANALYTICS_WORKSPACE_KEY = new PropertyDescriptor.Builder()
+            .name("Log Analytics Workspace Key")
+            .description("Azure Log Analytic Worskspace Key")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -118,22 +116,22 @@ public class AzureLogAnalyticsReportingTask extends AbstractReportingTask {
     static final PropertyDescriptor PROCESS_GROUP_IDS = new PropertyDescriptor.Builder()
             .name("Process group ID(s)")
             .description("If specified, the reporting task will send metrics the configured ProcessGroup(s) only. Multiple IDs should be separated by a comma. If"
-                    + " none of the group-IDs could be found or no IDs are defined, the NiFi-Flow-ProcessGroup is used and global metrics are sent.")
+                    + " none of the group-IDs could be found or no IDs are defined, the Root Process Group is used and global metrics are sent.")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators
                     .createListValidator(true, true, StandardValidators.createRegexMatchingValidator(Pattern.compile("[0-9a-z-]+"))))
             .build();
     static final PropertyDescriptor JOB_NAME = new PropertyDescriptor.Builder()
-            .name("The job name")
+            .name("Job Name")
             .description("The name of the exporting job")
             .defaultValue("nifi_reporting_job")
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     static final PropertyDescriptor SEND_JVM_METRICS = new PropertyDescriptor.Builder()
-            .name("Send JVM-metrics")
-            .description("Send JVM-metrics in addition to the NiFi-metrics")
+            .name("Send JVM Metrics")
+            .description("Send JVM Metrics in addition to the NiFi-metrics")
             .allowableValues("true", "false")
             .defaultValue("false")
             .required(true)
@@ -160,17 +158,12 @@ public class AzureLogAnalyticsReportingTask extends AbstractReportingTask {
         }
     }
 
-    @OnScheduled
-    public void setup(final ConfigurationContext context) {
-       virtualMachineMetrics = JmxJvmMetrics.getInstance();
-    }
-
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(LOG_ANALYTICS_WORKSPACE_ID);
         properties.add(LOG_ANALYTICS_CUSTOM_LOG_NAME);
-        properties.add(LINUX_PRIMARY_KEY);
+        properties.add(LOG_ANALYTICS_WORKSPACE_KEY);
         properties.add(APPLICATION_ID);
         properties.add(INSTANCE_ID);
         properties.add(PROCESS_GROUP_IDS);
@@ -183,7 +176,7 @@ public class AzureLogAnalyticsReportingTask extends AbstractReportingTask {
     @Override
     public void onTrigger(final ReportingContext context){
         final String workspaceId = context.getProperty(LOG_ANALYTICS_WORKSPACE_ID).evaluateAttributeExpressions().getValue();
-        final String linuxPrimaryKey = context.getProperty(LINUX_PRIMARY_KEY).evaluateAttributeExpressions().getValue();
+        final String linuxPrimaryKey = context.getProperty(LOG_ANALYTICS_WORKSPACE_KEY).evaluateAttributeExpressions().getValue();
         final boolean jvmMetricsCollected = context.getProperty(SEND_JVM_METRICS).asBoolean();
 
         final String logName = context.getProperty(LOG_ANALYTICS_CUSTOM_LOG_NAME).evaluateAttributeExpressions().getValue();
@@ -207,8 +200,8 @@ public class AzureLogAnalyticsReportingTask extends AbstractReportingTask {
             }
             HttpPost httpPost = getHttpPost(urlEndpointFormat, workspaceId, logName);
             sendMetrics(httpPost, workspaceId, linuxPrimaryKey, allMetrics);
-        } catch (IOException | RuntimeException e) {
-            getLogger().error("Exception in outmost block", e);
+        } catch (Exception e) {
+            getLogger().error("Failed to publish metrics to Azure Log Analytics", e);
         }
     }
 
@@ -257,7 +250,7 @@ public class AzureLogAnalyticsReportingTask extends AbstractReportingTask {
         final String createAuthorization = createAuthorization(workspaceId, linuxPrimaryKey, bodyLength, nowRfc1123);
         request.addHeader("Authorization", createAuthorization);
         request.addHeader("x-ms-date", nowRfc1123);
-        request.setEntity(new StringEntity(builder.toString()));
+        request.setEntity(new StringEntity(rawJson));
         try(CloseableHttpClient httpClient = HttpClients.createDefault()){
             postRequest(httpClient, request);
         }

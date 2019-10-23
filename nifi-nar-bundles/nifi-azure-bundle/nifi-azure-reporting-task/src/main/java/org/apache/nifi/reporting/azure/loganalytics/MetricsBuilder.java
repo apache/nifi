@@ -25,11 +25,21 @@ import java.util.List;
 public class MetricsBuilder{
     private List<Metric> metrics = new ArrayList<>();
 
+    private String computer;
+    private String categoryName;
+    private String processGroupId;
+    private String processGroupName;
+    private String processorId;
+    private String processorName;
+    private boolean isProcessorMetric = false;
+    private String tags = null;
+
+
     public MetricsBuilder(String category, String instanceId, String processGroupId, String processGroupName) {
-        Computer = instanceId;
-        ProcessGroupName = processGroupName;
-        ProcessGroupId = processGroupId;
-        CategoryName = category;
+        this.computer = instanceId;
+        this.processGroupName = processGroupName;
+        this.processGroupId = processGroupId;
+        this.categoryName = category;
         if (category.equals(Metric.CATEGORY_PROCESSOR)){
             isProcessorMetric = true;
         }
@@ -37,39 +47,39 @@ public class MetricsBuilder{
 
     public MetricsBuilder(String category, String instanceId, String processGroupId, String processGroupName, String processorId, String processorName) {
         this(category, instanceId,processGroupId,processGroupName);
-        ProcessorId = processorId;
-        ProcessorName =processorName;
+        this.processorId = processorId;
+        this.processorName =processorName;
     }
 
     public MetricsBuilder setProcessorId(String processorId){
-        this.ProcessorId = processorId;
+        this.processorId = processorId;
         return this;
     }
 
     public MetricsBuilder setProcessorName(String processorName){
-        this.ProcessorName = processorName;
+        this.processorName = processorName;
         return this;
     }
 
     public MetricsBuilder setTags(String tags) {
-        this.Tags = tags;
+        this.tags = tags;
         return this;
     }
 
     public MetricsBuilder metric(String metricName, long count){
         Metric metric = null;
         if(isProcessorMetric) {
-            metric =  new Metric(this.Computer, this.ProcessGroupId, this.ProcessGroupName);
-            metric.ProcessorId = this.ProcessorId;
-            metric.ProcessorName = this.ProcessorName;
+            metric =  new Metric(this.computer, this.processGroupId, this.processGroupName);
+            metric.setProcessorId(this.processorId);
+            metric.setProcessorName(this.processorName);
         } else {
-            metric = new Metric(this.Computer, this.ProcessGroupId, this.ProcessGroupName);
+            metric = new Metric(this.computer, this.processGroupId, this.processGroupName);
         }
-        metric.CategoryName = this.CategoryName;
-        metric.Name = metricName;
+        metric.setCategoryName(this.categoryName);
+        metric.setName(metricName);
         metric.setCount(count);
-        if(this.Tags != null) {
-            metric.Tags = this.Tags;
+        if(this.tags != null) {
+            metric.setTags(this.tags);
         }
         metrics.add(metric);
         return this;
@@ -78,17 +88,17 @@ public class MetricsBuilder{
     public MetricsBuilder metric(String metricName, double count){
         Metric metric = null;
         if(isProcessorMetric) {
-            metric =  new Metric(this.Computer, this.ProcessGroupId, this.ProcessGroupName);
-            metric.ProcessorId = this.ProcessorId;
-            metric.ProcessorName = this.ProcessorName;
+            metric =  new Metric(this.computer, this.processGroupId, this.processGroupName);
+            metric.setProcessorId(this.processorId);
+            metric.setProcessorName(this.processorName);
         } else {
-            metric = new Metric(this.Computer, this.ProcessGroupId, this.ProcessGroupName);
+            metric = new Metric(this.computer, this.processGroupId, this.processGroupName);
         }
-        metric.CategoryName = this.CategoryName;
-        metric.Name = metricName;
+        metric.setCategoryName(this.categoryName);
+        metric.setName(metricName);
         metric.setCount(count);
-        if(this.Tags != null) {
-            metric.Tags = this.Tags;
+        if(this.tags != null) {
+            metric.setTags(this.tags);
         }
         metrics.add(metric);
         return this;
@@ -97,17 +107,17 @@ public class MetricsBuilder{
     public MetricsBuilder metric(String metricName, int count) {
         Metric metric = null;
         if(isProcessorMetric) {
-            metric =  new Metric(this.Computer, this.ProcessGroupId, this.ProcessGroupName);
-            metric.ProcessorId = this.ProcessorId;
-            metric.ProcessorName = this.ProcessorName;
+            metric =  new Metric(this.computer, this.processGroupId, this.processGroupName);
+            metric.setProcessorId(this.processorId);
+            metric.setProcessorName(this.processorName);
         } else {
-            metric = new Metric(this.Computer, this.ProcessGroupId, this.ProcessGroupName);
+            metric = new Metric(this.computer, this.processGroupId, this.processGroupName);
         }
-        metric.CategoryName = this.CategoryName;
-        metric.Name = metricName;
+        metric.setCategoryName(this.categoryName);
+        metric.setName(metricName);
         metric.setCount(count);
-        if(this.Tags != null) {
-            metric.Tags = this.Tags;
+        if(this.tags != null) {
+            metric.setTags(this.tags);
         }
         metrics.add(metric);
         return this;
@@ -115,14 +125,71 @@ public class MetricsBuilder{
     public List<Metric> build() {
         return metrics;
     }
+    public List<Metric> getMetrics() {
+        return this.metrics;
+    }
 
-    public String Computer;
-    public String CategoryName;
-    public String ProcessGroupId;
-    public String ProcessGroupName;
-    public String ProcessorId;
-    public String ProcessorName;
-    public boolean isProcessorMetric = false;
-    public String Tags = null;
+    public void setMetrics(List<Metric> metrics) {
+        this.metrics = metrics;
+    }
+
+    public String getComputer() {
+        return this.computer;
+    }
+
+    public void setComputer(String Computer) {
+        this.computer = Computer;
+    }
+
+    public String getCategoryName() {
+        return this.categoryName;
+    }
+
+    public void setCategoryName(String CategoryName) {
+        this.categoryName = CategoryName;
+    }
+
+    public String getProcessGroupId() {
+        return this.processGroupId;
+    }
+
+    public void setProcessGroupId(String ProcessGroupId) {
+        this.processGroupId = ProcessGroupId;
+    }
+
+    public String getProcessGroupName() {
+        return this.processGroupName;
+    }
+
+    public void setProcessGroupName(String ProcessGroupName) {
+        this.processGroupName = ProcessGroupName;
+    }
+
+    public String getProcessorId() {
+        return this.processorId;
+    }
+
+
+    public String getProcessorName() {
+        return this.processorName;
+    }
+
+
+    public boolean isIsProcessorMetric() {
+        return this.isProcessorMetric;
+    }
+
+    public boolean getIsProcessorMetric() {
+        return this.isProcessorMetric;
+    }
+
+    public void setIsProcessorMetric(boolean isProcessorMetric) {
+        this.isProcessorMetric = isProcessorMetric;
+    }
+
+    public String getTags() {
+        return this.tags;
+    }
+
 
 }

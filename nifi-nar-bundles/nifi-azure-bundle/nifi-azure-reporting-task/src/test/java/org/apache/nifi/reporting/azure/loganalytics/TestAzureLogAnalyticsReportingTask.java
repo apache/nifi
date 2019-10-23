@@ -16,6 +16,11 @@
  */
 package org.apache.nifi.reporting.azure.loganalytics;
 
+import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.verify;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -29,7 +34,7 @@ import org.apache.nifi.controller.status.ProcessorStatus;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.state.MockStateManager;
 import org.apache.nifi.util.MockComponentLog;
-import org.apache.nifi.util.MockConfigurationContext;
+
 import org.apache.nifi.util.MockReportingContext;
 import org.apache.nifi.util.MockReportingInitializationContext;
 import org.apache.nifi.util.MockVariableRegistry;
@@ -37,11 +42,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
-
-import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.atLeast;
-import static org.mockito.Mockito.verify;
 
 public class TestAzureLogAnalyticsReportingTask {
 
@@ -53,7 +53,6 @@ public class TestAzureLogAnalyticsReportingTask {
     private static final String TEST_GROUP2_ID= "testgpid2";
     private MockReportingInitializationContext reportingInitContextStub;
     private MockReportingContext reportingContextStub;
-    private MockConfigurationContext configurationContextStub;
     private TestableAzureLogAnalyticsReportingTask testedReportingTask;
     private ProcessGroupStatus rootGroupStatus;
     private ProcessGroupStatus testGroupStatus;
@@ -72,10 +71,8 @@ public class TestAzureLogAnalyticsReportingTask {
 
         reportingContextStub.setProperty(AzureLogAnalyticsReportingTask.INSTANCE_ID.getName(), TEST_TASK_ID);
         reportingContextStub.setProperty(AzureLogAnalyticsReportingTask.LOG_ANALYTICS_WORKSPACE_ID.getName(), TEST_TASK_ID);
-        reportingContextStub.setProperty(AzureLogAnalyticsReportingTask.LINUX_PRIMARY_KEY.getName(), MOCK_KEY);
+        reportingContextStub.setProperty(AzureLogAnalyticsReportingTask.LOG_ANALYTICS_WORKSPACE_KEY.getName(), MOCK_KEY);
 
-        configurationContextStub = new MockConfigurationContext(reportingContextStub.getProperties(),
-                reportingContextStub.getControllerServiceLookup());
 
         rootGroupStatus.setId("1234");
         rootGroupStatus.setFlowFilesReceived(5);
@@ -161,7 +158,6 @@ public class TestAzureLogAnalyticsReportingTask {
     @Test
     public void testOnTrigger() throws IOException, InterruptedException, InitializationException {
         testedReportingTask.initialize(reportingInitContextStub);
-        testedReportingTask.setup(configurationContextStub);
         reportingContextStub.getEventAccess().setProcessGroupStatus(rootGroupStatus);
         testedReportingTask.onTrigger(reportingContextStub);
 
@@ -173,7 +169,6 @@ public class TestAzureLogAnalyticsReportingTask {
         initTestGroupStatuses();
         reportingContextStub.setProperty(AzureLogAnalyticsReportingTask.PROCESS_GROUP_IDS.getName(), TEST_GROUP1_ID);
         testedReportingTask.initialize(reportingInitContextStub);
-        testedReportingTask.setup(configurationContextStub);
         reportingContextStub.getEventAccess().setProcessGroupStatus(rootGroupStatus);
         reportingContextStub.getEventAccess().setProcessGroupStatus(TEST_GROUP1_ID, testGroupStatus);
         testedReportingTask.onTrigger(reportingContextStub);
@@ -188,7 +183,6 @@ public class TestAzureLogAnalyticsReportingTask {
         reportingContextStub.setProperty(AzureLogAnalyticsReportingTask.PROCESS_GROUP_IDS.getName(),
             String.format("%s, %s", TEST_GROUP1_ID, TEST_GROUP2_ID));
         testedReportingTask.initialize(reportingInitContextStub);
-        testedReportingTask.setup(configurationContextStub);
         reportingContextStub.getEventAccess().setProcessGroupStatus(rootGroupStatus);
         reportingContextStub.getEventAccess().setProcessGroupStatus(TEST_GROUP1_ID, testGroupStatus);
         reportingContextStub.getEventAccess().setProcessGroupStatus(TEST_GROUP2_ID, testGroupStatus2);
@@ -202,7 +196,7 @@ public class TestAzureLogAnalyticsReportingTask {
     public void testEmitJVMMetrics() throws IOException, InterruptedException, InitializationException {
         reportingContextStub.setProperty(AzureLogAnalyticsReportingTask.SEND_JVM_METRICS.getName(), "true");
         testedReportingTask.initialize(reportingInitContextStub);
-        testedReportingTask.setup(configurationContextStub);
+
         reportingContextStub.getEventAccess().setProcessGroupStatus(rootGroupStatus);
         testedReportingTask.onTrigger(reportingContextStub);
 
@@ -215,7 +209,6 @@ public class TestAzureLogAnalyticsReportingTask {
 
         reportingContextStub.setProperty(AzureLogAnalyticsReportingTask.SEND_JVM_METRICS.getName(), "true");
         testedReportingTask.initialize(reportingInitContextStub);
-        testedReportingTask.setup(configurationContextStub);
         reportingContextStub.getEventAccess().setProcessGroupStatus(rootGroupStatus);
         testedReportingTask.onTrigger(reportingContextStub);
 
@@ -226,7 +219,7 @@ public class TestAzureLogAnalyticsReportingTask {
     }
 
 
-    private class TestableAzureLogAnalyticsReportingTask extends AzureLogAnalyticsReportingTask {
+    private final class TestableAzureLogAnalyticsReportingTask extends AzureLogAnalyticsReportingTask {
 
         private List<Metric> metricsCollected;
         @Override

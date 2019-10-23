@@ -33,7 +33,7 @@ import org.junit.Test;
 public class TestMetricsFactory {
 
     private ProcessGroupStatus status;
-    Gson gson = new Gson();
+    private final Gson gson = new Gson();
 
     @Before
     public void init() {
