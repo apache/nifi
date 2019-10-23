@@ -3381,7 +3381,11 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             this.unacknowledgedFlowFiles.putAll(session.unacknowledgedFlowFiles);
 
             if (session.countersOnCommit != null) {
-                this.countersOnCommit.putAll(session.countersOnCommit);
+                if (this.countersOnCommit.isEmpty()) {
+                    this.countersOnCommit.putAll(session.countersOnCommit);
+                } else {
+                    session.countersOnCommit.forEach((key, value) -> this.countersOnCommit.merge(key, value, (v1, v2) -> v1 + v2));
+                }
             }
 
             if (session.immediateCounters != null) {
