@@ -89,14 +89,15 @@ public class RepositoryObjectAESGCMEncryptor extends AbstractAESEncryptor implem
                 // Serialize and concat encryption details fields (keyId, algo, IV, version, CB length) outside of encryption
                 RepositoryObjectEncryptionMetadata metadata = new BlockEncryptionMetadata(keyId, ALGORITHM, ivBytes, VERSION, cipherBytes.length);
                 byte[] serializedEncryptionMetadata = RepositoryEncryptorUtils.serializeEncryptionMetadata(metadata);
+                logger.debug("Generated encryption metadata ({} bytes) for repository object {}", serializedEncryptionMetadata.length, recordId);
 
                 // Add the sentinel byte of 0x01
                 // TODO: Remove (required for prov repo but not FF repo)
-                logger.debug("Encrypted provenance event record " + recordId + " with key ID " + keyId);
+                logger.debug("Encrypted repository object " + recordId + " with key ID " + keyId);
                 // return CryptoUtils.concatByteArrays(SENTINEL, serializedEncryptionMetadata, cipherBytes);
                 return CryptoUtils.concatByteArrays(serializedEncryptionMetadata, cipherBytes);
             } catch (EncryptionException | BadPaddingException | IllegalBlockSizeException | IOException | KeyManagementException e) {
-                final String msg = "Encountered an exception encrypting provenance record " + recordId;
+                final String msg = "Encountered an exception encrypting repository object " + recordId;
                 logger.error(msg, e);
                 throw new EncryptionException(msg, e);
             }
@@ -113,7 +114,7 @@ public class RepositoryObjectAESGCMEncryptor extends AbstractAESEncryptor implem
      */
     @Override
     public byte[] decrypt(byte[] encryptedRecord, String recordId) throws EncryptionException {
-        RepositoryObjectEncryptionMetadata metadata = prepareObjectForDecryption(encryptedRecord, recordId, "provenance record", SUPPORTED_VERSIONS);
+        RepositoryObjectEncryptionMetadata metadata = prepareObjectForDecryption(encryptedRecord, recordId, "repository object", SUPPORTED_VERSIONS);
 
         // TODO: Actually use the version to determine schema, etc.
 
@@ -121,7 +122,7 @@ public class RepositoryObjectAESGCMEncryptor extends AbstractAESEncryptor implem
             throw new EncryptionException("The requested key ID " + metadata.keyId + " is not available");
         } else {
             try {
-                logger.debug("Decrypting provenance record " + recordId + " with key ID " + metadata.keyId);
+                logger.debug("Decrypting repository object " + recordId + " with key ID " + metadata.keyId);
                 EncryptionMethod method = EncryptionMethod.forAlgorithm(metadata.algorithm);
                 Cipher cipher = RepositoryEncryptorUtils.initCipher(aesKeyedCipherProvider, method, Cipher.DECRYPT_MODE, keyProvider.getKey(metadata.keyId), metadata.ivBytes);
 
@@ -131,10 +132,10 @@ public class RepositoryObjectAESGCMEncryptor extends AbstractAESEncryptor implem
                 // Perform the actual decryption
                 byte[] plainBytes = cipher.doFinal(cipherBytes);
 
-                logger.debug("Decrypted provenance event record " + recordId + " with key ID " + metadata.keyId);
+                logger.debug("Decrypted repository object " + recordId + " with key ID " + metadata.keyId);
                 return plainBytes;
             } catch (EncryptionException | BadPaddingException | IllegalBlockSizeException | KeyManagementException e) {
-                final String msg = "Encountered an exception decrypting provenance record " + recordId;
+                final String msg = "Encountered an exception decrypting repository object " + recordId;
                 logger.error(msg, e);
                 throw new EncryptionException(msg, e);
             }

@@ -52,6 +52,7 @@ public class RepositoryConfiguration {
     private int maxAttributeChars = 65536;
     private int debugFrequency = 1_000_000;
 
+    // TODO: Delegaate to RepositoryEncryptionConfiguration in NIFI-6617
     private Map<String, String> encryptionKeys;
     private String keyId;
     private String keyProviderImplementation;
@@ -494,6 +495,7 @@ public class RepositoryConfiguration {
 
         config.setDebugFrequency(nifiProperties.getIntegerProperty(NiFiProperties.PROVENANCE_REPO_DEBUG_FREQUENCY, config.getDebugFrequency()));
 
+        // TODO: Check for multiple key loading (NIFI-6617)
         // Encryption values may not be present but are only required for EncryptedWriteAheadProvenanceRepository
         final String implementationClassName = nifiProperties.getProperty(NiFiProperties.PROVENANCE_REPO_IMPLEMENTATION_CLASS);
         if (EncryptedWriteAheadProvenanceRepository.class.getName().equals(implementationClassName)) {

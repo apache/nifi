@@ -30,8 +30,8 @@ public class ByteArrayDataOutputStream {
     private final ByteArrayOutputStream baos;
     private final DataOutputStream dos;
 
-    public ByteArrayDataOutputStream(final int intiialBufferSize) {
-        this.baos = new ByteArrayOutputStream(intiialBufferSize);
+    public ByteArrayDataOutputStream(final int initialBufferSize) {
+        this.baos = new ByteArrayOutputStream(initialBufferSize);
         this.dos = new DataOutputStream(baos);
     }
 

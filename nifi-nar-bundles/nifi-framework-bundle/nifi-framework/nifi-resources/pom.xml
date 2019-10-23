@@ -59,6 +59,10 @@
         <nifi.flowfile.repository.partitions>256</nifi.flowfile.repository.partitions>
         <nifi.flowfile.repository.checkpoint.interval>2 mins</nifi.flowfile.repository.checkpoint.interval>
         <nifi.flowfile.repository.always.sync>false</nifi.flowfile.repository.always.sync>
+        <nifi.flowfile.repository.encryption.key.provider.implementation />
+        <nifi.flowfile.repository.encryption.key.provider.location />
+        <nifi.flowfile.repository.encryption.key.id />
+        <nifi.flowfile.repository.encryption.key />
         <nifi.swap.manager.implementation>org.apache.nifi.controller.FileSystemSwapManager</nifi.swap.manager.implementation>
         <nifi.queue.swap.threshold>20000</nifi.queue.swap.threshold>
         <nifi.swap.in.period>5 sec</nifi.swap.in.period>
@@ -74,6 +78,10 @@
         <nifi.content.repository.archive.max.usage.percentage>50%</nifi.content.repository.archive.max.usage.percentage>
         <nifi.content.repository.archive.enabled>true</nifi.content.repository.archive.enabled>
         <nifi.content.repository.always.sync>false</nifi.content.repository.always.sync>
+        <nifi.content.repository.encryption.key.provider.implementation />
+        <nifi.content.repository.encryption.key.provider.location />
+        <nifi.content.repository.encryption.key.id />
+        <nifi.content.repository.encryption.key />
         <nifi.content.viewer.url>../nifi-content-viewer/</nifi.content.viewer.url>
 
         <nifi.restore.directory />

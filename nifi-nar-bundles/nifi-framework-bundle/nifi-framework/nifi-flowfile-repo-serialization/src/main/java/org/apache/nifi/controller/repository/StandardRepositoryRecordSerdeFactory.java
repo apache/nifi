@@ -17,12 +17,11 @@
 
 package org.apache.nifi.controller.repository;
 
+import java.util.Map;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 import org.wali.SerDe;
 import org.wali.UpdateType;
-
-import java.util.Map;
 
 public class StandardRepositoryRecordSerdeFactory implements RepositoryRecordSerdeFactory {
     private final String LEGACY_SERDE_ENCODING_NAME = "org.apache.nifi.controller.repository.WriteAheadFlowFileRepository$WriteAheadRecordSerde";

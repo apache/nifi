@@ -23,9 +23,9 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
-
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaim;
@@ -161,7 +161,7 @@ public class WriteAheadRepositoryRecordSerde extends RepositoryRecordSerde imple
             }
 
             final FlowFileRecord flowFileRecord = ffBuilder.build();
-            final StandardRepositoryRecord record = new StandardRepositoryRecord((FlowFileQueue) null, flowFileRecord);
+            final StandardRepositoryRecord record = new StandardRepositoryRecord(null, flowFileRecord);
             record.markForDelete();
 
             return record;
@@ -283,7 +283,7 @@ public class WriteAheadRepositoryRecordSerde extends RepositoryRecordSerde imple
             }
 
             final FlowFileRecord flowFileRecord = ffBuilder.build();
-            final StandardRepositoryRecord record = new StandardRepositoryRecord((FlowFileQueue) null, flowFileRecord);
+            final StandardRepositoryRecord record = new StandardRepositoryRecord(null, flowFileRecord);
             record.markForDelete();
             return record;
         }
@@ -448,7 +448,7 @@ public class WriteAheadRepositoryRecordSerde extends RepositoryRecordSerde imple
     }
 
     private void writeString(final String toWrite, final OutputStream out) throws IOException {
-        final byte[] bytes = toWrite.getBytes("UTF-8");
+        final byte[] bytes = toWrite.getBytes(StandardCharsets.UTF_8);
         final int utflen = bytes.length;
 
         if (utflen < 65535) {
@@ -473,7 +473,7 @@ public class WriteAheadRepositoryRecordSerde extends RepositoryRecordSerde imple
         }
         final byte[] bytes = new byte[numBytes];
         fillBuffer(in, bytes, numBytes);
-        return new String(bytes, "UTF-8");
+        return new String(bytes, StandardCharsets.UTF_8);
     }
 
     private Integer readFieldLength(final InputStream in) throws IOException {

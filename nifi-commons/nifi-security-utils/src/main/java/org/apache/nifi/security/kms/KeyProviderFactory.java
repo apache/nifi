@@ -33,7 +33,7 @@ public class KeyProviderFactory {
     /**
      * Returns a key provider instantiated from the configuration values in a {@link RepositoryEncryptionConfiguration} object.
      *
-     * @param rec the data container for config values (usually extracted from {@link org.apache.nifi.util.NiFiProperties})
+     * @param rec       the data container for config values (usually extracted from {@link org.apache.nifi.util.NiFiProperties})
      * @param masterKey the master key used to decrypt wrapped keys
      * @return the configured key provider
      * @throws KeyManagementException if the key provider cannot be instantiated
@@ -49,10 +49,10 @@ public class KeyProviderFactory {
      * Returns a key provider instantiated from the configuration values in a {@link RepositoryEncryptionConfiguration} object.
      *
      * @param implementationClassName the key provider class name
-     * @param keyProviderLocation the filepath/URL of the stored keys
-     * @param keyId the active key id
-     * @param encryptionKeys the available encryption keys
-     * @param masterKey the master key used to decrypt wrapped keys
+     * @param keyProviderLocation     the filepath/URL of the stored keys
+     * @param keyId                   the active key id
+     * @param encryptionKeys          the available encryption keys
+     * @param masterKey               the master key used to decrypt wrapped keys
      * @return the configured key provider
      * @throws KeyManagementException if the key provider cannot be instantiated
      */
@@ -60,7 +60,7 @@ public class KeyProviderFactory {
                                                SecretKey masterKey) throws KeyManagementException {
         KeyProvider keyProvider;
 
-       implementationClassName = CryptoUtils.handleLegacyPackages(implementationClassName);
+        implementationClassName = CryptoUtils.handleLegacyPackages(implementationClassName);
 
         if (StaticKeyProvider.class.getName().equals(implementationClassName)) {
             // Get all the keys (map) from config

@@ -17,12 +17,6 @@
 
 package org.apache.nifi.wali;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.wali.SerDeFactory;
-import org.wali.SyncListener;
-import org.wali.WriteAheadRepository;
-
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
@@ -38,6 +32,11 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.regex.Pattern;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.wali.SerDeFactory;
+import org.wali.SyncListener;
+import org.wali.WriteAheadRepository;
 
 /**
  * <p>
@@ -64,7 +63,7 @@ public class SequentialAccessWriteAheadLog<T> implements WriteAheadRepository<T>
 
     private final File storageDirectory;
     private final File journalsDirectory;
-    private final SerDeFactory<T> serdeFactory;
+    protected final SerDeFactory<T> serdeFactory;
     private final SyncListener syncListener;
     private final Set<String> recoveredSwapLocations = new HashSet<>();
 
@@ -300,10 +299,10 @@ public class SequentialAccessWriteAheadLog<T> implements WriteAheadRepository<T>
             // that we could have an empty journal file already created. If this happens, we don't want to create
             // a new file on top of it because it would get deleted below when we clean up old journals. So we
             // will simply increment our transaction ID and try again.
-            File journalFile = new File(journalsDirectory, String.valueOf(nextTransactionId) + ".journal");
+            File journalFile = new File(journalsDirectory, nextTransactionId + ".journal");
             while (journalFile.exists()) {
                 nextTransactionId++;
-                journalFile = new File(journalsDirectory, String.valueOf(nextTransactionId) + ".journal");
+                journalFile = new File(journalsDirectory, nextTransactionId + ".journal");
             }
 
             journal = new LengthDelimitedJournal<>(journalFile, serdeFactory, streamPool, nextTransactionId);
@@ -325,7 +324,7 @@ public class SequentialAccessWriteAheadLog<T> implements WriteAheadRepository<T>
         final long totalNanos = System.nanoTime() - startNanos;
         final long millis = TimeUnit.NANOSECONDS.toMillis(totalNanos);
         logger.info("Checkpointed Write-Ahead Log with {} Records and {} Swap Files in {} milliseconds (Stop-the-world time = {} milliseconds), max Transaction ID {}",
-            new Object[] {snapshotCapture.getRecords().size(), snapshotCapture.getSwapLocations().size(), millis, stopTheWorldMillis, snapshotCapture.getMaxTransactionId()});
+                snapshotCapture.getRecords().size(), snapshotCapture.getSwapLocations().size(), millis, stopTheWorldMillis, snapshotCapture.getMaxTransactionId());
 
         return snapshotCapture.getRecords().size();
     }
