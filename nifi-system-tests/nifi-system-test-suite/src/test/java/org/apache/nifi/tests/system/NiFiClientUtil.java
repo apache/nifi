@@ -100,6 +100,10 @@ public class NiFiClientUtil {
         return nifiClient.getProcessorClient().createProcessor("root", entity);
     }
 
+    public ControllerServiceEntity createControllerService(final String simpleTypeName) throws NiFiClientException, IOException {
+        return createControllerService(NiFiSystemIT.TEST_CS_PACKAGE + "." + simpleTypeName, "root", NiFiSystemIT.NIFI_GROUP_ID, NiFiSystemIT.TEST_EXTENSIONS_ARTIFACT_ID, nifiVersion);
+    }
+
     public ControllerServiceEntity createControllerService(final String type, final String processGroupId, final String bundleGroupId, final String artifactId, final String version)
                 throws NiFiClientException, IOException {
         final ControllerServiceDTO dto = new ControllerServiceDTO();
@@ -367,7 +371,7 @@ public class NiFiClientUtil {
 
     public ActivateControllerServicesEntity disableControllerServices(final String groupId) throws NiFiClientException, IOException {
         final ActivateControllerServicesEntity activateControllerServicesEntity = new ActivateControllerServicesEntity();
-        activateControllerServicesEntity.setId("root");
+        activateControllerServicesEntity.setId(groupId);
         activateControllerServicesEntity.setState(ActivateControllerServicesEntity.STATE_DISABLED);
 
         return nifiClient.getFlowClient().activateControllerServices(activateControllerServicesEntity);

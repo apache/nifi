@@ -21,7 +21,9 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.ControllerServicesClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
+import org.apache.nifi.web.api.entity.ControllerServiceReferencingComponentsEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceRunStatusEntity;
+import org.apache.nifi.web.api.entity.UpdateControllerServiceReferenceRequestEntity;
 
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.WebTarget;
@@ -140,5 +142,38 @@ public class JerseyControllerServicesClient extends AbstractJerseyClient impleme
 
             return getRequestBuilder(target).delete(ControllerServiceEntity.class);
         });
+    }
+
+    @Override
+    public ControllerServiceReferencingComponentsEntity getControllerServiceReferences(final String id) throws NiFiClientException, IOException {
+        if (StringUtils.isBlank(id)) {
+            throw new IllegalArgumentException("Controller service id cannot be null");
+        }
+
+        return executeAction("Error retrieving Controller Service's referencing components", () -> {
+            final WebTarget target = controllerServicesTarget.path("{id}/references").resolveTemplate("id", id);
+            return getRequestBuilder(target).get(ControllerServiceReferencingComponentsEntity.class);
+        });
+    }
+
+    @Override
+    public ControllerServiceReferencingComponentsEntity updateControllerServiceReferences(final UpdateControllerServiceReferenceRequestEntity referencesEntity)
+        throws NiFiClientException, IOException {
+
+        if (referencesEntity == null) {
+            throw new IllegalArgumentException("Controller Service references entity cannot be null");
+        }
+
+        return executeAction("Error updating Controller Service references", () -> {
+            final WebTarget target = controllerServicesTarget
+                .path("/{id}/references")
+                .resolveTemplate("id", referencesEntity.getId());
+
+            return getRequestBuilder(target).put(
+                Entity.entity(referencesEntity, MediaType.APPLICATION_JSON_TYPE),
+                ControllerServiceReferencingComponentsEntity.class
+            );
+        });
+
     }
 }

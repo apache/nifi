@@ -60,7 +60,12 @@ public class StandardSleepService extends AbstractControllerService implements S
         .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
         .defaultValue("0 sec")
         .build();
-
+    public static final PropertyDescriptor DEPENDENT_SERVICE = new PropertyDescriptor.Builder()
+        .name("Dependent Service")
+        .description("Another Controller Service that this one depends on. This is helpful for testing when Service A depends on Service B how enabling/disabling/etc. work")
+        .required(false)
+        .identifiesControllerService(SleepService.class)
+        .build();
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -69,6 +74,7 @@ public class StandardSleepService extends AbstractControllerService implements S
         properties.add(ON_ENABLED_SLEEP_TIME);
         properties.add(TRIGGER_SLEEP_TIME);
         properties.add(ON_DISABLED_SLEEP_TIME);
+        properties.add(DEPENDENT_SERVICE);
         return properties;
     }
 
@@ -103,5 +109,10 @@ public class StandardSleepService extends AbstractControllerService implements S
     @Override
     public void sleep() {
         sleep(getConfigurationContext().getProperty(TRIGGER_SLEEP_TIME).asTimePeriod(TimeUnit.MILLISECONDS));
+
+        final SleepService dependentService = getConfigurationContext().getProperty(DEPENDENT_SERVICE).asControllerService(SleepService.class);
+        if (dependentService != null) {
+            dependentService.sleep();
+        }
     }
 }
