@@ -57,7 +57,7 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
     private final Boolean supportOnlineLearning;
     private Boolean extendWindow = false;
     private long intervalMillis = 3L * 60 * 1000; // Default is 3 minutes
-    private long queryIntervalMillis = 3L * 60 * 1000;  //Default is 3 minutes
+    private long queryIntervalMillis = 5L * 60 * 1000;  //Default is 3 minutes
     private String scoreName = "rSquared";
     private double scoreThreshold = .90;
 
