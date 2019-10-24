@@ -20,6 +20,7 @@ package org.apache.nifi.reporting.sql;
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.status.ConnectionStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
@@ -265,10 +266,13 @@ public class TestQueryNiFiReportingTask {
         Mockito.when(context.getProperty(QueryNiFiReportingTask.RECORD_SINK)).thenReturn(pValue);
         Mockito.when(pValue.asControllerService(RecordSinkService.class)).thenReturn(mockRecordSinkService);
 
+        ConfigurationContext configContext = Mockito.mock(ConfigurationContext.class);
+        Mockito.when(configContext.getProperty(QueryNiFiReportingTask.RECORD_SINK)).thenReturn(pValue);
+        reportingTask.setup(configContext);
+
         return reportingTask;
     }
 
     private static final class MockQueryNiFiReportingTask extends QueryNiFiReportingTask {
-
     }
 }
