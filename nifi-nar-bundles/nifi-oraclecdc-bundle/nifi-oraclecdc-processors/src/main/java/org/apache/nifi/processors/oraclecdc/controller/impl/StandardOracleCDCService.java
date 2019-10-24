@@ -164,7 +164,7 @@ public class StandardOracleCDCService extends AbstractControllerService implemen
         // dataSource.setMaxWaitMillis(maxWaitMillis);
         dataSource.setMaxTotal(maxTotal);
         dataSource.setMinIdle(miIdle);
-        dataSource.setMaxIdle(maxTotal);
+        dataSource.setMaxIdle(maxIdle);
         // dataSource.setMaxConnLifetimeMillis(maxConnLifetimeMillis);
         // dataSource.setTimeBetweenEvictionRunsMillis(timeBetweenEvictionRunsMillis);
         // dataSource.setMinEvictableIdleTimeMillis(minEvictableIdleTimeMillis);
@@ -183,7 +183,7 @@ public class StandardOracleCDCService extends AbstractControllerService implemen
     @Override
     public void receiveEvents(Object xsOut, OracleCDCEventHandler handler) {
         if (null == xsOut) {
-            getLogger().info("xstreamOut is null");
+            getLogger().debug("xstreamOut is null");
             return;
         }
 
@@ -198,9 +198,7 @@ public class StandardOracleCDCService extends AbstractControllerService implemen
                     loadClass("oracle.streams.XStreamOut").getDeclaredField("DEFAULT_MODE").getInt(null));
             System.out.print("done");
         } catch (Exception e) {
-            e.printStackTrace();
-            getLogger().warn("exception when processing LCRs");
-            getLogger().warn(e.getMessage());
+            getLogger().warn("exception when processing LCRs "+e.getMessage());
             throw new ProcessException("exception when processing LCRs " + e.getMessage());
         }
     }
@@ -214,16 +212,14 @@ public class StandardOracleCDCService extends AbstractControllerService implemen
             method.invoke(xsOutServer, position,
                     loadClass("oracle.streams.XStreamOut").getDeclaredField("DEFAULT_MODE").getInt(null));
         } catch (Exception e) {
-            e.printStackTrace();
-            getLogger().warn("exception when set low watermark");
-            getLogger().warn(e.getMessage());
+            getLogger().warn("exception when set low watermark"+ e.getMessage());
             throw new ProcessException("exception when setting low water mark " + e.getMessage());
         }
     }
 
     @Override
     public Object attach(String xsOutName, byte[] lastPosition) {
-        getLogger().info("in attach");
+        getLogger().debug("in attach");
         try {
             final Connection conn = getConnection();
             Class<?> xstreamOut = loadClass("oracle.streams.XStreamOut");
@@ -233,9 +229,7 @@ public class StandardOracleCDCService extends AbstractControllerService implemen
                     lastPosition, xstreamOut.getDeclaredField("DEFAULT_MODE").getInt(null));
             return xsOut;
         } catch (Exception e) {
-            System.out.println("cannot attach to outbound server: " + xsOutName);
-            getLogger().error(e.getMessage());
-            e.printStackTrace();
+        	getLogger().error("cannot attach to outbound server: " + xsOutName +" "+e.getMessage());
             throw new ProcessException("cannot attach to outbound server: " + xsOutName);
         }
     }
@@ -247,8 +241,8 @@ public class StandardOracleCDCService extends AbstractControllerService implemen
             Method method = xstreamOut.getDeclaredMethod("detach", int.class);
             method.invoke(xsOut, xstreamOut.getDeclaredField("DEFAULT_MODE").getInt(null));
         } catch (Exception e) {
-            getLogger().info("cannot detach from the outbound server: ");
-            throw new ProcessException("cannot detach from the outbound server: ");
+            getLogger().warn("cannot detach from the outbound server: "+e.getMessage());
+            throw new ProcessException("cannot detach from the outbound server: "+e.getMessage());
         }
 
     }

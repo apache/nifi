@@ -112,13 +112,6 @@ public class StandardOracleClassLoaderService extends AbstractControllerService 
         }
     }
 
-    /**
-     * using Thread.currentThread().getContextClassLoader(); will ensure that
-     * you are using the ClassLoader for you NAR.
-     *
-     * @throws InitializationException
-     *             if there is a problem obtaining the ClassLoader
-     */
     @Override
     public ClassLoader getClassLoader() {
         return this.driverClassLoader;

@@ -18,32 +18,22 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>1.9.0-SNAPSHOT</version>
+        <version>1.10.0-SNAPSHOT</version>
     </parent>
 
     <properties>
-        <nifi.version>1.9.0-SNAPSHOT</nifi.version>
+        <nifi.version>1.10.0-SNAPSHOT</nifi.version>
         <oracle.version>12.2.0.1</oracle.version>
       </properties>
         
-    <groupId>org.apache.nifi</groupId>
     <artifactId>nifi-oraclecdc-bundle</artifactId>
-    <version>1.9.0-SNAPSHOT</version>
     <packaging>pom</packaging>
-    
-    <repositories>
-    <repository>
-      <id>hdp-repo</id>
-      <name>hdprepo</name>
-      <url>http://repo.hortonworks.com/content/groups/public/</url>
-    </repository>
-  </repositories>
 
     <modules>
         <module>nifi-oraclecdc-processors</module>
         <module>nifi-oraclecdc-nar</module>
-    <module>nifi-oraclecdcservice-api-nar</module>
-    <module>nifi-oraclecdcservice-api</module>
+    	<module>nifi-oraclecdcservice-api-nar</module>
+    	<module>nifi-oraclecdcservice-api</module>
   </modules>
 
 </project>

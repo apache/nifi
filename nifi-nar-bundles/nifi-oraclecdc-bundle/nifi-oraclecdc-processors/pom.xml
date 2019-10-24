@@ -19,9 +19,8 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-oraclecdc-bundle</artifactId>
-        <version>1.9.0-SNAPSHOT</version>
+        <version>1.10.0-SNAPSHOT</version>
     </parent>
-    <groupId>org.apache.nifi</groupId>
     <artifactId>nifi-oraclecdc-processors</artifactId>
     <packaging>jar</packaging>
 
@@ -29,30 +28,27 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-api</artifactId>
-            <version>1.9.0-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-dbcp-service-api</artifactId>
-            <version>1.9.0-SNAPSHOT</version>
+            <version>1.10.0-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-utils</artifactId>
-            <version>1.9.0-SNAPSHOT</version>
+            <version>1.10.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock</artifactId>
-            <version>1.9.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>
           <groupId>org.apache.nifi</groupId>
   <artifactId>nifi-oraclecdcservice-api</artifactId>
-  <version>1.9.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
@@ -62,7 +58,6 @@
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
-            <version>4.12</version>
             <scope>test</scope>
         </dependency>
           <dependency>
