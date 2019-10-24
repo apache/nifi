@@ -513,7 +513,6 @@ class ScryptCipherProviderGroovyTest {
         assert params[2] == EXPECTED_P
     }
 
-
     @Test
     void testShouldVerifyPBoundary() throws Exception {
         // Arrange
@@ -525,7 +524,68 @@ class ScryptCipherProviderGroovyTest {
 
         // Assert
         assert valid
+    }
 
+    @Test
+    void testShouldFailPBoundary() throws Exception {
+        // Arrange
+        // The p upper bound is calculated with the formula below:
+        // pBoundary = ((Math.pow(2,32))-1) * (32.0/(r * 128)), where pBoundary = 134217727.96875;
+        Map costParameters = [8:134217729, 128:8388608, 4096: 0]
+
+        // Act
+        def results = costParameters.collectEntries { r, p ->
+            def isValid = ScryptCipherProvider.isPValid(r, p)
+            [r, isValid]
+        }
+
+        // results => [8: false, 128: false, 4096: false]
+
+        // Assert
+        results.each { r, isPValid ->
+            logger.info("For r ${r}, p is ${isPValid}")
+            assert !isPValid
+        }
+
+
+
+    }
+//    *****************************************************************
+//    public ScryptCipherProvider(int n, int r, int p) {
+//        this.n = n;
+//        this.r = r;
+//        this.p = p;
+//    }
+
+    @Test
+    void testShouldValidateScryptCipherProviderPBoundary() throws Exception {
+        // Arrange
+        final int n = 64;
+        final int r = 8;
+        final int p = 1;
+
+        // Act
+        ScryptCipherProvider testCipherProvider = new ScryptCipherProvider(n, r, p)
+
+        // Assert
+        assert testCipherProvider
+    }
+
+    @Test
+    void testShouldCatchInvalidP() throws Exception {
+        // Arrange
+        final int n = 64;
+        final int r = 8;
+        final int p = 0;
+
+        // Act
+        def msg = shouldFail(IllegalArgumentException) {
+            ScryptCipherProvider testCipherProvider = new ScryptCipherProvider(n, r, p)
+        }
+        logger.expected(msg)
+
+        // Assert
+        assert msg =~ "Invalid p value exceeds p boundary"
     }
 
     @Ignore("This test can be run on a specific machine to evaluate if the default parameters are sufficient")

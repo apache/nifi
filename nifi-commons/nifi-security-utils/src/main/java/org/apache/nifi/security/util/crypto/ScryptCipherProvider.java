@@ -25,6 +25,7 @@ import java.util.regex.Pattern;
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
+
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.binary.Hex;
@@ -79,7 +80,7 @@ public class ScryptCipherProvider extends RandomIVPBECipherProvider {
             logger.warn("The provided parallelization factor {} is below the recommended minimum {}", p, DEFAULT_P);
         }
 
-        if(!isPValid(r, p)) {
+        if (!isPValid(r, p)) {
             logger.warn("Based on the provided block size {}, the provided parallelization factor {} is out of bounds", r, p);
             throw new IllegalArgumentException("Invalid p value exceeds p boundary");
         }
@@ -87,8 +88,8 @@ public class ScryptCipherProvider extends RandomIVPBECipherProvider {
 
     public static boolean isPValid(int r, int p) {
         // Calculate p boundary
-        double pBoundary = ((Math.pow(2,32))-1) * (32.0/(r * 128));
-        return p <= pBoundary;
+        double pBoundary = ((Math.pow(2, 32)) - 1) * (32.0 / (r * 128));
+        return p <= pBoundary && p > 0;
     }
 
     /**
@@ -123,7 +124,7 @@ public class ScryptCipherProvider extends RandomIVPBECipherProvider {
 
     /**
      * Returns an initialized cipher for the specified algorithm. The key (and IV if necessary) are derived by the KDF of the implementation.
-     *
+     * <p>
      * The IV can be retrieved by the calling method using {@link Cipher#getIV()}.
      *
      * @param encryptionMethod the {@link EncryptionMethod}
