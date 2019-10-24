@@ -513,6 +513,21 @@ class ScryptCipherProviderGroovyTest {
         assert params[2] == EXPECTED_P
     }
 
+
+    @Test
+    void testShouldVerifyPBoundary() throws Exception {
+        // Arrange
+        final int r = 8;
+        final int p = 1;
+
+        // Act
+        boolean valid = ScryptCipherProvider.isPValid(r, p)
+
+        // Assert
+        assert valid
+
+    }
+
     @Ignore("This test can be run on a specific machine to evaluate if the default parameters are sufficient")
     @Test
     void testDefaultConstructorShouldProvideStrongParameters() {

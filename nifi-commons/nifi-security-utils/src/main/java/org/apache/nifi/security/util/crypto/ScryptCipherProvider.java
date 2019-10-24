@@ -78,6 +78,17 @@ public class ScryptCipherProvider extends RandomIVPBECipherProvider {
         if (p < DEFAULT_P) {
             logger.warn("The provided parallelization factor {} is below the recommended minimum {}", p, DEFAULT_P);
         }
+
+        if(!isPValid(r, p)) {
+            logger.warn("Based on the provided block size {}, the provided parallelization factor {} is out of bounds", r, p);
+            throw new IllegalArgumentException("Invalid p value exceeds p boundary");
+        }
+    }
+
+    public static boolean isPValid(int r, int p) {
+        // Calculate p boundary
+        double pBoundary = ((Math.pow(2,32))-1) * (32.0/(r * 128));
+        return p <= pBoundary;
     }
 
     /**
