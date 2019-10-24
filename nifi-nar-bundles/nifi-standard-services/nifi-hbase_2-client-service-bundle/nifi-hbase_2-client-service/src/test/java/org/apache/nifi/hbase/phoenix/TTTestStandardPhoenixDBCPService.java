@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.hbase.phoenix;
 
-import java.sql.ResultSet;
-
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -25,16 +23,15 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class TTTestStandardPhoenixDBCPService {
-
-	private String dbUrl;
+    private String dbUrl;
     @Before
     public void init() {
-    	this.dbUrl="jdbc:phoenix:knhdp31.field.hortonworks.com:2181:/hbase-unsecure";
+        this.dbUrl="jdbc:phoenix:knhdp31.field.hortonworks.com:2181:/hbase-unsecure";
     }
 
     @Test
     public void testService() throws InitializationException {
-    	try {
+        try {
         //TestProcessor processor = new TestProcessor();
         final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
         final StandardPhoenixDBCPService service = new StandardPhoenixDBCPService();
@@ -46,18 +43,9 @@ public class TTTestStandardPhoenixDBCPService {
         runner.setProperty(service, StandardPhoenixDBCPService.VALIDATION_QUERY,
                 "SELECT 1 FROM SYSTEM.CATALOG LIMIT 1");
         runner.enableControllerService(service);
-        java.sql.Connection conn = service.getConnection();
-        
-        ResultSet rs = conn.createStatement().executeQuery("SELECT 1 FROM SYSTEM.CATALOG LIMIT 1");
-        while(rs.next()) {
-        	System.out.println(rs.getString(1));
-        }
         runner.assertValid(service);
         }catch(Exception ex) {
-        	ex.printStackTrace();
+            ex.printStackTrace();
         }
-        
     }
-
 }
-
