@@ -59,6 +59,12 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-dbcp-service-api</artifactId>
+            <version>1.10.0-SNAPSHOT</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-record</artifactId>
             <scope>provided</scope>
         </dependency>
@@ -67,7 +73,11 @@
             <artifactId>nifi-kerberos-credentials-service-api</artifactId>
             <scope>provided</scope>
         </dependency>
-
+		<dependency>
+            <groupId>commons-dbcp</groupId>
+            <artifactId>commons-dbcp</artifactId>
+            <version>1.4</version>
+        </dependency>
         <dependency>
             <groupId>org.apache.hbase</groupId>
             <artifactId>hbase-client</artifactId>
@@ -83,6 +93,21 @@
                 </exclusion>
             </exclusions>
         </dependency>
+        <dependency>
+		    <groupId>org.apache.phoenix</groupId>
+		    <artifactId>phoenix-core</artifactId>
+		    <version>${phoenix.version}</version>
+		    <exclusions>
+                <exclusion>
+                    <groupId>org.apache.hbase</groupId>
+                    <artifactId>hbase*</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-log4j12</artifactId>
+                </exclusion>
+            </exclusions>
+		</dependency>
         <dependency>
             <groupId>com.github.stephenc.findbugs</groupId>
             <artifactId>findbugs-annotations</artifactId>

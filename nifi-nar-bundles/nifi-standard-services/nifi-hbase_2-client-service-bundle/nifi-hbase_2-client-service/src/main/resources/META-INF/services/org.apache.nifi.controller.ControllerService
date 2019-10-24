@@ -15,3 +15,4 @@
 org.apache.nifi.hbase.HBase_2_ClientService
 org.apache.nifi.hbase.HBase_2_ClientMapCacheService
 org.apache.nifi.hbase.HBase_2_RecordLookupService
+org.apache.nifi.hbase.phoenix.StandardPhoenixDBCPService

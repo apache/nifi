@@ -28,6 +28,7 @@
 
     <properties>
         <hbase.version>2.1.1</hbase.version>
+        <phoenix.version>5.0.0-HBase-2.0</phoenix.version>
     </properties>
 
     <modules>
