@@ -34,6 +34,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.kerberos.KerberosCredentialsService;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.schema.access.SchemaField;
@@ -99,12 +100,21 @@ public class HortonworksSchemaRegistry extends AbstractControllerService impleme
         .defaultValue("1 hour")
         .required(true)
         .build();
+
     static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
         .name("ssl-context-service")
         .displayName("SSL Context Service")
         .description("Specifies the SSL Context Service to use for communicating with Schema Registry.")
         .required(false)
         .identifiesControllerService(SSLContextService.class)
+        .build();
+
+    static final PropertyDescriptor KERBEROS_CREDENTIALS_SERVICE = new PropertyDescriptor.Builder()
+        .name("kerberos-credentials-service")
+        .displayName("Kerberos Credentials Service")
+        .description("Specifies the Kerberos Credentials Controller Service that should be used for authenticating with Kerberos")
+        .identifiesControllerService(KerberosCredentialsService.class)
+        .required(false)
         .build();
 
     private volatile SchemaRegistryClient schemaRegistryClient;
@@ -135,6 +145,24 @@ public class HortonworksSchemaRegistry extends AbstractControllerService impleme
         if (!sslProperties.isEmpty()) {
             schemaRegistryConfig.put(CLIENT_SSL_PROPERTY_PREFIX, sslProperties);
         }
+
+        final KerberosCredentialsService kerberosCredentialsService = context.getProperty(KERBEROS_CREDENTIALS_SERVICE)
+                .asControllerService(KerberosCredentialsService.class);
+        if (kerberosCredentialsService != null) {
+            final String principal = kerberosCredentialsService.getPrincipal();
+            final String keytab = kerberosCredentialsService.getKeytab();
+            final String jaasConfigString = getJaasConfig(principal, keytab);
+            schemaRegistryConfig.put(SchemaRegistryClient.Configuration.SASL_JAAS_CONFIG.name(), jaasConfigString);
+        }
+    }
+
+    private String getJaasConfig(final String principal, final String keytab) {
+        return "com.sun.security.auth.module.Krb5LoginModule required "
+                + "useTicketCache=false "
+                + "renewTicket=true "
+                + "useKeyTab=true "
+                + "keyTab=\"" + keytab + "\" "
+                + "principal=\"" + principal + "\";";
     }
 
     private Map<String, String> buildSslProperties(final ConfigurationContext context) {
@@ -176,6 +204,7 @@ public class HortonworksSchemaRegistry extends AbstractControllerService impleme
         properties.add(CACHE_SIZE);
         properties.add(CACHE_EXPIRATION);
         properties.add(SSL_CONTEXT_SERVICE);
+        properties.add(KERBEROS_CREDENTIALS_SERVICE);
         return properties;
     }
 
