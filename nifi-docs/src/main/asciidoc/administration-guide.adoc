@@ -1392,7 +1392,7 @@ Here are the KDFs currently supported by NiFi (primarily in the `EncryptContent`
 * Scrypt
 ** This KDF was added in v0.5.0.
 ** link:https://en.wikipedia.org/wiki/Scrypt[Scrypt^] is an adaptive function designed in response to `bcrypt`. This KDF is recommended as it requires relatively large amounts of memory for each derivation, making it resistant to hardware brute-force attacks.
-** The recommended minimum cost is `N`=2^14^, `r`=8, `p`=1 (as of 2/1/2016 on commodity hardware) and should be increased to the threshold at which legitimate systems will encounter detrimental delays (see schedule below or use `ScryptCipherProviderGroovyTest#testDefaultConstructorShouldProvideStrongParameters()` to calculate safe minimums).
+** The recommended minimum cost is `N`=2^14^, `r`=8, `p`=1 (as of 2/1/2016 on commodity hardware). `p` must be a positive integer and less than `(2^32 − 1) * (Hlen/MFlen)` where `Hlen` is the length in octets of the digest function output (32 for SHA-256) and `MFlen` is the length in octets of the mixing function output, defined as `r * 128`. These parameters should be increased to the threshold at which legitimate systems will encounter detrimental delays (see schedule below or use `ScryptCipherProviderGroovyTest#testDefaultConstructorShouldProvideStrongParameters()` to calculate safe minimums).
 ** The salt format is `$s0$e0101$ABCDEFGHIJKLMNOPQRSTUV`. The salt is delimited by `$` and the three sections are as follows:
 *** `s0` - the version of the format. NiFi currently uses `s0` for all salts generated internally.
 *** `e0101` - the cost parameters. This is actually a hexadecimal encoding of `N`, `r`, `p` using shifts. This can be formed/parsed using `Scrypt#encodeParams()` and `Scrypt#parseParameters()`.
