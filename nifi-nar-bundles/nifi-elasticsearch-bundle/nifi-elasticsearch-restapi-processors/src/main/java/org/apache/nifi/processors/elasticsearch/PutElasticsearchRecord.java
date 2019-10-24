@@ -184,6 +184,7 @@ public class PutElasticsearchRecord extends AbstractProcessor implements Elastic
         RecordPath tPath = typePath != null ? recordPathCache.getCompiled(typePath) : null;
 
         int batchSize = context.getProperty(BATCH_SIZE).evaluateAttributeExpressions(input).asInteger();
+        List<FlowFile> badRecords = new ArrayList<>();
 
         try (final InputStream inStream = session.read(input);
              final RecordReader reader = readerFactory.createRecordReader(input, inStream, getLogger())) {
@@ -206,7 +207,10 @@ public class PutElasticsearchRecord extends AbstractProcessor implements Elastic
 
                 if (operationList.size() == batchSize) {
                     BulkOperation bundle = new BulkOperation(operationList, originals, reader.getSchema());
-                    indexDocuments(bundle, session, input);
+                    FlowFile bad = indexDocuments(bundle, session, input);
+                    if (bad != null) {
+                        badRecords.add(bad);
+                    }
 
                     operationList.clear();
                     originals.clear();
@@ -215,7 +219,10 @@ public class PutElasticsearchRecord extends AbstractProcessor implements Elastic
 
             if (operationList.size() > 0) {
                 BulkOperation bundle = new BulkOperation(operationList, originals, reader.getSchema());
-                indexDocuments(bundle, session, input);
+                FlowFile bad = indexDocuments(bundle, session, input);
+                if (bad != null) {
+                    badRecords.add(bad);
+                }
             }
 
             session.transfer(input, REL_SUCCESS);
@@ -225,13 +232,23 @@ public class PutElasticsearchRecord extends AbstractProcessor implements Elastic
             getLogger().error(msg, ese);
             Relationship rel = ese.isElastic() ? REL_RETRY : REL_FAILURE;
             session.transfer(input, rel);
+            removeBadRecordFlowFiles(badRecords, session);
         } catch (Exception ex) {
             getLogger().error("Could not index documents.", ex);
             session.transfer(input, REL_FAILURE);
+            removeBadRecordFlowFiles(badRecords, session);
         }
     }
 
-    private boolean indexDocuments(BulkOperation bundle, ProcessSession session, FlowFile input) throws Exception {
+    private void removeBadRecordFlowFiles(List<FlowFile> bad, ProcessSession session) {
+        for (FlowFile badFlowFile : bad) {
+            session.remove(badFlowFile);
+        }
+
+        bad.clear();
+    }
+
+    private FlowFile indexDocuments(BulkOperation bundle, ProcessSession session, FlowFile input) throws Exception {
         IndexOperationResponse response = clientService.bulk(bundle.getOperationList());
         if (response.hasErrors()) {
             if(logErrors || getLogger().isDebugEnabled()) {
@@ -270,6 +287,8 @@ public class PutElasticsearchRecord extends AbstractProcessor implements Elastic
                     errorFF = session.putAttribute(errorFF, ATTR_RECORD_COUNT, String.valueOf(added));
 
                     session.transfer(errorFF, REL_FAILED_RECORDS);
+
+                    return errorFF;
                 } catch (Exception ex) {
                     getLogger().error("", ex);
                     session.remove(errorFF);
@@ -277,9 +296,9 @@ public class PutElasticsearchRecord extends AbstractProcessor implements Elastic
                 }
             }
 
-            return false;
+            return null;
         } else {
-            return true;
+            return null;
         }
     }
 
