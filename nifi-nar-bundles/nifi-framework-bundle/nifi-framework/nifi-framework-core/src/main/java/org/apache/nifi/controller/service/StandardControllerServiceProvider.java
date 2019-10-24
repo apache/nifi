@@ -46,7 +46,6 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -571,16 +570,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
         for (final ControllerServiceNode nodeToEnable : recursiveReferences) {
             if (!nodeToEnable.isActive()) {
                 logger.debug("Enabling {} because it references {}", nodeToEnable, serviceNode);
-                final Future<?> enableFuture = enableControllerService(nodeToEnable);
-                try {
-                    enableFuture.get();
-                } catch (final ExecutionException ee) {
-                    throw new IllegalStateException("Failed to enable Controller Service " + nodeToEnable, ee.getCause());
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    throw new IllegalStateException("Interrupted while enabling Controller Service");
-                }
-
+                enableControllerService(nodeToEnable);
                 updated.add(nodeToEnable);
             }
         }

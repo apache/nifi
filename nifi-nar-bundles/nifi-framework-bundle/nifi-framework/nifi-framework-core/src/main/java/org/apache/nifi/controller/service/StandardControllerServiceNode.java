@@ -413,8 +413,9 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
                     final ConfigurationContext configContext = new StandardConfigurationContext(StandardControllerServiceNode.this, controllerServiceProvider, null, getVariableRegistry());
 
                     if (!isActive()) {
-                        LOG.debug("{} is no longer active so will not attempt to enable it", StandardControllerServiceNode.this);
+                        LOG.warn("{} is no longer active so will no longer attempt to enable it", StandardControllerServiceNode.this);
                         stateTransition.disable();
+                        future.complete(null);
                         return;
                     }
 
@@ -433,15 +434,16 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
 
                         boolean shouldEnable;
                         synchronized (active) {
-                            shouldEnable = active.get() && stateTransition.enable();
+                            shouldEnable = active.get() && stateTransition.enable(); // Transitioning the state to ENABLED will complete our future.
                         }
 
                         if (!shouldEnable) {
-                            LOG.debug("Disabling service {} after it has been enabled due to disable action being initiated.", service);
+                            LOG.info("Disabling service {} after it has been enabled due to disable action being initiated.", service);
                             // Can only happen if user initiated DISABLE operation before service finished enabling. It's state will be
                             // set to DISABLING (see disable() operation)
                             invokeDisable(configContext);
                             stateTransition.disable();
+                            future.complete(null);
                         } else {
                             LOG.info("Successfully enabled {}", service);
                         }
