@@ -20,10 +20,12 @@ import org.apache.calcite.config.Lex;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
+import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.record.sink.RecordSinkService;
 import org.apache.nifi.reporting.AbstractReportingTask;
@@ -32,6 +34,7 @@ import org.apache.nifi.reporting.ReportingInitializationContext;
 import org.apache.nifi.serialization.record.ResultSetRecordSet;
 import org.apache.nifi.util.StopWatch;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -77,6 +80,9 @@ public class QueryNiFiReportingTask extends AbstractReportingTask {
             .build();
 
     private List<PropertyDescriptor> properties;
+
+    private volatile RecordSinkService recordSinkService;
+
     private MetricsQueryService metricsQueryService;
 
     @Override
@@ -94,11 +100,16 @@ public class QueryNiFiReportingTask extends AbstractReportingTask {
         return properties;
     }
 
+    @OnScheduled
+    public void setup(final ConfigurationContext context) throws IOException {
+        recordSinkService = context.getProperty(RECORD_SINK).asControllerService(RecordSinkService.class);
+        recordSinkService.reset();
+    }
+
     @Override
     public void onTrigger(ReportingContext context) {
         final StopWatch stopWatch = new StopWatch(true);
         try {
-            final RecordSinkService recordSinkService = context.getProperty(RECORD_SINK).asControllerService(RecordSinkService.class);
             final String sql = context.getProperty(QUERY).evaluateAttributeExpressions().getValue();
             final QueryResult queryResult = metricsQueryService.query(context, sql);
             final ResultSetRecordSet recordSet;

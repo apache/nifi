@@ -34,6 +34,9 @@ import java.util.Map;
 @CapabilityDescription("Specifies a Controller Service that specifies a Record Writer as well as some transport mechanism to write the records to some destination (external system, e.g.)")
 public interface RecordSinkService extends ControllerService {
 
+    /**
+     * A standard Record Writer property for use in RecordSinkService implementations
+     */
     PropertyDescriptor RECORD_WRITER_FACTORY = new PropertyDescriptor.Builder()
             .name("record-sink-record-writer")
             .displayName("Record Writer")
@@ -42,5 +45,20 @@ public interface RecordSinkService extends ControllerService {
             .required(true)
             .build();
 
+    /**
+     * Sends the record set to the RecordSinkService
+     * @param recordSet The RecordSet to transmit
+     * @param attributes Attributes associated with the RecordSet
+     * @param sendZeroResults Whether to transmit empty record sets
+     * @return a WriteResult object containing the number of records transmitted, as well as any metadata in the form of attributes
+     * @throws IOException if any error occurs during transmission of the record set
+     */
     WriteResult sendData(final RecordSet recordSet, final Map<String,String> attributes, final boolean sendZeroResults) throws IOException;
+
+    /**
+     * Resets the RecordSinkService. This is useful when the service uses the record set's schema in order to transmit the data correctly. If subsequent
+     * RecordSets have different schemas, this can cause issues with schema handling. Calling reset() should perform operations such as clearing the schema
+     * and any appropriate data related to possibly different RecordSets. The default implementation is a no-op
+     */
+    default void reset() {}
 }

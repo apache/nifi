@@ -29,6 +29,7 @@ import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.util.EntityUtils;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.reporting.prometheus.api.PrometheusMetricsUtil;
 import org.apache.nifi.state.MockStateManager;
 import org.apache.nifi.util.MockComponentLog;
 import org.apache.nifi.util.MockConfigurationContext;
@@ -59,7 +60,7 @@ public class TestPrometheusReportingTask {
         reportingContextStub = new MockReportingContext(Collections.emptyMap(),
                 new MockStateManager(testedReportingTask), new MockVariableRegistry());
 
-        reportingContextStub.setProperty(PrometheusReportingTask.INSTANCE_ID.getName(), "localhost");
+        reportingContextStub.setProperty(PrometheusMetricsUtil.INSTANCE_ID.getName(), "localhost");
 
         configurationContextStub = new MockConfigurationContext(reportingContextStub.getProperties(),
                 reportingContextStub.getControllerServiceLookup());
@@ -121,9 +122,6 @@ public class TestPrometheusReportingTask {
         HttpGet request = new HttpGet("http://localhost:9092/metrics");
         HttpResponse response = client.execute(request);
         HttpEntity entity = response.getEntity();
-        String content = EntityUtils.toString(entity);
-
-        return content;
+        return EntityUtils.toString(entity);
     }
-
 }
