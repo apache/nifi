@@ -229,7 +229,7 @@ public class StandardOracleCDCService extends AbstractControllerService implemen
                     lastPosition, xstreamOut.getDeclaredField("DEFAULT_MODE").getInt(null));
             return xsOut;
         } catch (Exception e) {
-        	getLogger().error("cannot attach to outbound server: " + xsOutName +" "+e.getMessage());
+            getLogger().error("cannot attach to outbound server: " + xsOutName +" "+e.getMessage());
             throw new ProcessException("cannot attach to outbound server: " + xsOutName);
         }
     }
