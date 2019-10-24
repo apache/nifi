@@ -420,9 +420,9 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
 
                     final ValidationStatus validationStatus = getValidationStatus();
                     if (validationStatus != ValidationStatus.VALID) {
-                        LOG.debug("Cannot enable {} because it is not currently valid. Will try again in 5 seconds", StandardControllerServiceNode.this);
-                        scheduler.schedule(this, 5, TimeUnit.SECONDS);
-                        future.completeExceptionally(new ControllerServiceNotValidException(this + " cannot be enabled because it is not currently valid. Will try again in 5 seconds."));
+                        LOG.debug("Cannot enable {} because it is not currently valid. (Validation State is {}). Will try again in 1 second", StandardControllerServiceNode.this, getValidationState());
+                        scheduler.schedule(this, 1, TimeUnit.SECONDS);
+                        future.complete(null);
                         return;
                     }
 
@@ -569,19 +569,14 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
 
     @Override
     public String toString() {
-        String bundleCoordinate;
-        try {
-            bundleCoordinate = controllerServiceHolder.get().getBundleCoordinate().toString();
-        } catch (NullPointerException e) {
-            bundleCoordinate = "null";
-        }
-        return "StandardControllerServiceNode{" +
-                "controllerServiceHolder=" + bundleCoordinate +
+        final ControllerServiceDetails details = controllerServiceHolder.get();
+        final String bundleCoordinate = details == null ? "null" : String.valueOf(details.getBundleCoordinate());
+        return "StandardControllerServiceNode[" +
+                "service=" + super.toString() +
                 ", versionedComponentId=" + versionedComponentId +
-                ", comment='" + comment + '\'' +
                 ", processGroup=" + processGroup +
                 ", active=" + active +
-                '}';
+                ']';
     }
 
     @Override
