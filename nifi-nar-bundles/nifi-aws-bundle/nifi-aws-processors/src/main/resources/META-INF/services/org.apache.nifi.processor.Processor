@@ -17,6 +17,7 @@ org.apache.nifi.processors.aws.s3.PutS3Object
 org.apache.nifi.processors.aws.s3.DeleteS3Object
 org.apache.nifi.processors.aws.s3.TagS3Object
 org.apache.nifi.processors.aws.s3.ListS3
+org.apache.nifi.processors.aws.s3.ListMultipleS3Buckets
 org.apache.nifi.processors.aws.sns.PutSNS
 org.apache.nifi.processors.aws.sqs.GetSQS
 org.apache.nifi.processors.aws.sqs.PutSQS

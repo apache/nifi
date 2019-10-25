@@ -17,6 +17,8 @@
 package org.apache.nifi.processors.aws.s3;
 
 import com.amazonaws.services.s3.AmazonS3Client;
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -46,9 +48,12 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static org.apache.nifi.processors.aws.s3.ListMultipleS3Buckets.ACCESS_KEY;
 import static org.apache.nifi.processors.aws.s3.ListMultipleS3Buckets.AWS_CREDENTIALS_PROVIDER_SERVICE;
@@ -94,6 +99,8 @@ import static org.mockito.Mockito.when;
 
 public class TestListMultipleS3Buckets {
     private AmazonS3Client mockS3Client = null;
+
+    private static final Logger logger = LoggerFactory.getLogger(TestListMultipleS3Buckets.class);
 
     @Before
     public void setUp() {
@@ -910,6 +917,67 @@ public class TestListMultipleS3Buckets {
         assertTrue(pd.contains(REQUESTER_PAYS));
     }
 
+    /* A Test to be used solely for the purpose of determining approximately
+     * what is the maximum number of buckets that can be successfully persisted in the StateMap.
+     *  <b>Assumptions:</b>
+     *     1. Each bucket consists of 3 file/object entries, named:
+     *         - objectOne  (9 chars long)
+     *         - thisIsVeryLongFileName123-000-798-KittyCatZZq (45 chars)
+     *         - someOtherObject88970 (20 chars)
+     *
+     *     2. Buckets will be named following this naming convention:
+     *          bucket-0, bucket-1, bucket-2, ...
+     *
+     *     3.Note that to measure the size of the serialized StateMap value, I have "borrowed" the
+     *      implementation from the current 1.10.0-SNAPSHOT version of the nifi-framework-core
+     *      (in the org.apache.nifi.controller.state.providers.zookeeper.ZooKeeperStateProvider class)
+     *
+     *     4. Max StateMap serialized Size = 1,000,000 bytes (1MB)
+     *
+     * NOTE: we are ignoring this "TEst" here. uncomment the @Test annotation to run it yourself.
+     * @See https://github.com/apache/nifi/blob/master/nifi-nar-bundles/nifi-framework-bundle/nifi-framework/nifi-framework-core/src/main/java/org/apache/nifi/controller/state/providers/zookeeper/ZooKeeperStateProvider.java
+     *    for the implementation of serialize() that we are using here
+     *
+     * @See http://nifi.apache.org/docs/nifi-docs/html/developer-guide.html#state_manager:
+     *    "As such, the entire State Map must be less than 1 MB in size, after being serialized."
+     *
+     *   Result: According to this test, with the above assumptions ->
+     *      MAX Bucket Size = 4698 buckets
+     */
+    @Ignore
+    //@Test
+    public void findMaxBucketSize() throws Exception {
+        String fileOne = "objectOne";
+        String fileTwo = "thisIsVeryLongFileName123-000-798-KittyCatZZq";
+        String fileThree = "someOtherObject88970";
+        String firstBucketName = "bucket-" + 0;
+
+        System.out.println("====== ** Find Max Bucket Size Test ** ======");
+        String timeStampStr = "1571855408843";  // = Approx 2:30pm on 10/23/2019
+        Map<String, String> stateMap = getStateMapWithThreeFileEntriesOneBucket(
+                firstBucketName, timeStampStr, fileOne, fileTwo, fileThree);
+
+        int oneMegabyte = 1000000;
+        int bucketNum = 1;
+        int currentMapSize = 0;
+        String bucketName = "";
+        while (bucketNum < 4698) {
+            bucketName = "bucket-" + bucketNum;
+            stateMap = addNewBucketContentToStateMap(stateMap, bucketName,
+                    timeStampStr, fileOne, fileTwo, fileThree);
+            byte[] serializedBytes = serialize(stateMap);
+            currentMapSize = serializedBytes.length;
+            if (currentMapSize > oneMegabyte) {
+                break;
+            }
+            bucketNum++;
+        }
+
+        System.out.println("=========== Serialized StateMap ==========");
+        System.out.println(" -> Size: " + currentMapSize);
+        System.out.println("Maxed Out StateMap -> BucketNum: " + bucketNum + "| bucketName: " + bucketName);
+    }
+
     private void doFlowfileOneAttributeAsserts(List<MockFlowFile> outputFlowFiles, String lastModifiedTimestamp) {
         MockFlowFile ff0 = outputFlowFiles.get(0);
         ff0.assertAttributeEquals(ATTRIBUTE_FILENAME, DEFAULT_KEY_1);
@@ -994,15 +1062,42 @@ public class TestListMultipleS3Buckets {
         attrs.put(ATTRIBUTE_S3_BUCKET, bucketName);
         return attrs;
     }
+    private Map<String,String> getStateMapWithThreeFileEntriesOneBucket(String bucketName,
+                                                                        String timeStampStr, String objectOne,
+                                                                        String objectTwo, String objectThree) throws IOException {
 
-    private String setupStateMgrWithOneFileEntry(TestRunner runner, String bucketName, Date oldObjLastModTime, String oldObjectName) throws IOException {
         Map<String,String> stateMap = new HashMap<>();
-        String previousTimestamp = String.valueOf(oldObjLastModTime.getTime());
+        return addNewBucketContentToStateMap(stateMap, bucketName, timeStampStr,
+                objectOne, objectTwo, objectThree);
+    }
+
+    private Map<String,String> addNewBucketContentToStateMap(Map<String,String> stateMap, String bucketName,
+                                                             String timeStampStr, String objectOne,
+                                                             String objectTwo, String objectThree) throws IOException {
+
+        final String timestampKey = bucketName + STATE_MGMT_KEY_DELIMITER + CURRENT_TIMESTAMP;
+        final String objectKeyOne = bucketName + STATE_MGMT_KEY_DELIMITER + CURRENT_KEY_PREFIX + 0;
+        final String objectKeyTwo = bucketName + STATE_MGMT_KEY_DELIMITER + CURRENT_KEY_PREFIX + 1;
+        final String objectKeyThree = bucketName + STATE_MGMT_KEY_DELIMITER + CURRENT_KEY_PREFIX + 2;
+        final String bucketCountKey = bucketName + STATE_MGMT_KEY_DELIMITER + COUNT;
+        stateMap.put(timestampKey, timeStampStr);
+        stateMap.put(objectKeyOne, objectOne);
+        stateMap.put(objectKeyTwo, objectTwo);
+        stateMap.put(objectKeyThree, objectThree);
+        stateMap.put(bucketCountKey, String.valueOf(3));
+        return stateMap;
+    }
+
+    private String setupStateMgrWithOneFileEntry(TestRunner runner, String bucketName,
+                                                 Date objLastModTime, String objectName) throws IOException {
+
+        Map<String,String> stateMap = new HashMap<>();
+        String previousTimestamp = String.valueOf(objLastModTime.getTime());
         final String timestampKey = bucketName + STATE_MGMT_KEY_DELIMITER + CURRENT_TIMESTAMP;
         final String stateMapObjectKey = bucketName + STATE_MGMT_KEY_DELIMITER + CURRENT_KEY_PREFIX + 0;
         final String bucketCountKey = bucketName + STATE_MGMT_KEY_DELIMITER + COUNT;
         stateMap.put(timestampKey, previousTimestamp);
-        stateMap.put(stateMapObjectKey, oldObjectName);
+        stateMap.put(stateMapObjectKey, objectName);
         stateMap.put(bucketCountKey, String.valueOf(1));        //object "minus-3hour" is already in the StateMap
         runner.getStateManager().setState(stateMap, Scope.CLUSTER);
         return timestampKey;
@@ -1057,5 +1152,29 @@ public class TestListMultipleS3Buckets {
         Calendar calendar = Calendar.getInstance();
         calendar.set(2019, 7, 2);
         return calendar.getTime();
+    }
+
+    //NOTE: utility method to be used for Max Buckets computation
+    private static final byte ENCODING_VERSION = 1;
+    private byte[] serialize(final Map<String, String> stateValues) throws IOException {
+        try (final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+             final DataOutputStream dos = new DataOutputStream(baos)) {
+            dos.writeByte(ENCODING_VERSION);
+            dos.writeInt(stateValues.size());
+            for (final Map.Entry<String, String> entry : stateValues.entrySet()) {
+                final boolean hasKey = entry.getKey() != null;
+                final boolean hasValue = entry.getValue() != null;
+                dos.writeBoolean(hasKey);
+                if (hasKey) {
+                    dos.writeUTF(entry.getKey());
+                }
+
+                dos.writeBoolean(hasValue);
+                if (hasValue) {
+                    dos.writeUTF(entry.getValue());
+                }
+            }
+            return baos.toByteArray();
+        }
     }
 }

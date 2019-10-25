@@ -73,10 +73,12 @@ import com.amazonaws.services.s3.AmazonS3;
 @TriggerWhenEmpty
 @InputRequirement(Requirement.INPUT_ALLOWED)
 @Tags({"Amazon", "S3", "AWS", "list", "watch", "buckets"})
-@CapabilityDescription("Watches objects in one or more S3 buckets based on the 'Bucket' property, which supports Expression Language with FlowFile Attributes. "
+@CapabilityDescription("Retrieves the List of objects in one or more S3 buckets based on the 'Bucket' property, which supports Expression Language with FlowFile Attributes. "
         + " For each found object, creates a output FlowFile that represents the object so that it can be fetched in conjunction with FetchS3Object. "
         + "This Processor is designed to run on Primary Node only in a cluster. "
-        + "If the primary node changes, the new Primary Node will pick up where the previous node left off without duplicating all of the data.")
+        + "If the primary node changes, the new Primary Node will pick up where the previous node left off without duplicating all of the data." +
+        " NOTE: For an estimate of the Maximum number of buckets, please see TestListMultipleS3Buckets.findMaxBucketSize(). " +
+        " In short, given assumption of 3 objects per bucket -> Approximate MAX Bucket Size = 4698 buckets")
 @Stateful(scopes = Scope.CLUSTER, description = "After retrieving a listing of S3 Objects(keys), the timestamp of the newest key is stored, "
         + "along with a bucket-specific (object) key that share that same timestamp. "
         + "This allows the Processor to list only keys that have been added or modified after this date the next time that the Processor is run. "
