@@ -62,5 +62,19 @@ public class DependentControllerServiceIT extends NiFiSystemIT {
         updateReferencesEntity.setReferencingComponentRevisions(referenceRevisions);
         updateReferencesEntity.setState("ENABLED");
         getNifiClient().getControllerServicesClient().updateControllerServiceReferences(updateReferencesEntity);
+
+        getClientUtil().waitForControllerSerivcesEnabled("root");
+
+        // Disable the referencing services.
+        updateReferencesEntity.setState("DISABLED");
+        getNifiClient().getControllerServicesClient().updateControllerServiceReferences(updateReferencesEntity);
+        getClientUtil().waitForControllerSerivcesDisabled("root", referencingService.getId());
+
+        // Disable the Sleep On Validation Service.
+        runStatusEntity.setState("DISABLED");
+        getNifiClient().getControllerServicesClient().activateControllerService(sleepOnValidation.getId(), runStatusEntity);
+
+        // Wait for all services to become disabled.
+        getClientUtil().waitForControllerSerivcesDisabled("root");
     }
 }

@@ -31,11 +31,13 @@ import org.apache.nifi.web.api.dto.ConnectionDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.CounterDTO;
 import org.apache.nifi.web.api.dto.CountersSnapshotDTO;
+import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 import org.apache.nifi.web.api.dto.NodeDTO;
 import org.apache.nifi.web.api.dto.ParameterContextDTO;
 import org.apache.nifi.web.api.dto.ParameterContextReferenceDTO;
 import org.apache.nifi.web.api.dto.ParameterDTO;
 import org.apache.nifi.web.api.dto.PortDTO;
+import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
@@ -62,10 +64,14 @@ import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ScheduleComponentsEntity;
+import org.junit.Assert;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -353,7 +359,43 @@ public class NiFiClientUtil {
         final ScheduleComponentsEntity scheduleComponentsEntity = new ScheduleComponentsEntity();
         scheduleComponentsEntity.setId("root");
         scheduleComponentsEntity.setState("STOPPED");
-        return nifiClient.getFlowClient().scheduleProcessGroupComponents("root", scheduleComponentsEntity);
+        final ScheduleComponentsEntity scheduleEntity = nifiClient.getFlowClient().scheduleProcessGroupComponents("root", scheduleComponentsEntity);
+        waitForProcessorsStopped("root");
+
+        return scheduleEntity;
+    }
+
+    private void waitForProcessorsStopped(final String groupId) throws IOException, NiFiClientException {
+        final ProcessGroupFlowEntity rootGroup = nifiClient.getFlowClient().getProcessGroup(groupId);
+        final FlowDTO rootFlowDTO = rootGroup.getProcessGroupFlow().getFlow();
+        for (final ProcessorEntity processor : rootFlowDTO.getProcessors()) {
+            try {
+                waitForStoppedProcessor(processor.getId());
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new NiFiClientException("Interrupted while waiting for Processor with ID " + processor.getId() + " to stop");
+            }
+        }
+
+        for (final ProcessGroupEntity group : rootFlowDTO.getProcessGroups()) {
+            waitForProcessorsStopped(group.getComponent());
+        }
+    }
+
+    private void waitForProcessorsStopped(final ProcessGroupDTO group) throws IOException, NiFiClientException {
+        final FlowSnippetDTO groupContents = group.getContents();
+        for (final ProcessorDTO processor : groupContents.getProcessors()) {
+            try {
+                waitForStoppedProcessor(processor.getId());
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new NiFiClientException("Interrupted while waiting for Processor with ID " + processor.getId() + " to stop");
+            }
+        }
+
+        for (final ProcessGroupDTO child : groupContents.getProcessGroups()) {
+            waitForProcessorsStopped(child);
+        }
     }
 
     public void stopTransmitting(final String processGroupId) throws NiFiClientException, IOException {
@@ -374,7 +416,48 @@ public class NiFiClientUtil {
         activateControllerServicesEntity.setId(groupId);
         activateControllerServicesEntity.setState(ActivateControllerServicesEntity.STATE_DISABLED);
 
-        return nifiClient.getFlowClient().activateControllerServices(activateControllerServicesEntity);
+        final ActivateControllerServicesEntity activateControllerServices = nifiClient.getFlowClient().activateControllerServices(activateControllerServicesEntity);
+        waitForControllerSerivcesDisabled(groupId);
+
+        return activateControllerServices;
+    }
+
+    public void waitForControllerSerivcesDisabled(final String groupId, final String... serviceIdsOfInterest) throws NiFiClientException, IOException {
+        waitForControllerServiceState(groupId, "DISABLED", Arrays.asList(serviceIdsOfInterest));
+    }
+
+    public void waitForControllerSerivcesEnabled(final String groupId, final String... serviceIdsOfInterest) throws NiFiClientException, IOException {
+        waitForControllerServiceState(groupId, "ENABLED", Arrays.asList(serviceIdsOfInterest));
+    }
+
+    public void waitForControllerServiceState(final String groupId, final String desiredState, final Collection<String> serviceIdsOfInterest) throws NiFiClientException, IOException {
+        while (true) {
+            final List<ControllerServiceEntity> nonDisabledServices = getControllerServicesNotInState(groupId, desiredState, serviceIdsOfInterest);
+            if (nonDisabledServices.isEmpty()) {
+                System.out.println(String.format("All Controller Services in Process Group %s now have desired state of %s", groupId, desiredState));
+                return;
+            }
+
+            final ControllerServiceEntity entity = nonDisabledServices.get(0);
+            System.out.println(String.format("Controller Service with ID %s and type %s has a State of %s while waiting for state of %s; will wait 500 millis and check again", entity.getId(),
+                entity.getComponent().getType(), entity.getComponent().getState(), desiredState));
+
+            try {
+                Thread.sleep(500L);
+            } catch (final Exception e) {
+                e.printStackTrace();
+                Assert.fail(e.toString());
+            }
+        }
+    }
+
+    public List<ControllerServiceEntity> getControllerServicesNotInState(final String groupId, final String desiredState, final Collection<String> serviceIds) throws NiFiClientException, IOException {
+        final ControllerServicesEntity servicesEntity = nifiClient.getFlowClient().getControllerServices(groupId);
+
+        return servicesEntity.getControllerServices().stream()
+            .filter(svc -> serviceIds == null || serviceIds.isEmpty() || serviceIds.contains(svc.getId()))
+            .filter(svc -> !desiredState.equals(svc.getStatus().getRunStatus()))
+            .collect(Collectors.toList());
     }
 
     public void deleteAll(final String groupId) throws NiFiClientException, IOException {
