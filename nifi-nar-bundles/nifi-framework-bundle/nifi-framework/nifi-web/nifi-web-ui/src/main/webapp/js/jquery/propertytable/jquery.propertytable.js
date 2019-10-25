@@ -29,6 +29,7 @@
                 'nf.Storage',
                 'nf.Client',
                 'nf.ErrorHandler',
+                'nf.ProcessGroup',
                 'nf.ProcessGroupConfiguration',
                 'nf.Settings',
                 'nf.ParameterContexts',
@@ -41,6 +42,7 @@
                       nfStorage,
                       nfClient,
                       nfErrorHandler,
+                      nfProcessGroup,
                       nfProcessGroupConfiguration,
                       nfSettings,
                       nfParameterContexts,
@@ -53,6 +55,7 @@
                     nfStorage,
                     nfClient,
                     nfErrorHandler,
+                    nfProcessGroup,
                     nfProcessGroupConfiguration,
                     nfSettings,
                     nfParameterContexts,
@@ -67,6 +70,7 @@
             require('nf.Storage'),
             require('nf.Client'),
             require('nf.ErrorHandler'),
+            require('nf.ProcessGroup'),
             require('nf.ProcessGroupConfiguration'),
             require('nf.Settings'),
             recuire('nf.ParameterContexts'),
@@ -80,6 +84,7 @@
             root.nf.Storage,
             root.nf.Client,
             root.nf.ErrorHandler,
+            root.nf.ProcessGroup,
             root.nf.ProcessGroupConfiguration,
             root.nf.Settings,
             root.nf.ParameterContexts,
@@ -93,6 +98,7 @@
                   nfStorage,
                   nfClient,
                   nfErrorHandler,
+                  nfProcessGroup,
                   nfProcessGroupConfiguration,
                   nfSettings,
                   nfParameterContexts,
@@ -1514,15 +1520,17 @@
                 var controllerService = controllerServiceEntity.component;
                 $.Deferred(function (deferred) {
                     if (nfCommon.isDefinedAndNotNull(controllerService.parentGroupId)) {
-                        if ($('#process-group-configuration').is(':visible')) {
-                            nfProcessGroupConfiguration.loadConfiguration(controllerService.parentGroupId).done(function () {
-                                deferred.resolve();
-                            });
-                        } else {
-                            nfProcessGroupConfiguration.showConfiguration(controllerService.parentGroupId).done(function () {
-                                deferred.resolve();
-                            });
-                        }
+                        nfProcessGroup.enterGroup(controllerService.parentGroupId).done(function () {
+                            if ($('#process-group-configuration').is(':visible')) {
+                                nfProcessGroupConfiguration.loadConfiguration(controllerService.parentGroupId).done(function () {
+                                    deferred.resolve();
+                                });
+                            } else {
+                                nfProcessGroupConfiguration.showConfiguration(controllerService.parentGroupId).done(function () {
+                                    deferred.resolve();
+                                });
+                            }
+                        });
                     } else {
                         if ($('#settings').is(':visible')) {
                             // reload the settings
