@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-xmlns="http://maven.apache.org/POM/4.0.0"
-xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 <!-- Licensed to the Apache Software Foundation (ASF) under one or more
         contributor license agreements. See the NOTICE file distributed with this
         work for additional information regarding copyright ownership. The ASF licenses
@@ -16,7 +14,7 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/ma
 <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-prometheus-bundle</artifactId>
-        <version>1.10.0-SNAPSHOT</version>
+        <version>1.10.0</version>
 </parent>
 <properties>
         <prometheus.version>0.3.0</prometheus.version>
@@ -29,7 +27,7 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/ma
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-metrics</artifactId>
-            <version>1.10.0-SNAPSHOT</version>
+            <version>1.10.0</version>
         </dependency>
         <dependency>
                 <groupId>org.apache.nifi</groupId>
@@ -38,22 +36,22 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/ma
         <dependency>
                <groupId>org.apache.nifi</groupId>
                <artifactId>nifi-utils</artifactId>
-               <version>1.10.0-SNAPSHOT</version>
+               <version>1.10.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-record-sink-api</artifactId>
-            <version>1.10.0-SNAPSHOT</version>
+            <version>1.10.0</version>
         </dependency>
     <dependency>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-record-serialization-service-api</artifactId>
-        <version>1.10.0-SNAPSHOT</version>
+        <version>1.10.0</version>
     </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-record</artifactId>
-            <version>1.10.0-SNAPSHOT</version>
+            <version>1.10.0</version>
         </dependency>
         <!-- The client -->
         <dependency>
@@ -76,23 +74,23 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/ma
         <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-mock</artifactId>
-                <version>1.10.0-SNAPSHOT</version>
+                <version>1.10.0</version>
                 <scope>test</scope>
         </dependency>
         <dependency>
                  <groupId>org.apache.nifi</groupId>
                  <artifactId>nifi-security-utils</artifactId>
-                 <version>1.10.0-SNAPSHOT</version>
+                 <version>1.10.0</version>
         </dependency>
         <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-ssl-context-service-api</artifactId>
-                 <version>1.10.0-SNAPSHOT</version>
+                 <version>1.10.0</version>
         </dependency>
         <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-standard-services-api-nar</artifactId>
-                <version>1.10.0-SNAPSHOT</version>
+                <version>1.10.0</version>
                 <type>nar</type>
         </dependency>
         <dependency>
