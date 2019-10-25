@@ -98,7 +98,6 @@ public final class SslContextFactory {
 
     private static boolean hasTruststoreProperties(final NiFiProperties props) {
         return (StringUtils.isNotBlank(props.getProperty(NiFiProperties.SECURITY_TRUSTSTORE))
-                && StringUtils.isNotBlank(props.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD))
                 && StringUtils.isNotBlank(props.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_TYPE)));
     }
 
