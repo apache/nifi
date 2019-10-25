@@ -529,7 +529,7 @@ class ScryptCipherProviderGroovyTest {
     @Test
     void testShouldFailPBoundary() throws Exception {
         // Arrange
-        // The p upper bound is calculated with the formula below:
+        // The p upper bound is calculated with the formula below, when r = 8:
         // pBoundary = ((Math.pow(2,32))-1) * (32.0/(r * 128)), where pBoundary = 134217727.96875;
         Map costParameters = [8:134217729, 128:8388608, 4096: 0]
 
@@ -539,23 +539,36 @@ class ScryptCipherProviderGroovyTest {
             [r, isValid]
         }
 
-        // results => [8: false, 128: false, 4096: false]
-
         // Assert
         results.each { r, isPValid ->
             logger.info("For r ${r}, p is ${isPValid}")
             assert !isPValid
         }
-
-
-
     }
-//    *****************************************************************
-//    public ScryptCipherProvider(int n, int r, int p) {
-//        this.n = n;
-//        this.r = r;
-//        this.p = p;
-//    }
+
+    @Test
+    void testShouldVerifyRValue() throws Exception {
+        // Arrange
+        final int r = 8;
+
+        // Act
+        boolean valid = ScryptCipherProvider.isRValid(r)
+
+        // Assert
+        assert valid
+    }
+
+    @Test
+    void testShouldFailRValue() throws Exception {
+        // Arrange
+        final int r = 0;
+
+        // Act
+        boolean valid = ScryptCipherProvider.isRValid(r)
+
+        // Assert
+        assert !valid
+    }
 
     @Test
     void testShouldValidateScryptCipherProviderPBoundary() throws Exception {
@@ -586,6 +599,23 @@ class ScryptCipherProviderGroovyTest {
 
         // Assert
         assert msg =~ "Invalid p value exceeds p boundary"
+    }
+
+    @Test
+    void testShouldCatchInvalidR() throws Exception {
+        // Arrange
+        final int n = 64;
+        final int r = 0;
+        final int p = 0;
+
+        // Act
+        def msg = shouldFail(IllegalArgumentException) {
+            ScryptCipherProvider testCipherProvider = new ScryptCipherProvider(n, r, p)
+        }
+        logger.expected(msg)
+
+        // Assert
+        assert msg =~ "Invalid r value; must be greater than 0"
     }
 
     @Ignore("This test can be run on a specific machine to evaluate if the default parameters are sufficient")
