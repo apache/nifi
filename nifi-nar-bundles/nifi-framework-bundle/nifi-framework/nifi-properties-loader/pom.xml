@@ -47,10 +47,6 @@
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-security-utils</artifactId>
         </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-security-utils</artifactId>
-        </dependency>
     </dependencies>
     <build>
         <!-- Required to run Groovy tests without any Java tests -->
