@@ -432,6 +432,20 @@
                         <exclude>src/test/resources/TestModifyBytes/noFooter_noHeader.txt</exclude>
                         <exclude>src/test/resources/TestModifyBytes/noHeader.txt</exclude>
                         <exclude>src/test/resources/TestModifyBytes/testFile.txt</exclude>
+                        <exclude>src/test/resources/TestReplaceText/ReplaceAll.txt</exclude>
+                        <exclude>src/test/resources/TestReplaceText/ReplaceAllResult.txt</exclude>
+                        <exclude>src/test/resources/TestReplaceText/ReplaceFirst.txt</exclude>
+                        <exclude>src/test/resources/TestReplaceText/ReplaceFirstResult.txt</exclude>
+                        <exclude>src/test/resources/TestReplaceText/ReplaceFirstLineByLine.txt</exclude>
+                        <exclude>src/test/resources/TestReplaceText/ReplaceFirstLineByLineExceptFirstLine.txt</exclude>
+                        <exclude>src/test/resources/TestReplaceText/ReplaceFirstLineByLineExceptFirstLineResult.txt</exclude>
+                        <exclude>src/test/resources/TestReplaceText/ReplaceFirstLineByLineExceptLastLine.txt</exclude>
+                        <exclude>src/test/resources/TestReplaceText/ReplaceFirstLineByLineExceptLastLineResult.txt</exclude>
+                        <exclude>src/test/resources/TestReplaceText/ReplaceFirstLineByLineFirstLine.txt</exclude>
+                        <exclude>src/test/resources/TestReplaceText/ReplaceFirstLineByLineFirstLineResult.txt</exclude>
+                        <exclude>src/test/resources/TestReplaceText/ReplaceFirstLineByLineLastLine.txt</exclude>
+                        <exclude>src/test/resources/TestReplaceText/ReplaceFirstLineByLineLastLineResult.txt</exclude>
+                        <exclude>src/test/resources/TestReplaceText/ReplaceFirstLineByLineResult.txt</exclude>
                         <exclude>src/test/resources/TestReplaceTextLineByLine/$1$1.txt</exclude>
                         <exclude>src/test/resources/TestReplaceTextLineByLine/BRue_cRue_RiRey.txt</exclude>
                         <exclude>src/test/resources/TestReplaceTextLineByLine/Blu$2e_clu$2e.txt</exclude>

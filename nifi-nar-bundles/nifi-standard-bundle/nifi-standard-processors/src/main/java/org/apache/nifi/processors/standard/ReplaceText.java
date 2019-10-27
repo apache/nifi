@@ -96,6 +96,8 @@ public class ReplaceText extends AbstractProcessor {
     public static final String regexReplaceValue = "Regex Replace";
     public static final String literalReplaceValue = "Literal Replace";
     public static final String alwaysReplace = "Always Replace";
+    public static final String replaceFirst = "Replace First";
+    public static final String replaceAll = "Replace All";
     private static final Pattern unescapedBackReferencePattern = Pattern.compile("[^\\\\]\\$(\\d+)");
     private static final String DEFAULT_REGEX = "(?s)(^.*$)";
     private static final String DEFAULT_REPLACEMENT_VALUE = "$1";
@@ -121,6 +123,12 @@ public class ReplaceText extends AbstractProcessor {
     static final AllowableValue ALWAYS_REPLACE = new AllowableValue(alwaysReplace, alwaysReplace,
         "Always replaces the entire line or the entire contents of the FlowFile (depending on the value of the <Evaluation Mode> property) and does not bother searching "
             + "for any value. When this strategy is chosen, the <Search Value> property is ignored.");
+    static final AllowableValue REPLACE_FIRST = new AllowableValue(replaceFirst, replaceFirst,
+            "Replaces the first occurrence of the Search Value and replaces the match with the Replacement Value. For \"Line-by-Line\" Evaluation Mode, "
+            + "the first match in a line will be replaced, depending on the detailed Evaluation Mode. For \"Entire Text \" the first overall match will be replaced.");
+    static final AllowableValue REPLACE_ALL = new AllowableValue(replaceAll, replaceAll,
+            "Replaces all occurrences of the Search Value and replaces all matches with the Replacement Value. Setting \"Line-by-Line\" or \"Entire Text\" "
+            + "will not have an effect on the result");
 
     public static final PropertyDescriptor SEARCH_VALUE = new PropertyDescriptor.Builder()
         .name("Regular Expression")
@@ -164,7 +172,7 @@ public class ReplaceText extends AbstractProcessor {
     public static final PropertyDescriptor REPLACEMENT_STRATEGY = new PropertyDescriptor.Builder()
         .name("Replacement Strategy")
         .description("The strategy for how and what to replace within the FlowFile's text content.")
-        .allowableValues(PREPEND, APPEND, REGEX_REPLACE, LITERAL_REPLACE, ALWAYS_REPLACE)
+        .allowableValues(PREPEND, APPEND, REGEX_REPLACE, LITERAL_REPLACE, ALWAYS_REPLACE, REPLACE_FIRST, REPLACE_ALL)
         .defaultValue(REGEX_REPLACE.getValue())
         .required(true)
         .build();
@@ -246,6 +254,8 @@ public class ReplaceText extends AbstractProcessor {
             case appendValue:
             case prependValue:
             case alwaysReplace:
+            case replaceFirst:
+            case replaceAll:
             default:
                 // nothing to check, search value is not used
                 break;
@@ -298,6 +308,12 @@ public class ReplaceText extends AbstractProcessor {
                 break;
             case alwaysReplace:
                 replacementStrategyExecutor = new AlwaysReplace();
+                break;
+            case replaceFirst:
+                replacementStrategyExecutor = new ReplaceFirst();
+                break;
+            case replaceAll:
+                replacementStrategyExecutor = new ReplaceAll();
                 break;
             default:
                 throw new AssertionError();
@@ -665,6 +681,63 @@ public class ReplaceText extends AbstractProcessor {
                     }));
             }
             return flowFile;
+        }
+
+        @Override
+        public boolean isAllDataBufferedForEntireText() {
+            return true;
+        }
+    }
+
+    /**
+     * Replaces the first occurrence of a search value within a flow file with the given replacement value. It can
+     * either be done line by line, meaning that the first occurrence within a line gets replaced, or for the entire
+     * text, where only the very first occurrence is replaced.
+     */
+    private class ReplaceFirst implements ReplacementStrategyExecutor {
+        @Override
+        public FlowFile replace(FlowFile flowFile, ProcessSession session, ProcessContext context, String evaluateMode,
+                Charset charset, int maxBufferSize) {
+            final String replacementValue = context.getProperty(REPLACEMENT_VALUE)
+                    .evaluateAttributeExpressions(flowFile).getValue();
+            final AttributeValueDecorator quotedAttributeDecorator = Pattern::quote;
+            final String searchValue = context.getProperty(SEARCH_VALUE)
+                    .evaluateAttributeExpressions(flowFile, quotedAttributeDecorator).getValue();
+
+            if (evaluateMode.equalsIgnoreCase(ENTIRE_TEXT)) {
+                flowFile = session.write(flowFile, (in, out) -> out.write(new String(IOUtils.toByteArray(in))
+                        .replaceFirst(searchValue, replacementValue).getBytes(charset)));
+            } else {
+                flowFile = session.write(flowFile, new StreamReplaceCallback(charset, maxBufferSize,
+                        context.getProperty(LINE_BY_LINE_EVALUATION_MODE).getValue(),
+                        (bw, oneLine) -> bw.write(oneLine.replaceFirst(searchValue, replacementValue))));
+            }
+
+            return flowFile;
+        }
+
+        @Override
+        public boolean isAllDataBufferedForEntireText() {
+            return true;
+        }
+    }
+
+    /**
+     * Replaces all occurrences of a search value within a flow file with the given replacement value.
+     * The evaluation mode doesn't matter, because the result would be the same for both line-by-line or entire text.
+     */
+    private class ReplaceAll implements ReplacementStrategyExecutor {
+        @Override
+        public FlowFile replace(FlowFile flowFile, ProcessSession session, ProcessContext context, String evaluateMode,
+                Charset charset, int maxBufferSize) {
+            final String replacementValue = context.getProperty(REPLACEMENT_VALUE)
+                    .evaluateAttributeExpressions(flowFile).getValue();
+            final AttributeValueDecorator quotedAttributeDecorator = Pattern::quote;
+            final String searchValue = context.getProperty(SEARCH_VALUE)
+                    .evaluateAttributeExpressions(flowFile, quotedAttributeDecorator).getValue();
+
+            return session.write(flowFile, (in, out) -> out.write(new String(IOUtils.toByteArray(in))
+                    .replaceAll(searchValue, replacementValue).getBytes(charset)));
         }
 
         @Override

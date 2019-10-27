@@ -1626,6 +1626,153 @@ public class TestReplaceText {
         Assert.assertTrue(outContent.equals("hi"));
     }
 
+    @Test
+    public void testReplaceFirstMultipleOccurrencesEntireText() throws IOException {
+        final TestRunner runner = getRunner();
+        runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.ENTIRE_TEXT);
+        runner.setProperty(ReplaceText.REPLACEMENT_STRATEGY, ReplaceText.REPLACE_FIRST);
+        runner.setProperty(ReplaceText.SEARCH_VALUE, "DODO");
+        runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "LOLO");
+
+        runner.enqueue(Paths.get("src/test/resources/TestReplaceText/ReplaceFirst.txt"));
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
+        out.assertContentEquals(translateNewLines(new File("src/test/resources/TestReplaceText/ReplaceFirstResult.txt")));
+    }
+
+    @Test
+    public void testReplaceFirstNoOccurrenceEntireText() throws IOException {
+        final TestRunner runner = getRunner();
+        runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.ENTIRE_TEXT);
+        runner.setProperty(ReplaceText.REPLACEMENT_STRATEGY, ReplaceText.REPLACE_FIRST);
+        runner.setProperty(ReplaceText.SEARCH_VALUE, "POLO");
+        runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "LOLO");
+
+        runner.enqueue(Paths.get("src/test/resources/TestReplaceText/ReplaceFirst.txt"));
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
+        out.assertContentEquals(translateNewLines(new File("src/test/resources/TestReplaceText/ReplaceFirst.txt")));
+    }
+
+    @Test
+    public void testReplaceFirstMultipleOccurrencesLineByLine() throws IOException {
+        final TestRunner runner = getRunner();
+        runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.LINE_BY_LINE);
+        runner.setProperty(ReplaceText.LINE_BY_LINE_EVALUATION_MODE, ReplaceText.ALL);
+        runner.setProperty(ReplaceText.REPLACEMENT_STRATEGY, ReplaceText.REPLACE_FIRST);
+        runner.setProperty(ReplaceText.SEARCH_VALUE, "DODO");
+        runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "LOLO");
+
+        runner.enqueue(Paths.get("src/test/resources/TestReplaceText/ReplaceFirstLineByLine.txt"));
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
+        out.assertContentEquals(translateNewLines(new File("src/test/resources/TestReplaceText/ReplaceFirstLineByLineResult.txt")));
+    }
+
+    @Test
+    public void testReplaceFirstMultipleOccurrencesLineByLineFirstLineReplacement() throws IOException {
+        final TestRunner runner = getRunner();
+        runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.LINE_BY_LINE);
+        runner.setProperty(ReplaceText.LINE_BY_LINE_EVALUATION_MODE, ReplaceText.FIRST_LINE);
+        runner.setProperty(ReplaceText.REPLACEMENT_STRATEGY, ReplaceText.REPLACE_FIRST);
+        runner.setProperty(ReplaceText.SEARCH_VALUE, "HEADER");
+        runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "LOLO");
+
+        runner.enqueue(Paths.get("src/test/resources/TestReplaceText/ReplaceFirstLineByLineFirstLine.txt"));
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
+        out.assertContentEquals(translateNewLines(new File("src/test/resources/TestReplaceText/ReplaceFirstLineByLineFirstLineResult.txt")));
+    }
+
+    @Test
+    public void testReplaceFirstMultipleOccurrencesLineByLineLastLineReplacement() throws IOException {
+        final TestRunner runner = getRunner();
+        runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.LINE_BY_LINE);
+        runner.setProperty(ReplaceText.LINE_BY_LINE_EVALUATION_MODE, ReplaceText.LAST_LINE);
+        runner.setProperty(ReplaceText.REPLACEMENT_STRATEGY, ReplaceText.REPLACE_FIRST);
+        runner.setProperty(ReplaceText.SEARCH_VALUE, "FOOTER");
+        runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "LOLO");
+
+        runner.enqueue(Paths.get("src/test/resources/TestReplaceText/ReplaceFirstLineByLineLastLine.txt"));
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
+        out.assertContentEquals(translateNewLines(new File("src/test/resources/TestReplaceText/ReplaceFirstLineByLineLastLineResult.txt")));
+    }
+
+    @Test
+    public void testReplaceFirstMultipleOccurrencesLineByLineExceptFirstLineReplacement() throws IOException {
+        final TestRunner runner = getRunner();
+        runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.LINE_BY_LINE);
+        runner.setProperty(ReplaceText.LINE_BY_LINE_EVALUATION_MODE, ReplaceText.EXCEPT_FIRST_LINE);
+        runner.setProperty(ReplaceText.REPLACEMENT_STRATEGY, ReplaceText.REPLACE_FIRST);
+        runner.setProperty(ReplaceText.SEARCH_VALUE, "DODO");
+        runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "LOLO");
+
+        runner.enqueue(Paths.get("src/test/resources/TestReplaceText/ReplaceFirstLineByLineExceptFirstLine.txt"));
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
+        out.assertContentEquals(translateNewLines(new File("src/test/resources/TestReplaceText/ReplaceFirstLineByLineExceptFirstLineResult.txt")));
+    }
+
+    @Test
+    public void testReplaceFirstMultipleOccurrencesLineByLineExceptLastLineReplacement() throws IOException {
+        final TestRunner runner = getRunner();
+        runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.LINE_BY_LINE);
+        runner.setProperty(ReplaceText.LINE_BY_LINE_EVALUATION_MODE, ReplaceText.EXCEPT_LAST_LINE);
+        runner.setProperty(ReplaceText.REPLACEMENT_STRATEGY, ReplaceText.REPLACE_FIRST);
+        runner.setProperty(ReplaceText.SEARCH_VALUE, "DODO");
+        runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "LOLO");
+
+        runner.enqueue(Paths.get("src/test/resources/TestReplaceText/ReplaceFirstLineByLineExceptLastLine.txt"));
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
+        out.assertContentEquals(translateNewLines(new File("src/test/resources/TestReplaceText/ReplaceFirstLineByLineExceptLastLineResult.txt")));
+    }
+
+    @Test
+    public void testReplaceAllMultipleOccurrences() throws IOException {
+        final TestRunner runner = getRunner();
+        runner.setProperty(ReplaceText.REPLACEMENT_STRATEGY, ReplaceText.REPLACE_ALL);
+        runner.setProperty(ReplaceText.SEARCH_VALUE, "DODO");
+        runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "LOLO");
+
+        runner.enqueue(Paths.get("src/test/resources/TestReplaceText/ReplaceAll.txt"));
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
+        out.assertContentEquals(translateNewLines(new File("src/test/resources/TestReplaceText/ReplaceAllResult.txt")));
+    }
+
+    @Test
+    public void testReplaceAllNoOccurrence() throws IOException {
+        final TestRunner runner = getRunner();
+        runner.setProperty(ReplaceText.REPLACEMENT_STRATEGY, ReplaceText.REPLACE_ALL);
+        runner.setProperty(ReplaceText.SEARCH_VALUE, "POLO");
+        runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "LOLO");
+
+        runner.enqueue(Paths.get("src/test/resources/TestReplaceText/ReplaceAll.txt"));
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
+        out.assertContentEquals(translateNewLines(new File("src/test/resources/TestReplaceText/ReplaceAll.txt")));
+    }
+
     private String translateNewLines(final File file) throws IOException {
         return translateNewLines(file.toPath());
     }
