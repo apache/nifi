@@ -14,7 +14,7 @@
 <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-prometheus-bundle</artifactId>
-        <version>1.10.0</version>
+        <version>1.10.1-SNAPSHOT</version>
 </parent>
 <properties>
         <prometheus.version>0.3.0</prometheus.version>
@@ -27,7 +27,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-metrics</artifactId>
-            <version>1.10.0</version>
+            <version>1.10.1-SNAPSHOT</version>
         </dependency>
         <dependency>
                 <groupId>org.apache.nifi</groupId>
@@ -36,22 +36,22 @@
         <dependency>
                <groupId>org.apache.nifi</groupId>
                <artifactId>nifi-utils</artifactId>
-               <version>1.10.0</version>
+               <version>1.10.1-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-record-sink-api</artifactId>
-            <version>1.10.0</version>
+            <version>1.10.1-SNAPSHOT</version>
         </dependency>
     <dependency>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-record-serialization-service-api</artifactId>
-        <version>1.10.0</version>
+        <version>1.10.1-SNAPSHOT</version>
     </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-record</artifactId>
-            <version>1.10.0</version>
+            <version>1.10.1-SNAPSHOT</version>
         </dependency>
         <!-- The client -->
         <dependency>
@@ -74,23 +74,23 @@
         <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-mock</artifactId>
-                <version>1.10.0</version>
+                <version>1.10.1-SNAPSHOT</version>
                 <scope>test</scope>
         </dependency>
         <dependency>
                  <groupId>org.apache.nifi</groupId>
                  <artifactId>nifi-security-utils</artifactId>
-                 <version>1.10.0</version>
+                 <version>1.10.1-SNAPSHOT</version>
         </dependency>
         <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-ssl-context-service-api</artifactId>
-                 <version>1.10.0</version>
+                 <version>1.10.1-SNAPSHOT</version>
         </dependency>
         <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-standard-services-api-nar</artifactId>
-                <version>1.10.0</version>
+                <version>1.10.1-SNAPSHOT</version>
                 <type>nar</type>
         </dependency>
         <dependency>

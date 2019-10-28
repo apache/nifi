@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-sql-reporting-bundle</artifactId>
-        <version>1.10.0</version>
+        <version>1.10.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-sql-reporting-tasks</artifactId>
@@ -37,27 +37,27 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-reporting-utils</artifactId>
-            <version>1.10.0</version>
+            <version>1.10.1-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-database-utils</artifactId>
-            <version>1.10.0</version>
+            <version>1.10.1-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-utils</artifactId>
-            <version>1.10.0</version>
+            <version>1.10.1-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-record</artifactId>
-            <version>1.10.0</version>
+            <version>1.10.1-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-record-sink-api</artifactId>
-            <version>1.10.0</version>
+            <version>1.10.1-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.calcite</groupId>
@@ -72,13 +72,13 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock</artifactId>
-            <version>1.10.0</version>
+            <version>1.10.1-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock-record-utils</artifactId>
-            <version>1.10.0</version>
+            <version>1.10.1-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
