@@ -489,7 +489,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                 currentSequenceId.set(seqIdProp.evaluateAttributeExpressions().asInteger());
             }
         } else {
-            currentSequenceId.set(Integer.parseInt(seqIdString));
+            currentSequenceId.set(Long.parseLong(seqIdString));
         }
 
         // Get reference to Distributed Cache if one exists. If it does not, no enrichment (resolution of column names, e.g.) will be performed

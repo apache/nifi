@@ -24,6 +24,7 @@ import java.util.concurrent.TimeUnit;
 
 import io.prometheus.client.SimpleCollector;
 import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.status.ConnectionStatus;
 import org.apache.nifi.controller.status.PortStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
@@ -33,8 +34,11 @@ import io.prometheus.client.CollectorRegistry;
 import io.prometheus.client.Gauge;
 import org.apache.nifi.controller.status.RemoteProcessGroupStatus;
 import org.apache.nifi.controller.status.TransmissionStatus;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.metrics.jvm.JvmMetrics;
 import org.apache.nifi.processor.DataUnit;
+import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.ssl.RestrictedSSLContextService;
 
 public class PrometheusMetricsUtil {
 
@@ -47,6 +51,54 @@ public class PrometheusMetricsUtil {
 
     private static final CollectorRegistry NIFI_REGISTRY = new CollectorRegistry();
     private static final CollectorRegistry JVM_REGISTRY = new CollectorRegistry();
+
+    // Common properties/values
+    public static final AllowableValue CLIENT_NONE = new AllowableValue("No Authentication", "No Authentication",
+            "ReportingTask will not authenticate clients. Anyone can communicate with this ReportingTask anonymously");
+    public static final AllowableValue CLIENT_WANT = new AllowableValue("Want Authentication", "Want Authentication",
+            "ReportingTask will try to verify the client but if unable to verify will allow the client to communicate anonymously");
+    public static final AllowableValue CLIENT_NEED = new AllowableValue("Need Authentication", "Need Authentication",
+            "ReportingTask will reject communications from any client unless the client provides a certificate that is trusted by the TrustStore"
+                    + "specified in the SSL Context Service");
+
+    public static final PropertyDescriptor METRICS_ENDPOINT_PORT = new PropertyDescriptor.Builder()
+            .name("prometheus-reporting-task-metrics-endpoint-port")
+            .displayName("Prometheus Metrics Endpoint Port")
+            .description("The Port where prometheus metrics can be accessed")
+            .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .defaultValue("9092")
+            .addValidator(StandardValidators.INTEGER_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor INSTANCE_ID = new PropertyDescriptor.Builder()
+            .name("prometheus-reporting-task-instance-id")
+            .displayName("Instance ID")
+            .description("Id of this NiFi instance to be included in the metrics sent to Prometheus")
+            .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .defaultValue("${hostname(true)}")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor SSL_CONTEXT = new PropertyDescriptor.Builder()
+            .name("prometheus-reporting-task-ssl-context")
+            .displayName("SSL Context Service")
+            .description("The SSL Context Service to use in order to secure the server. If specified, the server will"
+                    + "accept only HTTPS requests; otherwise, the server will accept only HTTP requests")
+            .required(false)
+            .identifiesControllerService(RestrictedSSLContextService.class)
+            .build();
+
+    public static final PropertyDescriptor CLIENT_AUTH = new PropertyDescriptor.Builder()
+            .name("prometheus-reporting-task-client-auth")
+            .displayName("Client Authentication")
+            .description("Specifies whether or not the Reporting Task should authenticate clients. This value is ignored if the <SSL Context Service> "
+                    + "Property is not specified or the SSL Context provided uses only a KeyStore and not a TrustStore.")
+            .required(true)
+            .allowableValues(CLIENT_NONE, CLIENT_WANT, CLIENT_NEED)
+            .defaultValue(CLIENT_NONE.getValue())
+            .build();
 
     // Processor / Process Group metrics
     private static final Gauge AMOUNT_FLOWFILES_SENT = Gauge.build()
