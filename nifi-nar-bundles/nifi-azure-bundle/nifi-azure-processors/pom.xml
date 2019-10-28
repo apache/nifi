@@ -49,6 +49,7 @@
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-azure-services-api</artifactId>
             <version>1.10.0-SNAPSHOT</version>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>com.microsoft.azure</groupId>
