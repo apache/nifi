@@ -37,20 +37,20 @@ public class RemoteProcessGroupIT extends NiFiSystemIT {
 
     @Test
     public void testRPGBackToSelfHttp() throws NiFiClientException, IOException, InterruptedException {
-        testRPGBackToSelf(SiteToSiteTransportProtocol.HTTP);
+        testRPGBackToSelf(SiteToSiteTransportProtocol.HTTP, "HttpIn");
     }
 
     @Test
     public void testRPGBackToSelfRaw() throws NiFiClientException, IOException, InterruptedException {
-        testRPGBackToSelf(SiteToSiteTransportProtocol.RAW);
+        testRPGBackToSelf(SiteToSiteTransportProtocol.RAW, "RawIn");
     }
 
 
-    protected void testRPGBackToSelf(final SiteToSiteTransportProtocol protocol) throws NiFiClientException, IOException, InterruptedException {
+    protected void testRPGBackToSelf(final SiteToSiteTransportProtocol protocol, final String portName) throws NiFiClientException, IOException, InterruptedException {
         final NiFiClientUtil util = getClientUtil();
 
         // Create a flow that is InputPort -> CountEvents
-        final PortEntity port = util.createRemoteInputPort("root", "In");
+        final PortEntity port = util.createRemoteInputPort("root", portName);
         final ProcessorEntity count = getClientUtil().createProcessor("CountEvents");
         util.setAutoTerminatedRelationships(count, "success");
 
@@ -89,7 +89,11 @@ public class RemoteProcessGroupIT extends NiFiSystemIT {
         });
 
         rpg = getNifiClient().getRemoteProcessGroupClient().getRemoteProcessGroup(rpg.getId());
-        final String rpgPortId = rpg.getComponent().getContents().getInputPorts().iterator().next().getId();
+        final String rpgPortId = rpg.getComponent().getContents().getInputPorts().stream()
+            .filter(dto -> dto.getTargetId().equals(port.getId()))
+            .findFirst() // find the port with the desired ID
+            .get() // get the Port
+            .getId(); // get the Port's ID
 
         final ConnectableDTO destination = new ConnectableDTO();
         destination.setId(rpgPortId);

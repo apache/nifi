@@ -71,10 +71,6 @@ import java.util.concurrent.atomic.AtomicReference;
 public class StandardRemoteGroupPort extends RemoteGroupPort {
 
     private static final long BATCH_SEND_NANOS = TimeUnit.MILLISECONDS.toNanos(500L); // send batches of up to 500 millis
-    public static final String USER_AGENT = "NiFi-Site-to-Site";
-    public static final String CONTENT_TYPE = "application/octet-stream";
-
-    public static final int GZIP_COMPRESSION_LEVEL = 1;
 
     private static final String CATEGORY = "Site to Site";
 
@@ -88,7 +84,6 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
     private final AtomicBoolean targetRunning = new AtomicBoolean(true);
     private final SSLContext sslContext;
     private final TransferDirection transferDirection;
-    private final NiFiProperties nifiProperties;
     private volatile String targetId;
 
     private final AtomicReference<SiteToSiteClient> clientRef = new AtomicReference<>();
@@ -109,7 +104,6 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
         this.remoteGroup = remoteGroup;
         this.transferDirection = direction;
         this.sslContext = sslContext;
-        this.nifiProperties = nifiProperties;
         setScheduldingPeriod(MINIMUM_SCHEDULING_NANOS + " nanos");
     }
 
@@ -157,7 +151,7 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
             try {
                 client.close();
             } catch (final IOException ioe) {
-                logger.warn("Failed to properly shutdown Site-to-Site Client due to {}", ioe);
+                logger.warn("Failed to properly shutdown Site-to-Site Client", ioe);
             }
         }
     }
@@ -226,7 +220,7 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
         }
 
         final SiteToSiteClient client = getSiteToSiteClient();
-        Transaction transaction = null;
+        final Transaction transaction;
         try {
             transaction = client.createTransaction(transferDirection);
         } catch (final NoValidPeerException e) {

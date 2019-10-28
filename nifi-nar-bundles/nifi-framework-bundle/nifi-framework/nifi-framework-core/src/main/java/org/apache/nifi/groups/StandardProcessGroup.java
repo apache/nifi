@@ -549,6 +549,8 @@ public final class StandardProcessGroup implements ProcessGroup {
             inputPorts.put(requireNonNull(port).getIdentifier(), port);
             flowManager.onInputPortAdded(port);
             onComponentModified();
+
+            LOG.info("Input Port {} added to {}", port, this);
         } finally {
             writeLock.unlock();
         }
@@ -624,12 +626,14 @@ public final class StandardProcessGroup implements ProcessGroup {
         writeLock.lock();
         try {
             // Unique port check within the same group.
-            verifyPortUniqueness(port, outputPorts, name -> getOutputPortByName(name));
+            verifyPortUniqueness(port, outputPorts, this::getOutputPortByName);
 
             port.setProcessGroup(this);
             outputPorts.put(port.getIdentifier(), port);
             flowManager.onOutputPortAdded(port);
             onComponentModified();
+
+            LOG.info("Output Port {} added to {}", port, this);
         } finally {
             writeLock.unlock();
         }
@@ -703,6 +707,8 @@ public final class StandardProcessGroup implements ProcessGroup {
             group.findAllProcessors().forEach(this::updateControllerServiceReferences);
 
             onComponentModified();
+
+            LOG.info("{} added to {}", group, this);
         } finally {
             writeLock.unlock();
         }
@@ -801,6 +807,8 @@ public final class StandardProcessGroup implements ProcessGroup {
             remoteGroup.setProcessGroup(this);
             remoteGroups.put(Objects.requireNonNull(remoteGroup).getIdentifier(), remoteGroup);
             onComponentModified();
+
+            LOG.info("{} added to {}", remoteGroup, this);
         } finally {
             writeLock.unlock();
         }
@@ -884,6 +892,8 @@ public final class StandardProcessGroup implements ProcessGroup {
             flowManager.onProcessorAdded(processor);
             updateControllerServiceReferences(processor);
             onComponentModified();
+
+            LOG.info("{} added to {}", processor, this);
         } finally {
             writeLock.unlock();
         }
@@ -1960,6 +1970,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             }
 
             onComponentModified();
+            LOG.info("{} added to {}", funnel, this);
         } finally {
             writeLock.unlock();
         }
