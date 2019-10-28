@@ -30,7 +30,8 @@ import java.util.Map;
         "This will allow multiple AzureStorageCredentialsServices to be defined and registered, and then selected dynamically at runtime by tagging flow files " +
         "with the appropriate 'azure.storage.credentials.name' attribute.")
 @DynamicProperty(name = "The name to register AzureStorageCredentialsService", value = "The AzureStorageCredentialsService",
-        description = "If '" + AzureStorageCredentialsControllerServiceLookup.AZURE_STORAGE_CREDENTIALS_NAME_ATTRIBUTE + "' attribute contains the name of the dynamic property, then the AzureStorageCredentialsService (registered in the value) will be selected.",
+        description = "If '" + AzureStorageCredentialsControllerServiceLookup.AZURE_STORAGE_CREDENTIALS_NAME_ATTRIBUTE + "' attribute contains " +
+                "the name of the dynamic property, then the AzureStorageCredentialsService (registered in the value) will be selected.",
         expressionLanguageScope = ExpressionLanguageScope.NONE)
 public class AzureStorageCredentialsControllerServiceLookup
         extends AbstractSingleAttributeBasedControllerServiceLookup<AzureStorageCredentialsService> implements AzureStorageCredentialsService {
