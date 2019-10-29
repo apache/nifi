@@ -34,6 +34,6 @@
         <module>nifi-oraclecdc-nar</module>
     	<module>nifi-oraclecdcservice-api-nar</module>
     	<module>nifi-oraclecdcservice-api</module>
-  </modules>
+    </modules>
 
 </project>

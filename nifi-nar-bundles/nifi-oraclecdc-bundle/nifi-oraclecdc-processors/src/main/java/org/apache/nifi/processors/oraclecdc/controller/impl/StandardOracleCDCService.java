@@ -161,15 +161,9 @@ public class StandardOracleCDCService extends AbstractControllerService implemen
         dataSource.setDriverClassLoader(clService.getClassLoader());
         this.driverClassLoader = clService.getClassLoader();
         final String dburl = "jdbc:oracle:oci:@" + host + ":" + port + ":" + dbSid;
-        // dataSource.setMaxWaitMillis(maxWaitMillis);
         dataSource.setMaxTotal(maxTotal);
         dataSource.setMinIdle(miIdle);
         dataSource.setMaxIdle(maxIdle);
-        // dataSource.setMaxConnLifetimeMillis(maxConnLifetimeMillis);
-        // dataSource.setTimeBetweenEvictionRunsMillis(timeBetweenEvictionRunsMillis);
-        // dataSource.setMinEvictableIdleTimeMillis(minEvictableIdleTimeMillis);
-        // dataSource.setSoftMinEvictableIdleTimeMillis(softMinEvictableIdleTimeMillis);
-
         dataSource.setUrl(dburl);
         dataSource.setUsername(user);
         dataSource.setPassword(passw);

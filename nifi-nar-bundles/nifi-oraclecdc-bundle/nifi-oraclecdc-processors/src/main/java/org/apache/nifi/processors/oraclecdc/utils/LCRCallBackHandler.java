@@ -22,6 +22,7 @@ import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.SimpleTimeZone;
 
 import org.apache.commons.codec.binary.Base32;
 import org.apache.nifi.processor.exception.ProcessException;
@@ -39,31 +40,25 @@ public class LCRCallBackHandler implements InvocationHandler {
     private OracleCDCEventHandler handler;
 
     public LCRCallBackHandler(ClassLoader classLoader, OracleCDCEventHandler handler) {
-        // TODO Auto-generated constructor stub
         this.classLoader = classLoader;
         this.processLCR = new ProcessLCR(classLoader);
         this.handler = handler;
     }
 
     public Object createChunk() throws Throwable {
-        // TODO Auto-generated method stub
         return null;
     }
 
     public Object createLCR() throws Throwable {
-        // TODO Auto-generated method stub
         return null;
     }
 
     public void processChunk(Object arg0) throws Throwable {
-        // TODO Auto-generated method stub
         System.out.println("in process chunk");
     }
 
     public void processLCR(Object alcr) throws Throwable {
-        // TODO Auto-generated method stub
         System.out.println("in process lcr");
-        // JsonObject jsonObj = processLCR.lcr2ff(alcr);
         try {
             JsonObject jsonObj = new JsonObject();
 
@@ -127,7 +122,6 @@ public class LCRCallBackHandler implements InvocationHandler {
 
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-        // TODO Auto-generated method stub
         switch (method.getName()) {
         case "processLCR":
             if (Class.forName("oracle.streams.RowLCR", false, this.classLoader).isAssignableFrom(args[0].getClass()))
@@ -139,8 +133,6 @@ public class LCRCallBackHandler implements InvocationHandler {
 
     protected final JsonObject convert(Object value) throws SQLException, Throwable {
         Object datum = getColumnValue(value, "getColumnData");
-        Class columnValue = Class.forName("oracle.streams.ColumnValue", false, this.classLoader);
-
         JsonObject column = new JsonObject();
         if (null == datum) {
             return null;
@@ -165,7 +157,7 @@ public class LCRCallBackHandler implements InvocationHandler {
             break;
         case 12:
             column.addProperty("type", "Date");
-            column.addProperty("value", new Date(parser.timeStampValue(Calendar.getInstance())).toGMTString());
+            column.addProperty("value", toGMTString(new Date(parser.timeStampValue(Calendar.getInstance()))));
             break;
         case 2:
             column.addProperty("type", "BigDecimal");
@@ -207,6 +199,13 @@ public class LCRCallBackHandler implements InvocationHandler {
         Class<?> columnCls = Class.forName("oracle.streams.ColumnValue", false, this.classLoader);
         return columnCls.getDeclaredField(typeName).getInt(null);
 
+    }
+
+    protected String toGMTString(Date date) {
+        SimpleDateFormat sdf = new SimpleDateFormat();
+        sdf.setTimeZone(new SimpleTimeZone(0, "GMT"));
+        sdf.applyPattern("dd MMM yyyy HH:mm:ss z");
+        return sdf.format(date);
     }
 
 }

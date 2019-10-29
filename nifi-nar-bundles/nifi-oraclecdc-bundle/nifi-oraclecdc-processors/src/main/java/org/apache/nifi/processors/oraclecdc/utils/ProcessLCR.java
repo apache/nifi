@@ -21,6 +21,7 @@ import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.SimpleTimeZone;
 
 import org.apache.commons.codec.binary.Base32;
 import org.apache.nifi.processor.exception.ProcessException;
@@ -68,8 +69,6 @@ public class ProcessLCR {
 
     protected final JsonObject convert(Object value) throws SQLException, Throwable {
         Object datum = getColumnValue(value, "getColumnData");
-        Class columnValue = Class.forName("oracle.streams.ColumnValue", false, this.classLoader);
-
         JsonObject column = new JsonObject();
         if (null == datum) {
             return null;
@@ -94,7 +93,7 @@ public class ProcessLCR {
             break;
         case 12:
             column.addProperty("type", "Date");
-            column.addProperty("value", new Date(parser.timeStampValue(Calendar.getInstance())).toGMTString());
+            column.addProperty("value", toGMTString(new Date(parser.timeStampValue(Calendar.getInstance()))));
             break;
         case 2:
             column.addProperty("type", "BigDecimal");
@@ -136,6 +135,13 @@ public class ProcessLCR {
         Class<?> columnCls = Class.forName("oracle.streams.ColumnValue", false, this.classLoader);
         return columnCls.getDeclaredField(typeName).getInt(null);
 
+    }
+
+    protected String toGMTString(Date date) {
+        SimpleDateFormat sdf = new SimpleDateFormat();
+        sdf.setTimeZone(new SimpleTimeZone(0, "GMT"));
+        sdf.applyPattern("dd MMM yyyy HH:mm:ss z");
+        return sdf.format(date);
     }
 
 }
