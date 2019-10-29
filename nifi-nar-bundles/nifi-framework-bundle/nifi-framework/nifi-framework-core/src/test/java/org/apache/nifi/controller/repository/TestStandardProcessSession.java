@@ -19,6 +19,7 @@ package org.apache.nifi.controller.repository;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
+import org.apache.nifi.controller.Counter;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.queue.NopConnectionEventListener;
@@ -112,6 +113,7 @@ public class TestStandardProcessSession {
 
     private ProvenanceEventRepository provenanceRepo;
     private MockFlowFileRepository flowFileRepo;
+    private CounterRepository counterRepository;
     private final Relationship FAKE_RELATIONSHIP = new Relationship.Builder().name("FAKE").build();
     private static StandardResourceClaimManager resourceClaimManager;
 
@@ -154,7 +156,7 @@ public class TestStandardProcessSession {
 
         System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, TestStandardProcessSession.class.getResource("/conf/nifi.properties").getFile());
         final FlowFileEventRepository flowFileEventRepo = Mockito.mock(FlowFileEventRepository.class);
-        final CounterRepository counterRepo = Mockito.mock(CounterRepository.class);
+        counterRepository = new StandardCounterRepository();
         provenanceRepo = new MockProvenanceRepository();
 
         final Connection connection = createConnection();
@@ -194,7 +196,7 @@ public class TestStandardProcessSession {
         contentRepo.initialize(new StandardResourceClaimManager());
         flowFileRepo = new MockFlowFileRepository(contentRepo);
 
-        context = new RepositoryContext(connectable, new AtomicLong(0L), contentRepo, flowFileRepo, flowFileEventRepo, counterRepo, provenanceRepo);
+        context = new RepositoryContext(connectable, new AtomicLong(0L), contentRepo, flowFileRepo, flowFileEventRepo, counterRepository, provenanceRepo);
         session = new StandardProcessSession(context, () -> false);
     }
 
@@ -294,6 +296,48 @@ public class TestStandardProcessSession {
 
         verify(conn1, times(1)).poll(any(Set.class));
         verify(conn2, times(1)).poll(any(Set.class));
+    }
+
+    @Test
+    public void testCheckpointMergesCounters() {
+        final Relationship relationship = new Relationship.Builder().name("A").build();
+
+        FlowFile flowFile = session.create();
+        session.transfer(flowFile, relationship);
+        session.adjustCounter("a", 1, false);
+        session.checkpoint();
+
+        flowFile = session.create();
+        session.transfer(flowFile, relationship);
+        session.adjustCounter("a", 1, false);
+        session.adjustCounter("b", 3, false);
+        session.checkpoint();
+
+        assertEquals(0, counterRepository.getCounters().size());
+        session.commit();
+
+        // We should have 2 different counters with the name "a" and 2 different counters with the name "b" -
+        // one for the "All Instances" context and one for the individual instance's context.
+        final List<Counter> counters = counterRepository.getCounters();
+        assertEquals(4, counters.size());
+
+        int aCounters = 0;
+        int bCounters = 0;
+        for (final Counter counter : counters) {
+            switch (counter.getName()) {
+                case "a":
+                    assertEquals(2, counter.getValue());
+                    aCounters++;
+                    break;
+                case "b":
+                    assertEquals(3, counter.getValue());
+                    bCounters++;
+                    break;
+            }
+        }
+
+        assertEquals(2, aCounters);
+        assertEquals(2, bCounters);
     }
 
     @Test
