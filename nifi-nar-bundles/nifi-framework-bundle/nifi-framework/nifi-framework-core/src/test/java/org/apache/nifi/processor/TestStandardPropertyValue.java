@@ -31,6 +31,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 
 
 public class TestStandardPropertyValue {
@@ -121,6 +122,18 @@ public class TestStandardPropertyValue {
         final FlowFile flowFile = new StandardFlowFileRecord.Builder().entryDate(now.getTimeInMillis()).build();
         final int val = value.evaluateAttributeExpressions(flowFile).asInteger().intValue();
         assertEquals(year, val);
+    }
+
+    @Test
+    public void testisExpressionLanguagePresentShouldHandleNPE() {
+        // Arrange
+        final PropertyValue value = new StandardPropertyValue(null, lookup, ParameterLookup.EMPTY, null, null);
+
+        // Act
+        boolean elPresent = value.isExpressionLanguagePresent();
+
+        // Assert
+        assertFalse(elPresent);
     }
 
     private FlowFile createFlowFile(final Map<String, String> attributes) {
