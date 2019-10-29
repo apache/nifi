@@ -20,9 +20,9 @@ package org.apache.nifi.processors.kafka.pubsub;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.kafka.pubsub.util.MockRecordParser;
-import org.apache.nifi.processors.kafka.pubsub.util.MockRecordWriter;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
+import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.RecordSet;
@@ -64,6 +64,7 @@ public class TestPublishKafkaRecord_1_0 {
     private PublisherLease mockLease;
     private TestRunner runner;
 
+    @SuppressWarnings("unchecked")
     @Before
     public void setup() throws InitializationException, IOException {
         mockPool = mock(PublisherPool.class);
@@ -99,6 +100,7 @@ public class TestPublishKafkaRecord_1_0 {
         runner.setProperty(PublishKafka_1_0.DELIVERY_GUARANTEE, PublishKafka_1_0.DELIVERY_REPLICATED);
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void testSingleSuccess() throws IOException {
         final MockFlowFile flowFile = runner.enqueue("John Doe, 48");
@@ -115,6 +117,7 @@ public class TestPublishKafkaRecord_1_0 {
         verify(mockLease, times(1)).close();
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void testMultipleSuccess() throws IOException {
         final Set<FlowFile> flowFiles = new HashSet<>();
@@ -134,6 +137,7 @@ public class TestPublishKafkaRecord_1_0 {
         verify(mockLease, times(1)).close();
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void testSingleFailure() throws IOException {
         final MockFlowFile flowFile = runner.enqueue("John Doe, 48");
@@ -149,6 +153,7 @@ public class TestPublishKafkaRecord_1_0 {
         verify(mockLease, times(1)).close();
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void testMultipleFailures() throws IOException {
         final Set<FlowFile> flowFiles = new HashSet<>();
@@ -167,6 +172,7 @@ public class TestPublishKafkaRecord_1_0 {
         verify(mockLease, times(1)).close();
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void testMultipleMessagesPerFlowFile() throws IOException {
         final List<FlowFile> flowFiles = new ArrayList<>();
@@ -201,6 +207,7 @@ public class TestPublishKafkaRecord_1_0 {
             .count());
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void testNoRecordsInFlowFile() throws IOException {
         final List<FlowFile> flowFiles = new ArrayList<>();
@@ -226,7 +233,7 @@ public class TestPublishKafkaRecord_1_0 {
         mff.assertAttributeEquals("msg.count", "0");
     }
 
-
+    @SuppressWarnings("unchecked")
     @Test
     public void testSomeSuccessSomeFailure() throws IOException {
         final List<FlowFile> flowFiles = new ArrayList<>();
@@ -295,7 +302,7 @@ public class TestPublishKafkaRecord_1_0 {
             @Override
             public int getSuccessfulMessageCount(FlowFile flowFile) {
                 Integer count = msgCounts.get(flowFile);
-                return count == null ? 0 : count.intValue();
+                return count == null ? 0 : count;
             }
 
             @Override
