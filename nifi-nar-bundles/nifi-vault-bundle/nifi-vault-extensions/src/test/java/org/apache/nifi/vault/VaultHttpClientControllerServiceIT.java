@@ -51,10 +51,10 @@ import java.util.Map;
 /**
  * Tests VaultHttpClientControllerService class against an HTTP Vault server running in a container.
  *
- * This setup and these tests are reused in the companion test class, {@link VaultHttpsClientControllerServiceTest}.
+ * This setup and these tests are reused in the companion test class, {@link VaultHttpsClientControllerServiceIT}.
  */
-public class VaultHttpClientControllerServiceTest {
-    private static final Logger logger = LoggerFactory.getLogger(VaultHttpClientControllerServiceTest.class);
+public class VaultHttpClientControllerServiceIT {
+    private static final Logger logger = LoggerFactory.getLogger(VaultHttpClientControllerServiceIT.class);
     private static final SecureRandom random = new SecureRandom();
 
     static GenericContainer vaultContainer;

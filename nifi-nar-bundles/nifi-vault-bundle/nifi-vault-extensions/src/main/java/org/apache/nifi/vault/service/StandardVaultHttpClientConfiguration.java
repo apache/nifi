@@ -100,7 +100,7 @@ public class StandardVaultHttpClientConfiguration extends AbstractVaultConfigura
     /**
      * Builds a Vault {@link ClientAuthentication} from the current config context.
      *
-     * @return {@link ClientAuthentication;}
+     * @return {@link ClientAuthentication}
      */
     public ClientAuthentication clientAuthentication() {
         String authType = configContext.getProperty(VaultHttpClientControllerService.AUTH_TYPE).getValue();

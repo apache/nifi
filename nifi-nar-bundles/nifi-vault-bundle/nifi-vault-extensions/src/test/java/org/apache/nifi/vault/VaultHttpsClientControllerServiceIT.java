@@ -52,10 +52,10 @@ import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 
 /**
- * This class adds HTTPS-specific setup and test cases to the corresponding HTTP test class {@link VaultHttpClientControllerServiceTest}.
+ * This class adds HTTPS-specific setup and test cases to the corresponding HTTP test class {@link VaultHttpClientControllerServiceIT}.
  */
-public class VaultHttpsClientControllerServiceTest extends VaultHttpClientControllerServiceTest {
-    private static final Logger logger = LoggerFactory.getLogger(VaultHttpsClientControllerServiceTest.class);
+public class VaultHttpsClientControllerServiceIT extends VaultHttpClientControllerServiceIT {
+    private static final Logger logger = LoggerFactory.getLogger(VaultHttpsClientControllerServiceIT.class);
     private static String vaultServerKeyStoreHostCopy;
 
     @ClassRule
