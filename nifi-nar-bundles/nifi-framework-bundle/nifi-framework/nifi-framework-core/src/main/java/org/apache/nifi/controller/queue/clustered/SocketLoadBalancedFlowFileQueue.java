@@ -37,6 +37,7 @@ import org.apache.nifi.controller.queue.RemoteQueuePartitionDiagnostics;
 import org.apache.nifi.controller.queue.StandardQueueDiagnostics;
 import org.apache.nifi.controller.queue.SwappablePriorityQueue;
 import org.apache.nifi.controller.queue.clustered.client.async.AsyncLoadBalanceClientRegistry;
+import org.apache.nifi.controller.queue.clustered.partition.AvailableSeekingPartitioner;
 import org.apache.nifi.controller.queue.clustered.partition.CorrelationAttributePartitioner;
 import org.apache.nifi.controller.queue.clustered.partition.FirstNodePartitioner;
 import org.apache.nifi.controller.queue.clustered.partition.FlowFilePartitioner;
@@ -205,7 +206,7 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
                 partitioner = new CorrelationAttributePartitioner(partitioningAttribute);
                 break;
             case ROUND_ROBIN:
-                partitioner = new RoundRobinPartitioner();
+                partitioner = new AvailableSeekingPartitioner(new RoundRobinPartitioner(), this::isFull);
                 break;
             case SINGLE_NODE:
                 partitioner = new FirstNodePartitioner();
@@ -506,6 +507,17 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
     @Override
     public boolean isEmpty() {
         return size().getObjectCount() == 0;
+    }
+
+    @Override
+    public boolean isFull() {
+        for (QueuePartition queuePartition : queuePartitions) {
+            if (!isFull(queuePartition.size())) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     @Override
