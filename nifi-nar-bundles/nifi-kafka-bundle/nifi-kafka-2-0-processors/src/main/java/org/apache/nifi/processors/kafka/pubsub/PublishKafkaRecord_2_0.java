@@ -28,9 +28,9 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyDescriptor.Builder;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.DataUnit;
@@ -41,11 +41,16 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.FlowFileFilters;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.record.path.RecordPath;
+import org.apache.nifi.record.path.RecordPathResult;
+import org.apache.nifi.record.path.util.RecordPathCache;
+import org.apache.nifi.record.path.validation.RecordPathValidator;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
+import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.RecordSet;
 
@@ -60,10 +65,17 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.LongAccumulator;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
+
+import static org.apache.nifi.expression.ExpressionLanguageScope.FLOWFILE_ATTRIBUTES;
+import static org.apache.nifi.expression.ExpressionLanguageScope.NONE;
+import static org.apache.nifi.expression.ExpressionLanguageScope.VARIABLE_REGISTRY;
 
 @Tags({"Apache", "Kafka", "Record", "csv", "json", "avro", "logs", "Put", "Send", "Message", "PubSub", "2.0"})
 @CapabilityDescription("Sends the contents of a FlowFile as individual records to Apache Kafka using the Kafka 2.0 Producer API. "
@@ -74,7 +86,7 @@ import java.util.regex.Pattern;
     description = "These properties will be added on the Kafka configuration after loading any provided configuration properties."
     + " In the event a dynamic property represents a property that was already set, its value will be ignored and WARN message logged."
     + " For the list of available Kafka properties please refer to: http://kafka.apache.org/documentation.html#configuration. ",
-    expressionLanguageScope = ExpressionLanguageScope.VARIABLE_REGISTRY)
+    expressionLanguageScope = VARIABLE_REGISTRY)
 @WritesAttribute(attribute = "msg.count", description = "The number of messages that were sent to Kafka for this FlowFile. This attribute is added only to "
     + "FlowFiles that are routed to success.")
 @SeeAlso({PublishKafka_2_0.class, ConsumeKafka_2_0.class, ConsumeKafkaRecord_2_0.class})
@@ -98,80 +110,83 @@ public class PublishKafkaRecord_2_0 extends AbstractProcessor {
             + "the next Partition to Partition 2, and so on, wrapping as necessary.");
     static final AllowableValue RANDOM_PARTITIONING = new AllowableValue("org.apache.kafka.clients.producer.internals.DefaultPartitioner",
         "DefaultPartitioner", "Messages will be assigned to random partitions.");
+    static final AllowableValue RECORD_PATH_PARTITIONING = new AllowableValue(Partitioners.RecordPathPartitioner.class.getName(),
+        "RecordPath Partitioner", "Interprets the <Partition> property as a RecordPath that will be evaluated against each Record to determine which partition the Record will go to. All Records " +
+        "that have the same value for the given RecordPath will go to the same Partition.");
+    static final AllowableValue EXPRESSION_LANGUAGE_PARTITIONING = new AllowableValue(Partitioners.ExpressionLanguagePartitioner.class.getName(), "Expression Language Partitioner",
+        "Interprets the <Partition> property as Expression Language that will be evaluated against each FlowFile. This Expression will be evaluated once against the FlowFile, " +
+            "so all Records in a given FlowFile will go to the same partition.");
 
-    static final AllowableValue UTF8_ENCODING = new AllowableValue("utf-8", "UTF-8 Encoded", "The key is interpreted as a UTF-8 Encoded string.");
-    static final AllowableValue HEX_ENCODING = new AllowableValue("hex", "Hex Encoded",
-        "The key is interpreted as arbitrary binary data that is encoded using hexadecimal characters with uppercase letters.");
 
-    static final PropertyDescriptor TOPIC = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor TOPIC = new Builder()
         .name("topic")
         .displayName("Topic Name")
         .description("The name of the Kafka Topic to publish to.")
         .required(true)
         .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+        .expressionLanguageSupported(FLOWFILE_ATTRIBUTES)
         .build();
 
-    static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor RECORD_READER = new Builder()
         .name("record-reader")
         .displayName("Record Reader")
         .description("The Record Reader to use for incoming FlowFiles")
         .identifiesControllerService(RecordReaderFactory.class)
-        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+        .expressionLanguageSupported(NONE)
         .required(true)
         .build();
 
-    static final PropertyDescriptor RECORD_WRITER = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor RECORD_WRITER = new Builder()
         .name("record-writer")
         .displayName("Record Writer")
         .description("The Record Writer to use in order to serialize the data before sending to Kafka")
         .identifiesControllerService(RecordSetWriterFactory.class)
-        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+        .expressionLanguageSupported(NONE)
         .required(true)
         .build();
 
-    static final PropertyDescriptor MESSAGE_KEY_FIELD = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor MESSAGE_KEY_FIELD = new Builder()
         .name("message-key-field")
         .displayName("Message Key Field")
         .description("The name of a field in the Input Records that should be used as the Key for the Kafka message.")
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+        .expressionLanguageSupported(FLOWFILE_ATTRIBUTES)
         .required(false)
         .build();
 
-    static final PropertyDescriptor DELIVERY_GUARANTEE = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor DELIVERY_GUARANTEE = new Builder()
         .name("acks")
         .displayName("Delivery Guarantee")
         .description("Specifies the requirement for guaranteeing that a message is sent to Kafka. Corresponds to Kafka's 'acks' property.")
         .required(true)
-        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+        .expressionLanguageSupported(NONE)
         .allowableValues(DELIVERY_BEST_EFFORT, DELIVERY_ONE_NODE, DELIVERY_REPLICATED)
         .defaultValue(DELIVERY_BEST_EFFORT.getValue())
         .build();
 
-    static final PropertyDescriptor METADATA_WAIT_TIME = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor METADATA_WAIT_TIME = new Builder()
         .name("max.block.ms")
         .displayName("Max Metadata Wait Time")
         .description("The amount of time publisher will wait to obtain metadata or wait for the buffer to flush during the 'send' call before failing the "
             + "entire 'send' call. Corresponds to Kafka's 'max.block.ms' property")
         .required(true)
         .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .expressionLanguageSupported(VARIABLE_REGISTRY)
         .defaultValue("5 sec")
         .build();
 
-    static final PropertyDescriptor ACK_WAIT_TIME = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor ACK_WAIT_TIME = new Builder()
         .name("ack.wait.time")
         .displayName("Acknowledgment Wait Time")
         .description("After sending a message to Kafka, this indicates the amount of time that we are willing to wait for a response from Kafka. "
             + "If Kafka does not acknowledge the message within this time period, the FlowFile will be routed to 'failure'.")
         .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+        .expressionLanguageSupported(NONE)
         .required(true)
         .defaultValue("5 secs")
         .build();
 
-    static final PropertyDescriptor MAX_REQUEST_SIZE = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor MAX_REQUEST_SIZE = new Builder()
         .name("max.request.size")
         .displayName("Max Request Size")
         .description("The maximum size of a request in bytes. Corresponds to Kafka's 'max.request.size' property and defaults to 1 MB (1048576).")
@@ -180,16 +195,25 @@ public class PublishKafkaRecord_2_0 extends AbstractProcessor {
         .defaultValue("1 MB")
         .build();
 
-    static final PropertyDescriptor PARTITION_CLASS = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor PARTITION_CLASS = new Builder()
         .name("partitioner.class")
         .displayName("Partitioner class")
         .description("Specifies which class to use to compute a partition id for a message. Corresponds to Kafka's 'partitioner.class' property.")
-        .allowableValues(ROUND_ROBIN_PARTITIONING, RANDOM_PARTITIONING)
+        .allowableValues(ROUND_ROBIN_PARTITIONING, RANDOM_PARTITIONING, RECORD_PATH_PARTITIONING, EXPRESSION_LANGUAGE_PARTITIONING)
         .defaultValue(RANDOM_PARTITIONING.getValue())
         .required(false)
         .build();
 
-    static final PropertyDescriptor COMPRESSION_CODEC = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor PARTITION = new Builder()
+        .name("partition")
+        .displayName("Partition")
+        .description("Specifies which Partition Records will go to. How this value is interpreted is dictated by the <Partitioner class> property.")
+        .required(false)
+        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .expressionLanguageSupported(FLOWFILE_ATTRIBUTES)
+        .build();
+
+    static final PropertyDescriptor COMPRESSION_CODEC = new Builder()
         .name("compression.type")
         .displayName("Compression Type")
         .description("This parameter allows you to specify the compression codec for all data generated by this producer.")
@@ -199,37 +223,37 @@ public class PublishKafkaRecord_2_0 extends AbstractProcessor {
         .defaultValue("none")
         .build();
 
-    static final PropertyDescriptor ATTRIBUTE_NAME_REGEX = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor ATTRIBUTE_NAME_REGEX = new Builder()
         .name("attribute-name-regex")
         .displayName("Attributes to Send as Headers (Regex)")
         .description("A Regular Expression that is matched against all FlowFile attribute names. "
             + "Any attribute whose name matches the regex will be added to the Kafka messages as a Header. "
             + "If not specified, no FlowFile attributes will be added as headers.")
         .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
-        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+        .expressionLanguageSupported(NONE)
         .required(false)
         .build();
-    static final PropertyDescriptor USE_TRANSACTIONS = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor USE_TRANSACTIONS = new Builder()
         .name("use-transactions")
         .displayName("Use Transactions")
         .description("Specifies whether or not NiFi should provide Transactional guarantees when communicating with Kafka. If there is a problem sending data to Kafka, "
             + "and this property is set to false, then the messages that have already been sent to Kafka will continue on and be delivered to consumers. "
             + "If this is set to true, then the Kafka transaction will be rolled back so that those messages are not available to consumers. Setting this to true "
             + "requires that the <Delivery Guarantee> property be set to \"Guarantee Replicated Delivery.\"")
-        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+        .expressionLanguageSupported(NONE)
         .allowableValues("true", "false")
         .defaultValue("true")
         .required(true)
         .build();
-    static final PropertyDescriptor TRANSACTIONAL_ID_PREFIX = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor TRANSACTIONAL_ID_PREFIX = new Builder()
         .name("transactional-id-prefix")
         .displayName("Transactional Id Prefix")
         .description("When Use Transaction is set to true, KafkaProducer config 'transactional.id' will be a generated UUID and will be prefixed with this string.")
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .expressionLanguageSupported(VARIABLE_REGISTRY)
         .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
         .required(false)
         .build();
-    static final PropertyDescriptor MESSAGE_HEADER_ENCODING = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor MESSAGE_HEADER_ENCODING = new Builder()
         .name("message-header-encoding")
         .displayName("Message Header Encoding")
         .description("For any attribute that is added as a message header, as configured via the <Attributes to Send as Headers> property, "
@@ -253,6 +277,7 @@ public class PublishKafkaRecord_2_0 extends AbstractProcessor {
     private static final Set<Relationship> RELATIONSHIPS;
 
     private volatile PublisherPool publisherPool = null;
+    private final RecordPathCache recordPathCache = new RecordPathCache(25);
 
     static {
         final List<PropertyDescriptor> properties = new ArrayList<>();
@@ -280,6 +305,7 @@ public class PublishKafkaRecord_2_0 extends AbstractProcessor {
         properties.add(ACK_WAIT_TIME);
         properties.add(METADATA_WAIT_TIME);
         properties.add(PARTITION_CLASS);
+        properties.add(PARTITION);
         properties.add(COMPRESSION_CODEC);
 
         PROPERTIES = Collections.unmodifiableList(properties);
@@ -302,12 +328,12 @@ public class PublishKafkaRecord_2_0 extends AbstractProcessor {
 
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
-        return new PropertyDescriptor.Builder()
+        return new Builder()
             .description("Specifies the value for '" + propertyDescriptorName + "' Kafka Configuration.")
             .name(propertyDescriptorName)
             .addValidator(new KafkaProcessorUtils.KafkaConfigValidator(ProducerConfig.class))
             .dynamic(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(VARIABLE_REGISTRY)
             .build();
     }
 
@@ -325,6 +351,32 @@ public class PublishKafkaRecord_2_0 extends AbstractProcessor {
                     .valid(false)
                     .explanation("In order to use Transactions, the Delivery Guarantee must be \"Guarantee Replicated Delivery.\" "
                         + "Either change the <Use Transactions> property or the <Delivery Guarantee> property.")
+                    .build());
+            }
+        }
+
+        final String partitionClass = validationContext.getProperty(PARTITION_CLASS).getValue();
+        if (RECORD_PATH_PARTITIONING.getValue().equals(partitionClass)) {
+            final String rawRecordPath = validationContext.getProperty(PARTITION).getValue();
+            if (rawRecordPath == null) {
+                results.add(new ValidationResult.Builder()
+                    .subject("Partition")
+                    .valid(false)
+                    .explanation("The <Partition> property must be specified if using the RecordPath Partitioning class")
+                    .build());
+            } else if (!validationContext.isExpressionLanguagePresent(rawRecordPath)) {
+                final ValidationResult result = new RecordPathValidator().validate(PARTITION.getDisplayName(), rawRecordPath, validationContext);
+                if (result != null) {
+                    results.add(result);
+                }
+            }
+        } else if (EXPRESSION_LANGUAGE_PARTITIONING.getValue().equals(partitionClass)) {
+            final String rawRecordPath = validationContext.getProperty(PARTITION).getValue();
+            if (rawRecordPath == null) {
+                results.add(new ValidationResult.Builder()
+                    .subject("Partition")
+                    .valid(false)
+                    .explanation("The <Partition> property must be specified if using the Expression Language Partitioning class")
                     .build());
             }
         }
@@ -418,6 +470,8 @@ public class PublishKafkaRecord_2_0 extends AbstractProcessor {
                 final String topic = context.getProperty(TOPIC).evaluateAttributeExpressions(flowFile).getValue();
                 final String messageKeyField = context.getProperty(MESSAGE_KEY_FIELD).evaluateAttributeExpressions(flowFile).getValue();
 
+                final Function<Record, Integer> partitioner = getPartitioner(context, flowFile);
+
                 try {
                     session.read(flowFile, new InputStreamCallback() {
                         @Override
@@ -427,7 +481,7 @@ public class PublishKafkaRecord_2_0 extends AbstractProcessor {
                                 final RecordSet recordSet = reader.createRecordSet();
 
                                 final RecordSchema schema = writerFactory.getSchema(flowFile.getAttributes(), recordSet.getSchema());
-                                lease.publish(flowFile, recordSet, writerFactory, schema, messageKeyField, topic);
+                                lease.publish(flowFile, recordSet, writerFactory, schema, messageKeyField, topic, partitioner);
                             } catch (final SchemaNotFoundException | MalformedRecordException e) {
                                 throw new ProcessException(e);
                             }
@@ -463,5 +517,34 @@ public class PublishKafkaRecord_2_0 extends AbstractProcessor {
                 session.transfer(success, REL_SUCCESS);
             }
         }
+    }
+
+    private Function<Record, Integer> getPartitioner(final ProcessContext context, final FlowFile flowFile) {
+        final String partitionClass = context.getProperty(PARTITION_CLASS).getValue();
+        if (RECORD_PATH_PARTITIONING.getValue().equals(partitionClass)) {
+            final String recordPath = context.getProperty(PARTITION).evaluateAttributeExpressions(flowFile).getValue();
+            final RecordPath compiled = recordPathCache.getCompiled(recordPath);
+
+            return record -> evaluateRecordPath(compiled, record);
+        } else if (EXPRESSION_LANGUAGE_PARTITIONING.getValue().equals(partitionClass)) {
+            final String partition = context.getProperty(PARTITION).evaluateAttributeExpressions(flowFile).getValue();
+            final int hash = Objects.hashCode(partition);
+            return (record) -> hash;
+        }
+
+        return null;
+    }
+
+    private Integer evaluateRecordPath(final RecordPath recordPath, final Record record) {
+        final RecordPathResult result = recordPath.evaluate(record);
+        final LongAccumulator accumulator = new LongAccumulator(Long::sum, 0);
+
+        result.getSelectedFields().forEach(fieldValue -> {
+            final Object value = fieldValue.getValue();
+            final long hash = Objects.hashCode(value);
+            accumulator.accumulate(hash);
+        });
+
+        return accumulator.intValue();
     }
 }

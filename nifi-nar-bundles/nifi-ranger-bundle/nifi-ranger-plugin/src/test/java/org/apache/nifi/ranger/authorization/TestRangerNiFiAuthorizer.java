@@ -64,7 +64,7 @@ public class TestRangerNiFiAuthorizer {
     private AuthorizerConfigurationContext configurationContext;
     private NiFiProperties nifiProperties;
 
-    private final String serviceType = "nifiService";
+    private final String serviceType = "nifi";
     private final String appId = "nifiAppId";
 
     private RangerAccessResult allowedResult;

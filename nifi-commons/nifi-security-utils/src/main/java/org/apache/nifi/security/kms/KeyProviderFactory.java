@@ -20,12 +20,42 @@ import java.security.KeyManagementException;
 import java.util.Map;
 import java.util.stream.Collectors;
 import javax.crypto.SecretKey;
+import org.apache.nifi.security.repository.config.RepositoryEncryptionConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Factory class to build {@link KeyProvider} instances. Currently supports {@link StaticKeyProvider} and {@link FileBasedKeyProvider}.
+ */
 public class KeyProviderFactory {
     private static final Logger logger = LoggerFactory.getLogger(KeyProviderFactory.class);
 
+    /**
+     * Returns a key provider instantiated from the configuration values in a {@link RepositoryEncryptionConfiguration} object.
+     *
+     * @param rec the data container for config values (usually extracted from {@link org.apache.nifi.util.NiFiProperties})
+     * @param masterKey the master key used to decrypt wrapped keys
+     * @return the configured key provider
+     * @throws KeyManagementException if the key provider cannot be instantiated
+     */
+    public static KeyProvider buildKeyProvider(RepositoryEncryptionConfiguration rec, SecretKey masterKey) throws KeyManagementException {
+        if (rec == null) {
+            throw new KeyManagementException("The repository encryption configuration values are required to build a key provider");
+        }
+        return buildKeyProvider(rec.getKeyProviderImplementation(), rec.getKeyProviderLocation(), rec.getEncryptionKeyId(), rec.getEncryptionKeys(), masterKey);
+    }
+
+    /**
+     * Returns a key provider instantiated from the configuration values in a {@link RepositoryEncryptionConfiguration} object.
+     *
+     * @param implementationClassName the key provider class name
+     * @param keyProviderLocation the filepath/URL of the stored keys
+     * @param keyId the active key id
+     * @param encryptionKeys the available encryption keys
+     * @param masterKey the master key used to decrypt wrapped keys
+     * @return the configured key provider
+     * @throws KeyManagementException if the key provider cannot be instantiated
+     */
     public static KeyProvider buildKeyProvider(String implementationClassName, String keyProviderLocation, String keyId, Map<String, String> encryptionKeys,
                                                SecretKey masterKey) throws KeyManagementException {
         KeyProvider keyProvider;
@@ -65,6 +95,13 @@ public class KeyProviderFactory {
         return keyProvider;
     }
 
+    /**
+     * Returns true if this {@link KeyProvider} implementation requires the presence of the {@code master key} in order to decrypt the available data encryption keys.
+     *
+     * @param implementationClassName the key provider implementation class
+     * @return true if this implementation requires the master key to operate
+     * @throws KeyManagementException if the provided class name is not a valid key provider implementation
+     */
     public static boolean requiresMasterKey(String implementationClassName) throws KeyManagementException {
         implementationClassName = CryptoUtils.handleLegacyPackages(implementationClassName);
         return FileBasedKeyProvider.class.getName().equals(implementationClassName);

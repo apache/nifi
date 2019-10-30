@@ -21,6 +21,9 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.InetSocketAddress;
+import java.util.Collections;
+import java.util.List;
+import java.util.function.Function;
 
 import javax.servlet.ServletException;
 import javax.servlet.ServletOutputStream;
@@ -28,11 +31,8 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.metrics.jvm.JmxJvmMetrics;
 import org.apache.nifi.reporting.ReportingContext;
-import org.apache.nifi.reporting.prometheus.api.PrometheusMetricsUtil;
 import org.apache.nifi.ssl.SSLContextService;
 import org.eclipse.jetty.server.Connector;
 import org.eclipse.jetty.server.HttpConfiguration;
@@ -53,13 +53,10 @@ public class PrometheusServer {
     private Server server;
     private ServletContextHandler handler;
     private ReportingContext context;
-    private String metricsStrategy;
-    private boolean sendJvmMetrics;
-    private String instanceId;
+
+    private List<Function<ReportingContext, CollectorRegistry>> metricsCollectors;
 
     class MetricsServlet extends HttpServlet {
-        private CollectorRegistry nifiRegistry, jvmRegistry;
-        private ProcessGroupStatus rootGroupStatus;
 
         @Override
         protected void doGet(final HttpServletRequest req, final HttpServletResponse resp) throws ServletException, IOException {
@@ -67,16 +64,12 @@ public class PrometheusServer {
                 logger.debug("PrometheusServer Do get called");
             }
 
-            rootGroupStatus = PrometheusServer.this.context.getEventAccess().getControllerStatus();
             ServletOutputStream response = resp.getOutputStream();
             OutputStreamWriter osw = new OutputStreamWriter(response);
 
-            nifiRegistry = PrometheusMetricsUtil.createNifiMetrics(rootGroupStatus, PrometheusServer.this.instanceId, "", "RootProcessGroup", metricsStrategy);
-            TextFormat.write004(osw, nifiRegistry.metricFamilySamples());
-
-            if (PrometheusServer.this.sendJvmMetrics == true) {
-                jvmRegistry = PrometheusMetricsUtil.createJvmMetrics(JmxJvmMetrics.getInstance(), PrometheusServer.this.instanceId);
-                TextFormat.write004(osw, jvmRegistry.metricFamilySamples());
+            for(Function<ReportingContext, CollectorRegistry> mc : metricsCollectors) {
+                CollectorRegistry collectorRegistry = mc.apply(getReportingContext());
+                TextFormat.write004(osw, collectorRegistry.metricFamilySamples());
             }
 
             osw.flush();
@@ -91,6 +84,7 @@ public class PrometheusServer {
 
     public PrometheusServer(InetSocketAddress addr, ComponentLog logger) throws Exception {
         PrometheusServer.logger = logger;
+        metricsCollectors = Collections.emptyList();
         this.server = new Server(addr);
 
         this.handler = new ServletContextHandler(server, "/metrics");
@@ -148,31 +142,15 @@ public class PrometheusServer {
         return this.context;
     }
 
-    public boolean getSendJvmMetrics() {
-        return this.sendJvmMetrics;
-    }
-
-    public String getInstanceId() {
-        return this.instanceId;
-    }
-
     public void setReportingContext(ReportingContext rc) {
         this.context = rc;
     }
 
-    public void setSendJvmMetrics(boolean jvm) {
-        this.sendJvmMetrics = jvm;
+    public List<Function<ReportingContext, CollectorRegistry>> getMetricsCollectors() {
+        return metricsCollectors;
     }
 
-    public void setInstanceId(String iid) {
-        this.instanceId = iid;
-    }
-
-    public String getMetricsStrategy() {
-        return metricsStrategy;
-    }
-
-    public void setMetricsStrategy(String metricsStrategy) {
-        this.metricsStrategy = metricsStrategy;
+    public void setMetricsCollectors(List<Function<ReportingContext, CollectorRegistry>> metricsCollectors) {
+        this.metricsCollectors = metricsCollectors;
     }
 }

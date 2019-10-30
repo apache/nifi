@@ -66,7 +66,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class TestConsumeAzureEventHub {
-
     private ConsumeAzureEventHub.EventProcessor eventProcessor;
     private MockProcessSession processSession;
     private SharedSessionState sharedState;
@@ -101,8 +100,7 @@ public class TestConsumeAzureEventHub {
 
     @Test
     public void testReceiveOne() throws Exception {
-
-        final Iterable<EventData> eventDataList = Arrays.asList(new EventData("one".getBytes(StandardCharsets.UTF_8)));
+        final Iterable<EventData> eventDataList = Arrays.asList(EventData.create("one".getBytes(StandardCharsets.UTF_8)));
         eventProcessor.onEvents(partitionContext, eventDataList);
 
         processSession.assertCommitted();
@@ -121,13 +119,11 @@ public class TestConsumeAzureEventHub {
                 "eventhub-name/ConsumerGroups/consumer-group/Partitions/partition-id", provenanceEvent1.getTransitUri());
     }
 
-
     @Test
     public void testReceiveTwo() throws Exception {
-
         final Iterable<EventData> eventDataList = Arrays.asList(
-                new EventData("one".getBytes(StandardCharsets.UTF_8)),
-                new EventData("two".getBytes(StandardCharsets.UTF_8))
+                EventData.create("one".getBytes(StandardCharsets.UTF_8)),
+                EventData.create("two".getBytes(StandardCharsets.UTF_8))
         );
         eventProcessor.onEvents(partitionContext, eventDataList);
 
@@ -145,10 +141,9 @@ public class TestConsumeAzureEventHub {
 
     @Test
     public void testCheckpointFailure() throws Exception {
-
         final Iterable<EventData> eventDataList = Arrays.asList(
-                new EventData("one".getBytes(StandardCharsets.UTF_8)),
-                new EventData("two".getBytes(StandardCharsets.UTF_8))
+                EventData.create("one".getBytes(StandardCharsets.UTF_8)),
+                EventData.create("two".getBytes(StandardCharsets.UTF_8))
         );
         doThrow(new RuntimeException("Failed to create a checkpoint.")).when(partitionContext).checkpoint();
         eventProcessor.onEvents(partitionContext, eventDataList);
@@ -239,15 +234,13 @@ public class TestConsumeAzureEventHub {
                         .thenThrow(new MalformedRecordException("Simulating Record parse failure."))
                         .thenReturn(records2[0], Arrays.copyOfRange(records2, 1, records2.length));
         }
-
     }
 
     @Test
     public void testReceiveRecords() throws Exception {
-
         final List<EventData> eventDataList = Arrays.asList(
-                new EventData("one".getBytes(StandardCharsets.UTF_8)),
-                new EventData("two".getBytes(StandardCharsets.UTF_8))
+                EventData.create("one".getBytes(StandardCharsets.UTF_8)),
+                EventData.create("two".getBytes(StandardCharsets.UTF_8))
         );
 
         setupRecordReader(eventDataList);
@@ -274,12 +267,11 @@ public class TestConsumeAzureEventHub {
 
     @Test
     public void testReceiveRecordReaderFailure() throws Exception {
-
         final List<EventData> eventDataList = Arrays.asList(
-                new EventData("one".getBytes(StandardCharsets.UTF_8)),
-                new EventData("two".getBytes(StandardCharsets.UTF_8)),
-                new EventData("three".getBytes(StandardCharsets.UTF_8)),
-                new EventData("four".getBytes(StandardCharsets.UTF_8))
+                EventData.create("one".getBytes(StandardCharsets.UTF_8)),
+                EventData.create("two".getBytes(StandardCharsets.UTF_8)),
+                EventData.create("three".getBytes(StandardCharsets.UTF_8)),
+                EventData.create("four".getBytes(StandardCharsets.UTF_8))
         );
 
         setupRecordReader(eventDataList, 2, null);
@@ -319,9 +311,8 @@ public class TestConsumeAzureEventHub {
 
     @Test
     public void testReceiveAllRecordFailure() throws Exception {
-
         final List<EventData> eventDataList = Collections.singletonList(
-                new EventData("one".getBytes(StandardCharsets.UTF_8))
+                EventData.create("one".getBytes(StandardCharsets.UTF_8))
         );
 
         setupRecordReader(eventDataList, 0, null);
@@ -348,17 +339,15 @@ public class TestConsumeAzureEventHub {
         assertEquals(ProvenanceEventType.RECEIVE, provenanceEvent1.getEventType());
         assertEquals("amqps://namespace.servicebus.windows.net/" +
                 "eventhub-name/ConsumerGroups/consumer-group/Partitions/partition-id", provenanceEvent1.getTransitUri());
-
     }
 
     @Test
     public void testReceiveRecordWriterFailure() throws Exception {
-
         final List<EventData> eventDataList = Arrays.asList(
-                new EventData("one".getBytes(StandardCharsets.UTF_8)),
-                new EventData("two".getBytes(StandardCharsets.UTF_8)),
-                new EventData("three".getBytes(StandardCharsets.UTF_8)),
-                new EventData("four".getBytes(StandardCharsets.UTF_8))
+                EventData.create("one".getBytes(StandardCharsets.UTF_8)),
+                EventData.create("two".getBytes(StandardCharsets.UTF_8)),
+                EventData.create("three".getBytes(StandardCharsets.UTF_8)),
+                EventData.create("four".getBytes(StandardCharsets.UTF_8))
         );
 
         setupRecordReader(eventDataList, -1, "two");
@@ -395,5 +384,4 @@ public class TestConsumeAzureEventHub {
         assertEquals("amqps://namespace.servicebus.windows.net/" +
                 "eventhub-name/ConsumerGroups/consumer-group/Partitions/partition-id", provenanceEvent2.getTransitUri());
     }
-
 }

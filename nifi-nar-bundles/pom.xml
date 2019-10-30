@@ -97,6 +97,8 @@
         <module>nifi-jolt-record-bundle</module>
 	<module>nifi-network-bundle</module>
         <module>nifi-prometheus-bundle</module>
+        <module>nifi-easyrules-bundle</module>
+        <module>nifi-sql-reporting-bundle</module>
   </modules>
 
     <build>
@@ -220,6 +222,12 @@
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-mongodb-client-service-api</artifactId>
+                <version>1.10.0-SNAPSHOT</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-record-sink-api</artifactId>
                 <version>1.10.0-SNAPSHOT</version>
                 <scope>provided</scope>
             </dependency>

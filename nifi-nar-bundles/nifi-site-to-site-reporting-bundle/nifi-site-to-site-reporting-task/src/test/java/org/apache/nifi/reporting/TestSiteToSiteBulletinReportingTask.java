@@ -44,7 +44,8 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.remote.Transaction;
 import org.apache.nifi.remote.TransferDirection;
 import org.apache.nifi.remote.client.SiteToSiteClient;
-import org.apache.nifi.reporting.AbstractSiteToSiteReportingTask.NiFiUrlValidator;
+import org.apache.nifi.reporting.s2s.SiteToSiteUtils;
+import org.apache.nifi.reporting.s2s.SiteToSiteUtils.NiFiUrlValidator;
 import org.apache.nifi.util.MockPropertyValue;
 import org.junit.Assert;
 import org.junit.Test;
@@ -96,8 +97,8 @@ public class TestSiteToSiteBulletinReportingTask {
         for (final PropertyDescriptor descriptor : task.getSupportedPropertyDescriptors()) {
             properties.put(descriptor, descriptor.getDefaultValue());
         }
-        properties.put(SiteToSiteBulletinReportingTask.BATCH_SIZE, "1000");
-        properties.put(SiteToSiteBulletinReportingTask.PLATFORM, "nifi");
+        properties.put(SiteToSiteUtils.BATCH_SIZE, "1000");
+        properties.put(SiteToSiteUtils.PLATFORM, "nifi");
 
         Mockito.doAnswer(new Answer<PropertyValue>() {
             @Override
@@ -123,7 +124,7 @@ public class TestSiteToSiteBulletinReportingTask {
         JsonObject bulletinJson = jsonReader.readArray().getJsonObject(0);
         assertEquals("message", bulletinJson.getString("bulletinMessage"));
         assertEquals("group-name", bulletinJson.getString("bulletinGroupName"));
-        assertNull( bulletinJson.get("bulletinSourceType"));
+        assertNull(bulletinJson.get("bulletinSourceType"));
     }
 
     @Test
@@ -146,9 +147,9 @@ public class TestSiteToSiteBulletinReportingTask {
         for (final PropertyDescriptor descriptor : task.getSupportedPropertyDescriptors()) {
             properties.put(descriptor, descriptor.getDefaultValue());
         }
-        properties.put(SiteToSiteBulletinReportingTask.BATCH_SIZE, "1000");
-        properties.put(SiteToSiteBulletinReportingTask.PLATFORM, "nifi");
-        properties.put(SiteToSiteStatusReportingTask.ALLOW_NULL_VALUES,"true");
+        properties.put(SiteToSiteUtils.BATCH_SIZE, "1000");
+        properties.put(SiteToSiteUtils.PLATFORM, "nifi");
+        properties.put(SiteToSiteStatusReportingTask.ALLOW_NULL_VALUES, "true");
 
         Mockito.doAnswer(new Answer<PropertyValue>() {
             @Override

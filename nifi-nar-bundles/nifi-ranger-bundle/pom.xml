@@ -27,35 +27,10 @@
     <version>1.10.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
-    <properties>
-        <httpcomponents.httpclient.version>4.4.1</httpcomponents.httpclient.version>
-        <httpcomponents.httpcore.version>4.4.1</httpcomponents.httpcore.version>
-        <httpcomponents.httpmime.version>4.4.1</httpcomponents.httpmime.version>
-    </properties>
-
     <modules>
         <module>nifi-ranger-plugin</module>
         <module>nifi-ranger-nar</module>
 	    <module>nifi-ranger-resources</module>
     </modules>
 
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>org.apache.httpcomponents</groupId>
-                <artifactId>httpclient</artifactId>
-                <version>${httpcomponents.httpclient.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.httpcomponents</groupId>
-                <artifactId>httpcore</artifactId>
-                <version>${httpcomponents.httpcore.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.httpcomponents</groupId>
-                <artifactId>httpmime</artifactId>
-                <version>${httpcomponents.httpmime.version}</version>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
 </project>

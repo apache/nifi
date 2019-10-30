@@ -212,7 +212,7 @@
         <!-- nifi.properties: analytics properties -->
         <nifi.analytics.predict.enabled>false</nifi.analytics.predict.enabled>
         <nifi.analytics.predict.interval>3 mins</nifi.analytics.predict.interval>
-        <nifi.analytics.query.interval>3 mins</nifi.analytics.query.interval>
+        <nifi.analytics.query.interval>5 mins</nifi.analytics.query.interval>
         <nifi.analytics.connection.model.implementation>org.apache.nifi.controller.status.analytics.models.OrdinaryLeastSquares</nifi.analytics.connection.model.implementation>
         <nifi.analytics.connection.model.score.name>rSquared</nifi.analytics.connection.model.score.name>
         <nifi.analytics.connection.model.score.threshold>.90</nifi.analytics.connection.model.score.threshold>
