@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<head>
+    <meta charset="utf-8" />
+    <title>VaultHttpClientControllerService</title>
+
+    <link rel="stylesheet" href="../../../../../css/component-usage.css" type="text/css" />
+</head>
+<body>
+<h2>Description</h2>
+<div>
+    The <code>VaultHttpClientControllerService</code> manages an HTTP or HTTPS client connection to a Hashicorp Vault server, and provides
+    key-value store access to it.
+    <br>
+</div>
+
+
+<h2>Configuration Details</h2>
+<h3>URL</h3>
+
+<div>
+    The HTTP or HTTPS URL of the Vault Server.  Typically similar to <code>https://127.0.0.1:8200</code>.
+</div>
+
+<h3>Secrets Path</h3>
+<p>
+    The path to the KV secrets engine.  Typically <code>kv</code> or similar.  See <a href="https://www.vaultproject.io/docs/secrets/kv/index.html" target="_new">KV Secrets Engine</a>
+    for further details.
+</p>
+
+<h3>Key Value Store Prefix</h3>
+<div>
+    The path prefix used for storing values by the controller.  Default is <code>/</code>, which means the service will store
+    properties at the root.
+</div>
+
+<h3>Auth Type</h3>
+<div>
+    The authentication type the controller will use when connecting and interacting with the Vault Server.
+</div>
+
+
+<h3>Token</h3>
+<div>
+    The value of the authentication to send when using "Token Authentication".  See <a href="https://www.vaultproject.io/docs/auth/token.html" target="_new">Token Auth Method</a>
+    for details.
+</div>
+
+
+<h3>App ID</h3>
+<div>
+    The value of the "app id" to send when using "App Id Authentication". See <a href="https://www.vaultproject.io/docs/auth/app-id.html" target="_new">AppId Auth Method</a>
+    for details.
+</div>
+
+
+<h3>User Id Mechanism</h3>
+<div>
+    Specifies how the "user id" will be created before sending it during "App Id Authentication".  The controller
+    service currently supports "Static User Id", and "IP Address" mechanisms.  See <a href="https://www.vaultproject.io/docs/auth/app-id.html" target="_new">AppId Auth Method</a>
+    for details.
+</div>
+
+
+<h3>Role Id</h3>
+<div>
+    The value of the "role id" to send when using "App Role Authentication".  See <a href="https://www.vaultproject.io/docs/auth/approle.html" target="_new">AppRole Auth Method</a>
+    for details.
+</div>
+
+<h3>Secret Id</h3>
+<div>
+    The value of the "secret id" to send when using "App Role Authentication".  See <a href="https://www.vaultproject.io/docs/auth/approle.html" target="_new">AppRole Auth Method</a>
+    for details.
+</div>
+
+
+</body>
+</html>

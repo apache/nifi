@@ -99,6 +99,7 @@
         <module>nifi-prometheus-bundle</module>
         <module>nifi-easyrules-bundle</module>
         <module>nifi-sql-reporting-bundle</module>
+        <module>nifi-vault-bundle</module>
   </modules>
 
     <build>
