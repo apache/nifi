@@ -164,15 +164,14 @@
     <logger name="org.apache.nifi.StdOut" level="INFO" additivity="false">
         <appender-ref ref="BOOTSTRAP_FILE" />
     </logger>
-    
+
     <!-- Everything written to NiFi's Standard Error will be logged with the logger org.apache.nifi.StdErr at ERROR level -->
     <logger name="org.apache.nifi.StdErr" level="ERROR" additivity="false">
         <appender-ref ref="BOOTSTRAP_FILE" />
     </logger>
 
-
     <root level="INFO">
-        <appender-ref ref="APP_FILE"/>MockProcessContext
+        <appender-ref ref="APP_FILE" />
     </root>
-    
+
 </configuration>
