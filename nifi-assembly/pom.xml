@@ -1071,29 +1071,40 @@ language governing permissions and limitations under the License. -->
                                             <dependency>
                                                 <excludes>
                                                     <exclude>org.bouncycastle:bcprov-jdk15on</exclude>
+                                                    <exclude>org.apache.commons:commons-configuration2</exclude>
                                                     <exclude>org.apache.commons:commons-lang3</exclude>
+                                                    <exclude>org.apache.commons:commons-text</exclude>
                                                     <!-- must be in lib <exclude>org.slf4j:jul-to-slf4j</exclude> -->
                                                     <!-- must be in lib <exclude>ch.qos.logback:logback-classic</exclude> -->
                                                     <!-- must be in lib <exclude>javax.servlet:javax.servlet-api</exclude> -->
-                                                    <!-- must be in lin <exclude>org.eclipse.jetty.toolchain:jetty-schemas<exclude> -->
+                                                    <!-- must be in lib <exclude>org.eclipse.jetty.toolchain:jetty-schemas<exclude> -->
                                                     <exclude>javax.mail:mail</exclude>
                                                     <!-- must be in lib <exclude>org.apache.nifi:nifi-api</exclude> -->
                                                     <exclude>org.apache.nifi:nifi-bootstrap</exclude>
                                                     <exclude>org.apache.nifi:nifi-expression-language</exclude>
+                                                    <exclude>org.apache.nifi:nifi-parameter</exclude>
                                                     <exclude>org.apache.nifi:nifi-processor-utils</exclude>
                                                     <!-- must be in lib <exclude>org.apache.nifi:nifi-properties</exclude> -->
                                                     <exclude>org.apache.nifi:nifi-properties-loader</exclude>
                                                     <!-- must be in lib <exclude>org.slf4j:slf4j-api</exclude> -->
                                                     <exclude>javax.activation:activation</exclude>
+                                                    <exclude>com.sun.activation:javax.activation</exclude>
                                                     <exclude>org.antlr:antlr-runtime</exclude>
                                                     <exclude>asm:asm</exclude>
                                                     <exclude>net.minidev:asm</exclude>
+                                                    <exclude>org.ow2.asm:asm</exclude>
+                                                    <exclude>net.minidev:accessors-smart</exclude>
                                                     <exclude>org.bouncycastle:bcpkix-jdk15on</exclude>
+                                                    <exclude>commons-codec:commons-codec</exclude>
                                                     <exclude>commons-io:commons-io</exclude>
+                                                    <exclude>commons-logging:commons-logging</exclude>
                                                     <exclude>com.fasterxml.jackson.core:jackson-annotations</exclude>
                                                     <exclude>com.fasterxml.jackson.core:jackson-core</exclude>
                                                     <exclude>com.fasterxml.jackson.core:jackson-databind</exclude>
                                                     <exclude>com.jayway.jsonpath:json-path</exclude>
+                                                    <exclude>de.svenkubiak:jBCrypt</exclude>
+                                                    <exclude>net.java.dev.jna:jna</exclude>
+                                                    <exclude>net.java.dev.jna:jna-platform</exclude>
                                                     <exclude>net.minidev:json-smart</exclude>
                                                     <!-- must be in lib <exclude>ch.qos.logback:logback-core</exclude> -->
                                                     <exclude>org.apache.nifi:nifi-security-utils</exclude>
@@ -1102,6 +1113,8 @@ language governing permissions and limitations under the License. -->
                                                     which are also not in bootstrap -->
                                                     <exclude>org.apache.nifi:nifi-resources</exclude>
                                                     <exclude>org.apache.nifi:nifi-docs</exclude>
+                                                    <exclude>com.squareup.okhttp3:okhttp</exclude>
+                                                    <exclude>com.squareup.okio:okio</exclude>
                                                     <!-- exclude jaxb/activation/annotation libs from lib, they'll be included in the java11 subdir -->
                                                     <!-- TODO: remove these once minimum Java version is 11 -->
                                                     <exclude>javax.xml.bind:jaxb-api</exclude>
@@ -1117,27 +1130,38 @@ language governing permissions and limitations under the License. -->
                                             <dependency>
                                                 <includes>
                                                     <include>org.bouncycastle:bcprov-jdk15on</include>
+                                                    <include>org.apache.commons:commons-configuration2</include>
                                                     <include>org.apache.commons:commons-lang3</include>
+                                                    <include>org.apache.commons:commons-text</include>
                                                     <!-- already in lib <include>org.slf4j:jul-to-slf4j</include> -->
                                                     <include>ch.qos.logback:logback-classic</include>
                                                     <include>javax.mail:mail</include>
                                                     <include>org.apache.nifi:nifi-api</include>
                                                     <include>org.apache.nifi:nifi-bootstrap</include>
                                                     <include>org.apache.nifi:nifi-expression-language</include>
+                                                    <include>org.apache.nifi:nifi-parameter</include>
                                                     <include>org.apache.nifi:nifi-processor-utils</include>
                                                     <!-- already in lib <include>org.apache.nifi:nifi-properties</include> -->
                                                     <include>org.apache.nifi:nifi-properties-loader</include>
                                                     <include>org.slf4j:slf4j-api</include>
                                                     <include>javax.activation:activation</include>
+                                                    <include>com.sun.activation:javax.activation</include>
                                                     <include>org.antlr:antlr-runtime</include>
                                                     <include>asm:asm</include>
                                                     <include>net.minidev:asm</include>
+                                                    <include>org.ow2.asm:asm</include>
+                                                    <include>net.minidev:accessors-smart</include>
                                                     <include>org.bouncycastle:bcpkix-jdk15on</include>
+                                                    <include>commons-codec:commons-codec</include>
                                                     <include>commons-io:commons-io</include>
+                                                    <include>commons-logging:commons-logging</include>
                                                     <include>com.fasterxml.jackson.core:jackson-annotations</include>
                                                     <include>com.fasterxml.jackson.core:jackson-core</include>
                                                     <include>com.fasterxml.jackson.core:jackson-databind</include>
                                                     <include>com.jayway.jsonpath:json-path</include>
+                                                    <include>de.svenkubiak:jBCrypt</include>
+                                                    <include>net.java.dev.jna:jna</include>
+                                                    <include>net.java.dev.jna:jna-platform</include>
                                                     <include>net.minidev:json-smart</include>
                                                     <include>ch.qos.logback:logback-core</include>
                                                     <include>org.apache.nifi:nifi-security-utils</include>
