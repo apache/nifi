@@ -24,11 +24,11 @@ import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.StringEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.StringQueryResult;
 
-public class StringElEvaluator extends StringEvaluator {
+public class EvaluateELStringEvaluator extends StringEvaluator {
 
     private final Evaluator<String> subject;
 
-    public StringElEvaluator(final Evaluator<String> subject) {
+    public EvaluateELStringEvaluator(final Evaluator<String> subject) {
         this.subject = subject;
     }
 

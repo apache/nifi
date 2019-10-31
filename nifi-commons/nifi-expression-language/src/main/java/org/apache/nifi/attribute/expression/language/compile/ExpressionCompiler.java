@@ -106,7 +106,7 @@ import org.apache.nifi.attribute.expression.language.evaluation.functions.ToLowe
 import org.apache.nifi.attribute.expression.language.evaluation.functions.ToRadixEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.ToStringEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.ToUpperEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.StringElEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.functions.EvaluateELStringEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.TrimEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.UrlDecodeEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.UrlEncodeEvaluator;
@@ -240,7 +240,7 @@ import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpre
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.URL_ENCODE;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.UUID;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.WHOLE_NUMBER;
-import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.STRING_EL;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.EVALUATE_EL_STRING;
 
 public class ExpressionCompiler {
     private final Set<Evaluator<?>> evaluators = new HashSet<>();
@@ -569,9 +569,9 @@ public class ExpressionCompiler {
                 verifyArgCount(argEvaluators, 0, "toUpper");
                 return addToken(new ToUpperEvaluator(toStringEvaluator(subjectEvaluator)), "toUpper");
             }
-            case STRING_EL: {
-                verifyArgCount(argEvaluators, 0, "stringEl");
-                return addToken(new StringElEvaluator(toStringEvaluator(subjectEvaluator)), "stringEl");
+            case EVALUATE_EL_STRING: {
+                verifyArgCount(argEvaluators, 0, "evaluateELString");
+                return addToken(new EvaluateELStringEvaluator(toStringEvaluator(subjectEvaluator)), "evaluateELString");
             }
             case URL_ENCODE: {
                 verifyArgCount(argEvaluators, 0, "urlEncode");

@@ -165,10 +165,10 @@ public class TestQuery {
         attrs.put("id", "1234");
         attrs.put("sql.query", "SELECT * FROM table WHERE ID = ${id}");
 
-        String query = "${sql.query:stringEl()}";
-        String query1 = "${employee.name:stringEl()}";
-        String query2 = "${employee.name:stringEl():toUpper()}";
-        String query3 = "${employee.gender:trim():stringEl()}";
+        String query = "${sql.query:evaluateELString()}";
+        String query1 = "${employee.name:evaluateELString()}";
+        String query2 = "${employee.name:evaluateELString():toUpper()}";
+        String query3 = "${employee.gender:trim():evaluateELString()}";
 
         verifyEquals(query, attrs, "SELECT * FROM table WHERE ID = 1234");
         verifyEquals(query1, attrs, "Harry Potter");
