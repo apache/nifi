@@ -36,6 +36,7 @@ import javax.mail.internet.MimeUtility;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.binary.StringUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.util.LogMessage;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -228,7 +229,9 @@ public class TestPutEmail {
         runner.setProperty(PutEmail.CONTENT_TYPE, "text/html");
         runner.setProperty(PutEmail.TO, "recipient@apache.org");
 
-        runner.enqueue("Some text".getBytes());
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put(CoreAttributes.FILENAME.key(), "test한的ほу́.pdf");
+        runner.enqueue("Some text".getBytes(), attributes);
 
         runner.run();
 
@@ -253,6 +256,7 @@ public class TestPutEmail {
         final BodyPart attachPart = multipart.getBodyPart(1);
         final InputStream attachIs = attachPart.getDataHandler().getInputStream();
         final String text = IOUtils.toString(attachIs, "UTF-8");
+        assertEquals("test한的ほу́.pdf", MimeUtility.decodeText(attachPart.getFileName()));
         assertEquals("Some text", text);
 
         assertNull(message.getRecipients(RecipientType.BCC));
