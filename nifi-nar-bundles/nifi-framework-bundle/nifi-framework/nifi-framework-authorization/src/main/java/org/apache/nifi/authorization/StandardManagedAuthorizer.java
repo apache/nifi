@@ -180,6 +180,19 @@ public class StandardManagedAuthorizer implements ManagedAuthorizer {
     }
 
     @Override
+    public void forciblyInheritFingerprint(final String fingerprint) throws AuthorizationAccessException {
+        final FingerprintHolder fingerprintHolder = parseFingerprint(fingerprint);
+
+        if (accessPolicyProvider instanceof ConfigurableAccessPolicyProvider) {
+            ((ConfigurableAccessPolicyProvider) accessPolicyProvider).forciblyInheritFingerprint(fingerprintHolder.getPolicyFingerprint());
+        }
+
+        if (userGroupProvider instanceof ConfigurableUserGroupProvider) {
+            ((ConfigurableUserGroupProvider) userGroupProvider).forciblyInheritFingerprint(fingerprintHolder.getUserGroupFingerprint());
+        }
+    }
+
+    @Override
     public void checkInheritability(String proposedFingerprint) throws AuthorizationAccessException, UninheritableAuthorizationsException {
         final FingerprintHolder fingerprintHolder = parseFingerprint(proposedFingerprint);
 

@@ -848,6 +848,20 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
      */
     void verifyCanDelete(boolean ignorePortConnections);
 
+
+    /**
+     * Ensures that the ProcessGroup is eligible to be deleted.
+     *
+     * @param ignorePortConnections if true, the Connections that are currently connected to Ports
+     * will be ignored. Otherwise, the ProcessGroup is not eligible for deletion if its input ports
+     * or output ports have any connections
+     * @param ignoreTemplates if true, the Templates that are currently part of hte Process Group will be ignored.
+     * Otherwise, the ProcessGroup is not eligible for deletion if it has any templates
+     *
+     * @throws IllegalStateException if the ProcessGroup is not eligible for deletion
+     */
+    void verifyCanDelete(boolean ignorePortConnections, boolean ignoreTemplates);
+
     void verifyCanStart(Connectable connectable);
 
     void verifyCanStart();

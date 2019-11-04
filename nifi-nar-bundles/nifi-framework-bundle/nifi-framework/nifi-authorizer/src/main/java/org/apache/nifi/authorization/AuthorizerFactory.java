@@ -129,6 +129,11 @@ public final class AuthorizerFactory {
                 }
 
                 @Override
+                public void forciblyInheritFingerprint(final String fingerprint) throws AuthorizationAccessException {
+                    baseManagedAuthorizer.forciblyInheritFingerprint(fingerprint);
+                }
+
+                @Override
                 public void checkInheritability(String proposedFingerprint) throws AuthorizationAccessException, UninheritableAuthorizationsException {
                     baseManagedAuthorizer.checkInheritability(proposedFingerprint);
                 }
@@ -147,6 +152,11 @@ public final class AuthorizerFactory {
                             @Override
                             public void inheritFingerprint(String fingerprint) throws AuthorizationAccessException {
                                 baseConfigurableAccessPolicyProvider.inheritFingerprint(fingerprint);
+                            }
+
+                            @Override
+                            public void forciblyInheritFingerprint(final String fingerprint) throws AuthorizationAccessException {
+                                baseConfigurableAccessPolicyProvider.forciblyInheritFingerprint(fingerprint);
                             }
 
                             @Override
@@ -212,6 +222,11 @@ public final class AuthorizerFactory {
                                         @Override
                                         public void inheritFingerprint(String fingerprint) throws AuthorizationAccessException {
                                             baseConfigurableUserGroupProvider.inheritFingerprint(fingerprint);
+                                        }
+
+                                        @Override
+                                        public void forciblyInheritFingerprint(final String fingerprint) throws AuthorizationAccessException {
+                                            baseConfigurableAccessPolicyProvider.forciblyInheritFingerprint(fingerprint);
                                         }
 
                                         @Override

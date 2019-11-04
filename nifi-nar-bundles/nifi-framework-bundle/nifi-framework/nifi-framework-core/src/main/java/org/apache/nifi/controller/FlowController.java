@@ -206,6 +206,7 @@ import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.reporting.StandardEventAccess;
 import org.apache.nifi.reporting.UserAwareEventAccess;
 import org.apache.nifi.scheduling.SchedulingStrategy;
+import org.apache.nifi.services.FlowService;
 import org.apache.nifi.stream.io.LimitingInputStream;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.ComponentIdGenerator;
@@ -219,6 +220,39 @@ import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
 import org.apache.zookeeper.server.quorum.QuorumPeerConfig.ConfigException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.management.NotificationEmitter;
+import javax.net.ssl.SSLContext;
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.lang.management.GarbageCollectorMXBean;
+import java.lang.management.ManagementFactory;
+import java.net.InetSocketAddress;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.stream.Collectors;
+
+import static java.util.Objects.requireNonNull;
 
 public class FlowController implements ReportingTaskProvider, Authorizable, NodeTypeProvider {
 
@@ -821,6 +855,18 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
         };
     }
 
+    public void purge() {
+        getFlowManager().purge();
+
+        writeLock.lock();
+        try {
+            startConnectablesAfterInitialization.clear();
+            startRemoteGroupPortsAfterInitialization.clear();
+        } finally {
+            writeLock.unlock("purge");
+        }
+    }
+
     public void initializeFlow() throws IOException {
         initializeFlow(new StandardQueueProvider(getFlowManager()));
     }
@@ -1352,28 +1398,46 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
      * Synchronizes this controller with the proposed flow.
      * <p>
      * For more details, see
-     * {@link FlowSynchronizer#sync(FlowController, DataFlow, StringEncryptor)}.
+     * {@link FlowSynchronizer#sync(FlowController, DataFlow, StringEncryptor, FlowService)}.
      *
      * @param synchronizer synchronizer
-     * @param dataFlow     the flow to load the controller with. If the flow is null
-     *                     or zero length, then the controller must not have a flow or else an
-     *                     UninheritableFlowException will be thrown.
-     * @throws FlowSerializationException   if proposed flow is not a valid flow
-     *                                      configuration file
-     * @throws UninheritableFlowException   if the proposed flow cannot be loaded
-     *                                      by the controller because in doing so would risk orphaning flow files
+     * @param dataFlow the flow to load the controller with. If the flow is null
+     * or zero length, then the controller must not have a flow or else an
+     * UninheritableFlowException will be thrown.
+     * @param flowService the flow service
+     *
+     * @throws FlowSerializationException if proposed flow is not a valid flow
+     * configuration file
+     * @throws UninheritableFlowException if the proposed flow cannot be loaded
+     * by the controller because in doing so would risk orphaning flow files
      * @throws FlowSynchronizationException if updates to the controller failed.
      *                                      If this exception is thrown, then the controller should be considered
      *                                      unsafe to be used
      * @throws MissingBundleException       if the proposed flow cannot be loaded by the
      *                                      controller because it contains a bundle that does not exist in the controller
      */
-    public void synchronize(final FlowSynchronizer synchronizer, final DataFlow dataFlow)
+    public void synchronize(final FlowSynchronizer synchronizer, final DataFlow dataFlow, final FlowService flowService)
             throws FlowSerializationException, FlowSynchronizationException, UninheritableFlowException, MissingBundleException {
         writeLock.lock();
         try {
             LOG.debug("Synchronizing controller with proposed flow");
-            synchronizer.sync(this, dataFlow, encryptor);
+
+            try {
+                synchronizer.sync(this, dataFlow, encryptor, flowService);
+            } catch (final UninheritableFlowException ufe) {
+                final NodeIdentifier localNodeId = getNodeId();
+                if (localNodeId != null) {
+                    try {
+                        clusterCoordinator.requestNodeDisconnect(localNodeId, DisconnectionCode.MISMATCHED_FLOWS, ufe.getMessage());
+                    } catch (final Exception e) {
+                        LOG.error("Failed to synchronize Controller with proposed flow and also failed to notify cluster that the flows do not match. Node's state may remain CONNECTING instead of " +
+                            "transitioning to DISCONNECTED.", e);
+                    }
+                }
+
+                throw ufe;
+            }
+
             flowSynchronized.set(true);
             LOG.info("Successfully synchronized controller with proposed flow");
         } finally {

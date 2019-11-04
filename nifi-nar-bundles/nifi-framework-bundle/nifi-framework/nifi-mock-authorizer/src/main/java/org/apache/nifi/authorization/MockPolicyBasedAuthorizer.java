@@ -33,7 +33,7 @@ public class MockPolicyBasedAuthorizer extends AbstractPolicyBasedAuthorizer imp
     private Set<User> users = new HashSet<>();
     private Set<AccessPolicy> policies = new HashSet<>();
 
-    private Set<AuthorizationRequest> audited = new HashSet();
+    private Set<AuthorizationRequest> audited = new HashSet<>();
 
     public MockPolicyBasedAuthorizer() {
 
@@ -193,4 +193,14 @@ public class MockPolicyBasedAuthorizer extends AbstractPolicyBasedAuthorizer imp
 
     }
 
+    @Override
+    public void backupPoliciesUsersAndGroups() {
+    }
+
+    @Override
+    public void purgePoliciesUsersAndGroups() {
+        groups.clear();
+        users.clear();
+        policies.clear();
+    }
 }

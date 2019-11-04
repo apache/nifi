@@ -60,6 +60,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -199,7 +201,7 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
             }
 
             logger.info(String.format("Users/Groups file loaded at %s", new Date().toString()));
-        } catch (IOException | AuthorizerCreationException | JAXBException | IllegalStateException | SAXException e) {
+        } catch (IOException | AuthorizerCreationException | JAXBException | IllegalStateException e) {
             throw new AuthorizerCreationException(e);
         }
     }
@@ -215,13 +217,8 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
             throw new IllegalArgumentException("User cannot be null");
         }
 
-        final org.apache.nifi.authorization.file.tenants.generated.User jaxbUser = createJAXBUser(user);
-
-        final UserGroupHolder holder = userGroupHolder.get();
-        final Tenants tenants = holder.getTenants();
-        tenants.getUsers().getUser().add(jaxbUser);
-
-        saveAndRefreshHolder(tenants);
+        final UsersAndGroups usersAndGroups = new UsersAndGroups(Collections.singletonList(user), Collections.emptyList());
+        addUsersAndGroups(usersAndGroups);
 
         return userGroupHolder.get().getUsersById().get(user.getIdentifier());
     }
@@ -325,30 +322,44 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
         return userGroupHolder.get().getAllGroups();
     }
 
+    private synchronized void addUsersAndGroups(final UsersAndGroups usersAndGroups) {
+        final UserGroupHolder holder = userGroupHolder.get();
+        final Tenants tenants = holder.getTenants();
+
+        final List<Group> groups = usersAndGroups.getGroups();
+        for (final Group group : groups) {
+            // create a new JAXB Group based on the incoming Group
+            final org.apache.nifi.authorization.file.tenants.generated.Group jaxbGroup = new org.apache.nifi.authorization.file.tenants.generated.Group();
+            jaxbGroup.setIdentifier(group.getIdentifier());
+            jaxbGroup.setName(group.getName());
+
+            // add each user to the group
+            for (String groupUser : group.getUsers()) {
+                org.apache.nifi.authorization.file.tenants.generated.Group.User jaxbGroupUser = new org.apache.nifi.authorization.file.tenants.generated.Group.User();
+                jaxbGroupUser.setIdentifier(groupUser);
+                jaxbGroup.getUser().add(jaxbGroupUser);
+            }
+
+            tenants.getGroups().getGroup().add(jaxbGroup);
+        }
+
+        final List<User> users = usersAndGroups.getUsers();
+        for (final User user : users) {
+            final org.apache.nifi.authorization.file.tenants.generated.User jaxbUser = createJAXBUser(user);
+            tenants.getUsers().getUser().add(jaxbUser);
+        }
+
+        saveAndRefreshHolder(tenants);
+    }
+
     @Override
     public synchronized Group addGroup(Group group) throws AuthorizationAccessException {
         if (group == null) {
             throw new IllegalArgumentException("Group cannot be null");
         }
 
-        final UserGroupHolder holder = userGroupHolder.get();
-        final Tenants tenants = holder.getTenants();
-
-        // create a new JAXB Group based on the incoming Group
-        final org.apache.nifi.authorization.file.tenants.generated.Group jaxbGroup = new org.apache.nifi.authorization.file.tenants.generated.Group();
-        jaxbGroup.setIdentifier(group.getIdentifier());
-        jaxbGroup.setName(group.getName());
-
-        // add each user to the group
-        for (String groupUser : group.getUsers()) {
-            org.apache.nifi.authorization.file.tenants.generated.Group.User jaxbGroupUser = new org.apache.nifi.authorization.file.tenants.generated.Group.User();
-            jaxbGroupUser.setIdentifier(groupUser);
-            jaxbGroup.getUser().add(jaxbGroupUser);
-        }
-
-        tenants.getGroups().getGroup().add(jaxbGroup);
-        saveAndRefreshHolder(tenants);
-
+        final UsersAndGroups usersAndGroups = new UsersAndGroups(Collections.emptyList(), Collections.singletonList(group));
+        addUsersAndGroups(usersAndGroups);
         return userGroupHolder.get().getGroupsById().get(group.getIdentifier());
     }
 
@@ -455,25 +466,81 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
     @Override
     public synchronized void inheritFingerprint(String fingerprint) throws AuthorizationAccessException {
         final UsersAndGroups usersAndGroups = parseUsersAndGroups(fingerprint);
-        usersAndGroups.getUsers().forEach(user -> addUser(user));
-        usersAndGroups.getGroups().forEach(group -> addGroup(group));
+        inherit(usersAndGroups);
+    }
+
+    private synchronized void inherit(final UsersAndGroups usersAndGroups) {
+        addUsersAndGroups(usersAndGroups);
+    }
+
+    @Override
+    public synchronized void forciblyInheritFingerprint(final String fingerprint) throws AuthorizationAccessException {
+        if (fingerprint == null || fingerprint.trim().isEmpty()) {
+            logger.info("Inheriting Empty Users & Groups. Will backup existing Uesrs & Groups first.");
+            backupUsersAndGroups();
+            purgeUsersAndGroups();
+
+            return;
+        }
+
+        final UsersAndGroups usersAndGroups = parseUsersAndGroups(fingerprint);
+
+        if (isInheritable(usersAndGroups)) {
+            logger.debug("Inheriting cluster's Users & Groups");
+            inherit(usersAndGroups);
+        } else {
+            logger.info("Cannot directly inherit proposed Users & Groups so will backup existing Users & Groups and then replace with proposed configuration");
+            backupUsersAndGroups();
+            purgeUsersAndGroups();
+            addUsersAndGroups(usersAndGroups);
+        }
+    }
+
+    public void backupUsersAndGroups() throws AuthorizationAccessException {
+        final UserGroupHolder holder = userGroupHolder.get();
+        final Tenants tenants = holder.getTenants();
+
+        final DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss");
+        final String timestamp = dateFormat.format(new Date());
+        final File destinationFile = new File(tenantsFile.getParentFile(), tenantsFile.getName() + "." + timestamp);
+        logger.info("Writing backup of Users & Groups to {}", destinationFile.getAbsolutePath());
+
+        try {
+            saveTenants(tenants, destinationFile);
+        } catch (final JAXBException jaxb) {
+            throw new AuthorizationAccessException("Could not backup existing Users and Groups so will not inherit new Users and Groups", jaxb);
+        }
+    }
+
+    public synchronized void purgeUsersAndGroups() {
+        final UserGroupHolder holder = userGroupHolder.get();
+        final Tenants tenants = holder.getTenants();
+
+        tenants.setGroups(new Groups());
+        tenants.setUsers(new Users());
+
+        saveAndRefreshHolder(tenants);
     }
 
     @Override
     public void checkInheritability(String proposedFingerprint) throws AuthorizationAccessException {
+        final UsersAndGroups proposedUsersAndGroups;
         try {
             // ensure we understand the proposed fingerprint
-            parseUsersAndGroups(proposedFingerprint);
+            proposedUsersAndGroups = parseUsersAndGroups(proposedFingerprint);
         } catch (final AuthorizationAccessException e) {
             throw new UninheritableAuthorizationsException("Unable to parse the proposed fingerprint: " + e);
         }
 
-        final UserGroupHolder usersAndGroups = userGroupHolder.get();
-
         // ensure we are in a proper state to inherit the fingerprint
-        if (!usersAndGroups.getAllUsers().isEmpty() || !usersAndGroups.getAllGroups().isEmpty()) {
+        if (!isInheritable(proposedUsersAndGroups)) {
             throw new UninheritableAuthorizationsException("Proposed fingerprint is not inheritable because the current users and groups is not empty.");
         }
+    }
+
+    private boolean isInheritable(final UsersAndGroups proposedUsersAndGroups) {
+        final UserGroupHolder usersAndGroups = userGroupHolder.get();
+        return usersAndGroups.getAllUsers().isEmpty() && usersAndGroups.getAllGroups().isEmpty();
     }
 
     @Override
@@ -481,10 +548,10 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
         final UserGroupHolder usersAndGroups = userGroupHolder.get();
 
         final List<User> users = new ArrayList<>(usersAndGroups.getAllUsers());
-        Collections.sort(users, Comparator.comparing(User::getIdentifier));
+        users.sort(Comparator.comparing(User::getIdentifier));
 
         final List<Group> groups = new ArrayList<>(usersAndGroups.getAllGroups());
-        Collections.sort(groups, Comparator.comparing(Group::getIdentifier));
+        groups.sort(Comparator.comparing(Group::getIdentifier));
 
         XMLStreamWriter writer = null;
         final StringWriter out = new StringWriter();
@@ -606,9 +673,8 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
      *
      * @throws JAXBException            Unable to reload the authorized users file
      * @throws IllegalStateException    Unable to sync file with restore
-     * @throws SAXException             Unable to unmarshall tenants
      */
-    private synchronized void load() throws JAXBException, IllegalStateException, SAXException {
+    private synchronized void load() throws JAXBException, IllegalStateException {
         final Tenants tenants = unmarshallTenants();
         if (tenants.getUsers() == null) {
             tenants.setUsers(new Users());
@@ -637,10 +703,14 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
     }
 
     private void saveTenants(final Tenants tenants) throws JAXBException {
+        saveTenants(tenants, tenantsFile);
+    }
+
+    private void saveTenants(final Tenants tenants, final File destinationFile) throws JAXBException {
         final Marshaller marshaller = JAXB_TENANTS_CONTEXT.createMarshaller();
         marshaller.setSchema(tenantsSchema);
         marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
-        marshaller.marshal(tenants, tenantsFile);
+        marshaller.marshal(tenants, destinationFile);
     }
 
     private Tenants unmarshallTenants() throws JAXBException {

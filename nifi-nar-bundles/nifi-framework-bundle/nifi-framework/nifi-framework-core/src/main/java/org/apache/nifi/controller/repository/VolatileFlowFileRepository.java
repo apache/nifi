@@ -23,8 +23,10 @@ import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -142,6 +144,11 @@ public class VolatileFlowFileRepository implements FlowFileRepository {
     @Override
     public long loadFlowFiles(final QueueProvider queueProvider) throws IOException {
         return 0;
+    }
+
+    @Override
+    public Set<String> findQueuesWithFlowFiles(FlowFileSwapManager swapManager) throws IOException {
+        return Collections.emptySet();
     }
 
     @Override

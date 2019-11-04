@@ -28,10 +28,14 @@ public interface NiFiInstance {
      */
     void createEnvironment() throws IOException;
 
+    default void start() {
+        start(true);
+    }
+
     /**
      * Starts the NiFi instance and waits until the startup is complete
      */
-    void start();
+    void start(boolean waitForCompletion);
 
     /**
      * Shuts down the NiFi instance
@@ -92,6 +96,12 @@ public interface NiFiInstance {
      * @param propertyValue the value of the property
      */
     void setProperty(String propertyName, String propertyValue) throws IOException;
+
+    /**
+     * Change the value of the flow that should be loaded on startup
+     * @param flowXmlGz the file that contains the flow that should be loaded on startup
+     */
+    void setFlowXmlGz(final File flowXmlGz) throws IOException;
 
     /**
      * Change the values of the given properties in nifi.properties. Any property that is not present in the given map will remain unchanged. If the node is already running, this change will not take

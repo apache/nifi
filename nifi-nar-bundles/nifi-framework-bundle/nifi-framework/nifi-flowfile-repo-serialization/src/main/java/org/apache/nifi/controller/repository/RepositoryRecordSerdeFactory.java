@@ -16,13 +16,8 @@
  */
 package org.apache.nifi.controller.repository;
 
-import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.wali.SerDeFactory;
 
-import java.util.Map;
-
-public interface RepositoryRecordSerdeFactory extends SerDeFactory<RepositoryRecord> {
-    void setQueueMap(Map<String, FlowFileQueue> queueMap);
-
-    Long getRecordIdentifier(RepositoryRecord record);
+public interface RepositoryRecordSerdeFactory extends SerDeFactory<SerializedRepositoryRecord> {
+    Long getRecordIdentifier(SerializedRepositoryRecord record);
 }

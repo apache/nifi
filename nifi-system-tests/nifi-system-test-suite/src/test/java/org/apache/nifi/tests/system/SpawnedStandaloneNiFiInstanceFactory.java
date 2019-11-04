@@ -79,7 +79,7 @@ public class SpawnedStandaloneNiFiInstanceFactory implements NiFiInstanceFactory
         }
 
         @Override
-        public void start() {
+        public void start(final boolean waitForCompletion) {
             if (runNiFi != null) {
                 throw new IllegalStateException("NiFi has already been started");
             }
@@ -94,7 +94,10 @@ public class SpawnedStandaloneNiFiInstanceFactory implements NiFiInstanceFactory
 
             try {
                 runNiFi.start(false);
-                waitForStartup();
+
+                if (waitForCompletion) {
+                    waitForStartup();
+                }
             } catch (IOException e) {
                 throw new RuntimeException("Failed to start NiFi", e);
             }
@@ -124,6 +127,12 @@ public class SpawnedStandaloneNiFiInstanceFactory implements NiFiInstanceFactory
             // Copy truststore
             final File destinationTruststore = new File(destinationCertsDir, "truststore.jks");
             Files.copy(Paths.get("src/test/resources/truststore.jks"), destinationTruststore.toPath());
+
+            final File flowXmlGz = instanceConfiguration.getFlowXmlGz();
+            if (flowXmlGz != null) {
+                final File destinationFlowXmlGz = new File(destinationConf, "flow.xml.gz");
+                Files.copy(flowXmlGz.toPath(), destinationFlowXmlGz.toPath());
+            }
         }
 
         private void copyContents(final File dir, final File destinationDir) throws IOException {
@@ -148,6 +157,13 @@ public class SpawnedStandaloneNiFiInstanceFactory implements NiFiInstanceFactory
             }
         }
 
+        @Override
+        public void setFlowXmlGz(final File flowXmlGz) throws IOException {
+            final File destinationConf = new File(instanceDirectory, "conf");
+            final File destinationFlowXmlGz = new File(destinationConf, "flow.xml.gz");
+            destinationFlowXmlGz.delete();
+            Files.copy(flowXmlGz.toPath(), destinationFlowXmlGz.toPath());
+        }
 
         private void waitForStartup() throws IOException {
             final NiFiClient client = createClient();

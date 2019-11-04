@@ -158,8 +158,12 @@ public abstract class NiFiSystemIT {
     }
 
     protected NiFiClient createClient() {
+        return createClient(getClientApiPort());
+    }
+
+    protected NiFiClient createClient(final int port) {
         final NiFiClientConfig clientConfig = new NiFiClientConfig.Builder()
-            .baseUrl("http://localhost:" + getClientApiPort())
+            .baseUrl("http://localhost:" + port)
             .connectTimeout(30000)
             .readTimeout(30000)
             .build();

@@ -17,23 +17,22 @@
 
 package org.apache.nifi.controller.repository.schema;
 
-import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.repository.FlowFileRecord;
-import org.apache.nifi.controller.repository.RepositoryRecord;
+import org.apache.nifi.controller.repository.SerializedRepositoryRecord;
 import org.apache.nifi.repository.schema.Record;
 import org.apache.nifi.repository.schema.RecordSchema;
 
 public class RepositoryRecordFieldMap implements Record {
-    private final RepositoryRecord record;
+    private final SerializedRepositoryRecord record;
     private final FlowFileRecord flowFile;
     private final RecordSchema schema;
     private final RecordSchema contentClaimSchema;
 
-    public RepositoryRecordFieldMap(final RepositoryRecord record, final RecordSchema repoRecordSchema, final RecordSchema contentClaimSchema) {
+    public RepositoryRecordFieldMap(final SerializedRepositoryRecord record, final RecordSchema repoRecordSchema, final RecordSchema contentClaimSchema) {
         this.schema = repoRecordSchema;
         this.contentClaimSchema = contentClaimSchema;
         this.record = record;
-        this.flowFile = record.getCurrent();
+        this.flowFile = record.getFlowFileRecord();
     }
 
     @Override
@@ -42,7 +41,7 @@ public class RepositoryRecordFieldMap implements Record {
             case RepositoryRecordSchema.ACTION_TYPE:
                 return record.getType().name();
             case RepositoryRecordSchema.RECORD_ID:
-                return record.getCurrent().getId();
+                return record.getFlowFileRecord().getId();
             case RepositoryRecordSchema.SWAP_LOCATION:
                 return record.getSwapLocation();
             case FlowFileSchema.ATTRIBUTES:
@@ -60,12 +59,11 @@ public class RepositoryRecordFieldMap implements Record {
             case FlowFileSchema.QUEUE_DATE_INDEX:
                 return flowFile.getQueueDateIndex();
             case FlowFileSchema.CONTENT_CLAIM:
-                final ContentClaimFieldMap contentClaimFieldMap = record.getCurrentClaim() == null ? null
-                    : new ContentClaimFieldMap(record.getCurrentClaim(), record.getCurrentClaimOffset(), contentClaimSchema);
+                final ContentClaimFieldMap contentClaimFieldMap = record.getContentClaim() == null ? null
+                    : new ContentClaimFieldMap(record.getContentClaim(), record.getClaimOffset(), contentClaimSchema);
                 return contentClaimFieldMap;
             case RepositoryRecordSchema.QUEUE_IDENTIFIER:
-                final FlowFileQueue queue = record.getDestination() == null ? record.getOriginalQueue() : record.getDestination();
-                return queue == null ? null : queue.getIdentifier();
+                return record.getQueueIdentifier();
             default:
                 return null;
         }
