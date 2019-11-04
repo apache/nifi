@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <!--
       Licensed to the Apache Software Foundation (ASF) under one or more
       contributor license agreements.  See the NOTICE file distributed with
@@ -21,7 +19,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-framework</artifactId>
-        <version>1.10.0-SNAPSHOT</version>
+        <version>1.10.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-stateless</artifactId>
@@ -30,42 +28,42 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-api</artifactId>
-            <version>1.10.0-SNAPSHOT</version>
+            <version>1.10.1-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-framework-api</artifactId>
-            <version>1.10.0-SNAPSHOT</version>
+            <version>1.10.1-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-framework-core-api</artifactId>
-            <version>1.10.0-SNAPSHOT</version>
+            <version>1.10.1-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-framework-nar-loading-utils</artifactId>
-            <version>1.10.0-SNAPSHOT</version>
+            <version>1.10.1-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-nar-utils</artifactId>
-            <version>1.10.0-SNAPSHOT</version>
+            <version>1.10.1-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-expression-language</artifactId>
-            <version>1.10.0-SNAPSHOT</version>
+            <version>1.10.1-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-data-provenance-utils</artifactId>
-            <version>1.10.0-SNAPSHOT</version>
+            <version>1.10.1-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-parameter</artifactId>
-            <version>1.10.0-SNAPSHOT</version>
+            <version>1.10.1-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>com.google.code.gson</groupId>
@@ -106,13 +104,13 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-standard-processors</artifactId>
-            <version>1.10.0-SNAPSHOT</version>
+            <version>1.10.1-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-web-api</artifactId>
-            <version>1.10.0-SNAPSHOT</version>
+            <version>1.10.1-SNAPSHOT</version>
             <type>war</type>
             <scope>test</scope>
         </dependency>
