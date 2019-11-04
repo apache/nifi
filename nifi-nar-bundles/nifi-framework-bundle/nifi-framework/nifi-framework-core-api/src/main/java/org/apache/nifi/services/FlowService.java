@@ -16,13 +16,13 @@
  */
 package org.apache.nifi.services;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.util.concurrent.TimeUnit;
-
 import org.apache.nifi.cluster.protocol.DataFlow;
 import org.apache.nifi.lifecycle.LifeCycle;
+
+import java.io.File;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Defines the API level services available for carrying out file-based dataflow operations.
@@ -37,23 +37,6 @@ public interface FlowService extends LifeCycle {
      * @throws IOException if any problem occurs creating/modifying file
      */
     void saveFlowChanges() throws IOException;
-
-    /**
-     * Immediately persists the state of the flow controller to the given output stream in a blocking call.
-     *
-     * @param outStream the stream to which the FlowController is to be persisted
-     * @throws NullPointerException if the given flow is null.
-     * @throws IOException if any problem occurs creating/modifying file
-     */
-    void saveFlowChanges(OutputStream outStream) throws IOException;
-
-    /**
-     * Saves the given stream to the flow.xml file on disk. This method does not change the state of the flow controller.
-     *
-     * @param is an input stream
-     * @throws IOException if unable to save the flow
-     */
-    void overwriteFlow(InputStream is) throws IOException;
 
     /**
      * Asynchronously saves the flow controller. The flow controller will be copied and immediately returned. If another call to save is made within that time the latest called state of the flow
@@ -101,6 +84,13 @@ public interface FlowService extends LifeCycle {
      * @throws IOException if unable to load the flow
      */
     void copyCurrentFlow(OutputStream os) throws IOException;
+
+    /**
+     * Copies the contents of the current flow.xml.gz to the given file, overwriting the file if it exists
+     * @param file the file to write the current flow to
+     * @throws IOException if unable to read the current flow or unable to write to the given file
+     */
+    void copyCurrentFlow(File file) throws IOException;
 
     /**
      * Creates a DataFlow object by first looking for a flow on from disk, and falling back to the controller's flow otherwise.

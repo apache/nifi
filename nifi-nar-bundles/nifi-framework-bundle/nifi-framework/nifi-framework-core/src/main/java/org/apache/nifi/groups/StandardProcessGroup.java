@@ -2632,7 +2632,12 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public void verifyCanDelete(final boolean ignoreConnections) {
+    public void verifyCanDelete(final boolean ignorePortConnections) {
+        verifyCanDelete(ignorePortConnections, false);
+    }
+
+    @Override
+    public void verifyCanDelete(final boolean ignoreConnections, final boolean ignoreTemplates) {
         readLock.lock();
         try {
             for (final Port port : inputPorts.values()) {
@@ -2658,10 +2663,10 @@ public final class StandardProcessGroup implements ProcessGroup {
             for (final ProcessGroup childGroup : processGroups.values()) {
                 // For nested child groups we can ignore the input/output port
                 // connections as they will be being deleted anyway.
-                childGroup.verifyCanDelete(true);
+                childGroup.verifyCanDelete(true, ignoreTemplates);
             }
 
-            if (!templates.isEmpty()) {
+            if (!ignoreTemplates && !templates.isEmpty()) {
                 throw new IllegalStateException(String.format("Cannot delete Process Group because it contains %s Templates. The Templates must be deleted first.", templates.size()));
             }
 

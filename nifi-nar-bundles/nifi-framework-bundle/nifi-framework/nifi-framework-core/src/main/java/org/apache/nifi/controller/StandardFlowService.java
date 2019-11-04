@@ -66,6 +66,7 @@ import org.apache.nifi.persistence.TemplateDeserializer;
 import org.apache.nifi.reporting.Bulletin;
 import org.apache.nifi.reporting.EventAccess;
 import org.apache.nifi.services.FlowService;
+import org.apache.nifi.stream.io.GZIPOutputStream;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.file.FileUtils;
@@ -78,6 +79,7 @@ import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -104,7 +106,6 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
 import java.util.zip.GZIPInputStream;
-import java.util.zip.GZIPOutputStream;
 
 public class StandardFlowService implements FlowService, ProtocolHandler {
 
@@ -152,7 +153,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
 
     private final NiFiProperties nifiProperties;
 
-    private static final String CONNECTION_EXCEPTION_MSG_PREFIX = "Failed to connect node to cluster because ";
+    private static final String CONNECTION_EXCEPTION_MSG_PREFIX = "Failed to connect node to cluster";
     private static final Logger logger = LoggerFactory.getLogger(StandardFlowService.class);
 
     public static StandardFlowService createStandaloneInstance(
@@ -242,27 +243,6 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
         writeLock.lock();
         try {
             dao.save(controller);
-        } finally {
-            writeLock.unlock();
-        }
-    }
-
-    @Override
-    public void saveFlowChanges(final OutputStream outStream) throws IOException {
-        writeLock.lock();
-        try {
-            dao.save(controller, outStream);
-        } finally {
-            writeLock.unlock();
-        }
-    }
-
-    @Override
-    public void overwriteFlow(final InputStream is) throws IOException {
-        writeLock.lock();
-        try (final OutputStream output = Files.newOutputStream(flowXml, StandardOpenOption.WRITE, StandardOpenOption.CREATE);
-                final OutputStream gzipOut = new GZIPOutputStream(output)) {
-            FileUtils.copy(is, gzipOut);
         } finally {
             writeLock.unlock();
         }
@@ -809,7 +789,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
 
         // load the flow
         logger.debug("Loading proposed flow into FlowController");
-        dao.load(controller, actualProposedFlow);
+        dao.load(controller, actualProposedFlow, this);
 
         final ProcessGroup rootGroup = controller.getFlowManager().getRootGroup();
         if (rootGroup.isEmpty() && !allowEmptyFlow) {
@@ -997,13 +977,14 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
                 logger.trace("ResponseFlow = " + new String(dataFlow.getFlow(), StandardCharsets.UTF_8));
             }
 
+            logger.info("Setting Flow Controller's Node ID: " + nodeId);
+            nodeId = response.getNodeIdentifier();
+            controller.setNodeId(nodeId);
+
             // load new controller state
             loadFromBytes(dataFlow, true);
 
             // set node ID on controller before we start heartbeating because heartbeat needs node ID
-            nodeId = response.getNodeIdentifier();
-            logger.info("Setting Flow Controller's Node ID: " + nodeId);
-            controller.setNodeId(nodeId);
             clusterCoordinator.setLocalNodeIdentifier(nodeId);
             clusterCoordinator.setConnected(true);
             revisionManager.reset(response.getComponentRevisions().stream().map(ComponentRevision::toRevision).collect(Collectors.toList()));
@@ -1023,13 +1004,13 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
 
             controller.startHeartbeating();
         } catch (final UninheritableFlowException ufe) {
-            throw new UninheritableFlowException(CONNECTION_EXCEPTION_MSG_PREFIX + "local flow is different than cluster flow.", ufe);
+            throw new UninheritableFlowException(CONNECTION_EXCEPTION_MSG_PREFIX, ufe);
         } catch (final MissingBundleException mbe) {
-            throw new MissingBundleException(CONNECTION_EXCEPTION_MSG_PREFIX + "cluster flow contains bundles that do not exist on the current node", mbe);
+            throw new MissingBundleException(CONNECTION_EXCEPTION_MSG_PREFIX + " because cluster flow contains bundles that do not exist on the current node", mbe);
         } catch (final FlowSerializationException fse) {
-            throw new ConnectionException(CONNECTION_EXCEPTION_MSG_PREFIX + "local or cluster flow is malformed.", fse);
+            throw new ConnectionException(CONNECTION_EXCEPTION_MSG_PREFIX + " because local or cluster flow is malformed.", fse);
         } catch (final FlowSynchronizationException fse) {
-            throw new FlowSynchronizationException(CONNECTION_EXCEPTION_MSG_PREFIX + "local flow controller partially updated. "
+            throw new FlowSynchronizationException(CONNECTION_EXCEPTION_MSG_PREFIX + " because local flow controller partially updated. "
                     + "Administrator should disconnect node and review flow for corruption.", fse);
         } catch (final Exception ex) {
             throw new ConnectionException("Failed to connect node to cluster due to: " + ex, ex);
@@ -1061,6 +1042,14 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             }
         } finally {
             readLock.unlock();
+        }
+    }
+
+    @Override
+    public void copyCurrentFlow(final File file) throws IOException {
+        try (final OutputStream fos = new FileOutputStream(file);
+             final OutputStream gzipOut = new GZIPOutputStream(fos, 1)) {
+            copyCurrentFlow(gzipOut);
         }
     }
 

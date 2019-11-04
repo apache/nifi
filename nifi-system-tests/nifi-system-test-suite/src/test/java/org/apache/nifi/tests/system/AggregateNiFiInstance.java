@@ -30,10 +30,10 @@ public class AggregateNiFiInstance implements NiFiInstance {
     }
 
     @Override
-    public void start() {
+    public void start(boolean waitForCompletion) {
         for (final NiFiInstance instance : instances) {
             if (instance.isAutoStart()) {
-                instance.start();
+                instance.start(waitForCompletion);
             }
         }
     }
@@ -116,6 +116,13 @@ public class AggregateNiFiInstance implements NiFiInstance {
     public void setProperty(final String propertyName, final String propertyValue) throws IOException {
         for (final NiFiInstance instance : instances) {
             instance.setProperty(propertyName, propertyValue);
+        }
+    }
+
+    @Override
+    public void setFlowXmlGz(final File flowXmlGz) throws IOException {
+        for (final NiFiInstance instance : instances) {
+            instance.setFlowXmlGz(flowXmlGz);
         }
     }
 

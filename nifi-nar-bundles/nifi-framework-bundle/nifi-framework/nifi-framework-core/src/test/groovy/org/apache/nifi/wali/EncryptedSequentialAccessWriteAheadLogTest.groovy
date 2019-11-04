@@ -21,9 +21,11 @@ import ch.qos.logback.classic.Level
 import org.apache.commons.lang3.SystemUtils
 import org.apache.nifi.controller.queue.FlowFileQueue
 import org.apache.nifi.controller.repository.EncryptedSchemaRepositoryRecordSerde
+import org.apache.nifi.controller.repository.LiveSerializedRepositoryRecord
 import org.apache.nifi.controller.repository.RepositoryRecord
 import org.apache.nifi.controller.repository.RepositoryRecordType
 import org.apache.nifi.controller.repository.SchemaRepositoryRecordSerde
+import org.apache.nifi.controller.repository.SerializedRepositoryRecord
 import org.apache.nifi.controller.repository.StandardFlowFileRecord
 import org.apache.nifi.controller.repository.StandardRepositoryRecord
 import org.apache.nifi.controller.repository.StandardRepositoryRecordSerdeFactory
@@ -63,14 +65,13 @@ class EncryptedSequentialAccessWriteAheadLogTest extends GroovyTestCase {
     public static final String TEST_QUEUE_IDENTIFIER = "testQueueIdentifier"
 
     private ResourceClaimManager claimManager
-    private Map<String, FlowFileQueue> queueMap
     private FlowFileQueue flowFileQueue
     private ByteArrayOutputStream byteArrayOutputStream
     private DataOutputStream dataOutputStream
 
     // TODO: Mock the wrapped serde
     // TODO: Make integration test with real wrapped serde
-    private SerDe<RepositoryRecord> wrappedSerDe
+    private SerDe<SerializedRepositoryRecord> wrappedSerDe
 
     private static final String KPI = STATIC_KEY_PROVIDER_CLASS_NAME
     private static final String KPL = ""
@@ -83,7 +84,7 @@ class EncryptedSequentialAccessWriteAheadLogTest extends GroovyTestCase {
 
     private EncryptedSchemaRepositoryRecordSerde esrrs
 
-    private final EncryptedSequentialAccessWriteAheadLog<RepositoryRecord> encryptedWAL
+    private final EncryptedSequentialAccessWriteAheadLog<SerializedRepositoryRecord> encryptedWAL
 
     @Rule
     public TestName testName = new TestName()
@@ -101,12 +102,10 @@ class EncryptedSequentialAccessWriteAheadLogTest extends GroovyTestCase {
     @Before
     void setUp() throws Exception {
         claimManager = new StandardResourceClaimManager()
-        queueMap = [:]
         flowFileQueue = createAndRegisterMockQueue(TEST_QUEUE_IDENTIFIER)
         byteArrayOutputStream = new ByteArrayOutputStream()
         dataOutputStream = new DataOutputStream(byteArrayOutputStream)
         wrappedSerDe = new SchemaRepositoryRecordSerde(claimManager)
-        wrappedSerDe.setQueueMap(queueMap)
 
         flowFileREC = new FlowFileRepositoryEncryptionConfiguration(KPI, KPL, KEY_ID, KEYS, REPO_IMPL)
 
@@ -116,7 +115,6 @@ class EncryptedSequentialAccessWriteAheadLogTest extends GroovyTestCase {
     @After
     void tearDown() throws Exception {
         claimManager.purge()
-        queueMap.clear()
     }
 
     private FlowFileQueue createMockQueue(String identifier = testName.methodName + new Date().toString()) {
@@ -128,16 +126,16 @@ class EncryptedSequentialAccessWriteAheadLogTest extends GroovyTestCase {
 
     private FlowFileQueue createAndRegisterMockQueue(String identifier = testName.methodName + new Date().toString()) {
         FlowFileQueue queue = createMockQueue(identifier)
-        queueMap.put(identifier, queue)
         queue
     }
 
-    private RepositoryRecord buildCreateRecord(FlowFileQueue queue, Map<String, String> attributes = [:]) {
+    private SerializedRepositoryRecord buildCreateRecord(FlowFileQueue queue, Map<String, String> attributes = [:]) {
         StandardRepositoryRecord record = new StandardRepositoryRecord(queue)
         StandardFlowFileRecord.Builder ffrb = new StandardFlowFileRecord.Builder().id(System.nanoTime())
         ffrb.addAttributes([uuid: getMockUUID()] + attributes as Map<String, String>)
         record.setWorking(ffrb.build())
-        record
+
+        return new LiveSerializedRepositoryRecord(record);
     }
 
     private String getMockUUID() {
@@ -150,12 +148,12 @@ class EncryptedSequentialAccessWriteAheadLogTest extends GroovyTestCase {
         // Arrange
         final EncryptedSchemaRepositoryRecordSerde encryptedSerde = buildEncryptedSerDe()
 
-        final SequentialAccessWriteAheadLog<RepositoryRecord> repo = createWriteRepo(encryptedSerde)
+        final SequentialAccessWriteAheadLog<SerializedRepositoryRecord> repo = createWriteRepo(encryptedSerde)
 
-        final List<RepositoryRecord> records = new ArrayList<>()
+        final List<SerializedRepositoryRecord> records = new ArrayList<>()
         10.times { int i ->
             def attributes = [name: "User ${i}" as String, age: "${i}" as String]
-            final RepositoryRecord record = buildCreateRecord(flowFileQueue, attributes)
+            final SerializedRepositoryRecord record = buildCreateRecord(flowFileQueue, attributes)
             records.add(record)
         }
 
@@ -164,15 +162,15 @@ class EncryptedSequentialAccessWriteAheadLogTest extends GroovyTestCase {
         repo.shutdown()
 
         // Assert
-        final SequentialAccessWriteAheadLog<RepositoryRecord> recoveryRepo = createRecoveryRepo()
-        final Collection<RepositoryRecord> recovered = recoveryRepo.recoverRecords()
+        final SequentialAccessWriteAheadLog<SerializedRepositoryRecord> recoveryRepo = createRecoveryRepo()
+        final Collection<SerializedRepositoryRecord> recovered = recoveryRepo.recoverRecords()
 
-        // Ensure that the same records (except now UPDATE instead of CREATE) are returned (order is not guaranteed)
+        // Ensure that the same records are returned (order is not guaranteed)
         assert recovered.size() == records.size()
-        assert recovered.every { it.type == RepositoryRecordType.UPDATE }
+        assert recovered.every { it.type == RepositoryRecordType.CREATE }
 
         // Check that all attributes (flowfile record) in the recovered records were present in the original list
-        assert recovered.every { (it as StandardRepositoryRecord).current in records*.current }
+        assert recovered.every { (it as SerializedRepositoryRecord).getFlowFileRecord() in records*.getFlowFileRecord() }
     }
 
     /** This test creates flowfile records, adds them to the repository, and then recovers them to ensure they were persisted */
@@ -181,7 +179,7 @@ class EncryptedSequentialAccessWriteAheadLogTest extends GroovyTestCase {
         // Arrange
         final EncryptedSchemaRepositoryRecordSerde encryptedSerde = buildEncryptedSerDe()
 
-        final SequentialAccessWriteAheadLog<RepositoryRecord> repo = createWriteRepo(encryptedSerde)
+        final SequentialAccessWriteAheadLog<SerializedRepositoryRecord> repo = createWriteRepo(encryptedSerde)
 
         // Turn off debugging because of the high volume
         logger.debug("Temporarily turning off DEBUG logging")
@@ -193,10 +191,10 @@ class EncryptedSequentialAccessWriteAheadLogTest extends GroovyTestCase {
         ORIGINAL_TEST_LOG_LEVEL = testLogger.getLevel()
         testLogger.setLevel(Level.INFO)
 
-        final List<RepositoryRecord> records = new ArrayList<>()
+        final List<SerializedRepositoryRecord> records = new ArrayList<>()
         100_000.times { int i ->
             def attributes = [name: "User ${i}" as String, age: "${i}" as String]
-            final RepositoryRecord record = buildCreateRecord(flowFileQueue, attributes)
+            final SerializedRepositoryRecord record = buildCreateRecord(flowFileQueue, attributes)
             records.add(record)
         }
 
@@ -205,12 +203,12 @@ class EncryptedSequentialAccessWriteAheadLogTest extends GroovyTestCase {
         repo.shutdown()
 
         // Assert
-        final SequentialAccessWriteAheadLog<RepositoryRecord> recoveryRepo = createRecoveryRepo()
-        final Collection<RepositoryRecord> recovered = recoveryRepo.recoverRecords()
+        final SequentialAccessWriteAheadLog<SerializedRepositoryRecord> recoveryRepo = createRecoveryRepo()
+        final Collection<SerializedRepositoryRecord> recovered = recoveryRepo.recoverRecords()
 
         // Ensure that the same records (except now UPDATE instead of CREATE) are returned (order is not guaranteed)
         assert recovered.size() == records.size()
-        assert recovered.every { it.type == RepositoryRecordType.UPDATE }
+        assert recovered.every { it.type == RepositoryRecordType.CREATE }
 
         // Reset log level
         encryptorLogger.setLevel(ORIGINAL_REPO_LOG_LEVEL)
@@ -221,37 +219,36 @@ class EncryptedSequentialAccessWriteAheadLogTest extends GroovyTestCase {
     private EncryptedSchemaRepositoryRecordSerde buildEncryptedSerDe(FlowFileRepositoryEncryptionConfiguration ffrec = flowFileREC) {
         final StandardRepositoryRecordSerdeFactory factory = new StandardRepositoryRecordSerdeFactory(claimManager)
         SchemaRepositoryRecordSerde wrappedSerDe = factory.createSerDe() as SchemaRepositoryRecordSerde
-        wrappedSerDe.setQueueMap(queueMap)
         return new EncryptedSchemaRepositoryRecordSerde(wrappedSerDe, ffrec)
     }
 
-    private SequentialAccessWriteAheadLog<RepositoryRecord> createWriteRepo() throws IOException {
+    private SequentialAccessWriteAheadLog<SerializedRepositoryRecord> createWriteRepo() throws IOException {
         return createWriteRepo(buildEncryptedSerDe())
     }
 
-    private SequentialAccessWriteAheadLog<RepositoryRecord> createWriteRepo(final SerDe<RepositoryRecord> serde) throws IOException {
+    private SequentialAccessWriteAheadLog<SerializedRepositoryRecord> createWriteRepo(final SerDe<SerializedRepositoryRecord> serde) throws IOException {
         final File targetDir = new File("target")
         final File storageDir = new File(targetDir, testName?.methodName ?: "unknown_test")
         deleteRecursively(storageDir)
         assertTrue(storageDir.mkdirs())
 
-        final SerDeFactory<RepositoryRecord> serdeFactory = new SingletonSerDeFactory<>(serde)
-        final SequentialAccessWriteAheadLog<RepositoryRecord> repo = new SequentialAccessWriteAheadLog<>(storageDir, serdeFactory)
+        final SerDeFactory<SerializedRepositoryRecord> serdeFactory = new SingletonSerDeFactory<>(serde)
+        final SequentialAccessWriteAheadLog<SerializedRepositoryRecord> repo = new SequentialAccessWriteAheadLog<>(storageDir, serdeFactory)
 
-        final Collection<RepositoryRecord> recovered = repo.recoverRecords()
+        final Collection<SerializedRepositoryRecord> recovered = repo.recoverRecords()
         assertNotNull(recovered)
         assertTrue(recovered.isEmpty())
 
         return repo
     }
 
-    private SequentialAccessWriteAheadLog<RepositoryRecord> createRecoveryRepo() throws IOException {
+    private SequentialAccessWriteAheadLog<SerializedRepositoryRecord> createRecoveryRepo() throws IOException {
         final File targetDir = new File("target")
         final File storageDir = new File(targetDir, testName?.methodName ?: "unknown_test")
 
-        final SerDe<RepositoryRecord> serde = buildEncryptedSerDe()
-        final SerDeFactory<RepositoryRecord> serdeFactory = new SingletonSerDeFactory<>(serde)
-        final SequentialAccessWriteAheadLog<RepositoryRecord> repo = new SequentialAccessWriteAheadLog<>(storageDir, serdeFactory)
+        final SerDe<SerializedRepositoryRecord> serde = buildEncryptedSerDe()
+        final SerDeFactory<SerializedRepositoryRecord> serdeFactory = new SingletonSerDeFactory<>(serde)
+        final SequentialAccessWriteAheadLog<SerializedRepositoryRecord> repo = new SequentialAccessWriteAheadLog<>(storageDir, serdeFactory)
 
         return repo
     }

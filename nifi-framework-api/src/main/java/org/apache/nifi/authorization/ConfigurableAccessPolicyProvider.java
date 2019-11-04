@@ -47,6 +47,15 @@ public interface ConfigurableAccessPolicyProvider extends AccessPolicyProvider {
     void inheritFingerprint(final String fingerprint) throws AuthorizationAccessException;
 
     /**
+     * Parses the fingerprint and determines whether or not the fingerprint can be inherited in the same manner as {@link #inheritFingerprint(String)}. If so, will inherit as such.
+     * Otherwise, a backup of the existing policy provider will be made, if possible, and the policies will be replaced with those in the given fingerprint.
+     *
+     * @param fingerprint the fingerprint to replace the existing policies with
+     * @throws AuthorizationAccessException if unable to perform the operation
+     */
+    void forciblyInheritFingerprint(final String fingerprint) throws AuthorizationAccessException;
+
+    /**
      * When the fingerprints are not equal, this method will check if the proposed fingerprint is inheritable.
      * If the fingerprint is an exact match, this method will not be invoked as there is nothing to inherit.
      *

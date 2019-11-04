@@ -17,16 +17,6 @@
 
 package org.apache.nifi.controller.repository;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.EOFException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.Map;
-import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
@@ -37,7 +27,17 @@ import org.slf4j.LoggerFactory;
 import org.wali.SerDe;
 import org.wali.UpdateType;
 
-public class WriteAheadRepositoryRecordSerde extends RepositoryRecordSerde implements SerDe<RepositoryRecord> {
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.EOFException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
+
+public class WriteAheadRepositoryRecordSerde extends RepositoryRecordSerde implements SerDe<SerializedRepositoryRecord> {
     private static final Logger logger = LoggerFactory.getLogger(WriteAheadRepositoryRecordSerde.class);
 
     private static final int CURRENT_ENCODING_VERSION = 9;
@@ -56,16 +56,17 @@ public class WriteAheadRepositoryRecordSerde extends RepositoryRecordSerde imple
     }
 
     @Override
-    public void serializeEdit(final RepositoryRecord previousRecordState, final RepositoryRecord record, final DataOutputStream out) throws IOException {
+    public void serializeEdit(final SerializedRepositoryRecord previousRecordState, final SerializedRepositoryRecord record, final DataOutputStream out) throws IOException {
         serializeEdit(previousRecordState, record, out, false);
     }
 
-    public void serializeEdit(final RepositoryRecord previousRecordState, final RepositoryRecord record, final DataOutputStream out, final boolean forceAttributesWritten) throws IOException {
+    public void serializeEdit(final SerializedRepositoryRecord previousRecordState, final SerializedRepositoryRecord record, final DataOutputStream out, final boolean forceAttributesWritten)
+            throws IOException {
         if (record.isMarkedForAbort()) {
             logger.warn("Repository Record {} is marked to be aborted; it will be persisted in the FlowFileRepository as a DELETE record", record);
             out.write(ACTION_DELETE);
             out.writeLong(getRecordIdentifier(record));
-            serializeContentClaim(record.getCurrentClaim(), record.getCurrentClaimOffset(), out);
+            serializeContentClaim(record.getContentClaim(), record.getClaimOffset(), out);
             return;
         }
 
@@ -74,7 +75,7 @@ public class WriteAheadRepositoryRecordSerde extends RepositoryRecordSerde imple
         if (updateType.equals(UpdateType.DELETE)) {
             out.write(ACTION_DELETE);
             out.writeLong(getRecordIdentifier(record));
-            serializeContentClaim(record.getCurrentClaim(), record.getCurrentClaimOffset(), out);
+            serializeContentClaim(record.getContentClaim(), record.getClaimOffset(), out);
             return;
         }
 
@@ -82,21 +83,18 @@ public class WriteAheadRepositoryRecordSerde extends RepositoryRecordSerde imple
         // However, on restart, we will restore the FlowFile and set this connection to its "originalConnection".
         // If we then serialize the FlowFile again before it's transferred, it's important to allow this to happen,
         // so we use the originalConnection instead
-        FlowFileQueue associatedQueue = record.getDestination();
-        if (associatedQueue == null) {
-            associatedQueue = record.getOriginalQueue();
-        }
+        final String associatedQueueId = record.getQueueIdentifier();
 
         if (updateType.equals(UpdateType.SWAP_OUT)) {
             out.write(ACTION_SWAPPED_OUT);
             out.writeLong(getRecordIdentifier(record));
-            out.writeUTF(associatedQueue.getIdentifier());
+            out.writeUTF(associatedQueueId);
             out.writeUTF(getLocation(record));
             return;
         }
 
-        final FlowFile flowFile = record.getCurrent();
-        final ContentClaim claim = record.getCurrentClaim();
+        final FlowFile flowFile = record.getFlowFileRecord();
+        final ContentClaim claim = record.getContentClaim();
 
         switch (updateType) {
             case UPDATE:
@@ -122,15 +120,15 @@ public class WriteAheadRepositoryRecordSerde extends RepositoryRecordSerde imple
         out.writeLong(flowFile.getQueueDateIndex());
         out.writeLong(flowFile.getSize());
 
-        if (associatedQueue == null) {
+        if (associatedQueueId == null) {
             logger.warn("{} Repository Record {} has no Connection associated with it; it will be destroyed on restart",
                 new Object[] {this, record});
             writeString("", out);
         } else {
-            writeString(associatedQueue.getIdentifier(), out);
+            writeString(associatedQueueId, out);
         }
 
-        serializeContentClaim(claim, record.getCurrentClaimOffset(), out);
+        serializeContentClaim(claim, record.getClaimOffset(), out);
 
         if (forceAttributesWritten || record.isAttributesChanged() || updateType == UpdateType.CREATE || updateType == UpdateType.SWAP_IN) {
             out.write(1);   // indicate attributes changed
@@ -150,7 +148,7 @@ public class WriteAheadRepositoryRecordSerde extends RepositoryRecordSerde imple
     }
 
     @Override
-    public RepositoryRecord deserializeEdit(final DataInputStream in, final Map<Object, RepositoryRecord> currentRecordStates, final int version) throws IOException {
+    public SerializedRepositoryRecord deserializeEdit(final DataInputStream in, final Map<Object, SerializedRepositoryRecord> currentRecordStates, final int version) throws IOException {
         final int action = in.read();
         final long recordId = in.readLong();
         if (action == ACTION_DELETE) {
@@ -161,8 +159,10 @@ public class WriteAheadRepositoryRecordSerde extends RepositoryRecordSerde imple
             }
 
             final FlowFileRecord flowFileRecord = ffBuilder.build();
-            final StandardRepositoryRecord record = new StandardRepositoryRecord(null, flowFileRecord);
-            record.markForDelete();
+            final SerializedRepositoryRecord record = new ReconstitutedSerializedRepositoryRecord.Builder()
+                .type(RepositoryRecordType.DELETE)
+                .flowFileRecord(flowFileRecord)
+                .build();
 
             return record;
         }
@@ -170,20 +170,27 @@ public class WriteAheadRepositoryRecordSerde extends RepositoryRecordSerde imple
         if (action == ACTION_SWAPPED_OUT) {
             final String queueId = in.readUTF();
             final String location = in.readUTF();
-            final FlowFileQueue queue = getFlowFileQueue(queueId);
 
             final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
                 .id(recordId)
                 .build();
 
-            return new StandardRepositoryRecord(queue, flowFileRecord, location);
+
+            final SerializedRepositoryRecord record = new ReconstitutedSerializedRepositoryRecord.Builder()
+                .type(RepositoryRecordType.SWAP_OUT)
+                .queueIdentifier(queueId)
+                .swapLocation(location)
+                .flowFileRecord(flowFileRecord)
+                .build();
+
+            return record;
         }
 
         final StandardFlowFileRecord.Builder ffBuilder = new StandardFlowFileRecord.Builder();
-        final RepositoryRecord record = currentRecordStates.get(recordId);
+        final SerializedRepositoryRecord record = currentRecordStates.get(recordId);
         ffBuilder.id(recordId);
         if (record != null) {
-            ffBuilder.fromFlowFile(record.getCurrent());
+            ffBuilder.fromFlowFile(record.getFlowFileRecord());
         }
         ffBuilder.entryDate(in.readLong());
 
@@ -249,26 +256,21 @@ public class WriteAheadRepositoryRecordSerde extends RepositoryRecordSerde imple
             swapLocation = in.readUTF();
         }
 
-        final FlowFileQueue queue = getFlowFileQueue(connectionId);
-        final StandardRepositoryRecord standardRepoRecord = new StandardRepositoryRecord(queue, flowFile);
-        if (swapLocation != null) {
-            standardRepoRecord.setSwapLocation(swapLocation);
-        }
+        final RepositoryRecordType recordType = getRecordType(action);
 
-        if (connectionId.isEmpty()) {
-            logger.warn("{} does not have a Queue associated with it; this record will be discarded", flowFile);
-            standardRepoRecord.markForAbort();
-        } else if (queue == null) {
-            logger.warn("{} maps to unknown Queue {}; this record will be discarded", flowFile, connectionId);
-            standardRepoRecord.markForAbort();
-        }
+        final SerializedRepositoryRecord repositoryRecord = new ReconstitutedSerializedRepositoryRecord.Builder()
+            .flowFileRecord(flowFile)
+            .queueIdentifier(connectionId)
+            .swapLocation(swapLocation)
+            .type(recordType)
+            .build();
 
         recordsRestored++;
-        return standardRepoRecord;
+        return repositoryRecord;
     }
 
     @Override
-    public StandardRepositoryRecord deserializeRecord(final DataInputStream in, final int version) throws IOException {
+    public SerializedRepositoryRecord deserializeRecord(final DataInputStream in, final int version) throws IOException {
         final int action = in.read();
         if (action == -1) {
             return null;
@@ -283,8 +285,11 @@ public class WriteAheadRepositoryRecordSerde extends RepositoryRecordSerde imple
             }
 
             final FlowFileRecord flowFileRecord = ffBuilder.build();
-            final StandardRepositoryRecord record = new StandardRepositoryRecord(null, flowFileRecord);
-            record.markForDelete();
+            final SerializedRepositoryRecord record = new ReconstitutedSerializedRepositoryRecord.Builder()
+                .type(RepositoryRecordType.DELETE)
+                .flowFileRecord(flowFileRecord)
+                .build();
+
             return record;
         }
 
@@ -358,27 +363,33 @@ public class WriteAheadRepositoryRecordSerde extends RepositoryRecordSerde imple
             swapLocation = in.readUTF();
         }
 
-        final StandardRepositoryRecord record;
-        final FlowFileQueue queue = getFlowFileQueue(connectionId);
-        record = new StandardRepositoryRecord(queue, flowFile);
-        if (swapLocation != null) {
-            record.setSwapLocation(swapLocation);
-        }
-
-        if (connectionId.isEmpty()) {
-            logger.warn("{} does not have a FlowFile Queue associated with it; this record will be discarded", flowFile);
-            record.markForAbort();
-        } else if (queue == null) {
-            logger.warn("{} maps to unknown FlowFile Queue {}; this record will be discarded", flowFile, connectionId);
-            record.markForAbort();
-        }
+        final SerializedRepositoryRecord record = new ReconstitutedSerializedRepositoryRecord.Builder()
+            .queueIdentifier(connectionId)
+            .flowFileRecord(flowFile)
+            .swapLocation(swapLocation)
+            .type(getRecordType(action))
+            .build();
 
         recordsRestored++;
         return record;
     }
 
+    private RepositoryRecordType getRecordType(final int serializedUpdateType) {
+        switch (serializedUpdateType) {
+            case ACTION_CREATE:
+                return RepositoryRecordType.CREATE;
+            case ACTION_SWAPPED_IN:
+                return RepositoryRecordType.SWAP_IN;
+            case ACTION_SWAPPED_OUT:
+                return RepositoryRecordType.SWAP_OUT;
+            case ACTION_UPDATE:
+            default:
+                return RepositoryRecordType.UPDATE;
+        }
+    }
+
     @Override
-    public void serializeRecord(final RepositoryRecord record, final DataOutputStream out) throws IOException {
+    public void serializeRecord(final SerializedRepositoryRecord record, final DataOutputStream out) throws IOException {
         serializeEdit(null, record, out, true);
     }
 

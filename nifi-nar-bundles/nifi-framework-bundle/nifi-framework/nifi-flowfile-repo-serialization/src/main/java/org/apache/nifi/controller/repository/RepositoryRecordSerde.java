@@ -17,34 +17,18 @@
 
 package org.apache.nifi.controller.repository;
 
-import java.util.Map;
-
-import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.wali.SerDe;
 import org.wali.UpdateType;
 
-public abstract class RepositoryRecordSerde implements SerDe<RepositoryRecord> {
-    private Map<String, FlowFileQueue> flowFileQueueMap = null;
+public abstract class RepositoryRecordSerde implements SerDe<SerializedRepositoryRecord> {
 
-    protected void setQueueMap(final Map<String, FlowFileQueue> queueMap) {
-        this.flowFileQueueMap = queueMap;
-    }
-
-    protected Map<String, FlowFileQueue> getQueueMap() {
-        return flowFileQueueMap;
-    }
-
-    protected FlowFileQueue getFlowFileQueue(final String queueId) {
-        return flowFileQueueMap.get(queueId);
+    @Override
+    public Long getRecordIdentifier(final SerializedRepositoryRecord record) {
+        return record.getFlowFileRecord().getId();
     }
 
     @Override
-    public Long getRecordIdentifier(final RepositoryRecord record) {
-        return record.getCurrent().getId();
-    }
-
-    @Override
-    public UpdateType getUpdateType(final RepositoryRecord record) {
+    public UpdateType getUpdateType(final SerializedRepositoryRecord record) {
         switch (record.getType()) {
             case CONTENTMISSING:
             case DELETE:
@@ -62,7 +46,7 @@ public abstract class RepositoryRecordSerde implements SerDe<RepositoryRecord> {
     }
 
     @Override
-    public String getLocation(final RepositoryRecord record) {
+    public String getLocation(final SerializedRepositoryRecord record) {
         return record.getSwapLocation();
     }
 }

@@ -324,8 +324,8 @@ public class TestWriteAheadFlowFileRepository {
 
         final ResourceClaimManager claimManager = new StandardResourceClaimManager();
         final StandardRepositoryRecordSerdeFactory serdeFactory = new StandardRepositoryRecordSerdeFactory(claimManager);
-        final WriteAheadRepository<RepositoryRecord> repo = new MinimalLockingWriteAheadLog<>(path, numPartitions, serdeFactory, null);
-        final Collection<RepositoryRecord> initialRecs = repo.recoverRecords();
+        final WriteAheadRepository<SerializedRepositoryRecord> repo = new MinimalLockingWriteAheadLog<>(path, numPartitions, serdeFactory, null);
+        final Collection<SerializedRepositoryRecord> initialRecs = repo.recoverRecords();
         assertTrue(initialRecs.isEmpty());
 
         final int updateCountPerThread = totalUpdates / numThreads;
@@ -336,7 +336,7 @@ public class TestWriteAheadFlowFileRepository {
                 final Thread t = new Thread(new Runnable() {
                     @Override
                     public void run() {
-                        final List<RepositoryRecord> records = new ArrayList<>();
+                        final List<SerializedRepositoryRecord> records = new ArrayList<>();
                         final int numBatches = updateCountPerThread / batchSize;
                         final MockFlowFile baseFlowFile = new MockFlowFile(0L);
 
@@ -351,7 +351,7 @@ public class TestWriteAheadFlowFileRepository {
                                 final Map<String, String> updatedAttrs = Collections.singletonMap("uuid", uuid);
                                 record.setWorking(flowFile, updatedAttrs);
 
-                                records.add(record);
+                                records.add(new LiveSerializedRepositoryRecord(record));
                             }
 
                             try {

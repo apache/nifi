@@ -2403,6 +2403,11 @@ public class TestStandardProcessSession {
         }
 
         @Override
+        public Set<String> findQueuesWithFlowFiles(final FlowFileSwapManager flowFileSwapManager) throws IOException {
+            return Collections.emptySet();
+        }
+
+        @Override
         public void swapFlowFilesIn(String swapLocation, List<FlowFileRecord> flowFileRecords, FlowFileQueue queue) throws IOException {
         }
 

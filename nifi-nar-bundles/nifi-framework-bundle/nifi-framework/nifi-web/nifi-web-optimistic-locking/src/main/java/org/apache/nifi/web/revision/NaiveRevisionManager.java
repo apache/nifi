@@ -17,18 +17,18 @@
 
 package org.apache.nifi.web.revision;
 
+import org.apache.nifi.authorization.user.NiFiUser;
+import org.apache.nifi.web.InvalidRevisionException;
+import org.apache.nifi.web.Revision;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-
-import org.apache.nifi.authorization.user.NiFiUser;
-import org.apache.nifi.web.InvalidRevisionException;
-import org.apache.nifi.web.Revision;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * <p>
@@ -48,6 +48,9 @@ public class NaiveRevisionManager implements RevisionManager {
     @Override
     public void reset(final Collection<Revision> revisions) {
         synchronized (this) { // avoid allowing two threads to reset versions concurrently
+            logger.info("Resetting Revisions for all components. {} revisions will be removed, {} will be added", revisionMap.size(), revisions.size());
+            logger.debug("New Revisions: {}", revisions);
+
             revisionMap.clear();
 
             for (final Revision revision : revisions) {

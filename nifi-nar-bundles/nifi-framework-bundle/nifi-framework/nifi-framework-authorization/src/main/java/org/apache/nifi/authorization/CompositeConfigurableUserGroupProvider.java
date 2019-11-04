@@ -92,6 +92,11 @@ public class CompositeConfigurableUserGroupProvider extends CompositeUserGroupPr
     }
 
     @Override
+    public void forciblyInheritFingerprint(final String fingerprint) throws AuthorizationAccessException {
+        configurableUserGroupProvider.forciblyInheritFingerprint(fingerprint);
+    }
+
+    @Override
     public void checkInheritability(String proposedFingerprint) throws AuthorizationAccessException, UninheritableAuthorizationsException {
         configurableUserGroupProvider.checkInheritability(proposedFingerprint);
     }

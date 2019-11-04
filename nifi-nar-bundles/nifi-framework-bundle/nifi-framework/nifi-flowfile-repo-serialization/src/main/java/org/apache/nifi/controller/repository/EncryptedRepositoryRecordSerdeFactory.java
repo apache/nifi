@@ -48,11 +48,11 @@ public class EncryptedRepositoryRecordSerdeFactory extends StandardRepositoryRec
     }
 
     @Override
-    public SerDe<RepositoryRecord> createSerDe(String encodingName) {
+    public SerDe<SerializedRepositoryRecord> createSerDe(String encodingName) {
         // If no encoding is provided, use the encrypted as the default
         if (encodingName == null || EncryptedSchemaRepositoryRecordSerde.class.getName().equals(encodingName)) {
             // Delegate the creation of the wrapped serde to the standard factory
-            final SerDe<RepositoryRecord> serde = super.createSerDe(null);
+            final SerDe<SerializedRepositoryRecord> serde = super.createSerDe(null);
 
             // Retrieve encryption configuration
             try {

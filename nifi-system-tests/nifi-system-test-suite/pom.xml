@@ -56,6 +56,20 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+            <groupId>org.apache.rat</groupId>
+                <artifactId>apache-rat-plugin</artifactId>
+                <configuration>
+                    <excludes combine.children="append">
+                        <exclude>src/test/resources/flows/mismatched-flows/flow1.xml.gz</exclude>
+                        <exclude>src/test/resources/flows/mismatched-flows/flow2.xml.gz</exclude>
+                        <exclude>src/test/resources/flows/missing-connection/with-connection.xml.gz</exclude>
+                        <exclude>src/test/resources/flows/missing-connection/without-connection.xml.gz</exclude>
+                        <exclude>src/test/resources/keystore.jks</exclude>
+                        <exclude>src/test/resources/truststore.jks</exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 

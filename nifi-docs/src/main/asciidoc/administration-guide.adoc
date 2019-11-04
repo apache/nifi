@@ -1704,17 +1704,34 @@ For more information, see the <<toolkit-guide.adoc#nifi_CLI,NiFi CLI>> section i
 === Flow Election
 When a cluster first starts up, NiFi must determine which of the nodes have the
 "correct" version of the flow. This is done by voting on the flows that each of the nodes has. When a node
-attempts to connect to a cluster, it provides a copy of its local flow to the Cluster Coordinator. If no flow
+attempts to connect to a cluster, it provides a copy of its local flow and (if the policy provider allows for configuration via NiFi)
+its users, groups, and policies, to the Cluster Coordinator. If no flow
 has yet been elected the "correct" flow, the node's flow is compared to each of the other Nodes' flows. If another
 Node's flow matches this one, a vote is cast for this flow. If no other Node has reported the same flow yet, this
 flow will be added to the pool of possibly elected flows with one vote. After
 some amount of time has elapsed (configured by setting the `nifi.cluster.flow.election.max.wait.time` property) or
 some number of Nodes have cast votes (configured by setting the `nifi.cluster.flow.election.max.candidates` property),
-a flow is elected to be the "correct" copy of the flow. All nodes that have incompatible flows are then disconnected
-from the cluster while those with compatible flows inherit the cluster's flow. Election is performed according to
-the "popular vote" with the caveat that the winner will never be an "empty flow" unless all flows are empty. This
+a flow is elected to be the "correct" copy of the flow.
+
+Any node whose dataflow, users, groups, and policies conflict the with those elected will backup any conflicting resources and replace the local
+resources with those from the cluster. How the backup is performed depends on the configured Access Policy Provider and User Group Provider.
+For file-based access policy providers, the backup will be written to the same directory as the existing file (e.g., $NIFI_HOME/conf) and bear the same
+name but with a suffix of "." and a timestamp. For example, if the flow itself conflicts with the cluster's flow at 12:05:03 on January 1, 2020,
+the node's `flow.xml.gz` file will be copied to `flow.xml.gz.2020-01-01-12-05-03` and the cluster's flow will then be written to `flow.xml.gz`.
+Similarly, this will happen for the `users.xml` and `authorizations.xml` file. This is done so that the flow can be manually reverted if necessary
+by renaming the backup file back to `flow.xml.gz`, for example.
+
+It is important to note that before inheriting the elected flow, NiFi will first read through the FlowFile repository and any swap files to determine which
+queues in the dataflow currently hold data. If there exists any queue in the dataflow that contains a FlowFile, that queue must also exist in the elected
+dataflow. If that queue does not exist in the elected dataflow, the node will not inherit the dataflow, users, groups, and policies. Instead, NiFi will
+log errors to that effect and will fail to startup. This ensures that even if the node has data stored in a connection, and the cluster's dataflow is different,
+restarting the node will not result in data loss.
+
+Election is performed according to the "popular vote" with the caveat that the winner will never be an "empty flow" unless all flows are empty. This
 allows an administrator to remove a node's _flow.xml.gz_ file and restart the node, knowing that the node's flow will
-not be voted to be the "correct" flow unless no other flow is found.
+not be voted to be the "correct" flow unless no other flow is found. If there are two non-empty flows that receive the same number of votes, one of those
+flows will be chosen. The methodology used to determine which of those flows is undefined and may change at any time without notice.
+
 
 === Basic Cluster Setup
 

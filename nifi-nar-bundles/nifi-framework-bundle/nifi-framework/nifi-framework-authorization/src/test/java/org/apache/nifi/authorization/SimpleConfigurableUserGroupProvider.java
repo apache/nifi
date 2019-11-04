@@ -82,6 +82,11 @@ public class SimpleConfigurableUserGroupProvider extends SimpleUserGroupProvider
     }
 
     @Override
+    public void forciblyInheritFingerprint(final String fingerprint) throws AuthorizationAccessException {
+
+    }
+
+    @Override
     public void checkInheritability(String proposedFingerprint) throws AuthorizationAccessException, UninheritableAuthorizationsException {
 
     }

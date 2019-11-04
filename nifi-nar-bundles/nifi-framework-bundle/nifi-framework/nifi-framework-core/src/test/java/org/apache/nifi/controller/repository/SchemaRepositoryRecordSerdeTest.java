@@ -42,7 +42,6 @@ public class SchemaRepositoryRecordSerdeTest {
     public static final String TEST_QUEUE_IDENTIFIER = "testQueueIdentifier";
     private StandardResourceClaimManager resourceClaimManager;
     private SchemaRepositoryRecordSerde schemaRepositoryRecordSerde;
-    private Map<String, FlowFileQueue> queueMap;
     private FlowFileQueue flowFileQueue;
     private ByteArrayOutputStream byteArrayOutputStream;
     private DataOutputStream dataOutputStream;
@@ -51,8 +50,6 @@ public class SchemaRepositoryRecordSerdeTest {
     public void setup() {
         resourceClaimManager = new StandardResourceClaimManager();
         schemaRepositoryRecordSerde = new SchemaRepositoryRecordSerde(resourceClaimManager);
-        queueMap = new HashMap<>();
-        schemaRepositoryRecordSerde.setQueueMap(queueMap);
         flowFileQueue = createMockQueue(TEST_QUEUE_IDENTIFIER);
         byteArrayOutputStream = new ByteArrayOutputStream();
         dataOutputStream = new DataOutputStream(byteArrayOutputStream);
@@ -72,13 +69,13 @@ public class SchemaRepositoryRecordSerdeTest {
             stringBuilder.append('a');
         }
         attributes.put(stringBuilder.toString(), "testValue");
-        schemaRepositoryRecordSerde.serializeRecord(createCreateFlowFileRecord(attributes), dataOutputStream,
+        schemaRepositoryRecordSerde.serializeRecord(new LiveSerializedRepositoryRecord(createCreateFlowFileRecord(attributes)), dataOutputStream,
                 RepositoryRecordSchema.CREATE_OR_UPDATE_SCHEMA_V1, RepositoryRecordSchema.REPOSITORY_RECORD_SCHEMA_V1);
 
         DataInputStream dataInputStream = createDataInputStream();
         schemaRepositoryRecordSerde.readHeader(dataInputStream);
-        RepositoryRecord repositoryRecord = schemaRepositoryRecordSerde.deserializeRecord(dataInputStream, 2);
-        assertNotEquals(attributes, repositoryRecord.getCurrent().getAttributes());
+        SerializedRepositoryRecord repositoryRecord = schemaRepositoryRecordSerde.deserializeRecord(dataInputStream, 2);
+        assertNotEquals(attributes, repositoryRecord.getFlowFileRecord().getAttributes());
     }
 
     @Test
@@ -90,13 +87,13 @@ public class SchemaRepositoryRecordSerdeTest {
             stringBuilder.append('a');
         }
         attributes.put("testName", stringBuilder.toString());
-        schemaRepositoryRecordSerde.serializeRecord(createCreateFlowFileRecord(attributes), dataOutputStream,
+        schemaRepositoryRecordSerde.serializeRecord(new LiveSerializedRepositoryRecord(createCreateFlowFileRecord(attributes)), dataOutputStream,
                 RepositoryRecordSchema.CREATE_OR_UPDATE_SCHEMA_V1, RepositoryRecordSchema.REPOSITORY_RECORD_SCHEMA_V1);
 
         DataInputStream dataInputStream = createDataInputStream();
         schemaRepositoryRecordSerde.readHeader(dataInputStream);
-        RepositoryRecord repositoryRecord = schemaRepositoryRecordSerde.deserializeRecord(dataInputStream, 2);
-        assertNotEquals(attributes, repositoryRecord.getCurrent().getAttributes());
+        SerializedRepositoryRecord repositoryRecord = schemaRepositoryRecordSerde.deserializeRecord(dataInputStream, 2);
+        assertNotEquals(attributes, repositoryRecord.getFlowFileRecord().getAttributes());
     }
 
     @Test
@@ -108,12 +105,12 @@ public class SchemaRepositoryRecordSerdeTest {
             stringBuilder.append('a');
         }
         attributes.put(stringBuilder.toString(), "testValue");
-        schemaRepositoryRecordSerde.serializeRecord(createCreateFlowFileRecord(attributes), dataOutputStream);
+        schemaRepositoryRecordSerde.serializeRecord(new LiveSerializedRepositoryRecord(createCreateFlowFileRecord(attributes)), dataOutputStream);
 
         DataInputStream dataInputStream = createDataInputStream();
         schemaRepositoryRecordSerde.readHeader(dataInputStream);
-        RepositoryRecord repositoryRecord = schemaRepositoryRecordSerde.deserializeRecord(dataInputStream, 2);
-        assertEquals(attributes, repositoryRecord.getCurrent().getAttributes());
+        SerializedRepositoryRecord repositoryRecord = schemaRepositoryRecordSerde.deserializeRecord(dataInputStream, 2);
+        assertEquals(attributes, repositoryRecord.getFlowFileRecord().getAttributes());
     }
 
     @Test
@@ -125,12 +122,12 @@ public class SchemaRepositoryRecordSerdeTest {
             stringBuilder.append('a');
         }
         attributes.put("testName", stringBuilder.toString());
-        schemaRepositoryRecordSerde.serializeRecord(createCreateFlowFileRecord(attributes), dataOutputStream);
+        schemaRepositoryRecordSerde.serializeRecord(new LiveSerializedRepositoryRecord(createCreateFlowFileRecord(attributes)), dataOutputStream);
 
         DataInputStream dataInputStream = createDataInputStream();
         schemaRepositoryRecordSerde.readHeader(dataInputStream);
-        RepositoryRecord repositoryRecord = schemaRepositoryRecordSerde.deserializeRecord(dataInputStream, 2);
-        assertEquals(attributes, repositoryRecord.getCurrent().getAttributes());
+        SerializedRepositoryRecord repositoryRecord = schemaRepositoryRecordSerde.deserializeRecord(dataInputStream, 2);
+        assertEquals(attributes, repositoryRecord.getFlowFileRecord().getAttributes());
     }
 
     @Test
@@ -138,13 +135,13 @@ public class SchemaRepositoryRecordSerdeTest {
         RepositoryRecordSchema.REPOSITORY_RECORD_SCHEMA_V1.writeTo(dataOutputStream);
         Map<String, String> attributes = new HashMap<>();
         attributes.put("testName", "testValue");
-        schemaRepositoryRecordSerde.serializeRecord(createCreateFlowFileRecord(attributes), dataOutputStream,
+        schemaRepositoryRecordSerde.serializeRecord(new LiveSerializedRepositoryRecord(createCreateFlowFileRecord(attributes)), dataOutputStream,
                 RepositoryRecordSchema.CREATE_OR_UPDATE_SCHEMA_V1, RepositoryRecordSchema.REPOSITORY_RECORD_SCHEMA_V1);
 
         DataInputStream dataInputStream = createDataInputStream();
         schemaRepositoryRecordSerde.readHeader(dataInputStream);
-        RepositoryRecord repositoryRecord = schemaRepositoryRecordSerde.deserializeRecord(dataInputStream, 2);
-        assertEquals(attributes, repositoryRecord.getCurrent().getAttributes());
+        SerializedRepositoryRecord repositoryRecord = schemaRepositoryRecordSerde.deserializeRecord(dataInputStream, 2);
+        assertEquals(attributes, repositoryRecord.getFlowFileRecord().getAttributes());
     }
 
     @Test
@@ -159,12 +156,13 @@ public class SchemaRepositoryRecordSerdeTest {
         StandardRepositoryRecord record = createCreateFlowFileRecord(attributes);
         record.setSwapLocation("fake");
         assertEquals(SWAP_IN, record.getType());
-        schemaRepositoryRecordSerde.serializeRecord(record, dataOutputStream, RepositoryRecordSchema.SWAP_IN_SCHEMA_V1, RepositoryRecordSchema.REPOSITORY_RECORD_SCHEMA_V1);
+        schemaRepositoryRecordSerde.serializeRecord(new LiveSerializedRepositoryRecord(record), dataOutputStream, RepositoryRecordSchema.SWAP_IN_SCHEMA_V1,
+            RepositoryRecordSchema.REPOSITORY_RECORD_SCHEMA_V1);
 
         DataInputStream dataInputStream = createDataInputStream();
         schemaRepositoryRecordSerde.readHeader(dataInputStream);
-        RepositoryRecord repositoryRecord = schemaRepositoryRecordSerde.deserializeRecord(dataInputStream, 2);
-        assertNotEquals(attributes, repositoryRecord.getCurrent().getAttributes());
+        SerializedRepositoryRecord repositoryRecord = schemaRepositoryRecordSerde.deserializeRecord(dataInputStream, 2);
+        assertNotEquals(attributes, repositoryRecord.getFlowFileRecord().getAttributes());
     }
 
     @Test
@@ -179,12 +177,13 @@ public class SchemaRepositoryRecordSerdeTest {
         StandardRepositoryRecord record = createCreateFlowFileRecord(attributes);
         record.setSwapLocation("fake");
         assertEquals(SWAP_IN, record.getType());
-        schemaRepositoryRecordSerde.serializeRecord(record, dataOutputStream, RepositoryRecordSchema.SWAP_IN_SCHEMA_V1, RepositoryRecordSchema.REPOSITORY_RECORD_SCHEMA_V1);
+        schemaRepositoryRecordSerde.serializeRecord(new LiveSerializedRepositoryRecord(record), dataOutputStream, RepositoryRecordSchema.SWAP_IN_SCHEMA_V1,
+            RepositoryRecordSchema.REPOSITORY_RECORD_SCHEMA_V1);
 
         DataInputStream dataInputStream = createDataInputStream();
         schemaRepositoryRecordSerde.readHeader(dataInputStream);
-        RepositoryRecord repositoryRecord = schemaRepositoryRecordSerde.deserializeRecord(dataInputStream, 2);
-        assertNotEquals(attributes, repositoryRecord.getCurrent().getAttributes());
+        SerializedRepositoryRecord repositoryRecord = schemaRepositoryRecordSerde.deserializeRecord(dataInputStream, 2);
+        assertNotEquals(attributes, repositoryRecord.getFlowFileRecord().getAttributes());
     }
 
     @Test
@@ -199,12 +198,12 @@ public class SchemaRepositoryRecordSerdeTest {
         StandardRepositoryRecord record = createCreateFlowFileRecord(attributes);
         record.setSwapLocation("fake");
         assertEquals(SWAP_IN, record.getType());
-        schemaRepositoryRecordSerde.serializeRecord(record, dataOutputStream);
+        schemaRepositoryRecordSerde.serializeRecord(new LiveSerializedRepositoryRecord(record), dataOutputStream);
 
         DataInputStream dataInputStream = createDataInputStream();
         schemaRepositoryRecordSerde.readHeader(dataInputStream);
-        RepositoryRecord repositoryRecord = schemaRepositoryRecordSerde.deserializeRecord(dataInputStream, 2);
-        assertEquals(attributes, repositoryRecord.getCurrent().getAttributes());
+        SerializedRepositoryRecord repositoryRecord = schemaRepositoryRecordSerde.deserializeRecord(dataInputStream, 2);
+        assertEquals(attributes, repositoryRecord.getFlowFileRecord().getAttributes());
     }
 
     @Test
@@ -219,12 +218,12 @@ public class SchemaRepositoryRecordSerdeTest {
         StandardRepositoryRecord record = createCreateFlowFileRecord(attributes);
         record.setSwapLocation("fake");
         assertEquals(SWAP_IN, record.getType());
-        schemaRepositoryRecordSerde.serializeRecord(record, dataOutputStream);
+        schemaRepositoryRecordSerde.serializeRecord(new LiveSerializedRepositoryRecord(record), dataOutputStream);
 
         DataInputStream dataInputStream = createDataInputStream();
         schemaRepositoryRecordSerde.readHeader(dataInputStream);
-        RepositoryRecord repositoryRecord = schemaRepositoryRecordSerde.deserializeRecord(dataInputStream, 2);
-        assertEquals(attributes, repositoryRecord.getCurrent().getAttributes());
+        SerializedRepositoryRecord repositoryRecord = schemaRepositoryRecordSerde.deserializeRecord(dataInputStream, 2);
+        assertEquals(attributes, repositoryRecord.getFlowFileRecord().getAttributes());
     }
 
     @Test
@@ -235,12 +234,13 @@ public class SchemaRepositoryRecordSerdeTest {
         StandardRepositoryRecord record = createCreateFlowFileRecord(attributes);
         record.setSwapLocation("fake");
         assertEquals(SWAP_IN, record.getType());
-        schemaRepositoryRecordSerde.serializeRecord(record, dataOutputStream, RepositoryRecordSchema.SWAP_IN_SCHEMA_V1, RepositoryRecordSchema.REPOSITORY_RECORD_SCHEMA_V1);
+        schemaRepositoryRecordSerde.serializeRecord(new LiveSerializedRepositoryRecord(record), dataOutputStream, RepositoryRecordSchema.SWAP_IN_SCHEMA_V1,
+            RepositoryRecordSchema.REPOSITORY_RECORD_SCHEMA_V1);
 
         DataInputStream dataInputStream = createDataInputStream();
         schemaRepositoryRecordSerde.readHeader(dataInputStream);
-        RepositoryRecord repositoryRecord = schemaRepositoryRecordSerde.deserializeRecord(dataInputStream, 2);
-        assertEquals(attributes, repositoryRecord.getCurrent().getAttributes());
+        SerializedRepositoryRecord repositoryRecord = schemaRepositoryRecordSerde.deserializeRecord(dataInputStream, 2);
+        assertEquals(attributes, repositoryRecord.getFlowFileRecord().getAttributes());
         assertEquals(SWAP_IN, repositoryRecord.getType());
     }
 
@@ -260,7 +260,6 @@ public class SchemaRepositoryRecordSerdeTest {
     private FlowFileQueue createMockQueue(String identifier) {
         FlowFileQueue flowFileQueue = mock(FlowFileQueue.class);
         when(flowFileQueue.getIdentifier()).thenReturn(identifier);
-        queueMap.put(identifier, flowFileQueue);
         return flowFileQueue;
     }
 }

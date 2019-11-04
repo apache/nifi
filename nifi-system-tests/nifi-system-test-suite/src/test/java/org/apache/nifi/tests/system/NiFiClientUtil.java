@@ -32,6 +32,7 @@ import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.CounterDTO;
 import org.apache.nifi.web.api.dto.CountersSnapshotDTO;
 import org.apache.nifi.web.api.dto.FlowFileSummaryDTO;
+import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 import org.apache.nifi.web.api.dto.NodeDTO;
 import org.apache.nifi.web.api.dto.ParameterContextDTO;
 import org.apache.nifi.web.api.dto.ParameterContextReferenceDTO;
@@ -397,7 +398,27 @@ public class NiFiClientUtil {
         }
 
         for (final ProcessGroupEntity group : rootFlowDTO.getProcessGroups()) {
-            waitForProcessorsStopped(group.getId());
+            waitForProcessorsStopped(group.getComponent());
+        }
+    }
+
+    private void waitForProcessorsStopped(final ProcessGroupDTO group) throws IOException, NiFiClientException {
+        final FlowSnippetDTO groupContents = group.getContents();
+        if (groupContents == null) {
+            return;
+        }
+
+        for (final ProcessorDTO processor : groupContents.getProcessors()) {
+            try {
+                waitForStoppedProcessor(processor.getId());
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new NiFiClientException("Interrupted while waiting for Processor with ID " + processor.getId() + " to stop");
+            }
+        }
+
+        for (final ProcessGroupDTO child : groupContents.getProcessGroups()) {
+            waitForProcessorsStopped(child);
         }
     }
 
