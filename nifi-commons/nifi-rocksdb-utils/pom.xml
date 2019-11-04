@@ -19,21 +19,21 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-commons</artifactId>
-        <version>1.10.0-SNAPSHOT</version>
+        <version>1.11.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-rocksdb-utils</artifactId>
-    <version>1.10.0-SNAPSHOT</version>
+    <version>1.11.0-SNAPSHOT</version>
     <packaging>jar</packaging>
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-api</artifactId>
-            <version>1.10.0-SNAPSHOT</version>
+            <version>1.11.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-properties</artifactId>
-            <version>1.10.0-SNAPSHOT</version>
+            <version>1.11.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.rocksdb</groupId>
