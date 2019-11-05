@@ -52,7 +52,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
-final class KafkaProcessorUtils {
+public final class KafkaProcessorUtils {
     private static final String ALLOW_EXPLICIT_KEYTAB = "NIFI_ALLOW_EXPLICIT_KEYTAB";
 
     final Logger logger = LoggerFactory.getLogger(this.getClass());
@@ -72,8 +72,8 @@ final class KafkaProcessorUtils {
 
     static final AllowableValue SEC_PLAINTEXT = new AllowableValue("PLAINTEXT", "PLAINTEXT", "PLAINTEXT");
     static final AllowableValue SEC_SSL = new AllowableValue("SSL", "SSL", "SSL");
-    static final AllowableValue SEC_SASL_PLAINTEXT = new AllowableValue("SASL_PLAINTEXT", "SASL_PLAINTEXT", "SASL_PLAINTEXT");
-    static final AllowableValue SEC_SASL_SSL = new AllowableValue("SASL_SSL", "SASL_SSL", "SASL_SSL");
+    public static final AllowableValue SEC_SASL_PLAINTEXT = new AllowableValue("SASL_PLAINTEXT", "SASL_PLAINTEXT", "SASL_PLAINTEXT");
+    public static final AllowableValue SEC_SASL_SSL = new AllowableValue("SASL_SSL", "SASL_SSL", "SASL_SSL");
 
     static final String GSSAPI_VALUE = "GSSAPI";
     static final AllowableValue SASL_MECHANISM_GSSAPI = new AllowableValue(GSSAPI_VALUE, GSSAPI_VALUE,
@@ -89,7 +89,7 @@ final class KafkaProcessorUtils {
     static final AllowableValue SASL_MECHANISM_SCRAM = new AllowableValue(SCRAM_SHA256_VALUE, SCRAM_SHA256_VALUE,"The Salted Challenge Response Authentication Mechanism. " +
             "The username and password properties must be set when using this mechanism.");
 
-    static final PropertyDescriptor BOOTSTRAP_SERVERS = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor BOOTSTRAP_SERVERS = new PropertyDescriptor.Builder()
             .name(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG)
             .displayName("Kafka Brokers")
             .description("A comma-separated list of known Kafka Brokers in the format <host>:<port>")
@@ -98,7 +98,7 @@ final class KafkaProcessorUtils {
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .defaultValue("localhost:9092")
             .build();
-    static final PropertyDescriptor SECURITY_PROTOCOL = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor SECURITY_PROTOCOL = new PropertyDescriptor.Builder()
             .name("security.protocol")
             .displayName("Security Protocol")
             .description("Protocol used to communicate with brokers. Corresponds to Kafka's 'security.protocol' property.")
@@ -116,7 +116,7 @@ final class KafkaProcessorUtils {
             .allowableValues(SASL_MECHANISM_GSSAPI, SASL_MECHANISM_PLAIN, SASL_MECHANISM_SCRAM)
             .defaultValue(GSSAPI_VALUE)
             .build();
-    static final PropertyDescriptor JAAS_SERVICE_NAME = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor JAAS_SERVICE_NAME = new PropertyDescriptor.Builder()
             .name("sasl.kerberos.service.name")
             .displayName("Kerberos Service Name")
             .description("The service name that matches the primary name of the Kafka server configured in the broker JAAS file."
@@ -170,14 +170,14 @@ final class KafkaProcessorUtils {
             .allowableValues("true", "false")
             .defaultValue("false")
             .build();
-    static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
             .name("ssl.context.service")
             .displayName("SSL Context Service")
             .description("Specifies the SSL Context Service to use for communicating with Kafka.")
             .required(false)
             .identifiesControllerService(SSLContextService.class)
             .build();
-    static final PropertyDescriptor KERBEROS_CREDENTIALS_SERVICE = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor KERBEROS_CREDENTIALS_SERVICE = new PropertyDescriptor.Builder()
         .name("kerberos-credentials-service")
         .displayName("Kerberos Credentials Service")
         .description("Specifies the Kerberos Credentials Controller Service that should be used for authenticating with Kerberos")
@@ -201,7 +201,7 @@ final class KafkaProcessorUtils {
         );
     }
 
-    static Collection<ValidationResult> validateCommonProperties(final ValidationContext validationContext) {
+    public static Collection<ValidationResult> validateCommonProperties(final ValidationContext validationContext) {
         List<ValidationResult> results = new ArrayList<>();
 
         final String securityProtocol = validationContext.getProperty(SECURITY_PROTOCOL).getValue();
@@ -337,7 +337,7 @@ final class KafkaProcessorUtils {
         return results;
     }
 
-    static final class KafkaConfigValidator implements Validator {
+    public static final class KafkaConfigValidator implements Validator {
 
         final Class<?> classType;
 
@@ -501,7 +501,7 @@ final class KafkaProcessorUtils {
         mapToPopulate.put(SaslConfigs.SASL_JAAS_CONFIG, builder.toString());
     }
 
-    private static boolean isStaticStringFieldNamePresent(final String name, final Class<?>... classes) {
+    public static boolean isStaticStringFieldNamePresent(final String name, final Class<?>... classes) {
         return KafkaProcessorUtils.getPublicStaticStringFieldValues(classes).contains(name);
     }
 
