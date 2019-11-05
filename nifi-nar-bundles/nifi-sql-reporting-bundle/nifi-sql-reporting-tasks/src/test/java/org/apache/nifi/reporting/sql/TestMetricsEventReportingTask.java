@@ -16,25 +16,32 @@
  */
 package org.apache.nifi.reporting.sql;
 
-
+import com.google.common.collect.Lists;
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.status.ConnectionStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
+import org.apache.nifi.controller.status.analytics.ConnectionStatusPredictions;
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.record.sink.MockRecordSinkService;
-import org.apache.nifi.record.sink.RecordSinkService;
+import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.reporting.EventAccess;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.reporting.ReportingInitializationContext;
+import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.reporting.sql.util.QueryMetricsUtil;
-import org.apache.nifi.reporting.util.metrics.MetricNames;
+import org.apache.nifi.rules.Action;
+import org.apache.nifi.rules.MockPropertyContextActionHandler;
+import org.apache.nifi.rules.PropertyContextActionHandler;
+import org.apache.nifi.rules.engine.MockRulesEngineService;
+import org.apache.nifi.rules.engine.RulesEngineService;
 import org.apache.nifi.state.MockStateManager;
 import org.apache.nifi.util.MockPropertyValue;
+import org.apache.nifi.util.Tuple;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -47,23 +54,23 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertFalse;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 
-public class TestQueryNiFiReportingTask {
-
+public class TestMetricsEventReportingTask {
     private ReportingContext context;
-    private MockQueryNiFiReportingTask reportingTask;
-    private MockRecordSinkService mockRecordSinkService;
+    private MockMetricsEventReportingTask reportingTask;
+    private MockPropertyContextActionHandler actionHandler;
+    private MockRulesEngineService rulesEngineService;
     private ProcessGroupStatus status;
 
     @Before
     public void setup() {
-        mockRecordSinkService = new MockRecordSinkService();
         status = new ProcessGroupStatus();
+        actionHandler = new MockPropertyContextActionHandler();
         status.setId("1234");
         status.setFlowFilesReceived(5);
         status.setBytesReceived(10000);
@@ -84,15 +91,21 @@ public class TestQueryNiFiReportingTask {
         processorStatuses.add(procStatus);
         status.setProcessorStatus(processorStatuses);
 
+        ConnectionStatusPredictions connectionStatusPredictions = new ConnectionStatusPredictions();
+        connectionStatusPredictions.setPredictedTimeToCountBackpressureMillis(1000);
+        connectionStatusPredictions.setPredictedTimeToBytesBackpressureMillis(1000);
+        connectionStatusPredictions.setNextPredictedQueuedCount(1000000000);
+        connectionStatusPredictions.setNextPredictedQueuedBytes(1000000000000000L);
+
         ConnectionStatus root1ConnectionStatus = new ConnectionStatus();
         root1ConnectionStatus.setId("root1");
         root1ConnectionStatus.setQueuedCount(1000);
-        root1ConnectionStatus.setBackPressureObjectThreshold(1000);
+        root1ConnectionStatus.setPredictions(connectionStatusPredictions);
 
         ConnectionStatus root2ConnectionStatus = new ConnectionStatus();
         root2ConnectionStatus.setId("root2");
         root2ConnectionStatus.setQueuedCount(500);
-        root2ConnectionStatus.setBackPressureObjectThreshold(1000);
+        root2ConnectionStatus.setPredictions(connectionStatusPredictions);
 
         Collection<ConnectionStatus> rootConnectionStatuses = new ArrayList<>();
         rootConnectionStatuses.add(root1ConnectionStatus);
@@ -139,120 +152,42 @@ public class TestQueryNiFiReportingTask {
     @Test
     public void testConnectionStatusTable() throws IOException, InitializationException {
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
-        properties.put(QueryMetricsUtil.RECORD_SINK, "mock-record-sink");
-        properties.put(QueryMetricsUtil.QUERY, "select id,queuedCount,isBackPressureEnabled from CONNECTION_STATUS order by queuedCount desc");
+        properties.put(QueryMetricsUtil.QUERY, "select connectionId, predictedQueuedCount, predictedTimeToBytesBackpressureMillis from CONNECTION_STATUS_PREDICTIONS");
         reportingTask = initTask(properties);
         reportingTask.onTrigger(context);
+        List<Map<String,Object>> metricsList = actionHandler.getRows();
+        List<Tuple<String, Action>> defaultLogActions = actionHandler.getDefaultActionsByType("LOG");
+        List<Tuple<String, Action>> defaultAlertActions = actionHandler.getDefaultActionsByType("ALERT");
+        List<PropertyContext> propertyContexts = actionHandler.getPropertyContexts();
+        assertFalse(metricsList.isEmpty());
+        assertEquals(2,defaultLogActions.size());
+        assertEquals(2,defaultAlertActions.size());
+        assertEquals(4,propertyContexts.size());
 
-        List<Map<String, Object>> rows = mockRecordSinkService.getRows();
-        assertEquals(4, rows.size());
-        // Validate the first row
-        Map<String, Object> row = rows.get(0);
-        assertEquals(3, row.size()); // Only projected 2 columns
-        Object id = row.get("id");
-        assertTrue(id instanceof String);
-        assertEquals("nested", id);
-        assertEquals(1001, row.get("queuedCount"));
-        // Validate the second row
-        row = rows.get(1);
-        id = row.get("id");
-        assertEquals("root1", id);
-        assertEquals(1000, row.get("queuedCount"));
-        assertEquals(true, row.get("isBackPressureEnabled"));
-        // Validate the third row
-        row = rows.get(2);
-        id = row.get("id");
-        assertEquals("root2", id);
-        assertEquals(500, row.get("queuedCount"));
-        assertEquals(false, row.get("isBackPressureEnabled"));
-        // Validate the fourth row
-        row = rows.get(3);
-        id = row.get("id");
-        assertEquals("nested2", id);
-        assertEquals(3, row.get("queuedCount"));
     }
 
-    @Test
-    public void testJvmMetricsTable() throws IOException, InitializationException {
-        final Map<PropertyDescriptor, String> properties = new HashMap<>();
-        properties.put(QueryMetricsUtil.RECORD_SINK, "mock-record-sink");
-        properties.put(QueryMetricsUtil.QUERY, "select "
-                + Stream.of(MetricNames.JVM_DAEMON_THREAD_COUNT,
-                MetricNames.JVM_THREAD_COUNT,
-                MetricNames.JVM_THREAD_STATES_BLOCKED,
-                MetricNames.JVM_THREAD_STATES_RUNNABLE,
-                MetricNames.JVM_THREAD_STATES_TERMINATED,
-                MetricNames.JVM_THREAD_STATES_TIMED_WAITING,
-                MetricNames.JVM_UPTIME,
-                MetricNames.JVM_HEAP_USED,
-                MetricNames.JVM_HEAP_USAGE,
-                MetricNames.JVM_NON_HEAP_USAGE,
-                MetricNames.JVM_FILE_DESCRIPTOR_USAGE).map((s) -> s.replace(".", "_")).collect(Collectors.joining(","))
-                + " from JVM_METRICS");
-        reportingTask = initTask(properties);
-        reportingTask.onTrigger(context);
-
-        List<Map<String, Object>> rows = mockRecordSinkService.getRows();
-        assertEquals(1, rows.size());
-        Map<String,Object> row = rows.get(0);
-        assertEquals(11, row.size());
-        assertTrue(row.get(MetricNames.JVM_DAEMON_THREAD_COUNT.replace(".","_")) instanceof Integer);
-        assertTrue(row.get(MetricNames.JVM_HEAP_USAGE.replace(".","_")) instanceof Double);
-    }
-
-    @Test
-    public void testProcessGroupStatusTable() throws IOException, InitializationException {
-        final Map<PropertyDescriptor, String> properties = new HashMap<>();
-        properties.put(QueryMetricsUtil.RECORD_SINK, "mock-record-sink");
-        properties.put(QueryMetricsUtil.QUERY, "select * from PROCESS_GROUP_STATUS order by bytesRead asc");
-        reportingTask = initTask(properties);
-        reportingTask.onTrigger(context);
-
-        List<Map<String, Object>> rows = mockRecordSinkService.getRows();
-        assertEquals(4, rows.size());
-        // Validate the first row
-        Map<String, Object> row = rows.get(0);
-        assertEquals(20, row.size());
-        assertEquals(1L, row.get("bytesRead"));
-        // Validate the second row
-        row = rows.get(1);
-        assertEquals(1234L, row.get("bytesRead"));
-        // Validate the third row
-        row = rows.get(2);
-        assertEquals(12345L, row.get("bytesRead"));
-        // Validate the fourth row
-        row = rows.get(3);
-        assertEquals(20000L, row.get("bytesRead"));
-    }
-
-    @Test
-    public void testNoResults() throws IOException, InitializationException {
-        final Map<PropertyDescriptor, String> properties = new HashMap<>();
-        properties.put(QueryMetricsUtil.RECORD_SINK, "mock-record-sink");
-        properties.put(QueryMetricsUtil.QUERY, "select * from CONNECTION_STATUS where queuedCount > 2000");
-        reportingTask = initTask(properties);
-        reportingTask.onTrigger(context);
-
-        List<Map<String, Object>> rows = mockRecordSinkService.getRows();
-        assertEquals(0, rows.size());
-    }
-
-    private MockQueryNiFiReportingTask initTask(Map<PropertyDescriptor, String> customProperties) throws InitializationException, IOException {
+    private MockMetricsEventReportingTask initTask(Map<PropertyDescriptor, String> customProperties) throws InitializationException, IOException {
 
         final ComponentLog logger = Mockito.mock(ComponentLog.class);
-        reportingTask = new MockQueryNiFiReportingTask();
+        final BulletinRepository bulletinRepository = Mockito.mock(BulletinRepository.class);
+        reportingTask = new MockMetricsEventReportingTask();
         final ReportingInitializationContext initContext = Mockito.mock(ReportingInitializationContext.class);
         Mockito.when(initContext.getIdentifier()).thenReturn(UUID.randomUUID().toString());
         Mockito.when(initContext.getLogger()).thenReturn(logger);
         reportingTask.initialize(initContext);
         Map<PropertyDescriptor, String> properties = new HashMap<>();
+
         for (final PropertyDescriptor descriptor : reportingTask.getSupportedPropertyDescriptors()) {
             properties.put(descriptor, descriptor.getDefaultValue());
         }
         properties.putAll(customProperties);
 
         context = Mockito.mock(ReportingContext.class);
+        Mockito.when(context.isAnalyticsEnabled()).thenReturn(true);
         Mockito.when(context.getStateManager()).thenReturn(new MockStateManager(reportingTask));
+        Mockito.when(context.getBulletinRepository()).thenReturn(bulletinRepository);
+        Mockito.when(context.createBulletin(anyString(),any(Severity.class), anyString())).thenReturn(null);
+
         Mockito.doAnswer((Answer<PropertyValue>) invocation -> {
             final PropertyDescriptor descriptor = invocation.getArgument(0, PropertyDescriptor.class);
             return new MockPropertyValue(properties.get(descriptor));
@@ -263,17 +198,27 @@ public class TestQueryNiFiReportingTask {
         Mockito.when(eventAccess.getControllerStatus()).thenReturn(status);
 
         final PropertyValue pValue = Mockito.mock(StandardPropertyValue.class);
-        mockRecordSinkService = new MockRecordSinkService();
-        Mockito.when(context.getProperty(QueryMetricsUtil.RECORD_SINK)).thenReturn(pValue);
-        Mockito.when(pValue.asControllerService(RecordSinkService.class)).thenReturn(mockRecordSinkService);
+        actionHandler = new MockPropertyContextActionHandler();
+        Mockito.when(pValue.asControllerService(PropertyContextActionHandler.class)).thenReturn(actionHandler);
+
+        Action action1 = new Action();
+        action1.setType("LOG");
+        Action action2 = new Action();
+        action2.setType("ALERT");
+
+        final PropertyValue resValue = Mockito.mock(StandardPropertyValue.class);
+        rulesEngineService = new MockRulesEngineService(Lists.newArrayList(action1,action2));
+        Mockito.when(resValue.asControllerService(RulesEngineService.class)).thenReturn(rulesEngineService);
 
         ConfigurationContext configContext = Mockito.mock(ConfigurationContext.class);
-        Mockito.when(configContext.getProperty(QueryMetricsUtil.RECORD_SINK)).thenReturn(pValue);
+        Mockito.when(configContext.getProperty(QueryMetricsUtil.RULES_ENGINE)).thenReturn(resValue);
+        Mockito.when(configContext.getProperty(QueryMetricsUtil.ACTION_HANDLER)).thenReturn(pValue);
         reportingTask.setup(configContext);
 
         return reportingTask;
     }
 
-    private static final class MockQueryNiFiReportingTask extends QueryNiFiReportingTask {
+    private static final class MockMetricsEventReportingTask extends MetricsEventReportingTask {
+
     }
 }

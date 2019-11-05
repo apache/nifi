@@ -14,3 +14,4 @@
 # limitations under the License.
 
 org.apache.nifi.reporting.sql.QueryNiFiReportingTask
+org.apache.nifi.reporting.sql.MetricsEventReportingTask

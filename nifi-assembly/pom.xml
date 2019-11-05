@@ -878,6 +878,18 @@ language governing permissions and limitations under the License. -->
                     <version>1.11.0-SNAPSHOT</version>
                     <type>nar</type>
                 </dependency>
+                <dependency>
+                    <groupId>org.apache.nifi</groupId>
+                    <artifactId>nifi-easyrules-nar</artifactId>
+                    <version>1.11.0-SNAPSHOT</version>
+                    <type>nar</type>
+                </dependency>
+                <dependency>
+                    <groupId>org.apache.nifi</groupId>
+                    <artifactId>nifi-rules-action-handler-nar</artifactId>
+                    <version>1.11.0-SNAPSHOT</version>
+                    <type>nar</type>
+                </dependency>
             </dependencies>
         </profile>
         <profile>

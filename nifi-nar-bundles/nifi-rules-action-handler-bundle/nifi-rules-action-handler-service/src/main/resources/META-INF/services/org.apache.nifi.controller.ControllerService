@@ -16,3 +16,4 @@ org.apache.nifi.rules.handlers.ActionHandlerLookup
 org.apache.nifi.rules.handlers.ExpressionHandler
 org.apache.nifi.rules.handlers.LogHandler
 org.apache.nifi.rules.handlers.RecordSinkHandler
+org.apache.nifi.rules.handlers.AlertHandler

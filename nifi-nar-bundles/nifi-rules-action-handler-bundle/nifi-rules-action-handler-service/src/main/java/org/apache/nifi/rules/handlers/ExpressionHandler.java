@@ -39,7 +39,7 @@ import java.util.Map;
 
 @Tags({"rules", "rules engine", "action", "action handler", "expression language","MVEL","SpEL"})
 @CapabilityDescription("Executes an action containing an expression written in MVEL or SpEL. The action " +
-"is usually created by a rules engine. ")
+"is usually created by a rules engine. Action objects executed with this Handler should contain \"command\" and \"type\" attributes.")
 public class ExpressionHandler extends AbstractActionHandlerService {
 
     enum ExpresssionType {
@@ -47,9 +47,11 @@ public class ExpressionHandler extends AbstractActionHandlerService {
     }
 
     public static final PropertyDescriptor DEFAULT_EXPRESSION_LANGUAGE_TYPE = new PropertyDescriptor.Builder()
-            .name("Expression Language Type")
+            .name("default-expression-language-type")
+            .displayName("Default Expression Language Type")
             .required(true)
-            .description("The expression language that should be used to compile and execute action. Supported languages are MVEL and Spring Expression Language (SpEL).")
+            .description("If an expression language type is not provided as an attribute within an Action, the default expression language that " +
+                    "should be used to compile and execute action. Supported languages are MVEL and Spring Expression Language (SpEL).")
             .allowableValues(ExpresssionType.values())
             .defaultValue("MVEL")
             .build();
@@ -82,7 +84,7 @@ public class ExpressionHandler extends AbstractActionHandlerService {
         final String command = attributes.get("command");
         if(StringUtils.isNotEmpty(command)) {
             try {
-                final String type = attributes.get("type");
+                final String type = attributes.getOrDefault("type",this.type.toString());
                 ExpresssionType expresssionType = ExpresssionType.valueOf(type);
                 if (expresssionType.equals(ExpresssionType.MVEL)) {
                     executeMVEL(command, facts);
