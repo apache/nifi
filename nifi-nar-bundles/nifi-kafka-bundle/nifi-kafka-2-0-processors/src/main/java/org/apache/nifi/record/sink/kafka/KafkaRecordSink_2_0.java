@@ -73,14 +73,14 @@ import java.util.concurrent.TimeoutException;
 public class KafkaRecordSink_2_0 extends AbstractControllerService implements RecordSinkService {
 
     static final AllowableValue DELIVERY_REPLICATED = new AllowableValue("all", "Guarantee Replicated Delivery",
-            "FlowFile will be routed to failure unless the message is replicated to the appropriate "
-                    + "number of Kafka Nodes according to the Topic configuration");
+            "Records are considered 'transmitted unsuccessfully' unless the message is replicated to the appropriate "
+                    + "number of Kafka Nodes according to the Topic configuration.");
     static final AllowableValue DELIVERY_ONE_NODE = new AllowableValue("1", "Guarantee Single Node Delivery",
-            "FlowFile will be routed to success if the message is received by a single Kafka node, "
+            "Records are considered 'transmitted successfully' if the message is received by a single Kafka node, "
                     + "whether or not it is replicated. This is faster than <Guarantee Replicated Delivery> "
-                    + "but can result in data loss if a Kafka node crashes");
+                    + "but can result in data loss if a Kafka node crashes.");
     static final AllowableValue DELIVERY_BEST_EFFORT = new AllowableValue("0", "Best Effort",
-            "FlowFile will be routed to success after successfully writing the content to a Kafka node, "
+            "Records are considered 'transmitted successfully' after successfully writing the content to a Kafka node, "
                     + "without waiting for a response. This provides the best performance but may result in data loss.");
 
     static final AllowableValue UTF8_ENCODING = new AllowableValue("utf-8", "UTF-8 Encoded", "The key is interpreted as a UTF-8 Encoded string.");
@@ -294,7 +294,9 @@ public class KafkaRecordSink_2_0 extends AbstractControllerService implements Re
 
     @OnDisabled
     public void stop() throws IOException {
-
+        if (producer != null) {
+            producer.close(maxAckWaitMillis, TimeUnit.MILLISECONDS);
+        }
     }
 
     static void buildCommonKafkaProperties(final ConfigurationContext context, final Class<?> kafkaConfigClass, final Map<String, Object> mapToPopulate) {
