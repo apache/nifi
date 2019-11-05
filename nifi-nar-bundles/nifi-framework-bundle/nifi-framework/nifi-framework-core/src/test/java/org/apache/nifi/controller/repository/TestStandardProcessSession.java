@@ -394,7 +394,7 @@ public class TestStandardProcessSession {
             assertEquals(5, in.skip(5L));
             assertEquals('n', (char) in.read());
             in.reset();
-        };
+        }
 
         session.transfer(flowFile);
         session.commit();
