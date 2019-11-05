@@ -26,6 +26,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
+import java.util.Arrays;
 
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
@@ -42,6 +43,7 @@ public class SSLContextFactory {
     private final String keystore;
     private final char[] keystorePass;
     private final String keystoreType;
+    private final char[] keyPassword;
     private final String truststore;
     private final char[] truststorePass;
     private final String truststoreType;
@@ -53,6 +55,7 @@ public class SSLContextFactory {
         keystore = properties.getProperty(NiFiProperties.SECURITY_KEYSTORE);
         keystorePass = getPass(properties.getProperty(NiFiProperties.SECURITY_KEYSTORE_PASSWD));
         keystoreType = properties.getProperty(NiFiProperties.SECURITY_KEYSTORE_TYPE);
+        keyPassword = getPass(properties.getProperty(NiFiProperties.SECURITY_KEY_PASSWD));
 
         truststore = properties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE);
         truststorePass = getPass(properties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD));
@@ -67,7 +70,11 @@ public class SSLContextFactory {
             FileUtils.closeQuietly(keyStoreStream);
         }
         final KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-        keyManagerFactory.init(keyStore, keystorePass);
+        if (keyPassword != null && !Arrays.equals(keyPassword, keystorePass)) {
+            keyManagerFactory.init(keyStore, keyPassword);
+        } else {
+            keyManagerFactory.init(keyStore, keystorePass);
+        }
 
         // prepare the truststore
         final KeyStore trustStore = KeyStoreUtils.getTrustStore(truststoreType);
@@ -91,14 +98,13 @@ public class SSLContextFactory {
     /**
      * Creates a SSLContext instance using the given information.
      *
-     *
      * @return a SSLContext instance
-     * @throws java.security.KeyStoreException if problem with keystore
-     * @throws java.io.IOException if unable to create context
-     * @throws java.security.NoSuchAlgorithmException if algorithm isn't known
+     * @throws java.security.KeyStoreException         if problem with keystore
+     * @throws java.io.IOException                     if unable to create context
+     * @throws java.security.NoSuchAlgorithmException  if algorithm isn't known
      * @throws java.security.cert.CertificateException if certificate is invalid
      * @throws java.security.UnrecoverableKeyException if the key cannot be recovered
-     * @throws java.security.KeyManagementException if the key is improper
+     * @throws java.security.KeyManagementException    if the key is improper
      */
     public SSLContext createSslContext() throws KeyStoreException, IOException, NoSuchAlgorithmException, CertificateException,
             UnrecoverableKeyException, KeyManagementException {
