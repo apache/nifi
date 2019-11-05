@@ -29,6 +29,7 @@ import org.apache.nifi.controller.repository.claim.ResourceClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 import org.apache.nifi.controller.repository.claim.StandardContentClaim;
 import org.apache.nifi.controller.repository.claim.StandardResourceClaimManager;
+import org.apache.nifi.controller.repository.metrics.RingBufferEventRepository;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.groups.ProcessGroup;
@@ -114,6 +115,7 @@ public class TestStandardProcessSession {
     private ProvenanceEventRepository provenanceRepo;
     private MockFlowFileRepository flowFileRepo;
     private CounterRepository counterRepository;
+    private FlowFileEventRepository flowFileEventRepo;
     private final Relationship FAKE_RELATIONSHIP = new Relationship.Builder().name("FAKE").build();
     private static StandardResourceClaimManager resourceClaimManager;
 
@@ -155,7 +157,7 @@ public class TestStandardProcessSession {
         resourceClaimManager = new StandardResourceClaimManager();
 
         System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, TestStandardProcessSession.class.getResource("/conf/nifi.properties").getFile());
-        final FlowFileEventRepository flowFileEventRepo = Mockito.mock(FlowFileEventRepository.class);
+        flowFileEventRepo = new RingBufferEventRepository(1);
         counterRepository = new StandardCounterRepository();
         provenanceRepo = new MockProvenanceRepository();
 
@@ -338,6 +340,68 @@ public class TestStandardProcessSession {
 
         assertEquals(2, aCounters);
         assertEquals(2, bCounters);
+    }
+
+    @Test
+    public void testReadCountCorrectWhenSkippingWithReadCallback() throws IOException {
+        final byte[] content = "This and that and the other.".getBytes(StandardCharsets.UTF_8);
+
+        final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
+            .id(1000L)
+            .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
+            .entryDate(System.currentTimeMillis())
+            .contentClaim(contentRepo.create(content))
+            .size(content.length)
+            .build();
+
+        flowFileQueue.put(flowFileRecord);
+
+        FlowFile flowFile = session.get();
+        session.read(flowFile, in -> {
+            assertEquals('T', (char) in.read());
+            in.mark(10);
+            assertEquals(5, in.skip(5L));
+            assertEquals('n', (char) in.read());
+            in.reset();
+        });
+
+        session.transfer(flowFile);
+        session.commit();
+
+        final RepositoryStatusReport report = flowFileEventRepo.reportTransferEvents(0L);
+        final long bytesRead = report.getReportEntry("connectable-1").getBytesRead();
+        assertEquals(1, bytesRead);
+    }
+
+    @Test
+    public void testReadCountCorrectWhenSkippingWithReadInputStream() throws IOException {
+        final byte[] content = "This and that and the other.".getBytes(StandardCharsets.UTF_8);
+
+        final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
+            .id(1000L)
+            .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
+            .entryDate(System.currentTimeMillis())
+            .contentClaim(contentRepo.create(content))
+            .size(content.length)
+            .build();
+
+        flowFileQueue.put(flowFileRecord);
+
+        FlowFile flowFile = session.get();
+        try (InputStream in = session.read(flowFile)) {
+            assertEquals('T', (char) in.read());
+            in.mark(10);
+            assertEquals(5, in.skip(5L));
+            assertEquals('n', (char) in.read());
+            in.reset();
+        };
+
+        session.transfer(flowFile);
+        session.commit();
+
+        final RepositoryStatusReport report = flowFileEventRepo.reportTransferEvents(0L);
+        final long bytesRead = report.getReportEntry("connectable-1").getBytesRead();
+        assertEquals(1, bytesRead);
     }
 
     @Test
