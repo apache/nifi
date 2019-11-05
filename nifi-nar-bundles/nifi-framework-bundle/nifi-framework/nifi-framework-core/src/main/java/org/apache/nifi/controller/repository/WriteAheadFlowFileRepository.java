@@ -511,7 +511,10 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
                 swapLocationsRemoved.add(swapLocation);
                 swapLocationsAdded.remove(swapLocation);
             }
+        }
 
+        // Once the content claim counts have been updated for all records, collect any transient claims that are eligible for destruction
+        for (final RepositoryRecord record : repositoryRecords) {
             final List<ContentClaim> transientClaims = record.getTransientClaims();
             if (transientClaims != null) {
                 for (final ContentClaim transientClaim : transientClaims) {
