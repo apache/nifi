@@ -66,15 +66,24 @@ class SSLContextFactoryTest extends GroovyTestCase {
 
     private static NiFiProperties buildNiFiProperties(Map<String, String> overrides = [:]) {
         final Map DEFAULTS = [
-                (NiFiProperties.SECURITY_KEYSTORE_PASSWD): "keystorepassword",
-                (NiFiProperties.SECURITY_KEYSTORE)       : "src/test/resources/samepassword.jks",
-                (NiFiProperties.SECURITY_KEYSTORE_TYPE)  : "JKS",
+                (NiFiProperties.SECURITY_KEYSTORE_PASSWD)  : "keystorepassword",
+                (NiFiProperties.SECURITY_KEYSTORE)         : "src/test/resources/samepassword.jks",
+                (NiFiProperties.SECURITY_KEYSTORE_TYPE)    : "JKS",
                 (NiFiProperties.SECURITY_TRUSTSTORE_PASSWD): "changeit",
-                (NiFiProperties.SECURITY_TRUSTSTORE)       : System.getenv("JAVA_HOME") + "/jre/lib/security/cacerts",
+                (NiFiProperties.SECURITY_TRUSTSTORE)       : buildCacertsPath(),
                 (NiFiProperties.SECURITY_TRUSTSTORE_TYPE)  : "JKS",
         ]
         DEFAULTS.putAll(overrides)
         NiFiProperties.createBasicNiFiProperties(null, DEFAULTS)
+    }
+
+    private static String buildCacertsPath() {
+        String javaHome = System.getenv("JAVA_HOME")
+        if (System.getProperty("java.version").startsWith("1.")) {
+            javaHome + "/jre/lib/security/cacerts"
+        } else {
+            javaHome + "/lib/security/cacerts"
+        }
     }
 
     @Test
@@ -90,7 +99,7 @@ class SSLContextFactoryTest extends GroovyTestCase {
         // Act
 
         // Access the SSLContextFactory to create an SSLContext
-        SSLContext sslContext =  sslcf.createSslContext()
+        SSLContext sslContext = sslcf.createSslContext()
 
         // Assert
 
@@ -105,7 +114,7 @@ class SSLContextFactoryTest extends GroovyTestCase {
         // Set up the keystore configuration as NiFiProperties object
         // (prior to NIFI-6830, an UnrecoverableKeyException was thrown due to the wrong password being provided)
         NiFiProperties np = buildNiFiProperties([
-                (NiFiProperties.SECURITY_KEYSTORE): "src/test/resources/differentpassword.jks",
+                (NiFiProperties.SECURITY_KEYSTORE)  : "src/test/resources/differentpassword.jks",
                 (NiFiProperties.SECURITY_KEY_PASSWD): "keypassword",
         ])
 
@@ -115,7 +124,7 @@ class SSLContextFactoryTest extends GroovyTestCase {
         // Act
 
         // Access the SSLContextFactory to create an SSLContext
-        SSLContext sslContext =  sslcf.createSslContext()
+        SSLContext sslContext = sslcf.createSslContext()
 
         // Assert
 
