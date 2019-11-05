@@ -18,23 +18,14 @@ package org.apache.nifi.io.socket
 
 import org.apache.nifi.util.NiFiProperties
 import org.bouncycastle.jce.provider.BouncyCastleProvider
-import org.junit.After
-import org.junit.AfterClass
-import org.junit.Before
-import org.junit.BeforeClass
-import org.junit.Test
+import org.junit.*
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import sun.security.ssl.SSLContextImpl
-import sun.security.ssl.SunX509KeyManagerImpl
 
 import javax.net.ssl.SSLContext
-import javax.net.ssl.SSLEngine
-import javax.security.cert.Certificate
 import java.security.Security
-import java.security.cert.X509Certificate
 
 @RunWith(JUnit4.class)
 class SSLContextFactoryTest extends GroovyTestCase {
@@ -101,27 +92,10 @@ class SSLContextFactoryTest extends GroovyTestCase {
         // Access the SSLContextFactory to create an SSLContext
         SSLContext sslContext =  sslcf.createSslContext()
 
-//        SSLEngine sslEngine = sslContext.createSSLEngine("localhost", 8443)
-//
-//        // Create connection to this SSLEngine
-//
-//        URL url = new URL("https://localhost:8443")
-//        URLConnection urlConnection = url.openConnection()
-//        urlConnection.connect()
-
-
-
-//        SSLContextImpl sslci = sslContext.contextSpi as SSLContextImpl
-//        SunX509KeyManagerImpl km = (sslci as SSLContextImpl).@keyManager
-//        List<Certificate> certificates =  km.getCertificateChain(DEFAULT_ALIAS) as List<Certificate>
-
         // Assert
 
         // The SSLContext was accessible and correct
         assert sslContext
-//        assert certificates.size() > 0
-//        X509Certificate x509Certificate = certificates.first() as X509Certificate
-//        assert x509Certificate.getSubjectX500Principal().getName() == "CN=test, OU=nifi, O=apache, City=los angeles, ST=CA, C=US"
     }
 
     @Test
@@ -129,6 +103,7 @@ class SSLContextFactoryTest extends GroovyTestCase {
         // Arrange
 
         // Set up the keystore configuration as NiFiProperties object
+        // (prior to NIFI-6830, an UnrecoverableKeyException was thrown due to the wrong password being provided)
         NiFiProperties np = buildNiFiProperties([
                 (NiFiProperties.SECURITY_KEYSTORE): "src/test/resources/differentpassword.jks",
                 (NiFiProperties.SECURITY_KEY_PASSWD): "keypassword",
