@@ -118,6 +118,11 @@ public class TestAlertHandler {
         metrics.put("jvmHeap", "1000000");
         metrics.put("cpu", "90");
 
+        final String expectedOutput = "This should be sent as an alert!\n" +
+                "Alert Facts:\n" +
+                "Field: cpu, Value: 90\n" +
+                "Field: jvmHeap, Value: 1000000\n";
+
         final Action action = new Action();
         action.setType("ALERT");
         action.setAttributes(attributes);
@@ -127,7 +132,7 @@ public class TestAlertHandler {
         assertFalse(bulletins.isEmpty());
         Bulletin bulletin = bulletins.get(0);
         assertEquals(bulletin.getCategory(), category);
-        assertEquals(bulletin.getMessage(), message);
+        assertEquals(bulletin.getMessage(), expectedOutput);
         assertEquals(bulletin.getLevel(), severity);
     }
 
@@ -143,6 +148,11 @@ public class TestAlertHandler {
         metrics.put("jvmHeap", "1000000");
         metrics.put("cpu", "90");
 
+        final String expectedOutput = "An alert was triggered by a rules based action.\n" +
+                "Alert Facts:\n" +
+                "Field: cpu, Value: 90\n" +
+                "Field: jvmHeap, Value: 1000000\n";
+
         final Action action = new Action();
         action.setType("ALERT");
         action.setAttributes(attributes);
@@ -152,7 +162,7 @@ public class TestAlertHandler {
         assertFalse(bulletins.isEmpty());
         Bulletin bulletin = bulletins.get(0);
         assertEquals(bulletin.getCategory(), category);
-        assertEquals(bulletin.getMessage(), message);
+        assertEquals(bulletin.getMessage(), expectedOutput);
         assertEquals(bulletin.getLevel(), severity);
     }
 

@@ -47,7 +47,8 @@ public class ExpressionHandler extends AbstractActionHandlerService {
     }
 
     public static final PropertyDescriptor DEFAULT_EXPRESSION_LANGUAGE_TYPE = new PropertyDescriptor.Builder()
-            .name("Expression Language Type")
+            .name("default-expression-language-type")
+            .displayName("Expression Language Type")
             .required(true)
             .description("The expression language that should be used to compile and execute action. Supported languages are MVEL and Spring Expression Language (SpEL).")
             .allowableValues(ExpresssionType.values())

@@ -35,39 +35,53 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @Tags({"rules", "rules engine", "action", "action handler", "logging", "alerts", "bulletins"})
 @CapabilityDescription("Creates alerts as bulletins based on a provided action (usually created by a rules engine) ")
 public class AlertHandler extends AbstractActionHandlerService {
 
     public static final PropertyDescriptor DEFAULT_LOG_LEVEL = new PropertyDescriptor.Builder()
-            .name("Log Level")
+            .name("alert-default-log-level")
+            .displayName("Default Log Level")
             .required(true)
-            .description("The Log Level to use when logging the Attributes")
+            .description("The Log Level to use when logging alert message")
             .allowableValues(DebugLevels.values())
             .defaultValue("info")
             .build();
 
     public static final PropertyDescriptor DEFAULT_CATEGORY = new PropertyDescriptor.Builder()
-            .name("Alert Category")
+            .name("alert-default-category")
+            .displayName("Default Category")
             .required(true)
-            .description("The Log Level to use when logging the Attributes")
+            .description("The Log Level to use when logging alert message")
             .defaultValue("Rules Triggered Alert")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor DEFAULT_MESSAGE = new PropertyDescriptor.Builder()
-            .name("Alert Message")
+            .name("alert-default-message")
+            .displayName("Default Message")
             .required(true)
             .description("The default message to include in alert")
             .defaultValue("An alert was triggered by a rules based action.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
+    private static final PropertyDescriptor INCLUDE_FACTS = new PropertyDescriptor.Builder()
+            .name("alert-include-facts")
+            .displayName("Include Fact Data")
+            .required(true)
+            .description("If true, the alert message will include the facts which triggered this action. Default is false")
+            .defaultValue("true")
+            .allowableValues("true", "false")
+            .build();
+
     private List<PropertyDescriptor> properties;
     private String defaultCategory;
     private String defaultLogLevel;
     private String defaultMessage;
+    private Boolean includeFacts;
 
     @Override
     protected void init(ControllerServiceInitializationContext config) throws InitializationException {
@@ -76,6 +90,7 @@ public class AlertHandler extends AbstractActionHandlerService {
         properties.add(DEFAULT_LOG_LEVEL);
         properties.add(DEFAULT_CATEGORY);
         properties.add(DEFAULT_MESSAGE);
+        properties.add(INCLUDE_FACTS);
         this.properties = Collections.unmodifiableList(properties);
     }
 
@@ -84,6 +99,7 @@ public class AlertHandler extends AbstractActionHandlerService {
         defaultLogLevel = context.getProperty(DEFAULT_LOG_LEVEL).getValue().toUpperCase();
         defaultCategory = context.getProperty(DEFAULT_CATEGORY).getValue();
         defaultMessage = context.getProperty(DEFAULT_MESSAGE).getValue();
+        includeFacts = context.getProperty(INCLUDE_FACTS).asBoolean();
     }
 
     @Override
@@ -106,7 +122,7 @@ public class AlertHandler extends AbstractActionHandlerService {
             Map<String, String> attributes = action.getAttributes();
             if (context.getBulletinRepository() != null) {
                 final String category = attributes.getOrDefault("category", defaultCategory);
-                final String message = attributes.getOrDefault("message", defaultMessage);
+                final String message = getMessage(attributes.getOrDefault("message", defaultMessage), facts);
                 final String level = attributes.getOrDefault("severity", attributes.getOrDefault("logLevel", defaultLogLevel));
                 Severity severity;
                 try {
@@ -125,6 +141,25 @@ public class AlertHandler extends AbstractActionHandlerService {
             logger.warn("Reporting context was not provided to create bulletins.");
         }
 
+    }
+
+    protected String getMessage(String alertMessage, Map<String, Object> facts){
+        if (includeFacts) {
+            final StringBuilder message = new StringBuilder(alertMessage);
+            final Set<String> fields = facts.keySet();
+            message.append("\n");
+            message.append("Alert Facts:\n");
+            fields.forEach(field -> {
+                message.append("Field: ");
+                message.append(field);
+                message.append(", Value: ");
+                message.append(facts.get(field));
+                message.append("\n");
+            });
+            return message.toString();
+        }else{
+            return alertMessage;
+        }
     }
 
 }

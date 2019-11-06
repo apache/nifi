@@ -21,6 +21,7 @@ import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.context.PropertyContext;
+import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.status.ConnectionStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
@@ -198,7 +199,6 @@ public class TestMetricsEventReportingTask {
 
         final PropertyValue pValue = Mockito.mock(StandardPropertyValue.class);
         actionHandler = new MockPropertyContextActionHandler();
-        Mockito.when(context.getProperty(QueryMetricsUtil.ACTION_HANDLER)).thenReturn(pValue);
         Mockito.when(pValue.asControllerService(PropertyContextActionHandler.class)).thenReturn(actionHandler);
 
         Action action1 = new Action();
@@ -208,8 +208,12 @@ public class TestMetricsEventReportingTask {
 
         final PropertyValue resValue = Mockito.mock(StandardPropertyValue.class);
         rulesEngineService = new MockRulesEngineService(Lists.newArrayList(action1,action2));
-        Mockito.when(context.getProperty(QueryMetricsUtil.RULES_ENGINE)).thenReturn(resValue);
         Mockito.when(resValue.asControllerService(RulesEngineService.class)).thenReturn(rulesEngineService);
+
+        ConfigurationContext configContext = Mockito.mock(ConfigurationContext.class);
+        Mockito.when(configContext.getProperty(QueryMetricsUtil.RULES_ENGINE)).thenReturn(resValue);
+        Mockito.when(configContext.getProperty(QueryMetricsUtil.ACTION_HANDLER)).thenReturn(pValue);
+        reportingTask.setup(configContext);
 
         return reportingTask;
     }

@@ -18,7 +18,9 @@ package org.apache.nifi.reporting.sql;
 
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.reporting.AbstractReportingTask;
 import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.reporting.ReportingInitializationContext;
@@ -29,6 +31,7 @@ import org.apache.nifi.rules.engine.RulesEngineService;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.ResultSetRecordSet;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -59,19 +62,23 @@ public class MetricsEventReportingTask  extends AbstractReportingTask {
         this.properties = Collections.unmodifiableList(properties);
     }
 
+    @OnScheduled
+    public void setup(final ConfigurationContext context) throws IOException {
+        actionHandler = context.getProperty(QueryMetricsUtil.ACTION_HANDLER).asControllerService(PropertyContextActionHandler.class);
+        rulesEngineService = context.getProperty(QueryMetricsUtil.RULES_ENGINE).asControllerService(RulesEngineService.class);
+    }
+
     @Override
     public void onTrigger(ReportingContext context) {
         try {
-            actionHandler = context.getProperty(QueryMetricsUtil.ACTION_HANDLER).asControllerService(PropertyContextActionHandler.class);
-            rulesEngineService = context.getProperty(QueryMetricsUtil.RULES_ENGINE).asControllerService(RulesEngineService.class);
             final String query = context.getProperty(QueryMetricsUtil.QUERY).evaluateAttributeExpressions().getValue();
-            fireRules(context, rulesEngineService, query);
+            fireRules(context, actionHandler, rulesEngineService, query);
         } catch (Exception e) {
             getLogger().error("Error opening loading rules: {}", new Object[]{e.getMessage()}, e);
         }
     }
 
-    private void fireRules(ReportingContext context, RulesEngineService engine, String query) throws Exception {
+    private void fireRules(ReportingContext context, PropertyContextActionHandler actionHandler, RulesEngineService engine, String query) throws Exception {
         QueryResult queryResult = metricsQueryService.query(context, query);
         getLogger().debug("Executing query: {}", new Object[]{ query });
         ResultSetRecordSet recordSet = metricsQueryService.getResultSetRecordSet(queryResult);

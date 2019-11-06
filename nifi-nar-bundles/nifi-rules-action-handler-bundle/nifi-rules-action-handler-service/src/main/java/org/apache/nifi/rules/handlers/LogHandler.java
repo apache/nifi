@@ -42,15 +42,17 @@ import java.util.Set;
 public class LogHandler extends AbstractActionHandlerService {
 
     public static final PropertyDescriptor DEFAULT_LOG_LEVEL = new PropertyDescriptor.Builder()
-            .name("Log Level")
+            .name("logger-default-log-level")
+            .displayName("Log Level")
             .required(true)
-            .description("The Log Level to use when logging the Attributes")
+            .description("The Log Level to use when logging alert message")
             .allowableValues(DebugLevels.values())
             .defaultValue("info")
             .build();
 
     private static final PropertyDescriptor LOG_FACTS = new PropertyDescriptor.Builder()
-            .name("Log Facts")
+            .name("log-facts")
+            .displayName("Log Facts")
             .required(true)
             .description("If true, the log message will include the facts which triggered this log action.")
             .defaultValue("true")
@@ -58,7 +60,8 @@ public class LogHandler extends AbstractActionHandlerService {
             .build();
 
     private static final PropertyDescriptor LOG_PREFIX = new PropertyDescriptor.Builder()
-            .name("Log prefix")
+            .name("log-prefix")
+            .displayName("Log Prefix")
             .required(false)
             .description("Log prefix appended to the log lines. It helps to distinguish the output of multiple LogAttribute processors.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
