@@ -456,6 +456,9 @@ public class StandardSSLContextService extends AbstractControllerService impleme
                 if (StringUtils.isBlank(keyPassword) || keyPassword.equals(password)) {
                     keyPasswordChars = passwordChars;
                 }
+                if (!StringUtils.isBlank(keyPassword)) {
+                    keyPasswordChars = keyPassword.toCharArray();
+                }
 
                 boolean keyPasswordValid = KeyStoreUtils.isKeyPasswordCorrect(file.toURI().toURL(), KeystoreType.valueOf(type), passwordChars, keyPasswordChars);
                 if (!keyPasswordValid) {

@@ -58,6 +58,8 @@ public class SSLContextServiceTest {
     private final String TRUSTSTORE_PATH = "src/test/resources/truststore.jks";
     private final String DIFFERENT_PASS_KEYSTORE_PATH = "src/test/resources/keystore-different-password.jks";
     private final String DIFFERENT_KEYSTORE_PASSWORD = "differentpassword";
+    private static final String KEYSTORE_WITH_KEY_PASSWORD_PATH = "src/test/resources/keystore-with-key-password.jks";
+
 
     @Rule
     public TemporaryFolder tmp = new TemporaryFolder(new File("src/test/resources"));
@@ -295,8 +297,8 @@ public class SSLContextServiceTest {
             final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
             final SSLContextService service = new StandardSSLContextService();
             final Map<String, String> properties = new HashMap<>();
-            properties.put(StandardSSLContextService.KEYSTORE.getName(), DIFFERENT_PASS_KEYSTORE_PATH);
-            properties.put(StandardSSLContextService.KEYSTORE_PASSWORD.getName(), DIFFERENT_KEYSTORE_PASSWORD);
+            properties.put(StandardSSLContextService.KEYSTORE.getName(), KEYSTORE_WITH_KEY_PASSWORD_PATH);
+            properties.put(StandardSSLContextService.KEYSTORE_PASSWORD.getName(), KEYSTORE_AND_TRUSTSTORE_PASSWORD);
             properties.put(StandardSSLContextService.KEY_PASSWORD.getName(), "keypassword");
             properties.put(StandardSSLContextService.KEYSTORE_TYPE.getName(), JKS_TYPE);
             runner.addControllerService("test-diff-keys", service, properties);
@@ -305,9 +307,7 @@ public class SSLContextServiceTest {
             runner.setProperty("SSL Context Svc ID", "test-diff-keys");
             runner.assertValid();
             Assert.assertNotNull(service);
-            assertTrue(service instanceof StandardSSLContextService);
-            SSLContextService sslService = service;
-            sslService.createSSLContext(ClientAuth.NONE);
+            service.createSSLContext(ClientAuth.NONE);
         } catch (Exception e) {
             System.out.println(e);
             Assert.fail("Should not have thrown a exception " + e.getMessage());
@@ -325,8 +325,8 @@ public class SSLContextServiceTest {
             final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
             final SSLContextService service = new StandardSSLContextService();
             final Map<String, String> properties = new HashMap<>();
-            properties.put(StandardSSLContextService.KEYSTORE.getName(), DIFFERENT_PASS_KEYSTORE_PATH);
-            properties.put(StandardSSLContextService.KEYSTORE_PASSWORD.getName(), DIFFERENT_KEYSTORE_PASSWORD);
+            properties.put(StandardSSLContextService.KEYSTORE.getName(), KEYSTORE_WITH_KEY_PASSWORD_PATH);
+            properties.put(StandardSSLContextService.KEYSTORE_PASSWORD.getName(), KEYSTORE_AND_TRUSTSTORE_PASSWORD);
             properties.put(StandardSSLContextService.KEYSTORE_TYPE.getName(), JKS_TYPE);
             runner.addControllerService("test-diff-keys", service, properties);
 
