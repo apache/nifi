@@ -452,11 +452,12 @@ public class StandardSSLContextService extends AbstractControllerService impleme
                 // The key password can be explicitly set (and can be the same as the
                 // keystore password or different), or it can be left blank. In the event
                 // it's blank, the keystore password will be used
+                char[] keyPasswordChars = new char[0];
                 if (StringUtils.isBlank(keyPassword) || keyPassword.equals(password)) {
-                    keyPassword = password;
+                    keyPasswordChars = passwordChars;
                 }
 
-                boolean keyPasswordValid = KeyStoreUtils.isKeyPasswordCorrect(file.toURI().toURL(), KeystoreType.valueOf(type), passwordChars, keyPassword.toCharArray());
+                boolean keyPasswordValid = KeyStoreUtils.isKeyPasswordCorrect(file.toURI().toURL(), KeystoreType.valueOf(type), passwordChars, keyPasswordChars);
                 if (!keyPasswordValid) {
                     results.add(new ValidationResult.Builder()
                             .subject(keystoreDesc + " Properties")
