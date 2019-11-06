@@ -103,7 +103,7 @@ class StandardSSLContextServiceTest {
     }
 
     @Test
-    void testKeystoreWithNoPasswordIsValid() {
+    void testTruststoreWithNoPasswordIsValid() {
         // Arrange
         TestRunner runner = TestRunners.newTestRunner(TestProcessor.class)
         String controllerServiceId = "ssl-context"
@@ -111,6 +111,45 @@ class StandardSSLContextServiceTest {
         runner.addControllerService(controllerServiceId, sslContextService)
         runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE, NO_PASSWORD_TRUSTSTORE_PATH)
         runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_PASSWORD, TRUSTSTORE_NO_PASSWORD)
+        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_TYPE, TRUSTSTORE_TYPE)
+        runner.enableControllerService(sslContextService)
+
+        // Act
+        runner.assertValid(sslContextService)
+
+        // Assert
+        final MockProcessContext processContext = (MockProcessContext) runner.getProcessContext()
+        assert processContext.getControllerServiceProperties(sslContextService).get(StandardSSLContextService.TRUSTSTORE, "") == NO_PASSWORD_TRUSTSTORE_PATH
+    }
+
+    @Test
+    void testTruststoreWithNullPasswordIsValid() {
+        // Arrange
+        TestRunner runner = TestRunners.newTestRunner(TestProcessor.class)
+        String controllerServiceId = "ssl-context"
+        final SSLContextService sslContextService = new StandardSSLContextService()
+        runner.addControllerService(controllerServiceId, sslContextService)
+        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE, NO_PASSWORD_TRUSTSTORE_PATH)
+        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_PASSWORD, null as String)
+        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_TYPE, TRUSTSTORE_TYPE)
+        runner.enableControllerService(sslContextService)
+
+        // Act
+        runner.assertValid(sslContextService)
+
+        // Assert
+        final MockProcessContext processContext = (MockProcessContext) runner.getProcessContext()
+        assert processContext.getControllerServiceProperties(sslContextService).get(StandardSSLContextService.TRUSTSTORE, "") == NO_PASSWORD_TRUSTSTORE_PATH
+    }
+
+    @Test
+    void testTruststoreWithMissingPasswordIsValid() {
+        // Arrange
+        TestRunner runner = TestRunners.newTestRunner(TestProcessor.class)
+        String controllerServiceId = "ssl-context"
+        final SSLContextService sslContextService = new StandardSSLContextService()
+        runner.addControllerService(controllerServiceId, sslContextService)
+        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE, NO_PASSWORD_TRUSTSTORE_PATH)
         runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_TYPE, TRUSTSTORE_TYPE)
         runner.enableControllerService(sslContextService)
 
@@ -139,7 +178,7 @@ class StandardSSLContextServiceTest {
         }
 
         // Assert
-        assert msg =~ "Cannot enable Controller Service SSLContextService.* because it is in an invalid state: 'Truststore Filename'.* is invalid because File.* does not exist or cannot be read";
+        assert msg =~ "Cannot enable Controller Service SSLContextService.* because it is in an invalid state: 'Truststore Filename'.* is invalid because File.* does not exist or cannot be read"
         runner.assertNotValid(sslContextService)
     }
 

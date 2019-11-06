@@ -16,16 +16,15 @@
  */
 package org.apache.nifi.framework.security.util;
 
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.io.File;
 import org.apache.nifi.security.util.KeystoreType;
 import org.apache.nifi.util.NiFiProperties;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.io.File;
-
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 /**
  */
@@ -75,7 +74,7 @@ public class SslContextFactoryTest {
     }
 
     @Test
-    public void testCreateSslContextWithnoPasswordTruststore() {
+    public void testCreateSslContextWithNoPasswordTruststore() {
         Assert.assertNotNull(SslContextFactory.createSslContext(noPasswordTruststore));
     }
 }

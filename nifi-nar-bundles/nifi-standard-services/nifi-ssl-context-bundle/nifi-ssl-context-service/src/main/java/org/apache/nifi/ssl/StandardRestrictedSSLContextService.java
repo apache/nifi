@@ -22,7 +22,6 @@ import java.util.List;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.processor.util.StandardValidators;
 
 /**
@@ -72,10 +71,5 @@ public class StandardRestrictedSSLContextService extends StandardSSLContextServi
     @Override
     public String getSslAlgorithm() {
         return configContext.getProperty(RESTRICTED_SSL_ALGORITHM).getValue();
-    }
-
-    @Override
-    protected String getSSLProtocolForValidation(final ValidationContext validationContext) {
-        return validationContext.getProperty(RESTRICTED_SSL_ALGORITHM).getValue();
     }
 }
