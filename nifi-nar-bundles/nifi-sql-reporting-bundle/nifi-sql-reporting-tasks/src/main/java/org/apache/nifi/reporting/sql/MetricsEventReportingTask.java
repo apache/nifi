@@ -38,8 +38,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-@Tags({"reporting", "rules", "status", "connection", "processor", "jvm", "metrics", "history", "bulletin", "sql"})
-@CapabilityDescription("Triggers rules-driven events based on metrics values ")
+@Tags({"reporting", "rules", "action", "action handler", "status", "connection", "processor", "jvm", "metrics", "history", "bulletin", "sql"})
+@CapabilityDescription("Triggers rules-driven actions based on metrics values ")
 public class MetricsEventReportingTask  extends AbstractReportingTask {
 
     private List<PropertyDescriptor> properties;
