@@ -30,6 +30,7 @@ class KerberosPrincipalParserSpec extends Specification {
         testPrincipal                     || expectedRealm
         "user"                            || null
         "user@"                           || null
+        "user@/instance"                  || "/instance"
         "user@EXAMPLE.COM"                || "EXAMPLE.COM"
         "user@name@EXAMPLE.COM"           || "EXAMPLE.COM"
         "user\\@"                         || null
@@ -40,5 +41,90 @@ class KerberosPrincipalParserSpec extends Specification {
         "user@@name@\\@@\\@@EXAMPLE.COM"  || "EXAMPLE.COM"
         "user@@name@\\@@\\@@EXAMPLE.COM@" || null
         "user\\@\\@name@EXAMPLE.COM"      || "EXAMPLE.COM"
+    }
+
+    @Unroll
+    def "Verify parsed shortname from '#testPrincipal' == '#expectedShortname'"() {
+        expect:
+        KerberosPrincipalParser.getShortname(testPrincipal) == expectedShortname
+
+        where:
+        testPrincipal                              || expectedShortname
+        "user"                                     || "user"
+        "user/instance"                            || "user"
+        "user@"                                    || "user@"
+        "user@/instance"                           || "user"
+        "user/instance@"                           || "user"
+        "user@EXAMPLE.COM"                         || "user"
+        "user@EXAMPLE.COM@"                        || "user@EXAMPLE.COM@"
+        "user/instance@EXAMPLE.COM"                || "user"
+        "user/instance/instance@EXAMPLE.COM"       || "user"
+        "user\\/instance/instance@EXAMPLE.COM"     || "user\\/instance"
+        "user/instance\\/instance@EXAMPLE.COM"     || "user"
+        "user@name@EXAMPLE.COM"                    || "user@name"
+        "user@/instance@EXAMPLE.COM"               || "user@"
+        "user@name/instance@EXAMPLE.COM"           || "user@name"
+        "user@/instance/instance@EXAMPLE.COM"      || "user@"
+        "user@name/instance/instance@EXAMPLE.COM"  || "user@name"
+        "user\\@"                                  || "user\\@"
+        "user\\@/instance"                         || "user\\@"
+        "user\\@/instance@EXAMPLE.COM"             || "user\\@"
+        "user\\@name"                              || "user\\@name"
+        "user\\@name/instance"                     || "user\\@name"
+        "user\\@name/instance@EXAMPLE.COM"         || "user\\@name"
+        "user@EXAMPLE.COM\\@"                      || "user"
+        "user/instance@EXAMPLE.COM\\@"             || "user"
+        "user@@name@\\@@\\@"                       || "user@@name@\\@"
+        "user/instance@@name@\\@@\\@"              || "user"
+        "user@@name@\\@@\\@"                       || "user@@name@\\@"
+        "user@@/instance@\\@@\\@"                  || "user@@"
+        "user@@name@\\@@\\@@EXAMPLE.COM"           || "user@@name@\\@@\\@"
+        "user@@name@\\@@\\@/instance@EXAMPLE.COM"  || "user@@name@\\@@\\@"
+        "user@@name@\\@@\\@@EXAMPLE.COM@"          || "user@@name@\\@@\\@@EXAMPLE.COM@"
+        "user@@name@\\@@\\@/instance@EXAMPLE.COM@" || "user@@name@\\@@\\@"
+        "user\\@\\@name@EXAMPLE.COM"               || "user\\@\\@name"
+        "user\\@\\@name/instance@EXAMPLE.COM"      || "user\\@\\@name"
+    }
+
+    @Unroll
+    def "Verify parsed instance from '#testPrincipal' == '#expectedInstance'"() {
+        expect:
+        KerberosPrincipalParser.getInstance(testPrincipal) == expectedInstance
+
+        where:
+        testPrincipal                              || expectedInstance
+        "user"                                     || null
+        "user@EXAMPLE.COM"                         || null
+        "user/instance"                            || "instance"
+        "user/instance@EXAMPLE.COM"                || "instance"
+        "user@"                                    || null
+        "user@/instance"                           || null
+        "user/instance@"                           || "instance@"
+        "user/instance/instance@EXAMPLE.COM"       || "instance/instance"
+        "user\\/instance/instance@EXAMPLE.COM"     || "instance"
+        "user/instance\\/instance@EXAMPLE.COM"     || "instance\\/instance"
+        "user@name@EXAMPLE.COM"                    || null
+        "user@/instance@EXAMPLE.COM"               || "instance"
+        "user@name/instance@EXAMPLE.COM"           || "instance"
+        "user@/instance/instance@EXAMPLE.COM"      || "instance/instance"
+        "user@name/instance/instance@EXAMPLE.COM"  || "instance/instance"
+        "user\\@"                                  || null
+        "user\\@/instance"                         || "instance"
+        "user\\@/instance@EXAMPLE.COM"             || "instance"
+        "user\\@name"                              || null
+        "user\\@name/instance"                     || "instance"
+        "user\\@name/instance@EXAMPLE.COM"         || "instance"
+        "user@EXAMPLE.COM\\@"                      || null
+        "user/instance@EXAMPLE.COM\\@"             || "instance"
+        "user@@name@\\@@\\@"                       || null
+        "user/instance@@name@\\@@\\@"              || "instance@@name@\\@"
+        "user@@name@\\@@\\@"                       || null
+        "user@@/instance@\\@@\\@"                  || "instance@\\@"
+        "user@@name@\\@@\\@@EXAMPLE.COM"           || null
+        "user@@name@\\@@\\@/instance@EXAMPLE.COM"  || "instance"
+        "user@@name@\\@@\\@@EXAMPLE.COM@"          || null
+        "user@@name@\\@@\\@/instance@EXAMPLE.COM@" || "instance@EXAMPLE.COM@"
+        "user\\@\\@name@EXAMPLE.COM"               || null
+        "user\\@\\@name/instance@EXAMPLE.COM"      || "instance"
     }
 }

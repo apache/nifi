@@ -17,6 +17,8 @@
 package org.apache.nifi.util;
 
 import java.io.File;
+import java.util.Collections;
+
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
@@ -32,19 +34,37 @@ public class MockControllerServiceInitializationContext extends MockControllerSe
     private final StateManager stateManager;
     private volatile boolean isClustered;
     private volatile boolean isPrimaryNode;
+    private NiFiProperties nifiProperties;
 
     public MockControllerServiceInitializationContext(final ControllerService controllerService, final String identifier) {
-        this(controllerService, identifier, new MockStateManager(controllerService));
+        this(controllerService, identifier, new MockStateManager(controllerService), NiFiProperties.createBasicNiFiProperties(null, Collections.emptyMap()));
+    }
+
+    public MockControllerServiceInitializationContext(final ControllerService controllerService, final String identifier, final NiFiProperties nifiProperties) {
+        this(controllerService, identifier, new MockStateManager(controllerService), nifiProperties);
     }
 
     public MockControllerServiceInitializationContext(final ControllerService controllerService, final String identifier, final StateManager stateManager) {
-        this(controllerService, identifier, new MockComponentLog(identifier, controllerService), stateManager);
+        this(controllerService, identifier, new MockComponentLog(identifier, controllerService), stateManager, NiFiProperties.createBasicNiFiProperties(null,
+                Collections.emptyMap()));
+    }
+
+    public MockControllerServiceInitializationContext(final ControllerService controllerService, final String identifier, final StateManager stateManager,
+                                                      final NiFiProperties nifiProperties) {
+        this(controllerService, identifier, new MockComponentLog(identifier, controllerService), stateManager, nifiProperties);
     }
 
     public MockControllerServiceInitializationContext(final ControllerService controllerService, final String identifier, final ComponentLog logger, final StateManager stateManager) {
+        this(controllerService, identifier, new MockComponentLog(identifier, controllerService), stateManager, NiFiProperties.createBasicNiFiProperties(null,
+                Collections.emptyMap()));
+    }
+
+    public MockControllerServiceInitializationContext(final ControllerService controllerService, final String identifier, final ComponentLog logger, final StateManager stateManager,
+                                                      final NiFiProperties nifiProperties) {
         this.identifier = identifier;
         this.logger = logger;
         this.stateManager = stateManager;
+        this.nifiProperties = nifiProperties == null ? NiFiProperties.createBasicNiFiProperties(null, Collections.emptyMap()) : nifiProperties;
         addControllerService(controllerService, identifier);
     }
 
@@ -90,7 +110,7 @@ public class MockControllerServiceInitializationContext extends MockControllerSe
 
     @Override
     public File getKerberosConfigurationFile() {
-        return null; //this needs to be wired in.
+        return nifiProperties.getKerberosConfigurationFile();
     }
 
     @Override

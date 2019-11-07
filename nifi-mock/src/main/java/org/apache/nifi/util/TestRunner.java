@@ -632,6 +632,26 @@ public interface TestRunner {
     void addControllerService(String identifier, ControllerService service, Map<String, String> properties) throws InitializationException;
 
     /**
+     * Adds the given {@link ControllerService} to this TestRunner so that the
+     * configured Processor can access it using the given
+     * <code>identifier</code>. The ControllerService is not expected to be
+     * initialized, as the framework will create the appropriate
+     * {@link org.apache.nifi.controller.ControllerServiceInitializationContext ControllerServiceInitializationContext}
+     * and initialize the ControllerService with the given properties and {@link NiFiProperties}.
+     *
+     * This will call any method on the given Controller Service that is
+     * annotated with the
+     * {@link org.apache.nifi.annotation.lifecycle.OnAdded @OnAdded} annotation.
+     *
+     * @param identifier of service
+     * @param service the service
+     * @param properties service properties
+     * @param niFiProperties NiFi properties
+     * @throws InitializationException ie
+     */
+    void addControllerService(String identifier, ControllerService service, Map<String, String> properties, NiFiProperties niFiProperties) throws InitializationException;
+
+    /**
      * <p>
      * Marks the Controller Service as enabled so that it can be used by other
      * components.

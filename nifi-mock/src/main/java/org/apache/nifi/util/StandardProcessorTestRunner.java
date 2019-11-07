@@ -599,15 +599,22 @@ public class StandardProcessorTestRunner implements TestRunner {
 
     @Override
     public void addControllerService(final String identifier, final ControllerService service) throws InitializationException {
-        addControllerService(identifier, service, new HashMap<String, String>());
+        addControllerService(identifier, service, new HashMap<String, String>(), NiFiProperties.createBasicNiFiProperties(null, Collections.emptyMap()));
     }
 
     @Override
     public void addControllerService(final String identifier, final ControllerService service, final Map<String, String> properties) throws InitializationException {
+        addControllerService(identifier, service, properties, NiFiProperties.createBasicNiFiProperties(null, Collections.emptyMap()));
+    }
+
+    @Override
+    public void addControllerService(final String identifier, final ControllerService service, final Map<String, String> properties,
+                                     NiFiProperties niFiProperties) throws InitializationException {
         final MockComponentLog logger = new MockComponentLog(identifier, service);
         controllerServiceLoggers.put(identifier, logger);
         final MockStateManager serviceStateManager = new MockStateManager(service);
-        final MockControllerServiceInitializationContext initContext = new MockControllerServiceInitializationContext(requireNonNull(service), requireNonNull(identifier), logger, serviceStateManager);
+        final MockControllerServiceInitializationContext initContext = new MockControllerServiceInitializationContext(requireNonNull(service), requireNonNull(identifier), logger,
+                serviceStateManager, niFiProperties);
         controllerServiceStateManagers.put(identifier, serviceStateManager);
         initContext.addControllerServices(context);
         service.initialize(initContext);

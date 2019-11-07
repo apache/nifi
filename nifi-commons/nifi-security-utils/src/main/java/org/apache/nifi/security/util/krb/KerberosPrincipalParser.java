@@ -47,7 +47,7 @@ public class KerberosPrincipalParser {
         // find the last non-escaped occurrence of the realm delimiter
         for (int i = 0; i < principalLength; ++i) {
             currentChar = principal.charAt(i);
-            if (currentChar == '@' && previousChar != '\\' ) {
+            if (currentChar == '@' && previousChar != '\\') {
                 realmDelimiterIndex = i;
                 realmDelimiterFound = true;
             }
@@ -56,5 +56,51 @@ public class KerberosPrincipalParser {
 
         String principalAfterLastRealmDelimiter = principal.substring(realmDelimiterIndex + 1);
         return realmDelimiterFound && realmDelimiterIndex + 1 < principalLength ? principalAfterLastRealmDelimiter : null;
+    }
+
+    public static String getShortname(String principal) {
+        if (StringUtils.isBlank(principal)) {
+            throw new IllegalArgumentException("principal can not be null or empty");
+        }
+
+        // get the realm, and remove it for a more simple compare to get the shortname
+        String realm = getRealm(principal);
+        String principalWithoutRealm = (realm != null && realm.length() > 0) ? principal.substring(0, principal.lastIndexOf('@' + realm)) : principal;
+
+        char previousChar = 0;
+        int instanceDelimiterIndex = -1;
+        char currentChar;
+        boolean instanceDelimiterFound = false;
+        int principalWithoutRealmLength = principalWithoutRealm.length();
+
+        // find the first non-escaped occurrence of the instance delimiter
+        for (int i = 0; i < principalWithoutRealmLength && !instanceDelimiterFound; ++i) {
+            currentChar = principalWithoutRealm.charAt(i);
+            if (currentChar == '/' && previousChar != '\\') {
+                instanceDelimiterIndex = i;
+                instanceDelimiterFound = true;
+            }
+            previousChar = currentChar;
+        }
+
+        return instanceDelimiterFound ? principalWithoutRealm.substring(0, instanceDelimiterIndex) : principalWithoutRealm;
+    }
+
+    public static String getInstance(String principal) {
+        if (StringUtils.isBlank(principal)) {
+            throw new IllegalArgumentException("principal can not be null or empty");
+        }
+
+        // get the realm
+        String realm = getRealm(principal);
+
+        // get the shortname
+        String shortname = getShortname(principal);
+
+        // the instance should be the remaining string after the shortname and realm are removed from the principal
+        int beginningRealmIndex = realm != null && realm.length() > 0 ? principal.lastIndexOf('@' + realm) : principal.length();
+        int beginningInstanceIndex = principal.indexOf(shortname + '/') + shortname.length() + 1;
+        String instance = principal.substring(beginningInstanceIndex, beginningRealmIndex);
+        return instance.length() > 0 ? instance : null;
     }
 }
