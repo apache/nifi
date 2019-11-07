@@ -564,7 +564,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
 
         final Map<String, Long> combined = new HashMap<>();
         combined.putAll(first);
-        combined.putAll(second);
+        second.forEach((key, value) -> combined.merge(key, value, Long::sum));
         return combined;
     }
 
@@ -3399,12 +3399,16 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                 if (this.countersOnCommit.isEmpty()) {
                     this.countersOnCommit.putAll(session.countersOnCommit);
                 } else {
-                    session.countersOnCommit.forEach((key, value) -> this.countersOnCommit.merge(key, value, (v1, v2) -> v1 + v2));
+                    session.countersOnCommit.forEach((key, value) -> this.countersOnCommit.merge(key, value, Long::sum));
                 }
             }
 
             if (session.immediateCounters != null) {
-                this.immediateCounters.putAll(session.immediateCounters);
+                if (this.immediateCounters.isEmpty()) {
+                    this.immediateCounters.putAll(session.immediateCounters);
+                } else {
+                    session.immediateCounters.forEach((key, value) -> this.immediateCounters.merge(key, value, Long::sum));
+                }
             }
 
             this.deleteOnCommit.putAll(session.deleteOnCommit);

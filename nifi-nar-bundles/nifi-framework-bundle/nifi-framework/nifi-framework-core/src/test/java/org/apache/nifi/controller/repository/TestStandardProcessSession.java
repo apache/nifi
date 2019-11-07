@@ -343,6 +343,37 @@ public class TestStandardProcessSession {
     }
 
     @Test
+    public void testCombineCounters() {
+        final Relationship relationship = new Relationship.Builder().name("A").build();
+
+        FlowFile flowFile = session.create();
+        session.transfer(flowFile, relationship);
+        session.adjustCounter("a", 1, false);
+        session.adjustCounter("b", 3, false);
+        session.adjustCounter("a", 3, true);
+        session.adjustCounter("b", 5, true);
+        session.checkpoint();
+
+        flowFile = session.create();
+        session.transfer(flowFile, relationship);
+        session.adjustCounter("a", 1, true);
+        session.adjustCounter("b", 2, true);
+        session.commit();
+
+        context.getFlowFileEventRepository().reportTransferEvents(10L).getReportEntries().forEach((k, v) -> {
+            v.getCounters().forEach((key, value) -> {
+                if (key.equals("a")) {
+                    assertEquals(5L, (long) value);
+                }
+
+                if (key.equals("b")) {
+                    assertEquals(10L, (long) value);
+                }
+            });
+        });
+    }
+
+    @Test
     public void testReadCountCorrectWhenSkippingWithReadCallback() throws IOException {
         final byte[] content = "This and that and the other.".getBytes(StandardCharsets.UTF_8);
 
