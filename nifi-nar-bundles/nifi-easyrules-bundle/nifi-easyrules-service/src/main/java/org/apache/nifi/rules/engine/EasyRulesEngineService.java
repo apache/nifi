@@ -31,14 +31,14 @@ import org.apache.nifi.rules.Action;
 import org.apache.nifi.rules.ActionHandler;
 import org.apache.nifi.rules.Rule;
 import org.apache.nifi.rules.RulesFactory;
+import org.apache.nifi.rules.RulesMVELCondition;
+import org.apache.nifi.rules.RulesSPELCondition;
 import org.jeasy.rules.api.Condition;
 import org.jeasy.rules.api.Facts;
 import org.jeasy.rules.api.RuleListener;
 import org.jeasy.rules.api.Rules;
 import org.jeasy.rules.core.DefaultRulesEngine;
 import org.jeasy.rules.core.RuleBuilder;
-import org.jeasy.rules.mvel.MVELCondition;
-import org.jeasy.rules.spel.SpELCondition;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -89,10 +89,21 @@ public class EasyRulesEngineService  extends AbstractControllerService implement
             .defaultValue(NIFI.getValue())
             .build();
 
+    static final PropertyDescriptor IGNORE_CONDITION_ERRORS = new PropertyDescriptor.Builder()
+            .name("rules-ignore-condition-errors")
+            .displayName("Ignore Condition Errors")
+            .description("When set to true, rules engine will ignore errors for any rule that encounters issues " +
+                    "when compiling rule conditions (including syntax errors and/or missing facts). Rule will simply return as false " +
+                    "and engine will continue with execution.")
+            .required(true)
+            .defaultValue("false")
+            .allowableValues("true", "false")
+            .build();
 
     protected List<PropertyDescriptor> properties;
     protected volatile List<Rule> rules;
     protected volatile String rulesFileFormat;
+    private boolean ignoreConditionErrors;
 
     @Override
     protected void init(ControllerServiceInitializationContext config) throws InitializationException {
@@ -101,6 +112,7 @@ public class EasyRulesEngineService  extends AbstractControllerService implement
         properties.add(RULES_FILE_TYPE);
         properties.add(RULES_FILE_PATH);
         properties.add(RULES_FILE_FORMAT);
+        properties.add(IGNORE_CONDITION_ERRORS);
         this.properties = Collections.unmodifiableList(properties);
     }
 
@@ -114,6 +126,7 @@ public class EasyRulesEngineService  extends AbstractControllerService implement
         final String rulesFile = context.getProperty(RULES_FILE_PATH).getValue();
         final String rulesFileType = context.getProperty(RULES_FILE_TYPE).getValue();
         rulesFileFormat = context.getProperty(RULES_FILE_FORMAT).getValue();
+        ignoreConditionErrors = context.getProperty(IGNORE_CONDITION_ERRORS).asBoolean();
         try{
             rules = RulesFactory.createRules(rulesFile, rulesFileType, rulesFileFormat);
         } catch (Exception fex){
@@ -129,7 +142,7 @@ public class EasyRulesEngineService  extends AbstractControllerService implement
     @Override
     public List<Action> fireRules(Map<String, Object> facts) {
         final List<Action> actions = new ArrayList<>();
-        if(rules == null){
+        if (rules == null || facts == null || facts.isEmpty()) {
             return null;
         }else {
             org.jeasy.rules.api.Rules easyRules = convertToEasyRules(rules, (action, eventFacts) ->
@@ -149,7 +162,7 @@ public class EasyRulesEngineService  extends AbstractControllerService implement
         rules.forEach(rule -> {
             RuleBuilder ruleBuilder = new RuleBuilder();
             Condition condition = rulesFileFormat.equalsIgnoreCase(SPEL.getValue())
-                                 ? new SpELCondition(rule.getCondition()): new MVELCondition(rule.getCondition());
+                                 ? new RulesSPELCondition(rule.getCondition(), ignoreConditionErrors): new RulesMVELCondition(rule.getCondition(), ignoreConditionErrors);
             ruleBuilder.name(rule.getName())
                     .description(rule.getDescription())
                     .priority(rule.getPriority())

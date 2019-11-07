@@ -128,7 +128,7 @@ public class TestRulesFactory {
                 && rule1.getPriority() == 1 && rule1.getCondition().equals("predictedQueuedCount > 50");
 
         checkDiagnostic = rule2.getName().equals("Time To Back Pressure") && rule2.getDescription().equals("Back pressure time less than 5 minutes")
-                && rule2.getPriority() == 2 && rule2.getCondition().equals("predictedTimeToBytesBackpressureMillis >= 300000") && checkDiagnostic;
+                && rule2.getPriority() == 2 && rule2.getCondition().equals("predictedTimeToBytesBackpressureMillis < 300000 && predictedTimeToBytesBackpressureMillis >= 0") && checkDiagnostic;
 
         return checkDiagnostic;
 

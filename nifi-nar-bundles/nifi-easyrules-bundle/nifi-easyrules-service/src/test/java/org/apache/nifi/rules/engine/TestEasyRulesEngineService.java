@@ -21,6 +21,7 @@ import org.apache.nifi.rules.Action;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Test;
+import org.mvel2.PropertyAccessException;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -29,6 +30,7 @@ import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
 
 public class TestEasyRulesEngineService {
 
@@ -44,7 +46,7 @@ public class TestEasyRulesEngineService {
         runner.assertValid(service);
         Map<String, Object> facts = new HashMap<>();
         facts.put("predictedQueuedCount",60);
-        facts.put("predictedTimeToBytesBackpressureMillis",300000);
+        facts.put("predictedTimeToBytesBackpressureMillis",299999);
         List<Action> actions = service.fireRules(facts);
         assertNotNull(actions);
         assertEquals(actions.size(), 3);
@@ -62,7 +64,7 @@ public class TestEasyRulesEngineService {
         runner.assertValid(service);
         Map<String, Object> facts = new HashMap<>();
         facts.put("predictedQueuedCount",60);
-        facts.put("predictedTimeToBytesBackpressureMillis",300000);
+        facts.put("predictedTimeToBytesBackpressureMillis",299999);
         List<Action> actions = service.fireRules(facts);
         assertNotNull(actions);
         assertEquals(actions.size(), 2);
@@ -80,7 +82,7 @@ public class TestEasyRulesEngineService {
         runner.assertValid(service);
         Map<String, Object> facts = new HashMap<>();
         facts.put("predictedQueuedCount",60);
-        facts.put("predictedTimeToBytesBackpressureMillis",300000);
+        facts.put("predictedTimeToBytesBackpressureMillis",299999);
         List<Action> actions = service.fireRules(facts);
         assertNotNull(actions);
         assertEquals(actions.size(), 2);
@@ -98,7 +100,7 @@ public class TestEasyRulesEngineService {
         runner.assertValid(service);
         Map<String, Object> facts = new HashMap<>();
         facts.put("predictedQueuedCount",60);
-        facts.put("predictedTimeToBytesBackpressureMillis",300000);
+        facts.put("predictedTimeToBytesBackpressureMillis",299999);
         List<Action> actions = service.fireRules(facts);
         assertNotNull(actions);
         assertEquals(actions.size(), 2);
@@ -116,7 +118,7 @@ public class TestEasyRulesEngineService {
         runner.assertValid(service);
         Map<String, Object> facts = new HashMap<>();
         facts.put("predictedQueuedCount",60);
-        facts.put("predictedTimeToBytesBackpressureMillis",300000);
+        facts.put("predictedTimeToBytesBackpressureMillis",299999);
         List<Action> actions = service.fireRules(facts);
         assertNotNull(actions);
         assertEquals(actions.size(), 2);
@@ -134,12 +136,146 @@ public class TestEasyRulesEngineService {
         runner.assertValid(service);
         Map<String, Object> facts = new HashMap<>();
         facts.put("predictedQueuedCount",60);
-        facts.put("predictedTimeToBytesBackpressureMillis",300000);
+        facts.put("predictedTimeToBytesBackpressureMillis",299999);
         List<Action> actions = service.fireRules(facts);
         assertNotNull(actions);
         assertEquals(actions.size(), 2);
     }
 
+    @Test
+    public void testIgnoreConditionErrorsFalseNIFI() throws InitializationException, IOException {
+        final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
+        final RulesEngineService service = new MockEasyRulesEngineService();
+        runner.addControllerService("easy-rules-engine-service-test",service);
+        runner.setProperty(service, EasyRulesEngineService.RULES_FILE_PATH, "src/test/resources/test_nifi_rules.json");
+        runner.setProperty(service,EasyRulesEngineService.RULES_FILE_TYPE, "JSON");
+        runner.setProperty(service,EasyRulesEngineService.RULES_FILE_FORMAT, "NIFI");
+        runner.setProperty(service,EasyRulesEngineService.IGNORE_CONDITION_ERRORS,"false");
+        runner.enableControllerService(service);
+        runner.assertValid(service);
+        Map<String, Object> facts = new HashMap<>();
+        facts.put("fakeMetric",60);
+        facts.put("predictedTimeToBytesBackpressureMillis",299999);
+        try {
+            service.fireRules(facts);
+            fail("Expected exception to be thrown");
+        }catch (PropertyAccessException pae){
+            assert true;
+        }
+    }
+
+    @Test
+    public void testIgnoreConditionErrorsTrueNIFI() throws InitializationException, IOException {
+        final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
+        final RulesEngineService service = new MockEasyRulesEngineService();
+        runner.addControllerService("easy-rules-engine-service-test",service);
+        runner.setProperty(service, EasyRulesEngineService.RULES_FILE_PATH, "src/test/resources/test_nifi_rules.json");
+        runner.setProperty(service,EasyRulesEngineService.RULES_FILE_TYPE, "JSON");
+        runner.setProperty(service,EasyRulesEngineService.RULES_FILE_FORMAT, "NIFI");
+        runner.setProperty(service,EasyRulesEngineService.IGNORE_CONDITION_ERRORS,"true");
+        runner.enableControllerService(service);
+        runner.assertValid(service);
+        Map<String, Object> facts = new HashMap<>();
+        facts.put("fakeMetric",60);
+        facts.put("predictedTimeToBytesBackpressureMillis",299999);
+        try {
+            List<Action> actions = service.fireRules(facts);
+            assertNotNull(actions);
+            assertEquals(actions.size(), 1);
+        }catch (PropertyAccessException pae){
+            fail();
+        }
+    }
+
+    @Test
+    public void testIgnoreConditionErrorsFalseMVEL() throws InitializationException, IOException {
+        final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
+        final RulesEngineService service = new MockEasyRulesEngineService();
+        runner.addControllerService("easy-rules-engine-service-test",service);
+        runner.setProperty(service, EasyRulesEngineService.RULES_FILE_PATH, "src/test/resources/test_mvel_rules.json");
+        runner.setProperty(service,EasyRulesEngineService.RULES_FILE_TYPE, "JSON");
+        runner.setProperty(service,EasyRulesEngineService.RULES_FILE_FORMAT, "MVEL");
+        runner.setProperty(service,EasyRulesEngineService.IGNORE_CONDITION_ERRORS,"false");
+        runner.enableControllerService(service);
+        runner.assertValid(service);
+        Map<String, Object> facts = new HashMap<>();
+        facts.put("fakeMetric",60);
+        facts.put("predictedTimeToBytesBackpressureMillis",299999);
+        try {
+            service.fireRules(facts);
+            fail("Expected exception to be thrown");
+        }catch (PropertyAccessException pae){
+            assert true;
+        }
+    }
+
+    @Test
+    public void testIgnoreConditionErrorsTrueMVEL() throws InitializationException, IOException {
+        final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
+        final RulesEngineService service = new MockEasyRulesEngineService();
+        runner.addControllerService("easy-rules-engine-service-test",service);
+        runner.setProperty(service, EasyRulesEngineService.RULES_FILE_PATH, "src/test/resources/test_mvel_rules.json");
+        runner.setProperty(service,EasyRulesEngineService.RULES_FILE_TYPE, "JSON");
+        runner.setProperty(service,EasyRulesEngineService.RULES_FILE_FORMAT, "MVEL");
+        runner.setProperty(service,EasyRulesEngineService.IGNORE_CONDITION_ERRORS,"true");
+        runner.enableControllerService(service);
+        runner.assertValid(service);
+        Map<String, Object> facts = new HashMap<>();
+        facts.put("fakeMetric",60);
+        facts.put("predictedTimeToBytesBackpressureMillis",299999);
+        try {
+            List<Action> actions = service.fireRules(facts);
+            assertNotNull(actions);
+            assertEquals(actions.size(), 1);
+        }catch (PropertyAccessException pae){
+            fail();
+        }
+    }
+
+    @Test
+    public void testIgnoreConditionErrorsFalseSPEL() throws InitializationException, IOException {
+        final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
+        final RulesEngineService service = new MockEasyRulesEngineService();
+        runner.addControllerService("easy-rules-engine-service-test",service);
+        runner.setProperty(service, EasyRulesEngineService.RULES_FILE_PATH, "src/test/resources/test_bad_spel_rules.json");
+        runner.setProperty(service,EasyRulesEngineService.RULES_FILE_TYPE, "JSON");
+        runner.setProperty(service,EasyRulesEngineService.RULES_FILE_FORMAT, "SPEL");
+        runner.setProperty(service,EasyRulesEngineService.IGNORE_CONDITION_ERRORS,"false");
+        runner.enableControllerService(service);
+        runner.assertValid(service);
+        Map<String, Object> facts = new HashMap<>();
+        facts.put("fakeMetric",60);
+        facts.put("fakeMetric2",299999);
+        try {
+            service.fireRules(facts);
+            fail("Expected exception to be thrown");
+        }catch (Exception pae){
+            assert true;
+        }
+    }
+
+    @Test
+    public void testIgnoreConditionErrorsTrueSPEL() throws InitializationException, IOException {
+        final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
+        final RulesEngineService service = new MockEasyRulesEngineService();
+        runner.addControllerService("easy-rules-engine-service-test",service);
+        runner.setProperty(service, EasyRulesEngineService.RULES_FILE_PATH, "src/test/resources/test_bad_spel_rules.json");
+        runner.setProperty(service,EasyRulesEngineService.RULES_FILE_TYPE, "JSON");
+        runner.setProperty(service,EasyRulesEngineService.RULES_FILE_FORMAT, "SPEL");
+        runner.setProperty(service,EasyRulesEngineService.IGNORE_CONDITION_ERRORS,"true");
+        runner.enableControllerService(service);
+        runner.assertValid(service);
+        Map<String, Object> facts = new HashMap<>();
+        facts.put("predictedQueuedCount",60);
+        facts.put("predictedTimeToBytesBackpressureMillis",299999);
+        try {
+            List<Action> actions = service.fireRules(facts);
+            assertNotNull(actions);
+            assertEquals(actions.size(), 1);
+        }catch (Exception pae){
+            fail();
+        }
+    }
     private class MockEasyRulesEngineService extends EasyRulesEngineService {
 
     }

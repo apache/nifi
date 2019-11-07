@@ -79,6 +79,7 @@
                         <exclude>src/test/resources/test_mvel_rules.json</exclude>
                         <exclude>src/test/resources/test_mvel_rules.yml</exclude>
                         <exclude>src/test/resources/test_spel_rules.json</exclude>
+                        <exclude>src/test/resources/test_bad_spel_rules.json</exclude>
                         <exclude>src/test/resources/test_spel_rules.yml</exclude>
                     </excludes>
                 </configuration>
