@@ -267,12 +267,13 @@ public class StandardSSLContextService extends AbstractControllerService impleme
 
     @Override
     public String getTrustStorePassword() {
-        return configContext.getProperty(TRUSTSTORE_PASSWORD).getValue();
+        PropertyValue truststorePassword = configContext.getProperty(TRUSTSTORE_PASSWORD);
+        return truststorePassword.isSet() ? truststorePassword.getValue() : "";
     }
 
     @Override
     public boolean isTrustStoreConfigured() {
-        return getTrustStoreFile() != null && getTrustStorePassword() != null && getTrustStoreType() != null;
+        return getTrustStoreFile() != null && getTrustStoreType() != null;
     }
 
     @Override
@@ -377,7 +378,7 @@ public class StandardSSLContextService extends AbstractControllerService impleme
                     .subject("Keystore Properties").build());
         } else if (nulls == 0) {
             // all properties were filled in.
-            List<ValidationResult> fileValidationResults = validateStoreFile(filename, password, keyPassword, type, "Keystore");
+            List<ValidationResult> fileValidationResults = validateKeystoreFile(filename, password, keyPassword, type);
             results.addAll(fileValidationResults);
         }
 
@@ -404,7 +405,7 @@ public class StandardSSLContextService extends AbstractControllerService impleme
 
         if (!StringUtils.isBlank(filename) && !StringUtils.isBlank(type)) {
             // In this case both the filename and type are populated, which is sufficient
-            results.addAll(validateStoreFile(filename, password, "", type, "Truststore"));
+            results.addAll(validateTruststoreFile(filename, password, type));
         } else {
             // The filename or type are blank; all values must be unpopulated for this to be valid
             if (!StringUtils.isBlank(filename) || !StringUtils.isBlank(type)) {
@@ -421,19 +422,17 @@ public class StandardSSLContextService extends AbstractControllerService impleme
      *
      * @param filename     the path of the file on disk
      * @param password     the file password
-     * @param keyPassword  the (optional) key-specific password
      * @param type         the type (JKS or PKCS12)
-     * @param keystoreDesc a string descriptor of the file role for error messages
      * @return the list of validation results (empty is valid)
      */
-    private static List<ValidationResult> validateStoreFile(String filename, String password, String keyPassword, String type, String keystoreDesc) {
+    private static List<ValidationResult> validateTruststoreFile(String filename, String password, String type) {
         List<ValidationResult> results = new ArrayList<>();
 
         final File file = new File(filename);
         if (!file.exists() || !file.canRead()) {
             results.add(new ValidationResult.Builder()
                     .valid(false)
-                    .subject(keystoreDesc + " Properties")
+                    .subject("Truststore Properties")
                     .explanation("Cannot access file " + file.getAbsolutePath())
                     .build());
         } else {
@@ -445,7 +444,54 @@ public class StandardSSLContextService extends AbstractControllerService impleme
                 final boolean storeValid = KeyStoreUtils.isStoreValid(file.toURI().toURL(), KeystoreType.valueOf(type), passwordChars);
                 if (!storeValid) {
                     results.add(new ValidationResult.Builder()
-                            .subject(keystoreDesc + " Properties")
+                            .subject("Truststore Properties")
+                            .valid(false)
+                            .explanation("Invalid truststore password or type specified for file " + filename)
+                            .build());
+                }
+
+            } catch (MalformedURLException e) {
+                results.add(new ValidationResult.Builder()
+                        .subject("Truststore Properties")
+                        .valid(false)
+                        .explanation("Malformed URL from file: " + e)
+                        .build());
+            }
+        }
+
+        return results;
+    }
+
+    /**
+     * Returns a list of {@link ValidationResult}s when validating an actual JKS or PKCS12 file on disk. Verifies the
+     * file permissions and existence, and attempts to open the file given the provided (keystore or key) password.
+     *
+     * @param filename     the path of the file on disk
+     * @param password     the file password
+     * @param keyPassword  the (optional) key-specific password
+     * @param type         the type (JKS or PKCS12)
+     * @return the list of validation results (empty is valid)
+     */
+    private static List<ValidationResult> validateKeystoreFile(String filename, String password, String keyPassword, String type) {
+        List<ValidationResult> results = new ArrayList<>();
+
+        final File file = new File(filename);
+        if (!file.exists() || !file.canRead()) {
+            results.add(new ValidationResult.Builder()
+                    .valid(false)
+                    .subject("Keystore Properties")
+                    .explanation("Cannot access file " + file.getAbsolutePath())
+                    .build());
+        } else {
+            char[] passwordChars = new char[0];
+            if (!StringUtils.isBlank(password)) {
+                passwordChars = password.toCharArray();
+            }
+            try {
+                final boolean storeValid = KeyStoreUtils.isStoreValid(file.toURI().toURL(), KeystoreType.valueOf(type), passwordChars);
+                if (!storeValid) {
+                    results.add(new ValidationResult.Builder()
+                            .subject("Keystore Properties")
                             .valid(false)
                             .explanation("Invalid keystore password or type specified for file " + filename)
                             .build());
@@ -465,7 +511,7 @@ public class StandardSSLContextService extends AbstractControllerService impleme
                 boolean keyPasswordValid = KeyStoreUtils.isKeyPasswordCorrect(file.toURI().toURL(), KeystoreType.valueOf(type), passwordChars, keyPasswordChars);
                 if (!keyPasswordValid) {
                     results.add(new ValidationResult.Builder()
-                            .subject(keystoreDesc + " Properties")
+                            .subject("Keystore Properties")
                             .valid(false)
                             .explanation("Invalid key password specified for file " + filename)
                             .build());
@@ -473,7 +519,7 @@ public class StandardSSLContextService extends AbstractControllerService impleme
 
             } catch (MalformedURLException e) {
                 results.add(new ValidationResult.Builder()
-                        .subject(keystoreDesc + " Properties")
+                        .subject("Keystore Properties")
                         .valid(false)
                         .explanation("Malformed URL from file: " + e)
                         .build());

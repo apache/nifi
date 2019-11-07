@@ -122,6 +122,23 @@ class KeyStoreUtilsGroovyTest extends GroovyTestCase {
         // Save the truststore to disk
         FileOutputStream fos = new FileOutputStream("target/nifi.apache.org.ts.jks")
         truststore.store(fos, "".chars)
+    }
 
+    @Test
+    @Ignore("Used to create passwordless truststore file for testing NIFI-6770")
+    void createLocalPasswordlessTruststore() {
+        KeyStore truststoreWithPassword = KeyStore.getInstance("JKS")
+        truststoreWithPassword.load(new FileInputStream("/Users/alopresto/Workspace/nifi/nifi-nar-bundles/nifi-standard-bundle/nifi-standard-processors/src/test/resources/truststore.jks"), "passwordpassword".chars)
+        Certificate nodeCert = truststoreWithPassword.getCertificate("nifi-cert")
+
+        // Create a JKS truststore containing that cert as a trustedCertEntry and do not put a password on the truststore
+        KeyStore truststore = KeyStore.getInstance("JKS")
+        // Explicitly set the second parameter to empty to avoid a password
+        truststore.load(null, "".chars)
+        truststore.setCertificateEntry("nifi.apache.org", nodeCert)
+
+        // Save the truststore to disk
+        FileOutputStream fos = new FileOutputStream("/Users/alopresto/Workspace/nifi/nifi-nar-bundles/nifi-standard-bundle/nifi-standard-processors/src/test/resources/truststore.no-password.jks")
+        truststore.store(fos, "".chars)
     }
 }
