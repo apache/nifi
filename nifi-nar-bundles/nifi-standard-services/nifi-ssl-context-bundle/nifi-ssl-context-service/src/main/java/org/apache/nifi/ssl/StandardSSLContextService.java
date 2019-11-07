@@ -215,14 +215,16 @@ public class StandardSSLContextService extends AbstractControllerService impleme
         final String protocol = getSslAlgorithm();
         try {
             final PropertyValue keyPasswdProp = configContext.getProperty(KEY_PASSWORD);
+            final PropertyValue truststorePasswordProp = configContext.getProperty(TRUSTSTORE_PASSWORD);
             final char[] keyPassword = keyPasswdProp.isSet() ? keyPasswdProp.getValue().toCharArray() : null;
+            final char[] truststorePassword = truststorePasswordProp.isSet() ? truststorePasswordProp.getValue().toCharArray() : null;
 
             final String keystoreFile = configContext.getProperty(KEYSTORE).getValue();
             if (keystoreFile == null) {
                 // If keystore not specified, create SSL Context based only on trust store.
                 return SslContextFactory.createTrustSslContext(
                         configContext.getProperty(TRUSTSTORE).getValue(),
-                        configContext.getProperty(TRUSTSTORE_PASSWORD).getValue().toCharArray(),
+                        truststorePassword,
                         configContext.getProperty(TRUSTSTORE_TYPE).getValue(),
                         protocol);
             }
@@ -244,7 +246,7 @@ public class StandardSSLContextService extends AbstractControllerService impleme
                     keyPassword,
                     configContext.getProperty(KEYSTORE_TYPE).getValue(),
                     configContext.getProperty(TRUSTSTORE).getValue(),
-                    configContext.getProperty(TRUSTSTORE_PASSWORD).getValue().toCharArray(),
+                    truststorePassword,
                     configContext.getProperty(TRUSTSTORE_TYPE).getValue(),
                     org.apache.nifi.security.util.SslContextFactory.ClientAuth.valueOf(clientAuth.name()),
                     protocol);

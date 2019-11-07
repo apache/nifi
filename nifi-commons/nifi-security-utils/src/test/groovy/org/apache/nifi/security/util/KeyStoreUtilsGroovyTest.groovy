@@ -16,15 +16,21 @@
  */
 package org.apache.nifi.security.util
 
-
 import org.junit.After
 import org.junit.Before
 import org.junit.BeforeClass
+import org.junit.Ignore
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+
+import javax.net.ssl.HttpsURLConnection
+import javax.net.ssl.SSLSocket
+import javax.net.ssl.SSLSocketFactory
+import java.security.KeyStore
+import java.security.cert.Certificate
 
 @RunWith(JUnit4.class)
 class KeyStoreUtilsGroovyTest extends GroovyTestCase {
@@ -94,5 +100,28 @@ class KeyStoreUtilsGroovyTest extends GroovyTestCase {
 
         // Assert
         assert !keyPasswordIsValid
+    }
+
+    @Test
+    @Ignore("Used to create passwordless truststore file for testing NIFI-6770")
+    void createPasswordlessTruststore() {
+        // Retrieve the public certificate from https://nifi.apache.org
+        String hostname = "nifi.apache.org"
+        SSLSocketFactory factory = HttpsURLConnection.getDefaultSSLSocketFactory()
+        SSLSocket socket = (SSLSocket) factory.createSocket(hostname, 443)
+        socket.startHandshake()
+        List<Certificate> certs = socket.session.peerCertificateChain as List<Certificate>
+        Certificate nodeCert = CertificateUtils.formX509Certificate(certs.first().encoded)
+
+        // Create a JKS truststore containing that cert as a trustedCertEntry and do not put a password on the truststore
+        KeyStore truststore = KeyStore.getInstance("JKS")
+        // Explicitly set the second parameter to empty to avoid a password
+        truststore.load(null, "".chars)
+        truststore.setCertificateEntry("nifi.apache.org", nodeCert)
+
+        // Save the truststore to disk
+        FileOutputStream fos = new FileOutputStream("target/nifi.apache.org.ts.jks")
+        truststore.store(fos, "".chars)
+
     }
 }

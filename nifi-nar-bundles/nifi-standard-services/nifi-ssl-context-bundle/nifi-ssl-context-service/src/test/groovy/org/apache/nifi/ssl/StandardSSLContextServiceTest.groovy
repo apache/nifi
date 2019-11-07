@@ -38,6 +38,7 @@ import org.junit.runners.JUnit4
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
+import javax.net.ssl.SSLContext
 import java.security.Security
 
 import static groovy.test.GroovyAssert.shouldFail
@@ -159,6 +160,47 @@ class StandardSSLContextServiceTest {
         // Assert
         final MockProcessContext processContext = (MockProcessContext) runner.getProcessContext()
         assert processContext.getControllerServiceProperties(sslContextService).get(StandardSSLContextService.TRUSTSTORE, "") == NO_PASSWORD_TRUSTSTORE_PATH
+    }
+
+    @Test
+    void testShouldConnectWithPasswordlessTruststore() {
+        // Arrange
+        TestRunner runner = TestRunners.newTestRunner(TestProcessor.class)
+        String controllerServiceId = "ssl-context"
+        final SSLContextService sslContextService = new StandardSSLContextService()
+        runner.addControllerService(controllerServiceId, sslContextService)
+        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE, NO_PASSWORD_TRUSTSTORE_PATH)
+        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_TYPE, TRUSTSTORE_TYPE)
+        runner.enableControllerService(sslContextService)
+        runner.assertValid(sslContextService)
+
+        // Act
+        SSLContext sslContext = sslContextService.createSSLContext(SSLContextService.ClientAuth.NONE)
+
+        // Assert
+        assert sslContext
+    }
+
+    @Test
+    void testShouldConnectWithPasswordlessTruststoreWhenKeystorePresent() {
+        // Arrange
+        TestRunner runner = TestRunners.newTestRunner(TestProcessor.class)
+        String controllerServiceId = "ssl-context"
+        final SSLContextService sslContextService = new StandardSSLContextService()
+        runner.addControllerService(controllerServiceId, sslContextService)
+        runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE, KEYSTORE_PATH)
+        runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE_PASSWORD, KEYSTORE_PASSWORD)
+        runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE_TYPE, KEYSTORE_TYPE)
+        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE, NO_PASSWORD_TRUSTSTORE_PATH)
+        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_TYPE, TRUSTSTORE_TYPE)
+        runner.enableControllerService(sslContextService)
+        runner.assertValid(sslContextService)
+
+        // Act
+        SSLContext sslContext = sslContextService.createSSLContext(SSLContextService.ClientAuth.NONE)
+
+        // Assert
+        assert sslContext
     }
 
     @Test
