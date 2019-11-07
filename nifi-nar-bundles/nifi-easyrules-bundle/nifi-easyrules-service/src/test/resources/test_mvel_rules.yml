@@ -9,6 +9,6 @@ actions:
 name: "Time To Back Pressure"
 description: "Back pressure time less than 5 minutes"
 priority: 2
-condition: "predictedTimeToBytesBackpressureMillis >= 300000"
+condition: "predictedTimeToBytesBackpressureMillis < 300000 && predictedTimeToBytesBackpressureMillis >= 0"
 actions:
   - "System.out.println(\"Back Pressure prediction less than 5 minutes!\")"
