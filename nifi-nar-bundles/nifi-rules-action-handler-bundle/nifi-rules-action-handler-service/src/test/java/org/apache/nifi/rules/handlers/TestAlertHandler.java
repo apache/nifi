@@ -148,7 +148,7 @@ public class TestAlertHandler {
         metrics.put("jvmHeap", "1000000");
         metrics.put("cpu", "90");
 
-        final String expectedOutput = "An alert was triggered by a rules based action.\n" +
+        final String expectedOutput = "An alert was triggered by a rules-based action.\n" +
                 "Alert Facts:\n" +
                 "Field: cpu, Value: 90\n" +
                 "Field: jvmHeap, Value: 1000000\n";

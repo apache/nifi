@@ -43,8 +43,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-@Tags({"rules", "rules engine", "action", "action handler", "logging"})
-@CapabilityDescription("Logs messages and fact information based on a provided action (usually created by a rules engine)")
+@Tags({"rules", "rules engine", "action", "action handler", "record", "record sink"})
+@CapabilityDescription("Sends fact information to sink based on a provided action (usually created by a rules engine)." +
+        "  Action objects executed with this Handler should contain \"sendZeroResult\" attribute.")
 public class RecordSinkHandler extends AbstractActionHandlerService{
 
     static final PropertyDescriptor RECORD_SINK_SERVICE = new PropertyDescriptor.Builder()

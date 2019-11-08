@@ -38,14 +38,16 @@ import java.util.Map;
 import java.util.Set;
 
 @Tags({"rules", "rules engine", "action", "action handler", "logging", "alerts", "bulletins"})
-@CapabilityDescription("Creates alerts as bulletins based on a provided action (usually created by a rules engine) ")
+@CapabilityDescription("Creates alerts as bulletins based on a provided action (usually created by a rules engine).  " +
+        "Action objects executed with this Handler should contain \"category\", \"message\", and \"logLevel\" attributes.")
 public class AlertHandler extends AbstractActionHandlerService {
 
     public static final PropertyDescriptor DEFAULT_LOG_LEVEL = new PropertyDescriptor.Builder()
             .name("alert-default-log-level")
-            .displayName("Default Log Level")
+            .displayName("Default Alert Log Level")
             .required(true)
-            .description("The Log Level to use when logging alert message")
+            .description("The default Log Level that will be used to log an alert message" +
+                    " if a log level was not provided in the received action's attributes.")
             .allowableValues(DebugLevels.values())
             .defaultValue("info")
             .build();
@@ -54,7 +56,8 @@ public class AlertHandler extends AbstractActionHandlerService {
             .name("alert-default-category")
             .displayName("Default Category")
             .required(true)
-            .description("The Log Level to use when logging alert message")
+            .description("The default category to use when logging alert message "+
+                    " if a category was not provided in the received action's attributes.")
             .defaultValue("Rules Triggered Alert")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
@@ -63,8 +66,9 @@ public class AlertHandler extends AbstractActionHandlerService {
             .name("alert-default-message")
             .displayName("Default Message")
             .required(true)
-            .description("The default message to include in alert")
-            .defaultValue("An alert was triggered by a rules based action.")
+            .description("The default message to include in alert if an alert message was " +
+                    "not provided in the received action's attributes")
+            .defaultValue("An alert was triggered by a rules-based action.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -72,7 +76,7 @@ public class AlertHandler extends AbstractActionHandlerService {
             .name("alert-include-facts")
             .displayName("Include Fact Data")
             .required(true)
-            .description("If true, the alert message will include the facts which triggered this action. Default is false")
+            .description("If true, the alert message will include the facts which triggered this action. Default is false.")
             .defaultValue("true")
             .allowableValues("true", "false")
             .build();
