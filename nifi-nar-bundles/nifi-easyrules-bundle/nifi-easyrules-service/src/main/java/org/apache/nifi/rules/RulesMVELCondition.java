@@ -44,7 +44,7 @@ public class RulesMVELCondition implements Condition {
             return (Boolean)MVEL.executeExpression(this.compiledExpression, facts.asMap());
         } catch (Exception ex) {
             if(ignoreConditionErrors) {
-                LOGGER.warn("Unable to evaluate expression: '" + this.expression + "' on facts: " + facts, ex);
+                LOGGER.debug("Unable to evaluate expression: '" + this.expression + "' on facts: " + facts, ex);
                 return false;
             } else{
                 throw ex;
