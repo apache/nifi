@@ -27,7 +27,7 @@
     <packaging>pom</packaging>
 
     <properties>
-        <hbase.version>2.1.1</hbase.version>
+        <hbase.version>2.2.2</hbase.version>
     </properties>
 
     <modules>
