@@ -33,9 +33,10 @@
                 'nf.Birdseye',
                 'nf.ContextMenu',
                 'nf.Actions',
-                'nf.ProcessGroup'],
-            function ($, d3, nfCommon, nfDialog, nfGraph, nfShell, nfNgBridge, nfClusterSummary, nfErrorHandler, nfStorage, nfCanvasUtils, nfBirdseye, nfContextMenu, nfActions, nfProcessGroup) {
-                return (nf.Canvas = factory($, d3, nfCommon, nfDialog, nfGraph, nfShell, nfNgBridge, nfClusterSummary, nfErrorHandler, nfStorage, nfCanvasUtils, nfBirdseye, nfContextMenu, nfActions, nfProcessGroup));
+                'nf.ProcessGroup',
+                'nf.ParameterContexts'],
+            function ($, d3, nfCommon, nfDialog, nfGraph, nfShell, nfNgBridge, nfClusterSummary, nfErrorHandler, nfStorage, nfCanvasUtils, nfBirdseye, nfContextMenu, nfActions, nfProcessGroup, nfParameterContexts) {
+                return (nf.Canvas = factory($, d3, nfCommon, nfDialog, nfGraph, nfShell, nfNgBridge, nfClusterSummary, nfErrorHandler, nfStorage, nfCanvasUtils, nfBirdseye, nfContextMenu, nfActions, nfProcessGroup, nfParameterContexts));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.Canvas =
@@ -53,7 +54,8 @@
                 require('nf.Birdseye'),
                 require('nf.ContextMenu'),
                 require('nf.Actions'),
-                require('nf.ProcessGroup')));
+                require('nf.ProcessGroup'),
+                require('nf.ParameterContexts')));
     } else {
         nf.Canvas = factory(root.$,
             root.d3,
@@ -69,9 +71,10 @@
             root.nf.Birdseye,
             root.nf.ContextMenu,
             root.nf.Actions,
-            root.nf.ProcessGroup);
+            root.nf.ProcessGroup,
+            root.nf.ParameterContexts);
     }
-}(this, function ($, d3, nfCommon, nfDialog, nfGraph, nfShell, nfNgBridge, nfClusterSummary, nfErrorHandler, nfStorage, nfCanvasUtils, nfBirdseye, nfContextMenu, nfActions, nfProcessGroup) {
+}(this, function ($, d3, nfCommon, nfDialog, nfGraph, nfShell, nfNgBridge, nfClusterSummary, nfErrorHandler, nfStorage, nfCanvasUtils, nfBirdseye, nfContextMenu, nfActions, nfProcessGroup, nfParameterContexts) {
     'use strict';
 
     var SCALE = 1;
@@ -86,7 +89,7 @@
     var polling = false;
     var allowPageRefresh = false;
     var groupId = 'root';
-    var parameterContextId;
+    var parameterContext;
     var groupName = null;
     var permissions = null;
     var parentGroupId = null;
@@ -150,7 +153,7 @@
 
             // set the group and parameter context details
             nfCanvas.setGroupId(processGroupFlow.id);
-            nfCanvas.setParameterContextId(processGroupFlow.parameterContextId);
+            nfCanvas.setParameterContext(processGroupFlow.parameterContext);
 
             // get the current group name from the breadcrumb
             var breadcrumb = processGroupFlow.breadcrumb;
@@ -220,7 +223,7 @@
     var changeProcessGroup = function (processGroupId, options) {
         // capture the current group id to reset to in case of failure
         var currentProcessGroup = nfCanvas.getGroupId();
-        var currentParameterContext = nfCanvas.getParameterContextId();
+        var currentParameterContext = nfCanvas.getParameterContext();
 
         // update process group id and attempt to reload
         nfCanvas.setGroupId(processGroupId);
@@ -230,7 +233,7 @@
         processGroupXhr
             .fail(function (xhr, status, error) {
                 nfCanvas.setGroupId(currentProcessGroup);
-                nfCanvas.setParameterContextId(currentParameterContext);
+                nfCanvas.setParameterContext(currentParameterContext);
             });
 
         return processGroupXhr;
@@ -689,6 +692,11 @@
                 });
             });
 
+            // listen for events to go to parameter contexts
+            $('body').on('GoTo:ParameterContext', function (e, item) {
+                nfParameterContexts.showParameterContexts(item.id);
+            });
+
             // don't let the reload action get called more than once every second
             var throttledCanvasReload = nfCommon.throttle(nfActions.reload, 1000);
 
@@ -908,19 +916,19 @@
         },
 
         /**
-         * Set the parameter context id.
+         * Set the parameter context.
          *
-         * @argument {string} pcid       The parameter context id
+         * @argument {string} pc       The parameter context
          */
-        setParameterContextId: function (pcid) {
-            parameterContextId = pcid;
+        setParameterContext: function (pc) {
+            parameterContext = pc;
         },
 
         /**
          * Get the parameter context id.
          */
-        getParameterContextId: function () {
-            return parameterContextId;
+        getParameterContext: function () {
+            return parameterContext;
         },
 
         /**

@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-web</artifactId>
-        <version>1.10.0-SNAPSHOT</version>
+        <version>1.11.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-web-ui</artifactId>
     <packaging>war</packaging>
@@ -238,6 +238,10 @@
 
                                         <include>lodash-core/distrib/lodash-core.min.js</include>
                                         <include>lodash-core/distrib/README.md</include>
+
+                                        <include>moment/min/moment.min.js</include>
+                                        <include>moment/README.md</include>
+                                        <include>moment/LICENSE</include>
 
                                     </includes>
                                 </resource>

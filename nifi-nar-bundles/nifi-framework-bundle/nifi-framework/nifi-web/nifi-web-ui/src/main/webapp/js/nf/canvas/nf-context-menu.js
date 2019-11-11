@@ -87,12 +87,19 @@
      * @param {selection} selection         The selection of currently selected components
      */
     var hasParameterContext = function (selection) {
+        var parameterContext;
+
         if (selection.empty()) {
-            return !nfCommon.isUndefinedOrNull(nfCanvasUtils.getParameterContextId());
+            parameterContext = nfCanvasUtils.getParameterContext();
         } else if (nfCanvasUtils.isProcessGroup(selection)) {
             var pg = selection.datum();
-            return !nfCommon.isUndefinedOrNull(pg.component.parameterContext.id);
+            parameterContext = pg.parameterContext;
         }
+
+        if (nfCommon.isDefinedAndNotNull(parameterContext)) {
+            return nfCommon.isDefinedAndNotNull(parameterContext) && parameterContext.permissions.canRead === true;
+        }
+
         return false;
     };
 

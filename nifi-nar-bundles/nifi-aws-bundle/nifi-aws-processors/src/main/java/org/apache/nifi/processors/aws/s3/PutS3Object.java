@@ -664,6 +664,7 @@ public class PutS3Object extends AbstractS3Processor {
                             // upload parts
                             //------------------------------------------------------------
                             long thisPartSize;
+                            boolean isLastPart;
                             for (int part = currentState.getPartETags().size() + 1;
                                  currentState.getFilePosition() < currentState.getContentLength(); part++) {
                                 if (!PutS3Object.this.isScheduled()) {
@@ -672,13 +673,15 @@ public class PutS3Object extends AbstractS3Processor {
                                 }
                                 thisPartSize = Math.min(currentState.getPartSize(),
                                         (currentState.getContentLength() - currentState.getFilePosition()));
+                                isLastPart = currentState.getContentLength() == currentState.getFilePosition() + thisPartSize;
                                 UploadPartRequest uploadRequest = new UploadPartRequest()
                                         .withBucketName(bucket)
                                         .withKey(key)
                                         .withUploadId(currentState.getUploadId())
                                         .withInputStream(in)
                                         .withPartNumber(part)
-                                        .withPartSize(thisPartSize);
+                                        .withPartSize(thisPartSize)
+                                        .withLastPart(isLastPart);
                                 if (encryptionService != null) {
                                     encryptionService.configureUploadPartRequest(uploadRequest, objectMetadata);
                                 }
@@ -692,8 +695,14 @@ public class PutS3Object extends AbstractS3Processor {
                                         getLogger().info("Exception saving cache state processing flow file: " +
                                                 e.getMessage());
                                     }
+                                    int available = 0;
+                                    try {
+                                        available = in.available();
+                                    } catch (IOException e) {
+                                        // in case of the last part, the stream is already closed
+                                    }
                                     getLogger().info("Success uploading part flowfile={} part={} available={} " +
-                                            "etag={} uploadId={}", new Object[]{ffFilename, part, in.available(),
+                                            "etag={} uploadId={}", new Object[]{ffFilename, part, available,
                                             uploadPartResult.getETag(), currentState.getUploadId()});
                                 } catch (AmazonClientException e) {
                                     getLogger().info("Failure uploading part flowfile={} part={} bucket={} key={} " +

@@ -75,6 +75,7 @@ import org.apache.nifi.web.api.entity.BulletinBoardEntity;
 import org.apache.nifi.web.api.entity.ClusteSummaryEntity;
 import org.apache.nifi.web.api.entity.ClusterSearchResultsEntity;
 import org.apache.nifi.web.api.entity.ComponentHistoryEntity;
+import org.apache.nifi.web.api.entity.ConnectionStatisticsEntity;
 import org.apache.nifi.web.api.entity.ConnectionStatusEntity;
 import org.apache.nifi.web.api.entity.ControllerBulletinsEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
@@ -128,7 +129,9 @@ import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import java.text.Collator;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -136,6 +139,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -1429,11 +1434,28 @@ public class FlowResource extends ApplicationResource {
         authorizeFlow();
 
         final Set<BucketEntity> buckets = serviceFacade.getBucketsForUser(id, NiFiUserUtils.getNiFiUser());
+        final SortedSet<BucketEntity> sortedBuckets = sortBuckets(buckets);
 
         final BucketsEntity bucketsEntity = new BucketsEntity();
-        bucketsEntity.setBuckets(buckets);
+        bucketsEntity.setBuckets(sortedBuckets);
 
         return generateOkResponse(bucketsEntity).build();
+    }
+
+    private SortedSet<BucketEntity> sortBuckets(final Set<BucketEntity> buckets) {
+        final SortedSet<BucketEntity> sortedBuckets = new TreeSet<>(new Comparator<BucketEntity>() {
+            @Override
+            public int compare(final BucketEntity entity1, final BucketEntity entity2) {
+                return Collator.getInstance().compare(getBucketName(entity1), getBucketName(entity2));
+            }
+        });
+
+        sortedBuckets.addAll(buckets);
+        return sortedBuckets;
+    }
+
+    private String getBucketName(final BucketEntity entity) {
+        return entity.getBucket() == null ? null : entity.getBucket().getName();
     }
 
     @GET
@@ -1465,11 +1487,28 @@ public class FlowResource extends ApplicationResource {
         authorizeFlow();
 
         final Set<VersionedFlowEntity> versionedFlows = serviceFacade.getFlowsForUser(registryId, bucketId, NiFiUserUtils.getNiFiUser());
+        final SortedSet<VersionedFlowEntity> sortedFlows = sortFlows(versionedFlows);
 
         final VersionedFlowsEntity versionedFlowsEntity = new VersionedFlowsEntity();
-        versionedFlowsEntity.setVersionedFlows(versionedFlows);
+        versionedFlowsEntity.setVersionedFlows(sortedFlows);
 
         return generateOkResponse(versionedFlowsEntity).build();
+    }
+
+    private SortedSet<VersionedFlowEntity> sortFlows(final Set<VersionedFlowEntity> versionedFlows) {
+        final SortedSet<VersionedFlowEntity> sortedFlows = new TreeSet<>(new Comparator<VersionedFlowEntity>() {
+            @Override
+            public int compare(final VersionedFlowEntity entity1, final VersionedFlowEntity entity2) {
+                return Collator.getInstance().compare(getFlowName(entity1), getFlowName(entity2));
+            }
+        });
+
+        sortedFlows.addAll(versionedFlows);
+        return sortedFlows;
+    }
+
+    private String getFlowName(final VersionedFlowEntity flowEntity) {
+        return flowEntity.getVersionedFlow() == null ? "" : flowEntity.getVersionedFlow().getFlowName();
     }
 
     @GET
@@ -2071,6 +2110,79 @@ public class FlowResource extends ApplicationResource {
 
         // get the specified connection status
         final ConnectionStatusEntity entity = serviceFacade.getConnectionStatus(id);
+        return generateOkResponse(entity).build();
+    }
+
+    /**
+     * Retrieves the specified connection statistics.
+     *
+     * @param id The id of the connection statistics to retrieve.
+     * @return A ConnectionStatisticsEntity.
+     * @throws InterruptedException if interrupted
+     */
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("connections/{id}/statistics")
+    @ApiOperation(
+            value = "Gets statistics for a connection",
+            response = ConnectionStatisticsEntity.class,
+            authorizations = {
+                    @Authorization(value = "Read - /flow")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response getConnectionStatistics(
+            @ApiParam(
+                    value = "Whether or not to include the breakdown per node. Optional, defaults to false",
+                    required = false
+            )
+            @QueryParam("nodewise") @DefaultValue(NODEWISE) Boolean nodewise,
+            @ApiParam(
+                    value = "The id of the node where to get the statistics.",
+                    required = false
+            )
+            @QueryParam("clusterNodeId") String clusterNodeId,
+            @ApiParam(
+                    value = "The connection id.",
+                    required = true
+            )
+            @PathParam("id") String id) throws InterruptedException {
+
+        authorizeFlow();
+
+        // ensure a valid request
+        if (Boolean.TRUE.equals(nodewise) && clusterNodeId != null) {
+            throw new IllegalArgumentException("Nodewise requests cannot be directed at a specific node.");
+        }
+
+        if (isReplicateRequest()) {
+            // determine where this request should be sent
+            if (clusterNodeId == null) {
+                final NodeResponse nodeResponse = replicateNodeResponse(HttpMethod.GET);
+                final ConnectionStatisticsEntity entity = (ConnectionStatisticsEntity) nodeResponse.getUpdatedEntity();
+
+                // ensure there is an updated entity (result of merging) and prune the response as necessary
+                if (entity != null && !nodewise) {
+                    entity.getConnectionStatistics().setNodeSnapshots(null);
+                }
+
+                return nodeResponse.getResponse();
+            } else {
+                return replicate(HttpMethod.GET, clusterNodeId);
+            }
+        }
+
+        // get the specified connection status
+        final ConnectionStatisticsEntity entity = serviceFacade.getConnectionStatistics(id);
         return generateOkResponse(entity).build();
     }
 

@@ -130,8 +130,9 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
     public static final PropertyDescriptor ENCRYPTION_SERVICE = new PropertyDescriptor.Builder()
             .name("encryption-service")
             .displayName("Encryption Service")
-            .description("Specifies the Encryption Service Controller used configure requests.  "
-                    + "For backward compatibility, this value is ignored when 'Server Side Encryption' is set.")
+            .description("Specifies the Encryption Service Controller used to configure requests. " +
+                    "PutS3Object: For backward compatibility, this value is ignored when 'Server Side Encryption' is set. " +
+                    "FetchS3Object: Only needs to be configured in case of Server-side Customer Key, Client-side KMS and Client-side Customer Key encryptions.")
             .required(false)
             .identifiesControllerService(AmazonS3EncryptionService.class)
             .build();

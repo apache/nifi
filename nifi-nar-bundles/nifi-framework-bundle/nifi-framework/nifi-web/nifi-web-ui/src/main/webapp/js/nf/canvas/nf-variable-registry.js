@@ -35,9 +35,10 @@
                 'nf.ng.Bridge',
                 'nf.Processor',
                 'nf.ProcessGroup',
-                'nf.ProcessGroupConfiguration'],
-            function ($, d3, Slick, nfCanvas, nfCanvasUtils, nfErrorHandler, nfDialog, nfStorage, nfClient, nfCommon, nfNgBridge, nfProcessor, nfProcessGroup, nfProcessGroupConfiguration) {
-                return (nf.ComponentState = factory($, d3, Slick, nfCanvas, nfCanvasUtils, nfErrorHandler, nfDialog, nfStorage, nfClient, nfCommon, nfNgBridge, nfProcessor, nfProcessGroup, nfProcessGroupConfiguration));
+                'nf.ProcessGroupConfiguration',
+                'nf.Shell'],
+            function ($, d3, Slick, nfCanvas, nfCanvasUtils, nfErrorHandler, nfDialog, nfStorage, nfClient, nfCommon, nfNgBridge, nfProcessor, nfProcessGroup, nfProcessGroupConfiguration, nfShell) {
+                return (nf.ComponentState = factory($, d3, Slick, nfCanvas, nfCanvasUtils, nfErrorHandler, nfDialog, nfStorage, nfClient, nfCommon, nfNgBridge, nfProcessor, nfProcessGroup, nfProcessGroupConfiguration, nfShell));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ComponentState =
@@ -54,7 +55,8 @@
                 require('nf.ng.Bridge'),
                 require('nf.Processor'),
                 require('nf.ProcessGroup'),
-                require('nf.ProcessGroupConfiguration')));
+                require('nf.ProcessGroupConfiguration'),
+                require('nf.Shell')));
     } else {
         nf.VariableRegistry = factory(root.$,
             root.d3,
@@ -69,9 +71,10 @@
             root.nf.ng.Bridge,
             root.nf.Processor,
             root.nf.ProcessGroup,
-            root.nf.ProcessGroupConfiguration);
+            root.nf.ProcessGroupConfiguration,
+            root.nf.Shell);
     }
-}(this, function ($, d3, Slick, nfCanvas, nfCanvasUtils, nfErrorHandler, nfDialog, nfStorage, nfClient, nfCommon, nfNgBridge, nfProcessor, nfProcessGroup, nfProcessGroupConfiguration) {
+}(this, function ($, d3, Slick, nfCanvas, nfCanvasUtils, nfErrorHandler, nfDialog, nfStorage, nfClient, nfCommon, nfNgBridge, nfProcessor, nfProcessGroup, nfProcessGroupConfiguration, nfShell) {
     'use strict';
 
     var lastSelectedId = null;
@@ -124,7 +127,15 @@
             stringCheckPanel.appendTo(wrapper);
 
             // build the custom checkbox
-            isEmpty = $('<div class="nf-checkbox string-check"/>').appendTo(stringCheckPanel);
+            isEmpty = $('<div class="nf-checkbox string-check"/>')
+                .on('change', function (event, args) {
+                    // if we are setting as an empty string, disable the editor
+                    if (args.isChecked) {
+                        input.prop('disabled', true).val('');
+                    } else {
+                        input.prop('disabled', false).val(previousValue);
+                    }
+                }).appendTo(stringCheckPanel);
             $('<span class="string-check-label nf-checkbox-label">&nbsp;Set empty string</span>').appendTo(stringCheckPanel);
 
             var ok = $('<div class="button">Ok</div>').css({
@@ -912,7 +923,27 @@
                         }
                     } else {
                         var affectedUnauthorizedComponentContainer = $('<li class="affected-component-container"></li>').appendTo(unauthorizedComponentsContainer);
-                        $('<span class="unset"></span>').text(unauthorizedAffectedComponentEntity.id).appendTo(affectedUnauthorizedComponentContainer);
+                        $('<span class="referencing-component-name link ellipsis"></span>')
+                            .prop('title', unauthorizedAffectedComponentEntity.id)
+                            .text(unauthorizedAffectedComponentEntity.id)
+                            .on('click', function () {
+                                // check if there are outstanding changes
+                                handleOutstandingChanges().done(function () {
+                                    // close the shell
+                                    $('#shell-dialog').modal('hide');
+
+                                    // show the component in question
+                                    if (unauthorizedAffectedComponentEntity.referenceType === 'PROCESSOR') {
+                                        nfCanvasUtils.showComponent(unauthorizedAffectedComponentEntity.processGroup.id, unauthorizedAffectedComponentEntity.id);
+                                    } else if (unauthorizedAffectedComponentEntity.referenceType === 'CONTROLLER_SERVICE') {
+                                        nfProcessGroupConfiguration.showConfiguration(unauthorizedAffectedComponentEntity.processGroup.id).done(function () {
+                                            nfProcessGroup.enterGroup(unauthorizedAffectedComponentEntity.processGroup.id);
+                                            nfProcessGroupConfiguration.selectControllerService(unauthorizedAffectedComponentEntity.id);
+                                        });
+                                    }
+                                });
+                            })
+                            .appendTo(affectedUnauthorizedComponentContainer);
                     }
                 });
             }
@@ -1614,6 +1645,10 @@
 
             $('#add-variable').on('click', function () {
                 $('#new-variable-dialog').modal('show');
+            });
+
+            $('#parameters-documentation-link').on('click', function() {
+                nfShell.showPage('../nifi-docs/html/user-guide.html#Parameters');
             });
 
             initVariableTable();

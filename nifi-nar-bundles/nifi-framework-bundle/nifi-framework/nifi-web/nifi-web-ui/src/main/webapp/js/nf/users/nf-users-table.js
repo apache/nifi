@@ -534,12 +534,21 @@
     /**
      * Generates a human readable global policy string.
      *
+     * @param policy
+     * @returns {string}
+     */
+    var globalResourceParser = function (policy) {
+        return 'Global policy to ' + policy.text;
+    };
+
+    /**
+     * Generates a human readable policy string for an unknown resource.
+     *
      * @param dataContext
      * @returns {string}
      */
-    var globalResourceParser = function (dataContext) {
-        return 'Global policy to ' +
-            nfCommon.getPolicyTypeListing(nfCommon.substringAfterFirst(dataContext.component.resource, '/')).text;
+    var unknownResourceParser = function (dataContext) {
+        return '<span class="unset">Unknown resource ' + nfCommon.escapeHtml(dataContext.component.resource) + '</span>';
     };
 
     /**
@@ -556,7 +565,7 @@
         }
 
         var subResource = nfCommon.substringAfterFirst(resource, '/restricted-components/');
-        return "Restricted components requiring '" + subResource + "'";
+        return "Restricted components requiring '" + nfCommon.escapeHtml(subResource) + "'";
     };
 
     /**
@@ -606,12 +615,14 @@
             policyLabel += 'reporting task ';
         } else if (resource.startsWith('/templates')) {
             policyLabel += 'template ';
+        } else if (resource.startsWith('/parameter-contexts')) {
+            policyLabel += 'parameter context '
         }
 
         if (dataContext.component.componentReference.permissions.canRead === true) {
-            policyLabel += '<span style="font-weight: 500">' + dataContext.component.componentReference.component.name + '</span>';
+            policyLabel += '<span style="font-weight: 500">' + nfCommon.escapeHtml(dataContext.component.componentReference.component.name) + '</span>';
         } else {
-            policyLabel += '<span class="unset">' + dataContext.component.componentReference.id + '</span>'
+            policyLabel += '<span class="unset">' + nfCommon.escapeHtml(dataContext.component.componentReference.id) + '</span>'
         }
 
         return policyLabel;
@@ -658,6 +669,8 @@
                         //TODO: implement go to for RT
                     } else if (dataContext.component.resource.indexOf('/templates') >= 0) {
                         //TODO: implement go to for Templates
+                    } else if (dataContext.component.resource.indexOf('/parameter-contexts') >= 0) {
+                        markup += '<div title="Go To" class="pointer go-to-parameter-context fa fa-long-arrow-right" style="float: left;"></div>';
                     }
                 }
             }
@@ -756,6 +769,11 @@
                     parent.$('#shell-close-button').click();
                 } else if (target.hasClass('go-to-process-group')) {
                     parent.$('body').trigger('GoTo:ProcessGroup', {
+                        id: item.component.componentReference.id
+                    });
+                    parent.$('#shell-close-button').click();
+                } else if (target.hasClass('go-to-parameter-context')) {
+                    parent.$('body').trigger('GoTo:ParameterContext', {
                         id: item.component.componentReference.id
                     });
                     parent.$('#shell-close-button').click();
@@ -982,12 +1000,19 @@
         if (dataContext.component.resource.startsWith('/restricted-components')) {
             // restricted components policy
             return restrictedComponentResourceParser(dataContext);
-        } else if (nfCommon.isUndefinedOrNull(dataContext.component.componentReference)) {
-            // global policy
-            return globalResourceParser(dataContext);
-        } else {
+        } else if (nfCommon.isDefinedAndNotNull(dataContext.component.componentReference)) {
             // not restricted/global policy... check if user has access to the component reference
             return componentResourceParser(dataContext);
+        } else {
+            // may be a global policy
+            var policy = nfCommon.getPolicyTypeListing(nfCommon.substringAfterFirst(dataContext.component.resource, '/'));
+
+            // if known global policy, format it otherwise format as unknown
+            if (nfCommon.isDefinedAndNotNull(policy)) {
+                return globalResourceParser(policy);
+            } else {
+                return unknownResourceParser(dataContext);
+            }
         }
     };
 
@@ -1342,7 +1367,7 @@
                 });
 
                 // set the rows
-                usersData.setItems(users, 'uri');
+                usersData.setItems(users);
 
                 // end the update
                 usersData.endUpdate();

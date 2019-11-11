@@ -93,7 +93,7 @@ class ZooKeeperMigratorTest extends Specification {
         then:
         noExceptionThrown()
         def nodes = ZKPaths.getSortedChildren(client, '/').collect { ZKUtil.listSubTreeBFS(client, "/$it") }.flatten()
-        nodes.size() == 6
+        nodes.size() == 7
     }
 
     def "Send to open ZooKeeper without ACL migration with new multi-node parent"() {
@@ -109,7 +109,7 @@ class ZooKeeperMigratorTest extends Specification {
         then:
         noExceptionThrown()
         def nodes = ZKPaths.getSortedChildren(client, '/').collect { ZKUtil.listSubTreeBFS(client, "/$it") }.flatten()
-        nodes.size() == 7
+        nodes.size() == 8
     }
 
     def "Receive all nodes from ZooKeeper root"() {
@@ -128,7 +128,7 @@ class ZooKeeperMigratorTest extends Specification {
         then:
         noExceptionThrown()
         def persistedData = new Gson().fromJson(new JsonReader(new FileReader(outputFilePath)), List) as List
-        persistedData.size() == 5
+        persistedData.size() == 6
     }
 
     def "Receive Zookeeper node created with username and password"() {
@@ -168,7 +168,7 @@ class ZooKeeperMigratorTest extends Specification {
         then:
         noExceptionThrown()
         def nodes = ZKPaths.getSortedChildren(client, '/').collect { ZKUtil.listSubTreeBFS(client, "/$it") }.flatten()
-        nodes.size() == 3
+        nodes.size() == 4
     }
 
     def "Send to open Zookeeper with ACL migration"() {
@@ -184,7 +184,7 @@ class ZooKeeperMigratorTest extends Specification {
         then:
         noExceptionThrown()
         def nodes = ZKPaths.getSortedChildren(client, '/').collect { ZKUtil.listSubTreeBFS(client, "/$it") }.flatten()
-        nodes.size() == 3
+        nodes.size() == 4
     }
 
     def "Send to open Zookeeper using existing ACL"() {
@@ -245,26 +245,41 @@ class ZooKeeperMigratorTest extends Specification {
         '127.0.0.1,127.0.0.2:2182,127.0.0.3:2183/path/node' | '/path/node' | '127.0.0.1,127.0.0.2:2182,127.0.0.3:2183' || _
     }
 
-    def "Test ignore source"() {
+    def "Test ignore source" () {
         given:
         def server = new TestingServer()
+        def migrationPathRoot = '/nifi/components'
         def connectString = "$server.connectString"
         def dataPath = 'target/test-data-ignore-source.json'
+        def client = new ZooKeeper(server.connectString, 3000, { WatchedEvent watchedEvent ->
+        })
+
+        // Create some znodes under /nifi/components
+        ZKPaths.mkdirs(client, migrationPathRoot)
+        client.setData(migrationPathRoot, 'some data'.bytes, 0)
+        def componentName = '1'
+        client.create("$migrationPathRoot/$componentName", 'some data'.bytes, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT)
+        componentName = '1/a'
+        client.create("$migrationPathRoot/$componentName", 'some data'.bytes, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL)
+        componentName = '2'
+        client.create("$migrationPathRoot/$componentName", 'some data'.bytes, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT)
+        componentName = '3'
+        client.create("$migrationPathRoot/$componentName", 'some data'.bytes, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT)
 
         when: "data is read from the source zookeeper"
-        ZooKeeperMigratorMain.main(['-r', '-z', connectString, '-f', dataPath] as String[])
+        ZooKeeperMigratorMain.main(['-r', '-z', "$connectString$migrationPathRoot", '-f', dataPath] as String[])
 
         then: "verify the data has been written to the output file"
         new File(dataPath).exists()
 
         when: "data is sent to the same zookeeper as the the source zookeeper without ignore source"
-        ZooKeeperMigratorMain.main(['-s', '-z', connectString, '-f', dataPath] as String[])
+        ZooKeeperMigratorMain.main(['-s', '-z', "$connectString$migrationPathRoot", '-f', dataPath] as String[])
 
         then: "verify that an illegal argument exception is thrown"
         thrown(IllegalArgumentException)
 
-        when: "data is sent to the same zookeeper as the source zookeeper with ignore source option is set"
-        ZooKeeperMigratorMain.main(['-s', '-z', connectString, '-f', dataPath, '--ignore-source'] as String[])
+        when: "data is sent to the same zookeeper as the source zookeeper with ignore source option set"
+        ZooKeeperMigratorMain.main(['-s', '-z', "$connectString$migrationPathRoot", '-f', dataPath, '--ignore-source', '--use-existing-acl'] as String[])
 
         then: "no exceptions are thrown"
         noExceptionThrown()

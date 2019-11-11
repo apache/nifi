@@ -207,6 +207,9 @@ public class StandardPropertyValue implements PropertyValue {
 
     @Override
     public boolean isExpressionLanguagePresent() {
+        if (preparedQuery == null) {
+            return false;
+        }
         return preparedQuery.isExpressionLanguagePresent();
     }
 }

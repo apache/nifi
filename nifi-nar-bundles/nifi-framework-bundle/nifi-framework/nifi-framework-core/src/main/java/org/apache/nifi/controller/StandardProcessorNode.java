@@ -1361,6 +1361,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
 
         final Processor processor = processorRef.get().getProcessor();
         final ComponentLog procLog = new SimpleProcessLogger(StandardProcessorNode.this.getIdentifier(), processor);
+        LOG.info("Starting {}", this);
 
         ScheduledState currentState;
         boolean starting;
@@ -1498,7 +1499,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
             final ProcessContext processContext = processContextFactory.get();
 
             final ScheduledState currentScheduleState = scheduledState.get();
-            if (currentScheduleState == ScheduledState.STOPPING || currentScheduleState == ScheduledState.STOPPED) {
+            if (currentScheduleState == ScheduledState.STOPPING || currentScheduleState == ScheduledState.STOPPED || getDesiredState() == ScheduledState.STOPPED) {
                 LOG.debug("{} is stopped. Will not call @OnScheduled lifecycle methods or begin trigger onTrigger() method", StandardProcessorNode.this);
                 schedulingAgentCallback.onTaskComplete();
                 scheduledState.set(ScheduledState.STOPPED);
@@ -1648,7 +1649,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
             final SchedulingAgent schedulingAgent, final LifecycleState scheduleState) {
 
         final Processor processor = processorRef.get().getProcessor();
-        LOG.info("Stopping processor: " + processor.getClass());
+        LOG.info("Stopping processor: " + this);
         desiredState = ScheduledState.STOPPED;
 
         final CompletableFuture<Void> future = new CompletableFuture<>();
@@ -1722,7 +1723,11 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
             // before stop() was called. If that happens the stop processor
             // routine will be initiated in start() method, otherwise the IF
             // part will handle the stop processor routine.
-            this.scheduledState.compareAndSet(ScheduledState.STARTING, ScheduledState.STOPPING);
+            final boolean updated = this.scheduledState.compareAndSet(ScheduledState.STARTING, ScheduledState.STOPPING);
+            if (updated) {
+                LOG.debug("Transitioned state of {} from STARTING to STOPPING", this);
+            }
+
             future.complete(null);
         }
 

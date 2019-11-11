@@ -1240,8 +1240,8 @@ Before you begin, confirm that:
 |*Required Information*|*Description*
 |Source ZooKeeper hostname (*sourceHostname*)|The hostname must be one of the hosts running in the ZooKeeper ensemble, which can be found in _<NiFi installation dir>/conf/zookeeper.properties_.  Any of the hostnames declared in the `server.N` properties can be used.
 |Destination ZooKeeper hostname (*destinationHostname*)|The hostname must be one of the hosts running in the ZooKeeper ensemble, which can be found in _<NiFi installation dir>/conf/zookeeper.properties_.  Any of the hostnames declared in the `server.N` properties can be used.
-|Source ZooKeeper port (*sourceClientPort*)|This can be found in _<NiFi installation dir>/conf/zookeeper.properties_.  The port is specified in the `clientPort` property.
-|Destination ZooKeeper port (*destinationClientPort*)|This can be found in _<NiFi installation dir>/conf/zookeeper.properties_.  The port is specified in the `clientPort` property.
+|Source ZooKeeper port (*sourceClientPort*)|This can be found in _<NiFi installation dir>/conf/zookeeper.properties_.  The port is specified in the `clientPort` property or at the end of the server string.
+|Destination ZooKeeper port (*destinationClientPort*)|This can be found in _<NiFi installation dir>/conf/zookeeper.properties_.  The port is specified in the `clientPort` property or at the end of the server string.
 |Export data path|Determine the path that will store a json file containing the export of data from ZooKeeper.  It must be readable and writable by the user running the zk-migrator tool.
 |Source ZooKeeper Authentication Information|This information is in _<NiFi installation dir>/conf/state-management.xml_. For NiFi 0.x, if Creator Only is specified in _state-management.xml_, you need to supply authentication information using the `-a,--auth` argument with the values from the Username and Password properties in _state-management.xml_. For NiFi 1.x, supply authentication information using the `-k,--krb-conf` argument.
 
@@ -1252,6 +1252,8 @@ If the _state-management.xml_ specifies Open, no authentication is required.
 |Root path to which NiFi writes data in Source ZooKeeper (*sourceRootPath*)|This information can be found in `<NiFi installation dir>/conf/state-management.xml` under the Root Node property in the cluster-provider element. (default: `/nifi`)
 |Root path to which NiFi writes data in Destination ZooKeeper (*destinationRootPath*)|This information can be found in _<NiFi installation dir>/conf/state-management.xml_ under the Root Node property in the cluster-provider element.
 |====
+NOTE: As of NiFi 1.10.x, because of an upgrade to ZooKeeper 3.5.x, the migrator may have a permission error `"NoAuthException: KeeperErrorCode = NoAuth for /zookeeper/config"` when attempting to use `/` as the destination root path. This is because the `/zookeeper/config` znode has read-only permissions. Instead use a destination path of `/nifi/components` or similar.
+
 2. Stop all processors in the NiFi flow.  If you are migrating between two NiFi installations, the flows on both must be stopped.
 3. Export the NiFi component data from the source ZooKeeper.  The following command reads from the specified ZooKeeper running on the given hostname:port, using the provided path to the data, and authenticates with ZooKeeper using the given username and password.  The data read from ZooKeeper is written to the file provided.
 

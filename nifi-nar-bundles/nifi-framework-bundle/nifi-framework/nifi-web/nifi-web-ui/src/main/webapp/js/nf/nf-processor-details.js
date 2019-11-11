@@ -25,9 +25,10 @@
                 'nf.Dialog',
                 'nf.ErrorHandler',
                 'nf.CustomUi',
-                'nf.ClusterSummary'],
-            function ($, nfCommon, nfUniversalCapture, nfDialog, nfErrorHandler, nfCustomUi, nfClusterSummary) {
-                return (nf.ProcessorDetails = factory($, nfCommon, nfUniversalCapture, nfDialog, nfErrorHandler, nfCustomUi, nfClusterSummary));
+                'nf.ClusterSummary',
+                'nf.CanvasUtils'],
+            function ($, nfCommon, nfUniversalCapture, nfDialog, nfErrorHandler, nfCustomUi, nfClusterSummary, nfCanvasUtils) {
+                return (nf.ProcessorDetails = factory($, nfCommon, nfUniversalCapture, nfDialog, nfErrorHandler, nfCustomUi, nfClusterSummary, nfCanvasUtils));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ProcessorDetails =
@@ -37,7 +38,8 @@
                 require('nf.Dialog'),
                 require('nf.ErrorHandler'),
                 require('nf.CustomUi'),
-                require('nf.ClusterSummary')));
+                require('nf.ClusterSummary'),
+                require('nf.CanvasUtils')));
     } else {
         nf.ProcessorDetails = factory(root.$,
             root.nf.Common,
@@ -45,9 +47,10 @@
             root.nf.Dialog,
             root.nf.ErrorHandler,
             root.nf.CustomUi,
-            root.nf.ClusterSummary);
+            root.nf.ClusterSummary,
+            root.nf.CanvasUtils);
     }
-}(this, function ($, nfCommon, nfUniversalCapture, nfDialog, nfErrorHandler, nfCustomUi, nfClusterSummary) {
+}(this, function ($, nfCommon, nfUniversalCapture, nfDialog, nfErrorHandler, nfCustomUi, nfClusterSummary, nfCanvasUtils) {
     'use strict';
 
     /**
@@ -173,7 +176,11 @@
             // initialize the properties
             $('#read-only-processor-properties').propertytable({
                 supportsGoTo: config.supportsGoTo,
-                readOnly: true
+                readOnly: true,
+                getParameterContext: function (groupId) {
+                    // processors being configured must be in the current group
+                    return nfCanvasUtils.getParameterContext();
+                }
             });
         },
 

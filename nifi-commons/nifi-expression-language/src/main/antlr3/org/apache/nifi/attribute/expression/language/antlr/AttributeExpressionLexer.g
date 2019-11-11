@@ -142,6 +142,7 @@ UNESCAPE_HTML4 : 'unescapeHtml4';
 BASE64_ENCODE : 'base64Encode';
 BASE64_DECODE : 'base64Decode';
 GET_STATE_VALUE: 'getStateValue';
+EVALUATE_EL_STRING: 'evaluateELString';
 
 // 1 arg functions
 SUBSTRING_AFTER	: 'substringAfter';
@@ -189,6 +190,8 @@ REPLACE_FIRST	: 'replaceFirst';
 REPLACE_ALL : 'replaceAll';
 IF_ELSE : 'ifElse';
 JSON_PATH_SET : 'jsonPathSet';
+JSON_PATH_ADD : 'jsonPathAdd';
+JSON_PATH_PUT : 'jsonPathPut';
 PAD_LEFT : 'padLeft';
 PAD_RIGHT : 'padRight';
 

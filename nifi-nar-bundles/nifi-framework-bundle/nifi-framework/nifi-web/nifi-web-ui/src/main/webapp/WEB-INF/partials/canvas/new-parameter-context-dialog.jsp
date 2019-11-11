@@ -15,23 +15,31 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
-<div id="parameter-context-dialog" layout="column" class="hidden">
+<div id="parameter-context-dialog" layout="column" class="hidden read-only">
     <div id="parameter-context-status-bar"></div>
     <div class="parameter-context-tab-container dialog-content">
         <div id="parameter-context-tabs" class="tab-container"></div>
         <div id="parameter-context-tabs-content">
             <div id="parameter-context-standard-settings-tab-content" class="configuration-tab">
                 <div class="settings-left">
+                    <div id="parameter-context-id-setting" class="setting hidden">
+                        <div class="setting-name">Id</div>
+                        <div class="setting-field">
+                            <div id="parameter-context-id-field" class="ellipsis"></div>
+                        </div>
+                    </div>
                     <div class="setting">
                         <div class="setting-name">Name</div>
                         <div id="parameter-context-name-container" class="setting-field">
-                            <input type="text" id="parameter-context-name" name="parameter-context-name"/>
+                            <input type="text" id="parameter-context-name" class="edit-mode" name="parameter-context-name"/>
+                            <div id="parameter-context-name-read-only" class="read-only ellipsis"></div>
                         </div>
                     </div>
                     <div class="setting">
                         <div class="setting-name">Description</div>
                         <div class="setting-field parameter-context-description-container">
-                            <textarea id="parameter-context-description-field" rows="6"></textarea>
+                            <textarea id="parameter-context-description-field" class="edit-mode" rows="6"></textarea>
+                            <div id="parameter-context-description-read-only" class="read-only"></div>
                         </div>
                         <div class="clear"></div>
                     </div>
@@ -42,7 +50,7 @@
             </div>
             <div id="parameter-context-parameters-tab-content" class="configuration-tab">
                 <div class="settings-left">
-                    <div>
+                    <div class="edit-mode">
                         <div id="add-parameter"><button class="button fa fa-plus"></button></div>
                         <div class="clear"></div>
                     </div>
@@ -65,7 +73,7 @@
                             Parameter
                         </div>
                         <div class="setting-field">
-                            <div id="parameter-referencing-components-context"></div>
+                            <div id="parameter-referencing-components-context" class="ellipsis"></div>
                         </div>
                     </div>
                     <div class="setting">
@@ -91,7 +99,10 @@
             <div class="clear"></div>
         </div>
         <div class="setting">
-            <div class="setting-name">Value</div>
+            <div class="setting-name">
+                Value
+                <div class="fa fa-question-circle" alt="Info" title="Parameter values do not support Expression Language or embedded parameter references."></div>
+            </div>
             <div class="setting-field new-parameter-value-container">
                 <textarea id="parameter-value-field"></textarea>
                 <div class="string-check-container">

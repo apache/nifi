@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.util.file;
 
+import org.slf4j.Logger;
+
 import java.io.Closeable;
 import java.io.File;
 import java.io.FileInputStream;
@@ -35,8 +37,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Random;
-
-import org.slf4j.Logger;
 
 /**
  * A utility class containing a few useful static methods to do typical IO operations.
@@ -249,7 +249,7 @@ public class FileUtils {
         }
         //now delete the file itself regardless of whether it is plain file or a directory
         if (!FileUtils.deleteFile(file, null, 5)) {
-            throw new IOException("Unable to delete " + file.getAbsolutePath());
+            Files.delete(file.toPath());
         }
     }
 

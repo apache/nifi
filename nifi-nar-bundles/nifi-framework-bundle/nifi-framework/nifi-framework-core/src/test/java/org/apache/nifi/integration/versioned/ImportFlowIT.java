@@ -162,7 +162,7 @@ public class ImportFlowIT extends FrameworkIntegrationTest {
         processor.setProperties(Collections.singletonMap(UsernamePasswordProcessor.PASSWORD.getName(), "#{secret-parameter}"));
         differences = getLocalModifications(innerGroup, versionedFlowWithExplicitValue);
         assertEquals(1, differences.size());
-        assertEquals(DifferenceType.PROPERTY_ADDED, differences.iterator().next().getDifferenceType());
+        assertEquals(DifferenceType.PROPERTY_PARAMETERIZED, differences.iterator().next().getDifferenceType());
 
         // Create a Versioned Flow that contains the Parameter Reference.
         final VersionedFlowSnapshot versionedFlowWithParameterReference = createFlowSnapshot(Collections.emptyList(), Collections.singletonList(processor), null);
@@ -174,7 +174,7 @@ public class ImportFlowIT extends FrameworkIntegrationTest {
         processor.setProperties(Collections.singletonMap(UsernamePasswordProcessor.PASSWORD.getName(), "secret"));
         differences = getLocalModifications(innerGroup, versionedFlowWithParameterReference);
         assertEquals(1, differences.size());
-        assertEquals(DifferenceType.PROPERTY_REMOVED, differences.iterator().next().getDifferenceType());
+        assertEquals(DifferenceType.PROPERTY_PARAMETERIZATION_REMOVED, differences.iterator().next().getDifferenceType());
     }
 
     @Test

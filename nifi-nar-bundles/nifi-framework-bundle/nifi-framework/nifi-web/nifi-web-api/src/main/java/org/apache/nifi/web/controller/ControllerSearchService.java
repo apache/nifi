@@ -36,6 +36,9 @@ import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.nar.NarCloseable;
+import org.apache.nifi.parameter.Parameter;
+import org.apache.nifi.parameter.ParameterContext;
+import org.apache.nifi.parameter.ParameterContextManager;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
@@ -56,6 +59,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -160,6 +164,39 @@ public class ControllerSearchService {
 
         for (final ProcessGroup processGroup : group.getProcessGroups()) {
             search(results, search, processGroup);
+        }
+    }
+
+    /**
+     * Searches all parameter contexts and parameters
+     * @param results Search results
+     * @param search  The search term
+     */
+    public void searchParameters(final SearchResultsDTO results, final String search) {
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+        ParameterContextManager parameterContextManager = flowController.getFlowManager().getParameterContextManager();
+
+        final Set<ParameterContext> parameterContexts = parameterContextManager.getParameterContexts();
+        for (final ParameterContext parameterContext : parameterContexts) {
+            if (parameterContext.isAuthorized(authorizer, RequestAction.READ, user)) {
+                ComponentSearchResultDTO parameterContextMatch = search(search, parameterContext);
+                if (parameterContextMatch != null) {
+                    results.getParameterContextResults().add(parameterContextMatch);
+                }
+
+                // search each parameter within the context as well
+                for (Parameter parameter : parameterContext.getParameters().values()) {
+                    ComponentSearchResultDTO parameterMatch = search(search, parameter);
+                    if (parameterMatch != null) {
+                        final SearchResultGroupDTO paramContextGroup = new SearchResultGroupDTO();
+                        paramContextGroup.setId(parameterContext.getIdentifier());
+                        paramContextGroup.setName(parameterContext.getName());
+                        parameterMatch.setParentGroup(paramContextGroup);
+
+                        results.getParameterResults().add(parameterMatch);
+                    }
+                }
+            }
         }
     }
 
@@ -470,6 +507,42 @@ public class ControllerSearchService {
         final ComponentSearchResultDTO dto = new ComponentSearchResultDTO();
         dto.setId(funnel.getIdentifier());
         dto.setName(funnel.getName());
+        dto.setMatches(matches);
+        return dto;
+    }
+
+    private ComponentSearchResultDTO search(final String searchString, final ParameterContext parameterContext) {
+        final List<String> matches = new ArrayList<>();
+        addIfAppropriate(searchString, parameterContext.getIdentifier(), "Id", matches);
+        addIfAppropriate(searchString, parameterContext.getName(), "Name", matches);
+        addIfAppropriate(searchString, parameterContext.getDescription(), "Description", matches);
+
+        if (matches.isEmpty()) {
+            return null;
+        }
+
+        final ComponentSearchResultDTO dto = new ComponentSearchResultDTO();
+        dto.setId(parameterContext.getIdentifier());
+        dto.setName(parameterContext.getName());
+        dto.setMatches(matches);
+        return dto;
+    }
+
+    private ComponentSearchResultDTO search(final String searchString, final Parameter parameter) {
+        final List<String> matches = new ArrayList<>();
+        addIfAppropriate(searchString, parameter.getDescriptor().getName(), "Name", matches);
+        addIfAppropriate(searchString, parameter.getDescriptor().getDescription(), "Description", matches);
+        if (!parameter.getDescriptor().isSensitive()) {
+            addIfAppropriate(searchString, parameter.getValue(), "Value", matches);
+        }
+
+        if (matches.isEmpty()) {
+            return null;
+        }
+
+        final ComponentSearchResultDTO dto = new ComponentSearchResultDTO();
+        dto.setId(parameter.getDescriptor().getName());
+        dto.setName(parameter.getDescriptor().getName());
         dto.setMatches(matches);
         return dto;
     }

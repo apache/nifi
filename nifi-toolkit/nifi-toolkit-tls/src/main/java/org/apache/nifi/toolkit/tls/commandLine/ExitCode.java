@@ -74,5 +74,10 @@ public enum ExitCode {
     /**
      * Unable to read existing configuration value or file
      */
-    ERROR_READING_CONFIG
+    ERROR_READING_CONFIG,
+
+    /**
+     * Unable to migrate flow content
+     */
+    ERROR_MIGRATING_FLOW
 }

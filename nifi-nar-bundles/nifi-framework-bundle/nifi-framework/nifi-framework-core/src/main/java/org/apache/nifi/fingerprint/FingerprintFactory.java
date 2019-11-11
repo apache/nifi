@@ -238,7 +238,7 @@ public class FingerprintFactory {
 
         // root group
         final Element rootGroupElem = (Element) DomUtils.getChildNodesByTagName(flowControllerElem, "rootGroup").item(0);
-        addProcessGroupFingerprint(builder, rootGroupElem, controller);
+        addProcessGroupFingerprint(builder, rootGroupElem, encodingVersion);
 
         final Element controllerServicesElem = DomUtils.getChild(flowControllerElem, "controllerServices");
         if (controllerServicesElem != null) {
@@ -354,7 +354,7 @@ public class FingerprintFactory {
         return builder;
     }
 
-    private StringBuilder addProcessGroupFingerprint(final StringBuilder builder, final Element processGroupElem, final FlowController controller) throws FingerprintException {
+    StringBuilder addProcessGroupFingerprint(final StringBuilder builder, final Element processGroupElem, final FlowEncodingVersion encodingVersion) throws FingerprintException {
         // id
         appendFirstValue(builder, DomUtils.getChildNodesByTagName(processGroupElem, "id"));
         appendFirstValue(builder, DomUtils.getChildNodesByTagName(processGroupElem, "versionedComponentId"));
@@ -372,7 +372,7 @@ public class FingerprintFactory {
 
         // processors
         final List<Element> processorElems = DomUtils.getChildElementsByTagName(processGroupElem, "processor");
-        Collections.sort(processorElems, getIdsComparator());
+        processorElems.sort(getIdsComparator());
         for (final Element processorElem : processorElems) {
             addFlowFileProcessorFingerprint(builder, processorElem);
         }
@@ -402,7 +402,7 @@ public class FingerprintFactory {
         final NodeList nestedProcessGroupElems = DomUtils.getChildNodesByTagName(processGroupElem, "processGroup");
         final List<Element> sortedNestedProcessGroupElems = sortElements(nestedProcessGroupElems, getIdsComparator());
         for (final Element nestedProcessGroupElem : sortedNestedProcessGroupElems) {
-            addProcessGroupFingerprint(builder, nestedProcessGroupElem, controller);
+            addProcessGroupFingerprint(builder, nestedProcessGroupElem, encodingVersion);
         }
 
         // remote process groups
@@ -424,6 +424,13 @@ public class FingerprintFactory {
         final List<Element> sortedFunnelElems = sortElements(funnelElems, getIdsComparator());
         for (final Element funnelElem : sortedFunnelElems) {
             addFunnelFingerprint(builder, funnelElem);
+        }
+
+        final NodeList controllerServiceElems = DomUtils.getChildNodesByTagName(processGroupElem, "controllerService");
+        final List<Element> sortedControllerServiceElems = sortElements(controllerServiceElems, getIdsComparator());
+        for (final Element controllerServiceElem : sortedControllerServiceElems) {
+            final ControllerServiceDTO dto = FlowFromDOMFactory.getControllerService(controllerServiceElem, encryptor, encodingVersion);
+            addControllerServiceFingerprint(builder, dto);
         }
 
         // add variables

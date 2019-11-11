@@ -55,6 +55,7 @@ public class StandardReportingContext implements ReportingContext, ControllerSer
     private final Map<PropertyDescriptor, PreparedQuery> preparedQueries;
     private final VariableRegistry variableRegistry;
     private final ParameterLookup parameterLookup;
+    private final boolean analyticsEnabled;
 
     public StandardReportingContext(final FlowController flowController, final BulletinRepository bulletinRepository,
                                     final Map<PropertyDescriptor, String> properties, final ReportingTask reportingTask,
@@ -67,6 +68,7 @@ public class StandardReportingContext implements ReportingContext, ControllerSer
         this.reportingTask = reportingTask;
         this.variableRegistry = variableRegistry;
         this.parameterLookup = parameterLookup;
+        this.analyticsEnabled = flowController.getStatusAnalyticsEngine() != null;
         preparedQueries = new HashMap<>();
 
         for (final Map.Entry<PropertyDescriptor, String> entry : properties.entrySet()) {
@@ -179,5 +181,10 @@ public class StandardReportingContext implements ReportingContext, ControllerSer
     public String getClusterNodeIdentifier() {
         final NodeIdentifier nodeId = flowController.getNodeId();
         return nodeId == null ? null : nodeId.getId();
+    }
+
+    @Override
+    public boolean isAnalyticsEnabled() {
+        return this.analyticsEnabled;
     }
 }

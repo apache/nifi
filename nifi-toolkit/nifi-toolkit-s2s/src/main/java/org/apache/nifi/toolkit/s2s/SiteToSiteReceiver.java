@@ -22,6 +22,7 @@ import org.apache.nifi.remote.Transaction;
 import org.apache.nifi.remote.TransactionCompletion;
 import org.apache.nifi.remote.TransferDirection;
 import org.apache.nifi.remote.client.SiteToSiteClient;
+import org.apache.nifi.remote.exception.NoContentException;
 import org.apache.nifi.remote.protocol.DataPacket;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
@@ -45,6 +46,9 @@ public class SiteToSiteReceiver {
 
     public TransactionCompletion receiveFiles() throws IOException {
         Transaction transaction = siteToSiteClient.createTransaction(TransferDirection.RECEIVE);
+        if (transaction == null) {
+            throw new NoContentException("Remote side has no flowfiles to provide");
+        }
         JsonGenerator jsonGenerator = new JsonFactory().createJsonGenerator(output);
         jsonGenerator.writeStartArray();
         DataPacket dataPacket;

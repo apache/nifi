@@ -97,11 +97,11 @@ The following table lists the default ports used by an <<embedded_zookeeper>> an
 [options="header,footer"]
 |==================================================================================================================================================
 | Function                                         | Property       | Default Value
-|Zookeeper Client Port                             | `clientPort`   | `2181`
+|Zookeeper Client Port (Deprecated: client port is no longer specified on a separate line as of NiFi 1.10.x)                             | `clientPort`   | `2181`
 |Zookeeper Server Quorum and Leader Election Ports | `server.1`     | _none_
 |==================================================================================================================================================
 
-NOTE: Commented examples for the Zookeeper server ports are included in the _zookeeper.properties_ file in the form `server.N=nifi-nodeN-hostname:2888:3888`.
+NOTE: Commented examples for the Zookeeper server ports are included in the _zookeeper.properties_ file in the form `server.N=nifi-nodeN-hostname:2888:3888;2181`.
 
 == Configuration Best Practices
 If you are running on Linux, consider these best practices. Typical Linux defaults are not necessarily well-tuned for the needs of an IO intensive application like NiFi.  For all of these areas, your distribution's requirements may vary. Use these sections as advice, but
@@ -151,6 +151,15 @@ vm.swappiness = 0
 For the partitions handling the various NiFi repos, turn off things like `atime`.
 Doing so can cause a surprising bump in throughput.  Edit the `/etc/fstab` file
 and for the partition(s) of interest, add the `noatime` option.
+
+== Recommended Antivirus Exclusions
+Antivirus software can take a long time to scan large directories and the numerous files within them. Additionally, if the antivirus software locks files or directories during a scan, those resources are unavailable to NiFi processes, causing latency or unavailability of these resources in a NiFi instance/cluster. To prevent these performance and reliability issues from occurring, it is highly recommended to configure your antivirus software to skip scans on the following NiFi directories:
+
+* `content_repository`
+* `flowfile_repository`
+* `logs`
+* `provenance_repository`
+* `state`
 
 [[security_configuration]]
 == Security Configuration
@@ -469,6 +478,8 @@ The ShellUserGroupProvider has the following properties:
 | Property Name | Description
 |`Initial Refresh Delay` | Duration of initial delay before first user and group refresh. (i.e. `10 secs`).  Default is `5 mins`.
 |`Refresh Delay` | Duration of delay between each user and group refresh. (i.e. `10 secs`).  Default is `5 mins`.
+|`Exclude Groups` | Regular expression used to exclude groups.  Default is '', which means no groups are excluded.
+|`Exclude Users` | Regular expression used to exclude users.  Default is '', which means no users are excluded.
 |==================================================================================================================================================
 
 Like LdapUserGroupProvider, the ShellUserGroupProvider is commented out in the _authorizers.xml_ file.  Refer to that comment for usage examples.
@@ -958,20 +969,22 @@ The following tables summarize the global and component policies assigned to eac
 ===== Global Access Policies
 [cols=">s,^s,^s,^s,^s,^s,^s", options="header"]
 |==========================
-|                                  | Admin | DFM | Monitor | Provenance | NiFi | Proxy
-|view the UI                       |*      |*    |*        |            |      |
-|access the controller - view      |*      |*    |*        |            |*     |
-|access the controller - modify    |       |*    |         |            |      |
-|query provenance                  |       |     |         |*           |      |
-|access restricted components      |       |*    |         |            |      |
-|access all policies - view        |*      |     |         |            |      |
-|access all policies - modify      |*      |     |         |            |      |
-|access users/user groups - view   |*      |     |         |            |      |
-|access users/user groups - modify |*      |     |         |            |      |
-|retrieve site-to-site details     |       |     |         |            |*     |
-|view system diagnostics           |       |*    |*        |            |      |
-|proxy user requests               |       |     |         |            |      |*
-|access counters                   |       |     |         |            |      |
+|                                   | Admin | DFM | Monitor | Provenance | NiFi | Proxy
+|view the UI                        |*      |*    |*        |            |      |
+|access the controller - view       |*      |*    |*        |            |*     |
+|access the controller - modify     |       |*    |         |            |      |
+|access parameter contexts - view   |       |     |         |            |      |
+|access parameter contexts - modify |       |     |         |            |      |
+|query provenance                   |       |     |         |*           |      |
+|access restricted components       |       |*    |         |            |      |
+|access all policies - view         |*      |     |         |            |      |
+|access all policies - modify       |*      |     |         |            |      |
+|access users/user groups - view    |*      |     |         |            |      |
+|access users/user groups - modify  |*      |     |         |            |      |
+|retrieve site-to-site details      |       |     |         |            |*     |
+|view system diagnostics            |       |*    |*        |            |      |
+|proxy user requests                |       |     |         |            |      |*
+|access counters                    |       |     |         |            |      |
 |==========================
 
 ===== Component Access Policies on the Root Process Group
@@ -1095,9 +1108,14 @@ Global access policies govern the following system level authorizations:
 |`/flow`
 
 |access the controller
-|Allows users to view/modify the controller including Reporting Tasks, Controller Services, and Nodes in the Cluster
+|Allows users to view/modify the controller including Reporting Tasks, Controller Services, Parameter Contexts and Nodes in the Cluster
 |Controller Settings
 |`/controller`
+
+|access parameter contexts
+|Allows users to view/modify Parameter Contexts. Access to Parameter Contexts are inherited from the "access the controller" policies unless overridden.
+|Parameter Contexts
+|`/parameter-contexts`
 
 |query provenance
 |Allows users to submit a Provenance Search and request Event Lineage
@@ -1374,7 +1392,7 @@ Here are the KDFs currently supported by NiFi (primarily in the `EncryptContent`
 * Scrypt
 ** This KDF was added in v0.5.0.
 ** link:https://en.wikipedia.org/wiki/Scrypt[Scrypt^] is an adaptive function designed in response to `bcrypt`. This KDF is recommended as it requires relatively large amounts of memory for each derivation, making it resistant to hardware brute-force attacks.
-** The recommended minimum cost is `N`=2^14^, `r`=8, `p`=1 (as of 2/1/2016 on commodity hardware) and should be increased to the threshold at which legitimate systems will encounter detrimental delays (see schedule below or use `ScryptCipherProviderGroovyTest#testDefaultConstructorShouldProvideStrongParameters()` to calculate safe minimums).
+** The recommended minimum cost is `N`=2^14^, `r`=8, `p`=1 (as of 2/1/2016 on commodity hardware). `p` must be a positive integer and less than `(2^32 − 1) * (Hlen/MFlen)` where `Hlen` is the length in octets of the digest function output (32 for SHA-256) and `MFlen` is the length in octets of the mixing function output, defined as `r * 128`. These parameters should be increased to the threshold at which legitimate systems will encounter detrimental delays (see schedule below or use `ScryptCipherProviderGroovyTest#testDefaultConstructorShouldProvideStrongParameters()` to calculate safe minimums).
 ** The salt format is `$s0$e0101$ABCDEFGHIJKLMNOPQRSTUV`. The salt is delimited by `$` and the three sections are as follows:
 *** `s0` - the version of the format. NiFi currently uses `s0` for all salts generated internally.
 *** `e0101` - the cost parameters. This is actually a hexadecimal encoding of `N`, `r`, `p` using shifts. This can be formed/parsed using `Scrypt#encodeParams()` and `Scrypt#parseParameters()`.
@@ -1844,12 +1862,11 @@ However, it is up to the administrator to determine the number of nodes most app
 
 If the `nifi.state.management.embedded.zookeeper.start` property is set to `true`, the `nifi.state.management.embedded.zookeeper.properties` property
 in _nifi.properties_ also becomes relevant. This specifies the ZooKeeper properties file to use. At a minimum, this properties file needs to be populated
-with the list of ZooKeeper servers. The servers are specified as properties in the form of `server.1`, `server.2`, to `server.n`. Each of these servers is
-configured as <hostname>:<quorum port>[:<leader election port>]. For example, `myhost:2888:3888`. This list of nodes should be the same nodes in the NiFi
-cluster that have the `nifi.state.management.embedded.zookeeper.start` property set to `true`. Also note that because ZooKeeper will be listening on these
-ports, the firewall may need to be configured to open these ports for incoming traffic, at least between nodes in the cluster. Additionally, the port to
-listen on for client connections must be opened in the firewall. The default value for this is `2181` but can be configured via the _clientPort_ property
-in the _zookeeper.properties_ file.
+with the list of ZooKeeper servers. The servers are specified as properties in the form of `server.1`, `server.2`, to `server.n`. As of NiFi 1.10.x, Zookeeper
+has been upgraded to 3.5.5 and servers are now defined with the client port appended at the end as per the link:https://zookeeper.apache.org/doc/r3.5.2-alpha/zookeeperReconfig.html#sc_reconfig_clientport[Zookeeper Documentation].
+As such, each of these servers is configured as <hostname>:<quorum port>[:<leader election port>][:role];[<client port address>:]<client port>.
+As a simple example this would be `server.1 = myhost:2888:3888;2181`. This list of nodes should be the same nodes in the NiFi cluster that have the `nifi.state.management.embedded.zookeeper.start` property set to `true`.
+Also note that because ZooKeeper will be listening on these ports, the firewall may need to be configured to open these ports for incoming traffic, at least between nodes in the cluster.
 
 When using an embedded ZooKeeper, the ./__conf/zookeeper.properties__ file has a property named `dataDir`. By default, this value is set to `./state/zookeeper`.
 If more than one NiFi node is running an embedded ZooKeeper, it is important to tell the server which one it is. This is accomplished by creating a file named
@@ -2379,16 +2396,35 @@ root@kdc:~# ll /http*
 root@kdc:~#
 ....
 
+[[analytics_framework]]
+== Analytics Framework
+NiFi has an internal analytics framework which can be enabled to predict back pressure occurrence, given the configured settings for threshold on a queue.  The model used by default for prediction is an ordinary least squares (OLS) linear regression. It uses recent observations from a queue (either number of objects or content size over time) and calculates a regression line for that data. The line's equation is then used to determine the next value that will be reached within a given time interval (e.g. number of objects in queue in the next 5 minutes). Below is an example graph of the linear regression model for Queue/Object Count over time which is used for predictions:
+
+image:back_pressure_prediction_model_example.png["Back pressure prediction based on Queue/Object Count"]
+
+In order to generate predictions, local status snapshot history is queried to obtain enough data to generate a model.  By default component status snapshots are captured every minute. Internal models need at least 2 or more observations to generate a prediction, therefore it may take up to 2 or more minutes for predictions to be available by default.  If predictions are needed sooner than what is provided by default, the timing of snapshots can be adjusted using the `nifi.components.status.snapshot.frequency` value in nifi.properties.
+
+NiFi evaluates the model's effectiveness before sending prediction information by using the model's R-Squared score by default. One important note: R-Square is a measure of how close the regression line fits the observation data vs. how accurate the prediction will be; therefore there may be some measure of error. If the R-Squared score for the calculated model meets the configured threshold (as defined by `nifi.analytics.connection.model.score.threshold`) then the model will be used for prediction. Otherwise the model will not be used and predictions will not be available until a model is generated with a score that exceeds the threshold.  Default R-Squared threshold value is `.9` however this can be tuned based on prediction requirements.
+
+The prediction interval `nifi.analytics.predict.interval` can be configured to project out further when back pressure will occur.  The prediction query interval `nifi.analytics.query.interval` can also be configured to determine how far back in time past observations should be queried in order to generate the model.  Adjustments to these settings may require tuning of the model's scoring threshold value to select a score that can offer reasonable predictions.
+
+See <<analytics_properties>> for complete information on configuring analytic properties.
+
+
 [[system_properties]]
 == System Properties
-The _nifi.properties_ file in the `conf` directory is the main configuration file for controlling how NiFi runs. This section provides an overview of the properties in this file and includes some notes on how to configure it in a way that will make upgrading easier. *After making changes to this file, restart NiFi in order
-for the changes to take effect.*
+The _nifi.properties_ file in the `conf` directory is the main configuration file for controlling how NiFi runs. This section provides an overview of the properties in this file and their setting options.
 
-NOTE: The contents of this file are relatively stable but do change from time to time. It is always a good idea to
-review this file when upgrading and pay attention for any changes. Consider configuring items
-below marked with an asterisk (*) in such a way that upgrading will be easier. For details, see a full discussion on upgrading
-at the end of this section. Note that values for periods of time and data sizes must include the unit of measure,
-for example "10 secs" or "10 MB", not simply "10".
+NOTE: Values for periods of time and data sizes must include the unit of measure, for example "10 secs" or "10 MB", not simply "10".
+
+WARNING: After making changes to _nifi.properties_, restart NiFi in order for the changes to take effect.
+
+
+=== Upgrade Recommendations
+The contents of the _nifi.properties_ file are relatively stable but can change from version to version. It is always a good idea to review this file when upgrading and pay attention to any changes.
+
+Consider configuring items below marked with an asterisk (`*`) in such a way that upgrading will be easier. For example, change the default directory configurations to locations outside the main root installation. In this way, these items can remain in their configured location through an upgrade, allowing NiFi to find all the repositories and configuration files and pick up where it left off as soon as the old version is stopped and the new version is started. Furthermore, the administrator may reuse this _nifi.properties_ file and any other configuration files without having to re-configure them each time an upgrade takes place. See <<upgrading_nifi>> for more details.
+
 
 === Core Properties +
 
@@ -2398,7 +2434,7 @@ The first section of the _nifi.properties_ file is for the Core Properties. Thes
 |*Property*|*Description*
 |`nifi.flow.configuration.file`*|The location of the flow configuration file (i.e., the file that contains what is currently displayed on the NiFi graph). The default value is `./conf/flow.xml.gz`.
 |`nifi.flow.configuration.archive.enabled`*|Specifies whether NiFi creates a backup copy of the flow automatically when the flow is updated. The default value is `true`.
-|`nifi.flow.configuration.archive.dir`*|The location of the archive directory where backup copies of the _flow.xml_ are saved. The default value is `./conf/archive`. NiFi removes old archive files to limit disk usage based on archived file lifespan, total size, and number of files, as specified with `nifi.flow.configuration.archive.max.time`, `max.storage` and `max.count` properties respectively. If none of these limitation for archiving is specified, NiFi uses default conditions, that is `30 days` for max.time and `500 MB` for max.storage. +
+|`nifi.flow.configuration.archive.dir`*|The location of the archive directory where backup copies of the _flow.xml_ are saved. The default value is `./conf/archive`. NiFi removes old archive files to limit disk usage based on archived file lifespan, total size, and number of files, as specified with `nifi.flow.configuration.archive.max.time`, `max.storage` and `max.count` properties respectively. If none of these limitation for archiving is specified, NiFi uses default conditions, that is `30 days` for `max.time` and `500 MB` for `max.storage`. +
 This cleanup mechanism takes into account only automatically created archived _flow.xml_ files. If there are other files or directories in this archive directory, NiFi will ignore them. Automatically created archives have filename with ISO 8601 format timestamp prefix followed by `<original-filename>`. That is `<year><month><day>T<hour><minute><second>+<timezone offset>_<original filename>`. For example, `20160706T160719+0900_flow.xml.gz`. NiFi checks filenames when it cleans archive directory. If you would like to keep a particular archive in this directory without worrying about NiFi deleting it, you can do so by copying it with a different filename pattern.
 |`nifi.flow.configuration.archive.max.time`*|The lifespan of archived _flow.xml_ files. NiFi will delete expired archive files when it updates _flow.xml_ if this property is specified. Expiration is determined based on current system time and the last modified timestamp of an archived _flow.xml_. If no archive limitation is specified in _nifi.properties_, NiFi removes archives older than `30 days`.
 |`nifi.flow.configuration.archive.max.storage`*|The total data size allowed for the archived _flow.xml_ files. NiFi will delete the oldest archive files until the total archived file size becomes less than this configuration value, if this property is specified. If no archive limitation is specified in _nifi.properties_, NiFi uses `500 MB` for this.
@@ -2651,6 +2687,30 @@ this property specifies the maximum amount of time to keep the archived data. Th
 |`nifi.content.repository.always.sync`|If set to `true`, any change to the repository will be synchronized to the disk, meaning that NiFi will ask the operating system not to cache the information. This is very expensive and can significantly reduce NiFi performance. However, if it is `false`, there could be the potential for data loss if either there is a sudden power loss or the operating system crashes. The default value is `false`.
 |`nifi.content.viewer.url`|The URL for a web-based content viewer if one is available. It is blank by default.
 |====
+
+[[encrypted-file-system-content-repository-properties]]
+=== Encrypted File System Content Repository Properties
+
+All of the properties defined above (see <<file-system-content-repository-properties,File System Content Repository Properties>>) still apply. Only encryption-specific properties are listed here. See <<user-guide.adoc#encrypted-content,Encrypted Content Repository in the User Guide>> for more information.
+
+|====
+|*Property*|*Description*
+ |`nifi.content.repository.encryption.key.provider.implementation`|This is the fully-qualified class name of the **key provider**. A key provider is the datastore interface for accessing the encryption key to protect the content claims. There are currently two implementations -- `StaticKeyProvider` which reads a key directly from _nifi.properties_, and `FileBasedKeyProvider` which reads *n* many keys from an encrypted file. The interface is extensible, and HSM-backed or other providers are expected in the future.
+ |`nifi.content.repository.encryption.key.provider.location`|The path to the key definition resource (empty for `StaticKeyProvider`, `./keys.nkp` or similar path for `FileBasedKeyProvider`). For future providers like an HSM, this may be a connection string or URL.
+ |`nifi.content.repository.encryption.key.id`|The active key ID to use for encryption (e.g. `Key1`).
+ |`nifi.content.repository.encryption.key`|The key to use for `StaticKeyProvider`. The key format is hex-encoded (`0123456789ABCDEFFEDCBA98765432100123456789ABCDEFFEDCBA9876543210`) but can also be encrypted using the `./encrypt-config.sh` tool in NiFi Toolkit (see the <<toolkit-guide.adoc#encrypt_config_tool,Encrypt-Config Tool>> section in the link:toolkit-guide.html[NiFi Toolkit Guide] for more information).
+ |`nifi.content.repository.encryption.key.id.`*|Allows for additional keys to be specified for the `StaticKeyProvider`. For example, the line `nifi.content.repository.encryption.key.id.Key2=012...210` would provide an available key `Key2`.
+|====
+
+The simplest configuration is below:
+
+....
+nifi.content.repository.implementation=org.apache.nifi.controller.repository.crypto.EncryptedFileSystemRepository
+nifi.content.repository.encryption.key.provider.implementation=org.apache.nifi.security.kms.StaticKeyProvider
+nifi.content.repository.encryption.key.provider.location=
+nifi.content.repository.encryption.key.id=K1
+nifi.content.repository.encryption.key=0123456789ABCDEFFEDCBA98765432100123456789ABCDEFFEDCBA9876543210
+....
 
 === Volatile Content Repository Properties
 
@@ -3317,6 +3377,22 @@ that is specified.
 |`nifi.kerberos.spengo.authentication.expiration`*|The expiration duration of a successful Kerberos user authentication, if used. The default value is `12 hours`.
 |====
 
+[[analytics_properties]]
+=== Analytics Properties
+
+These properties determine the behavior of the internal NiFi predictive analytics capability, such as backpressure prediction, and should be configured the same way on all nodes.
+
+|====
+|*Property*|*Description*
+|`nifi.analytics.predict.enabled`|This indicates whether prediction should be enabled for the cluster. The default is `false`.
+|`nifi.analytics.predict.interval`|This indicates a time interval for which analytical predictions (queue saturation, e.g.) should be made. The default value is `3 mins`.
+|`nifi.analytics.query.interval`|This indicates a time interval to query for past observations (e.g. the last 3 minutes of snapshots). The default value is `3 mins`. NOTE: This value should be at least 3 times greater than `nifi.components.status.snapshot.frequency` to ensure enough observations are retrieved for predictions.
+|`nifi.analytics.connection.model.implementation`|This is the implementation class for the status analytics model used to make connection predictions.  The default value is `org.apache.nifi.controller.status.analytics.models.OrdinaryLeastSquares`.
+|`nifi.analytics.connection.model.score.name`|This is the name of the scoring type that should be used to evaluate model.  The default value is `rSquared`.
+|`nifi.analytics.connection.model.score.threshold`|This is the threshold for the scoring value (where model score should be above given threshold).  The default value is `.9`.
+
+|====
+
 [[custom_properties]]
 === Custom Properties
 
@@ -3336,8 +3412,190 @@ To configure custom properties for use with NiFi’s Expression Language:
 
 Custom properties can also be configured in the NiFi UI.  See the <<user-guide.adoc#Variables_Window,Variables Window>> section in the User Guide for more information.
 
-[WARNING]
-.Upgrading
-============
-Take care when configuring the properties above that are marked with an asterisk (*). To make the upgrade process easier, it is advisable to change the default configurations to locations outside the main root installation directory. In this way, these items can remain in their configured location through an upgrade, and NiFi can find all the repositories and configuration files and pick up where it left off as soon as the old version is stopped and the new version is started. Furthermore, the administrator may reuse this _nifi.properties_ file and any other configuration files without having to re-configure them each time an upgrade takes place. As previously noted, it is important to check for any changes in the _nifi.properties_ file of the new version when upgrading and make sure they are reflected in the _nifi.properties_ file you use.
-============
+
+[[upgrading_nifi]]
+== Upgrading NiFi
+
+The instructions below are general steps to follow when upgrading from a 1.x.0 release to another.
+
+Prior to upgrade you should review the link:https://cwiki.apache.org/confluence/display/NIFI/Release+Notes[Release Notes^] carefully to ensure that you understand the changes made in the new version and the impact they may have on your existing dataflows and/or environment. Additionally, check the link:https://cwiki.apache.org/confluence/display/NIFI/Migration+Guidance[Migration Guidance^] page for items that you should be aware of when moving between specific NiFi versions.
+
+WARNING: All nodes in a cluster must be upgraded to the same NiFi version as nodes with different NiFi versions are not supported in the same cluster.
+
+=== Preserve Custom Processors
+
+If you have any custom NARs, preserve them during upgrade by storing them in a centralized location as follows:
+
+1. Create a second library directory called `custom_lib`.
+2. Move your custom NARs to this new lib directory.
+3. Add a new line to the _nifi.properties_ file to specify this new lib directory:
+
+   nifi.nar.library.directory=./lib
+   nifi.nar.library.directory.custom=/opt/configuration_resources/custom_lib
+
+=== Preserve Modified NARs
+
+If you have modified any of the default NAR files, an upgrade will overwrite these changes. Preserve your customizations as follows:
+
+1. Identify and save the changes you made to the default NAR files.
+2. Perform your NiFi upgrade.
+3. Implement the same NAR file changes in your new NiFi instance.
+
+=== Clear Activity and Shutdown Existing NiFi
+
+On your existing NiFi installation:
+
+1. Stop all the source processors to prevent the ingestion of new data.
+2. Allow NiFi to run until there is no active data in any of the queues in the dataflow(s).
+3. Shutdown your existing NiFi instance(s).
+
+=== Install the new NiFi Version
+
+Install the new NiFi into a directory parallel to the existing NiFi installation.
+
+1. Download the link:https://nifi.apache.org/download.html[latest version^] of Apache NiFi.
+2. Uncompress the NiFi _.tar_ file (`tar -xvzf file-name`) into a directory parallel to your existing NiFi directory. For example, if your existing NiFi installation is installed in `/opt/nifi/existing-nifi/`, install your new NiFi version in `/opt/nifi/new-nifi/`.
+3. If you are upgrading a NiFi cluster, repeat these steps on each node in the cluster.
+
+  Host Machine - Node 1
+  |--> opt/
+     |--> existing-nifi
+     |--> new-nifi
+
+  Host Machine - Node 2
+  |--> opt/
+     |--> existing-nifi
+     |--> new-nifi
+
+  Host Machine - Node 3
+  |--> opt/
+     |--> existing-nifi
+     |--> new-nifi
+
+NOTE: Make sure that all file and directory ownerships for your new NiFi directories match what you set on the existing directories.
+
+=== Update the Configuration Files for Your New NiFi Installation
+
+Use the configuration files from your existing NiFi installation to manually update the corresponding properties in your new NiFi deployment.
+
+WARNING: In general, do not copy configuration files from your existing NiFi version to the new NiFi version. The newer configuration files may introduce new properties that would be lost if you copy and paste configuration files.
+
+Use the following table to guide the update of configuration files located in `<installation-directory>/conf`.
+
+[options="header"]
+|===
+| Configuration file	                       |  Necessary changes
+|_authorizers.xml_                           | Copy the `<authorizer>...</authorizer>` configured in the existing _authorizers.xml_  to the new NiFi file.
+
+If you are using the `file-provider` authorizer, ensure that you copy the _users.xml_ and _authorizations.xml_ files from the existing to the new NiFi.
+
+Configuration best practices recommend creating a separate location outside of the NiFi base directory for storing such configuration files, for example: `/opt/nifi/configuration-resources/`. If you are storing these files in a separate directory, you do not need to move them. Instead, ensure that the new NiFi is pointing to the same files.
+|_bootstrap-notification-services.xml_       | Use the existing NiFi _bootstrap-notification-services.xml_  file to update properties in the new NiFi.
+|_bootstrap.conf_                            | Use the existing NiFi _bootstrap.conf_ file to update properties in the new NiFi.
+|_flow.xml.gz_                               | If you retained the default location for storing flows (`<installation-directory>/conf/`), copy _flow.xml.gz_ from the existing to the new NiFi base install `conf` directory. If you stored flows to an external location via _nifi.properties_, update the property `nifi.flow.configuration.file` to point there.
+
+If you are encrypting sensitive component properties in your dataflow via the sensitive properties key in _nifi.properties_, make sure the same key is used when copying over your _flow.xml.gz_.  If you need to change the key, see the <<sensitive_flow_migration>> section below.
+
+.8+|_nifi.properties_
+|Use the existing _nifi.properties_ to populate the same properties in the new NiFi file.
+
+*Note:* This file contains the majority of NiFi configuration settings, so ensure that you have copied the values correctly.
+
+|If you followed NiFi best practices, the following properties should be pointing to external directories outside of the base NiFi installation path.
+
+If the below properties point to directories inside the NiFi base installation path, you must copy the target directories to the new NiFi. Stop your existing NiFi installation before you do this.
+
+|`nifi.flow.configuration.file=`
+
+If you have retained the default value (`./conf/flow.xml.gz`), copy _flow.xml.gz_ from the existing to the new NiFi base install conf directory.
+
+If you stored flows to an external location, update the property value to point there.
+
+|`nifi.flow.configuration.archive.dir=`
+
+Same applies as above if you want to retain archived copies of the _flow.xml.gz_.
+
+|`nifi.database.directory=`
+
+Best practices recommends that you use an external location for each repository. Point the new NiFi at the same external database repository location.
+
+|`nifi.flowfile.repository.directory=`
+
+Best practices recommends that you use an external location for each repository. Point the new NiFi at the same external flowfile repository location.
+
+*Warning:* You may experience data loss if flowfile repositories are not accessible to the new NiFi.
+
+|`nifi.content.repository.directory.default=`
+
+Best practices recommends that you use an external location for each repository. Point the new NiFi at the same external content repository location.
+
+Your existing NiFi may have multiple content repos defined. Make sure the exact same property names are used and point to the appropriate matching content repo locations. For example:
+
+`nifi.content.repository.directory.content1=`
+`nifi.content.repository.directory.content2=`
+
+*Warning:* You may experience data loss if content repositories are not accessible to the new NiFi.
+
+*Warning:* You may experience data loss if property names are wrong or the property points to the wrong content repository.
+|`nifi.provenance.repository.directory.default=`
+
+Best practices recommends that you use an external location for each repository. Point the new NiFi at the same external provenance repository location.
+
+Your existing NiFi may have multiple content repos defined. Make sure the exact same property names are used and point to the appropriate matching provenance repo locations. For example:
+
+`nifi.provenance.repository.directory.provenance1=`
+`nifi.provenance.repository.directory.provenance2=`
+
+*Note:* You may not be able to query old events if provenance repos are not moved correctly or properties are not updated correctly.
+
+.4+| _state-management.xml_ |For the `local-provider` state provider, verify the location of the local directory.
+
+If you have retained the default location (`./state/local`), copy the complete directory tree to the new NiFi. The existing NiFi should be stopped if you are copying this directory because it may be constantly writing to this directory while running.
+
+Configuration best practices recommend that you move the state to an external directory like `/opt/nifi/configuration-resources/` to facilitate easier upgrading later.
+| For a NiFi cluster, the `cluster-provider`
+ZooKeeper “Connect String" property should be set to the same external ZooKeeper as the existing NiFi installation.
+| For a NiFi cluster, make sure the `cluster-provider` ZooKeeper "Root Node" property matches exactly the value used in the existing NiFi.
+| If you are also setting up a new external ZooKeeper, see the <<zookeeper_migrator>> section for instructions on how to move ZooKeeper information from one cluster to another and migrate ZooKeeper node ownership.
+
+|===
+
+WARNING: Double check all configured properties for typos.
+
+[[sensitive_flow_migration]]
+==== Migrating a Flow with Sensitive Properties
+
+When a value is set for `nifi.sensitive.props.key` in _nifi.properties_, the specified key is used to encrypt sensitive properties in the flow (e.g. password fields in components). If the key needs to change, the Encrypt-Config tool in the NiFi Toolkit can migrate the sensitive properties key and update the _flow.xml.gz_. Specifically, Encrypt-Config:
+
+1. Reads the existing _flow.xml.gz_ and decrypts the sensitive values using the current key.
+2. Encrypts all the sensitive values with a specified new key.
+3. Updates the _nifi.properties_ and _flow.xml.gz_ files or creates new versions of them.
+
+As an example, assume version 1.9.2 is the existing NiFi instance and the sensitive properties key is set to `password`. The goal is to move the 1.9.2 _flow.xml.gz_ to a 1.10.0 instance with a new sensitive properties key: `new_password`. Running the following Encrypt-Config command would read in the _flow.xml.gz_ and _nifi.properties_ files from 1.9.2 using the original sensitive properties key and write out new versions in 1.10.0 with the sensitive properties encrypted with the new password:
+
+```
+$ ./nifi-toolkit-1.10.0/bin/encrypt-config.sh -f /path/to/nifi/nifi-1.9.2/conf/flow.xml.gz -g /path/to/nifi/nifi-1.10.0/conf/flow.xml.gz -s new_password -n /path/to/nifi/nifi-1.9.2/conf/nifi.properties -o /path/to/nifi/nifi-1.10.0/conf/nifi.properties -x
+```
+
+where:
+
+    * `-f` specifies the source _flow.xml.gz_ (nifi-1.9.2)
+    * `-g` specifies the destination _flow.xml.gz_ (nifi-1.10.0)
+    * `-s` specifies the new sensitive properties key (`new_password`)
+    * `-n` specifies the source _nifi.properties_ (nifi-1.9.2)
+    * `-o` specifies the destination _nifi.properties_ (nifi-1.10.0)
+    * `-x` tells Encrypt-Config to only process the sensitive properties
+
+For more information see the <<toolkit-guide.adoc#encrypt_config_tool,Encrypt-Config Tool>> section in the NiFi Toolkit Guide.
+
+=== Start New NiFi
+
+In your new NiFi installation:
+
+1. Start each of your new NiFi instances.
+2. Verify that:
+   * All your dataflows have returned to a running state. Some processors may have new properties that need to be configured, in which case they will be stopped and marked Invalid (image:iconAlert.png["Invalid"]).
+   * All your expected controller services and reporting tasks are running again. Address any controller services or reporting tasks that are marked Invalid (image:iconAlert.png["Invalid"]).
+3. After confirming your new NiFi instances are stable and working as expected, the old installation can be removed.
+
+NOTE:  If the original NiFi was setup to run as a service, update any symlinks or service scripts to point to the new NiFi version executables.

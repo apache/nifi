@@ -283,11 +283,11 @@ public abstract class AbstractPutHDFSRecord extends AbstractHadoopProcessor {
                 final Path tempFile = new Path(directoryPath, "." + filenameValue);
                 final Path destFile = new Path(directoryPath, filenameValue);
 
-                final boolean destinationExists = fileSystem.exists(destFile) || fileSystem.exists(tempFile);
+                final boolean destinationOrTempExists = fileSystem.exists(destFile) || fileSystem.exists(tempFile);
                 final boolean shouldOverwrite = context.getProperty(OVERWRITE).asBoolean();
 
                 // if the tempFile or destFile already exist, and overwrite is set to false, then transfer to failure
-                if (destinationExists && !shouldOverwrite) {
+                if (destinationOrTempExists && !shouldOverwrite) {
                     session.transfer(session.penalize(putFlowFile), REL_FAILURE);
                     getLogger().warn("penalizing {} and routing to failure because file with same name already exists", new Object[]{putFlowFile});
                     return null;
@@ -337,6 +337,16 @@ public abstract class AbstractPutHDFSRecord extends AbstractHadoopProcessor {
                 // into one of the appropriate catch blocks below
                 if (exceptionHolder.get() != null) {
                     throw exceptionHolder.get();
+                }
+
+                final boolean destinationExists = fileSystem.exists(destFile);
+
+                // If destination file already exists, resolve that based on processor configuration
+                if (destinationExists && shouldOverwrite) {
+                    if (fileSystem.delete(destFile, false)) {
+                        getLogger().info("deleted {} in order to replace with the contents of {}",
+                                new Object[]{destFile, putFlowFile});
+                    }
                 }
 
                 // Attempt to rename from the tempFile to destFile, and change owner if successfully renamed

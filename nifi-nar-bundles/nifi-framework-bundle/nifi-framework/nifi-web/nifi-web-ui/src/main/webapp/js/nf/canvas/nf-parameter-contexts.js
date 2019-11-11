@@ -144,8 +144,8 @@
             if (a.permissions.canRead && b.permissions.canRead) {
 
                 // use _.get to try to access the piece of the object you want, but provide a default value it it is not there
-                var aString = _.get(a, 'component[' +  sortDetails.columnId + ']', '');
-                var bString = _.get(b, 'component[' +  sortDetails.columnId + ']', '');
+                var aString = _.get(a, 'component[' + sortDetails.columnId + ']', '');
+                var bString = _.get(b, 'component[' + sortDetails.columnId + ']', '');
                 return aString === bString ? 0 : aString > bString ? 1 : -1;
             } else {
                 if (!a.permissions.canRead && !b.permissions.canRead) {
@@ -175,8 +175,8 @@
         // defines a function for sorting
         var comparer = function (a, b) {
             if (sortDetails.columnId === 'name') {
-                var aString = _.get(a, '[' +  sortDetails.columnId + ']', '');
-                var bString = _.get(b, '[' +  sortDetails.columnId + ']', '');
+                var aString = _.get(a, '[' + sortDetails.columnId + ']', '');
+                var bString = _.get(b, '[' + sortDetails.columnId + ']', '');
                 return aString === bString ? 0 : aString > bString ? 1 : -1;
             }
         };
@@ -190,7 +190,11 @@
      */
     var resetDialog = function () {
         $('#parameter-context-name').val('');
+        $('#parameter-context-name-read-only').text('');
+
         $('#parameter-context-description-field').val('');
+        $('#parameter-context-description-read-only').text('');
+
         $('#parameter-table, #add-parameter').show();
         $('#parameter-context-tabs').show();
         $('#parameter-context-tabs').find('.tab')[0].click();
@@ -198,7 +202,7 @@
 
         $('#process-group-parameter').text('');
         $('#parameter-process-group-id').text('').removeData('revision');
-        $('#parameter-referencing-components-context').removeClass('unset').text('');
+        $('#parameter-referencing-components-context').removeClass('unset').attr('title', '').text('');
 
         var parameterGrid = $('#parameter-table').data('gridInstance');
         var parameterData = parameterGrid.getData();
@@ -208,6 +212,7 @@
 
         // reset the last selected parameter
         lastSelectedId = null;
+        parameterIndex = 0;
 
         // reset the current parameter context
         currentParameterContextEntity = null;
@@ -229,6 +234,7 @@
         $('#parameter-sensitive-radio-button').prop('disabled', false);
         $('#parameter-not-sensitive-radio-button').prop('disabled', false);
         $('#parameter-set-empty-string-field').removeClass('checkbox-checked').addClass('checkbox-unchecked');
+        $('#parameter-value-field').prop('disabled', false);
     };
 
     /**
@@ -692,16 +698,27 @@
                                         }
                                     } else {
                                         var referencingUnauthorizedComponentContainer = $('<li class="referencing-component-container"></li>').appendTo(unauthorizedComponentsContainer);
-                                        $('<span class="parameter-context-referencing-component-name link ellipsis"></span>').prop('title', unauthorizedReferencingComponentEntity.id).text(unauthorizedReferencingComponentEntity.id).on('click', function () {
-                                            // check if there are outstanding changes
-                                            handleOutstandingChanges().done(function () {
-                                                // close the shell
-                                                $('#shell-dialog').modal('hide');
+                                        $('<span class="parameter-context-referencing-component-name link ellipsis"></span>')
+                                            .prop('title', unauthorizedReferencingComponentEntity.id)
+                                            .text(unauthorizedReferencingComponentEntity.id)
+                                            .on('click', function () {
+                                                // check if there are outstanding changes
+                                                handleOutstandingChanges().done(function () {
+                                                    // close the shell
+                                                    $('#shell-dialog').modal('hide');
 
-                                                // show the component in question
-                                                nfCanvasUtils.showComponent(unauthorizedReferencingComponentEntity.processGroup.id, unauthorizedReferencingComponentEntity.id);
-                                            });
-                                        }).appendTo(referencingUnauthorizedComponentContainer);
+                                                    // show the component in question
+                                                    if (unauthorizedReferencingComponentEntity.referenceType === 'PROCESSOR') {
+                                                        nfCanvasUtils.showComponent(unauthorizedReferencingComponentEntity.processGroup.id, unauthorizedReferencingComponentEntity.id);
+                                                    } else if (unauthorizedReferencingComponentEntity.referenceType === 'CONTROLLER_SERVICE') {
+                                                        nfProcessGroupConfiguration.showConfiguration(unauthorizedReferencingComponentEntity.processGroup.id).done(function () {
+                                                            nfProcessGroup.enterGroup(unauthorizedReferencingComponentEntity.processGroup.id);
+                                                            nfProcessGroupConfiguration.selectControllerService(unauthorizedReferencingComponentEntity.id);
+                                                        });
+                                                    }
+                                                });
+                                            })
+                                            .appendTo(referencingUnauthorizedComponentContainer);
                                     }
                                 });
                             }
@@ -897,7 +914,7 @@
         }
 
         // validate the parameter is not a duplicate
-        var matchingParameter = _.find(existingParameters, { name: parameter.name });
+        var matchingParameter = _.find(existingParameters, {name: parameter.name});
 
         // Valid if no duplicate is found or it is edit mode and a matching parameter was found
         if (_.isNil(matchingParameter) || (editMode === true && !_.isNil(matchingParameter))) {
@@ -941,6 +958,11 @@
             } else {
                 // value is not sensitive or it is sensitive and the user has changed it then always take the current value
                 serializedValue = value;
+
+                // if the param is sensitive and the param value has not "changed", that means it matches the mask and it should still be considered changed
+                if (!hasChanged && !_.isEmpty(parameter) && parameter.sensitive === true && parameter.isNew === false) {
+                    hasChanged = true;
+                }
             }
         } else {
             if (isChecked) {
@@ -1167,7 +1189,7 @@
                     $.each(parameters, function (_, parameterEntity) {
                         parameterNames.push(parameterEntity.parameter.name);
                     });
-                    $('#parameter-referencing-components-context').removeClass('unset').text(parameterNames.join(', '));
+                    $('#parameter-referencing-components-context').removeClass('unset').attr('title', parameterNames.join(', ')).text(parameterNames.join(', '));
 
                     // update the progress/steps
                     populateParameterContextUpdateStep(updateRequest.updateSteps, cancelled, errored);
@@ -1326,8 +1348,9 @@
      *
      * @param {object} parameterContext
      * @param {string} parameterToSelect to select
+     * @param {boolean} if the parameters should be displayed in a read-only state regardless of permissions
      */
-    var loadParameters = function (parameterContext, parameterToSelect) {
+    var loadParameters = function (parameterContext, parameterToSelect, readOnly) {
         if (nfCommon.isDefinedAndNotNull(parameterContext)) {
 
             var parameterGrid = $('#parameter-table').data('gridInstance');
@@ -1351,7 +1374,7 @@
                     description: parameterEntity.parameter.description,
                     previousValue: parameterEntity.parameter.value,
                     previousDescription: parameterEntity.parameter.description,
-                    isEditable: parameterEntity.canWrite,
+                    isEditable: _.defaultTo(readOnly, false) ? false : parameterEntity.canWrite,
                     referencingComponents: parameterEntity.parameter.referencingComponents
                 };
 
@@ -1374,6 +1397,8 @@
                         return false;
                     }
                 });
+            } else {
+                parameterIndex = 0;
             }
 
             if (parameters.length === 0) {
@@ -1410,7 +1435,7 @@
         $('<li class="referencing-component-container"><span class="unset">None</span></li>').appendTo(unauthorizedComponentsContainer);
 
         // update the selection context
-        $('#parameter-referencing-components-context').addClass('unset').text('None');
+        $('#parameter-referencing-components-context').addClass('unset').attr('title', 'None').text('None');
 
         // check if border is necessary
         updateReferencingComponentsBorder($('#parameter-referencing-components-container'));
@@ -1590,15 +1615,7 @@
                     e.stopImmediatePropagation();
                 } else if (target.hasClass('edit-parameter')) {
                     var closeHandler = function () {
-                        $('#parameter-name').val('');
-                        $('#parameter-value-field').val('');
-                        $('#parameter-description-field').val('');
-                        $('#parameter-sensitive-radio-button').prop('checked', false);
-                        $('#parameter-not-sensitive-radio-button').prop('checked', false);
-                        $('#parameter-name').prop('disabled', false);
-                        $('#parameter-sensitive-radio-button').prop('disabled', false);
-                        $('#parameter-not-sensitive-radio-button').prop('disabled', false);
-                        $('#parameter-set-empty-string-field').removeClass('checkbox-checked').addClass('checkbox-unchecked');
+                        resetParameterDialog();
                     };
 
                     var openHandler = function () {
@@ -1632,6 +1649,18 @@
                         // update the buttons to possibly trigger the disabled state
                         $('#parameter-dialog').modal('refreshButtons');
                     };
+
+                    $('#parameter-set-empty-string-field').off().on('change', function (event, args) {
+                        // if we are setting as an empty string, disable the editor
+                        if (args.isChecked) {
+                            $('#parameter-value-field').prop('disabled', true).val('');
+                            $('#parameter-dialog').modal('refreshButtons');
+                        } else {
+                            var value = parameter.sensitive ? '' : parameter.previousValue;
+                            $('#parameter-value-field').prop('disabled', false).val(value);
+                            $('#parameter-dialog').modal('refreshButtons');
+                        }
+                    });
 
                     $('#parameter-dialog')
                         .modal('setHeaderText', 'Edit Parameter')
@@ -1688,7 +1717,7 @@
                         populateReferencingComponents(parameter.referencingComponents);
 
                         // update the details for this parameter
-                        $('#parameter-referencing-components-context').removeClass('unset').text(parameter.name);
+                        $('#parameter-referencing-components-context').removeClass('unset').attr('title', parameter.name).text(parameter.name);
 
                         updateReferencingComponentsBorder($('#parameter-referencing-components-container'));
 
@@ -1859,6 +1888,17 @@
                 .modal('show');
         });
 
+        $('#parameter-set-empty-string-field').off().on('change', function (event, args) {
+            // if we are setting as an empty string, disable the editor
+            if (args.isChecked) {
+                $('#parameter-value-field').prop('disabled', true).val('');
+                $('#parameter-dialog').modal('refreshButtons');
+            } else {
+                $('#parameter-value-field').prop('disabled', false);
+                $('#parameter-dialog').modal('refreshButtons');
+            }
+        });
+
         $('#parameter-context-name').on('keyup', function (evt) {
             // update the buttons to possibly trigger the disabled state
             $('#parameter-context-dialog').modal('refreshButtons');
@@ -1940,12 +1980,25 @@
                 }
             }])
             .modal('show');
+
+        $('#parameter-set-empty-string-field').off().on('change', function (event, args) {
+            // if we are setting as an empty string, disable the editor
+            if (args.isChecked) {
+                $('#parameter-value-field').prop('disabled', true).val('');
+                $('#parameter-dialog').modal('refreshButtons');
+            } else {
+                $('#parameter-value-field').prop('disabled', false);
+                $('#parameter-dialog').modal('refreshButtons');
+            }
+        });
     };
 
     /**
      * Loads the parameter contexts.
+     *
+     * @param parameterContextToSelect   id of the parameter context to select in the grid
      */
-    var loadParameterContexts = function () {
+    var loadParameterContexts = function (parameterContextToSelect) {
         var parameterContexts = $.Deferred(function (deferred) {
             $.ajax({
                 type: 'GET',
@@ -1975,6 +2028,21 @@
             parameterContextsData.setItems(contexts);
             parameterContextsData.reSort();
             parameterContextsGrid.invalidate();
+
+            // if we are pre-selecting a specific parameter context, get the row to select
+            if (nfCommon.isDefinedAndNotNull(parameterContextToSelect)) {
+                var parameterContextRow = null;
+                $.each(contexts, function (i, contextEntity) {
+                    if (contextEntity.id === parameterContextToSelect) {
+                        parameterContextRow = parameterContextsData.getRowById(parameterContextToSelect);
+                        return false;
+                    }
+                });
+                if (parameterContextRow !== null) {
+                    // select the desired row
+                    parameterContextsGrid.setSelectedRows([parameterContextRow]);
+                }
+            }
         }).fail(nfErrorHandler.handleAjaxError);
     };
 
@@ -2023,8 +2091,29 @@
             return nfCommon.escapeHtml(dataContext.component.description);
         };
 
+        var parameterContextInfoFormatter = function (row, cell, value, columnDef, dataContext) {
+            var markup = '';
+
+            var canRead = dataContext.permissions.canRead;
+
+            if (canRead) {
+                markup += '<div title="View Details" class="pointer view-parameter-context fa fa-info-circle"></div>';
+            }
+
+            return markup;
+        };
+
         // define the column model for the parameter contexts table
         var parameterContextsColumnModel = [
+            {
+                id: 'info',
+                name: '&nbsp;',
+                resizable: false,
+                formatter: parameterContextInfoFormatter,
+                sortable: false,
+                width: 30,
+                maxWidth: 30
+            },
             {
                 id: 'name',
                 name: 'Name',
@@ -2096,6 +2185,10 @@
                     // close the settings dialog
                     $('#shell-close-button').click();
                 }
+            } else if (parameterContextsGrid.getColumns()[args.cell].id === 'info') {
+                if (target.hasClass('view-parameter-context')) {
+                    nfParameterContexts.showParameterContext(parameterContextEntity.id, true);
+                }
             }
         });
 
@@ -2158,6 +2251,15 @@
             // create a new parameter context
             $('#new-parameter-context').on('click', function () {
                 resetUsage();
+
+                // new parameter contexts do not have an ID to show
+                if (!$('#parameter-context-id-setting').hasClass('hidden')) {
+                    $('#parameter-context-id-setting').addClass('hidden');
+                }
+
+                // make sure this dialog is not in read-only mode
+                $('#parameter-context-dialog').removeClass('read-only');
+                $('#parameter-context-dialog').addClass('edit-mode');
 
                 $('#parameter-context-dialog').modal('setHeaderText', 'Add Parameter Context').modal('setButtonModel', [{
                     buttonText: 'Apply',
@@ -2275,21 +2377,25 @@
 
         /**
          * Shows the parameter context dialog.
+         *
+         * @param id         The parameter context id to select
          */
-        showParameterContexts: function () {
+        showParameterContexts: function (id) {
             // conditionally allow creation of new parameter contexts
             $('#new-parameter-context').prop('disabled', !nfCommon.canModifyParameterContexts());
 
             // load the parameter contexts
-            return loadParameterContexts().done(showParameterContexts);
+            return loadParameterContexts(id).done(showParameterContexts);
         },
 
         /**
          * Shows the dialog for the specified parameter context.
          *
-         * @argument id      The parameter context id
+         * @param id                  The parameter context id
+         * @param readOnly            Optional, boolean to open in read only mode even if the user has permission to write.
+         * @param parameterToSelect   Optional, name of the parameter to select in the table.
          */
-        showParameterContext: function (id) {
+        showParameterContext: function (id, readOnly, parameterToSelect) {
             parameterCount = 0;
 
             // reload the parameter context in case the parameters have changed
@@ -2301,14 +2407,39 @@
 
             // once everything is loaded, show the dialog
             reloadContext.done(function (parameterContextEntity) {
+                var canWrite = _.get(parameterContextEntity, 'permissions.canWrite', false);
+
+                // if specifically asked to open in read only mode, set canWrite to false to trigger that behavior
+                if (_.defaultTo(readOnly, false)) {
+                    canWrite = false;
+                }
+
                 currentParameterContextEntity = parameterContextEntity;
-                $('#parameter-context-name').val(parameterContextEntity.component.name);
-                $('#parameter-context-description-field').val(parameterContextEntity.component.description);
+                if (canWrite) {
+                    $('#parameter-context-dialog').removeClass('read-only');
+                    $('#parameter-context-dialog').addClass('edit-mode');
+                    $('#parameter-context-name').val(parameterContextEntity.component.name);
+                    $('#parameter-context-description-field').val(parameterContextEntity.component.description);
+                } else {
+                    $('#parameter-context-dialog').removeClass('edit-mode');
+                    $('#parameter-context-dialog').addClass('read-only');
+                    $('#parameter-context-name-read-only')
+                        .prop('title', parameterContextEntity.component.name)
+                        .text(parameterContextEntity.component.name);
+                    $('#parameter-context-description-read-only').text(parameterContextEntity.component.description);
+                }
 
-                loadParameters(parameterContextEntity);
+                // show the parameter context id
+                if ($('#parameter-context-id-setting').hasClass('hidden')) {
+                    $('#parameter-context-id-setting').removeClass('hidden');
+                }
+                $('#parameter-context-id-field')
+                    .prop('title', parameterContextEntity.id)
+                    .text(parameterContextEntity.id);
 
-                // show the context
-                $('#parameter-context-dialog').modal('setHeaderText', 'Update Parameter Context').modal('setButtonModel', [{
+                loadParameters(parameterContextEntity, parameterToSelect, readOnly || !canWrite);
+
+                var editModeButtonModel = [{
                     buttonText: 'Apply',
                     color: {
                         base: '#728E9B',
@@ -2338,7 +2469,30 @@
                             $(this).modal('hide');
                         }
                     }
-                }]).modal('show');
+                }];
+
+                var readOnlyButtonModel = [{
+                    buttonText: 'Ok',
+                    color: {
+                        base: '#728E9B',
+                        hover: '#004849',
+                        text: '#ffffff'
+                    },
+                    disabled: function () {
+                        return false;
+                    },
+                    handler: {
+                        click: function () {
+                            $(this).modal('hide');
+                        }
+                    }
+                }];
+
+                // show the context
+                $('#parameter-context-dialog')
+                    .modal('setHeaderText', canWrite ? 'Update Parameter Context' : 'View Parameter Context')
+                    .modal('setButtonModel', canWrite ? editModeButtonModel : readOnlyButtonModel)
+                    .modal('show');
 
                 // select the parameters tab
                 $('#parameter-context-tabs').find('li:last').click();
@@ -2460,7 +2614,7 @@
 
                                 // initiate the parameter context update with the new parameter
                                 submitUpdateRequest(parameterContextEntity)
-                                    .done(function(response) {
+                                    .done(function (response) {
                                         var pollUpdateRequest = function (updateRequestEntity) {
                                             var updateRequest = updateRequestEntity.request;
                                             var errored = !_.isEmpty(updateRequest.failureReason);
@@ -2512,7 +2666,7 @@
                                         deferred.reject(e)
                                     });
                             },
-                            onCancel: function() {
+                            onCancel: function () {
                                 showUpdateStatus(false);
 
                                 if (!_.isNil(parameterContextEntity.id) && !_.isNil(requestId)) {
@@ -2554,7 +2708,7 @@
                         // update the buttons to possibly trigger the disabled state
                         $('#parameter-dialog').modal('refreshButtons');
                     })
-                    .fail(function(e) {
+                    .fail(function (e) {
                         deferred.reject(e);
                     });
             }).promise();

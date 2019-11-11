@@ -42,7 +42,7 @@ public class ParameterContextMerger {
             final NodeIdentifier nodeId = entry.getKey();
             final ParameterContextEntity entity = entry.getValue();
 
-            PermissionsDtoMerger.mergePermissions(entity.getPermissions(), entity.getPermissions());
+            PermissionsDtoMerger.mergePermissions(target.getPermissions(), entity.getPermissions());
 
             if (entity.getComponent() == null) {
                 target.setComponent(null);

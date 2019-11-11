@@ -23,6 +23,7 @@ import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Set;
 
 public class FieldTypeInference {
@@ -33,7 +34,7 @@ public class FieldTypeInference {
     // unique value for the data type, and so this paradigm allows us to avoid the cost of creating
     // and using the HashSet.
     private DataType singleDataType = null;
-    private Set<DataType> possibleDataTypes;
+    private Set<DataType> possibleDataTypes = new HashSet<>();
 
     public void addPossibleDataType(final DataType dataType) {
         if (dataType == null) {
@@ -45,7 +46,7 @@ public class FieldTypeInference {
             return;
         }
 
-        if (possibleDataTypes == null && singleDataType.equals(dataType)) {
+        if (singleDataType.equals(dataType) || possibleDataTypes.contains(dataType)) {
             return;
         }
 
@@ -62,36 +63,42 @@ public class FieldTypeInference {
             final RecordSchema newSchema = ((RecordDataType) dataType).getChildSchema();
 
             final RecordSchema mergedSchema = DataTypeUtils.merge(singleDataTypeSchema, newSchema);
+            possibleDataTypes.remove(singleDataType);
             singleDataType = RecordFieldType.RECORD.getRecordDataType(mergedSchema);
-            return;
-        }
-
-        if (singleFieldType.isWiderThan(additionalFieldType)) {
-            // Assigned type is already wide enough to encompass the given type
-            return;
-        }
-
-        if (additionalFieldType.isWiderThan(singleFieldType)) {
-            // The given type is wide enough to encompass the assigned type. So changed the assigned type to the given type.
-            singleDataType = dataType;
-            return;
-        }
-
-        if (possibleDataTypes == null) {
-            possibleDataTypes = new HashSet<>();
             possibleDataTypes.add(singleDataType);
+            return;
+        }
+
+        if (possibleDataTypes.isEmpty()) {
+            possibleDataTypes.add(singleDataType);
+        }
+
+        for (DataType possibleDataType : possibleDataTypes) {
+            RecordFieldType possibleFieldType = possibleDataType.getFieldType();
+            if (!possibleFieldType.equals(RecordFieldType.STRING) && possibleFieldType.isWiderThan(additionalFieldType)) {
+                return;
+            }
+        }
+
+        Iterator<DataType> possibleDataTypeIterator = possibleDataTypes.iterator();
+        while (possibleDataTypeIterator.hasNext()) {
+            DataType possibleDataType = possibleDataTypeIterator.next();
+            RecordFieldType possibleFieldType = possibleDataType.getFieldType();
+
+            if (!additionalFieldType.equals(RecordFieldType.STRING) && additionalFieldType.isWiderThan(possibleFieldType)) {
+                possibleDataTypeIterator.remove();
+            }
         }
 
         possibleDataTypes.add(dataType);
     }
-
 
     /**
      * Creates a single DataType that represents the field
      * @return a single DataType that represents the field
      */
     public DataType toDataType() {
-        if (possibleDataTypes == null) {
+        if (possibleDataTypes.isEmpty()) {
             if (singleDataType == null) {
                 return DEFAULT_DATA_TYPE;
             }

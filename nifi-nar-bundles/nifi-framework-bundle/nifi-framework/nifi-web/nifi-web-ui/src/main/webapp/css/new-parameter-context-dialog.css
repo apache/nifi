@@ -24,6 +24,14 @@
     height: 575px;
 }
 
+#parameter-context-dialog.edit-mode .read-only {
+    display: none;
+}
+
+#parameter-context-dialog.read-only .edit-mode {
+    display: none;
+}
+
 #parameter-context-dialog div.settings-left {
     float: left;
     width: 65%;
@@ -70,6 +78,11 @@
     height: 85px;
 }
 
+#parameter-context-description-read-only {
+    max-height: 250px;
+    overflow-y: auto;
+}
+
 #parameter-referencing-components-container {
     position: absolute;
     bottom: 10px;
@@ -98,8 +111,7 @@
 
 span.parameter-context-referencing-component-name {
     margin-left: 5px;
-    margin-right: 5px;
-    max-width: calc(100% - 10px);
+    max-width: calc(100% - 70px);
 }
 
 #parameter-context-updating-status {

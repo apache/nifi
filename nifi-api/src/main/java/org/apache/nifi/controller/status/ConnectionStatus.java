@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.controller.status;
 
+import org.apache.nifi.controller.status.analytics.ConnectionStatusPredictions;
 import org.apache.nifi.processor.DataUnit;
 
 /**
@@ -30,6 +31,7 @@ public class ConnectionStatus implements Cloneable {
     private String destinationId;
     private String destinationName;
     private String backPressureDataSizeThreshold;
+    private ConnectionStatusPredictions predictions;
     private long backPressureBytesThreshold;
     private long backPressureObjectThreshold;
     private int inputCount;
@@ -122,6 +124,14 @@ public class ConnectionStatus implements Cloneable {
         setBackPressureBytesThreshold(DataUnit.parseDataSize(backPressureDataSizeThreshold, DataUnit.B).longValue());
     }
 
+    public ConnectionStatusPredictions getPredictions() {
+        return predictions;
+    }
+
+    public void setPredictions(ConnectionStatusPredictions predictions) {
+        this.predictions = predictions;
+    }
+
     public long getBackPressureObjectThreshold() {
         return backPressureObjectThreshold;
     }
@@ -202,6 +212,11 @@ public class ConnectionStatus implements Cloneable {
         clonedObj.sourceName = sourceName;
         clonedObj.destinationId = destinationId;
         clonedObj.destinationName = destinationName;
+
+        if (predictions != null) {
+            clonedObj.setPredictions(predictions.clone());
+        }
+
         clonedObj.backPressureDataSizeThreshold = backPressureDataSizeThreshold;
         clonedObj.backPressureObjectThreshold = backPressureObjectThreshold;
         clonedObj.maxQueuedBytes = maxQueuedBytes;

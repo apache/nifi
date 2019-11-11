@@ -211,7 +211,9 @@ public class StandardFlowManager implements FlowManager {
     }
 
     public RemoteProcessGroup createRemoteProcessGroup(final String id, final String uris) {
-        return new StandardRemoteProcessGroup(requireNonNull(id), uris, null, processScheduler, bulletinRepository, sslContext, nifiProperties);
+        return new StandardRemoteProcessGroup(requireNonNull(id), uris, null,
+            processScheduler, bulletinRepository, sslContext, nifiProperties,
+            flowController.getStateManagerProvider().getStateManager(id));
     }
 
     public void setRootGroup(final ProcessGroup rootGroup) {

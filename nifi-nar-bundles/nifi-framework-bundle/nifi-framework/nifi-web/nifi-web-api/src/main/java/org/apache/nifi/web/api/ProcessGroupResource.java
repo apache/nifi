@@ -67,7 +67,6 @@ import org.apache.nifi.web.api.dto.ConnectionDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.DtoFactory;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
-import org.apache.nifi.web.api.dto.ParameterContextReferenceDTO;
 import org.apache.nifi.web.api.dto.PortDTO;
 import org.apache.nifi.web.api.dto.PositionDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
@@ -98,6 +97,7 @@ import org.apache.nifi.web.api.entity.InstantiateTemplateRequestEntity;
 import org.apache.nifi.web.api.entity.LabelEntity;
 import org.apache.nifi.web.api.entity.LabelsEntity;
 import org.apache.nifi.web.api.entity.OutputPortsEntity;
+import org.apache.nifi.web.api.entity.ParameterContextReferenceEntity;
 import org.apache.nifi.web.api.entity.PortEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupsEntity;
@@ -478,13 +478,13 @@ public class ProcessGroupResource extends ApplicationResource {
                     authorizable.authorize(authorizer, RequestAction.WRITE, user);
 
                     // Ensure that user has READ permission on current Parameter Context (if any) because user is un-binding.
-                    final ParameterContextReferenceDTO referencedParamContext = requestProcessGroupDTO.getParameterContext();
+                    final ParameterContextReferenceEntity referencedParamContext = requestProcessGroupDTO.getParameterContext();
                     if (referencedParamContext != null) {
                         // Lookup the current Parameter Context and determine whether or not the Parameter Context is changing
                         final String groupId = requestProcessGroupDTO.getId();
                         final ProcessGroupEntity currentGroupEntity = serviceFacade.getProcessGroup(groupId);
                         final ProcessGroupDTO groupDto = currentGroupEntity.getComponent();
-                        final ParameterContextReferenceDTO currentParamContext = groupDto.getParameterContext();
+                        final ParameterContextReferenceEntity currentParamContext = groupDto.getParameterContext();
                         final String currentParamContextId = currentParamContext == null ? null : currentParamContext.getId();
                         final boolean parameterContextChanging = !Objects.equals(referencedParamContext.getId(), currentParamContextId);
 
@@ -1776,7 +1776,7 @@ public class ProcessGroupResource extends ApplicationResource {
                     processGroup.authorize(authorizer, RequestAction.WRITE, user);
 
                     // If request specifies a Parameter Context, need to authorize that user has READ policy for the Parameter Context.
-                    final ParameterContextReferenceDTO referencedParamContext = requestProcessGroupEntity.getComponent().getParameterContext();
+                    final ParameterContextReferenceEntity referencedParamContext = requestProcessGroupEntity.getComponent().getParameterContext();
                     if (referencedParamContext != null && referencedParamContext.getId() != null) {
                         lookup.getParameterContext(referencedParamContext.getId()).authorize(authorizer, RequestAction.READ, user);
                     }

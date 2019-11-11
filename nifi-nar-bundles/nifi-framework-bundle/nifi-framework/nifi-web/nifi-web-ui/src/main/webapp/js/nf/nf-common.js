@@ -23,22 +23,25 @@
         define(['jquery',
                 'd3',
                 'nf.Storage',
-                'lodash-core'],
-            function ($, d3, nfStorage, _) {
-                return (nf.Common = factory($, d3, nfStorage, _));
+                'lodash-core',
+                'moment'],
+            function ($, d3, nfStorage, _, moment) {
+                return (nf.Common = factory($, d3, nfStorage, _, moment));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.Common = factory(require('jquery'),
             require('d3'),
             require('nf.Storage'),
-            require('lodash-core')));
+            require('lodash-core'),
+            require('moment')));
     } else {
         nf.Common = factory(root.$,
             root.d3,
             root.nf.Storage,
-            root._);
+            root._,
+            root.moment);
     }
-}(this, function ($, d3, nfStorage, _) {
+}(this, function ($, d3, nfStorage, _, moment) {
     'use strict';
 
     $(document).ready(function () {
@@ -1300,6 +1303,19 @@
         },
 
         /**
+         * Formats a number (in milliseconds) to a human-readable textual description.
+         *
+         * @param duration number of milliseconds representing the duration
+         * @return {string|*} a human-readable string
+         */
+        formatPredictedDuration: function (duration) {
+            if (duration === 0) {
+                return 'now';
+            }
+            return moment.duration(duration, 'ms').humanize();
+        },
+
+        /**
          * Constants for formatting data size.
          */
         BYTES_IN_KILOBYTE: 1024,
@@ -1693,13 +1709,25 @@
             return formattedGarbageCollections;
         },
 
+        /**
+         * Returns whether the specified resource is for a global policy.
+         *
+         * @param resource
+         */
+        isGlobalPolicy: function (value) {
+            return nfCommon.getPolicyTypeListing(value) !== null;
+        },
+
+        /**
+         * Gets the policy type for the specified resource.
+         *
+         * @param value
+         * @returns {*}
+         */
         getPolicyTypeListing: function (value) {
-            var nest = d3.nest()
-                .key(function (d) {
-                    return d.value;
-                })
-                .map(policyTypeListing, d3.map);
-            return nest.get(value)[0];
+            return policyTypeListing.find(function (policy) {
+                return value === policy.value;
+            });
         },
 
         /**

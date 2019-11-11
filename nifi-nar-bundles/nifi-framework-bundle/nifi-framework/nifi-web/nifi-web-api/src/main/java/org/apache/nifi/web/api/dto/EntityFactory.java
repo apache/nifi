@@ -20,6 +20,8 @@ import org.apache.nifi.web.api.dto.action.ActionDTO;
 import org.apache.nifi.web.api.dto.diagnostics.ProcessorDiagnosticsDTO;
 import org.apache.nifi.web.api.dto.flow.FlowBreadcrumbDTO;
 import org.apache.nifi.web.api.dto.flow.ProcessGroupFlowDTO;
+import org.apache.nifi.web.api.dto.status.ConnectionStatisticsDTO;
+import org.apache.nifi.web.api.dto.status.ConnectionStatisticsSnapshotDTO;
 import org.apache.nifi.web.api.dto.status.ConnectionStatusDTO;
 import org.apache.nifi.web.api.dto.status.ConnectionStatusSnapshotDTO;
 import org.apache.nifi.web.api.dto.status.ControllerServiceStatusDTO;
@@ -43,6 +45,8 @@ import org.apache.nifi.web.api.entity.BulletinEntity;
 import org.apache.nifi.web.api.entity.ComponentReferenceEntity;
 import org.apache.nifi.web.api.entity.ComponentValidationResultEntity;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
+import org.apache.nifi.web.api.entity.ConnectionStatisticsEntity;
+import org.apache.nifi.web.api.entity.ConnectionStatisticsSnapshotEntity;
 import org.apache.nifi.web.api.entity.ConnectionStatusEntity;
 import org.apache.nifi.web.api.entity.ConnectionStatusSnapshotEntity;
 import org.apache.nifi.web.api.entity.ControllerConfigurationEntity;
@@ -52,6 +56,7 @@ import org.apache.nifi.web.api.entity.FlowBreadcrumbEntity;
 import org.apache.nifi.web.api.entity.FunnelEntity;
 import org.apache.nifi.web.api.entity.LabelEntity;
 import org.apache.nifi.web.api.entity.ParameterContextEntity;
+import org.apache.nifi.web.api.entity.ParameterContextReferenceEntity;
 import org.apache.nifi.web.api.entity.PortEntity;
 import org.apache.nifi.web.api.entity.PortStatusEntity;
 import org.apache.nifi.web.api.entity.PortStatusSnapshotEntity;
@@ -134,6 +139,21 @@ public final class EntityFactory {
         entity.setId(status.getId());
         entity.setCanRead(permissions.getCanRead());
         entity.setConnectionStatusSnapshot(status); // always set the status, as it's always allowed... just need to provide permission context for merging responses
+        return entity;
+    }
+
+    public ConnectionStatisticsEntity createConnectionStatisticsEntity(final ConnectionStatisticsDTO statistics, final PermissionsDTO permissions) {
+        final ConnectionStatisticsEntity entity = new ConnectionStatisticsEntity();
+        entity.setCanRead(permissions.getCanRead());
+        entity.setConnectionStatistics(statistics); // always set the statistics, as it's always allowed... just need to provide permission context for merging responses
+        return entity;
+    }
+
+    public ConnectionStatisticsSnapshotEntity createConnectionStatisticsSnapshotEntity(final ConnectionStatisticsSnapshotDTO statistics, final PermissionsDTO permissions) {
+        final ConnectionStatisticsSnapshotEntity entity = new ConnectionStatisticsSnapshotEntity();
+        entity.setId(statistics.getId());
+        entity.setCanRead(permissions.getCanRead());
+        entity.setConnectionStatisticsSnapshot(statistics); // always set the statistics, as it's always allowed... just need to provide permission context for merging responses
         return entity;
     }
 
@@ -269,9 +289,9 @@ public final class EntityFactory {
             entity.setLocallyModifiedAndStaleCount(dto.getLocallyModifiedAndStaleCount());
             entity.setSyncFailureCount(dto.getSyncFailureCount());
 
-            final ParameterContextReferenceDTO parameterContextReference = dto.getParameterContext();
+            final ParameterContextReferenceEntity parameterContextReference = dto.getParameterContext();
             if (parameterContextReference != null) {
-                entity.setParameterContextId(parameterContextReference.getId());
+                entity.setParameterContext(parameterContextReference);
             }
 
             if (dto.getVersionControlInformation() != null) {
@@ -370,6 +390,7 @@ public final class EntityFactory {
         if (dto != null) {
             entity.setPermissions(permissions);
             entity.setId(dto.getId());
+            entity.setReferenceType(dto.getReferenceType());
 
             if (permissions != null && permissions.getCanRead()) {
                 entity.setComponent(dto);
@@ -413,6 +434,19 @@ public final class EntityFactory {
         final AccessPolicyEntity entity = new AccessPolicyEntity();
         entity.setRevision(revision);
         entity.setGenerated(new Date());
+        if (dto != null) {
+            entity.setPermissions(permissions);
+            entity.setId(dto.getId());
+
+            if (permissions != null && permissions.getCanRead()) {
+                entity.setComponent(dto);
+            }
+        }
+        return entity;
+    }
+
+    public ParameterContextReferenceEntity createParameterReferenceEntity(final ParameterContextReferenceDTO dto, final PermissionsDTO permissions) {
+        final ParameterContextReferenceEntity entity = new ParameterContextReferenceEntity();
         if (dto != null) {
             entity.setPermissions(permissions);
             entity.setId(dto.getId());

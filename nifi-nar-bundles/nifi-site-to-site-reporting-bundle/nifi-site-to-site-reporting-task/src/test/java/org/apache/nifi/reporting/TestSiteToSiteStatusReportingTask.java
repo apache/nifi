@@ -55,6 +55,7 @@ import org.apache.nifi.registry.flow.VersionedFlowState;
 import org.apache.nifi.remote.Transaction;
 import org.apache.nifi.remote.TransferDirection;
 import org.apache.nifi.remote.client.SiteToSiteClient;
+import org.apache.nifi.reporting.s2s.SiteToSiteUtils;
 import org.apache.nifi.state.MockStateManager;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockPropertyValue;
@@ -106,7 +107,7 @@ public class TestSiteToSiteStatusReportingTask {
         final ProcessGroupStatus pgStatus = generateProcessGroupStatus("root", "Awesome", 1, 0);
 
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
-        properties.put(SiteToSiteStatusReportingTask.BATCH_SIZE, "4");
+        properties.put(SiteToSiteUtils.BATCH_SIZE, "4");
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_NAME_FILTER_REGEX, "Awesome.*");
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_TYPE_FILTER_REGEX, ".*");
 
@@ -130,7 +131,7 @@ public class TestSiteToSiteStatusReportingTask {
         final ProcessGroupStatus pgStatus = generateProcessGroupStatus("root", "Awesome", 1, 0);
 
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
-        properties.put(SiteToSiteStatusReportingTask.BATCH_SIZE, "4");
+        properties.put(SiteToSiteUtils.BATCH_SIZE, "4");
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_NAME_FILTER_REGEX, "Awesome.*");
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_TYPE_FILTER_REGEX, "(ProcessGroup|RootProcessGroup)");
 
@@ -149,7 +150,7 @@ public class TestSiteToSiteStatusReportingTask {
         final ProcessGroupStatus pgStatus = generateProcessGroupStatus("root", "Awesome", 1, 0);
 
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
-        properties.put(SiteToSiteStatusReportingTask.BATCH_SIZE, "4");
+        properties.put(SiteToSiteUtils.BATCH_SIZE, "4");
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_NAME_FILTER_REGEX, "Awesome.*");
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_TYPE_FILTER_REGEX, "(Connection)");
 
@@ -175,7 +176,7 @@ public class TestSiteToSiteStatusReportingTask {
         final ProcessGroupStatus pgStatus = generateProcessGroupStatus("root", "Awesome", 1, 0);
 
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
-        properties.put(SiteToSiteStatusReportingTask.BATCH_SIZE, "4");
+        properties.put(SiteToSiteUtils.BATCH_SIZE, "4");
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_NAME_FILTER_REGEX, "Awesome.*");
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_TYPE_FILTER_REGEX, "(Connection)");
         properties.put(SiteToSiteStatusReportingTask.ALLOW_NULL_VALUES,"true");
@@ -196,7 +197,7 @@ public class TestSiteToSiteStatusReportingTask {
         final ProcessGroupStatus pgStatus = generateProcessGroupStatus("root", "Awesome", 1, 0);
 
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
-        properties.put(SiteToSiteStatusReportingTask.BATCH_SIZE, "4");
+        properties.put(SiteToSiteUtils.BATCH_SIZE, "4");
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_NAME_FILTER_REGEX, "Awesome.*processor.*");
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_TYPE_FILTER_REGEX, ".*");
 
@@ -215,7 +216,7 @@ public class TestSiteToSiteStatusReportingTask {
         final ProcessGroupStatus pgStatus = generateProcessGroupStatus("root", "Awesome", 2, 0);
 
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
-        properties.put(SiteToSiteStatusReportingTask.BATCH_SIZE, "4");
+        properties.put(SiteToSiteUtils.BATCH_SIZE, "4");
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_NAME_FILTER_REGEX, "Awesome.*processor.*");
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_TYPE_FILTER_REGEX, ".*");
 
@@ -234,7 +235,7 @@ public class TestSiteToSiteStatusReportingTask {
         ProcessGroupStatus pgStatus = generateProcessGroupStatus("root", "Awesome", 1, 0);
 
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
-        properties.put(SiteToSiteStatusReportingTask.BATCH_SIZE, "4");
+        properties.put(SiteToSiteUtils.BATCH_SIZE, "4");
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_NAME_FILTER_REGEX, "Awesome.*");
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_TYPE_FILTER_REGEX, "(InputPort)");
         properties.put(SiteToSiteStatusReportingTask.ALLOW_NULL_VALUES,"false");
@@ -259,7 +260,7 @@ public class TestSiteToSiteStatusReportingTask {
         ProcessGroupStatus pgStatus = generateProcessGroupStatus("root", "Awesome", 1, 0);
 
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
-        properties.put(SiteToSiteStatusReportingTask.BATCH_SIZE, "4");
+        properties.put(SiteToSiteUtils.BATCH_SIZE, "4");
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_NAME_FILTER_REGEX, "Awesome.*");
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_TYPE_FILTER_REGEX, "(InputPort)");
         properties.put(SiteToSiteStatusReportingTask.ALLOW_NULL_VALUES,"true");
@@ -278,7 +279,7 @@ public class TestSiteToSiteStatusReportingTask {
         final ProcessGroupStatus pgStatus = generateProcessGroupStatus("root", "Awesome", 1, 0);
 
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
-        properties.put(SiteToSiteStatusReportingTask.BATCH_SIZE, "4");
+        properties.put(SiteToSiteUtils.BATCH_SIZE, "4");
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_NAME_FILTER_REGEX, "Awesome.*");
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_TYPE_FILTER_REGEX, "(RemoteProcessGroup)");
 
@@ -300,7 +301,7 @@ public class TestSiteToSiteStatusReportingTask {
         final ProcessGroupStatus pgStatus = generateProcessGroupStatus("root", "Awesome", 1, 0);
 
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
-        properties.put(SiteToSiteStatusReportingTask.BATCH_SIZE, "4");
+        properties.put(SiteToSiteUtils.BATCH_SIZE, "4");
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_NAME_FILTER_REGEX, "Awesome.*");
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_TYPE_FILTER_REGEX, "(RemoteProcessGroup)");
         properties.put(SiteToSiteStatusReportingTask.ALLOW_NULL_VALUES,"true");
@@ -321,7 +322,7 @@ public class TestSiteToSiteStatusReportingTask {
         final ProcessGroupStatus pgStatus = generateProcessGroupStatus("root", "Awesome", 1, 0);
 
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
-        properties.put(SiteToSiteStatusReportingTask.BATCH_SIZE, "4");
+        properties.put(SiteToSiteUtils.BATCH_SIZE, "4");
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_NAME_FILTER_REGEX, "Awesome.*");
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_TYPE_FILTER_REGEX, "(Processor)");
 
@@ -347,7 +348,7 @@ public class TestSiteToSiteStatusReportingTask {
         final ProcessGroupStatus pgStatus = generateProcessGroupStatus("root", "Awesome", 1, 0);
 
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
-        properties.put(SiteToSiteStatusReportingTask.BATCH_SIZE, "4");
+        properties.put(SiteToSiteUtils.BATCH_SIZE, "4");
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_NAME_FILTER_REGEX, "Awesome.*");
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_TYPE_FILTER_REGEX, "(Processor)");
         properties.put(SiteToSiteStatusReportingTask.ALLOW_NULL_VALUES,"true");

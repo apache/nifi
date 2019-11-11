@@ -53,5 +53,4 @@ public interface ProcessGroupClient {
             throws NiFiClientException, IOException;
 
     TemplateEntity uploadTemplate(String processGroupId, TemplateDTO templateDTO) throws NiFiClientException, IOException;
-
 }

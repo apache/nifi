@@ -28,11 +28,16 @@
 There are three filter modes available for ListHDFS that determine how the regular expression in the <b><code>File Filter</code></b> property will be applied to listings in HDFS.
 <ul>
     <li><b><code>Directories and Files</code></b></li>
-Filtering will be applied to the names of directories and files.  If <b><code>Recurse Subdirectories</code></b> is set to true, only subdirectories with a matching name will be searched for files that match the regular expression defined in <b><code>File Filter</code></b>.
+    Filtering will be applied to the names of directories and files.  If <b><code>Recurse Subdirectories</code></b> is set to true, only subdirectories with a matching name will be searched for files that match the regular expression defined in <b><code>File Filter</code></b>.
     <li><b><code>Files Only</code></b></li>
-Filtering will only be applied to the names of files.  If <b><code>Recurse Subdirectories</code></b> is set to true, the entire subdirectory tree will be searched for files that match the regular expression defined in <b><code>File Filter</code></b>.
+    Filtering will only be applied to the names of files.  If <b><code>Recurse Subdirectories</code></b> is set to true, the entire subdirectory tree will be searched for files that match the regular expression defined in <b><code>File Filter</code></b>.
     <li><b><code>Full Path</code></b></li>
-Filtering will be applied to the full path of files.  If <b><code>Recurse Subdirectories</code></b> is set to true, the entire subdirectory tree will be searched for files in which the full path of the file matches the regular expression defined in <b><code>File Filter</code></b>.
+    Filtering will be applied to the full path of files.  If <b><code>Recurse Subdirectories</code></b> is set to true, the entire subdirectory tree will be searched for files in which the full path of the file matches the regular expression defined in <b><code>File Filter</code></b>.<br>
+    Regarding <code>scheme</code> and <code>authority</code>, if a given file has a full path of <code>hdfs://hdfscluster:8020/data/txt/1.txt</code>, the filter will evaluate the regular expression defined in <b><code>File Filter</code></b> against two cases, matching if either is true:<br>
+    <ul>
+        <li>the full path including the scheme (<code>hdfs</code>), authority (<code>hdfscluster:8020</code>), and the remaining path components (<code>/data/txt/1.txt</code>)</li>
+        <li>only the path components (<code>/data/txt/1.txt</code>)</li>
+    </ul>
 </ul>
 <p>
 <h2>Examples:</h2>

@@ -73,6 +73,11 @@ public enum RecordFieldType {
     DOUBLE("double", FLOAT),
 
     /**
+     * A timestamp field type. Fields of this type use a {@code java.sql.Timestamp} value.
+     */
+    TIMESTAMP("timestamp", "yyyy-MM-dd HH:mm:ss"),
+
+    /**
      * A date field type. Fields of this type use a {@code java.sql.Date} value.
      */
     DATE("date", "yyyy-MM-dd"),
@@ -81,11 +86,6 @@ public enum RecordFieldType {
      * A time field type. Fields of this type use a {@code java.sql.Time} value.
      */
     TIME("time", "HH:mm:ss"),
-
-    /**
-     * A timestamp field type. Fields of this type use a {@code java.sql.Timestamp} value.
-     */
-    TIMESTAMP("timestamp", "yyyy-MM-dd HH:mm:ss"),
 
     /**
      * A char field type. Fields of this type use a {@code char} value.

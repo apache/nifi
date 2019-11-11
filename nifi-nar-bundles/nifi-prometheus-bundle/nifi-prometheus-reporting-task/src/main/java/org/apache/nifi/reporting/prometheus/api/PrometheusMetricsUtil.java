@@ -17,9 +17,14 @@
 
 package org.apache.nifi.reporting.prometheus.api;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
+import io.prometheus.client.SimpleCollector;
 import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.status.ConnectionStatus;
 import org.apache.nifi.controller.status.PortStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
@@ -29,8 +34,11 @@ import io.prometheus.client.CollectorRegistry;
 import io.prometheus.client.Gauge;
 import org.apache.nifi.controller.status.RemoteProcessGroupStatus;
 import org.apache.nifi.controller.status.TransmissionStatus;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.metrics.jvm.JvmMetrics;
 import org.apache.nifi.processor.DataUnit;
+import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.ssl.RestrictedSSLContextService;
 
 public class PrometheusMetricsUtil {
 
@@ -44,7 +52,55 @@ public class PrometheusMetricsUtil {
     private static final CollectorRegistry NIFI_REGISTRY = new CollectorRegistry();
     private static final CollectorRegistry JVM_REGISTRY = new CollectorRegistry();
 
-    // Process Group metrics
+    // Common properties/values
+    public static final AllowableValue CLIENT_NONE = new AllowableValue("No Authentication", "No Authentication",
+            "ReportingTask will not authenticate clients. Anyone can communicate with this ReportingTask anonymously");
+    public static final AllowableValue CLIENT_WANT = new AllowableValue("Want Authentication", "Want Authentication",
+            "ReportingTask will try to verify the client but if unable to verify will allow the client to communicate anonymously");
+    public static final AllowableValue CLIENT_NEED = new AllowableValue("Need Authentication", "Need Authentication",
+            "ReportingTask will reject communications from any client unless the client provides a certificate that is trusted by the TrustStore"
+                    + "specified in the SSL Context Service");
+
+    public static final PropertyDescriptor METRICS_ENDPOINT_PORT = new PropertyDescriptor.Builder()
+            .name("prometheus-reporting-task-metrics-endpoint-port")
+            .displayName("Prometheus Metrics Endpoint Port")
+            .description("The Port where prometheus metrics can be accessed")
+            .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .defaultValue("9092")
+            .addValidator(StandardValidators.INTEGER_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor INSTANCE_ID = new PropertyDescriptor.Builder()
+            .name("prometheus-reporting-task-instance-id")
+            .displayName("Instance ID")
+            .description("Id of this NiFi instance to be included in the metrics sent to Prometheus")
+            .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .defaultValue("${hostname(true)}")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor SSL_CONTEXT = new PropertyDescriptor.Builder()
+            .name("prometheus-reporting-task-ssl-context")
+            .displayName("SSL Context Service")
+            .description("The SSL Context Service to use in order to secure the server. If specified, the server will"
+                    + "accept only HTTPS requests; otherwise, the server will accept only HTTP requests")
+            .required(false)
+            .identifiesControllerService(RestrictedSSLContextService.class)
+            .build();
+
+    public static final PropertyDescriptor CLIENT_AUTH = new PropertyDescriptor.Builder()
+            .name("prometheus-reporting-task-client-auth")
+            .displayName("Client Authentication")
+            .description("Specifies whether or not the Reporting Task should authenticate clients. This value is ignored if the <SSL Context Service> "
+                    + "Property is not specified or the SSL Context provided uses only a KeyStore and not a TrustStore.")
+            .required(true)
+            .allowableValues(CLIENT_NONE, CLIENT_WANT, CLIENT_NEED)
+            .defaultValue(CLIENT_NONE.getValue())
+            .build();
+
+    // Processor / Process Group metrics
     private static final Gauge AMOUNT_FLOWFILES_SENT = Gauge.build()
             .name("nifi_amount_flowfiles_sent")
             .help("Total number of FlowFiles sent by the component")
@@ -60,6 +116,12 @@ public class PrometheusMetricsUtil {
     private static final Gauge AMOUNT_FLOWFILES_RECEIVED = Gauge.build()
             .name("nifi_amount_flowfiles_received")
             .help("Total number of FlowFiles received by the component")
+            .labelNames("instance", "component_type", "component_name", "component_id", "parent_id")
+            .register(NIFI_REGISTRY);
+
+    private static final Gauge AMOUNT_FLOWFILES_REMOVED = Gauge.build()
+            .name("nifi_amount_flowfiles_removed")
+            .help("Total number of FlowFiles removed by the component")
             .labelNames("instance", "component_type", "component_name", "component_id", "parent_id")
             .register(NIFI_REGISTRY);
 
@@ -147,6 +209,7 @@ public class PrometheusMetricsUtil {
                     "source_id", "source_name", "destination_id", "destination_name")
             .register(NIFI_REGISTRY);
 
+    // Processor metrics
     private static final Gauge PROCESSOR_COUNTERS = Gauge.build()
             .name("nifi_processor_counters")
             .help("Counters exposed by NiFi Processors")
@@ -249,10 +312,34 @@ public class PrometheusMetricsUtil {
             .labelNames("instance")
             .register(JVM_REGISTRY);
 
+    private static final Gauge JVM_GC_RUNS = Gauge.build()
+            .name("nifi_jvm_gc_runs")
+            .help("NiFi JVM GC number of runs")
+            .labelNames("instance", "gc_name")
+            .register(JVM_REGISTRY);
+
+    private static final Gauge JVM_GC_TIME = Gauge.build()
+            .name("nifi_jvm_gc_time")
+            .help("NiFi JVM GC time in milliseconds")
+            .labelNames("instance", "gc_name")
+            .register(JVM_REGISTRY);
+
     public static CollectorRegistry createNifiMetrics(ProcessGroupStatus status, String instanceId, String parentPGId, String componentType, String metricsStrategy) {
 
         final String componentId = status.getId();
         final String componentName = status.getName();
+
+        // Clear all collectors to deal with removed/renamed components
+        try {
+            for (final Field field : PrometheusMetricsUtil.class.getDeclaredFields()) {
+                if (Modifier.isStatic(field.getModifiers()) && (field.get(null) instanceof SimpleCollector)) {
+                    SimpleCollector sc = (SimpleCollector)(field.get(null));
+                    sc.clear();
+                }
+            }
+        } catch (IllegalAccessException e) {
+            // ignore
+        }
 
         AMOUNT_FLOWFILES_SENT.labels(instanceId, componentType, componentName, componentId, parentPGId).set(status.getFlowFilesSent());
         AMOUNT_FLOWFILES_TRANSFERRED.labels(instanceId, componentType, componentName, componentId, parentPGId).set(status.getFlowFilesTransferred());
@@ -290,10 +377,10 @@ public class PrometheusMetricsUtil {
 
         if (METRICS_STRATEGY_COMPONENTS.getValue().equals(metricsStrategy)) {
             // Report metrics for all components
-            for(ProcessorStatus processorStatus : status.getProcessorStatus()) {
+            for (ProcessorStatus processorStatus : status.getProcessorStatus()) {
                 Map<String, Long> counters = processorStatus.getCounters();
 
-                if(counters != null) {
+                if (counters != null) {
                     counters.entrySet().stream().forEach(entry -> PROCESSOR_COUNTERS
                             .labels(processorStatus.getName(), entry.getKey(), processorStatus.getId(), instanceId).set(entry.getValue()));
                 }
@@ -302,13 +389,36 @@ public class PrometheusMetricsUtil {
                 final String procComponentId = processorStatus.getId();
                 final String procComponentName = processorStatus.getName();
                 final String parentId = processorStatus.getGroupId();
+
+                AMOUNT_FLOWFILES_SENT.labels(instanceId, procComponentType, procComponentName, procComponentId, parentPGId).set(processorStatus.getFlowFilesSent());
+                AMOUNT_FLOWFILES_RECEIVED.labels(instanceId, procComponentType, procComponentName, procComponentId, parentPGId).set(processorStatus.getFlowFilesReceived());
+                AMOUNT_FLOWFILES_REMOVED.labels(instanceId, procComponentType, procComponentName, procComponentId, parentPGId).set(processorStatus.getFlowFilesRemoved());
+
+                AMOUNT_BYTES_SENT.labels(instanceId, procComponentType, procComponentName, procComponentId, parentPGId).set(processorStatus.getBytesSent());
+                AMOUNT_BYTES_READ.labels(instanceId, procComponentType, procComponentName, procComponentId, parentPGId).set(processorStatus.getBytesRead());
+                AMOUNT_BYTES_WRITTEN.labels(instanceId, procComponentType, procComponentName, procComponentId, parentPGId).set(processorStatus.getBytesWritten());
+                AMOUNT_BYTES_RECEIVED.labels(instanceId, procComponentType, procComponentName, procComponentId, parentPGId).set(processorStatus.getBytesReceived());
+
+                SIZE_CONTENT_OUTPUT_TOTAL.labels(instanceId, procComponentType, procComponentName, procComponentId, parentPGId, "", "", "", "")
+                        .set(processorStatus.getOutputBytes());
+                SIZE_CONTENT_INPUT_TOTAL.labels(instanceId, procComponentType, procComponentName, procComponentId, parentPGId, "", "", "", "")
+                        .set(processorStatus.getInputBytes());
+
+                AMOUNT_ITEMS_OUTPUT.labels(instanceId, procComponentType, procComponentName, procComponentId, parentPGId, "", "", "", "")
+                        .set(processorStatus.getOutputCount());
+                AMOUNT_ITEMS_INPUT.labels(instanceId, procComponentType, procComponentName, procComponentId, parentPGId, "", "", "", "")
+                        .set(processorStatus.getInputCount());
+
+                AVERAGE_LINEAGE_DURATION.labels(instanceId, procComponentType, procComponentName, procComponentId, parentPGId, "", "", "", "")
+                        .set(processorStatus.getAverageLineageDuration());
+
                 AMOUNT_THREADS_TOTAL_ACTIVE.labels(instanceId, procComponentType, procComponentName, procComponentId, parentId)
                         .set(status.getActiveThreadCount() == null ? 0 : status.getActiveThreadCount());
                 AMOUNT_THREADS_TOTAL_TERMINATED.labels(instanceId, procComponentType, procComponentName, procComponentId, parentId)
                         .set(status.getTerminatedThreadCount() == null ? 0 : status.getTerminatedThreadCount());
 
             }
-            for(ConnectionStatus connectionStatus : status.getConnectionStatus()) {
+            for (ConnectionStatus connectionStatus : status.getConnectionStatus()) {
                 final String connComponentId = connectionStatus.getId();
                 final String connComponentName = connectionStatus.getName();
                 final String sourceId = connectionStatus.getSourceId();
@@ -340,7 +450,7 @@ public class PrometheusMetricsUtil {
                 IS_BACKPRESSURE_ENABLED.labels(instanceId, connComponentType, connComponentName, connComponentId, parentId, sourceId, sourceName, destinationId, destinationName)
                         .set(isBackpressureEnabled ? 1 : 0);
             }
-            for(PortStatus portStatus : status.getInputPortStatus()) {
+            for (PortStatus portStatus : status.getInputPortStatus()) {
                 final String portComponentId = portStatus.getId();
                 final String portComponentName = portStatus.getName();
                 final String parentId = portStatus.getGroupId();
@@ -364,7 +474,7 @@ public class PrometheusMetricsUtil {
 
                 AMOUNT_THREADS_TOTAL_ACTIVE.labels(instanceId, portComponentType, portComponentName, portComponentId, parentId).set(portStatus.getActiveThreadCount());
             }
-            for(PortStatus portStatus : status.getOutputPortStatus()) {
+            for (PortStatus portStatus : status.getOutputPortStatus()) {
                 final String portComponentId = portStatus.getId();
                 final String portComponentName = portStatus.getName();
                 final String parentId = portStatus.getGroupId();
@@ -388,7 +498,7 @@ public class PrometheusMetricsUtil {
 
                 AMOUNT_THREADS_TOTAL_ACTIVE.labels(instanceId, portComponentType, portComponentName, portComponentId, parentId).set(portStatus.getActiveThreadCount());
             }
-            for(RemoteProcessGroupStatus remoteProcessGroupStatus : status.getRemoteProcessGroupStatus()) {
+            for (RemoteProcessGroupStatus remoteProcessGroupStatus : status.getRemoteProcessGroupStatus()) {
                 final String rpgComponentId = remoteProcessGroupStatus.getId();
                 final String rpgComponentName = remoteProcessGroupStatus.getName();
                 final String parentId = remoteProcessGroupStatus.getGroupId();
@@ -402,10 +512,13 @@ public class PrometheusMetricsUtil {
                 AMOUNT_ITEMS_INPUT.labels(instanceId, rpgComponentType, rpgComponentName, rpgComponentId, parentId, "", "", "", "")
                         .set(remoteProcessGroupStatus.getReceivedCount());
 
-                ACTIVE_REMOTE_PORT_COUNT.labels(instanceId, rpgComponentType, rpgComponentName, rpgComponentId, parentId).set(remoteProcessGroupStatus.getActiveRemotePortCount());
-                INACTIVE_REMOTE_PORT_COUNT.labels(instanceId, rpgComponentType, rpgComponentName, rpgComponentId, parentId).set(remoteProcessGroupStatus.getInactiveRemotePortCount());
+                ACTIVE_REMOTE_PORT_COUNT.labels(instanceId, rpgComponentType, rpgComponentName, rpgComponentId, parentId, "", "", "", "")
+                        .set(remoteProcessGroupStatus.getActiveRemotePortCount());
+                INACTIVE_REMOTE_PORT_COUNT.labels(instanceId, rpgComponentType, rpgComponentName, rpgComponentId, parentId, "", "", "", "")
+                        .set(remoteProcessGroupStatus.getInactiveRemotePortCount());
 
-                AVERAGE_LINEAGE_DURATION.labels(instanceId, rpgComponentType, rpgComponentName, rpgComponentId, parentId).set(remoteProcessGroupStatus.getAverageLineageDuration());
+                AVERAGE_LINEAGE_DURATION.labels(instanceId, rpgComponentType, rpgComponentName, rpgComponentId, parentId, "", "", "", "")
+                        .set(remoteProcessGroupStatus.getAverageLineageDuration());
 
                 IS_TRANSMITTING.labels(instanceId, rpgComponentType, rpgComponentName, rpgComponentId, parentId, remoteProcessGroupStatus.getTransmissionStatus().name())
                         .set(TransmissionStatus.Transmitting.equals(remoteProcessGroupStatus.getTransmissionStatus()) ? 1 : 0);
@@ -427,6 +540,12 @@ public class PrometheusMetricsUtil {
 
         JVM_UPTIME.labels(instanceId).set(jvmMetrics.uptime());
         JVM_FILE_DESCRIPTOR_USAGE.labels(instanceId).set(jvmMetrics.fileDescriptorUsage());
+
+        jvmMetrics.garbageCollectors()
+                .forEach((name, stat) -> {
+                    JVM_GC_RUNS.labels(instanceId, name).set(stat.getRuns());
+                    JVM_GC_TIME.labels(instanceId, name).set(stat.getTime(TimeUnit.MILLISECONDS));
+                });
 
         return JVM_REGISTRY;
     }

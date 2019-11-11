@@ -26,9 +26,10 @@
                 'nf.Storage',
                 'nf.ErrorHandler',
                 'nf.Client',
-                'nf.CanvasUtils'],
-            function ($, d3, nfCommon, nfDialog, nfStorage, nfErrorHandler, nfClient, nfCanvasUtils) {
-                return (nf.Connection = factory($, d3, nfCommon, nfDialog, nfStorage, nfErrorHandler, nfClient, nfCanvasUtils));
+                'nf.CanvasUtils',
+                'lodash-core'],
+            function ($, d3, nfCommon, nfDialog, nfStorage, nfErrorHandler, nfClient, nfCanvasUtils, _) {
+                return (nf.Connection = factory($, d3, nfCommon, nfDialog, nfStorage, nfErrorHandler, nfClient, nfCanvasUtils, _));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.Connection =
@@ -39,7 +40,8 @@
                 require('nf.Storage'),
                 require('nf.ErrorHandler'),
                 require('nf.Client'),
-                require('nf.CanvasUtils')));
+                require('nf.CanvasUtils'),
+                require('lodash-code')));
     } else {
         nf.Connection = factory(root.$,
             root.d3,
@@ -48,9 +50,10 @@
             root.nf.Storage,
             root.nf.ErrorHandler,
             root.nf.Client,
-            root.nf.CanvasUtils);
+            root.nf.CanvasUtils,
+            root._);
     }
-}(this, function ($, d3, nfCommon, nfDialog, nfStorage, nfErrorHandler, nfClient, nfCanvasUtils) {
+}(this, function ($, d3, nfCommon, nfDialog, nfStorage, nfErrorHandler, nfClient, nfCanvasUtils, _) {
     'use strict';
 
     var nfSelectable;
@@ -65,6 +68,9 @@
 
     // width of a backpressure indicator - half of width, left/right padding, left/right border
     var backpressureBarWidth = (dimensions.width / 2) - 15 - 2;
+
+    var backpressureCountOffset = 6;
+    var backpressureDataSizeOffset = (dimensions.width / 2) + 10 + 1;
 
     // --------------------------
     // Snap alignment for drag events
@@ -1238,92 +1244,121 @@
                         var yBackpressureOffset = rowHeight + HEIGHT_FOR_BACKPRESSURE - 4;
 
                         // backpressure object threshold
+                        var backpressureObjectContainer = queued.append('g')
+                            .attrs({
+                                'transform': 'translate(' + backpressureCountOffset + ', ' + yBackpressureOffset + ')',
+                                'class': 'backpressure-object-container'
+                            });
 
                         // start
-                        queued.append('rect')
+                        backpressureObjectContainer.append('rect')
                             .attrs({
                                 'class': 'backpressure-tick object',
                                 'width': 1,
                                 'height': 3,
-                                'x': 5,
-                                'y': yBackpressureOffset
+                                'x': 0,
+                                'y': 0
                             });
 
                         // bar
-                        var backpressureCountOffset = 6;
-                        queued.append('rect')
+                        backpressureObjectContainer.append('rect')
                             .attrs({
                                 'class': 'backpressure-object',
                                 'width': backpressureBarWidth,
                                 'height': 3,
-                                'x': backpressureCountOffset,
-                                'y': yBackpressureOffset
-                            })
-                            .append('title');
+                                'x': 0,
+                                'y': 0
+                            });
 
                         // end
-                        queued.append('rect')
+                        backpressureObjectContainer.append('rect')
                             .attrs({
                                 'class': 'backpressure-tick object',
                                 'width': 1,
                                 'height': 3,
-                                'x': backpressureCountOffset + backpressureBarWidth,
-                                'y': yBackpressureOffset
+                                'x': backpressureBarWidth,
+                                'y': 0
                             });
 
                         // percent full
-                        queued.append('rect')
+                        backpressureObjectContainer.append('rect')
                             .attrs({
                                 'class': 'backpressure-percent object',
                                 'width': 0,
                                 'height': 3,
-                                'x': backpressureCountOffset,
-                                'y': yBackpressureOffset
+                                'x': 0,
+                                'y': 0
+                            });
+
+                        // prediction indicator
+                        backpressureObjectContainer.append('rect')
+                            .attrs({
+                                'class': 'backpressure-tick object-prediction',
+                                'width': 1,
+                                'height': 3,
+                                'x': backpressureBarWidth,
+                                'y': 0
                             });
 
                         // backpressure data size threshold
 
+                        var backpressureDataSizeContainer = queued.append('g')
+                            .attrs({
+                                'transform': 'translate(' + backpressureDataSizeOffset + ', ' + yBackpressureOffset + ')',
+                                'class': 'backpressure-data-size-container'
+                            });
+
                         // start
-                        queued.append('rect')
+                        backpressureDataSizeContainer.append('rect')
                             .attrs({
                                 'class': 'backpressure-tick data-size',
                                 'width': 1,
                                 'height': 3,
-                                'x': (dimensions.width / 2) + 10,
-                                'y': yBackpressureOffset
+                                'x': 0,
+                                'y': 0
                             });
 
                         // bar
-                        var backpressureDataSizeOffset = (dimensions.width / 2) + 10 + 1;
-                        queued.append('rect')
+                        backpressureDataSizeContainer.append('rect')
                             .attrs({
                                 'class': 'backpressure-data-size',
                                 'width': backpressureBarWidth,
                                 'height': 3,
-                                'x': backpressureDataSizeOffset,
-                                'y': yBackpressureOffset
+                                'x': 0,
+                                'y': 0
                             })
                             .append('title');
 
                         // end
-                        queued.append('rect')
+                        backpressureDataSizeContainer.append('rect')
                             .attrs({
                                 'class': 'backpressure-tick data-size',
                                 'width': 1,
                                 'height': 3,
-                                'x': backpressureDataSizeOffset + backpressureBarWidth,
-                                'y': yBackpressureOffset
+                                'x': backpressureBarWidth,
+                                'y': 0
                             });
 
                         // percent full
-                        queued.append('rect')
+                        backpressureDataSizeContainer.append('rect')
                             .attrs({
                                 'class': 'backpressure-percent data-size',
                                 'width': 0,
                                 'height': 3,
-                                'x': backpressureDataSizeOffset,
-                                'y': yBackpressureOffset
+                                'x': 0,
+                                'y': 0
                             });
+
+                        // prediction indicator
+                        backpressureDataSizeContainer.append('rect')
+                            .attrs({
+                                'class': 'backpressure-tick data-size-prediction',
+                                'width': 1,
+                                'height': 3,
+                                'x': backpressureBarWidth,
+                                'y': 0
+                            });
+
                     } else {
                         backgrounds.push(queued.select('rect.connection-label-background'));
                         borders.push(queued.select('rect.connection-label-border'));
@@ -1441,6 +1476,10 @@
                         .classed('not-configured', function () {
                             return nfCommon.isUndefinedOrNull(d.status.aggregateSnapshot.percentUseCount);
                         });
+                    connectionLabelContainer.selectAll('rect.backpressure-tick.object-prediction')
+                        .classed('not-configured', function () {
+                            return nfCommon.isUndefinedOrNull(d.status.aggregateSnapshot.percentUseCount);
+                        });
 
                     // update backpressure data size fill
                     connectionLabelContainer.select('rect.backpressure-data-size')
@@ -1448,6 +1487,10 @@
                             return nfCommon.isUndefinedOrNull(d.status.aggregateSnapshot.percentUseBytes);
                         });
                     connectionLabelContainer.selectAll('rect.backpressure-tick.data-size')
+                        .classed('not-configured', function () {
+                            return nfCommon.isUndefinedOrNull(d.status.aggregateSnapshot.percentUseBytes);
+                        });
+                    connectionLabelContainer.selectAll('rect.backpressure-tick.data-size-prediction')
                         .classed('not-configured', function () {
                             return nfCommon.isUndefinedOrNull(d.status.aggregateSnapshot.percentUseBytes);
                         });
@@ -1474,6 +1517,114 @@
                     return 'translate(' + position.x + ', ' + position.y + ')';
                 });
         });
+    };
+
+    var isAtBackPressure = function (d) {
+        var percentUseCount = _.get(d, 'status.aggregateSnapshot.percentUseCount', 0);
+        var percentUseBytes = _.get(d, 'status.aggregateSnapshot.percentUseBytes', 0);
+        return Math.max(percentUseCount, percentUseBytes) >= 100;
+    };
+
+    /**
+     * Gets the tooltip content for the back pressure count metric
+     * @param d
+     */
+    var getBackPressureCountTip = function (d) {
+        var tooltipContent;
+        var percentUseCount = _.get(d, 'status.aggregateSnapshot.percentUseCount');
+        if (_.isNumber(percentUseCount)) {
+            var objectThreshold = _.get(d, 'component.backPressureObjectThreshold');
+
+            var predictions = _.get(d, 'status.aggregateSnapshot.predictions');
+
+            var tooltipLines = ['Queue: ' + _.clamp(percentUseCount, 0, 100) + '% full (based on ' + objectThreshold + ' object threshold)'];
+
+            if (!_.isNil(predictions)) {
+                var predictedPercentCount = _.get(predictions, 'predictedPercentCount', -1);
+                var timeToBackPressure = _.get(predictions, 'predictedMillisUntilCountBackpressure', -1);
+
+                // only show predicted percent if it is non-negative
+                var predictionIntervalSeconds = _.get(predictions, 'predictionIntervalSeconds', 60 * 5);
+                if (_.isNumber(predictedPercentCount) && predictedPercentCount > -1) {
+                    tooltipLines.push('Predicted queue (next ' + (predictionIntervalSeconds / 60 ) + ' mins): ' + _.clamp(predictedPercentCount, 0, 100) + '%')
+                } else {
+                    tooltipLines.push('Predicted queue (next ' + (predictionIntervalSeconds / 60 ) + ' mins): NA' )
+                }
+
+                // only show an estimate if it is valid (non-negative but less than the max number supported)
+                if (_.isNumber(timeToBackPressure) && _.inRange(timeToBackPressure, 0, Number.MAX_SAFE_INTEGER) && !isAtBackPressure(d)) {
+                    var duration = nfCommon.formatPredictedDuration(timeToBackPressure);
+                    tooltipLines.push('Estimated time to back pressure: ' + duration);
+                } else {
+                    tooltipLines.push('Estimated time to back pressure: ' + (isAtBackPressure(d) ? 'now' : 'NA'));
+                }
+            } else {
+                tooltipLines.push('Queue Prediction is not configured')
+            }
+
+            if (_.isEmpty(tooltipLines)) {
+                return '';
+            } else if (_.size(tooltipLines) === 1) {
+                return tooltipLines[0];
+            } else {
+                tooltipContent = nfCommon.formatUnorderedList(tooltipLines)
+            }
+        } else {
+            tooltipContent = 'Back Pressure Object Threshold is not configured';
+        }
+
+        return tooltipContent;
+    };
+
+    /**
+     * Gets the tooltip content for the back pressure size metric
+     * @param d
+     */
+    var getBackPressureSizeTip = function (d) {
+        var tooltipContent;
+        var percentUseBytes = _.get(d, 'status.aggregateSnapshot.percentUseBytes');
+
+        if (_.isNumber(percentUseBytes)) {
+            var dataSizeThreshold = _.get(d, 'component.backPressureDataSizeThreshold');
+            var predictions = _.get(d, 'status.aggregateSnapshot.predictions');
+
+            var tooltipLines = ['Queue: ' + _.clamp(percentUseBytes, 0, 100) + '% full (based on ' + dataSizeThreshold + ' data size threshold)'];
+
+            if (!_.isNil(predictions)) {
+                var predictedPercentBytes = _.get(predictions, 'predictedPercentBytes', -1);
+                var timeToBackPressure = _.get(predictions, 'predictedMillisUntilBytesBackpressure', -1);
+
+                // only show predicted percent if it is non-negative
+                var predictionIntervalSeconds = _.get(predictions, 'predictionIntervalSeconds', 60 * 5);
+                if (_.isNumber(predictedPercentBytes) && predictedPercentBytes > -1) {
+                    tooltipLines.push('Predicted queue (next ' + (predictionIntervalSeconds / 60) + ' mins): ' + _.clamp(predictedPercentBytes, 0, 100) + '%')
+                } else {
+                    tooltipLines.push('Predicted queue (next ' + (predictionIntervalSeconds / 60 ) + ' mins): NA' )
+                }
+
+                // only show an estimate if it is valid (non-negative but less than the max number supported)
+                if (_.isNumber(timeToBackPressure) && _.inRange(timeToBackPressure, 0, Number.MAX_SAFE_INTEGER) && !isAtBackPressure(d)) {
+                    var duration = nfCommon.formatPredictedDuration(timeToBackPressure);
+                    tooltipLines.push('Estimated time to back pressure: ' + duration);
+                } else {
+                    tooltipLines.push('Estimated time to back pressure: ' + (isAtBackPressure(d) ? 'now' : 'NA'));
+                }
+            } else {
+                tooltipLines.push('Queue Prediction is not configured')
+            }
+
+            if (_.isEmpty(tooltipLines)) {
+                return '';
+            } else if (_.size(tooltipLines) === 1) {
+                return tooltipLines[0];
+            } else {
+                tooltipContent = nfCommon.formatUnorderedList(tooltipLines)
+            }
+        } else {
+            tooltipContent = 'Back Pressure Data Size Threshold is not configured';
+        }
+
+        return tooltipContent;
     };
 
     /**
@@ -1517,13 +1668,53 @@
                 deferred.resolve();
             });
 
-            updated.select('rect.backpressure-data-size').select('title').text(function (d) {
-                if (nfCommon.isDefinedAndNotNull(d.status.aggregateSnapshot.percentUseBytes)) {
-                    return 'Queue is ' + d.status.aggregateSnapshot.percentUseBytes + '% full based on Back Pressure Data Size Threshold';
-                } else {
-                    return 'Back Pressure Data Size Threshold is not configured';
-                }
+            var backpressurePercentDataSizePrediction = updated.select('rect.backpressure-tick.data-size-prediction');
+            backpressurePercentDataSizePrediction.transition()
+                .duration(400)
+                .attrs({
+                    'x': function (d) {
+                        // clamp the prediction between 0 and 100 percent
+                        var predicted = _.get(d, 'status.aggregateSnapshot.predictions.predictedPercentBytes', 0);
+                        return (backpressureBarWidth * _.clamp(predicted, 0, 100)) / 100;
+                    },
+                    'display': function (d) {
+                        var predicted = _.get(d, 'status.aggregateSnapshot.predictions.predictedPercentBytes', -1);
+                        if (predicted >= 0) {
+                            return 'unset';
+                        } else {
+                            // don't show it if there not a valid prediction
+                            return 'none';
+                        }
+                    }
+                }).on('end', function () {
+                    backpressurePercentDataSizePrediction.classed('prediction-down', function (d) {
+                        var actual = _.get(d, 'status.aggregateSnapshot.predictions.percentUseBytes', 0);
+                        var predicted = _.get(d, 'status.aggregateSnapshot.predictions.predictedPercentBytes', 0);
+                        return predicted < actual;
+                })
             });
+
+            updated.select('g.backpressure-data-size-container')
+                .each(function(d) {
+                    var tip = d3.select('#back-pressure-size-tip-' + d.id);
+
+                    // create a DOM element for the tooltip if ones does not already exist
+                    if (tip.empty()) {
+                        tip = d3.select('#connection-tooltips')
+                            .append('div')
+                            .attr('id', function() {
+                                return 'back-pressure-size-tip-' + d.id
+                            })
+                            .attr('class', 'tooltip nifi-tooltip');
+                    }
+
+                    // update the tooltip
+                    tip.html(function() {
+                        return $('<div></div>').append(getBackPressureSizeTip(d)).html();
+                    });
+
+                    nfCanvasUtils.canvasTooltip(tip, d3.select(this));
+                });
         }).promise();
 
         // update object count
@@ -1546,24 +1737,65 @@
                         }
                     }
                 }).on('end', function () {
-                backpressurePercentObject
-                    .classed('warning', function (d) {
-                        return isWarningCount(d);
+                    backpressurePercentObject
+                        .classed('warning', function (d) {
+                            return isWarningCount(d);
+                        })
+                        .classed('error', function (d) {
+                            return isErrorCount(d);
+                        });
+
+                    deferred.resolve();
+                });
+
+
+            var backpressurePercentObjectPrediction = updated.select('rect.backpressure-tick.object-prediction');
+            backpressurePercentObjectPrediction.transition()
+                .duration(400)
+                .attrs({
+                    'x': function (d) {
+                        // clamp the prediction between 0 and 100 percent
+                        var predicted = _.get(d, 'status.aggregateSnapshot.predictions.predictedPercentCount', 0);
+                        return (backpressureBarWidth * _.clamp(predicted, 0, 100)) / 100;
+                    },
+                    'display': function (d) {
+                        var predicted = _.get(d, 'status.aggregateSnapshot.predictions.predictedPercentCount', -1);
+                        if (predicted >= 0) {
+                            return 'unset';
+                        } else {
+                            // don't show it if there not a valid prediction
+                            return 'none';
+                        }
+                    }
+                }).on('end', function () {
+                    backpressurePercentObjectPrediction.classed('prediction-down', function (d) {
+                        var actual = _.get(d, 'status.aggregateSnapshot.percentUseCount', 0);
+                        var predicted = _.get(d, 'status.aggregateSnapshot.predictions.predictedPercentCount', 0);
+                        return predicted < actual;
                     })
-                    .classed('error', function (d) {
-                        return isErrorCount(d);
+                });
+
+            updated.select('g.backpressure-object-container')
+                .each(function(d) {
+                    var tip = d3.select('#back-pressure-count-tip-' + d.id);
+
+                    // create a DOM element for the tooltip if ones does not already exist
+                    if (tip.empty()) {
+                        tip = d3.select('#connection-tooltips')
+                            .append('div')
+                            .attr('id', function() {
+                                return 'back-pressure-count-tip-' + d.id
+                            })
+                            .attr('class', 'tooltip nifi-tooltip');
+                    }
+
+                    // update the tooltip
+                    tip.html(function() {
+                        return $('<div></div>').append(getBackPressureCountTip(d)).html();
                     });
 
-                deferred.resolve();
-            });
-
-            updated.select('rect.backpressure-object').select('title').text(function (d) {
-                if (nfCommon.isDefinedAndNotNull(d.status.aggregateSnapshot.percentUseCount)) {
-                    return 'Queue is ' + d.status.aggregateSnapshot.percentUseCount + '% full based on Back Pressure Object Threshold';
-                } else {
-                    return 'Back Pressure Object Threshold is not configured';
-                }
-            });
+                    nfCanvasUtils.canvasTooltip(tip, d3.select(this));
+                });
         }).promise();
 
         // update connection once progress bars have transitioned
@@ -1627,7 +1859,15 @@
         });
 
         // remove the connection
-        removed.remove();
+        removed.call(removeTooltips).remove();
+    };
+
+    var removeTooltips = function (removed) {
+        removed.each(function (d) {
+            // remove any associated tooltips
+            $('#back-pressure-size-tip-' + d.id).remove();
+            $('#back-pressure-count-tip-' + d.id).remove();
+        });
     };
 
     var nfConnection = {

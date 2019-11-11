@@ -74,7 +74,7 @@ public class LengthDelimitedJournal<T> implements WriteAheadJournal<T> {
     private int transactionCount;
     private boolean headerWritten = false;
 
-    private volatile boolean poisoned = false;
+    private volatile Throwable poisonCause = null;
     private volatile boolean closed = false;
     private final ByteBuffer transactionPreamble = ByteBuffer.allocate(12); // guarded by synchronized block
 
@@ -142,7 +142,11 @@ public class LengthDelimitedJournal<T> implements WriteAheadJournal<T> {
 
     @Override
     public synchronized boolean isHealthy() {
-        return !closed && !poisoned;
+        return !closed && !isPoisoned();
+    }
+
+    private boolean isPoisoned() {
+        return poisonCause != null;
     }
 
     @Override
@@ -342,10 +346,12 @@ public class LengthDelimitedJournal<T> implements WriteAheadJournal<T> {
 
 
     private void checkState() throws IOException {
-        if (poisoned) {
+        final Throwable cause = this.poisonCause;
+        if (cause != null) {
+            logger.debug("Cannot update Write Ahead Log because the log has already been poisoned", cause);
             throw new IOException("Cannot update journal file " + journalFile + " because this journal has already encountered a failure when attempting to write to the file. "
                 + "If the repository is able to checkpoint, then this problem will resolve itself. However, if the repository is unable to be checkpointed "
-                + "(for example, due to being out of storage space or having too many open files), then this issue may require manual intervention.");
+                + "(for example, due to being out of storage space or having too many open files), then this issue may require manual intervention.", cause);
         }
 
         if (closed) {
@@ -354,7 +360,9 @@ public class LengthDelimitedJournal<T> implements WriteAheadJournal<T> {
     }
 
     protected void poison(final Throwable t) {
-        this.poisoned = true;
+        this.poisonCause = t;
+
+        logger.error("Marking Write-Ahead journal file {} as poisoned due to {}", journalFile, t, t);
 
         try {
             if (fileOut != null) {
@@ -390,7 +398,7 @@ public class LengthDelimitedJournal<T> implements WriteAheadJournal<T> {
 
         try {
             if (fileOut != null) {
-                if (!poisoned) {
+                if (!isPoisoned()) {
                     fileOut.write(JOURNAL_COMPLETE);
                 }
 

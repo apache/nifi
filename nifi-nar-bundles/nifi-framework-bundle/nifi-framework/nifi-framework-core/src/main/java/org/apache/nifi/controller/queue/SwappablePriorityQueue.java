@@ -410,6 +410,33 @@ public class SwappablePriorityQueue {
         return getFlowFileQueueSize().isEmpty();
     }
 
+    public boolean isFlowFileAvailable() {
+        if (isEmpty()) {
+            return false;
+        }
+
+        readLock.lock();
+        try {
+            // If we have data in the active or swap queue that is penalized, then we know that all FlowFiles
+            // are penalized. As a result, we can say that no FlowFile is available.
+            FlowFileRecord firstRecord = activeQueue.peek();
+            if (firstRecord == null && !swapQueue.isEmpty()) {
+                firstRecord = swapQueue.get(0);
+            }
+
+            if (firstRecord == null) {
+                // If the queue is not empty, then all data is swapped out. We don't actually know whether or not the swapped out data is penalized, so we assume
+                // that it is not penalized and is therefore available.
+                return !isEmpty();
+            }
+
+            // We do have a FlowFile that was retrieved from the active or swap queue. It is available if it is not penalized.
+            return !firstRecord.isPenalized();
+        } finally {
+            readLock.unlock("isFlowFileAvailable");
+        }
+    }
+
     public boolean isActiveQueueEmpty() {
         final FlowFileQueueSize queueSize = getFlowFileQueueSize();
         return queueSize.getActiveCount() == 0 && queueSize.getSwappedCount() == 0;

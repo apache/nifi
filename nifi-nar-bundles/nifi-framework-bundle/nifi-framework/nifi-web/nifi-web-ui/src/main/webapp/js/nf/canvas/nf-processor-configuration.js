@@ -633,12 +633,12 @@
                     return $.Deferred(function (deferred) {
                         if (nfCommon.isDefinedAndNotNull(groupId)) {
                             // processors being configured must be in the current group
-                            var parameterContextId = nfCanvasUtils.getParameterContextId();
+                            var parameterContext = nfCanvasUtils.getParameterContext();
 
-                            if (nfCommon.isDefinedAndNotNull(parameterContextId)) {
+                            if (nfCommon.isDefinedAndNotNull(parameterContext)) {
                                 $.ajax({
                                     type: 'GET',
-                                    url: '../nifi-api/parameter-contexts/' + parameterContextId,
+                                    url: '../nifi-api/parameter-contexts/' + encodeURIComponent(parameterContext.id),
                                     dataType: 'json'
                                 }).done(function (response) {
                                     var sensitive = nfCommon.isSensitiveProperty(propertyDescriptor);
@@ -660,9 +660,9 @@
                     }).promise();
                 },
                 goToServiceDeferred: goToServiceFromProperty,
-                getParameterContextId: function (groupId) {
+                getParameterContext: function (groupId) {
                     // processors being configured must be in the current group
-                    return nfCanvasUtils.getParameterContextId();
+                    return nfCanvasUtils.getParameterContext();
                 }
             });
         },

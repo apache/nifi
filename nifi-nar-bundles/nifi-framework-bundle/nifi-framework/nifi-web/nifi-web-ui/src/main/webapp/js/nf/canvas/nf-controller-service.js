@@ -1519,21 +1519,21 @@
     var getParameters = function (propertyDescriptor, groupId) {
         return $.Deferred(function (deferred) {
             if (nfCommon.isDefinedAndNotNull(groupId)) {
-                var parameterContextId;
+                var parameterContext;
 
                 // attempt to identify the parameter context id, conditional based on whether
                 // the user is configuring the current process group
                 if (groupId === nfCanvasUtils.getGroupId()) {
-                    parameterContextId = nfCanvasUtils.getParameterContextId();
+                    parameterContext = nfCanvasUtils.getParameterContext();
                 } else {
                     var parentProcessGroup = nfCanvasUtils.getComponentByType('ProcessGroup').get(groupId);
-                    parameterContextId = parentProcessGroup.parameterContextId;
+                    parameterContext = parentProcessGroup.parameterContext;
                 }
 
-                if (nfCommon.isDefinedAndNotNull(parameterContextId)) {
+                if (nfCommon.isDefinedAndNotNull(parameterContext)) {
                     $.ajax({
                         type: 'GET',
-                        url: '../nifi-api/parameter-contexts/' + parameterContextId,
+                        url: '../nifi-api/parameter-contexts/' + encodeURIComponent(parameterContext.id),
                         dataType: 'json'
                     }).done(function (response) {
                         var sensitive = nfCommon.isSensitiveProperty(propertyDescriptor);
@@ -1587,6 +1587,25 @@
                 deferred.resolve();
             }
         }).promise();
+    };
+
+    var getParameterContext = function (groupId, controllerServiceEntity) {
+        if (_.isNil(controllerServiceEntity.parentGroupId)) {
+            return null;
+        }
+
+        var parameterContext;
+
+        // attempt to identify the parameter context, conditional based on whether
+        // the user is configuring the current process group
+        if (_.isNil(groupId) || groupId === nfCanvasUtils.getGroupId()) {
+            parameterContext = nfCanvasUtils.getParameterContext();
+        } else {
+            var parentProcessGroup = nfCanvasUtils.getComponentByType('ProcessGroup').get(groupId);
+            parameterContext = parentProcessGroup.parameterContext;
+        }
+
+        return parameterContext;
     };
 
     var saveControllerService = function (serviceTable, controllerServiceEntity) {
@@ -1876,15 +1895,8 @@
                     goToServiceDeferred: function () {
                         return goToServiceFromProperty(serviceTable);
                     },
-                    getParameterContextId: function (groupId) {
-                        // attempt to identify the parameter context id, conditional based on whether
-                        // the user is configuring the current process group
-                        if (_.isNil(groupId) || groupId === nfCanvasUtils.getGroupId()) {
-                            return nfCanvasUtils.getParameterContextId();
-                        } else {
-                            var parentProcessGroup = nfCanvasUtils.getComponentByType('ProcessGroup').get(groupId);
-                            return parentProcessGroup.parameterContextId;
-                        }
+                    getParameterContext: function (groupId) {
+                        return getParameterContext(groupId, controllerServiceEntity);
                     }
                 });
 
@@ -2069,7 +2081,10 @@
                 // initialize the property table
                 $('#controller-service-properties').propertytable('destroy').propertytable({
                     supportsGoTo: true,
-                    readOnly: true
+                    readOnly: true,
+                    getParameterContext: function (groupId) {
+                        return getParameterContext(groupId, controllerServiceEntity);
+                    }
                 });
 
                 // update the mode

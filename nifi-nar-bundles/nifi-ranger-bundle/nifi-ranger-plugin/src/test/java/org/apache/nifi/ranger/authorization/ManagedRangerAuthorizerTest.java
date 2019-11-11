@@ -68,7 +68,7 @@ public class ManagedRangerAuthorizerTest {
                 + "</userGroupProvider>"
             + "</managedRangerAuthorizations>";
 
-    private final String serviceType = "nifiService";
+    private final String serviceType = "nifi";
     private final String appId = "nifiAppId";
 
     @Before

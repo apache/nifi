@@ -20,14 +20,20 @@ import org.apache.commons.cli.MissingOptionException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.registry.security.util.KeystoreType;
 import org.apache.nifi.toolkit.cli.api.ClientFactory;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.ConnectionClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ControllerClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ControllerServicesClient;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.CountersClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.FlowClient;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.InputPortClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientConfig;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.OutputPortClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ParamContextClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.PoliciesClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ProcessGroupClient;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.ProcessorClient;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.RemoteProcessGroupClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ReportingTasksClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.TemplatesClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.TenantsClient;
@@ -187,6 +193,21 @@ public class NiFiClientFactory implements ClientFactory<NiFiClient> {
         }
 
         @Override
+        public ProcessorClient getProcessorClient() {
+            return wrappedClient.getProcessorClientForProxiedEntities(proxiedEntity);
+        }
+
+        @Override
+        public ProcessorClient getProcessorClientForProxiedEntities(final String... proxiedEntity) {
+            return wrappedClient.getProcessorClientForProxiedEntities(proxiedEntity);
+        }
+
+        @Override
+        public ProcessorClient getProcessorClientForToken(final String token) {
+            return wrappedClient.getProcessorClientForToken(token);
+        }
+
+        @Override
         public VersionsClient getVersionsClient() {
             return wrappedClient.getVersionsClientForProxiedEntities(proxiedEntity);
         }
@@ -274,6 +295,81 @@ public class NiFiClientFactory implements ClientFactory<NiFiClient> {
         @Override
         public ParamContextClient getParamContextClientForToken(String token) {
             return wrappedClient.getParamContextClientForToken(token);
+        }
+
+        @Override
+        public CountersClient getCountersClient() {
+            return wrappedClient.getCountersClientForProxiedEntities(proxiedEntity);
+        }
+
+        @Override
+        public CountersClient getCountersClientForProxiedEntities(final String... proxiedEntity) {
+            return wrappedClient.getCountersClientForProxiedEntities(proxiedEntity);
+        }
+
+        @Override
+        public CountersClient getCountersClientForToken(final String token) {
+            return wrappedClient.getCountersClientForToken(token);
+        }
+
+        @Override
+        public ConnectionClient getConnectionClient() {
+            return wrappedClient.getConnectionClientForProxiedEntities(proxiedEntity);
+        }
+
+        @Override
+        public ConnectionClient getConnectionClientForProxiedEntities(final String... proxiedEntity) {
+            return wrappedClient.getConnectionClientForProxiedEntities(proxiedEntity);
+        }
+
+        @Override
+        public ConnectionClient getConnectionClientForToken(final String token) {
+            return wrappedClient.getConnectionClientForToken(token);
+        }
+
+        @Override
+        public RemoteProcessGroupClient getRemoteProcessGroupClient() {
+            return wrappedClient.getRemoteProcessGroupClientForProxiedEntities(proxiedEntity);
+        }
+
+        @Override
+        public RemoteProcessGroupClient getRemoteProcessGroupClientForProxiedEntities(final String... proxiedEntity) {
+            return wrappedClient.getRemoteProcessGroupClientForProxiedEntities(proxiedEntity);
+        }
+
+        @Override
+        public RemoteProcessGroupClient getRemoteProcessGroupClientForToken(final String token) {
+            return wrappedClient.getRemoteProcessGroupClientForToken(token);
+        }
+
+        @Override
+        public InputPortClient getInputPortClient() {
+            return wrappedClient.getInputPortClientForProxiedEntities(proxiedEntity);
+        }
+
+        @Override
+        public InputPortClient getInputPortClientForProxiedEntities(final String... proxiedEntity) {
+            return wrappedClient.getInputPortClientForProxiedEntities(proxiedEntity);
+        }
+
+        @Override
+        public InputPortClient getInputPortClientForToken(final String token) {
+            return wrappedClient.getInputPortClientForToken(proxiedEntity);
+        }
+
+        @Override
+        public OutputPortClient getOutputPortClient() {
+            return wrappedClient.getOutputPortClientForProxiedEntities(proxiedEntity);
+        }
+
+        @Override
+        public OutputPortClient getOutputPortClientForProxiedEntities(final String... proxiedEntity) {
+            return wrappedClient.getOutputPortClientForProxiedEntities(proxiedEntity);
+        }
+
+        @Override
+        public OutputPortClient getOutputPortClientForToken(final String token) {
+            return wrappedClient.getOutputPortClientForToken(proxiedEntity);
         }
 
         @Override

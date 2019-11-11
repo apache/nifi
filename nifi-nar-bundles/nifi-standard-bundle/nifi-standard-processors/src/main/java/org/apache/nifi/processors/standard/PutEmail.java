@@ -385,7 +385,7 @@ public class PutEmail extends AbstractProcessor {
                     }
                 });
 
-                mimeFile.setFileName(flowFile.getAttribute(CoreAttributes.FILENAME.key()));
+                mimeFile.setFileName(MimeUtility.encodeText(flowFile.getAttribute(CoreAttributes.FILENAME.key())));
                 MimeMultipart multipart = new MimeMultipart();
                 multipart.addBodyPart(mimeText);
                 multipart.addBodyPart(mimeFile);

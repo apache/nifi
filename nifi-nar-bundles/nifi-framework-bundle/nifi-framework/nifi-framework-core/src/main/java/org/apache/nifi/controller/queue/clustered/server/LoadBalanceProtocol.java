@@ -18,6 +18,8 @@
 package org.apache.nifi.controller.queue.clustered.server;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.Socket;
 
 public interface LoadBalanceProtocol {
@@ -26,10 +28,14 @@ public interface LoadBalanceProtocol {
      * Receives FlowFiles from the peer attached to the socket
      *
      * @param socket the socket to read from and write to
+     * @param in the InputStream to read from. The Socket's InputStream is wrapped with a BufferedInputStream, which is provided
+     * here. If this method were to wrap the InputStream itself, a second call to the method may discard some data that was consumed
+     * by the previous call's BufferedInputStream
+     * @param out the OutputStream to write to
      *
      * @throws TransactionAbortedException if the transaction was aborted
      * @throws IOException if unable to communicate with the peer
      */
-    void receiveFlowFiles(Socket socket) throws IOException;
+    void receiveFlowFiles(Socket socket, InputStream in, OutputStream out) throws IOException;
 
 }

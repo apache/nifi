@@ -23,8 +23,8 @@ import com.microsoft.azure.eventprocessorhost.EventProcessorOptions;
 import com.microsoft.azure.eventprocessorhost.IEventProcessor;
 import com.microsoft.azure.eventprocessorhost.IEventProcessorFactory;
 import com.microsoft.azure.eventprocessorhost.PartitionContext;
-import com.microsoft.azure.servicebus.ConnectionStringBuilder;
-import com.microsoft.azure.servicebus.ReceiverDisconnectedException;
+import com.microsoft.azure.eventhubs.ConnectionStringBuilder;
+import com.microsoft.azure.eventhubs.ReceiverDisconnectedException;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -48,7 +48,6 @@ import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
@@ -90,6 +89,8 @@ import static org.apache.nifi.util.StringUtils.isEmpty;
         @WritesAttribute(attribute = "eventhub.partition", description = "The name of the Azure Partition from which the message was pulled")
 })
 public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
+
+    private static final String FORMAT_STORAGE_CONNECTION_STRING = "DefaultEndpointsProtocol=https;AccountName=%s;AccountKey=%s";
 
     static final PropertyDescriptor NAMESPACE = new PropertyDescriptor.Builder()
             .name("event-hub-namespace")
@@ -241,7 +242,6 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .required(false)
             .build();
-
 
     static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
@@ -530,7 +530,6 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
                             " consumerGroupName={}, exception={}",
                     new Object[]{context.getEventHubPath(), context.getPartitionId(), context.getConsumerGroupName(), e}, e);
         }
-
     }
 
     @Override
@@ -605,9 +604,9 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
         final EventProcessorOptions options = new EventProcessorOptions();
         final String initialOffset = context.getProperty(INITIAL_OFFSET).getValue();
         if (INITIAL_OFFSET_START_OF_STREAM.getValue().equals(initialOffset)) {
-            options.setInitialOffsetProvider(options.new StartOfStreamInitialOffsetProvider());
+            options.setInitialPositionProvider(options.new StartOfStreamInitialPositionProvider());
         } else if (INITIAL_OFFSET_END_OF_STREAM.getValue().equals(initialOffset)){
-            options.setInitialOffsetProvider(options.new EndOfStreamInitialOffsetProvider());
+            options.setInitialPositionProvider(options.new EndOfStreamInitialPositionProvider());
         } else {
             throw new IllegalArgumentException("Initial offset " + initialOffset + " is not allowed.");
         }
@@ -626,9 +625,9 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
                 .evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS);
         options.setReceiveTimeOut(Duration.ofMillis(receiveTimeoutMillis));
 
-        final String storageConnectionString = String.format(AzureStorageUtils.FORMAT_BLOB_CONNECTION_STRING, storageAccountName, storageAccountKey);
+        final String storageConnectionString = String.format(FORMAT_STORAGE_CONNECTION_STRING, storageAccountName, storageAccountKey);
 
-        final ConnectionStringBuilder eventHubConnectionString = new ConnectionStringBuilder(namespaceName, eventHubName, sasName, sasKey);
+        final ConnectionStringBuilder eventHubConnectionString = new ConnectionStringBuilder().setNamespaceName(namespaceName).setEventHubName( eventHubName).setSasKeyName(sasName).setSasKey(sasKey);
 
         eventProcessorHost = new EventProcessorHost(consumerHostname, eventHubName, consumerGroupName, eventHubConnectionString.toString(), storageConnectionString, containerName);
 
@@ -637,7 +636,6 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
                             " at consumer group {} and partition {}, action={}, hostname={}, exception={}",
                     new Object[]{eventHubName, consumerGroupName, e.getPartitionId(), e.getAction(), e.getHostname()}, e.getException());
         });
-
 
         eventProcessorHost.registerEventProcessorFactory(new EventProcessorFactory(), options).get();
     }
@@ -651,5 +649,4 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
             throw new IllegalArgumentException(String.format("'%s' is required, but not specified.", property.getDisplayName()));
         }
     }
-
 }

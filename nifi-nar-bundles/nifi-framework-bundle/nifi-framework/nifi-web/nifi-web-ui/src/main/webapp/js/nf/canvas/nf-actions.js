@@ -1411,18 +1411,19 @@
          * @param {selection} selection
          */
         openParameterContext: function (selection) {
-            var pcid;
+            var parameterContext;
+
             if (selection.empty()) {
-                pcid = nfCanvasUtils.getParameterContextId();
+                parameterContext = nfCanvasUtils.getParameterContext();
             } else if (selection.size() === 1) {
                 if (nfCanvasUtils.isProcessGroup(selection)) {
                     var pg = selection.datum();
-                    pcid = pg.component.parameterContext.id;
+                    parameterContext = pg.parameterContext;
                 }
             }
 
-            if (nfCommon.isDefinedAndNotNull(pcid)) {
-                nfParameterContexts.showParameterContext(pcid);
+            if (nfCommon.isDefinedAndNotNull(parameterContext)) {
+                nfParameterContexts.showParameterContext(parameterContext.id);
             }
         },
 
