@@ -231,6 +231,7 @@ public class PutElasticsearchRecord extends AbstractProcessor implements Elastic
                     ese.isElastic() ? "Moving to retry." : "Moving to failure");
             getLogger().error(msg, ese);
             Relationship rel = ese.isElastic() ? REL_RETRY : REL_FAILURE;
+            session.penalize(input);
             session.transfer(input, rel);
             removeBadRecordFlowFiles(badRecords, session);
         } catch (Exception ex) {

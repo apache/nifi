@@ -20,7 +20,7 @@ package org.apache.nifi.elasticsearch;
 import java.util.Map;
 
 /**
- * A POJO that represents an "operation on an index." It should be confused with just indexing documents, as it
+ * A POJO that represents an "operation on an index." It should not be confused with just indexing documents, as it
  * covers all CRUD-related operations that can be executed against an Elasticsearch index with documents.
  */
 public class IndexOperationRequest {

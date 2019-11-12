@@ -23,9 +23,7 @@ import org.apache.nifi.elasticsearch.IndexOperationRequest
 import org.apache.nifi.elasticsearch.IndexOperationResponse
 import org.apache.nifi.json.JsonRecordSetWriter
 import org.apache.nifi.json.JsonTreeReader
-import org.apache.nifi.processors.elasticsearch.mock.AbstractMockElasticsearchClient
 import org.apache.nifi.processors.elasticsearch.mock.MockBulkLoadClientService
-import org.apache.nifi.schema.access.SchemaAccessStrategy
 import org.apache.nifi.schema.access.SchemaAccessUtils
 import org.apache.nifi.serialization.record.MockSchemaRegistry
 import org.apache.nifi.util.TestRunner
@@ -34,7 +32,8 @@ import org.junit.Assert
 import org.junit.Before
 import org.junit.Test
 
-import static groovy.json.JsonOutput.*
+import static groovy.json.JsonOutput.prettyPrint
+import static groovy.json.JsonOutput.toJson
 
 class PutElasticsearchRecordTest {
     MockBulkLoadClientService clientService
