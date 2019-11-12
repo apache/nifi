@@ -46,6 +46,7 @@ public interface WEvtApi extends StdCallLibrary {
     interface EvtSubscribeFlags {
         int SUBSCRIBE_TO_FUTURE = 1;
         int EVT_SUBSCRIBE_STRICT = 0x10000;
+        int EvtSubscribeStartAtOldestRecord = 2;
     }
 
     interface EvtSubscribeErrors{

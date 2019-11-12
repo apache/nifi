@@ -74,6 +74,15 @@ public class ConsumeWindowsEventLog extends AbstractSessionFactoryProcessor {
     public static final int DEFAULT_MAX_BUFFER = 1024 * 1024;
     public static final int DEFAULT_MAX_QUEUE_SIZE = 1024;
 
+    public static final PropertyDescriptor START_AT_OLDEST = new PropertyDescriptor.Builder()
+            .name("StartAtOldest")
+            .displayName("StartAtOldest")
+            .description("Specifies whether the logs will start at the oldest available or, if false, logs only future events ")
+            .required(true)
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .build();
+
     public static final PropertyDescriptor CHANNEL = new PropertyDescriptor.Builder()
             .name("channel")
             .displayName("Channel")
@@ -128,7 +137,7 @@ public class ConsumeWindowsEventLog extends AbstractSessionFactoryProcessor {
             .build();
 
     public static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = Collections.unmodifiableList(
-            Arrays.asList(CHANNEL, QUERY, MAX_BUFFER_SIZE, MAX_EVENT_QUEUE_SIZE, INACTIVE_DURATION_TO_RECONNECT));
+            Arrays.asList(START_AT_OLDEST, CHANNEL, QUERY, MAX_BUFFER_SIZE, MAX_EVENT_QUEUE_SIZE, INACTIVE_DURATION_TO_RECONNECT));
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
@@ -208,6 +217,7 @@ public class ConsumeWindowsEventLog extends AbstractSessionFactoryProcessor {
     private String subscribe(ProcessContext context) {
         final String channel = context.getProperty(CHANNEL).evaluateAttributeExpressions().getValue();
         final String query = context.getProperty(QUERY).evaluateAttributeExpressions().getValue();
+        Boolean startAtOldest = context.getProperty(START_AT_OLDEST).asBoolean();
 
         renderedXMLs = new LinkedBlockingQueue<>(context.getProperty(MAX_EVENT_QUEUE_SIZE).asInteger());
 
@@ -228,8 +238,13 @@ public class ConsumeWindowsEventLog extends AbstractSessionFactoryProcessor {
             }
         }, context.getProperty(MAX_BUFFER_SIZE).asInteger(), wEvtApi, kernel32, errorLookup);
 
-        subscriptionHandle = wEvtApi.EvtSubscribe(null, null, channel, query, null, null,
-                evtSubscribeCallback, WEvtApi.EvtSubscribeFlags.SUBSCRIBE_TO_FUTURE | WEvtApi.EvtSubscribeFlags.EVT_SUBSCRIBE_STRICT);
+        if (startAtOldest) {
+            subscriptionHandle = wEvtApi.EvtSubscribe(null, null, channel, query, null, null,
+                    evtSubscribeCallback, WEvtApi.EvtSubscribeFlags.EvtSubscribeStartAtOldestRecord | WEvtApi.EvtSubscribeFlags.EVT_SUBSCRIBE_STRICT);
+        }else {
+            subscriptionHandle = wEvtApi.EvtSubscribe(null, null, channel, query, null, null,
+                    evtSubscribeCallback, WEvtApi.EvtSubscribeFlags.SUBSCRIBE_TO_FUTURE | WEvtApi.EvtSubscribeFlags.EVT_SUBSCRIBE_STRICT);
+        }
 
         if (!isSubscribed()) {
             return UNABLE_TO_SUBSCRIBE + errorLookup.getLastError();
