@@ -74,6 +74,23 @@ public final class ResourceFactory {
         }
     };
 
+    private final static Resource PRIORITY_RULES_RESOURCE = new Resource() {
+        @Override
+        public String getIdentifier() {
+            return ResourceType.PriorityRules.getValue();
+        }
+
+        @Override
+        public String getName() {
+            return "Priority Rules for ";
+        }
+
+        @Override
+        public String getSafeDescription() {
+            return "priority rules";
+        }
+    };
+
     private final static Resource COUNTERS_RESOURCE = new Resource() {
         @Override
         public String getIdentifier() {
@@ -464,6 +481,30 @@ public final class ResourceFactory {
             @Override
             public String getSafeDescription() {
                 return POLICY_RESOURCE.getSafeDescription() + resource.getSafeDescription();
+            }
+        };
+    }
+
+    /**
+     * Gets a Resource for accessing priority rules.
+     *
+     * @return              The resource
+     */
+    public static Resource getPriorityRulesResource() {
+        return new Resource() {
+            @Override
+            public String getIdentifier() {
+                return PRIORITY_RULES_RESOURCE.getIdentifier();
+            }
+
+            @Override
+            public String getName() {
+                return PRIORITY_RULES_RESOURCE.getName();
+            }
+
+            @Override
+            public String getSafeDescription() {
+                return PRIORITY_RULES_RESOURCE.getSafeDescription();
             }
         };
     }

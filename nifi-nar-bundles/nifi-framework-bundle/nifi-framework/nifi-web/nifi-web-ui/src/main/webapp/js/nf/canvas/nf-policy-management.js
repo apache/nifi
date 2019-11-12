@@ -338,7 +338,7 @@
      * @returns {boolean} whether the policy supports read/write options
      */
     var globalPolicySupportsReadWrite = function (policyType) {
-        return policyType === 'controller' || policyType === 'parameter-contexts' || policyType === 'counters' || policyType === 'policies' || policyType === 'tenants';
+        return policyType === 'controller' || policyType === 'parameter-contexts' || policyType === 'counters' || policyType === 'policies' || policyType === 'tenants' || policyType == 'priority-rules';
     };
 
     /**
@@ -416,7 +416,8 @@
                 nfCommon.getPolicyTypeListing('site-to-site'),
                 nfCommon.getPolicyTypeListing('system'),
                 nfCommon.getPolicyTypeListing('proxy'),
-                nfCommon.getPolicyTypeListing('counters')],
+                nfCommon.getPolicyTypeListing('counters'),
+                nfCommon.getPolicyTypeListing('priority-rules')],
             select: function (option) {
                 if (initialized) {
                     // record the policy type

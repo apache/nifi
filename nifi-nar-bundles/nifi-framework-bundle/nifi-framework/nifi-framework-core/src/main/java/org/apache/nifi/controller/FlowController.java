@@ -17,6 +17,12 @@
 package org.apache.nifi.controller;
 
 import static java.util.Objects.requireNonNull;
+import static org.apache.nifi.util.NiFiProperties.CONTROLLER_FLOWFILEQUEUE_BUCKETS;
+import static org.apache.nifi.util.NiFiProperties.CONTROLLER_FLOWFILEQUEUE_BUCKETS_CACHE_EXPIRATION_MINUTES;
+import static org.apache.nifi.util.NiFiProperties.DEFAULT_CONTROLLER_FLOWFILEQUEUE_BUCKETS;
+import static org.apache.nifi.util.NiFiProperties.DEFAULT_CONTROLLER_FLOWFILEQUEUE_BUCKETS_CACHE_EXPIRATION_MINUTES;
+import static org.apache.nifi.util.NiFiProperties.DEFAULT_PRIORITY_RULESMANAGER_CONFIG;
+import static org.apache.nifi.util.NiFiProperties.PRIORITY_RULESMANAGER_CONFIG;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -98,6 +104,7 @@ import org.apache.nifi.controller.leader.election.LeaderElectionStateChangeListe
 import org.apache.nifi.controller.queue.ConnectionEventListener;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.queue.FlowFileQueueFactory;
+import org.apache.nifi.controller.queue.GlobalPriorityFlowFileQueue;
 import org.apache.nifi.controller.queue.LoadBalanceStrategy;
 import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.queue.StandardFlowFileQueue;
@@ -177,6 +184,7 @@ import org.apache.nifi.nar.NarThreadContextClassLoader;
 import org.apache.nifi.parameter.ParameterContextManager;
 import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.parameter.StandardParameterContextManager;
+import org.apache.nifi.priority.RulesManager;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.provenance.ComponentIdentifierLookup;
@@ -267,6 +275,7 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
     private final StateManagerProvider stateManagerProvider;
     private final long systemStartTime = System.currentTimeMillis(); // time at which the node was started
     private final VariableRegistry variableRegistry;
+    private final RulesManager rulesManager;
 
     private final ConnectionLoadBalanceServer loadBalanceServer;
     private final NioAsyncLoadBalanceClientRegistry loadBalanceClientRegistry;
@@ -502,6 +511,13 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
             throw new RuntimeException(e);
         }
 
+        String rulesManagerConfigString = nifiProperties.getProperty(PRIORITY_RULESMANAGER_CONFIG, DEFAULT_PRIORITY_RULESMANAGER_CONFIG);
+        File rulesManagerConfigFile = new File(rulesManagerConfigString);
+        this.rulesManager = new RulesManager(rulesManagerConfigFile, stateManagerProvider);
+        // The following purge only does something if stateManagerProvider is not null
+        this.rulesManager.purgeExpiredRulesFromState();
+        this.rulesManager.readRules();
+
         processScheduler = new StandardProcessScheduler(timerDrivenEngineRef.get(), this, encryptor, stateManagerProvider, this.nifiProperties);
         eventDrivenWorkerQueue = new EventDrivenWorkerQueue(false, false, processScheduler);
 
@@ -732,6 +748,10 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
             loadBalanceServer = null;
             loadBalanceClientThreadPool = null;
         }
+    }
+
+    public RulesManager getRulesManager() {
+        return this.rulesManager;
     }
 
     @Override
@@ -1861,7 +1881,15 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
             public FlowFileQueue createFlowFileQueue(final LoadBalanceStrategy loadBalanceStrategy, final String partitioningAttribute, final ConnectionEventListener eventListener) {
                 final FlowFileQueue flowFileQueue;
 
-                if (clusterCoordinator == null) {
+                String useBucketQueues = nifiProperties.getProperty(CONTROLLER_FLOWFILEQUEUE_BUCKETS, DEFAULT_CONTROLLER_FLOWFILEQUEUE_BUCKETS);
+
+                if(useBucketQueues.equalsIgnoreCase("true")) {
+                    int cacheExpiration = nifiProperties.getIntegerProperty(CONTROLLER_FLOWFILEQUEUE_BUCKETS_CACHE_EXPIRATION_MINUTES,
+                            DEFAULT_CONTROLLER_FLOWFILEQUEUE_BUCKETS_CACHE_EXPIRATION_MINUTES);
+                    flowFileQueue = new GlobalPriorityFlowFileQueue(id, processScheduler, flowFileRepository, provenanceRepository, resourceClaimManager, rulesManager, cacheExpiration,
+                            nifiProperties.getDefaultBackPressureObjectThreshold(), nifiProperties.getDefaultBackPressureDataSizeThreshold(), swapManager, nifiProperties.getQueueSwapThreshold(),
+                            eventReporter);
+                } else if (clusterCoordinator == null) {
                     flowFileQueue = new StandardFlowFileQueue(id, eventListener, flowFileRepository, provenanceRepository, resourceClaimManager, processScheduler, swapManager,
                         eventReporter, nifiProperties.getQueueSwapThreshold(), nifiProperties.getDefaultBackPressureObjectThreshold(), nifiProperties.getDefaultBackPressureDataSizeThreshold());
                 } else {

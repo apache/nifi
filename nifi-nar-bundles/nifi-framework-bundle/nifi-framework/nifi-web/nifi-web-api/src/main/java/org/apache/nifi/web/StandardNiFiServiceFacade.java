@@ -4105,6 +4105,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         entity.setSystemPermissions(dtoFactory.createPermissionsDto(authorizableLookup.getSystem()));
         entity.setParameterContextPermissions(dtoFactory.createPermissionsDto(authorizableLookup.getParameterContexts()));
         entity.setCanVersionFlows(CollectionUtils.isNotEmpty(flowRegistryClient.getRegistryIdentifiers()));
+        entity.setPriorityRulesPermissions(dtoFactory.createPermissionsDto(authorizableLookup.getPriorityRules()));
 
         entity.setRestrictedComponentsPermissions(dtoFactory.createPermissionsDto(authorizableLookup.getRestrictedComponents()));
 
@@ -5082,6 +5083,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 case User:
                 case UserGroup:
                     authorizable = authorizableLookup.getTenant();
+                    break;
+                case PriorityRule:
+                    authorizable = authorizableLookup.getPriorityRules();
                     break;
                 default:
                     throw new WebApplicationException(Response.serverError().entity("An unexpected type of component is the source of this action.").build());

@@ -458,6 +458,14 @@
         <constructor-arg ref="requestReplicator" />
         <constructor-arg ref="flowController" />
     </bean>
+    <bean id="priorityRuleResource" class="org.apache.nifi.web.api.PriorityRuleResource" scope="singleton">
+        <constructor-arg ref="serviceFacade"/>
+        <constructor-arg ref="authorizer"/>
+        <constructor-arg ref="flowController" />
+        <constructor-arg ref="nifiProperties"/>
+        <constructor-arg ref="requestReplicator" />
+        <constructor-arg ref="clusterCoordinator"/>
+    </bean>
     <bean id="parameterContextResource" class="org.apache.nifi.web.api.ParameterContextResource" scope="singleton">
         <property name="serviceFacade" ref="serviceFacade" />
         <property name="authorizer" ref="authorizer" />
@@ -481,6 +489,11 @@
 
     <!-- NiFi auditing -->
     <bean id="controllerAuditor" class="org.apache.nifi.audit.ControllerAuditor">
+        <property name="serviceFacade" ref="serviceFacade"/>
+        <property name="auditService" ref="auditService"/>
+        <property name="processGroupDAO" ref="processGroupDAO"/>
+    </bean>
+    <bean id="priorityRulesAuditor" class="org.apache.nifi.audit.PriorityRulesAuditor">
         <property name="serviceFacade" ref="serviceFacade"/>
         <property name="auditService" ref="auditService"/>
         <property name="processGroupDAO" ref="processGroupDAO"/>

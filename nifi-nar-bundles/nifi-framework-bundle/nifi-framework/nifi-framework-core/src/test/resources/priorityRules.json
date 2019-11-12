@@ -1,0 +1,15 @@
+[
+  {
+    "expression":"${priority:equals('0')}",
+    "rateOfThreadUsage": 100,
+    "label": "high"
+  },  {
+    "expression":"${priority:equals('0')}",
+    "rateOfThreadUsage": 40,
+    "label": "medium"
+  },  {
+    "expression":"${priority:equals('0')}",
+    "rateOfThreadUsage": 25,
+    "label": "low"
+  }
+]

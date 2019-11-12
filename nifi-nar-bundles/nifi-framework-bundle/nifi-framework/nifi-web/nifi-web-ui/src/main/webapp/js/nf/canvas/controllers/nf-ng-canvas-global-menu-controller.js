@@ -280,6 +280,19 @@
                 }
             };
 
+            // The priority rules menu item controller
+            this.priorityRules = {
+                 // The priority rules menu item shell controller
+                 shell: {
+                    // Launch the priority rules shell
+                    launch: function() {
+                        if(nfCommon.canModifyPriorityRules()) {
+                            nfShell.showPage('priorityRules');
+                        }
+                    }
+                 }
+            };
+
             /**
              * The templates menu item controller.
              */

@@ -33,6 +33,7 @@
         <counters.filter>counters.properties</counters.filter>
         <cluster.filter>cluster.properties</cluster.filter>
         <templates.filter>templates.properties</templates.filter>
+        <priority.rules.filter>priority-rules.properties</priority.rules.filter>
         <users.filter>users.properties</users.filter>
         <bulletin.board.filter>bulletin-board.properties</bulletin.board.filter>
         <login.filter>login.properties</login.filter>
@@ -63,6 +64,7 @@
             <filter>src/main/resources/filters/${counters.filter}</filter>
             <filter>src/main/resources/filters/${cluster.filter}</filter>
             <filter>src/main/resources/filters/${templates.filter}</filter>
+            <filter>src/main/resources/filters/${priority.rules.filter}</filter>
             <filter>src/main/resources/filters/${users.filter}</filter>
             <filter>src/main/resources/filters/${bulletin.board.filter}</filter>
             <filter>src/main/resources/filters/${login.filter}</filter>
@@ -94,6 +96,7 @@
                                 **/message-page.jsp,
                                 **/canvas.jsp,
                                 **/summary.jsp,
+                                **/priority-rules.jsp,
                                 **/history.jsp,
                                 **/provenance.jsp,
                                 **/counters.jsp,
@@ -341,6 +344,14 @@
                             <directory>src/main/webapp/WEB-INF/pages</directory>
                             <targetPath>WEB-INF/pages</targetPath>
                             <includes>
+                                <include>priority-rules.jsp</include>
+                            </includes>
+                            <filtering>true</filtering>
+                        </resource>
+                        <resource>
+                            <directory>src/main/webapp/WEB-INF/pages</directory>
+                            <targetPath>WEB-INF/pages</targetPath>
+                            <includes>
                                 <include>cluster.jsp</include>
                             </includes>
                             <filtering>true</filtering>
@@ -443,6 +454,7 @@
                 <counters.filter>counters-min.properties</counters.filter>
                 <cluster.filter>cluster-min.properties</cluster.filter>
                 <templates.filter>templates-min.properties</templates.filter>
+                <priority.rules.filter>priority-rules-min.properties</priority.rules.filter>
                 <users.filter>users-min.properties</users.filter>
                 <bulletin.board.filter>bulletin-board-min.properties</bulletin.board.filter>
                 <login.filter>login-min.properties</login.filter>
@@ -661,6 +673,20 @@
                                         </aggregation>
                                         <aggregation>
                                             <insertNewLine>true</insertNewLine>
+                                            <output>${project.build.directory}/${project.build.finalName}/js/nf/priority-rules/nf-priority-rules-all.js</output>
+                                            <includes>
+                                                <include>${staging.dir}/js/nf/nf-dialog.js</include>
+                                                <include>${staging.dir}/js/nf/nf-storage.js</include>
+                                                <include>${staging.dir}/js/nf/nf-common.js</include>
+                                                <include>${staging.dir}/js/nf/nf-error-handler.js</include>
+                                                <include>${staging.dir}/js/nf/nf-universal-capture.js</include>
+                                                <include>${staging.dir}/js/nf/nf-ajax-setup.js</include>
+                                                <include>${staging.dir}/js/nf/priority-rules/nf-priority-rules-table.js</include>
+                                                <include>${staging.dir}/js/nf/priority-rules/nf-priority-rules.js</include>
+                                            </includes>
+                                        </aggregation>
+                                        <aggregation>
+                                            <insertNewLine>true</insertNewLine>
                                             <output>${project.build.directory}/${project.build.finalName}/js/nf/cluster/nf-cluster-all.js</output>
                                             <includes>
                                                 <include>${staging.dir}/js/nf/nf-dialog.js</include>
@@ -822,6 +848,16 @@
                                         </aggregation>
                                         <aggregation>
                                             <insertNewLine>true</insertNewLine>
+                                            <output>${project.build.directory}/${project.build.finalName}/css/nf-priority-rules-all.css</output>
+                                            <includes>
+                                                <include>${staging.dir}/css/main.css</include>
+                                                <include>${staging.dir}/css/banner.css</include>
+                                                <include>${staging.dir}/css/dialog.css</include>
+                                                <include>${staging.dir}/css/priority-rules.css</include>
+                                            </includes>
+                                        </aggregation>
+                                        <aggregation>
+                                            <insertNewLine>true</insertNewLine>
                                             <output>${project.build.directory}/${project.build.finalName}/css/nf-bulletin-board-all.css</output>
                                             <includes>
                                                 <include>${staging.dir}/css/main.css</include>
@@ -882,6 +918,8 @@
                                 css/nf-users-all.css.gz,
                                 css/nf-templates-all.css,
                                 css/nf-templates-all.css.gz,
+                                css/nf-priority-rules-all.css,
+                                css/nf-priority-rules-all.css.gz,
                                 css/nf-bulletin-board-all.css,
                                 css/nf-bulletin-board-all.css.gz,
                                 css/nf-login-all.css,
@@ -920,6 +958,8 @@
                                 js/nf/cluster/nf-cluster-all.js.gz,
                                 js/nf/users/nf-users-all.js,
                                 js/nf/users/nf-users-all.js.gz,
+                                js/nf/priority-rules/nf-priority-rules-all.js,
+                                js/nf/priority-rules/nf-priority-rules-all.js.gz,
                                 js/nf/templates/nf-templates-all.js,
                                 js/nf/templates/nf-templates-all.js.gz,
                                 js/nf/bulletin-board/nf-bulletin-board-all.js,

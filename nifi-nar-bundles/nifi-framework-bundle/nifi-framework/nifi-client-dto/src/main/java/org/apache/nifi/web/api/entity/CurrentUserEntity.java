@@ -40,6 +40,7 @@ public class CurrentUserEntity extends Entity {
     private PermissionsDTO systemPermissions;
     private PermissionsDTO parameterContextPermissions;
     private PermissionsDTO restrictedComponentsPermissions;
+    private PermissionsDTO priorityRulesPermissions;
     private Set<ComponentRestrictionPermissionDTO> componentRestrictionPermissions;
 
     private boolean canVersionFlows;
@@ -78,6 +79,18 @@ public class CurrentUserEntity extends Entity {
 
     public void setProvenancePermissions(PermissionsDTO provenancePermissions) {
         this.provenancePermissions = provenancePermissions;
+    }
+
+    /*
+     * @return permissions for accessing priority rules
+     */
+    @ApiModelProperty("Permissions for accessing priority rules")
+    public PermissionsDTO getPriorityRulesPermissions() {
+        return priorityRulesPermissions;
+    }
+
+    public void setPriorityRulesPermissions(PermissionsDTO priorityRulesPermissions) {
+        this.priorityRulesPermissions = priorityRulesPermissions;
     }
 
     /**

@@ -216,6 +216,11 @@
         <nifi.analytics.connection.model.implementation>org.apache.nifi.controller.status.analytics.models.OrdinaryLeastSquares</nifi.analytics.connection.model.implementation>
         <nifi.analytics.connection.model.score.name>rSquared</nifi.analytics.connection.model.score.name>
         <nifi.analytics.connection.model.score.threshold>.90</nifi.analytics.connection.model.score.threshold>
+
+        <!-- nifi.properties: global priority queue properties -->
+        <nifi.controller.flowfilequeue.buckets>false</nifi.controller.flowfilequeue.buckets>
+        <nifi.controller.flowfilequeue.buckets.cache.expiration.minutes>5</nifi.controller.flowfilequeue.buckets.cache.expiration.minutes>
+        <nifi.priority.rulesmanager.config>./conf/priorityRules.json</nifi.priority.rulesmanager.config>
     </properties>
     <build>
         <plugins>

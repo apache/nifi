@@ -26,6 +26,7 @@ public enum ResourceType {
     Label("/labels"),
     OutputPort("/output-ports"),
     Policy("/policies"),
+    PriorityRules("/priority-rules"),
     Processor("/processors"),
     ProcessGroup("/process-groups"),
     Provenance("/provenance"),

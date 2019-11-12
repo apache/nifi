@@ -48,6 +48,7 @@ public class CurrentUserEndpointMergerTest {
         userNode1.setRestrictedComponentsPermissions(buildPermissions(false, false));
         userNode1.setSystemPermissions(buildPermissions(true, true));
         userNode1.setTenantsPermissions(buildPermissions(false, true));
+        userNode1.setPriorityRulesPermissions(buildPermissions(true, true));
 
         final Set<ComponentRestrictionPermissionDTO> componentRestrictionsNode1 = new HashSet<>();
         componentRestrictionsNode1.add(buildComponentRestriction(RequiredPermission.ACCESS_KEYTAB, true, true));
@@ -64,6 +65,7 @@ public class CurrentUserEndpointMergerTest {
         userNode2.setRestrictedComponentsPermissions(buildPermissions(true, true));
         userNode2.setSystemPermissions(buildPermissions(false, false));
         userNode2.setTenantsPermissions(buildPermissions(true, true));
+        userNode2.setPriorityRulesPermissions(buildPermissions(true, true));
 
         final Set<ComponentRestrictionPermissionDTO> componentRestrictionsNode2 = new HashSet<>();
         componentRestrictionsNode2.add(buildComponentRestriction(RequiredPermission.ACCESS_KEYTAB, true, false));

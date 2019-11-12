@@ -72,7 +72,6 @@ import java.util.stream.Collectors;
 
 
 class StandardAuthorizableLookup implements AuthorizableLookup {
-
     private static final TenantAuthorizable TENANT_AUTHORIZABLE = new TenantAuthorizable();
 
     private static final Authorizable POLICIES_AUTHORIZABLE = new Authorizable() {
@@ -96,6 +95,18 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
         @Override
         public Resource getResource() {
             return ResourceFactory.getProvenanceResource();
+        }
+    };
+
+    private static final Authorizable PRIORITY_RULES_AUTHORIZABLE = new Authorizable() {
+        @Override
+        public Authorizable getParentAuthorizable() {
+            return null;
+        }
+
+        @Override
+        public Resource getResource() {
+            return ResourceFactory.getPriorityRulesResource();
         }
     };
 
@@ -159,7 +170,10 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
         }
     };
 
-
+    @Override
+    public Authorizable getPriorityRules() {
+        return PRIORITY_RULES_AUTHORIZABLE;
+    }
 
     // nifi core components
     private ControllerFacade controllerFacade;
@@ -660,6 +674,9 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
                 break;
             case Tenant:
                 authorizable = getTenant();
+                break;
+            case PriorityRules:
+                authorizable = getPriorityRules();
                 break;
             case ParameterContext:
                 authorizable = getParameterContexts();

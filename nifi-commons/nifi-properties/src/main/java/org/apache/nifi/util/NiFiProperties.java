@@ -249,6 +249,11 @@ public abstract class NiFiProperties {
     public static final String ANALYTICS_CONNECTION_MODEL_SCORE_NAME= "nifi.analytics.connection.model.score.name";
     public static final String ANALYTICS_CONNECTION_MODEL_SCORE_THRESHOLD = "nifi.analytics.connection.model.score.threshold";
 
+    // global priority flowfile queue properties
+    public static final String CONTROLLER_FLOWFILEQUEUE_BUCKETS = "nifi.controller.flowfilequeue.buckets";
+    public static final String CONTROLLER_FLOWFILEQUEUE_BUCKETS_CACHE_EXPIRATION_MINUTES = "nifi.controller.flowfilequeue.buckets.cache.expiration.minutes";
+    public static final String PRIORITY_RULESMANAGER_CONFIG = "nifi.priority.rulesmanager.config";
+
     // defaults
     public static final Boolean DEFAULT_AUTO_RESUME_STATE = true;
     public static final String DEFAULT_AUTHORIZER_CONFIGURATION_FILE = "conf/authorizers.xml";
@@ -325,6 +330,11 @@ public abstract class NiFiProperties {
     public final static String DEFAULT_ANALYTICS_CONNECTION_MODEL_IMPLEMENTATION = "org.apache.nifi.controller.status.analytics.models.OrdinaryLeastSquares";
     public static final String DEFAULT_ANALYTICS_CONNECTION_SCORE_NAME = "rSquared";
     public static final double DEFAULT_ANALYTICS_CONNECTION_SCORE_THRESHOLD = .90;
+
+    // global priority queue defaults
+    public static final String DEFAULT_CONTROLLER_FLOWFILEQUEUE_BUCKETS = "false";
+    public static final int DEFAULT_CONTROLLER_FLOWFILEQUEUE_BUCKETS_CACHE_EXPIRATION_MINUTES = 5;
+    public static final String DEFAULT_PRIORITY_RULESMANAGER_CONFIG = "./conf/priorityRules.json";
 
     /**
      * Retrieves the property value for the given property key.

@@ -100,6 +100,7 @@ public class NiFiWebApiResourceConfig extends ResourceConfig {
         register(ctx.getBean("tenantsResource"));
         register(ctx.getBean("versionsResource"));
         register(ctx.getBean("parameterContextResource"));
+        register(ctx.getBean("priorityRuleResource"));
 
         // exception mappers
         register(AccessDeniedExceptionMapper.class);

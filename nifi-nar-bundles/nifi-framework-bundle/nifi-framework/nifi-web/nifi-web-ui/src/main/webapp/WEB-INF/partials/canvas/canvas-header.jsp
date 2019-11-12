@@ -169,6 +169,14 @@
                     </md-menu-item>
                     <md-menu-divider></md-menu-divider>
                     <md-menu-item layout-align="space-around center">
+                        <a id="priority-rules-link"
+                           ng-click="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.priorityRules.shell.launch();"
+                           ng-class="{disabled: !(appCtrl.nf.Common.canAccessTenants() && appCtrl.nf.Common.canModifyPriorityRules())}">
+                            <i class="fa fa-key"></i>Priority Rules
+                        </a>
+                    </md-menu-item>
+                    <md-menu-divider></md-menu-divider>
+                    <md-menu-item layout-align="space-around center">
                         <a id="templates-link"
                            ng-click="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.templates.shell.launch();">
                             <i class="icon icon-template"></i>Templates

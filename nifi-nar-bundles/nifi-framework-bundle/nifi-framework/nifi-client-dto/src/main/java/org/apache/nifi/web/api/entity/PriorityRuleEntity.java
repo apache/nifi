@@ -14,26 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.action;
 
-/**
- * Defines possible components for a given action.
- */
-public enum Component {
+package org.apache.nifi.web.api.entity;
 
-    Controller,
-    Processor,
-    InputPort,
-    OutputPort,
-    ProcessGroup,
-    RemoteProcessGroup,
-    Funnel,
-    Connection,
-    ControllerService,
-    ReportingTask,
-    ParameterContext,
-    AccessPolicy,
-    User,
-    UserGroup,
-    PriorityRule;
+import org.apache.nifi.web.api.dto.PriorityRuleDTO;
+
+import javax.xml.bind.annotation.XmlRootElement;
+
+@XmlRootElement(name = "priorityRuleEntity")
+public class PriorityRuleEntity {
+    private PriorityRuleDTO priorityRule;
+
+    public PriorityRuleDTO getPriorityRule() {
+        return priorityRule;
+    }
+
+    public void setPriorityRule(PriorityRuleDTO priorityRule) {
+        this.priorityRule = priorityRule;
+    }
+
+    @Override
+    public String toString() {
+        return "PriorityRuleEntity{" +
+                "priorityRule=" + priorityRule +
+                '}';
+    }
 }

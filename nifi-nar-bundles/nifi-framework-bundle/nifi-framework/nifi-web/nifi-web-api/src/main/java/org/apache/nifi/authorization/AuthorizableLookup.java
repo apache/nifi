@@ -251,6 +251,13 @@ public interface AuthorizableLookup {
     Authorizable getPolicies();
 
     /**
+     * Get the authorizable for all priority rules
+     *
+     * @return authorizable
+     */
+    Authorizable getPriorityRules();
+
+    /**
      * Get the authorizable for the policy of the policy id.
      *
      * @param id id

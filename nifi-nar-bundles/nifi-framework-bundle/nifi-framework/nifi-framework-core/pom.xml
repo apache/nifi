@@ -247,6 +247,17 @@
             <version>1.0.1</version>
             <scope>compile</scope>
         </dependency>
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <version>2.8.2</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-standard-prioritizers</artifactId>
+            <version>1.10.0-SNAPSHOT</version>
+            <scope>compile</scope>
+        </dependency>
     </dependencies>
     <build>
         <plugins>
@@ -262,6 +273,7 @@
                         <exclude>src/test/resources/old-swap-file.swap</exclude>
                         <exclude>src/test/resources/xxe_template.xml</exclude>
                         <exclude>src/test/resources/swap/444-old-swap-file.swap</exclude>
+                        <exclude>src/test/resources/priorityRules.json</exclude>
                     </excludes>
                 </configuration>
             </plugin>

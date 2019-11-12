@@ -159,6 +159,10 @@
         text: 'access counters',
         value: 'counters',
         description: 'Allows users to view/modify Counters'
+    }, {
+        text: 'access priority rules',
+        value: 'priority-rules',
+        description: 'Allows users to view/modify Priority Rules'
     }];
 
     var nfCommon = {
@@ -742,6 +746,14 @@
                 return nfCommon.currentUser.policiesPermissions.canRead === true;
             } else {
                 return false;
+            }
+        },
+
+        canModifyPriorityRules: function() {
+            if(nfCommon.isDefinedAndNotNull(nfCommon.currentUser)) {
+                return nfCommon.currentUser.priorityRulesPermissions.canRead === true && nfCommon.currentUser.priorityRulesPermissions.canWrite === true;
+            } else {
+                return true;
             }
         },
 

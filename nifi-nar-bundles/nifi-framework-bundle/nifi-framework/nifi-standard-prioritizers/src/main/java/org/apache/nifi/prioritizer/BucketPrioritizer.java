@@ -14,26 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.action;
+package org.apache.nifi.prioritizer;
 
-/**
- * Defines possible components for a given action.
- */
-public enum Component {
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.flowfile.FlowFilePrioritizer;
 
-    Controller,
-    Processor,
-    InputPort,
-    OutputPort,
-    ProcessGroup,
-    RemoteProcessGroup,
-    Funnel,
-    Connection,
-    ControllerService,
-    ReportingTask,
-    ParameterContext,
-    AccessPolicy,
-    User,
-    UserGroup,
-    PriorityRule;
+public class BucketPrioritizer implements FlowFilePrioritizer {
+    @Override
+    public int compare(FlowFile flowFile, FlowFile t1) {
+        return 0;
+    }
 }

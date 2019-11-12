@@ -46,6 +46,16 @@
         <url-pattern>/history</url-pattern>
     </servlet-mapping>
 
+    <!-- servlet to map to Priority Rules page -->
+    <servlet>
+        <servlet-name>NiFiPriorityRules</servlet-name>
+        <jsp-file>/WEB-INF/pages/priority-rules.jsp</jsp-file>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>NiFiPriorityRules</servlet-name>
+        <url-pattern>/priorityRules</url-pattern>
+    </servlet-mapping>
+
     <!-- servlet to map to provenance page -->
     <servlet>
         <servlet-name>NiFiProvenance</servlet-name>
