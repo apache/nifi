@@ -231,7 +231,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
             builder.append(indexDocument).append("\n");
         } else if (request.getOperation().equals(IndexOperationRequest.Operation.Update)
             || request.getOperation().equals(IndexOperationRequest.Operation.Upsert)) {
-            Map<String, Object> doc = new HashMap<String, Object>(){{
+            Map<String, Object> doc = new HashMap<String, Object>() {{
                 put("doc", request.getFields());
                 if (request.getOperation().equals(IndexOperationRequest.Operation.Upsert)) {
                     put("doc_as_upsert", true);
@@ -251,7 +251,9 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
                 buildRequest(or, payload);
             }
 
-            getLogger().info(payload.toString());
+            if (getLogger().isDebugEnabled()) {
+                getLogger().debug(payload.toString());
+            }
             HttpEntity entity = new NStringEntity(payload.toString(), ContentType.APPLICATION_JSON);
             StopWatch watch = new StopWatch();
             watch.start();

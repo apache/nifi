@@ -118,7 +118,7 @@ public class PutElasticsearchRecord extends AbstractProcessor implements Elastic
     static final PropertyDescriptor ERROR_RECORD_WRITER = new PropertyDescriptor.Builder()
         .name("put-es-record-error-writer")
         .displayName("Error Record Writer")
-        .displayName("If this configuration property is set, the response from Elasticsearch will be examined for failed records " +
+        .description("If this configuration property is set, the response from Elasticsearch will be examined for failed records " +
                 "and the failed records will be written to a record set with this record writer service and sent to the \"errors\" " +
                 "relationship.")
         .identifiesControllerService(RecordSetWriterFactory.class)
