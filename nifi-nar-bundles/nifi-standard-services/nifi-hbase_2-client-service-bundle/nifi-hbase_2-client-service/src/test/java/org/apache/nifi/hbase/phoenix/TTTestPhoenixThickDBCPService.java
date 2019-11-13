@@ -16,36 +16,43 @@
  */
 package org.apache.nifi.hbase.phoenix;
 
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.Statement;
+
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
 import org.junit.Test;
 
-public class TTTestStandardPhoenixDBCPService {
+public class TTTestPhoenixThickDBCPService {
     private String dbUrl;
     @Before
     public void init() {
-        this.dbUrl="jdbc:phoenix:knhdp31.field.hortonworks.com:2181:/hbase-unsecure";
     }
 
+    
     @Test
-    public void testService() throws InitializationException {
+    public void testServiceThick() throws InitializationException {
         try {
-        //TestProcessor processor = new TestProcessor();
-        final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
-        final StandardPhoenixDBCPService service = new StandardPhoenixDBCPService();
-        runner.addControllerService("test-good", service);
-        runner.setProperty(service, "phoenix.schema.isNameSpaceMappingEnabled", "true");
-        runner.setProperty(service, StandardPhoenixDBCPService.DATABASE_URL,dbUrl);
-        // runner.setProperty(service, StandardPhoenixDBCPService.DB_USER,
-        // "hdfs");
-        runner.setProperty(service, StandardPhoenixDBCPService.VALIDATION_QUERY,
-                "SELECT 1 FROM SYSTEM.CATALOG LIMIT 1");
-        runner.enableControllerService(service);
-        runner.assertValid(service);
+            this.dbUrl="jdbc:phoenix:knhdp31.field.hortonworks.com:2181:/hbase-unsecure";
+            TestProcessor processor = new TestProcessor();
+            final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
+            final PhoenixThickDBCPService service = new PhoenixThickDBCPService();
+            runner.addControllerService("test-good", service);
+            runner.setProperty(service, "phoenix.schema.isNameSpaceMappingEnabled", "true");
+            runner.setProperty(service, PhoenixThickDBCPService.DATABASE_URL,dbUrl);
+            runner.setProperty(service, PhoenixThickDBCPService.VALIDATION_QUERY,
+                    "SELECT 1 FROM SYSTEM.CATALOG LIMIT 1");
+            runner.enableControllerService(service);
+            
+            runner.assertValid(service);
         }catch(Exception ex) {
             ex.printStackTrace();
+        }catch(Error e) {
+            e.printStackTrace();
         }
     }
 }

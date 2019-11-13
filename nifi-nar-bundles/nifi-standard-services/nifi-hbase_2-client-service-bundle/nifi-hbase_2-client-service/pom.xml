@@ -24,7 +24,6 @@
 
     <artifactId>nifi-hbase_2-client-service</artifactId>
     <packaging>jar</packaging>
-
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -105,6 +104,10 @@
                 <exclusion>
                     <groupId>org.slf4j</groupId>
                     <artifactId>slf4j-log4j12</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.google.protobuf</groupId>
+                    <artifactId>protobuf-java</artifactId>
                 </exclusion>
             </exclusions>
 		</dependency>

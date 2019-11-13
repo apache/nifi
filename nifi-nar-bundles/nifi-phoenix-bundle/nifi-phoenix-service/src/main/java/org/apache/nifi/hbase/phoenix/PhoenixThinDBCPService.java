@@ -21,7 +21,6 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.dbcp.BasicDataSource;
@@ -30,7 +29,6 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.Validator;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.dbcp.DBCPService;
@@ -39,30 +37,26 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.phoenix.jdbc.PhoenixDriver;
+import org.apache.phoenix.queryserver.client.Driver;
 
-@Tags({ "phoenix", "DBCP", "hbase" })
-@CapabilityDescription("Create a phoenix DBCP connection pool.")
-public class StandardPhoenixDBCPService extends AbstractControllerService implements DBCPService {
+@Tags({ "Phoenix", "DBCP", "hbase","Thin" })
+@CapabilityDescription("Create a phoenix DBCP connection pool using the Phoenix Thick Driver.")
+public class PhoenixThinDBCPService extends AbstractControllerService implements DBCPService {
 
     public static final PropertyDescriptor DATABASE_URL = new PropertyDescriptor.Builder()
-            .name("Database Connection URL")
+            .name("Phoenix Connection URL")
             .description(
                     "A database connection URL used to connect to a database. May contain database system name, host, port, database name and some parameters."
                             + " The exact syntax of a database connection URL is specified by your DBMS.")
             .defaultValue(null).addValidator(StandardValidators.NON_EMPTY_VALIDATOR).required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY).build();
 
-    public static final PropertyDescriptor DB_DRIVER_TYPE = new PropertyDescriptor.Builder()
-            .name("Phoenix Driver to use").description("Phoenix Driver to use").defaultValue("Thick")
-            .allowableValues("Thick", "Thin").required(true).addValidator(Validator.VALID).build();
-
     public static final PropertyDescriptor DB_USER = new PropertyDescriptor.Builder().name("Database User")
-            .description("Database user name").defaultValue(null).addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .description("HBase user name").defaultValue(null).addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY).build();
 
     public static final PropertyDescriptor DB_PASSWORD = new PropertyDescriptor.Builder().name("Password")
-            .description("The password for the database user").defaultValue(null).required(false).sensitive(true)
+            .description("The password for the HBase user").defaultValue(null).required(false).sensitive(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY).build();
 
@@ -93,7 +87,6 @@ public class StandardPhoenixDBCPService extends AbstractControllerService implem
     static {
         final List<PropertyDescriptor> props = new ArrayList<>();
         props.add(DATABASE_URL);
-        props.add(DB_DRIVER_TYPE);
         props.add(DB_USER);
         props.add(DB_PASSWORD);
         props.add(MAX_WAIT_TIME);
@@ -104,7 +97,6 @@ public class StandardPhoenixDBCPService extends AbstractControllerService implem
     }
 
     private volatile BasicDataSource dataSource;
-    // private volatile String dbUrl;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -129,28 +121,14 @@ public class StandardPhoenixDBCPService extends AbstractControllerService implem
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) throws InitializationException {
 
-        final String drv = context.getProperty(DB_DRIVER_TYPE).evaluateAttributeExpressions().getValue();
         final String user = context.getProperty(DB_USER).evaluateAttributeExpressions().getValue();
-        final String passw = context.getProperty(DB_PASSWORD).evaluateAttributeExpressions().getValue();
+        final String password = context.getProperty(DB_PASSWORD).evaluateAttributeExpressions().getValue();
         final Long maxWaitMillis = context.getProperty(MAX_WAIT_TIME).asTimePeriod(TimeUnit.MILLISECONDS);
         final Integer maxTotal = context.getProperty(MAX_TOTAL_CONNECTIONS).asInteger();
         final String validationQuery = context.getProperty(VALIDATION_QUERY).evaluateAttributeExpressions().getValue();
         dataSource = new BasicDataSource();
-
-        Properties props = new Properties();
-
-        if ("Thick".equals(drv)) {
-            dataSource.setDriverClassName(PhoenixDriver.class.getName());
-        } else {
-            dataSource.setDriverClassName(PhoenixDriver.class.getName());
-        }
-        // driver=PhoenixDriver.class.getName();
-
-        // Optional driver URL, when exist, this URL will be used to locate
-        // driver jar file location
-
+        dataSource.setDriverClassName(Driver.class.getName());
         String dburl = context.getProperty(DATABASE_URL).evaluateAttributeExpressions().getValue();
-
         dataSource.setMaxWait(maxWaitMillis);
         // This should ensure no connections are pooled and is created when
         // getting a connection
@@ -163,15 +141,12 @@ public class StandardPhoenixDBCPService extends AbstractControllerService implem
             dataSource.setValidationQuery(validationQuery);
             dataSource.setTestOnBorrow(true);
         }
-
         dataSource.setUrl(dburl);
         dataSource.setUsername(user);
-        dataSource.setPassword(passw);
-
+        dataSource.setPassword(password);
         context.getProperties().keySet().stream().filter(PropertyDescriptor::isDynamic)
                 .forEach((dynamicPropDescriptor) -> dataSource.addConnectionProperty(dynamicPropDescriptor.getName(),
                         context.getProperty(dynamicPropDescriptor).evaluateAttributeExpressions().getValue()));
-
     }
 
     @OnDisabled
@@ -187,7 +162,7 @@ public class StandardPhoenixDBCPService extends AbstractControllerService implem
     public Connection getConnection() throws ProcessException {
         try {
             return dataSource.getConnection();
-        } catch (final SQLException e) {
+        } catch (final Exception e) {
             throw new ProcessException(e);
         }
     }
