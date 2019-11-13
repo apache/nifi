@@ -21,6 +21,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.reporting.InitializationException;
@@ -64,11 +65,15 @@ public class ExpressionHandler extends AbstractActionHandlerService {
         super.init(config);
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(DEFAULT_EXPRESSION_LANGUAGE_TYPE);
+        properties.add(ENFORCE_ACTION_TYPE);
+        properties.add(ENFORCE_ACTION_TYPE_LEVEL);
         this.properties = Collections.unmodifiableList(properties);
     }
 
+    @Override
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) throws InitializationException {
+        super.onEnabled(context);
         type = ExpresssionType.valueOf(context.getProperty(DEFAULT_EXPRESSION_LANGUAGE_TYPE).getValue());
     }
 
@@ -77,9 +82,13 @@ public class ExpressionHandler extends AbstractActionHandlerService {
         return properties;
     }
 
+    @Override
+    protected void executeAction(PropertyContext propertyContext, Action action, Map<String, Object> facts) {
+        executeAction(action, facts);
+    }
 
     @Override
-    public void execute(Action action, Map<String, Object> facts) {
+    protected void executeAction(Action action, Map<String, Object> facts) {
         Map<String, String> attributes = action.getAttributes();
         final String command = attributes.get("command");
         if(StringUtils.isNotEmpty(command)) {

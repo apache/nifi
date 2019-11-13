@@ -95,11 +95,15 @@ public class AlertHandler extends AbstractActionHandlerService {
         properties.add(DEFAULT_CATEGORY);
         properties.add(DEFAULT_MESSAGE);
         properties.add(INCLUDE_FACTS);
+        properties.add(ENFORCE_ACTION_TYPE);
+        properties.add(ENFORCE_ACTION_TYPE_LEVEL);
         this.properties = Collections.unmodifiableList(properties);
     }
 
+    @Override
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) throws InitializationException {
+        super.onEnabled(context);
         defaultLogLevel = context.getProperty(DEFAULT_LOG_LEVEL).getValue().toUpperCase();
         defaultCategory = context.getProperty(DEFAULT_CATEGORY).getValue();
         defaultMessage = context.getProperty(DEFAULT_MESSAGE).getValue();
@@ -112,14 +116,8 @@ public class AlertHandler extends AbstractActionHandlerService {
     }
 
     @Override
-    public void execute(Action action, Map<String, Object> facts) {
-        throw new UnsupportedOperationException("This method is not supported.  The AlertHandler requires a Reporting Context");
-    }
-
-    @Override
-    public void execute(PropertyContext propertyContext, Action action, Map<String, Object> facts) {
+    protected void executeAction(PropertyContext propertyContext, Action action, Map<String, Object> facts) {
         ComponentLog logger = getLogger();
-
         if (propertyContext instanceof ReportingContext) {
 
             ReportingContext context = (ReportingContext) propertyContext;
@@ -144,7 +142,6 @@ public class AlertHandler extends AbstractActionHandlerService {
         } else {
             logger.warn("Reporting context was not provided to create bulletins.");
         }
-
     }
 
     protected String getMessage(String alertMessage, Map<String, Object> facts){

@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.rules.handlers;
 
+import junit.framework.TestCase;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.reporting.InitializationException;
@@ -32,6 +33,7 @@ import static junit.framework.TestCase.assertTrue;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 public class TestLogHandler {
 
@@ -131,6 +133,139 @@ public class TestLogHandler {
         assertTrue(StringUtils.isNotEmpty(logMessage));
         assertEquals(expectedMessage, logMessage);
 
+    }
+
+    @Test
+    public void testInvalidActionTypeException() {
+        runner.disableControllerService(logHandler);
+        runner.setProperty(logHandler, AlertHandler.ENFORCE_ACTION_TYPE, "LOG");
+        runner.setProperty(logHandler, AlertHandler.ENFORCE_ACTION_TYPE_LEVEL, "EXCEPTION");
+        runner.enableControllerService(logHandler);
+
+        final Map<String, String> attributes = new HashMap<>();
+        final Map<String, Object> metrics = new HashMap<>();
+
+        attributes.put("logLevel", "FAKE");
+
+        final String expectedMessage = "--------------------------------------------------\n" +
+                "Log Message: Rules Action Triggered Log.\n" +
+                "Log Facts:\n" +
+                "Field: cpu, Value: 90\n" +
+                "Field: jvmHeap, Value: 1000000";
+
+        metrics.put("jvmHeap", "1000000");
+        metrics.put("cpu", "90");
+
+        final Action action = new Action();
+        action.setType("FAKE");
+        action.setAttributes(attributes);
+        try {
+            logHandler.execute(action, metrics);
+            fail();
+        } catch (UnsupportedOperationException ex) {
+            assertTrue(true);
+        }
+    }
+
+    @Test
+    public void testInvalidActionTypeWarning() {
+        runner.disableControllerService(logHandler);
+        runner.setProperty(logHandler, AlertHandler.ENFORCE_ACTION_TYPE, "LOG");
+        runner.setProperty(logHandler, AlertHandler.ENFORCE_ACTION_TYPE_LEVEL, "WARN");
+        runner.enableControllerService(logHandler);
+
+        final Map<String, String> attributes = new HashMap<>();
+        final Map<String, Object> metrics = new HashMap<>();
+
+        attributes.put("logLevel", "FAKE");
+
+        final String expectedMessage = "--------------------------------------------------\n" +
+                "Log Message: Rules Action Triggered Log.\n" +
+                "Log Facts:\n" +
+                "Field: cpu, Value: 90\n" +
+                "Field: jvmHeap, Value: 1000000";
+
+        metrics.put("jvmHeap", "1000000");
+        metrics.put("cpu", "90");
+
+        final Action action = new Action();
+        action.setType("FAKE");
+        action.setAttributes(attributes);
+        try {
+            logHandler.execute(action, metrics);
+        } catch (UnsupportedOperationException ex) {
+            fail();
+        }
+
+        final String warnMessage = mockComponentLog.getWarnMessage();
+        assertTrue(StringUtils.isNotEmpty(warnMessage));
+        TestCase.assertEquals("This Action Handler does not support actions with the provided type: FAKE",warnMessage);
+    }
+
+    @Test
+    public void testInvalidActionTypeDebug() {
+        runner.disableControllerService(logHandler);
+        runner.setProperty(logHandler, AlertHandler.ENFORCE_ACTION_TYPE, "LOG");
+        runner.setProperty(logHandler, AlertHandler.ENFORCE_ACTION_TYPE_LEVEL, "IGNORE");
+        runner.enableControllerService(logHandler);
+
+        final Map<String, String> attributes = new HashMap<>();
+        final Map<String, Object> metrics = new HashMap<>();
+
+        attributes.put("logLevel", "FAKE");
+
+        final String expectedMessage = "--------------------------------------------------\n" +
+                "Log Message: Rules Action Triggered Log.\n" +
+                "Log Facts:\n" +
+                "Field: cpu, Value: 90\n" +
+                "Field: jvmHeap, Value: 1000000";
+
+        metrics.put("jvmHeap", "1000000");
+        metrics.put("cpu", "90");
+
+        final Action action = new Action();
+        action.setType("FAKE");
+        action.setAttributes(attributes);
+        try {
+            logHandler.execute(action, metrics);
+        } catch (UnsupportedOperationException ex) {
+            fail();
+        }
+
+        final String debugMessage = mockComponentLog.getDebugMessage();
+        assertTrue(StringUtils.isNotEmpty(debugMessage));
+        TestCase.assertEquals("This Action Handler does not support actions with the provided type: FAKE",debugMessage);
+    }
+
+    @Test
+    public void testValidActionType() {
+        runner.disableControllerService(logHandler);
+        runner.setProperty(logHandler, AlertHandler.ENFORCE_ACTION_TYPE, "LOG");
+        runner.enableControllerService(logHandler);
+
+        final Map<String, String> attributes = new HashMap<>();
+        final Map<String, Object> metrics = new HashMap<>();
+
+        attributes.put("logLevel", "FAKE");
+
+        final String expectedMessage = "--------------------------------------------------\n" +
+                "Log Message: Rules Action Triggered Log.\n" +
+                "Log Facts:\n" +
+                "Field: cpu, Value: 90\n" +
+                "Field: jvmHeap, Value: 1000000";
+
+        metrics.put("jvmHeap", "1000000");
+        metrics.put("cpu", "90");
+
+        final Action action = new Action();
+        action.setType("LOG");
+        action.setAttributes(attributes);
+        try {
+            logHandler.execute(action, metrics);
+            assertTrue(true);
+        } catch (UnsupportedOperationException ex) {
+            fail();
+        }
     }
 
     private static class MockLogHandler extends LogHandler {
