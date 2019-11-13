@@ -31,6 +31,7 @@ import java.util.Map;
 import static junit.framework.TestCase.assertTrue;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 public class TestExpressionHandler {
 
@@ -134,6 +135,50 @@ public class TestExpressionHandler {
         assertTrue(StringUtils.isNotEmpty(logMessage));
         assertTrue(logMessage.startsWith(expectedMessage));
     }
+
+    @Test
+    public void testInvalidActionType() {
+        runner.disableControllerService(expressionHandler);
+        runner.setProperty(expressionHandler, AlertHandler.ENFORCE_ACTION_TYPE, "EXPRESSION");
+        runner.enableControllerService(expressionHandler);
+        final Map<String,String> attributes = new HashMap<>();
+        final Map<String,Object> metrics = new HashMap<>();
+        attributes.put("type","FAKE");
+        metrics.put("jvmHeap","1000000");
+        metrics.put("cpu","90");
+
+        final Action action = new Action();
+        action.setType("FAKE");
+        action.setAttributes(attributes); try {
+            expressionHandler.execute(action, metrics);
+            fail();
+        } catch (UnsupportedOperationException ex) {
+            assertTrue(true);
+        }
+    }
+
+    @Test
+    public void testValidActionType() {
+        runner.disableControllerService(expressionHandler);
+        runner.setProperty(expressionHandler, AlertHandler.ENFORCE_ACTION_TYPE, "EXPRESSION");
+        runner.enableControllerService(expressionHandler);
+        final Map<String,String> attributes = new HashMap<>();
+        final Map<String,Object> metrics = new HashMap<>();
+        attributes.put("type","FAKE");
+        metrics.put("jvmHeap","1000000");
+        metrics.put("cpu","90");
+
+        final Action action = new Action();
+        action.setType("EXPRESSION");
+        action.setAttributes(attributes);
+        try {
+            expressionHandler.execute(action, metrics);
+            assertTrue(true);
+        } catch (UnsupportedOperationException ex) {
+            fail();
+        }
+    }
+
 
     private static class MockExpressionHandler extends ExpressionHandler{
         private ComponentLog testLogger;

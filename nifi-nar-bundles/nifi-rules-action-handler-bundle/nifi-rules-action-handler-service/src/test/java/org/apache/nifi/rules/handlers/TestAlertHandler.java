@@ -225,6 +225,63 @@ public class TestAlertHandler {
         assertEquals(debugMessage,"Bulletin Repository is not available which is unusual. Cannot send a bulletin.");
     }
 
+    @Test
+    public void testInvalidActionType(){
+
+        runner.disableControllerService(alertHandler);
+        runner.setProperty(alertHandler, AlertHandler.ENFORCE_ACTION_TYPE, "ALERT");
+        runner.enableControllerService(alertHandler);
+        final Map<String, String> attributes = new HashMap<>();
+        final Map<String, Object> metrics = new HashMap<>();
+
+        final String category = "Rules Alert";
+        final String message = "This should be sent as an alert!";
+        final String severity =  "INFO";
+        attributes.put("category", category);
+        attributes.put("message", message);
+        attributes.put("severity", severity);
+        metrics.put("jvmHeap", "1000000");
+        metrics.put("cpu", "90");
+
+        final Action action = new Action();
+        action.setType("FAKE");
+        action.setAttributes(attributes);
+        try {
+            alertHandler.execute(reportingContext, action, metrics);
+            fail();
+        } catch (UnsupportedOperationException ex) {
+            assertTrue(true);
+        }
+    }
+
+    @Test
+    public void testValidActionType(){
+        runner.disableControllerService(alertHandler);
+        runner.setProperty(alertHandler, AlertHandler.ENFORCE_ACTION_TYPE, "ALERT");
+        runner.enableControllerService(alertHandler);
+        final Map<String, String> attributes = new HashMap<>();
+        final Map<String, Object> metrics = new HashMap<>();
+
+        final String category = "Rules Alert";
+        final String message = "This should be sent as an alert!";
+        final String severity =  "INFO";
+        attributes.put("category", category);
+        attributes.put("message", message);
+        attributes.put("severity", severity);
+        metrics.put("jvmHeap", "1000000");
+        metrics.put("cpu", "90");
+
+        final Action action = new Action();
+        action.setType("ALERT");
+        action.setAttributes(attributes);
+        try {
+            alertHandler.execute(reportingContext,action, metrics);
+            assertTrue(true);
+        } catch (UnsupportedOperationException ex) {
+            fail();
+        }
+    }
+
     private static class MockAlertHandler extends AlertHandler {
 
         private ComponentLog testLogger;

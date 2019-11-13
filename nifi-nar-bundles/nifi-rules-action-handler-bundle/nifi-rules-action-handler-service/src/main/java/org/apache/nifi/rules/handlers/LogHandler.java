@@ -93,11 +93,14 @@ public class LogHandler extends AbstractActionHandlerService {
         properties.add(LOG_FACTS);
         properties.add(DEFAULT_LOG_LEVEL);
         properties.add(DEFAULT_LOG_MESSAGE);
+        properties.add(ENFORCE_ACTION_TYPE);
         this.properties = Collections.unmodifiableList(properties);
     }
 
+    @Override
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) throws InitializationException {
+        super.onEnabled(context);
         logPrefix = context.getProperty(LOG_PREFIX).evaluateAttributeExpressions().getValue();
         logFacts = context.getProperty(LOG_FACTS).asBoolean();
         defaultLogLevel = context.getProperty(DEFAULT_LOG_LEVEL).getValue().toUpperCase();
@@ -111,6 +114,7 @@ public class LogHandler extends AbstractActionHandlerService {
 
     @Override
     public void execute(Action action, Map<String, Object> facts) {
+        super.execute(action,facts);
         ComponentLog logger = getLogger();
         Map<String, String> attributes = action.getAttributes();
         final String logLevel = attributes.get("logLevel");

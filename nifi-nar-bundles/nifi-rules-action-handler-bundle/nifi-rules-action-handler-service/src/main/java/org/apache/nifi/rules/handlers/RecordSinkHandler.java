@@ -64,6 +64,7 @@ public class RecordSinkHandler extends AbstractActionHandlerService{
         super.init(config);
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(RECORD_SINK_SERVICE);
+        properties.add(ENFORCE_ACTION_TYPE);
         this.properties = Collections.unmodifiableList(properties);
     }
 
@@ -72,8 +73,10 @@ public class RecordSinkHandler extends AbstractActionHandlerService{
         return properties;
     }
 
+    @Override
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) throws InitializationException {
+        super.onEnabled(context);
         if(context.getProperty(RECORD_SINK_SERVICE).isSet()) {
             recordSinkService = context.getProperty(RECORD_SINK_SERVICE).asControllerService(RecordSinkService.class);
         }
@@ -81,6 +84,7 @@ public class RecordSinkHandler extends AbstractActionHandlerService{
 
     @Override
     public void execute(Action action, Map<String, Object> facts) {
+        super.execute(action,facts);
         Map<String, String> attributes = action.getAttributes();
         boolean sendZeroResults = attributes.containsKey("sentZeroResults") && Boolean.parseBoolean(attributes.get("sendZeroResults"));
         final RecordSet recordSet = getRecordSet(facts);

@@ -64,11 +64,14 @@ public class ExpressionHandler extends AbstractActionHandlerService {
         super.init(config);
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(DEFAULT_EXPRESSION_LANGUAGE_TYPE);
+        properties.add(ENFORCE_ACTION_TYPE);
         this.properties = Collections.unmodifiableList(properties);
     }
 
+    @Override
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) throws InitializationException {
+        super.onEnabled(context);
         type = ExpresssionType.valueOf(context.getProperty(DEFAULT_EXPRESSION_LANGUAGE_TYPE).getValue());
     }
 
@@ -80,6 +83,7 @@ public class ExpressionHandler extends AbstractActionHandlerService {
 
     @Override
     public void execute(Action action, Map<String, Object> facts) {
+        super.execute(action,facts);
         Map<String, String> attributes = action.getAttributes();
         final String command = attributes.get("command");
         if(StringUtils.isNotEmpty(command)) {
