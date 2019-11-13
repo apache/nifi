@@ -89,9 +89,10 @@ public class ConsumeKafka_1_0 extends AbstractProcessor {
     static final PropertyDescriptor TOPICS = new PropertyDescriptor.Builder()
             .name("topic")
             .displayName("Topic Name(s)")
-            .description("The name of the Kafka Topic(s) to pull from. More than one can be supplied if comma separated.")
+            .description("The name of the Kafka Topic(s) to pull from. More than one can be supplied if comma separated. " +
+                    "Maximum length of topic list is " + ConsumeKafkaRecord_1_0.TOPIC_LIST_MAX_LENGTH + ".")
             .required(true)
-            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .addValidator(ConsumeKafkaRecord_1_0.createListLengthValidator(ConsumeKafkaRecord_1_0.TOPIC_LIST_MAX_LENGTH))
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
@@ -304,7 +305,7 @@ public class ConsumeKafka_1_0 extends AbstractProcessor {
         final Pattern headerNamePattern = headerNameRegex == null ? null : Pattern.compile(headerNameRegex);
 
         if (topicType.equals(TOPIC_NAME.getValue())) {
-            for (final String topic : topicListing.split(",", 100)) {
+            for (final String topic : topicListing.split(",", ConsumeKafkaRecord_1_0.TOPIC_LIST_MAX_LENGTH)) {
                 final String trimmedName = topic.trim();
                 if (!trimmedName.isEmpty()) {
                     topics.add(trimmedName);

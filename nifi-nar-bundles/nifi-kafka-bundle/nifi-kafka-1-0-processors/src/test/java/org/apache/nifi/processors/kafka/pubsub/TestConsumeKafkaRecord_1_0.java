@@ -39,6 +39,9 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 public class TestConsumeKafkaRecord_1_0 {
 
     private ConsumerLease mockLease = null;
@@ -87,10 +90,22 @@ public class TestConsumeKafkaRecord_1_0 {
         runner.assertNotValid();
         runner.setProperty(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, ByteArrayDeserializer.class.getName());
         runner.assertValid();
-        runner.setProperty(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
-        runner.assertValid();
         runner.setProperty(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true");
         runner.assertNotValid();
+        runner.setProperty(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
+        runner.assertValid();
+        runner.setProperty(ConsumeKafkaRecord_1_0.TOPICS, prepareTopics(999));
+        runner.assertValid();
+        runner.setProperty(ConsumeKafkaRecord_1_0.TOPICS, prepareTopics(1000));
+        runner.assertValid();
+        runner.setProperty(ConsumeKafkaRecord_1_0.TOPICS, prepareTopics(1001));
+        runner.assertNotValid();
+        runner.setProperty(ConsumeKafkaRecord_1_0.TOPICS, "   ");
+        runner.assertNotValid();
+    }
+
+    private String prepareTopics(int length){
+        return Stream.<Integer>iterate(0, (a) -> a+1).map(s -> "topic"+s).limit(length).collect(Collectors.joining(","));
     }
 
     @Test

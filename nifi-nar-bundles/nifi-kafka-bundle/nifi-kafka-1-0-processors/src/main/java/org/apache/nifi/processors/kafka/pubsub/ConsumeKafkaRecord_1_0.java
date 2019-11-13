@@ -45,6 +45,7 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -86,12 +87,15 @@ public class ConsumeKafkaRecord_1_0 extends AbstractProcessor {
     static final AllowableValue TOPIC_NAME = new AllowableValue("names", "names", "Topic is a full topic name or comma separated list of names");
     static final AllowableValue TOPIC_PATTERN = new AllowableValue("pattern", "pattern", "Topic is a regex using the Java Pattern syntax");
 
+    static final int TOPIC_LIST_MAX_LENGTH = 1000;
+
     static final PropertyDescriptor TOPICS = new PropertyDescriptor.Builder()
             .name("topic")
             .displayName("Topic Name(s)")
-            .description("The name of the Kafka Topic(s) to pull from. More than one can be supplied if comma separated.")
+            .description("The name of the Kafka Topic(s) to pull from. More than one can be supplied if comma separated. " +
+                    "Maximum length of topic list is " + TOPIC_LIST_MAX_LENGTH + ".")
             .required(true)
-            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .addValidator(createListLengthValidator(TOPIC_LIST_MAX_LENGTH))
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
@@ -313,7 +317,7 @@ public class ConsumeKafkaRecord_1_0 extends AbstractProcessor {
         final Pattern headerNamePattern = headerNameRegex == null ? null : Pattern.compile(headerNameRegex);
 
         if (topicType.equals(TOPIC_NAME.getValue())) {
-            for (final String topic : topicListing.split(",", 100)) {
+            for (final String topic : topicListing.split(",", TOPIC_LIST_MAX_LENGTH)) {
                 final String trimmedName = topic.trim();
                 if (!trimmedName.isEmpty()) {
                     topics.add(trimmedName);
@@ -330,6 +334,24 @@ public class ConsumeKafkaRecord_1_0 extends AbstractProcessor {
             getLogger().error("Subscription type has an unknown value {}", new Object[] {topicType});
             return null;
         }
+    }
+
+    public static Validator createListLengthValidator(int length) {
+        return (subject, input, context) -> {
+            if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input)) {
+                return new ValidationResult.Builder().subject(subject).input(input).explanation("Expression Language Present").valid(true).build();
+            }
+            if (input == null || input.trim().isEmpty()) {
+                return new ValidationResult.Builder().subject(subject).input(input).explanation("List must have at least one non-empty element").valid(false).build();
+            }
+            final int listLength = input.split(",").length;
+            if(listLength > length){
+                return new ValidationResult.Builder().subject(subject).input(input)
+                        .explanation("List is too long - contains " + length + " elements and "+ TOPIC_LIST_MAX_LENGTH +" is maximum.").valid(false).build();
+            }else{
+                return new ValidationResult.Builder().subject(subject).input(input).explanation("Valid List").valid(true).build();
+            }
+        };
     }
 
     @OnUnscheduled

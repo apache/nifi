@@ -52,9 +52,11 @@ public class ConsumeKafkaTest {
         runner.assertNotValid();
         runner.setProperty(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, ByteArrayDeserializer.class.getName());
         runner.assertValid();
+        runner.setProperty(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true");
+        runner.assertNotValid();
         runner.setProperty(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
         runner.assertValid();
-        runner.setProperty(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true");
+        runner.setProperty(ConsumeKafka_1_0.TOPICS, "  ");
         runner.assertNotValid();
     }
 
