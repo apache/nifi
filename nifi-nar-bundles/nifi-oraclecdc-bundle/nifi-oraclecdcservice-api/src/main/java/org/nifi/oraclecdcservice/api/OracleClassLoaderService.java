@@ -16,7 +16,6 @@
  */
 package org.nifi.oraclecdcservice.api;
 
-
 import org.apache.nifi.controller.ControllerService;
 
 public interface OracleClassLoaderService extends ControllerService {

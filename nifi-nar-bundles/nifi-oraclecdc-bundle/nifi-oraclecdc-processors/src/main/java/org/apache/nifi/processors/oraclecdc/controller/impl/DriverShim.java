@@ -25,9 +25,7 @@ import java.util.Properties;
 import java.util.logging.Logger;
 
 /**
- * Workaround which allows to use URLClassLoader for JDBC driver loading.
- * (Because the DriverManager will refuse to use a driver not loaded by the
- * system ClassLoader.)
+ * Workaround which allows to use URLClassLoader for JDBC driver loading. (Because the DriverManager will refuse to use a driver not loaded by the system ClassLoader.)
  *
  */
 class DriverShim implements Driver {

@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-oraclecdc-bundle</artifactId>
-        <version>1.10.0-SNAPSHOT</version>
+        <version>1.11.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-oraclecdc-nar</artifactId>
     <packaging>nar</packaging>
@@ -31,14 +31,14 @@
     <dependencies>
     	<dependency>
             <groupId>org.apache.nifi</groupId>
-			  <artifactId>nifi-oraclecdcservice-api-nar</artifactId>
-			  <version>1.10.0-SNAPSHOT</version>
+	        <artifactId>nifi-oraclecdcservice-api-nar</artifactId>
+	        <version>1.11.0-SNAPSHOT</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-oraclecdc-processors</artifactId>
-            <version>1.10.0-SNAPSHOT</version>
+            <version>1.11.0-SNAPSHOT</version>
         </dependency>
     </dependencies>
 

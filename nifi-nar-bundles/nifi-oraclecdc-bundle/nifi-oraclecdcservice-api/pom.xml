@@ -12,28 +12,28 @@
 <project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns="http://maven.apache.org/POM/4.0.0"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <modelVersion>4.0.0</modelVersion>
-  <parent>
-    <groupId>org.apache.nifi</groupId>
-    <artifactId>nifi-oraclecdc-bundle</artifactId>
-    <version>1.10.0-SNAPSHOT</version>
-  </parent>
-  <artifactId>nifi-oraclecdcservice-api</artifactId>
-  <packaging>jar</packaging>
-  <name>nifi-oraclecdcservice-api</name>
-  <url>http://maven.apache.org</url>
-  <properties>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-  </properties>
-  <dependencies>
-       <dependency>
+    <parent>
+        <groupId>org.apache.nifi</groupId>
+        <artifactId>nifi-oraclecdc-bundle</artifactId>
+        <version>1.11.0-SNAPSHOT</version>
+    </parent>
+    <artifactId>nifi-oraclecdcservice-api</artifactId>
+    <packaging>jar</packaging>
+    <name>nifi-oraclecdcservice-api</name>
+    <url>http://maven.apache.org</url>
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+    <dependencies>
+        <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-api</artifactId>
             <scope>provided</scope>
-       </dependency>
-       <dependency>
+        </dependency>
+        <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <scope>test</scope>
-       </dependency>
-  </dependencies>
+        </dependency>
+    </dependencies>
 </project>

@@ -59,39 +59,28 @@ import org.nifi.oraclecdcservice.api.OracleCDCService;
 
 @TriggerSerially
 @Tags({ "Oracle", "CDC", "change capture" })
-@CapabilityDescription("capture oracle CDC changes using xstream api. "
-        + "Look at this link to see how to setup xstream outbound server on oracle db"
-        + " https://github.com/rkarthik29/oracle_cdc/blob/master/README.md")
+@CapabilityDescription("Capture oracle CDC changes using xstream api. ")
 @SeeAlso({})
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @ReadsAttributes({ @ReadsAttribute(attribute = "", description = "") })
-@WritesAttributes({ @WritesAttribute(attribute = "cdc_type", description = "provides the type of cdc operation, "
-        + "ex.INSERT,UPDATE,DELETE,COMMIT") })
-@Stateful(scopes = Scope.CLUSTER, description = "After receiving cdc events from the xstream out server "
-        + "the processor will store the last position received in the state map. "
+@WritesAttributes({ @WritesAttribute(attribute = "cdc_type", description = "provides the type of cdc operation, " + "ex.INSERT,UPDATE,DELETE,COMMIT") })
+@Stateful(scopes = Scope.CLUSTER, description = "After receiving cdc events from the xstream out server " + "the processor will store the last position received in the state map. "
         + "It will be used to set the low watermark for the next call")
 
 public class OracleChangeCapture extends AbstractProcessor {
 
-    public static final PropertyDescriptor XS_OUT = new PropertyDescriptor.Builder().name("XS_OUT")
-            .displayName("XStream Outbound Server Name").description("xout").required(true)
+    public static final PropertyDescriptor XS_OUT = new PropertyDescriptor.Builder().name("XS_OUT").displayName("XStream Outbound Server Name").description("xout").required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR).build();
 
-    public static final PropertyDescriptor CDC_SERVICE = new PropertyDescriptor.Builder()
-            .name("Oracle CDC connection pooling service")
-            .description("The Controller Service that is used to obtain connection to database").required(true)
-            .identifiesControllerService(OracleCDCService.class).build();
+    public static final PropertyDescriptor CDC_SERVICE = new PropertyDescriptor.Builder().name("Oracle CDC Connection Pooling Service")
+            .description("The Controller Service that is used to obtain connection to database").required(true).identifiesControllerService(OracleCDCService.class).build();
 
-    public static final Relationship INSERTS = new Relationship.Builder().name("INSERTS").description("CDC INSERTS")
-            .build();
+    public static final Relationship INSERTS = new Relationship.Builder().name("INSERTS").description("CDC INSERTS").build();
 
-    public static final Relationship UPDATES = new Relationship.Builder().name("UPDATES").description("CDC UPDATES")
-            .build();
+    public static final Relationship UPDATES = new Relationship.Builder().name("UPDATES").description("CDC UPDATES").build();
 
-    public static final Relationship DELETES = new Relationship.Builder().name("DELETES").description("CDC DELETES")
-            .build();
-    public static final Relationship UNMATCHED = new Relationship.Builder().name("UNMATCHED")
-            .description("UNSUPPORTED OPERATION").build();
+    public static final Relationship DELETES = new Relationship.Builder().name("DELETES").description("CDC DELETES").build();
+    public static final Relationship UNMATCHED = new Relationship.Builder().name("UNMATCHED").description("UNSUPPORTED OPERATION").build();
 
     private List<PropertyDescriptor> descriptors;
 
@@ -146,7 +135,6 @@ public class OracleChangeCapture extends AbstractProcessor {
         cdcService = context.getProperty(CDC_SERVICE).asControllerService(OracleCDCService.class);
         String xsOutServerName = context.getProperty(XS_OUT).getValue();
         xsOut = cdcService.attach(xsOutServerName, position);
-
     }
 
     @OnShutdown
@@ -165,8 +153,7 @@ public class OracleChangeCapture extends AbstractProcessor {
             final StateManager stateManager = context.getStateManager();
             try {
                 HashMap<String, String> stateMap = new HashMap<String, String>();
-                System.out.println(
-                        "setting position in SM" + new String(new Base32(true).encode(handler.getLastPosition())));
+                System.out.println("setting position in SM" + new String(new Base32(true).encode(handler.getLastPosition())));
                 stateMap.put("position", new String(new Base32(true).encode(handler.getLastPosition())));
                 stateManager.setState(stateMap, Scope.CLUSTER);
             } catch (final IOException ioe) {
@@ -178,7 +165,6 @@ public class OracleChangeCapture extends AbstractProcessor {
     class CDCHandler implements OracleCDCEventHandler {
         private byte[] lastPosition = null;
         private boolean moveMarker = false;
-
         private final ProcessSession session;
 
         public CDCHandler(final ProcessSession session) {
@@ -187,7 +173,6 @@ public class OracleChangeCapture extends AbstractProcessor {
 
         @Override
         public void inserts(String events, byte[] position) {
-            // TODO Auto-generated method stub
             FlowFile flowFile = createFF(events);
             flowFile = session.putAttribute(flowFile, "cdc_type", "INSERT");
             session.transfer(flowFile, INSERTS);
@@ -202,7 +187,6 @@ public class OracleChangeCapture extends AbstractProcessor {
             session.transfer(flowFile, UPDATES);
             this.lastPosition = position;
             this.moveMarker = true;
-
         }
 
         @Override
@@ -212,7 +196,6 @@ public class OracleChangeCapture extends AbstractProcessor {
             session.transfer(flowFile, DELETES);
             this.lastPosition = position;
             this.moveMarker = true;
-
         }
 
         @Override
@@ -222,7 +205,6 @@ public class OracleChangeCapture extends AbstractProcessor {
             session.transfer(flowFile, UNMATCHED);
             this.lastPosition = position;
             this.moveMarker = true;
-
         }
 
         private FlowFile createFF(String events) {
@@ -231,7 +213,6 @@ public class OracleChangeCapture extends AbstractProcessor {
 
                 @Override
                 public void process(OutputStream outputStream) throws IOException {
-                    // TODO Auto-generated method stub
                     outputStream.write(events.getBytes());
                 }
             });
@@ -247,5 +228,4 @@ public class OracleChangeCapture extends AbstractProcessor {
         }
 
     }
-
 }

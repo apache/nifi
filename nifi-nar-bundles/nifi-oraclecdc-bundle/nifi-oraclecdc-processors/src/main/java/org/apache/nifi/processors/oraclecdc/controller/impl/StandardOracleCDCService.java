@@ -43,60 +43,41 @@ import org.nifi.oraclecdcservice.api.OracleCDCService;
 import org.nifi.oraclecdcservice.api.OracleClassLoaderService;
 
 @Tags({ "dbcp", "jdbc", "database", "cdc", "oracle", "store" })
-@CapabilityDescription("Provides Database Connection Pooling Service for oracle CDC connection."
-        + " Needs OCI native connection. Add the location to the native libraries using -Djava.library.path"
+@CapabilityDescription("Provides Database Connection Pooling Service for oracle CDC connection." + " Needs OCI native connection. Add the location to the native libraries using -Djava.library.path"
         + "to the jvm argurmets in nifi bootstrap.conf")
 
 public class StandardOracleCDCService extends AbstractControllerService implements OracleCDCService {
 
-    public static final PropertyDescriptor DB_HOST = new PropertyDescriptor.Builder().name("DB_HOST")
-            .displayName("source oracle db port").description("localhost").required(true)
+    public static final PropertyDescriptor DB_HOST = new PropertyDescriptor.Builder().name("DB_HOST").displayName("Source Rracle DB HOST").description("localhost").required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR).build();
 
-    public static final PropertyDescriptor DB_PORT = new PropertyDescriptor.Builder().name("DB_PORT")
-            .displayName("source oracle db port").description("1521").required(true)
+    public static final PropertyDescriptor DB_PORT = new PropertyDescriptor.Builder().name("DB_PORT").displayName("Source Oracle DB Port").description("1521").required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR).build();
 
-    public static final PropertyDescriptor DB_SID = new PropertyDescriptor.Builder().name("DB_SID")
-            .displayName("source oracle SID ").description("source oracle SID ").sensitive(true).required(true)
+    public static final PropertyDescriptor DB_SID = new PropertyDescriptor.Builder().name("DB_SID").displayName("Source Oracle SID ").description("Source Oracle SID ").sensitive(true).required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR).build();
 
-    public static final PropertyDescriptor DB_USER = new PropertyDescriptor.Builder().name("DB_USER")
-            .displayName("source oracle xstream capture user").description("source oracle xstream capture user")
-            .required(true).addValidator(StandardValidators.NON_EMPTY_VALIDATOR).build();
+    public static final PropertyDescriptor DB_USER = new PropertyDescriptor.Builder().name("DB_USER").displayName("Source Oracle XStream Capture User")
+            .description("Source Oracle XStream capture user").required(true).addValidator(StandardValidators.NON_EMPTY_VALIDATOR).build();
 
-    public static final PropertyDescriptor DB_PASS = new PropertyDescriptor.Builder().name("DB_PASS")
-            .displayName("source oracle xstream capture user password")
-            .description("source oracle xstream capture user password").sensitive(true).required(true)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR).build();
+    public static final PropertyDescriptor DB_PASS = new PropertyDescriptor.Builder().name("DB_PASS").displayName("Source Oracle XStream Capture User Password")
+            .description("Source Oracle XStream capture user password").sensitive(true).required(true).addValidator(StandardValidators.NON_EMPTY_VALIDATOR).build();
 
-    public static final PropertyDescriptor DB_CLASS_LOADER = new PropertyDescriptor.Builder()
-            .name("database-driver-class loader service").displayName("Class loader service")
-            .description(
-                    "create 1 per oracle db version, this is to ensure that native libraries are not reloaded per processor or CS")
-            .identifiesControllerService(OracleClassLoaderService.class).required(true).build();
+    public static final PropertyDescriptor DB_CLASS_LOADER = new PropertyDescriptor.Builder().name("database-driver-class loader service").displayName("Classloader Service")
+            .description("Create 1 per oracle db version, this is to ensure that native libraries are not reloaded per processor or CS").identifiesControllerService(OracleClassLoaderService.class)
+            .required(true).build();
 
-    public static final PropertyDescriptor MAX_TOTAL_CONNECTIONS = new PropertyDescriptor.Builder()
-            .name("Max Total Connections")
-            .description(
-                    "The maximum number of active connections that can be allocated from this pool at the same time, "
-                            + " or negative for no limit.")
-            .defaultValue("8").required(true).addValidator(StandardValidators.INTEGER_VALIDATOR).sensitive(false)
-            .build();
+    public static final PropertyDescriptor MAX_TOTAL_CONNECTIONS = new PropertyDescriptor.Builder().name("MAX_TOTAL_CONNECTIONS")
+            .description("The maximum number of active connections that can be allocated from this pool at the same time, " + " or negative for no limit.").defaultValue("8").required(true)
+            .addValidator(StandardValidators.INTEGER_VALIDATOR).sensitive(false).build();
 
-    public static final PropertyDescriptor MIN_IDLE = new PropertyDescriptor.Builder()
-            .displayName("Minimum Idle Connections").name("dbcp-min-idle-conns")
-            .description("The minimum number of connections that can remain idle in the pool, without extra ones being "
-                    + "created, or zero to create none.")
-            .defaultValue("0").required(false).addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY).build();
+    public static final PropertyDescriptor MIN_IDLE_CONNECTIONS = new PropertyDescriptor.Builder().displayName("Minimum idle connections").name("MIN_IDLE_CONNECTIONS")
+            .description("The minimum number of connections that can remain idle in the pool, without extra ones being " + "created, or zero to create none.").defaultValue("0").required(false)
+            .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR).expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY).build();
 
-    public static final PropertyDescriptor MAX_IDLE = new PropertyDescriptor.Builder()
-            .displayName("Max Idle Connections").name("dbcp-max-idle-conns")
-            .description("The maximum number of connections that can remain idle in the pool, without extra ones being "
-                    + "released, or negative for no limit.")
-            .defaultValue("8").required(false).addValidator(StandardValidators.INTEGER_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY).build();
+    public static final PropertyDescriptor MAX_IDLE_CONNECTIONS = new PropertyDescriptor.Builder().displayName("Maximum Idle Connections").name("MAX_IDLE_CONNECTIONS")
+            .description("The maximum number of connections that can remain idle in the pool, without extra ones being " + "released, or negative for no limit.").defaultValue("8").required(false)
+            .addValidator(StandardValidators.INTEGER_VALIDATOR).expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY).build();
 
     private static final List<PropertyDescriptor> properties;
 
@@ -110,8 +91,8 @@ public class StandardOracleCDCService extends AbstractControllerService implemen
         props.add(DB_SID);
         props.add(DB_CLASS_LOADER);
         props.add(MAX_TOTAL_CONNECTIONS);
-        props.add(MAX_IDLE);
-        props.add(MIN_IDLE);
+        props.add(MAX_IDLE_CONNECTIONS);
+        props.add(MIN_IDLE_CONNECTIONS);
 
         properties = Collections.unmodifiableList(props);
     }
@@ -127,10 +108,8 @@ public class StandardOracleCDCService extends AbstractControllerService implemen
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
         return new PropertyDescriptor.Builder().name(propertyDescriptorName).required(false)
-                .addValidator(StandardValidators
-                        .createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING, true))
-                .addValidator(StandardValidators.ATTRIBUTE_KEY_PROPERTY_NAME_VALIDATOR)
-                .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY).dynamic(true).build();
+                .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING, true))
+                .addValidator(StandardValidators.ATTRIBUTE_KEY_PROPERTY_NAME_VALIDATOR).expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY).dynamic(true).build();
     }
 
     /**
@@ -146,12 +125,11 @@ public class StandardOracleCDCService extends AbstractControllerService implemen
         final String user = context.getProperty(DB_USER).getValue();
         final String passw = context.getProperty(DB_PASS).getValue();
         final String dbSid = context.getProperty(DB_SID).getValue();
-        final OracleClassLoaderService clService = context.getProperty(DB_CLASS_LOADER)
-                .asControllerService(OracleClassLoaderService.class);
+        final OracleClassLoaderService clService = context.getProperty(DB_CLASS_LOADER).asControllerService(OracleClassLoaderService.class);
         final String drv = "oracle.jdbc.OracleDriver";
         final Integer maxTotal = context.getProperty(MAX_TOTAL_CONNECTIONS).asInteger();
-        final Integer maxIdle = context.getProperty(MAX_IDLE).asInteger();
-        final Integer miIdle = context.getProperty(MIN_IDLE).asInteger();
+        final Integer maxIdle = context.getProperty(MAX_IDLE_CONNECTIONS).asInteger();
+        final Integer miIdle = context.getProperty(MIN_IDLE_CONNECTIONS).asInteger();
         dataSource = new BasicDataSource();
         dataSource.setAccessToUnderlyingConnectionAllowed(true);
         dataSource.setDriverClassName(drv);
@@ -168,9 +146,8 @@ public class StandardOracleCDCService extends AbstractControllerService implemen
         dataSource.setUsername(user);
         dataSource.setPassword(passw);
 
-        context.getProperties().keySet().stream().filter(PropertyDescriptor::isDynamic)
-                .forEach((dynamicPropDescriptor) -> dataSource.addConnectionProperty(dynamicPropDescriptor.getName(),
-                        context.getProperty(dynamicPropDescriptor).evaluateAttributeExpressions().getValue()));
+        context.getProperties().keySet().stream().filter(PropertyDescriptor::isDynamic).forEach(
+                (dynamicPropDescriptor) -> dataSource.addConnectionProperty(dynamicPropDescriptor.getName(), context.getProperty(dynamicPropDescriptor).evaluateAttributeExpressions().getValue()));
 
     }
 
@@ -183,16 +160,13 @@ public class StandardOracleCDCService extends AbstractControllerService implemen
 
         try {
             LCRCallBackHandler hdlr = new LCRCallBackHandler(this.driverClassLoader, handler);
-            Object proxy = Proxy.newProxyInstance(this.driverClassLoader,
-                    new Class[] { loadClass("oracle.streams.XStreamLCRCallbackHandler") }, hdlr);
+            Object proxy = Proxy.newProxyInstance(this.driverClassLoader, new Class[] { loadClass("oracle.streams.XStreamLCRCallbackHandler") }, hdlr);
             Class<?> xstreamOut = loadClass("oracle.streams.XStreamOut");
-            Method method = xstreamOut.getMethod("receiveLCRCallback",
-                    loadClass("oracle.streams.XStreamLCRCallbackHandler"), int.class);
-            method.invoke(xsOut, proxy,
-                    loadClass("oracle.streams.XStreamOut").getDeclaredField("DEFAULT_MODE").getInt(null));
+            Method method = xstreamOut.getMethod("receiveLCRCallback", loadClass("oracle.streams.XStreamLCRCallbackHandler"), int.class);
+            method.invoke(xsOut, proxy, loadClass("oracle.streams.XStreamOut").getDeclaredField("DEFAULT_MODE").getInt(null));
             System.out.print("done");
         } catch (Exception e) {
-            getLogger().warn("exception when processing LCRs "+e.getMessage());
+            getLogger().warn("exception when processing LCRs " + e.getMessage());
             throw new ProcessException("exception when processing LCRs " + e.getMessage());
         }
     }
@@ -203,10 +177,9 @@ public class StandardOracleCDCService extends AbstractControllerService implemen
             System.out.println(new String(new Base32(true).encode(position)));
             Class<?> xstreamOut = loadClass("oracle.streams.XStreamOut");
             Method method = xstreamOut.getMethod("setProcessedLowWatermark", byte[].class, int.class);
-            method.invoke(xsOutServer, position,
-                    loadClass("oracle.streams.XStreamOut").getDeclaredField("DEFAULT_MODE").getInt(null));
+            method.invoke(xsOutServer, position, loadClass("oracle.streams.XStreamOut").getDeclaredField("DEFAULT_MODE").getInt(null));
         } catch (Exception e) {
-            getLogger().warn("exception when set low watermark"+ e.getMessage());
+            getLogger().warn("exception when set low watermark" + e.getMessage());
             throw new ProcessException("exception when setting low water mark " + e.getMessage());
         }
     }
@@ -217,13 +190,11 @@ public class StandardOracleCDCService extends AbstractControllerService implemen
         try {
             final Connection conn = getConnection();
             Class<?> xstreamOut = loadClass("oracle.streams.XStreamOut");
-            Method method = xstreamOut.getMethod("attach", loadClass("oracle.jdbc.OracleConnection"), String.class,
-                    byte[].class, int.class);
-            Object xsOut = method.invoke(null, conn.unwrap(loadClass("oracle.jdbc.OracleConnection")), xsOutName,
-                    lastPosition, xstreamOut.getDeclaredField("DEFAULT_MODE").getInt(null));
+            Method method = xstreamOut.getMethod("attach", loadClass("oracle.jdbc.OracleConnection"), String.class, byte[].class, int.class);
+            Object xsOut = method.invoke(null, conn.unwrap(loadClass("oracle.jdbc.OracleConnection")), xsOutName, lastPosition, xstreamOut.getDeclaredField("DEFAULT_MODE").getInt(null));
             return xsOut;
         } catch (Exception e) {
-            getLogger().error("cannot attach to outbound server: " + xsOutName +" "+e.getMessage());
+            getLogger().error("cannot attach to outbound server: " + xsOutName + " " + e.getMessage());
             throw new ProcessException("cannot attach to outbound server: " + xsOutName);
         }
     }
@@ -235,8 +206,8 @@ public class StandardOracleCDCService extends AbstractControllerService implemen
             Method method = xstreamOut.getDeclaredMethod("detach", int.class);
             method.invoke(xsOut, xstreamOut.getDeclaredField("DEFAULT_MODE").getInt(null));
         } catch (Exception e) {
-            getLogger().warn("cannot detach from the outbound server: "+e.getMessage());
-            throw new ProcessException("cannot detach from the outbound server: "+e.getMessage());
+            getLogger().warn("cannot detach from the outbound server: " + e.getMessage());
+            throw new ProcessException("cannot detach from the outbound server: " + e.getMessage());
         }
 
     }

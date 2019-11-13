@@ -41,13 +41,9 @@ import org.nifi.oraclecdcservice.api.OracleClassLoaderService;
 
 public class StandardOracleClassLoaderService extends AbstractControllerService implements OracleClassLoaderService {
 
-    public static final PropertyDescriptor DB_DRIVER_LOCATION = new PropertyDescriptor.Builder()
-            .name("database-driver-locations").displayName("Database Driver Location(s)")
-            .description(
-                    "Comma-separated list of files/folders and/or URLs containing the driver JAR and its dependencies (if any). For example '/var/tmp/mariadb-java-client-1.1.7.jar'")
-            .defaultValue(null).required(true)
-            .addValidator(
-                    StandardValidators.createListValidator(true, true, StandardValidators.createURLorFileValidator()))
+    public static final PropertyDescriptor DB_DRIVER_LOCATION = new PropertyDescriptor.Builder().name("database-driver-locations").displayName("Database Driver Location(s)")
+            .description("Comma-separated list of files/folders and/or URLs containing the driver JAR and its dependencies (if any). For example '/var/tmp/mariadb-java-client-1.1.7.jar'")
+            .defaultValue(null).required(true).addValidator(StandardValidators.createListValidator(true, true, StandardValidators.createURLorFileValidator()))
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY).build();
 
     private static final List<PropertyDescriptor> properties;
@@ -67,10 +63,8 @@ public class StandardOracleClassLoaderService extends AbstractControllerService 
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
         return new PropertyDescriptor.Builder().name(propertyDescriptorName).required(false)
-                .addValidator(StandardValidators
-                        .createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING, true))
-                .addValidator(StandardValidators.ATTRIBUTE_KEY_PROPERTY_NAME_VALIDATOR)
-                .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY).dynamic(true).build();
+                .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING, true))
+                .addValidator(StandardValidators.ATTRIBUTE_KEY_PROPERTY_NAME_VALIDATOR).expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY).dynamic(true).build();
     }
 
     /**
@@ -86,8 +80,7 @@ public class StandardOracleClassLoaderService extends AbstractControllerService 
         if (locationString != null && locationString.length() > 0) {
             try {
                 // Split and trim the entries
-                final ClassLoader classLoader = ClassLoaderUtils.getCustomClassLoader(locationString,
-                        this.getClass().getClassLoader(), (dir, name) -> name != null && name.endsWith(".jar"));
+                final ClassLoader classLoader = ClassLoaderUtils.getCustomClassLoader(locationString, this.getClass().getClassLoader(), (dir, name) -> name != null && name.endsWith(".jar"));
 
                 // Workaround which allows to use URLClassLoader for JDBC driver
                 // loading.
