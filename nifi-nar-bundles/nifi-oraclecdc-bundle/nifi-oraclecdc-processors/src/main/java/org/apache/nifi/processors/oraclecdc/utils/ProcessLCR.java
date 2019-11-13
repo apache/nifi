@@ -99,12 +99,6 @@ public class ProcessLCR {
             column.addProperty("type", "BigDecimal");
             column.addProperty("value", parser.bigDecimalValue());
             break;
-        // case 231:
-        // value = convertTimestampLTZ(changeKey, datum);
-        // break;
-        // case 100:
-        // value = convertTimestampTZ(changeKey, datum);
-        // break;
         default:
             column.addProperty("type", "String");
             column.addProperty("value", parser.stringValue());
