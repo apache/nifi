@@ -21,14 +21,24 @@ import org.apache.nifi.parameter.Parameter;
 
 public class ParameterExpression implements Expression {
     private final String parameterName;
+    private final boolean allowSensitiveParameterReference;
 
-    public ParameterExpression(final String parameterName) {
+    public ParameterExpression(final String parameterName, final boolean allowSensitiveParameterReference) {
         this.parameterName = parameterName;
+        this.allowSensitiveParameterReference = allowSensitiveParameterReference;
     }
 
     @Override
     public String evaluate(final EvaluationContext evaluationContext, final AttributeValueDecorator decorator) {
         final Parameter parameter = evaluationContext.getParameter(parameterName);
-        return parameter == null || parameter.getDescriptor().isSensitive() ? null : parameter.getValue();
+        if (parameter == null) {
+            return null;
+        }
+
+        if (!allowSensitiveParameterReference && parameter.getDescriptor().isSensitive()) {
+            return null;
+        }
+
+        return parameter.getValue();
     }
 }
