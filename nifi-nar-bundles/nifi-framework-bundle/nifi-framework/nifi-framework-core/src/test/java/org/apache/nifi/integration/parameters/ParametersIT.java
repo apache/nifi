@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.integration.parameters;
 
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.queue.FlowFileQueue;
@@ -25,6 +27,7 @@ import org.apache.nifi.integration.processors.GenerateProcessor;
 import org.apache.nifi.integration.processors.UpdateAttributeCreateOwnProperty;
 import org.apache.nifi.integration.processors.UpdateAttributeNoEL;
 import org.apache.nifi.integration.processors.UpdateAttributeWithEL;
+import org.apache.nifi.integration.processors.UsernamePasswordProcessor;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterDescriptor;
@@ -32,7 +35,9 @@ import org.apache.nifi.parameter.ParameterReference;
 import org.apache.nifi.parameter.ParameterReferenceManager;
 import org.apache.nifi.parameter.StandardParameterContext;
 import org.apache.nifi.parameter.StandardParameterReferenceManager;
+import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Processor;
+import org.apache.nifi.processor.StandardProcessContext;
 import org.junit.Test;
 
 import java.util.Collections;
@@ -364,8 +369,28 @@ public class ParametersIT extends FrameworkIntegrationTest {
         updateAttribute.setProperties(properties);
         referencedParameters = updateAttribute.getReferencedParameterNames();
         assertEquals(allParamNames, referencedParameters);
-
     }
 
+    @Test
+    public void testSensitivePropertyReferenceParameterSuppoortsEL() {
+        final ProcessorNode usernamePassword = createProcessorNode(UsernamePasswordProcessor.class);
 
+        final ParameterReferenceManager referenceManager = new StandardParameterReferenceManager(getFlowController().getFlowManager());
+        final ParameterContext parameterContext = new StandardParameterContext(UUID.randomUUID().toString(), "param-context", referenceManager, null);
+        parameterContext.setParameters(Collections.singletonMap("pass", new Parameter(new ParameterDescriptor.Builder().name("pass").sensitive(true).build(), "secret")));
+
+        getRootGroup().setParameterContext(parameterContext);
+
+        final Map<String, String> properties = new HashMap<>();
+        properties.put("password", "#{pass}");
+        usernamePassword.setProperties(properties);
+
+        final ProcessContext processContext = new StandardProcessContext(usernamePassword, getFlowController().getControllerServiceProvider(), getFlowController().getEncryptor(),
+            getFlowController().getStateManagerProvider().getStateManager(usernamePassword.getIdentifier()), () -> false);
+        final PropertyDescriptor descriptor = usernamePassword.getPropertyDescriptor("password");
+        final PropertyValue propertyValue = processContext.getProperty(descriptor);
+        final PropertyValue evaluatedPropertyValue = propertyValue.evaluateAttributeExpressions();
+        final String evaluatedPassword = evaluatedPropertyValue.getValue();
+        assertEquals("secret", evaluatedPassword);
+    }
 }
