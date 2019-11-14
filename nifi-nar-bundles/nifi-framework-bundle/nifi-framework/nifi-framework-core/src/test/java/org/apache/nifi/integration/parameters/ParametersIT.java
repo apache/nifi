@@ -38,6 +38,7 @@ import org.apache.nifi.parameter.StandardParameterReferenceManager;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.StandardProcessContext;
+import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.Collections;
@@ -372,7 +373,7 @@ public class ParametersIT extends FrameworkIntegrationTest {
     }
 
     @Test
-    public void testSensitivePropertyReferenceParameterSuppoortsEL() {
+    public void testSensitivePropertyReferenceParameterSupportsEL() {
         final ProcessorNode usernamePassword = createProcessorNode(UsernamePasswordProcessor.class);
 
         final ParameterReferenceManager referenceManager = new StandardParameterReferenceManager(getFlowController().getFlowManager());
@@ -393,4 +394,47 @@ public class ParametersIT extends FrameworkIntegrationTest {
         final String evaluatedPassword = evaluatedPropertyValue.getValue();
         assertEquals("secret", evaluatedPassword);
     }
+
+    @Test
+    public void testSensitivePropertyNotAccessibleFromWithinEL() {
+        final ProcessorNode usernamePassword = createProcessorNode(UsernamePasswordProcessor.class);
+
+        final ParameterReferenceManager referenceManager = new StandardParameterReferenceManager(getFlowController().getFlowManager());
+        final ParameterContext parameterContext = new StandardParameterContext(UUID.randomUUID().toString(), "param-context", referenceManager, null);
+        parameterContext.setParameters(Collections.singletonMap("pass", new Parameter(new ParameterDescriptor.Builder().name("pass").sensitive(true).build(), "secret")));
+
+        getRootGroup().setParameterContext(parameterContext);
+
+        final Map<String, String> properties = new HashMap<>();
+        properties.put("username", "${#{pass}}");
+
+        try {
+            usernamePassword.setProperties(properties);
+            Assert.fail("Was able to set properties when referencing sensitive parameter from within EL");
+        } catch (final IllegalArgumentException iae) {
+            // Expected. Since the parameter is sensitive, it may referenced by a sensitive property
+        }
+    }
+
+    @Test
+    public void testSensitivePropertyCannotBeSetToReferenceParamFromEL() {
+        final ProcessorNode usernamePassword = createProcessorNode(UsernamePasswordProcessor.class);
+
+        final ParameterReferenceManager referenceManager = new StandardParameterReferenceManager(getFlowController().getFlowManager());
+        final ParameterContext parameterContext = new StandardParameterContext(UUID.randomUUID().toString(), "param-context", referenceManager, null);
+        parameterContext.setParameters(Collections.singletonMap("pass", new Parameter(new ParameterDescriptor.Builder().name("pass").sensitive(true).build(), "secret")));
+
+        getRootGroup().setParameterContext(parameterContext);
+
+        final Map<String, String> properties = new HashMap<>();
+        properties.put("password", "${#{pass}}");
+
+        try {
+            usernamePassword.setProperties(properties);
+            Assert.fail("Was able to set properties when referencing sensitive parameter from within EL");
+        } catch (final IllegalArgumentException iae) {
+            // Expected. Since the property is sensitive, it may reference a parameter only if that is the only value.
+        }
+    }
+
 }

@@ -33,7 +33,7 @@ public class ParameterEvaluator extends StringEvaluator {
     @Override
     public QueryResult<String> evaluate(final EvaluationContext evaluationContext) {
         final Parameter parameter = evaluationContext.getParameter(parameterName);
-        return new StringQueryResult(parameter == null ? null : parameter.getValue());
+        return new StringQueryResult( (parameter == null || parameter.getDescriptor().isSensitive()) ? null : parameter.getValue());
     }
 
     @Override
