@@ -234,7 +234,7 @@ public class ScriptedActionHandler extends AbstractScriptedControllerService imp
                 throw new ScriptException("No ActionHandler was defined by the script.");
             }
         } catch (ScriptException se) {
-            throw new ProcessException("Error executing onEnabled(context) method", se);
+            throw new ProcessException("Error executing onEnabled(context) method: " + se.getMessage(), se);
         }
     }
 

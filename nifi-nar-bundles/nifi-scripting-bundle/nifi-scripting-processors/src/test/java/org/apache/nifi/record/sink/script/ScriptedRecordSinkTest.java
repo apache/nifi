@@ -50,6 +50,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -87,9 +88,9 @@ public class ScriptedRecordSinkTest {
 
     private MockScriptedRecordSink initTask() throws InitializationException {
 
-        final MockScriptedRecordSink task = new MockScriptedRecordSink();
+        final MockScriptedRecordSink recordSink = new MockScriptedRecordSink();
         ConfigurationContext context = mock(ConfigurationContext.class);
-        StateManager stateManager = new MockStateManager(task);
+        StateManager stateManager = new MockStateManager(recordSink);
 
         final PropertyValue pValue = mock(StandardPropertyValue.class);
         MockRecordWriter writer = new MockRecordWriter(null, false); // No header, don"t quote values
@@ -99,21 +100,26 @@ public class ScriptedRecordSinkTest {
 
         final ComponentLog logger = mock(ComponentLog.class);
         final ControllerServiceInitializationContext initContext = new MockControllerServiceInitializationContext(writer, UUID.randomUUID().toString(), logger, stateManager);
-        task.initialize(initContext);
+        recordSink.initialize(initContext);
 
         // Call something that sets up the ScriptingComponentHelper, so we can mock it
-        task.getSupportedPropertyDescriptors();
+        recordSink.getSupportedPropertyDescriptors();
 
-        when(context.getProperty(task.getScriptingComponentHelper().SCRIPT_ENGINE))
+        when(context.getProperty(recordSink.getScriptingComponentHelper().SCRIPT_ENGINE))
                 .thenReturn(new MockPropertyValue("Groovy"));
         when(context.getProperty(ScriptingComponentUtils.SCRIPT_FILE))
-                .thenReturn(new MockPropertyValue("target/test/resources/groovy/test_record_sink.groovy"));
+                .thenReturn(new MockPropertyValue("src/test/resources/groovy/test_record_sink.groovy"));
         when(context.getProperty(ScriptingComponentUtils.SCRIPT_BODY))
                 .thenReturn(new MockPropertyValue(null));
         when(context.getProperty(ScriptingComponentUtils.MODULES))
                 .thenReturn(new MockPropertyValue(null));
-        task.onEnabled(context);
-        return task;
+        try {
+            recordSink.onEnabled(context);
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail("onEnabled error: " + e.getMessage());
+        }
+        return recordSink;
     }
 
     public static class MockScriptedRecordSink extends ScriptedRecordSink implements AccessibleScriptingComponentHelper {

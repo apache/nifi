@@ -53,6 +53,7 @@ import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -79,7 +80,7 @@ public class ScriptedActionHandlerTest {
 
     @Test
     public void testActions() throws InitializationException {
-        actionHandler = initTask("target/test/resources/groovy/test_action_handler.groovy");
+        actionHandler = initTask("src/test/resources/groovy/test_action_handler.groovy");
         actionHandler.onEnabled(context);
         List<Action> actions = Arrays.asList(new Action("LOG", attrs), new Action("ALERT", attrs));
         actions.forEach((action) -> actionHandler.execute(action, facts));
@@ -89,7 +90,7 @@ public class ScriptedActionHandlerTest {
 
     @Test
     public void testActionHandlerNotPropertyContextActionHandler() throws InitializationException {
-        actionHandler = initTask("target/test/resources/groovy/test_action_handler.groovy");
+        actionHandler = initTask("src/test/resources/groovy/test_action_handler.groovy");
         mockScriptedBulletinRepository = new MockScriptedBulletinRepository();
         reportingContext = mock(ReportingContext.class);
         when(reportingContext.getBulletinRepository()).thenReturn(mockScriptedBulletinRepository);
@@ -106,7 +107,7 @@ public class ScriptedActionHandlerTest {
 
     @Test
     public void testPropertyContextActionHandler() throws InitializationException {
-        actionHandler = initTask("target/test/resources/groovy/test_propertycontext_action_handler.groovy");
+        actionHandler = initTask("src/test/resources/groovy/test_propertycontext_action_handler.groovy");
         mockScriptedBulletinRepository = new MockScriptedBulletinRepository();
         reportingContext = mock(ReportingContext.class);
         when(reportingContext.getBulletinRepository()).thenReturn(mockScriptedBulletinRepository);
@@ -183,11 +184,11 @@ public class ScriptedActionHandlerTest {
 
     private void setupTestRunner() throws Exception {
         runner = TestRunners.newTestRunner(TestProcessor.class);
-        MockScriptedActionHandler handler = initTask("target/test/resources/groovy/test_propertycontext_action_handler.groovy");
+        MockScriptedActionHandler handler = initTask("src/test/resources/groovy/test_propertycontext_action_handler.groovy");
         mockScriptedBulletinRepository = new MockScriptedBulletinRepository();
         Map<String, String> properties = new HashMap<>();
         properties.put(handler.getScriptingComponentHelper().SCRIPT_ENGINE.getName(), "Groovy");
-        properties.put(ScriptingComponentUtils.SCRIPT_FILE.getName(), "target/test/resources/groovy/test_propertycontext_action_handler.groovy");
+        properties.put(ScriptingComponentUtils.SCRIPT_FILE.getName(), "src/test/resources/groovy/test_propertycontext_action_handler.groovy");
         runner.addControllerService("MockAlertHandler", handler, properties);
         runner.enableControllerService(handler);
         actionHandler = (MockScriptedActionHandler) runner.getProcessContext()
@@ -227,6 +228,12 @@ public class ScriptedActionHandlerTest {
                 .thenReturn(new MockPropertyValue(null));
         when(context.getProperty(ScriptingComponentUtils.MODULES))
                 .thenReturn(new MockPropertyValue(null));
+        try {
+            actionHandler.onEnabled(context);
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail("onEnabled error: " + e.getMessage());
+        }
         return actionHandler;
     }
 

@@ -233,7 +233,7 @@ public class ScriptedRecordSink extends AbstractScriptedControllerService implem
                     throw new ScriptException("No RecordSinkService was defined by the script.");
                 }
             } catch (ScriptException se) {
-                throw new ProcessException("Error executing onEnabled(context) method", se);
+                throw new ProcessException("Error executing onEnabled(context) method: " + se.getMessage(), se);
             }
         }
     }

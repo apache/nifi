@@ -38,6 +38,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -65,27 +66,32 @@ public class ScriptedRulesEngineTest {
 
     private MockScriptedRulesEngine initTask() throws InitializationException {
 
-        final MockScriptedRulesEngine task = new MockScriptedRulesEngine();
+        final MockScriptedRulesEngine rulesEngine = new MockScriptedRulesEngine();
         ConfigurationContext context = mock(ConfigurationContext.class);
-        StateManager stateManager = new MockStateManager(task);
+        StateManager stateManager = new MockStateManager(rulesEngine);
 
         final ComponentLog logger = mock(ComponentLog.class);
-        final ControllerServiceInitializationContext initContext = new MockControllerServiceInitializationContext(task, UUID.randomUUID().toString(), logger, stateManager);
-        task.initialize(initContext);
+        final ControllerServiceInitializationContext initContext = new MockControllerServiceInitializationContext(rulesEngine, UUID.randomUUID().toString(), logger, stateManager);
+        rulesEngine.initialize(initContext);
 
         // Call something that sets up the ScriptingComponentHelper, so we can mock it
-        task.getSupportedPropertyDescriptors();
+        rulesEngine.getSupportedPropertyDescriptors();
 
-        when(context.getProperty(task.getScriptingComponentHelper().SCRIPT_ENGINE))
+        when(context.getProperty(rulesEngine.getScriptingComponentHelper().SCRIPT_ENGINE))
                 .thenReturn(new MockPropertyValue("Groovy"));
         when(context.getProperty(ScriptingComponentUtils.SCRIPT_FILE))
-                .thenReturn(new MockPropertyValue("target/test/resources/groovy/test_rules_engine.groovy"));
+                .thenReturn(new MockPropertyValue("src/test/resources/groovy/test_rules_engine.groovy"));
         when(context.getProperty(ScriptingComponentUtils.SCRIPT_BODY))
                 .thenReturn(new MockPropertyValue(null));
         when(context.getProperty(ScriptingComponentUtils.MODULES))
                 .thenReturn(new MockPropertyValue(null));
-        task.onEnabled(context);
-        return task;
+        try {
+            rulesEngine.onEnabled(context);
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail("onEnabled error: " + e.getMessage());
+        }
+        return rulesEngine;
     }
 
     public static class MockScriptedRulesEngine extends ScriptedRulesEngine implements AccessibleScriptingComponentHelper {
