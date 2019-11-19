@@ -109,6 +109,9 @@ public class ConvertJSONToSQL extends AbstractProcessor {
     private static final String UPDATE_TYPE = "UPDATE";
     private static final String INSERT_TYPE = "INSERT";
     private static final String DELETE_TYPE = "DELETE";
+    static final String USE_ATTR_TYPE = "Use statement.type Attribute";
+
+    static final String STATEMENT_TYPE_ATTRIBUTE = "statement.type";
 
     static final AllowableValue IGNORE_UNMATCHED_FIELD = new AllowableValue("Ignore Unmatched Fields", "Ignore Unmatched Fields",
             "Any field in the JSON document that cannot be mapped to a column in the database is ignored");
@@ -135,7 +138,7 @@ public class ConvertJSONToSQL extends AbstractProcessor {
             .name("Statement Type")
             .description("Specifies the type of SQL Statement to generate")
             .required(true)
-            .allowableValues(UPDATE_TYPE, INSERT_TYPE, DELETE_TYPE)
+            .allowableValues(UPDATE_TYPE, INSERT_TYPE, DELETE_TYPE, USE_ATTR_TYPE)
             .build();
     static final PropertyDescriptor TABLE_NAME = new PropertyDescriptor.Builder()
             .name("Table Name")
@@ -288,7 +291,7 @@ public class ConvertJSONToSQL extends AbstractProcessor {
 
         final boolean translateFieldNames = context.getProperty(TRANSLATE_FIELD_NAMES).asBoolean();
         final boolean ignoreUnmappedFields = IGNORE_UNMATCHED_FIELD.getValue().equalsIgnoreCase(context.getProperty(UNMATCHED_FIELD_BEHAVIOR).getValue());
-        final String statementType = context.getProperty(STATEMENT_TYPE).getValue();
+        String statementType = context.getProperty(STATEMENT_TYPE).getValue();
         final String updateKeys = context.getProperty(UPDATE_KEY).evaluateAttributeExpressions(flowFile).getValue();
 
         final String catalog = context.getProperty(CATALOG_NAME).evaluateAttributeExpressions(flowFile).getValue();
@@ -379,6 +382,10 @@ public class ConvertJSONToSQL extends AbstractProcessor {
                 }
                 tableNameBuilder.append(tableName);
                 final String fqTableName = tableNameBuilder.toString();
+
+                if (USE_ATTR_TYPE.equals(statementType)) {
+                    statementType = flowFile.getAttribute(STATEMENT_TYPE_ATTRIBUTE);
+                }
 
                 if (INSERT_TYPE.equals(statementType)) {
                     sql = generateInsert(jsonNode, attributes, fqTableName, schema, translateFieldNames, ignoreUnmappedFields,
