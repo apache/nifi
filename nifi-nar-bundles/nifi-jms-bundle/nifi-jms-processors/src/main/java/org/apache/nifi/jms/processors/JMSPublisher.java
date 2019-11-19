@@ -105,14 +105,14 @@ final class JMSPublisher extends JMSWorker {
                         if (destination != null) {
                             message.setJMSReplyTo(destination);
                         } else {
-                            logUnbuildableDestination(entry.getKey(), JmsHeaders.REPLY_TO);
+                            logUnbuildableDestination(entry.getValue(), JmsHeaders.REPLY_TO);
                         }
                     } else if (entry.getKey().equals(JmsHeaders.DESTINATION)) {
                         Destination destination = buildDestination(entry.getValue());
                         if (destination != null) {
                             message.setJMSDestination(destination);
                         } else {
-                            logUnbuildableDestination(entry.getKey(), JmsHeaders.DESTINATION);
+                            logUnbuildableDestination(entry.getValue(), JmsHeaders.DESTINATION);
                         }
                     } else {
                         // not a special attribute handled above, so send it as a property using the specified property type
