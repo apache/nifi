@@ -88,6 +88,39 @@
             <artifactId>hadoop-client</artifactId>
             <version>${ranger.hadoop.version}</version>
         </dependency>
+        <!-- hadoop-aws is needed for auditing to HDFS with an s3a:// filesystem -->
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-aws</artifactId>
+            <version>${ranger.hadoop.version}</version>
+        </dependency>
+        <!-- hadoop-azure is needed for auditing to HDFS with an abfs:// filesystem -->
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-azure</artifactId>
+            <version>${ranger.hadoop.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.google.guava</groupId>
+                    <artifactId>guava</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.fasterxml.jackson.core</groupId>
+                    <artifactId>jackson-core</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-azure-datalake</artifactId>
+            <version>${ranger.hadoop.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.fasterxml.jackson.core</groupId>
+                    <artifactId>jackson-core</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
         <!-- hadoop-common and hadoop-auth are transitive dependencies of ranger client, but we need to make sure they
                 are the same version as hadoop-client above -->
         <dependency>
