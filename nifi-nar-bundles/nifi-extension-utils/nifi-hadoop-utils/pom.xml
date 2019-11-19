@@ -23,9 +23,7 @@
     <artifactId>nifi-hadoop-utils</artifactId>
     <version>1.11.0-SNAPSHOT</version>
     <packaging>jar</packaging>
-    <properties>
-        <hadoop.version>3.0.0</hadoop.version>
-    </properties>
+
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>

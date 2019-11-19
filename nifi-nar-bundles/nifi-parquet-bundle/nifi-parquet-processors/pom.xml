@@ -23,9 +23,7 @@
     </parent>
     <artifactId>nifi-parquet-processors</artifactId>
     <packaging>jar</packaging>
-    <properties>
-        <hadoop.version>2.7.3</hadoop.version>
-    </properties>
+
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
