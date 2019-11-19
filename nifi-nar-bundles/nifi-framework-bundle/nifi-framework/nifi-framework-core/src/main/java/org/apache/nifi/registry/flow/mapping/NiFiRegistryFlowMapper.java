@@ -27,8 +27,8 @@ import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ProcessorNode;
-import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.PropertyConfiguration;
+import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.service.ControllerServiceNode;
@@ -80,6 +80,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -90,7 +91,7 @@ public class NiFiRegistryFlowMapper {
 
     // We need to keep a mapping of component id to versionedComponentId as we transform these objects. This way, when
     // we call #mapConnectable, instead of generating a new UUID for the ConnectableComponent, we can lookup the 'versioned'
-    // identifier based on the comopnent's actual id. We do connections last, so that all components will already have been
+    // identifier based on the component's actual id. We do connections last, so that all components will already have been
     // created before attempting to create the connection, where the ConnectableDTO is converted.
     private Map<String, String> versionedComponentIds = new HashMap<>();
 
@@ -98,14 +99,157 @@ public class NiFiRegistryFlowMapper {
         this.extensionManager = extensionManager;
     }
 
-    public InstantiatedVersionedProcessGroup mapProcessGroup(final ProcessGroup group, final ControllerServiceProvider serviceProvider, final FlowRegistryClient registryClient,
+    /**
+     * Map the given process group to a versioned process group without any use of an actual flow registry even if the
+     * group is currently versioned in a registry.
+     *
+     * @param group             the process group to map
+     * @param serviceProvider   the controller service provider to use for mapping
+     * @return a complete versioned process group without any registry related details
+     */
+    public InstantiatedVersionedProcessGroup mapNonVersionedProcessGroup(final ProcessGroup group, final ControllerServiceProvider serviceProvider) {
+        versionedComponentIds.clear();
+
+        // always include descendant flows and do not apply any registry versioning info that may be present in the group
+        return mapGroup(group, serviceProvider, (processGroup, versionedGroup) -> true);
+    }
+
+    /**
+     * Map the given process group to a versioned process group using the provided registry client.
+     *
+     * @param group             the process group to map
+     * @param serviceProvider   the controller service provider to use for mapping
+     * @param registryClient    the registry client to use when retrieving versioning details
+     * @param mapDescendantVersionedFlows  true in order to include descendant flows in the mapped result
+     * @return a complete versioned process group with applicable registry related details
+     */
+    public InstantiatedVersionedProcessGroup mapProcessGroup(final ProcessGroup group, final ControllerServiceProvider serviceProvider,
+                                                             final FlowRegistryClient registryClient,
                                                              final boolean mapDescendantVersionedFlows) {
         versionedComponentIds.clear();
 
-        final InstantiatedVersionedProcessGroup mapped = mapGroup(group, serviceProvider, registryClient, true, mapDescendantVersionedFlows);
-        populateReferencedAncestorVariables(group, mapped);
+        // apply registry versioning according to the lambda below
+        // NOTE: lambda refers to registry client and map descendant boolean which will not change during recursion
+        return mapGroup(group, serviceProvider, (processGroup, versionedGroup) -> {
+            final VersionControlInformation versionControlInfo = processGroup.getVersionControlInformation();
+            if (versionControlInfo != null) {
+                final VersionedFlowCoordinates coordinates = new VersionedFlowCoordinates();
+                final String registryId = versionControlInfo.getRegistryIdentifier();
+                final FlowRegistry registry = registryClient.getFlowRegistry(registryId);
+                if (registry == null) {
+                    throw new IllegalStateException("Process Group refers to a Flow Registry with ID " + registryId + " but no Flow Registry exists with that ID. Cannot resolve to a URL.");
+                }
 
-        return mapped;
+                coordinates.setRegistryUrl(registry.getURL());
+                coordinates.setBucketId(versionControlInfo.getBucketIdentifier());
+                coordinates.setFlowId(versionControlInfo.getFlowIdentifier());
+                coordinates.setVersion(versionControlInfo.getVersion());
+                versionedGroup.setVersionedFlowCoordinates(coordinates);
+
+                // We need to register the Port ID -> Versioned Component ID's in our versionedComponentIds member variable for all input & output ports.
+                // Otherwise, we will not be able to lookup the port when connecting to it.
+                for (final Port port : processGroup.getInputPorts()) {
+                    getId(port.getVersionedComponentId(), port.getIdentifier());
+                }
+                for (final Port port : processGroup.getOutputPorts()) {
+                    getId(port.getVersionedComponentId(), port.getIdentifier());
+                }
+
+                // If the Process Group itself is remotely versioned, then we don't want to include its contents
+                // because the contents are remotely managed and not part of the versioning of this Process Group
+                return mapDescendantVersionedFlows;
+            }
+            return true;
+        });
+    }
+
+    private InstantiatedVersionedProcessGroup mapGroup(final ProcessGroup group, final ControllerServiceProvider serviceProvider,
+                                                       final BiFunction<ProcessGroup, VersionedProcessGroup, Boolean> applyVersionControlInfo) {
+        final Set<String> allIncludedGroupsIds = group.findAllProcessGroups().stream()
+                .map(ProcessGroup::getIdentifier)
+                .collect(Collectors.toSet());
+        allIncludedGroupsIds.add(group.getIdentifier());
+
+        final Map<String, ExternalControllerServiceReference> externalControllerServiceReferences = new HashMap<>();
+        final InstantiatedVersionedProcessGroup versionedGroup =
+                mapGroup(group, serviceProvider, applyVersionControlInfo, true, allIncludedGroupsIds, externalControllerServiceReferences);
+
+        populateReferencedAncestorVariables(group, versionedGroup);
+
+        return versionedGroup;
+    }
+
+    private InstantiatedVersionedProcessGroup mapGroup(final ProcessGroup group, final ControllerServiceProvider serviceProvider,
+                                                       final BiFunction<ProcessGroup, VersionedProcessGroup, Boolean> applyVersionControlInfo,
+                                                       final boolean topLevel, final Set<String> includedGroupIds,
+                                                       final Map<String, ExternalControllerServiceReference> externalControllerServiceReferences) {
+
+        final InstantiatedVersionedProcessGroup versionedGroup = new InstantiatedVersionedProcessGroup(group.getIdentifier(), group.getProcessGroupIdentifier());
+        versionedGroup.setIdentifier(getId(group.getVersionedComponentId(), group.getIdentifier()));
+        versionedGroup.setGroupIdentifier(getGroupId(group.getProcessGroupIdentifier()));
+        versionedGroup.setName(group.getName());
+        versionedGroup.setComments(group.getComments());
+        versionedGroup.setPosition(mapPosition(group.getPosition()));
+
+        final ParameterContext parameterContext = group.getParameterContext();
+        versionedGroup.setParameterContextName(parameterContext == null ? null : parameterContext.getName());
+
+        // If we are at the 'top level', meaning that the given Process Group is the group that we are creating a VersionedProcessGroup for,
+        // then we don't want to include the RemoteFlowCoordinates; we want to include the group contents. The RemoteFlowCoordinates will be used
+        // only for a child group that is itself version controlled.
+        if (!topLevel) {
+            final boolean mapDescendantVersionedFlows = applyVersionControlInfo.apply(group, versionedGroup);
+
+            // return here if we do not want to include remotely managed descendant flows
+            if (!mapDescendantVersionedFlows) {
+                return versionedGroup;
+            }
+        }
+
+        versionedGroup.setControllerServices(group.getControllerServices(false).stream()
+                .map(service -> mapControllerService(service, serviceProvider, includedGroupIds, externalControllerServiceReferences))
+                .collect(Collectors.toCollection(LinkedHashSet::new)));
+
+        versionedGroup.setFunnels(group.getFunnels().stream()
+                .map(this::mapFunnel)
+                .collect(Collectors.toCollection(LinkedHashSet::new)));
+
+        versionedGroup.setInputPorts(group.getInputPorts().stream()
+                .map(this::mapPort)
+                .collect(Collectors.toCollection(LinkedHashSet::new)));
+
+        versionedGroup.setOutputPorts(group.getOutputPorts().stream()
+                .map(this::mapPort)
+                .collect(Collectors.toCollection(LinkedHashSet::new)));
+
+        versionedGroup.setLabels(group.getLabels().stream()
+                .map(this::mapLabel)
+                .collect(Collectors.toCollection(LinkedHashSet::new)));
+
+        versionedGroup.setProcessors(group.getProcessors().stream()
+                .map(processor -> mapProcessor(processor, serviceProvider, includedGroupIds, externalControllerServiceReferences))
+                .collect(Collectors.toCollection(LinkedHashSet::new)));
+
+        versionedGroup.setRemoteProcessGroups(group.getRemoteProcessGroups().stream()
+                .map(this::mapRemoteProcessGroup)
+                .collect(Collectors.toCollection(LinkedHashSet::new)));
+
+        versionedGroup.setProcessGroups(group.getProcessGroups().stream()
+                .map(grp -> mapGroup(grp, serviceProvider, applyVersionControlInfo, false, includedGroupIds, externalControllerServiceReferences))
+                .collect(Collectors.toCollection(LinkedHashSet::new)));
+
+        versionedGroup.setConnections(group.getConnections().stream()
+                .map(this::mapConnection)
+                .collect(Collectors.toCollection(LinkedHashSet::new)));
+
+        versionedGroup.setVariables(group.getVariableRegistry().getVariableMap().entrySet().stream()
+                .collect(Collectors.toMap(entry -> entry.getKey().getName(), Map.Entry::getValue)));
+
+        if (topLevel) {
+            versionedGroup.setExternalControllerServiceReferences(externalControllerServiceReferences);
+        }
+
+        return versionedGroup;
     }
 
     private void populateReferencedAncestorVariables(final ProcessGroup group, final VersionedProcessGroup versionedGroup) {
@@ -138,119 +282,10 @@ public class NiFiRegistryFlowMapper {
         }
 
         group.getVariableRegistry().getVariableMap().keySet().stream()
-            .map(VariableDescriptor::getName)
-            .forEach(variableNames::add);
+                .map(VariableDescriptor::getName)
+                .forEach(variableNames::add);
 
         populateVariableNames(group.getParent(), variableNames);
-    }
-
-    private InstantiatedVersionedProcessGroup mapGroup(final ProcessGroup group, final ControllerServiceProvider serviceProvider, final FlowRegistryClient registryClient,
-                                                       final boolean topLevel, final boolean mapDescendantVersionedFlows) {
-
-        final Set<String> allIncludedGroupsIds = group.findAllProcessGroups().stream()
-            .map(ProcessGroup::getIdentifier)
-            .collect(Collectors.toSet());
-        allIncludedGroupsIds.add(group.getIdentifier());
-
-        final Map<String, ExternalControllerServiceReference> externalControllerServiceReferences = new HashMap<>();
-        return mapGroup(group, serviceProvider, registryClient, topLevel, mapDescendantVersionedFlows, allIncludedGroupsIds, externalControllerServiceReferences);
-    }
-
-
-     private InstantiatedVersionedProcessGroup mapGroup(final ProcessGroup group, final ControllerServiceProvider serviceProvider, final FlowRegistryClient registryClient,
-                                                       final boolean topLevel, final boolean mapDescendantVersionedFlows, final Set<String> includedGroupIds,
-                                                       final Map<String, ExternalControllerServiceReference> externalControllerServiceReferences) {
-
-        final InstantiatedVersionedProcessGroup versionedGroup = new InstantiatedVersionedProcessGroup(group.getIdentifier(), group.getProcessGroupIdentifier());
-        versionedGroup.setIdentifier(getId(group.getVersionedComponentId(), group.getIdentifier()));
-        versionedGroup.setGroupIdentifier(getGroupId(group.getProcessGroupIdentifier()));
-        versionedGroup.setName(group.getName());
-        versionedGroup.setComments(group.getComments());
-        versionedGroup.setPosition(mapPosition(group.getPosition()));
-
-        final ParameterContext parameterContext = group.getParameterContext();
-        versionedGroup.setParameterContextName(parameterContext == null ? null : parameterContext.getName());
-
-        // If we are at the 'top level', meaning that the given Process Group is the group that we are creating a VersionedProcessGroup for,
-        // then we don't want to include the RemoteFlowCoordinates; we want to include the group contents. The RemoteFlowCoordinates will be used
-        // only for a child group that is itself version controlled.
-        if (!topLevel) {
-            final VersionControlInformation versionControlInfo = group.getVersionControlInformation();
-            if (versionControlInfo != null) {
-                final VersionedFlowCoordinates coordinates = new VersionedFlowCoordinates();
-                final String registryId = versionControlInfo.getRegistryIdentifier();
-                final FlowRegistry registry = registryClient.getFlowRegistry(registryId);
-                if (registry == null) {
-                    throw new IllegalStateException("Process Group refers to a Flow Registry with ID " + registryId + " but no Flow Registry exists with that ID. Cannot resolve to a URL.");
-                }
-
-                coordinates.setRegistryUrl(registry.getURL());
-                coordinates.setBucketId(versionControlInfo.getBucketIdentifier());
-                coordinates.setFlowId(versionControlInfo.getFlowIdentifier());
-                coordinates.setVersion(versionControlInfo.getVersion());
-                versionedGroup.setVersionedFlowCoordinates(coordinates);
-
-                // We need to register the Port ID -> Versioned Component ID's in our versionedComponentIds member variable for all input & output ports.
-                // Otherwise, we will not be able to lookup the port when connecting to it.
-                for (final Port port : group.getInputPorts()) {
-                    getId(port.getVersionedComponentId(), port.getIdentifier());
-                }
-                for (final Port port : group.getOutputPorts()) {
-                    getId(port.getVersionedComponentId(), port.getIdentifier());
-                }
-
-                // If the Process Group itself is remotely versioned, then we don't want to include its contents
-                // because the contents are remotely managed and not part of the versioning of this Process Group
-                if (!mapDescendantVersionedFlows) {
-                    return versionedGroup;
-                }
-            }
-        }
-
-        versionedGroup.setControllerServices(group.getControllerServices(false).stream()
-            .map(service -> mapControllerService(service, serviceProvider, includedGroupIds, externalControllerServiceReferences))
-            .collect(Collectors.toCollection(LinkedHashSet::new)));
-
-        versionedGroup.setFunnels(group.getFunnels().stream()
-            .map(this::mapFunnel)
-            .collect(Collectors.toCollection(LinkedHashSet::new)));
-
-        versionedGroup.setInputPorts(group.getInputPorts().stream()
-            .map(this::mapPort)
-            .collect(Collectors.toCollection(LinkedHashSet::new)));
-
-        versionedGroup.setOutputPorts(group.getOutputPorts().stream()
-            .map(this::mapPort)
-            .collect(Collectors.toCollection(LinkedHashSet::new)));
-
-        versionedGroup.setLabels(group.getLabels().stream()
-            .map(this::mapLabel)
-            .collect(Collectors.toCollection(LinkedHashSet::new)));
-
-        versionedGroup.setProcessors(group.getProcessors().stream()
-            .map(processor -> mapProcessor(processor, serviceProvider, includedGroupIds, externalControllerServiceReferences))
-            .collect(Collectors.toCollection(LinkedHashSet::new)));
-
-        versionedGroup.setRemoteProcessGroups(group.getRemoteProcessGroups().stream()
-            .map(this::mapRemoteProcessGroup)
-            .collect(Collectors.toCollection(LinkedHashSet::new)));
-
-        versionedGroup.setProcessGroups(group.getProcessGroups().stream()
-            .map(grp -> mapGroup(grp, serviceProvider, registryClient, false, mapDescendantVersionedFlows, includedGroupIds, externalControllerServiceReferences))
-            .collect(Collectors.toCollection(LinkedHashSet::new)));
-
-        versionedGroup.setConnections(group.getConnections().stream()
-            .map(this::mapConnection)
-            .collect(Collectors.toCollection(LinkedHashSet::new)));
-
-        versionedGroup.setVariables(group.getVariableRegistry().getVariableMap().entrySet().stream()
-            .collect(Collectors.toMap(entry -> entry.getKey().getName(), Map.Entry::getValue)));
-
-        if (topLevel) {
-            versionedGroup.setExternalControllerServiceReferences(externalControllerServiceReferences);
-        }
-
-        return versionedGroup;
     }
 
     private String getId(final Optional<String> currentVersionedId, final String componentId) {
@@ -279,7 +314,7 @@ public class NiFiRegistryFlowMapper {
     }
 
 
-    private String getGroupId(final String groupId) {
+    public String getGroupId(final String groupId) {
         return versionedComponentIds.get(groupId);
     }
 
@@ -599,23 +634,39 @@ public class NiFiRegistryFlowMapper {
         return batchSize;
     }
 
-    public VersionedParameterContext mapParameterContext(final ParameterContext context) {
-        if (context == null) {
-            return null;
-        }
-
-        final Set<VersionedParameter> parameters = context.getParameters().values().stream()
-            .map(this::mapParameter)
-            .collect(Collectors.toSet());
-
-        final VersionedParameterContext versionedContext = new VersionedParameterContext();
-        versionedContext.setName(context.getName());
-        versionedContext.setParameters(parameters);
-
-        return versionedContext;
+    public Map<String, VersionedParameterContext> mapParameterContexts(final ProcessGroup processGroup,
+                                                                       final boolean mapDescendantVersionedFlows) {
+        // cannot use a set to enforce uniqueness of parameter contexts because VersionedParameterContext in the
+        // registry data model doesn't currently implement hashcode/equals based on context name
+        final Map<String, VersionedParameterContext> parameterContexts = new HashMap<>();
+        mapParameterContexts(processGroup, mapDescendantVersionedFlows, parameterContexts);
+        return parameterContexts;
     }
 
-    public VersionedParameter mapParameter(final Parameter parameter) {
+    private void mapParameterContexts(final ProcessGroup processGroup, final boolean mapDescendantVersionedFlows,
+                                      final Map<String, VersionedParameterContext> parameterContexts) {
+        final ParameterContext parameterContext = processGroup.getParameterContext();
+        if (parameterContext != null) {
+            // map this process group's parameter context and add to the collection
+            final Set<VersionedParameter> parameters = parameterContext.getParameters().values().stream()
+                    .map(this::mapParameter)
+                    .collect(Collectors.toSet());
+
+            final VersionedParameterContext versionedContext = new VersionedParameterContext();
+            versionedContext.setName(parameterContext.getName());
+            versionedContext.setParameters(parameters);
+            parameterContexts.put(versionedContext.getName(), versionedContext);
+        }
+
+        for (final ProcessGroup child : processGroup.getProcessGroups()) {
+            // only include child process group parameter contexts if boolean indicator is true or process group is unversioned
+            if (mapDescendantVersionedFlows || child.getVersionControlInformation() == null) {
+                mapParameterContexts(child, mapDescendantVersionedFlows, parameterContexts);
+            }
+        }
+    }
+
+    private VersionedParameter mapParameter(final Parameter parameter) {
         if (parameter == null) {
             return null;
         }

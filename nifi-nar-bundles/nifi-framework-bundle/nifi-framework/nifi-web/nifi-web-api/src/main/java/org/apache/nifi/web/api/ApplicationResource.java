@@ -512,18 +512,20 @@ public abstract class ApplicationResource {
     /**
      * Authorizes the specified process group.
      *
-     * @param processGroupAuthorizable    process group
-     * @param authorizer                  authorizer
-     * @param lookup                      lookup
-     * @param action                      action
-     * @param authorizeReferencedServices whether to authorize referenced services
-     * @param authorizeTemplates          whether to authorize templates
-     * @param authorizeControllerServices whether to authorize controller services
+     * @param processGroupAuthorizable     process group
+     * @param authorizer                   authorizer
+     * @param lookup                       lookup
+     * @param action                       action
+     * @param authorizeReferencedServices  whether to authorize referenced services
+     * @param authorizeTemplates           whether to authorize templates
+     * @param authorizeControllerServices  whether to authorize controller services
+     * @param authorizeTransitiveServices  whether to authorize transitive services
+     * @param authorizeParameterReferences whether to authorize parameter references
      */
     protected void authorizeProcessGroup(final ProcessGroupAuthorizable processGroupAuthorizable, final Authorizer authorizer, final AuthorizableLookup lookup, final RequestAction action,
                                          final boolean authorizeReferencedServices, final boolean authorizeTemplates,
                                          final boolean authorizeControllerServices, final boolean authorizeTransitiveServices,
-                                         final boolean authorizeParamterReferences) {
+                                         final boolean authorizeParameterReferences) {
 
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
         final Consumer<Authorizable> authorize = authorizable -> authorizable.authorize(authorizer, action, user);
@@ -542,7 +544,7 @@ public abstract class ApplicationResource {
             }
 
             // authorize any referenced parameters if necessary
-            if (authorizeParamterReferences) {
+            if (authorizeParameterReferences) {
                 AuthorizeParameterReference.authorizeParameterReferences(processorAuthorizable, authorizer, processorAuthorizable.getParameterContext(), user);
             }
         });
@@ -570,7 +572,7 @@ public abstract class ApplicationResource {
                     AuthorizeControllerServiceReference.authorizeControllerServiceReferences(controllerServiceAuthorizable, authorizer, lookup, authorizeTransitiveServices);
                 }
 
-                if (authorizeParamterReferences) {
+                if (authorizeParameterReferences) {
                     AuthorizeParameterReference.authorizeParameterReferences(controllerServiceAuthorizable, authorizer, controllerServiceAuthorizable.getParameterContext(), user);
                 }
             });

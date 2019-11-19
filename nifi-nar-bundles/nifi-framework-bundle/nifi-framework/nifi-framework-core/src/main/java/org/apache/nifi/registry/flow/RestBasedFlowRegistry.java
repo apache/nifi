@@ -29,14 +29,12 @@ import org.apache.nifi.registry.client.impl.JerseyNiFiRegistryClient;
 
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 public class RestBasedFlowRegistry implements FlowRegistry {
-    private static final String FLOW_ENCODING_VERSION = "1.0";
+    public static final String FLOW_ENCODING_VERSION = "1.0";
 
     private final FlowRegistryClient flowRegistryClient;
     private final String identifier;
@@ -179,17 +177,13 @@ public class RestBasedFlowRegistry implements FlowRegistry {
     @Override
     public VersionedFlowSnapshot registerVersionedFlowSnapshot(final VersionedFlow flow, final VersionedProcessGroup snapshot,
                                                                final Map<String, ExternalControllerServiceReference> externalControllerServices,
-                                                               Collection<VersionedParameterContext> parameterContexts, final String comments, final int expectedVersion,
-                                                               final NiFiUser user) throws IOException, NiFiRegistryException {
-
-        final Map<String, VersionedParameterContext> parameterContextMap = parameterContexts.stream()
-            .collect(Collectors.toMap(VersionedParameterContext::getName, context -> context));
-
+                                                               final Map<String, VersionedParameterContext> parameterContexts, final String comments,
+                                                               final int expectedVersion, final NiFiUser user) throws IOException, NiFiRegistryException {
         final FlowSnapshotClient snapshotClient = getFlowSnapshotClient(user);
         final VersionedFlowSnapshot versionedFlowSnapshot = new VersionedFlowSnapshot();
         versionedFlowSnapshot.setFlowContents(snapshot);
         versionedFlowSnapshot.setExternalControllerServices(externalControllerServices);
-        versionedFlowSnapshot.setParameterContexts(parameterContextMap);
+        versionedFlowSnapshot.setParameterContexts(parameterContexts);
         versionedFlowSnapshot.setFlowEncodingVersion(FLOW_ENCODING_VERSION);
 
         final VersionedFlowSnapshotMetadata metadata = new VersionedFlowSnapshotMetadata();

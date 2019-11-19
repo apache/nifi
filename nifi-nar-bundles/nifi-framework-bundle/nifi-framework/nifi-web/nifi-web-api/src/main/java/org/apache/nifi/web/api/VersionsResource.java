@@ -92,6 +92,7 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.MultivaluedHashMap;
 import javax.ws.rs.core.Response;
@@ -174,6 +175,66 @@ public class VersionsResource extends ApplicationResource {
         return generateOkResponse(entity).build();
     }
 
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("process-groups/{id}/download")
+    @ApiOperation(
+        value = "Gets the latest version of a Process Group for download",
+        response = String.class,
+        authorizations = {
+            @Authorization(value = "Read - /process-groups/{uuid}")
+        }
+    )
+    @ApiResponses(value = {
+        @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+        @ApiResponse(code = 401, message = "Client could not be authenticated."),
+        @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+        @ApiResponse(code = 404, message = "The specified resource could not be found."),
+        @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+    })
+    public Response exportFlowVersion(@ApiParam(value = "The process group id.", required = true) @PathParam("id") final String groupId) {
+        // authorize access
+        serviceFacade.authorizeAccess(lookup -> {
+            final ProcessGroupAuthorizable groupAuthorizable = lookup.getProcessGroup(groupId);
+            // ensure access to process groups (nested), encapsulated controller services and referenced parameter contexts
+            authorizeProcessGroup(groupAuthorizable, authorizer, lookup, RequestAction.READ, true,
+                    false, true, false, true);
+        });
+
+        // get the versioned flow
+        final VersionedFlowSnapshot versionedFlowSnapshot = serviceFacade.getVersionedFlowSnapshotByGroupId(groupId);
+
+        final VersionedProcessGroup versionedProcessGroup = versionedFlowSnapshot.getFlowContents();
+        final String flowName = versionedProcessGroup.getName();
+        final int flowVersion = versionedFlowSnapshot.getSnapshotMetadata().getVersion();
+
+        // clear top-level registry data which doesn't belong in versioned flow download
+        versionedFlowSnapshot.setFlow(null);
+        versionedFlowSnapshot.setBucket(null);
+        versionedFlowSnapshot.setSnapshotMetadata(null);
+
+        // clear nested process group registry data which doesn't belong in versioned flow download
+        sanitizeRegistryInfo(versionedProcessGroup);
+
+        // determine the name of the attachment - possible issues with spaces in file names
+        final String filename = flowName.replaceAll("\\s", "_") + "_" + flowVersion + ".json";
+
+        return generateOkResponse(versionedFlowSnapshot).header(HttpHeaders.CONTENT_DISPOSITION, String.format("attachment; filename=\"%s\"", filename)).build();
+    }
+
+    /**
+     * Recursively clear the registry info in the given versioned process group and all nested versioned process groups
+     *
+     * @param versionedProcessGroup the process group to sanitize
+     */
+    private void sanitizeRegistryInfo(final VersionedProcessGroup versionedProcessGroup) {
+        versionedProcessGroup.setVersionedFlowCoordinates(null);
+
+        for (final VersionedProcessGroup innerVersionedProcessGroup : versionedProcessGroup.getProcessGroups()) {
+            sanitizeRegistryInfo(innerVersionedProcessGroup);
+        }
+    }
 
     @POST
     @Consumes(MediaType.APPLICATION_JSON)

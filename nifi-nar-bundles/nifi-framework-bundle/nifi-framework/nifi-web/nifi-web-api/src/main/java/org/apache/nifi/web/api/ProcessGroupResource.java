@@ -54,6 +54,7 @@ import org.apache.nifi.registry.flow.VersionedFlow;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.registry.flow.VersionedFlowState;
 import org.apache.nifi.registry.flow.VersionedParameterContext;
+import org.apache.nifi.registry.flow.VersionedProcessGroup;
 import org.apache.nifi.registry.variable.VariableRegistryUpdateRequest;
 import org.apache.nifi.registry.variable.VariableRegistryUpdateStep;
 import org.apache.nifi.remote.util.SiteToSiteRestApiClient;
@@ -132,6 +133,7 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
+import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.MultivaluedHashMap;
 import javax.ws.rs.core.MultivaluedMap;
@@ -309,6 +311,49 @@ public class ProcessGroupResource extends ApplicationResource {
         return generateOkResponse(entity).build();
     }
 
+    /**
+     * Retrieves the specified group as a versioned flow snapshot for download.
+     *
+     * @param groupId The id of the process group
+     * @return A processGroupEntity.
+     */
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{id}/download")
+    @ApiOperation(
+        value = "Gets a process group for download",
+        response = String.class,
+        authorizations = {
+            @Authorization(value = "Read - /process-groups/{uuid}")
+        }
+    )
+    @ApiResponses(value = {
+        @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+        @ApiResponse(code = 401, message = "Client could not be authenticated."),
+        @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+        @ApiResponse(code = 404, message = "The specified resource could not be found."),
+        @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+    })
+    public Response exportProcessGroup(@ApiParam(value = "The process group id.", required = true) @PathParam("id") final String groupId) {
+        // authorize access
+        serviceFacade.authorizeAccess(lookup -> {
+            // ensure access to process groups (nested), encapsulated controller services and referenced parameter contexts
+            final ProcessGroupAuthorizable groupAuthorizable = lookup.getProcessGroup(groupId);
+            authorizeProcessGroup(groupAuthorizable, authorizer, lookup, RequestAction.READ, true,
+                    false, true, false, true);
+        });
+
+        // get the versioned flow
+        final VersionedFlowSnapshot currentVersionedFlowSnapshot = serviceFacade.getCurrentFlowSnapshotByGroupId(groupId);
+
+        // determine the name of the attachment - possible issues with spaces in file names
+        final VersionedProcessGroup currentVersionedProcessGroup = currentVersionedFlowSnapshot.getFlowContents();
+        final String flowName = currentVersionedProcessGroup.getName();
+        final String filename = flowName.replaceAll("\\s", "_") + ".json";
+
+        return generateOkResponse(currentVersionedFlowSnapshot).header(HttpHeaders.CONTENT_DISPOSITION, String.format("attachment; filename=\"%s\"", filename)).build();
+    }
 
     /**
      * Retrieves a list of local modifications to the Process Group since it was last synchronized with the Flow Registry
