@@ -21,9 +21,7 @@
     </parent>
     <artifactId>nifi-hdfs-processors</artifactId>
     <packaging>jar</packaging>
-    <properties>
-        <hadoop.version>3.2.0</hadoop.version>
-    </properties>
+
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
