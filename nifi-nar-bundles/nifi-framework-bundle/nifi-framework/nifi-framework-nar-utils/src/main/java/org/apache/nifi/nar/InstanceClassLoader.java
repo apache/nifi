@@ -19,11 +19,21 @@ package org.apache.nifi.nar;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Each processor, controller service, and reporting task will have an InstanceClassLoader.
@@ -31,7 +41,7 @@ import java.util.Set;
  * The InstanceClassLoader will either be an empty pass-through to the NARClassLoader, or will contain a
  * copy of all the NAR's resources in the case of components that @RequireInstanceClassLoading.
  */
-public class InstanceClassLoader extends URLClassLoader {
+public class InstanceClassLoader extends URLClassLoader implements NativeLibFinder {
 
     private static final Logger logger = LoggerFactory.getLogger(InstanceClassLoader.class);
 
@@ -41,6 +51,9 @@ public class InstanceClassLoader extends URLClassLoader {
     private final Set<URL> instanceUrls;
     private final Set<URL> additionalResourceUrls;
 
+    private final List<File> nativeLibDirs;
+    private final Map<String, Path> nativeLibNameToPath = new HashMap<>();
+
     /**
      * @param identifier the id of the component this ClassLoader was created for
      * @param instanceUrls the urls for the instance, will either be empty or a copy of the NARs urls
@@ -48,6 +61,17 @@ public class InstanceClassLoader extends URLClassLoader {
      * @param parent the parent ClassLoader
      */
     public InstanceClassLoader(final String identifier, final String type, final Set<URL> instanceUrls, final Set<URL> additionalResourceUrls, final ClassLoader parent) {
+        this(identifier, type, instanceUrls, additionalResourceUrls, Collections.emptySet(), parent);
+    }
+
+    public InstanceClassLoader(
+            final String identifier,
+            final String type,
+            final Set<URL> instanceUrls,
+            final Set<URL> additionalResourceUrls,
+            final Set<File> nativeLibDirs,
+            final ClassLoader parent
+    ) {
         super(combineURLs(instanceUrls, additionalResourceUrls), parent);
         this.identifier = identifier;
         this.instanceType = type;
@@ -55,6 +79,32 @@ public class InstanceClassLoader extends URLClassLoader {
                 instanceUrls == null ? Collections.emptySet() : new LinkedHashSet<>(instanceUrls));
         this.additionalResourceUrls = Collections.unmodifiableSet(
                 additionalResourceUrls == null ? Collections.emptySet() : new LinkedHashSet<>(additionalResourceUrls));
+
+        List<File> allNativeLibDirs = new ArrayList<>(nativeLibDirs);
+        Set<File> additionalNativeLibDirs = this.additionalResourceUrls.stream()
+                .map(url -> {
+                    File file;
+
+                    try {
+                        file = new File(url.toURI());
+                    } catch (URISyntaxException e) {
+                        file = new File(url.getPath());
+                    } catch (Exception e) {
+                        logger.error("Couldn't convert url '" + url + "' to a file");
+                        file = null;
+                    }
+
+                    File libDir = Optional.ofNullable(file)
+                            .map(toDir())
+                            .orElse(null);
+
+                    return libDir;
+                })
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        allNativeLibDirs.addAll(additionalNativeLibDirs);
+        allNativeLibDirs.addAll(getUsrLibDirs());
+        this.nativeLibDirs = Collections.unmodifiableList(allNativeLibDirs);
     }
 
     private static URL[] combineURLs(final Set<URL> instanceUrls, final Set<URL> additionalResourceUrls) {
@@ -71,6 +121,11 @@ public class InstanceClassLoader extends URLClassLoader {
         return allUrls.toArray(new URL[allUrls.size()]);
     }
 
+    @Override
+    public String findLibrary(String libname) {
+        return NativeLibFinder.super.findLibrary(libname);
+    }
+
     public String getIdentifier() {
         return identifier;
     }
@@ -85,5 +140,20 @@ public class InstanceClassLoader extends URLClassLoader {
 
     public Set<URL> getAdditionalResourceUrls() {
         return additionalResourceUrls;
+    }
+
+    @Override
+    public List<File> getNativeLibDirs() {
+        return nativeLibDirs;
+    }
+
+    @Override
+    public Map<String, Path> getNativeLibNameToPath() {
+        return nativeLibNameToPath;
+    }
+
+    @Override
+    public String getTmpLibFilePrefix() {
+        return getIdentifier();
     }
 }

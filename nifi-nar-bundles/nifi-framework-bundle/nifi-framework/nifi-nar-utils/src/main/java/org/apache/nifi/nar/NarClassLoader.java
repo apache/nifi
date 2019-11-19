@@ -21,8 +21,14 @@ import java.io.FileFilter;
 import java.io.IOException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -116,9 +122,12 @@ import org.slf4j.LoggerFactory;
  * Maven NAR plugin will fail to build the NAR.
  * </p>
  */
-public class NarClassLoader extends URLClassLoader {
+public class NarClassLoader extends URLClassLoader implements NativeLibFinder {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(NarClassLoader.class);
+
+    private final List<File> nativeLibDirs;
+    private final Map<String, Path> nativeLibNameToPath = new HashMap<>();
 
     private static final FileFilter JAR_FILTER = new FileFilter() {
         @Override
@@ -149,6 +158,7 @@ public class NarClassLoader extends URLClassLoader {
 
         // process the classpath
         updateClasspath(narWorkingDirectory);
+        this.nativeLibDirs = buildNativeLibDirs();
     }
 
     /**
@@ -168,6 +178,7 @@ public class NarClassLoader extends URLClassLoader {
 
         // process the classpath
         updateClasspath(narWorkingDirectory);
+        this.nativeLibDirs = buildNativeLibDirs();
     }
 
     public File getWorkingDirectory() {
@@ -205,26 +216,41 @@ public class NarClassLoader extends URLClassLoader {
     }
 
     @Override
-    protected String findLibrary(final String libname) {
+    public String findLibrary(String libname) {
+        return NativeLibFinder.super.findLibrary(libname);
+    }
+
+    public File getNativeLibDir() {
         File dependencies = new File(narWorkingDirectory, "NAR-INF/bundled-dependencies");
         if (!dependencies.isDirectory()) {
             LOGGER.warn(narWorkingDirectory + " does not contain NAR-INF/bundled-dependencies!");
         }
 
-        final File nativeDir = new File(dependencies, "native");
-        final File libsoFile = new File(nativeDir, "lib" + libname + ".so");
-        final File dllFile = new File(nativeDir, libname + ".dll");
-        final File soFile = new File(nativeDir, libname + ".so");
-        if (libsoFile.exists()) {
-            return libsoFile.getAbsolutePath();
-        } else if (dllFile.exists()) {
-            return dllFile.getAbsolutePath();
-        } else if (soFile.exists()) {
-            return soFile.getAbsolutePath();
-        }
+        return new File(dependencies, "native");
+    }
 
-        // not found in the nar. try system native dir
-        return null;
+    private List<File> buildNativeLibDirs() {
+        ArrayList<File> allNativeLibDirs = new ArrayList<>();
+
+        allNativeLibDirs.add(getNativeLibDir());
+        allNativeLibDirs.addAll(getUsrLibDirs());
+
+        return Collections.unmodifiableList(allNativeLibDirs);
+    }
+
+    @Override
+    public List<File> getNativeLibDirs() {
+        return nativeLibDirs;
+    }
+
+    @Override
+    public Map<String, Path> getNativeLibNameToPath() {
+        return nativeLibNameToPath;
+    }
+
+    @Override
+    public String getTmpLibFilePrefix() {
+        return narWorkingDirectory.getName();
     }
 
     @Override
