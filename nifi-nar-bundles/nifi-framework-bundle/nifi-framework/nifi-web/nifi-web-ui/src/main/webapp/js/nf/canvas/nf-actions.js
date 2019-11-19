@@ -1378,6 +1378,26 @@
         },
 
         /**
+         * Downloads the current flow
+         */
+        downloadFlow: function (selection) {
+            var processGroupId = null;
+
+            if (selection.empty()) {
+                processGroupId = nfCanvasUtils.getGroupId();
+            } else if (selection.size() === 1) {
+                var selectionData = selection.datum();
+                if (nfCanvasUtils.isProcessGroup(selection)) {
+                    processGroupId = selectionData.id;
+                }
+            }
+
+            if (processGroupId !== null) {
+                window.open('../nifi-api/process-groups/' + encodeURIComponent(processGroupId) + '/download');
+            }
+        },
+
+        /**
          * Disconnects a Process Group from flow versioning.
          */
         stopVersionControl: function (selection) {

@@ -1502,6 +1502,24 @@ public interface NiFiServiceFacade {
     VersionedFlowSnapshot getVersionedFlowSnapshot(VersionControlInformationDTO versionControlInfo, boolean fetchRemoteFlows);
 
     /**
+     * Get the latest Versioned Flow Snapshot from the registry for the Process Group with the given ID
+     *
+     * @param processGroupId the ID of the Process Group
+     * @return the latest Versioned Flow Snapshot for download
+     *
+     * @throws ResourceNotFoundException if the Versioned Flow Snapshot could not be found
+     */
+    VersionedFlowSnapshot getVersionedFlowSnapshotByGroupId(String processGroupId);
+
+    /**
+     * Get the current state of the Process Group with the given ID, converted to a Versioned Flow Snapshot
+     *
+     * @param processGroupId the ID of the Process Group
+     * @return the current Process Group converted to a Versioned Flow Snapshot for download
+     */
+    VersionedFlowSnapshot getCurrentFlowSnapshotByGroupId(String processGroupId);
+
+    /**
      * Returns the name of the Flow Registry that is registered with the given ID. If no Flow Registry exists with the given ID, will return
      * the ID itself as the name
      *

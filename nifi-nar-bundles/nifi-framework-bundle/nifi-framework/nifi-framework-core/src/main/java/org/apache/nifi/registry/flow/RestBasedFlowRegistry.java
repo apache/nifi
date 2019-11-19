@@ -36,7 +36,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public class RestBasedFlowRegistry implements FlowRegistry {
-    private static final String FLOW_ENCODING_VERSION = "1.0";
+    public static final String FLOW_ENCODING_VERSION = "1.0";
 
     private final FlowRegistryClient flowRegistryClient;
     private final String identifier;
