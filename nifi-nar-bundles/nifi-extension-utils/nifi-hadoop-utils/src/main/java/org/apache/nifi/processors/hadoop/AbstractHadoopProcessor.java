@@ -112,8 +112,8 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
 
     public static final PropertyDescriptor ADDITIONAL_CLASSPATH_RESOURCES = new PropertyDescriptor.Builder()
             .name("Additional Classpath Resources")
-            .description("A comma-separated list of paths to files and/or directories that will be added to the classpath. When specifying a " +
-                    "directory, all files with in the directory will be added to the classpath, but further sub-directories will not be included.")
+            .description("A comma-separated list of paths to files and/or directories that will be added to the classpath and used for loading native libraries. " +
+                    "When specifying a directory, all files with in the directory will be added to the classpath, but further sub-directories will not be included.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .dynamicallyModifiesClasspath(true)

@@ -2479,6 +2479,9 @@ attempts to resolve filesystem resources from the value of the property. The val
 comma-separated list of one or more directories or files, where any paths that do not exist are
 skipped. If the resource represents a directory, the directory is listed, and all of the files
 in that directory are added to the classpath individually.
+These directories also will be scanned for native libraries. If a library is found in one of these
+directories, an OS-handled temporary copy is created and cached before loading it to maintain consistency
+and classloader isolation.
 
 Each property may impose further restrictions on the format of the value through the validators.
 For example, using StandardValidators.FILE_EXISTS_VALIDATOR restricts the property to accepting a

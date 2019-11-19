@@ -19,10 +19,14 @@ package org.apache.nifi.nar;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
+import java.net.URISyntaxException;
 import java.net.URL;
-import java.net.URLClassLoader;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -31,7 +35,7 @@ import java.util.Set;
  * The InstanceClassLoader will either be an empty pass-through to the NARClassLoader, or will contain a
  * copy of all the NAR's resources in the case of components that @RequireInstanceClassLoading.
  */
-public class InstanceClassLoader extends URLClassLoader {
+public class InstanceClassLoader extends AbstractNativeLibHandlingClassLoader {
 
     private static final Logger logger = LoggerFactory.getLogger(InstanceClassLoader.class);
 
@@ -48,13 +52,53 @@ public class InstanceClassLoader extends URLClassLoader {
      * @param parent the parent ClassLoader
      */
     public InstanceClassLoader(final String identifier, final String type, final Set<URL> instanceUrls, final Set<URL> additionalResourceUrls, final ClassLoader parent) {
-        super(combineURLs(instanceUrls, additionalResourceUrls), parent);
+        this(identifier, type, instanceUrls, additionalResourceUrls, Collections.emptySet(), parent);
+    }
+
+    public InstanceClassLoader(
+            final String identifier,
+            final String type,
+            final Set<URL> instanceUrls,
+            final Set<URL> additionalResourceUrls,
+            final Set<File> narNativeLibDirs,
+            final ClassLoader parent
+    ) {
+        super(combineURLs(instanceUrls, additionalResourceUrls), parent, initNativeLibDirList(narNativeLibDirs, additionalResourceUrls), identifier);
         this.identifier = identifier;
         this.instanceType = type;
         this.instanceUrls = Collections.unmodifiableSet(
                 instanceUrls == null ? Collections.emptySet() : new LinkedHashSet<>(instanceUrls));
         this.additionalResourceUrls = Collections.unmodifiableSet(
                 additionalResourceUrls == null ? Collections.emptySet() : new LinkedHashSet<>(additionalResourceUrls));
+    }
+
+    private static List<File> initNativeLibDirList(Set<File> narNativeLibDirs, Set<URL> additionalResourceUrls) {
+        List<File> nativeLibDirList = new ArrayList<>(narNativeLibDirs);
+
+        Set<File> additionalNativeLibDirs = new HashSet<>();
+        if (additionalResourceUrls != null) {
+            for (URL url : additionalResourceUrls) {
+                File file;
+
+                try {
+                    file = new File(url.toURI());
+                } catch (URISyntaxException e) {
+                    file = new File(url.getPath());
+                } catch (Exception e) {
+                    logger.error("Couldn't convert url '" + url + "' to a file");
+                    file = null;
+                }
+
+                File dir = toDir(file);
+                if (dir != null) {
+                    additionalNativeLibDirs.add(dir);
+                }
+            }
+        }
+
+        nativeLibDirList.addAll(additionalNativeLibDirs);
+
+        return nativeLibDirList;
     }
 
     private static URL[] combineURLs(final Set<URL> instanceUrls, final Set<URL> additionalResourceUrls) {

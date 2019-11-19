@@ -88,7 +88,7 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
     private final ExpressionLanguageScope expressionLanguageScope;
     /**
      * indicates whether or not this property represents resources that should be added
-     * to the classpath for this instance of the component
+     * to the classpath and used for loading native libraries for this instance of the component
      */
     private final boolean dynamicallyModifiesClasspath;
 
@@ -310,11 +310,21 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
 
         /**
          * Specifies that the value of this property represents one or more resources that the
-         * framework should add to the classpath of the given component.
-         *
+         * framework should add to the classpath of as well as consider when looking for native
+         * libraries for the given component.
+         * <p/>
          * NOTE: If a component contains a PropertyDescriptor where dynamicallyModifiesClasspath is set to true,
-         *  the component must also be annotated with @RequiresInstanceClassloading, otherwise the component will be
-         *  considered invalid.
+         *  the component may also be annotated with @RequiresInstanceClassloading, in which case every class will
+         *  be loaded by a separate InstanceClassLoader for each processor instance.<br/>
+         *  It also allows to load native libraries from the extra classpath.
+         *  <p/>
+         *  One can chose to omit the annotation. In this case the loading of native libraries from the extra classpath
+         *  is not supported.
+         *  Also by default, classes will be loaded by a common NarClassLoader, however it's possible to acquire an
+         *  InstanceClassLoader by calling Thread.currentThread().getContextClassLoader() which can be used manually
+         *  to load required classes on an instance-by-instance basis
+         *  (by calling {@link Class#forName(String, boolean, ClassLoader)} for example).
+         *
          *
          * @param dynamicallyModifiesClasspath whether or not this property should be used by the framework to modify the classpath
          * @return the builder
