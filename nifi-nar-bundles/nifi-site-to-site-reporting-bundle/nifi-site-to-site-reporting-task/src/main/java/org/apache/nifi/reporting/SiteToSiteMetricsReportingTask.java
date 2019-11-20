@@ -192,6 +192,9 @@ public class SiteToSiteMetricsReportingTask extends AbstractSiteToSiteReportingT
             }
 
             try {
+                // Lazily create SiteToSiteClient to provide a StateManager
+                setup(context);
+
                 long start = System.nanoTime();
                 final Transaction transaction = getClient().createTransaction(TransferDirection.SEND);
                 if (transaction == null) {

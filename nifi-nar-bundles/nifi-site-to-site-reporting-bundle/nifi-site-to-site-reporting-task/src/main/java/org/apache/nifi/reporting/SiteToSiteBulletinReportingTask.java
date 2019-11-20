@@ -138,11 +138,14 @@ public class SiteToSiteBulletinReportingTask extends AbstractSiteToSiteReporting
 
         // Send the JSON document for the current batch
         try {
-                final Transaction transaction = getClient().createTransaction(TransferDirection.SEND);
-                if (transaction == null) {
-                    getLogger().info("All destination nodes are penalized; will attempt to send data later");
-                    return;
-                }
+            // Lazily create SiteToSiteClient to provide a StateManager
+            setup(context);
+
+            final Transaction transaction = getClient().createTransaction(TransferDirection.SEND);
+            if (transaction == null) {
+                getLogger().info("All destination nodes are penalized; will attempt to send data later");
+                return;
+            }
 
             final Map<String, String> attributes = new HashMap<>();
             final String transactionId = UUID.randomUUID().toString();
