@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.aws.sqs;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -25,6 +26,7 @@ import org.apache.nifi.util.TestRunners;
 import com.amazonaws.services.sqs.AmazonSQSClient;
 import com.amazonaws.services.sqs.model.AmazonSQSException;
 import com.amazonaws.services.sqs.model.DeleteMessageBatchRequest;
+import com.amazonaws.services.sqs.model.DeleteMessageBatchResult;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -38,15 +40,17 @@ public class TestDeleteSQS {
 
     private TestRunner runner = null;
     private DeleteSQS mockDeleteSQS = null;
-    private AmazonSQSClient actualSQSClient = null;
     private AmazonSQSClient mockSQSClient = null;
 
     @Before
     public void setUp() {
         mockSQSClient = Mockito.mock(AmazonSQSClient.class);
+        DeleteMessageBatchResult mockResponse = Mockito.mock(DeleteMessageBatchResult.class);
+        Mockito.when(mockSQSClient.deleteMessageBatch(Mockito.any())).thenReturn(mockResponse);
+        Mockito.when(mockResponse.getFailed()).thenReturn(new ArrayList<>());
         mockDeleteSQS = new DeleteSQS() {
+            @Override
             protected AmazonSQSClient getClient() {
-                actualSQSClient = client;
                 return mockSQSClient;
             }
         };
