@@ -158,6 +158,9 @@ public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTa
         while(!jsonBatch.isEmpty()) {
             // Send the JSON document for the current batch
             try {
+                // Lazily create SiteToSiteClient to provide a StateManager
+                setup(context);
+
                 long start = System.nanoTime();
                 final Transaction transaction = getClient().createTransaction(TransferDirection.SEND);
                 if (transaction == null) {
