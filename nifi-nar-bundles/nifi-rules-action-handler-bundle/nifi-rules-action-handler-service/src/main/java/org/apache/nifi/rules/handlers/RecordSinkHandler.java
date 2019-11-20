@@ -21,6 +21,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.record.sink.RecordSinkService;
@@ -65,6 +66,7 @@ public class RecordSinkHandler extends AbstractActionHandlerService{
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(RECORD_SINK_SERVICE);
         properties.add(ENFORCE_ACTION_TYPE);
+        properties.add(ENFORCE_ACTION_TYPE_LEVEL);
         this.properties = Collections.unmodifiableList(properties);
     }
 
@@ -83,18 +85,22 @@ public class RecordSinkHandler extends AbstractActionHandlerService{
     }
 
     @Override
-    public void execute(Action action, Map<String, Object> facts) {
-        super.execute(action,facts);
+    protected void executeAction(PropertyContext propertyContext, Action action, Map<String, Object> facts) {
+        executeAction(action, facts);
+    }
+
+    @Override
+    protected void executeAction(Action action, Map<String, Object> facts) {
         Map<String, String> attributes = action.getAttributes();
         boolean sendZeroResults = attributes.containsKey("sentZeroResults") && Boolean.parseBoolean(attributes.get("sendZeroResults"));
         final RecordSet recordSet = getRecordSet(facts);
 
         try {
             WriteResult result = recordSinkService.sendData(recordSet, attributes, sendZeroResults);
-            if(getLogger().isDebugEnabled() && result != null){
+            if (getLogger().isDebugEnabled() && result != null) {
                 getLogger().debug("Records written to sink service: {}", new Object[]{result.getRecordCount()});
             }
-        }catch (Exception ex){
+        } catch (Exception ex) {
             getLogger().warn("Exception encountered when attempting to send metrics", ex);
         }
     }

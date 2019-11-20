@@ -21,6 +21,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
@@ -94,6 +95,7 @@ public class LogHandler extends AbstractActionHandlerService {
         properties.add(DEFAULT_LOG_LEVEL);
         properties.add(DEFAULT_LOG_MESSAGE);
         properties.add(ENFORCE_ACTION_TYPE);
+        properties.add(ENFORCE_ACTION_TYPE_LEVEL);
         this.properties = Collections.unmodifiableList(properties);
     }
 
@@ -113,8 +115,12 @@ public class LogHandler extends AbstractActionHandlerService {
     }
 
     @Override
-    public void execute(Action action, Map<String, Object> facts) {
-        super.execute(action,facts);
+    protected void executeAction(PropertyContext propertyContext, Action action, Map<String, Object> facts) {
+        executeAction(action, facts);
+    }
+
+    @Override
+    protected void executeAction(Action action, Map<String, Object> facts) {
         ComponentLog logger = getLogger();
         Map<String, String> attributes = action.getAttributes();
         final String logLevel = attributes.get("logLevel");

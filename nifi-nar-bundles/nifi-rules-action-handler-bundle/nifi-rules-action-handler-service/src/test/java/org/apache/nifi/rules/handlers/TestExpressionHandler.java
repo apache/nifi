@@ -28,6 +28,7 @@ import org.junit.Test;
 import java.util.HashMap;
 import java.util.Map;
 
+import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertTrue;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.junit.Assert.assertThat;
@@ -137,9 +138,10 @@ public class TestExpressionHandler {
     }
 
     @Test
-    public void testInvalidActionType() {
+    public void testInvalidActionTypeException() {
         runner.disableControllerService(expressionHandler);
         runner.setProperty(expressionHandler, AlertHandler.ENFORCE_ACTION_TYPE, "EXPRESSION");
+        runner.setProperty(expressionHandler, AlertHandler.ENFORCE_ACTION_TYPE_LEVEL, "EXCEPTION");
         runner.enableControllerService(expressionHandler);
         final Map<String,String> attributes = new HashMap<>();
         final Map<String,Object> metrics = new HashMap<>();
@@ -157,6 +159,57 @@ public class TestExpressionHandler {
         }
     }
 
+    @Test
+    public void testInvalidActionTypeWarning() {
+        runner.disableControllerService(expressionHandler);
+        runner.setProperty(expressionHandler, AlertHandler.ENFORCE_ACTION_TYPE, "EXPRESSION");
+        runner.setProperty(expressionHandler, AlertHandler.ENFORCE_ACTION_TYPE_LEVEL, "WARN");
+        runner.enableControllerService(expressionHandler);
+        final Map<String,String> attributes = new HashMap<>();
+        final Map<String,Object> metrics = new HashMap<>();
+        attributes.put("type","FAKE");
+        metrics.put("jvmHeap","1000000");
+        metrics.put("cpu","90");
+
+        final Action action = new Action();
+        action.setType("FAKE");
+        action.setAttributes(attributes); try {
+            expressionHandler.execute(action, metrics);
+        } catch (UnsupportedOperationException ex) {
+            fail();
+        }
+
+        final String warnMessage = mockComponentLog.getWarnMessage();
+        assertTrue(StringUtils.isNotEmpty(warnMessage));
+        assertEquals("This Action Handler does not support actions with the provided type: FAKE",warnMessage);
+
+    }
+
+    @Test
+    public void testInvalidActionTypeIgnore() {
+        runner.disableControllerService(expressionHandler);
+        runner.setProperty(expressionHandler, AlertHandler.ENFORCE_ACTION_TYPE, "EXPRESSION");
+        runner.setProperty(expressionHandler, AlertHandler.ENFORCE_ACTION_TYPE_LEVEL, "IGNORE");
+        runner.enableControllerService(expressionHandler);
+        final Map<String,String> attributes = new HashMap<>();
+        final Map<String,Object> metrics = new HashMap<>();
+        attributes.put("type","FAKE");
+        metrics.put("jvmHeap","1000000");
+        metrics.put("cpu","90");
+
+        final Action action = new Action();
+        action.setType("FAKE");
+        action.setAttributes(attributes); try {
+            expressionHandler.execute(action, metrics);
+        } catch (UnsupportedOperationException ex) {
+            fail();
+        }
+
+        final String debugMessage = mockComponentLog.getDebugMessage();
+        assertTrue(StringUtils.isNotEmpty(debugMessage));
+        assertEquals("This Action Handler does not support actions with the provided type: FAKE",debugMessage);
+
+    }
     @Test
     public void testValidActionType() {
         runner.disableControllerService(expressionHandler);

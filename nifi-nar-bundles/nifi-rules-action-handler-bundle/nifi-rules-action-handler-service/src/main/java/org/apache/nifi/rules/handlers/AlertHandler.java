@@ -96,6 +96,7 @@ public class AlertHandler extends AbstractActionHandlerService {
         properties.add(DEFAULT_MESSAGE);
         properties.add(INCLUDE_FACTS);
         properties.add(ENFORCE_ACTION_TYPE);
+        properties.add(ENFORCE_ACTION_TYPE_LEVEL);
         this.properties = Collections.unmodifiableList(properties);
     }
 
@@ -115,15 +116,7 @@ public class AlertHandler extends AbstractActionHandlerService {
     }
 
     @Override
-    public void execute(Action action, Map<String, Object> facts) {
-        throw new UnsupportedOperationException("This method is not supported.  The AlertHandler requires a Reporting Context");
-    }
-
-    @Override
-    public void execute(PropertyContext propertyContext, Action action, Map<String, Object> facts) {
-        if(actionTypeNotSupported(action)){
-            throw new UnsupportedOperationException("This Action Handler does not support actions with the provided type: " + action.getType());
-        }
+    protected void executeAction(PropertyContext propertyContext, Action action, Map<String, Object> facts) {
         ComponentLog logger = getLogger();
         if (propertyContext instanceof ReportingContext) {
 
@@ -149,7 +142,6 @@ public class AlertHandler extends AbstractActionHandlerService {
         } else {
             logger.warn("Reporting context was not provided to create bulletins.");
         }
-
     }
 
     protected String getMessage(String alertMessage, Map<String, Object> facts){
