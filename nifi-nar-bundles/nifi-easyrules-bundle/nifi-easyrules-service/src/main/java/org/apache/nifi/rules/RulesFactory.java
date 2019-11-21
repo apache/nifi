@@ -25,10 +25,9 @@ import org.jeasy.rules.support.YamlRuleDefinitionReader;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.Constructor;
 
-import java.io.File;
+import java.io.ByteArrayInputStream;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
@@ -51,25 +50,36 @@ public class RulesFactory {
         NIFI, MVEL, SPEL;
     }
 
-    public static List<Rule> createRules(String ruleFile, String ruleFileType, String rulesFileFormat) throws Exception{
+    public static List<Rule> createRulesFromFile(String ruleFile, String ruleFileType, String rulesFileFormat) throws Exception {
+        InputStream rulesInputStream = new FileInputStream(ruleFile);
+        return createRules(rulesInputStream, ruleFileType, rulesFileFormat);
+    }
+
+    public static List<Rule> createRulesFromString(String rulesBody, String ruleFileType, String rulesFileFormat) throws Exception {
+        InputStream rulesInputStream = new ByteArrayInputStream(rulesBody.getBytes());
+        return createRules(rulesInputStream, ruleFileType, rulesFileFormat);
+    }
+
+    private static List<Rule> createRules(InputStream rulesInputStream, String ruleFileType, String rulesFileFormat) throws Exception {
         FileFormat fileFormat = FileFormat.valueOf(rulesFileFormat);
-        switch (fileFormat){
+        switch (fileFormat) {
             case NIFI:
-                return createRulesFromNiFiFormat(ruleFile, ruleFileType);
+                return createRulesFromNiFiFormat(rulesInputStream, ruleFileType);
             case MVEL:
             case SPEL:
-                return createRulesFromEasyRulesFormat(ruleFile, ruleFileType, rulesFileFormat);
+                return createRulesFromEasyRulesFormat(rulesInputStream, ruleFileType, rulesFileFormat);
             default:
                 return null;
         }
+
     }
 
-    private static List<Rule> createRulesFromEasyRulesFormat(String ruleFile, String ruleFileType, String ruleFileFormat) throws Exception{
+    private static List<Rule> createRulesFromEasyRulesFormat(InputStream rulesInputStream, String ruleFileType, String ruleFileFormat) throws Exception {
 
         RuleDefinitionReader reader = FileType.valueOf(ruleFileType).equals(FileType.YAML)
-                                      ? new YamlRuleDefinitionReader() : new JsonRuleDefinitionReader();
+                ? new YamlRuleDefinitionReader() : new JsonRuleDefinitionReader();
 
-        List<RuleDefinition> ruleDefinitions = reader.read(new FileReader(ruleFile));
+        List<RuleDefinition> ruleDefinitions = reader.read(new InputStreamReader(rulesInputStream));
 
         return ruleDefinitions.stream().map(ruleDefinition -> {
 
@@ -81,7 +91,7 @@ public class RulesFactory {
             List<Action> actions = ruleDefinition.getActions().stream().map(ruleAction -> {
                 Action action = new Action();
                 action.setType("EXPRESSION");
-                Map<String,String> attributes = new HashMap<>();
+                Map<String, String> attributes = new HashMap<>();
                 attributes.put("command", ruleAction);
                 attributes.put("type", ruleFileFormat);
                 action.setAttributes(attributes);
@@ -93,23 +103,21 @@ public class RulesFactory {
         }).collect(Collectors.toList());
     }
 
-    private static List<Rule> createRulesFromNiFiFormat(String ruleFile, String ruleFileType) throws Exception{
+    private static List<Rule> createRulesFromNiFiFormat(InputStream rulesInputStream, String ruleFileType) throws Exception {
         FileType type = FileType.valueOf(ruleFileType.toUpperCase());
         if (type.equals(FileType.YAML)) {
-            return yamlToRules(ruleFile);
+            return yamlToRules(rulesInputStream);
         } else if (type.equals(FileType.JSON)) {
-            return jsonToRules(ruleFile);
+            return jsonToRules(rulesInputStream);
         } else {
             return null;
         }
     }
 
-    private static List<Rule> yamlToRules(String rulesFile) throws FileNotFoundException {
+    private static List<Rule> yamlToRules(InputStream rulesInputStream) throws FileNotFoundException {
         List<Rule> rules = new ArrayList<>();
         Yaml yaml = new Yaml(new Constructor(Rule.class));
-        File yamlFile = new File(rulesFile);
-        InputStream inputStream = new FileInputStream(yamlFile);
-        for (Object object : yaml.loadAll(inputStream)) {
+        for (Object object : yaml.loadAll(rulesInputStream)) {
             if (object instanceof Rule) {
                 rules.add((Rule) object);
             }
@@ -117,11 +125,12 @@ public class RulesFactory {
         return rules;
     }
 
-    private static List<Rule> jsonToRules(String rulesFile) throws Exception {
+    private static List<Rule> jsonToRules(InputStream rulesInputStream) throws Exception {
         List<Rule> rules;
-        InputStreamReader isr = new InputStreamReader(new FileInputStream(rulesFile));
+        InputStreamReader isr = new InputStreamReader(rulesInputStream);
         final ObjectMapper objectMapper = new ObjectMapper();
-        rules = objectMapper.readValue(isr, new TypeReference<List<Rule>>(){});
+        rules = objectMapper.readValue(isr, new TypeReference<List<Rule>>() {
+        });
         return rules;
     }
 }

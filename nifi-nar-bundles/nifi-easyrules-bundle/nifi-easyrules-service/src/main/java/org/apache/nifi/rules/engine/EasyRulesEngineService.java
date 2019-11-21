@@ -21,6 +21,9 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.Validator;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
@@ -33,6 +36,7 @@ import org.apache.nifi.rules.Rule;
 import org.apache.nifi.rules.RulesFactory;
 import org.apache.nifi.rules.RulesMVELCondition;
 import org.apache.nifi.rules.RulesSPELCondition;
+import org.apache.nifi.util.StringUtils;
 import org.jeasy.rules.api.Condition;
 import org.jeasy.rules.api.Facts;
 import org.jeasy.rules.api.RuleListener;
@@ -41,9 +45,12 @@ import org.jeasy.rules.core.DefaultRulesEngine;
 import org.jeasy.rules.core.RuleBuilder;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Implementation of RulesEngineService interface
@@ -64,16 +71,25 @@ public class EasyRulesEngineService  extends AbstractControllerService implement
     static final PropertyDescriptor RULES_FILE_PATH = new PropertyDescriptor.Builder()
             .name("rules-file-path")
             .displayName("Rules File Path")
-            .description("Path to location of rules file.")
-            .required(true)
+            .description("Path to location of rules file. Only one of Rules File or Rules Body may be used")
+            .required(false)
             .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
+
+    static final PropertyDescriptor RULES_BODY = new PropertyDescriptor.Builder()
+            .name("rules-body")
+            .displayName("Rules Body")
+            .description("Body of rules file to execute. Only one of Rules File or Rules Body may be used")
+            .required(false)
+            .addValidator(Validator.VALID)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     static final PropertyDescriptor RULES_FILE_TYPE = new PropertyDescriptor.Builder()
             .name("rules-file-type")
             .displayName("Rules File Type")
-            .description("File type for rules definition. Supported file types are YAML and JSON")
+            .description("File or Body type for rules definition. Supported types are YAML and JSON")
             .required(true)
             .allowableValues(JSON,YAML)
             .defaultValue(JSON.getValue())
@@ -82,7 +98,7 @@ public class EasyRulesEngineService  extends AbstractControllerService implement
     static final PropertyDescriptor RULES_FILE_FORMAT = new PropertyDescriptor.Builder()
             .name("rules-file-format")
             .displayName("Rules File Format")
-            .description("File format for rules. Supported formats are NiFi Rules, Easy Rules files with MVEL Expression Language" +
+            .description("Format for rules. Supported formats are NiFi Rules, Easy Rules files with MVEL Expression Language" +
                     " and Easy Rules files with Spring Expression Language.")
             .required(true)
             .allowableValues(NIFI,MVEL,SPEL)
@@ -111,6 +127,7 @@ public class EasyRulesEngineService  extends AbstractControllerService implement
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(RULES_FILE_TYPE);
         properties.add(RULES_FILE_PATH);
+        properties.add(RULES_BODY);
         properties.add(RULES_FILE_FORMAT);
         properties.add(IGNORE_CONDITION_ERRORS);
         this.properties = Collections.unmodifiableList(properties);
@@ -124,15 +141,43 @@ public class EasyRulesEngineService  extends AbstractControllerService implement
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) throws InitializationException {
         final String rulesFile = context.getProperty(RULES_FILE_PATH).getValue();
+        final String rulesBody = context.getProperty(RULES_BODY).getValue();
         final String rulesFileType = context.getProperty(RULES_FILE_TYPE).getValue();
         rulesFileFormat = context.getProperty(RULES_FILE_FORMAT).getValue();
         ignoreConditionErrors = context.getProperty(IGNORE_CONDITION_ERRORS).asBoolean();
         try{
-            rules = RulesFactory.createRules(rulesFile, rulesFileType, rulesFileFormat);
+            if(StringUtils.isEmpty(rulesFile)){
+                rules = RulesFactory.createRulesFromString(rulesBody, rulesFileType, rulesFileFormat);
+            }else{
+                rules = RulesFactory.createRulesFromFile(rulesFile, rulesFileType, rulesFileFormat);
+            }
         } catch (Exception fex){
             throw new InitializationException(fex);
         }
     }
+
+    /**
+     * Custom validation for ensuring exactly one of Script File or Script Body is populated
+     *
+     * @param validationContext provides a mechanism for obtaining externally
+     *                          managed values, such as property values and supplies convenience methods
+     *                          for operating on those values
+     * @return A collection of validation results
+     */
+    @Override
+    public Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+        Set<ValidationResult> results = new HashSet<>();
+
+        // Verify that exactly one of "script file" or "script body" is set
+        Map<PropertyDescriptor, String> propertyMap = validationContext.getProperties();
+        if (StringUtils.isEmpty(propertyMap.get(RULES_FILE_PATH)) == StringUtils.isEmpty(propertyMap.get(RULES_BODY))) {
+            results.add(new ValidationResult.Builder().subject("Rules Body or Rules File").valid(false).explanation(
+                    "exactly one of Rules File or Rules Body must be set").build());
+        }
+
+        return results;
+    }
+
 
     /**
      * Return the list of actions what should be executed for a given set of facts

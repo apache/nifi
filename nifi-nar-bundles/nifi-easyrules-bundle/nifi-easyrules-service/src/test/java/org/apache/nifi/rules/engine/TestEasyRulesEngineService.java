@@ -143,6 +143,75 @@ public class TestEasyRulesEngineService {
     }
 
     @Test
+    public void testJsonSpelRulesAsString() throws InitializationException, IOException {
+        final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
+        final RulesEngineService service = new MockEasyRulesEngineService();
+        runner.addControllerService("easy-rules-engine-service-test",service);
+        String testRules = "[\n" +
+                "  {\n" +
+                "    \"name\": \"Queue Size\",\n" +
+                "    \"description\": \"Queue size check greater than 50\",\n" +
+                "    \"priority\": 1,\n" +
+                "    \"condition\": \"#predictedQueuedCount > 50\",\n" +
+                "    \"actions\": [\"#predictedQueuedCount + 'is large'\"]\n" +
+                "  },\n" +
+                "  {\n" +
+                "    \"name\": \"Time To Back Pressure\",\n" +
+                "    \"description\": \"Back pressure time less than 5 minutes\",\n" +
+                "    \"priority\": 2,\n" +
+                "    \"condition\": \"#predictedTimeToBytesBackpressureMillis < 300000 && #predictedTimeToBytesBackpressureMillis >= 0\",\n" +
+                "    \"actions\": [\"'System is approaching backpressure! Predicted time left: ' + #predictedTimeToBytesBackpressureMillis\"]\n" +
+                "  }\n" +
+                "]";
+        runner.setProperty(service, EasyRulesEngineService.RULES_BODY, testRules);
+        runner.setProperty(service,EasyRulesEngineService.RULES_FILE_TYPE, "JSON");
+        runner.setProperty(service,EasyRulesEngineService.RULES_FILE_FORMAT, "SPEL");
+        runner.enableControllerService(service);
+        runner.assertValid(service);
+        Map<String, Object> facts = new HashMap<>();
+        facts.put("predictedQueuedCount",60);
+        facts.put("predictedTimeToBytesBackpressureMillis",299999);
+        List<Action> actions = service.fireRules(facts);
+        assertNotNull(actions);
+        assertEquals(actions.size(), 2);
+    }
+
+    @Test
+    public void testYamlMvelRulesAsString() throws InitializationException, IOException {
+        final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
+        final RulesEngineService service = new MockEasyRulesEngineService();
+        runner.addControllerService("easy-rules-engine-service-test",service);
+        String testYaml = "---\n" +
+                "name: \"Queue Size\"\n" +
+                "description: \"Queue size check greater than 50\"\n" +
+                "priority: 1\n" +
+                "condition: \"predictedQueuedCount > 50\"\n" +
+                "actions:\n" +
+                "  - \"System.out.println(\\\"Queue Size Over 50 is detected!\\\")\"\n" +
+                "---\n" +
+                "name: \"Time To Back Pressure\"\n" +
+                "description: \"Back pressure time less than 5 minutes\"\n" +
+                "priority: 2\n" +
+                "condition: \"predictedTimeToBytesBackpressureMillis < 300000 && predictedTimeToBytesBackpressureMillis >= 0\"\n" +
+                "actions:\n" +
+                "  - \"System.out.println(\\\"Back Pressure prediction less than 5 minutes!\\\")\"";
+
+        runner.setProperty(service, EasyRulesEngineService.RULES_BODY, testYaml);
+        runner.setProperty(service,EasyRulesEngineService.RULES_FILE_TYPE, "YAML");
+        runner.setProperty(service,EasyRulesEngineService.RULES_FILE_FORMAT, "MVEL");
+        runner.enableControllerService(service);
+        runner.assertValid(service);
+        Map<String, Object> facts = new HashMap<>();
+        facts.put("predictedQueuedCount",60);
+        facts.put("predictedTimeToBytesBackpressureMillis",299999);
+        List<Action> actions = service.fireRules(facts);
+        assertNotNull(actions);
+        assertEquals(actions.size(), 2);
+    }
+
+
+
+    @Test
     public void testIgnoreConditionErrorsFalseNIFI() throws InitializationException, IOException {
         final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
         final RulesEngineService service = new MockEasyRulesEngineService();
