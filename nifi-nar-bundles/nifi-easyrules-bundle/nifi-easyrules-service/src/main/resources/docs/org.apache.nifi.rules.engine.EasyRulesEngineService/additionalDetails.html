@@ -21,11 +21,11 @@
 </head>
 <body>
 <h2>General</h2>
-<p>The Easy Rules Engine Service supports execution of a centralized set of rules (stored as files) against a provided set of data called facts.  Facts sent to the service are processed against
+<p>The Easy Rules Engine Service supports execution of a centralized set of rules (stored as files or provided within the service configuration) against a provided set of data called facts.  Facts sent to the service are processed against
     the rules engine to determine what, if any, actions should be executed based on the conditions defined within the rules. The list of actions are returned to the caller to handle as needed.
 </p>
 <p>
-    Rules files can be implemented in any of the following formats:
+    Rules can be implemented in any of the following formats:
 </p>
 <ul>
     <li> NiFi Rules Format - This is a rules file which follows the NiFi style for rules definition, which supports MVEL (MVFLEX) Expression language for conditions (default format).
@@ -36,7 +36,7 @@
     </li>
 </ul>
 <p>
-    All rules formats can be implemented as JSON or YAML files (with JSON serving as default file type).
+    All rules formats can be structured as JSON or YAML (with JSON serving as default type). Rules can be stored as a file or provided in the Rules Body setting in the service's configuration settings.
 </p>
 
 <p>
