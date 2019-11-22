@@ -1,0 +1,10 @@
+{
+ "type": "record",
+ "name": "action",
+ "namespace": "rules",
+ "fields": [
+   {"name": "type", "type": "string"},
+   {"name": "attributes", "type": {"type": "map", "values": "string"}},
+   {"name": "metrics", "type": {"type": "map", "values": "string"}}
+  ]
+}

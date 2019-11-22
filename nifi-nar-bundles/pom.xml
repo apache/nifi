@@ -99,7 +99,7 @@
         <module>nifi-prometheus-bundle</module>
         <module>nifi-easyrules-bundle</module>
         <module>nifi-sql-reporting-bundle</module>
-        <module>nifi-rules-action-handler-bundle</module>
+        <module>nifi-rules-bundle</module>
     </modules>
 
     <build>
