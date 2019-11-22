@@ -38,7 +38,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
-//import java.util.concurrent.atomic.AtomicLong; //NOT USED
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 
@@ -56,7 +56,7 @@ public class PeerSelector {
     private volatile List<PeerStatus> peerStatuses;
     private volatile Set<PeerStatus> lastFetchedQueryablePeers;
     private volatile long peerRefreshTime = 0L;
-    //private final AtomicLong peerIndex = new AtomicLong(0L); // NOT USED
+    private final AtomicLong peerIndex = new AtomicLong(0L);
     private volatile PeerStatusCache peerStatusCache;
     private final PeerPersistence peerPersistence;
 
@@ -109,10 +109,7 @@ public class PeerSelector {
 
     private void persistPeerStatuses() {
         try {
-            //NIFI-6886 - peerPersistence can be null generating Bulletin WARNs
-            if (peerPersistence != null) {
-                peerPersistence.save(peerStatusCache);
-            }
+            peerPersistence.save(peerStatusCache);
         } catch (final IOException e) {
             error(logger, eventReporter, "Failed to persist list of Peers due to {}; if restarted" +
                 " and the nodes specified at the RPG are down," +
