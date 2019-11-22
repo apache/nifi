@@ -95,6 +95,7 @@ public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingT
             .defaultValue("false")
             .build();
 
+    protected volatile ConfigurationContext configContext;
     protected volatile SiteToSiteClient siteToSiteClient;
     protected volatile RecordSchema recordSchema;
 
@@ -119,8 +120,15 @@ public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingT
     }
 
     @OnScheduled
-    public void setup(final ConfigurationContext context) throws IOException {
-        siteToSiteClient = SiteToSiteUtils.getClient(context, getLogger());
+    public void setup(final ConfigurationContext configContext) throws IOException {
+        this.configContext = configContext;
+    }
+
+    public void setup(final ReportingContext reportContext) throws IOException {
+        //Test doesn't run OnScheduled setup and provides a Mock SiteToSiteClient, so ignore it
+        if (configContext != null) {
+            siteToSiteClient = SiteToSiteUtils.getClient(configContext, reportContext, getLogger());
+        }
     }
 
     @OnStopped
