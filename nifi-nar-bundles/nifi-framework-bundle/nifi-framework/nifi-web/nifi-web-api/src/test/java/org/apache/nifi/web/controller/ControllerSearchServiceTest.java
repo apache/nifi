@@ -23,6 +23,7 @@ import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.StandardProcessorNode;
 import org.apache.nifi.controller.flow.FlowManager;
+import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
@@ -401,6 +402,49 @@ public class ControllerSearchServiceTest {
         // the matching parameter context is not readable by the user, so there should not be any results
         assertEquals(0, searchResultsDTO.getParameterContextResults().size());
         assertEquals(0, searchResultsDTO.getParameterResults().size());
+    }
+
+    @Test
+    public void testSearchLabels() {
+        // root level PG
+        final ProcessGroup rootProcessGroup = setupMockedProcessGroup("root", null, true, variableRegistry, null);
+
+        // setup labels
+        setupMockedLabels(rootProcessGroup);
+
+        // perform search for foo
+        service.search(searchResultsDTO, "FOO", rootProcessGroup);
+
+        assertTrue(searchResultsDTO.getLabelResults().size() == 1);
+        assertTrue(searchResultsDTO.getLabelResults().get(0).getId().equals("foo"));
+        assertTrue(searchResultsDTO.getLabelResults().get(0).getName().equals("Value for label foo"));
+    }
+
+    /**
+     * Mocks Labels including isAuthorized() and their identifier and value
+     *
+     * @param containingProcessGroup The process group
+     */
+    private static void setupMockedLabels(final ProcessGroup containingProcessGroup) {
+        final Label label1 = mock(Label.class);
+        Mockito.doReturn(true).when(label1).isAuthorized(AdditionalMatchers.or(any(Authorizer.class), isNull()), eq(RequestAction.READ),
+                AdditionalMatchers.or(any(NiFiUser.class), isNull()));
+        Mockito.doReturn("foo").when(label1).getIdentifier();
+        Mockito.doReturn("Value for label foo").when(label1).getValue();
+
+        final Label label2 = mock(Label.class);
+        Mockito.doReturn(false).when(label2).isAuthorized(AdditionalMatchers.or(any(Authorizer.class), isNull()), eq(RequestAction.READ),
+                AdditionalMatchers.or(any(NiFiUser.class), isNull()));
+        Mockito.doReturn("bar").when(label2).getIdentifier();
+        Mockito.doReturn("Value for label bar, but FOO is in here too").when(label2).getValue();
+
+        // assign labels to the PG
+        Mockito.doReturn(new HashSet<Label>() {
+            {
+                add(label1);
+                add(label2);
+            }
+        }).when(containingProcessGroup).getLabels();
     }
 
     /**
