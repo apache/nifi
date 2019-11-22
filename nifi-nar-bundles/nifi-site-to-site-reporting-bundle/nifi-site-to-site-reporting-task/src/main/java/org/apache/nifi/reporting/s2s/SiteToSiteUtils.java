@@ -29,6 +29,7 @@ import org.apache.nifi.remote.client.SiteToSiteClient;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.remote.protocol.http.HttpProxy;
 import org.apache.nifi.remote.util.SiteToSiteRestApiClient;
+import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.StringUtils;
@@ -143,8 +144,8 @@ public class SiteToSiteUtils {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
-    public static SiteToSiteClient getClient(ConfigurationContext context, ComponentLog logger) {
-        final SSLContextService sslContextService = context.getProperty(SiteToSiteUtils.SSL_CONTEXT).asControllerService(SSLContextService.class);
+    public static SiteToSiteClient getClient(ConfigurationContext configContext, ReportingContext reportContext, ComponentLog logger) {
+        final SSLContextService sslContextService = configContext.getProperty(SiteToSiteUtils.SSL_CONTEXT).asControllerService(SSLContextService.class);
         final SSLContext sslContext = sslContextService == null ? null : sslContextService.createSSLContext(SSLContextService.ClientAuth.REQUIRED);
         final EventReporter eventReporter = (EventReporter) (severity, category, message) -> {
             switch (severity) {
@@ -158,22 +159,23 @@ public class SiteToSiteUtils {
                     break;
             }
         };
-        final String destinationUrl = context.getProperty(SiteToSiteUtils.DESTINATION_URL).evaluateAttributeExpressions().getValue();
+        final String destinationUrl = configContext.getProperty(SiteToSiteUtils.DESTINATION_URL).evaluateAttributeExpressions().getValue();
 
-        final SiteToSiteTransportProtocol mode = SiteToSiteTransportProtocol.valueOf(context.getProperty(SiteToSiteUtils.TRANSPORT_PROTOCOL).getValue());
-        final HttpProxy httpProxy = mode.equals(SiteToSiteTransportProtocol.RAW) || StringUtils.isEmpty(context.getProperty(SiteToSiteUtils.HTTP_PROXY_HOSTNAME).getValue()) ? null
-                : new HttpProxy(context.getProperty(SiteToSiteUtils.HTTP_PROXY_HOSTNAME).getValue(), context.getProperty(SiteToSiteUtils.HTTP_PROXY_PORT).asInteger(),
-                context.getProperty(SiteToSiteUtils.HTTP_PROXY_USERNAME).getValue(), context.getProperty(SiteToSiteUtils.HTTP_PROXY_PASSWORD).getValue());
+        final SiteToSiteTransportProtocol mode = SiteToSiteTransportProtocol.valueOf(configContext.getProperty(SiteToSiteUtils.TRANSPORT_PROTOCOL).getValue());
+        final HttpProxy httpProxy = mode.equals(SiteToSiteTransportProtocol.RAW) || StringUtils.isEmpty(configContext.getProperty(SiteToSiteUtils.HTTP_PROXY_HOSTNAME).getValue()) ? null
+                : new HttpProxy(configContext.getProperty(SiteToSiteUtils.HTTP_PROXY_HOSTNAME).getValue(), configContext.getProperty(SiteToSiteUtils.HTTP_PROXY_PORT).asInteger(),
+                configContext.getProperty(SiteToSiteUtils.HTTP_PROXY_USERNAME).getValue(), configContext.getProperty(SiteToSiteUtils.HTTP_PROXY_PASSWORD).getValue());
 
         return new SiteToSiteClient.Builder()
                 .urls(SiteToSiteRestApiClient.parseClusterUrls(destinationUrl))
-                .portName(context.getProperty(SiteToSiteUtils.PORT_NAME).getValue())
-                .useCompression(context.getProperty(SiteToSiteUtils.COMPRESS).asBoolean())
+                .portName(configContext.getProperty(SiteToSiteUtils.PORT_NAME).getValue())
+                .useCompression(configContext.getProperty(SiteToSiteUtils.COMPRESS).asBoolean())
                 .eventReporter(eventReporter)
                 .sslContext(sslContext)
-                .timeout(context.getProperty(SiteToSiteUtils.TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS)
+                .timeout(configContext.getProperty(SiteToSiteUtils.TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS)
                 .transportProtocol(mode)
                 .httpProxy(httpProxy)
+                .stateManager(reportContext.getStateManager())
                 .build();
     }
 
