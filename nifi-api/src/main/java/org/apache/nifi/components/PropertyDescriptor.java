@@ -88,7 +88,7 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
     private final ExpressionLanguageScope expressionLanguageScope;
     /**
      * indicates whether or not this property represents resources that should be added
-     * to the classpath for this instance of the component
+     * to the classpath and used for loading native libraries for this instance of the component
      */
     private final boolean dynamicallyModifiesClasspath;
 
@@ -310,7 +310,8 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
 
         /**
          * Specifies that the value of this property represents one or more resources that the
-         * framework should add to the classpath of the given component.
+         * framework should add to the classpath of as well as consider when looking for native
+         * libraries for the given component.
          *
          * NOTE: If a component contains a PropertyDescriptor where dynamicallyModifiesClasspath is set to true,
          *  the component must also be annotated with @RequiresInstanceClassloading, otherwise the component will be

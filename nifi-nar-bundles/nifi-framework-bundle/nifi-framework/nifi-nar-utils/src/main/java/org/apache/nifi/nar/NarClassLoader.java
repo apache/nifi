@@ -20,15 +20,10 @@ import java.io.File;
 import java.io.FileFilter;
 import java.io.IOException;
 import java.net.URL;
-import java.net.URLClassLoader;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -58,11 +53,16 @@ import org.slf4j.LoggerFactory;
  *
  * <pre>
  *   +META-INF/
- *   +-- bundled-dependencies/
+ *   +-- bundled-dependencies/[native]
  *   +-- &lt;JAR files&gt;
  *   +-- MANIFEST.MF
  * </pre>
  * </p>
+ *
+ * The optional "native" subdirectory under "bundled-dependencies" may contain native
+ * libraries. Directories defined via the java.library.path system property are also scanned.
+ * After a library is found an OS-handled temporary copy is created and cached before loading
+ * it to maintain consistency and classloader isolation.
  *
  * <p>
  * The MANIFEST.MF file contains the same information as a typical JAR file but
@@ -122,12 +122,9 @@ import org.slf4j.LoggerFactory;
  * Maven NAR plugin will fail to build the NAR.
  * </p>
  */
-public class NarClassLoader extends URLClassLoader implements NativeLibFinder {
+public class NarClassLoader extends AbstractNativeLibHandlingClassLoader {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(NarClassLoader.class);
-
-    private final List<File> nativeLibDirs;
-    private final Map<String, Path> nativeLibNameToPath = new HashMap<>();
 
     private static final FileFilter JAR_FILTER = new FileFilter() {
         @Override
@@ -153,12 +150,11 @@ public class NarClassLoader extends URLClassLoader implements NativeLibFinder {
      * @throws IOException if an error occurs while loading the NAR.
      */
     public NarClassLoader(final File narWorkingDirectory) throws ClassNotFoundException, IOException {
-        super(new URL[0]);
+        super(new URL[0], initNativeLibDirList(narWorkingDirectory), narWorkingDirectory.getName());
         this.narWorkingDirectory = narWorkingDirectory;
 
         // process the classpath
         updateClasspath(narWorkingDirectory);
-        this.nativeLibDirs = buildNativeLibDirs();
     }
 
     /**
@@ -173,12 +169,11 @@ public class NarClassLoader extends URLClassLoader implements NativeLibFinder {
      * @throws IOException if an error occurs while loading the NAR.
      */
     public NarClassLoader(final File narWorkingDirectory, final ClassLoader parentClassLoader) throws ClassNotFoundException, IOException {
-        super(new URL[0], parentClassLoader);
+        super(new URL[0], parentClassLoader, initNativeLibDirList(narWorkingDirectory), narWorkingDirectory.getName());
         this.narWorkingDirectory = narWorkingDirectory;
 
         // process the classpath
         updateClasspath(narWorkingDirectory);
-        this.nativeLibDirs = buildNativeLibDirs();
     }
 
     public File getWorkingDirectory() {
@@ -215,42 +210,25 @@ public class NarClassLoader extends URLClassLoader implements NativeLibFinder {
         }
     }
 
-    @Override
-    public String findLibrary(String libname) {
-        return NativeLibFinder.super.findLibrary(libname);
+    public File getNARNativeLibDir() {
+        return getNARNativeLibDir(narWorkingDirectory);
     }
 
-    public File getNativeLibDir() {
+    private static List<File> initNativeLibDirList(File narWorkingDirectory) {
+        ArrayList<File> nativeLibDirList = new ArrayList<>();
+
+        nativeLibDirList.add(getNARNativeLibDir(narWorkingDirectory));
+
+        return nativeLibDirList;
+    }
+
+    private static File getNARNativeLibDir(File narWorkingDirectory) {
         File dependencies = new File(narWorkingDirectory, "NAR-INF/bundled-dependencies");
         if (!dependencies.isDirectory()) {
             LOGGER.warn(narWorkingDirectory + " does not contain NAR-INF/bundled-dependencies!");
         }
 
         return new File(dependencies, "native");
-    }
-
-    private List<File> buildNativeLibDirs() {
-        ArrayList<File> allNativeLibDirs = new ArrayList<>();
-
-        allNativeLibDirs.add(getNativeLibDir());
-        allNativeLibDirs.addAll(getUsrLibDirs());
-
-        return Collections.unmodifiableList(allNativeLibDirs);
-    }
-
-    @Override
-    public List<File> getNativeLibDirs() {
-        return nativeLibDirs;
-    }
-
-    @Override
-    public Map<String, Path> getNativeLibNameToPath() {
-        return nativeLibNameToPath;
-    }
-
-    @Override
-    public String getTmpLibFilePrefix() {
-        return narWorkingDirectory.getName();
     }
 
     @Override

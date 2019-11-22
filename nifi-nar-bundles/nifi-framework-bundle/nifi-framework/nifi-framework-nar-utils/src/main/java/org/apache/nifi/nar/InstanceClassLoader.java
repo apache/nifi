@@ -22,16 +22,12 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.net.URLClassLoader;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -41,7 +37,7 @@ import java.util.stream.Collectors;
  * The InstanceClassLoader will either be an empty pass-through to the NARClassLoader, or will contain a
  * copy of all the NAR's resources in the case of components that @RequireInstanceClassLoading.
  */
-public class InstanceClassLoader extends URLClassLoader implements NativeLibFinder {
+public class InstanceClassLoader extends AbstractNativeLibHandlingClassLoader {
 
     private static final Logger logger = LoggerFactory.getLogger(InstanceClassLoader.class);
 
@@ -50,9 +46,6 @@ public class InstanceClassLoader extends URLClassLoader implements NativeLibFind
 
     private final Set<URL> instanceUrls;
     private final Set<URL> additionalResourceUrls;
-
-    private final List<File> nativeLibDirs;
-    private final Map<String, Path> nativeLibNameToPath = new HashMap<>();
 
     /**
      * @param identifier the id of the component this ClassLoader was created for
@@ -69,19 +62,50 @@ public class InstanceClassLoader extends URLClassLoader implements NativeLibFind
             final String type,
             final Set<URL> instanceUrls,
             final Set<URL> additionalResourceUrls,
-            final Set<File> nativeLibDirs,
+            final Set<File> narNativeLibDirs,
             final ClassLoader parent
     ) {
-        super(combineURLs(instanceUrls, additionalResourceUrls), parent);
+        super(combineURLs(instanceUrls, additionalResourceUrls), parent, initNativeLibDirList(narNativeLibDirs, additionalResourceUrls), identifier);
         this.identifier = identifier;
         this.instanceType = type;
         this.instanceUrls = Collections.unmodifiableSet(
                 instanceUrls == null ? Collections.emptySet() : new LinkedHashSet<>(instanceUrls));
         this.additionalResourceUrls = Collections.unmodifiableSet(
                 additionalResourceUrls == null ? Collections.emptySet() : new LinkedHashSet<>(additionalResourceUrls));
+    }
 
-        List<File> allNativeLibDirs = new ArrayList<>(nativeLibDirs);
-        Set<File> additionalNativeLibDirs = this.additionalResourceUrls.stream()
+    private static List<File> initNativeLibDirList(Set<File> narNativeLibDirs, Set<URL> additionalResourceUrls) {
+        List<File> nativeLibDirList = new ArrayList<>(narNativeLibDirs);
+
+        /**
+         * Compare to {@link #youLikeThisFunctionalApproachBetterAfterAllDontYou()}
+         */
+        Set<File> additionalNativeLibDirs = new HashSet<>();
+        for (URL url : additionalResourceUrls) {
+            File file;
+
+            try {
+                file = new File(url.toURI());
+            } catch (URISyntaxException e) {
+                file = new File(url.getPath());
+            } catch (Exception e) {
+                logger.error("Couldn't convert url '" + url + "' to a file");
+                file = null;
+            }
+
+            File dir = toDir(file);
+            if (dir != null) {
+                additionalNativeLibDirs.add(dir);
+            }
+        }
+
+        nativeLibDirList.addAll(additionalNativeLibDirs);
+
+        return nativeLibDirList;
+    }
+
+    private Set<File> youLikeThisFunctionalApproachBetterAfterAllDontYou() {
+        return this.additionalResourceUrls.stream()
                 .map(url -> {
                     File file;
 
@@ -94,17 +118,11 @@ public class InstanceClassLoader extends URLClassLoader implements NativeLibFind
                         file = null;
                     }
 
-                    File libDir = Optional.ofNullable(file)
-                            .map(toDir())
-                            .orElse(null);
-
-                    return libDir;
+                    return file;
                 })
+                .map(AbstractNativeLibHandlingClassLoader::toDir)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
-        allNativeLibDirs.addAll(additionalNativeLibDirs);
-        allNativeLibDirs.addAll(getUsrLibDirs());
-        this.nativeLibDirs = Collections.unmodifiableList(allNativeLibDirs);
     }
 
     private static URL[] combineURLs(final Set<URL> instanceUrls, final Set<URL> additionalResourceUrls) {
@@ -121,11 +139,6 @@ public class InstanceClassLoader extends URLClassLoader implements NativeLibFind
         return allUrls.toArray(new URL[allUrls.size()]);
     }
 
-    @Override
-    public String findLibrary(String libname) {
-        return NativeLibFinder.super.findLibrary(libname);
-    }
-
     public String getIdentifier() {
         return identifier;
     }
@@ -140,20 +153,5 @@ public class InstanceClassLoader extends URLClassLoader implements NativeLibFind
 
     public Set<URL> getAdditionalResourceUrls() {
         return additionalResourceUrls;
-    }
-
-    @Override
-    public List<File> getNativeLibDirs() {
-        return nativeLibDirs;
-    }
-
-    @Override
-    public Map<String, Path> getNativeLibNameToPath() {
-        return nativeLibNameToPath;
-    }
-
-    @Override
-    public String getTmpLibFilePrefix() {
-        return getIdentifier();
     }
 }

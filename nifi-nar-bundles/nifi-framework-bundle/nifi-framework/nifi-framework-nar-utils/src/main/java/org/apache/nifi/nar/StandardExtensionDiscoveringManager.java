@@ -368,9 +368,9 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
             logger.debug("Including ClassLoader resources from {} for component {}", new Object[] {bundle.getBundleDetails(), instanceIdentifier});
 
             final Set<URL> instanceUrls = new LinkedHashSet<>();
-            final Set<File> nativeLibDirs = new LinkedHashSet<>();
+            final Set<File> narNativeLibDirs = new LinkedHashSet<>();
 
-            nativeLibDirs.add(narBundleClassLoader.getNativeLibDir());
+            narNativeLibDirs.add(narBundleClassLoader.getNARNativeLibDir());
             instanceUrls.addAll(Arrays.asList(narBundleClassLoader.getURLs()));
 
             ClassLoader ancestorClassLoader = narBundleClassLoader.getParent();
@@ -390,14 +390,14 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
 
                     final NarClassLoader ancestorNarClassLoader = (NarClassLoader) ancestorClassLoader;
 
-                    nativeLibDirs.add(ancestorNarClassLoader.getNativeLibDir());
+                    narNativeLibDirs.add(ancestorNarClassLoader.getNARNativeLibDir());
                     Collections.addAll(instanceUrls, ancestorNarClassLoader.getURLs());
 
                     ancestorClassLoader = ancestorNarClassLoader.getParent();
                 }
             }
 
-            instanceClassLoader = new InstanceClassLoader(instanceIdentifier, classType, instanceUrls, additionalUrls, nativeLibDirs, ancestorClassLoader);
+            instanceClassLoader = new InstanceClassLoader(instanceIdentifier, classType, instanceUrls, additionalUrls, narNativeLibDirs, ancestorClassLoader);
         } else {
             instanceClassLoader = new InstanceClassLoader(instanceIdentifier, classType, Collections.emptySet(), additionalUrls, bundleClassLoader);
         }

@@ -23,6 +23,7 @@ import org.mockito.Mock;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -34,6 +35,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
@@ -42,17 +44,18 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
 
-public class NativeLibFinderTest {
+public class AbstractNativeLibHandlingClassLoaderTest {
     public static final String NATIVE_LIB_NAME = "native_lib";
 
     @Mock
-    private NativeLibFinder testSubjectHelper;
-
-    private String javaLibraryPath;
+    private AbstractNativeLibHandlingClassLoader testSubjectHelper;
 
     private Path tempDirectory;
-    private List<File> nativeLibDirs;
-    private Map<String, Path> nativeLibNameToPath;
+
+    private String javaLibraryPath = "";
+
+    private List<File> nativeLibDirs = new ArrayList<>();
+    private final Map<String, Path> nativeLibNameToPath = new HashMap<>();
 
     private boolean isOsWindows;
     private boolean isOsMaxOsx;
@@ -163,7 +166,6 @@ public class NativeLibFinderTest {
     public void testFindLibraryMayReturnSoOnMac() throws Exception {
         // GIVEN
         isOsMaxOsx = true;
-        NativeLibFinder testSubject = createTestSubject();
 
         createTempFile("dll");
         Path expectedNativeLib = createTempFile("so");
@@ -180,7 +182,6 @@ public class NativeLibFinderTest {
     public void testFindLibraryMayReturnLibSoOnMac() throws Exception {
         // GIVEN
         isOsMaxOsx = true;
-        NativeLibFinder testSubject = createTestSubject();
 
         createTempFile("dll");
         Path expectedNativeLib = createTempFile("lib", "so");
@@ -196,7 +197,6 @@ public class NativeLibFinderTest {
     public void testFindLibraryShouldReturnNullOnLinuxWhenNoSoAvailable() throws Exception {
         // GIVEN
         isOsLinux = true;
-        NativeLibFinder testSubject = createTestSubject();
 
         createTempFile("dll");
         createTempFile("dylib");
@@ -213,7 +213,6 @@ public class NativeLibFinderTest {
     public void testFindLibraryShouldReturnSoOnLinux() throws Exception {
         // GIVEN
         isOsLinux = true;
-        NativeLibFinder testSubject = createTestSubject();
 
         createTempFile("dll");
         Path expectedNativeLib = createTempFile("so");
@@ -232,7 +231,6 @@ public class NativeLibFinderTest {
     public void testFindLibraryShouldReturnLibSoOnLinux() throws Exception {
         // GIVEN
         isOsLinux = true;
-        NativeLibFinder testSubject = createTestSubject();
 
         createTempFile("dll");
         Path expectedNativeLib = createTempFile("lib", "so");
@@ -259,15 +257,13 @@ public class NativeLibFinderTest {
 
         nativeLibDirs = Arrays.asList(nativeLibDir);
 
-        nativeLibNameToPath = new HashMap<>();
-
         Path libPath = createTempFile("mocked").toAbsolutePath();
         when(testSubjectHelper.findLibrary("libName", nativeLibDir)).thenReturn("libLocation");
         when(testSubjectHelper.createTempCopy("libName", "libLocation")).thenReturn(libPath);
 
         String expected = libPath.toFile().getAbsolutePath();
 
-        NativeLibFinder testSubject = createTestSubject();
+        AbstractNativeLibHandlingClassLoader testSubject = createTestSubject();
 
         // WHEN
         String actual = testSubject.findLibrary("libName");
@@ -288,8 +284,6 @@ public class NativeLibFinderTest {
 
         nativeLibDirs = Arrays.asList(nativeLibDir1, nativeLibDir2, nativeLibDir3);
 
-        nativeLibNameToPath = new HashMap<>();
-
         Path libPath = createTempFile("mocked").toAbsolutePath();
         when(testSubjectHelper.findLibrary("libName", nativeLibDir1)).thenReturn(null);
         when(testSubjectHelper.findLibrary("libName", nativeLibDir2)).thenReturn("firstFoundLibLocation");
@@ -297,7 +291,7 @@ public class NativeLibFinderTest {
 
         String expected = libPath.toFile().getAbsolutePath();
 
-        NativeLibFinder testSubject = createTestSubject();
+        AbstractNativeLibHandlingClassLoader testSubject = createTestSubject();
 
         // WHEN
         String actual = testSubject.findLibrary("libName");
@@ -318,11 +312,9 @@ public class NativeLibFinderTest {
         nativeLibDirs = Arrays.asList(nativeLibDir);
 
         Path cachedLibPath = createTempFile("cached", "mocked").toAbsolutePath();
-        nativeLibNameToPath = new HashMap<String, Path>() {{
-            put("libName", cachedLibPath);
-        }};
+        nativeLibNameToPath.put("libName", cachedLibPath);
 
-        NativeLibFinder testSubject = createTestSubject();
+        AbstractNativeLibHandlingClassLoader testSubject = createTestSubject();
         String expected = cachedLibPath.toFile().getAbsolutePath();
 
         // WHEN
@@ -340,15 +332,13 @@ public class NativeLibFinderTest {
 
         nativeLibDirs = Arrays.asList(nativeLibDir);
 
-        nativeLibNameToPath = new HashMap<>();
-
         Path libPath = createTempFile("mocked").toAbsolutePath();
         when(testSubjectHelper.findLibrary("libName", nativeLibDir)).thenReturn("libLocation");
         when(testSubjectHelper.createTempCopy("libName", "libLocation")).thenReturn(libPath);
 
         String expected = libPath.toFile().getAbsolutePath();
 
-        NativeLibFinder testSubject = createTestSubject();
+        AbstractNativeLibHandlingClassLoader testSubject = createTestSubject();
 
         // WHEN
         String actual1 = testSubject.findLibrary("libName");
@@ -367,9 +357,7 @@ public class NativeLibFinderTest {
         // GIVEN
         nativeLibDirs = new ArrayList<>();
 
-        nativeLibNameToPath = new HashMap<>();
-
-        NativeLibFinder testSubject = createTestSubject();
+        AbstractNativeLibHandlingClassLoader testSubject = createTestSubject();
         String expected = null;
 
         // WHEN
@@ -387,11 +375,9 @@ public class NativeLibFinderTest {
 
         nativeLibDirs = Arrays.asList(nativeLibDir);
 
-        nativeLibNameToPath = new HashMap<>();
-
         when(testSubjectHelper.findLibrary("libName", nativeLibDir)).thenReturn(null);
 
-        NativeLibFinder testSubject = createTestSubject();
+        AbstractNativeLibHandlingClassLoader testSubject = createTestSubject();
         String expected = null;
 
         // WHEN
@@ -404,26 +390,38 @@ public class NativeLibFinderTest {
     }
 
     @Test
-    public void testToDirAppliedShouldReturnParentForFile() throws Exception {
+    public void testToDirShouldReturnNullForNullInput() throws Exception {
         // GIVEN
-        Path filePath = createTempFile("mocked").toAbsolutePath();
-        File expected = filePath.getParent().toFile();
+        File expected = null;
 
         // WHEN
-        File actual = createTestSubject().toDir().apply(filePath.toFile());
+        File actual = createTestSubject().toDir(null);
 
         // THEN
         assertEquals(expected, actual);
     }
 
     @Test
-    public void testToDirAppliedShouldReturnDirUnchanged() throws Exception {
+    public void testToDirShouldReturnParentForFile() throws Exception {
+        // GIVEN
+        Path filePath = createTempFile("mocked").toAbsolutePath();
+        File expected = filePath.getParent().toFile();
+
+        // WHEN
+        File actual = createTestSubject().toDir(filePath.toFile());
+
+        // THEN
+        assertEquals(expected, actual);
+    }
+
+    @Test
+    public void testToDirShouldReturnDirUnchanged() throws Exception {
         // GIVEN
         Path dirPath = createTempFile("mocked").getParent();
         File expected = dirPath.toFile();
 
         // WHEN
-        File actual = createTestSubject().toDir().apply(dirPath.toFile());
+        File actual = createTestSubject().toDir(dirPath.toFile());
 
         // THEN
         assertEquals(expected, actual);
@@ -441,47 +439,31 @@ public class NativeLibFinderTest {
         Path file21 = createTempFile(dir2, "usrLib", "file21");
         Path file31 = createTempFile(dir3, "usrLib", "file31");
 
-        javaLibraryPath = new HashSet<Path>() {{
-            add(file11);
-            add(file12);
-            add(file21);
-            add(file31);
-            add(dir3);
-            add(dir4);
-        }}.stream()
+        javaLibraryPath = Stream.of(
+                file11,
+                file12,
+                file21,
+                file31,
+                dir3,
+                dir4
+        )
                 .map(Path::toFile)
                 .map(File::getAbsolutePath)
                 .collect(Collectors.joining(File.pathSeparator));
 
-        HashSet<File> expected = new HashSet<File>() {{
-            add(dir1.toFile());
-            add(dir2.toFile());
-            add(dir3.toFile());
-            add(dir4.toFile());
-        }};
+        HashSet<File> expected = new HashSet<>();
+        expected.add(dir1.toFile());
+        expected.add(dir2.toFile());
+        expected.add(dir3.toFile());
+        expected.add(dir4.toFile());
 
         Set<File> actual = createTestSubject().getUsrLibDirs();
 
         assertEquals(expected, actual);
     }
 
-    private NativeLibFinder createTestSubjectForOS() {
-        NativeLibFinder testSubject = new NativeLibFinder() {
-            @Override
-            public List<File> getNativeLibDirs() {
-                return null;
-            }
-
-            @Override
-            public Map<String, Path> getNativeLibNameToPath() {
-                return null;
-            }
-
-            @Override
-            public String getTmpLibFilePrefix() {
-                return null;
-            }
-
+    private AbstractNativeLibHandlingClassLoader createTestSubjectForOS() {
+        AbstractNativeLibHandlingClassLoader testSubject = new AbstractNativeLibHandlingClassLoader(new URL[0], nativeLibDirs, "unimportant") {
             @Override
             public boolean isOsWindows() {
                 return isOsWindows;
@@ -496,28 +478,18 @@ public class NativeLibFinderTest {
             public boolean isOsLinuxUnix() {
                 return isOsLinux;
             }
+
+            @Override
+            public String getJavaLibraryPath() {
+                return javaLibraryPath;
+            }
         };
 
         return testSubject;
     }
 
-    private NativeLibFinder createTestSubject() {
-        NativeLibFinder testSubject = new NativeLibFinder() {
-            @Override
-            public List<File> getNativeLibDirs() {
-                return nativeLibDirs;
-            }
-
-            @Override
-            public Map<String, Path> getNativeLibNameToPath() {
-                return nativeLibNameToPath;
-            }
-
-            @Override
-            public String getTmpLibFilePrefix() {
-                return "unimportant";
-            }
-
+    private AbstractNativeLibHandlingClassLoader createTestSubject() {
+        AbstractNativeLibHandlingClassLoader testSubject = new AbstractNativeLibHandlingClassLoader(new URL[0], nativeLibDirs, "unimportant") {
             @Override
             public Path createTempCopy(String libname, String libraryOriginalPathString) {
                 return testSubjectHelper.createTempCopy(libname, libraryOriginalPathString);
@@ -548,6 +520,8 @@ public class NativeLibFinderTest {
                 return javaLibraryPath;
             }
         };
+
+        testSubject.nativeLibNameToPath.putAll(this.nativeLibNameToPath);
 
         return testSubject;
     }
