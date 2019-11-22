@@ -23,13 +23,16 @@ import java.io.File;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Each processor, controller service, and reporting task will have an InstanceClassLoader.
@@ -81,21 +84,23 @@ public class InstanceClassLoader extends AbstractNativeLibHandlingClassLoader {
          * Compare to {@link #youLikeThisFunctionalApproachBetterAfterAllDontYou()}
          */
         Set<File> additionalNativeLibDirs = new HashSet<>();
-        for (URL url : additionalResourceUrls) {
-            File file;
+        if (additionalResourceUrls != null) {
+            for (URL url : additionalResourceUrls) {
+                File file;
 
-            try {
-                file = new File(url.toURI());
-            } catch (URISyntaxException e) {
-                file = new File(url.getPath());
-            } catch (Exception e) {
-                logger.error("Couldn't convert url '" + url + "' to a file");
-                file = null;
-            }
+                try {
+                    file = new File(url.toURI());
+                } catch (URISyntaxException e) {
+                    file = new File(url.getPath());
+                } catch (Exception e) {
+                    logger.error("Couldn't convert url '" + url + "' to a file");
+                    file = null;
+                }
 
-            File dir = toDir(file);
-            if (dir != null) {
-                additionalNativeLibDirs.add(dir);
+                File dir = toDir(file);
+                if (dir != null) {
+                    additionalNativeLibDirs.add(dir);
+                }
             }
         }
 
@@ -104,8 +109,10 @@ public class InstanceClassLoader extends AbstractNativeLibHandlingClassLoader {
         return nativeLibDirList;
     }
 
-    private Set<File> youLikeThisFunctionalApproachBetterAfterAllDontYou() {
-        return this.additionalResourceUrls.stream()
+    private Set<File> youLikeThisFunctionalApproachBetterAfterAllDontYou(Set<URL> additionalResourceUrls) {
+        return Optional.ofNullable(additionalResourceUrls)
+                .map(Collection::stream)
+                .orElseGet(Stream::empty)
                 .map(url -> {
                     File file;
 
