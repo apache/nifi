@@ -35,6 +35,7 @@ public class SearchResultsDTO {
     private List<ComponentSearchResultDTO> outputPortResults = new ArrayList<>();
     private List<ComponentSearchResultDTO> remoteProcessGroupResults = new ArrayList<>();
     private List<ComponentSearchResultDTO> funnelResults = new ArrayList<>();
+    private List<ComponentSearchResultDTO> labelResults = new ArrayList<>();
     private List<ComponentSearchResultDTO> parameterContextResults = new ArrayList<>();
     private List<ComponentSearchResultDTO> parameterResults = new ArrayList<>();
 
@@ -134,6 +135,20 @@ public class SearchResultsDTO {
 
     public void setFunnelResults(List<ComponentSearchResultDTO> funnelResults) {
         this.funnelResults = funnelResults;
+    }
+
+    /**
+     * @return labels that matched the search
+     */
+    @ApiModelProperty(
+            value = "The labels that matched the search."
+    )
+    public List<ComponentSearchResultDTO> getLabelResults() {
+        return labelResults;
+    }
+
+    public void setLabelResults(List<ComponentSearchResultDTO> labelResults) {
+        this.labelResults = labelResults;
     }
 
     /**
