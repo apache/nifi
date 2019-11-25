@@ -70,7 +70,7 @@ import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.node.ArrayNode;
 
 /**
- * Base class for ReportingTasks that send data over site-to-site. 
+ * Base class for ReportingTasks that send data over site-to-site.
  */
 public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingTask {
 
