@@ -140,7 +140,7 @@ public class SiteToSiteBulletinReportingTask extends AbstractSiteToSiteReporting
         try {
             // Lazily create SiteToSiteClient to provide a StateManager
             setup(context);
-            
+
             final Transaction transaction = getClient().createTransaction(TransferDirection.SEND);
             if (transaction == null) {
                 getLogger().info("All destination nodes are penalized; will attempt to send data later");
