@@ -315,8 +315,17 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, UserG
             throw new Exception(String.format("Multiple bundles found for the specified authorizer class '%s', only one is allowed.", authorizerClassName));
         }
 
+        // start with ClassLoad from authorizer's bundle
         final Bundle authorizerBundle = authorizerBundles.get(0);
         ClassLoader authorizerClassLoader = authorizerBundle.getClassLoader();
+        logger.info("Got Authorizer ClassLoader from bundle");
+
+        // if additional classpath resources were specified, replace with a new ClassLoader that wraps the original one
+        if (StringUtils.isNotEmpty(classpathResources)) {
+            logger.info("Replacing Authorizer ClassLoader to include additional resources: " + classpathResources);
+            URL[] urls = ClassLoaderUtils.getURLsForClasspath(classpathResources, null, true);
+            authorizerClassLoader = new URLClassLoader(urls, authorizerClassLoader);
+        }
 
         // get the current context classloader
         final ClassLoader currentClassLoader = Thread.currentThread().getContextClassLoader();
@@ -346,11 +355,6 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, UserG
             if (currentClassLoader != null) {
                 Thread.currentThread().setContextClassLoader(currentClassLoader);
             }
-        }
-
-        if (StringUtils.isNotEmpty(classpathResources)) {
-            URL[] urls = ClassLoaderUtils.getURLsForClasspath(classpathResources, null, true);
-            authorizerClassLoader = new URLClassLoader(urls, authorizerClassLoader);
         }
 
         return AuthorizerFactory.withNarLoader(instance, authorizerClassLoader);
