@@ -158,7 +158,7 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, UserG
                         if (authorizers.containsKey(authorizer.getIdentifier())) {
                             throw new Exception("Duplicate Authorizer identifier in Authorizers configuration: " + authorizer.getIdentifier());
                         }
-                        authorizers.put(authorizer.getIdentifier(), createAuthorizer(authorizer.getIdentifier(), authorizer.getClazz(),authorizer.getClasspath()));
+                        authorizers.put(authorizer.getIdentifier(), createAuthorizer(authorizer.getIdentifier(), authorizer.getClazz(), authorizer.getClasspath()));
                     }
 
                     // configure each authorizer
@@ -315,8 +315,16 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, UserG
             throw new Exception(String.format("Multiple bundles found for the specified authorizer class '%s', only one is allowed.", authorizerClassName));
         }
 
+        // start with ClassLoad from authorizer's bundle
         final Bundle authorizerBundle = authorizerBundles.get(0);
         ClassLoader authorizerClassLoader = authorizerBundle.getClassLoader();
+
+        // if additional classpath resources were specified, replace with a new ClassLoader that wraps the original one
+        if (StringUtils.isNotEmpty(classpathResources)) {
+            logger.info(String.format("Replacing Authorizer ClassLoader for '%s' to include additional resources: %s", identifier, classpathResources));
+            URL[] urls = ClassLoaderUtils.getURLsForClasspath(classpathResources, null, true);
+            authorizerClassLoader = new URLClassLoader(urls, authorizerClassLoader);
+        }
 
         // get the current context classloader
         final ClassLoader currentClassLoader = Thread.currentThread().getContextClassLoader();
@@ -346,11 +354,6 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, UserG
             if (currentClassLoader != null) {
                 Thread.currentThread().setContextClassLoader(currentClassLoader);
             }
-        }
-
-        if (StringUtils.isNotEmpty(classpathResources)) {
-            URL[] urls = ClassLoaderUtils.getURLsForClasspath(classpathResources, null, true);
-            authorizerClassLoader = new URLClassLoader(urls, authorizerClassLoader);
         }
 
         return AuthorizerFactory.withNarLoader(instance, authorizerClassLoader);
