@@ -307,7 +307,7 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
             try {
                 // Lazily create SiteToSiteClient to provide a StateManager
                 setup(context);
-                
+
                 final Transaction transaction = getClient().createTransaction(TransferDirection.SEND);
                 if (transaction == null) {
                     // Throw an exception to avoid provenance event id will not proceed so that those can be consumed again.
