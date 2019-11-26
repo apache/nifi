@@ -46,8 +46,7 @@ import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
  * Once a library is found an OS-handled temporary copy is created and cached
  * to maintain consistency and classloader isolation.
  */
-public abstract class AbstractNativeLibHandlingClassLoader extends URLClassLoader {
-    private static final String OS = System.getProperty("os.name").toLowerCase();
+public abstract class AbstractNativeLibHandlingClassLoader extends URLClassLoader implements OSUtil {
 
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
@@ -215,18 +214,6 @@ public abstract class AbstractNativeLibHandlingClassLoader extends URLClassLoade
 
         allNativeLibDirList.addAll(getUsrLibDirs());
 
-        return Collections.unmodifiableList(initialNativeLibDirList);
-    }
-
-    protected boolean isOsWindows() {
-        return OS.contains("win");
-    }
-
-    protected boolean isOsMac() {
-        return OS.contains("mac");
-    }
-
-    protected boolean isOsLinuxUnix() {
-        return OS.contains("nix") || OS.contains("nux") || OS.contains("aix");
+        return Collections.unmodifiableList(allNativeLibDirList);
     }
 }

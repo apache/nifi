@@ -16,85 +16,28 @@
  */
 package org.apache.nifi.nar;
 
-import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.reporting.ReportingTask;
-import org.apache.nifi.util.NiFiProperties;
-import org.junit.Before;
 import org.junit.Test;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.SimpleFileVisitor;
 import java.nio.file.StandardCopyOption;
-import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 
-public class TestNarLoader {
-
+public class TestNarLoader extends AbstractTestNarLoader {
     static final String WORK_DIR = "./target/work";
     static final String NAR_AUTOLOAD_DIR = "./target/extensions";
+    static final String PROPERTIES_FILE = "./src/test/resources/conf/nifi.properties";
     static final String EXTENSIONS_DIR = "./src/test/resources/extensions";
-
-    private NiFiProperties properties;
-    private ExtensionMapping extensionMapping;
-
-    private StandardNarLoader narLoader;
-    private NarClassLoaders narClassLoaders;
-    private ExtensionDiscoveringManager extensionManager;
-
-    @Before
-    public void setup() throws IOException, ClassNotFoundException {
-        deleteDir(WORK_DIR);
-        deleteDir(NAR_AUTOLOAD_DIR);
-
-        final File extensionsDir = new File(NAR_AUTOLOAD_DIR);
-        assertTrue(extensionsDir.mkdirs());
-
-        // Create NiFiProperties
-        final String propertiesFile = "./src/test/resources/conf/nifi.properties";
-        properties = NiFiProperties.createBasicNiFiProperties(propertiesFile , Collections.emptyMap());
-
-        // Unpack NARs
-        final Bundle systemBundle = SystemBundle.create(properties);
-        extensionMapping = NarUnpacker.unpackNars(properties, systemBundle);
-        assertEquals(0, extensionMapping.getAllExtensionNames().size());
-
-        // Initialize NarClassLoaders
-        narClassLoaders = new NarClassLoaders();
-        narClassLoaders.init(properties.getFrameworkWorkingDirectory(), properties.getExtensionsWorkingDirectory());
-
-        extensionManager = new StandardExtensionDiscoveringManager();
-        extensionManager.discoverExtensions(systemBundle, narClassLoaders.getBundles());
-
-        // Should have Framework and Jetty NARs loaded here
-        assertEquals(2, narClassLoaders.getBundles().size());
-
-        // No extensions should be loaded yet
-        assertEquals(0, extensionManager.getExtensions(Processor.class).size());
-        assertEquals(0, extensionManager.getExtensions(ControllerService.class).size());
-        assertEquals(0, extensionManager.getExtensions(ReportingTask.class).size());
-
-        // Create class we are testing
-        narLoader = new StandardNarLoader(
-                properties.getExtensionsWorkingDirectory(),
-                properties.getComponentDocumentationWorkingDirectory(),
-                narClassLoaders,
-                extensionManager,
-                extensionMapping,
-                (bundles) -> {});
-    }
 
     @Test
     public void testNarLoaderWhenAllAvailable() throws IOException {
@@ -166,24 +109,18 @@ public class TestNarLoader {
         assertEquals(0, extensionManager.getExtensions(ReportingTask.class).size());
     }
 
-    private void deleteDir(String path) throws IOException {
-        Path directory = Paths.get(path);
-        if (!directory.toFile().exists()) {
-            return;
-        }
+    @Override
+    String getWorkDir() {
+        return WORK_DIR;
+    }
 
-        Files.walkFileTree(directory, new SimpleFileVisitor<Path>() {
-            @Override
-            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                Files.delete(file);
-                return FileVisitResult.CONTINUE;
-            }
+    @Override
+    String getNarAutoloadDir() {
+        return NAR_AUTOLOAD_DIR;
+    }
 
-            @Override
-            public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
-                Files.delete(dir);
-                return FileVisitResult.CONTINUE;
-            }
-        });
+    @Override
+    String getPropertiesFile() {
+        return PROPERTIES_FILE;
     }
 }
