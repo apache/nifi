@@ -20,7 +20,9 @@ import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -34,10 +36,13 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.azure.AbstractAzureBlobProcessor;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 
@@ -59,6 +64,23 @@ import com.microsoft.azure.storage.blob.CloudBlobContainer;
         @WritesAttribute(attribute = "azure.timestamp", description = "The timestamp in Azure for the blob")})
 public class PutAzureBlobStorage extends AbstractAzureBlobProcessor {
 
+    public static final PropertyDescriptor BLOB_NAME = new PropertyDescriptor.Builder()
+            .name("blob")
+            .displayName("Blob")
+            .description("The filename of the blob")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .required(true)
+            .build();
+
+    @Override
+    public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+        List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
+        properties.remove(BLOB);
+        properties.add(BLOB_NAME);
+        return properties;
+    }
+
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();
         if (flowFile == null) {
@@ -69,7 +91,7 @@ public class PutAzureBlobStorage extends AbstractAzureBlobProcessor {
 
         String containerName = context.getProperty(AzureStorageUtils.CONTAINER).evaluateAttributeExpressions(flowFile).getValue();
 
-        String blobPath = context.getProperty(BLOB).evaluateAttributeExpressions(flowFile).getValue();
+        String blobPath = context.getProperty(BLOB_NAME).evaluateAttributeExpressions(flowFile).getValue();
 
         AtomicReference<Exception> storedException = new AtomicReference<>();
         try {
