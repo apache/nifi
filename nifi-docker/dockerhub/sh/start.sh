@@ -43,17 +43,27 @@ prop_replace 'nifi.remote.input.secure'         'false'
 "${scripts_dir}/toolkit.sh"
 prop_replace 'baseUrl' "http://${NIFI_WEB_HTTP_HOST:-$HOSTNAME}:${NIFI_WEB_HTTP_PORT:-8080}" ${nifi_toolkit_props_file}
 
-prop_replace 'nifi.variable.registry.properties'    "${NIFI_VARIABLE_REGISTRY_PROPERTIES:-}"
-prop_replace 'nifi.cluster.is.node'                         "${NIFI_CLUSTER_IS_NODE:-false}"
-prop_replace 'nifi.cluster.node.address'                    "${NIFI_CLUSTER_ADDRESS:-$HOSTNAME}"
-prop_replace 'nifi.cluster.node.protocol.port'              "${NIFI_CLUSTER_NODE_PROTOCOL_PORT:-}"
-prop_replace 'nifi.cluster.node.protocol.threads'           "${NIFI_CLUSTER_NODE_PROTOCOL_THREADS:-10}"
-prop_replace 'nifi.cluster.node.protocol.max.threads'       "${NIFI_CLUSTER_NODE_PROTOCOL_MAX_THREADS:-50}"
-prop_replace 'nifi.zookeeper.connect.string'                "${NIFI_ZK_CONNECT_STRING:-}"
-prop_replace 'nifi.zookeeper.root.node'                     "${NIFI_ZK_ROOT_NODE:-/nifi}"
-prop_replace 'nifi.cluster.flow.election.max.wait.time'     "${NIFI_ELECTION_MAX_WAIT:-5 mins}"
-prop_replace 'nifi.cluster.flow.election.max.candidates'    "${NIFI_ELECTION_MAX_CANDIDATES:-}"
-prop_replace 'nifi.web.proxy.context.path'                  "${NIFI_WEB_PROXY_CONTEXT_PATH:-}"
+prop_replace 'nifi.variable.registry.properties'              "${NIFI_VARIABLE_REGISTRY_PROPERTIES:-}"
+prop_replace 'nifi.cluster.is.node'                           "${NIFI_CLUSTER_IS_NODE:-false}"
+prop_replace 'nifi.cluster.node.address'                      "${NIFI_CLUSTER_ADDRESS:-$HOSTNAME}"
+prop_replace 'nifi.cluster.node.protocol.port'                "${NIFI_CLUSTER_NODE_PROTOCOL_PORT:-}"
+prop_replace 'nifi.cluster.node.protocol.threads'             "${NIFI_CLUSTER_NODE_PROTOCOL_THREADS:-10}"
+prop_replace 'nifi.cluster.node.protocol.max.threads'         "${NIFI_CLUSTER_NODE_PROTOCOL_MAX_THREADS:-50}"
+prop_replace 'nifi.zookeeper.connect.string'                  "${NIFI_ZK_CONNECT_STRING:-}"
+prop_replace 'nifi.zookeeper.root.node'                       "${NIFI_ZK_ROOT_NODE:-/nifi}"
+prop_replace 'nifi.cluster.flow.election.max.wait.time'       "${NIFI_ELECTION_MAX_WAIT:-5 mins}"
+prop_replace 'nifi.cluster.flow.election.max.candidates'      "${NIFI_ELECTION_MAX_CANDIDATES:-}"
+prop_replace 'nifi.web.proxy.context.path'                    "${NIFI_WEB_PROXY_CONTEXT_PATH:-}"
+prop_replace 'nifi.security.user.oidc.discovery.url'          "${NIFI_SECURITY_USER_OIDC_DISCOVERY_URL:-}"
+prop_replace 'nifi.security.user.oidc.connect.timeout'        "${NIFI_SECURITY_USER_OIDC_CONNECT_TIMEOUT:-}"
+prop_replace 'nifi.security.user.oidc.read.timeout'           "${NIFI_SECURITY_USER_OIDC_READ_TIMEOUT:-}"
+prop_replace 'nifi.security.user.oidc.client.id'              "${NIFI_SECURITY_USER_OIDC_CLIENT_ID:-}"
+prop_replace 'nifi.security.user.oidc.client.secret'          "${NIFI_SECURITY_USER_OIDC_CLIENT_SECRET:-}"
+prop_replace 'nifi.security.user.oidc.preferred.jwsalgorithm' "${NIFI_SECURITY_USER_OIDC_PREFERRED_JWSALGORITHM:-}"
+prop_replace 'nifi.security.user.oidc.additional.scopes'      "${NIFI_SECURITY_USER_OIDC_ADDITIONAL_SCOPES:-}"
+prop_replace 'nifi.security.user.oidc.claim.identifying.user' "${NIFI_SECURITY_USER_OIDC_CLAIM_IDENTIFYING_USER:-}"
+
+
 
 . "${scripts_dir}/update_cluster_state_management.sh"
 
