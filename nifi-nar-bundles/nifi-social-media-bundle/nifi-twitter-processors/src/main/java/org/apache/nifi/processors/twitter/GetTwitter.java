@@ -344,8 +344,7 @@ public class GetTwitter extends AbstractProcessor {
             client = clientBuilder.build();
             try {
                 client.connect();
-            }
-            catch (Exception e) {
+            } catch (Exception e) {
                 client.stop();
             }
         }
