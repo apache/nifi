@@ -162,7 +162,7 @@ public class MockPutKudu extends PutKudu {
     }
 
     @Override
-    protected KuduSession getKuduSession(KuduClient client) {
+    protected KuduSession createKuduSession(KuduClient client) {
         return session;
     }
 }
