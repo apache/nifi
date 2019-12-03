@@ -87,14 +87,6 @@
           <artifactId>google-cloud-kms</artifactId>
           <version>1.23.0</version>
         </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-properties-loader</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-properties-loader</artifactId>
-        </dependency>
     </dependencies>
     <build>
         <!-- Required to run Groovy tests without any Java tests -->
