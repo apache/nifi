@@ -14,8 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.properties
+package org.apache.nifi.properties.sensitive.aes
 
+import org.apache.nifi.properties.sensitive.AbstractSensitivePropertyProviderTest
+import org.apache.nifi.properties.sensitive.SensitivePropertyConfigurationException
+import org.apache.nifi.properties.sensitive.SensitivePropertyProtectionException
+import org.apache.nifi.properties.sensitive.SensitivePropertyProvider
+import org.apache.nifi.properties.sensitive.CipherUtils
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.bouncycastle.util.encoders.Hex
 import org.junit.After
@@ -35,9 +40,15 @@ import java.nio.charset.StandardCharsets
 import java.security.SecureRandom
 import java.security.Security
 
+/**
+ * Tests the AES Sensitive Property Provider and related behavior.
+ *
+ * These tests are completely self-contained. They require no special configuration and do not use user keys at all, so there is no chance that a user key is deleted.
+ */
 @RunWith(JUnit4.class)
 class AESSensitivePropertyProviderTest extends GroovyTestCase {
     private static final Logger logger = LoggerFactory.getLogger(AESSensitivePropertyProviderTest.class)
+    private static final class InnerTests extends AbstractSensitivePropertyProviderTest {}
 
     private static final String KEY_128_HEX = "0123456789ABCDEFFEDCBA9876543210"
     private static final String KEY_256_HEX = KEY_128_HEX * 2
@@ -117,7 +128,7 @@ class AESSensitivePropertyProviderTest extends GroovyTestCase {
             Security.removeProvider(new BouncyCastleProvider().getName())
 
             // Act
-            def msg = shouldFail(SensitivePropertyProtectionException) {
+            def msg = shouldFail(SensitivePropertyConfigurationException) {
                 SensitivePropertyProvider spp = new AESSensitivePropertyProvider(Hex.decode(KEY_128_HEX))
                 logger.error("This should not be reached")
             }
@@ -295,6 +306,7 @@ class AESSensitivePropertyProviderTest extends GroovyTestCase {
     void testShouldHandleUnprotectMissingIV() throws Exception {
         // Arrange
         final String PLAINTEXT = "This is a plaintext value"
+        def loggerAlignmentOffset = 150
 
         // Act
         KEY_SIZES.each { int keySize ->
@@ -304,7 +316,7 @@ class AESSensitivePropertyProviderTest extends GroovyTestCase {
 
             // Remove the IV from the "complete" cipher text
             final String MISSING_IV_CIPHER_TEXT = cipherText[18..-1]
-            logger.info("Manipulated ${cipherText} to\n${MISSING_IV_CIPHER_TEXT.padLeft(172)}")
+            logger.info("Manipulated ${cipherText} to\n${MISSING_IV_CIPHER_TEXT.padLeft(loggerAlignmentOffset)}")
 
             def msg = shouldFail(IllegalArgumentException) {
                 spp.unprotect(MISSING_IV_CIPHER_TEXT)
@@ -313,7 +325,7 @@ class AESSensitivePropertyProviderTest extends GroovyTestCase {
 
             // Remove the IV from the "complete" cipher text but keep the delimiter
             final String MISSING_IV_CIPHER_TEXT_WITH_DELIMITER = cipherText[16..-1]
-            logger.info("Manipulated ${cipherText} to\n${MISSING_IV_CIPHER_TEXT_WITH_DELIMITER.padLeft(172)}")
+            logger.info("Manipulated ${cipherText} to\n${MISSING_IV_CIPHER_TEXT_WITH_DELIMITER.padLeft(loggerAlignmentOffset)}")
 
             def msgWithDelimiter = shouldFail(IllegalArgumentException) {
                 spp.unprotect(MISSING_IV_CIPHER_TEXT_WITH_DELIMITER)
@@ -405,7 +417,7 @@ class AESSensitivePropertyProviderTest extends GroovyTestCase {
         final String INVALID_KEY = ""
 
         // Act
-        def msg = shouldFail(SensitivePropertyProtectionException) {
+        def msg = shouldFail(SensitivePropertyConfigurationException) {
             AESSensitivePropertyProvider spp = new AESSensitivePropertyProvider(INVALID_KEY)
         }
 
@@ -419,7 +431,7 @@ class AESSensitivePropertyProviderTest extends GroovyTestCase {
         final String INVALID_KEY = "Z" * 31
 
         // Act
-        def msg = shouldFail(SensitivePropertyProtectionException) {
+        def msg = shouldFail(SensitivePropertyConfigurationException) {
             AESSensitivePropertyProvider spp = new AESSensitivePropertyProvider(INVALID_KEY)
         }
 
@@ -433,7 +445,7 @@ class AESSensitivePropertyProviderTest extends GroovyTestCase {
         final String INVALID_KEY = "Z" * 32
 
         // Act
-        def msg = shouldFail(SensitivePropertyProtectionException) {
+        def msg = shouldFail(SensitivePropertyConfigurationException) {
             AESSensitivePropertyProvider spp = new AESSensitivePropertyProvider(INVALID_KEY)
         }
 
@@ -492,5 +504,17 @@ class AESSensitivePropertyProviderTest extends GroovyTestCase {
         // Assert
         assert rawValue == EXPECTED_VALUE
         assert rawUnpaddedValue == EXPECTED_VALUE
+    }
+
+    @Test
+    void testShouldRunInnerTestsCorrectly() {
+        final InnerTests innerTests = new InnerTests();
+        SensitivePropertyProvider spp = new AESSensitivePropertyProvider(CipherUtils.getRandomHex(32))
+        innerTests.checkProviderCanProtectAndUnprotectValue(spp, 128)
+        innerTests.checkProviderProtectDoesNotAllowBlankValues(spp)
+        innerTests.checkProviderUnprotectDoesNotAllowInvalidBase64Values(spp)
+        innerTests.checkProviderUnprotectDoesNotAllowValidBase64InvalidCipherTextValues(spp)
+        // TODO:  this is disabled at the moment because the key material isn't in the key
+        //innerTests.checkProviderCanProtectAndUnprotectProperties(spp)
     }
 }

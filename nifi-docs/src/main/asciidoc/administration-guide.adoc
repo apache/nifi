@@ -1548,13 +1548,252 @@ It is preferable to request upstream/downstream systems to switch to link:https:
 [[encrypt-config_tool]]
 == Encrypted Passwords in Configuration Files
 
-In order to facilitate the secure setup of NiFi, you can use the `encrypt-config` command line utility to encrypt raw configuration values that NiFi decrypts in memory on startup. This extensible protection scheme transparently allows NiFi to use raw values in operation, while protecting them at rest.  In the future, hardware security modules (HSM) and external secure storage mechanisms will be integrated, but for now, an AES encryption provider is the default implementation.
+In order to facilitate the secure setup of NiFi, you can use the `encrypt-config` command line utility to encrypt raw configuration values that NiFi decrypts in memory on startup. This extensible protection scheme transparently allows NiFi to use raw values in operation, while protecting them at rest.
 
 This is a change in behavior; prior to 1.0, all configuration values were stored in plaintext on the file system. POSIX file permissions were recommended to limit unauthorized access to these files.
 
 If no administrator action is taken, the configuration values remain unencrypted.
 
 For more information, see the <<toolkit-guide.adoc#encrypt_config_tool,Encrypt-Config Tool>> section in the link:toolkit-guide.html[NiFi Toolkit Guide].
+
+[[sensitive_property_providers]]
+=== Sensitive Property Providers
+
+The Sensitive Property Providers described in this section provide administrators various solutions to the problem of having sensitive values like passwords and key material stored in configuration files.
+By using one of these providers, sensitive values in configuration files become safer at rest.
+
+These providers work with the `encrypt-config` command to protect the `nifi.sensitive.props.key` value and any other property key specified in `nifi.sensitive.props.additional.keys`.
+
+Note that in managed environments (AWS, Azure, and GCP) integration may take a different form.  Refer to your managed environment documentation for details.
+
+[WARNING]
+.Potential Startup Failure
+=====================
+Incorrect values or misuse of these providers may prevent NiFi from starting.
+=====================
+
+==== Provider Summary
+
+This table summarizes the various providers and their common use cases.
+
+[options="header"]
+|===
+| Provider Name | Description | Use Case | Additional Requirements
+| AES/GCM | Software Encryption and Decryption | Any | None
+| AWS KMS | Amazon Web Services KMS | Existing AWS infrastructure | AWS account authorized to access KMS keys and operations
+| Azure Key Vault | Microsoft Azure Key Vault | Existing Azure infrastructure | Azure subscription, region, and key vault access
+| GCP KMS | Google Cloud Platform KMS | Existing GCP infrastructure | GCP project, region, and KMS access
+| Key Store | PCKS12, JCKS Key Store files | Existing keys in key store files | Key store file
+| Vault | HashiCorp Vault client | Existing Vault server | Vault authorization token
+| Hadoop Credentials | Hadoop Credentials File | Existing Hadoop credentials | Hadoop installation
+|===
+
+==== Advanced Encryption Standard in Galois/Counter Mode (AES/GCM)
+
+AES/GCM is the Advanced Encryption Standard cipher operating in the Galois/Counter Mode.  It is the default protection scheme for sensitive properties in NiFi,
+and operates by encrypting and decrypting values using a secret key.
+
+A secret key is required to use this provider, but no further explicit configuration is necessary. Secret keys are provided to NiFi as hexadecimal strings, 
+and must be either 32, 48, or 64 characters in length.
+
+Random key material can be constructed easily on most modern machines:
+
+[literal]
+$ openssl rand -hex 16
+
+Note that this command creates 16 random bytes that are encoded to 32 hex characters, which can then be used with NiFi as a 32 byte key.  No specific examples
+are given to discourage key reuse.
+
+==== Amazon Web Services Key Management Service (AWS KMS)
+
+Amazon Web Services offers a key management service or KMS that AWS customers can use to store and manage secret cryptographic keys. See 
+link:https://aws.amazon.com/kms/[https://aws.amazon.com/kms/].  NiFi includes an AWS KMS Sensitive Property Provider that uses these
+keys to encrypt and decrypt config file property values at rest.
+
+The AWS KMS Sensitive Property Provider supports the following key formats:
+
+[options="header"]
+|===
+| Format | Example
+| `aws/kms/{key}` | `aws/kms/4dac49d7-0000-4439-9580-e2fb814939e8`
+| `aws/kms/{alias}` | `aws/kms/example-alias`
+| `aws/kms/{arn}` | `aws/kms/arn:aws:kms:us-east-2:607563158743:key/a2836968-aaaa-49e7-b978-a9ac5b78e7a8`
+|===
+
+To use the AWS KMS Sensitive Property Provider, ensure your NiFi environment is configured with your AWS credentials. Refer to link:https://docs.aws.amazon.com/sdk-for-java/v1/developer-guide/credentials.html[Working with AWS Credentials] for specifics.
+This table shows an example of a simple AWS environment:
+
+[options="header"]
+|===
+| Environment Variable Name | Example Value
+| `AWS_ACCESS_KEY_ID` | `AKIAJLSYG5DZ73YABKZZ`
+| `AWS_SECRET_ACCESS_KEY` | `0sStvPECqpRBFnL4w64MRxkj3upbgZ+LZH4R0yQu`
+| `AWS_DEFAULT_REGION` | `us-east-1`
+|===
+
+==== Microsoft Azure Key Vault
+
+Microsoft Azure offers a key management service called Key Vault that Azure subscribers can use to store and manage cryptographic keys.  See
+link:https://azure.microsoft.com/en-us/services/key-vault/)[https://azure.microsoft.com/en-us/services/key-vault/].  NiFi includes an Azure Key Vault Sensitive Property Provider that uses these
+keys to encrypt and decrypt config file property values at rest.
+
+The Azure Sensitive Property Provider supports the following key format:
+
+[options="header"]
+|===
+| `azure/vault/subscriptions/{subscription}/resourceGroups/{resource}/providers/Microsoft.KeyVault/vaults/{vault},{key-id}`
+|===
+
+The template values (those in `{}`) should be substituted as follows:
+
+[options="header"]
+|===
+| Template | Description | Example Value
+| `{subscription}` | Azure Subscriber ID | `00000000-c24b-44f9-b01b-69e1d97986ca`
+| `{resource}` | Resource Group ID | `example-group`
+| `{vault}` | Vault ID | `example-vault`
+| `{key-id}` | Key ID | `https://my-vault.vault.azure.net/keys/my-key/74a380e30a4c495ba006916711350000`
+|===
+
+A full example recognized by the Azure Sensitive Property Provider:
+
+|====
+| `azure/vault/subscriptions/00000000-c24b-44f9-b01b-69e1d97986ca/resourceGroups/example-group/providers/Microsoft.KeyVault/vaults/example-vault,https://my-vault.vault.azure.net/keys/my-key/74a380e30a4c495ba00691671135931b`
+|====
+
+To use the Azure Key Vault Sensitive Property Provider, ensure your NiFi environment is configured with your Azure credentials.  
+This table shows an example of a simple Azure environment:
+
+[options="header"]
+|===
+| Environment Variable Name | Example Value
+| `AZURE_AUTH_LOCATION` | `/var/run/azure-auth.json`
+|===
+
+See link:https://github.com/Azure/azure-libraries-for-java/blob/master/AUTH.md[Authentication in Azure Management Libraries for Java] for details regarding the auth file.
+
+==== Google Cloud Platform Cloud Key Management Service (GCP KMS)
+
+Google Cloud Platform offers a key management service called Cloud Key Management Service that GCP customers can use to store and manage cryptographic keys.  See
+link:https://cloud.google.com/kms/[https://cloud.google.com/kms/].  NiFi includes a GCP KMS Sensitive Property Provider that uses these
+keys to encrypt and decrypt config file property values at rest.
+
+The GCP KMS Sensitive Property Provider supports the following key formats:
+
+[options="header"]
+|===
+| Format
+| `gcp/kms/{project}/{location}/{key-ring}/{key-id}`
+| `gcp/kms/projects/{project}/locations/{location}/keyRings/{key-ring}/cryptoKeys/{key-id}`
+|===
+
+The template values (those in `{}`) should be substituted as follows:
+
+[options="header"]
+|===
+| Template | Description | Example Value
+| `{project}` | GCP project name | `example-project`
+| `{location}` | Location name | `us-west2`
+| `{key-ring}` | Key ring name | `example-key-ring`
+| `{key-id}` | Key name | `example-key`
+|===
+
+A full example recognized by the GCP KMS Sensitive Property Provider:
+
+|===
+| `gcp/kms/projects/example-project/locations/us-west2/keyRings/example-key-ring/cryptoKeys/example-key`
+|===
+
+Ensure your NiFi environment is configured with your GCP credentials before using these keys.  Refer to the guide
+link:https://cloud.google.com/docs/authentication/getting-started[Getting Started with Authentication^] for details.
+This table shows an example of a simple GCP environment:
+
+[options="header"]
+|===
+| Environment Variable Name | Example Value
+| `GOOGLE_APPLICATION_CREDENTIALS` | `/var/run/gcp/gcp-service-account.json`
+|===
+
+==== Key Store
+
+Key stores are files that can contain passwords, secret keys, and other cryptographic materials.  NiFi includes a Key Store Sensitive Property Provider
+that can read these files and use the secret keys within to encrypt and decrypt config file property values at rest.  PCKS12, JCEKS, and BK key store
+file formats are supported.
+
+The Key Store Sensitive Property Provider supports the following key formats:
+
+[options="header"]
+|===
+| Format | Example
+| `keystore/bk/{key-alias}` | `keystore/bk/example-key`
+| `keystore/pkcs12/{key-alias}` | `keystore/pkcs12/example-key`
+| `keystore/jceks/{key-alias}` | `keystore/jceks/example-key`
+|===
+
+The Keystore Sensitive Property Provider requires external configuration via environment variables or system properties.  Set
+these values accordingly:
+
+[options="header"]
+|===
+| Environment Variable| System Property| Example | Notes
+| `KEYSTORE_KEY_PASSWORD` | `keystore.key-password` | `KEYSTORE_KEY_PASSWORD=example` |  Optional, no default.
+| `KEYSTORE_PASSWORD` | `keystore.password` | `KEYSTORE_PASSWORD=example` | Optional, no default.
+| `KEYSTORE_FILE` | `keystore.file` | `KEYSTORE_FILE=/var/run/example-store.pkcs` | Required, no default.
+|===
+
+==== HashiCorp Vault
+
+HashiCorp Vault is a web application server that provides management of passwords, secret keys, and other cryptographic materials.  NiFi includes
+a Vault Sensitive Property Provider that can communicate with a Vault server to encrypt and decrypt config file property values at rest.
+
+The Vault Sensitive Property Provider supports the following key formats:
+
+[options="header"]
+|===
+| Format | Example
+| `vault/token/{token-id}` | `vault/token/332efac2-65c6-4c64-0000-fb5f3a0cef8c`
+|===
+
+The Vault Sensitive Property Provider requires external configuration via environment variables or system properties.  Set
+these values accordingly:
+
+[options="header"]
+|===
+| Environment Variable | System Property | Notes
+| `VAULT_ADDR` | `vault.uri` |  Vault server URI.  Example:  `https://localhost:9300/` Required.  
+| `VAULT_TOKEN` | `vault.token` | Token for token or cubbyhole authentication.  Optional.
+| `VAULT_ROLE_ID` | `vault.app-role.role-id` | Role ID for App Role authentication.  Required only when using App Role authentication.
+| `VAULT_SECRET_ID` | `vault.app-role.secret-id` | Secret ID for App Role authentication. Required only when using App Role authentication.
+| `VAULT_APP_ID` | `vault.app-id.app-id` | App ID for App ID authentication.  Required only when using App ID authentication.
+| `VAULT_USER_ID` | `vault.app-id.user-id` | User ID for App ID authentication.  Required only when using App ID authentication.
+| `VAULT_SSL_KEY_STORE` | `vault.ssl.key-store` | Full path to the SSL key store used by the HTTP client.  Optional.
+| `VAULT_SSL_KEY_STORE_PASSWORD` | `vault.ssl.key-store-password` | Password to the key store.  Optional.
+| `VAULT_SSL_TRUST_STORE` | `vault.ssl.trust-store` | Full path to the SSL trust store used by the HTTP client.  Optional.
+| `VAULT_SSL_TRUST_STORE_PASSWORD` | `vault.ssl.trust-store-password` | Password to the trust store.  Optional.
+|===
+
+==== Hadoop Credentials
+
+Apache Hadoop is a software framework for distributed computing. NiFi includes a Hadoop Credentials Sensitive Property Provider that can read Hadoop credential files and use values within them.
+
+The Hadoop Sensitive Property Provider supports the following key formats:
+
+[options="header"]
+|===
+| Format | Example
+| `hadoop/{paths}` | `hadoop//tmp/credentials.jceks,/tmp/other.jceks`
+|===
+
+The Hadoop Credentials Sensitive Property Provider requires external configuration via environment variables or system properties.  Set
+these values accordingly:
+
+[options="header"]
+|===
+| Environment Variable | System Property | Notes
+| &nbsp; | `hadoop.security.credential.provider.path` | Comma-separated list of file system paths of credential files.  Required.
+| &nbsp; | `hadoop.security.credstore.java-keystore-provider.password-file` | File system path to file containing credentials file password.  Optional.
+| `HADOOP_CREDSTORE_PASSWORD` | &nbsp; |  Store password, defaults to "none".  Optional.
+|===
 
 [[admin-toolkit]]
 == NiFi Toolkit Administrative Tools

@@ -20,8 +20,8 @@ import groovy.cli.commons.CliBuilder
 import groovy.cli.commons.OptionAccessor
 import org.apache.commons.cli.HelpFormatter
 import org.apache.commons.cli.Options
-import org.apache.nifi.properties.AESSensitivePropertyProvider
-import org.apache.nifi.properties.SensitivePropertyProvider
+import org.apache.nifi.properties.sensitive.SensitivePropertyProvider
+import org.apache.nifi.properties.sensitive.StandardSensitivePropertyProvider
 import org.apache.nifi.toolkit.encryptconfig.util.BootstrapUtil
 import org.apache.nifi.toolkit.encryptconfig.util.NiFiRegistryAuthorizersXmlEncryptor
 import org.apache.nifi.toolkit.encryptconfig.util.NiFiRegistryIdentityProvidersXmlEncryptor
@@ -290,14 +290,14 @@ class NiFiRegistryMode implements ToolMode {
             if (!encryptionKey) {
                 throw new RuntimeException("Failed to configure tool, could not determine encryption key. Must provide -p, -k, or -b. If using -b, bootstrap.conf argument must already contain master key.")
             }
-            encryptionProvider = new AESSensitivePropertyProvider(encryptionKey)
+            encryptionProvider = StandardSensitivePropertyProvider.fromKey(encryptionKey)
 
             // Determine key for decryption (if migrating)
             determineDecryptionKey()
             if (!decryptionKey) {
                 logger.debug("No decryption key specified via options, so if any input files require decryption prior to re-encryption (i.e., migration), this tool will fail.")
             }
-            decryptionProvider = decryptionKey ? new AESSensitivePropertyProvider(decryptionKey) : null
+            decryptionProvider = StandardSensitivePropertyProvider.fromKey(decryptionKey)
 
             writingKeyToBootstrap = (usingPassword || usingRawKeyHex || rawOptions.B)
             if (writingKeyToBootstrap) {
