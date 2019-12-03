@@ -165,6 +165,24 @@ public class TestJoltTransformRecord {
     }
 
     @Test
+    public void testNoRecords() throws IOException {
+        generateTestData(0, null);
+        final String outputSchemaText = new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformRecord/chainrOutputSchema.avsc")));
+        runner.setProperty(writer, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
+        runner.setProperty(writer, SchemaAccessUtils.SCHEMA_TEXT, outputSchemaText);
+        runner.setProperty(writer, "Pretty Print JSON", "true");
+        runner.enableControllerService(writer);
+        final String spec = new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformRecord/chainrSpec.json")));
+        runner.setProperty(JoltTransformRecord.JOLT_SPEC, spec);
+        runner.enqueue("{}");
+        runner.run();
+        runner.assertQueueEmpty();
+        runner.assertTransferCount(JoltTransformRecord.REL_FAILURE, 0);
+        runner.assertTransferCount(JoltTransformRecord.REL_SUCCESS, 1);
+        runner.assertTransferCount(JoltTransformRecord.REL_ORIGINAL, 1);
+    }
+
+    @Test
     public void testInvalidFlowFileContent() throws IOException {
         generateTestData(1, null);
 
