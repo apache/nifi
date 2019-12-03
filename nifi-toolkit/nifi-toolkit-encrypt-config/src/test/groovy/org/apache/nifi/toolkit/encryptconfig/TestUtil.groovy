@@ -16,9 +16,10 @@
  */
 package org.apache.nifi.toolkit.encryptconfig
 
-import groovy.util.slurpersupport.GPathResult
+
 import org.apache.commons.lang3.SystemUtils
-import org.apache.nifi.properties.AESSensitivePropertyProvider
+import org.apache.nifi.properties.sensitive.SensitivePropertyProvider
+import org.apache.nifi.properties.sensitive.StandardSensitivePropertyProvider
 import org.apache.nifi.toolkit.encryptconfig.util.NiFiRegistryAuthorizersXmlEncryptor
 import org.apache.nifi.toolkit.encryptconfig.util.NiFiRegistryIdentityProvidersXmlEncryptor
 
@@ -63,9 +64,9 @@ class TestUtil {
 
     static final String KEY_HEX_128 = "0123456789ABCDEFFEDCBA9876543210"
     static final String KEY_HEX_256 = KEY_HEX_128 * 2
-    static final String KEY_HEX = isUnlimitedStrengthCryptoAvailable() ? KEY_HEX_256 : KEY_HEX_128
+    public static final String KEY_HEX = isUnlimitedStrengthCryptoAvailable() ? KEY_HEX_256 : KEY_HEX_128
 
-    static final String PASSWORD = "thisIsABadPassword"
+    public static final String PASSWORD = "thisIsABadPassword"
     // From ToolUtilities.deriveKeyFromPassword("thisIsABadPassword")
     static final String PASSWORD_KEY_HEX_256 = "2C576A9585DB862F5ECBEE5B4FFFCCA14B18D8365968D7081651006507AD2BDE"
     static final String PASSWORD_KEY_HEX_128 = "2C576A9585DB862F5ECBEE5B4FFFCCA1"
@@ -298,14 +299,14 @@ class TestUtil {
 
         assert populatedSensitiveProperties.size() == protectedSensitiveProperties.size()
 
-        AESSensitivePropertyProvider spp = new AESSensitivePropertyProvider(expectedKey)
+        def sensitivePropertyProvider = StandardSensitivePropertyProvider.fromKey(expectedKey)
 
         protectedSensitiveProperties.each {
             String value = it.text()
             String propertyValue = value
             assert it.@encryption == expectedProtectionScheme
             assert !plaintextValues.contains(propertyValue)
-            assert plaintextValues.contains(spp.unprotect(propertyValue))
+            assert plaintextValues.contains(sensitivePropertyProvider.unprotect(propertyValue))
         }
 
         return true

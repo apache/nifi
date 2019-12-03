@@ -14,12 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.properties;
+package org.apache.nifi.properties.sensitive;
 
-import static java.util.Arrays.asList;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.properties.NiFiPropertiesLoader;
+import org.apache.nifi.properties.StandardNiFiProperties;
+import org.apache.nifi.util.NiFiProperties;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -27,10 +31,10 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.util.NiFiProperties;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import static java.util.Arrays.asList;
+
+
 
 /**
  * Decorator class for intermediate phase when {@link NiFiPropertiesLoader} loads the
@@ -39,12 +43,10 @@ import org.slf4j.LoggerFactory;
  * This encapsulates the sensitive property access logic from external consumers
  * of {@code NiFiProperties}.
  */
-class ProtectedNiFiProperties extends StandardNiFiProperties {
+public class ProtectedNiFiProperties extends StandardNiFiProperties {
     private static final Logger logger = LoggerFactory.getLogger(ProtectedNiFiProperties.class);
 
     private NiFiProperties niFiProperties;
-
-    private Map<String, SensitivePropertyProvider> localProviderCache = new HashMap<>();
 
     // Additional "sensitive" property key
     public static final String ADDITIONAL_SENSITIVE_PROPERTIES_KEY = "nifi.sensitive.props.additional.keys";
@@ -53,17 +55,18 @@ class ProtectedNiFiProperties extends StandardNiFiProperties {
     public static final List<String> DEFAULT_SENSITIVE_PROPERTIES = new ArrayList<>(asList(SECURITY_KEY_PASSWD,
             SECURITY_KEYSTORE_PASSWD, SECURITY_TRUSTSTORE_PASSWD, SENSITIVE_PROPS_KEY, PROVENANCE_REPO_ENCRYPTION_KEY));
 
-    public ProtectedNiFiProperties() {
-        this(new StandardNiFiProperties());
-    }
+    // Default sensitive property provider
+    private SensitivePropertyProvider sensitivePropertyProvider;
 
     /**
      * Creates an instance containing the provided {@link NiFiProperties}.
      *
      * @param props the NiFiProperties to contain
+     * @param sensitivePropertyProvider default sensitive property provider for the instance
      */
-    public ProtectedNiFiProperties(NiFiProperties props) {
+    public ProtectedNiFiProperties(NiFiProperties props, SensitivePropertyProvider sensitivePropertyProvider) {
         this.niFiProperties = props;
+        this.sensitivePropertyProvider = sensitivePropertyProvider;
         logger.debug("Loaded {} properties (including {} protection schemes) into ProtectedNiFiProperties", getPropertyKeysIncludingProtectionSchemes().size(), getProtectedPropertyKeys().size());
     }
 
@@ -72,8 +75,28 @@ class ProtectedNiFiProperties extends StandardNiFiProperties {
      *
      * @param rawProps the Properties to contain
      */
-    public ProtectedNiFiProperties(Properties rawProps) {
-        this(new StandardNiFiProperties(rawProps));
+    public ProtectedNiFiProperties(Properties rawProps, SensitivePropertyProvider sensitivePropertyProvider) {
+        this(new StandardNiFiProperties(rawProps), sensitivePropertyProvider);
+    }
+
+    /**
+     * Creates an instance containing the provided {@link NiFiProperties} and key or key id.
+     *
+     * @param props the NiFiProperties to contain
+     * @param keyOrKeyId key material or key id as needed by the specific {@link SensitivePropertyProvider} implementation
+     */
+    public ProtectedNiFiProperties(NiFiProperties props, String keyOrKeyId) {
+        this(props, StandardSensitivePropertyProvider.fromKey(keyOrKeyId));
+    }
+
+    /**
+     * Creates an instance containing the provided {@link Properties} and key or key id.
+     *
+     * @param rawProps the Properties to contain
+     * @param keyOrKeyId key material or key id needed by the specific {@link SensitivePropertyProvider} implementation
+     */
+    public ProtectedNiFiProperties(Properties rawProps, String keyOrKeyId) {
+        this(new StandardNiFiProperties(rawProps), keyOrKeyId);
     }
 
     /**
@@ -240,15 +263,6 @@ class ProtectedNiFiProperties extends StandardNiFiProperties {
     }
 
     /**
-     * Returns the unique set of all protection schemes currently in use for this instance.
-     *
-     * @return the set of protection schemes
-     */
-    public Set<String> getProtectionSchemes() {
-        return new HashSet<>(getProtectedPropertyKeys().values());
-    }
-
-    /**
      * Returns a percentage of the total number of populated properties marked as sensitive that are currently protected.
      *
      * @return the percent of sensitive properties marked as protected
@@ -317,9 +331,9 @@ class ProtectedNiFiProperties extends StandardNiFiProperties {
      * properties should be gathered together.
      *
      * @return the NiFiProperties instance with all raw values
-     * @throws SensitivePropertyProtectionException if there is a problem unprotecting one or more keys
+     * @throws SensitivePropertyException if there is a problem unprotecting one or more keys
      */
-    public NiFiProperties getUnprotectedProperties() throws SensitivePropertyProtectionException {
+    public NiFiProperties getUnprotectedProperties() throws SensitivePropertyException {
         if (hasProtectedKeys()) {
             logger.info("There are {} protected properties of {} sensitive properties ({}%)",
                     getProtectedPropertyKeys().size(),
@@ -359,40 +373,22 @@ class ProtectedNiFiProperties extends StandardNiFiProperties {
                 }
             }
 
-            NiFiProperties unprotected = new StandardNiFiProperties(rawProperties);
-
-            return unprotected;
+            return new StandardNiFiProperties(rawProperties);
         } else {
             logger.debug("No protected properties");
             return getInternalNiFiProperties();
         }
     }
 
-    /**
-     * Registers a new {@link SensitivePropertyProvider}. This method will throw a {@link UnsupportedOperationException} if a provider is already registered for the protection scheme.
-     *
-     * @param sensitivePropertyProvider the provider
-     */
-    void addSensitivePropertyProvider(SensitivePropertyProvider sensitivePropertyProvider) {
-        if (sensitivePropertyProvider == null) {
-            throw new IllegalArgumentException("Cannot add null SensitivePropertyProvider");
-        }
-
-        if (getSensitivePropertyProviders().containsKey(sensitivePropertyProvider.getIdentifierKey())) {
-            throw new UnsupportedOperationException("Cannot overwrite existing sensitive property provider registered for " + sensitivePropertyProvider.getIdentifierKey());
-        }
-
-        getSensitivePropertyProviders().put(sensitivePropertyProvider.getIdentifierKey(), sensitivePropertyProvider);
-    }
-
-    private String getDefaultProtectionScheme() {
-        if (!getSensitivePropertyProviders().isEmpty()) {
-            List<String> schemes = new ArrayList<>(getSensitivePropertyProviders().keySet());
-            Collections.sort(schemes);
-            return schemes.get(0);
-        } else {
-            throw new IllegalStateException("No registered protection schemes");
-        }
+    @Override
+    public String toString() {
+        return new StringBuilder("ProtectedNiFiProperties instance with ")
+                .append(size()).append(" properties (")
+                .append(getProtectedPropertyKeys().size())
+                .append(" protected and ")
+                .append(getSensitivePropertyKeys().size())
+                .append(" sensitive)")
+                .toString();
     }
 
     /**
@@ -401,9 +397,9 @@ class ProtectedNiFiProperties extends StandardNiFiProperties {
      * @return the protected properties in a {@link StandardNiFiProperties} object
      * @throws IllegalStateException if no protection schemes are registered
      */
-    NiFiProperties protectPlainProperties() {
+    public NiFiProperties protectPlainProperties() {
         try {
-            return protectPlainProperties(getDefaultProtectionScheme());
+            return protectPlainProperties(StandardSensitivePropertyProvider.getDefaultProtectionScheme());
         } catch (IllegalStateException e) {
             final String msg = "Cannot protect properties with default scheme if no protection schemes are registered";
             logger.warn(msg);
@@ -418,8 +414,6 @@ class ProtectedNiFiProperties extends StandardNiFiProperties {
      * @return the protected properties in a {@link StandardNiFiProperties} object
      */
     NiFiProperties protectPlainProperties(String protectionScheme) {
-        SensitivePropertyProvider spp = getSensitivePropertyProvider(protectionScheme);
-
         // Make a new holder (settable)
         Properties protectedProperties = new Properties();
 
@@ -430,11 +424,15 @@ class ProtectedNiFiProperties extends StandardNiFiProperties {
             protectedProperties.setProperty(key, getInternalNiFiProperties().getProperty(key));
         }
 
+        if (sensitivePropertyProvider == null) {
+            return new StandardNiFiProperties(protectedProperties);
+        }
+
         // Add the protected keys and the protection schemes
         for (String key : getSensitivePropertyKeys()) {
             final String plainValue = getInternalNiFiProperties().getProperty(key);
             if (plainValue != null && !plainValue.trim().isEmpty()) {
-                final String protectedValue = spp.protect(plainValue);
+                final String protectedValue = sensitivePropertyProvider.protect(plainValue);
                 protectedProperties.setProperty(key, protectedValue);
                 protectedProperties.setProperty(getProtectionKey(key), protectionScheme);
             }
@@ -450,7 +448,7 @@ class ProtectedNiFiProperties extends StandardNiFiProperties {
      * @return the number of protected properties
      */
     public static int countProtectedProperties(NiFiProperties plainProperties) {
-        return new ProtectedNiFiProperties(plainProperties).getProtectedPropertyKeys().size();
+        return new ProtectedNiFiProperties(plainProperties, "").getProtectedPropertyKeys().size();
     }
 
     /**
@@ -459,46 +457,8 @@ class ProtectedNiFiProperties extends StandardNiFiProperties {
      * @param plainProperties the instance to count sensitive properties
      * @return the number of sensitive properties
      */
-    public static int countSensitiveProperties(NiFiProperties plainProperties) {
-        return new ProtectedNiFiProperties(plainProperties).getSensitivePropertyKeys().size();
-    }
-
-    @Override
-    public String toString() {
-        final Set<String> providers = getSensitivePropertyProviders().keySet();
-        return new StringBuilder("ProtectedNiFiProperties instance with ")
-                .append(size()).append(" properties (")
-                .append(getProtectedPropertyKeys().size())
-                .append(" protected) and ")
-                .append(providers.size())
-                .append(" sensitive property providers: ")
-                .append(StringUtils.join(providers, ", "))
-                .toString();
-    }
-
-    /**
-     * Returns the local provider cache (null-safe) as a Map of protection schemes -> implementations.
-     *
-     * @return the map
-     */
-    private Map<String, SensitivePropertyProvider> getSensitivePropertyProviders() {
-        if (localProviderCache == null) {
-            localProviderCache = new HashMap<>();
-        }
-
-        return localProviderCache;
-    }
-
-    private SensitivePropertyProvider getSensitivePropertyProvider(String protectionScheme) {
-        if (isProviderAvailable(protectionScheme)) {
-            return getSensitivePropertyProviders().get(protectionScheme);
-        } else {
-            throw new SensitivePropertyProtectionException("No provider available for " + protectionScheme);
-        }
-    }
-
-    private boolean isProviderAvailable(String protectionScheme) {
-        return getSensitivePropertyProviders().containsKey(protectionScheme);
+    public static int countSensitiveProperties(NiFiProperties plainProperties, String keyOrKeyId) {
+        return new ProtectedNiFiProperties(plainProperties, keyOrKeyId).getSensitivePropertyKeys().size();
     }
 
     /**
@@ -512,21 +472,12 @@ class ProtectedNiFiProperties extends StandardNiFiProperties {
         // Checks if the key is sensitive and marked as protected
         if (isPropertyProtected(key)) {
             final String protectionScheme = getProperty(getProtectionKey(key));
-
-            // No provider registered for this scheme, so just return the value
-            if (!isProviderAvailable(protectionScheme)) {
-                logger.warn("No provider available for {} so passing the protected {} value back", protectionScheme, key);
-                return retrievedValue;
+            // If we don't have a provider for the scheme, we try match the identifier of default provider.  this gives us part of our compatibility across providers + schemes.
+            if (!StandardSensitivePropertyProvider.hasProviderFor(protectionScheme)) {
+                if (this.sensitivePropertyProvider != null && this.sensitivePropertyProvider.getIdentifierKey().equals(protectionScheme))
+                    return this.sensitivePropertyProvider.unprotect(retrievedValue);
             }
-
-            try {
-                SensitivePropertyProvider sensitivePropertyProvider = getSensitivePropertyProvider(protectionScheme);
-                return sensitivePropertyProvider.unprotect(retrievedValue);
-            } catch (SensitivePropertyProtectionException e) {
-                throw new SensitivePropertyProtectionException("Error unprotecting value for " + key, e.getCause());
-            } catch (IllegalArgumentException e) {
-                throw new SensitivePropertyProtectionException("Error unprotecting value for " + key, e);
-            }
+            throw new SensitivePropertyProtectionException("Error unprotecting value for " + key);
         }
         return retrievedValue;
     }

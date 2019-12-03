@@ -28,6 +28,9 @@ import org.apache.commons.cli.Options
 import org.apache.commons.cli.ParseException
 import org.apache.commons.codec.binary.Hex
 import org.apache.commons.io.IOUtils
+import org.apache.nifi.properties.sensitive.ProtectedNiFiProperties
+import org.apache.nifi.properties.sensitive.SensitivePropertyProtectionException
+import org.apache.nifi.properties.sensitive.aes.AESSensitivePropertyProvider
 import org.apache.nifi.toolkit.tls.commandLine.CommandLineParseException
 import org.apache.nifi.toolkit.tls.commandLine.ExitCode
 import org.apache.nifi.util.NiFiProperties
@@ -1049,7 +1052,7 @@ class ConfigEncryptionTool {
             throw new IllegalArgumentException("Cannot encrypt empty NiFiProperties")
         }
 
-        ProtectedNiFiProperties protectedWrapper = new ProtectedNiFiProperties(plainProperties)
+        ProtectedNiFiProperties protectedWrapper = new ProtectedNiFiProperties(plainProperties, keyHex)
 
         List<String> sensitivePropertyKeys = protectedWrapper.getSensitivePropertyKeys()
         if (sensitivePropertyKeys.isEmpty()) {
@@ -1252,7 +1255,7 @@ class ConfigEncryptionTool {
                 File niFiPropertiesFile = new File(niFiPropertiesPath)
                 if (niFiPropertiesFile.exists() && niFiPropertiesFile.canRead()) {
                     // Instead of just writing the NiFiProperties instance to a properties file, this method attempts to maintain the structure of the original file and preserves comments
-                    linesToPersist = serializeNiFiPropertiesAndPreserveFormat(niFiProperties, niFiPropertiesFile)
+                    linesToPersist = serializeNiFiPropertiesAndPreserveFormat(niFiProperties, niFiPropertiesFile, keyHex)
                 } else {
                     linesToPersist = serializeNiFiProperties(niFiProperties)
                 }
@@ -1270,10 +1273,10 @@ class ConfigEncryptionTool {
     }
 
     private
-    static List<String> serializeNiFiPropertiesAndPreserveFormat(NiFiProperties niFiProperties, File originalPropertiesFile) {
+    static List<String> serializeNiFiPropertiesAndPreserveFormat(NiFiProperties niFiProperties, File originalPropertiesFile, String keyHex) {
         List<String> lines = originalPropertiesFile.readLines()
 
-        ProtectedNiFiProperties protectedNiFiProperties = new ProtectedNiFiProperties(niFiProperties)
+        ProtectedNiFiProperties protectedNiFiProperties = new ProtectedNiFiProperties(niFiProperties, keyHex)
         // Only need to replace the keys that have been protected AND nifi.sensitive.props.key
         Map<String, String> protectedKeys = protectedNiFiProperties.getProtectedPropertyKeys()
         if (!protectedKeys.containsKey(NiFiProperties.SENSITIVE_PROPS_KEY)) {

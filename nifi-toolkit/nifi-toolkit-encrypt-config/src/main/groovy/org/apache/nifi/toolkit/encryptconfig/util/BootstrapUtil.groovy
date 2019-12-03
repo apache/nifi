@@ -29,9 +29,9 @@ class BootstrapUtil {
     private static final String BOOTSTRAP_KEY_COMMENT = "# Master key in hexadecimal format for encrypted sensitive configuration values"
 
     /**
-     * Tries to load keyHex from input bootstrap.conf
+     * Tries to load keyOrKeyId from input bootstrap.conf
      *
-     * @return keyHex, if present in input bootstrap file; otherwise, null
+     * @return keyOrKeyId, if present in input bootstrap file; otherwise, null
      */
     static String extractKeyFromBootstrapFile(String inputBootstrapPath, String bootstrapKeyPropertyName) throws IOException {
 

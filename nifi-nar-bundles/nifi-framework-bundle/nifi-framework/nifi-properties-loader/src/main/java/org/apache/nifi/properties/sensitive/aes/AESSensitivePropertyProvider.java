@@ -14,16 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.properties;
+package org.apache.nifi.properties.sensitive.aes;
 
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.SecureRandom;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
@@ -33,6 +36,9 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.properties.sensitive.SensitivePropertyConfigurationException;
+import org.apache.nifi.properties.sensitive.SensitivePropertyProtectionException;
+import org.apache.nifi.properties.sensitive.SensitivePropertyProvider;
 import org.bouncycastle.util.encoders.Base64;
 import org.bouncycastle.util.encoders.DecoderException;
 import org.bouncycastle.util.encoders.EncoderException;
@@ -48,13 +54,13 @@ public class AESSensitivePropertyProvider implements SensitivePropertyProvider {
     private static final String ALGORITHM = "AES/GCM/NoPadding";
     private static final String PROVIDER = "BC";
     private static final String DELIMITER = "||"; // "|" is not a valid Base64 character, so ensured not to be present in cipher text
+    private static final String PRINTABLE_PREFIX = "aes/printable/";
     private static final int IV_LENGTH = 12;
     private static final int MIN_CIPHER_TEXT_LENGTH = IV_LENGTH * 4 / 3 + DELIMITER.length() + 1;
-
     private Cipher cipher;
     private final SecretKey key;
 
-    public AESSensitivePropertyProvider(String keyHex) throws NoSuchPaddingException, NoSuchAlgorithmException, NoSuchProviderException {
+    public AESSensitivePropertyProvider(String keyHex) {
         byte[] key = validateKey(keyHex);
 
         try {
@@ -63,40 +69,43 @@ public class AESSensitivePropertyProvider implements SensitivePropertyProvider {
             this.key = new SecretKeySpec(key, "AES");
         } catch (NoSuchAlgorithmException | NoSuchProviderException | NoSuchPaddingException e) {
             logger.error("Encountered an error initializing the {}: {}", IMPLEMENTATION_NAME, e.getMessage());
-            throw new SensitivePropertyProtectionException("Error initializing the protection cipher", e);
+            throw new SensitivePropertyConfigurationException("Error initializing the protection cipher", e);
         }
     }
 
     private byte[] validateKey(String keyHex) {
-        if (keyHex == null || StringUtils.isBlank(keyHex)) {
-            throw new SensitivePropertyProtectionException("The key cannot be empty");
+        if (StringUtils.isBlank(keyHex)) {
+            throw new SensitivePropertyConfigurationException("The key cannot be empty");
         }
         keyHex = formatHexKey(keyHex);
         if (!isHexKeyValid(keyHex)) {
-            throw new SensitivePropertyProtectionException("The key must be a valid hexadecimal key");
+            throw new SensitivePropertyConfigurationException("The key must be a valid hexadecimal key");
         }
         byte[] key = Hex.decode(keyHex);
         final List<Integer> validKeyLengths = getValidKeyLengths();
         if (!validKeyLengths.contains(key.length * 8)) {
             List<String> validKeyLengthsAsStrings = validKeyLengths.stream().map(i -> Integer.toString(i)).collect(Collectors.toList());
-            throw new SensitivePropertyProtectionException("The key (" + key.length * 8 + " bits) must be a valid length: " + StringUtils.join(validKeyLengthsAsStrings, ", "));
+            throw new SensitivePropertyConfigurationException("The key (" + key.length * 8 + " bits) must be a valid length: " + StringUtils.join(validKeyLengthsAsStrings, ", "));
         }
         return key;
     }
 
-    public AESSensitivePropertyProvider(byte[] key) throws NoSuchPaddingException, NoSuchAlgorithmException, NoSuchProviderException {
+    public AESSensitivePropertyProvider(byte[] key) throws SensitivePropertyConfigurationException {
         this(key == null ? "" : Hex.toHexString(key));
     }
 
     private static String formatHexKey(String input) {
-        if (input == null || StringUtils.isBlank(input)) {
+        if (StringUtils.isBlank(input)) {
             return "";
+        }
+        if (input.startsWith(IMPLEMENTATION_KEY)) {
+            input = input.substring(IMPLEMENTATION_KEY.length());
         }
         return input.replaceAll("[^0-9a-fA-F]", "").toLowerCase();
     }
 
     private static boolean isHexKeyValid(String key) {
-        if (key == null || StringUtils.isBlank(key)) {
+        if (StringUtils.isBlank(key)) {
             return false;
         }
         // Key length is in "nibbles" (i.e. one hex char = 4 bits)
@@ -159,7 +168,7 @@ public class AESSensitivePropertyProvider implements SensitivePropertyProvider {
      */
     @Override
     public String protect(String unprotectedValue) throws SensitivePropertyProtectionException {
-        if (unprotectedValue == null || unprotectedValue.trim().length() == 0) {
+        if (StringUtils.isBlank(unprotectedValue)) {
             throw new IllegalArgumentException("Cannot encrypt an empty value");
         }
 
@@ -257,5 +266,44 @@ public class AESSensitivePropertyProvider implements SensitivePropertyProvider {
 
     public static String getDelimiter() {
         return DELIMITER;
+    }
+
+    private static int getMaxValidKeyLength() {
+        return Collections.max(getValidKeyLengths());
+    }
+
+    /**
+     * @return key type and max key length, e.g., "aes/gcm/128".
+     */
+    public static String getDefaultProtectionScheme() {
+        return IMPLEMENTATION_KEY + getMaxValidKeyLength();
+    }
+
+    /**
+     * True if this class can provide protected and unprotected values for the given scheme.
+     *
+     * @param material name of encryption or protection scheme
+     * @return true if this class can provide protected values
+     */
+    public static boolean isProviderFor(String material) {
+        return isHexKeyValid(material);
+    }
+
+    /**
+     * Printable representation of a key.
+     *
+     * @param key key material or key id
+     * @return printable string
+     */
+    public static String toPrintableString(String key) {
+        String printable = "{unprintable}";
+        try {
+            MessageDigest mda = MessageDigest.getInstance("SHA-512", "BC");
+            printable = UUID.nameUUIDFromBytes(mda.digest(key.getBytes(StandardCharsets.UTF_8))).toString();
+        } catch (NoSuchAlgorithmException | NoSuchProviderException e) {
+            e.printStackTrace();
+        }
+
+        return PRINTABLE_PREFIX + printable;
     }
 }
