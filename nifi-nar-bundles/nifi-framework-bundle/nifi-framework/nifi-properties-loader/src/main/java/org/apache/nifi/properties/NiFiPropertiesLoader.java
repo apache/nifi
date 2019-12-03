@@ -25,6 +25,9 @@ import java.security.NoSuchAlgorithmException;
 import java.security.Security;
 import java.util.Properties;
 import javax.crypto.Cipher;
+
+import org.apache.nifi.properties.sensitive.ProtectedNiFiProperties;
+import org.apache.nifi.properties.sensitive.SensitivePropertyProvider;
 import org.apache.nifi.security.kms.CryptoUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
@@ -39,8 +42,6 @@ public class NiFiPropertiesLoader {
     private String keyHex;
 
     // Future enhancement: allow for external registration of new providers
-    private static SensitivePropertyProviderFactory sensitivePropertyProviderFactory;
-
     public NiFiPropertiesLoader() {
     }
 
@@ -62,7 +63,7 @@ public class NiFiPropertiesLoader {
 
     /**
      * Sets the hexadecimal key used to unprotect properties encrypted with
-     * {@link AESSensitivePropertyProvider}. If the key has already been set,
+     * {@link SensitivePropertyProvider}. If the key has already been set,
      * calling this method will throw a {@link RuntimeException}.
      *
      * @param keyHex the key in hexadecimal format
@@ -138,15 +139,6 @@ public class NiFiPropertiesLoader {
         }
     }
 
-    private void initializeSensitivePropertyProviderFactory() {
-        sensitivePropertyProviderFactory = new AESSensitivePropertyProviderFactory(keyHex);
-    }
-
-    private SensitivePropertyProvider getSensitivePropertyProvider() {
-        initializeSensitivePropertyProviderFactory();
-        return sensitivePropertyProviderFactory.getProvider();
-    }
-
     /**
      * Returns a {@link ProtectedNiFiProperties} instance loaded from the
      * serialized form in the file. Responsible for actually reading from disk
@@ -171,7 +163,7 @@ public class NiFiPropertiesLoader {
             rawProperties.load(inStream);
             logger.info("Loaded {} properties from {}", rawProperties.size(), file.getAbsolutePath());
 
-            ProtectedNiFiProperties protectedNiFiProperties = new ProtectedNiFiProperties(rawProperties);
+            ProtectedNiFiProperties protectedNiFiProperties = new ProtectedNiFiProperties(rawProperties, keyHex);
             return protectedNiFiProperties;
         } catch (final Exception ex) {
             logger.error("Cannot load properties file due to " + ex.getLocalizedMessage());
@@ -203,7 +195,6 @@ public class NiFiPropertiesLoader {
         ProtectedNiFiProperties protectedNiFiProperties = readProtectedPropertiesFromDisk(file);
         if (protectedNiFiProperties.hasProtectedKeys()) {
             Security.addProvider(new BouncyCastleProvider());
-            protectedNiFiProperties.addSensitivePropertyProvider(getSensitivePropertyProvider());
         }
 
         return protectedNiFiProperties.getUnprotectedProperties();

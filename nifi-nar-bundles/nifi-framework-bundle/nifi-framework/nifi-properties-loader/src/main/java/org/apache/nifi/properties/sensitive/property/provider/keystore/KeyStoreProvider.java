@@ -14,10 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.properties;
+package org.apache.nifi.properties.sensitive.property.provider.keystore;
 
-public interface SensitivePropertyProviderFactory {
+import java.io.IOException;
+import java.security.KeyStore;
 
-    SensitivePropertyProvider getProvider();
+/**
+ * KeyStoreProvider is an interface for getting KeyStore instances.
+ *
+ */
+public interface KeyStoreProvider {
 
+    /**
+     * Reads, loads, and returns a KeyStore.
+     *
+     * @return new KeyStore
+     * @throws IOException if the KeyStore cannot be opened or read
+     */
+    KeyStore getKeyStore() throws IOException;
 }

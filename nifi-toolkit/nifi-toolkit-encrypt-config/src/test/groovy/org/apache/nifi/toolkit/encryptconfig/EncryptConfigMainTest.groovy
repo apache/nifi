@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.toolkit.encryptconfig
 
-import org.apache.nifi.properties.AESSensitivePropertyProvider
-import org.apache.nifi.properties.ConfigEncryptionTool
 import org.apache.nifi.properties.NiFiPropertiesLoader
+import org.apache.nifi.properties.sensitive.StandardSensitivePropertyProvider
+import org.apache.nifi.properties.sensitive.SensitivePropertyProvider
 import org.apache.nifi.toolkit.encryptconfig.util.BootstrapUtil
 import org.apache.nifi.util.NiFiProperties
 import org.bouncycastle.jce.provider.BouncyCastleProvider
@@ -35,7 +35,9 @@ import org.slf4j.LoggerFactory
 import java.nio.file.Files
 import java.security.Security
 
-import static org.apache.nifi.toolkit.encryptconfig.TestUtil.*
+import static org.apache.nifi.toolkit.encryptconfig.TestUtil.KEY_HEX
+import static org.apache.nifi.toolkit.encryptconfig.TestUtil.PASSWORD
+import static org.apache.nifi.toolkit.encryptconfig.TestUtil.setupTmpDir
 
 @RunWith(JUnit4.class)
 class EncryptConfigMainTest extends GroovyTestCase {
@@ -184,7 +186,7 @@ class EncryptConfigMainTest extends GroovyTestCase {
                 "-k", KEY_HEX,
                 "-v"]
 
-        AESSensitivePropertyProvider spp = new AESSensitivePropertyProvider(KEY_HEX)
+        SensitivePropertyProvider sensitivePropertyProvider = StandardSensitivePropertyProvider.fromKey(KEY_HEX)
 
         exit.checkAssertionAfterwards(new Assertion() {
             void checkAssertion() {
@@ -196,7 +198,7 @@ class EncryptConfigMainTest extends GroovyTestCase {
                 logger.info("\n" * 2 + updatedPropertiesLines.join("\n"))
 
                 // Check that the output values for sensitive properties are not the same as the original (i.e. it was encrypted)
-                NiFiProperties updatedProperties = new NiFiPropertiesLoader().readProtectedPropertiesFromDisk(outputPropertiesFile)
+                NiFiProperties updatedProperties = new NiFiPropertiesLoader().withKey(KEY_HEX).readProtectedPropertiesFromDisk(outputPropertiesFile)
                 assert updatedProperties.size() >= inputProperties.size()
 
                 // Check that the new NiFiProperties instance matches the output file (values still encrypted)
@@ -221,7 +223,7 @@ class EncryptConfigMainTest extends GroovyTestCase {
                     it.@name =~ "Password" && it.@encryption =~ "aes/gcm/\\d{3}"
                 }
                 lipEncryptedValues.each {
-                    assert spp.unprotect(it.text()) == PASSWORD
+                    assert sensitivePropertyProvider.unprotect(it.text()) == PASSWORD
                 }
                 // Check that the comments are still there
                 def lipTrimmedLines = inputLIPFile.readLines().collect { it.trim() }.findAll { it }
@@ -245,7 +247,7 @@ class EncryptConfigMainTest extends GroovyTestCase {
                     it.@name =~ "Password" && it.@encryption =~ "aes/gcm/\\d{3}"
                 }
                 authorizersEncryptedValues.each {
-                    assert spp.unprotect(it.text()) == PASSWORD
+                    assert sensitivePropertyProvider.unprotect(it.text()) == PASSWORD
                 }
                 // Check that the comments are still there
                 def authorizersTrimmedLines = inputAuthorizersFile.readLines().collect { it.trim() }.findAll { it }
