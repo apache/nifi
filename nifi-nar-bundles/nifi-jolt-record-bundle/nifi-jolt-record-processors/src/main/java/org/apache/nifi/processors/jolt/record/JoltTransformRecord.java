@@ -59,6 +59,7 @@ import org.apache.nifi.util.StopWatch;
 import org.apache.nifi.util.StringUtils;
 
 import java.io.FilenameFilter;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
@@ -353,6 +354,12 @@ public class JoltTransformRecord extends AbstractProcessor {
 
                     writeResult = writer.finishRecordSet();
 
+                    try {
+                        writer.close();
+                    } catch (final IOException ioe) {
+                        getLogger().warn("Failed to close Writer for {}", new Object[]{transformed});
+                    }
+
                     attributes.put("record.count", String.valueOf(writeResult.getRecordCount()));
                     attributes.put(CoreAttributes.MIME_TYPE.key(), writer.getMimeType());
                     attributes.putAll(writeResult.getAttributes());
@@ -368,12 +375,13 @@ public class JoltTransformRecord extends AbstractProcessor {
             transformed = session.putAllAttributes(transformed, attributes);
             session.transfer(transformed, REL_SUCCESS);
             session.getProvenanceReporter().modifyContent(transformed, "Modified With " + transformType, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
-            session.transfer(original, REL_ORIGINAL);
             logger.debug("Transformed {}", new Object[]{original});
         } catch (final Exception ex) {
             logger.error("Unable to transform {} due to {}", new Object[]{original, ex.toString(), ex});
             session.transfer(original, REL_FAILURE);
+            return;
         }
+        session.transfer(original, REL_ORIGINAL);
     }
 
     private Record transform(final Record record, final JoltTransform transform) {

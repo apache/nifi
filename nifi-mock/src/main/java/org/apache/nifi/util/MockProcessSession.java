@@ -589,6 +589,7 @@ public class MockProcessSession implements ProcessSession {
         final MockFlowFile mock = validateState(flowFile);
 
         final ByteArrayInputStream bais = new ByteArrayInputStream(mock.getData());
+        incrementReadCount(flowFile);
         final InputStream errorHandlingStream = new InputStream() {
             @Override
             public int read() throws IOException {
@@ -602,6 +603,7 @@ public class MockProcessSession implements ProcessSession {
 
             @Override
             public void close() throws IOException {
+                decrementReadCount(flowFile);
                 openInputStreams.remove(mock);
                 bais.close();
             }

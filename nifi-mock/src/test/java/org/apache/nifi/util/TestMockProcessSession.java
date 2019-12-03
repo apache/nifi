@@ -51,13 +51,11 @@ public class TestMockProcessSession {
 
         assertEquals("hello, world", new String(buffer));
 
-        session.remove(flowFile);
-
         try {
             session.commit();
             Assert.fail("Was able to commit session without closing InputStream");
-        } catch (final FlowFileHandlingException ffhe) {
-            System.out.println(ffhe.toString());
+        } catch (final FlowFileHandlingException | IllegalStateException e) {
+            System.out.println(e.toString());
         }
     }
 
