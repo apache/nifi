@@ -50,11 +50,10 @@ import org.apache.nifi.authentication.generated.Provider;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
-import org.apache.nifi.properties.AESSensitivePropertyProviderFactory;
 import org.apache.nifi.properties.NiFiPropertiesLoader;
-import org.apache.nifi.properties.SensitivePropertyProtectionException;
-import org.apache.nifi.properties.SensitivePropertyProvider;
-import org.apache.nifi.properties.SensitivePropertyProviderFactory;
+import org.apache.nifi.properties.sensitive.StandardSensitivePropertyProvider;
+import org.apache.nifi.properties.sensitive.SensitivePropertyProtectionException;
+import org.apache.nifi.properties.sensitive.SensitivePropertyProvider;
 import org.apache.nifi.security.xml.XmlUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
@@ -73,7 +72,6 @@ public class LoginIdentityProviderFactoryBean implements FactoryBean, Disposable
     private static final String JAXB_GENERATED_PATH = "org.apache.nifi.authentication.generated";
     private static final JAXBContext JAXB_CONTEXT = initializeJaxbContext();
 
-    private static SensitivePropertyProviderFactory SENSITIVE_PROPERTY_PROVIDER_FACTORY;
     private static SensitivePropertyProvider SENSITIVE_PROPERTY_PROVIDER;
 
     /**
@@ -219,16 +217,14 @@ public class LoginIdentityProviderFactoryBean implements FactoryBean, Disposable
     }
 
     private String decryptValue(String cipherText, String encryptionScheme) throws SensitivePropertyProtectionException {
-            initializeSensitivePropertyProvider(encryptionScheme);
+        initializeSensitivePropertyProvider(encryptionScheme);
         return SENSITIVE_PROPERTY_PROVIDER.unprotect(cipherText);
     }
 
     private static void initializeSensitivePropertyProvider(String encryptionScheme) throws SensitivePropertyProtectionException {
-        if (SENSITIVE_PROPERTY_PROVIDER == null || !SENSITIVE_PROPERTY_PROVIDER.getIdentifierKey().equalsIgnoreCase(encryptionScheme)) {
+        if (SENSITIVE_PROPERTY_PROVIDER == null) {
             try {
-                String keyHex = getMasterKey();
-                SENSITIVE_PROPERTY_PROVIDER_FACTORY = new AESSensitivePropertyProviderFactory(keyHex);
-                SENSITIVE_PROPERTY_PROVIDER = SENSITIVE_PROPERTY_PROVIDER_FACTORY.getProvider();
+                SENSITIVE_PROPERTY_PROVIDER = StandardSensitivePropertyProvider.fromKey(getMasterKey());
             } catch (IOException e) {
                 logger.error("Error extracting master key from bootstrap.conf for login identity provider decryption", e);
                 throw new SensitivePropertyProtectionException("Could not read master key from bootstrap.conf");

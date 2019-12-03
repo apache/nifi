@@ -18,9 +18,9 @@ package org.apache.nifi
 
 import ch.qos.logback.classic.spi.LoggingEvent
 import ch.qos.logback.core.AppenderBase
-import org.apache.nifi.properties.AESSensitivePropertyProvider
 import org.apache.nifi.properties.NiFiPropertiesLoader
 import org.apache.nifi.properties.StandardNiFiProperties
+import org.apache.nifi.properties.sensitive.StandardSensitivePropertyProvider
 import org.apache.nifi.util.NiFiProperties
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.junit.After
@@ -34,7 +34,6 @@ import org.slf4j.LoggerFactory
 import org.slf4j.bridge.SLF4JBridgeHandler
 
 import javax.crypto.Cipher
-import java.nio.file.Paths
 import java.security.Security
 
 @RunWith(JUnit4.class)
@@ -64,7 +63,6 @@ class NiFiGroovyTest extends GroovyTestCase {
 
     @After
     void tearDown() throws Exception {
-        NiFiPropertiesLoader.@sensitivePropertyProviderFactory = null
         TestAppender.reset()
         System.setIn(System.in)
     }
@@ -148,7 +146,7 @@ class NiFiGroovyTest extends GroovyTestCase {
         NiFi.main(args)
 
         // Assert
-        assert TestAppender.events.last().getMessage() == "Failure to launch NiFi due to java.lang.IllegalArgumentException: The bootstrap process did not provide a valid key"
+        assert TestAppender.events.last().getMessage() == "Failure to launch NiFi due to java.lang.IllegalArgumentException: There was an issue decrypting protected properties"
     }
 
     @Test
@@ -211,11 +209,11 @@ class NiFiGroovyTest extends GroovyTestCase {
         properties.getPropertyKeys().findAll { it.endsWith(".protected") }.collect { it - ".protected" }
     }
 
-    private static NiFiProperties decrypt(NiFiProperties encryptedProperties, String keyHex) {
-        AESSensitivePropertyProvider spp = new AESSensitivePropertyProvider(keyHex)
+    private static NiFiProperties decrypt(NiFiProperties encryptedProperties, String keyOrKeyId) {
+        def sensitivePropertyProvider = StandardSensitivePropertyProvider.fromKey(keyOrKeyId)
         def map = encryptedProperties.getPropertyKeys().collectEntries { String key ->
-            if (encryptedProperties.getProperty(key + ".protected") == spp.getIdentifierKey()) {
-                [(key): spp.unprotect(encryptedProperties.getProperty(key))]
+            if (encryptedProperties.getProperty(key + ".protected") == sensitivePropertyProvider.getIdentifierKey()) {
+                [(key): sensitivePropertyProvider.unprotect(encryptedProperties.getProperty(key))]
             } else if (!key.endsWith(".protected")) {
                 [(key): encryptedProperties.getProperty(key)]
             }

@@ -16,8 +16,9 @@
  */
 package org.apache.nifi.toolkit.encryptconfig.util
 
-import org.apache.nifi.properties.ProtectedNiFiProperties
-import org.apache.nifi.properties.SensitivePropertyProvider
+
+import org.apache.nifi.properties.sensitive.ProtectedNiFiProperties
+import org.apache.nifi.properties.sensitive.SensitivePropertyProvider
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
