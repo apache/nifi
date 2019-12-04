@@ -480,6 +480,25 @@ public class JMSConnectionFactoryProviderTest {
 
         runner.enableControllerService(cfProvider);
 
-        assertEquals(cfProvider.getSetProperties(), ImmutableMap.of("connectionNameList", HOSTNAME+"("+PORT+")"));
+        assertEquals(cfProvider.getSetProperties(), ImmutableMap.of("connectionNameList", HOSTNAME + "(" + PORT + ")"));
+    }
+
+    @Test
+    public void dynamicPropertiesSetOnSingleTestBrokerConnectionFactory() throws InitializationException {
+        TestRunner runner = TestRunners.newTestRunner(mock(Processor.class));
+
+        JMSConnectionFactoryProviderForTest cfProvider = new JMSConnectionFactoryProviderForTest();
+        runner.addControllerService(controllerServiceId, cfProvider);
+
+        runner.setVariable("test", "dynamicValue");
+
+        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.BROKER_URI, SINGLE_TEST_BROKER);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CLIENT_LIB_DIR_PATH, dummyResource);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CONNECTION_FACTORY_IMPL, TEST_CONNECTION_FACTORY_IMPL);
+        runner.setProperty(cfProvider, "dynamicProperty", "${test}");
+
+        runner.enableControllerService(cfProvider);
+
+        assertEquals(cfProvider.getSetProperties(), ImmutableMap.of("dynamicProperty", "dynamicValue", "hostName", HOSTNAME, "port", PORT));
     }
 }
