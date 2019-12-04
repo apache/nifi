@@ -55,14 +55,23 @@ public class NiFiAtlasHook extends AtlasHook implements LineageContext {
     }
 
     public void commitMessages() {
-        final NotificationSender notificationSender = new NotificationSender();
+        final NotificationSender notificationSender = createNotificationSender();
         notificationSender.setAtlasClient(atlasClient);
         notificationSender.send(messages, this::notifyEntities);
+        messages.clear();
     }
 
     public void close() {
         if (notificationInterface != null) {
             notificationInterface.close();
         }
+    }
+
+    NotificationSender createNotificationSender() {
+        return new NotificationSender();
+    }
+
+    List<HookNotificationMessage> getMessages() {
+        return messages;
     }
 }
