@@ -47,7 +47,7 @@ public class NiFiAtlasHook extends AtlasHook implements LineageContext {
     }
 
 
-    private final List<HookNotificationMessage> messages = new ArrayList<>();
+    private List<HookNotificationMessage> messages = new ArrayList<>();
 
     @Override
     public void addMessage(HookNotificationMessage message) {
@@ -58,7 +58,7 @@ public class NiFiAtlasHook extends AtlasHook implements LineageContext {
         final NotificationSender notificationSender = createNotificationSender();
         notificationSender.setAtlasClient(atlasClient);
         notificationSender.send(messages, this::notifyEntities);
-        messages.clear();
+        messages = new ArrayList<>();
     }
 
     public void close() {
