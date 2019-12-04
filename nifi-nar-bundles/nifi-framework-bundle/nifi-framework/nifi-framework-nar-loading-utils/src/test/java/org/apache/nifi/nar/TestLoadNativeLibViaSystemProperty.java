@@ -49,7 +49,7 @@ public class TestLoadNativeLibViaSystemProperty extends AbstractTestNarLoader {
 
     @BeforeClass
     public static void setUpClass() {
-        assumeTrue(new OSUtil(){}.isOsMac());
+        assumeTrue("Test only runs on Mac OS", new OSUtil(){}.isOsMac());
 
         oldJavaLibraryPath = System.getProperty("java.library.path");
         System.setProperty("java.library.path", "./src/test/resources/native");
@@ -57,7 +57,10 @@ public class TestLoadNativeLibViaSystemProperty extends AbstractTestNarLoader {
 
     @AfterClass
     public static void tearDownSuite() {
-        System.setProperty("java.library.path", oldJavaLibraryPath);
+        if (oldJavaLibraryPath != null) {
+            System.setProperty("java.library.path", oldJavaLibraryPath);
+            oldJavaLibraryPath = null;
+        }
     }
 
     @Test

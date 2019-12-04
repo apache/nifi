@@ -209,7 +209,7 @@ public class TestStandardProcessorNode {
     @Test
     public void testNativeLibLoadedFromDynamicallyModifiesClasspathProperty() throws Exception {
         // GIVEN
-        assumeTrue(new OSUtil(){}.isOsMac());
+        assumeTrue("Test only runs on Mac OS", new OSUtil(){}.isOsMac());
 
         // Init NiFi
         NarClassLoader narClassLoader = mock(NarClassLoader.class);

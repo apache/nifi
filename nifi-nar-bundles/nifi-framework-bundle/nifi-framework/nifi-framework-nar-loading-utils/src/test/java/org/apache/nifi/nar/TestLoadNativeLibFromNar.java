@@ -46,7 +46,7 @@ public class TestLoadNativeLibFromNar extends AbstractTestNarLoader {
 
     @BeforeClass
     public static void setUpSuite() {
-        assumeTrue(new OSUtil(){}.isOsMac());
+        assumeTrue("Test only runs on Mac OS", new OSUtil(){}.isOsMac());
     }
 
     @Test
