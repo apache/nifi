@@ -384,10 +384,10 @@ public class PutHive3Streaming extends AbstractProcessor {
 
         StreamingConnection hiveStreamingConnection = null;
 
-        try (final InputStream in = session.read(flowFile)) {
+        try {
             final RecordReader reader;
 
-            try {
+            try(final InputStream in = session.read(flowFile)) {
                 // if we fail to create the RecordReader then we want to route to failure, so we need to
                 // handle this separately from the other IOExceptions which normally route to retry
                 try {
@@ -409,7 +409,6 @@ public class PutHive3Streaming extends AbstractProcessor {
                 updateAttributes.put(ATTR_OUTPUT_TABLES, options.getQualifiedTableName());
                 flowFile = session.putAllAttributes(flowFile, updateAttributes);
                 session.getProvenanceReporter().send(flowFile, hiveStreamingConnection.getMetastoreUri());
-                session.transfer(flowFile, REL_SUCCESS);
             } catch (TransactionError te) {
                 if (rollbackOnFailure) {
                     throw new ProcessException(te.getLocalizedMessage(), te);
@@ -426,8 +425,10 @@ public class PutHive3Streaming extends AbstractProcessor {
                             rrfe
                     );
                     session.transfer(flowFile, REL_FAILURE);
+                    return;
                 }
             }
+            session.transfer(flowFile, REL_SUCCESS);
         } catch (InvalidTable | SerializationError | StreamingIOFailure | IOException e) {
             if (rollbackOnFailure) {
                 if (hiveStreamingConnection != null) {
