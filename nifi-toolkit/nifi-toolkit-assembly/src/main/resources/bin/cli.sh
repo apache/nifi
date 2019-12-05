@@ -94,10 +94,10 @@ apply_java_compatibility() {
     java_version="$("${JAVA}" -version 2>&1 | head -n 1 | awk -F '"' '{print $2}')"
 
     case "$java_version" in
-        9.*|10.*)
+        9*|10*)
             compatibility_arg="--add-modules=java.xml.bind"
             ;;
-        [1-9][1-9].*)
+        [1-9][1-9]*)
             # java versions 11-99
             compatibility_lib="${NIFI_TOOLKIT_HOME}/lib/java11/*"
             ;;
