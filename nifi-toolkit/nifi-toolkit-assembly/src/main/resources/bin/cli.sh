@@ -91,7 +91,7 @@ locateJava() {
 apply_java_compatibility() {
     compatibility_arg=""
     compatibility_lib=""
-    java_version="$(${JAVA} -version 2>&1 | head -n 1 | awk -F '"' '{print $2}')"
+    java_version="$("${JAVA}" -version 2>&1 | head -n 1 | awk -F '"' '{print $2}')"
 
     case "$java_version" in
         9.*|10.*)
