@@ -331,6 +331,10 @@ public class JoltTransformRecord extends AbstractProcessor {
                 final JoltTransform transform = getTransform(context, original);
                 final Record transformedFirstRecord = transform(firstRecord, transform);
 
+                if (transformedFirstRecord == null) {
+                    throw new ProcessException("Error transforming the first record");
+                }
+
                 final RecordSchema writeSchema = writerFactory.getSchema(original.getAttributes(), transformedFirstRecord.getSchema());
 
                 // TODO: Is it possible that two Records with the same input schema could have different schemas after transformation?
@@ -371,7 +375,9 @@ public class JoltTransformRecord extends AbstractProcessor {
         } catch (final Exception ex) {
             logger.error("Unable to transform {} due to {}", new Object[]{original, ex.toString(), ex});
             session.transfer(original, REL_FAILURE);
-            session.remove(transformed);
+            if (transformed != null) {
+                session.remove(transformed);
+            }
             return;
         }
         if (transformed != null) {
