@@ -248,6 +248,7 @@ public abstract class NiFiProperties {
     public static final String ANALYTICS_CONNECTION_MODEL_IMPLEMENTATION = "nifi.analytics.connection.model.implementation";
     public static final String ANALYTICS_CONNECTION_MODEL_SCORE_NAME= "nifi.analytics.connection.model.score.name";
     public static final String ANALYTICS_CONNECTION_MODEL_SCORE_THRESHOLD = "nifi.analytics.connection.model.score.threshold";
+    public static final String ANALYTICS_STATUS_GRAPH_DISPLAY_THRESHOLD = "nifi.analytics.status.graph.display.threshold";
 
     // defaults
     public static final Boolean DEFAULT_AUTO_RESUME_STATE = true;
@@ -321,10 +322,13 @@ public abstract class NiFiProperties {
     // analytics defaults
     public static final String DEFAULT_ANALYTICS_PREDICTION_ENABLED = "false";
     public static final String DEFAULT_ANALYTICS_PREDICTION_INTERVAL = "3 mins";
-    public static final String DEFAULT_ANALYTICS_QUERY_INTERVAL = "3 mins";
+    public static final String DEFAULT_ANALYTICS_QUERY_INTERVAL = "5 mins";
     public final static String DEFAULT_ANALYTICS_CONNECTION_MODEL_IMPLEMENTATION = "org.apache.nifi.controller.status.analytics.models.OrdinaryLeastSquares";
     public static final String DEFAULT_ANALYTICS_CONNECTION_SCORE_NAME = "rSquared";
     public static final double DEFAULT_ANALYTICS_CONNECTION_SCORE_THRESHOLD = .90;
+    // This is the time, below which the status history graph will actively display
+    // backpressure estimates if prediction analytics are enabled.
+    public static final String DEFAULT_ANALYTICS_STATUS_GRAPH_THRESHOLD = "6 hrs";
 
     /**
      * Retrieves the property value for the given property key.

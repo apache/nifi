@@ -216,6 +216,9 @@
         <nifi.analytics.connection.model.implementation>org.apache.nifi.controller.status.analytics.models.OrdinaryLeastSquares</nifi.analytics.connection.model.implementation>
         <nifi.analytics.connection.model.score.name>rSquared</nifi.analytics.connection.model.score.name>
         <nifi.analytics.connection.model.score.threshold>.90</nifi.analytics.connection.model.score.threshold>
+        <!-- The time in hours, below which the status history graph will actively display
+        backpressure estimates -->
+        <nifi.analytics.status.graph.display.threshold>6 hrs</nifi.analytics.status.graph.display.threshold>
     </properties>
     <build>
         <plugins>

@@ -65,6 +65,17 @@
         <property name="authorizer" ref="authorizer" />
     </bean>
 
+    <!-- enable backpressure status history graph display properties -->
+    <bean class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
+        <property name="staticMethod"
+                  value="org.apache.nifi.controller.status.history.ConnectionStatusDescriptor.setNifiProperties" />
+        <property name="arguments">
+            <list>
+                <ref bean="nifiProperties" />
+            </list>
+        </property>
+    </bean>
+
     <!-- bulletin repository -->
     <bean id="bulletinRepository" class="org.apache.nifi.events.VolatileBulletinRepository" />
 

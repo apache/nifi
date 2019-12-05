@@ -21,7 +21,7 @@ import java.util.List;
 public abstract class AbstractMetricDescriptor<T> implements MetricDescriptor<T> {
     private final IndexableMetric indexableMetric;
     private final String field;
-    private final String label;
+    private String label;
     private final String description;
     private final MetricDescriptor.Formatter formatter;
     private final ValueMapper<T> valueMapper;
@@ -94,5 +94,10 @@ public abstract class AbstractMetricDescriptor<T> implements MetricDescriptor<T>
 
             return sum;
         }
+    }
+
+    @Override
+    public void updateLabel(String label) {
+        this.label = label;
     }
 }

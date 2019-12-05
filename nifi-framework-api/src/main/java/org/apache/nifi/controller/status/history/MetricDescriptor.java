@@ -49,6 +49,14 @@ public interface MetricDescriptor<T> {
     String getLabel();
 
     /**
+     * no-op method that allows the MetricDescriptor labels to be updated.
+     * Used default method to not break existing interfaces using MetricDescriptor.
+     * Created to allow the backpressure graph label to be updated if prediction
+     * analytics are not implemented.
+     */
+    default void updateLabel(String lbl) {}
+
+    /**
      * @return the name of a field
      */
     String getField();

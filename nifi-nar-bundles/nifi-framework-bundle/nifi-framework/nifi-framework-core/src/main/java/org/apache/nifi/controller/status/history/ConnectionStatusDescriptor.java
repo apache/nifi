@@ -17,8 +17,16 @@
 
 package org.apache.nifi.controller.status.history;
 
+import java.util.concurrent.TimeUnit;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import org.apache.nifi.controller.status.ConnectionStatus;
 import org.apache.nifi.controller.status.history.MetricDescriptor.Formatter;
+import org.apache.nifi.util.FormatUtils;
+import org.apache.nifi.util.NiFiProperties;
+
 
 public enum ConnectionStatusDescriptor {
     INPUT_BYTES(
@@ -61,8 +69,16 @@ public enum ConnectionStatusDescriptor {
         "Queued Count",
         "The number of FlowFiles queued in this Connection",
         Formatter.COUNT,
-        s -> Long.valueOf(s.getQueuedCount()));
+        s -> Long.valueOf(s.getQueuedCount())),
 
+    TIME_TO_BACKPRESSURE(
+        "backpressureEstimate",
+        "Backpressure Estimate",
+        "The estimated time to Backpressure for this connection. " +
+            "(Values are only displayed if Prediction Analytics are enabled). " +
+            "A user-defined value limits the maximum value that will be displayed. Default: 6 hrs.",
+        Formatter.DURATION,
+        ConnectionStatusDescriptor::getGraphPoint);
 
     private MetricDescriptor<ConnectionStatus> descriptor;
 
@@ -78,5 +94,53 @@ public enum ConnectionStatusDescriptor {
 
     public MetricDescriptor<ConnectionStatus> getDescriptor() {
         return descriptor;
+    }
+
+    private static final Logger LOG = LoggerFactory.getLogger(ConnectionStatusDescriptor.class);
+
+    private static NiFiProperties nifiProperties;
+
+    public static void setNifiProperties(NiFiProperties nifiProperties) {
+        ConnectionStatusDescriptor.nifiProperties = nifiProperties;
+    }
+
+    private void updateLabel(String alabel) {
+        descriptor.updateLabel(alabel);
+    }
+
+    /**
+     * Return the point to be displayed on the backpressure status history graph.
+     */
+    static long getGraphPoint(ConnectionStatus status) {
+        if (status.getPredictions() == null) {
+            TIME_TO_BACKPRESSURE.updateLabel("Backpressure Estimate (Disabled)");
+            LOG.debug("StatusAnalyticsEngine not enabled.");
+            return -1L;
+        }
+        long maxPercentage = Math.max(status.getQueuedCount() / status.getBackPressureObjectThreshold(),
+            status.getQueuedBytes() / status.getBackPressureBytesThreshold());
+        if (maxPercentage >= 1) {
+            return 0L;
+        }
+        long graphThreshold = getStatusGraphThreshold();
+        long predictedTimeToCountBackpressure = Math.min(status.getPredictions().getPredictedTimeToCountBackpressureMillis(),
+            graphThreshold);
+        long predictedTimeToBytesBackpressure = Math.min(status.getPredictions().getPredictedTimeToBytesBackpressureMillis(),
+            graphThreshold);
+        if (predictedTimeToCountBackpressure + predictedTimeToBytesBackpressure == -2) {
+            return 0L;
+        }
+        if (predictedTimeToCountBackpressure * predictedTimeToBytesBackpressure < 0) {
+            return Math.max(predictedTimeToCountBackpressure, predictedTimeToBytesBackpressure);
+        }
+        return Math.min(predictedTimeToCountBackpressure, predictedTimeToBytesBackpressure);
+    }
+
+    private static long getStatusGraphThreshold() {
+        final String graphDisplayThreshold =
+            nifiProperties.getProperty(NiFiProperties.ANALYTICS_STATUS_GRAPH_DISPLAY_THRESHOLD,
+                NiFiProperties.DEFAULT_ANALYTICS_STATUS_GRAPH_THRESHOLD);
+        return Math.round(FormatUtils.getPreciseTimeDuration(graphDisplayThreshold,
+            TimeUnit.MILLISECONDS));
     }
 }
