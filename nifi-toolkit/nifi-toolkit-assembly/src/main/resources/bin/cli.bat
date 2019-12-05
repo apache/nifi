@@ -29,13 +29,13 @@ goto startConfig
 :startConfig
 set LIB_DIR=%~dp0..\classpath;%~dp0..\lib\
 if "%NIFI_TOOLKIT_HOME%" == "" (
+    set NIFI_TOOLKIT_HOME=%~dp0..
+) else (
     SET trailing_char=%NIFI_TOOLKIT_HOME:~-1%
     if "%trailing_char%" == "\" (set NIFI_TOOLKIT_HOME=%NIFI_TOOLKIT_HOME:~0,-1%)
-) else (
-    set NIFI_TOOLKIT_HOME=%~dp0..
 )
 if "%JAVA_OPTS%" == "" set JAVA_OPTS=-Xms128m -Xmx256m
-for /f tokens^=2-5^ delims^=.-+_^" %%j in ('%JAVA_EXE% -fullversion 2^>^&1') do (
+for /f tokens^=2-5^ delims^=.-+_^" %%j in ('"%JAVA_EXE%" -fullversion 2^>^&1') do (
     set "java_version=%%j%%k%%l%%m"
     set "major=%%j"
     set "minor=%%k"
@@ -45,10 +45,10 @@ for /f tokens^=2-5^ delims^=.-+_^" %%j in ('%JAVA_EXE% -fullversion 2^>^&1') do 
 set compatibility_arg=
 set compatibility_lib=
 if %major% EQU 9 (
-    set compatibility_arg="--add-modules=java.xml.bind"
+    set compatibility_arg=--add-modules=java.xml.bind
     echo Detected Java 9 runtime version
 ) else if %major% EQU 10 (
-    set compatibility_arg="--add-modules=java.xml.bind"
+    set compatibility_arg=--add-modules=java.xml.bind
     echo Detected Java 10 runtime version
 ) else if %major% GEQ 11 (
     set compatibility_lib=%NIFI_TOOLKIT_HOME%\lib\java11\
@@ -60,8 +60,10 @@ if not "%compatibility_lib%" == "" (
 ) else (
    set LIB_DIR="%LIB_DIR%*"
 )
-# remove surrounding quotes
+
+rem remove surrounding quotes
 SET LIB_DIR=%LIB_DIR:"=%
-set JAVA_OPTS=%JAVA_OPTS:"=%
+SET JAVA_OPTS=%JAVA_OPTS:"=%
+
 SET JAVA_PARAMS=-cp %LIB_DIR% %JAVA_OPTS% org.apache.nifi.toolkit.cli.CLIMain
 cmd.exe /C ""%JAVA_EXE%" %JAVA_PARAMS% %* "
