@@ -191,6 +191,8 @@ class NotificationSender {
      * @param notifier responsible for sending notification messages, its accept method can be called multiple times
      */
     void send(final List<HookNotification.HookNotificationMessage> messages, final Consumer<List<HookNotification.HookNotificationMessage>> notifier) {
+        logger.info("Sending {} messages to Atlas", messages.size());
+
         final Metrics metrics = new Metrics();
         try {
             metrics.totalMessages = messages.size();
