@@ -71,6 +71,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -120,6 +121,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
         .required(false)
         .identifiesControllerService(SSLContextService.class)
         .build();
+
     public static final PropertyDescriptor PROP_BASIC_AUTH_USERNAME = new PropertyDescriptor.Builder()
         .name("rest-lookup-basic-auth-username")
         .displayName("Basic Authentication Username")
@@ -138,6 +140,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
         .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("^[\\x20-\\x7e\\x80-\\xff]+$")))
         .build();
+
     public static final PropertyDescriptor PROP_DIGEST_AUTH = new PropertyDescriptor.Builder()
         .name("rest-lookup-digest-auth")
         .displayName("Use Digest Authentication")
@@ -146,6 +149,24 @@ public class RestLookupService extends AbstractControllerService implements Reco
         .required(false)
         .defaultValue("false")
         .allowableValues("true", "false")
+        .build();
+
+    public static final PropertyDescriptor PROP_CONNECT_TIMEOUT = new PropertyDescriptor.Builder()
+        .name("rest-lookup-connection-timeout")
+        .displayName("Connection Timeout")
+        .description("Max wait time for connection to remote service.")
+        .required(true)
+        .defaultValue("5 secs")
+        .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+        .build();
+
+    public static final PropertyDescriptor PROP_READ_TIMEOUT = new PropertyDescriptor.Builder()
+        .name("rest-lookup-read-timeout")
+        .displayName("Read Timeout")
+        .description("Max wait time for response from remote service.")
+        .required(true)
+        .defaultValue("15 secs")
+        .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
         .build();
 
     private static final ProxySpec[] PROXY_SPECS = {ProxySpec.HTTP_AUTH, ProxySpec.SOCKS};
@@ -170,7 +191,9 @@ public class RestLookupService extends AbstractControllerService implements Reco
             PROXY_CONFIGURATION_SERVICE,
             PROP_BASIC_AUTH_USERNAME,
             PROP_BASIC_AUTH_PASSWORD,
-            PROP_DIGEST_AUTH
+            PROP_DIGEST_AUTH,
+            PROP_CONNECT_TIMEOUT,
+            PROP_READ_TIMEOUT
         ));
         KEYS = Collections.emptySet();
     }
@@ -198,6 +221,10 @@ public class RestLookupService extends AbstractControllerService implements Reco
         OkHttpClient.Builder builder = new OkHttpClient.Builder();
 
         setAuthenticator(builder, context);
+
+        // Set timeouts
+        builder.connectTimeout((context.getProperty(PROP_CONNECT_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue()), TimeUnit.MILLISECONDS);
+        builder.readTimeout(context.getProperty(PROP_READ_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue(), TimeUnit.MILLISECONDS);
 
         if (proxyConfigurationService != null) {
             setProxy(builder);
