@@ -56,6 +56,7 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.remote.Transaction;
 import org.apache.nifi.remote.TransferDirection;
+import org.apache.nifi.reporting.s2s.SiteToSiteUtils;
 
 @Tags({"status", "metrics", "history", "site", "site to site"})
 @CapabilityDescription("Publishes Status events using the Site To Site protocol.  "
@@ -124,7 +125,7 @@ public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTa
         final ProcessGroupStatus procGroupStatus = context.getEventAccess().getControllerStatus();
         final String rootGroupName = procGroupStatus == null ? null : procGroupStatus.getName();
 
-        final String nifiUrl = context.getProperty(INSTANCE_URL).evaluateAttributeExpressions().getValue();
+        final String nifiUrl = context.getProperty(SiteToSiteUtils.INSTANCE_URL).evaluateAttributeExpressions().getValue();
         URL url;
         try {
             url = new URL(nifiUrl);
@@ -149,7 +150,7 @@ public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTa
 
         final JsonArray jsonArray = arrayBuilder.build();
 
-        final int batchSize = context.getProperty(BATCH_SIZE).asInteger();
+        final int batchSize = context.getProperty(SiteToSiteUtils.BATCH_SIZE).asInteger();
         int fromIndex = 0;
         int toIndex = Math.min(batchSize, jsonArray.size());
         List<JsonValue> jsonBatch = jsonArray.subList(fromIndex, toIndex);

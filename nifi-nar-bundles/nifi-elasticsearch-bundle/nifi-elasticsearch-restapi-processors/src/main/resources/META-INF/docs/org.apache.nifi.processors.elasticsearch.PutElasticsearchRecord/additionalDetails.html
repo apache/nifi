@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<head>
+    <meta charset="utf-8" />
+    <title>PutElasticsearchRecord</title>
+    <link rel="stylesheet" href="../../../../../css/component-usage.css" type="text/css" />
+</head>
+<body>
+    <p>This is a record-aware processor built for Elasticsearch 5 and later. The index and type fields are configured
+    with default values that can be overridden using record path operations that find an index or type value in the
+    record set. The ID and operation type (index, update, upsert or delete) can also be extracted in a similar fashion from
+    the record set. The following is an example of a document exercising all of these features:</p>
+    <pre>
+        {
+            "metadata": {
+                "id": "12345",
+                "index": "test",
+                "type": "message",
+                "operation": "index"
+            },
+            "message": "Hello, world",
+            "from": "john.smith"
+        }
+    </pre>
+    <pre>
+        {
+            "metadata": {
+                "id": "12345",
+                "index": "test",
+                "type": "message",
+                "operation": "delete"
+            }
+        }
+    </pre>
+    <p>The record path operations below would extract the relevant data:</p>
+    <ul>
+        <li>/metadata/id</li>
+        <li>/metadata/index</li>
+        <li>metadata/type</li>
+        <li>metadata/operation</li>
+    </ul>
+    <p>Valid values for "operation" are:</p>
+    <ul>
+        <li>delete</li>
+        <li>index</li>
+        <li>update</li>
+        <li>upsert</li>
+    </ul>
+</body>
+</html>

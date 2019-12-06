@@ -16,37 +16,6 @@
  */
 package org.apache.nifi.remote;
 
-import static java.util.Objects.requireNonNull;
-
-import java.io.IOException;
-import java.net.InetAddress;
-import java.net.NetworkInterface;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-import javax.net.ssl.SSLContext;
-import javax.ws.rs.core.Response;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.resource.Authorizable;
@@ -80,6 +49,38 @@ import org.apache.nifi.web.api.dto.ControllerDTO;
 import org.apache.nifi.web.api.dto.PortDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.net.ssl.SSLContext;
+import javax.ws.rs.core.Response;
+import java.io.IOException;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Represents the Root Process Group of a remote NiFi Instance. Holds
@@ -463,6 +464,8 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
     public void setInputPorts(final Set<RemoteProcessGroupPortDescriptor> ports, final boolean pruneUnusedPorts) {
         writeLock.lock();
         try {
+            logger.debug("Updating Input Ports for {}", this);
+
             final List<String> newPortTargetIds = new ArrayList<>();
             for (final RemoteProcessGroupPortDescriptor descriptor : ports) {
                 newPortTargetIds.add(descriptor.getTargetId());
@@ -483,8 +486,11 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
                     sendPort = inputPortByName.get(descriptor.getName());
                     if (sendPort == null) {
                         sendPort = addInputPort(descriptor);
+                        logger.info("Added Input Port {} with Name {} and Target Identifier {} to {}", sendPort.getIdentifier(), sendPort.getName(), sendPort.getTargetIdentifier(), this);
                     } else {
+                        final String previousTargetId = sendPort.getTargetIdentifier();
                         sendPort.setTargetIdentifier(descriptor.getTargetId());
+                        logger.info("Updated Target identifier for Input Port with Name {} from {} to {} for {}", descriptor.getName(), previousTargetId, descriptor.getTargetId(), this);
                     }
                 }
 
@@ -501,6 +507,8 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
             // a ConcurrentModificationException.
             if (pruneUnusedPorts) {
                 final Iterator<StandardRemoteGroupPort> itr = inputPorts.values().iterator();
+
+                int prunedCount = 0;
                 while (itr.hasNext()) {
                     final StandardRemoteGroupPort port = itr.next();
                     if (!newPortTargetIds.contains(port.getTargetIdentifier())) {
@@ -510,9 +518,19 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
                         // If port has incoming connection, it will be cleaned up when the connection is removed
                         if (!port.hasIncomingConnection()) {
                             itr.remove();
+                            logger.debug("Pruning unused Input Port {} from {}", port, this);
+                            prunedCount++;
                         }
                     }
                 }
+
+                if (prunedCount == 0) {
+                    logger.debug("There were no Input Ports to prune from {}", this);
+                } else {
+                    logger.debug("Successfully pruned {} unused Input Ports from {}", prunedCount, this);
+                }
+            } else {
+                logger.debug("Updated Input Ports for {} but did not attempt to prune any unused ports", this);
             }
         } finally {
             writeLock.unlock();
@@ -572,8 +590,11 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
                     receivePort = outputPortByName.get(descriptor.getName());
                     if (receivePort == null) {
                         receivePort = addOutputPort(descriptor);
+                        logger.info("Added Output Port {} with Name {} and Target Identifier {} to {}", receivePort.getIdentifier(), receivePort.getName(), receivePort.getTargetIdentifier(), this);
                     } else {
+                        final String previousTargetId = receivePort.getTargetIdentifier();
                         receivePort.setTargetIdentifier(descriptor.getTargetId());
+                        logger.info("Updated Target identifier for Output Port with Name {} from {} to {} for {}", descriptor.getName(), previousTargetId, descriptor.getTargetId(), this);
                     }
                 }
 
@@ -590,6 +611,8 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
             // a ConcurrentModificationException.
             if (pruneUnusedPorts) {
                 final Iterator<StandardRemoteGroupPort> itr = outputPorts.values().iterator();
+
+                int prunedCount = 0;
                 while (itr.hasNext()) {
                     final StandardRemoteGroupPort port = itr.next();
                     if (!newPortTargetIds.contains(port.getTargetIdentifier())) {
@@ -599,10 +622,20 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
                         // If port has connections, it will be cleaned up when connections are removed
                         if (port.getConnections().isEmpty()) {
                             itr.remove();
+                            logger.info("Pruning unused Output Port {} from {}", port, this);
                         }
                     }
                 }
+
+                if (prunedCount == 0) {
+                    logger.debug("There were no Output Ports to prune from {}", this);
+                } else {
+                    logger.debug("Successfully pruned {} unused Output Ports from {}", prunedCount, this);
+                }
+            } else {
+                logger.debug("Updated Output Ports for {} but did not attempt to prune any unused ports", this);
             }
+
         } finally {
             writeLock.unlock();
         }
@@ -882,6 +915,16 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
                 final RemoteProcessGroupCounts newCounts = new RemoteProcessGroupCounts(inputPortCount, outputPortCount);
                 setCounts(newCounts);
                 this.refreshContentsTimestamp = System.currentTimeMillis();
+
+                final List<String> inputPortString = dto.getInputPorts().stream()
+                    .map(port -> "InputPort[name=" + port.getName() + ", targetId=" + port.getId() + "]")
+                    .collect(Collectors.toList());
+                final List<String> outputPortString = dto.getInputPorts().stream()
+                    .map(port -> "OutputPort[name=" + port.getName() + ", targetId=" + port.getId() + "]")
+                    .collect(Collectors.toList());
+
+                logger.info("Successfully refreshed Flow Contents for {}; updated to reflect {} Input Ports {} and {} Output Ports {}", this, dto.getInputPorts().size(), inputPortString,
+                    dto.getOutputPorts().size(), outputPortString);
             } finally {
                 writeLock.unlock();
             }

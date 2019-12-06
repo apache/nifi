@@ -55,6 +55,7 @@ import org.apache.nifi.provenance.StandardProvenanceEventRecord;
 import org.apache.nifi.remote.Transaction;
 import org.apache.nifi.remote.TransferDirection;
 import org.apache.nifi.remote.client.SiteToSiteClient;
+import org.apache.nifi.reporting.s2s.SiteToSiteUtils;
 import org.apache.nifi.state.MockStateManager;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockPropertyValue;
@@ -202,7 +203,7 @@ public class TestSiteToSiteProvenanceReportingTask {
         for (final PropertyDescriptor descriptor : new MockSiteToSiteProvenanceReportingTask().getSupportedPropertyDescriptors()) {
             properties.put(descriptor, descriptor.getDefaultValue());
         }
-        properties.put(SiteToSiteProvenanceReportingTask.BATCH_SIZE, "1000");
+        properties.put(SiteToSiteUtils.BATCH_SIZE, "1000");
 
         ProvenanceEventRecord event = createProvenanceEventRecord();
 
@@ -228,7 +229,7 @@ public class TestSiteToSiteProvenanceReportingTask {
         for (final PropertyDescriptor descriptor : new MockSiteToSiteProvenanceReportingTask().getSupportedPropertyDescriptors()) {
             properties.put(descriptor, descriptor.getDefaultValue());
         }
-        properties.put(SiteToSiteProvenanceReportingTask.BATCH_SIZE, "1000");
+        properties.put(SiteToSiteUtils.BATCH_SIZE, "1000");
         properties.put(SiteToSiteStatusReportingTask.ALLOW_NULL_VALUES,"true");
 
         ProvenanceEventRecord event = createProvenanceEventRecord();
@@ -252,7 +253,7 @@ public class TestSiteToSiteProvenanceReportingTask {
         for (final PropertyDescriptor descriptor : new MockSiteToSiteProvenanceReportingTask().getSupportedPropertyDescriptors()) {
             properties.put(descriptor, descriptor.getDefaultValue());
         }
-        properties.put(SiteToSiteProvenanceReportingTask.BATCH_SIZE, "1000");
+        properties.put(SiteToSiteUtils.BATCH_SIZE, "1000");
         properties.put(SiteToSiteProvenanceReportingTask.FILTER_COMPONENT_ID, "2345, 5678,  1234");
 
         ProvenanceEventRecord event = createProvenanceEventRecord();
@@ -272,7 +273,7 @@ public class TestSiteToSiteProvenanceReportingTask {
         for (final PropertyDescriptor descriptor : new MockSiteToSiteProvenanceReportingTask().getSupportedPropertyDescriptors()) {
             properties.put(descriptor, descriptor.getDefaultValue());
         }
-        properties.put(SiteToSiteProvenanceReportingTask.BATCH_SIZE, "1000");
+        properties.put(SiteToSiteUtils.BATCH_SIZE, "1000");
         properties.put(SiteToSiteProvenanceReportingTask.FILTER_COMPONENT_ID, "9999");
 
         ProvenanceEventRecord event = createProvenanceEventRecord();
@@ -291,7 +292,7 @@ public class TestSiteToSiteProvenanceReportingTask {
         for (final PropertyDescriptor descriptor : new MockSiteToSiteProvenanceReportingTask().getSupportedPropertyDescriptors()) {
             properties.put(descriptor, descriptor.getDefaultValue());
         }
-        properties.put(SiteToSiteProvenanceReportingTask.BATCH_SIZE, "1000");
+        properties.put(SiteToSiteUtils.BATCH_SIZE, "1000");
         properties.put(SiteToSiteProvenanceReportingTask.FILTER_COMPONENT_TYPE, "dummy.*");
 
         ProvenanceEventRecord event = createProvenanceEventRecord();
@@ -310,7 +311,7 @@ public class TestSiteToSiteProvenanceReportingTask {
         for (final PropertyDescriptor descriptor : new MockSiteToSiteProvenanceReportingTask().getSupportedPropertyDescriptors()) {
             properties.put(descriptor, descriptor.getDefaultValue());
         }
-        properties.put(SiteToSiteProvenanceReportingTask.BATCH_SIZE, "1000");
+        properties.put(SiteToSiteUtils.BATCH_SIZE, "1000");
         properties.put(SiteToSiteProvenanceReportingTask.FILTER_COMPONENT_NAME, "Processor in .*");
         properties.put(SiteToSiteProvenanceReportingTask.FILTER_COMPONENT_NAME_EXCLUDE, ".*PGB");
 
@@ -342,7 +343,7 @@ public class TestSiteToSiteProvenanceReportingTask {
         for (final PropertyDescriptor descriptor : new MockSiteToSiteProvenanceReportingTask().getSupportedPropertyDescriptors()) {
             properties.put(descriptor, descriptor.getDefaultValue());
         }
-        properties.put(SiteToSiteProvenanceReportingTask.BATCH_SIZE, "1000");
+        properties.put(SiteToSiteUtils.BATCH_SIZE, "1000");
         properties.put(SiteToSiteProvenanceReportingTask.FILTER_COMPONENT_TYPE_EXCLUDE, "dummy.*");
 
         ProvenanceEventRecord event = createProvenanceEventRecord();
@@ -361,7 +362,7 @@ public class TestSiteToSiteProvenanceReportingTask {
         for (final PropertyDescriptor descriptor : new MockSiteToSiteProvenanceReportingTask().getSupportedPropertyDescriptors()) {
             properties.put(descriptor, descriptor.getDefaultValue());
         }
-        properties.put(SiteToSiteProvenanceReportingTask.BATCH_SIZE, "1000");
+        properties.put(SiteToSiteUtils.BATCH_SIZE, "1000");
         properties.put(SiteToSiteProvenanceReportingTask.FILTER_COMPONENT_TYPE, "proc.*");
 
         ProvenanceEventRecord event = createProvenanceEventRecord();
@@ -380,7 +381,7 @@ public class TestSiteToSiteProvenanceReportingTask {
         for (final PropertyDescriptor descriptor : new MockSiteToSiteProvenanceReportingTask().getSupportedPropertyDescriptors()) {
             properties.put(descriptor, descriptor.getDefaultValue());
         }
-        properties.put(SiteToSiteProvenanceReportingTask.BATCH_SIZE, "1000");
+        properties.put(SiteToSiteUtils.BATCH_SIZE, "1000");
         properties.put(SiteToSiteProvenanceReportingTask.FILTER_COMPONENT_TYPE_EXCLUDE, "proc.*");
 
         ProvenanceEventRecord event = createProvenanceEventRecord();
@@ -399,7 +400,7 @@ public class TestSiteToSiteProvenanceReportingTask {
         for (final PropertyDescriptor descriptor : new MockSiteToSiteProvenanceReportingTask().getSupportedPropertyDescriptors()) {
             properties.put(descriptor, descriptor.getDefaultValue());
         }
-        properties.put(SiteToSiteProvenanceReportingTask.BATCH_SIZE, "1000");
+        properties.put(SiteToSiteUtils.BATCH_SIZE, "1000");
         properties.put(SiteToSiteProvenanceReportingTask.FILTER_EVENT_TYPE, "RECEIVE, notExistingType, DROP");
 
         ProvenanceEventRecord event = createProvenanceEventRecord();
@@ -418,7 +419,7 @@ public class TestSiteToSiteProvenanceReportingTask {
         for (final PropertyDescriptor descriptor : new MockSiteToSiteProvenanceReportingTask().getSupportedPropertyDescriptors()) {
             properties.put(descriptor, descriptor.getDefaultValue());
         }
-        properties.put(SiteToSiteProvenanceReportingTask.BATCH_SIZE, "1000");
+        properties.put(SiteToSiteUtils.BATCH_SIZE, "1000");
         properties.put(SiteToSiteProvenanceReportingTask.FILTER_EVENT_TYPE_EXCLUDE, "RECEIVE, notExistingType, DROP");
 
         ProvenanceEventRecord event = createProvenanceEventRecord();
@@ -437,7 +438,7 @@ public class TestSiteToSiteProvenanceReportingTask {
         for (final PropertyDescriptor descriptor : new MockSiteToSiteProvenanceReportingTask().getSupportedPropertyDescriptors()) {
             properties.put(descriptor, descriptor.getDefaultValue());
         }
-        properties.put(SiteToSiteProvenanceReportingTask.BATCH_SIZE, "1000");
+        properties.put(SiteToSiteUtils.BATCH_SIZE, "1000");
         properties.put(SiteToSiteProvenanceReportingTask.FILTER_EVENT_TYPE, "DROP");
 
         ProvenanceEventRecord event = createProvenanceEventRecord();
@@ -456,7 +457,7 @@ public class TestSiteToSiteProvenanceReportingTask {
         for (final PropertyDescriptor descriptor : new MockSiteToSiteProvenanceReportingTask().getSupportedPropertyDescriptors()) {
             properties.put(descriptor, descriptor.getDefaultValue());
         }
-        properties.put(SiteToSiteProvenanceReportingTask.BATCH_SIZE, "1000");
+        properties.put(SiteToSiteUtils.BATCH_SIZE, "1000");
         properties.put(SiteToSiteProvenanceReportingTask.FILTER_COMPONENT_ID, "2345, 5678,  1234");
         properties.put(SiteToSiteProvenanceReportingTask.FILTER_COMPONENT_TYPE, "dummy.*");
         properties.put(SiteToSiteProvenanceReportingTask.FILTER_EVENT_TYPE, "DROP");
@@ -477,7 +478,7 @@ public class TestSiteToSiteProvenanceReportingTask {
         for (final PropertyDescriptor descriptor : new MockSiteToSiteProvenanceReportingTask().getSupportedPropertyDescriptors()) {
             properties.put(descriptor, descriptor.getDefaultValue());
         }
-        properties.put(SiteToSiteProvenanceReportingTask.BATCH_SIZE, "1000");
+        properties.put(SiteToSiteUtils.BATCH_SIZE, "1000");
         properties.put(SiteToSiteProvenanceReportingTask.FILTER_COMPONENT_ID, "2345, 5678,  1234");
         properties.put(SiteToSiteProvenanceReportingTask.FILTER_COMPONENT_TYPE, "dummy.*");
         properties.put(SiteToSiteProvenanceReportingTask.FILTER_EVENT_TYPE, "RECEIVE");
@@ -498,7 +499,7 @@ public class TestSiteToSiteProvenanceReportingTask {
         for (final PropertyDescriptor descriptor : new MockSiteToSiteProvenanceReportingTask().getSupportedPropertyDescriptors()) {
             properties.put(descriptor, descriptor.getDefaultValue());
         }
-        properties.put(SiteToSiteProvenanceReportingTask.BATCH_SIZE, "1000");
+        properties.put(SiteToSiteUtils.BATCH_SIZE, "1000");
         properties.put(SiteToSiteProvenanceReportingTask.FILTER_COMPONENT_TYPE_EXCLUDE, "dummy.*");
         properties.put(SiteToSiteProvenanceReportingTask.FILTER_EVENT_TYPE, "RECEIVE");
 
@@ -518,7 +519,7 @@ public class TestSiteToSiteProvenanceReportingTask {
         for (final PropertyDescriptor descriptor : new MockSiteToSiteProvenanceReportingTask().getSupportedPropertyDescriptors()) {
             properties.put(descriptor, descriptor.getDefaultValue());
         }
-        properties.put(SiteToSiteProvenanceReportingTask.BATCH_SIZE, "1000");
+        properties.put(SiteToSiteUtils.BATCH_SIZE, "1000");
         properties.put(SiteToSiteProvenanceReportingTask.FILTER_COMPONENT_ID, "pgB2");
 
 
@@ -563,7 +564,7 @@ public class TestSiteToSiteProvenanceReportingTask {
         for (final PropertyDescriptor descriptor : new MockSiteToSiteProvenanceReportingTask().getSupportedPropertyDescriptors()) {
             properties.put(descriptor, descriptor.getDefaultValue());
         }
-        properties.put(SiteToSiteProvenanceReportingTask.BATCH_SIZE, "1000");
+        properties.put(SiteToSiteUtils.BATCH_SIZE, "1000");
         properties.put(SiteToSiteProvenanceReportingTask.FILTER_COMPONENT_ID, "riB2,roB3");
 
 

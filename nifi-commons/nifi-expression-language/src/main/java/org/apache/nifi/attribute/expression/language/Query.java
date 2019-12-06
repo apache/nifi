@@ -332,19 +332,19 @@ public class Query {
 
                 if (range.getStart() > lastIndex) {
                     String substring = unescapeLeadingDollarSigns(query.substring(lastIndex, range.getStart()));
-                    addLiteralsAndParameters(parameterParser, substring, expressions);
+                    addLiteralsAndParameters(parameterParser, substring, expressions, true);
                 }
 
-                addLiteralsAndParameters(parameterParser, treeText, expressions);
+                addLiteralsAndParameters(parameterParser, treeText, expressions, true);
             }
 
             if (escapedRanges.isEmpty()) {
-                addLiteralsAndParameters(parameterParser, query, expressions);
+                addLiteralsAndParameters(parameterParser, query, expressions, true);
             } else {
                 final Range lastRange = escapedRanges.get(escapedRanges.size() - 1);
                 if (lastRange.getEnd() + 1 < query.length()) {
                     final String treeText = unescapeLeadingDollarSigns(query.substring(lastRange.getEnd() + 1));
-                    addLiteralsAndParameters(parameterParser, treeText, expressions);
+                    addLiteralsAndParameters(parameterParser, treeText, expressions, true);
                 }
             }
 
@@ -375,7 +375,11 @@ public class Query {
                         substring = unescapeTrailingDollarSigns(substring, false);
                     }
 
-                    addLiteralsAndParameters(parameterParser, substring, expressions);
+                    // Do not allow sensitive parameters to be referenced because this is within an actual Expression.
+                    // For example, ${#{sensitiveParam}} is not allowed. However, we do support referencing sensitive parameters
+                    // for the use case of simply #{sensitiveParam} outside of an Expression. In such a case, the PreparedQuery will
+                    // still be used to evaluate this, since all Property Values are evaluated through PreparedQueries.
+                    addLiteralsAndParameters(parameterParser, substring, expressions, false);
                 }
 
                 expressions.add(compiledExpression);
@@ -386,7 +390,7 @@ public class Query {
             final Range lastRange = ranges.get(ranges.size() - 1);
             if (lastRange.getEnd() + 1 < query.length()) {
                 final String treeText = unescapeLeadingDollarSigns(query.substring(lastRange.getEnd() + 1));
-                addLiteralsAndParameters(parameterParser, treeText, expressions);
+                addLiteralsAndParameters(parameterParser, treeText, expressions, false);
             }
 
             return new StandardPreparedQuery(expressions);
@@ -395,7 +399,7 @@ public class Query {
         }
     }
 
-    private static void addLiteralsAndParameters(final ParameterParser parser, final String input, final List<Expression> expressions) {
+    private static void addLiteralsAndParameters(final ParameterParser parser, final String input, final List<Expression> expressions, final boolean allowSensitiveParameterReference) {
         final ParameterTokenList references = parser.parseTokens(input);
         int index = 0;
 
@@ -416,7 +420,7 @@ public class Query {
 
             if (token.isParameterReference()) {
                 final ParameterReference parameterReference = (ParameterReference) token;
-                expressions.add(new ParameterExpression(parameterReference.getParameterName()));
+                expressions.add(new ParameterExpression(parameterReference.getParameterName(), allowSensitiveParameterReference));
             } else {
                 expressions.add(new StringLiteralExpression(token.getValue(ParameterLookup.EMPTY)));
             }

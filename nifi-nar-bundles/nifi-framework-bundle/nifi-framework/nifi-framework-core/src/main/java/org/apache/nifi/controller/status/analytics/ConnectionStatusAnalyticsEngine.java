@@ -35,20 +35,20 @@ public class ConnectionStatusAnalyticsEngine implements StatusAnalyticsEngine {
     protected final ComponentStatusRepository statusRepository;
     protected final FlowManager flowManager;
     protected final FlowFileEventRepository flowFileEventRepository;
-    protected final Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> modelMap;
+    protected final StatusAnalyticsModelMapFactory statusAnalyticsModelMapFactory;
     protected final long predictionIntervalMillis;
     protected final long queryIntervalMillis;
     protected final String scoreName;
     protected final double scoreThreshold;
 
     public ConnectionStatusAnalyticsEngine(FlowManager flowManager, ComponentStatusRepository statusRepository, FlowFileEventRepository flowFileEventRepository,
-                                           Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> modelMap, long predictionIntervalMillis,
+                                           StatusAnalyticsModelMapFactory statusAnalyticsModelMapFactory, long predictionIntervalMillis,
                                            long queryIntervalMillis, String scoreName, double scoreThreshold) {
         this.flowManager = flowManager;
         this.statusRepository = statusRepository;
         this.flowFileEventRepository = flowFileEventRepository;
         this.predictionIntervalMillis = predictionIntervalMillis;
-        this.modelMap = modelMap;
+        this.statusAnalyticsModelMapFactory = statusAnalyticsModelMapFactory;
         this.queryIntervalMillis = queryIntervalMillis;
         this.scoreName = scoreName;
         this.scoreThreshold = scoreThreshold;
@@ -61,6 +61,7 @@ public class ConnectionStatusAnalyticsEngine implements StatusAnalyticsEngine {
      */
     @Override
     public StatusAnalytics getStatusAnalytics(String identifier) {
+        Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> modelMap = statusAnalyticsModelMapFactory.getConnectionStatusModelMap();
         ConnectionStatusAnalytics connectionStatusAnalytics = new ConnectionStatusAnalytics(statusRepository, flowManager, flowFileEventRepository, modelMap, identifier, false);
         connectionStatusAnalytics.setIntervalTimeMillis(predictionIntervalMillis);
         connectionStatusAnalytics.setQueryIntervalMillis(queryIntervalMillis);

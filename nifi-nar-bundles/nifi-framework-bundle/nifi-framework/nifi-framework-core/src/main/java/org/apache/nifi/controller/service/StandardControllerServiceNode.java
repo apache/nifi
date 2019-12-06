@@ -413,16 +413,17 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
                     final ConfigurationContext configContext = new StandardConfigurationContext(StandardControllerServiceNode.this, controllerServiceProvider, null, getVariableRegistry());
 
                     if (!isActive()) {
-                        LOG.debug("{} is no longer active so will not attempt to enable it", StandardControllerServiceNode.this);
+                        LOG.warn("{} is no longer active so will no longer attempt to enable it", StandardControllerServiceNode.this);
                         stateTransition.disable();
+                        future.complete(null);
                         return;
                     }
 
                     final ValidationStatus validationStatus = getValidationStatus();
                     if (validationStatus != ValidationStatus.VALID) {
-                        LOG.debug("Cannot enable {} because it is not currently valid. Will try again in 5 seconds", StandardControllerServiceNode.this);
-                        scheduler.schedule(this, 5, TimeUnit.SECONDS);
-                        future.completeExceptionally(new ControllerServiceNotValidException(this + " cannot be enabled because it is not currently valid. Will try again in 5 seconds."));
+                        LOG.debug("Cannot enable {} because it is not currently valid. (Validation State is {}). Will try again in 1 second", StandardControllerServiceNode.this, getValidationState());
+                        scheduler.schedule(this, 1, TimeUnit.SECONDS);
+                        future.complete(null);
                         return;
                     }
 
@@ -433,15 +434,16 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
 
                         boolean shouldEnable;
                         synchronized (active) {
-                            shouldEnable = active.get() && stateTransition.enable();
+                            shouldEnable = active.get() && stateTransition.enable(); // Transitioning the state to ENABLED will complete our future.
                         }
 
                         if (!shouldEnable) {
-                            LOG.debug("Disabling service {} after it has been enabled due to disable action being initiated.", service);
+                            LOG.info("Disabling service {} after it has been enabled due to disable action being initiated.", service);
                             // Can only happen if user initiated DISABLE operation before service finished enabling. It's state will be
                             // set to DISABLING (see disable() operation)
                             invokeDisable(configContext);
                             stateTransition.disable();
+                            future.complete(null);
                         } else {
                             LOG.info("Successfully enabled {}", service);
                         }
@@ -569,19 +571,14 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
 
     @Override
     public String toString() {
-        String bundleCoordinate;
-        try {
-            bundleCoordinate = controllerServiceHolder.get().getBundleCoordinate().toString();
-        } catch (NullPointerException e) {
-            bundleCoordinate = "null";
-        }
-        return "StandardControllerServiceNode{" +
-                "controllerServiceHolder=" + bundleCoordinate +
+        final ControllerServiceDetails details = controllerServiceHolder.get();
+        final String bundleCoordinate = details == null ? "null" : String.valueOf(details.getBundleCoordinate());
+        return "StandardControllerServiceNode[" +
+                "service=" + super.toString() +
                 ", versionedComponentId=" + versionedComponentId +
-                ", comment='" + comment + '\'' +
                 ", processGroup=" + processGroup +
                 ", active=" + active +
-                '}';
+                ']';
     }
 
     @Override

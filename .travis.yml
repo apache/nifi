@@ -6,7 +6,7 @@
 # the License. You may obtain a copy of the License at
 #
 # http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -47,7 +47,7 @@ matrix:
       jdk: openjdk8
       script: >-
         mvn clean install -V -T 1C
-        -pl `find . -type d \( -name "*-nar" -or -name "*-assembly" -or -name "*hive3*" \) -and -not -name "*api-nar" -and -not -path "*/target/*" -and -not -name "*__*" -printf "!./%P,"`
+        -pl `find . -type d \( -name "*-nar" -or -name "*-assembly" -or -name "*hive3*" -or -name "nifi-system-test*" \) -and -not -name "*api-nar" -and -not -path "*/target/*" -and -not -name "*__*" -printf "!./%P,"`
         -Pcontrib-check,include-grpc -Ddir-only
         -Dmaven.surefire.arguments="-Duser.language=en -Duser.region=US"
         | grep -v -F -f .travis-output-filters
@@ -57,7 +57,7 @@ matrix:
       jdk: openjdk8
       script: >-
         mvn clean install -V -T 1C
-        -pl `find . -type d \( -name "*-nar" -or -name "*-assembly" -or -name "*hive3*" \) -and -not -name "*api-nar" -and -not -path "*/target/*" -and -not -name "*__*" -printf "!./%P,"`
+        -pl `find . -type d \( -name "*-nar" -or -name "*-assembly" -or -name "*hive3*" -or -name "nifi-system-test*" \) -and -not -name "*api-nar" -and -not -path "*/target/*" -and -not -name "*__*" -printf "!./%P,"`
         -Pcontrib-check,include-grpc -Ddir-only
         -Dmaven.surefire.arguments="-Duser.language=fr -Duser.region=FR"
         | grep -v -F -f .travis-output-filters
@@ -67,7 +67,7 @@ matrix:
       jdk: openjdk8
       script: >-
         mvn clean install -V -T 1C
-        -pl `find . -type d \( -name "*-nar" -or -name "*-assembly" -or -name "*hive3*" \) -and -not -name "*api-nar" -and -not -path "*/target/*" -and -not -name "*__*" -printf "!./%P,"`
+        -pl `find . -type d \( -name "*-nar" -or -name "*-assembly" -or -name "*hive3*" -or -name "nifi-system-test*" \) -and -not -name "*api-nar" -and -not -path "*/target/*" -and -not -name "*__*" -printf "!./%P,"`
         -Pcontrib-check,include-grpc -Ddir-only
         -Dmaven.surefire.arguments="-Duser.language=ja -Duser.region=JP"
         | grep -v -F -f .travis-output-filters
@@ -87,7 +87,7 @@ matrix:
       script:
         - >-
           mvn clean install -V -T 1C
-          -pl `find . -type d \( -name "*-nar" -or -name "*-assembly" -or -name "*hive3*" \) -and -not -name "*api-nar" -and -not -path "*/target/*" -and -not -name "*__*" -printf "!./%P,"`
+          -pl `find . -type d \( -name "*-nar" -or -name "*-assembly" -or -name "*hive3*" -or -name "nifi-system-test*" \) -and -not -name "*api-nar" -and -not -path "*/target/*" -and -not -name "*__*" -printf "!./%P,"`
           -Pcontrib-check,include-grpc -Ddir-only
           -Dmaven.surefire.arguments="-Duser.language=en -Duser.region=US"
           | grep -v -F -f .travis-output-filters

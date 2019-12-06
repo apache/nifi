@@ -99,6 +99,15 @@ public class PutKudu extends AbstractKuduProcessor {
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
 
+    protected static final PropertyDescriptor LOWERCASE_FIELD_NAMES = new Builder()
+            .name("Lowercase Field Names")
+            .description("Convert column names to lowercase when finding index of Kudu table columns")
+            .defaultValue("false")
+            .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .build();
+
     protected static final PropertyDescriptor INSERT_OPERATION = new Builder()
         .name("Insert Operation")
         .displayName("Kudu Operation Type")
@@ -166,11 +175,10 @@ public class PutKudu extends AbstractKuduProcessor {
 
     public static final String RECORD_COUNT_ATTR = "record.count";
 
-    protected OperationType operationType;
-    protected SessionConfiguration.FlushMode flushMode;
-
+    // Properties set in onScheduled.
     protected int batchSize = 100;
     protected int ffbatch   = 1;
+    protected SessionConfiguration.FlushMode flushMode;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -179,6 +187,7 @@ public class PutKudu extends AbstractKuduProcessor {
         properties.add(TABLE_NAME);
         properties.add(KERBEROS_CREDENTIALS_SERVICE);
         properties.add(SKIP_HEAD_LINE);
+        properties.add(LOWERCASE_FIELD_NAMES);
         properties.add(RECORD_READER);
         properties.add(INSERT_OPERATION);
         properties.add(FLUSH_MODE);
@@ -198,9 +207,6 @@ public class PutKudu extends AbstractKuduProcessor {
         return rels;
     }
 
-    protected KerberosUser kerberosUser;
-    protected KuduSession kuduSession;
-
     @OnScheduled
     public void onScheduled(final ProcessContext context) throws IOException, LoginException {
         batchSize = context.getProperty(BATCH_SIZE).evaluateAttributeExpressions().asInteger();
@@ -215,9 +221,8 @@ public class PutKudu extends AbstractKuduProcessor {
         if (flowFiles.isEmpty()) {
             return;
         }
-        kerberosUser = getKerberosUser();
 
-        final KerberosUser user = kerberosUser;
+        final KerberosUser user = getKerberosUser();
         if (user == null) {
             trigger(context, session, flowFiles);
             return;
@@ -236,27 +241,40 @@ public class PutKudu extends AbstractKuduProcessor {
         final RecordReaderFactory recordReaderFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
 
         final KuduClient kuduClient = getKuduClient();
-        kuduSession = getKuduSession(kuduClient);
+        final KuduSession kuduSession = createKuduSession(kuduClient);
 
         final Map<FlowFile, Integer> numRecords = new HashMap<>();
         final Map<FlowFile, Object> flowFileFailures = new HashMap<>();
         final Map<Operation, FlowFile> operationFlowFileMap = new HashMap<>();
 
         int numBuffered = 0;
+        OperationType prevOperationType = OperationType.INSERT;
         final List<RowError> pendingRowErrors = new ArrayList<>();
         for (FlowFile flowFile : flowFiles) {
-            operationType = OperationType.valueOf(context.getProperty(INSERT_OPERATION).evaluateAttributeExpressions(flowFile).getValue());
-            Boolean ignoreNull = Boolean.valueOf(context.getProperty(IGNORE_NULL).evaluateAttributeExpressions(flowFile).getValue());
+            final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions(flowFile).getValue();
+            final OperationType operationType = OperationType.valueOf(context.getProperty(INSERT_OPERATION).evaluateAttributeExpressions(flowFile).getValue());
+            final Boolean ignoreNull = Boolean.valueOf(context.getProperty(IGNORE_NULL).evaluateAttributeExpressions(flowFile).getValue());
+            final Boolean lowercaseFields = Boolean.valueOf(context.getProperty(LOWERCASE_FIELD_NAMES).evaluateAttributeExpressions(flowFile).getValue());
+
             try (final InputStream in = session.read(flowFile);
                 final RecordReader recordReader = recordReaderFactory.createRecordReader(flowFile, in, getLogger())) {
-                final List<String> fieldNames = recordReader.getSchema().getFieldNames();
                 final RecordSet recordSet = recordReader.createRecordSet();
-                final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions(flowFile).getValue();
+                final List<String> fieldNames = recordReader.getSchema().getFieldNames();
                 final KuduTable kuduTable = kuduClient.openTable(tableName);
+
+                // In the case of INSERT_IGNORE the Kudu session is modified to ignore row errors.
+                // Because the session is shared across flow files, for batching efficiency, we
+                // need to flush when changing to and from INSERT_IGNORE operation types.
+                // This should be updated and simplified when KUDU-1563 is completed.
+                if (prevOperationType != operationType && (prevOperationType == OperationType.INSERT_IGNORE || operationType == OperationType.INSERT_IGNORE)) {
+                    flushKuduSession(kuduSession, false, pendingRowErrors);
+                    kuduSession.setIgnoreAllDuplicateRows(operationType == OperationType.INSERT_IGNORE);
+                }
+                prevOperationType = operationType;
 
                 Record record = recordSet.next();
                 while (record != null) {
-                    Operation operation = getKuduOperationType(operationType, record, fieldNames, ignoreNull, kuduTable);
+                    Operation operation = createKuduOperation(operationType, record, fieldNames, ignoreNull, lowercaseFields, kuduTable);
                     // We keep track of mappings between Operations and their origins,
                     // so that we know which FlowFiles should be marked failure after buffered flush.
                     operationFlowFileMap.put(operation, flowFile);
@@ -330,31 +348,26 @@ public class PutKudu extends AbstractKuduProcessor {
         session.adjustCounter("Records Inserted", totalCount, false);
     }
 
-
-    protected KuduSession getKuduSession(final KuduClient client) {
+    protected KuduSession createKuduSession(final KuduClient client) {
         final KuduSession kuduSession = client.newSession();
         kuduSession.setMutationBufferSpace(batchSize);
         kuduSession.setFlushMode(flushMode);
-
-        if (operationType == OperationType.INSERT_IGNORE) {
-            kuduSession.setIgnoreAllDuplicateRows(true);
-        }
-
         return kuduSession;
     }
 
-    private Operation getKuduOperationType(OperationType operationType, Record record, List<String> fieldNames, Boolean ignoreNull, KuduTable kuduTable) {
+    private Operation createKuduOperation(OperationType operationType, Record record,
+                                          List<String> fieldNames, Boolean ignoreNull,
+                                          Boolean lowercaseFields, KuduTable kuduTable) {
         switch (operationType) {
             case DELETE:
-                return deleteRecordFromKudu(kuduTable, record, fieldNames, ignoreNull);
+                return deleteRecordFromKudu(kuduTable, record, fieldNames, ignoreNull, lowercaseFields);
             case INSERT:
-                return insertRecordToKudu(kuduTable, record, fieldNames, ignoreNull);
             case INSERT_IGNORE:
-                return insertRecordToKudu(kuduTable, record, fieldNames, ignoreNull);
+                return insertRecordToKudu(kuduTable, record, fieldNames, ignoreNull, lowercaseFields);
             case UPSERT:
-                return upsertRecordToKudu(kuduTable, record, fieldNames, ignoreNull);
+                return upsertRecordToKudu(kuduTable, record, fieldNames, ignoreNull, lowercaseFields);
             case UPDATE:
-                return updateRecordToKudu(kuduTable, record, fieldNames, ignoreNull);
+                return updateRecordToKudu(kuduTable, record, fieldNames, ignoreNull, lowercaseFields);
             default:
                 throw new IllegalArgumentException(String.format("OperationType: %s not supported by Kudu", operationType));
         }

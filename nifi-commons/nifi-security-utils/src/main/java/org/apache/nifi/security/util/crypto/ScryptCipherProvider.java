@@ -25,6 +25,7 @@ import java.util.regex.Pattern;
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
+
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.binary.Hex;
@@ -78,6 +79,36 @@ public class ScryptCipherProvider extends RandomIVPBECipherProvider {
         if (p < DEFAULT_P) {
             logger.warn("The provided parallelization factor {} is below the recommended minimum {}", p, DEFAULT_P);
         }
+        if (!isPValid(r, p)) {
+            logger.warn("Based on the provided block size {}, the provided parallelization factor {} is out of bounds", r, p);
+            throw new IllegalArgumentException("Invalid p value exceeds p boundary");
+        }
+    }
+
+    /**
+     * Returns whether the provided parallelization factor (p value) is within boundaries. The lower bound > 0 and the
+     * upper bound is calculated based on the provided block size (r value).
+     * @param r the block size in bytes
+     * @param p the parallelization factor
+     * @return true if p is within boundaries
+     */
+    public static boolean isPValid(int r, int p) {
+        if (!isRValid(r)){
+            logger.warn("The provided block size {} must be greater than 0", r);
+            throw new IllegalArgumentException("Invalid r value; must be greater than 0");
+        }
+        // Calculate p boundary
+        double pBoundary = ((Math.pow(2, 32)) - 1) * (32.0 / (r * 128));
+        return p <= pBoundary && p > 0;
+    }
+
+    /**
+     * Returns whether the provided block size (r value) is a positive integer or not.
+     * @param r the block size in bytes
+     * @return true if r is a positive integer
+     */
+    public static boolean isRValid(int r) {
+        return r > 0;
     }
 
     /**
@@ -112,7 +143,7 @@ public class ScryptCipherProvider extends RandomIVPBECipherProvider {
 
     /**
      * Returns an initialized cipher for the specified algorithm. The key (and IV if necessary) are derived by the KDF of the implementation.
-     *
+     * <p>
      * The IV can be retrieved by the calling method using {@link Cipher#getIV()}.
      *
      * @param encryptionMethod the {@link EncryptionMethod}

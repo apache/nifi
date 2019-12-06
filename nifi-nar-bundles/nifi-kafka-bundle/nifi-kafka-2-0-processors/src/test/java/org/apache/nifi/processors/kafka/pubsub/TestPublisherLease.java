@@ -94,7 +94,7 @@ public class TestPublisherLease {
         };
 
         try {
-            lease.publish(flowFile, failureInputStream, messageKey, demarcatorBytes, topic);
+            lease.publish(flowFile, failureInputStream, messageKey, demarcatorBytes, topic, null);
             Assert.fail("Expected IOException");
         } catch (final IOException ioe) {
             // expected
@@ -133,7 +133,7 @@ public class TestPublisherLease {
             }
         }).when(producer).send(any(ProducerRecord.class), any(Callback.class));
 
-        lease.publish(flowFile, new ByteArrayInputStream(new byte[1]), messageKey, demarcatorBytes, topic);
+        lease.publish(flowFile, new ByteArrayInputStream(new byte[1]), messageKey, demarcatorBytes, topic, null);
 
         assertEquals(1, poisonCount.get());
 
@@ -178,16 +178,16 @@ public class TestPublisherLease {
         final byte[] demarcatorBytes = "\n".getBytes(StandardCharsets.UTF_8);
 
         final byte[] flowFileContent = "1234567890\n1234567890\n1234567890\n\n\n\n1234567890\n\n\n1234567890\n\n\n\n".getBytes(StandardCharsets.UTF_8);
-        lease.publish(flowFile, new ByteArrayInputStream(flowFileContent), messageKey, demarcatorBytes, topic);
+        lease.publish(flowFile, new ByteArrayInputStream(flowFileContent), messageKey, demarcatorBytes, topic, null);
 
         final byte[] flowFileContent2 = new byte[0];
-        lease.publish(new MockFlowFile(2L), new ByteArrayInputStream(flowFileContent2), messageKey, demarcatorBytes, topic);
+        lease.publish(new MockFlowFile(2L), new ByteArrayInputStream(flowFileContent2), messageKey, demarcatorBytes, topic, null);
 
         final byte[] flowFileContent3 = "1234567890\n1234567890".getBytes(StandardCharsets.UTF_8); // no trailing new line
-        lease.publish(new MockFlowFile(3L), new ByteArrayInputStream(flowFileContent3), messageKey, demarcatorBytes, topic);
+        lease.publish(new MockFlowFile(3L), new ByteArrayInputStream(flowFileContent3), messageKey, demarcatorBytes, topic, null);
 
         final byte[] flowFileContent4 = "\n\n\n".getBytes(StandardCharsets.UTF_8);
-        lease.publish(new MockFlowFile(4L), new ByteArrayInputStream(flowFileContent4), messageKey, demarcatorBytes, topic);
+        lease.publish(new MockFlowFile(4L), new ByteArrayInputStream(flowFileContent4), messageKey, demarcatorBytes, topic, null);
 
         assertEquals(0, poisonCount.get());
 
@@ -239,7 +239,7 @@ public class TestPublisherLease {
         final byte[] demarcatorBytes = null;
 
         final byte[] flowFileContent = new byte[0];
-        lease.publish(flowFile, new ByteArrayInputStream(flowFileContent), messageKey, demarcatorBytes, topic);
+        lease.publish(flowFile, new ByteArrayInputStream(flowFileContent), messageKey, demarcatorBytes, topic, null);
 
         assertEquals(0, poisonCount.get());
 
@@ -278,7 +278,7 @@ public class TestPublisherLease {
 
         Mockito.when(writerFactory.createWriter(eq(logger), eq(schema), any(), eq(flowFile))).thenReturn(writer);
 
-        lease.publish(flowFile, recordSet, writerFactory, schema, keyField, topic);
+        lease.publish(flowFile, recordSet, writerFactory, schema, keyField, topic, null);
 
         verify(writerFactory, times(2)).createWriter(eq(logger), eq(schema), any(), eq(flowFile));
         verify(writer, times(2)).write(any(Record.class));

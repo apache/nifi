@@ -360,6 +360,7 @@ public class TestExecuteSQL {
 
         runner.setIncomingConnection(false);
         runner.setProperty(ExecuteSQL.MAX_ROWS_PER_FLOW_FILE, "5");
+        runner.setProperty(AbstractExecuteSQL.FETCH_SIZE, "5");
         runner.setProperty(ExecuteSQL.OUTPUT_BATCH_SIZE, "0");
         runner.setProperty(ExecuteSQL.SQL_SELECT_QUERY, "SELECT * FROM TEST_NULL_INT");
         runner.run();

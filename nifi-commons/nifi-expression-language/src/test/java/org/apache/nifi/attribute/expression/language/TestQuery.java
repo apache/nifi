@@ -158,6 +158,25 @@ public class TestQuery {
     }
 
     @Test
+    public void testStringEL() {
+        final Map<String, String> attrs = new HashMap<>();
+        attrs.put("employee.gender", "male  ");
+        attrs.put("employee.name", "Harry Potter");
+        attrs.put("id", "1234");
+        attrs.put("sql.query", "SELECT * FROM table WHERE ID = ${id}");
+
+        String query = "${sql.query:evaluateELString()}";
+        String query1 = "${employee.name:evaluateELString()}";
+        String query2 = "${employee.name:evaluateELString():toUpper()}";
+        String query3 = "${employee.gender:trim():evaluateELString()}";
+
+        verifyEquals(query, attrs, "SELECT * FROM table WHERE ID = 1234");
+        verifyEquals(query1, attrs, "Harry Potter");
+        verifyEquals(query2, attrs, "HARRY POTTER");
+        verifyEquals(query3, attrs, "male");
+    }
+
+    @Test
     public void testCompileEmbedded() {
         final String expression = "${x:equals( ${y} )}";
         final Query query = Query.compile(expression);
@@ -2077,6 +2096,45 @@ public class TestQuery {
         verifyEquals("${attr:padRight(9999999999, \"abc\")}", attributes, "hello");
         verifyEmpty("${nonExistingAttr:padRight(10, \"abc\")}", attributes);
         verifyEmpty("${nullString:padRight(10, \"@\")}", attributes);
+    }
+
+    @Test
+    public void testRepeat() {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("str", "abc");
+
+        verifyEquals("${not_exist:repeat(1, 2)}", attributes, "");
+        verifyEquals("${str:repeat(1, 1)}", attributes, "abc");
+
+        // Custom verify because the result could be one of multiple options
+        String multipleResultExpression = "${str:repeat(1, 3)}";
+        String multipleResultExpectedResult1 = "abc";
+        String multipleResultExpectedResult2 = "abcabc";
+        String multipleResultExpectedResult3 = "abcabcabc";
+        List<String> multipleResultExpectedResults = Arrays.asList(multipleResultExpectedResult1, multipleResultExpectedResult2, multipleResultExpectedResult3);
+        Query.validateExpression(multipleResultExpression, false);
+        final String actualResult = Query.evaluateExpressions(multipleResultExpression, attributes, null, null, ParameterLookup.EMPTY);
+        assertTrue(multipleResultExpectedResults.contains(actualResult));
+
+        verifyEquals("${str:repeat(4)}", attributes, "abcabcabcabc");
+        try {
+            verifyEquals("${str:repeat(-1)}", attributes, "");
+            fail("Should have failed on numRepeats < 0");
+        } catch(AttributeExpressionLanguageException aele) {
+            // Do nothing, it is expected
+        }
+        try {
+            verifyEquals("${str:repeat(0)}", attributes, "");
+            fail("Should have failed on numRepeats = 0");
+        } catch(AttributeExpressionLanguageException aele) {
+            // Do nothing, it is expected
+        }
+        try {
+            verifyEquals("${str:repeat(2,1)}", attributes, "");
+            fail("Should have failed on minRepeats > maxRepeats");
+        } catch(AttributeExpressionLanguageException aele) {
+            // Do nothing, it is expected
+        }
     }
 
     private void verifyEquals(final String expression, final Map<String, String> attributes, final Object expectedResult) {

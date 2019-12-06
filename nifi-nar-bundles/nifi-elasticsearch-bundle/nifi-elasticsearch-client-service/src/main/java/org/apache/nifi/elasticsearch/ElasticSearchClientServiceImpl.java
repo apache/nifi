@@ -17,9 +17,9 @@
 
 package org.apache.nifi.elasticsearch;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.io.IOUtils;
-import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
@@ -27,25 +27,21 @@ import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.entity.ContentType;
 import org.apache.http.impl.client.BasicCredentialsProvider;
+import org.apache.http.message.BasicHeader;
 import org.apache.http.nio.entity.NStringEntity;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.ssl.SSLContextService;
-import org.elasticsearch.action.bulk.BulkRequest;
-import org.elasticsearch.action.bulk.BulkResponse;
-import org.elasticsearch.action.delete.DeleteRequest;
-import org.elasticsearch.action.get.GetRequest;
-import org.elasticsearch.action.get.GetResponse;
-import org.elasticsearch.action.index.IndexRequest;
-import org.elasticsearch.action.support.WriteRequest;
+import org.apache.nifi.util.StopWatch;
+import org.apache.nifi.util.StringUtils;
 import org.elasticsearch.client.Response;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
-import org.elasticsearch.client.RestHighLevelClient;
 
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
@@ -59,6 +55,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 public class ElasticSearchClientServiceImpl extends AbstractControllerService implements ElasticSearchClientService {
     private ObjectMapper mapper = new ObjectMapper();
@@ -66,7 +63,6 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
     static final private List<PropertyDescriptor> properties;
 
     private RestClient client;
-    private RestHighLevelClient highLevelClient;
 
     private String url;
     private Charset charset;
@@ -158,10 +154,9 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
             .setMaxRetryTimeoutMillis(retryTimeout);
 
         this.client = builder.build();
-        this.highLevelClient = new RestHighLevelClient(client);
     }
 
-    private Response runQuery(String endpoint, String query, String index, String type) throws IOException {
+    private Response runQuery(String endpoint, String query, String index, String type) {
         StringBuilder sb = new StringBuilder()
             .append("/")
             .append(index);
@@ -174,68 +169,153 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
 
         HttpEntity queryEntity = new NStringEntity(query, ContentType.APPLICATION_JSON);
 
-        return client.performRequest("POST", sb.toString(), Collections.emptyMap(), queryEntity);
+        try {
+            return client.performRequest("POST", sb.toString(), Collections.emptyMap(), queryEntity);
+        } catch (Exception e) {
+            throw new ElasticsearchError(e);
+        }
     }
 
-    private Map<String, Object> parseResponse(Response response) throws IOException {
+    private Map<String, Object> parseResponse(Response response) {
         final int code = response.getStatusLine().getStatusCode();
 
-        if (code >= 200 & code < 300) {
-            InputStream inputStream = response.getEntity().getContent();
-            byte[] result = IOUtils.toByteArray(inputStream);
-            inputStream.close();
-            return mapper.readValue(new String(result, charset), Map.class);
-        } else {
-            String errorMessage = String.format("ElasticSearch reported an error while trying to run the query: %s",
-                response.getStatusLine().getReasonPhrase());
-            throw new IOException(errorMessage);
+        try {
+            if (code >= 200 & code < 300) {
+                InputStream inputStream = response.getEntity().getContent();
+                byte[] result = IOUtils.toByteArray(inputStream);
+                inputStream.close();
+                return mapper.readValue(new String(result, charset), Map.class);
+            } else {
+                String errorMessage = String.format("ElasticSearch reported an error while trying to run the query: %s",
+                        response.getStatusLine().getReasonPhrase());
+                throw new IOException(errorMessage);
+            }
+        } catch (Exception ex) {
+            throw new ElasticsearchError(ex);
         }
     }
 
     @Override
-    public IndexOperationResponse add(IndexOperationRequest operation) throws IOException {
-        return add(Arrays.asList(operation));
+    public IndexOperationResponse add(IndexOperationRequest operation) {
+        return bulk(Arrays.asList(operation));
     }
 
-    @Override
-    public IndexOperationResponse add(List<IndexOperationRequest> operations) throws IOException {
-        BulkRequest bulkRequest = new BulkRequest();
-        for (int index = 0; index < operations.size(); index++) {
-            IndexOperationRequest or = operations.get(index);
-            IndexRequest indexRequest = new IndexRequest(or.getIndex(), or.getType(), or.getId())
-                .source(or.getFields());
-            bulkRequest.add(indexRequest);
+    private String flatten(String str) {
+        return str.replaceAll("[\\n\\r]", "\\\\n");
+    }
+
+    private String buildBulkHeader(IndexOperationRequest request) throws JsonProcessingException {
+        String operation = request.getOperation().equals(IndexOperationRequest.Operation.Upsert)
+                ? "update"
+                : request.getOperation().getValue();
+        return buildBulkHeader(operation, request.getIndex(), request.getType(), request.getId());
+    }
+
+    private String buildBulkHeader(String operation, String index, String type, String id) throws JsonProcessingException {
+        Map<String, Object> header = new HashMap<String, Object>() {{
+            put(operation, new HashMap<String, Object>() {{
+                put("_index", index);
+                put("_id", id);
+                put("_type", type);
+            }});
+        }};
+
+        return flatten(mapper.writeValueAsString(header));
+    }
+
+    protected void buildRequest(IndexOperationRequest request, StringBuilder builder) throws JsonProcessingException {
+        String header = buildBulkHeader(request);
+        builder.append(header).append("\n");
+        if (request.getOperation().equals(IndexOperationRequest.Operation.Index)) {
+            String indexDocument = mapper.writeValueAsString(request.getFields());
+            builder.append(indexDocument).append("\n");
+        } else if (request.getOperation().equals(IndexOperationRequest.Operation.Update)
+            || request.getOperation().equals(IndexOperationRequest.Operation.Upsert)) {
+            Map<String, Object> doc = new HashMap<String, Object>() {{
+                put("doc", request.getFields());
+                if (request.getOperation().equals(IndexOperationRequest.Operation.Upsert)) {
+                    put("doc_as_upsert", true);
+                }
+            }};
+            String update = flatten(mapper.writeValueAsString(doc)).trim();
+            builder.append(String.format("%s\n", update));
         }
-
-        bulkRequest.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
-
-        BulkResponse response = highLevelClient.bulk(bulkRequest);
-        IndexOperationResponse retVal = new IndexOperationResponse(response.getTookInMillis(), response.getIngestTookInMillis());
-
-        return retVal;
     }
 
     @Override
-    public DeleteOperationResponse deleteById(String index, String type, String id) throws IOException {
+    public IndexOperationResponse bulk(List<IndexOperationRequest> operations) {
+        try {
+            StringBuilder payload = new StringBuilder();
+            for (int index = 0; index < operations.size(); index++) {
+                IndexOperationRequest or = operations.get(index);
+                buildRequest(or, payload);
+            }
+
+            if (getLogger().isDebugEnabled()) {
+                getLogger().debug(payload.toString());
+            }
+            HttpEntity entity = new NStringEntity(payload.toString(), ContentType.APPLICATION_JSON);
+            StopWatch watch = new StopWatch();
+            watch.start();
+            Response response = client.performRequest("POST", "/_bulk", Collections.emptyMap(), entity);
+            watch.stop();
+
+            String rawResponse = IOUtils.toString(response.getEntity().getContent(), "UTF-8");
+
+            if (getLogger().isDebugEnabled()) {
+                getLogger().debug(String.format("Response was: %s", rawResponse));
+            }
+
+            IndexOperationResponse retVal = IndexOperationResponse.fromJsonResponse(rawResponse);
+
+            return retVal;
+        } catch (Exception ex) {
+            throw new ElasticsearchError(ex);
+        }
+    }
+
+    @Override
+    public Long count(String query, String index, String type) {
+        Response response = runQuery("_count", query, index, type);
+        Map<String, Object> parsed = parseResponse(response);
+
+        return ((Integer)parsed.get("count")).longValue();
+    }
+
+    @Override
+    public DeleteOperationResponse deleteById(String index, String type, String id) {
         return deleteById(index, type, Arrays.asList(id));
     }
 
     @Override
-    public DeleteOperationResponse deleteById(String index, String type, List<String> ids) throws IOException {
-        BulkRequest bulk = new BulkRequest();
-        for (int idx = 0; idx < ids.size(); idx++) {
-            DeleteRequest request = new DeleteRequest(index, type, ids.get(idx));
-            bulk.add(request);
+    public DeleteOperationResponse deleteById(String index, String type, List<String> ids) {
+        try {
+            StringBuilder sb = new StringBuilder();
+            for (int idx = 0; idx < ids.size(); idx++) {
+                String header = buildBulkHeader("delete", index, type, ids.get(idx));
+                sb.append(header).append("\n");
+            }
+            HttpEntity entity = new NStringEntity(sb.toString(), ContentType.APPLICATION_JSON);
+            StopWatch watch = new StopWatch();
+            watch.start();
+            Response response = client.performRequest("POST", "/_bulk", Collections.emptyMap(), entity);
+            watch.stop();
+
+            if (getLogger().isDebugEnabled()) {
+                getLogger().debug(String.format("Response for bulk delete: %s",
+                        IOUtils.toString(response.getEntity().getContent(), "UTF-8")));
+            }
+
+            DeleteOperationResponse dor = new DeleteOperationResponse(watch.getDuration(TimeUnit.MILLISECONDS));
+
+            return dor;
+        } catch (Exception ex) {
+            throw new RuntimeException(ex);
         }
-        BulkResponse response = highLevelClient.bulk(bulk);
-
-        DeleteOperationResponse dor = new DeleteOperationResponse(response.getTookInMillis());
-
-        return dor;
     }
 
     @Override
-    public DeleteOperationResponse deleteByQuery(String query, String index, String type) throws IOException {
+    public DeleteOperationResponse deleteByQuery(String query, String index, String type) {
         long start = System.currentTimeMillis();
         Response response = runQuery("_delete_by_query", query, index, type);
         long end   = System.currentTimeMillis();
@@ -245,14 +325,40 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
     }
 
     @Override
-    public Map<String, Object> get(String index, String type, String id) throws IOException {
-        GetRequest get = new GetRequest(index, type, id);
-        GetResponse resp = highLevelClient.get(get, new Header[]{});
-        return resp.getSource();
+    public Map<String, Object> get(String index, String type, String id) {
+        try {
+            StringBuilder endpoint = new StringBuilder();
+            endpoint.append(index);
+            if (!StringUtils.isEmpty(type)) {
+                endpoint.append("/").append(type);
+            }
+            endpoint.append("/").append(id);
+            Response response = client.performRequest("GET", endpoint.toString(), new BasicHeader("Content-Type", "application/json"));
+
+            String body = IOUtils.toString(response.getEntity().getContent(), "UTF-8");
+
+            return (Map<String, Object>) mapper.readValue(body, Map.class).get("_source");
+        } catch (Exception ex) {
+            getLogger().error("", ex);
+            return null;
+        }
+    }
+
+    /*
+     * In pre-7.X ElasticSearch, it should return just a number. 7.X and after they are returning a map.
+     */
+    private int handleSearchCount(Object raw) {
+        if (raw instanceof Number) {
+            return Integer.valueOf(raw.toString());
+        } else if (raw instanceof Map) {
+            return (Integer)((Map)raw).get("value");
+        } else {
+            throw new ProcessException("Unknown type for hit count.");
+        }
     }
 
     @Override
-    public SearchResponse search(String query, String index, String type) throws IOException {
+    public SearchResponse search(String query, String index, String type) {
         Response response = runQuery("_search", query, index, type);
         Map<String, Object> parsed = parseResponse(response);
 
@@ -261,7 +367,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
         Map<String, Object> aggregations = parsed.get("aggregations") != null
                 ? (Map<String, Object>)parsed.get("aggregations") : new HashMap<>();
         Map<String, Object> hitsParent = (Map<String, Object>)parsed.get("hits");
-        int count = (Integer)hitsParent.get("total");
+        int count = handleSearchCount(hitsParent.get("total"));
         List<Map<String, Object>> hits = (List<Map<String, Object>>)hitsParent.get("hits");
 
         SearchResponse esr = new SearchResponse(hits, aggregations, count, took, timedOut);

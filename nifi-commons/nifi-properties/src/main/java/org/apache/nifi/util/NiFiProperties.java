@@ -93,6 +93,10 @@ public abstract class NiFiProperties {
     public static final String CONTENT_ARCHIVE_ENABLED = "nifi.content.repository.archive.enabled";
     public static final String CONTENT_ARCHIVE_CLEANUP_FREQUENCY = "nifi.content.repository.archive.cleanup.frequency";
     public static final String CONTENT_VIEWER_URL = "nifi.content.viewer.url";
+    public static final String CONTENT_REPOSITORY_ENCRYPTION_KEY = "nifi.content.repository.encryption.key";
+    public static final String CONTENT_REPOSITORY_ENCRYPTION_KEY_ID = "nifi.content.repository.encryption.key.id";
+    public static final String CONTENT_REPOSITORY_ENCRYPTION_KEY_PROVIDER_IMPLEMENTATION_CLASS = "nifi.content.repository.encryption.key.provider.implementation";
+    public static final String CONTENT_REPOSITORY_ENCRYPTION_KEY_PROVIDER_LOCATION = "nifi.content.repository.encryption.key.provider.location";
 
     // flowfile repository properties
     public static final String FLOWFILE_REPOSITORY_IMPLEMENTATION = "nifi.flowfile.repository.implementation";
@@ -1254,7 +1258,7 @@ public abstract class NiFiProperties {
         final String vrPropertiesFiles = getVariableRegistryProperties();
         if (!StringUtils.isEmpty(vrPropertiesFiles)) {
 
-            final List<String> vrPropertiesFileList = Arrays.asList(vrPropertiesFiles.split(","));
+            final String[] vrPropertiesFileList = vrPropertiesFiles.split(",");
 
             for (String propertiesFile : vrPropertiesFileList) {
                 vrPropertiesPaths.add(Paths.get(propertiesFile));
@@ -1362,6 +1366,55 @@ public abstract class NiFiProperties {
         return keys;
     }
 
+    public String getContentRepositoryEncryptionKeyId() {
+        return getProperty(CONTENT_REPOSITORY_ENCRYPTION_KEY_ID);
+    }
+
+    /**
+     * Returns the active content repository encryption key if a {@code StaticKeyProvider} is in use.
+     * If no key ID is specified in the properties file, the default
+     * {@code nifi.content.repository.encryption.key} value is returned. If a key ID is specified in
+     * {@code nifi.content.repository.encryption.key.id}, it will attempt to read from
+     * {@code nifi.content.repository.encryption.key.id.XYZ} where {@code XYZ} is the provided key
+     * ID. If that value is empty, it will use the default property
+     * {@code nifi.content.repository.encryption.key}.
+     *
+     * @return the content repository encryption key in hex form
+     */
+    public String getContentRepositoryEncryptionKey() {
+        String keyId = getContentRepositoryEncryptionKeyId();
+        String keyKey = StringUtils.isBlank(keyId) ? CONTENT_REPOSITORY_ENCRYPTION_KEY : CONTENT_REPOSITORY_ENCRYPTION_KEY + ".id." + keyId;
+        return getProperty(keyKey, getProperty(CONTENT_REPOSITORY_ENCRYPTION_KEY));
+    }
+
+    /**
+     * Returns a map of keyId -> key in hex loaded from the {@code nifi.properties} file if a
+     * {@code StaticKeyProvider} is defined. If {@code FileBasedKeyProvider} is defined, use
+     * {@code CryptoUtils#readKeys()} instead -- this method will return an empty map.
+     *
+     * @return a Map of the keys identified by key ID
+     */
+    public Map<String, String> getContentRepositoryEncryptionKeys() {
+        // TODO: Duplicate logic with different constants as provenance should be refactored to helper method
+        Map<String, String> keys = new HashMap<>();
+        List<String> keyProperties = getContentRepositoryEncryptionKeyProperties();
+
+        // Retrieve the actual key values and store non-empty values in the map
+        for (String prop : keyProperties) {
+            final String value = getProperty(prop);
+            if (!StringUtils.isBlank(value)) {
+                if (prop.equalsIgnoreCase(CONTENT_REPOSITORY_ENCRYPTION_KEY)) {
+                    prop = getContentRepositoryEncryptionKeyId();
+                } else {
+                    // Extract nifi.content.repository.encryption.key.id.key1 -> key1
+                    prop = prop.substring(prop.lastIndexOf(".") + 1);
+                }
+                keys.put(prop, value);
+            }
+        }
+        return keys;
+    }
+
     /**
      * Returns the whitelisted proxy hostnames (and IP addresses) as a comma-delimited string.
      * The hosts have been normalized to the form {@code somehost.com}, {@code somehost.com:port}, or {@code 127.0.0.1}.
@@ -1434,6 +1487,13 @@ public abstract class NiFiProperties {
         // Filter all the property keys that define a key
         return getPropertyKeys().stream().filter(k ->
                 k.startsWith(PROVENANCE_REPO_ENCRYPTION_KEY_ID + ".") || k.equalsIgnoreCase(PROVENANCE_REPO_ENCRYPTION_KEY)
+        ).collect(Collectors.toList());
+    }
+
+    private List<String> getContentRepositoryEncryptionKeyProperties() {
+        // Filter all the property keys that define a key
+        return getPropertyKeys().stream().filter(k ->
+                k.startsWith(CONTENT_REPOSITORY_ENCRYPTION_KEY_ID + ".") || k.equalsIgnoreCase(CONTENT_REPOSITORY_ENCRYPTION_KEY)
         ).collect(Collectors.toList());
     }
 

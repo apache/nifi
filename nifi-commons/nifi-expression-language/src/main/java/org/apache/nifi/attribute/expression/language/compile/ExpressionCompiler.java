@@ -89,6 +89,7 @@ import org.apache.nifi.attribute.expression.language.evaluation.functions.PadRig
 import org.apache.nifi.attribute.expression.language.evaluation.functions.PlusEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.PrependEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.RandomNumberGeneratorEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.functions.RepeatEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.ReplaceAllEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.ReplaceEmptyEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.ReplaceEvaluator;
@@ -106,6 +107,7 @@ import org.apache.nifi.attribute.expression.language.evaluation.functions.ToLowe
 import org.apache.nifi.attribute.expression.language.evaluation.functions.ToRadixEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.ToStringEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.ToUpperEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.functions.EvaluateELStringEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.TrimEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.UrlDecodeEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.UrlEncodeEvaluator;
@@ -207,6 +209,7 @@ import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpre
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.PLUS;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.PREPEND;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.RANDOM;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.REPEAT;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.REPLACE;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.REPLACE_ALL;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.REPLACE_EMPTY;
@@ -239,6 +242,7 @@ import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpre
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.URL_ENCODE;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.UUID;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.WHOLE_NUMBER;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.EVALUATE_EL_STRING;
 
 public class ExpressionCompiler {
     private final Set<Evaluator<?>> evaluators = new HashSet<>();
@@ -567,6 +571,10 @@ public class ExpressionCompiler {
                 verifyArgCount(argEvaluators, 0, "toUpper");
                 return addToken(new ToUpperEvaluator(toStringEvaluator(subjectEvaluator)), "toUpper");
             }
+            case EVALUATE_EL_STRING: {
+                verifyArgCount(argEvaluators, 0, "evaluateELString");
+                return addToken(new EvaluateELStringEvaluator(toStringEvaluator(subjectEvaluator)), "evaluateELString");
+            }
             case URL_ENCODE: {
                 verifyArgCount(argEvaluators, 0, "urlEncode");
                 return addToken(new UrlEncodeEvaluator(toStringEvaluator(subjectEvaluator)), "urlEncode");
@@ -713,6 +721,19 @@ public class ExpressionCompiler {
                         toWholeNumberEvaluator(argEvaluators.get(1), "second argument to substring")), "substring");
                 } else {
                     throw new AttributeExpressionLanguageParsingException("substring() function can take either 1 or 2 arguments but cannot take " + numArgs + " arguments");
+                }
+            }
+            case REPEAT: {
+                final int numArgs = argEvaluators.size();
+                if (numArgs == 1) {
+                    return addToken(new RepeatEvaluator(toStringEvaluator(subjectEvaluator),
+                            toWholeNumberEvaluator(argEvaluators.get(0), "first argument to repeat")), "repeat");
+                } else if (numArgs == 2) {
+                    return addToken(new RepeatEvaluator(toStringEvaluator(subjectEvaluator),
+                            toWholeNumberEvaluator(argEvaluators.get(0), "first argument to repeat"),
+                            toWholeNumberEvaluator(argEvaluators.get(1), "second argument to repeat")), "repeat");
+                } else {
+                    throw new AttributeExpressionLanguageParsingException("repeat() function can take either 1 or 2 arguments but cannot take " + numArgs + " arguments");
                 }
             }
             case JOIN: {

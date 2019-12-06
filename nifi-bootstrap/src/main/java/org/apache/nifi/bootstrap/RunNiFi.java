@@ -234,10 +234,10 @@ public class RunNiFi {
         Integer exitStatus = null;
         switch (cmd.toLowerCase()) {
             case "start":
-                runNiFi.start();
+                runNiFi.start(true);
                 break;
             case "run":
-                runNiFi.start();
+                runNiFi.start(true);
                 break;
             case "stop":
                 runNiFi.stop();
@@ -247,7 +247,7 @@ public class RunNiFi {
                 break;
             case "restart":
                 runNiFi.stop();
-                runNiFi.start();
+                runNiFi.start(true);
                 break;
             case "dump":
                 runNiFi.dump(dumpFile);
@@ -945,7 +945,7 @@ public class RunNiFi {
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
-    public void start() throws IOException, InterruptedException {
+    public void start(final boolean monitor) throws IOException {
         final Integer port = getCurrentPort(cmdLogger);
         if (port != null) {
             cmdLogger.info("Apache NiFi is already running, listening to Bootstrap on port " + port);
@@ -1145,8 +1145,6 @@ public class RunNiFi {
         }
 
         shutdownHook = new ShutdownHook(process, this, secretKey, gracefulShutdownSeconds, loggingExecutor);
-        final Runtime runtime = Runtime.getRuntime();
-        runtime.addShutdownHook(shutdownHook);
 
         final String hostname = getHostname();
         final SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss.SSS");
@@ -1157,85 +1155,90 @@ public class RunNiFi {
         }
         serviceManager.notify(NotificationType.NIFI_STARTED, "NiFi Started on Host " + hostname, "Hello,\n\nApache NiFi has been started on host " + hostname + " at " + now + " by user " + user);
 
-        while (true) {
-            final boolean alive = isAlive(process);
+        if (monitor) {
+            final Runtime runtime = Runtime.getRuntime();
+            runtime.addShutdownHook(shutdownHook);
 
-            if (alive) {
-                try {
-                    Thread.sleep(1000L);
-                } catch (final InterruptedException ie) {
-                }
-            } else {
-                try {
-                    runtime.removeShutdownHook(shutdownHook);
-                } catch (final IllegalStateException ise) {
-                    // happens when already shutting down
-                }
+            while (true) {
+                final boolean alive = isAlive(process);
 
-                now = sdf.format(System.currentTimeMillis());
-                if (autoRestartNiFi) {
-                    final File statusFile = getStatusFile(defaultLogger);
-                    if (!statusFile.exists()) {
-                        defaultLogger.info("Status File no longer exists. Will not restart NiFi");
-                        return;
-                    }
-
-                    final File lockFile = getLockFile(defaultLogger);
-                    if (lockFile.exists()) {
-                        defaultLogger.info("A shutdown was initiated. Will not restart NiFi");
-                        return;
-                    }
-
-                    final boolean previouslyStarted = getNifiStarted();
-                    if (!previouslyStarted) {
-                        defaultLogger.info("NiFi never started. Will not restart NiFi");
-                        return;
-                    } else {
-                        setNiFiStarted(false);
-                    }
-
-                    if (isSensitiveKeyPresent(props)) {
-                        Path sensitiveKeyFile = createSensitiveKeyFile(confDir);
-                        writeSensitiveKeyFile(props, sensitiveKeyFile);
-                    }
-
-                    defaultLogger.warn("Apache NiFi appears to have died. Restarting...");
-                    secretKey = null;
-                    process = builder.start();
-                    handleLogging(process);
-
-                    pid = OSUtils.getProcessId(process, defaultLogger);
-                    if (pid == null) {
-                        cmdLogger.warn("Launched Apache NiFi but could not obtain the Process ID");
-                    } else {
-                        nifiPid = pid;
-                        final Properties pidProperties = new Properties();
-                        pidProperties.setProperty(PID_KEY, String.valueOf(nifiPid));
-                        savePidProperties(pidProperties, defaultLogger);
-                        cmdLogger.info("Launched Apache NiFi with Process ID " + pid);
-                    }
-
-                    shutdownHook = new ShutdownHook(process, this, secretKey, gracefulShutdownSeconds, loggingExecutor);
-                    runtime.addShutdownHook(shutdownHook);
-
-                    final boolean started = waitForStart();
-
-                    if (started) {
-                        defaultLogger.info("Successfully started Apache NiFi{}", (pid == null ? "" : " with PID " + pid));
-                        // We are expected to restart nifi, so send a notification that it died. If we are not restarting nifi,
-                        // then this means that we are intentionally stopping the service.
-                        serviceManager.notify(NotificationType.NIFI_DIED, "NiFi Died on Host " + hostname,
-                                "Hello,\n\nIt appears that Apache NiFi has died on host " + hostname + " at " + now + "; automatically restarting NiFi");
-                    } else {
-                        defaultLogger.error("Apache NiFi does not appear to have started");
-                        // We are expected to restart nifi, so send a notification that it died. If we are not restarting nifi,
-                        // then this means that we are intentionally stopping the service.
-                        serviceManager.notify(NotificationType.NIFI_DIED, "NiFi Died on Host " + hostname,
-                                "Hello,\n\nIt appears that Apache NiFi has died on host " + hostname + " at " + now +
-                                        ". Attempted to restart NiFi but the services does not appear to have restarted!");
+                if (alive) {
+                    try {
+                        Thread.sleep(1000L);
+                    } catch (final InterruptedException ie) {
                     }
                 } else {
-                    return;
+                    try {
+                        runtime.removeShutdownHook(shutdownHook);
+                    } catch (final IllegalStateException ise) {
+                        // happens when already shutting down
+                    }
+
+                    now = sdf.format(System.currentTimeMillis());
+                    if (autoRestartNiFi) {
+                        final File statusFile = getStatusFile(defaultLogger);
+                        if (!statusFile.exists()) {
+                            defaultLogger.info("Status File no longer exists. Will not restart NiFi");
+                            return;
+                        }
+
+                        final File lockFile = getLockFile(defaultLogger);
+                        if (lockFile.exists()) {
+                            defaultLogger.info("A shutdown was initiated. Will not restart NiFi");
+                            return;
+                        }
+
+                        final boolean previouslyStarted = getNifiStarted();
+                        if (!previouslyStarted) {
+                            defaultLogger.info("NiFi never started. Will not restart NiFi");
+                            return;
+                        } else {
+                            setNiFiStarted(false);
+                        }
+
+                        if (isSensitiveKeyPresent(props)) {
+                            Path sensitiveKeyFile = createSensitiveKeyFile(confDir);
+                            writeSensitiveKeyFile(props, sensitiveKeyFile);
+                        }
+
+                        defaultLogger.warn("Apache NiFi appears to have died. Restarting...");
+                        secretKey = null;
+                        process = builder.start();
+                        handleLogging(process);
+
+                        pid = OSUtils.getProcessId(process, defaultLogger);
+                        if (pid == null) {
+                            cmdLogger.warn("Launched Apache NiFi but could not obtain the Process ID");
+                        } else {
+                            nifiPid = pid;
+                            final Properties pidProperties = new Properties();
+                            pidProperties.setProperty(PID_KEY, String.valueOf(nifiPid));
+                            savePidProperties(pidProperties, defaultLogger);
+                            cmdLogger.info("Launched Apache NiFi with Process ID " + pid);
+                        }
+
+                        shutdownHook = new ShutdownHook(process, this, secretKey, gracefulShutdownSeconds, loggingExecutor);
+                        runtime.addShutdownHook(shutdownHook);
+
+                        final boolean started = waitForStart();
+
+                        if (started) {
+                            defaultLogger.info("Successfully started Apache NiFi{}", (pid == null ? "" : " with PID " + pid));
+                            // We are expected to restart nifi, so send a notification that it died. If we are not restarting nifi,
+                            // then this means that we are intentionally stopping the service.
+                            serviceManager.notify(NotificationType.NIFI_DIED, "NiFi Died on Host " + hostname,
+                                "Hello,\n\nIt appears that Apache NiFi has died on host " + hostname + " at " + now + "; automatically restarting NiFi");
+                        } else {
+                            defaultLogger.error("Apache NiFi does not appear to have started");
+                            // We are expected to restart nifi, so send a notification that it died. If we are not restarting nifi,
+                            // then this means that we are intentionally stopping the service.
+                            serviceManager.notify(NotificationType.NIFI_DIED, "NiFi Died on Host " + hostname,
+                                "Hello,\n\nIt appears that Apache NiFi has died on host " + hostname + " at " + now +
+                                    ". Attempted to restart NiFi but the services does not appear to have restarted!");
+                        }
+                    } else {
+                        return;
+                    }
                 }
             }
         }

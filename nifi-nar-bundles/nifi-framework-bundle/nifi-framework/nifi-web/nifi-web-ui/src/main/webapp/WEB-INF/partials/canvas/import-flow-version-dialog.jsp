@@ -32,7 +32,7 @@
             </div>
         </div>
         <div class="setting">
-            <div class="setting-name">Name</div>
+            <div class="setting-name">Flow Name</div>
             <div class="setting-field">
                 <span id="import-flow-version-process-group-id" class="hidden"></span>
                 <div id="import-flow-version-name-combo"></div>

@@ -16,13 +16,17 @@
  */
 package org.apache.nifi.attribute.expression.language;
 
+import org.apache.nifi.parameter.Parameter;
+import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.parameter.ParameterLookup;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -234,6 +238,34 @@ public class TestStandardPreparedQuery {
         assertEquals("true", prepared.evaluateExpressions(new StandardEvaluationContext(attributes), null));
         attributes.put("hello", "Hell");
         assertEquals("false", prepared.evaluateExpressions(new StandardEvaluationContext(attributes), null));
+    }
+
+    @Test
+    public void testSensitiveParameter() {
+        final Map<String, Parameter> parameters = new HashMap<>();
+        parameters.put("param", new Parameter(new ParameterDescriptor.Builder().name("param").build(), "value"));
+        parameters.put("sensi", new Parameter(new ParameterDescriptor.Builder().name("sensi").sensitive(true).build(), "secret"));
+
+        final ParameterLookup parameterLookup = new ParameterLookup() {
+            @Override
+            public Optional<Parameter> getParameter(final String parameterName) {
+                return Optional.ofNullable(parameters.get(parameterName));
+            }
+
+            @Override
+            public boolean isEmpty() {
+                return parameters.isEmpty();
+            }
+        };
+
+        final String value = Query.prepare("#{param}").evaluateExpressions(new StandardEvaluationContext(Collections.emptyMap(), Collections.emptyMap(), parameterLookup), null);
+        assertEquals("value", value);
+
+        final String secret = Query.prepare("#{sensi}").evaluateExpressions(new StandardEvaluationContext(Collections.emptyMap(), Collections.emptyMap(), parameterLookup), null);
+        assertEquals("secret", secret);
+
+        final String invalid = Query.prepare("${#{sensi}}").evaluateExpressions(new StandardEvaluationContext(Collections.emptyMap(), Collections.emptyMap(), parameterLookup), null);
+        assertEquals("", invalid);
     }
 
     @Test

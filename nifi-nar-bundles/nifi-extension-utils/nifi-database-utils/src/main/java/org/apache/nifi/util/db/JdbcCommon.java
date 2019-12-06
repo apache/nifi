@@ -345,7 +345,10 @@ public class JdbcCommon {
                         byte[] bytes = rs.getBytes(i);
                         ByteBuffer bb = ByteBuffer.wrap(bytes);
                         rec.put(i - 1, bb);
-
+                    } else if (javaSqlType == 100) { // Handle Oracle BINARY_FLOAT data type
+                        rec.put(i - 1, rs.getFloat(i));
+                    } else if (javaSqlType == 101) { // Handle Oracle BINARY_DOUBLE data type
+                        rec.put(i - 1, rs.getDouble(i));
                     } else if (value instanceof Byte) {
                         // tinyint(1) type is returned by JDBC driver as java.sql.Types.TINYINT
                         // But value is returned by JDBC as java.lang.Byte
@@ -553,10 +556,12 @@ public class JdbcCommon {
 
                 case FLOAT:
                 case REAL:
+                case 100: //Oracle BINARY_FLOAT type
                     builder.name(columnName).type().unionOf().nullBuilder().endNull().and().floatType().endUnion().noDefault();
                     break;
 
                 case DOUBLE:
+                case 101: //Oracle BINARY_DOUBLE type
                     builder.name(columnName).type().unionOf().nullBuilder().endNull().and().doubleType().endUnion().noDefault();
                     break;
 
@@ -569,7 +574,9 @@ public class JdbcCommon {
                         if (meta.getPrecision(i) > 0) {
                             // When database returns a certain precision, we can rely on that.
                             decimalPrecision = meta.getPrecision(i);
-                            decimalScale = meta.getScale(i);
+                            //For the float data type Oracle return decimalScale < 0 which cause is not expected to org.apache.avro.LogicalTypes
+                            //Hence falling back to default scale if decimalScale < 0
+                            decimalScale = meta.getScale(i) > 0 ? meta.getScale(i) : options.defaultScale;
                         } else {
                             // If not, use default precision.
                             decimalPrecision = options.defaultPrecision;

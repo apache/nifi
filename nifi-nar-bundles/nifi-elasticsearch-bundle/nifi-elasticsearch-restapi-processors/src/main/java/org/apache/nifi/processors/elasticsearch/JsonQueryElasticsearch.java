@@ -56,17 +56,14 @@ import java.util.Set;
 @EventDriven
 @Tags({"elasticsearch", "elasticsearch 5", "query", "read", "get", "json"})
 @CapabilityDescription("A processor that allows the user to run a query (with aggregations) written with the " +
-        "ElasticSearch JSON DSL. It does not automatically paginate queries for the user. If an incoming relationship is added to this " +
+        "Elasticsearch JSON DSL. It does not automatically paginate queries for the user. If an incoming relationship is added to this " +
         "processor, it will use the flowfile's content for the query. Care should be taken on the size of the query because the entire response " +
-        "from ElasticSearch will be loaded into memory all at once and converted into the resulting flowfiles.")
-public class JsonQueryElasticsearch extends AbstractProcessor implements ElasticSearchRestProcessor {
+        "from Elasticsearch will be loaded into memory all at once and converted into the resulting flowfiles.")
+public class JsonQueryElasticsearch extends AbstractProcessor implements ElasticsearchRestProcessor {
     public static final Relationship REL_ORIGINAL = new Relationship.Builder().name("original")
             .description("All original flowfiles that don't cause an error to occur go to this relationship. " +
                     "This applies even if you select the \"split up hits\" option to send individual hits to the " +
                     "\"hits\" relationship.").build();
-
-    public static final Relationship REL_FAILURE = new Relationship.Builder().name("failure")
-            .description("All FlowFiles that cannot be read from Elasticsearch are routed to this relationship").build();
 
     public static final Relationship REL_HITS = new Relationship.Builder().name("hits")
             .description("Search hits are routed to this relationship.")

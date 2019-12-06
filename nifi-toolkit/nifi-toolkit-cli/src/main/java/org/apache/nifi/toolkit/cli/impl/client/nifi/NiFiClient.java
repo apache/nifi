@@ -90,6 +90,13 @@ public interface NiFiClient extends Closeable {
     ProcessGroupClient getProcessGroupClientForToken(String token);
 
     // ----- VersionsClient -----
+    ProcessorClient getProcessorClient();
+
+    ProcessorClient getProcessorClientForProxiedEntities(String... proxiedEntity);
+
+    ProcessorClient getProcessorClientForToken(String token);
+
+    // ----- VersionsClient -----
 
     VersionsClient getVersionsClient();
 
@@ -136,6 +143,47 @@ public interface NiFiClient extends Closeable {
     ParamContextClient getParamContextClientForProxiedEntities(String ... proxiedEntity);
 
     ParamContextClient getParamContextClientForToken(String token);
+
+    // ----- ParamContextClient -----
+
+    CountersClient getCountersClient();
+
+    CountersClient getCountersClientForProxiedEntities(String ... proxiedEntity);
+
+    CountersClient getCountersClientForToken(String token);
+
+    // ----- ConnectionClient -----
+
+    ConnectionClient getConnectionClient();
+
+    ConnectionClient getConnectionClientForProxiedEntities(String... proxiedEntity);
+
+    ConnectionClient getConnectionClientForToken(String token);
+
+    // ----- RemoteProcessGroupClient -----
+
+    RemoteProcessGroupClient getRemoteProcessGroupClient();
+
+    RemoteProcessGroupClient getRemoteProcessGroupClientForProxiedEntities(String... proxiedEntity);
+
+    RemoteProcessGroupClient getRemoteProcessGroupClientForToken(String token);
+
+    // ----- InputPortClient -----
+
+    InputPortClient getInputPortClient();
+
+    InputPortClient getInputPortClientForProxiedEntities(String... proxiedEntity);
+
+    InputPortClient getInputPortClientForToken(String token);
+
+    // ----- OutputPortClient -----
+
+    OutputPortClient getOutputPortClient();
+
+    OutputPortClient getOutputPortClientForProxiedEntities(String... proxiedEntity);
+
+    OutputPortClient getOutputPortClientForToken(String token);
+
 
     /**
      * The builder interface that implementations should provide for obtaining the client.

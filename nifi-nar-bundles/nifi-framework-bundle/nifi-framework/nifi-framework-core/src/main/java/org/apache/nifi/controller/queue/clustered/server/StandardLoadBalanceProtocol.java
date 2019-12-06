@@ -499,7 +499,7 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
             throw new IOException("Expected a Data Frame Indicator from Peer " + peerDescription + " but received a value of " + dataFrameIndicator);
         }
 
-        int dataFrameLength = in.readUnsignedShort();
+        int dataFrameLength = in.readInt();
         logger.trace("Received Data Frame Length of {} for {}", dataFrameLength, peerDescription);
 
         byte[] buffer = getDataBuffer();
@@ -535,7 +535,7 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
                 throw new IOException("Expected a Data Frame Indicator from Peer " + peerDescription + " but received a value of " + dataFrameIndicator);
             }
 
-            dataFrameLength = in.readUnsignedShort();
+            dataFrameLength = in.readInt();
             logger.trace("Received Data Frame Length of {} for {}", dataFrameLength, peerDescription);
         }
 

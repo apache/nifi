@@ -133,6 +133,7 @@ public class ExecuteSQLRecord extends AbstractExecuteSQL {
         pds.add(USE_AVRO_LOGICAL_TYPES);
         pds.add(MAX_ROWS_PER_FLOW_FILE);
         pds.add(OUTPUT_BATCH_SIZE);
+        pds.add(FETCH_SIZE);
         propDescriptors = Collections.unmodifiableList(pds);
     }
 

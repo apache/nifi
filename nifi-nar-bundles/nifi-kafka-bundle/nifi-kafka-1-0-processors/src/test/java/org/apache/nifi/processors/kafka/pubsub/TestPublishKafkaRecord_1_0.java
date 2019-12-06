@@ -17,32 +17,12 @@
 
 package org.apache.nifi.processors.kafka.pubsub;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.isNull;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
-
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.kafka.pubsub.util.MockRecordParser;
-import org.apache.nifi.processors.kafka.pubsub.util.MockRecordWriter;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
+import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.RecordSet;
@@ -54,6 +34,28 @@ import org.junit.Test;
 import org.mockito.AdditionalMatchers;
 import org.mockito.Mockito;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.ArgumentMatchers.nullable;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 public class TestPublishKafkaRecord_1_0 {
 
     private static final String TOPIC_NAME = "unit-test";
@@ -62,12 +64,13 @@ public class TestPublishKafkaRecord_1_0 {
     private PublisherLease mockLease;
     private TestRunner runner;
 
+    @SuppressWarnings("unchecked")
     @Before
     public void setup() throws InitializationException, IOException {
         mockPool = mock(PublisherPool.class);
         mockLease = mock(PublisherLease.class);
         Mockito.doCallRealMethod().when(mockLease).publish(any(FlowFile.class), any(RecordSet.class), any(RecordSetWriterFactory.class),
-            any(RecordSchema.class), any(String.class), any(String.class));
+            any(RecordSchema.class), any(String.class), any(String.class), nullable(Function.class));
 
         when(mockPool.obtainPublisher()).thenReturn(mockLease);
 
@@ -97,6 +100,7 @@ public class TestPublishKafkaRecord_1_0 {
         runner.setProperty(PublishKafka_1_0.DELIVERY_GUARANTEE, PublishKafka_1_0.DELIVERY_REPLICATED);
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void testSingleSuccess() throws IOException {
         final MockFlowFile flowFile = runner.enqueue("John Doe, 48");
@@ -107,12 +111,13 @@ public class TestPublishKafkaRecord_1_0 {
         runner.assertAllFlowFilesTransferred(PublishKafkaRecord_1_0.REL_SUCCESS, 1);
 
         verify(mockLease, times(1)).publish(any(FlowFile.class), any(RecordSet.class), any(RecordSetWriterFactory.class),
-                AdditionalMatchers.or(any(RecordSchema.class), isNull()), eq(null), eq(TOPIC_NAME));
+                AdditionalMatchers.or(any(RecordSchema.class), isNull()), eq(null), eq(TOPIC_NAME), nullable(Function.class));
         verify(mockLease, times(1)).complete();
         verify(mockLease, times(0)).poison();
         verify(mockLease, times(1)).close();
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void testMultipleSuccess() throws IOException {
         final Set<FlowFile> flowFiles = new HashSet<>();
@@ -126,12 +131,13 @@ public class TestPublishKafkaRecord_1_0 {
         runner.assertAllFlowFilesTransferred(PublishKafkaRecord_1_0.REL_SUCCESS, 3);
 
         verify(mockLease, times(3)).publish(any(FlowFile.class), any(RecordSet.class), any(RecordSetWriterFactory.class),
-                AdditionalMatchers.or(any(RecordSchema.class), isNull()), eq(null), eq(TOPIC_NAME));
+                AdditionalMatchers.or(any(RecordSchema.class), isNull()), eq(null), eq(TOPIC_NAME), nullable(Function.class));
         verify(mockLease, times(1)).complete();
         verify(mockLease, times(0)).poison();
         verify(mockLease, times(1)).close();
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void testSingleFailure() throws IOException {
         final MockFlowFile flowFile = runner.enqueue("John Doe, 48");
@@ -142,11 +148,12 @@ public class TestPublishKafkaRecord_1_0 {
         runner.assertAllFlowFilesTransferred(PublishKafkaRecord_1_0.REL_FAILURE, 1);
 
         verify(mockLease, times(1)).publish(any(FlowFile.class), any(RecordSet.class), any(RecordSetWriterFactory.class),
-                AdditionalMatchers.or(any(RecordSchema.class), isNull()), eq(null), eq(TOPIC_NAME));
+                AdditionalMatchers.or(any(RecordSchema.class), isNull()), eq(null), eq(TOPIC_NAME), nullable(Function.class));
         verify(mockLease, times(1)).complete();
         verify(mockLease, times(1)).close();
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void testMultipleFailures() throws IOException {
         final Set<FlowFile> flowFiles = new HashSet<>();
@@ -160,11 +167,12 @@ public class TestPublishKafkaRecord_1_0 {
         runner.assertAllFlowFilesTransferred(PublishKafkaRecord_1_0.REL_FAILURE, 3);
 
         verify(mockLease, times(3)).publish(any(FlowFile.class), any(RecordSet.class), any(RecordSetWriterFactory.class),
-                AdditionalMatchers.or(any(RecordSchema.class), isNull()), eq(null), eq(TOPIC_NAME));
+                AdditionalMatchers.or(any(RecordSchema.class), isNull()), eq(null), eq(TOPIC_NAME), nullable(Function.class));
         verify(mockLease, times(1)).complete();
         verify(mockLease, times(1)).close();
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void testMultipleMessagesPerFlowFile() throws IOException {
         final List<FlowFile> flowFiles = new ArrayList<>();
@@ -183,8 +191,9 @@ public class TestPublishKafkaRecord_1_0 {
         runner.assertAllFlowFilesTransferred(PublishKafkaRecord_1_0.REL_SUCCESS, 2);
 
         verify(mockLease, times(2)).publish(any(FlowFile.class), any(RecordSet.class), any(RecordSetWriterFactory.class),
-                AdditionalMatchers.or(any(RecordSchema.class), isNull()), eq(null), eq(TOPIC_NAME));
-        verify(mockLease, times(0)).publish(any(FlowFile.class), any(Map.class), eq(null), any(byte[].class), eq(TOPIC_NAME), any(InFlightMessageTracker.class));
+                AdditionalMatchers.or(any(RecordSchema.class), isNull()), eq(null), eq(TOPIC_NAME), nullable(Function.class));
+        verify(mockLease, times(0)).publish(
+            any(FlowFile.class), any(Map.class), eq(null), any(byte[].class), eq(TOPIC_NAME), any(InFlightMessageTracker.class), nullable(Integer.class));
         verify(mockLease, times(1)).complete();
         verify(mockLease, times(0)).poison();
         verify(mockLease, times(1)).close();
@@ -198,6 +207,7 @@ public class TestPublishKafkaRecord_1_0 {
             .count());
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void testNoRecordsInFlowFile() throws IOException {
         final List<FlowFile> flowFiles = new ArrayList<>();
@@ -214,7 +224,7 @@ public class TestPublishKafkaRecord_1_0 {
         runner.assertAllFlowFilesTransferred(PublishKafkaRecord_1_0.REL_SUCCESS, 1);
 
         verify(mockLease, times(1)).publish(any(FlowFile.class), any(RecordSet.class), any(RecordSetWriterFactory.class),
-                AdditionalMatchers.or(any(RecordSchema.class), isNull()), eq(null), eq(TOPIC_NAME));
+                AdditionalMatchers.or(any(RecordSchema.class), isNull()), eq(null), eq(TOPIC_NAME), nullable(Function.class));
         verify(mockLease, times(1)).complete();
         verify(mockLease, times(0)).poison();
         verify(mockLease, times(1)).close();
@@ -223,7 +233,7 @@ public class TestPublishKafkaRecord_1_0 {
         mff.assertAttributeEquals("msg.count", "0");
     }
 
-
+    @SuppressWarnings("unchecked")
     @Test
     public void testSomeSuccessSomeFailure() throws IOException {
         final List<FlowFile> flowFiles = new ArrayList<>();
@@ -249,7 +259,7 @@ public class TestPublishKafkaRecord_1_0 {
         runner.assertTransferCount(PublishKafkaRecord_1_0.REL_FAILURE, 4);
 
         verify(mockLease, times(4)).publish(any(FlowFile.class), any(RecordSet.class), any(RecordSetWriterFactory.class),
-                AdditionalMatchers.or(any(RecordSchema.class), isNull()), eq(null), eq(TOPIC_NAME));
+                AdditionalMatchers.or(any(RecordSchema.class), isNull()), eq(null), eq(TOPIC_NAME), nullable(Function.class));
         verify(mockLease, times(1)).complete();
         verify(mockLease, times(1)).close();
 
@@ -292,7 +302,7 @@ public class TestPublishKafkaRecord_1_0 {
             @Override
             public int getSuccessfulMessageCount(FlowFile flowFile) {
                 Integer count = msgCounts.get(flowFile);
-                return count == null ? 0 : count.intValue();
+                return count == null ? 0 : count;
             }
 
             @Override

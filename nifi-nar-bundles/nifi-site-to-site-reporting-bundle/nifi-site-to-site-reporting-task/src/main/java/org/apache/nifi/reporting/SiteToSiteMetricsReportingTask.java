@@ -54,6 +54,7 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.remote.Transaction;
 import org.apache.nifi.remote.TransferDirection;
+import org.apache.nifi.reporting.s2s.SiteToSiteUtils;
 import org.apache.nifi.reporting.util.metrics.MetricNames;
 import org.apache.nifi.reporting.util.metrics.MetricsService;
 import org.apache.nifi.reporting.util.metrics.api.MetricsBuilder;
@@ -113,7 +114,7 @@ public class SiteToSiteMetricsReportingTask extends AbstractSiteToSiteReportingT
         properties.add(HOSTNAME);
         properties.add(APPLICATION_ID);
         properties.add(FORMAT);
-        properties.remove(BATCH_SIZE);
+        properties.remove(SiteToSiteUtils.BATCH_SIZE);
         return properties;
     }
 

@@ -446,7 +446,11 @@ public abstract class AbstractFlowFileServerProtocol implements ServerProtocol {
                 break;
             }
             FlowFile flowFile = session.create();
-            flowFile = session.importFrom(dataPacket.getData(), flowFile);
+
+            if (dataPacket.getSize() > 0) {
+                flowFile = session.importFrom(dataPacket.getData(), flowFile);
+            }
+
             flowFile = session.putAllAttributes(flowFile, dataPacket.getAttributes());
 
             if (handshakeProperties.isUseGzip()) {

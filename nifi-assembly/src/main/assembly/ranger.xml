@@ -42,6 +42,14 @@
                 <exclude>nifi-docs</exclude>
                 <exclude>org.apache.ranger:credentialbuilder:jar</exclude>
                 <exclude>org.apache.nifi:nifi-ranger-resources:jar</exclude>
+
+                <!-- exclude jaxb/activation/annotation libs from lib, they'll be included in the java11 subdir -->
+                <!-- TODO: remove these once minimum Java version is 11 -->
+                <exclude>javax.xml.bind:jaxb-api</exclude>
+                <exclude>com.sun.xml.bind:jaxb-impl</exclude>
+                <exclude>com.sun.xml.bind:jaxb-core</exclude>
+                <exclude>javax.activation:javax.activation-api</exclude>
+                <exclude>javax.annotation:javax.annotation-api</exclude>
             </excludes>
         </dependencySet>
         <!-- Write out dependencies for Ranger's credentialbuilder to ext/ranger/install/lib -->

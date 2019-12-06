@@ -20,6 +20,8 @@ package org.apache.nifi.elasticsearch.integration
 import org.apache.nifi.elasticsearch.DeleteOperationResponse
 import org.apache.nifi.elasticsearch.ElasticSearchClientService
 import org.apache.nifi.elasticsearch.ElasticSearchClientServiceImpl
+import org.apache.nifi.elasticsearch.IndexOperationRequest
+import org.apache.nifi.elasticsearch.IndexOperationResponse
 import org.apache.nifi.elasticsearch.SearchResponse
 import org.apache.nifi.ssl.StandardSSLContextService
 import org.apache.nifi.util.TestRunner
@@ -37,8 +39,8 @@ class ElasticSearch5ClientService_IT {
     private TestRunner runner
     private ElasticSearchClientServiceImpl service
 
-    static final String INDEX = "messages"
-    static final String TYPE  = "message"
+    static String INDEX = "messages"
+    static String TYPE  = System.getProperty("type_name")
 
     @Before
     void before() throws Exception {
@@ -80,7 +82,7 @@ class ElasticSearch5ClientService_IT {
         ]))
         
         
-        SearchResponse response = service.search(query, "messages", "message")
+        SearchResponse response = service.search(query, "messages", TYPE)
         Assert.assertNotNull("Response was null", response)
 
         Assert.assertEquals("Wrong count", 15, response.numberOfHits)
@@ -138,6 +140,7 @@ class ElasticSearch5ClientService_IT {
     @Test
     void testGet() throws IOException {
         Map old
+        System.out.println("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n" + "TYPE: " + TYPE + "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n")
         1.upto(15) { index ->
             String id = String.valueOf(index)
             def doc = service.get(INDEX, TYPE, id)
@@ -170,5 +173,100 @@ class ElasticSearch5ClientService_IT {
         runner.enableControllerService(service)
 
         runner.assertValid()
+    }
+
+    @Test
+    void testBulkAddTwoIndexes() throws Exception {
+        List<IndexOperationRequest> payload = new ArrayList<>()
+        for (int x = 0; x < 20; x++) {
+            String index = x % 2 == 0 ? "bulk_a": "bulk_b"
+            payload.add(new IndexOperationRequest(index, TYPE, String.valueOf(x), new HashMap<String, Object>(){{
+                put("msg", "test")
+            }}, IndexOperationRequest.Operation.Index))
+        }
+        for (int x = 0; x < 5; x++) {
+            payload.add(new IndexOperationRequest("bulk_c", TYPE, String.valueOf(x), new HashMap<String, Object>(){{
+                put("msg", "test")
+            }}, IndexOperationRequest.Operation.Index))
+        }
+        IndexOperationResponse response = service.bulk(payload)
+        Assert.assertNotNull(response)
+        Assert.assertTrue(response.getTook() > 0)
+        Thread.sleep(2000)
+
+        /*
+         * Now, check to ensure that both indexes got populated appropriately.
+         */
+        String query = "{ \"query\": { \"match_all\": {}}}"
+        Long indexA = service.count(query, "bulk_a", TYPE)
+        Long indexB = service.count(query, "bulk_b", TYPE)
+        Long indexC = service.count(query, "bulk_c", TYPE)
+
+        Assert.assertNotNull(indexA)
+        Assert.assertNotNull(indexB)
+        Assert.assertNotNull(indexC)
+        Assert.assertEquals(indexA, indexB)
+        Assert.assertEquals(10, indexA.intValue())
+        Assert.assertEquals(10, indexB.intValue())
+        Assert.assertEquals(5, indexC.intValue())
+
+        Long total = service.count(query, "bulk_*", TYPE)
+        Assert.assertNotNull(total)
+        Assert.assertEquals(25, total.intValue())
+    }
+
+    @Test
+    void testUpdateAndUpsert() {
+        final String TEST_ID = "update-test"
+        Map<String, Object> doc = new HashMap<>()
+        doc.put("msg", "Buongiorno, mondo")
+        service.add(new IndexOperationRequest(INDEX, TYPE, TEST_ID, doc, IndexOperationRequest.Operation.Index))
+        Map<String, Object> result = service.get(INDEX, TYPE, TEST_ID)
+        Assert.assertEquals("Not the same", doc, result)
+
+        Map<String, Object> updates = new HashMap<>()
+        updates.put("from", "john.smith")
+        Map<String, Object> merged = new HashMap<>()
+        merged.putAll(updates)
+        merged.putAll(doc)
+        IndexOperationRequest request = new IndexOperationRequest(INDEX, TYPE, TEST_ID, updates, IndexOperationRequest.Operation.Update)
+        service.add(request)
+        result = service.get(INDEX, TYPE, TEST_ID)
+        Assert.assertTrue(result.containsKey("from"))
+        Assert.assertTrue(result.containsKey("msg"))
+        Assert.assertEquals("Not the same after update.", merged, result)
+
+        final String UPSERTED_ID = "upsert-ftw"
+        Map<String, Object> upsertItems = new HashMap<>()
+        upsertItems.put("upsert_1", "hello")
+        upsertItems.put("upsert_2", 1)
+        upsertItems.put("upsert_3", true)
+        request = new IndexOperationRequest(INDEX, TYPE, UPSERTED_ID, upsertItems, IndexOperationRequest.Operation.Upsert)
+        service.add(request)
+        result = service.get(INDEX, TYPE, UPSERTED_ID)
+        Assert.assertEquals(upsertItems, result)
+
+        List<IndexOperationRequest> deletes = new ArrayList<>()
+        deletes.add(new IndexOperationRequest(INDEX, TYPE, TEST_ID, null, IndexOperationRequest.Operation.Delete))
+        deletes.add(new IndexOperationRequest(INDEX, TYPE, UPSERTED_ID, null, IndexOperationRequest.Operation.Delete))
+        service.bulk(deletes)
+        Assert.assertNull(service.get(INDEX, TYPE, TEST_ID))
+        Assert.assertNull(service.get(INDEX, TYPE, UPSERTED_ID))
+    }
+
+    @Test
+    void testGetBulkResponsesWithErrors() {
+        def ops = [
+            new IndexOperationRequest(INDEX, TYPE, "1", [ "msg": "Hi", intField: 1], IndexOperationRequest.Operation.Index),
+            new IndexOperationRequest(INDEX, TYPE, "2", [ "msg": "Hi", intField: 1], IndexOperationRequest.Operation.Create),
+            new IndexOperationRequest(INDEX, TYPE, "2", [ "msg": "Hi", intField: 1], IndexOperationRequest.Operation.Create),
+            new IndexOperationRequest(INDEX, TYPE, "1", [ "msg": "Hi", intField: "notaninteger"], IndexOperationRequest.Operation.Index)
+        ]
+        def response = service.bulk(ops)
+        assert response.hasErrors()
+        assert response.items.findAll {
+            def key = it.keySet().stream().findFirst().get()
+            it[key].containsKey("error")
+        }.size() == 2
     }
 }
