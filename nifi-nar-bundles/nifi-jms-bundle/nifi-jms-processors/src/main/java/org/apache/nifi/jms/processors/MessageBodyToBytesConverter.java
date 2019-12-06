@@ -48,6 +48,9 @@ abstract class MessageBodyToBytesConverter {
      */
     public static byte[] toBytes(TextMessage message, Charset charset) {
         try {
+            if (message.getText() == null) {
+                return new byte[0];
+            }
             if (charset == null) {
                 return message.getText().getBytes();
             } else {
@@ -71,7 +74,6 @@ abstract class MessageBodyToBytesConverter {
             throw new MessageConversionException("Failed to convert BytesMessage to byte[]", e);
         }
     }
-
 
     private static class BytesMessageInputStream extends InputStream {
         private BytesMessage message;
@@ -111,7 +113,6 @@ abstract class MessageBodyToBytesConverter {
             }
         }
     }
-
 
     static class MessageConversionException extends RuntimeException {
         private static final long serialVersionUID = -1464448549601643887L;
