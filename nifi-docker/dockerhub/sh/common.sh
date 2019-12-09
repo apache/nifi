@@ -23,6 +23,14 @@ prop_replace () {
   sed -i -e "s|^$1=.*$|$1=$2|"  ${target_file}
 }
 
+# 1 - value to add
+# 2 - file to perform increasment inline
+prop_add () {
+  target_file=${2:-${nifi_props_file}}
+  echo 'adding target file ' ${target_file}
+  echo $1 >> ${target_file}
+}
+
 uncomment() {
 	target_file=${2}
 	echo "Uncommenting ${target_file}"
