@@ -34,7 +34,7 @@ fi
 
 # Core Properties
 prop_replace 'nifi.flow.configuration.file'               "${NIFI_FLOW_CONFIGURATION_FILE:-./conf/flow.xml.gz}"
-prop_replace 'nifi.nar.library.directory.lib1'               "${NIFI_NAR_LIBRARY_DIRECTORY_LIB1:-./lib}"
+prop_add     'nifi.nar.library.directory.lib1=${NIFI_NAR_LIBRARY_DIRECTORY_LIB1:-./lib}'
 
 # Establish baseline properties
 prop_replace 'nifi.web.http.port'               "${NIFI_WEB_HTTP_PORT:-8080}"
