@@ -32,9 +32,10 @@
 }
 
 #nf-about-pic {
-    height: 35%;
+    height: 28%;
     background: url(../images/cloudera-logo.svg) transparent no-repeat center center;
-    top: 30%;
+    top: 50%;
+    transform: translateY(-50%);
     position: relative;
 }
 
