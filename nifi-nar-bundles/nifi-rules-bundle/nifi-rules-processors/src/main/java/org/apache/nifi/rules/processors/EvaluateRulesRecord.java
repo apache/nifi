@@ -25,7 +25,6 @@ import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
@@ -34,6 +33,7 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.rules.Action;
@@ -70,7 +70,7 @@ import java.util.stream.Collectors;
         @WritesAttribute(attribute = "mime.type", description = "The MIME Type that the configured Record Writer indicates is appropriate"),
 })
 @CapabilityDescription("Submits record values to a rules engine and returns actions determined by the engine as records ")
-public class RulesRecordProcessor extends AbstractProcessor {
+public class EvaluateRulesRecord extends AbstractProcessor {
 
     static final PropertyDescriptor FACTS_RECORD_READER = new PropertyDescriptor.Builder()
             .name("fact-record-reader")
@@ -83,7 +83,9 @@ public class RulesRecordProcessor extends AbstractProcessor {
     static final PropertyDescriptor ACTION_RECORD_WRITER = new PropertyDescriptor.Builder()
             .name("action-record-writer")
             .displayName("Action Record Writer")
-            .description("Specifies the Controller Service to use for writing out action records")
+            .description("Specifies the Controller Service to use for writing out action records. NOTE: when using the Inherit Record Schema option " +
+                    "in the writer it will inherit from a statically defined schema for actions vs. the schema associated with the reader " +
+                    "(see Usage information for details on schema). The schema can still be overridden. ")
             .identifiesControllerService(RecordSetWriterFactory.class)
             .required(true)
             .build();
@@ -91,7 +93,7 @@ public class RulesRecordProcessor extends AbstractProcessor {
     static final PropertyDescriptor RULES_ENGINE = new PropertyDescriptor.Builder()
             .name("rules-engine-service")
             .displayName("Rules Engine Service")
-            .description("Specifies the Controller Service to use for applying rules to metrics.")
+            .description("Specifies the Controller Service to use for applying rules to facts.")
             .identifiesControllerService(RulesEngineService.class)
             .required(true)
             .build();
@@ -131,11 +133,17 @@ public class RulesRecordProcessor extends AbstractProcessor {
         return relationships;
     }
 
-    @OnScheduled
-    public void setup(final ProcessContext context) throws IOException {
+    @Override
+    protected void init(ProcessorInitializationContext context) {
+        super.init(context);
         final InputStream schema = getClass().getClassLoader().getResourceAsStream("schema-actions.avsc");
-        recordSchema = AvroTypeUtil.createSchema(new Schema.Parser().parse(schema));
+        try {
+            recordSchema = AvroTypeUtil.createSchema(new Schema.Parser().parse(schema));
+        }catch (IOException iex){
+            getLogger().error("Error initializing schema", iex);
+        }
     }
+
 
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
@@ -232,7 +240,7 @@ public class RulesRecordProcessor extends AbstractProcessor {
                 Map<String, Object> actionMap = new HashMap<>();
                 actionMap.put("type", action.getType());
                 actionMap.put("attributes", action.getAttributes());
-                actionMap.put("metrics", facts.entrySet().stream()
+                actionMap.put("facts", facts.entrySet().stream()
                         .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().toString())));
                 records.add(new MapRecord(recordSchema, actionMap));
             });

@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.rules.processors;
 
-import com.google.common.collect.Lists;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.json.JsonRecordSetWriter;
@@ -33,30 +32,32 @@ import org.junit.Test;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 
-public class TestRulesRecordProcessor {
+public class TestEvaluateRulesRecord {
 
     private TestRunner runner;
-    private RulesRecordProcessor processor;
+    private EvaluateRulesRecord processor;
     private MockRecordParser parser;
     private JsonRecordSetWriter writer;
 
     @Before
     public void setup() throws Exception {
-        processor = new RulesRecordProcessor();
+        processor = new EvaluateRulesRecord();
         runner = TestRunners.newTestRunner(processor);
         parser = new MockRecordParser();
         runner.addControllerService("parser", parser);
         runner.enableControllerService(parser);
-        runner.setProperty(RulesRecordProcessor.FACTS_RECORD_READER, "parser");
+        runner.setProperty(EvaluateRulesRecord.FACTS_RECORD_READER, "parser");
         writer = new JsonRecordSetWriter();
         runner.addControllerService("writer", writer);
         runner.enableControllerService(writer);
-        runner.setProperty(RulesRecordProcessor.ACTION_RECORD_WRITER, "writer");
+        runner.setProperty(EvaluateRulesRecord.ACTION_RECORD_WRITER, "writer");
     }
 
     @Test
@@ -73,31 +74,31 @@ public class TestRulesRecordProcessor {
         attributes2.put("testD","2");
         action2.setType("ALERT");
         action2.setAttributes(attributes2);
-        RulesEngineService rulesEngineService = new MockRulesEngineService(Lists.newArrayList(action1,action2));
+        RulesEngineService rulesEngineService = new MockRulesEngineService(Arrays.asList(action1, action2));
         runner.addControllerService("MockRulesEngineService", rulesEngineService);
         runner.enableControllerService(rulesEngineService);
-        runner.setProperty(RulesRecordProcessor.RULES_ENGINE,"MockRulesEngineService");
+        runner.setProperty(EvaluateRulesRecord.RULES_ENGINE,"MockRulesEngineService");
         generateTestData(1);
         runner.enqueue(new byte[0]);
         runner.run();
-        runner.assertTransferCount(RulesRecordProcessor.REL_ACTIONS, 1);
-        runner.assertTransferCount(RulesRecordProcessor.REL_ORIGINAL, 1);
-        final MockFlowFile action = runner.getFlowFilesForRelationship(RulesRecordProcessor.REL_ACTIONS).get(0);
+        runner.assertTransferCount(EvaluateRulesRecord.REL_ACTIONS, 1);
+        runner.assertTransferCount(EvaluateRulesRecord.REL_ORIGINAL, 1);
+        final MockFlowFile action = runner.getFlowFilesForRelationship(EvaluateRulesRecord.REL_ACTIONS).get(0);
         action.assertAttributeExists(CoreAttributes.MIME_TYPE.key());
     }
 
     @Test
     public void testNoActionsReturned() throws Exception {
-        RulesEngineService rulesEngineService = new MockRulesEngineService(Lists.newArrayList());
+        RulesEngineService rulesEngineService = new MockRulesEngineService(new ArrayList<>());
         runner.addControllerService("MockRulesEngineService", rulesEngineService);
         runner.enableControllerService(rulesEngineService);
-        runner.setProperty(RulesRecordProcessor.RULES_ENGINE,"MockRulesEngineService");
+        runner.setProperty(EvaluateRulesRecord.RULES_ENGINE,"MockRulesEngineService");
         generateTestData(1);
         runner.enqueue(new byte[0]);
         runner.run();
-        runner.assertTransferCount(RulesRecordProcessor.REL_ACTIONS, 1);
-        runner.assertTransferCount(RulesRecordProcessor.REL_ORIGINAL, 1);
-        final MockFlowFile action = runner.getFlowFilesForRelationship(RulesRecordProcessor.REL_ACTIONS).get(0);
+        runner.assertTransferCount(EvaluateRulesRecord.REL_ACTIONS, 1);
+        runner.assertTransferCount(EvaluateRulesRecord.REL_ORIGINAL, 1);
+        final MockFlowFile action = runner.getFlowFilesForRelationship(EvaluateRulesRecord.REL_ACTIONS).get(0);
         action.assertAttributeExists(CoreAttributes.MIME_TYPE.key());
     }
 
@@ -106,13 +107,13 @@ public class TestRulesRecordProcessor {
         RulesEngineService rulesEngineService = new MockRulesEngineService(null);
         runner.addControllerService("MockRulesEngineService", rulesEngineService);
         runner.enableControllerService(rulesEngineService);
-        runner.setProperty(RulesRecordProcessor.RULES_ENGINE,"MockRulesEngineService");
+        runner.setProperty(EvaluateRulesRecord.RULES_ENGINE,"MockRulesEngineService");
         generateTestData(1);
         runner.enqueue(new byte[0]);
         runner.run();
-        runner.assertTransferCount(RulesRecordProcessor.REL_ACTIONS, 1);
-        runner.assertTransferCount(RulesRecordProcessor.REL_ORIGINAL, 1);
-        final MockFlowFile action = runner.getFlowFilesForRelationship(RulesRecordProcessor.REL_ACTIONS).get(0);
+        runner.assertTransferCount(EvaluateRulesRecord.REL_ACTIONS, 1);
+        runner.assertTransferCount(EvaluateRulesRecord.REL_ORIGINAL, 1);
+        final MockFlowFile action = runner.getFlowFilesForRelationship(EvaluateRulesRecord.REL_ACTIONS).get(0);
         action.assertAttributeExists(CoreAttributes.MIME_TYPE.key());
     }
 
@@ -121,12 +122,12 @@ public class TestRulesRecordProcessor {
         RulesEngineService rulesEngineService = new MockRulesEngineService(null);
         runner.addControllerService("MockRulesEngineService", rulesEngineService);
         runner.enableControllerService(rulesEngineService);
-        runner.setProperty(RulesRecordProcessor.RULES_ENGINE,"MockRulesEngineService");
+        runner.setProperty(EvaluateRulesRecord.RULES_ENGINE,"MockRulesEngineService");
         runner.enqueue(new byte[0]);
         runner.run();
-        runner.assertTransferCount(RulesRecordProcessor.REL_ACTIONS, 1);
-        runner.assertTransferCount(RulesRecordProcessor.REL_ORIGINAL, 1);
-        final MockFlowFile action = runner.getFlowFilesForRelationship(RulesRecordProcessor.REL_ACTIONS).get(0);
+        runner.assertTransferCount(EvaluateRulesRecord.REL_ACTIONS, 1);
+        runner.assertTransferCount(EvaluateRulesRecord.REL_ORIGINAL, 1);
+        final MockFlowFile action = runner.getFlowFilesForRelationship(EvaluateRulesRecord.REL_ACTIONS).get(0);
         action.assertAttributeExists(CoreAttributes.MIME_TYPE.key());
     }
 

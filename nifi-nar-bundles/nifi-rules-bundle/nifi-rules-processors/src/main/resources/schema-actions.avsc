@@ -5,6 +5,6 @@
  "fields": [
    {"name": "type", "type": "string"},
    {"name": "attributes", "type": {"type": "map", "values": "string"}},
-   {"name": "metrics", "type": {"type": "map", "values": "string"}}
+   {"name": "facts", "type": {"type": "map", "values": "string"}}
   ]
 }
