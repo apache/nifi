@@ -32,10 +32,6 @@ if [ ! -z "${NIFI_JVM_DEBUGGER}" ]; then
     uncomment "java.arg.debug" ${nifi_bootstrap_file}
 fi
 
-# Core Properties
-prop_replace 'nifi.flow.configuration.file'               "${NIFI_FLOW_CONFIGURATION_FILE:-./conf/flow.xml.gz}"
-prop_replace 'nifi.nar.library.directory.lib1'            "${NIFI_NAR_LIBRARY_DIRECTORY_LIB1:-./lib}"
-
 # Establish baseline properties
 prop_replace 'nifi.web.http.port'               "${NIFI_WEB_HTTP_PORT:-8080}"
 prop_replace 'nifi.web.http.host'               "${NIFI_WEB_HTTP_HOST:-$HOSTNAME}"
@@ -60,6 +56,9 @@ prop_replace 'nifi.cluster.flow.election.max.candidates'    "${NIFI_ELECTION_MAX
 prop_replace 'nifi.web.proxy.context.path'                  "${NIFI_WEB_PROXY_CONTEXT_PATH:-}"
 
 . "${scripts_dir}/update_cluster_state_management.sh"
+
+# Customized properties
+. "${scripts_dir}/customized_prop.sh"
 
 # Check if we are secured or unsecured
 case ${AUTH} in

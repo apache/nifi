@@ -38,7 +38,6 @@ prop_add () {
   echo "$1=$2" >> ${target_file}
 }
 
-
 uncomment() {
 	target_file=${2}
 	echo "Uncommenting ${target_file}"
