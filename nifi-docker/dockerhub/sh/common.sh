@@ -19,17 +19,25 @@
 # 3 - file to perform replacement inline
 prop_replace () {
   target_file=${3:-${nifi_props_file}}
-  echo 'replacing target file ' ${target_file}
-  sed -i -e "s|^$1=.*$|$1=$2|"  ${target_file}
+  target_line=`sed -n "/^$1=/p" ${target_file}`
+  if [ -z ${target_line} ]
+  then
+    prop_add $1 $2 ${target_file}
+  else
+    echo 'replacing target file ' ${target_file}
+    sed -i -e "s|^$1=.*$|$1=$2|"  ${target_file}
+  fi
 }
 
-# 1 - value to add
-# 2 - file to perform increasment inline
+# 1 - key to add
+# 2 - value to add
+# 3 - file to perform increasment inline
 prop_add () {
-  target_file=${2:-${nifi_props_file}}
+  target_file=${3:-${nifi_props_file}}
   echo 'adding target file ' ${target_file}
-  echo $1 >> ${target_file}
+  echo "$1=$2" >> ${target_file}
 }
+
 
 uncomment() {
 	target_file=${2}
