@@ -675,14 +675,24 @@ public class RocksDBMetronome implements Closeable {
      * @param bytes an array to store the byte representation
      */
     public static void writeLong(long l, byte[] bytes) {
-        bytes[0] = (byte) (l >>> 56);
-        bytes[1] = (byte) (l >>> 48);
-        bytes[2] = (byte) (l >>> 40);
-        bytes[3] = (byte) (l >>> 32);
-        bytes[4] = (byte) (l >>> 24);
-        bytes[5] = (byte) (l >>> 16);
-        bytes[6] = (byte) (l >>> 8);
-        bytes[7] = (byte) (l);
+        writeLong(l, bytes, 0);
+    }
+
+    /**
+     * Writes a representation of a long to the specified byte array
+     *
+     * @param l     a long to convert
+     * @param bytes an array to store the byte representation
+     */
+    public static void writeLong(long l, byte[] bytes, int offset) {
+        bytes[offset] = (byte) (l >>> 56);
+        bytes[1 + offset] = (byte) (l >>> 48);
+        bytes[2 + offset] = (byte) (l >>> 40);
+        bytes[3 + offset] = (byte) (l >>> 32);
+        bytes[4 + offset] = (byte) (l >>> 24);
+        bytes[5 + offset] = (byte) (l >>> 16);
+        bytes[6 + offset] = (byte) (l >>> 8);
+        bytes[7 + offset] = (byte) (l);
     }
 
     /**
