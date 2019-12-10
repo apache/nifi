@@ -57,6 +57,9 @@ prop_replace 'nifi.web.proxy.context.path'                  "${NIFI_WEB_PROXY_CO
 
 . "${scripts_dir}/update_cluster_state_management.sh"
 
+# Customized properties
+. "${scripts_dir}/customized_prop.sh"
+
 # Check if we are secured or unsecured
 case ${AUTH} in
     tls)
