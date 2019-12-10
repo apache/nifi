@@ -20,9 +20,9 @@
 prop_replace () {
   target_file=${3:-${nifi_props_file}}
   target_line=`sed -n "/^$1=/p" ${target_file}`
-  if [ -z ${target_line} ]
+  if [ -z "${target_line}" ]
   then
-    prop_add $1 $2 ${target_file}
+    prop_add "$1" "$2" ${target_file}
   else
     echo 'replacing target file ' ${target_file}
     sed -i -e "s|^$1=.*$|$1=$2|"  ${target_file}

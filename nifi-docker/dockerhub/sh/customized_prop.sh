@@ -26,9 +26,9 @@ customize_prop () {
   else
     for prop in $props
 	do
-	  k=${prop%=*}
-      v=${prop#*=}
-      prop_replace $k $v
+	  k="${prop%=*}"
+      v="${prop#*=}"
+      prop_replace "$k" "$v"
 	done
   fi
 }
