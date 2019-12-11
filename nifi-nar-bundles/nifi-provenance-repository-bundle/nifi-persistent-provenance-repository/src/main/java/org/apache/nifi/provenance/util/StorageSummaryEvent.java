@@ -19,6 +19,8 @@ package org.apache.nifi.provenance.util;
 
 import java.util.List;
 import java.util.Map;
+
+import org.apache.nifi.provenance.FlowFileAcquisitionMethod;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.provenance.serialization.StorageSummary;
@@ -70,6 +72,11 @@ public class StorageSummaryEvent implements ProvenanceEventRecord {
     @Override
     public ProvenanceEventType getEventType() {
         return event.getEventType();
+    }
+
+    @Override
+    public FlowFileAcquisitionMethod getFlowFileAcquisitionMethod() {
+        return event.getFlowFileAcquisitionMethod();
     }
 
     @Override

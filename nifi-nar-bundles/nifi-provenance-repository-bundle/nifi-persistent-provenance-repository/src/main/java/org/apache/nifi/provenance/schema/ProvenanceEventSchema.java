@@ -26,6 +26,7 @@ import static org.apache.nifi.provenance.schema.EventRecordFields.EVENT_DETAILS;
 import static org.apache.nifi.provenance.schema.EventRecordFields.EVENT_DURATION;
 import static org.apache.nifi.provenance.schema.EventRecordFields.EVENT_TIME;
 import static org.apache.nifi.provenance.schema.EventRecordFields.EVENT_TYPE;
+import static org.apache.nifi.provenance.schema.EventRecordFields.FLOWFILE_ACQUISITION_METHOD;
 import static org.apache.nifi.provenance.schema.EventRecordFields.FLOWFILE_ENTRY_DATE;
 import static org.apache.nifi.provenance.schema.EventRecordFields.FLOWFILE_UUID;
 import static org.apache.nifi.provenance.schema.EventRecordFields.LINEAGE_START_DATE;
@@ -56,6 +57,7 @@ public class ProvenanceEventSchema {
         }
 
         fields.add(EVENT_TYPE);
+        fields.add(FLOWFILE_ACQUISITION_METHOD);
         fields.add(EVENT_TIME);
         fields.add(FLOWFILE_ENTRY_DATE);
         fields.add(EVENT_DURATION);

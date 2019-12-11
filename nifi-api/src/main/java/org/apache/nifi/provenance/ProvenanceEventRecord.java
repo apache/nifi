@@ -74,6 +74,13 @@ public interface ProvenanceEventRecord {
     ProvenanceEventType getEventType();
 
     /**
+     * @return the flowfile acquisition method; this is applicable
+     * only when the {@link ProvenanceEventType} is of type
+     * {@link ProvenanceEventType#RECEIVE} or {@link ProvenanceEventType#FETCH}
+     */
+    FlowFileAcquisitionMethod getFlowFileAcquisitionMethod();
+
+    /**
      * @return all FlowFile attributes that were associated with the FlowFile at
      * the time that this ProvenanceEvent was created
      */

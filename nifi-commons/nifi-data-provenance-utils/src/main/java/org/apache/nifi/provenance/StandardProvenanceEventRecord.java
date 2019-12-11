@@ -34,6 +34,7 @@ public class StandardProvenanceEventRecord implements ProvenanceEventRecord {
     private final long eventTime;
     private final long entryDate;
     private final ProvenanceEventType eventType;
+    private final FlowFileAcquisitionMethod acquisitionMethod;
     private final long lineageStartDate;
     private final String componentId;
     private final String componentType;
@@ -72,6 +73,7 @@ public class StandardProvenanceEventRecord implements ProvenanceEventRecord {
         this.eventTime = builder.eventTime;
         this.entryDate = builder.entryDate;
         this.eventType = builder.eventType;
+        this.acquisitionMethod = builder.acquisitionMethod;
         this.componentId = builder.componentId;
         this.componentType = builder.componentType;
         this.transitUri = builder.transitUri;
@@ -154,6 +156,11 @@ public class StandardProvenanceEventRecord implements ProvenanceEventRecord {
     @Override
     public ProvenanceEventType getEventType() {
         return eventType;
+    }
+
+    @Override
+    public FlowFileAcquisitionMethod getFlowFileAcquisitionMethod() {
+        return acquisitionMethod;
     }
 
     @Override
@@ -413,6 +420,7 @@ public class StandardProvenanceEventRecord implements ProvenanceEventRecord {
         return "ProvenanceEventRecord ["
                 + "eventId=" + eventId
                 + ", eventType=" + eventType
+                + ", flowFileAcquisitionMethod=" + acquisitionMethod
                 + ", eventTime=" + new Date(eventTime)
                 + ", uuid=" + uuid
                 + ", fileSize=" + contentSize
@@ -446,6 +454,7 @@ public class StandardProvenanceEventRecord implements ProvenanceEventRecord {
         private long entryDate;
         private long lineageStartDate;
         private ProvenanceEventType eventType = null;
+        private FlowFileAcquisitionMethod acquisitionMethod = null;
         private String componentId = null;
         private String componentType = null;
         private String sourceSystemFlowFileIdentifier = null;
@@ -484,6 +493,7 @@ public class StandardProvenanceEventRecord implements ProvenanceEventRecord {
             entryDate = event.getFlowFileEntryDate();
             lineageStartDate = event.getLineageStartDate();
             eventType = event.getEventType();
+            acquisitionMethod = event.getFlowFileAcquisitionMethod();
             componentId = event.getComponentId();
             componentType = event.getComponentType();
             transitUri = event.getTransitUri();
@@ -533,6 +543,7 @@ public class StandardProvenanceEventRecord implements ProvenanceEventRecord {
             copy.entryDate = entryDate;
             copy.lineageStartDate = lineageStartDate;
             copy.eventType = eventType;
+            copy.acquisitionMethod = acquisitionMethod;
             copy.componentId = componentId;
             copy.componentType = componentType;
             copy.transitUri = transitUri;
@@ -631,6 +642,12 @@ public class StandardProvenanceEventRecord implements ProvenanceEventRecord {
         @Override
         public Builder setEventType(ProvenanceEventType eventType) {
             this.eventType = eventType;
+            return this;
+        }
+
+        @Override
+        public ProvenanceEventBuilder setFlowFileAcquisitionMethod(FlowFileAcquisitionMethod acquisitionMethod) {
+            this.acquisitionMethod = acquisitionMethod;
             return this;
         }
 

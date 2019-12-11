@@ -782,6 +782,11 @@ public class VolatileProvenanceRepository implements ProvenanceRepository {
         }
 
         @Override
+        public FlowFileAcquisitionMethod getFlowFileAcquisitionMethod() {
+            return record.getFlowFileAcquisitionMethod();
+        }
+
+        @Override
         public Map<String, String> getAttributes() {
             return record.getAttributes();
         }

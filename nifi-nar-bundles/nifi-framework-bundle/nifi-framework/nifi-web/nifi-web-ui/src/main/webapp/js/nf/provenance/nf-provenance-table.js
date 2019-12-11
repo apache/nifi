@@ -1358,6 +1358,7 @@
                     if (event.eventType === 'RECEIVE') {
                         formatEventDetail('Source FlowFile Id', event.sourceSystemFlowFileId);
                         formatEventDetail('Transit Uri', event.transitUri);
+                        formatEventDetail('FlowFile Acquisition Method', event.flowFileAcquisitionMethod);
                     }
 
                     // conditionally show SEND details
@@ -1383,6 +1384,7 @@
                     // conditionally show FETCH details
                     if (event.eventType === 'FETCH') {
                         formatEventDetail('Transit Uri', event.transitUri);
+                        formatEventDetail('FlowFile Acquisition Method', event.flowFileAcquisitionMethod);
                     }
 
                     // conditionally show the cluster node identifier

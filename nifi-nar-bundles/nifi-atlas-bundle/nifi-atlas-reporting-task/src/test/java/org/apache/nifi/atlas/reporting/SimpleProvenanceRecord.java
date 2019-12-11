@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.atlas.reporting;
 
+import org.apache.nifi.provenance.FlowFileAcquisitionMethod;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 
@@ -70,6 +71,11 @@ public class SimpleProvenanceRecord implements ProvenanceEventRecord {
     @Override
     public ProvenanceEventType getEventType() {
         return eventType;
+    }
+
+    @Override
+    public FlowFileAcquisitionMethod getFlowFileAcquisitionMethod() {
+        return FlowFileAcquisitionMethod.UNSPECIFIED;
     }
 
     @Override

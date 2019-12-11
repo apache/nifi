@@ -25,6 +25,7 @@ import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.provenance.RepositoryConfiguration;
 import org.apache.nifi.provenance.StandardProvenanceEventRecord;
+import org.apache.nifi.provenance.TestUtil;
 import org.apache.nifi.provenance.authorization.EventAuthorizer;
 import org.apache.nifi.provenance.authorization.EventTransformer;
 import org.apache.nifi.provenance.serialization.RecordReaders;
@@ -129,6 +130,27 @@ public class TestPartitionedWriteAheadEventStore {
 
         final ProvenanceEventRecord read = store.getEvent(eventId).get();
         assertEquals(eventWithId, read);
+    }
+
+    @Test
+    public void testSingleWriteThenReadWithFlowFileAcquisition() throws IOException {
+        final PartitionedWriteAheadEventStore store = new PartitionedWriteAheadEventStore(createConfig(), writerFactory, readerFactory, EventReporter.NO_OP, new EventFileManager());
+        store.initialize();
+
+        assertEquals(-1, store.getMaxEventId());
+        final ProvenanceEventRecord event1 = TestUtil.createEventWithFlowFileAcquisitionMethod();
+        final StorageResult result = store.addEvents(Collections.singleton(event1));
+
+        final StorageSummary summary = result.getStorageLocations().values().iterator().next();
+        final long eventId = summary.getEventId();
+        final ProvenanceEventRecord eventWithId = addId(event1, eventId);
+
+        assertEquals(0, store.getMaxEventId());
+
+        final ProvenanceEventRecord read = store.getEvent(eventId).get();
+        assertEquals(eventWithId, read);
+        // equals doesn't consider flow files acquisition
+        assertEquals(eventWithId.getFlowFileAcquisitionMethod(), read.getFlowFileAcquisitionMethod());
     }
 
     @Test
@@ -423,7 +445,6 @@ public class TestPartitionedWriteAheadEventStore {
         }
     }
 
-
     @Test
     public void testGetEventsByTimestamp() throws IOException {
         final RepositoryConfiguration config = createConfig();
@@ -481,7 +502,6 @@ public class TestPartitionedWriteAheadEventStore {
             .setEventId(eventId)
             .build();
     }
-
 
     private ProvenanceEventRecord createEvent() {
         final String uuid = UUID.randomUUID().toString();

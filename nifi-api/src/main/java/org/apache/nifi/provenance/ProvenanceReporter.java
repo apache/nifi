@@ -125,6 +125,30 @@ public interface ProvenanceReporter {
 
     /**
      * Emits a Provenance Event of type
+     * {@link ProvenanceEventType#RECEIVE RECEIVE} that indicates that the given
+     * FlowFile was created from data received from an external source and
+     * provides additional details about the receipt of the FlowFile, such as a
+     * remote system's Distinguished Name.
+     *
+     * @param flowFile the FlowFile that was received
+     * @param transitUri A URI that provides information about the System and
+     * Protocol information over which the transfer occurred. The intent of this
+     * field is such that both the sender and the receiver can publish the
+     * events to an external Enterprise-wide system that is then able to
+     * correlate the SEND and RECEIVE events.
+     * @param sourceSystemFlowFileIdentifier the URI/identifier that the source
+     * system uses to refer to the data; if this value is non-null and is not a
+     * URI, the prefix "urn:tdo:" will be used to form a URI.
+     * @param details details about the receive event; for example, it may be
+     * relevant to include the DN of the sending system
+     * @param method the method through which the given FlowFile was created
+     * @param transmissionMillis the number of milliseconds taken to transfer
+     * the data
+     */
+    void receive(FlowFile flowFile, String transitUri, String sourceSystemFlowFileIdentifier, String details, FlowFileAcquisitionMethod method, long transmissionMillis);
+
+    /**
+     * Emits a Provenance Event of type
      * {@link ProvenanceEventType#FETCH FETCH} that indicates that the content of the given
      * FlowFile was overwritten with the data received from an external source.
      *
@@ -159,6 +183,21 @@ public interface ProvenanceReporter {
      * the data
      */
     void fetch(FlowFile flowFile, String transitUri, String details, long transmissionMillis);
+
+    /**
+     * Emits a Provenance Event of type
+     * {@link ProvenanceEventType#FETCH FETCH} that indicates that the content of the given
+     * FlowFile was overwritten with the data received from an external source.
+     *
+     * @param flowFile the FlowFile whose content was replaced
+     * @param transitUri A URI that provides information about the System and
+     * Protocol information over which the transfer occurred.
+     * @param details details about the event
+     * @param method the method through with the given FlowFile was created
+     * @param transmissionMillis the number of milliseconds taken to transfer
+     * the data
+     */
+    void fetch(FlowFile flowFile, String transitUri, String details, FlowFileAcquisitionMethod method, long transmissionMillis);
 
     /**
      * Emits a Provenance Event of type {@link ProvenanceEventType#SEND SEND}

@@ -273,10 +273,10 @@ class EncryptedSchemaRecordReaderWriterTest extends AbstractTestRecordReaderWrit
         RecordReader incompatibleReader = new EventIdFirstSchemaRecordReader(efis, encryptedJournalFile.getName(), incompatibleTocReader, MAX_ATTRIBUTE_SIZE)
         logger.info("Generated standard reader (attempting to read encrypted file): ${incompatibleReader}")
 
-        def msg = shouldFail(EOFException) {
+        def msg = shouldFail(IOException) {
             ProvenanceEventRecord encryptedEvent = incompatibleReader.nextRecord()
         }
         logger.expected(msg)
-        assert msg =~ "EOFException: Failed to read field"
+        assert msg =~ "IOException: Invalid Boolean value found when reading 'Repetition' of field"
     }
 }

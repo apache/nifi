@@ -20,6 +20,7 @@ package org.apache.nifi.provenance.schema;
 public class EventFieldNames {
     public static final String EVENT_IDENTIFIER = "Event ID";
     public static final String EVENT_TYPE = "Event Type";
+    public static final String FLOW_FILE_ACQUISITION_METHOD = "FlowFile Acquisition Method";
     public static final String EVENT_TIME = "Event Time";
     public static final String FLOWFILE_ENTRY_DATE = "FlowFile Entry Date";
     public static final String EVENT_DURATION = "Event Duration";

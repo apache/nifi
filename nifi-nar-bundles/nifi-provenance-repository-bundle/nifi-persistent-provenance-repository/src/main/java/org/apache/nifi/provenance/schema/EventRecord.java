@@ -21,6 +21,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.nifi.provenance.FlowFileAcquisitionMethod;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.provenance.StandardProvenanceEventRecord;
@@ -28,6 +29,7 @@ import org.apache.nifi.repository.schema.FieldMapRecord;
 import org.apache.nifi.repository.schema.Record;
 import org.apache.nifi.repository.schema.RecordField;
 import org.apache.nifi.repository.schema.RecordSchema;
+import org.apache.nifi.util.StringUtils;
 
 public class EventRecord implements Record {
     private final RecordSchema schema;
@@ -89,6 +91,8 @@ public class EventRecord implements Record {
                 return event.getEventTime();
             case EventFieldNames.EVENT_TYPE:
                 return event.getEventType().name();
+            case EventFieldNames.FLOW_FILE_ACQUISITION_METHOD:
+                return event.getFlowFileAcquisitionMethod() != null ? event.getFlowFileAcquisitionMethod().name() : null;
             case EventFieldNames.FLOWFILE_ENTRY_DATE:
                 return event.getFlowFileEntryDate();
             case EventFieldNames.FLOWFILE_UUID:
@@ -127,6 +131,10 @@ public class EventRecord implements Record {
         builder.setEventDuration((Long) record.getFieldValue(EventFieldNames.EVENT_DURATION));
         builder.setEventTime((Long) record.getFieldValue(EventFieldNames.EVENT_TIME));
         builder.setEventType(ProvenanceEventType.valueOf((String) record.getFieldValue(EventFieldNames.EVENT_TYPE)));
+        final String flowFileAcquisitionName = (String) record.getFieldValue(EventFieldNames.FLOW_FILE_ACQUISITION_METHOD);
+        if (!StringUtils.isBlank(flowFileAcquisitionName)) {
+            builder.setFlowFileAcquisitionMethod(FlowFileAcquisitionMethod.valueOf(flowFileAcquisitionName));
+        }
         builder.setFlowFileEntryDate((Long) record.getFieldValue(EventFieldNames.FLOWFILE_ENTRY_DATE));
         builder.setFlowFileUUID((String) record.getFieldValue(EventFieldNames.FLOWFILE_UUID));
         builder.setLineageStartDate((Long) record.getFieldValue(EventFieldNames.LINEAGE_START_DATE));

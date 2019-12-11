@@ -42,6 +42,7 @@ public class ProvenanceEventDTO {
     private String flowFileUuid;
     private String fileSize;
     private Long fileSizeBytes;
+    private String flowFileAcquisitionMethod;
     private String clusterNodeId;    // include when clustered
     private String clusterNodeAddress; // include when clustered
 
@@ -166,6 +167,17 @@ public class ProvenanceEventDTO {
 
     public void setFileSizeBytes(Long fileSizeBytes) {
         this.fileSizeBytes = fileSizeBytes;
+    }
+
+    @ApiModelProperty(
+            value = "The method by which a particular flow file was acquired."
+    )
+    public String getFlowFileAcquisitionMethod() {
+        return flowFileAcquisitionMethod;
+    }
+
+    public void setFlowFileAcquisitionMethod(String flowFileAcquisitionMethod) {
+        this.flowFileAcquisitionMethod = flowFileAcquisitionMethod;
     }
 
     /**

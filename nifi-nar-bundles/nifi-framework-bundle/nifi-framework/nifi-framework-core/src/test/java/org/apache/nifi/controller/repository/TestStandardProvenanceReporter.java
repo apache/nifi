@@ -22,9 +22,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.nifi.connectable.Connectable;
+import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.provenance.FlowFileAcquisitionMethod;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventRepository;
+import org.apache.nifi.provenance.StandardProvenanceEventRecord;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -59,4 +63,26 @@ public class TestStandardProvenanceReporter {
         assertEquals(12, reporter.getEvents().size());
     }
 
+    @Test
+    public void testFlowFileAcquisitionMethodSetOnReceiveFetch() {
+        final RepositoryContext repositoryContext = Mockito.mock(RepositoryContext.class);
+        final Connectable connectable = Mockito.mock(Connectable.class);
+        final ProvenanceEventRepository eventRepository = Mockito.mock(ProvenanceEventRepository.class);
+        Mockito.when(repositoryContext.getConnectable()).thenReturn(connectable);
+        Mockito.when(connectable.getConnectableType()).thenReturn(ConnectableType.INPUT_PORT);
+        Mockito.when(eventRepository.eventBuilder()).thenReturn(new StandardProvenanceEventRecord.Builder());
+
+        final StandardProcessSession session = new StandardProcessSession(repositoryContext, () -> false);
+        final StandardProvenanceReporter provenanceReporter = new StandardProvenanceReporter(session, "processorId", "processorType", eventRepository, null);
+
+        final FlowFile flowFile = session.create();
+        provenanceReporter.receive(flowFile, "transitUri", "sourceSystemId", "details", FlowFileAcquisitionMethod.ACTIVE_QUERY, 100L);
+        provenanceReporter.fetch(flowFile, "transitUri", "details", FlowFileAcquisitionMethod.ACTIVE_QUERY, 100L);
+
+        final Set<ProvenanceEventRecord> events = provenanceReporter.getEvents();
+        assertEquals(2, events.size());
+        events.forEach(
+                event -> assertEquals(FlowFileAcquisitionMethod.ACTIVE_QUERY, event.getFlowFileAcquisitionMethod())
+        );
+    }
 }

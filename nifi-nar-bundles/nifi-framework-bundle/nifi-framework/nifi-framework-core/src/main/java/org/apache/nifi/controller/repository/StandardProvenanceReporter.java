@@ -24,6 +24,7 @@ import java.util.Set;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.FlowFileHandlingException;
+import org.apache.nifi.provenance.FlowFileAcquisitionMethod;
 import org.apache.nifi.provenance.ProvenanceEventBuilder;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventRepository;
@@ -132,11 +133,21 @@ public class StandardProvenanceReporter implements ProvenanceReporter {
 
     @Override
     public void receive(final FlowFile flowFile, final String transitUri, final String sourceSystemFlowFileIdentifier, final String details, final long transmissionMillis) {
+        receive(flowFile, transitUri, sourceSystemFlowFileIdentifier, details, FlowFileAcquisitionMethod.UNSPECIFIED, transmissionMillis);
+    }
+
+    @Override
+    public void receive(FlowFile flowFile, String transitUri, String sourceSystemFlowFileIdentifier, String details, FlowFileAcquisitionMethod method, long transmissionMillis) {
         verifyFlowFileKnown(flowFile);
 
         try {
             final ProvenanceEventRecord record = build(flowFile, ProvenanceEventType.RECEIVE)
-                .setTransitUri(transitUri).setSourceSystemFlowFileIdentifier(sourceSystemFlowFileIdentifier).setEventDuration(transmissionMillis).setDetails(details).build();
+                    .setTransitUri(transitUri)
+                    .setSourceSystemFlowFileIdentifier(sourceSystemFlowFileIdentifier)
+                    .setEventDuration(transmissionMillis)
+                    .setDetails(details)
+                    .setFlowFileAcquisitionMethod(method)
+                    .build();
             events.add(record);
         } catch (final Exception e) {
             logger.error("Failed to generate Provenance Event due to " + e);
@@ -158,14 +169,20 @@ public class StandardProvenanceReporter implements ProvenanceReporter {
 
     @Override
     public void fetch(final FlowFile flowFile, final String transitUri, final String details, final long transmissionMillis) {
+        fetch(flowFile, transitUri, details, FlowFileAcquisitionMethod.UNSPECIFIED, transmissionMillis);
+    }
+
+    @Override
+    public void fetch(FlowFile flowFile, String transitUri, String details, FlowFileAcquisitionMethod method, long transmissionMillis) {
         verifyFlowFileKnown(flowFile);
 
         try {
             final ProvenanceEventRecord record = build(flowFile, ProvenanceEventType.FETCH)
-                .setTransitUri(transitUri)
-                .setEventDuration(transmissionMillis)
-                .setDetails(details)
-                .build();
+                    .setTransitUri(transitUri)
+                    .setEventDuration(transmissionMillis)
+                    .setDetails(details)
+                    .setFlowFileAcquisitionMethod(method)
+                    .build();
             events.add(record);
         } catch (final Exception e) {
             logger.error("Failed to generate Provenance Event due to " + e);

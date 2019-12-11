@@ -231,6 +231,7 @@ public class EventIdFirstSchemaRecordWriter extends CompressableRecordWriter {
         headerValues.put(EventIdFirstHeaderSchema.FieldNames.COMPONENT_TYPES, idLookup.getComponentTypes());
         headerValues.put(EventIdFirstHeaderSchema.FieldNames.QUEUE_IDS, idLookup.getQueueIdentifiers());
         headerValues.put(EventIdFirstHeaderSchema.FieldNames.EVENT_TYPES, eventTypeNames);
+        headerValues.put(EventIdFirstHeaderSchema.FieldNames.FLOWFILE_ACQUISITION_METHODS, FlowFileAcquisitionMethod.flowFileAcquisitionMethodNames());
         final FieldMapRecord headerInfo = new FieldMapRecord(headerSchema, headerValues);
 
         schemaRecordWriter.writeRecord(headerInfo, out);

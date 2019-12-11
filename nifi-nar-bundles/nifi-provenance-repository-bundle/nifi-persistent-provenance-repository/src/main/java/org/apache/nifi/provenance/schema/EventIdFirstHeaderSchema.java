@@ -37,6 +37,7 @@ public class EventIdFirstHeaderSchema {
         public static final String COMPONENT_TYPES = "Component Types";
         public static final String QUEUE_IDS = "Queue Identifiers";
         public static final String EVENT_TYPES = "Event Types";
+        public static final String FLOWFILE_ACQUISITION_METHODS = "FlowFile Acquisition Methods";
     }
 
     private static RecordSchema buildSchema() {
@@ -47,6 +48,7 @@ public class EventIdFirstHeaderSchema {
         fields.add(new SimpleRecordField(FieldNames.COMPONENT_TYPES, FieldType.STRING, Repetition.ZERO_OR_MORE));
         fields.add(new SimpleRecordField(FieldNames.QUEUE_IDS, FieldType.STRING, Repetition.ZERO_OR_MORE));
         fields.add(new SimpleRecordField(FieldNames.EVENT_TYPES, FieldType.STRING, Repetition.ZERO_OR_MORE));
+        fields.add(new SimpleRecordField(FieldNames.FLOWFILE_ACQUISITION_METHODS, FieldType.STRING, Repetition.ZERO_OR_MORE));
         return new RecordSchema(fields);
     }
 }

@@ -84,6 +84,14 @@ public class TestUtil {
         };
     }
 
+    public static ProvenanceEventRecord createEventWithFlowFileAcquisitionMethod() {
+        return new StandardProvenanceEventRecord.Builder()
+                .fromEvent(createEvent())
+                .setEventType(ProvenanceEventType.FETCH)
+                .setFlowFileAcquisitionMethod(FlowFileAcquisitionMethod.ACTIVE_PULL)
+                .build();
+    }
+
     public static ProvenanceEventRecord createEvent() {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("filename", "1.txt");

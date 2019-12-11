@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Optional;
+
 import org.apache.nifi.provenance.schema.EventIdFirstHeaderSchema;
 import org.apache.nifi.provenance.schema.LookupTableEventRecord;
 import org.apache.nifi.provenance.serialization.CompressableRecordReader;
@@ -49,6 +50,7 @@ public class EventIdFirstSchemaRecordReader extends CompressableRecordReader {
     private List<String> componentTypes;
     private List<String> queueIds;
     private List<String> eventTypes;
+    private List<String> flowFileAcquisitionMethods;
     private long firstEventId;
 
     List<String> getComponentIds() {
@@ -65,6 +67,14 @@ public class EventIdFirstSchemaRecordReader extends CompressableRecordReader {
 
     List<String> getEventTypes() {
         return eventTypes;
+    }
+
+    List<String> getAcquisitionMethods() {
+        return flowFileAcquisitionMethods;
+    }
+
+    List<String> getFlowFileAcuisitionMethods() {
+        return flowFileAcquisitionMethods;
     }
 
     long getFirstEventId() {
@@ -119,6 +129,7 @@ public class EventIdFirstSchemaRecordReader extends CompressableRecordReader {
         eventTypes = (List<String>) headerRecord.getFieldValue(EventIdFirstHeaderSchema.FieldNames.EVENT_TYPES);
         firstEventId = (Long) headerRecord.getFieldValue(EventIdFirstHeaderSchema.FieldNames.FIRST_EVENT_ID);
         systemTimeOffset = (Long) headerRecord.getFieldValue(EventIdFirstHeaderSchema.FieldNames.TIMESTAMP_OFFSET);
+        flowFileAcquisitionMethods = (List<String>) headerRecord.getFieldValue(EventIdFirstHeaderSchema.FieldNames.FLOWFILE_ACQUISITION_METHODS);
     }
 
     @Override
@@ -141,7 +152,7 @@ public class EventIdFirstSchemaRecordReader extends CompressableRecordReader {
         }
 
         final StandardProvenanceEventRecord deserializedEvent = LookupTableEventRecord.getEvent(eventRecord, getFilename(), startOffset, getMaxAttributeLength(),
-                firstEventId, systemTimeOffset, componentIds, componentTypes, queueIds, eventTypes);
+                firstEventId, systemTimeOffset, componentIds, componentTypes, queueIds, eventTypes, flowFileAcquisitionMethods);
         deserializedEvent.setEventId(eventId);
         return deserializedEvent;
     }

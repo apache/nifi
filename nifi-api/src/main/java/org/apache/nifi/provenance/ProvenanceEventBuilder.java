@@ -34,6 +34,17 @@ public interface ProvenanceEventBuilder {
     ProvenanceEventBuilder setEventType(ProvenanceEventType eventType);
 
     /**
+     * Sets the method through which a given FlowFile was acquired
+     *
+     * This is valid only for event types {@link ProvenanceEventType#RECEIVE}
+     * and {@link ProvenanceEventType#FETCH} and will be ignored for any other event types.
+     *
+     * @param acquisitionMethod the method through which a given FlowFile was acquired
+     * @return the builder
+     */
+    ProvenanceEventBuilder setFlowFileAcquisitionMethod(FlowFileAcquisitionMethod acquisitionMethod);
+
+    /**
      * Populates the values of the Event being built from the values in the
      * given event
      *

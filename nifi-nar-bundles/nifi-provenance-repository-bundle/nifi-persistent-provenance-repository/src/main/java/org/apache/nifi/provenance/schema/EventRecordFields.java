@@ -32,6 +32,7 @@ public class EventRecordFields {
     // General Event fields.
     public static final RecordField RECORD_IDENTIFIER = new SimpleRecordField(EventFieldNames.EVENT_IDENTIFIER, FieldType.LONG, EXACTLY_ONE);
     public static final RecordField EVENT_TYPE = new SimpleRecordField(EventFieldNames.EVENT_TYPE, FieldType.STRING, EXACTLY_ONE);
+    public static final RecordField FLOWFILE_ACQUISITION_METHOD = new SimpleRecordField(EventFieldNames.FLOW_FILE_ACQUISITION_METHOD, FieldType.STRING, ZERO_OR_ONE);
     public static final RecordField EVENT_TIME = new SimpleRecordField(EventFieldNames.EVENT_TIME, FieldType.LONG, EXACTLY_ONE);
     public static final RecordField FLOWFILE_ENTRY_DATE = new SimpleRecordField(EventFieldNames.FLOWFILE_ENTRY_DATE, FieldType.LONG, EXACTLY_ONE);
     public static final RecordField EVENT_DURATION = new SimpleRecordField(EventFieldNames.EVENT_DURATION, FieldType.LONG, EXACTLY_ONE);

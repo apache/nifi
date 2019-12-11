@@ -79,6 +79,11 @@ public class PlaceholderProvenanceEvent implements ProvenanceEventRecord {
     }
 
     @Override
+    public FlowFileAcquisitionMethod getFlowFileAcquisitionMethod() {
+        return FlowFileAcquisitionMethod.UNSPECIFIED;
+    }
+
+    @Override
     public Map<String, String> getAttributes() {
         return Collections.emptyMap();
     }

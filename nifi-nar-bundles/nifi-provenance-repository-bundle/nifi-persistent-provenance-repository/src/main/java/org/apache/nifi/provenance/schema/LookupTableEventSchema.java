@@ -27,6 +27,7 @@ import static org.apache.nifi.provenance.schema.LookupTableEventRecordFields.EVE
 import static org.apache.nifi.provenance.schema.LookupTableEventRecordFields.EVENT_TIME_OFFSET;
 import static org.apache.nifi.provenance.schema.LookupTableEventRecordFields.EVENT_TYPE_ORDINAL;
 import static org.apache.nifi.provenance.schema.LookupTableEventRecordFields.EXPLICIT_STRING;
+import static org.apache.nifi.provenance.schema.LookupTableEventRecordFields.FLOWFILE_ACQUISITION_METHOD_ORDINAL;
 import static org.apache.nifi.provenance.schema.LookupTableEventRecordFields.FLOWFILE_ENTRY_DATE_OFFSET;
 import static org.apache.nifi.provenance.schema.LookupTableEventRecordFields.LINEAGE_START_DATE_OFFSET;
 import static org.apache.nifi.provenance.schema.LookupTableEventRecordFields.LOOKUP_VALUE;
@@ -45,6 +46,7 @@ import static org.apache.nifi.provenance.schema.LookupTableEventRecordFields.UPD
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+
 import org.apache.nifi.repository.schema.RecordField;
 import org.apache.nifi.repository.schema.RecordSchema;
 
@@ -65,6 +67,7 @@ public class LookupTableEventSchema {
         }
 
         fields.add(EVENT_TYPE_ORDINAL);
+        fields.add(FLOWFILE_ACQUISITION_METHOD_ORDINAL);
         fields.add(EVENT_TIME_OFFSET);
         fields.add(FLOWFILE_ENTRY_DATE_OFFSET);
         fields.add(EVENT_DURATION);

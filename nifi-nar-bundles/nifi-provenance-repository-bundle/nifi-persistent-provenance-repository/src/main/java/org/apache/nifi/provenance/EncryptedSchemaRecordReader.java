@@ -76,7 +76,7 @@ public class EncryptedSchemaRecordReader extends EventIdFirstSchemaRecordReader 
             }
 
             final StandardProvenanceEventRecord deserializedEvent = LookupTableEventRecord.getEvent(eventRecord, getFilename(), startOffset, getMaxAttributeLength(),
-                    getFirstEventId(), getSystemTimeOffset(), getComponentIds(), getComponentTypes(), getQueueIds(), getEventTypes());
+                    getFirstEventId(), getSystemTimeOffset(), getComponentIds(), getComponentTypes(), getQueueIds(), getEventTypes(), getAcquisitionMethods());
             deserializedEvent.setEventId(eventId);
             return deserializedEvent;
         } catch (EncryptionException e) {

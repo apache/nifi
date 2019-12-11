@@ -17,9 +17,19 @@
 
 package org.apache.nifi.provenance;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import org.apache.nifi.provenance.serialization.RecordReader;
+import org.apache.nifi.provenance.serialization.RecordWriter;
+import org.apache.nifi.provenance.toc.StandardTocReader;
+import org.apache.nifi.provenance.toc.StandardTocWriter;
+import org.apache.nifi.provenance.toc.TocReader;
+import org.apache.nifi.provenance.toc.TocUtil;
+import org.apache.nifi.provenance.toc.TocWriter;
+import org.apache.nifi.util.file.FileUtils;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Ignore;
+import org.junit.Test;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -34,19 +44,9 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.apache.nifi.provenance.serialization.RecordReader;
-import org.apache.nifi.provenance.serialization.RecordWriter;
-import org.apache.nifi.provenance.toc.StandardTocReader;
-import org.apache.nifi.provenance.toc.StandardTocWriter;
-import org.apache.nifi.provenance.toc.TocReader;
-import org.apache.nifi.provenance.toc.TocUtil;
-import org.apache.nifi.provenance.toc.TocWriter;
-import org.apache.nifi.util.file.FileUtils;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Ignore;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 
 public class TestEventIdFirstSchemaRecordReaderWriter extends AbstractTestRecordReaderWriter {
     private final AtomicLong idGenerator = new AtomicLong(0L);
@@ -340,6 +340,46 @@ public class TestEventIdFirstSchemaRecordReaderWriter extends AbstractTestRecord
         FileUtils.deleteFile(journalFile.getParentFile(), true);
     }
 
+    @Test
+    public void testHeaderCorrect() throws IOException {
+        final File journalFile = new File("target/storage/" + UUID.randomUUID().toString() + "/testSimpleWrite.gz");
+        final File tocFile = TocUtil.getTocFile(journalFile);
+        final TocWriter tocWriter = new StandardTocWriter(tocFile, false, false);
+        final RecordWriter writer = createWriter(journalFile, tocWriter, true, 8192);
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("filename", "1.txt");
+        attributes.put("uuid", UUID.randomUUID().toString());
+
+        final long timestamp = System.currentTimeMillis() - 10000L;
+
+        final StandardProvenanceEventRecord.Builder builder = new StandardProvenanceEventRecord.Builder();
+        builder.setEventId(1_000_000);
+        builder.setEventTime(timestamp);
+        builder.setEventType(ProvenanceEventType.RECEIVE);
+        builder.setTransitUri("nifi://unit-test");
+        builder.fromFlowFile(TestUtil.createFlowFile(3L, 3000L, attributes));
+        builder.setComponentId("1234");
+        builder.setComponentType("dummy processor");
+        builder.setPreviousContentClaim("container-1", "section-1", "identifier-1", 1L, 1L);
+        builder.setCurrentContentClaim("container-2", "section-2", "identifier-2", 2L, 2L);
+        final ProvenanceEventRecord record = builder.build();
+
+        writer.writeHeader(500_000L);
+        writer.writeRecord(record);
+        writer.close();
+
+        final TocReader tocReader = new StandardTocReader(tocFile);
+
+        try (final FileInputStream fis = new FileInputStream(journalFile);
+             // assume EventId reader
+             final EventIdFirstSchemaRecordReader reader = (EventIdFirstSchemaRecordReader) createReader(fis, journalFile.getName(), tocReader, 2048)) {
+
+            assertEquals(FlowFileAcquisitionMethod.flowFileAcquisitionMethodNames(), reader.getFlowFileAcuisitionMethods());
+        }
+
+        FileUtils.deleteFile(journalFile.getParentFile(), true);
+    }
 
     @Test
     public void testComponentIdInlineAndLookup() throws IOException {

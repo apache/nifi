@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.function.Supplier;
 
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.provenance.FlowFileAcquisitionMethod;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.provenance.StandardProvenanceEventRecord;
@@ -202,6 +203,8 @@ public class LookupTableEventRecord implements Record {
                 return (int) (event.getEventTime() - startTimeOffset);
             case EventFieldNames.EVENT_TYPE:
                 return eventTypeMap.get(event.getEventType().name());
+            case EventFieldNames.FLOW_FILE_ACQUISITION_METHOD:
+                return FlowFileAcquisitionMethod.flowFileAcquisitionMap().get(event.getFlowFileAcquisitionMethod());
             case EventFieldNames.FLOWFILE_ENTRY_DATE:
                 return (int) (event.getFlowFileEntryDate() - startTimeOffset);
             case EventFieldNames.LINEAGE_START_DATE:
@@ -240,7 +243,7 @@ public class LookupTableEventRecord implements Record {
     @SuppressWarnings("unchecked")
     public static StandardProvenanceEventRecord getEvent(final Record record, final String storageFilename, final long storageByteOffset, final int maxAttributeLength,
         final long eventIdStartOffset, final long startTimeOffset, final List<String> componentIds, final List<String> componentTypes,
-        final List<String> queueIds, final List<String> eventTypes) {
+        final List<String> queueIds, final List<String> eventTypes, List<String> flowFileAcquisitionMethods) {
 
         final Map<String, String> previousAttributes = truncateAttributes((Map<String, String>) record.getFieldValue(EventFieldNames.PREVIOUS_ATTRIBUTES), maxAttributeLength);
         final Map<String, String> updatedAttributes = truncateAttributes((Map<String, String>) record.getFieldValue(EventFieldNames.UPDATED_ATTRIBUTES), maxAttributeLength);
@@ -277,6 +280,22 @@ public class LookupTableEventRecord implements Record {
             }
         }
         builder.setEventType(eventType);
+
+        // Determine acquisition method
+        final Integer flowFileAcquisitionOrdinal = (Integer) record.getFieldValue(EventFieldNames.FLOW_FILE_ACQUISITION_METHOD);
+        FlowFileAcquisitionMethod flowFileAcquisitionMethod;
+        if(flowFileAcquisitionOrdinal == null || flowFileAcquisitionOrdinal > FlowFileAcquisitionMethod.flowFileAcquisitionMethodNames().size()
+                || flowFileAcquisitionOrdinal < 0) {
+            flowFileAcquisitionMethod = null;
+        } else {
+            try {
+                final String acquisitionName = flowFileAcquisitionMethods.get(flowFileAcquisitionOrdinal);
+                flowFileAcquisitionMethod = FlowFileAcquisitionMethod.valueOf(acquisitionName);
+            } catch (final Exception e) {
+                flowFileAcquisitionMethod = null;
+            }
+        }
+        builder.setFlowFileAcquisitionMethod(flowFileAcquisitionMethod);
 
         // Determine appropriate UUID for the event
         String uuid = null;

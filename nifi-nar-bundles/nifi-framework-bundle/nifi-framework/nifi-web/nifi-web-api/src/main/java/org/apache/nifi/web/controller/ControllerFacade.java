@@ -1483,6 +1483,9 @@ public class ControllerFacade implements Authorizable {
             // additional event details
             dto.setAlternateIdentifierUri(event.getAlternateIdentifierUri());
             dto.setTransitUri(event.getTransitUri());
+            if(event.getFlowFileAcquisitionMethod() != null) {
+                dto.setFlowFileAcquisitionMethod(event.getFlowFileAcquisitionMethod().name());
+            }
             dto.setSourceSystemFlowFileId(event.getSourceSystemFlowFileIdentifier());
             dto.setRelationship(event.getRelationship());
             dto.setDetails(event.getDetails());
