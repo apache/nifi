@@ -139,7 +139,7 @@ public class DataDogReportingTask extends AbstractReportingTask {
         try {
             updateDataDogTransport(context);
         } catch (IOException e) {
-            e.printStackTrace();
+            logger.warn("Unable to update data dog transport", e);
         }
         updateAllMetricGroups(status);
         ddMetricRegistryBuilder.getDatadogReporter().report();
