@@ -365,7 +365,7 @@ public class PutAccumuloRecord extends BaseAccumuloProcessor {
                 } catch (TableExistsException te) {
                     // can safely ignore, though we shouldn't arrive here due to table.exists called, but it's possible
                     // that with multiple threads two could attempt table creation concurrently. We don't want that
-                    // to be a failure. 
+                    // to be a failure.
                 } catch (AccumuloSecurityException | AccumuloException e) {
                     throw new ProcessException("Accumulo or Security error creating. Continuing... " + tableName + ". ",e);
                 }
