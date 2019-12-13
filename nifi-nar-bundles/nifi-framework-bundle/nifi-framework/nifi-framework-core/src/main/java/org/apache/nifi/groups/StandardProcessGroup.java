@@ -2177,7 +2177,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                 if (descriptor.getControllerServiceDefinition() != null) {
                     final String value = entry.getValue() == null ? descriptor.getDefaultValue() : entry.getValue();
                     if (value != null) {
-                        final ControllerServiceNode referencedNode = getControllerService(value);
+                        final ControllerServiceNode referencedNode = controllerServiceProvider.getControllerServiceNode(value);
                         if (referencedNode != null) {
                             referencedNode.removeReference(service, descriptor);
                         }
