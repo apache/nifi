@@ -1244,7 +1244,9 @@ To distribute the data in a flow across the nodes in the cluster, NiFi offers th
 
 - *Do not load balance*: Do not load balance FlowFiles between nodes in the cluster. This is the default.
 - *Partition by attribute*: Determines which node to send a given FlowFile to based on the value of a user-specified FlowFile Attribute. All FlowFiles that have the same value for the Attribute will be sent to the same node in the cluster. If the destination node is disconnected from the cluster or if unable to communicate, the data does not fail over to another node. The data will queue, waiting for the node to be available again. Additionally, if a node joins or leaves the cluster necessitating a rebalance of the data, consistent hashing is applied to avoid having to redistribute all of the data.
-- *Round robin*: FlowFiles will be distributed to nodes in the cluster in a round-robin fashion. If a node is disconnected from the cluster or if unable to communicate with a node, the data that is queued for that node will be automatically redistributed to another node(s).
+- *Round robin*: FlowFiles will be distributed to nodes in the cluster in a round-robin fashion. If a node is disconnected from the cluster or if unable to communicate with a node, the data that is
+queued for that node will be automatically redistributed to another node(s). If a node is not able to receive the data as fast other nodes in the cluster, the node may also be skipped for one or
+more iterations in order to maximize throughput of data distribution across the cluster.
 - *Single node*: All FlowFiles will be sent to a single node in the cluster.  Which node they are sent to is not configurable. If the node is disconnected from the cluster or if unable to communicate with the node, the data that is queued for that node will remain queued until the node is available again.
 
 NOTE: In addition to the UI settings, there are <<administration-guide.adoc#cluster_node_properties,Cluster Node Properties>> related to load balancing that must also be configured in _nifi.properties_.

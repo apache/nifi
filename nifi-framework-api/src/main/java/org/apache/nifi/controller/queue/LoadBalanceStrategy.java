@@ -30,7 +30,8 @@ public enum LoadBalanceStrategy {
     PARTITION_BY_ATTRIBUTE,
 
     /**
-     * FlowFiles will be distributed to nodes in the cluster in a Round-Robin fashion.
+     * FlowFiles will be distributed to nodes in the cluster in a Round-Robin fashion. However, if a node in the cluster is not able to receive data as fast as other nodes,
+     * that node may be skipped in one or more iterations in order to maximize throughput of data distribution across the cluster.
      */
     ROUND_ROBIN,
 
