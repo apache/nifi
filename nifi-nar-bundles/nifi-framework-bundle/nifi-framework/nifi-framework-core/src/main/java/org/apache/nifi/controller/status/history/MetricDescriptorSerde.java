@@ -36,28 +36,32 @@ public class MetricDescriptorSerde implements JsonSerializer, JsonDeserializer {
     static {
         Arrays.stream(ProcessGroupStatusDescriptor.values()).forEach(descriptor -> {
             MetricDescriptor md = descriptor.getDescriptor();
-            String key = md.getField() + md.getLabel() + md.getDescription();
+            String key = createKey(md.getField(), md.getLabel(), md.getDescription());
             valueMapperMap.put(key, md.getValueFunction());
             valueReducerMap.put(key, md.getValueReducer());
         });
         Arrays.stream(ProcessorStatusDescriptor.values()).forEach(descriptor -> {
             MetricDescriptor md = descriptor.getDescriptor();
-            String key = md.getField() + md.getLabel() + md.getDescription();
+            String key = createKey(md.getField(), md.getLabel(), md.getDescription());
             valueMapperMap.put(key, md.getValueFunction());
             valueReducerMap.put(key, md.getValueReducer());
         });
         Arrays.stream(RemoteProcessGroupStatusDescriptor.values()).forEach(descriptor -> {
             MetricDescriptor md = descriptor.getDescriptor();
-            String key = md.getField() + md.getLabel() + md.getDescription();
+            String key = createKey(md.getField(), md.getLabel(), md.getDescription());
             valueMapperMap.put(key, md.getValueFunction());
             valueReducerMap.put(key, md.getValueReducer());
         });
         Arrays.stream(ConnectionStatusDescriptor.values()).forEach(descriptor -> {
             MetricDescriptor md = descriptor.getDescriptor();
-            String key = md.getField() + md.getLabel() + md.getDescription();
+            String key = createKey(md.getField(), md.getLabel(), md.getDescription());
             valueMapperMap.put(key, md.getValueFunction());
             valueReducerMap.put(key, md.getValueReducer());
         });
+    }
+
+    private static String createKey(String field, String label, String description) {
+        return field + label + description;
     }
 
     @Override
@@ -82,7 +86,7 @@ public class MetricDescriptorSerde implements JsonSerializer, JsonDeserializer {
         String formatterName = jsonObject.get("formatter").getAsString();
         MetricDescriptor.Formatter formatter = MetricDescriptor.Formatter.valueOf(formatterName);
 
-        String key = field + label + description;
+        String key = createKey(field, label, description);
 
         IndexableMetric indexableMetric = () -> metricIdentifier;
         MetricDescriptor metricDescriptor = new StandardMetricDescriptor(indexableMetric, field, label, description, formatter, valueMapperMap.get(key), valueReducerMap.get(key));

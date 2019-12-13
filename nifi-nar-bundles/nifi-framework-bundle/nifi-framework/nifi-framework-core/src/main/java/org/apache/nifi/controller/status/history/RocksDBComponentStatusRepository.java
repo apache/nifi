@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.controller.status.history;
 
+import com.google.common.collect.Lists;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
@@ -48,6 +49,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -629,14 +631,15 @@ public class RocksDBComponentStatusRepository implements ComponentStatusReposito
             }
 
             Map<Long, StatusSnapshot> snapshotMap = new HashMap<>();
-            List<Future> queryFutures = new ArrayList<>();
+            List<CompletableFuture> queryFutures = new ArrayList<>();
 
             try(ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(historyIds)) {
                 byte[] read = new byte[8];
                 while(byteArrayInputStream.read(read, 0, 8) == 8) {
                     byte[] key = new byte[read.length];
                     System.arraycopy(read, 0, key, 0, key.length);
-                    queryFutures.add(executorService.submit(() -> {
+                    
+                    queryFutures.add(CompletableFuture.runAsync(() -> {
                         byte[] status;
                         try {
                             status = db.get(key);
@@ -649,13 +652,11 @@ public class RocksDBComponentStatusRepository implements ComponentStatusReposito
                         } catch(RocksDBException e) {
                             logger.warn("Could not retrieve status snapshot", e);
                         }
-                    }));
+                    }, executorService));
                 }
 
                 // wait for futures to complete... throws TimeoutException
-                for(Future f : queryFutures) {
-                    f.get(30, TimeUnit.SECONDS);
-                }
+                CompletableFuture.allOf(queryFutures.toArray(new CompletableFuture[0])).get(30, TimeUnit.SECONDS);
 
                 List<Long> dates = timestamps.asList();
                 List<StatusSnapshot> snapshotList = new ArrayList<>(dates.size());
