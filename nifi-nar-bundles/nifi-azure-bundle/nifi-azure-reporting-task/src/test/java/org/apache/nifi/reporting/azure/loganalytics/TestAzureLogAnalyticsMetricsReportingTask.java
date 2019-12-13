@@ -43,7 +43,7 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
-public class TestAzureLogAnalyticsReportingTask {
+public class TestAzureLogAnalyticsMetricsReportingTask {
 
     private static final String TEST_INIT_CONTEXT_ID = "test-init-context-id";
     private static final String TEST_INIT_CONTEXT_NAME = "test-init-context-name";
@@ -69,9 +69,9 @@ public class TestAzureLogAnalyticsReportingTask {
         reportingContextStub = new MockReportingContext(Collections.emptyMap(),
                 new MockStateManager(testedReportingTask), new MockVariableRegistry());
 
-        reportingContextStub.setProperty(AzureLogAnalyticsReportingTask.INSTANCE_ID.getName(), TEST_TASK_ID);
-        reportingContextStub.setProperty(AzureLogAnalyticsReportingTask.LOG_ANALYTICS_WORKSPACE_ID.getName(), TEST_TASK_ID);
-        reportingContextStub.setProperty(AzureLogAnalyticsReportingTask.LOG_ANALYTICS_WORKSPACE_KEY.getName(), MOCK_KEY);
+        reportingContextStub.setProperty(AzureLogAnalyticsMetricsReportingTask.INSTANCE_ID.getName(), TEST_TASK_ID);
+        reportingContextStub.setProperty(AzureLogAnalyticsMetricsReportingTask.LOG_ANALYTICS_WORKSPACE_ID.getName(), TEST_TASK_ID);
+        reportingContextStub.setProperty(AzureLogAnalyticsMetricsReportingTask.LOG_ANALYTICS_WORKSPACE_KEY.getName(), MOCK_KEY);
 
 
         rootGroupStatus.setId("1234");
@@ -167,7 +167,7 @@ public class TestAzureLogAnalyticsReportingTask {
     @Test
     public void testOnTriggerWithOnePG() throws IOException, InterruptedException, InitializationException {
         initTestGroupStatuses();
-        reportingContextStub.setProperty(AzureLogAnalyticsReportingTask.PROCESS_GROUP_IDS.getName(), TEST_GROUP1_ID);
+        reportingContextStub.setProperty(AzureLogAnalyticsMetricsReportingTask.PROCESS_GROUP_IDS.getName(), TEST_GROUP1_ID);
         testedReportingTask.initialize(reportingInitContextStub);
         reportingContextStub.getEventAccess().setProcessGroupStatus(rootGroupStatus);
         reportingContextStub.getEventAccess().setProcessGroupStatus(TEST_GROUP1_ID, testGroupStatus);
@@ -180,7 +180,7 @@ public class TestAzureLogAnalyticsReportingTask {
     public void testOnTriggerWithPGList() throws IOException, InterruptedException, InitializationException {
         initTestGroupStatuses();
         initTestGroup2Statuses();
-        reportingContextStub.setProperty(AzureLogAnalyticsReportingTask.PROCESS_GROUP_IDS.getName(),
+        reportingContextStub.setProperty(AzureLogAnalyticsMetricsReportingTask.PROCESS_GROUP_IDS.getName(),
             String.format("%s, %s", TEST_GROUP1_ID, TEST_GROUP2_ID));
         testedReportingTask.initialize(reportingInitContextStub);
         reportingContextStub.getEventAccess().setProcessGroupStatus(rootGroupStatus);
@@ -194,7 +194,7 @@ public class TestAzureLogAnalyticsReportingTask {
 
     @Test
     public void testEmitJVMMetrics() throws IOException, InterruptedException, InitializationException {
-        reportingContextStub.setProperty(AzureLogAnalyticsReportingTask.SEND_JVM_METRICS.getName(), "true");
+        reportingContextStub.setProperty(AzureLogAnalyticsMetricsReportingTask.SEND_JVM_METRICS.getName(), "true");
         testedReportingTask.initialize(reportingInitContextStub);
 
         reportingContextStub.getEventAccess().setProcessGroupStatus(rootGroupStatus);
@@ -207,7 +207,7 @@ public class TestAzureLogAnalyticsReportingTask {
     @Test
     public void testAuthorization() throws IOException, InterruptedException, InitializationException {
 
-        reportingContextStub.setProperty(AzureLogAnalyticsReportingTask.SEND_JVM_METRICS.getName(), "true");
+        reportingContextStub.setProperty(AzureLogAnalyticsMetricsReportingTask.SEND_JVM_METRICS.getName(), "true");
         testedReportingTask.initialize(reportingInitContextStub);
         reportingContextStub.getEventAccess().setProcessGroupStatus(rootGroupStatus);
         testedReportingTask.onTrigger(reportingContextStub);
@@ -219,7 +219,7 @@ public class TestAzureLogAnalyticsReportingTask {
     }
 
 
-    private final class TestableAzureLogAnalyticsReportingTask extends AzureLogAnalyticsReportingTask {
+    private final class TestableAzureLogAnalyticsReportingTask extends AzureLogAnalyticsMetricsReportingTask {
 
         private List<Metric> metricsCollected;
         @Override
