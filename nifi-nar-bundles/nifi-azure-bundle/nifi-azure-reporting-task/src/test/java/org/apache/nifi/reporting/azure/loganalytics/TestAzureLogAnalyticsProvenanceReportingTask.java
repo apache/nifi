@@ -50,7 +50,14 @@ public class TestAzureLogAnalyticsProvenanceReportingTask {
         AzureLogAnalyticsProvenanceReportingTask.addField(builder, "TestKeyNotSupportedObject", 1.25, true);
         AzureLogAnalyticsProvenanceReportingTask.addField(builder, "TestKeyNull", null, true);
         javax.json.JsonObject actualJson = builder.build();
-        String expectedjsonString = "{\"TestKeyString\":\"StringValue\",\"TestKeyInteger\":2674440,\"TestKeyLong\":1289904147324,\"TestKeyBoolean\":true,\"TestKeyNotSupportedObject\":\"1.25\",\"TestKeyNull\":null}";
+        String expectedjsonString = "{" +
+                                        "\"TestKeyString\": \"StringValue\"," +
+                                        "\"TestKeyInteger\": 2674440," +
+                                        "\"TestKeyLong\": 1289904147324," +
+                                        "\"TestKeyBoolean\": true," +
+                                        "\"TestKeyNotSupportedObject\": \"1.25\"," +
+                                        "\"TestKeyNull\": null" +
+                                    "}";
         JsonObject expectedJson = new Gson().fromJson(expectedjsonString, JsonObject.class);
         assertEquals(expectedJson.toString(), actualJson.toString());
     }

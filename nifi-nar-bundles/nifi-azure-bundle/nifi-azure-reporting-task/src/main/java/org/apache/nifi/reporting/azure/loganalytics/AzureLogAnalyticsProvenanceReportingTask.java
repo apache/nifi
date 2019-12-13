@@ -135,7 +135,8 @@ public class AzureLogAnalyticsProvenanceReportingTask extends AbstractAzureLogAn
 
         static final PropertyDescriptor START_POSITION = new PropertyDescriptor.Builder().name("start-position")
                         .displayName("Start Position")
-                        .description("If the Reporting Task has never been run, or if its state has been reset by a user, specifies where in the stream of Provenance Events the Reporting Task should start")
+                        .description("If the Reporting Task has never been run, or if its state has been reset by a user, "
+                                        + "specifies where in the stream of Provenance Events the Reporting Task should start")
                         .allowableValues(BEGINNING_OF_STREAM, END_OF_STREAM)
                         .defaultValue(BEGINNING_OF_STREAM.getValue()).required(true).build();
 
@@ -192,7 +193,7 @@ public class AzureLogAnalyticsProvenanceReportingTask extends AbstractAzureLogAn
         }
 
         public void CreateConsumer(final ReportingContext context) {
-                if(consumer != null)
+                if (consumer != null)
                         return;
                 consumer = new ProvenanceEventConsumer();
                 consumer.setStartPositionValue(context.getProperty(START_POSITION).getValue());
@@ -398,8 +399,8 @@ public class AzureLogAnalyticsProvenanceReportingTask extends AbstractAzureLogAn
                 }
         }
 
-        public static void addField(final JsonObjectBuilder builder, final JsonBuilderFactory factory,
-                        final String key, final Map<String, String> values, Boolean allowNullValues) {
+        public static void addField(final JsonObjectBuilder builder, final JsonBuilderFactory factory, final String key,
+                        final Map<String, String> values, Boolean allowNullValues) {
                 if (values != null) {
                         final JsonObjectBuilder mapBuilder = factory.createObjectBuilder();
                         for (final Map.Entry<String, String> entry : values.entrySet()) {

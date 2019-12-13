@@ -91,7 +91,7 @@ public class AzureLogAnalyticsMetricsReportingTask extends AbstractAzureLogAnaly
 
     /**
      * send collected metrics to azure log analytics workspace
-     * 
+     *
      * @param request         HttpPost to Azure Log Analytics Endpoint
      * @param workspaceId     your azure log analytics workspace id
      * @param linuxPrimaryKey your azure log analytics workspace key
@@ -118,7 +118,7 @@ public class AzureLogAnalyticsMetricsReportingTask extends AbstractAzureLogAnaly
 
     /**
      * collect metrics to be sent to azure log analytics workspace
-     * 
+     *
      * @param instanceId          instance id
      * @param status              process group status
      * @param processGroupName    process group name

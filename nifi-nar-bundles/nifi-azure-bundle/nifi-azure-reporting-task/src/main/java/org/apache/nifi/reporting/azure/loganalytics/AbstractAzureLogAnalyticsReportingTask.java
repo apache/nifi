@@ -120,7 +120,7 @@ public abstract class AbstractAzureLogAnalyticsReportingTask extends AbstractRep
 
     /**
      * Construct HttpPost and return it
-     * 
+     *
      * @param urlFormat   URL format to Azure Log Analytics Endpoint
      * @param workspaceId your azure log analytics workspace id
      * @param logName     log table name where metrics will be pushed
@@ -152,7 +152,7 @@ public abstract class AbstractAzureLogAnalyticsReportingTask extends AbstractRep
 
     /**
      * post request with httpClient and httpPost
-     * 
+     *
      * @param httpClient HttpClient
      * @param request    HttpPost
      * @throws IOException      if httpClient.execute fails
