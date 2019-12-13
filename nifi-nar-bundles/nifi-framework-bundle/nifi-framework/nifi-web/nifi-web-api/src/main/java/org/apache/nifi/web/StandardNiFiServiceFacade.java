@@ -4305,7 +4305,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         // Create a VersionedProcessGroup snapshot of the flow as it is currently.
         final InstantiatedVersionedProcessGroup versionedProcessGroup = createFlowSnapshot(groupId);
-        final Collection<VersionedParameterContext> parameterContexts = createVersionedParameterContexts(processGroup);
+        final Map<String, VersionedParameterContext> parameterContexts = createVersionedParameterContexts(processGroup);
 
         final String flowId = versionedFlowDto.getFlowId() == null ? UUID.randomUUID().toString() : versionedFlowDto.getFlowId();
 
@@ -4408,15 +4408,13 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 mapper.mapNonVersionedProcessGroup(processGroup, controllerFacade.getControllerServiceProvider());
 
         // Create a complete (include descendant flows) map of parameter contexts
-        final Collection<VersionedParameterContext> parameterContexts =
+        final Map<String, VersionedParameterContext> parameterContexts =
                 mapper.mapParameterContexts(processGroup, true);
-        final Map<String, VersionedParameterContext> parameterContextMap = parameterContexts.stream()
-                .collect(Collectors.toMap(VersionedParameterContext::getName, context -> context));
 
         final VersionedFlowSnapshot nonVersionedFlowSnapshot = new VersionedFlowSnapshot();
         nonVersionedFlowSnapshot.setFlowContents(nonVersionedProcessGroup);
         nonVersionedFlowSnapshot.setExternalControllerServices(nonVersionedProcessGroup.getExternalControllerServiceReferences());
-        nonVersionedFlowSnapshot.setParameterContexts(parameterContextMap);
+        nonVersionedFlowSnapshot.setParameterContexts(parameterContexts);
         nonVersionedFlowSnapshot.setFlowEncodingVersion(RestBasedFlowRegistry.FLOW_ENCODING_VERSION);
 
         return nonVersionedFlowSnapshot;
@@ -4502,7 +4500,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         return versionedGroup;
     }
 
-    private Collection<VersionedParameterContext> createVersionedParameterContexts(final ProcessGroup processGroup) {
+    private Map<String, VersionedParameterContext> createVersionedParameterContexts(final ProcessGroup processGroup) {
         final NiFiRegistryFlowMapper mapper = makeNiFiRegistryFlowMapper(controllerFacade.getExtensionManager());
         return mapper.mapParameterContexts(processGroup, false);
     }
@@ -4597,7 +4595,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     @Override
     public VersionedFlowSnapshot registerVersionedFlowSnapshot(final String registryId, final VersionedFlow flow, final VersionedProcessGroup snapshot,
-                                                               final Collection<VersionedParameterContext> parameterContexts,
+                                                               final Map<String, VersionedParameterContext> parameterContexts,
                                                                final Map<String, ExternalControllerServiceReference> externalControllerServiceReferences, final String comments,
                                                                final int expectedVersion) {
         final FlowRegistry registry = flowRegistryClient.getFlowRegistry(registryId);

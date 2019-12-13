@@ -62,7 +62,7 @@ public class TestVersionsResource {
         final VersionedFlowSnapshot resultEntity = (VersionedFlowSnapshot)response.getEntity();
 
         assertEquals(200, response.getStatus());
-        assertEquals(resultEntity, versionedFlowSnapshot);
+        assertEquals(versionedFlowSnapshot, resultEntity);
 
         verify(versionedFlowSnapshot).setFlow(null);
         verify(versionedFlowSnapshot).setBucket(null);

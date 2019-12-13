@@ -1844,15 +1844,6 @@
         },
 
         /**
-         * Downloads the latest versioned flow with the specified process group id
-         *
-         * @param processGroupId
-         */
-        downloadFlowVersion: function (processGroupId) {
-            window.open('../nifi-api/versions/process-groups/' + encodeURIComponent(processGroupId) + '/download');
-        },
-
-        /**
          * Reverts local changes for the specified Process Group.
          *
          * @param processGroupId

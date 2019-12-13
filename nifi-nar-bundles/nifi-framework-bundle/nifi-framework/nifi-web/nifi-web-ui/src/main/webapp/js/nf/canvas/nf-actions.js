@@ -150,7 +150,8 @@
         urls: {
             api: '../nifi-api',
             controller: '../nifi-api/controller',
-            parameterContexts: '../nifi-api/parameter-contexts'
+            parameterContexts: '../nifi-api/parameter-contexts',
+            downloadToken: '../nifi-api/access/download-token'
         }
     };
 
@@ -1393,7 +1394,26 @@
             }
 
             if (processGroupId !== null) {
-                window.open('../nifi-api/process-groups/' + encodeURIComponent(processGroupId) + '/download');
+                nfCommon.getAccessToken(config.urls.downloadToken).done(function (downloadToken) {
+                    var parameters = {};
+
+                    // conditionally include the download token
+                    if (!nfCommon.isBlank(downloadToken)) {
+                        parameters['access_token'] = downloadToken;
+                    }
+
+                    // open the url
+                    var uri = '../nifi-api/process-groups/' + encodeURIComponent(processGroupId) + '/download';
+                    if (!$.isEmptyObject(parameters)) {
+                        uri += ('?' + $.param(parameters));
+                    }
+                    window.open(uri);
+                }).fail(function () {
+                    nfDialog.showOkDialog({
+                        headerText: 'Download Flow',
+                        dialogContent: 'Unable to generate access token for downloading content.'
+                    });
+                });
             }
         },
 

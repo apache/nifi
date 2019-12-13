@@ -226,7 +226,7 @@ public class VersionsResource extends ApplicationResource {
     /**
      * Recursively clear the registry info in the given versioned process group and all nested versioned process groups
      *
-     * @param versionedProcessGroup
+     * @param versionedProcessGroup the process group to sanitize
      */
     private void sanitizeRegistryInfo(final VersionedProcessGroup versionedProcessGroup) {
         versionedProcessGroup.setVersionedFlowCoordinates(null);

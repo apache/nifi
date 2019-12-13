@@ -132,12 +132,14 @@ public class NiFiRegistryFlowMapperTest {
 
         // first nesting should be traversed because child is not version controlled, but deeper nesting should be ignored
         // because map versioned descendants indicator is false
-        final List<VersionedParameterContext> versionedParameterContexts =
-                Lists.newArrayList(flowMapper.mapParameterContexts(processGroup, false));
+        final Map<String, VersionedParameterContext> versionedParameterContexts =
+                flowMapper.mapParameterContexts(processGroup, false);
 
         // verify single parameter context
         assertEquals(1, versionedParameterContexts.size());
-        verifyParameterContext(versionedParameterContexts.get(0), innerProcessGroup.getParameterContext());
+
+        final String expectedName = innerProcessGroup.getParameterContext().getName();
+        verifyParameterContext(innerProcessGroup.getParameterContext(), versionedParameterContexts.get(expectedName));
     }
 
     /**
@@ -156,13 +158,16 @@ public class NiFiRegistryFlowMapperTest {
                         true, true);
 
         // include nested parameter contexts even though they are version controlled because map descendant indicator is true
-        final List<VersionedParameterContext> versionedParameterContexts =
-                Lists.newArrayList(flowMapper.mapParameterContexts(processGroup, true));
+        final Map<String, VersionedParameterContext> versionedParameterContexts =
+                flowMapper.mapParameterContexts(processGroup, true);
 
-        // verify parameter contexts (collection order should be deterministic, copied to list for ease of testing)
+        // verify parameter contexts
         assertEquals(2, versionedParameterContexts.size());
-        verifyParameterContext(versionedParameterContexts.get(0), processGroup.getParameterContext());
-        verifyParameterContext(versionedParameterContexts.get(1), innerInnerProcessGroup.getParameterContext());
+
+        final String expectedName1 = processGroup.getParameterContext().getName();
+        final String expectedName2 = innerInnerProcessGroup.getParameterContext().getName();
+        verifyParameterContext(processGroup.getParameterContext(), versionedParameterContexts.get(expectedName1));
+        verifyParameterContext(innerInnerProcessGroup.getParameterContext(), versionedParameterContexts.get(expectedName2));
     }
 
     /**
@@ -239,8 +244,8 @@ public class NiFiRegistryFlowMapperTest {
         final ExternalControllerServiceReference externalControllerServiceReference =
                 externalControllerServiceReferences.get(expectedExternalControllerServiceReferenceKey);
         assertNotNull(externalControllerServiceReference);
-        assertEquals(externalControllerServiceReference.getIdentifier(), expectedExternalControllerServiceReferenceKey);
-        assertEquals(externalControllerServiceReference.getName(), externalControllerServiceNode.getName());
+        assertEquals(expectedExternalControllerServiceReferenceKey, externalControllerServiceReference.getIdentifier());
+        assertEquals(externalControllerServiceNode.getName(), externalControllerServiceReference.getName());
     }
 
     private ProcessGroup prepareProcessGroupWithParameterContext(final List<ProcessGroup> childProcessGroups,
@@ -279,8 +284,8 @@ public class NiFiRegistryFlowMapperTest {
         parametersMap.put(parameterDescriptor, parameter);
     }
 
-    private void verifyParameterContext(final VersionedParameterContext versionedParameterContext, final ParameterContext parameterContext) {
-        assertEquals(versionedParameterContext.getName(), parameterContext.getName());
+    private void verifyParameterContext(final ParameterContext parameterContext, final VersionedParameterContext versionedParameterContext) {
+        assertEquals(parameterContext.getName(), versionedParameterContext.getName());
 
         final Collection<Parameter> parameters = parameterContext.getParameters().values();
         final Set<VersionedParameter> versionedParameters = versionedParameterContext.getParameters();
@@ -305,14 +310,14 @@ public class NiFiRegistryFlowMapperTest {
     private void verifyParameter(final VersionedParameter versionedParameter, final Parameter parameter) {
         final ParameterDescriptor parameterDescriptor = parameter.getDescriptor();
 
-        assertEquals(versionedParameter.getName(), parameterDescriptor.getName());
-        assertEquals(versionedParameter.getDescription(), parameterDescriptor.getDescription());
-        assertEquals(versionedParameter.isSensitive(), parameterDescriptor.isSensitive());
+        assertEquals(parameterDescriptor.getName(), versionedParameter.getName());
+        assertEquals(parameterDescriptor.getDescription(), versionedParameter.getDescription());
+        assertEquals(parameterDescriptor.isSensitive(), versionedParameter.isSensitive());
         if (parameterDescriptor.isSensitive()) {
             // verify parameter value is null for sensitive parameters
             assertNull(versionedParameter.getValue());
         } else {
-            assertEquals(versionedParameter.getValue(), parameter.getValue());
+            assertEquals(parameter.getValue(), versionedParameter.getValue());
         }
     }
 
@@ -555,25 +560,25 @@ public class NiFiRegistryFlowMapperTest {
         final String expectedGroupIdentifier = flowMapper.getGroupId(processGroup.getProcessGroupIdentifier());
 
         // verify process group fields
-        assertEquals(versionedProcessGroup.getName(), processGroup.getName());
-        assertEquals(versionedProcessGroup.getIdentifier(), flowMapper.getGroupId(processGroup.getIdentifier()));
-        assertEquals(versionedProcessGroup.getGroupIdentifier(), expectedGroupIdentifier);
-        assertEquals(versionedProcessGroup.getComments(), processGroup.getComments());
-        assertEquals(versionedProcessGroup.getPosition().getX(), processGroup.getPosition().getX(), 0);
-        assertEquals(versionedProcessGroup.getPosition().getY(), processGroup.getPosition().getY(), 0);
+        assertEquals(processGroup.getName(), versionedProcessGroup.getName());
+        assertEquals(flowMapper.getGroupId(processGroup.getIdentifier()), versionedProcessGroup.getIdentifier());
+        assertEquals(expectedGroupIdentifier, versionedProcessGroup.getGroupIdentifier());
+        assertEquals(processGroup.getComments(), versionedProcessGroup.getComments());
+        assertEquals(processGroup.getPosition().getX(), versionedProcessGroup.getPosition().getX(), 0);
+        assertEquals(processGroup.getPosition().getY(), versionedProcessGroup.getPosition().getY(), 0);
 
         final String expectedParameterContextName =
                 (processGroup.getParameterContext() != null ? processGroup.getParameterContext().getName() : null);
-        assertEquals(versionedProcessGroup.getParameterContextName(), expectedParameterContextName);
+        assertEquals(expectedParameterContextName, versionedProcessGroup.getParameterContextName());
 
         // verify either version control info or full group contents
         if (expectVersionControlInfo) {
             final VersionControlInformation versionControlInfo = processGroup.getVersionControlInformation();
             final VersionedFlowCoordinates versionedFlowCoordinates = versionedProcessGroup.getVersionedFlowCoordinates();
             assertNotNull(versionedFlowCoordinates.getRegistryUrl());
-            assertEquals(versionedFlowCoordinates.getBucketId(), versionControlInfo.getBucketIdentifier());
-            assertEquals(versionedFlowCoordinates.getFlowId(), versionControlInfo.getFlowIdentifier());
-            assertEquals(versionedFlowCoordinates.getVersion(), versionControlInfo.getVersion());
+            assertEquals(versionControlInfo.getBucketIdentifier(), versionedFlowCoordinates.getBucketId());
+            assertEquals(versionControlInfo.getFlowIdentifier(), versionedFlowCoordinates.getFlowId());
+            assertEquals(versionControlInfo.getVersion(), versionedFlowCoordinates.getVersion());
         } else {
             assertNull(versionedProcessGroup.getVersionedFlowCoordinates());
 
@@ -586,10 +591,10 @@ public class NiFiRegistryFlowMapperTest {
                 final Funnel funnel = funnels.iterator().next();
                 final VersionedFunnel versionedFunnel = versionedFunnels.iterator().next();
 
-                assertEquals(versionedFunnel.getIdentifier(), flowMapper.getGroupId(funnel.getIdentifier()));
-                assertEquals(versionedFunnel.getGroupIdentifier(), expectedGroupIdentifier);
-                assertEquals(versionedFunnel.getPosition().getX(), funnel.getPosition().getX(), 0);
-                assertEquals(versionedFunnel.getPosition().getY(), funnel.getPosition().getY(), 0);
+                assertEquals(flowMapper.getGroupId(funnel.getIdentifier()), versionedFunnel.getIdentifier());
+                assertEquals(expectedGroupIdentifier, versionedFunnel.getGroupIdentifier());
+                assertEquals(funnel.getPosition().getX(), versionedFunnel.getPosition().getX(), 0);
+                assertEquals(funnel.getPosition().getY(), versionedFunnel.getPosition().getY(), 0);
             }
 
             // verify ports
@@ -605,19 +610,19 @@ public class NiFiRegistryFlowMapperTest {
                 final Label label = labels.iterator().next();
                 final VersionedLabel versionedLabel = versionedLabels.iterator().next();
 
-                assertEquals(versionedLabel.getIdentifier(), flowMapper.getGroupId(label.getIdentifier()));
-                assertEquals(versionedLabel.getGroupIdentifier(), expectedGroupIdentifier);
-                assertEquals(versionedLabel.getPosition().getX(), label.getPosition().getX(), 0);
-                assertEquals(versionedLabel.getPosition().getY(), label.getPosition().getY(), 0);
-                assertEquals(versionedLabel.getHeight(), label.getSize().getHeight(), 0);
-                assertEquals(versionedLabel.getWidth(), label.getSize().getWidth(), 0);
+                assertEquals(flowMapper.getGroupId(label.getIdentifier()), versionedLabel.getIdentifier());
+                assertEquals(expectedGroupIdentifier, versionedLabel.getGroupIdentifier());
+                assertEquals(label.getPosition().getX(), versionedLabel.getPosition().getX(), 0);
+                assertEquals(label.getPosition().getY(), versionedLabel.getPosition().getY(), 0);
+                assertEquals(label.getSize().getHeight(), versionedLabel.getHeight(), 0);
+                assertEquals(label.getSize().getWidth(), versionedLabel.getWidth(), 0);
             }
 
             // verify processors
             final Collection<ProcessorNode> processorNodes = processGroup.getProcessors();
             final Set<VersionedProcessor> versionedProcessors = versionedProcessGroup.getProcessors();
             // first verify the number of processors matches
-            assertEquals(versionedProcessors.size(), processorNodes.size());
+            assertEquals(processorNodes.size(), versionedProcessors.size());
             // processor order is not deterministic - use unique names to map up matching processors
             final Iterator<ProcessorNode> processorNodesIterator = processorNodes.iterator();
             while (processorNodesIterator.hasNext()) {
@@ -643,19 +648,19 @@ public class NiFiRegistryFlowMapperTest {
                 final Connection connection = connections.iterator().next();
                 final VersionedConnection versionedConnection = versionedConnections.iterator().next();
 
-                assertEquals(versionedConnection.getName(), connection.getName());
-                assertEquals(versionedConnection.getIdentifier(), flowMapper.getGroupId(connection.getIdentifier()));
-                assertEquals(versionedConnection.getGroupIdentifier(), expectedGroupIdentifier);
-                assertEquals(versionedConnection.getBends().get(0).getX(), connection.getBendPoints().get(0).getX(), 0);
-                assertEquals(versionedConnection.getBends().get(0).getY(), connection.getBendPoints().get(0).getY(), 0);
-                assertEquals(versionedConnection.getSource().getId(), flowMapper.getGroupId(connection.getSource().getIdentifier()));
-                assertEquals(versionedConnection.getSource().getGroupId(), expectedGroupIdentifier);
-                assertEquals(versionedConnection.getSource().getName(), connection.getSource().getName());
-                assertEquals(versionedConnection.getSource().getType().name(), connection.getSource().getConnectableType().name());
-                assertEquals(versionedConnection.getDestination().getId(), flowMapper.getGroupId(connection.getDestination().getIdentifier()));
-                assertEquals(versionedConnection.getDestination().getGroupId(), expectedGroupIdentifier);
-                assertEquals(versionedConnection.getDestination().getName(), connection.getDestination().getName());
-                assertEquals(versionedConnection.getDestination().getType().name(), connection.getDestination().getConnectableType().name());
+                assertEquals(connection.getName(), versionedConnection.getName());
+                assertEquals(flowMapper.getGroupId(connection.getIdentifier()), versionedConnection.getIdentifier());
+                assertEquals(expectedGroupIdentifier, versionedConnection.getGroupIdentifier());
+                assertEquals(connection.getBendPoints().get(0).getX(), versionedConnection.getBends().get(0).getX(), 0);
+                assertEquals(connection.getBendPoints().get(0).getY(), versionedConnection.getBends().get(0).getY(), 0);
+                assertEquals(flowMapper.getGroupId(connection.getSource().getIdentifier()), versionedConnection.getSource().getId());
+                assertEquals(expectedGroupIdentifier, versionedConnection.getSource().getGroupId());
+                assertEquals(connection.getSource().getName(), versionedConnection.getSource().getName());
+                assertEquals(connection.getSource().getConnectableType().name(), versionedConnection.getSource().getType().name());
+                assertEquals(flowMapper.getGroupId(connection.getDestination().getIdentifier()), versionedConnection.getDestination().getId());
+                assertEquals(expectedGroupIdentifier, versionedConnection.getDestination().getGroupId());
+                assertEquals(connection.getDestination().getName(), versionedConnection.getDestination().getName());
+                assertEquals(connection.getDestination().getConnectableType().name(), versionedConnection.getDestination().getType().name());
             }
 
             // verify controller services
@@ -667,9 +672,9 @@ public class NiFiRegistryFlowMapperTest {
                 final ControllerServiceNode controllerServiceNode = controllerServiceNodes.iterator().next();
                 final VersionedControllerService versionedControllerService = versionedControllerServices.iterator().next();
 
-                assertEquals(versionedControllerService.getName(), controllerServiceNode.getName());
-                assertEquals(versionedControllerService.getIdentifier(), flowMapper.getGroupId(controllerServiceNode.getIdentifier()));
-                assertEquals(versionedControllerService.getGroupIdentifier(), expectedGroupIdentifier);
+                assertEquals(controllerServiceNode.getName(), versionedControllerService.getName());
+                assertEquals(flowMapper.getGroupId(controllerServiceNode.getIdentifier()), versionedControllerService.getIdentifier());
+                assertEquals(expectedGroupIdentifier, versionedControllerService.getGroupIdentifier());
             }
 
             // verify variables
@@ -679,7 +684,7 @@ public class NiFiRegistryFlowMapperTest {
                 assertTrue(versionedVariableMap.isEmpty());
             } else {
                 final VariableDescriptor variableRegistryKey = variableRegistryMap.keySet().iterator().next();
-                assertEquals(versionedVariableMap.get(variableRegistryKey.getName()), variableRegistryMap.get(variableRegistryKey));
+                assertEquals(variableRegistryMap.get(variableRegistryKey), versionedVariableMap.get(variableRegistryKey.getName()));
             }
 
             // verify remote process group(s)
@@ -691,11 +696,11 @@ public class NiFiRegistryFlowMapperTest {
                 final RemoteProcessGroup remoteProcessGroup = remoteProcessGroups.iterator().next();
                 final VersionedRemoteProcessGroup versionedRemoteProcessGroup = versionedRemoteProcessGroups.iterator().next();
 
-                assertEquals(versionedRemoteProcessGroup.getName(), remoteProcessGroup.getName());
-                assertEquals(versionedRemoteProcessGroup.getIdentifier(), flowMapper.getGroupId(remoteProcessGroup.getIdentifier()));
-                assertEquals(versionedRemoteProcessGroup.getGroupIdentifier(), expectedGroupIdentifier);
-                assertEquals(versionedRemoteProcessGroup.getPosition().getX(), remoteProcessGroup.getPosition().getX(), 0);
-                assertEquals(versionedRemoteProcessGroup.getPosition().getY(), remoteProcessGroup.getPosition().getY(), 0);
+                assertEquals(remoteProcessGroup.getName(), versionedRemoteProcessGroup.getName());
+                assertEquals(flowMapper.getGroupId(remoteProcessGroup.getIdentifier()), versionedRemoteProcessGroup.getIdentifier());
+                assertEquals(expectedGroupIdentifier, versionedRemoteProcessGroup.getGroupIdentifier());
+                assertEquals(remoteProcessGroup.getPosition().getX(), versionedRemoteProcessGroup.getPosition().getX(), 0);
+                assertEquals(remoteProcessGroup.getPosition().getY(), versionedRemoteProcessGroup.getPosition().getY(), 0);
 
                 // verify remote ports
                 final String expectedPortGroupIdentifier = flowMapper.getGroupId(remoteProcessGroup.getIdentifier());
@@ -730,12 +735,12 @@ public class NiFiRegistryFlowMapperTest {
             final Port port = ports.iterator().next();
             final VersionedPort versionedPort = versionedPorts.iterator().next();
 
-            assertEquals(versionedPort.getIdentifier(), flowMapper.getGroupId(port.getIdentifier()));
-            assertEquals(versionedPort.getGroupIdentifier(), expectedGroupIdentifier);
-            assertEquals(versionedPort.getPosition().getX(), port.getPosition().getX(), 0);
-            assertEquals(versionedPort.getPosition().getY(), port.getPosition().getY(), 0);
-            assertEquals(versionedPort.getName(), port.getName());
-            assertEquals(versionedPort.getType(), portType);
+            assertEquals(flowMapper.getGroupId(port.getIdentifier()), versionedPort.getIdentifier());
+            assertEquals(expectedGroupIdentifier, versionedPort.getGroupIdentifier());
+            assertEquals(port.getPosition().getX(), versionedPort.getPosition().getX(), 0);
+            assertEquals(port.getPosition().getY(), versionedPort.getPosition().getY(), 0);
+            assertEquals(port.getName(), versionedPort.getName());
+            assertEquals(portType, versionedPort.getType());
         }
     }
 
@@ -748,28 +753,28 @@ public class NiFiRegistryFlowMapperTest {
             final RemoteGroupPort remotePort = remotePorts.iterator().next();
             final VersionedRemoteGroupPort versionedRemotePort = versionedRemotePorts.iterator().next();
 
-            assertEquals(versionedRemotePort.getIdentifier(), flowMapper.getGroupId(remotePort.getIdentifier()));
-            assertEquals(versionedRemotePort.getGroupIdentifier(), expectedPortGroupIdentifier);
-            assertEquals(versionedRemotePort.getName(), remotePort.getName());
-            assertEquals(versionedRemotePort.getComponentType(), componentType);
+            assertEquals(flowMapper.getGroupId(remotePort.getIdentifier()), versionedRemotePort.getIdentifier());
+            assertEquals(expectedPortGroupIdentifier, versionedRemotePort.getGroupIdentifier());
+            assertEquals(remotePort.getName(), versionedRemotePort.getName());
+            assertEquals(componentType, versionedRemotePort.getComponentType());
         }
     }
 
     private void verifyProcessor(final VersionedProcessor versionedProcessor, final ProcessorNode processorNode,
                                  final String expectedGroupIdentifier) {
-        assertEquals(versionedProcessor.getName(), processorNode.getName());
-        assertEquals(versionedProcessor.getIdentifier(), flowMapper.getGroupId(processorNode.getIdentifier()));
-        assertEquals(versionedProcessor.getGroupIdentifier(), expectedGroupIdentifier);
-        assertEquals(versionedProcessor.getPosition().getX(), processorNode.getPosition().getX(), 0);
-        assertEquals(versionedProcessor.getPosition().getY(), processorNode.getPosition().getY(), 0);
+        assertEquals(processorNode.getName(), versionedProcessor.getName());
+        assertEquals(flowMapper.getGroupId(processorNode.getIdentifier()), versionedProcessor.getIdentifier());
+        assertEquals(expectedGroupIdentifier, versionedProcessor.getGroupIdentifier());
+        assertEquals(processorNode.getPosition().getX(), versionedProcessor.getPosition().getX(), 0);
+        assertEquals(processorNode.getPosition().getY(), versionedProcessor.getPosition().getY(), 0);
 
         final PropertyDescriptor propertyDescriptor = processorNode.getProperties().keySet().iterator().next();
         final VersionedPropertyDescriptor versionedPropertyDescriptor =
                 versionedProcessor.getPropertyDescriptors().get(propertyDescriptor.getName());
         assertTrue(versionedProcessor.getProperties().containsKey(propertyDescriptor.getName()));
         assertNotNull(versionedPropertyDescriptor);
-        assertEquals(versionedPropertyDescriptor.getName(), propertyDescriptor.getName());
-        assertEquals(versionedPropertyDescriptor.getDisplayName(), propertyDescriptor.getDisplayName());
-        assertEquals(versionedPropertyDescriptor.isSensitive(), propertyDescriptor.isSensitive());
+        assertEquals(propertyDescriptor.getName(), versionedPropertyDescriptor.getName());
+        assertEquals(propertyDescriptor.getDisplayName(), versionedPropertyDescriptor.getDisplayName());
+        assertEquals(propertyDescriptor.isSensitive(), versionedPropertyDescriptor.isSensitive());
     }
 }

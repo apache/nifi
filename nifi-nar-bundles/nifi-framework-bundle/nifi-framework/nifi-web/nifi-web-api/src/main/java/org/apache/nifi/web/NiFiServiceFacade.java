@@ -1457,15 +1457,17 @@ public interface NiFiServiceFacade {
      * @param snapshot the Snapshot to persist
      * @param externalControllerServiceReferences a mapping of controller service id to ExternalControllerServiceReference for any Controller Service that is referenced in the flow but not included
      * in the VersionedProcessGroup
-     * @oaram ParameterContext the parameter contexts to include
+     * @param parameterContexts a map of the Parameter Contexts to include keyed by name
      * @param comments about the snapshot
      * @param expectedVersion the version to save the flow as
      * @return the snapshot that represents what was stored in the registry
      *
      * @throws NiFiCoreException if unable to register the snapshot with the flow registry
      */
-    VersionedFlowSnapshot registerVersionedFlowSnapshot(String registryId, VersionedFlow flow, VersionedProcessGroup snapshot, Collection<VersionedParameterContext> parameterContexts,
-                                                        Map<String, ExternalControllerServiceReference> externalControllerServiceReferences, String comments, int expectedVersion);
+    VersionedFlowSnapshot registerVersionedFlowSnapshot(String registryId, VersionedFlow flow, VersionedProcessGroup snapshot,
+                                                        Map<String, VersionedParameterContext> parameterContexts,
+                                                        Map<String, ExternalControllerServiceReference> externalControllerServiceReferences,
+                                                        String comments, int expectedVersion);
 
     /**
      * Updates the Version Control Information on the Process Group with the given ID

@@ -17,7 +17,6 @@
 package org.apache.nifi.web;
 
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 import org.apache.nifi.action.Component;
 import org.apache.nifi.action.FlowChangeAction;
 import org.apache.nifi.action.Operation;
@@ -64,7 +63,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.util.Arrays;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
@@ -328,8 +326,8 @@ public class StandardNiFiServiceFacadeTest {
         final String parameterName = "foo";
         final VersionedParameterContext versionedParameterContext = mock(VersionedParameterContext.class);
         when(versionedParameterContext.getName()).thenReturn(parameterName);
-        final Set<VersionedParameterContext> parameterContexts = Sets.newHashSet();
-        parameterContexts.add(versionedParameterContext);
+        final Map<String, VersionedParameterContext> parameterContexts = Maps.newHashMap();
+        parameterContexts.put(parameterName, versionedParameterContext);
         when(flowMapper.mapParameterContexts(processGroup, true)).thenReturn(parameterContexts);
 
         final ExternalControllerServiceReference externalControllerServiceReference = mock(ExternalControllerServiceReference.class);

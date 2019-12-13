@@ -50,7 +50,7 @@ public class TestProcessGroupResource {
         final VersionedFlowSnapshot resultEntity = (VersionedFlowSnapshot)response.getEntity();
 
         assertEquals(200, response.getStatus());
-        assertEquals(resultEntity, versionedFlowSnapshot);
+        assertEquals(versionedFlowSnapshot, resultEntity);
     }
 
     private ProcessGroupResource getProcessGroupResource(final NiFiServiceFacade serviceFacade) {

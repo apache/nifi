@@ -71,7 +71,6 @@ import org.apache.nifi.remote.RemoteGroupPort;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -112,7 +111,7 @@ public class NiFiRegistryFlowMapper {
         versionedComponentIds.clear();
 
         // always include descendant flows and do not apply any registry versioning info that may be present in the group
-        return mapGroup(group, serviceProvider, (processGroup, versionedGroup) -> {return true;});
+        return mapGroup(group, serviceProvider, (processGroup, versionedGroup) -> true);
     }
 
     /**
@@ -635,13 +634,17 @@ public class NiFiRegistryFlowMapper {
         return batchSize;
     }
 
-    public Collection<VersionedParameterContext> mapParameterContexts(final ProcessGroup processGroup, final boolean mapDescendantVersionedFlows) {
-        final Collection<VersionedParameterContext> parameterContexts = new ArrayList<>();
+    public Map<String, VersionedParameterContext> mapParameterContexts(final ProcessGroup processGroup,
+                                                                       final boolean mapDescendantVersionedFlows) {
+        // cannot use a set to enforce uniqueness of parameter contexts because VersionedParameterContext in the
+        // registry data model doesn't currently implement hashcode/equals based on context name
+        final Map<String, VersionedParameterContext> parameterContexts = new HashMap<>();
         mapParameterContexts(processGroup, mapDescendantVersionedFlows, parameterContexts);
         return parameterContexts;
     }
 
-    private void mapParameterContexts(final ProcessGroup processGroup, final boolean mapDescendantVersionedFlows, final Collection<VersionedParameterContext> contextCollection) {
+    private void mapParameterContexts(final ProcessGroup processGroup, final boolean mapDescendantVersionedFlows,
+                                      final Map<String, VersionedParameterContext> parameterContexts) {
         final ParameterContext parameterContext = processGroup.getParameterContext();
         if (parameterContext != null) {
             // map this process group's parameter context and add to the collection
@@ -652,13 +655,13 @@ public class NiFiRegistryFlowMapper {
             final VersionedParameterContext versionedContext = new VersionedParameterContext();
             versionedContext.setName(parameterContext.getName());
             versionedContext.setParameters(parameters);
-            contextCollection.add(versionedContext);
+            parameterContexts.put(versionedContext.getName(), versionedContext);
         }
 
         for (final ProcessGroup child : processGroup.getProcessGroups()) {
             // only include child process group parameter contexts if boolean indicator is true or process group is unversioned
             if (mapDescendantVersionedFlows || child.getVersionControlInformation() == null) {
-                mapParameterContexts(child, mapDescendantVersionedFlows, contextCollection);
+                mapParameterContexts(child, mapDescendantVersionedFlows, parameterContexts);
             }
         }
     }
