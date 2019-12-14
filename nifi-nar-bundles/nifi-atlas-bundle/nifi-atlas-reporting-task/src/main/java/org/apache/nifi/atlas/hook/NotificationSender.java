@@ -354,7 +354,7 @@ class NotificationSender {
             if (typedQualifiedName == null) {
                 return null;
             }
-            return new Tuple<>(typedQualifiedName, typedQualifiedNameToRef.get(toTypedQualifiedName(typeName, typedQualifiedName)));
+            return new Tuple<>(typedQualifiedName, typedQualifiedNameToRef.get(typedQualifiedName));
         }).filter(Objects::nonNull).filter(tuple -> tuple.getValue() != null)
                 // If duplication happens, use new value.
                 .collect(toMap(Tuple::getKey, Tuple::getValue, (oldValue, newValue) -> {
