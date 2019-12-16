@@ -98,7 +98,9 @@ import static org.apache.nifi.util.db.AvroUtil.CodecType;
         @WritesAttribute(attribute = "fragment.index", description = "If 'Max Rows Per Flow File' is set then the position of this FlowFile in the list of "
                 + "outgoing FlowFiles that were all derived from the same result set FlowFile. This can be "
                 + "used in conjunction with the fragment.identifier attribute to know which FlowFiles originated from the same query result set and in what order  "
-                + "FlowFiles were produced")
+                + "FlowFiles were produced"),
+        @WritesAttribute(attribute = "input.flowfile.uuid", description = "If the processor has an incoming connection, outgoing FlowFiles will have this attribute "
+                + "set to the value of the input FlowFile's UUID. If there is no incoming connection, the attribute will not be added.")
 })
 public class ExecuteSQL extends AbstractExecuteSQL {
 
