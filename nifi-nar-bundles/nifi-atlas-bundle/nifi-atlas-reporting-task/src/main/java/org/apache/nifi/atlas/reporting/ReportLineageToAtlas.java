@@ -40,6 +40,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.ServiceLoader;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
@@ -118,6 +119,24 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor ATLAS_CONNECT_TIMEOUT = new PropertyDescriptor.Builder()
+            .name("atlas-connect-timeout")
+            .displayName("Atlas Connect Timeout")
+            .description("Max wait time for connection to Atlas.")
+            .required(true)
+            .defaultValue("60 sec")
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor ATLAS_READ_TIMEOUT = new PropertyDescriptor.Builder()
+            .name("atlas-read-timeout")
+            .displayName("Atlas Read Timeout")
+            .description("Max wait time for response from Atlas.")
+            .required(true)
+            .defaultValue("60 sec")
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
 
     static final AllowableValue ATLAS_AUTHN_BASIC = new AllowableValue("basic", "Basic", "Use username and password.");
@@ -293,6 +312,8 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
             .build();
 
     private static final String ATLAS_PROPERTIES_FILENAME = "atlas-application.properties";
+    private static final String ATLAS_PROPERTY_CLIENT_CONNECT_TIMEOUT_MS = "atlas.client.connectTimeoutMSecs";
+    private static final String ATLAS_PROPERTY_CLIENT_READ_TIMEOUT_MS = "atlas.client.readTimeoutMSecs";
     private static final String ATLAS_PROPERTY_CLUSTER_NAME = "atlas.cluster.name";
     private static final String ATLAS_PROPERTY_ENABLE_TLS = "atlas.enableTLS";
     private static final String ATLAS_KAFKA_PREFIX = "atlas.kafka.";
@@ -313,6 +334,8 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(ATLAS_URLS);
+        properties.add(ATLAS_CONNECT_TIMEOUT);
+        properties.add(ATLAS_READ_TIMEOUT);
         properties.add(ATLAS_AUTHN_METHOD);
         properties.add(ATLAS_USER);
         properties.add(ATLAS_PASSWORD);
@@ -521,12 +544,17 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
             throw new ProcessException("Default cluster name is not defined.");
         }
 
+        String atlasConnectTimeoutMs = context.getProperty(ATLAS_CONNECT_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue() + "";
+        String atlasReadTimeoutMs = context.getProperty(ATLAS_READ_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue() + "";
+
         atlasAuthN = getAtlasAuthN(atlasAuthNMethod);
         atlasAuthN.configure(context);
 
         // Create Atlas configuration file if necessary.
         if (createAtlasConf) {
 
+            atlasProperties.put(ATLAS_PROPERTY_CLIENT_CONNECT_TIMEOUT_MS, atlasConnectTimeoutMs);
+            atlasProperties.put(ATLAS_PROPERTY_CLIENT_READ_TIMEOUT_MS, atlasReadTimeoutMs);
             atlasProperties.put(ATLAS_PROPERTY_CLUSTER_NAME, defaultClusterName);
             atlasProperties.put(ATLAS_PROPERTY_ENABLE_TLS, String.valueOf(isAtlasApiSecure));
 
@@ -558,7 +586,7 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
      * In order to avoid authentication expiration issues (i.e. Kerberos ticket and DelegationToken expiration),
      * create Atlas client instance at every onTrigger execution.
      */
-    private NiFiAtlasClient createNiFiAtlasClient(ReportingContext context) {
+    protected NiFiAtlasClient createNiFiAtlasClient(ReportingContext context) {
         List<String> urls = new ArrayList<>();
         parseAtlasUrls(context.getProperty(ATLAS_URLS), urls::add);
         try {
