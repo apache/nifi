@@ -123,7 +123,7 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
 
     public static final PropertyDescriptor ATLAS_CONNECT_TIMEOUT = new PropertyDescriptor.Builder()
             .name("atlas-connect-timeout")
-            .displayName("Atlas connection timeout")
+            .displayName("Atlas Connect Timeout")
             .description("Max wait time for connection to Atlas.")
             .required(true)
             .defaultValue("60 sec")
@@ -132,7 +132,7 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
 
     public static final PropertyDescriptor ATLAS_READ_TIMEOUT = new PropertyDescriptor.Builder()
             .name("atlas-read-timeout")
-            .displayName("Atlas connection read timeout")
+            .displayName("Atlas Read Timeout")
             .description("Max wait time for response from Atlas.")
             .required(true)
             .defaultValue("60 sec")
