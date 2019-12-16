@@ -131,6 +131,12 @@ public class Hive3ConnectionPoolTest {
         final String USER = "user";
         final String PASS = "pass";
         final int MAX_CONN = 7;
+        final int MIN_IDLE = 1;
+        final int MAX_IDLE = 6;
+        final String EVICTION_RUN_PERIOD = "10 mins";
+        final String MIN_EVICTABLE_IDLE_TIME = "1 mins";
+        final String SOFT_MIN_EVICTABLE_IDLE_TIME = "1 mins";
+        final String MAX_CONN_LIFETIME = "1 min";
         final String MAX_WAIT = "10 sec"; // 10000 milliseconds
         final String CONF = "/path/to/hive-site.xml";
         hive3ConnectionPool = new Hive3ConnectionPool();
@@ -141,6 +147,12 @@ public class Hive3ConnectionPoolTest {
             put(Hive3ConnectionPool.DB_PASSWORD, "${password}");
             put(Hive3ConnectionPool.MAX_TOTAL_CONNECTIONS, "${maxconn}");
             put(Hive3ConnectionPool.MAX_WAIT_TIME, "${maxwait}");
+            put(Hive3ConnectionPool.MAX_CONN_LIFETIME, "${maxconnlifetime}");
+            put(Hive3ConnectionPool.MIN_IDLE, "${min.idle}");
+            put(Hive3ConnectionPool.MAX_IDLE, "${max.idle}");
+            put(Hive3ConnectionPool.EVICTION_RUN_PERIOD, "${eviction.run}");
+            put(Hive3ConnectionPool.MIN_EVICTABLE_IDLE_TIME, "${min.evictable.idle}");
+            put(Hive3ConnectionPool.SOFT_MIN_EVICTABLE_IDLE_TIME, "${soft.min.evictable.idle}");
             put(Hive3ConnectionPool.HIVE_CONFIGURATION_RESOURCES, "${hiveconf}");
         }};
 
@@ -150,6 +162,12 @@ public class Hive3ConnectionPoolTest {
         registry.setVariable(new VariableDescriptor("password"), PASS);
         registry.setVariable(new VariableDescriptor("maxconn"), Integer.toString(MAX_CONN));
         registry.setVariable(new VariableDescriptor("maxwait"), MAX_WAIT);
+        registry.setVariable(new VariableDescriptor("maxconnlifetime"), MAX_CONN_LIFETIME);
+        registry.setVariable(new VariableDescriptor("min.idle"), Integer.toString(MIN_IDLE));
+        registry.setVariable(new VariableDescriptor("max.idle"), Integer.toString(MAX_IDLE));
+        registry.setVariable(new VariableDescriptor("eviction.run"), EVICTION_RUN_PERIOD);
+        registry.setVariable(new VariableDescriptor("min.evictable.idle"), MIN_EVICTABLE_IDLE_TIME);
+        registry.setVariable(new VariableDescriptor("soft.min.evictable.idle"), SOFT_MIN_EVICTABLE_IDLE_TIME);
         registry.setVariable(new VariableDescriptor("hiveconf"), CONF);
 
 
