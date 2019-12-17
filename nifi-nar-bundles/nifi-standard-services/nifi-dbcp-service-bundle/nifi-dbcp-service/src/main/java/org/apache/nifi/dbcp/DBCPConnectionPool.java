@@ -61,28 +61,28 @@ import java.util.concurrent.TimeUnit;
 public class DBCPConnectionPool extends AbstractControllerService implements DBCPService {
 
     /**
-     * Copied from {@link GenericObjectPoolConfig.DEFAULT_MIN_IDLE} in Commons-DBCP 2.5.0
+     * Copied from {@link GenericObjectPoolConfig.DEFAULT_MIN_IDLE} in Commons-DBCP 2.7.0
      */
     private static final String DEFAULT_MIN_IDLE = "0";
     /**
-     * Copied from {@link GenericObjectPoolConfig.DEFAULT_MAX_IDLE} in Commons-DBCP 2.5.0
+     * Copied from {@link GenericObjectPoolConfig.DEFAULT_MAX_IDLE} in Commons-DBCP 2.7.0
      */
     private static final String DEFAULT_MAX_IDLE = "8";
     /**
-     * Copied from private variable {@link BasicDataSource.maxConnLifetimeMillis} in Commons-DBCP 2.5.0
+     * Copied from private variable {@link BasicDataSource.maxConnLifetimeMillis} in Commons-DBCP 2.7.0
      */
     private static final String DEFAULT_MAX_CONN_LIFETIME = "-1";
     /**
-     * Copied from {@link GenericObjectPoolConfig.DEFAULT_TIME_BETWEEN_EVICTION_RUNS_MILLIS} in Commons-DBCP 2.5.0
+     * Copied from {@link GenericObjectPoolConfig.DEFAULT_TIME_BETWEEN_EVICTION_RUNS_MILLIS} in Commons-DBCP 2.7.0
      */
     private static final String DEFAULT_EVICTION_RUN_PERIOD = String.valueOf(-1L);
     /**
-     * Copied from {@link GenericObjectPoolConfig.DEFAULT_MIN_EVICTABLE_IDLE_TIME_MILLIS} in Commons-DBCP 2.5.0
+     * Copied from {@link GenericObjectPoolConfig.DEFAULT_MIN_EVICTABLE_IDLE_TIME_MILLIS} in Commons-DBCP 2.7.0
      * and converted from 1800000L to "1800000 millis" to "30 mins"
      */
     private static final String DEFAULT_MIN_EVICTABLE_IDLE_TIME = "30 mins";
     /**
-     * Copied from {@link GenericObjectPoolConfig.DEFAULT_SOFT_MIN_EVICTABLE_IDLE_TIME_MILLIS} in Commons-DBCP 2.5.0
+     * Copied from {@link GenericObjectPoolConfig.DEFAULT_SOFT_MIN_EVICTABLE_IDLE_TIME_MILLIS} in Commons-DBCP 2.7.0
      */
     private static final String DEFAULT_SOFT_MIN_EVICTABLE_IDLE_TIME = String.valueOf(-1L);
 
@@ -140,6 +140,7 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
         .defaultValue("500 millis")
         .required(true)
         .addValidator(DBCPValidator.CUSTOM_TIME_PERIOD_VALIDATOR)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .sensitive(false)
         .build();
 
@@ -150,6 +151,7 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
         .defaultValue("8")
         .required(true)
         .addValidator(StandardValidators.INTEGER_VALIDATOR)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .sensitive(false)
         .build();
 
@@ -306,15 +308,15 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
         final String drv = context.getProperty(DB_DRIVERNAME).evaluateAttributeExpressions().getValue();
         final String user = context.getProperty(DB_USER).evaluateAttributeExpressions().getValue();
         final String passw = context.getProperty(DB_PASSWORD).evaluateAttributeExpressions().getValue();
-        final Integer maxTotal = context.getProperty(MAX_TOTAL_CONNECTIONS).asInteger();
+        final Integer maxTotal = context.getProperty(MAX_TOTAL_CONNECTIONS).evaluateAttributeExpressions().asInteger();
         final String validationQuery = context.getProperty(VALIDATION_QUERY).evaluateAttributeExpressions().getValue();
-        final Long maxWaitMillis = extractMillisWithInfinite(context.getProperty(MAX_WAIT_TIME));
-        final Integer minIdle = context.getProperty(MIN_IDLE).asInteger();
-        final Integer maxIdle = context.getProperty(MAX_IDLE).asInteger();
-        final Long maxConnLifetimeMillis = extractMillisWithInfinite(context.getProperty(MAX_CONN_LIFETIME));
-        final Long timeBetweenEvictionRunsMillis = extractMillisWithInfinite(context.getProperty(EVICTION_RUN_PERIOD));
-        final Long minEvictableIdleTimeMillis = extractMillisWithInfinite(context.getProperty(MIN_EVICTABLE_IDLE_TIME));
-        final Long softMinEvictableIdleTimeMillis = extractMillisWithInfinite(context.getProperty(SOFT_MIN_EVICTABLE_IDLE_TIME));
+        final Long maxWaitMillis = extractMillisWithInfinite(context.getProperty(MAX_WAIT_TIME).evaluateAttributeExpressions());
+        final Integer minIdle = context.getProperty(MIN_IDLE).evaluateAttributeExpressions().asInteger();
+        final Integer maxIdle = context.getProperty(MAX_IDLE).evaluateAttributeExpressions().asInteger();
+        final Long maxConnLifetimeMillis = extractMillisWithInfinite(context.getProperty(MAX_CONN_LIFETIME).evaluateAttributeExpressions());
+        final Long timeBetweenEvictionRunsMillis = extractMillisWithInfinite(context.getProperty(EVICTION_RUN_PERIOD).evaluateAttributeExpressions());
+        final Long minEvictableIdleTimeMillis = extractMillisWithInfinite(context.getProperty(MIN_EVICTABLE_IDLE_TIME).evaluateAttributeExpressions());
+        final Long softMinEvictableIdleTimeMillis = extractMillisWithInfinite(context.getProperty(SOFT_MIN_EVICTABLE_IDLE_TIME).evaluateAttributeExpressions());
         final KerberosCredentialsService kerberosCredentialsService = context.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
 
         if (kerberosCredentialsService != null) {

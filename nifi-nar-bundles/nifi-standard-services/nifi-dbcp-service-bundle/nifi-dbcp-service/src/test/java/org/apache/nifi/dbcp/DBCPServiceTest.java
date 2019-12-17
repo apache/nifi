@@ -200,13 +200,23 @@ public class DBCPServiceTest {
         runner.setProperty(service, DBCPConnectionPool.DB_USER, "tester");
         runner.setProperty(service, DBCPConnectionPool.DB_PASSWORD, "testerp");
         runner.setProperty(service, DBCPConnectionPool.DB_DRIVERNAME, "org.apache.derby.jdbc.EmbeddedDriver");
-        runner.setProperty(service, DBCPConnectionPool.MAX_WAIT_TIME, "-1");
-        runner.setProperty(service, DBCPConnectionPool.MAX_IDLE, "4");
-        runner.setProperty(service, DBCPConnectionPool.MIN_IDLE, "1");
-        runner.setProperty(service, DBCPConnectionPool.MAX_CONN_LIFETIME, "1000 millis");
-        runner.setProperty(service, DBCPConnectionPool.EVICTION_RUN_PERIOD, "100 millis");
-        runner.setProperty(service, DBCPConnectionPool.MIN_EVICTABLE_IDLE_TIME, "100 millis");
-        runner.setProperty(service, DBCPConnectionPool.SOFT_MIN_EVICTABLE_IDLE_TIME, "100 millis");
+        runner.setProperty(service, DBCPConnectionPool.MAX_WAIT_TIME, "${max.wait.time}");
+        runner.setProperty(service, DBCPConnectionPool.MAX_TOTAL_CONNECTIONS, "${max.total.connections}");
+        runner.setProperty(service, DBCPConnectionPool.MAX_IDLE, "${max.idle}");
+        runner.setProperty(service, DBCPConnectionPool.MIN_IDLE, "${min.idle}");
+        runner.setProperty(service, DBCPConnectionPool.MAX_CONN_LIFETIME, "${max.conn.lifetime}");
+        runner.setProperty(service, DBCPConnectionPool.EVICTION_RUN_PERIOD, "${eviction.run.period}");
+        runner.setProperty(service, DBCPConnectionPool.MIN_EVICTABLE_IDLE_TIME, "${min.evictable.idle.time}");
+        runner.setProperty(service, DBCPConnectionPool.SOFT_MIN_EVICTABLE_IDLE_TIME, "${soft.min.evictable.idle.time}");
+
+        runner.setVariable("max.wait.time", "1 sec");
+        runner.setVariable("max.total.connections", "7");
+        runner.setVariable("max.idle", "4");
+        runner.setVariable("min.idle", "1");
+        runner.setVariable("max.conn.lifetime", "1000 millis");
+        runner.setVariable("eviction.run.period", "100 millis");
+        runner.setVariable("min.evictable.idle.time", "100 millis");
+        runner.setVariable("soft.min.evictable.idle.time", "100 millis");
 
         runner.enableControllerService(service);
 
