@@ -437,7 +437,8 @@ public class PutHive3Streaming extends AbstractProcessor {
                 throw new ProcessException(e.getLocalizedMessage(), e);
             } else {
                 Map<String, String> updateAttributes = new HashMap<>();
-                updateAttributes.put(HIVE_STREAMING_RECORD_COUNT_ATTR, Long.toString(hiveStreamingConnection.getConnectionStats().getRecordsWritten()));
+                final String recordCountAttribute = (hiveStreamingConnection != null) ? Long.toString(hiveStreamingConnection.getConnectionStats().getRecordsWritten()) : "0";
+                updateAttributes.put(HIVE_STREAMING_RECORD_COUNT_ATTR, recordCountAttribute);
                 updateAttributes.put(ATTR_OUTPUT_TABLES, options.getQualifiedTableName());
                 flowFile = session.putAllAttributes(flowFile, updateAttributes);
                 log.error(
@@ -476,7 +477,8 @@ public class PutHive3Streaming extends AbstractProcessor {
             } else {
                 flowFile = session.penalize(flowFile);
                 Map<String, String> updateAttributes = new HashMap<>();
-                updateAttributes.put(HIVE_STREAMING_RECORD_COUNT_ATTR, Long.toString(hiveStreamingConnection.getConnectionStats().getRecordsWritten()));
+                final String recordCountAttribute = (hiveStreamingConnection != null) ? Long.toString(hiveStreamingConnection.getConnectionStats().getRecordsWritten()) : "0";
+                updateAttributes.put(HIVE_STREAMING_RECORD_COUNT_ATTR, recordCountAttribute);
                 updateAttributes.put(ATTR_OUTPUT_TABLES, options.getQualifiedTableName());
                 flowFile = session.putAllAttributes(flowFile, updateAttributes);
                 log.error(
