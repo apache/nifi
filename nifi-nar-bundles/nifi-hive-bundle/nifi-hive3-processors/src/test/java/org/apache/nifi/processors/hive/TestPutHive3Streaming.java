@@ -734,6 +734,48 @@ public class TestPutHive3Streaming {
     }
 
     @Test
+    public void onTriggerWithPermissionsFailure() throws Exception {
+        configure(processor, 1);
+        processor.setGeneratePermissionsFailure(true);
+        runner.setProperty(PutHive3Streaming.METASTORE_URI, "thrift://localhost:9083");
+        runner.setProperty(PutHive3Streaming.DB_NAME, "default");
+        runner.setProperty(PutHive3Streaming.TABLE_NAME, "users");
+        runner.setProperty(PutHive3Streaming.ROLLBACK_ON_FAILURE, "false");
+        runner.enqueue(new byte[0]);
+        runner.run();
+
+        runner.assertTransferCount(PutHive3Streaming.REL_FAILURE, 1);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutHive3Streaming.REL_FAILURE).get(0);
+        flowFile.assertAttributeExists(PutHive3Streaming.HIVE_STREAMING_RECORD_COUNT_ATTR);
+        flowFile.assertAttributeEquals(PutHive3Streaming.HIVE_STREAMING_RECORD_COUNT_ATTR, "0");
+        runner.assertTransferCount(PutHive3Streaming.REL_SUCCESS, 0);
+        runner.assertTransferCount(PutHive3Streaming.REL_RETRY, 0);
+    }
+
+    @Test
+    public void onTriggerWithPermissionsFailureRollbackOnFailure() throws Exception {
+        configure(processor, 1);
+        processor.setGeneratePermissionsFailure(true);
+        runner.setProperty(PutHive3Streaming.METASTORE_URI, "thrift://localhost:9083");
+        runner.setProperty(PutHive3Streaming.DB_NAME, "default");
+        runner.setProperty(PutHive3Streaming.TABLE_NAME, "users");
+        runner.setProperty(PutHive3Streaming.ROLLBACK_ON_FAILURE, "true");
+        runner.enqueue(new byte[0]);
+        try {
+            runner.run();
+            fail("ProcessException should be thrown");
+        } catch (AssertionError e) {
+            assertTrue(e.getCause() instanceof ProcessException);
+        }
+
+        runner.assertTransferCount(PutHive3Streaming.REL_FAILURE, 0);
+        runner.assertTransferCount(PutHive3Streaming.REL_SUCCESS, 0);
+        runner.assertTransferCount(PutHive3Streaming.REL_RETRY, 0);
+        // Assert incoming FlowFile stays in input queue.
+        assertEquals(1, runner.getQueueSize().getObjectCount());
+    }
+
+    @Test
     public void testDataTypeConversions() throws Exception {
         final String avroSchema = IOUtils.toString(new FileInputStream("src/test/resources/datatype_test.avsc"), StandardCharsets.UTF_8);
         schema = new Schema.Parser().parse(avroSchema);
@@ -1072,6 +1114,7 @@ public class TestPutHive3Streaming {
         private boolean generateWriteFailure = false;
         private boolean generateSerializationError = false;
         private boolean generateCommitFailure = false;
+        private boolean generatePermissionsFailure = false;
         private List<FieldSchema> schema = Arrays.asList(
                 new FieldSchema("name", serdeConstants.STRING_TYPE_NAME, ""),
                 new FieldSchema("favorite_number", serdeConstants.INT_TYPE_NAME, ""),
@@ -1093,6 +1136,9 @@ public class TestPutHive3Streaming {
             }
 
             HiveRecordWriter hiveRecordWriter = new HiveRecordWriter(reader, getLogger());
+            if (generatePermissionsFailure) {
+                throw new StreamingException("Permission denied");
+            }
             MockHiveStreamingConnection hiveConnection = new MockHiveStreamingConnection(options, reader, hiveRecordWriter, schema);
             hiveConnection.setGenerateWriteFailure(generateWriteFailure);
             hiveConnection.setGenerateSerializationError(generateSerializationError);
@@ -1119,6 +1165,10 @@ public class TestPutHive3Streaming {
         void setFields(List<FieldSchema> schema) {
             this.schema = schema;
         }
+
+        public void setGeneratePermissionsFailure(boolean generatePermissionsFailure) {
+            this.generatePermissionsFailure = generatePermissionsFailure;
+        }
     }
 
     private class MockHiveStreamingConnection implements StreamingConnection {
@@ -1134,7 +1184,7 @@ public class TestPutHive3Streaming {
         private Table table;
         private String metastoreURI;
 
-        MockHiveStreamingConnection(HiveOptions options, RecordReader reader, RecordWriter recordWriter, List<FieldSchema> schema) {
+        MockHiveStreamingConnection(HiveOptions options, RecordReader reader, RecordWriter recordWriter, List<FieldSchema> schema) throws StreamingException {
             this.options = options;
             metastoreURI = options.getMetaStoreURI();
             this.writer = recordWriter;
