@@ -744,7 +744,7 @@ public abstract class NiFiProperties {
             }
             int socketPort = getClusterNodeProtocolPort();
             if (socketPort == 0) {
-                throw new RuntimeException("Load balance port cannot be 0. Port must be inclusively in the range [1, 65535].");
+                throw new RuntimeException("Cluster Node Protocol port cannot be 0. Port must be inclusively in the range [1, 65535].");
             }
             return InetSocketAddress.createUnresolved(socketAddress, socketPort);
         } catch (Exception ex) {

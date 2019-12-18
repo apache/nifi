@@ -191,7 +191,7 @@ public class NiFiPropertiesTest {
 
         // Arrange
         // Port Value is invalid Format
-        String portValue = "8000a";
+        String portValue = "8000";
         Map<String, String> additionalProperties = new HashMap<>();
         additionalProperties.put(NiFiProperties.CLUSTER_NODE_PROTOCOL_PORT, portValue);
         NiFiProperties properties = loadNiFiProperties("/NiFiProperties/conf/nifi.blank.properties", additionalProperties);
