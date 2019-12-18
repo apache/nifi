@@ -151,6 +151,8 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
         List<PropertyDescriptor> _propertyDescriptors = new ArrayList<>();
         _propertyDescriptors.addAll(propertyDescriptors);
         _propertyDescriptors.remove(MESSAGE_BODY);
+        _propertyDescriptors.remove(ALLOW_ILLEGAL_HEADER_CHARS);
+        _propertyDescriptors.remove(ATTRIBUTES_AS_HEADERS_REGEX);
 
         // change the validator on CHARSET property
         _propertyDescriptors.remove(CHARSET);

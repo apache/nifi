@@ -36,6 +36,7 @@ import java.util.Map;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -62,6 +63,7 @@ public class PublishJMSIT {
         Map<String, String> attributes = new HashMap<>();
         attributes.put("foo", "foo");
         attributes.put(JmsHeaders.REPLY_TO, "cooQueue");
+        attributes.put("test-attribute", "value");
         runner.enqueue("Hey dude!".getBytes(), attributes);
         runner.run(1, false); // Run once but don't shut down because we want the Connection Factory left in tact so that we can use it.
 
@@ -75,6 +77,7 @@ public class PublishJMSIT {
         assertEquals("Hey dude!", new String(messageBytes));
         assertEquals("cooQueue", ((Queue) message.getJMSReplyTo()).getQueueName());
         assertEquals("foo", message.getStringProperty("foo"));
+        assertNull(message.getStringProperty("test-attribute"));
 
         runner.run(1, true, false); // Run once just so that we can trigger the shutdown of the Connection Factory
     }
@@ -250,6 +253,52 @@ public class PublishJMSIT {
         assertEquals(true, message.getObjectProperty("badtype") instanceof String);
         assertEquals("3.14", message.getStringProperty("badtype"));
         assertFalse(message.propertyExists("badint"));
+
+        runner.run(1, true, false); // Run once just so that we can trigger the shutdown of the Connection Factory
+    }
+
+    @Test(timeout = 10000)
+    public void validateRegexAndIllegalHeaders() throws Exception {
+        ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory("vm://localhost?broker.persistent=false");
+
+        final String destinationName = "validatePublishTextMessage";
+        PublishJMS pubProc = new PublishJMS();
+        TestRunner runner = TestRunners.newTestRunner(pubProc);
+        JMSConnectionFactoryProviderDefinition cs = mock(JMSConnectionFactoryProviderDefinition.class);
+        when(cs.getIdentifier()).thenReturn("cfProvider");
+        when(cs.getConnectionFactory()).thenReturn(cf);
+
+        runner.addControllerService("cfProvider", cs);
+        runner.enableControllerService(cs);
+
+        runner.setProperty(PublishJMS.CF_SERVICE, "cfProvider");
+        runner.setProperty(PublishJMS.DESTINATION, destinationName);
+        runner.setProperty(PublishJMS.MESSAGE_BODY, "text");
+        runner.setProperty(PublishJMS.ATTRIBUTES_AS_HEADERS_REGEX, "^((?!bar).)*$");
+        runner.setProperty(PublishJMS.ALLOW_ILLEGAL_HEADER_CHARS, "true");
+
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put("foo", "foo");
+        attributes.put("bar", "bar");
+        attributes.put("test-header-with-hyphen", "value");
+        attributes.put(JmsHeaders.REPLY_TO, "cooQueue");
+        runner.enqueue("Hey dude!".getBytes(), attributes);
+        runner.run(1, false);
+
+        final MockFlowFile successFF = runner.getFlowFilesForRelationship(PublishJMS.REL_SUCCESS).get(0);
+        assertNotNull(successFF);
+
+        JmsTemplate jmst = new JmsTemplate(cf);
+        Message message = jmst.receive(destinationName);
+        assertTrue(message instanceof TextMessage);
+        TextMessage textMessage = (TextMessage) message;
+
+        byte[] messageBytes = MessageBodyToBytesConverter.toBytes(textMessage);
+        assertEquals("Hey dude!", new String(messageBytes));
+        assertEquals("cooQueue", ((Queue) message.getJMSReplyTo()).getQueueName());
+        assertEquals("foo", message.getStringProperty("foo"));
+        assertEquals("value", message.getStringProperty("test-header-with-hyphen"));
+        assertNull(message.getStringProperty("bar"));
 
         runner.run(1, true, false); // Run once just so that we can trigger the shutdown of the Connection Factory
     }

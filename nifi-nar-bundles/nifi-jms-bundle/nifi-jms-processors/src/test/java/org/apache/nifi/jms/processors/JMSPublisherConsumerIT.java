@@ -74,8 +74,8 @@ public class JMSPublisherConsumerIT {
             JMSPublisher publisher = new JMSPublisher((CachingConnectionFactory) jmsTemplate.getConnectionFactory(), jmsTemplate, mock(ComponentLog.class));
             Map<String, String> flowFileAttributes = new HashMap<>();
             flowFileAttributes.put("foo", "foo");
-            flowFileAttributes.put("illegal-property", "value");
-            flowFileAttributes.put("another.illegal", "value");
+            flowFileAttributes.put("hyphen-property", "value");
+            flowFileAttributes.put("fullstop.property", "value");
             flowFileAttributes.put(JmsHeaders.REPLY_TO, "myTopic");
             flowFileAttributes.put(JmsHeaders.DELIVERY_MODE, "1");
             flowFileAttributes.put(JmsHeaders.PRIORITY, "1");
@@ -85,8 +85,8 @@ public class JMSPublisherConsumerIT {
             Message receivedMessage = jmsTemplate.receive(destinationName);
             assertTrue(receivedMessage instanceof BytesMessage);
             assertEquals("foo", receivedMessage.getStringProperty("foo"));
-            assertFalse(receivedMessage.propertyExists("illegal-property"));
-            assertFalse(receivedMessage.propertyExists("another.illegal"));
+            assertTrue(receivedMessage.propertyExists("hyphen-property"));
+            assertTrue(receivedMessage.propertyExists("fullstop.property"));
             assertTrue(receivedMessage.getJMSReplyTo() instanceof Topic);
             assertEquals(1, receivedMessage.getJMSDeliveryMode());
             assertEquals(1, receivedMessage.getJMSPriority());
