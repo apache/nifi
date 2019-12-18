@@ -118,6 +118,25 @@ abstract class AbstractJMSProcessor<T extends JMSWorker> extends AbstractProcess
             .defaultValue(Charset.defaultCharset().name())
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
+    static final PropertyDescriptor ALLOW_ILLEGAL_HEADER_CHARS = new PropertyDescriptor.Builder()
+            .name("allow-illegal-chars-in-jms-header-names")
+            .displayName("Allow Illegal Characters in Header Names")
+            .description("Specifies whether illegal characters in header names should be sent to the JMS broker. " +
+                    "Usually hyphens and full-stops.")
+            .required(true)
+            .defaultValue("false")
+            .allowableValues("true", "false")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+    public static final PropertyDescriptor ATTRIBUTES_AS_HEADERS_REGEX = new PropertyDescriptor.Builder()
+            .name("attributes-to-send-as-jms-headers-regex")
+            .displayName("Attributes to Send as JMS Headers (Regex)")
+            .description("Specifies the Regular Expression that determines the names of FlowFile attributes that" +
+                    " should be sent as JMS Headers")
+            .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
+            .defaultValue(".*")
+            .required(true)
+            .build();
 
 
     static final PropertyDescriptor CF_SERVICE = new PropertyDescriptor.Builder()
@@ -141,6 +160,8 @@ abstract class AbstractJMSProcessor<T extends JMSWorker> extends AbstractProcess
         propertyDescriptors.add(SESSION_CACHE_SIZE);
         propertyDescriptors.add(MESSAGE_BODY);
         propertyDescriptors.add(CHARSET);
+        propertyDescriptors.add(ALLOW_ILLEGAL_HEADER_CHARS);
+        propertyDescriptors.add(ATTRIBUTES_AS_HEADERS_REGEX);
     }
 
     @Override

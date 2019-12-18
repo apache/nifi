@@ -43,8 +43,11 @@ import javax.jms.Message;
 import java.io.StringWriter;
 import java.nio.charset.Charset;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 /**
  * An implementation of JMS Message publishing {@link Processor} which upon each
@@ -121,10 +124,34 @@ public class PublishJMS extends AbstractJMSProcessor<JMSPublisher> {
             try {
                 String destinationName = context.getProperty(DESTINATION).evaluateAttributeExpressions(flowFile).getValue();
                 String charset = context.getProperty(CHARSET).evaluateAttributeExpressions(flowFile).getValue();
+                Boolean allowIllegalChars = context.getProperty(ALLOW_ILLEGAL_HEADER_CHARS).asBoolean();
+                String attributeHeaderRegex = context.getProperty(ATTRIBUTES_AS_HEADERS_REGEX).getValue();
+
+                Map<String,String> attributesToSend = new HashMap<>();
+                // REGEX Attributes
+                final Pattern pattern = Pattern.compile(attributeHeaderRegex);
+                for (final Map.Entry<String, String> entry : flowFile.getAttributes().entrySet()) {
+                    final String key = entry.getKey();
+                    if (pattern.matcher(key).matches()) {
+                        attributesToSend.put(key, flowFile.getAttribute(key));
+                    }
+                }
+
+                // Optionally remove illegal headers names apart from .type attributes for JMS variable types
+                if (!allowIllegalChars) {
+                    for (final Map.Entry<String,String> entry : attributesToSend.entrySet()) {
+                        if (!entry.getKey().endsWith(".type")){
+                            if (entry.getKey().contains("-") || entry.getKey().contains(".")) {
+                                attributesToSend.remove(entry.getKey());
+                            }
+                        }
+                    }
+                }
+
                 switch (context.getProperty(MESSAGE_BODY).getValue()) {
                     case TEXT_MESSAGE:
                         try {
-                            publisher.publish(destinationName, this.extractTextMessageBody(flowFile, processSession, charset), flowFile.getAttributes());
+                            publisher.publish(destinationName, this.extractTextMessageBody(flowFile, processSession, charset), attributesToSend);
                         } catch(Exception e) {
                             publisher.setValid(false);
                             throw e;
@@ -133,7 +160,7 @@ public class PublishJMS extends AbstractJMSProcessor<JMSPublisher> {
                     case BYTES_MESSAGE:
                     default:
                         try {
-                            publisher.publish(destinationName, this.extractMessageBody(flowFile, processSession), flowFile.getAttributes());
+                            publisher.publish(destinationName, this.extractMessageBody(flowFile, processSession), attributesToSend);
                         } catch(Exception e) {
                             publisher.setValid(false);
                             throw e;
