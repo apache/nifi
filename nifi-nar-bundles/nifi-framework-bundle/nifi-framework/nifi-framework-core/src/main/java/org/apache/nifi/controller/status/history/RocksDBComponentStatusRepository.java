@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.controller.status.history;
 
-import com.google.common.collect.Lists;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
@@ -52,7 +51,6 @@ import java.util.TreeSet;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -638,7 +636,7 @@ public class RocksDBComponentStatusRepository implements ComponentStatusReposito
                 while(byteArrayInputStream.read(read, 0, 8) == 8) {
                     byte[] key = new byte[read.length];
                     System.arraycopy(read, 0, key, 0, key.length);
-                    
+
                     queryFutures.add(CompletableFuture.runAsync(() -> {
                         byte[] status;
                         try {
