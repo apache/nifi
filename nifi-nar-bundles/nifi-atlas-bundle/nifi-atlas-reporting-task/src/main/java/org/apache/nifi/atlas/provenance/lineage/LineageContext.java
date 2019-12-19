@@ -16,8 +16,8 @@
  */
 package org.apache.nifi.atlas.provenance.lineage;
 
-import org.apache.atlas.notification.hook.HookNotification;
+import org.apache.atlas.model.notification.HookNotification;
 
 public interface LineageContext {
-    void addMessage(HookNotification.HookNotificationMessage message);
+    void addMessage(HookNotification message);
 }

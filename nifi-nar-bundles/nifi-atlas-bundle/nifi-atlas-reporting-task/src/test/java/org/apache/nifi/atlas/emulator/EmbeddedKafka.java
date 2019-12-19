@@ -127,7 +127,7 @@ public class EmbeddedKafka {
             logger.info("Starting Kafka server");
             this.kafkaServer.startup();
 
-            logger.info("Embedded Kafka is started at localhost:" + this.kafkaServer.serverConfig().port()
+            logger.info("Embedded Kafka is started at localhost:" + this.kafkaServer.staticServerConfig().port()
                     + ". Zookeeper connection string: " + this.kafkaConfig.getProperty("zookeeper.connect"));
             this.started = true;
         }

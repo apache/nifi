@@ -20,9 +20,11 @@ import com.sun.jersey.api.client.ClientResponse;
 import org.apache.atlas.AtlasServiceException;
 import org.apache.atlas.model.instance.AtlasEntity;
 import org.apache.atlas.model.instance.AtlasObjectId;
-import org.apache.atlas.notification.hook.HookNotification;
-import org.apache.atlas.typesystem.Referenceable;
-import org.apache.atlas.typesystem.persistence.Id;
+import org.apache.atlas.model.notification.HookNotification;
+import org.apache.atlas.v1.model.instance.Id;
+import org.apache.atlas.v1.model.instance.Referenceable;
+import org.apache.atlas.v1.model.notification.HookNotificationV1;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.nifi.atlas.AtlasUtils;
 import org.apache.nifi.atlas.NiFiAtlasClient;
 import org.apache.nifi.util.Tuple;
@@ -39,23 +41,24 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.function.Consumer;
+import java.util.UUID;
+import java.util.function.BiConsumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.toMap;
-import static org.apache.atlas.notification.hook.HookNotification.HookNotificationType.ENTITY_CREATE;
-import static org.apache.atlas.notification.hook.HookNotification.HookNotificationType.ENTITY_PARTIAL_UPDATE;
+import static org.apache.atlas.model.notification.HookNotification.HookNotificationType.ENTITY_CREATE;
+import static org.apache.atlas.model.notification.HookNotification.HookNotificationType.ENTITY_PARTIAL_UPDATE;
 import static org.apache.nifi.atlas.AtlasUtils.toTypedQualifiedName;
-import static org.apache.nifi.atlas.hook.NiFiAtlasHook.NIFI_USER;
 import static org.apache.nifi.atlas.NiFiTypes.ATTR_GUID;
 import static org.apache.nifi.atlas.NiFiTypes.ATTR_INPUTS;
 import static org.apache.nifi.atlas.NiFiTypes.ATTR_OUTPUTS;
 import static org.apache.nifi.atlas.NiFiTypes.ATTR_QUALIFIED_NAME;
 import static org.apache.nifi.atlas.NiFiTypes.ATTR_TYPENAME;
 import static org.apache.nifi.atlas.NiFiTypes.TYPE_NIFI_FLOW_PATH;
+import static org.apache.nifi.atlas.hook.NiFiAtlasHook.NIFI_USER;
 
 /**
  * This class implements Atlas hook notification message deduplication mechanism.
@@ -175,7 +178,7 @@ class NotificationSender {
      * <p>Send hook notification messages.
      * In order to notify relationships between 'nifi_flow_path' and its inputs/outputs, this method sends messages in following order:</p>
      * <ol>
-     *     <li>As a a single {@link org.apache.atlas.notification.hook.HookNotification.EntityCreateRequest} message:
+     *     <li>As a a single {@link org.apache.atlas.v1.model.notification.HookNotificationV1.EntityCreateRequest} message:
      *         <ul>
      *             <li>New entities except 'nifi_flow_path', including DataSets such as 'nifi_queue', 'kafka_topic' or 'hive_table' ... etc,
      *             so that 'nifi_flow_path' can refer</li>
@@ -190,21 +193,21 @@ class NotificationSender {
      * @param messages list of messages to be sent
      * @param notifier responsible for sending notification messages, its accept method can be called multiple times
      */
-    void send(final List<HookNotification.HookNotificationMessage> messages, final Consumer<List<HookNotification.HookNotificationMessage>> notifier) {
+    void send(final List<HookNotification> messages, final BiConsumer<List<HookNotification>, UserGroupInformation> notifier) {
         logger.info("Sending {} messages to Atlas", messages.size());
 
         final Metrics metrics = new Metrics();
         try {
             metrics.totalMessages = messages.size();
 
-            final Map<Boolean, List<HookNotification.HookNotificationMessage>> createAndOthers = messages.stream().collect(groupingBy(msg -> ENTITY_CREATE.equals(msg.getType())));
+            final Map<Boolean, List<HookNotification>> createAndOthers = messages.stream().collect(groupingBy(msg -> ENTITY_CREATE.equals(msg.getType())));
 
-            final List<HookNotification.HookNotificationMessage> creates = safeGet(createAndOthers, true);
+            final List<HookNotification> creates = safeGet(createAndOthers, true);
             metrics.createMessages = creates.size();
 
             final Map<Boolean, List<Referenceable>> newFlowPathsAndOtherEntities = creates.stream()
-                    .flatMap(msg -> ((HookNotification.EntityCreateRequest) msg).getEntities().stream())
-                    .collect(groupingBy(ref -> TYPE_NIFI_FLOW_PATH.equals(ref.typeName)));
+                    .flatMap(msg -> ((HookNotificationV1.EntityCreateRequest) msg).getEntities().stream())
+                    .collect(groupingBy(ref -> TYPE_NIFI_FLOW_PATH.equals(ref.getTypeName())));
 
             // Deduplicate same entity creation messages.
             final List<Referenceable> newEntitiesExceptFlowPaths = safeGet(newFlowPathsAndOtherEntities, false)
@@ -227,28 +230,28 @@ class NotificationSender {
             newEntities.addAll(newEntitiesExceptFlowPaths);
             newEntities.addAll(newFlowPaths);
             if (!newEntities.isEmpty()) {
-                notifier.accept(Collections.singletonList(new HookNotification.EntityCreateRequest(NIFI_USER, newEntities)));
+                notifier.accept(Collections.singletonList(new HookNotificationV1.EntityCreateRequest(NIFI_USER, newEntities)), null);
             }
 
-            final Map<Boolean, List<HookNotification.HookNotificationMessage>> partialNiFiFlowPathUpdateAndOthers
+            final Map<Boolean, List<HookNotification>> partialNiFiFlowPathUpdateAndOthers
                     = safeGet(createAndOthers, false).stream().collect(groupingBy(msg
                     -> ENTITY_PARTIAL_UPDATE.equals(msg.getType())
-                    && TYPE_NIFI_FLOW_PATH.equals(((HookNotification.EntityPartialUpdateRequest)msg).getTypeName())
-                    && ATTR_QUALIFIED_NAME.equals(((HookNotification.EntityPartialUpdateRequest)msg).getAttribute())
+                    && TYPE_NIFI_FLOW_PATH.equals(((HookNotificationV1.EntityPartialUpdateRequest)msg).getTypeName())
+                    && ATTR_QUALIFIED_NAME.equals(((HookNotificationV1.EntityPartialUpdateRequest)msg).getAttribute())
             ));
 
 
             // These updates are made against existing flow path entities.
-            final List<HookNotification.HookNotificationMessage> partialNiFiFlowPathUpdates = safeGet(partialNiFiFlowPathUpdateAndOthers, true);
-            final List<HookNotification.HookNotificationMessage> otherMessages = safeGet(partialNiFiFlowPathUpdateAndOthers, false);
+            final List<HookNotification> partialNiFiFlowPathUpdates = safeGet(partialNiFiFlowPathUpdateAndOthers, true);
+            final List<HookNotification> otherMessages = safeGet(partialNiFiFlowPathUpdateAndOthers, false);
             metrics.partialNiFiFlowPathUpdates = partialNiFiFlowPathUpdates.size();
             metrics.otherMessages = otherMessages.size();
 
 
             // 2. Notify de-duplicated 'nifi_flow_path' updates
-            final List<HookNotification.HookNotificationMessage> deduplicatedMessages = partialNiFiFlowPathUpdates.stream().map(msg -> (HookNotification.EntityPartialUpdateRequest) msg)
+            final List<HookNotification> deduplicatedMessages = partialNiFiFlowPathUpdates.stream().map(msg -> (HookNotificationV1.EntityPartialUpdateRequest) msg)
                     // Group by nifi_flow_path qualifiedName value.
-                    .collect(groupingBy(HookNotification.EntityPartialUpdateRequest::getAttributeValue)).entrySet().stream()
+                    .collect(groupingBy(HookNotificationV1.EntityPartialUpdateRequest::getAttributeValue)).entrySet().stream()
                     .map(entry -> {
                         final String flowPathQualifiedName = entry.getKey();
                         final Map<String, Referenceable> distinctInputs;
@@ -274,7 +277,7 @@ class NotificationSender {
                         }
 
                         // Merge all inputs and outputs for this nifi_flow_path.
-                        for (HookNotification.EntityPartialUpdateRequest msg : entry.getValue()) {
+                        for (HookNotificationV1.EntityPartialUpdateRequest msg : entry.getValue()) {
                             fromReferenceable(msg.getEntity().get(ATTR_INPUTS), metrics)
                                     .entrySet().stream().filter(ref -> !distinctInputs.containsKey(ref.getKey()))
                                     .forEach(ref -> distinctInputs.put(ref.getKey(), ref.getValue()));
@@ -290,17 +293,17 @@ class NotificationSender {
                         // org.json4s.package$MappingException: Can't find ScalaSig for class org.apache.atlas.typesystem.Referenceable
                         flowPathRef.set(ATTR_INPUTS, new ArrayList<>(distinctInputs.values()));
                         flowPathRef.set(ATTR_OUTPUTS, new ArrayList<>(distinctOutputs.values()));
-                        return new HookNotification.EntityPartialUpdateRequest(NIFI_USER, TYPE_NIFI_FLOW_PATH,
+                        return new HookNotificationV1.EntityPartialUpdateRequest(NIFI_USER, TYPE_NIFI_FLOW_PATH,
                                 ATTR_QUALIFIED_NAME, flowPathQualifiedName, flowPathRef);
                     })
                     .filter(Objects::nonNull)
                     .collect(Collectors.toList());
 
             metrics.uniquePartialNiFiFlowPathUpdates = deduplicatedMessages.size();
-            notifier.accept(deduplicatedMessages);
+            notifier.accept(deduplicatedMessages, null);
 
             // 3. Notify other messages
-            notifier.accept(otherMessages);
+            notifier.accept(otherMessages, null);
 
         } finally {
             logger.info(metrics.toLogString("Finished"));
@@ -380,7 +383,7 @@ class NotificationSender {
             final String typedRefQualifiedName = toTypedQualifiedName(typeName, refQualifiedName);
 
             final Referenceable refFromCacheIfAvailable = typedQualifiedNameToRef.computeIfAbsent(typedRefQualifiedName, k -> {
-                if (id.isAssigned()) {
+                if (isAssigned(id)) {
                     // If this referenceable has Guid assigned, then add this one to cache.
                     guidToTypedQualifiedName.put(id._getId(), typedRefQualifiedName);
                 }
@@ -390,5 +393,16 @@ class NotificationSender {
             return new Tuple<>(typedRefQualifiedName, refFromCacheIfAvailable);
         }).filter(tuple -> tuple.getValue() != null)
                 .collect(toMap(Tuple::getKey, Tuple::getValue));
+    }
+
+    // Copy of org.apache.atlas.typesystem.persistence.Id.isAssigned() from v0.8.1. This method does not exists in v2.0.0.
+    private boolean isAssigned(Id id) {
+        try {
+            UUID.fromString(id.getId());
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
+
+        return true;
     }
 }

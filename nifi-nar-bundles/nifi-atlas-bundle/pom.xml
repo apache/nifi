@@ -22,13 +22,13 @@
         <version>1.11.0-SNAPSHOT</version>
     </parent>
 
-    <groupId>org.apache.nifi</groupId>
     <artifactId>nifi-atlas-bundle</artifactId>
-    <version>1.11.0-SNAPSHOT</version>
     <packaging>pom</packaging>
+
     <properties>
-        <atlas.version>0.8.1</atlas.version>
+        <atlas.version>2.0.0</atlas.version>
     </properties>
+
     <modules>
         <module>nifi-atlas-reporting-task</module>
         <module>nifi-atlas-nar</module>
@@ -37,93 +37,19 @@
     <dependencyManagement>
         <dependencies>
             <dependency>
-                <!-- Explicitly force Netty to 3.7.1 due to CVE-2014-0193 -->
-                <groupId>io.netty</groupId>
-                <artifactId>netty</artifactId>
-                <version>3.7.1.Final</version>
-            </dependency>
-            <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-atlas-reporting-task</artifactId>
                 <version>1.11.0-SNAPSHOT</version>
             </dependency>
-            <dependency>
-                <groupId>org.apache.nifi</groupId>
-                <artifactId>nifi-client-dto</artifactId>
-                <version>1.11.0-SNAPSHOT</version>
-            </dependency>
+
             <dependency>
                 <groupId>org.apache.atlas</groupId>
-                <artifactId>atlas-client</artifactId>
+                <artifactId>atlas-client-v2</artifactId>
                 <version>${atlas.version}</version>
                 <exclusions>
                     <exclusion>
                         <groupId>org.slf4j</groupId>
                         <artifactId>slf4j-log4j12</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>org.slf4j</groupId>
-                        <artifactId>jul-to-slf4j</artifactId>
-                    </exclusion>
-                    <!--
-                        <exclusion>
-                            <groupId>log4j</groupId>
-                            <artifactId>log4j</artifactId>
-                        </exclusion>
-                        <exclusion>
-                            <groupId>org.apache.hadoop</groupId>
-                            <artifactId>hadoop-minikdc</artifactId>
-                        </exclusion>
-                        <exclusion>
-                            <groupId>org.apache.hadoop</groupId>
-                            <artifactId>hadoop-annotations</artifactId>
-                        </exclusion>
-                        <!-
-                            Exclude these Atlas typesystem to reduce dependency size.
-                            Use atlas-intg and atlas-common instead.
-                        ->
-                        <exclusion>
-                            <groupId>org.apache.atlas</groupId>
-                            <artifactId>atlas-typesystem</artifactId>
-                        </exclusion>
-                    -->
-                </exclusions>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.atlas</groupId>
-                <artifactId>atlas-intg</artifactId>
-                <version>${atlas.version}</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>org.slf4j</groupId>
-                        <artifactId>slf4j-log4j12</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>org.slf4j</groupId>
-                        <artifactId>jul-to-slf4j</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>log4j</groupId>
-                        <artifactId>log4j</artifactId>
-                    </exclusion>
-                </exclusions>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.atlas</groupId>
-                <artifactId>atlas-common</artifactId>
-                <version>${atlas.version}</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>org.slf4j</groupId>
-                        <artifactId>slf4j-log4j12</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>org.slf4j</groupId>
-                        <artifactId>jul-to-slf4j</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>log4j</groupId>
-                        <artifactId>log4j</artifactId>
                     </exclusion>
                 </exclusions>
             </dependency>
@@ -136,12 +62,10 @@
                         <groupId>org.slf4j</groupId>
                         <artifactId>slf4j-log4j12</artifactId>
                     </exclusion>
-                    <!--
                     <exclusion>
                         <groupId>log4j</groupId>
                         <artifactId>log4j</artifactId>
                     </exclusion>
-                    -->
                 </exclusions>
             </dependency>
         </dependencies>

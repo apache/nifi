@@ -17,7 +17,7 @@
 package org.apache.nifi.atlas.hook;
 
 import org.apache.atlas.hook.AtlasHook;
-import org.apache.atlas.notification.hook.HookNotification.HookNotificationMessage;
+import org.apache.atlas.model.notification.HookNotification;
 import org.apache.nifi.atlas.NiFiAtlasClient;
 import org.apache.nifi.atlas.provenance.lineage.LineageContext;
 
@@ -26,14 +26,11 @@ import java.util.List;
 
 /**
  * This class is not thread-safe as it holds uncommitted notification messages within instance.
- * {@link #addMessage(HookNotificationMessage)} and {@link #commitMessages()} should be used serially from a single thread.
+ * {@link #addMessage(HookNotification)} and {@link #commitMessages()} should be used serially from a single thread.
  */
 public class NiFiAtlasHook extends AtlasHook implements LineageContext {
 
     public static final String NIFI_USER = "nifi";
-
-    private static final String CONF_PREFIX = "atlas.hook.nifi.";
-    private static final String HOOK_NUM_RETRIES = CONF_PREFIX + "numRetries";
 
     private NiFiAtlasClient atlasClient;
 
@@ -41,23 +38,17 @@ public class NiFiAtlasHook extends AtlasHook implements LineageContext {
         this.atlasClient = atlasClient;
     }
 
-    @Override
-    protected String getNumberOfRetriesPropertyKey() {
-        return HOOK_NUM_RETRIES;
-    }
-
-
-    private final List<HookNotificationMessage> messages = new ArrayList<>();
+    private final List<HookNotification> messages = new ArrayList<>();
 
     @Override
-    public void addMessage(HookNotificationMessage message) {
+    public void addMessage(HookNotification message) {
         messages.add(message);
     }
 
     public void commitMessages() {
         final NotificationSender notificationSender = createNotificationSender();
         notificationSender.setAtlasClient(atlasClient);
-        List<HookNotificationMessage> messagesBatch = new ArrayList<>(messages);
+        List<HookNotification> messagesBatch = new ArrayList<>(messages);
         messages.clear();
         notificationSender.send(messagesBatch, this::notifyEntities);
     }
@@ -72,7 +63,7 @@ public class NiFiAtlasHook extends AtlasHook implements LineageContext {
         return new NotificationSender();
     }
 
-    List<HookNotificationMessage> getMessages() {
+    List<HookNotification> getMessages() {
         return messages;
     }
 }

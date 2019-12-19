@@ -26,6 +26,7 @@ import org.apache.nifi.controller.status.ConnectionStatus;
 import org.apache.nifi.controller.status.PortStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
+import org.apache.nifi.controller.status.RemoteProcessGroupStatus;
 import org.apache.nifi.flowfile.attributes.SiteToSiteAttributes;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceRepository;
@@ -123,7 +124,38 @@ public class ITReportLineageToAtlas {
             throw new RuntimeException("Failed to parse template", e);
         }
 
-        return handler.getRootProcessGroupStatus();
+        ProcessGroupStatus rootPgStatus = handler.getRootProcessGroupStatus();
+
+        for (ConnectionStatus connectionStatus : rootPgStatus.getConnectionStatus()) {
+            connectionStatus.setSourceName(lookupComponentName(rootPgStatus, connectionStatus.getSourceId()));
+            connectionStatus.setDestinationName(lookupComponentName(rootPgStatus, connectionStatus.getDestinationId()));
+        }
+
+        return rootPgStatus;
+    }
+
+    private String lookupComponentName(ProcessGroupStatus rootPgStatus, String componentId) {
+        for (ProcessorStatus processorStatus : rootPgStatus.getProcessorStatus()) {
+            if (processorStatus.getId().equals(componentId)) {
+                return processorStatus.getName();
+            }
+        }
+        for (PortStatus portStatus : rootPgStatus.getInputPortStatus()) {
+            if (portStatus.getId().equals(componentId)) {
+                return portStatus.getName();
+            }
+        }
+        for (PortStatus portStatus : rootPgStatus.getOutputPortStatus()) {
+            if (portStatus.getId().equals(componentId)) {
+                return portStatus.getName();
+            }
+        }
+        for (RemoteProcessGroupStatus remoteProcessGroupStatus : rootPgStatus.getRemoteProcessGroupStatus()) {
+            if (remoteProcessGroupStatus.getId().equals(componentId)) {
+                return remoteProcessGroupStatus.getName();
+            }
+        }
+        return null; // funnels do not have names
     }
 
     private static class TemplateContentHander implements ContentHandler {

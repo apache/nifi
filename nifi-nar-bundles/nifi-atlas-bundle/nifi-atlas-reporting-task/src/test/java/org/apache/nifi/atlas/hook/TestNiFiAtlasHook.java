@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.atlas.hook;
 
-import org.apache.atlas.notification.hook.HookNotification;
+import org.apache.atlas.model.notification.HookNotification;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -40,16 +40,16 @@ public class TestNiFiAtlasHook {
 
     @Test
     public void messagesListShouldContainMessagesAfterAddMessage() {
-        hook.addMessage(new HookNotification.HookNotificationMessage(HookNotification.HookNotificationType.ENTITY_CREATE, "nifi"));
-        hook.addMessage(new HookNotification.HookNotificationMessage(HookNotification.HookNotificationType.ENTITY_PARTIAL_UPDATE, "nifi"));
+        hook.addMessage(new HookNotification(HookNotification.HookNotificationType.ENTITY_CREATE, "nifi"));
+        hook.addMessage(new HookNotification(HookNotification.HookNotificationType.ENTITY_PARTIAL_UPDATE, "nifi"));
 
         assertEquals(2, hook.getMessages().size());
     }
 
     @Test
     public void messagesListShouldBeCleanedUpAfterCommit() {
-        hook.addMessage(new HookNotification.HookNotificationMessage(HookNotification.HookNotificationType.ENTITY_CREATE, "nifi"));
-        hook.addMessage(new HookNotification.HookNotificationMessage(HookNotification.HookNotificationType.ENTITY_PARTIAL_UPDATE, "nifi"));
+        hook.addMessage(new HookNotification(HookNotification.HookNotificationType.ENTITY_CREATE, "nifi"));
+        hook.addMessage(new HookNotification(HookNotification.HookNotificationType.ENTITY_PARTIAL_UPDATE, "nifi"));
 
         hook.commitMessages();
 
