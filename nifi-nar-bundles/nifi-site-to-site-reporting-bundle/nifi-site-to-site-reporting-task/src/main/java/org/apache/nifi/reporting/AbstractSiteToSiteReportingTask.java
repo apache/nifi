@@ -34,10 +34,8 @@ import javax.json.JsonArray;
 import javax.json.JsonObjectBuilder;
 import javax.json.JsonValue;
 
-import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.remote.Transaction;
@@ -95,7 +93,6 @@ public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingT
             .defaultValue("false")
             .build();
 
-    protected volatile ConfigurationContext configContext;
     protected volatile SiteToSiteClient siteToSiteClient;
     protected volatile RecordSchema recordSchema;
 
@@ -119,15 +116,9 @@ public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingT
         return properties;
     }
 
-    @OnScheduled
-    public void setup(final ConfigurationContext configContext) throws IOException {
-        this.configContext = configContext;
-    }
-
     public void setup(final ReportingContext reportContext) throws IOException {
-        //Test doesn't run OnScheduled setup and provides a Mock SiteToSiteClient, so ignore it
-        if (configContext != null) {
-            siteToSiteClient = SiteToSiteUtils.getClient(configContext, reportContext, getLogger());
+        if (siteToSiteClient != null) {
+            siteToSiteClient = SiteToSiteUtils.getClient(reportContext, getLogger());
         }
     }
 
