@@ -48,49 +48,24 @@
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-kerberos-credentials-service-api</artifactId>
         </dependency>
-        <!-- Explicitly force beanutils 1.9.3 because versions prior to 1.9.2 had a vuln
-             Can remove this once atlas client which depends on hadoop-common uses a more recent version -->
+
+        <!-- Explicitly force beanutils 1.9.4 in order to avoid vulnerabilities in earlier versions.
+             Can remove this once atlas client which depends on hadoop-common uses a more recent version. -->
         <dependency>
             <groupId>commons-beanutils</groupId>
             <artifactId>commons-beanutils</artifactId>
             <version>1.9.4</version>
         </dependency>
+
         <dependency>
             <groupId>org.apache.atlas</groupId>
-            <artifactId>atlas-client</artifactId>
-            <!-- Exclude dependencies to reduce NAR file size -->
-            <exclusions>
-                <!-- NOTE: Scala is required by atlas notification -->
-                <!--
-                   fastutil-6.5.16.jar is 16MB.
-                   'fastutil' is only used by
-                   org.apache.atlas.repository.memory.AttributeStores
-                   which is deprecated as being part of V1 API.
-                -->
-                <exclusion>
-                    <groupId>it.unimi.dsi</groupId>
-                    <artifactId>fastutil</artifactId>
-                </exclusion>
-                <!-- Explicit dep referred to in POM above.  commons-beanutils and commons-beanutils-core merged in 1.9.0 -->
-                <exclusion>
-                    <groupId>commons-beanutils</groupId>
-                    <artifactId>commons-beanutils-core</artifactId>
-                </exclusion>
-            </exclusions>
+            <artifactId>atlas-client-v2</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.atlas</groupId>
             <artifactId>atlas-notification</artifactId>
         </dependency>
-        <!--
-        NOTE: Could not use nifi-hadoop-libraries-nar because hadoop-client uses httpclient-4.2.5,
-        but atlas-client uses httpclient-4.5.3.
-        <dependency>
-            <groupId>org.apache.hadoop</groupId>
-            <artifactId>hadoop-common</artifactId>
-            <scope>provided</scope>
-        </dependency>
-        -->
+
         <dependency>
             <groupId>org.codehaus.jettison</groupId>
             <artifactId>jettison</artifactId>

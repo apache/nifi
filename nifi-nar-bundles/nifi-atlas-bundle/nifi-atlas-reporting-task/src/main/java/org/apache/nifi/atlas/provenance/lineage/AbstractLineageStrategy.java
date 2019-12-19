@@ -17,8 +17,9 @@
 package org.apache.nifi.atlas.provenance.lineage;
 
 import org.apache.atlas.model.instance.AtlasObjectId;
-import org.apache.atlas.notification.hook.HookNotification;
-import org.apache.atlas.typesystem.Referenceable;
+import org.apache.atlas.v1.model.instance.Id;
+import org.apache.atlas.v1.model.instance.Referenceable;
+import org.apache.atlas.v1.model.notification.HookNotificationV1;
 import org.apache.nifi.atlas.NiFiFlow;
 import org.apache.nifi.atlas.NiFiFlowPath;
 import org.apache.nifi.atlas.provenance.AnalysisContext;
@@ -40,7 +41,6 @@ import java.util.stream.Collectors;
 
 import static org.apache.nifi.atlas.AtlasUtils.toStr;
 import static org.apache.nifi.atlas.AtlasUtils.toTypedQualifiedName;
-import static org.apache.nifi.atlas.hook.NiFiAtlasHook.NIFI_USER;
 import static org.apache.nifi.atlas.NiFiTypes.ATTR_INPUTS;
 import static org.apache.nifi.atlas.NiFiTypes.ATTR_NAME;
 import static org.apache.nifi.atlas.NiFiTypes.ATTR_NIFI_FLOW;
@@ -49,6 +49,7 @@ import static org.apache.nifi.atlas.NiFiTypes.ATTR_QUALIFIED_NAME;
 import static org.apache.nifi.atlas.NiFiTypes.ATTR_URL;
 import static org.apache.nifi.atlas.NiFiTypes.TYPE_NIFI_FLOW;
 import static org.apache.nifi.atlas.NiFiTypes.TYPE_NIFI_FLOW_PATH;
+import static org.apache.nifi.atlas.hook.NiFiAtlasHook.NIFI_USER;
 
 public abstract class AbstractLineageStrategy implements LineageStrategy {
 
@@ -131,7 +132,7 @@ public abstract class AbstractLineageStrategy implements LineageStrategy {
     }
 
     protected void createEntity(Referenceable ... entities) {
-        final HookNotification.EntityCreateRequest msg = new HookNotification.EntityCreateRequest(NIFI_USER, entities);
+        final HookNotificationV1.EntityCreateRequest msg = new HookNotificationV1.EntityCreateRequest(NIFI_USER, entities);
         lineageContext.addMessage(msg);
     }
 
@@ -146,11 +147,11 @@ public abstract class AbstractLineageStrategy implements LineageStrategy {
 
             refsToAdd.stream().filter(ref -> !existingRefTypedQualifiedNames.contains(toTypedQualifiedName.apply(ref)))
                     .forEach(ref -> {
-                        if (ref.getId().isUnassigned()) {
+                        if (isUnassigned(ref.getId())) {
                             // Create new entity.
                             logger.debug("Found a new DataSet reference from {} to {}, sending an EntityCreateRequest",
                                     new Object[]{toTypedQualifiedName.apply(nifiFlowPath), toTypedQualifiedName.apply(ref)});
-                            final HookNotification.EntityCreateRequest createDataSet = new HookNotification.EntityCreateRequest(NIFI_USER, ref);
+                            final HookNotificationV1.EntityCreateRequest createDataSet = new HookNotificationV1.EntityCreateRequest(NIFI_USER, ref);
                             lineageContext.addMessage(createDataSet);
                         }
                         refs.add(ref);
@@ -169,10 +170,18 @@ public abstract class AbstractLineageStrategy implements LineageStrategy {
         final boolean inputsAdded = addDataSetRefs(dataSetRefs.getInputs(), flowPathRef, ATTR_INPUTS);
         final boolean outputsAdded = addDataSetRefs(dataSetRefs.getOutputs(), flowPathRef, ATTR_OUTPUTS);
         if (inputsAdded || outputsAdded) {
-            lineageContext.addMessage(new HookNotification.EntityPartialUpdateRequest(NIFI_USER, TYPE_NIFI_FLOW_PATH,
+            lineageContext.addMessage(new HookNotificationV1.EntityPartialUpdateRequest(NIFI_USER, TYPE_NIFI_FLOW_PATH,
                     ATTR_QUALIFIED_NAME, (String) flowPathRef.get(ATTR_QUALIFIED_NAME), flowPathRef));
         }
     }
 
-
+    // Copy of org.apache.atlas.typesystem.persistence.Id.isUnassigned() from v0.8.1. This method does not exists in v2.0.0.
+    private boolean isUnassigned(Id id) {
+        try {
+            long l = Long.parseLong(id.getId());
+            return l < 0;
+        } catch (NumberFormatException ne) {
+            return false;
+        }
+    }
 }

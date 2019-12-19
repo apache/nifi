@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.atlas.emulator;
 
+import org.apache.atlas.model.notification.HookNotification;
 import org.apache.atlas.notification.MessageDeserializer;
 import org.apache.atlas.notification.NotificationInterface;
-import org.apache.atlas.notification.hook.HookNotification;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -36,7 +36,7 @@ public class AtlasNotificationServerEmulator {
 
     private volatile boolean isStopped;
 
-    public void consume(Consumer<HookNotification.HookNotificationMessage> c) {
+    public void consume(Consumer<HookNotification> c) {
         Properties props = new Properties();
         props.put("bootstrap.servers", "localhost:9092");
         props.put("group.id", "test");
@@ -53,8 +53,8 @@ public class AtlasNotificationServerEmulator {
             ConsumerRecords<String, String> records = consumer.poll(100);
             for (ConsumerRecord<String, String> record : records) {
                 final MessageDeserializer deserializer = NotificationInterface.NotificationType.HOOK.getDeserializer();
-                final HookNotification.HookNotificationMessage m
-                        = (HookNotification.HookNotificationMessage) deserializer.deserialize(record.value());
+                final HookNotification m
+                        = (HookNotification) deserializer.deserialize(record.value());
                 c.accept(m);
             }
         }

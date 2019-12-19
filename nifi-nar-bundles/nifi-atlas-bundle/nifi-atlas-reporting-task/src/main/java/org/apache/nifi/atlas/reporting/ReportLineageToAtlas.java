@@ -16,9 +16,56 @@
  */
 package org.apache.nifi.atlas.reporting;
 
-import static org.apache.commons.lang3.StringUtils.isEmpty;
-import static org.apache.nifi.reporting.util.provenance.ProvenanceEventConsumer.PROVENANCE_BATCH_SIZE;
-import static org.apache.nifi.reporting.util.provenance.ProvenanceEventConsumer.PROVENANCE_START_POSITION;
+import com.sun.jersey.api.client.ClientResponse;
+import org.apache.atlas.ApplicationProperties;
+import org.apache.atlas.AtlasServiceException;
+import org.apache.atlas.hook.AtlasHook;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.common.config.SslConfigs;
+import org.apache.nifi.annotation.behavior.DynamicProperty;
+import org.apache.nifi.annotation.behavior.RequiresInstanceClassLoading;
+import org.apache.nifi.annotation.behavior.Stateful;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.annotation.lifecycle.OnStopped;
+import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
+import org.apache.nifi.atlas.NiFiAtlasClient;
+import org.apache.nifi.atlas.NiFiFlow;
+import org.apache.nifi.atlas.NiFiFlowAnalyzer;
+import org.apache.nifi.atlas.hook.NiFiAtlasHook;
+import org.apache.nifi.atlas.provenance.AnalysisContext;
+import org.apache.nifi.atlas.provenance.StandardAnalysisContext;
+import org.apache.nifi.atlas.provenance.lineage.CompleteFlowPathLineage;
+import org.apache.nifi.atlas.provenance.lineage.LineageStrategy;
+import org.apache.nifi.atlas.provenance.lineage.SimpleFlowPathLineage;
+import org.apache.nifi.atlas.resolver.ClusterResolver;
+import org.apache.nifi.atlas.resolver.ClusterResolvers;
+import org.apache.nifi.atlas.resolver.RegexClusterResolver;
+import org.apache.nifi.atlas.security.AtlasAuthN;
+import org.apache.nifi.atlas.security.Basic;
+import org.apache.nifi.atlas.security.Kerberos;
+import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.context.PropertyContext;
+import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.controller.status.ProcessGroupStatus;
+import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.kerberos.KerberosCredentialsService;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.provenance.ProvenanceEventRecord;
+import org.apache.nifi.provenance.ProvenanceRepository;
+import org.apache.nifi.reporting.AbstractReportingTask;
+import org.apache.nifi.reporting.EventAccess;
+import org.apache.nifi.reporting.ReportingContext;
+import org.apache.nifi.reporting.util.provenance.ProvenanceEventConsumer;
+import org.apache.nifi.ssl.SSLContextService;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -44,56 +91,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
-import org.apache.atlas.ApplicationProperties;
-import org.apache.atlas.AtlasServiceException;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.kafka.clients.producer.ProducerConfig;
-import org.apache.kafka.common.config.SslConfigs;
-import org.apache.nifi.annotation.behavior.DynamicProperty;
-import org.apache.nifi.annotation.behavior.RequiresInstanceClassLoading;
-import org.apache.nifi.annotation.behavior.Stateful;
-import org.apache.nifi.annotation.documentation.CapabilityDescription;
-import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.annotation.lifecycle.OnScheduled;
-import org.apache.nifi.annotation.lifecycle.OnStopped;
-import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
-import org.apache.nifi.atlas.hook.NiFiAtlasHook;
-import org.apache.nifi.atlas.NiFiAtlasClient;
-import org.apache.nifi.atlas.NiFiFlow;
-import org.apache.nifi.atlas.NiFiFlowAnalyzer;
-import org.apache.nifi.atlas.provenance.AnalysisContext;
-import org.apache.nifi.atlas.provenance.StandardAnalysisContext;
-import org.apache.nifi.atlas.provenance.lineage.CompleteFlowPathLineage;
-import org.apache.nifi.atlas.provenance.lineage.LineageStrategy;
-import org.apache.nifi.atlas.provenance.lineage.SimpleFlowPathLineage;
-import org.apache.nifi.atlas.resolver.ClusterResolver;
-import org.apache.nifi.atlas.resolver.ClusterResolvers;
-import org.apache.nifi.atlas.resolver.RegexClusterResolver;
-import org.apache.nifi.atlas.security.AtlasAuthN;
-import org.apache.nifi.atlas.security.Basic;
-import org.apache.nifi.atlas.security.Kerberos;
-import org.apache.nifi.components.AllowableValue;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.PropertyValue;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.components.state.Scope;
-import org.apache.nifi.context.PropertyContext;
-import org.apache.nifi.controller.ConfigurationContext;
-import org.apache.nifi.controller.status.ProcessGroupStatus;
-import org.apache.nifi.kerberos.KerberosCredentialsService;
-import org.apache.nifi.expression.ExpressionLanguageScope;
-import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.provenance.ProvenanceEventRecord;
-import org.apache.nifi.provenance.ProvenanceRepository;
-import org.apache.nifi.reporting.AbstractReportingTask;
-import org.apache.nifi.reporting.EventAccess;
-import org.apache.nifi.reporting.ReportingContext;
-import org.apache.nifi.reporting.util.provenance.ProvenanceEventConsumer;
-import org.apache.nifi.ssl.SSLContextService;
-
-import com.sun.jersey.api.client.ClientResponse;
+import static org.apache.commons.lang3.StringUtils.isEmpty;
+import static org.apache.nifi.reporting.util.provenance.ProvenanceEventConsumer.PROVENANCE_BATCH_SIZE;
+import static org.apache.nifi.reporting.util.provenance.ProvenanceEventConsumer.PROVENANCE_START_POSITION;
 
 @Tags({"atlas", "lineage"})
 @CapabilityDescription("Report NiFi flow data set level lineage to Apache Atlas." +
@@ -552,6 +552,8 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
 
         // Create Atlas configuration file if necessary.
         if (createAtlasConf) {
+            // enforce synchronous notification sending (needed for the checkpointing in ProvenanceEventConsumer)
+            atlasProperties.setProperty(AtlasHook.ATLAS_NOTIFICATION_ASYNCHRONOUS, "false");
 
             atlasProperties.put(ATLAS_PROPERTY_CLIENT_CONNECT_TIMEOUT_MS, atlasConnectTimeoutMs);
             atlasProperties.put(ATLAS_PROPERTY_CLIENT_READ_TIMEOUT_MS, atlasReadTimeoutMs);
@@ -567,6 +569,13 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
                         .withZone(ZoneOffset.UTC)
                         .format(Instant.now());
                 atlasProperties.store(fos, "Generated by Apache NiFi ReportLineageToAtlas ReportingTask at " + ts);
+            }
+        } else {
+            // check if synchronous notification sending has been set (needed for the checkpointing in ProvenanceEventConsumer)
+            String isAsync = atlasProperties.getProperty(AtlasHook.ATLAS_NOTIFICATION_ASYNCHRONOUS);
+            if (isAsync == null || !isAsync.equalsIgnoreCase("false")) {
+                throw new ProcessException("Atlas property '" + AtlasHook.ATLAS_NOTIFICATION_ASYNCHRONOUS + "' must be set to 'false' in " + ATLAS_PROPERTIES_FILENAME + "." +
+                        " Sending notifications asynchronously is not supported by the reporting task.");
             }
         }
 
