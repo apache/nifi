@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.reporting.azure.loganalytics;
 
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.text.DateFormat;
@@ -41,6 +42,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
@@ -59,6 +61,11 @@ public class AzureLogAnalyticsProvenanceReportingTask extends AbstractAzureLogAn
         protected static final String LAST_EVENT_ID_KEY = "last_event_id";
         protected static final String DESTINATION_URL_PATH = "/nifi";
         protected static final String TIMESTAMP_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
+
+        static final PropertyDescriptor LOG_ANALYTICS_CUSTOM_LOG_NAME = new PropertyDescriptor.Builder()
+                        .name("Log Analytics Custom Log Name").description("Log Analytics Custom Log Name").required(false)
+                        .defaultValue("nifiprovenance").addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+                        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY).build();
 
         static final AllowableValue BEGINNING_OF_STREAM = new AllowableValue("beginning-of-stream",
                         "Beginning of Stream",
@@ -265,6 +272,16 @@ public class AzureLogAnalyticsProvenanceReportingTask extends AbstractAzureLogAn
                         return;
                 }
 
+                try {
+                        processProvenanceData(context);
+
+                } catch (final Exception e) {
+                        getLogger().error("Failed to publish metrics to Azure Log Analytics", e);
+                }
+        }
+
+        public void processProvenanceData(final ReportingContext context) throws IOException {
+                getLogger().debug("Starting to process provenance data");
                 final String workspaceId = context.getProperty(LOG_ANALYTICS_WORKSPACE_ID)
                                 .evaluateAttributeExpressions().getValue();
                 final String linuxPrimaryKey = context.getProperty(LOG_ANALYTICS_WORKSPACE_KEY)
@@ -273,19 +290,8 @@ public class AzureLogAnalyticsProvenanceReportingTask extends AbstractAzureLogAn
                                 .getValue();
                 final String urlEndpointFormat = context.getProperty(LOG_ANALYTICS_URL_ENDPOINT_FORMAT)
                                 .evaluateAttributeExpressions().getValue();
-                try {
-                        final String dataCollectorEndpoint = MessageFormat.format(urlEndpointFormat, workspaceId);
-                        final HttpPost httpPost = new HttpPost(dataCollectorEndpoint);
-                        httpPost.addHeader("Content-Type", "application/json");
-                        httpPost.addHeader("Log-Type", logName);
-                        String str = GetStringData(context);
-                        sendToLogAnalytics(httpPost, workspaceId, linuxPrimaryKey, str);
-                } catch (final Exception e) {
-                        getLogger().error("Failed to publish metrics to Azure Log Analytics", e);
-                }
-        }
-
-        public String GetStringData(final ReportingContext context) {
+                final Integer batchSize = context.getProperty(BATCH_SIZE).asInteger();
+                final String dataCollectorEndpoint = MessageFormat.format(urlEndpointFormat, workspaceId);
                 final ProcessGroupStatus procGroupStatus = context.getEventAccess().getControllerStatus();
                 final String nodeId = context.getClusterNodeIdentifier();
                 final String rootGroupName = procGroupStatus == null ? null : procGroupStatus.getName();
@@ -300,31 +306,44 @@ public class AzureLogAnalyticsProvenanceReportingTask extends AbstractAzureLogAn
                 }
 
                 final String hostname = url.getHost();
-
                 final Map<String, Object> config = Collections.emptyMap();
                 final JsonBuilderFactory factory = Json.createBuilderFactory(config);
                 final JsonObjectBuilder builder = factory.createObjectBuilder();
                 final DateFormat df = new SimpleDateFormat(TIMESTAMP_FORMAT);
                 df.setTimeZone(TimeZone.getTimeZone("Z"));
-                StringBuilder sb = new StringBuilder();
-                sb.append('[');
                 CreateConsumer(context);
                 consumer.consumeEvents(context, (mapHolder, events) -> {
+                        StringBuilder stringBuilder = new StringBuilder();
+                        stringBuilder.append('[');
                         for (final ProvenanceEventRecord event : events) {
                                 final String componentName = mapHolder.getComponentName(event.getComponentId());
                                 final String processGroupId = mapHolder.getProcessGroupId(event.getComponentId(),
                                                 event.getComponentType());
                                 final String processGroupName = mapHolder.getComponentName(processGroupId);
-                                JsonObject jo = serialize(factory, builder, event, df, componentName, processGroupId,
-                                                processGroupName, hostname, url, rootGroupName, platform, nodeId,
-                                                allowNullValues);
-                                sb.append(jo.toString());
-                                sb.append(',');
+                                final JsonObject jo = serialize(factory, builder, event, df, componentName,
+                                                processGroupId, processGroupName, hostname, url, rootGroupName,
+                                                platform, nodeId, allowNullValues);
+                                stringBuilder.append(jo.toString());
+                                stringBuilder.append(',');
                         }
+                        if (stringBuilder.charAt(stringBuilder.length() - 1) == ',')
+                                stringBuilder.deleteCharAt(stringBuilder.length() - 1);
+                        stringBuilder.append(']');
+                        String str = stringBuilder.toString();
+                        if (!str.equals("[]")) {
+                                final HttpPost httpPost = new HttpPost(dataCollectorEndpoint);
+                                httpPost.addHeader("Content-Type", "application/json");
+                                httpPost.addHeader("Log-Type", logName);
+                                getLogger().debug("Sending " + batchSize + " events of length " + str.length() + " to azure log analytics " + logName);
+                                try {
+                                        sendToLogAnalytics(httpPost, workspaceId, linuxPrimaryKey, str);
 
+                                } catch (final Exception e) {
+                                        getLogger().error("Failed to publish provenance data to Azure Log Analytics", e);
+                                }
+                        }
                 });
-                sb.append(']');
-                return sb.toString();
+                getLogger().debug("Done processing provenance data");
         }
 
         private JsonObject serialize(final JsonBuilderFactory factory, final JsonObjectBuilder builder,
@@ -376,8 +395,15 @@ public class AzureLogAnalyticsProvenanceReportingTask extends AbstractAzureLogAn
                 addField(builder, "alternateIdentifier", event.getAlternateIdentifierUri(), allowNullValues);
                 addField(builder, "platform", platform, allowNullValues);
                 addField(builder, "application", applicationName, allowNullValues);
-
                 return builder.build();
+        }
+
+        @OnUnscheduled
+        public void onUnscheduled() {
+                if (consumer != null) {
+                        getLogger().debug("Disabling schedule to consume provenance data.");
+                        consumer.setScheduled(false);
+                }
         }
 
         public static void addField(final JsonObjectBuilder builder, final String key, final Object value,

@@ -57,10 +57,6 @@ public abstract class AbstractAzureLogAnalyticsReportingTask extends AbstractRep
             .name("Log Analytics Workspace Id").description("Log Analytics Workspace Id").required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR).sensitive(true).build();
-    static final PropertyDescriptor LOG_ANALYTICS_CUSTOM_LOG_NAME = new PropertyDescriptor.Builder()
-            .name("Log Analytics Custom Log Name").description("Log Analytics Custom Log Name").required(false)
-            .defaultValue("nifimetrics").addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY).build();
     static final PropertyDescriptor LOG_ANALYTICS_WORKSPACE_KEY = new PropertyDescriptor.Builder()
             .name("Log Analytics Workspace Key").description("Azure Log Analytic Worskspace Key").required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
@@ -82,7 +78,7 @@ public abstract class AbstractAzureLogAnalyticsReportingTask extends AbstractRep
                     StandardValidators.createRegexMatchingValidator(Pattern.compile("[0-9a-z-]+"))))
             .build();
     static final PropertyDescriptor JOB_NAME = new PropertyDescriptor.Builder().name("Job Name")
-            .description("The name of the exporting job").defaultValue("nifi_eporting_job")
+            .description("The name of the exporting job").defaultValue("nifi_reporting_job")
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR).build();
     static final PropertyDescriptor LOG_ANALYTICS_URL_ENDPOINT_FORMAT = new PropertyDescriptor.Builder()
@@ -108,7 +104,6 @@ public abstract class AbstractAzureLogAnalyticsReportingTask extends AbstractRep
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(LOG_ANALYTICS_WORKSPACE_ID);
-        properties.add(LOG_ANALYTICS_CUSTOM_LOG_NAME);
         properties.add(LOG_ANALYTICS_WORKSPACE_KEY);
         properties.add(APPLICATION_ID);
         properties.add(INSTANCE_ID);

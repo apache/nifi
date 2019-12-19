@@ -31,8 +31,10 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.status.ConnectionStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.metrics.jvm.JmxJvmMetrics;
 import org.apache.nifi.metrics.jvm.JvmMetrics;
+import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.reporting.azure.loganalytics.api.AzureLogAnalyticsMetricsFactory;
 import org.apache.nifi.scheduling.SchedulingStrategy;
@@ -44,7 +46,7 @@ import org.apache.nifi.scheduling.SchedulingStrategy;
 @CapabilityDescription("Sends JVM-metrics as well as Apache NiFi-metrics to a Azure Log Analytics workspace."
         + "Apache NiFi-metrics can be either configured global or on process-group level.")
 @DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "1 min")
-public class AzureLogAnalyticsMetricsReportingTask extends AbstractAzureLogAnalyticsReportingTask {
+public class AzureLogAnalyticsReportingTask extends AbstractAzureLogAnalyticsReportingTask {
 
     private static final String JVM_JOB_NAME = "jvm_global";
     private final JvmMetrics virtualMachineMetrics = JmxJvmMetrics.getInstance();
@@ -52,6 +54,24 @@ public class AzureLogAnalyticsMetricsReportingTask extends AbstractAzureLogAnaly
     static final PropertyDescriptor SEND_JVM_METRICS = new PropertyDescriptor.Builder().name("Send JVM Metrics")
             .description("Send JVM Metrics in addition to the NiFi-metrics").allowableValues("true", "false")
             .defaultValue("false").required(true).build();
+    static final PropertyDescriptor LOG_ANALYTICS_CUSTOM_LOG_NAME = new PropertyDescriptor.Builder()
+            .name("Log Analytics Custom Log Name").description("Log Analytics Custom Log Name").required(false)
+            .defaultValue("nifimetrics").addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY).build();
+
+    @Override
+    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+        final List<PropertyDescriptor> properties = new ArrayList<>();
+        properties.add(LOG_ANALYTICS_WORKSPACE_ID);
+        properties.add(LOG_ANALYTICS_CUSTOM_LOG_NAME);
+        properties.add(LOG_ANALYTICS_WORKSPACE_KEY);
+        properties.add(APPLICATION_ID);
+        properties.add(INSTANCE_ID);
+        properties.add(PROCESS_GROUP_IDS);
+        properties.add(JOB_NAME);
+        properties.add(LOG_ANALYTICS_URL_ENDPOINT_FORMAT);
+        return properties;
+    }
 
     @Override
     public void onTrigger(final ReportingContext context) {
