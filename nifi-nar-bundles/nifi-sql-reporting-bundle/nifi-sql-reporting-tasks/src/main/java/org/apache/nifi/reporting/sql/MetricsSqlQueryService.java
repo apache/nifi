@@ -33,6 +33,7 @@ import org.apache.nifi.reporting.sql.connectionstatuspredictions.ConnectionStatu
 import org.apache.nifi.reporting.sql.metrics.JvmMetricsTable;
 import org.apache.nifi.reporting.sql.processgroupstatus.ProcessGroupStatusTable;
 import org.apache.nifi.reporting.sql.processorstatus.ProcessorStatusTable;
+import org.apache.nifi.reporting.sql.provenance.ProvenanceTable;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.ResultSetRecordSet;
 import org.apache.nifi.util.db.JdbcCommon;
@@ -163,6 +164,8 @@ public class MetricsSqlQueryService implements MetricsQueryService {
         rootSchema.add("JVM_METRICS", jvmMetricsTable);
         final BulletinTable bulletinTable = new BulletinTable(context, getLogger());
         rootSchema.add("BULLETINS", bulletinTable);
+        final ProvenanceTable provenanceTable = new ProvenanceTable(context, getLogger());
+        rootSchema.add("PROVENANCE", provenanceTable);
 
         rootSchema.setCacheEnabled(false);
 
