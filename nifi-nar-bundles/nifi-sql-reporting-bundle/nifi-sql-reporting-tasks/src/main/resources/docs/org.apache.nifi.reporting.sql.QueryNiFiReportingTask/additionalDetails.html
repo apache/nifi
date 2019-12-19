@@ -26,9 +26,9 @@
 <p>
     This reporting task can be used to issue SQL queries against various NiFi metrics information, modeled as tables,
     and transmit the query results to some specified destination. The query may make use of the CONNECTION_STATUS,
-    PROCESSOR_STATUS, BULLETINS, PROCESS_GROUP_STATUS, JVM_METRICS, or CONNECTION_STATUS_PREDICTIONS tables, and can
-    use any functions or capabilities provided by <a href="https://calcite.apache.org/">Apache Calcite</a>, including
-    JOINs, aggregate functions, etc.
+    PROCESSOR_STATUS, BULLETINS, PROCESS_GROUP_STATUS, JVM_METRICS, CONNECTION_STATUS_PREDICTIONS, or PROVENANCE tables,
+    and can use any functions or capabilities provided by <a href="https://calcite.apache.org/">Apache Calcite</a>,
+    including JOINs, aggregate functions, etc.
 </p>
 <p>
     The results are transmitted to the destination using the configured Record Sink service, such as
@@ -173,6 +173,35 @@
     <tr><td>predictedTimeToBytesBackpressureMillis</td><td>long</td></tr>
     <tr><td>predictedTimeToCountBackpressureMillis</td><td>long</td></tr>
     <tr><td>predictionIntervalMillis</td><td>long</td></tr>
+</table>
+<br/>
+<h3>PROVENANCE</h3>
+<table title="PROVENANCE" border="1" width="500">
+    <tr><th>Column</th><th>Data Type</th></tr>
+    <tr><td>eventId</td><td>long</td></tr>
+    <tr><td>eventType</td><td>String</td></tr>
+    <tr><td>timestampMillis</td><td>long</td></tr>
+    <tr><td>durationMillis</td><td>long</td></tr>
+    <tr><td>lineageStart</td><td>long</td></tr>
+    <tr><td>details</td><td>String</td></tr>
+    <tr><td>componentId</td><td>String</td></tr>
+    <tr><td>componentName</td><td>String</td></tr>
+    <tr><td>componentType</td><td>String</td></tr>
+    <tr><td>processGroupId</td><td>String</td></tr>
+    <tr><td>processGroupName</td><td>String</td></tr>
+    <tr><td>entityId</td><td>String</td></tr>
+    <tr><td>entityType</td><td>String</td></tr>
+    <tr><td>entitySize</td><td>long</td></tr>
+    <tr><td>previousEntitySize</td><td>long</td></tr>
+    <tr><td>updatedAttributes</td><td>Map&lt;String,String&gt;</String></td></tr>
+    <tr><td>previousAttributes</td><td>Map&lt;String,String&gt;</td></tr>
+    <tr><td>contentPath</td><td>String</td></tr>
+    <tr><td>previousContentPath</td><td>String</td></tr>
+    <tr><td>parentIds</td><td>Array&lt;String&gt;</td></tr>
+    <tr><td>childIds</td><td>Array&lt;String&gt;</td></tr>
+    <tr><td>transitUri</td><td>String</td></tr>
+    <tr><td>remoteIdentifier</td><td>String</td></tr>
+    <tr><td>alternateIdentifier</td><td>String</td></tr>
 </table>
 <br/><br/>
 <h2>SQL Query Examples</h2>
