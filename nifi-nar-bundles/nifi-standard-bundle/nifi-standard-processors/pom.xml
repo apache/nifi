@@ -570,6 +570,9 @@
                         <exclude>src/test/resources/TestForkRecord/schema/schema.avsc</exclude>
                         <exclude>src/test/resources/TestConvertRecord/schema/person.avsc</exclude>
                         <exclude>src/test/resources/TestConvertRecord/input/person.json</exclude>
+                        <exclude>src/test/resources/TestValidateRecord/missing-array.json</exclude>
+                        <exclude>src/test/resources/TestValidateRecord/missing-array.avsc</exclude>
+                        <exclude>src/test/resources/TestValidateRecord/missing-array-with-default.avsc</exclude>
                         <exclude>src/test/resources/TestValidateRecord/nested-map-input.json</exclude>
                         <exclude>src/test/resources/TestValidateRecord/nested-map-schema.avsc</exclude>
                         <exclude>src/test/resources/TestValidateRecord/timestamp.avsc</exclude>
