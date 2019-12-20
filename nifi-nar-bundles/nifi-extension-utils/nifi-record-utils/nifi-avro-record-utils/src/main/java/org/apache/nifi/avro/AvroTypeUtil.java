@@ -626,7 +626,7 @@ public class AvroTypeUtil {
             recordFields.add(new RecordField(fieldName, dataType, field.aliases(), nullable));
         } else {
             Object defaultValue = field.defaultVal();
-            if (fieldSchema.getType() == Schema.Type.ARRAY && !DataTypeUtils.isArrayTypeCompatible(defaultValue, ((ArrayDataType) dataType).getElementType())) {
+            if (defaultValue != null && fieldSchema.getType() == Schema.Type.ARRAY && !DataTypeUtils.isArrayTypeCompatible(defaultValue, ((ArrayDataType) dataType).getElementType())) {
                 defaultValue = defaultValue instanceof List ? ((List<?>) defaultValue).toArray() : new Object[0];
             }
             recordFields.add(new RecordField(fieldName, dataType, defaultValue, field.aliases(), nullable));
