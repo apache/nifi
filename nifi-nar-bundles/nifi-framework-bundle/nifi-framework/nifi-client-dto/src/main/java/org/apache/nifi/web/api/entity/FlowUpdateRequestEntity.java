@@ -18,20 +18,24 @@
 package org.apache.nifi.web.api.entity;
 
 import io.swagger.annotations.ApiModelProperty;
-import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
+import org.apache.nifi.web.api.dto.FlowUpdateRequestDTO;
+import org.apache.nifi.web.api.dto.RevisionDTO;
 
-import javax.xml.bind.annotation.XmlRootElement;
+public abstract class FlowUpdateRequestEntity<T extends FlowUpdateRequestDTO> extends Entity {
+    protected RevisionDTO processGroupRevision;
+    protected T request;
 
-@XmlRootElement(name = "versionControlInformationEntity")
-public class VersionControlInformationEntity extends ProcessGroupDescriptorEntity {
-    private VersionControlInformationDTO versionControlInformation;
-
-    @ApiModelProperty("The Version Control information")
-    public VersionControlInformationDTO getVersionControlInformation() {
-        return versionControlInformation;
+    @ApiModelProperty("The revision for the Process Group being updated.")
+    public RevisionDTO getProcessGroupRevision() {
+        return processGroupRevision;
     }
 
-    public void setVersionControlInformation(VersionControlInformationDTO versionControlDto) {
-        this.versionControlInformation = versionControlDto;
+    public void setProcessGroupRevision(RevisionDTO revision) {
+        this.processGroupRevision = revision;
     }
+
+    @ApiModelProperty("The Process Group Update Request")
+    public abstract T getRequest();
+
+    public abstract void setRequest(T request);
 }

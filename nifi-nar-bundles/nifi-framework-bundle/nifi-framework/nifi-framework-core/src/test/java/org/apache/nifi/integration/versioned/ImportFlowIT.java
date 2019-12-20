@@ -57,16 +57,13 @@ import org.apache.nifi.registry.flow.mapping.NiFiRegistryFlowMapper;
 import org.apache.nifi.util.FlowDifferenceFilters;
 import org.junit.Test;
 
-import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
@@ -398,7 +395,7 @@ public class ImportFlowIT extends FrameworkIntegrationTest {
         final ComparableDataFlow localFlow = new StandardComparableDataFlow("Local Flow", localGroup);
         final ComparableDataFlow registryFlow = new StandardComparableDataFlow("Versioned Flow", registryGroup);
 
-        final Set<String> ancestorServiceIds = getAncestorGroupServiceIds(processGroup);
+        final Set<String> ancestorServiceIds = processGroup.getAncestorServiceIds();
         final FlowComparator flowComparator = new StandardFlowComparator(registryFlow, localFlow, ancestorServiceIds, new ConciseEvolvingDifferenceDescriptor());
         final FlowComparison flowComparison = flowComparator.compare();
         final Set<FlowDifference> differences = flowComparison.getDifferences().stream()
@@ -410,32 +407,6 @@ public class ImportFlowIT extends FrameworkIntegrationTest {
 
         return differences;
     }
-
-    private Set<String> getAncestorGroupServiceIds(final ProcessGroup processGroup) {
-        final Set<String> ancestorServiceIds;
-        ProcessGroup parentGroup = processGroup.getParent();
-
-        if (parentGroup == null) {
-            ancestorServiceIds = Collections.emptySet();
-        } else {
-            ancestorServiceIds = parentGroup.getControllerServices(true).stream()
-                .map(cs -> {
-                    // We want to map the Controller Service to its Versioned Component ID, if it has one.
-                    // If it does not have one, we want to generate it in the same way that our Flow Mapper does
-                    // because this allows us to find the Controller Service when doing a Flow Diff.
-                    final Optional<String> versionedId = cs.getVersionedComponentId();
-                    if (versionedId.isPresent()) {
-                        return versionedId.get();
-                    }
-
-                    return UUID.nameUUIDFromBytes(cs.getIdentifier().getBytes(StandardCharsets.UTF_8)).toString();
-                })
-                .collect(Collectors.toSet());
-        }
-
-        return ancestorServiceIds;
-    }
-
 
     private VersionedFlowSnapshot createFlowSnapshot(final List<ControllerServiceNode> controllerServices, final List<ProcessorNode> processors, final Set<Parameter> parameters) {
         final VersionedFlowSnapshotMetadata snapshotMetadata = new VersionedFlowSnapshotMetadata();

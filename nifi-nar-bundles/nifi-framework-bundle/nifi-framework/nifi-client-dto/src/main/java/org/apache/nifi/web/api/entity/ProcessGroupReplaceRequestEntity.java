@@ -18,22 +18,37 @@
 package org.apache.nifi.web.api.entity;
 
 import io.swagger.annotations.ApiModelProperty;
-import org.apache.nifi.web.api.dto.VersionedFlowUpdateRequestDTO;
+import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
+import org.apache.nifi.web.api.dto.ProcessGroupReplaceRequestDTO;
 
 import javax.xml.bind.annotation.XmlRootElement;
 
-@XmlRootElement(name = "versionedFlowUpdateRequestEntity")
-public class VersionedFlowUpdateRequestEntity extends FlowUpdateRequestEntity<VersionedFlowUpdateRequestDTO> {
+/**
+ * Entity for capturing the status of a Process Group replace request
+ */
+@XmlRootElement(name = "processGroupReplaceRequestEntity")
+public class ProcessGroupReplaceRequestEntity extends FlowUpdateRequestEntity<ProcessGroupReplaceRequestDTO> {
+    private VersionedFlowSnapshot versionedFlowSnapshot;
 
-    @ApiModelProperty("The Flow Update Request")
-    public VersionedFlowUpdateRequestDTO getRequest() {
+    @ApiModelProperty(value = "Returns the Versioned Flow to replace with", readOnly = true)
+    public VersionedFlowSnapshot getVersionedFlowSnapshot() {
+        return versionedFlowSnapshot;
+    }
+
+    public void setVersionedFlowSnapshot(VersionedFlowSnapshot versionedFlowSnapshot) {
+        this.versionedFlowSnapshot = versionedFlowSnapshot;
+    }
+
+    @ApiModelProperty("The Process Group Change Request")
+    @Override
+    public ProcessGroupReplaceRequestDTO getRequest() {
         if (request == null) {
-            request = new VersionedFlowUpdateRequestDTO();
+            request = new ProcessGroupReplaceRequestDTO();
         }
         return request;
     }
 
-    public void setRequest(VersionedFlowUpdateRequestDTO request) {
+    public void setRequest(ProcessGroupReplaceRequestDTO request) {
         this.request = request;
     }
 

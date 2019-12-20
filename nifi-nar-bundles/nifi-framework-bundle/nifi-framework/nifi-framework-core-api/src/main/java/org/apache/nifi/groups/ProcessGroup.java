@@ -492,6 +492,13 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
     Funnel findFunnel(String id);
 
     /**
+     * Gets a collection of identifiers representing all ancestor controller services
+     *
+     * @return collection of ancestor controller service identifiers
+     */
+    Set<String> getAncestorServiceIds();
+
+    /**
      * @param id of the Controller Service
      * @param includeDescendantGroups whether or not to include descendant process groups
      * @param includeAncestorGroups whether or not to include ancestor process groups
@@ -881,12 +888,13 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
     void verifyCanUpdateVariables(Map<String, String> updatedVariables);
 
     /**
-     * Ensures that the contents of the Process Group can be update to match the given new flow
+     * Ensures that the contents of the Process Group can be updated to match the given new flow
      *
-     * @param updatedFlow the updated version of the flow
+     * @param updatedFlow the proposed updated flow
      * @param verifyConnectionRemoval whether or not to verify that connections that are not present in the updated flow can be removed
-     * @param verifyNotDirty whether or not to verify that the Process Group is not 'dirty'. If <code>true</code> and the Process Group has been changed since
-     *            it was last synchronized with the FlowRegistry, then this method will throw an IllegalStateException
+     * @param verifyNotDirty for versioned flows only, whether or not to verify that the Process Group is not 'dirty'. If <code>true</code>
+     *            and the Process Group has been changed since it was last synchronized with the FlowRegistry, then this method will throw
+     *            an IllegalStateException
      *
      * @throws IllegalStateException if the Process Group is not in a state that will allow the update
      */

@@ -17,6 +17,7 @@
 package org.apache.nifi.web;
 
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import org.apache.nifi.action.Component;
 import org.apache.nifi.action.FlowChangeAction;
 import org.apache.nifi.action.Operation;
@@ -181,6 +182,8 @@ public class StandardNiFiServiceFacadeTest {
         final ControllerFacade controllerFacade = new ControllerFacade();
         controllerFacade.setFlowController(flowController);
 
+        processGroupDAO = mock(ProcessGroupDAO.class);
+
         serviceFacade = new StandardNiFiServiceFacade();
         serviceFacade.setAuditService(auditService);
         serviceFacade.setAuthorizableLookup(authorizableLookup);
@@ -188,6 +191,8 @@ public class StandardNiFiServiceFacadeTest {
         serviceFacade.setEntityFactory(new EntityFactory());
         serviceFacade.setDtoFactory(new DtoFactory());
         serviceFacade.setControllerFacade(controllerFacade);
+        serviceFacade.setProcessGroupDAO(processGroupDAO);
+
     }
 
     private FlowChangeAction getAction(final Integer actionId, final String processorId) {
@@ -300,8 +305,6 @@ public class StandardNiFiServiceFacadeTest {
         final String groupId = UUID.randomUUID().toString();
         final ProcessGroup processGroup = mock(ProcessGroup.class);
 
-        final ProcessGroupDAO processGroupDAO = mock(ProcessGroupDAO.class);
-        serviceFacade.setProcessGroupDAO(processGroupDAO);
         when(processGroupDAO.getProcessGroup(groupId)).thenReturn(processGroup);
 
         final FlowManager flowManager = mock(FlowManager.class);
@@ -345,6 +348,51 @@ public class StandardNiFiServiceFacadeTest {
         assertNull(versionedFlowSnapshot.getFlow());
         assertNull(versionedFlowSnapshot.getBucket());
         assertNull(versionedFlowSnapshot.getSnapshotMetadata());
+    }
+
+    @Test
+    public void testIsAnyProcessGroupUnderVersionControl_None() {
+        final String groupId = UUID.randomUUID().toString();
+        final ProcessGroup processGroup = mock(ProcessGroup.class);
+        final ProcessGroup childProcessGroup = mock(ProcessGroup.class);
+
+        when(processGroupDAO.getProcessGroup(groupId)).thenReturn(processGroup);
+
+        when(processGroup.getVersionControlInformation()).thenReturn(null);
+        when(processGroup.getProcessGroups()).thenReturn(Sets.newHashSet(childProcessGroup));
+        when(childProcessGroup.getVersionControlInformation()).thenReturn(null);
+
+        assertFalse(serviceFacade.isAnyProcessGroupUnderVersionControl(groupId));
+    }
+
+    @Test
+    public void testIsAnyProcessGroupUnderVersionControl_PrimaryGroup() {
+        final String groupId = UUID.randomUUID().toString();
+        final ProcessGroup processGroup = mock(ProcessGroup.class);
+
+        when(processGroupDAO.getProcessGroup(groupId)).thenReturn(processGroup);
+
+        final VersionControlInformation vci = mock(VersionControlInformation.class);
+        when(processGroup.getVersionControlInformation()).thenReturn(vci);
+        when(processGroup.getProcessGroups()).thenReturn(Sets.newHashSet());
+
+        assertTrue(serviceFacade.isAnyProcessGroupUnderVersionControl(groupId));
+    }
+
+    @Test
+    public void testIsAnyProcessGroupUnderVersionControl_ChildGroup() {
+        final String groupId = UUID.randomUUID().toString();
+        final ProcessGroup processGroup = mock(ProcessGroup.class);
+        final ProcessGroup childProcessGroup = mock(ProcessGroup.class);
+
+        when(processGroupDAO.getProcessGroup(groupId)).thenReturn(processGroup);
+
+        final VersionControlInformation vci = mock(VersionControlInformation.class);
+        when(processGroup.getVersionControlInformation()).thenReturn(null);
+        when(processGroup.getProcessGroups()).thenReturn(Sets.newHashSet(childProcessGroup));
+        when(childProcessGroup.getVersionControlInformation()).thenReturn(vci);
+
+        assertTrue(serviceFacade.isAnyProcessGroupUnderVersionControl(groupId));
     }
 
 }

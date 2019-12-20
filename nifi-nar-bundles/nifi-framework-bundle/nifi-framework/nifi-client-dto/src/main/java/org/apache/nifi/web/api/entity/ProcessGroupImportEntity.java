@@ -18,20 +18,23 @@
 package org.apache.nifi.web.api.entity;
 
 import io.swagger.annotations.ApiModelProperty;
-import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
+import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 
 import javax.xml.bind.annotation.XmlRootElement;
 
-@XmlRootElement(name = "versionControlInformationEntity")
-public class VersionControlInformationEntity extends ProcessGroupDescriptorEntity {
-    private VersionControlInformationDTO versionControlInformation;
+/**
+ * Entity for importing a process group that has been previously downloaded
+ */
+@XmlRootElement(name = "processGroupImportEntity")
+public class ProcessGroupImportEntity extends ProcessGroupDescriptorEntity {
+    private VersionedFlowSnapshot versionedFlowSnapshot;
 
-    @ApiModelProperty("The Version Control information")
-    public VersionControlInformationDTO getVersionControlInformation() {
-        return versionControlInformation;
+    @ApiModelProperty("The Versioned Flow Snapshot to import")
+    public VersionedFlowSnapshot getVersionedFlowSnapshot() {
+        return versionedFlowSnapshot;
     }
 
-    public void setVersionControlInformation(VersionControlInformationDTO versionControlDto) {
-        this.versionControlInformation = versionControlDto;
+    public void setVersionedFlowSnapshot(VersionedFlowSnapshot versionedFlowSnapshot) {
+        this.versionedFlowSnapshot = versionedFlowSnapshot;
     }
 }

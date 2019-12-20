@@ -134,7 +134,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 /**
  * Defines the NiFiServiceFacade interface.
@@ -1408,6 +1407,14 @@ public interface NiFiServiceFacade {
     FlowComparisonEntity getLocalModifications(String processGroupId);
 
     /**
+     * Determines whether the process group with the given id or any of its descendants are under version control.
+     *
+     * @param groupId the ID of the Process Group
+     * @return <code>true</code> if any process group in the hierarchy is under version control, <code>false</code> otherwise.
+     */
+    boolean isAnyProcessGroupUnderVersionControl(final String groupId);
+
+    /**
      * Returns the Version Control information for the Process Group with the given ID
      *
      * @param processGroupId the ID of the Process Group
@@ -1415,7 +1422,6 @@ public interface NiFiServiceFacade {
      *         process group is not under version control
      */
     VersionControlInformationEntity getVersionControlInformation(String processGroupId);
-
 
     /**
      * Adds the given Versioned Flow to the registry specified by the given ID
@@ -1538,7 +1544,7 @@ public interface NiFiServiceFacade {
      * @param updatedSnapshot the snapshot to update the Process Group to
      * @return the set of all components that would be affected by updating the Process Group
      */
-    Set<AffectedComponentEntity> getComponentsAffectedByVersionChange(String processGroupId, VersionedFlowSnapshot updatedSnapshot);
+    Set<AffectedComponentEntity> getComponentsAffectedByFlowUpdate(String processGroupId, VersionedFlowSnapshot updatedSnapshot);
 
     /**
      * Verifies that the Process Group with the given identifier can be updated to the proposed flow
@@ -1575,7 +1581,6 @@ public interface NiFiServiceFacade {
      */
     void verifyCanRevertLocalModifications(String groupId, VersionedFlowSnapshot versionedFlowSnapshot);
 
-
     /**
      * Updates the Process group with the given ID to match the new snapshot
      *
@@ -1587,12 +1592,10 @@ public interface NiFiServiceFacade {
      * @param updateSettings whether or not the process group's name and position should be updated
      * @param updateDescendantVersionedFlows if a child/descendant Process Group is under Version Control, specifies whether or not to
      *            update the contents of that Process Group
-     * @param  idGenerator the id generator
      * @return the Process Group
      */
     ProcessGroupEntity updateProcessGroupContents(Revision revision, String groupId, VersionControlInformationDTO versionControlInfo, VersionedFlowSnapshot snapshot,
-                                                  String componentIdSeed, boolean verifyNotModified, boolean updateSettings, boolean updateDescendantVersionedFlows, Supplier<String> idGenerator);
-
+                                                  String componentIdSeed, boolean verifyNotModified, boolean updateSettings, boolean updateDescendantVersionedFlows);
 
     /**
      * Returns a Set representing all components that will be affected by updating the Parameter Context that is represented by the given DTO.
