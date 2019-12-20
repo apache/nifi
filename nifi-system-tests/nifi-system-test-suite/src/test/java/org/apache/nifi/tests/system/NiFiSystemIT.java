@@ -22,8 +22,10 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientConfig;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.impl.JerseyNiFiClient;
 import org.apache.nifi.web.api.entity.ClusteSummaryEntity;
+import org.apache.nifi.web.api.entity.ConnectionStatusEntity;
 import org.junit.After;
 import org.junit.AfterClass;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.rules.TestName;
@@ -234,5 +236,26 @@ public abstract class NiFiSystemIT {
         while (!condition.getAsBoolean()) {
             Thread.sleep(10L);
         }
+    }
+
+    protected void waitForQueueCount(final String connectionId, final int queueSize) throws InterruptedException {
+        waitFor(() -> {
+            final ConnectionStatusEntity statusEntity = getConnectionStatus(connectionId);
+            return statusEntity.getConnectionStatus().getAggregateSnapshot().getFlowFilesQueued() == queueSize;
+        });
+    }
+
+    private ConnectionStatusEntity getConnectionStatus(final String connectionId) {
+        try {
+            return getNifiClient().getFlowClient().getConnectionStatus(connectionId, true);
+        } catch (final Exception e) {
+            Assert.fail("Failed to obtain connection status");
+            return null;
+        }
+    }
+
+    protected int getConnectionQueueSize(final String connectionId) {
+        final ConnectionStatusEntity statusEntity = getConnectionStatus(connectionId);
+        return statusEntity.getConnectionStatus().getAggregateSnapshot().getFlowFilesQueued();
     }
 }

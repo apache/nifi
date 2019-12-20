@@ -18,6 +18,8 @@ package org.apache.nifi.toolkit.cli.impl.client.nifi;
 
 import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.DropRequestEntity;
+import org.apache.nifi.web.api.entity.FlowFileEntity;
+import org.apache.nifi.web.api.entity.ListingRequestEntity;
 
 import java.io.IOException;
 
@@ -37,4 +39,12 @@ public interface ConnectionClient {
     DropRequestEntity getDropRequest(String connectionId, String dropRequestId) throws NiFiClientException, IOException;
 
     DropRequestEntity deleteDropRequest(String connectionId, String dropRequestId) throws NiFiClientException, IOException;
+
+    ListingRequestEntity listQueue(String connectionId) throws NiFiClientException, IOException;
+
+    ListingRequestEntity getListingRequest(String connectionId, String listingRequestId) throws NiFiClientException, IOException;
+
+    ListingRequestEntity deleteListingRequest(String connectionId, String listingRequestId) throws NiFiClientException, IOException;
+
+    FlowFileEntity getFlowFile(String connectionId, String flowFileUuid) throws NiFiClientException, IOException;
 }

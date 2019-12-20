@@ -31,7 +31,7 @@ import org.apache.nifi.web.api.dto.ConnectionDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.CounterDTO;
 import org.apache.nifi.web.api.dto.CountersSnapshotDTO;
-import org.apache.nifi.web.api.dto.FlowSnippetDTO;
+import org.apache.nifi.web.api.dto.FlowFileSummaryDTO;
 import org.apache.nifi.web.api.dto.NodeDTO;
 import org.apache.nifi.web.api.dto.ParameterContextDTO;
 import org.apache.nifi.web.api.dto.ParameterContextReferenceDTO;
@@ -42,6 +42,8 @@ import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
+import org.apache.nifi.web.api.dto.VariableDTO;
+import org.apache.nifi.web.api.dto.VariableRegistryDTO;
 import org.apache.nifi.web.api.dto.flow.FlowDTO;
 import org.apache.nifi.web.api.dto.flow.ProcessGroupFlowDTO;
 import org.apache.nifi.web.api.dto.status.ConnectionStatusSnapshotDTO;
@@ -53,6 +55,8 @@ import org.apache.nifi.web.api.entity.ControllerServiceRunStatusEntity;
 import org.apache.nifi.web.api.entity.ControllerServicesEntity;
 import org.apache.nifi.web.api.entity.CountersEntity;
 import org.apache.nifi.web.api.entity.DropRequestEntity;
+import org.apache.nifi.web.api.entity.FlowFileEntity;
+import org.apache.nifi.web.api.entity.ListingRequestEntity;
 import org.apache.nifi.web.api.entity.NodeEntity;
 import org.apache.nifi.web.api.entity.ParameterContextEntity;
 import org.apache.nifi.web.api.entity.ParameterContextReferenceEntity;
@@ -64,7 +68,12 @@ import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ScheduleComponentsEntity;
+import org.apache.nifi.web.api.entity.VariableEntity;
+import org.apache.nifi.web.api.entity.VariableRegistryEntity;
+import org.apache.nifi.web.api.entity.VariableRegistryUpdateRequestEntity;
 import org.junit.Assert;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -77,6 +86,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public class NiFiClientUtil {
+    private static final Logger logger = LoggerFactory.getLogger(NiFiClientUtil.class);
+
     private final NiFiClient nifiClient;
     private final String nifiVersion;
 
@@ -89,12 +100,21 @@ public class NiFiClientUtil {
         return createProcessor(NiFiSystemIT.TEST_PROCESSORS_PACKAGE + "." + simpleTypeName, NiFiSystemIT.NIFI_GROUP_ID, NiFiSystemIT.TEST_EXTENSIONS_ARTIFACT_ID, nifiVersion);
     }
 
-    public ProcessorEntity createProcessor(final String type, final String groupId, final String artifactId, final String version) throws NiFiClientException, IOException {
+    public ProcessorEntity createProcessor(final String simpleTypeName, final String groupId) throws NiFiClientException, IOException {
+        return createProcessor(NiFiSystemIT.TEST_PROCESSORS_PACKAGE + "." + simpleTypeName, groupId, NiFiSystemIT.NIFI_GROUP_ID, NiFiSystemIT.TEST_EXTENSIONS_ARTIFACT_ID, nifiVersion);
+    }
+
+    public ProcessorEntity createProcessor(final String type, final String bundleGroupId, final String artifactId, final String version) throws NiFiClientException, IOException {
+        return createProcessor(type, "root", bundleGroupId, artifactId, version);
+    }
+
+    public ProcessorEntity createProcessor(final String type, final String processGroupId, final String bundleGroupId, final String artifactId, final String version)
+            throws NiFiClientException, IOException {
         final ProcessorDTO dto = new ProcessorDTO();
         dto.setType(type);
 
         final BundleDTO bundle = new BundleDTO();
-        bundle.setGroup(groupId);
+        bundle.setGroup(bundleGroupId);
         bundle.setArtifact(artifactId);
         bundle.setVersion(version);
         dto.setBundle(bundle);
@@ -103,7 +123,7 @@ public class NiFiClientUtil {
         entity.setComponent(dto);
         entity.setRevision(createNewRevision());
 
-        return nifiClient.getProcessorClient().createProcessor("root", entity);
+        return nifiClient.getProcessorClient().createProcessor(processGroupId, entity);
     }
 
     public ControllerServiceEntity createControllerService(final String simpleTypeName) throws NiFiClientException, IOException {
@@ -153,7 +173,7 @@ public class NiFiClientUtil {
         return entity;
     }
 
-    private RevisionDTO createNewRevision() {
+    public RevisionDTO createNewRevision() {
         final RevisionDTO revisionDto = new RevisionDTO();
         revisionDto.setClientId(getClass().getName());
         revisionDto.setVersion(0L);
@@ -277,9 +297,8 @@ public class NiFiClientUtil {
                 return;
             }
 
-            if ("Validating".equals(validationStatus)) {
-                Thread.sleep(100L);
-                continue;
+            if ("Invalid".equalsIgnoreCase(validationStatus)) {
+                logger.info("Processor with ID {} is currently invalid due to: {}", processorId, entity.getComponent().getValidationErrors());
             }
 
             Thread.sleep(100L);
@@ -378,23 +397,7 @@ public class NiFiClientUtil {
         }
 
         for (final ProcessGroupEntity group : rootFlowDTO.getProcessGroups()) {
-            waitForProcessorsStopped(group.getComponent());
-        }
-    }
-
-    private void waitForProcessorsStopped(final ProcessGroupDTO group) throws IOException, NiFiClientException {
-        final FlowSnippetDTO groupContents = group.getContents();
-        for (final ProcessorDTO processor : groupContents.getProcessors()) {
-            try {
-                waitForStoppedProcessor(processor.getId());
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                throw new NiFiClientException("Interrupted while waiting for Processor with ID " + processor.getId() + " to stop");
-            }
-        }
-
-        for (final ProcessGroupDTO child : groupContents.getProcessGroups()) {
-            waitForProcessorsStopped(child);
+            waitForProcessorsStopped(group.getId());
         }
     }
 
@@ -658,5 +661,91 @@ public class NiFiClientUtil {
         nodeEntity.setNode(nodeDto);
 
         return nifiClient.getControllerClient().disconnectNode(nodeId, nodeEntity);
+    }
+
+    public ListingRequestEntity performQueueListing(final String connectionId) throws NiFiClientException, IOException {
+        try {
+            ListingRequestEntity listingRequestEntity = nifiClient.getConnectionClient().listQueue(connectionId);
+            while (listingRequestEntity.getListingRequest().getFinished() != Boolean.TRUE) {
+                Thread.sleep(10L);
+
+                listingRequestEntity = nifiClient.getConnectionClient().getListingRequest(connectionId, listingRequestEntity.getListingRequest().getId());
+            }
+
+            // Delete the listing. Return the previously obtained listing, not the one from the deletion, because the listing request that is returned from deleting the listing does not contain the
+            // FlowFile Summaries.
+            nifiClient.getConnectionClient().deleteListingRequest(connectionId, listingRequestEntity.getListingRequest().getId());
+            return listingRequestEntity;
+        } catch (final InterruptedException e) {
+            Assert.fail("Failed to obtain connection status");
+            return null;
+        }
+    }
+
+    public FlowFileEntity getQueueFlowFile(final String connectionId, final int flowFileIndex) throws NiFiClientException, IOException {
+        final ListingRequestEntity listing = performQueueListing(connectionId);
+        final List<FlowFileSummaryDTO> flowFileSummaries = listing.getListingRequest().getFlowFileSummaries();
+        if (flowFileIndex >= flowFileSummaries.size()) {
+            throw new IllegalArgumentException("Cannot retrieve FlowFile with index " + flowFileIndex + " because queue only has " + flowFileSummaries.size() + " FlowFiles");
+        }
+
+        final FlowFileSummaryDTO flowFileSummary = flowFileSummaries.get(flowFileIndex);
+        final String uuid = flowFileSummary.getUuid();
+
+        return nifiClient.getConnectionClient().getFlowFile(connectionId, uuid);
+    }
+
+    public VariableRegistryUpdateRequestEntity updateVariableRegistry(final ProcessGroupEntity processGroup, final Map<String, String> variables) throws NiFiClientException, IOException {
+        final Set<VariableEntity> variableEntities = new HashSet<>();
+        for (final Map.Entry<String, String> entry : variables.entrySet()) {
+            final VariableEntity entity = new VariableEntity();
+            variableEntities.add(entity);
+
+            final VariableDTO dto = new VariableDTO();
+            dto.setName(entry.getKey());
+            dto.setValue(entry.getValue());
+            dto.setProcessGroupId(processGroup.getId());
+            entity.setVariable(dto);
+        }
+
+        final VariableRegistryDTO variableRegistryDto = new VariableRegistryDTO();
+        variableRegistryDto.setProcessGroupId(processGroup.getId());
+        variableRegistryDto.setVariables(variableEntities);
+
+        final VariableRegistryEntity registryEntity = new VariableRegistryEntity();
+        registryEntity.setProcessGroupRevision(processGroup.getRevision());
+        registryEntity.setVariableRegistry(variableRegistryDto);
+
+        VariableRegistryUpdateRequestEntity updateRequestEntity = nifiClient.getProcessGroupClient().updateVariableRegistry(processGroup.getId(), registryEntity);
+        while (!updateRequestEntity.getRequest().isComplete()) {
+            try {
+                Thread.sleep(100L);
+            } catch (final InterruptedException ie) {
+                Assert.fail("Interrupted while waiting for variable registry to update");
+                return null;
+            }
+
+            updateRequestEntity = nifiClient.getProcessGroupClient().getVariableRegistryUpdateRequest(processGroup.getId(), updateRequestEntity.getRequest().getRequestId());
+        }
+
+        if (updateRequestEntity.getRequest().getFailureReason() != null) {
+            Assert.fail("Failed to update Variable Registry due to: " + updateRequestEntity.getRequest().getFailureReason());
+        }
+
+        nifiClient.getProcessGroupClient().deleteVariableRegistryUpdateRequest(processGroup.getId(), updateRequestEntity.getRequest().getRequestId());
+        return updateRequestEntity;
+    }
+
+    public ProcessGroupEntity createProcessGroup(final String name, final String parentGroupId) throws NiFiClientException, IOException {
+        final ProcessGroupDTO component = new ProcessGroupDTO();
+        component.setName(name);
+        component.setParentGroupId(parentGroupId);
+
+        final ProcessGroupEntity childGroupEntity = new ProcessGroupEntity();
+        childGroupEntity.setRevision(createNewRevision());
+        childGroupEntity.setComponent(component);
+
+        final ProcessGroupEntity childGroup = nifiClient.getProcessGroupClient().createProcessGroup(parentGroupId, childGroupEntity);
+        return childGroup;
     }
 }

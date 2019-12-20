@@ -21,6 +21,8 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.ConnectionClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.DropRequestEntity;
+import org.apache.nifi.web.api.entity.FlowFileEntity;
+import org.apache.nifi.web.api.entity.ListingRequestEntity;
 
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.WebTarget;
@@ -184,4 +186,78 @@ public class JerseyConnectionClient extends AbstractJerseyClient implements Conn
         });
     }
 
+    @Override
+    public ListingRequestEntity listQueue(final String connectionId) throws NiFiClientException, IOException {
+        if (connectionId == null) {
+            throw new IllegalArgumentException("Connection ID cannot be null");
+        }
+
+        return executeAction("Error listing queue for Connection", () -> {
+            final WebTarget target = flowFileQueueTarget
+                .path("listing-requests")
+                .resolveTemplate("id", connectionId);
+
+            return getRequestBuilder(target).post(
+                Entity.entity(connectionId, MediaType.TEXT_PLAIN),
+                ListingRequestEntity.class
+            );
+        });
+    }
+
+    @Override
+    public ListingRequestEntity getListingRequest(final String connectionId, final String listingRequestId) throws NiFiClientException, IOException {
+        if (connectionId == null) {
+            throw new IllegalArgumentException("Connection ID cannot be null");
+        }
+        if (listingRequestId == null) {
+            throw new IllegalArgumentException("Listing Request ID cannot be null");
+        }
+
+        return executeAction("Error retrieving Listing Request", () -> {
+            final WebTarget target = flowFileQueueTarget
+                .path("listing-requests/{requestId}")
+                .resolveTemplate("id", connectionId)
+                .resolveTemplate("requestId", listingRequestId);
+
+            return getRequestBuilder(target).get(ListingRequestEntity.class);
+        });
+    }
+
+    @Override
+    public ListingRequestEntity deleteListingRequest(final String connectionId, final String listingRequestId) throws NiFiClientException, IOException {
+        if (connectionId == null) {
+            throw new IllegalArgumentException("Connection ID cannot be null");
+        }
+        if (listingRequestId == null) {
+            throw new IllegalArgumentException("Listing Request ID cannot be null");
+        }
+
+        return executeAction("Error retrieving Listing Request", () -> {
+            final WebTarget target = flowFileQueueTarget
+                .path("listing-requests/{requestId}")
+                .resolveTemplate("id", connectionId)
+                .resolveTemplate("requestId", listingRequestId);
+
+            return getRequestBuilder(target).delete(ListingRequestEntity.class);
+        });
+    }
+
+    @Override
+    public FlowFileEntity getFlowFile(final String connectionId, final String flowFileUuid) throws NiFiClientException, IOException {
+        if (connectionId == null) {
+            throw new IllegalArgumentException("Connection ID cannot be null");
+        }
+        if (flowFileUuid == null) {
+            throw new IllegalArgumentException("FlowFile UUID cannot be null");
+        }
+
+        return executeAction("Error retrieving FlowFile", () -> {
+            final WebTarget target = flowFileQueueTarget
+                .path("flowfiles/{uuid}")
+                .resolveTemplate("id", connectionId)
+                .resolveTemplate("uuid", flowFileUuid);
+
+            return getRequestBuilder(target).get(FlowFileEntity.class);
+        });
+    }
 }
