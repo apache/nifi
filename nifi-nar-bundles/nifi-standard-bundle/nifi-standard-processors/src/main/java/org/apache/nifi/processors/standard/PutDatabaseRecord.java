@@ -84,7 +84,7 @@ import static java.lang.String.format;
 
 @EventDriven
 @InputRequirement(Requirement.INPUT_REQUIRED)
-@Tags({"sql", "record", "jdbc", "put", "database", "update", "insert", "delete"})
+@Tags({"sql", "record", "jdbc", "put", "database", "update", "insert", "delete", "upsert"})
 @CapabilityDescription("The PutDatabaseRecord processor uses a specified RecordReader to input (possibly multiple) records from an incoming flow file. These records are translated to SQL "
         + "statements and executed as a single batch. If any errors occur, the flow file is routed to failure or retry, and if the records are transmitted successfully, the incoming flow file is "
         + "routed to success.  The type of statement executed by the processor is specified via the Statement Type property, which accepts some hard-coded values such as INSERT, UPDATE, and DELETE, "
@@ -101,8 +101,11 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
     static final String UPDATE_TYPE = "UPDATE";
     static final String INSERT_TYPE = "INSERT";
     static final String DELETE_TYPE = "DELETE";
+    static final String UPSERT_TYPE = "UPSERT";
     static final String SQL_TYPE = "SQL";   // Not an allowable value in the Statement Type property, must be set by attribute
     static final String USE_ATTR_TYPE = "Use statement.type Attribute";
+    static final String DO_NOTHING = "Do Nothing";
+    static final String DO_UPDATE = "Execute Update";
 
     static final String STATEMENT_TYPE_ATTRIBUTE = "statement.type";
 
@@ -156,8 +159,27 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
                     + "FlowFile. The 'Use statement.type Attribute' option is the only one that allows the 'SQL' statement type. If 'SQL' is specified, the value of the field specified by the "
                     + "'Field Containing SQL' property is expected to be a valid SQL statement on the target database, and will be executed as-is.")
             .required(true)
-            .allowableValues(UPDATE_TYPE, INSERT_TYPE, DELETE_TYPE, USE_ATTR_TYPE)
+            .allowableValues(UPDATE_TYPE, INSERT_TYPE, DELETE_TYPE, UPSERT_TYPE, USE_ATTR_TYPE)
             .build();
+
+    static final PropertyDescriptor UPSERT_ACTION = new PropertyDescriptor.Builder()
+            .name("put-db-record-upsert-action")
+            .displayName("Upsert Action")
+            .description("Specifies the action to perform on Upsert if Statement Type is UPSERT.")
+            .required(false)
+            .allowableValues(DO_NOTHING, DO_UPDATE)
+            .defaultValue(DO_NOTHING)
+            .build();
+
+    static final PropertyDescriptor UPSERT_TARGET = new PropertyDescriptor.Builder()
+            .name("put-db-record-upsert-target")
+            .displayName("Upsert Target")
+            .description("The Target part of the Upsert SQL query to be used when selected Statement Type is UPSERT.")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .build();
+
 
     static final PropertyDescriptor DBCP_SERVICE = new PropertyDescriptor.Builder()
             .name("put-db-record-dcbp-service")
@@ -313,6 +335,8 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
         final List<PropertyDescriptor> pds = new ArrayList<>();
         pds.add(RECORD_READER_FACTORY);
         pds.add(STATEMENT_TYPE);
+        pds.add(UPSERT_ACTION);
+        pds.add(UPSERT_TARGET);
         pds.add(DBCP_SERVICE);
         pds.add(CATALOG_NAME);
         pds.add(SCHEMA_NAME);
@@ -376,7 +400,6 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
             } finally {
                 fc.jdbcUrl = jdbcUrl;
             }
-
         } catch (SQLException e) {
             throw new ProcessException("Failed to disable auto commit due to " + e, e);
         }
@@ -619,6 +642,9 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
         final String updateKeys = context.getProperty(UPDATE_KEYS).evaluateAttributeExpressions(flowFile).getValue();
         final SchemaKey schemaKey = new PutDatabaseRecord.SchemaKey(catalog, schemaName, tableName);
 
+        final String upsertAction = context.getProperty(UPSERT_ACTION).getValue();
+        final String upsertTarget = context.getProperty(UPSERT_TARGET).evaluateAttributeExpressions(flowFile).getValue();
+
         // Ensure the table name has been set, the generated SQL statements (and TableSchema cache) will need it
         if (StringUtils.isEmpty(tableName)) {
             throw new IllegalArgumentException(format("Cannot process %s because Table Name is null or empty", flowFile));
@@ -659,10 +685,14 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
             sqlHolder = generateInsert(recordSchema, fqTableName, tableSchema, settings);
 
         } else if (UPDATE_TYPE.equalsIgnoreCase(statementType)) {
-            sqlHolder = generateUpdate(recordSchema, fqTableName, updateKeys, tableSchema, settings);
+            sqlHolder = generateUpdate(recordSchema, fqTableName, updateKeys, tableSchema, settings, false);
 
         } else if (DELETE_TYPE.equalsIgnoreCase(statementType)) {
             sqlHolder = generateDelete(recordSchema, fqTableName, tableSchema, settings);
+
+        } else if (UPSERT_TYPE.equalsIgnoreCase(statementType)) {
+            sqlHolder = generateUpsert(recordSchema, fqTableName, updateKeys, tableSchema, settings,
+                    upsertAction, upsertTarget);
 
         } else {
             throw new IllegalArgumentException(format("Statement Type %s is not valid, FlowFile %s", statementType, flowFile));
@@ -839,6 +869,13 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
                                          final TableSchema tableSchema, final DMLSettings settings)
             throws IllegalArgumentException, MalformedRecordException, SQLException {
 
+        return generateUpdate(recordSchema, tableName, updateKeys, tableSchema, settings, false);
+    }
+
+    SqlAndIncludedColumns generateUpdate(final RecordSchema recordSchema, final String tableName, final String updateKeys,
+                                         final TableSchema tableSchema, final DMLSettings settings, final boolean isForUpsert)
+            throws IllegalArgumentException, MalformedRecordException, SQLException {
+
         final Set<String> updateKeyNames;
         if (updateKeys == null) {
             updateKeyNames = tableSchema.getPrimaryKeyColumnNames();
@@ -855,12 +892,14 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
 
         final StringBuilder sqlBuilder = new StringBuilder();
         sqlBuilder.append("UPDATE ");
-        if (settings.quoteTableName) {
-            sqlBuilder.append(tableSchema.getQuotedIdentifierString())
-                    .append(tableName)
-                    .append(tableSchema.getQuotedIdentifierString());
-        } else {
-            sqlBuilder.append(tableName);
+        if(!isForUpsert) {
+            if (settings.quoteTableName) {
+                sqlBuilder.append(tableSchema.getQuotedIdentifierString())
+                        .append(tableName)
+                        .append(tableSchema.getQuotedIdentifierString());
+            } else {
+                sqlBuilder.append(tableName);
+            }
         }
 
         // Create a Set of all normalized Update Key names, and ensure that there is a field in the record
@@ -945,6 +984,16 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
                             sqlBuilder.append(" AND ");
                         }
 
+                        if(isForUpsert) {
+                            if (settings.quoteTableName) {
+                                sqlBuilder.append(tableSchema.getQuotedIdentifierString())
+                                        .append(tableName)
+                                        .append(tableSchema.getQuotedIdentifierString());
+                            } else {
+                                sqlBuilder.append(tableName);
+                            }
+                            sqlBuilder.append(".");
+                        }
                         if (settings.escapeColumnNames) {
                             sqlBuilder.append(tableSchema.getQuotedIdentifierString())
                                     .append(normalizedColName)
@@ -1033,6 +1082,48 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
             if (fieldsFound.get() == 0) {
                 throw new SQLDataException("None of the fields in the record map to the columns defined by the " + tableName + " table");
             }
+        }
+
+        return new SqlAndIncludedColumns(sqlBuilder.toString(), includedColumns);
+    }
+
+    SqlAndIncludedColumns generateUpsert(final RecordSchema recordSchema, final String tableName, final String updateKeys,
+                                         final TableSchema tableSchema, final DMLSettings settings,
+                                         final String upsertAction, final String upsertTarget)
+            throws IllegalArgumentException, SQLException, MalformedRecordException {
+
+        SqlAndIncludedColumns insertSqlHolder = generateInsert(recordSchema, tableName, tableSchema, settings);
+        SqlAndIncludedColumns updateSqlHolder = generateUpdate(recordSchema, tableName, updateKeys, tableSchema, settings, true);
+
+        final StringBuilder sqlBuilder = new StringBuilder(insertSqlHolder.getSql());
+        sqlBuilder.append(" ON CONFLICT ");
+
+        if(upsertTarget == null) {
+            sqlBuilder
+                .append("(")
+                .append(updateKeys == null
+                    ? String.join(",", tableSchema.getPrimaryKeyColumnNames())
+                    : updateKeys
+                )
+                .append(")");
+        } else {
+            sqlBuilder.append(upsertTarget);
+        }
+
+        sqlBuilder.append(" DO ");
+
+        List<Integer> includedColumns = new ArrayList<>(insertSqlHolder.getFieldIndexes());
+
+        if(DO_UPDATE.equalsIgnoreCase(upsertAction)) {
+
+            includedColumns.addAll(
+                    updateSqlHolder.getFieldIndexes()
+            );
+
+            sqlBuilder.append(updateSqlHolder.getSql());
+
+        } else {    // DO_NOTHING by default
+            sqlBuilder.append("NOTHING");
         }
 
         return new SqlAndIncludedColumns(sqlBuilder.toString(), includedColumns);

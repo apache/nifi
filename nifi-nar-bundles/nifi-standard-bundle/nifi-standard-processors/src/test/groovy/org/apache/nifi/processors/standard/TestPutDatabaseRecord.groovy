@@ -161,6 +161,10 @@ class TestPutDatabaseRecord {
 
             assertEquals('DELETE FROM PERSONS WHERE (id = ? OR (id is null AND ? is null)) AND (name = ? OR (name is null AND ? is null)) AND (code = ? OR (code is null AND ? is null))',
                     generateDelete(schema, 'PERSONS', tableSchema, settings).sql)
+
+            assertEquals('INSERT INTO PERSONS (id, name, code) VALUES (?,?,?) ON CONFLICT (id, name) DO UPDATE  SET name = ?, code = ? WHERE PERSONS.id = ?',
+                    generateUpsert(schema, 'PERSONS', null, tableSchema, settings, 'Execute Update', '(id, name)').sql)
+
         }
     }
 
@@ -222,6 +226,14 @@ class TestPutDatabaseRecord {
             } catch (SQLDataException e) {
                 assertEquals("Cannot map field 'non_existing' to any column in the database", e.getMessage())
             }
+
+            try {
+                generateUpsert(schema, 'PERSONS', null, tableSchema, settings, 'Execute Update', '(id, name)')
+                fail('generateUpsert should fail with unmatched fields')
+            } catch (SQLDataException e) {
+                assertEquals("Cannot map field 'non_existing' to any column in the database", e.getMessage())
+            }
+
         }
     }
 
