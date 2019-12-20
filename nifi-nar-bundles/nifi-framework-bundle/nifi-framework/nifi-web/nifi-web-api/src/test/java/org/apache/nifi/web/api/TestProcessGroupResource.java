@@ -20,6 +20,10 @@ import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.registry.flow.VersionedProcessGroup;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
 import javax.ws.rs.core.Response;
 import java.util.UUID;
@@ -28,12 +32,18 @@ import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+@RunWith(MockitoJUnitRunner.class)
 public class TestProcessGroupResource {
+
+    @InjectMocks
+    private ProcessGroupResource processGroupResource = new ProcessGroupResource();
+
+    @Mock
+    private NiFiServiceFacade serviceFacade;
 
     @Test
     public void testExportProcessGroup() {
         final String groupId = UUID.randomUUID().toString();
-        final NiFiServiceFacade serviceFacade = mock(NiFiServiceFacade.class);
         final VersionedFlowSnapshot versionedFlowSnapshot = mock(VersionedFlowSnapshot.class);
 
         when(serviceFacade.getCurrentFlowSnapshotByGroupId(groupId)).thenReturn(versionedFlowSnapshot);
@@ -43,20 +53,12 @@ public class TestProcessGroupResource {
         when(versionedFlowSnapshot.getFlowContents()).thenReturn(versionedProcessGroup);
         when(versionedProcessGroup.getName()).thenReturn(flowName);
 
-        final ProcessGroupResource resource = getProcessGroupResource(serviceFacade);
-
-        final Response response = resource.exportProcessGroup(groupId);
+        final Response response = processGroupResource.exportProcessGroup(groupId);
 
         final VersionedFlowSnapshot resultEntity = (VersionedFlowSnapshot)response.getEntity();
 
         assertEquals(200, response.getStatus());
         assertEquals(versionedFlowSnapshot, resultEntity);
-    }
-
-    private ProcessGroupResource getProcessGroupResource(final NiFiServiceFacade serviceFacade) {
-        final ProcessGroupResource resource = new ProcessGroupResource();
-        resource.setServiceFacade(serviceFacade);
-        return resource;
     }
 
 }

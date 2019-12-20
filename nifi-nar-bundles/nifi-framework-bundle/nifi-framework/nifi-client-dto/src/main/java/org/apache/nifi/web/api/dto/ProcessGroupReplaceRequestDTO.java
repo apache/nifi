@@ -15,23 +15,11 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.web.api.entity;
+package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
-import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
+import javax.xml.bind.annotation.XmlType;
 
-import javax.xml.bind.annotation.XmlRootElement;
+@XmlType(name = "processGroupReplaceRequest")
+public class ProcessGroupReplaceRequestDTO extends FlowUpdateRequestDTO {
 
-@XmlRootElement(name = "versionControlInformationEntity")
-public class VersionControlInformationEntity extends ProcessGroupDescriptorEntity {
-    private VersionControlInformationDTO versionControlInformation;
-
-    @ApiModelProperty("The Version Control information")
-    public VersionControlInformationDTO getVersionControlInformation() {
-        return versionControlInformation;
-    }
-
-    public void setVersionControlInformation(VersionControlInformationDTO versionControlDto) {
-        this.versionControlInformation = versionControlDto;
-    }
 }
