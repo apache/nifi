@@ -24,6 +24,8 @@ import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.security.KeyManagementException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -32,7 +34,9 @@ import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
@@ -47,19 +51,23 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class CryptoUtils {
-    private static final Logger logger = LoggerFactory.getLogger(StaticKeyProvider.class);
+    private static final Logger logger = LoggerFactory.getLogger(CryptoUtils.class);
     private static final String STATIC_KEY_PROVIDER_CLASS_NAME = "org.apache.nifi.security.kms.StaticKeyProvider";
     private static final String FILE_BASED_KEY_PROVIDER_CLASS_NAME = "org.apache.nifi.security.kms.FileBasedKeyProvider";
 
     private static final String LEGACY_SKP_FQCN = "org.apache.nifi.provenance.StaticKeyProvider";
     private static final String LEGACY_FBKP_FQCN = "org.apache.nifi.provenance.FileBasedKeyProvider";
 
+    private static final String RELATIVE_NIFI_PROPS_PATH = "conf/nifi.properties";
+    private static final String BOOTSTRAP_KEY_PREFIX = "nifi.bootstrap.sensitive.key=";
 
+    // TODO: Enforce even length
     private static final Pattern HEX_PATTERN = Pattern.compile("(?i)^[0-9a-f]+$");
 
     private static final List<Integer> UNLIMITED_KEY_LENGTHS = Arrays.asList(32, 48, 64);
 
     public static final int IV_LENGTH = 16;
+    private static final String ENCRYPTED_FSR_CLASS_NAME = "org.apache.nifi.controller.repository.crypto.EncryptedFileSystemRepository";
 
     public static boolean isUnlimitedStrengthCryptoAvailable() {
         try {
@@ -278,17 +286,140 @@ public class CryptoUtils {
 
     }
 
+    /**
+     * Returns {@code true} if the provenance repository is correctly configured for an
+     * encrypted implementation. Requires the repository implementation to support encryption
+     * and at least one valid key to be configured.
+     *
+     * @param niFiProperties the {@link NiFiProperties} instance to validate
+     * @return true if encryption is successfully configured for the provenance repository
+     */
     public static boolean isProvenanceRepositoryEncryptionConfigured(NiFiProperties niFiProperties) {
         final String implementationClassName = niFiProperties.getProperty(NiFiProperties.PROVENANCE_REPO_IMPLEMENTATION_CLASS);
         // Referencing EWAPR.class.getName() would require a dependency on the module
         boolean encryptedRepo = "org.apache.nifi.provenance.EncryptedWriteAheadProvenanceRepository".equals(implementationClassName);
-        boolean keyProviderConfigured = isValidKeyProvider(
-                niFiProperties.getProperty(NiFiProperties.PROVENANCE_REPO_ENCRYPTION_KEY_PROVIDER_IMPLEMENTATION_CLASS),
-                niFiProperties.getProperty(NiFiProperties.PROVENANCE_REPO_ENCRYPTION_KEY_PROVIDER_LOCATION),
-                niFiProperties.getProvenanceRepoEncryptionKeyId(),
-                niFiProperties.getProvenanceRepoEncryptionKeys());
+        if (encryptedRepo) {
+            return isValidKeyProvider(
+                    niFiProperties.getProperty(NiFiProperties.PROVENANCE_REPO_ENCRYPTION_KEY_PROVIDER_IMPLEMENTATION_CLASS),
+                    niFiProperties.getProperty(NiFiProperties.PROVENANCE_REPO_ENCRYPTION_KEY_PROVIDER_LOCATION),
+                    niFiProperties.getProvenanceRepoEncryptionKeyId(),
+                    niFiProperties.getProvenanceRepoEncryptionKeys());
+        } else {
+            return false;
+        }
+    }
 
-        return encryptedRepo && keyProviderConfigured;
+    /**
+     * Returns {@code true} if the content repository is correctly configured for an encrypted
+     * implementation. Requires the repository implementation to support encryption and at least
+     * one valid key to be configured.
+     *
+     * @param niFiProperties the {@link NiFiProperties} instance to validate
+     * @return true if encryption is successfully configured for the content repository
+     */
+    public static boolean isContentRepositoryEncryptionConfigured(NiFiProperties niFiProperties) {
+        final String implementationClassName = niFiProperties.getProperty(NiFiProperties.CONTENT_REPOSITORY_IMPLEMENTATION);
+        // Referencing EFSR.class.getName() would require a dependency on the module
+        boolean encryptedRepo = ENCRYPTED_FSR_CLASS_NAME.equals(implementationClassName);
+        if (encryptedRepo) {
+            return isValidKeyProvider(
+                    niFiProperties.getProperty(NiFiProperties.CONTENT_REPOSITORY_ENCRYPTION_KEY_PROVIDER_IMPLEMENTATION_CLASS),
+                    niFiProperties.getProperty(NiFiProperties.CONTENT_REPOSITORY_ENCRYPTION_KEY_PROVIDER_LOCATION),
+                    niFiProperties.getContentRepositoryEncryptionKeyId(),
+                    niFiProperties.getContentRepositoryEncryptionKeys());
+        } else {
+            return false;
+        }
+    }
+
+    /**
+     * Returns the master key from the {@code bootstrap.conf} file used to encrypt various sensitive properties and data encryption keys.
+     *
+     * @return the master key
+     * @throws KeyManagementException if the key cannot be read
+     */
+    public static SecretKey getMasterKey() throws KeyManagementException {
+        try {
+            // Get the master encryption key from bootstrap.conf
+            String masterKeyHex = extractKeyFromBootstrapFile();
+            return new SecretKeySpec(Hex.decode(masterKeyHex), "AES");
+        } catch (IOException e) {
+            logger.error("Encountered an error: ", e);
+            throw new KeyManagementException(e);
+        }
+    }
+
+    /**
+     * Returns the key (if any) used to encrypt sensitive properties, extracted from {@code $NIFI_HOME/conf/bootstrap.conf}.
+     *
+     * @return the key in hexadecimal format
+     * @throws IOException if the file is not readable
+     */
+    public static String extractKeyFromBootstrapFile() throws IOException {
+        return extractKeyFromBootstrapFile("");
+    }
+
+    /**
+     * Returns the key (if any) used to encrypt sensitive properties, extracted from {@code $NIFI_HOME/conf/bootstrap.conf}.
+     *
+     * @param bootstrapPath the path to the bootstrap file
+     * @return the key in hexadecimal format
+     * @throws IOException if the file is not readable
+     */
+    public static String extractKeyFromBootstrapFile(String bootstrapPath) throws IOException {
+        File expectedBootstrapFile;
+        if (StringUtils.isBlank(bootstrapPath)) {
+            // Guess at location of bootstrap.conf file from nifi.properties file
+            String defaultNiFiPropertiesPath = getDefaultFilePath();
+            File propertiesFile = new File(defaultNiFiPropertiesPath);
+            File confDir = new File(propertiesFile.getParent());
+            if (confDir.exists() && confDir.canRead()) {
+                expectedBootstrapFile = new File(confDir, "bootstrap.conf");
+            } else {
+                logger.error("Cannot read from bootstrap.conf file at {} to extract encryption key -- conf/ directory is missing or permissions are incorrect", confDir.getAbsolutePath());
+                throw new IOException("Cannot read from bootstrap.conf");
+            }
+        } else {
+            expectedBootstrapFile = new File(bootstrapPath);
+        }
+
+        if (expectedBootstrapFile.exists() && expectedBootstrapFile.canRead()) {
+            try (Stream<String> stream = Files.lines(Paths.get(expectedBootstrapFile.getAbsolutePath()))) {
+                Optional<String> keyLine = stream.filter(l -> l.startsWith(BOOTSTRAP_KEY_PREFIX)).findFirst();
+                if (keyLine.isPresent()) {
+                    return keyLine.get().split("=", 2)[1];
+                } else {
+                    logger.warn("No encryption key present in the bootstrap.conf file at {}", expectedBootstrapFile.getAbsolutePath());
+                    return "";
+                }
+            } catch (IOException e) {
+                logger.error("Cannot read from bootstrap.conf file at {} to extract encryption key", expectedBootstrapFile.getAbsolutePath());
+                throw new IOException("Cannot read from bootstrap.conf", e);
+            }
+        } else {
+            logger.error("Cannot read from bootstrap.conf file at {} to extract encryption key -- file is missing or permissions are incorrect", expectedBootstrapFile.getAbsolutePath());
+            throw new IOException("Cannot read from bootstrap.conf");
+        }
+    }
+
+    /**
+     * Returns the default file path to {@code $NIFI_HOME/conf/nifi.properties}. If the system
+     * property {@code nifi.properties.file.path} is not set, it will be set to the relative
+     * path {@code conf/nifi.properties}.
+     *
+     * @return the path to the nifi.properties file
+     */
+    public static String getDefaultFilePath() {
+        String systemPath = System.getProperty(NiFiProperties.PROPERTIES_FILE_PATH);
+
+        if (systemPath == null || systemPath.trim().isEmpty()) {
+            logger.warn("The system variable {} is not set, so it is being set to '{}'", NiFiProperties.PROPERTIES_FILE_PATH, RELATIVE_NIFI_PROPS_PATH);
+            System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, RELATIVE_NIFI_PROPS_PATH);
+            systemPath = RELATIVE_NIFI_PROPS_PATH;
+        }
+
+        logger.info("Determined default nifi.properties path to be '{}'", systemPath);
+        return systemPath;
     }
 
     /**

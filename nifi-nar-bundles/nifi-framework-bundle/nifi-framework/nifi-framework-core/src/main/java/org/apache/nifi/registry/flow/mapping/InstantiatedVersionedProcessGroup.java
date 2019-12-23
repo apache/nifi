@@ -17,11 +17,17 @@
 
 package org.apache.nifi.registry.flow.mapping;
 
+import org.apache.nifi.registry.flow.ExternalControllerServiceReference;
 import org.apache.nifi.registry.flow.VersionedProcessGroup;
 
+import javax.xml.bind.annotation.XmlTransient;
+import java.util.Map;
+
 public class InstantiatedVersionedProcessGroup extends VersionedProcessGroup implements InstantiatedVersionedComponent {
+
     private final String instanceId;
     private final String groupId;
+    private Map<String, ExternalControllerServiceReference> externalControllerServiceReferences;
 
     public InstantiatedVersionedProcessGroup(final String instanceId, final String instanceGroupId) {
         this.instanceId = instanceId;
@@ -36,5 +42,15 @@ public class InstantiatedVersionedProcessGroup extends VersionedProcessGroup imp
     @Override
     public String getInstanceGroupId() {
         return groupId;
+    }
+
+    public void setExternalControllerServiceReferences(final Map<String, ExternalControllerServiceReference> externalControllerServiceReferences) {
+        this.externalControllerServiceReferences = externalControllerServiceReferences;
+    }
+
+    // mark transient so field is ignored when serializing this class
+    @XmlTransient
+    public Map<String, ExternalControllerServiceReference> getExternalControllerServiceReferences() {
+        return externalControllerServiceReferences;
     }
 }

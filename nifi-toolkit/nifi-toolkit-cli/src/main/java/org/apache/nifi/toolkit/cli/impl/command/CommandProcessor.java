@@ -160,6 +160,7 @@ public class CommandProcessor {
             for (ResolvedReference resolvedRef : resolvedReferences) {
                 out.println();
                 out.printf("Using a positional back-reference for '%s'%n", resolvedRef.getDisplayName());
+                out.println();
             }
         }
     }

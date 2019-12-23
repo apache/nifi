@@ -28,7 +28,6 @@ import org.apache.nifi.logging.ComponentLog;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-
 public class TestPublisherPool {
 
     @Test
@@ -38,7 +37,7 @@ public class TestPublisherPool {
         kafkaProperties.put("key.serializer", ByteArraySerializer.class.getName());
         kafkaProperties.put("value.serializer", ByteArraySerializer.class.getName());
 
-        final PublisherPool pool = new PublisherPool(kafkaProperties, Mockito.mock(ComponentLog.class), 1024 * 1024, 1000L, false, null, StandardCharsets.UTF_8);
+        final PublisherPool pool = new PublisherPool(kafkaProperties, Mockito.mock(ComponentLog.class), 1024 * 1024, 1000L, false, null, null, StandardCharsets.UTF_8);
         assertEquals(0, pool.available());
 
         final PublisherLease lease = pool.obtainPublisher();
@@ -55,7 +54,7 @@ public class TestPublisherPool {
         kafkaProperties.put("key.serializer", ByteArraySerializer.class.getName());
         kafkaProperties.put("value.serializer", ByteArraySerializer.class.getName());
 
-        final PublisherPool pool = new PublisherPool(kafkaProperties, Mockito.mock(ComponentLog.class), 1024 * 1024, 1000L, false, null, StandardCharsets.UTF_8);
+        final PublisherPool pool = new PublisherPool(kafkaProperties, Mockito.mock(ComponentLog.class), 1024 * 1024, 1000L, false, null, null, StandardCharsets.UTF_8);
         assertEquals(0, pool.available());
 
         final PublisherLease lease = pool.obtainPublisher();
@@ -65,5 +64,4 @@ public class TestPublisherPool {
         lease.close();
         assertEquals(0, pool.available());
     }
-
 }

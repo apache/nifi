@@ -121,24 +121,24 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
-        .name("ssl-context-service")
-        .displayName("SSL Context Service")
-        .description("The SSL Context Service used to provide client certificate information for TLS/SSL "
-                + "connections.")
-        .required(false)
-        .identifiesControllerService(SSLContextService.class)
-        .build();
+            .name("ssl-context-service")
+            .displayName("SSL Context Service")
+            .description("The SSL Context Service used to provide client certificate information for TLS/SSL "
+                    + "connections.")
+            .required(false)
+            .identifiesControllerService(SSLContextService.class)
+            .build();
 
     public static final PropertyDescriptor CLIENT_AUTH = new PropertyDescriptor.Builder()
-        .name("ssl-client-auth")
-        .displayName("Client Auth")
-        .description("Client authentication policy when connecting to secure (TLS/SSL) cluster. "
-                + "Possible values are REQUIRED, WANT, NONE. This property is only used when an SSL Context "
-                + "has been defined and enabled.")
-        .required(false)
-        .allowableValues(SSLContextService.ClientAuth.values())
-        .defaultValue("REQUIRED")
-        .build();
+            .name("ssl-client-auth")
+            .displayName("Client Auth")
+            .description("Client authentication policy when connecting to secure (TLS/SSL) cluster. "
+                    + "Possible values are REQUIRED, WANT, NONE. This property is only used when an SSL Context "
+                    + "has been defined and enabled.")
+            .required(false)
+            .allowableValues(SSLContextService.ClientAuth.values())
+            .defaultValue("REQUIRED")
+            .build();
 
     public static final PropertyDescriptor WRITE_CONCERN = new PropertyDescriptor.Builder()
             .name("Write Concern")
@@ -341,7 +341,7 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
     }
 
     protected void writeBatch(String payload, FlowFile parent, ProcessContext context, ProcessSession session,
-            Map<String, String> extraAttributes, Relationship rel) throws UnsupportedEncodingException {
+                              Map<String, String> extraAttributes, Relationship rel) throws UnsupportedEncodingException {
         String charset = context.getProperty(CHARSET).evaluateAttributeExpressions(parent).getValue();
 
         FlowFile flowFile = parent != null ? session.create(parent) : session.create();

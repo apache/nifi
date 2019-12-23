@@ -126,7 +126,12 @@ final class JMSConsumer extends JMSWorker {
                     // We need to call recover to ensure that in the event of
                     // abrupt end or exception the current session will stop message
                     // delivery and restart with the oldest unacknowledged message
-                    session.recover();
+                    try {
+                        session.recover();
+                    } catch (Exception e1) {
+                        // likely the session is closed...need to catch this so that the root cause of failure is propagated
+                        processLog.debug("Failed to recover JMS session while handling initial error. The recover error is: ", e1);
+                    }
                     throw e;
                 } finally {
                     JmsUtils.closeMessageConsumer(msgConsumer);

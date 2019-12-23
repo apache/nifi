@@ -33,7 +33,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.documentation.AbstractDocumentationWriter;
 import org.apache.nifi.documentation.ExtensionType;
-import org.apache.nifi.documentation.ProvidedServiceAPI;
+import org.apache.nifi.documentation.ServiceAPI;
 import org.apache.nifi.processor.Relationship;
 
 import javax.xml.stream.XMLOutputFactory;
@@ -46,6 +46,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 
@@ -132,19 +133,44 @@ public class XmlDocumentationWriter extends AbstractDocumentationWriter {
     }
 
     @Override
-    protected void writeProperties(final List<PropertyDescriptor> properties) throws IOException {
-        writeArray("properties", properties, this::writeProperty);
+    protected void writeProperties(final List<PropertyDescriptor> properties, Map<String,ServiceAPI> propertyServices) throws IOException {
+        writeStartElement("properties");
+        if (properties != null) {
+            for (final PropertyDescriptor property : properties) {
+                writeProperty(property, propertyServices);
+            }
+        }
+        writeEndElement();
     }
 
-    private void writeProperty(final PropertyDescriptor property) throws IOException {
+    private void writeProperty(final PropertyDescriptor property, Map<String,ServiceAPI> propertyServices) throws IOException {
         writeStartElement("property");
 
         writeTextElement("name", property.getName());
         writeTextElement("displayName", property.getDisplayName());
         writeTextElement("description", property.getDescription());
         writeTextElement("defaultValue", property.getDefaultValue());
-        writeTextElement("controllerServiceDefinition", property.getControllerServiceDefinition() == null ? null : property.getControllerServiceDefinition().getName());
-        writeTextArray("allowableValues", "allowableValue", property.getAllowableValues(), AllowableValue::getDisplayName);
+
+        if (property.getControllerServiceDefinition() != null) {
+            writeStartElement("controllerServiceDefinition");
+
+            final ServiceAPI serviceAPI = propertyServices.get(property.getName());
+            if (serviceAPI != null) {
+                writeTextElement("className", serviceAPI.getClassName());
+                writeTextElement("groupId", serviceAPI.getGroupId());
+                writeTextElement("artifactId", serviceAPI.getArtifactId());
+                writeTextElement("version", serviceAPI.getVersion());
+            } else {
+                writeTextElement("className", property.getControllerServiceDefinition().getName());
+                writeTextElement("groupId", "unknown");
+                writeTextElement("artifactId", "unknown");
+                writeTextElement("version", "unknown");
+            }
+
+            writeEndElement();
+        }
+
+        writeArray("allowableValues", property.getAllowableValues(), this::writeAllowableValue);
         writeBooleanElement("required", property.isRequired());
         writeBooleanElement("sensitive", property.isSensitive());
         writeBooleanElement("expressionLanguageSupported", property.isExpressionLanguageSupported());
@@ -155,9 +181,17 @@ public class XmlDocumentationWriter extends AbstractDocumentationWriter {
         writeEndElement();
     }
 
+    private void writeAllowableValue(final AllowableValue allowableValue) throws IOException {
+        writeStartElement("allowableValue");
+        writeTextElement("displayName", allowableValue.getDisplayName());
+        writeTextElement("value", allowableValue.getValue());
+        writeTextElement("description", allowableValue.getDescription());
+        writeEndElement();
+    }
+
     @Override
     protected void writeDynamicProperties(final List<DynamicProperty> dynamicProperties) throws IOException {
-        writeArray("dynamicProperty", dynamicProperties, this::writeDynamicProperty);
+        writeArray("dynamicProperties", dynamicProperties, this::writeDynamicProperty);
     }
 
     private void writeDynamicProperty(final DynamicProperty property) throws IOException {
@@ -189,7 +223,9 @@ public class XmlDocumentationWriter extends AbstractDocumentationWriter {
         writeStartElement("restricted");
 
         if (restricted != null) {
-            writeTextElement("generalRestrictionExplanation", restricted.value());
+            if (restricted.value() != null && !restricted.value().isEmpty()) {
+                writeTextElement("generalRestrictionExplanation", restricted.value());
+            }
 
             final Restriction[] restrictions = restricted.restrictions();
             if (restrictions != null) {
@@ -222,7 +258,7 @@ public class XmlDocumentationWriter extends AbstractDocumentationWriter {
     }
 
     private void writeSystemResourceConsideration(final SystemResourceConsideration consideration) throws IOException {
-        writeStartElement("consideration");
+        writeStartElement("systemResourceConsideration");
 
         writeTextElement("resource", consideration.resource() == null ? null : consideration.resource().name());
         writeTextElement("description", consideration.description());
@@ -285,7 +321,7 @@ public class XmlDocumentationWriter extends AbstractDocumentationWriter {
     }
 
     private void writeReadsAttribute(final ReadsAttribute attribute) throws IOException {
-        writeStartElement("attribute");
+        writeStartElement("readsAttribute");
         writeTextElement("name", attribute.attribute());
         writeTextElement("description", attribute.description());
         writeEndElement();
@@ -297,7 +333,7 @@ public class XmlDocumentationWriter extends AbstractDocumentationWriter {
     }
 
     private void writeWritesAttribute(final WritesAttribute attribute) throws IOException {
-        writeStartElement("attribute");
+        writeStartElement("writesAttribute");
         writeTextElement("name", attribute.attribute());
         writeTextElement("description", attribute.description());
         writeEndElement();
@@ -309,17 +345,19 @@ public class XmlDocumentationWriter extends AbstractDocumentationWriter {
     }
 
     @Override
-    protected void writeProvidedServices(final Collection<ProvidedServiceAPI> providedServices) throws IOException {
-        writeStartElement("providedServiceAPIs");
-        writeArray("service", providedServices, this::writeProvidedService);
-        writeEndElement();
+    protected void writeProvidedServices(final Collection<ServiceAPI> providedServices) throws IOException {
+        writeArray("providedServiceAPIs", providedServices, this::writeProvidedService);
     }
 
-    private void writeProvidedService(final ProvidedServiceAPI service) throws IOException {
+    private void writeProvidedService(final ServiceAPI service) throws IOException {
+        writeStartElement("providedServiceAPI");
+
         writeTextElement("className",service.getClassName());
         writeTextElement("groupId",service.getGroupId());
         writeTextElement("artifactId",service.getArtifactId());
         writeTextElement("version",service.getVersion());
+
+        writeEndElement();
     }
 
     private <T> void writeArray(final String tagName, final Collection<T> values, final ElementWriter<T> writer) throws IOException {

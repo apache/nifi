@@ -17,9 +17,11 @@
 package org.apache.nifi.toolkit.cli.impl.client.nifi;
 
 import org.apache.nifi.web.api.entity.ClusterEntity;
+import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.NodeEntity;
 import org.apache.nifi.web.api.entity.RegistryClientEntity;
 import org.apache.nifi.web.api.entity.RegistryClientsEntity;
+import org.apache.nifi.web.api.entity.ReportingTaskEntity;
 
 import java.io.IOException;
 
@@ -47,5 +49,9 @@ public interface ControllerClient {
     ClusterEntity getNodes() throws NiFiClientException, IOException;
 
     NodeEntity offloadNode(String nodeId, NodeEntity nodeEntity) throws NiFiClientException, IOException;
+
+    ControllerServiceEntity createControllerService(ControllerServiceEntity controllerService) throws NiFiClientException, IOException;
+
+    ReportingTaskEntity createReportingTask(ReportingTaskEntity reportingTask) throws NiFiClientException, IOException;
 
 }

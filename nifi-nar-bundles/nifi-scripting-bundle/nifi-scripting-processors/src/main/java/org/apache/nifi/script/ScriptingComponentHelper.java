@@ -70,6 +70,7 @@ public class ScriptingComponentHelper {
     private String scriptBody;
     private String[] modules;
     private List<PropertyDescriptor> descriptors;
+    private List<AllowableValue> engineAllowableValues;
 
     public BlockingQueue<ScriptEngine> engineQ = null;
 
@@ -107,6 +108,10 @@ public class ScriptingComponentHelper {
 
     public List<PropertyDescriptor> getDescriptors() {
         return descriptors;
+    }
+
+    public List<AllowableValue> getScriptEngineAllowableValues() {
+        return engineAllowableValues;
     }
 
     public void setDescriptors(List<PropertyDescriptor> descriptors) {
@@ -167,6 +172,7 @@ public class ScriptingComponentHelper {
                 return o1.getValue().compareTo(o2.getValue());
             });
 
+            engineAllowableValues = engineList;
             AllowableValue[] engines = engineList.toArray(new AllowableValue[engineList.size()]);
 
             SCRIPT_ENGINE = new PropertyDescriptor.Builder()

@@ -17,6 +17,15 @@
 package org.apache.nifi.processors.aws.s3;
 
 import com.amazonaws.auth.PropertiesCredentials;
+import com.amazonaws.regions.Region;
+import com.amazonaws.regions.Regions;
+import com.amazonaws.services.kms.AWSKMS;
+import com.amazonaws.services.kms.AWSKMSClient;
+import com.amazonaws.services.kms.model.CreateKeyRequest;
+import com.amazonaws.services.kms.model.CreateKeyResult;
+import com.amazonaws.services.kms.model.GenerateDataKeyRequest;
+import com.amazonaws.services.kms.model.GenerateDataKeyResult;
+import com.amazonaws.services.kms.model.ScheduleKeyDeletionRequest;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.CreateBucketRequest;
@@ -42,6 +51,7 @@ import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.Assert.fail;
 
@@ -66,6 +76,7 @@ public abstract class AbstractS3IT {
 
     // Static so multiple Tests can use same client
     protected static AmazonS3Client client;
+    protected static AWSKMS kmsClient;
 
     @BeforeClass
     public static void oneTimeSetup() {
@@ -81,6 +92,8 @@ public abstract class AbstractS3IT {
         try {
             final PropertiesCredentials credentials = new PropertiesCredentials(fis);
             client = new AmazonS3Client(credentials);
+            kmsClient = new AWSKMSClient(credentials);
+            kmsClient.setRegion(Region.getRegion(Regions.fromName(REGION)));
 
             if (client.doesBucketExist(BUCKET_NAME)) {
                 fail("Bucket " + BUCKET_NAME + " exists. Choose a different bucket name to continue test");
@@ -148,6 +161,14 @@ public abstract class AbstractS3IT {
         client.putObject(putRequest);
     }
 
+    protected void putFileWithUserMetadata(String key, File file, Map<String, String> userMetadata) throws AmazonS3Exception, FileNotFoundException {
+        ObjectMetadata objectMetadata = new ObjectMetadata();
+        objectMetadata.setUserMetadata(userMetadata);
+        PutObjectRequest putRequest = new PutObjectRequest(BUCKET_NAME, key, new FileInputStream(file), objectMetadata);
+
+        client.putObject(putRequest);
+    }
+
     protected void putFileWithObjectTag(String key, File file, List<Tag> objectTags) {
         PutObjectRequest putRequest = new PutObjectRequest(BUCKET_NAME, key, file);
         putRequest.setTagging(new ObjectTagging(objectTags));
@@ -175,5 +196,20 @@ public abstract class AbstractS3IT {
         }
 
         return new File(uri);
+    }
+
+    protected static String getKMSKey() {
+        CreateKeyRequest cmkRequest = new CreateKeyRequest().withDescription("CMK for unit tests");
+        CreateKeyResult cmkResult = kmsClient.createKey(cmkRequest);
+
+        GenerateDataKeyRequest dekRequest = new GenerateDataKeyRequest().withKeyId(cmkResult.getKeyMetadata().getKeyId()).withKeySpec("AES_128");
+        GenerateDataKeyResult dekResult = kmsClient.generateDataKey(dekRequest);
+
+        return dekResult.getKeyId();
+    }
+
+    protected static void deleteKMSKey(String keyId) {
+        ScheduleKeyDeletionRequest req = new ScheduleKeyDeletionRequest().withKeyId(keyId).withPendingWindowInDays(7);
+        kmsClient.scheduleKeyDeletion(req);
     }
 }

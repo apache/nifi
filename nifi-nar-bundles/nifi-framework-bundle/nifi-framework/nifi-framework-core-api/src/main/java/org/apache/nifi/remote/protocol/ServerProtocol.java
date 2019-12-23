@@ -23,7 +23,7 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.remote.Peer;
-import org.apache.nifi.remote.RootGroupPort;
+import org.apache.nifi.remote.PublicPort;
 import org.apache.nifi.remote.VersionedRemoteResource;
 import org.apache.nifi.remote.cluster.ClusterNodeInformation;
 import org.apache.nifi.remote.cluster.NodeInformant;
@@ -40,7 +40,7 @@ public interface ServerProtocol extends VersionedRemoteResource {
      */
     void setRootProcessGroup(ProcessGroup rootGroup);
 
-    RootGroupPort getPort();
+    PublicPort getPort();
 
     /**
      * Optional operation. Sets the NodeInformant to use in this Protocol, if a
@@ -74,7 +74,7 @@ public interface ServerProtocol extends VersionedRemoteResource {
      * @param peer peer
      * @return the codec to use
      * @throws IOException ioe
-     * @throws org.apache.nifi.remote.exception.ProtocolException pe
+     * @throws ProtocolException pe
      */
     FlowFileCodec negotiateCodec(Peer peer) throws IOException, ProtocolException;
 
@@ -90,7 +90,7 @@ public interface ServerProtocol extends VersionedRemoteResource {
      * @param peer peer
      * @return the RequestType that the peer would like to happen - or null, if
      * no data available
-     * @throws java.io.IOException ioe
+     * @throws IOException ioe
      */
     RequestType getRequestType(Peer peer) throws IOException;
 
@@ -103,8 +103,8 @@ public interface ServerProtocol extends VersionedRemoteResource {
      * @param codec codec
      *
      * @return the number of FlowFiles transferred
-     * @throws java.io.IOException ioe
-     * @throws org.apache.nifi.remote.exception.ProtocolException pe
+     * @throws IOException ioe
+     * @throws ProtocolException pe
      */
     int transferFlowFiles(Peer peer, ProcessContext context, ProcessSession session, FlowFileCodec codec) throws IOException, ProtocolException;
 
@@ -137,7 +137,7 @@ public interface ServerProtocol extends VersionedRemoteResource {
      * @param clusterNodeInfo the cluster information
      * @param self the node which received the request
      *
-     * @throws java.io.IOException ioe
+     * @throws IOException ioe
      */
     void sendPeerList(
             Peer peer,

@@ -35,6 +35,8 @@ public class SearchResultsDTO {
     private List<ComponentSearchResultDTO> outputPortResults = new ArrayList<>();
     private List<ComponentSearchResultDTO> remoteProcessGroupResults = new ArrayList<>();
     private List<ComponentSearchResultDTO> funnelResults = new ArrayList<>();
+    private List<ComponentSearchResultDTO> parameterContextResults = new ArrayList<>();
+    private List<ComponentSearchResultDTO> parameterResults = new ArrayList<>();
 
     /**
      * @return The processors that matched the search
@@ -134,4 +136,31 @@ public class SearchResultsDTO {
         this.funnelResults = funnelResults;
     }
 
+    /**
+     * @return parameter contexts that matched the search.
+     */
+    @ApiModelProperty(
+        value = "The parameter contexts that matched the search."
+    )
+    public List<ComponentSearchResultDTO> getParameterContextResults() {
+        return parameterContextResults;
+    }
+
+    public void setParameterContextResults(List<ComponentSearchResultDTO> parameterContextResults) {
+        this.parameterContextResults = parameterContextResults;
+    }
+
+    /**
+     * @return parameters that matched the search.
+     */
+    @ApiModelProperty(
+            value = "The parameters that matched the search."
+    )
+    public List<ComponentSearchResultDTO> getParameterResults() {
+        return parameterResults;
+    }
+
+    public void setParameterResults(List<ComponentSearchResultDTO> parameterResults) {
+        this.parameterResults = parameterResults;
+    }
 }

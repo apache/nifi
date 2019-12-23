@@ -51,8 +51,8 @@ import org.apache.nifi.processor.util.pattern.PartialFunctions.FlowFileGroup;
 import org.apache.nifi.processor.util.pattern.PutGroup;
 import org.apache.nifi.processor.util.pattern.RollbackOnFailure;
 import org.apache.nifi.processor.util.pattern.RoutingResult;
-import org.apache.nifi.processors.standard.util.JdbcCommon;
 import org.apache.nifi.stream.io.StreamUtils;
+import org.apache.nifi.util.db.JdbcCommon;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -275,9 +275,9 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
         return poll.getFlowFiles();
     };
 
-    private final PartialFunctions.InitConnection<FunctionContext, Connection> initConnection = (c, s, fc, ff) -> {
+    private final PartialFunctions.InitConnection<FunctionContext, Connection> initConnection = (c, s, fc, ffs) -> {
         final Connection connection = c.getProperty(CONNECTION_POOL).asControllerService(DBCPService.class)
-                .getConnection(ff == null ? Collections.emptyMap() : ff.getAttributes());
+                .getConnection(ffs == null || ffs.isEmpty() ? Collections.emptyMap() : ffs.get(0).getAttributes());
         try {
             fc.originalAutoCommit = connection.getAutoCommit();
             final boolean autocommit = c.getProperty(AUTO_COMMIT).asBoolean();
@@ -452,6 +452,9 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
                     getLogger().error("Failed to update database for {} due to {}; it is possible that retrying the operation will succeed, so routing to retry",
                             new Object[] {i, e}, e);
                     break;
+                case Self:
+                    getLogger().error("Failed to update database for {} due to {};", new Object[] {i, e}, e);
+                    break;
             }
         });
         return RollbackOnFailure.createOnError(onFlowFileError);
@@ -618,13 +621,18 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
         boolean fragmentedTransaction = false;
 
         final int batchSize = context.getProperty(BATCH_SIZE).asInteger();
+        final FlowFileFilter dbcpServiceFlowFileFilter = context.getProperty(CONNECTION_POOL).asControllerService(DBCPService.class).getFlowFileFilter(batchSize);
         List<FlowFile> flowFiles;
         if (useTransactions) {
-            final TransactionalFlowFileFilter filter = new TransactionalFlowFileFilter();
+            final TransactionalFlowFileFilter filter = new TransactionalFlowFileFilter(dbcpServiceFlowFileFilter);
             flowFiles = session.get(filter);
             fragmentedTransaction = filter.isFragmentedTransaction();
         } else {
-            flowFiles = session.get(batchSize);
+            if (dbcpServiceFlowFileFilter == null) {
+                flowFiles = session.get(batchSize);
+            } else {
+                flowFiles = session.get(dbcpServiceFlowFileFilter);
+            }
         }
 
         if (flowFiles.isEmpty()) {
@@ -801,12 +809,26 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
      * across multiple FlowFiles) or that none of the FlowFiles belongs to a fragmented transaction
      */
     static class TransactionalFlowFileFilter implements FlowFileFilter {
+        private final FlowFileFilter nonFragmentedTransactionFilter;
         private String selectedId = null;
         private int numSelected = 0;
         private boolean ignoreFragmentIdentifiers = false;
 
+        public TransactionalFlowFileFilter(FlowFileFilter nonFragmentedTransactionFilter) {
+            this.nonFragmentedTransactionFilter = nonFragmentedTransactionFilter;
+        }
+
         public boolean isFragmentedTransaction() {
             return !ignoreFragmentIdentifiers;
+        }
+
+        private FlowFileFilterResult filterNonFragmentedTransaction(final FlowFile flowFile) {
+            if (nonFragmentedTransactionFilter == null) {
+                return FlowFileFilterResult.ACCEPT_AND_CONTINUE;
+            } else {
+                // Use non-fragmented tx filter for further filtering.
+                return nonFragmentedTransactionFilter.filter(flowFile);
+            }
         }
 
         @Override
@@ -818,7 +840,7 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
             // we accept any FlowFile that is also not part of a fragmented transaction.
             if (ignoreFragmentIdentifiers) {
                 if (fragmentId == null || "1".equals(fragCount)) {
-                    return FlowFileFilterResult.ACCEPT_AND_CONTINUE;
+                    return filterNonFragmentedTransaction(flowFile);
                 } else {
                     return FlowFileFilterResult.REJECT_AND_CONTINUE;
                 }
@@ -828,7 +850,7 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
                 if (selectedId == null) {
                     // Only one FlowFile in the transaction.
                     ignoreFragmentIdentifiers = true;
-                    return FlowFileFilterResult.ACCEPT_AND_CONTINUE;
+                    return filterNonFragmentedTransaction(flowFile);
                 } else {
                     // we've already selected 1 FlowFile, and this one doesn't match.
                     return FlowFileFilterResult.REJECT_AND_CONTINUE;

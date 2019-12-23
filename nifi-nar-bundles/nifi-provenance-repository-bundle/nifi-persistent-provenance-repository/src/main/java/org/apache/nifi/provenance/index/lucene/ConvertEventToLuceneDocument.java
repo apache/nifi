@@ -16,18 +16,14 @@
  */
 package org.apache.nifi.provenance.index.lucene;
 
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.Field.Store;
 import org.apache.lucene.document.FieldType;
-import org.apache.lucene.document.LongField;
+import org.apache.lucene.document.LongPoint;
 import org.apache.lucene.document.StringField;
-import org.apache.lucene.index.FieldInfo.IndexOptions;
+import org.apache.lucene.index.DocValuesType;
+import org.apache.lucene.index.IndexOptions;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
@@ -35,6 +31,11 @@ import org.apache.nifi.provenance.SearchableFields;
 import org.apache.nifi.provenance.lucene.LuceneUtil;
 import org.apache.nifi.provenance.search.SearchableField;
 import org.apache.nifi.provenance.serialization.StorageSummary;
+
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 public class ConvertEventToLuceneDocument {
     private final Set<SearchableField> searchableEventFields;
@@ -55,6 +56,10 @@ public class ConvertEventToLuceneDocument {
 
 
     public Document convert(final ProvenanceEventRecord record, final StorageSummary persistedEvent) {
+        return convert(record, persistedEvent.getEventId());
+    }
+
+    public Document convert(final ProvenanceEventRecord record, final long eventId) {
         final Document doc = new Document();
         addField(doc, SearchableFields.FlowFileUUID, record.getFlowFileUuid());
         addField(doc, SearchableFields.Filename, record.getAttribute(CoreAttributes.FILENAME.key()));
@@ -74,63 +79,62 @@ public class ConvertEventToLuceneDocument {
         }
 
         // Index the fields that we always index (unless there's nothing else to index at all)
-        if (!doc.getFields().isEmpty()) {
-            // Always include Lineage Start Date because it allows us to make our Lineage queries more efficient.
-            doc.add(new LongField(SearchableFields.LineageStartDate.getSearchableFieldName(), record.getLineageStartDate(), Store.NO));
-            // Always include Event Time because most queries are bound by a start and end time.
-            doc.add(new LongField(SearchableFields.EventTime.getSearchableFieldName(), record.getEventTime(), Store.NO));
-            // We always include File Size because the UI wants to always render the controls for specifying this. This idea could be revisited.
-            doc.add(new LongField(SearchableFields.FileSize.getSearchableFieldName(), record.getFileSize(), Store.NO));
-            // We always store the event Event ID in the Document but do not index it. It doesn't make sense to query based on Event ID because
-            // if we want a particular Event ID, we can just obtain it directly from the EventStore. But when we obtain a Document, this info must
-            // be stored so that we know how to lookup the event in the store.
-            doc.add(new UnIndexedLongField(SearchableFields.Identifier.getSearchableFieldName(), persistedEvent.getEventId()));
-
-            // If it's event is a FORK, or JOIN, add the FlowFileUUID for all child/parent UUIDs.
-            final ProvenanceEventType eventType = record.getEventType();
-            if (eventType == ProvenanceEventType.FORK || eventType == ProvenanceEventType.CLONE || eventType == ProvenanceEventType.REPLAY) {
-                for (final String uuid : record.getChildUuids()) {
-                    if (!uuid.equals(record.getFlowFileUuid())) {
-                        addField(doc, SearchableFields.FlowFileUUID, uuid);
-                    }
-                }
-            } else if (eventType == ProvenanceEventType.JOIN) {
-                for (final String uuid : record.getParentUuids()) {
-                    if (!uuid.equals(record.getFlowFileUuid())) {
-                        addField(doc, SearchableFields.FlowFileUUID, uuid);
-                    }
-                }
-            } else if (eventType == ProvenanceEventType.RECEIVE && record.getSourceSystemFlowFileIdentifier() != null) {
-                // If we get a receive with a Source System FlowFile Identifier, we add another Document that shows the UUID
-                // that the Source System uses to refer to the data.
-                final String sourceIdentifier = record.getSourceSystemFlowFileIdentifier();
-                final String sourceFlowFileUUID;
-                final int lastColon = sourceIdentifier.lastIndexOf(":");
-                if (lastColon > -1 && lastColon < sourceIdentifier.length() - 2) {
-                    sourceFlowFileUUID = sourceIdentifier.substring(lastColon + 1);
-                } else {
-                    sourceFlowFileUUID = null;
-                }
-
-                if (sourceFlowFileUUID != null) {
-                    addField(doc, SearchableFields.FlowFileUUID, sourceFlowFileUUID);
-                }
-            }
-
-            return doc;
+        if (doc.getFields().isEmpty()) {
+            return null;
         }
 
-        return null;
+        // Always include Lineage Start Date because it allows us to make our Lineage queries more efficient.
+        doc.add(new LongPoint(SearchableFields.LineageStartDate.getSearchableFieldName(), record.getLineageStartDate()));
+        // Always include Event Time because most queries are bound by a start and end time.
+        doc.add(new LongPoint(SearchableFields.EventTime.getSearchableFieldName(), record.getEventTime()));
+        // We always include File Size because the UI wants to always render the controls for specifying this. This idea could be revisited.
+        doc.add(new LongPoint(SearchableFields.FileSize.getSearchableFieldName(), record.getFileSize()));
+        // We always store the event Event ID in the Document but do not index it. It doesn't make sense to query based on Event ID because
+        // if we want a particular Event ID, we can just obtain it directly from the EventStore. But when we obtain a Document, this info must
+        // be stored so that we know how to lookup the event in the store.
+        doc.add(new UnIndexedLongField(SearchableFields.Identifier.getSearchableFieldName(), eventId));
+
+        // If it's event is a FORK, or JOIN, add the FlowFileUUID for all child/parent UUIDs.
+        final ProvenanceEventType eventType = record.getEventType();
+        if (eventType == ProvenanceEventType.FORK || eventType == ProvenanceEventType.CLONE || eventType == ProvenanceEventType.REPLAY) {
+            for (final String uuid : record.getChildUuids()) {
+                if (!uuid.equals(record.getFlowFileUuid())) {
+                    addField(doc, SearchableFields.FlowFileUUID, uuid);
+                }
+            }
+        } else if (eventType == ProvenanceEventType.JOIN) {
+            for (final String uuid : record.getParentUuids()) {
+                if (!uuid.equals(record.getFlowFileUuid())) {
+                    addField(doc, SearchableFields.FlowFileUUID, uuid);
+                }
+            }
+        } else if (eventType == ProvenanceEventType.RECEIVE && record.getSourceSystemFlowFileIdentifier() != null) {
+            // If we get a receive with a Source System FlowFile Identifier, we add another Document that shows the UUID
+            // that the Source System uses to refer to the data.
+            final String sourceIdentifier = record.getSourceSystemFlowFileIdentifier();
+            final String sourceFlowFileUUID;
+            final int lastColon = sourceIdentifier.lastIndexOf(":");
+            if (lastColon > -1 && lastColon < sourceIdentifier.length() - 2) {
+                sourceFlowFileUUID = sourceIdentifier.substring(lastColon + 1);
+            } else {
+                sourceFlowFileUUID = null;
+            }
+
+            if (sourceFlowFileUUID != null) {
+                addField(doc, SearchableFields.FlowFileUUID, sourceFlowFileUUID);
+            }
+        }
+
+        return doc;
     }
 
     private static class UnIndexedLongField extends Field {
         static final FieldType TYPE = new FieldType();
         static {
-            TYPE.setIndexed(false);
+            TYPE.setIndexOptions(IndexOptions.NONE);
             TYPE.setTokenized(true);
             TYPE.setOmitNorms(true);
-            TYPE.setIndexOptions(IndexOptions.DOCS_ONLY);
-            TYPE.setNumericType(FieldType.NumericType.LONG);
+            TYPE.setDocValuesType(DocValuesType.NUMERIC);
             TYPE.setStored(true);
             TYPE.freeze();
         }

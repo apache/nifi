@@ -55,8 +55,6 @@ public class DruidTranquilityControllerTest {
         runner.setProperty(service, DruidTranquilityController.ZOOKEEPER_CONNECTION_STRING, "localhost:2181");
         runner.assertNotValid(service);
         runner.setProperty(service, DruidTranquilityController.AGGREGATOR_JSON, "[{\"type\": \"count\", \"name\": \"count\"}]");
-        runner.assertNotValid(service);
-        runner.setProperty(service, DruidTranquilityController.DIMENSIONS_LIST, "dim1,dim2");
         runner.assertValid(service);
     }
 

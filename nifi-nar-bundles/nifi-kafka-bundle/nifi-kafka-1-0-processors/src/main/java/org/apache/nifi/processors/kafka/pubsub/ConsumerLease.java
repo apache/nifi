@@ -142,7 +142,7 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
      */
     @Override
     public void onPartitionsRevoked(final Collection<TopicPartition> partitions) {
-        logger.debug("Rebalance Alert: Paritions '{}' revoked for lease '{}' with consumer '{}'", new Object[]{partitions, this, kafkaConsumer});
+        logger.debug("Rebalance Alert: Partitions '{}' revoked for lease '{}' with consumer '{}'", new Object[]{partitions, this, kafkaConsumer});
         //force a commit here.  Can reuse the session and consumer after this but must commit now to avoid duplicates if kafka reassigns partition
         commit();
     }
@@ -156,7 +156,7 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
      */
     @Override
     public void onPartitionsAssigned(final Collection<TopicPartition> partitions) {
-        logger.debug("Rebalance Alert: Paritions '{}' assigned for lease '{}' with consumer '{}'", new Object[]{partitions, this, kafkaConsumer});
+        logger.debug("Rebalance Alert: Partitions '{}' assigned for lease '{}' with consumer '{}'", new Object[]{partitions, this, kafkaConsumer});
     }
 
     /**
@@ -463,6 +463,7 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
         // If we are unable to parse the data, we need to transfer it to 'parse failure' relationship
         final Map<String, String> attributes = getAttributes(consumerRecord);
         attributes.put(KafkaProcessorUtils.KAFKA_OFFSET, String.valueOf(consumerRecord.offset()));
+        attributes.put(KafkaProcessorUtils.KAFKA_TIMESTAMP, String.valueOf(consumerRecord.timestamp()));
         attributes.put(KafkaProcessorUtils.KAFKA_PARTITION, String.valueOf(consumerRecord.partition()));
         attributes.put(KafkaProcessorUtils.KAFKA_TOPIC, consumerRecord.topic());
 
@@ -496,8 +497,9 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
 
         for (final Header header : consumerRecord.headers()) {
             final String attributeName = header.key();
-            if (headerNamePattern.matcher(attributeName).matches()) {
-                attributes.put(attributeName, new String(header.value(), headerCharacterSet));
+            final byte[] attributeValue = header.value();
+            if (headerNamePattern.matcher(attributeName).matches() && attributeValue != null) {
+                attributes.put(attributeName, new String(attributeValue, headerCharacterSet));
             }
         }
 
@@ -519,7 +521,7 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
                     final RecordReader reader;
 
                     try {
-                        reader = readerFactory.createRecordReader(attributes, in, logger);
+                        reader = readerFactory.createRecordReader(attributes, in, recordBytes.length, logger);
                     } catch (final IOException e) {
                         yield();
                         rollback(topicPartition);
@@ -557,7 +559,7 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
                                     throw new ProcessException(e);
                                 }
 
-                                writer = writerFactory.createWriter(logger, writeSchema, rawOut);
+                                writer = writerFactory.createWriter(logger, writeSchema, rawOut, flowFile);
                                 writer.beginRecordSet();
 
                                 tracker = new BundleTracker(consumerRecord, topicPartition, keyEncoding, writer);
@@ -623,6 +625,7 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
     private void populateAttributes(final BundleTracker tracker) {
         final Map<String, String> kafkaAttrs = new HashMap<>();
         kafkaAttrs.put(KafkaProcessorUtils.KAFKA_OFFSET, String.valueOf(tracker.initialOffset));
+        kafkaAttrs.put(KafkaProcessorUtils.KAFKA_TIMESTAMP, String.valueOf(tracker.initialTimestamp));
         if (tracker.key != null && tracker.totalRecords == 1) {
             kafkaAttrs.put(KafkaProcessorUtils.KAFKA_KEY, tracker.key);
         }
@@ -647,6 +650,7 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
     private static class BundleTracker {
 
         final long initialOffset;
+        final long initialTimestamp;
         final int partition;
         final String topic;
         final String key;
@@ -660,6 +664,7 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
 
         private BundleTracker(final ConsumerRecord<byte[], byte[]> initialRecord, final TopicPartition topicPartition, final String keyEncoding, final RecordSetWriter recordWriter) {
             this.initialOffset = initialRecord.offset();
+            this.initialTimestamp = initialRecord.timestamp();
             this.partition = topicPartition.partition();
             this.topic = topicPartition.topic();
             this.recordWriter = recordWriter;

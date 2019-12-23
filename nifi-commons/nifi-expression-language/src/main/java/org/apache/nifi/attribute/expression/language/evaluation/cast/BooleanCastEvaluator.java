@@ -16,8 +16,7 @@
  */
 package org.apache.nifi.attribute.expression.language.evaluation.cast;
 
-import java.util.Map;
-
+import org.apache.nifi.attribute.expression.language.EvaluationContext;
 import org.apache.nifi.attribute.expression.language.evaluation.BooleanEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.BooleanQueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
@@ -33,8 +32,8 @@ public class BooleanCastEvaluator extends BooleanEvaluator {
     }
 
     @Override
-    public QueryResult<Boolean> evaluate(final Map<String, String> attributes) {
-        final QueryResult<String> result = subjectEvaluator.evaluate(attributes);
+    public QueryResult<Boolean> evaluate(final EvaluationContext evaluationContext) {
+        final QueryResult<String> result = subjectEvaluator.evaluate(evaluationContext);
         if (result.getValue() == null) {
             return new BooleanQueryResult(null);
         }

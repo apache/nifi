@@ -19,8 +19,10 @@ package org.apache.nifi.controller.service;
 
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateManagerProvider;
+import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.components.validation.ValidationTrigger;
 import org.apache.nifi.controller.ExtensionBuilder;
 import org.apache.nifi.controller.FlowController;
@@ -73,6 +75,7 @@ import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 public class TestStandardControllerServiceProvider {
@@ -129,7 +132,7 @@ public class TestStandardControllerServiceProvider {
         Mockito.doAnswer(new Answer<ProcessorNode>() {
             @Override
             public ProcessorNode answer(InvocationOnMock invocation) throws Throwable {
-                final String id = invocation.getArgumentAt(0, String.class);
+                final String id = invocation.getArgument(0);
                 return processorMap.get(id);
             }
         }).when(flowManager).getProcessorNode(Mockito.anyString());
@@ -137,7 +140,7 @@ public class TestStandardControllerServiceProvider {
         Mockito.doAnswer(new Answer<Object>() {
             @Override
             public Object answer(InvocationOnMock invocation) throws Throwable {
-                final ProcessorNode procNode = invocation.getArgumentAt(0, ProcessorNode.class);
+                final ProcessorNode procNode = invocation.getArgument(0);
                 processorMap.putIfAbsent(procNode.getIdentifier(), procNode);
                 return null;
             }
@@ -197,8 +200,8 @@ public class TestStandardControllerServiceProvider {
         provider.disableControllerService(serviceNode);
     }
 
-    @Test(timeout = 1000000)
-    public void testEnableDisableWithReference() {
+    @Test(timeout = 10000)
+    public void testEnableDisableWithReference() throws InterruptedException {
         final ProcessGroup group = new MockProcessGroup(controller);
         final FlowController controller = Mockito.mock(FlowController.class);
         final FlowManager flowManager = Mockito.mock(FlowManager.class);
@@ -221,17 +224,24 @@ public class TestStandardControllerServiceProvider {
 
         try {
             provider.enableControllerService(serviceNodeA);
-            Assert.fail("Was able to enable Service A but Service B is disabled.");
         } catch (final IllegalStateException expected) {
         }
 
+        assertSame(ControllerServiceState.ENABLING, serviceNodeA.getState());
+
         serviceNodeB.performValidation();
-        serviceNodeB.getValidationStatus(5, TimeUnit.SECONDS);
+        assertSame(ValidationStatus.VALID, serviceNodeB.getValidationStatus(5, TimeUnit.SECONDS));
         provider.enableControllerService(serviceNodeB);
 
         serviceNodeA.performValidation();
-        serviceNodeA.getValidationStatus(5, TimeUnit.SECONDS);
-        provider.enableControllerService(serviceNodeA);
+        assertSame(ValidationStatus.VALID, serviceNodeA.getValidationStatus(5, TimeUnit.SECONDS));
+
+        final long maxTime = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
+        // Wait for Service A to become ENABLED. This will happen in a background thread after approximately 5 seconds, now that Service A is valid.
+        while (serviceNodeA.getState() != ControllerServiceState.ENABLED && System.nanoTime() <= maxTime) {
+            Thread.sleep(5L);
+        }
+        assertSame(ControllerServiceState.ENABLED, serviceNodeA.getState());
 
         try {
             provider.disableControllerService(serviceNodeB);
@@ -450,7 +460,7 @@ public class TestStandardControllerServiceProvider {
         final ControllerServiceNode serviceNode = createControllerService(ServiceA.class.getName(), "1", systemBundle.getBundleDetails().getCoordinate(), provider);
 
         final ProcessorNode procNode = createProcessor(scheduler, provider);
-        serviceNode.addReference(procNode);
+        serviceNode.addReference(procNode, PropertyDescriptor.NULL_DESCRIPTOR);
 
         // procNode.setScheduledState(ScheduledState.STOPPED);
         provider.unscheduleReferencingComponents(serviceNode);

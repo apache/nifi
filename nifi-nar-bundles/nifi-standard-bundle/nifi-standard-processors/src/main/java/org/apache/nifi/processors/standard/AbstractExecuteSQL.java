@@ -33,8 +33,8 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.standard.sql.SqlWriter;
-import org.apache.nifi.processors.standard.util.JdbcCommon;
 import org.apache.nifi.util.StopWatch;
+import org.apache.nifi.util.db.JdbcCommon;
 
 import java.nio.charset.Charset;
 import java.sql.Connection;
@@ -62,6 +62,7 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
     public static final String RESULT_QUERY_FETCH_TIME = "executesql.query.fetchtime";
     public static final String RESULTSET_INDEX = "executesql.resultset.index";
     public static final String RESULT_ERROR_MESSAGE = "executesql.error.message";
+    public static final String INPUT_FLOWFILE_UUID = "input.flowfile.uuid";
 
     public static final String FRAGMENT_ID = FragmentAttributes.FRAGMENT_ID.key();
     public static final String FRAGMENT_INDEX = FragmentAttributes.FRAGMENT_INDEX.key();
@@ -154,6 +155,17 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
+    public static final PropertyDescriptor FETCH_SIZE = new PropertyDescriptor.Builder()
+            .name("esql-fetch-size")
+            .displayName("Fetch Size")
+            .description("The number of result rows to be fetched from the result set at a time. This is a hint to the database driver and may not be "
+                    + "honored and/or exact. If the value specified is zero, then the hint is ignored.")
+            .defaultValue("0")
+            .required(true)
+            .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
+
     protected List<PropertyDescriptor> propDescriptors;
 
     protected DBCPService dbcpService;
@@ -202,6 +214,8 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
         final Integer maxRowsPerFlowFile = context.getProperty(MAX_ROWS_PER_FLOW_FILE).evaluateAttributeExpressions().asInteger();
         final Integer outputBatchSizeField = context.getProperty(OUTPUT_BATCH_SIZE).evaluateAttributeExpressions().asInteger();
         final int outputBatchSize = outputBatchSizeField == null ? 0 : outputBatchSizeField;
+        final Integer fetchSize = context.getProperty(FETCH_SIZE).evaluateAttributeExpressions().asInteger();
+
         List<String> preQueries = getQueries(context.getProperty(SQL_PRE_QUERY).evaluateAttributeExpressions(fileToProcess).getValue());
         List<String> postQueries = getQueries(context.getProperty(SQL_POST_QUERY).evaluateAttributeExpressions(fileToProcess).getValue());
 
@@ -221,6 +235,14 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
         int resultCount = 0;
         try (final Connection con = dbcpService.getConnection(fileToProcess == null ? Collections.emptyMap() : fileToProcess.getAttributes());
              final PreparedStatement st = con.prepareStatement(selectQuery)) {
+            if (fetchSize != null && fetchSize > 0) {
+                try {
+                    st.setFetchSize(fetchSize);
+                } catch (SQLException se) {
+                    // Not all drivers support this, just log the error (at debug level) and move on
+                    logger.debug("Cannot set fetch size to {} due to {}", new Object[]{fetchSize, se.getLocalizedMessage()}, se);
+                }
+            }
             st.setQueryTimeout(queryTimeout); // timeout in seconds
 
             // Execute pre-query, throw exception and cleanup Flow Files if fail
@@ -247,6 +269,8 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
 
             boolean hasUpdateCount = st.getUpdateCount() != -1;
 
+            Map<String, String> inputFileAttrMap = fileToProcess == null ? null : fileToProcess.getAttributes();
+            String inputFileUUID = fileToProcess == null ? null : fileToProcess.getAttribute(CoreAttributes.UUID.key());
             while (hasResults || hasUpdateCount) {
                 //getMoreResults() and execute() return false to indicate that the result of the statement is just a number and not a ResultSet
                 if (hasResults) {
@@ -262,8 +286,12 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
                                 resultSetFF = session.create();
                             } else {
                                 resultSetFF = session.create(fileToProcess);
-                                resultSetFF = session.putAllAttributes(resultSetFF, fileToProcess.getAttributes());
                             }
+
+                            if (inputFileAttrMap != null) {
+                                resultSetFF = session.putAllAttributes(resultSetFF, inputFileAttrMap);
+                            }
+
 
                             try {
                                 resultSetFF = session.write(resultSetFF, out -> {
@@ -283,6 +311,9 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
                                 attributesToAdd.put(RESULT_QUERY_EXECUTION_TIME, String.valueOf(executionTimeElapsed));
                                 attributesToAdd.put(RESULT_QUERY_FETCH_TIME, String.valueOf(fetchTimeElapsed));
                                 attributesToAdd.put(RESULTSET_INDEX, String.valueOf(resultCount));
+                                if (inputFileUUID != null) {
+                                    attributesToAdd.put(INPUT_FLOWFILE_UUID, inputFileUUID);
+                                }
                                 attributesToAdd.putAll(sqlWriter.getAttributesToAdd());
                                 resultSetFF = session.putAllAttributes(resultSetFF, attributesToAdd);
                                 sqlWriter.updateCounters(session);
@@ -312,6 +343,11 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
                                 // If we've reached the batch size, send out the flow files
                                 if (outputBatchSize > 0 && resultSetFlowFiles.size() >= outputBatchSize) {
                                     session.transfer(resultSetFlowFiles, REL_SUCCESS);
+                                    // Need to remove the original input file if it exists
+                                    if (fileToProcess != null) {
+                                        session.remove(fileToProcess);
+                                        fileToProcess = null;
+                                    }
                                     session.commit();
                                     resultSetFlowFiles.clear();
                                 }

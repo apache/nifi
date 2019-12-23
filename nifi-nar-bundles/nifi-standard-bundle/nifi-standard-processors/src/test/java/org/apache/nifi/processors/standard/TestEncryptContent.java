@@ -16,12 +16,20 @@
  */
 package org.apache.nifi.processors.standard;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.InputStream;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.nio.file.Paths;
 import java.security.Security;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
+import java.util.Objects;
+
 import org.apache.commons.codec.binary.Hex;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.security.util.EncryptionMethod;
 import org.apache.nifi.security.util.KeyDerivationFunction;
@@ -31,6 +39,8 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.bouncycastle.bcpg.BCPGInputStream;
+import org.bouncycastle.bcpg.SymmetricKeyEncSessionPacket;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.junit.Assert;
 import org.junit.Assume;
@@ -39,9 +49,24 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.bouncycastle.openpgp.PGPUtil.getDecoderStream;
+import static org.junit.Assert.fail;
+
 public class TestEncryptContent {
 
     private static final Logger logger = LoggerFactory.getLogger(TestEncryptContent.class);
+
+    private static AllowableValue[] getPGPCipherList() {
+        try{
+            Method method = EncryptContent.class.getDeclaredMethod("buildPGPSymmetricCipherAllowableValues");
+            method.setAccessible(true);
+            return ((AllowableValue[]) method.invoke(null));
+        } catch (Exception e){
+            logger.error("Cannot access buildPGPSymmetricCipherAllowableValues", e);
+            fail("Cannot access buildPGPSymmetricCipherAllowableValues");
+        }
+        return null;
+    }
 
     @Before
     public void setUp() {
@@ -89,6 +114,83 @@ public class TestEncryptContent {
 
             flowFile = testRunner.getFlowFilesForRelationship(EncryptContent.REL_SUCCESS).get(0);
             flowFile.assertContentEquals(new File("src/test/resources/hello.txt"));
+        }
+    }
+
+    @Test
+    public void testPGPCiphersRoundTrip() {
+        final TestRunner testRunner = TestRunners.newTestRunner(new EncryptContent());
+        testRunner.setProperty(EncryptContent.PASSWORD, "passwordpassword"); // a >=16 characters password
+        testRunner.setProperty(EncryptContent.KEY_DERIVATION_FUNCTION, KeyDerivationFunction.NONE.name());
+
+        List<String> pgpAlgorithms = new ArrayList<>();
+        pgpAlgorithms.add("PGP");
+        pgpAlgorithms.add("PGP_ASCII_ARMOR");
+
+        for (String algorithm : pgpAlgorithms) {
+            testRunner.setProperty(EncryptContent.ENCRYPTION_ALGORITHM, algorithm);
+            for (AllowableValue cipher : Objects.requireNonNull(getPGPCipherList())) {
+                testRunner.setProperty(EncryptContent.PGP_SYMMETRIC_ENCRYPTION_CIPHER, cipher.getValue());
+                testRunner.setProperty(EncryptContent.MODE, EncryptContent.ENCRYPT_MODE);
+
+                testRunner.enqueue("A cool plaintext!");
+                testRunner.clearTransferState();
+                testRunner.run();
+
+                testRunner.assertAllFlowFilesTransferred(EncryptContent.REL_SUCCESS, 1);
+
+                MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(EncryptContent.REL_SUCCESS).get(0);
+                testRunner.assertQueueEmpty();
+
+                testRunner.setProperty(EncryptContent.MODE, EncryptContent.DECRYPT_MODE);
+                // Encryption cipher is inferred from ciphertext, this property deliberately set a fixed cipher to prove
+                // the output will still be correct
+                testRunner.setProperty(EncryptContent.PGP_SYMMETRIC_ENCRYPTION_CIPHER, "1");
+
+                testRunner.enqueue(flowFile);
+                testRunner.clearTransferState();
+                testRunner.run();
+                testRunner.assertAllFlowFilesTransferred(EncryptContent.REL_SUCCESS, 1);
+
+                flowFile = testRunner.getFlowFilesForRelationship(EncryptContent.REL_SUCCESS).get(0);
+                flowFile.assertContentEquals("A cool plaintext!");
+            }
+        }
+    }
+
+    @Test
+    public void testPGPCiphers() throws Exception {
+        final TestRunner testRunner = TestRunners.newTestRunner(new EncryptContent());
+        testRunner.setProperty(EncryptContent.PASSWORD, "passwordpassword"); // a >= 16 characters password
+        testRunner.setProperty(EncryptContent.KEY_DERIVATION_FUNCTION, KeyDerivationFunction.NONE.name());
+
+        List<String> pgpAlgorithms = new ArrayList<>();
+        pgpAlgorithms.add("PGP");
+        pgpAlgorithms.add("PGP_ASCII_ARMOR");
+
+        for (String algorithm : pgpAlgorithms) {
+
+            testRunner.setProperty(EncryptContent.ENCRYPTION_ALGORITHM, algorithm);
+            for (AllowableValue cipher : Objects.requireNonNull(getPGPCipherList())) {
+                testRunner.setProperty(EncryptContent.PGP_SYMMETRIC_ENCRYPTION_CIPHER, cipher.getValue());
+                testRunner.setProperty(EncryptContent.MODE, EncryptContent.ENCRYPT_MODE);
+
+                testRunner.enqueue("A cool plaintext!");
+                testRunner.clearTransferState();
+                testRunner.run();
+
+                testRunner.assertAllFlowFilesTransferred(EncryptContent.REL_SUCCESS, 1);
+
+                MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(EncryptContent.REL_SUCCESS).get(0);
+                testRunner.assertQueueEmpty();
+
+                // Other than the round trip, checks that the provided cipher is actually used, inferring it from the ciphertext
+                InputStream ciphertext = new ByteArrayInputStream(flowFile.toByteArray());
+                BCPGInputStream pgpin = new BCPGInputStream(getDecoderStream(ciphertext));
+                assert pgpin.nextPacketTag() == 3;
+                assert ((SymmetricKeyEncSessionPacket) pgpin.readPacket()).getEncAlgorithm() == Integer.valueOf(cipher.getValue());
+                pgpin.close();
+            }
         }
     }
 
@@ -416,5 +518,34 @@ public class TestEncryptContent {
                     " could not be opened with the provided " + EncryptContent.PRIVATE_KEYRING_PASSPHRASE.getDisplayName()));
 
         }
+        runner.removeProperty(EncryptContent.PRIVATE_KEYRING_PASSPHRASE);
+
+        // This configuration is invalid because PGP_SYMMETRIC_ENCRYPTION_CIPHER is outside the allowed [1-13] interval
+        runner.setProperty(EncryptContent.MODE, EncryptContent.ENCRYPT_MODE);
+        runner.setProperty(EncryptContent.ENCRYPTION_ALGORITHM, "PGP");
+        runner.setProperty(EncryptContent.PASSWORD, "PASSWORD");
+        runner.setProperty(EncryptContent.PGP_SYMMETRIC_ENCRYPTION_CIPHER, "256");
+        runner.assertNotValid();
+
+        // This configuration is invalid because PGP_SYMMETRIC_ENCRYPTION_CIPHER points to SAFER cipher which is unsupported
+        runner.setProperty(EncryptContent.MODE, EncryptContent.ENCRYPT_MODE);
+        runner.setProperty(EncryptContent.ENCRYPTION_ALGORITHM, "PGP");
+        runner.setProperty(EncryptContent.PASSWORD, "PASSWORD");
+        runner.setProperty(EncryptContent.PGP_SYMMETRIC_ENCRYPTION_CIPHER, "5");
+        runner.assertNotValid();
+
+        // This configuration is valid
+        runner.setProperty(EncryptContent.MODE, EncryptContent.DECRYPT_MODE);
+        runner.setProperty(EncryptContent.ENCRYPTION_ALGORITHM, "PGP");
+        runner.setProperty(EncryptContent.PASSWORD, "PASSWORD");
+        runner.removeProperty(EncryptContent.PGP_SYMMETRIC_ENCRYPTION_CIPHER);
+        runner.assertValid();
+
+        // This configuration is valid because the default value will be used for PGP_SYMMETRIC_ENCRYPTION_CIPHER
+        runner.setProperty(EncryptContent.MODE, EncryptContent.ENCRYPT_MODE);
+        runner.setProperty(EncryptContent.ENCRYPTION_ALGORITHM, "PGP");
+        runner.setProperty(EncryptContent.PASSWORD, "PASSWORD");
+        runner.removeProperty(EncryptContent.PGP_SYMMETRIC_ENCRYPTION_CIPHER);
+        runner.assertValid();
     }
 }

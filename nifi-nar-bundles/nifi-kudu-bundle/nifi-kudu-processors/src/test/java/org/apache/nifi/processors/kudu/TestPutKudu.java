@@ -17,8 +17,7 @@
 
 package org.apache.nifi.processors.kudu;
 
-import java.util.stream.Collectors;
-import org.apache.kudu.ColumnSchema.ColumnSchemaBuilder;
+import org.apache.kudu.ColumnSchema;
 import org.apache.kudu.ColumnTypeAttributes;
 import org.apache.kudu.Schema;
 import org.apache.kudu.Type;
@@ -28,9 +27,12 @@ import org.apache.kudu.client.KuduSession;
 import org.apache.kudu.client.OperationResponse;
 import org.apache.kudu.client.RowError;
 import org.apache.kudu.client.RowErrorsAndOverflowStatus;
+import org.apache.kudu.client.PartialRow;
 import org.apache.kudu.client.SessionConfiguration.FlushMode;
+import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.kerberos.KerberosCredentialsService;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
@@ -41,14 +43,13 @@ import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.MapRecord;
+import org.apache.nifi.serialization.record.MockRecordParser;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
-import org.apache.nifi.serialization.record.MockRecordParser;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-
 import org.apache.nifi.util.Tuple;
 import org.junit.After;
 import org.junit.Assert;
@@ -59,22 +60,24 @@ import org.mockito.stubbing.OngoingStubbing;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Arrays;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import static org.apache.nifi.processors.kudu.TestPutKudu.ResultCode.EXCEPTION;
+import static org.apache.nifi.processors.kudu.TestPutKudu.ResultCode.FAIL;
+import static org.apache.nifi.processors.kudu.TestPutKudu.ResultCode.OK;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-
-import static org.apache.nifi.processors.kudu.TestPutKudu.ResultCode.OK;
-import static org.apache.nifi.processors.kudu.TestPutKudu.ResultCode.FAIL;
-import static org.apache.nifi.processors.kudu.TestPutKudu.ResultCode.EXCEPTION;
 
 public class TestPutKudu {
 
@@ -84,20 +87,24 @@ public class TestPutKudu {
     public static final String TABLE_SCHEMA = "id,stringVal,num32Val,doubleVal";
 
     private TestRunner testRunner;
+
     private MockPutKudu processor;
+
     private MockRecordParser readerFactory;
 
     @Before
-    public void setUp() {
+    public void setUp() throws InitializationException {
         processor = new MockPutKudu();
         testRunner = TestRunners.newTestRunner(processor);
         setUpTestRunner(testRunner);
     }
 
-    private void setUpTestRunner(TestRunner testRunner) {
+    private void setUpTestRunner(TestRunner testRunner) throws InitializationException {
         testRunner.setProperty(PutKudu.TABLE_NAME, DEFAULT_TABLE_NAME);
         testRunner.setProperty(PutKudu.KUDU_MASTERS, DEFAULT_MASTERS);
         testRunner.setProperty(PutKudu.SKIP_HEAD_LINE, SKIP_HEAD_LINE);
+        testRunner.setProperty(PutKudu.IGNORE_NULL, "true");
+        testRunner.setProperty(PutKudu.LOWERCASE_FIELD_NAMES, "true");
         testRunner.setProperty(PutKudu.RECORD_READER, "mock-reader-factory");
         testRunner.setProperty(PutKudu.INSERT_OPERATION, OperationType.INSERT.toString());
     }
@@ -150,6 +157,41 @@ public class TestPutKudu {
         final ProvenanceEventRecord provEvent = provEvents.get(0);
         Assert.assertEquals(ProvenanceEventType.SEND, provEvent.getEventType());
     }
+
+    @Test
+    public void testKerberosEnabled() throws InitializationException {
+        createRecordReader(1);
+
+        final KerberosCredentialsService kerberosCredentialsService = new MockKerberosCredentialsService("unit-test-principal", "unit-test-keytab");
+        testRunner.addControllerService("kerb", kerberosCredentialsService);
+        testRunner.enableControllerService(kerberosCredentialsService);
+
+        testRunner.setProperty(PutKudu.KERBEROS_CREDENTIALS_SERVICE, "kerb");
+
+        testRunner.run(1, false);
+
+        final MockPutKudu proc = (MockPutKudu) testRunner.getProcessor();
+        assertTrue(proc.loggedIn());
+        assertFalse(proc.loggedOut());
+
+        testRunner.run(1, true, false);
+        assertTrue(proc.loggedOut());
+    }
+
+    @Test
+    public void testInsecureClient() throws InitializationException {
+        createRecordReader(1);
+
+        testRunner.run(1, false);
+
+        final MockPutKudu proc = (MockPutKudu) testRunner.getProcessor();
+        assertFalse(proc.loggedIn());
+        assertFalse(proc.loggedOut());
+
+        testRunner.run(1, true, false);
+        assertFalse(proc.loggedOut());
+    }
+
 
     @Test
     public void testInvalidReaderShouldRouteToFailure() throws InitializationException, SchemaNotFoundException, MalformedRecordException, IOException {
@@ -246,23 +288,6 @@ public class TestPutKudu {
         testRunner.assertAllFlowFilesTransferred(PutKudu.REL_FAILURE, 1);
     }
 
-    @Test
-    public void testSkipHeadLineTrue() throws InitializationException, IOException {
-        createRecordReader(100);
-        testRunner.setProperty(PutKudu.SKIP_HEAD_LINE, "true");
-
-        final String filename = "testSkipHeadLineTrue-" + System.currentTimeMillis();
-
-        final Map<String,String> flowFileAttributes = new HashMap<>();
-        flowFileAttributes.put(CoreAttributes.FILENAME.key(), filename);
-
-        testRunner.enqueue("trigger", flowFileAttributes);
-        testRunner.run();
-        testRunner.assertAllFlowFilesTransferred(PutKudu.REL_SUCCESS, 1);
-
-        MockFlowFile flowFiles = testRunner.getFlowFilesForRelationship(PutKudu.REL_SUCCESS).get(0);
-        flowFiles.assertAttributeEquals(PutKudu.RECORD_COUNT_ATTR, "99");
-    }
 
     @Test
     public void testInsertManyFlowFiles() throws Exception {
@@ -306,54 +331,118 @@ public class TestPutKudu {
     }
 
     @Test
+    public void testDeleteFlowFiles() throws Exception {
+        createRecordReader(50);
+        testRunner.setProperty(PutKudu.INSERT_OPERATION, "${kudu.record.delete}");
+
+        final Map<String,String> attributes = new HashMap<>();
+        attributes.put("kudu.record.delete", "DELETE");
+
+        testRunner.enqueue("string".getBytes(), attributes);
+        testRunner.run();
+
+        testRunner.assertAllFlowFilesTransferred(PutKudu.REL_SUCCESS, 1);
+        MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(PutKudu.REL_SUCCESS).get(0);
+
+        flowFile.assertContentEquals("string".getBytes());
+        flowFile.assertAttributeEquals(PutKudu.RECORD_COUNT_ATTR, "50");
+    }
+
+    @Test
+    public void testUpdateFlowFiles() throws Exception {
+        createRecordReader(50);
+        testRunner.setProperty(PutKudu.INSERT_OPERATION, "${kudu.record.update}");
+
+        final Map<String,String> attributes = new HashMap<>();
+        attributes.put("kudu.record.update", "UPDATE");
+
+        testRunner.enqueue("string".getBytes(), attributes);
+        testRunner.run();
+
+        testRunner.assertAllFlowFilesTransferred(PutKudu.REL_SUCCESS, 1);
+        MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(PutKudu.REL_SUCCESS).get(0);
+
+        flowFile.assertContentEquals("string".getBytes());
+        flowFile.assertAttributeEquals(PutKudu.RECORD_COUNT_ATTR, "50");
+    }
+
+    @Test
     public void testBuildRow() {
-        buildPartialRow((long) 1, "foo", (short) 10);
+        buildPartialRow((long) 1, "foo", (short) 10, "id", "id", false);
     }
 
     @Test
     public void testBuildPartialRowNullable() {
-        buildPartialRow((long) 1, null, (short) 10);
+        buildPartialRow((long) 1, null, (short) 10, "id", "id",  false);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testBuildPartialRowNullPrimaryKey() {
-        buildPartialRow(null, "foo", (short) 10);
+        buildPartialRow(null, "foo", (short) 10, "id", "id",  false);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testBuildPartialRowNotNullable() {
-        buildPartialRow((long) 1, "foo", null);
+        buildPartialRow((long) 1, "foo", null, "id", "id", false);
     }
 
-    private void buildPartialRow(Long id, String name, Short age) {
+    @Test
+    public void testBuildPartialRowLowercaseFields() {
+        PartialRow row = buildPartialRow((long) 1, "foo", (short) 10, "id", "ID", true);
+        row.getLong("id");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testBuildPartialRowLowercaseFieldsFalse() {
+        PartialRow row = buildPartialRow((long) 1, "foo", (short) 10, "id", "ID", false);
+        row.getLong("id");
+    }
+
+    @Test
+    public void testBuildPartialRowLowercaseFieldsKuduUpper() {
+        PartialRow row = buildPartialRow((long) 1, "foo", (short) 10, "ID", "ID", false);
+        row.getLong("ID");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testBuildPartialRowLowercaseFieldsKuduUpperFail() {
+        PartialRow row = buildPartialRow((long) 1, "foo", (short) 10, "ID", "ID", true);
+        row.getLong("ID");
+    }
+
+    private PartialRow buildPartialRow(Long id, String name, Short age, String kuduIdName, String recordIdName, Boolean lowercaseFields) {
         final Schema kuduSchema = new Schema(Arrays.asList(
-            new ColumnSchemaBuilder("id", Type.INT64).key(true).build(),
-            new ColumnSchemaBuilder("name", Type.STRING).nullable(true).build(),
-            new ColumnSchemaBuilder("age", Type.INT16).nullable(false).build(),
-            new ColumnSchemaBuilder("updated_at", Type.UNIXTIME_MICROS).nullable(false).build(),
-            new ColumnSchemaBuilder("score", Type.DECIMAL).nullable(true).typeAttributes(
+            new ColumnSchema.ColumnSchemaBuilder(kuduIdName, Type.INT64).key(true).build(),
+            new ColumnSchema.ColumnSchemaBuilder("name", Type.STRING).nullable(true).build(),
+            new ColumnSchema.ColumnSchemaBuilder("age", Type.INT16).nullable(false).build(),
+            new ColumnSchema.ColumnSchemaBuilder("updated_at", Type.UNIXTIME_MICROS).nullable(false).build(),
+            new ColumnSchema.ColumnSchemaBuilder("score", Type.DECIMAL).nullable(true).typeAttributes(
                 new ColumnTypeAttributes.ColumnTypeAttributesBuilder().precision(9).scale(0).build()
             ).build()));
 
         final RecordSchema schema = new SimpleRecordSchema(Arrays.asList(
-            new RecordField("id", RecordFieldType.BIGINT.getDataType()),
+            new RecordField(recordIdName, RecordFieldType.BIGINT.getDataType()),
             new RecordField("name", RecordFieldType.STRING.getDataType()),
             new RecordField("age", RecordFieldType.SHORT.getDataType()),
             new RecordField("updated_at", RecordFieldType.BIGINT.getDataType()),
             new RecordField("score", RecordFieldType.LONG.getDataType())));
 
         Map<String, Object> values = new HashMap<>();
-        values.put("id", id);
+        PartialRow row = kuduSchema.newPartialRow();
+        values.put(recordIdName, id);
         values.put("name", name);
         values.put("age", age);
         values.put("updated_at", System.currentTimeMillis() * 1000);
         values.put("score", 10000L);
-        new PutKudu().buildPartialRow(
+        processor.buildPartialRow(
             kuduSchema,
-            kuduSchema.newPartialRow(),
+            row,
             new MapRecord(schema, values),
-            schema.getFieldNames()
+            schema.getFieldNames(),
+                true,
+            lowercaseFields
         );
+        return row;
     }
 
     private Tuple<Insert, OperationResponse> insert(boolean success) {
@@ -372,12 +461,12 @@ public class TestPutKudu {
         EXCEPTION
     }
 
-    private LinkedList<OperationResponse> queueInsert(MockPutKudu kudu, KuduSession session, boolean sync, ResultCode... results) throws Exception {
+    private LinkedList<OperationResponse> queueInsert(MockPutKudu putKudu, KuduSession session, boolean sync, ResultCode... results) throws Exception {
         LinkedList<OperationResponse> responses = new LinkedList<>();
         for (ResultCode result : results) {
             boolean ok = result == OK;
             Tuple<Insert, OperationResponse> tuple = insert(ok);
-            kudu.queue(tuple.getKey());
+            putKudu.queue(tuple.getKey());
 
             if (result == EXCEPTION) {
                 when(session.apply(tuple.getKey())).thenThrow(mock(KuduException.class));
@@ -499,11 +588,13 @@ public class TestPutKudu {
         setUpTestRunner(testRunner);
         testRunner.setProperty(PutKudu.FLUSH_MODE, flushMode.name());
         testRunner.setProperty(PutKudu.BATCH_SIZE, String.valueOf(batchSize));
+        testRunner.setProperty(PutKudu.FLOWFILE_BATCH_SIZE, String.valueOf(batchSize));
 
         IntStream.range(0, numFlowFiles).forEach(i -> testRunner.enqueue(""));
         testRunner.run(numFlowFiles);
 
         testRunner.assertTransferCount(PutKudu.REL_FAILURE, 3);
+
         List<MockFlowFile> failedFlowFiles = testRunner.getFlowFilesForRelationship(PutKudu.REL_FAILURE);
         failedFlowFiles.get(0).assertAttributeEquals(PutKudu.RECORD_COUNT_ATTR, "2");
         failedFlowFiles.get(1).assertAttributeEquals(PutKudu.RECORD_COUNT_ATTR, sync ? "1" : "2");
@@ -533,5 +624,25 @@ public class TestPutKudu {
     @Test
     public void testKuduPartialFailuresOnManualFlush() throws Exception {
         testKuduPartialFailure(FlushMode.MANUAL_FLUSH);
+    }
+
+    public static class MockKerberosCredentialsService extends AbstractControllerService implements KerberosCredentialsService {
+        private final String keytab;
+        private final String principal;
+
+        public MockKerberosCredentialsService(final String keytab, final String principal) {
+            this.keytab = keytab;
+            this.principal = principal;
+        }
+
+        @Override
+        public String getKeytab() {
+            return keytab;
+        }
+
+        @Override
+        public String getPrincipal() {
+            return principal;
+        }
     }
 }

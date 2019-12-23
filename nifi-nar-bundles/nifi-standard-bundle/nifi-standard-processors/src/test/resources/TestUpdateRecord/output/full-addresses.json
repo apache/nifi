@@ -1,0 +1,13 @@
+[ {
+  "addresses" : [ {
+    "street" : "1234 My Street",
+    "city" : "My City",
+    "state" : "MS",
+    "full" : "1234 My Street My City MS"
+  }, {
+    "street" : "4321 Your Street",
+    "city" : "Your City",
+    "state" : "YS",
+    "full" : "4321 Your Street Your City YS"
+  } ]
+} ]

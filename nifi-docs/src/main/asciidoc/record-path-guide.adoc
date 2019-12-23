@@ -3,7 +3,7 @@
 // contributor license agreements.  See the NOTICE file distributed with
 // this work for additional information regarding copyright ownership.
 // The ASF licenses this file to You under the Apache License, Version 2.0
-// (the "License"); you may not use this file except in compliance with
+// (the "License"); you may not use this file except ixn compliance with
 // the License.  You may obtain a copy of the License at
 //
 //     http://www.apache.org/licenses/LICENSE-2.0
@@ -494,13 +494,15 @@ and a record such as:
 ----
 {
   "name" : "My Event",
-  "eventDate" : "2017-10-20'T'11:00:00'Z'"
+  "eventDate" : "2017-10-20T00:00:00Z"
 }
 ----
 
 The following record path would parse the eventDate field into a Date:
 
 `toDate( /eventDate, "yyyy-MM-dd'T'HH:mm:ss'Z'")`
+
+`toDate( /eventDate, "yyyy-MM-dd'T'HH:mm:ss'Z'", "GMT+8:00")`
 
 === toString
 
@@ -561,10 +563,11 @@ The following record path would convert the String field into a byte array using
 
 === format
 
-Converts a Date to a String in the given format.
+Converts a Date to a String in the given format with the given time zone(optional, default time zone is GMT).
 
 The first argument to this function must be a Date or a Number, and the second argument must be a format String that
-follows the Java SimpleDateFormat.
+follows the Java SimpleDateFormat, and the third argument, optional, must be a format String that
+either an abbreviation such as "PST", a full name such as "America/Los_Angeles", or a custom ID such as "GMT-8:00"
 
 For example, given a schema such as:
 
@@ -592,8 +595,10 @@ The following record path expressions would format the date as a String:
 
 |==========================================================
 | RecordPath | Return value
-| `format( /eventDate, "yyyy-MM-dd'T'HH:mm:ss'Z'")` | 2017-10-20'T'11:00:00'Z'
+| `format( /eventDate, "yyyy-MM-dd'T'HH:mm:ss'Z'")` | 2017-10-20T00:00:00Z
 | `format( /eventDate, "yyyy-MM-dd")` | 2017-10-20
+| `format( /eventDate, "yyyy-MM-dd HH:mm:ss Z", "GMT+8:00")` | 2017-10-20 08:00:00 +0800
+| `format( /eventDate, "yyyy-MM-dd", "GMT+8:00")` | 2017-10-20 
 |==========================================================
 
 In the case where the field is declared as a String, the toDate function must be called before formatting.
@@ -616,7 +621,7 @@ and a record such as:
 ----
 {
   "name" : "My Event",
-  "eventDate" : "2017-10-20'T'11:00:00'Z'"
+  "eventDate" : "2017-10-20T00:00:00Z"
 }
 ----
 
@@ -625,6 +630,94 @@ The following record path expression would re-format the date String:
 |==========================================================
 | RecordPath | Return value
 | `format( toDate(/eventDate, "yyyy-MM-dd'T'HH:mm:ss'Z'"), 'yyyy-MM-dd')` | 2017-10-20
+|==========================================================
+
+=== trim
+
+Removes whitespace from the start and end of a string.
+
+----
+{
+  "type": "record",
+  "name": "events",
+  "fields": [
+    { "name": "name", "type": "string" }
+  ]
+}
+----
+
+and a record such as:
+
+----
+{
+  "name" : "    John Smith    "
+}
+----
+
+The following record path expression would remove extraneous whitespace:
+
+|==========================================================
+| RecordPath | Return value
+| `trim(/name)` | John Smith
+|==========================================================
+
+
+=== toUpperCase
+
+Change the entire String to upper case
+
+----
+{
+  "type": "record",
+  "name": "events",
+  "fields": [
+    { "name": "fullName", "type": "string" }
+  ]
+}
+----
+
+and a record such as:
+
+----
+{
+  "fullName" : "john smith"
+}
+----
+
+The following record path expression would remove extraneous whitespace:
+
+|==========================================================
+| RecordPath | Return value
+| `toUpperCase(/name)` | JOHN SMITH
+|==========================================================
+
+=== toLowerCase
+
+Changes the entire string to lower case.
+
+----
+{
+  "type": "record",
+  "name": "events",
+  "fields": [
+    { "name": "message", "type": "string" }
+  ]
+}
+----
+
+and a record such as:
+
+----
+{
+  "name" : "hEllO wORLd"
+}
+----
+
+The following record path expression would remove extraneous whitespace:
+
+|==========================================================
+| RecordPath | Return value
+| `trim(/message)` | hello world
 |==========================================================
 
 === base64Encode
@@ -684,6 +777,67 @@ The following record path expression would decode the String using Base64:
 | RecordPath | Return value
 | `base64Decode(/name)` | John
 |==========================================================
+
+=== PadLeft
+
+Prepends characters to the input String until it reaches the desired length.
+
+----
+{
+  "type": "record",
+  "name": "events",
+  "fields": [
+    { "name": "name", "type": "string" }
+  ]
+}
+----
+
+and a record such as:
+
+----
+{
+  "name" : "john smith"
+}
+----
+
+The following record path expression would prepend '@' characters to the input String:
+
+|==========================================================
+| RecordPath | Return value
+| `padLeft(/name, 15, '@')` | @@@@@john smith
+|==========================================================
+
+
+
+=== PadRight
+
+Appends characters to the input String until it reaches the desired length.
+
+----
+{
+  "type": "record",
+  "name": "events",
+  "fields": [
+    { "name": "name", "type": "string" }
+  ]
+}
+----
+
+and a record such as:
+
+----
+{
+  "name" : "john smith"
+}
+----
+
+The following record path expression would append '@' characters to the input String:
+
+|==========================================================
+| RecordPath | Return value
+| `padRight(/name, 15, '@')` | john smith@@@@@
+|==========================================================
+
 
 
 [[filter_functions]]

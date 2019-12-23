@@ -13,4 +13,5 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 org.apache.nifi.elasticsearch.ElasticSearchLookupService
+org.apache.nifi.elasticsearch.ElasticSearchStringLookupService
 org.apache.nifi.elasticsearch.ElasticSearchClientServiceImpl

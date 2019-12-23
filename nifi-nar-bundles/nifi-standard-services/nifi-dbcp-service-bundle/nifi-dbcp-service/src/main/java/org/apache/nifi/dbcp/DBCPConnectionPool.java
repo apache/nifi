@@ -25,19 +25,19 @@ import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.components.Validator;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.kerberos.KerberosCredentialsService;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.util.FormatUtils;
+import org.apache.nifi.security.krb.KerberosAction;
+import org.apache.nifi.security.krb.KerberosKeytabUser;
 import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
 
+import javax.security.auth.login.LoginException;
 import java.net.MalformedURLException;
 import java.sql.Connection;
 import java.sql.Driver;
@@ -47,7 +47,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.regex.Pattern;
 
 /**
  * Implementation of for Database Connection Pooling Service. Apache DBCP is used for connection pooling functionality.
@@ -62,57 +61,30 @@ import java.util.regex.Pattern;
 public class DBCPConnectionPool extends AbstractControllerService implements DBCPService {
 
     /**
-     * Copied from {@link GenericObjectPoolConfig.DEFAULT_MIN_IDLE} in Commons-DBCP 2.5.0
+     * Copied from {@link GenericObjectPoolConfig.DEFAULT_MIN_IDLE} in Commons-DBCP 2.7.0
      */
     private static final String DEFAULT_MIN_IDLE = "0";
     /**
-     * Copied from {@link GenericObjectPoolConfig.DEFAULT_MAX_IDLE} in Commons-DBCP 2.5.0
+     * Copied from {@link GenericObjectPoolConfig.DEFAULT_MAX_IDLE} in Commons-DBCP 2.7.0
      */
     private static final String DEFAULT_MAX_IDLE = "8";
     /**
-     * Copied from private variable {@link BasicDataSource.maxConnLifetimeMillis} in Commons-DBCP 2.5.0
+     * Copied from private variable {@link BasicDataSource.maxConnLifetimeMillis} in Commons-DBCP 2.7.0
      */
     private static final String DEFAULT_MAX_CONN_LIFETIME = "-1";
     /**
-     * Copied from {@link GenericObjectPoolConfig.DEFAULT_TIME_BETWEEN_EVICTION_RUNS_MILLIS} in Commons-DBCP 2.5.0
+     * Copied from {@link GenericObjectPoolConfig.DEFAULT_TIME_BETWEEN_EVICTION_RUNS_MILLIS} in Commons-DBCP 2.7.0
      */
     private static final String DEFAULT_EVICTION_RUN_PERIOD = String.valueOf(-1L);
     /**
-     * Copied from {@link GenericObjectPoolConfig.DEFAULT_MIN_EVICTABLE_IDLE_TIME_MILLIS} in Commons-DBCP 2.5.0
+     * Copied from {@link GenericObjectPoolConfig.DEFAULT_MIN_EVICTABLE_IDLE_TIME_MILLIS} in Commons-DBCP 2.7.0
      * and converted from 1800000L to "1800000 millis" to "30 mins"
      */
     private static final String DEFAULT_MIN_EVICTABLE_IDLE_TIME = "30 mins";
     /**
-     * Copied from {@link GenericObjectPoolConfig.DEFAULT_SOFT_MIN_EVICTABLE_IDLE_TIME_MILLIS} in Commons-DBCP 2.5.0
+     * Copied from {@link GenericObjectPoolConfig.DEFAULT_SOFT_MIN_EVICTABLE_IDLE_TIME_MILLIS} in Commons-DBCP 2.7.0
      */
     private static final String DEFAULT_SOFT_MIN_EVICTABLE_IDLE_TIME = String.valueOf(-1L);
-
-    private static final Validator CUSTOM_TIME_PERIOD_VALIDATOR = new Validator() {
-        private final Pattern TIME_DURATION_PATTERN = Pattern.compile(FormatUtils.TIME_DURATION_REGEX);
-
-        @Override
-        public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
-            if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input)) {
-                return new ValidationResult.Builder().subject(subject).input(input).explanation("Expression Language Present").valid(true).build();
-            }
-
-            if (input == null) {
-                return new ValidationResult.Builder().subject(subject).input(input).valid(false).explanation("Time Period cannot be null").build();
-            }
-            if (TIME_DURATION_PATTERN.matcher(input.toLowerCase()).matches() || input.equals("-1")) {
-                return new ValidationResult.Builder().subject(subject).input(input).valid(true).build();
-            } else {
-                return new ValidationResult.Builder()
-                        .subject(subject)
-                        .input(input)
-                        .valid(false)
-                        .explanation("Must be of format <duration> <TimeUnit> where <duration> is a "
-                                + "non-negative integer and TimeUnit is a supported Time Unit, such "
-                                + "as: nanos, millis, secs, mins, hrs, days")
-                        .build();
-            }
-        }
-    };
 
     public static final PropertyDescriptor DATABASE_URL = new PropertyDescriptor.Builder()
         .name("Database Connection URL")
@@ -167,7 +139,8 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
             + " for a connection to be returned before failing, or -1 to wait indefinitely. ")
         .defaultValue("500 millis")
         .required(true)
-        .addValidator(CUSTOM_TIME_PERIOD_VALIDATOR)
+        .addValidator(DBCPValidator.CUSTOM_TIME_PERIOD_VALIDATOR)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .sensitive(false)
         .build();
 
@@ -178,6 +151,7 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
         .defaultValue("8")
         .required(true)
         .addValidator(StandardValidators.INTEGER_VALIDATOR)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .sensitive(false)
         .build();
 
@@ -222,7 +196,7 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
                     "means the connection has an infinite lifetime.")
             .defaultValue(DEFAULT_MAX_CONN_LIFETIME)
             .required(false)
-            .addValidator(CUSTOM_TIME_PERIOD_VALIDATOR)
+            .addValidator(DBCPValidator.CUSTOM_TIME_PERIOD_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
@@ -233,7 +207,7 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
                     "non-positive, no idle connection evictor thread will be run.")
             .defaultValue(DEFAULT_EVICTION_RUN_PERIOD)
             .required(false)
-            .addValidator(CUSTOM_TIME_PERIOD_VALIDATOR)
+            .addValidator(DBCPValidator.CUSTOM_TIME_PERIOD_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
@@ -243,7 +217,7 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
             .description("The minimum amount of time a connection may sit idle in the pool before it is eligible for eviction.")
             .defaultValue(DEFAULT_MIN_EVICTABLE_IDLE_TIME)
             .required(false)
-            .addValidator(CUSTOM_TIME_PERIOD_VALIDATOR)
+            .addValidator(DBCPValidator.CUSTOM_TIME_PERIOD_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
@@ -259,8 +233,16 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
                     "constraint.")
             .defaultValue(DEFAULT_SOFT_MIN_EVICTABLE_IDLE_TIME)
             .required(false)
-            .addValidator(CUSTOM_TIME_PERIOD_VALIDATOR)
+            .addValidator(DBCPValidator.CUSTOM_TIME_PERIOD_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
+
+    public static final PropertyDescriptor KERBEROS_CREDENTIALS_SERVICE = new PropertyDescriptor.Builder()
+            .name("kerberos-credentials-service")
+            .displayName("Kerberos Credentials Service")
+            .description("Specifies the Kerberos Credentials Controller Service that should be used for authenticating with Kerberos")
+            .identifiesControllerService(KerberosCredentialsService.class)
+            .required(false)
             .build();
 
     private static final List<PropertyDescriptor> properties;
@@ -270,6 +252,7 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
         props.add(DATABASE_URL);
         props.add(DB_DRIVERNAME);
         props.add(DB_DRIVER_LOCATION);
+        props.add(KERBEROS_CREDENTIALS_SERVICE);
         props.add(DB_USER);
         props.add(DB_PASSWORD);
         props.add(MAX_WAIT_TIME);
@@ -286,6 +269,7 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
     }
 
     private volatile BasicDataSource dataSource;
+    private volatile KerberosKeytabUser kerberosUser;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -324,15 +308,25 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
         final String drv = context.getProperty(DB_DRIVERNAME).evaluateAttributeExpressions().getValue();
         final String user = context.getProperty(DB_USER).evaluateAttributeExpressions().getValue();
         final String passw = context.getProperty(DB_PASSWORD).evaluateAttributeExpressions().getValue();
-        final Integer maxTotal = context.getProperty(MAX_TOTAL_CONNECTIONS).asInteger();
+        final Integer maxTotal = context.getProperty(MAX_TOTAL_CONNECTIONS).evaluateAttributeExpressions().asInteger();
         final String validationQuery = context.getProperty(VALIDATION_QUERY).evaluateAttributeExpressions().getValue();
-        final Long maxWaitMillis = extractMillisWithInfinite(context.getProperty(MAX_WAIT_TIME));
-        final Integer minIdle = context.getProperty(MIN_IDLE).asInteger();
-        final Integer maxIdle = context.getProperty(MAX_IDLE).asInteger();
-        final Long maxConnLifetimeMillis = extractMillisWithInfinite(context.getProperty(MAX_CONN_LIFETIME));
-        final Long timeBetweenEvictionRunsMillis = extractMillisWithInfinite(context.getProperty(EVICTION_RUN_PERIOD));
-        final Long minEvictableIdleTimeMillis = extractMillisWithInfinite(context.getProperty(MIN_EVICTABLE_IDLE_TIME));
-        final Long softMinEvictableIdleTimeMillis = extractMillisWithInfinite(context.getProperty(SOFT_MIN_EVICTABLE_IDLE_TIME));
+        final Long maxWaitMillis = extractMillisWithInfinite(context.getProperty(MAX_WAIT_TIME).evaluateAttributeExpressions());
+        final Integer minIdle = context.getProperty(MIN_IDLE).evaluateAttributeExpressions().asInteger();
+        final Integer maxIdle = context.getProperty(MAX_IDLE).evaluateAttributeExpressions().asInteger();
+        final Long maxConnLifetimeMillis = extractMillisWithInfinite(context.getProperty(MAX_CONN_LIFETIME).evaluateAttributeExpressions());
+        final Long timeBetweenEvictionRunsMillis = extractMillisWithInfinite(context.getProperty(EVICTION_RUN_PERIOD).evaluateAttributeExpressions());
+        final Long minEvictableIdleTimeMillis = extractMillisWithInfinite(context.getProperty(MIN_EVICTABLE_IDLE_TIME).evaluateAttributeExpressions());
+        final Long softMinEvictableIdleTimeMillis = extractMillisWithInfinite(context.getProperty(SOFT_MIN_EVICTABLE_IDLE_TIME).evaluateAttributeExpressions());
+        final KerberosCredentialsService kerberosCredentialsService = context.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
+
+        if (kerberosCredentialsService != null) {
+            kerberosUser = new KerberosKeytabUser(kerberosCredentialsService.getPrincipal(), kerberosCredentialsService.getKeytab());
+            try {
+                kerberosUser.login();
+            } catch (LoginException e) {
+                throw new InitializationException("Unable to authenticate Kerberos principal", e);
+            }
+        }
 
         dataSource = new BasicDataSource();
         dataSource.setDriverClassName(drv);
@@ -410,20 +404,41 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
 
     /**
      * Shutdown pool, close all open connections.
+     * If a principal is authenticated with a KDC, that principal is logged out.
+     *
+     * If a @{@link LoginException} occurs while attempting to log out the @{@link org.apache.nifi.security.krb.KerberosUser},
+     * an attempt will still be made to shut down the pool and close open connections.
+     *
+     * @throws SQLException if there is an error while closing open connections
+     * @throws LoginException if there is an error during the principal log out, and will only be thrown if there was
+     * no exception while closing open connections
      */
     @OnDisabled
-    public void shutdown() {
+    public void shutdown() throws SQLException, LoginException {
         try {
-            dataSource.close();
-        } catch (final SQLException e) {
-            throw new ProcessException(e);
+            if (kerberosUser != null) {
+                kerberosUser.logout();
+            }
+        } finally {
+            kerberosUser = null;
+            try {
+                dataSource.close();
+            } finally {
+                dataSource = null;
+            }
         }
     }
 
     @Override
     public Connection getConnection() throws ProcessException {
         try {
-            final Connection con = dataSource.getConnection();
+            final Connection con;
+            if (kerberosUser != null) {
+                KerberosAction<Connection> kerberosAction = new KerberosAction<>(kerberosUser, () -> dataSource.getConnection(), getLogger());
+                con = kerberosAction.execute();
+            } else {
+                con = dataSource.getConnection();
+            }
             return con;
         } catch (final SQLException e) {
             throw new ProcessException(e);

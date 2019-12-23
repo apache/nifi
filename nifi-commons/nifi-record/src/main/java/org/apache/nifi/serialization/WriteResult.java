@@ -51,7 +51,7 @@ public interface WriteResult {
      * @param attributes the attributes to add to the FlowFile
      * @return A {@link WriteResult} representing the given parameters
      */
-    public static WriteResult of(final int recordCount, final Map<String, String> attributes) {
+    static WriteResult of(final int recordCount, final Map<String, String> attributes) {
         return new WriteResult() {
             @Override
             public int getRecordCount() {
@@ -65,5 +65,5 @@ public interface WriteResult {
         };
     }
 
-    public static final WriteResult EMPTY = of(0, Collections.emptyMap());
+    WriteResult EMPTY = of(0, Collections.emptyMap());
 }

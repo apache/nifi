@@ -56,4 +56,9 @@ public interface FlowFileSummary {
      * @return <code>true</code> if the FlowFile is penalized, <code>false</code> otherwise
      */
     boolean isPenalized();
+
+    /**
+     * @return the timestamp (in milliseconds since epoch) at which the FlowFiles Penalty Expires
+     */
+    long getPenaltyExpirationMillis();
 }

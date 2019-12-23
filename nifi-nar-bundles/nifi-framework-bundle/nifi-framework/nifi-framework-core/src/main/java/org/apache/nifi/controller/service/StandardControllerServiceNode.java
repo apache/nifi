@@ -16,25 +16,6 @@
  */
 package org.apache.nifi.controller.service;
 
-import java.lang.reflect.InvocationTargetException;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map.Entry;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.documentation.DeprecationNotice;
@@ -47,8 +28,7 @@ import org.apache.nifi.authorization.resource.ResourceType;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.components.validation.ValidationState;
+import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.components.validation.ValidationTrigger;
 import org.apache.nifi.controller.AbstractComponentNode;
 import org.apache.nifi.controller.ComponentNode;
@@ -63,13 +43,35 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
+import org.apache.nifi.parameter.ParameterContext;
+import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.processor.SimpleProcessLogger;
 import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.util.CharacterFilterUtils;
 import org.apache.nifi.util.ReflectionUtils;
+import org.apache.nifi.util.Tuple;
 import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.lang.reflect.InvocationTargetException;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map.Entry;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.stream.Collectors;
 
 public class StandardControllerServiceNode extends AbstractComponentNode implements ControllerServiceNode {
 
@@ -84,9 +86,9 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
     private final Lock readLock = rwLock.readLock();
     private final Lock writeLock = rwLock.writeLock();
 
-    private final Set<ComponentNode> referencingComponents = new HashSet<>();
-    private String comment;
-    private ProcessGroup processGroup;
+    private final Set<Tuple<ComponentNode, PropertyDescriptor>> referencingComponents = new HashSet<>();
+    private volatile String comment;
+    private volatile ProcessGroup processGroup;
 
     private final AtomicBoolean active;
 
@@ -210,50 +212,49 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
 
     @Override
     public ProcessGroup getProcessGroup() {
-        readLock.lock();
-        try {
-            return processGroup;
-        } finally {
-            readLock.unlock();
-        }
+        return processGroup;
     }
 
     @Override
     public void setProcessGroup(final ProcessGroup group) {
-        writeLock.lock();
-        try {
-            this.processGroup = group;
-            LOG.debug("Resetting Validation State of {} due to setting process group", this);
-            resetValidationState();
-        } finally {
-            writeLock.unlock();
-        }
+        this.processGroup = group;
+        LOG.debug("Resetting Validation State of {} due to setting process group", this);
+        resetValidationState();
     }
 
     @Override
     public ControllerServiceReference getReferences() {
         readLock.lock();
         try {
-            return new StandardControllerServiceReference(this, referencingComponents);
+            // In case a controller service is referenced multiple times by a component node, the latter is decoupled here
+            return new StandardControllerServiceReference(this, referencingComponents.stream().map(Tuple::getKey).collect(Collectors.toSet()));
         } finally {
             readLock.unlock();
         }
     }
 
     @Override
-    public void addReference(final ComponentNode referencingComponent) {
+    public void addReference(final ComponentNode referencingComponent, final PropertyDescriptor propertyDescriptor) {
         writeLock.lock();
         try {
-            referencingComponents.add(referencingComponent);
+            referencingComponents.add(new Tuple<>(referencingComponent, propertyDescriptor));
         } finally {
             writeLock.unlock();
         }
     }
 
+
+    @Override
+    protected ParameterContext getParameterContext() {
+        final ProcessGroup processGroup = getProcessGroup();
+        return processGroup == null ? null : processGroup.getParameterContext();
+    }
+
+
     @Override
     public List<ControllerServiceNode> getRequiredControllerServices() {
         Set<ControllerServiceNode> requiredServices = new HashSet<>();
-        for (Entry<PropertyDescriptor, String> entry : getProperties().entrySet()) {
+        for (Entry<PropertyDescriptor, String> entry : getEffectivePropertyValues().entrySet()) {
             PropertyDescriptor descriptor = entry.getKey();
             if (descriptor.getControllerServiceDefinition() != null && entry.getValue() != null) {
                 ControllerServiceNode requiredNode = serviceProvider.getControllerServiceNode(entry.getValue());
@@ -265,10 +266,10 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
 
 
     @Override
-    public void removeReference(final ComponentNode referencingComponent) {
+    public void removeReference(final ComponentNode referencingComponent, final PropertyDescriptor propertyDescriptor) {
         writeLock.lock();
         try {
-            referencingComponents.remove(referencingComponent);
+            referencingComponents.remove(new Tuple<>(referencingComponent, propertyDescriptor));
         } finally {
             writeLock.unlock();
         }
@@ -290,7 +291,7 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
 
     @Override
     public void verifyCanDisable() {
-        verifyCanDisable(Collections.<ControllerServiceNode>emptySet());
+        verifyCanDisable(Collections.emptySet());
     }
 
     @Override
@@ -319,25 +320,12 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
         if (getState() != ControllerServiceState.DISABLED) {
             throw new IllegalStateException(getControllerServiceImplementation().getIdentifier() + " cannot be enabled because it is not disabled");
         }
-
-        final ValidationState validationState = getValidationState();
-        switch (validationState.getStatus()) {
-            case INVALID:
-                throw new IllegalStateException(getControllerServiceImplementation().getIdentifier() + " cannot be enabled because it is not valid: " + validationState.getValidationErrors());
-            case VALIDATING:
-                throw new IllegalStateException(getControllerServiceImplementation().getIdentifier() + " cannot be enabled because its validation has not yet completed");
-        }
     }
 
     @Override
     public void verifyCanEnable(final Set<ControllerServiceNode> ignoredReferences) {
         if (getState() != ControllerServiceState.DISABLED) {
             throw new IllegalStateException(getControllerServiceImplementation().getIdentifier() + " cannot be enabled because it is not disabled");
-        }
-
-        final Collection<ValidationResult> validationErrors = getValidationErrors(ignoredReferences);
-        if (ignoredReferences != null && !validationErrors.isEmpty()) {
-            throw new IllegalStateException("Controller Service with ID " + getIdentifier() + " cannot be enabled because it is not currently valid: " + validationErrors);
         }
     }
 
@@ -355,22 +343,12 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
 
     @Override
     public String getComments() {
-        readLock.lock();
-        try {
-            return comment;
-        } finally {
-            readLock.unlock();
-        }
+        return comment;
     }
 
     @Override
     public void setComments(final String comment) {
-        writeLock.lock();
-        try {
-            this.comment = CharacterFilterUtils.filterInvalidXmlCharacters(comment);
-        } finally {
-            writeLock.unlock();
-        }
+        this.comment = CharacterFilterUtils.filterInvalidXmlCharacters(comment);
     }
 
     @Override
@@ -389,8 +367,11 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
             case DISABLED:
             case DISABLING:
                 return true;
-            case ENABLED:
             case ENABLING:
+                // If enabling and currently not valid, then we must trigger validation to occur. This allows the #enable method
+                // to continue running in the background and complete enabling when the service becomes valid.
+                return getValidationStatus() != ValidationStatus.VALID;
+            case ENABLED:
             default:
                 return false;
         }
@@ -398,7 +379,7 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
 
     /**
      * Will atomically enable this service by invoking its @OnEnabled operation.
-     * It uses CAS operation on {@link #stateRef} to transition this service
+     * It uses CAS operation on {@link #stateTransition} to transition this service
      * from DISABLED to ENABLING state. If such transition succeeds the service
      * will be marked as 'active' (see {@link ControllerServiceNode#isActive()}).
      * If such transition doesn't succeed then no enabling logic will be
@@ -424,11 +405,28 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
                 this.active.set(true);
             }
 
+            final ControllerServiceProvider controllerServiceProvider = this.serviceProvider;
             final StandardControllerServiceNode service = this;
-            final ConfigurationContext configContext = new StandardConfigurationContext(this, this.serviceProvider, null, getVariableRegistry());
             scheduler.execute(new Runnable() {
                 @Override
                 public void run() {
+                    final ConfigurationContext configContext = new StandardConfigurationContext(StandardControllerServiceNode.this, controllerServiceProvider, null, getVariableRegistry());
+
+                    if (!isActive()) {
+                        LOG.warn("{} is no longer active so will no longer attempt to enable it", StandardControllerServiceNode.this);
+                        stateTransition.disable();
+                        future.complete(null);
+                        return;
+                    }
+
+                    final ValidationStatus validationStatus = getValidationStatus();
+                    if (validationStatus != ValidationStatus.VALID) {
+                        LOG.debug("Cannot enable {} because it is not currently valid. (Validation State is {}). Will try again in 1 second", StandardControllerServiceNode.this, getValidationState());
+                        scheduler.schedule(this, 1, TimeUnit.SECONDS);
+                        future.complete(null);
+                        return;
+                    }
+
                     try {
                         try (final NarCloseable nc = NarCloseable.withComponentNarLoader(getExtensionManager(), getControllerServiceImplementation().getClass(), getIdentifier())) {
                             ReflectionUtils.invokeMethodsWithAnnotation(OnEnabled.class, getControllerServiceImplementation(), configContext);
@@ -436,17 +434,18 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
 
                         boolean shouldEnable;
                         synchronized (active) {
-                            shouldEnable = active.get() && stateTransition.enable();
+                            shouldEnable = active.get() && stateTransition.enable(); // Transitioning the state to ENABLED will complete our future.
                         }
 
                         if (!shouldEnable) {
-                            LOG.debug("Disabling service {} after it has been enabled due to disable action being initiated.", service);
+                            LOG.info("Disabling service {} after it has been enabled due to disable action being initiated.", service);
                             // Can only happen if user initiated DISABLE operation before service finished enabling. It's state will be
                             // set to DISABLING (see disable() operation)
                             invokeDisable(configContext);
                             stateTransition.disable();
+                            future.complete(null);
                         } else {
-                            LOG.debug("Successfully enabled {}", service);
+                            LOG.info("Successfully enabled {}", service);
                         }
                     } catch (Exception e) {
                         future.completeExceptionally(e);
@@ -478,7 +477,7 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
 
     /**
      * Will atomically disable this service by invoking its @OnDisabled operation.
-     * It uses CAS operation on {@link #stateRef} to transition this service
+     * It uses CAS operation on {@link #stateTransition} to transition this service
      * from ENABLED to DISABLING state. If such transition succeeds the service
      * will be de-activated (see {@link ControllerServiceNode#isActive()}).
      * If such transition doesn't succeed (the service is still in ENABLING state)
@@ -568,5 +567,22 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
                 throw new IllegalStateException(this + " is already under version control");
             }
         }
+    }
+
+    @Override
+    public String toString() {
+        final ControllerServiceDetails details = controllerServiceHolder.get();
+        final String bundleCoordinate = details == null ? "null" : String.valueOf(details.getBundleCoordinate());
+        return "StandardControllerServiceNode[" +
+                "service=" + super.toString() +
+                ", versionedComponentId=" + versionedComponentId +
+                ", processGroup=" + processGroup +
+                ", active=" + active +
+                ']';
+    }
+
+    @Override
+    public ParameterLookup getParameterLookup() {
+        return getParameterContext();
     }
 }

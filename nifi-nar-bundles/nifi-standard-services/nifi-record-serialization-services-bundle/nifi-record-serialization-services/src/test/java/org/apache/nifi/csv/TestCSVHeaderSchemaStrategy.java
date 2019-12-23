@@ -40,7 +40,7 @@ public class TestCSVHeaderSchemaStrategy {
 
     @Test
     public void testSimple() throws SchemaNotFoundException, IOException {
-        final String headerLine = "a, b, c, d, e\\,z, f";
+        final String headerLine = "\"a\", b, c, d, e\\,z, f";
         final byte[] headerBytes = headerLine.getBytes();
 
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
@@ -64,6 +64,39 @@ public class TestCSVHeaderSchemaStrategy {
 
         assertTrue(schema.getFields().stream()
             .allMatch(field -> field.getDataType().equals(RecordFieldType.STRING.getDataType())));
+    }
+
+    @Test
+    public void testWithEL() throws SchemaNotFoundException, IOException {
+        final String headerLine = "\'a\'; b; c; d; e^;z; f";
+        final byte[] headerBytes = headerLine.getBytes();
+
+        final Map<PropertyDescriptor, String> properties = new HashMap<>();
+        properties.put(CSVUtils.CSV_FORMAT, CSVUtils.CUSTOM.getValue());
+        properties.put(CSVUtils.COMMENT_MARKER, "#");
+        properties.put(CSVUtils.VALUE_SEPARATOR, "${csv.delimiter}");
+        properties.put(CSVUtils.TRIM_FIELDS, "true");
+        properties.put(CSVUtils.QUOTE_CHAR, "${csv.quote}");
+        properties.put(CSVUtils.ESCAPE_CHAR, "${csv.escape}");
+
+        final Map<String, String> variables = new HashMap<>();
+        variables.put("csv.delimiter", ";");
+        variables.put("csv.quote", "'");
+        variables.put("csv.escape", "^");
+
+        final ConfigurationContext context = new MockConfigurationContext(properties, null);
+        final CSVHeaderSchemaStrategy strategy = new CSVHeaderSchemaStrategy(context);
+
+        final RecordSchema schema;
+        try (final InputStream bais = new ByteArrayInputStream(headerBytes)) {
+            schema = strategy.getSchema(variables, bais, null);
+        }
+
+        final List<String> expectedFieldNames = Arrays.asList("a", "b", "c", "d", "e;z", "f");
+        assertEquals(expectedFieldNames, schema.getFieldNames());
+
+        assertTrue(schema.getFields().stream()
+                .allMatch(field -> field.getDataType().equals(RecordFieldType.STRING.getDataType())));
     }
 
 }

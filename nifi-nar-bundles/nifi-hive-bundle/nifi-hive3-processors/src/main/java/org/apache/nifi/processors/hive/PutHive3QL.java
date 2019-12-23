@@ -205,7 +205,7 @@ public class PutHive3QL extends AbstractHive3QLProcessor {
         }
     }
 
-    private InitConnection<FunctionContext, Connection> initConnection = (context, session, fc, ff) -> {
+    private InitConnection<FunctionContext, Connection> initConnection = (context, session, fc, ffs) -> {
         final Hive3DBCPService dbcpService = context.getProperty(HIVE_DBCP_SERVICE).asControllerService(Hive3DBCPService.class);
         final Connection connection = dbcpService.getConnection();
         fc.connectionUrl = dbcpService.getConnectionURL();
@@ -280,6 +280,9 @@ public class PutHive3QL extends AbstractHive3QLProcessor {
                 case Retry:
                     getLogger().error("Failed to update Hive for {} due to {}; it is possible that retrying the operation will succeed, so routing to retry",
                             new Object[] {i, e}, e);
+                    break;
+                case Self:
+                    getLogger().error("Failed to update Hive for {} due to {};", new Object[] {i, e}, e);
                     break;
             }
         });

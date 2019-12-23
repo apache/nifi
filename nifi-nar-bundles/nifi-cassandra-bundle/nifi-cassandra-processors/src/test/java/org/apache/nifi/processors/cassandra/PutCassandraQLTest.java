@@ -43,9 +43,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyLong;
-import static org.mockito.Matchers.anyString;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -314,7 +314,7 @@ public class PutCassandraQLTest {
 
         @Override
         protected Cluster createCluster(List<InetSocketAddress> contactPoints, SSLContext sslContext,
-                                        String username, String password) {
+                                        String username, String password, String compressionType) {
             Cluster mockCluster = mock(Cluster.class);
             try {
                 Metadata mockMetadata = mock(Metadata.class);

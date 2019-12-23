@@ -241,4 +241,19 @@ public class PutSlackTest {
             + "integration-test-webhook%22%2C%22icon_url%22%3A%22http%3A%2F%2Florempixel.com%2F48%2F48%2F%22%7D";
         assertTrue(Arrays.equals(expected.getBytes(), servlet.getLastPost()));
     }
+
+    @Test
+    public void testSimplePutWithEL() {
+        testRunner.setProperty(PutSlack.WEBHOOK_URL, "${slack.url}");
+        testRunner.setProperty(PutSlack.WEBHOOK_TEXT, PutSlackTest.WEBHOOK_TEST_TEXT);
+
+        testRunner.enqueue(new byte[0], new HashMap<String,String>(){{
+            put("slack.url", server.getUrl());
+        }});
+        testRunner.run(1);
+        testRunner.assertAllFlowFilesTransferred(PutSlack.REL_SUCCESS, 1);
+
+        byte[] expected = "payload=%7B%22text%22%3A%22Hello+From+Apache+NiFi%22%7D".getBytes();
+        assertTrue(Arrays.equals(expected, servlet.getLastPost()));
+    }
 }

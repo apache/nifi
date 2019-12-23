@@ -16,8 +16,10 @@
  */
 package org.apache.nifi.remote;
 
+import org.apache.nifi.attribute.expression.language.EvaluationContext;
 import org.apache.nifi.attribute.expression.language.PreparedQuery;
 import org.apache.nifi.attribute.expression.language.Query;
+import org.apache.nifi.attribute.expression.language.StandardEvaluationContext;
 import org.apache.nifi.attribute.expression.language.exception.AttributeExpressionLanguageParsingException;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.util.NiFiProperties;
@@ -64,17 +66,19 @@ public class PeerDescriptionModifier {
         }
 
         private PeerDescription getTarget(final Map<String, String> variables) {
-            final String targetHostName = hostname.evaluateExpressions(variables, null);
+            final EvaluationContext evaluationContext = new StandardEvaluationContext(variables);
+
+            final String targetHostName = hostname.evaluateExpressions(evaluationContext, null);
             if (isBlank(targetHostName)) {
                 throw new IllegalStateException("Target hostname was not resolved for the route definition " + name);
             }
 
-            final String targetPortStr = port.evaluateExpressions(variables, null);
+            final String targetPortStr = port.evaluateExpressions(evaluationContext, null);
             if (isBlank(targetPortStr)) {
                 throw new IllegalStateException("Target port was not resolved for the route definition " + name);
             }
 
-            final String targetIsSecure = secure == null ? null : secure.evaluateExpressions(variables, null);
+            final String targetIsSecure = secure == null ? null : secure.evaluateExpressions(evaluationContext, null);
             return new PeerDescription(targetHostName, Integer.valueOf(targetPortStr), Boolean.valueOf(targetIsSecure));
         }
     }
@@ -169,7 +173,7 @@ public class PeerDescriptionModifier {
         logger.debug("Modifying PeerDescription, variables={}", variables);
 
         return routes.get(protocol).stream().filter(r -> r.predicate == null
-                || Boolean.valueOf(r.predicate.evaluateExpressions(variables, null)))
+                || Boolean.valueOf(r.predicate.evaluateExpressions(new StandardEvaluationContext(variables), null)))
                 .map(r -> {
                     final PeerDescription t = r.getTarget(variables);
                     logger.debug("Route definition {} matched, {}", r.name, t);

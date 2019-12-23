@@ -22,7 +22,6 @@ import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.AtomicDouble;
-import com.yammer.metrics.core.VirtualMachineMetrics;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -34,6 +33,7 @@ import org.apache.nifi.controller.status.PortStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.metrics.jvm.JmxJvmMetrics;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.AbstractReportingTask;
 import org.apache.nifi.reporting.ReportingContext;
@@ -102,7 +102,7 @@ public class DataDogReportingTask extends AbstractReportingTask {
     private String statusId;
     private ConcurrentHashMap<String, AtomicDouble> metricsMap;
     private Map<String, String> defaultTags;
-    private volatile VirtualMachineMetrics virtualMachineMetrics;
+    private volatile JmxJvmMetrics virtualMachineMetrics;
     private Logger logger = LoggerFactory.getLogger(getClass().getName());
 
     @OnScheduled
@@ -113,7 +113,7 @@ public class DataDogReportingTask extends AbstractReportingTask {
         metricsMap = getMetricsMap();
         metricsPrefix = METRICS_PREFIX.getDefaultValue();
         environment = ENVIRONMENT.getDefaultValue();
-        virtualMachineMetrics = VirtualMachineMetrics.getInstance();
+        virtualMachineMetrics = JmxJvmMetrics.getInstance();
         ddMetricRegistryBuilder.setMetricRegistry(metricRegistry)
                 .setTags(metricsService.getAllTagsList());
     }

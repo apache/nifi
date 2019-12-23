@@ -17,21 +17,6 @@
 
 package org.apache.nifi.processors.kafka.pubsub;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.Collections;
-import java.util.concurrent.atomic.AtomicInteger;
-
 import org.apache.kafka.clients.producer.Callback;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -55,6 +40,21 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
+
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 
 public class TestPublisherLease {
@@ -95,7 +95,7 @@ public class TestPublisherLease {
         };
 
         try {
-            lease.publish(flowFile, failureInputStream, messageKey, demarcatorBytes, topic);
+            lease.publish(flowFile, failureInputStream, messageKey, demarcatorBytes, topic, null);
             Assert.fail("Expected IOException");
         } catch (final IOException ioe) {
             // expected
@@ -128,13 +128,13 @@ public class TestPublisherLease {
         doAnswer(new Answer<Object>() {
             @Override
             public Object answer(final InvocationOnMock invocation) throws Throwable {
-                final Callback callback = invocation.getArgumentAt(1, Callback.class);
+                final Callback callback = invocation.getArgument(1);
                 callback.onCompletion(null, new RuntimeException("Unit Test Intentional Exception"));
                 return null;
             }
         }).when(producer).send(any(ProducerRecord.class), any(Callback.class));
 
-        lease.publish(flowFile, new ByteArrayInputStream(new byte[1]), messageKey, demarcatorBytes, topic);
+        lease.publish(flowFile, new ByteArrayInputStream(new byte[1]), messageKey, demarcatorBytes, topic, null);
 
         assertEquals(1, poisonCount.get());
 
@@ -160,7 +160,7 @@ public class TestPublisherLease {
         doAnswer(new Answer<Object>() {
             @Override
             public Object answer(InvocationOnMock invocation) throws Throwable {
-                final ProducerRecord<byte[], byte[]> record = invocation.getArgumentAt(0, ProducerRecord.class);
+                final ProducerRecord<byte[], byte[]> record = invocation.getArgument(0);
                 final byte[] value = record.value();
                 final String valueString = new String(value, StandardCharsets.UTF_8);
                 if ("1234567890".equals(valueString)) {
@@ -179,16 +179,16 @@ public class TestPublisherLease {
         final byte[] demarcatorBytes = "\n".getBytes(StandardCharsets.UTF_8);
 
         final byte[] flowFileContent = "1234567890\n1234567890\n1234567890\n\n\n\n1234567890\n\n\n1234567890\n\n\n\n".getBytes(StandardCharsets.UTF_8);
-        lease.publish(flowFile, new ByteArrayInputStream(flowFileContent), messageKey, demarcatorBytes, topic);
+        lease.publish(flowFile, new ByteArrayInputStream(flowFileContent), messageKey, demarcatorBytes, topic, null);
 
         final byte[] flowFileContent2 = new byte[0];
-        lease.publish(new MockFlowFile(2L), new ByteArrayInputStream(flowFileContent2), messageKey, demarcatorBytes, topic);
+        lease.publish(new MockFlowFile(2L), new ByteArrayInputStream(flowFileContent2), messageKey, demarcatorBytes, topic, null);
 
         final byte[] flowFileContent3 = "1234567890\n1234567890".getBytes(StandardCharsets.UTF_8); // no trailing new line
-        lease.publish(new MockFlowFile(3L), new ByteArrayInputStream(flowFileContent3), messageKey, demarcatorBytes, topic);
+        lease.publish(new MockFlowFile(3L), new ByteArrayInputStream(flowFileContent3), messageKey, demarcatorBytes, topic, null);
 
         final byte[] flowFileContent4 = "\n\n\n".getBytes(StandardCharsets.UTF_8);
-        lease.publish(new MockFlowFile(4L), new ByteArrayInputStream(flowFileContent4), messageKey, demarcatorBytes, topic);
+        lease.publish(new MockFlowFile(4L), new ByteArrayInputStream(flowFileContent4), messageKey, demarcatorBytes, topic, null);
 
         assertEquals(0, poisonCount.get());
 
@@ -221,7 +221,7 @@ public class TestPublisherLease {
         doAnswer(new Answer<Object>() {
             @Override
             public Object answer(InvocationOnMock invocation) throws Throwable {
-                final ProducerRecord<byte[], byte[]> record = invocation.getArgumentAt(0, ProducerRecord.class);
+                final ProducerRecord<byte[], byte[]> record = invocation.getArgument(0);
                 final byte[] value = record.value();
                 final String valueString = new String(value, StandardCharsets.UTF_8);
                 if ("".equals(valueString)) {
@@ -240,7 +240,7 @@ public class TestPublisherLease {
         final byte[] demarcatorBytes = null;
 
         final byte[] flowFileContent = new byte[0];
-        lease.publish(flowFile, new ByteArrayInputStream(flowFileContent), messageKey, demarcatorBytes, topic);
+        lease.publish(flowFile, new ByteArrayInputStream(flowFileContent), messageKey, demarcatorBytes, topic, null);
 
         assertEquals(0, poisonCount.get());
 
@@ -266,7 +266,7 @@ public class TestPublisherLease {
         readerService.addSchemaField("name", RecordFieldType.STRING);
         readerService.addSchemaField("age", RecordFieldType.INT);
 
-        final RecordReader reader = readerService.createRecordReader(Collections.emptyMap(), new ByteArrayInputStream(exampleInput), logger);
+        final RecordReader reader = readerService.createRecordReader(Collections.emptyMap(), new ByteArrayInputStream(exampleInput), -1, logger);
         final RecordSet recordSet = reader.createRecordSet();
         final RecordSchema schema = reader.getSchema();
 
@@ -277,11 +277,11 @@ public class TestPublisherLease {
         final RecordSetWriter writer = Mockito.mock(RecordSetWriter.class);
         Mockito.when(writer.write(Mockito.any(Record.class))).thenReturn(WriteResult.of(1, Collections.emptyMap()));
 
-        Mockito.when(writerFactory.createWriter(eq(logger), eq(schema), any())).thenReturn(writer);
+        Mockito.when(writerFactory.createWriter(eq(logger), eq(schema), any(), eq(flowFile))).thenReturn(writer);
 
-        lease.publish(flowFile, recordSet, writerFactory, schema, keyField, topic);
+        lease.publish(flowFile, recordSet, writerFactory, schema, keyField, topic, null);
 
-        verify(writerFactory, times(2)).createWriter(eq(logger), eq(schema), any());
+        verify(writerFactory, times(2)).createWriter(eq(logger), eq(schema), any(), eq(flowFile));
         verify(writer, times(2)).write(any(Record.class));
         verify(producer, times(2)).send(any(), any());
     }

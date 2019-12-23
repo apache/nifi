@@ -710,7 +710,9 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
                     .forEach(pn -> pn.getProcessGroup().terminateProcessor(pn));
 
             // request to stop all remote process groups
-            flowManager.getRootGroup().findAllRemoteProcessGroups().forEach(RemoteProcessGroup::stopTransmitting);
+            flowManager.getRootGroup().findAllRemoteProcessGroups()
+                    .stream().filter(rpg -> rpg.isTransmitting())
+                    .forEach(RemoteProcessGroup::stopTransmitting);
 
             // offload all queues on node
             final Set<Connection> connections = flowManager.findAllConnections();

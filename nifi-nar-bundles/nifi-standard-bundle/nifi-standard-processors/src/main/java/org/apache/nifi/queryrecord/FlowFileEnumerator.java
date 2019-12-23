@@ -28,7 +28,7 @@ import org.apache.nifi.serialization.record.Record;
 
 import java.io.InputStream;
 
-public class FlowFileEnumerator<InternalType> implements Enumerator<Object> {
+public class FlowFileEnumerator implements Enumerator<Object> {
     private final ProcessSession session;
     private final FlowFile flowFile;
     private final ComponentLog logger;

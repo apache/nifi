@@ -38,7 +38,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.runners.MockitoJUnitRunner;
+import org.mockito.junit.MockitoJUnitRunner;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -54,8 +54,8 @@ import java.util.function.Supplier;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -104,7 +104,6 @@ public class TlsCertificateSigningRequestPerformerTest {
         when(tlsClientConfig.getCaHostname()).thenReturn(testCaHostname);
         when(tlsClientConfig.getDn()).thenReturn(new TlsConfig().calcDefaultDn(testCaHostname));
         when(tlsClientConfig.getPort()).thenReturn(testPort);
-        when(tlsClientConfig.createCertificateSigningRequestPerformer()).thenReturn(tlsCertificateSigningRequestPerformer);
         when(tlsClientConfig.getSigningAlgorithm()).thenReturn(TlsConfig.DEFAULT_SIGNING_ALGORITHM);
         JcaPKCS10CertificationRequest jcaPKCS10CertificationRequest = TlsHelper.generateCertificationRequest(tlsClientConfig.getDn(), null, keyPair, TlsConfig.DEFAULT_SIGNING_ALGORITHM);
         String testCsrPem = TlsHelper.pemEncodeJcaObject(jcaPKCS10CertificationRequest);

@@ -1,11 +1,16 @@
 Apache NiFi
-Copyright 2014-2018 The Apache Software Foundation
+Copyright 2014-2019 The Apache Software Foundation
 
 This product includes software developed at
 The Apache Software Foundation (http://www.apache.org/).
 
 This product includes the following work from the Apache Hadoop project under Apache Software License V2:
   BoundedByteArrayOutputStream.java adapted to SoftLimitBoundedByteArrayOutputStream.java
+
+This product includes derived works from Apache Commons Lang (ASLv2 licensed)
+  Copyright 2019 The Apache Software Foundation
+  The derived work is adapted from the class StringUtils:
+    https://github.com/apache/commons-lang/blob/465e6becd8beda9569fbdc9ff44fac7dc3c5d1c6/src/main/java/org/apache/commons/lang3/StringUtils.java
 
 This product includes derived works from the Apache Software License V2 library python-evtx (https://github.com/williballenthin/python-evtx)
   Copyright 2012, 2013 Willi Ballenthin william.ballenthin@mandiant.com
@@ -91,3 +96,19 @@ This includes derived works from apigateway-generic-java-sdk (ASLv2 licenced) pr
       RequestMatcher.java
       GetAWSGatewayApiTest.java
 
+This includes derived works from Dropwizard Metrics available under Apache Software License V2 (https://github.com/dropwizard/metrics)
+  Copyright 2010-2013 Coda Hale and Yammer, Inc., 2014-2017 Dropwizard Team
+  This product includes software developed by Coda Hale and Yammer, Inc.
+
+  This product includes code derived from the JSR-166 project (ThreadLocalRandom, Striped64,
+  LongAdder), which was released with the following comments:
+
+      Written by Doug Lea with assistance from members of JCP JSR-166
+      Expert Group and released to the public domain, as explained at
+      http://creativecommons.org/publicdomain/zero/1.0/
+
+  The derived work in the nifi-metrics module is adapted from
+    https://github.com/dropwizard/metrics/blob/v2.2.0/metrics-core/src/main/java/com/yammer/metrics/core/VirtualMachineMetrics.java
+  and can be found in
+    nifi-commons/nifi-metrics/src/main/java/org/apache/nifi/metrics/jvm/JvmMetrics.java
+    nifi-commons/nifi-metrics/src/main/java/org/apache/nifi/metrics/jvm/JmxJvmMetrics.java

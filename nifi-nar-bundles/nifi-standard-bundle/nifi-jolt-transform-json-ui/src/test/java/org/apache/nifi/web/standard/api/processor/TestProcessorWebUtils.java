@@ -22,6 +22,7 @@ import org.apache.nifi.web.HttpServletConfigurationRequestContext;
 import org.apache.nifi.web.HttpServletRequestContext;
 import org.apache.nifi.web.NiFiWebConfigurationContext;
 import org.apache.nifi.web.NiFiWebRequestContext;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import javax.servlet.http.HttpServletRequest;
@@ -33,7 +34,7 @@ import java.lang.reflect.Method;
 
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -52,6 +53,9 @@ public class TestProcessorWebUtils {
     }
 
     @Test
+    @Ignore("Capability to get specific client revision has been removed as of commit 05a1d63090d97d06bf823821d1b0e9b5482c7cd2")
+    // FIXME java11 Capability to get specific client revision has been removed as of commit 05a1d63090d97d06bf823821d1b0e9b5482c7cd2
+    //  Add test case for ProcessorWebUtils.getRequestContext() to verify proper revision is returned
     public void testGetComponentDetailsForProcessorWithSpecificClientRevision(){
         NiFiWebConfigurationContext configurationContext = mock(NiFiWebConfigurationContext.class);
         when(configurationContext.getComponentDetails(any(HttpServletConfigurationRequestContext.class))).thenReturn(new ComponentDetails.Builder().build());

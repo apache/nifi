@@ -19,7 +19,6 @@ package org.apache.nifi.xml;
 
 import javanet.staxutils.IndentingXMLStreamWriter;
 import org.apache.nifi.record.NullSuppression;
-import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.schema.access.SchemaAccessWriter;
 import org.apache.nifi.serialization.AbstractRecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriter;
@@ -48,14 +47,15 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
+import java.util.regex.Pattern;
 
 import static org.apache.nifi.xml.XMLRecordSetWriter.RECORD_TAG_NAME;
 import static org.apache.nifi.xml.XMLRecordSetWriter.ROOT_TAG_NAME;
 
 
 public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSetWriter, RawRecordWriter {
+    private static final Pattern TAG_NAME_CHARS_TO_STRIP = Pattern.compile("[/<>!&'\"]");
 
-    private final ComponentLog logger;
     private final RecordSchema recordSchema;
     private final SchemaAccessWriter schemaAccess;
     private final XMLStreamWriter writer;
@@ -64,7 +64,6 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
     private final String arrayTagName;
     private final String recordTagName;
     private final String rootTagName;
-    private final String charSet;
     private final boolean allowWritingMultipleRecords;
     private boolean hasWrittenRecord;
 
@@ -72,13 +71,12 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
     private final Supplier<DateFormat> LAZY_TIME_FORMAT;
     private final Supplier<DateFormat> LAZY_TIMESTAMP_FORMAT;
 
-    public WriteXMLResult(final ComponentLog logger, final RecordSchema recordSchema, final SchemaAccessWriter schemaAccess, final OutputStream out, final boolean prettyPrint,
+    public WriteXMLResult(final RecordSchema recordSchema, final SchemaAccessWriter schemaAccess, final OutputStream out, final boolean prettyPrint,
                           final NullSuppression nullSuppression, final ArrayWrapping arrayWrapping, final String arrayTagName, final String rootTagName, final String recordTagName,
                           final String charSet, final String dateFormat, final String timeFormat, final String timestampFormat) throws IOException {
 
         super(out);
 
-        this.logger = logger;
         this.recordSchema = recordSchema;
         this.schemaAccess = schemaAccess;
         this.nullSuppression = nullSuppression;
@@ -95,18 +93,13 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
             if (recordTagNameOptional.isPresent()) {
                 this.recordTagName = recordTagNameOptional.get();
             } else {
-                StringBuilder message = new StringBuilder();
-                message.append("The property \'")
-                        .append(RECORD_TAG_NAME.getDisplayName())
-                        .append("\' has not been set and the writer does not find a record name in the schema.");
-                throw new IOException(message.toString());
+                final String message = "The property '" + RECORD_TAG_NAME.getDisplayName() +
+                    "' has not been set and the writer does not find a record name in the schema.";
+                throw new IOException(message);
             }
         }
 
         this.allowWritingMultipleRecords = !(this.rootTagName == null);
-
-        this.charSet = charSet;
-
         hasWrittenRecord = false;
 
         final DateFormat df = dateFormat == null ? null : DataTypeUtils.getDateFormat(dateFormat);
@@ -190,13 +183,9 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
 
     private void checkWritingMultipleRecords() throws IOException {
         if (!allowWritingMultipleRecords && hasWrittenRecord) {
-            StringBuilder message = new StringBuilder();
-            message.append("The writer attempts to write multiple record although property \'")
-                    .append(ROOT_TAG_NAME.getDisplayName())
-                    .append("\' has not been set. If the XMLRecordSetWriter is supposed to write multiple records into one ")
-                    .append("FlowFile, this property is required to be configured.");
-            throw new IOException(message.toString()
-            );
+            final String message = "The writer attempts to write multiple record although property \'" + ROOT_TAG_NAME.getDisplayName() +
+                "\' has not been set. If the XMLRecordSetWriter is supposed to write multiple records into one FlowFile, this property is required to be configured.";
+            throw new IOException(message);
         }
     }
 
@@ -441,9 +430,13 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
         writeAllTags(tagsToOpen);
     }
 
+    private String escapeTagName(final String tagName) {
+        return TAG_NAME_CHARS_TO_STRIP.matcher(tagName).replaceAll("");
+    }
+
     private void writeAllTags(Deque<String> tagsToOpen) throws XMLStreamException {
         for (String tagName : tagsToOpen) {
-            writer.writeStartElement(tagName);
+            writer.writeStartElement(escapeTagName(tagName));
         }
         tagsToOpen.clear();
     }

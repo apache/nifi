@@ -78,33 +78,6 @@
     };
 
     /**
-     * Handle any expected controller service configuration errors.
-     *
-     * @argument {object} xhr       The XmlHttpRequest
-     * @argument {string} status    The status of the request
-     * @argument {string} error     The error
-     */
-    var handleControllerServiceConfigurationError = function (xhr, status, error) {
-        if (xhr.status === 400) {
-            var errors = xhr.responseText.split('\n');
-
-            var content;
-            if (errors.length === 1) {
-                content = $('<span></span>').text(errors[0]);
-            } else {
-                content = nfCommon.formatUnorderedList(errors);
-            }
-
-            nfDialog.showOkDialog({
-                dialogContent: content,
-                headerText: 'Controller Service'
-            });
-        } else {
-            nfErrorHandler.handleAjaxError(xhr, status, error);
-        }
-    };
-
-    /**
      * Determines whether the user has made any changes to the controller service configuration
      * that needs to be saved.
      */
@@ -1537,6 +1510,52 @@
     };
 
     /**
+     * Gets the parameters for the specified property descriptor and group.
+     *
+     * @param propertyDescriptor    The property descriptor in question
+     * @param groupId               The group in question
+     * @returns {deferred}
+     */
+    var getParameters = function (propertyDescriptor, groupId) {
+        return $.Deferred(function (deferred) {
+            if (nfCommon.isDefinedAndNotNull(groupId)) {
+                var parameterContext;
+
+                // attempt to identify the parameter context id, conditional based on whether
+                // the user is configuring the current process group
+                if (groupId === nfCanvasUtils.getGroupId()) {
+                    parameterContext = nfCanvasUtils.getParameterContext();
+                } else {
+                    var parentProcessGroup = nfCanvasUtils.getComponentByType('ProcessGroup').get(groupId);
+                    parameterContext = parentProcessGroup.parameterContext;
+                }
+
+                if (nfCommon.isDefinedAndNotNull(parameterContext)) {
+                    $.ajax({
+                        type: 'GET',
+                        url: '../nifi-api/parameter-contexts/' + encodeURIComponent(parameterContext.id),
+                        dataType: 'json'
+                    }).done(function (response) {
+                        var sensitive = nfCommon.isSensitiveProperty(propertyDescriptor);
+
+                        deferred.resolve(response.component.parameters.map(function (parameterEntity) {
+                            return parameterEntity.parameter;
+                        }).filter(function (parameter) {
+                            return parameter.sensitive === sensitive;
+                        }));
+                    }).fail(function () {
+                        deferred.resolve([]);
+                    });
+                } else {
+                    deferred.resolve([]);
+                }
+            } else {
+                deferred.resolve([]);
+            }
+        }).promise();
+    };
+
+    /**
      * Goes to a service configuration from the property table.
      *
      * @param {jQuery} serviceTable
@@ -1568,6 +1587,25 @@
                 deferred.resolve();
             }
         }).promise();
+    };
+
+    var getParameterContext = function (groupId, controllerServiceEntity) {
+        if (_.isNil(controllerServiceEntity.parentGroupId)) {
+            return null;
+        }
+
+        var parameterContext;
+
+        // attempt to identify the parameter context, conditional based on whether
+        // the user is configuring the current process group
+        if (_.isNil(groupId) || groupId === nfCanvasUtils.getGroupId()) {
+            parameterContext = nfCanvasUtils.getParameterContext();
+        } else {
+            var parentProcessGroup = nfCanvasUtils.getComponentByType('ProcessGroup').get(groupId);
+            parameterContext = parentProcessGroup.parameterContext;
+        }
+
+        return parameterContext;
     };
 
     var saveControllerService = function (serviceTable, controllerServiceEntity) {
@@ -1606,7 +1644,7 @@
                 $.each(previouslyReferencedServiceIds, function (_, oldServiceReferenceId) {
                     reloadControllerService(serviceTable, oldServiceReferenceId);
                 });
-            }).fail(handleControllerServiceConfigurationError);
+            }).fail(nfErrorHandler.handleConfigurationUpdateAjaxError);
         } else {
             return $.Deferred(function (deferred) {
                 deferred.reject();
@@ -1827,12 +1865,19 @@
                 $('#controller-service-configuration .controller-service-read-only').hide();
                 $('#controller-service-configuration .controller-service-editable').show();
 
+                // conditionally get the parameter deferred function
+                var getParameterDeferred = null;
+                if (nfCommon.isDefinedAndNotNull(controllerServiceEntity.parentGroupId)) {
+                    getParameterDeferred = getParameters;
+                }
+
                 // initialize the property table
                 $('#controller-service-properties').propertytable('destroy').propertytable({
                     readOnly: false,
                     supportsGoTo: true,
                     dialogContainer: '#new-controller-service-property-container',
                     descriptorDeferred: getControllerServicePropertyDescriptor,
+                    parameterDeferred: getParameterDeferred,
                     controllerServiceCreatedDeferred: function (response) {
                         var controllerServicesUri;
 
@@ -1849,6 +1894,9 @@
                     },
                     goToServiceDeferred: function () {
                         return goToServiceFromProperty(serviceTable);
+                    },
+                    getParameterContext: function (groupId) {
+                        return getParameterContext(groupId, controllerServiceEntity);
                     }
                 });
 
@@ -2033,7 +2081,10 @@
                 // initialize the property table
                 $('#controller-service-properties').propertytable('destroy').propertytable({
                     supportsGoTo: true,
-                    readOnly: true
+                    readOnly: true,
+                    getParameterContext: function (groupId) {
+                        return getParameterContext(groupId, controllerServiceEntity);
+                    }
                 });
 
                 // update the mode

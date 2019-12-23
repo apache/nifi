@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.hadoop;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -33,6 +34,7 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
@@ -96,10 +98,10 @@ import java.util.regex.Pattern;
 @SeeAlso({GetHDFS.class, FetchHDFS.class, PutHDFS.class})
 public class ListHDFS extends AbstractHadoopProcessor {
 
+    @Deprecated
     public static final PropertyDescriptor DISTRIBUTED_CACHE_SERVICE = new PropertyDescriptor.Builder()
         .name("Distributed Cache Service")
-        .description("Specifies the Controller Service that should be used to maintain state about what has been pulled from HDFS so that if a new node "
-                + "begins pulling data, it won't duplicate all of the work that has been done.")
+        .description("This property is ignored.  State will be stored in the " + Scope.LOCAL + " or " + Scope.CLUSTER + " scope by the State Manager based on NiFi's configuration.")
         .required(false)
         .identifiesControllerService(DistributedMapCacheClient.class)
         .build();
@@ -125,24 +127,25 @@ public class ListHDFS extends AbstractHadoopProcessor {
     private static final String FILTER_MODE_FULL_PATH = "filter-mode-full-path";
     static final AllowableValue FILTER_DIRECTORIES_AND_FILES_VALUE = new AllowableValue(FILTER_MODE_DIRECTORIES_AND_FILES,
         "Directories and Files",
-        "Filtering will be applied to the names of directories and files.  If " + RECURSE_SUBDIRS.getName()
+        "Filtering will be applied to the names of directories and files.  If " + RECURSE_SUBDIRS.getDisplayName()
                 + " is set to true, only subdirectories with a matching name will be searched for files that match "
-                + "the regular expression defined in " + FILE_FILTER.getName() + ".");
+                + "the regular expression defined in " + FILE_FILTER.getDisplayName() + ".");
     static final AllowableValue FILTER_FILES_ONLY_VALUE = new AllowableValue(FILTER_MODE_FILES_ONLY,
         "Files Only",
-        "Filtering will only be applied to the names of files.  If " + RECURSE_SUBDIRS.getName()
+        "Filtering will only be applied to the names of files.  If " + RECURSE_SUBDIRS.getDisplayName()
                 + " is set to true, the entire subdirectory tree will be searched for files that match "
-                + "the regular expression defined in " + FILE_FILTER.getName() + ".");
+                + "the regular expression defined in " + FILE_FILTER.getDisplayName() + ".");
     static final AllowableValue FILTER_FULL_PATH_VALUE = new AllowableValue(FILTER_MODE_FULL_PATH,
         "Full Path",
-        "Filtering will be applied to the full path of files.  If " + RECURSE_SUBDIRS.getName()
-                + " is set to true, the entire subdirectory tree will be searched for files in which the full path of "
-                + "the file matches the regular expression defined in " + FILE_FILTER.getName() + ".");
+        "Filtering will be applied by evaluating the regular expression defined in " + FILE_FILTER.getDisplayName()
+                + " against the full path of files with and without the scheme and authority.  If "
+                + RECURSE_SUBDIRS.getDisplayName() + " is set to true, the entire subdirectory tree will be searched for files in which the full path of "
+                + "the file matches the regular expression defined in " + FILE_FILTER.getDisplayName() + ".  See 'Additional Details' for more information.");
 
     public static final PropertyDescriptor FILE_FILTER_MODE = new PropertyDescriptor.Builder()
         .name("file-filter-mode")
         .displayName("File Filter Mode")
-        .description("Determines how the regular expression in  " + FILE_FILTER.getName() + " will be used when retrieving listings.")
+        .description("Determines how the regular expression in  " + FILE_FILTER.getDisplayName() + " will be used when retrieving listings.")
         .required(true)
         .allowableValues(FILTER_DIRECTORIES_AND_FILES_VALUE, FILTER_FILES_ONLY_VALUE, FILTER_FULL_PATH_VALUE)
         .defaultValue(FILTER_DIRECTORIES_AND_FILES_VALUE.getValue())
@@ -180,10 +183,19 @@ public class ListHDFS extends AbstractHadoopProcessor {
     static final String EMITTED_TIMESTAMP_KEY = "emitted.timestamp";
 
     static final long LISTING_LAG_NANOS = TimeUnit.MILLISECONDS.toNanos(100L);
+    private Pattern fileFilterRegexPattern;
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
         super.init(context);
+    }
+
+    @Override
+    protected void preProcessConfiguration(Configuration config, ProcessContext context) {
+        super.preProcessConfiguration(config, context);
+        // Since this processor is marked as INPUT_FORBIDDEN, the FILE_FILTER regex can be compiled here rather than during onTrigger processing
+        fileFilterRegexPattern = Pattern.compile(context.getProperty(FILE_FILTER).getValue());
+
     }
 
     protected File getPersistenceFile() {
@@ -221,7 +233,7 @@ public class ListHDFS extends AbstractHadoopProcessor {
 
         if (minimumAge > maximumAge) {
             problems.add(new ValidationResult.Builder().valid(false).subject("GetHDFS Configuration")
-                    .explanation(MIN_AGE.getName() + " cannot be greater than " + MAX_AGE.getName()).build());
+                    .explanation(MIN_AGE.getDisplayName() + " cannot be greater than " + MAX_AGE.getDisplayName()).build());
         }
 
         return problems;
@@ -315,6 +327,15 @@ public class ListHDFS extends AbstractHadoopProcessor {
         return toList;
     }
 
+    @OnScheduled
+    public void resetStateIfNecessary(final ProcessContext context) throws IOException {
+        if (resetState) {
+            getLogger().debug("Property has been modified. Resetting the state values - listing.timestamp and emitted.timestamp to -1L");
+            context.getStateManager().clear(Scope.CLUSTER);
+            this.resetState = false;
+        }
+    }
+
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         // We have to ensure that we don't continually perform listings, because if we perform two listings within
@@ -332,12 +353,6 @@ public class ListHDFS extends AbstractHadoopProcessor {
 
         // Ensure that we are using the latest listing information before we try to perform a listing of HDFS files.
         try {
-            if (resetState) {
-                getLogger().debug("Property has been modified. Resetting the state values - listing.timestamp and emitted.timestamp to -1L");
-                context.getStateManager().clear(Scope.CLUSTER);
-                this.resetState = false;
-            }
-
             final StateMap stateMap = context.getStateManager().getState(Scope.CLUSTER);
             if (stateMap.getVersion() == -1L) {
                 latestTimestampEmitted = -1L;
@@ -363,7 +378,7 @@ public class ListHDFS extends AbstractHadoopProcessor {
                 }
             }
         } catch (final IOException ioe) {
-            getLogger().error("Failed to retrieve timestamp of last listing from Distributed Cache Service. Will not perform listing until this is accomplished.");
+            getLogger().error("Failed to retrieve timestamp of last listing from the State Manager. Will not perform listing until this is accomplished.");
             context.yield();
             return;
         }
@@ -522,14 +537,14 @@ public class ListHDFS extends AbstractHadoopProcessor {
     }
 
     private PathFilter createPathFilter(final ProcessContext context) {
-        final Pattern filePattern = Pattern.compile(context.getProperty(FILE_FILTER).getValue());
         final String filterMode = context.getProperty(FILE_FILTER_MODE).getValue();
         return path -> {
             final boolean accepted;
             if (FILTER_FULL_PATH_VALUE.getValue().equals(filterMode)) {
-                accepted = filePattern.matcher(path.toString()).matches();
+                accepted = fileFilterRegexPattern.matcher(path.toString()).matches()
+                        || fileFilterRegexPattern.matcher(Path.getPathWithoutSchemeAndAuthority(path).toString()).matches();
             } else {
-                accepted =  filePattern.matcher(path.getName()).matches();
+                accepted =  fileFilterRegexPattern.matcher(path.getName()).matches();
             }
             return accepted;
         };

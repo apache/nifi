@@ -17,21 +17,6 @@
 
 package org.apache.nifi.controller.queue.clustered;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
 import org.apache.nifi.controller.MockFlowFileRecord;
 import org.apache.nifi.controller.MockSwapManager;
 import org.apache.nifi.controller.queue.DropFlowFileAction;
@@ -42,16 +27,34 @@ import org.apache.nifi.controller.queue.SwappablePriorityQueue;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
+import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.util.MockFlowFile;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 public class TestSwappablePriorityQueue {
 
     private MockSwapManager swapManager;
-    private final EventReporter eventReporter = EventReporter.NO_OP;
+    private final List<String> events = new ArrayList<>();
+    private EventReporter eventReporter;
+
     private final FlowFileQueue flowFileQueue = Mockito.mock(FlowFileQueue.class);
     private final DropFlowFileAction dropAction = (flowFiles, requestor) -> {
         return new QueueSize(flowFiles.size(), flowFiles.stream().mapToLong(FlowFileRecord::getSize).sum());
@@ -63,10 +66,34 @@ public class TestSwappablePriorityQueue {
     public void setup() {
         swapManager = new MockSwapManager();
 
+        events.clear();
+        eventReporter = new EventReporter() {
+            @Override
+            public void reportEvent(final Severity severity, final String category, final String message) {
+                events.add(message);
+            }
+        };
+
         when(flowFileQueue.getIdentifier()).thenReturn("unit-test");
         queue = new SwappablePriorityQueue(swapManager, 10000, eventReporter, flowFileQueue, dropAction, "local");
     }
 
+
+    @Test
+    public void testSwapOutFailureLeavesCorrectQueueSize() {
+        swapManager.setSwapOutFailureOnNthIteration(1, null);
+
+        for (int i = 0; i < 19999; i++) {
+            queue.put(new MockFlowFile(i));
+        }
+
+        assertEquals(19999, queue.size().getObjectCount());
+        assertEquals(0, events.size());
+
+        queue.put(new MockFlowFile(20000));
+        assertEquals(20000, queue.size().getObjectCount());
+        assertEquals(1, events.size()); // Expect a single failure event to be emitted
+    }
 
     @Test
     public void testPrioritizer() {

@@ -334,10 +334,10 @@ public class ListenTCPRecord extends AbstractProcessor {
         synchronized (socketRecordReader) {
             FlowFile flowFile = session.create();
             try {
-                // lazily creating the record reader here b/c we need a flow file, eventually shouldn't have to do this
+                // lazily creating the record reader here
                 RecordReader recordReader = socketRecordReader.getRecordReader();
                 if (recordReader == null) {
-                    recordReader = socketRecordReader.createRecordReader(flowFile, getLogger());
+                    recordReader = socketRecordReader.createRecordReader(getLogger());
                 }
 
                 Record record;
@@ -379,7 +379,7 @@ public class ListenTCPRecord extends AbstractProcessor {
 
                 final RecordSchema recordSchema = recordSetWriterFactory.getSchema(Collections.EMPTY_MAP, record.getSchema());
                 try (final OutputStream out = session.write(flowFile);
-                     final RecordSetWriter recordWriter = recordSetWriterFactory.createWriter(getLogger(), recordSchema, out)) {
+                     final RecordSetWriter recordWriter = recordSetWriterFactory.createWriter(getLogger(), recordSchema, out, flowFile)) {
 
                     // start the record set and write the first record from above
                     recordWriter.beginRecordSet();

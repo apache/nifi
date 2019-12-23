@@ -61,12 +61,7 @@ public abstract class AbstractPort implements Port {
             .name("")
             .build();
 
-    public static final long MINIMUM_PENALIZATION_MILLIS = 0L;
-    public static final TimeUnit DEFAULT_TIME_UNIT = TimeUnit.MILLISECONDS;
-
-    public static final long MINIMUM_YIELD_MILLIS = 0L;
-    public static final long DEFAULT_YIELD_PERIOD = 10000L;
-    public static final TimeUnit DEFAULT_YIELD_TIME_UNIT = TimeUnit.MILLISECONDS;
+    private static final TimeUnit DEFAULT_TIME_UNIT = TimeUnit.MILLISECONDS;
 
     private final List<Relationship> relationships;
 
@@ -75,7 +70,7 @@ public abstract class AbstractPort implements Port {
     private final AtomicReference<String> name;
     private final AtomicReference<Position> position;
     private final AtomicReference<String> comments;
-    private final AtomicReference<ProcessGroup> processGroup;
+    private final AtomicReference<ProcessGroup> processGroup = new AtomicReference<>();
     private final AtomicBoolean lossTolerant;
     private final AtomicReference<ScheduledState> scheduledState;
     private final AtomicInteger concurrentTaskCount;
@@ -94,7 +89,7 @@ public abstract class AbstractPort implements Port {
     private final Lock readLock = rwLock.readLock();
     private final Lock writeLock = rwLock.writeLock();
 
-    public AbstractPort(final String id, final String name, final ProcessGroup processGroup, final ConnectableType type, final ProcessScheduler scheduler) {
+    public AbstractPort(final String id, final String name, final ConnectableType type, final ProcessScheduler scheduler) {
         this.id = requireNonNull(id);
         this.name = new AtomicReference<>(requireNonNull(name));
         position = new AtomicReference<>(new Position(0D, 0D));
@@ -108,7 +103,6 @@ public abstract class AbstractPort implements Port {
         final List<Relationship> relationshipList = new ArrayList<>();
         relationshipList.add(PORT_RELATIONSHIP);
         relationships = Collections.unmodifiableList(relationshipList);
-        this.processGroup = new AtomicReference<>(processGroup);
         this.type = type;
         penalizationPeriod = new AtomicReference<>("30 sec");
         yieldPeriod = new AtomicReference<>("1 sec");
@@ -143,11 +137,11 @@ public abstract class AbstractPort implements Port {
         final ProcessGroup parentGroup = this.processGroup.get();
         if (getConnectableType() == ConnectableType.INPUT_PORT) {
             if (parentGroup.getInputPortByName(name) != null) {
-                throw new IllegalStateException("The requested new port name is not available");
+                throw new IllegalStateException("A port with the same name already exists.");
             }
         } else if (getConnectableType() == ConnectableType.OUTPUT_PORT) {
             if (parentGroup.getOutputPortByName(name) != null) {
-                throw new IllegalStateException("The requested new port name is not available");
+                throw new IllegalStateException("A port with the same name already exists.");
             }
         }
 
@@ -249,12 +243,9 @@ public abstract class AbstractPort implements Port {
         try {
             onTrigger(context, session);
             session.commit();
-        } catch (final ProcessException e) {
-            session.rollback();
-            throw e;
         } catch (final Throwable t) {
             session.rollback();
-            throw new RuntimeException(t);
+            throw t;
         }
     }
 

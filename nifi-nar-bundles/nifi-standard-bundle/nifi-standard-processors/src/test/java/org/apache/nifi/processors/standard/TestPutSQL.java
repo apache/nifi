@@ -16,6 +16,9 @@
  */
 package org.apache.nifi.processors.standard;
 
+import static org.apache.nifi.processor.FlowFileFilter.FlowFileFilterResult.ACCEPT_AND_CONTINUE;
+import static org.apache.nifi.processor.FlowFileFilter.FlowFileFilterResult.ACCEPT_AND_TERMINATE;
+import static org.apache.nifi.processor.FlowFileFilter.FlowFileFilterResult.REJECT_AND_CONTINUE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -38,6 +41,7 @@ import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -47,6 +51,7 @@ import javax.xml.bind.DatatypeConverter;
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.dbcp.DBCPService;
+import org.apache.nifi.processor.FlowFileFilter;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.pattern.RollbackOnFailure;
 import org.apache.nifi.reporting.InitializationException;
@@ -1456,6 +1461,72 @@ public class TestPutSQL {
                 assertFalse(rs.next());
             }
         }
+    }
+
+    private Map<String, String> createFragmentedTransactionAttributes(String id, int count, int index) {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("fragment.identifier", id);
+        attributes.put("fragment.count", String.valueOf(count));
+        attributes.put("fragment.index", String.valueOf(index));
+        return attributes;
+    }
+
+    @Test
+    public void testTransactionalFlowFileFilter() {
+        final MockFlowFile ff0 = new MockFlowFile(0);
+        final MockFlowFile ff1 = new MockFlowFile(1);
+        final MockFlowFile ff2 = new MockFlowFile(2);
+        final MockFlowFile ff3 = new MockFlowFile(3);
+        final MockFlowFile ff4 = new MockFlowFile(4);
+
+        ff0.putAttributes(createFragmentedTransactionAttributes("tx-1", 3, 0));
+        ff1.putAttributes(Collections.singletonMap("accept", "false"));
+        ff2.putAttributes(createFragmentedTransactionAttributes("tx-1", 3, 1));
+        ff3.putAttributes(Collections.singletonMap("accept", "true"));
+        ff4.putAttributes(createFragmentedTransactionAttributes("tx-1", 3, 2));
+
+        // TEST 1: Fragmented TX with null service filter
+        // Even if the controller service does not have filtering rule, tx filter should work.
+        FlowFileFilter txFilter = new PutSQL.TransactionalFlowFileFilter(null);
+        // Should perform a fragmented tx.
+        assertEquals(ACCEPT_AND_CONTINUE, txFilter.filter(ff0));
+        assertEquals(REJECT_AND_CONTINUE, txFilter.filter(ff1));
+        assertEquals(ACCEPT_AND_CONTINUE, txFilter.filter(ff2));
+        assertEquals(REJECT_AND_CONTINUE, txFilter.filter(ff3));
+        assertEquals(ACCEPT_AND_TERMINATE, txFilter.filter(ff4));
+
+        // TEST 2: Non-Fragmented TX with null service filter
+        txFilter = new PutSQL.TransactionalFlowFileFilter(null);
+        // Should perform a non-fragmented tx.
+        assertEquals(ACCEPT_AND_CONTINUE, txFilter.filter(ff1));
+        assertEquals(REJECT_AND_CONTINUE, txFilter.filter(ff0));
+        assertEquals(REJECT_AND_CONTINUE, txFilter.filter(ff2));
+        assertEquals(ACCEPT_AND_CONTINUE, txFilter.filter(ff3));
+        assertEquals(REJECT_AND_CONTINUE, txFilter.filter(ff4));
+
+
+        final FlowFileFilter nonTxFilter = flowFile -> "true".equals(flowFile.getAttribute("accept"))
+            ? ACCEPT_AND_CONTINUE
+            : REJECT_AND_CONTINUE;
+
+        // TEST 3: Fragmented TX with a service filter
+        // Even if the controller service does not have filtering rule, tx filter should work.
+        txFilter = new PutSQL.TransactionalFlowFileFilter(nonTxFilter);
+        // Should perform a fragmented tx. The nonTxFilter doesn't affect in this case.
+        assertEquals(ACCEPT_AND_CONTINUE, txFilter.filter(ff0));
+        assertEquals(REJECT_AND_CONTINUE, txFilter.filter(ff1));
+        assertEquals(ACCEPT_AND_CONTINUE, txFilter.filter(ff2));
+        assertEquals(REJECT_AND_CONTINUE, txFilter.filter(ff3));
+        assertEquals(ACCEPT_AND_TERMINATE, txFilter.filter(ff4));
+
+        // TEST 4: Non-Fragmented TX with a service filter
+        txFilter = new PutSQL.TransactionalFlowFileFilter(nonTxFilter);
+        // Should perform a non-fragmented tx and use the nonTxFilter.
+        assertEquals(REJECT_AND_CONTINUE, txFilter.filter(ff1));
+        assertEquals(REJECT_AND_CONTINUE, txFilter.filter(ff0));
+        assertEquals(REJECT_AND_CONTINUE, txFilter.filter(ff2));
+        assertEquals(ACCEPT_AND_CONTINUE, txFilter.filter(ff3));
+        assertEquals(REJECT_AND_CONTINUE, txFilter.filter(ff4));
     }
 
     /**

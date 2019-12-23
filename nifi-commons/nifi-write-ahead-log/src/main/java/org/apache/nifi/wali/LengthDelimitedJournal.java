@@ -40,6 +40,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.text.DecimalFormat;
 import java.util.Collection;
 import java.util.HashMap;
@@ -73,7 +74,7 @@ public class LengthDelimitedJournal<T> implements WriteAheadJournal<T> {
     private int transactionCount;
     private boolean headerWritten = false;
 
-    private volatile boolean poisoned = false;
+    private volatile Throwable poisonCause = null;
     private volatile boolean closed = false;
     private final ByteBuffer transactionPreamble = ByteBuffer.allocate(12); // guarded by synchronized block
 
@@ -141,7 +142,11 @@ public class LengthDelimitedJournal<T> implements WriteAheadJournal<T> {
 
     @Override
     public synchronized boolean isHealthy() {
-        return !closed && !poisoned;
+        return !closed && !isPoisoned();
+    }
+
+    private boolean isPoisoned() {
+        return poisonCause != null;
     }
 
     @Override
@@ -218,6 +223,11 @@ public class LengthDelimitedJournal<T> implements WriteAheadJournal<T> {
     }
 
 
+    // Visible/overrideable for testing.
+    protected void createOverflowDirectory(final Path path) throws IOException {
+        Files.createDirectories(path);
+    }
+
     @Override
     public void update(final Collection<T> records, final RecordLookup<T> recordLookup) throws IOException {
         if (!headerWritten) {
@@ -246,7 +256,7 @@ public class LengthDelimitedJournal<T> implements WriteAheadJournal<T> {
                     final int size = bados.getByteArrayOutputStream().size();
                     if (serde.isWriteExternalFileReferenceSupported() && size > maxInHeapSerializationBytes) {
                         if (!overflowDirectory.exists()) {
-                            Files.createDirectory(overflowDirectory.toPath());
+                            createOverflowDirectory(overflowDirectory.toPath());
                         }
 
                         // If we have exceeded our threshold for how much to serialize in memory,
@@ -295,17 +305,27 @@ public class LengthDelimitedJournal<T> implements WriteAheadJournal<T> {
 
             final long transactionId;
             synchronized (this) {
-                transactionId = currentTransactionId++;
-                transactionCount++;
+                checkState();
 
-                transactionPreamble.clear();
-                transactionPreamble.putLong(transactionId);
-                transactionPreamble.putInt(baos.size());
+                try {
+                    transactionId = currentTransactionId++;
+                    transactionCount++;
 
-                out.write(TRANSACTION_FOLLOWS);
-                out.write(transactionPreamble.array());
-                baos.writeTo(out);
-                out.flush();
+                    transactionPreamble.clear();
+                    transactionPreamble.putLong(transactionId);
+                    transactionPreamble.putInt(baos.size());
+
+                    out.write(TRANSACTION_FOLLOWS);
+                    out.write(transactionPreamble.array());
+                    baos.writeTo(out);
+                    out.flush();
+                } catch (final Throwable t) {
+                    // While the outter Throwable that wraps this "catch" will call Poison, it is imperative that we call poison()
+                    // before the synchronized block is excited. Otherwise, another thread could potentially corrupt the journal before
+                    // the poison method closes the file.
+                    poison(t);
+                    throw t;
+                }
             }
 
             logger.debug("Wrote Transaction {} to journal {} with length {} and {} records", transactionId, journalFile, baos.size(), records.size());
@@ -326,10 +346,12 @@ public class LengthDelimitedJournal<T> implements WriteAheadJournal<T> {
 
 
     private void checkState() throws IOException {
-        if (poisoned) {
+        final Throwable cause = this.poisonCause;
+        if (cause != null) {
+            logger.debug("Cannot update Write Ahead Log because the log has already been poisoned", cause);
             throw new IOException("Cannot update journal file " + journalFile + " because this journal has already encountered a failure when attempting to write to the file. "
                 + "If the repository is able to checkpoint, then this problem will resolve itself. However, if the repository is unable to be checkpointed "
-                + "(for example, due to being out of storage space or having too many open files), then this issue may require manual intervention.");
+                + "(for example, due to being out of storage space or having too many open files), then this issue may require manual intervention.", cause);
         }
 
         if (closed) {
@@ -337,8 +359,10 @@ public class LengthDelimitedJournal<T> implements WriteAheadJournal<T> {
         }
     }
 
-    private void poison(final Throwable t) {
-        this.poisoned = true;
+    protected void poison(final Throwable t) {
+        this.poisonCause = t;
+
+        logger.error("Marking Write-Ahead journal file {} as poisoned due to {}", journalFile, t, t);
 
         try {
             if (fileOut != null) {
@@ -374,7 +398,7 @@ public class LengthDelimitedJournal<T> implements WriteAheadJournal<T> {
 
         try {
             if (fileOut != null) {
-                if (!poisoned) {
+                if (!isPoisoned()) {
                     fileOut.write(JOURNAL_COMPLETE);
                 }
 

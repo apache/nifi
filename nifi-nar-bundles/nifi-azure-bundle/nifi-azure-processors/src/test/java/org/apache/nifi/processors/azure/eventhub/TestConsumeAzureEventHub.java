@@ -18,6 +18,7 @@ package org.apache.nifi.processors.azure.eventhub;
 
 import com.microsoft.azure.eventhubs.EventData;
 import com.microsoft.azure.eventprocessorhost.PartitionContext;
+import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
@@ -57,14 +58,14 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.junit.Assert.assertEquals;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyMap;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class TestConsumeAzureEventHub {
-
     private ConsumeAzureEventHub.EventProcessor eventProcessor;
     private MockProcessSession processSession;
     private SharedSessionState sharedState;
@@ -99,8 +100,7 @@ public class TestConsumeAzureEventHub {
 
     @Test
     public void testReceiveOne() throws Exception {
-
-        final Iterable<EventData> eventDataList = Arrays.asList(new EventData("one".getBytes(StandardCharsets.UTF_8)));
+        final Iterable<EventData> eventDataList = Arrays.asList(EventData.create("one".getBytes(StandardCharsets.UTF_8)));
         eventProcessor.onEvents(partitionContext, eventDataList);
 
         processSession.assertCommitted();
@@ -119,13 +119,11 @@ public class TestConsumeAzureEventHub {
                 "eventhub-name/ConsumerGroups/consumer-group/Partitions/partition-id", provenanceEvent1.getTransitUri());
     }
 
-
     @Test
     public void testReceiveTwo() throws Exception {
-
         final Iterable<EventData> eventDataList = Arrays.asList(
-                new EventData("one".getBytes(StandardCharsets.UTF_8)),
-                new EventData("two".getBytes(StandardCharsets.UTF_8))
+                EventData.create("one".getBytes(StandardCharsets.UTF_8)),
+                EventData.create("two".getBytes(StandardCharsets.UTF_8))
         );
         eventProcessor.onEvents(partitionContext, eventDataList);
 
@@ -143,10 +141,9 @@ public class TestConsumeAzureEventHub {
 
     @Test
     public void testCheckpointFailure() throws Exception {
-
         final Iterable<EventData> eventDataList = Arrays.asList(
-                new EventData("one".getBytes(StandardCharsets.UTF_8)),
-                new EventData("two".getBytes(StandardCharsets.UTF_8))
+                EventData.create("one".getBytes(StandardCharsets.UTF_8)),
+                EventData.create("two".getBytes(StandardCharsets.UTF_8))
         );
         doThrow(new RuntimeException("Failed to create a checkpoint.")).when(partitionContext).checkpoint();
         eventProcessor.onEvents(partitionContext, eventDataList);
@@ -180,12 +177,12 @@ public class TestConsumeAzureEventHub {
         processor.setWriterFactory(writerFactory);
         final RecordSetWriter writer = mock(RecordSetWriter.class);
         final AtomicReference<OutputStream> outRef = new AtomicReference<>();
-        when(writerFactory.createWriter(any(), any(), any())).thenAnswer(invocation -> {
-            outRef.set(invocation.getArgumentAt(2, OutputStream.class));
+        when(writerFactory.createWriter(any(), any(), any(), any(FlowFile.class))).thenAnswer(invocation -> {
+            outRef.set(invocation.getArgument(2));
             return writer;
         });
         when(writer.write(any(Record.class))).thenAnswer(invocation -> {
-            final String value = (String) invocation.getArgumentAt(0, Record.class).getValue("value");
+            final String value = (String) invocation.<Record>getArgument(0).getValue("value");
             if (throwErrorWith != null && throwErrorWith.equals(value)) {
                 throw new IOException("Simulating record write failure.");
             }
@@ -203,7 +200,7 @@ public class TestConsumeAzureEventHub {
         final RecordReaderFactory readerFactory = mock(RecordReaderFactory.class);
         processor.setReaderFactory(readerFactory);
         final RecordReader reader = mock(RecordReader.class);
-        when(readerFactory.createRecordReader(anyMap(), any(), any())).thenReturn(reader);
+        when(readerFactory.createRecordReader(anyMap(), any(), anyLong(), any())).thenReturn(reader);
         final List<Record> recordList = eventDataList.stream()
                 .map(eventData -> toRecord(new String(eventData.getBytes())))
                 .collect(Collectors.toList());
@@ -237,15 +234,13 @@ public class TestConsumeAzureEventHub {
                         .thenThrow(new MalformedRecordException("Simulating Record parse failure."))
                         .thenReturn(records2[0], Arrays.copyOfRange(records2, 1, records2.length));
         }
-
     }
 
     @Test
     public void testReceiveRecords() throws Exception {
-
         final List<EventData> eventDataList = Arrays.asList(
-                new EventData("one".getBytes(StandardCharsets.UTF_8)),
-                new EventData("two".getBytes(StandardCharsets.UTF_8))
+                EventData.create("one".getBytes(StandardCharsets.UTF_8)),
+                EventData.create("two".getBytes(StandardCharsets.UTF_8))
         );
 
         setupRecordReader(eventDataList);
@@ -272,12 +267,11 @@ public class TestConsumeAzureEventHub {
 
     @Test
     public void testReceiveRecordReaderFailure() throws Exception {
-
         final List<EventData> eventDataList = Arrays.asList(
-                new EventData("one".getBytes(StandardCharsets.UTF_8)),
-                new EventData("two".getBytes(StandardCharsets.UTF_8)),
-                new EventData("three".getBytes(StandardCharsets.UTF_8)),
-                new EventData("four".getBytes(StandardCharsets.UTF_8))
+                EventData.create("one".getBytes(StandardCharsets.UTF_8)),
+                EventData.create("two".getBytes(StandardCharsets.UTF_8)),
+                EventData.create("three".getBytes(StandardCharsets.UTF_8)),
+                EventData.create("four".getBytes(StandardCharsets.UTF_8))
         );
 
         setupRecordReader(eventDataList, 2, null);
@@ -317,9 +311,8 @@ public class TestConsumeAzureEventHub {
 
     @Test
     public void testReceiveAllRecordFailure() throws Exception {
-
         final List<EventData> eventDataList = Collections.singletonList(
-                new EventData("one".getBytes(StandardCharsets.UTF_8))
+                EventData.create("one".getBytes(StandardCharsets.UTF_8))
         );
 
         setupRecordReader(eventDataList, 0, null);
@@ -346,17 +339,15 @@ public class TestConsumeAzureEventHub {
         assertEquals(ProvenanceEventType.RECEIVE, provenanceEvent1.getEventType());
         assertEquals("amqps://namespace.servicebus.windows.net/" +
                 "eventhub-name/ConsumerGroups/consumer-group/Partitions/partition-id", provenanceEvent1.getTransitUri());
-
     }
 
     @Test
     public void testReceiveRecordWriterFailure() throws Exception {
-
         final List<EventData> eventDataList = Arrays.asList(
-                new EventData("one".getBytes(StandardCharsets.UTF_8)),
-                new EventData("two".getBytes(StandardCharsets.UTF_8)),
-                new EventData("three".getBytes(StandardCharsets.UTF_8)),
-                new EventData("four".getBytes(StandardCharsets.UTF_8))
+                EventData.create("one".getBytes(StandardCharsets.UTF_8)),
+                EventData.create("two".getBytes(StandardCharsets.UTF_8)),
+                EventData.create("three".getBytes(StandardCharsets.UTF_8)),
+                EventData.create("four".getBytes(StandardCharsets.UTF_8))
         );
 
         setupRecordReader(eventDataList, -1, "two");
@@ -393,5 +384,4 @@ public class TestConsumeAzureEventHub {
         assertEquals("amqps://namespace.servicebus.windows.net/" +
                 "eventhub-name/ConsumerGroups/consumer-group/Partitions/partition-id", provenanceEvent2.getTransitUri());
     }
-
 }

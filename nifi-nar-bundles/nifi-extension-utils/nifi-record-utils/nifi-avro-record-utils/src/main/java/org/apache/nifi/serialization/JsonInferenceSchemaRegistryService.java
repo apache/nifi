@@ -21,6 +21,7 @@ import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.schema.access.AvroSchemaTextStrategy;
 import org.apache.nifi.schema.access.InferenceSchemaStrategy;
@@ -60,7 +61,7 @@ public class JsonInferenceSchemaRegistryService extends SchemaRegistryService {
     }
 
     @Override
-    protected SchemaAccessStrategy getSchemaAccessStrategy(final String strategy, final SchemaRegistry schemaRegistry, final ConfigurationContext context) {
+    protected SchemaAccessStrategy getSchemaAccessStrategy(final String strategy, final SchemaRegistry schemaRegistry, final PropertyContext context) {
         if (strategy == null) {
             return null;
         }
@@ -102,7 +103,7 @@ public class JsonInferenceSchemaRegistryService extends SchemaRegistryService {
         if (schemaAccess.equalsIgnoreCase(SCHEMA_NAME_PROPERTY.getValue()) || schemaAccess.equalsIgnoreCase(SCHEMA_TEXT_PROPERTY.getValue())) {
             return getSchema(variables, readSchema);
         } else {
-            return ((JsonSchemaAccessStrategy)schemaAccessStrategy).getSchema(variables, content, readSchema);
+            return ((JsonSchemaAccessStrategy) schemaAccessStrategy).getSchema(variables, content, readSchema);
         }
     }
 }

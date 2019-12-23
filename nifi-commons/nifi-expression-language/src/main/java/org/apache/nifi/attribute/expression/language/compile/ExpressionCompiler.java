@@ -24,12 +24,16 @@ import org.antlr.runtime.tree.Tree;
 import org.apache.nifi.attribute.expression.language.CompiledExpression;
 import org.apache.nifi.attribute.expression.language.Query;
 import org.apache.nifi.attribute.expression.language.Query.Range;
+import org.apache.nifi.attribute.expression.language.StandardEvaluationContext;
 import org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionLexer;
 import org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser;
 import org.apache.nifi.attribute.expression.language.evaluation.BooleanEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.DateEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.DecimalEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.NumberEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.StringEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.WholeNumberEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.cast.BooleanCastEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.cast.DateCastEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.cast.DecimalCastEvaluator;
@@ -60,7 +64,11 @@ import org.apache.nifi.attribute.expression.language.evaluation.functions.InEval
 import org.apache.nifi.attribute.expression.language.evaluation.functions.IndexOfEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.IsEmptyEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.IsNullEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.functions.JsonPathAddEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.functions.JsonPathDeleteEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.JsonPathEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.functions.JsonPathSetEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.functions.JsonPathPutEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.LastIndexOfEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.LengthEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.LessThanEvaluator;
@@ -76,9 +84,12 @@ import org.apache.nifi.attribute.expression.language.evaluation.functions.NowEva
 import org.apache.nifi.attribute.expression.language.evaluation.functions.NumberToDateEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.OneUpSequenceEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.OrEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.functions.PadLeftEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.functions.PadRightEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.PlusEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.PrependEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.RandomNumberGeneratorEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.functions.RepeatEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.ReplaceAllEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.ReplaceEmptyEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.ReplaceEvaluator;
@@ -91,10 +102,12 @@ import org.apache.nifi.attribute.expression.language.evaluation.functions.Substr
 import org.apache.nifi.attribute.expression.language.evaluation.functions.SubstringBeforeEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.SubstringBeforeLastEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.SubstringEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.functions.ThreadEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.ToLowerEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.ToRadixEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.ToStringEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.ToUpperEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.functions.EvaluateELStringEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.TrimEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.UrlDecodeEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.UrlEncodeEvaluator;
@@ -116,6 +129,7 @@ import org.apache.nifi.attribute.expression.language.evaluation.selection.Mappin
 import org.apache.nifi.attribute.expression.language.evaluation.selection.MultiAttributeEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.selection.MultiMatchAttributeEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.selection.MultiNamedAttributeEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.selection.ParameterEvaluator;
 import org.apache.nifi.attribute.expression.language.exception.AttributeExpressionLanguageException;
 import org.apache.nifi.attribute.expression.language.exception.AttributeExpressionLanguageParsingException;
 import org.apache.nifi.expression.AttributeExpression.ResultType;
@@ -123,6 +137,7 @@ import org.apache.nifi.flowfile.FlowFile;
 
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -169,6 +184,10 @@ import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpre
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.IS_NULL;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.JOIN;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.JSON_PATH;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.JSON_PATH_ADD;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.JSON_PATH_PUT;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.JSON_PATH_DELETE;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.JSON_PATH_SET;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.LAST_INDEX_OF;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.LENGTH;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.LESS_THAN;
@@ -184,9 +203,13 @@ import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpre
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.NOT_NULL;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.NOW;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.OR;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.PAD_LEFT;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.PAD_RIGHT;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.PARAMETER_REFERENCE;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.PLUS;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.PREPEND;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.RANDOM;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.REPEAT;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.REPLACE;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.REPLACE_ALL;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.REPLACE_EMPTY;
@@ -199,6 +222,7 @@ import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpre
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.SUBSTRING_AFTER_LAST;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.SUBSTRING_BEFORE;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.SUBSTRING_BEFORE_LAST;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.THREAD;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.TO_DATE;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.TO_DECIMAL;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.TO_LITERAL;
@@ -218,6 +242,7 @@ import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpre
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.URL_ENCODE;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.UUID;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.WHOLE_NUMBER;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.EVALUATE_EL_STRING;
 
 public class ExpressionCompiler {
     private final Set<Evaluator<?>> evaluators = new HashSet<>();
@@ -296,7 +321,7 @@ public class ExpressionCompiler {
         }
 
         final Evaluator<?> rootEvaluator = getRootSubjectEvaluator(evaluator);
-        if (rootEvaluator != null && rootEvaluator instanceof MultiAttributeEvaluator) {
+        if (rootEvaluator instanceof MultiAttributeEvaluator) {
             final MultiAttributeEvaluator multiAttrEval = (MultiAttributeEvaluator) rootEvaluator;
             switch (multiAttrEval.getEvaluationType()) {
                 case ALL_ATTRIBUTES:
@@ -546,6 +571,10 @@ public class ExpressionCompiler {
                 verifyArgCount(argEvaluators, 0, "toUpper");
                 return addToken(new ToUpperEvaluator(toStringEvaluator(subjectEvaluator)), "toUpper");
             }
+            case EVALUATE_EL_STRING: {
+                verifyArgCount(argEvaluators, 0, "evaluateELString");
+                return addToken(new EvaluateELStringEvaluator(toStringEvaluator(subjectEvaluator)), "evaluateELString");
+            }
             case URL_ENCODE: {
                 verifyArgCount(argEvaluators, 0, "urlEncode");
                 return addToken(new UrlEncodeEvaluator(toStringEvaluator(subjectEvaluator)), "urlEncode");
@@ -649,6 +678,28 @@ public class ExpressionCompiler {
                     toStringEvaluator(argEvaluators.get(0), "first argument to replaceAll"),
                     toStringEvaluator(argEvaluators.get(1), "second argument to replaceAll")), "replaceAll");
             }
+            case PAD_LEFT: {
+                if (argEvaluators.size() == 1) {
+                    return addToken(new PadLeftEvaluator(toStringEvaluator(subjectEvaluator),
+                        toWholeNumberEvaluator(argEvaluators.get(0), "desired string length")),
+                        "padLeft");
+                } else {
+                    return addToken(new PadLeftEvaluator(toStringEvaluator(subjectEvaluator),
+                        toWholeNumberEvaluator(argEvaluators.get(0), "desired string length"),
+                        toStringEvaluator(argEvaluators.get(1), "padding string")), "padLeft");
+                }
+            }
+            case PAD_RIGHT: {
+                if (argEvaluators.size() == 1) {
+                    return addToken(new PadRightEvaluator(toStringEvaluator(subjectEvaluator),
+                        toWholeNumberEvaluator(argEvaluators.get(0), "desired string length")),
+                        "padRight");
+                } else {
+                    return addToken(new PadRightEvaluator(toStringEvaluator(subjectEvaluator),
+                        toWholeNumberEvaluator(argEvaluators.get(0), "desired string length"),
+                        toStringEvaluator(argEvaluators.get(1), "padding string")), "padRight");
+                }
+            }
             case APPEND: {
                 verifyArgCount(argEvaluators, 1, "append");
                 return addToken(new AppendEvaluator(toStringEvaluator(subjectEvaluator),
@@ -670,6 +721,19 @@ public class ExpressionCompiler {
                         toWholeNumberEvaluator(argEvaluators.get(1), "second argument to substring")), "substring");
                 } else {
                     throw new AttributeExpressionLanguageParsingException("substring() function can take either 1 or 2 arguments but cannot take " + numArgs + " arguments");
+                }
+            }
+            case REPEAT: {
+                final int numArgs = argEvaluators.size();
+                if (numArgs == 1) {
+                    return addToken(new RepeatEvaluator(toStringEvaluator(subjectEvaluator),
+                            toWholeNumberEvaluator(argEvaluators.get(0), "first argument to repeat")), "repeat");
+                } else if (numArgs == 2) {
+                    return addToken(new RepeatEvaluator(toStringEvaluator(subjectEvaluator),
+                            toWholeNumberEvaluator(argEvaluators.get(0), "first argument to repeat"),
+                            toWholeNumberEvaluator(argEvaluators.get(1), "second argument to repeat")), "repeat");
+                } else {
+                    throw new AttributeExpressionLanguageParsingException("repeat() function can take either 1 or 2 arguments but cannot take " + numArgs + " arguments");
                 }
             }
             case JOIN: {
@@ -906,6 +970,43 @@ public class ExpressionCompiler {
                 return addToken(new JsonPathEvaluator(toStringEvaluator(subjectEvaluator),
                     toStringEvaluator(argEvaluators.get(0), "first argument to jsonPath")), "jsonPath");
             }
+            case JSON_PATH_DELETE: {
+                verifyArgCount(argEvaluators, 1, "jsonPathDelete");
+                return addToken(new JsonPathDeleteEvaluator(toStringEvaluator(subjectEvaluator),
+                        toStringEvaluator(argEvaluators.get(0), "first argument to jsonPathDelete")), "jsonPathDelete");
+            }
+            case JSON_PATH_SET: {
+                verifyArgCount(argEvaluators, 2, "jsonPathSet");
+                Evaluator<?> argValueEvaluator = argEvaluators.get(1);
+                String location = "second argument to jsonPathSet";
+                Evaluator<?> valueEvaluator = getJsonPathUpdateEvaluator(argValueEvaluator, location);
+                return addToken(new JsonPathSetEvaluator(toStringEvaluator(subjectEvaluator),
+                        toStringEvaluator(argEvaluators.get(0), "first argument to jsonPathSet"),
+                        valueEvaluator), "jsonPathSet");
+            }
+            case JSON_PATH_ADD: {
+                verifyArgCount(argEvaluators, 2, "jsonPathAdd");
+                Evaluator<?> argValueEvaluator = argEvaluators.get(1);
+                String location = "second argument to jsonPathAdd";
+                Evaluator<?> valueEvaluator = getJsonPathUpdateEvaluator(argValueEvaluator, location);
+                return addToken(new JsonPathAddEvaluator(toStringEvaluator(subjectEvaluator),
+                        toStringEvaluator(argEvaluators.get(0), "first argument to jsonPathAdd"),
+                        valueEvaluator), "jsonPathAdd");
+            }
+            case JSON_PATH_PUT: {
+                verifyArgCount(argEvaluators, 3, "jsonPathPut");
+                Evaluator<?> argValueEvaluator = argEvaluators.get(1);
+                String valueLocation = "second argument to jsonPathPut";
+                Evaluator<?> valueEvaluator = getJsonPathUpdateEvaluator(argValueEvaluator, valueLocation);
+                Evaluator<?> argKeyEvaluator = argEvaluators.get(2);
+                String keyLocation = "third argument to jsonPathPut";
+                Evaluator<?> keyEvaluator = getJsonPathUpdateEvaluator(argKeyEvaluator, keyLocation);
+
+                return addToken(new JsonPathPutEvaluator(toStringEvaluator(subjectEvaluator),
+                        toStringEvaluator(argEvaluators.get(0), "first argument to jsonPathPut"),
+                        toStringEvaluator(keyEvaluator, keyLocation),
+                        valueEvaluator), "jsonPathPut");
+            }
             case IF_ELSE: {
                 verifyArgCount(argEvaluators, 2, "ifElse");
                 return addToken(new IfElseEvaluator(toBooleanEvaluator(subjectEvaluator),
@@ -917,10 +1018,35 @@ public class ExpressionCompiler {
         }
     }
 
+    private Evaluator<?> getJsonPathUpdateEvaluator(Evaluator<?> argValueEvaluator, String location) {
+        Evaluator<?> valueEvaluator;
+        if (argValueEvaluator instanceof StringEvaluator) {
+            valueEvaluator = toStringEvaluator(argValueEvaluator, location);
+        } else if (argValueEvaluator instanceof DecimalEvaluator) {
+            valueEvaluator = toDecimalEvaluator(argValueEvaluator, location);
+        } else if (argValueEvaluator instanceof NumberEvaluator) {
+            valueEvaluator = toNumberEvaluator(argValueEvaluator, location);
+        } else if (argValueEvaluator instanceof WholeNumberEvaluator) {
+            valueEvaluator = toWholeNumberEvaluator(argValueEvaluator, location);
+        } else if (argValueEvaluator instanceof BooleanEvaluator) {
+            valueEvaluator = toBooleanEvaluator(argValueEvaluator, location);
+        } else {
+            throw new AttributeExpressionLanguageParsingException("Cannot implicitly convert Data Type " +
+                    argValueEvaluator.getResultType() + (location == null ? "" : " at location [" + location + "]"));
+        }
+        return valueEvaluator;
+    }
+
     public Evaluator<?> buildEvaluator(final Tree tree) {
         switch (tree.getType()) {
             case EXPRESSION: {
                 return buildExpressionEvaluator(tree);
+            }
+            case PARAMETER_REFERENCE: {
+                final String parameterName = tree.getChild(0).getText();
+                final ParameterEvaluator parameterEvaluator = new ParameterEvaluator(parameterName);
+                evaluators.add(parameterEvaluator);
+                return parameterEvaluator;
             }
             case ATTRIBUTE_REFERENCE: {
                 final Evaluator<?> childEvaluator = buildEvaluator(tree.getChild(0));
@@ -945,7 +1071,7 @@ public class ExpressionCompiler {
 
                 final List<String> attributeNames = new ArrayList<>();
                 for (int i = 1; i < tree.getChildCount(); i++) {  // skip the first child because that's the name of the multi-attribute function
-                    attributeNames.add(newStringLiteralEvaluator(tree.getChild(i).getText()).evaluate(null).getValue());
+                    attributeNames.add(newStringLiteralEvaluator(tree.getChild(i).getText()).evaluate(new StandardEvaluationContext(Collections.emptyMap())).getValue());
                 }
 
                 switch (multiAttrType) {
@@ -1009,6 +1135,8 @@ public class ExpressionCompiler {
                     throw new AttributeExpressionLanguageException(e);
                 }
             }
+            case THREAD:
+                return addToken(new ThreadEvaluator(), "thread");
             case HOSTNAME: {
                 if (tree.getChildCount() == 0) {
                     try {
@@ -1094,7 +1222,8 @@ public class ExpressionCompiler {
 
         final List<Range> ranges = Query.extractExpressionRanges(literalValue);
         if (ranges.isEmpty()) {
-            return addToken(new StringLiteralEvaluator(literalValue), literalValue);
+            final List<Range> escapedRanges = Query.extractEscapedRanges(literalValue);
+            return newStringLiteralEvaluatorForEscapedRanges(literalValue, escapedRanges);
         }
 
         final List<Evaluator<?>> evaluators = new ArrayList<>();
@@ -1137,6 +1266,44 @@ public class ExpressionCompiler {
         return lastEvaluator;
     }
 
+    private Evaluator<String> newStringLiteralEvaluatorForEscapedRanges(final String literalValue, final List<Range> escapedRanges) {
+        if (escapedRanges.isEmpty()) {
+            return addToken(new StringLiteralEvaluator(literalValue), literalValue);
+        }
+
+        int lastIndex = 0;
+        final List<Evaluator<?>> evaluators = new ArrayList<>();
+        for (final Range range : escapedRanges) {
+            final String treeText = literalValue.substring(range.getStart(), range.getEnd() + 1);
+
+            if (range.getStart() > lastIndex) {
+                evaluators.add(new StringLiteralEvaluator(literalValue.substring(lastIndex, range.getStart())));
+            }
+
+            final Evaluator<?> evaluator = new StringLiteralEvaluator(Query.unescape(treeText));
+            evaluators.add(evaluator);
+            lastIndex = range.getEnd() + 1;
+        }
+
+
+        final Range lastRange = escapedRanges.get(escapedRanges.size() - 1);
+        if (lastRange.getEnd() + 1 < literalValue.length()) {
+            final String treeText = literalValue.substring(lastRange.getEnd() + 1);
+            evaluators.add(new StringLiteralEvaluator(treeText));
+        }
+
+        if (evaluators.size() == 1) {
+            return toStringEvaluator(evaluators.get(0));
+        }
+
+        Evaluator<String> lastEvaluator = toStringEvaluator(evaluators.get(0));
+        for (int i = 1; i < evaluators.size(); i++) {
+            lastEvaluator = new AppendEvaluator(lastEvaluator, toStringEvaluator(evaluators.get(i)));
+        }
+
+        this.evaluators.addAll(evaluators);
+        return lastEvaluator;
+    }
 
     private Evaluator<Boolean> buildBooleanEvaluator(final Tree tree) {
         switch (tree.getType()) {

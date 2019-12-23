@@ -37,6 +37,7 @@ import org.apache.nifi.controller.queue.RemoteQueuePartitionDiagnostics;
 import org.apache.nifi.controller.queue.StandardQueueDiagnostics;
 import org.apache.nifi.controller.queue.SwappablePriorityQueue;
 import org.apache.nifi.controller.queue.clustered.client.async.AsyncLoadBalanceClientRegistry;
+import org.apache.nifi.controller.queue.clustered.partition.AvailableSeekingPartitioner;
 import org.apache.nifi.controller.queue.clustered.partition.CorrelationAttributePartitioner;
 import org.apache.nifi.controller.queue.clustered.partition.FirstNodePartitioner;
 import org.apache.nifi.controller.queue.clustered.partition.FlowFilePartitioner;
@@ -114,7 +115,7 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
     private final Lock partitionReadLock = partitionLock.readLock();
     private final Lock partitionWriteLock = partitionLock.writeLock();
     private QueuePartition[] queuePartitions;
-    private FlowFilePartitioner partitioner;
+    private volatile FlowFilePartitioner partitioner;
     private boolean stopped = true;
     private volatile boolean offloaded = false;
 
@@ -205,7 +206,7 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
                 partitioner = new CorrelationAttributePartitioner(partitioningAttribute);
                 break;
             case ROUND_ROBIN:
-                partitioner = new RoundRobinPartitioner();
+                partitioner = new AvailableSeekingPartitioner(new RoundRobinPartitioner(), this::isFull);
                 break;
             case SINGLE_NODE:
                 partitioner = new FirstNodePartitioner();
@@ -337,51 +338,32 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
                     return;
                 }
 
-                partitionReadLock.lock();
-                try {
-                    if (isRebalanceOnFailure(partitionerUsed)) {
-                        logger.debug("Transferring {} FlowFiles to Rebalancing Partition from node {}", flowFiles.size(), nodeId);
-                        rebalancingPartition.rebalance(flowFiles);
-                    } else {
-                        logger.debug("Returning {} FlowFiles to their queue for node {} because Partitioner {} indicates that the FlowFiles should stay where they are", flowFiles.size(), nodeId,
-                            partitioner);
-                        partitionQueue.putAll(flowFiles);
-                    }
-                } finally {
-                    partitionReadLock.unlock();
+                if (isRebalanceOnFailure(partitionerUsed)) {
+                    logger.debug("Transferring {} FlowFiles to Rebalancing Partition from node {}", flowFiles.size(), nodeId);
+                    rebalancingPartition.rebalance(flowFiles);
+                } else {
+                    logger.debug("Returning {} FlowFiles to their queue for node {} because Partitioner {} indicates that the FlowFiles should stay where they are",
+                        flowFiles.size(), nodeId, partitionerUsed);
+                    partitionQueue.putAll(flowFiles);
                 }
             }
 
             @Override
             public void putAll(final Function<String, FlowFileQueueContents> queueContentsFunction, final FlowFilePartitioner partitionerUsed) {
-                partitionReadLock.lock();
-                try {
-                    if (isRebalanceOnFailure(partitionerUsed)) {
-                        final FlowFileQueueContents contents = queueContentsFunction.apply(rebalancingPartition.getSwapPartitionName());
-                        rebalancingPartition.rebalance(contents);
-                        logger.debug("Transferring all {} FlowFiles and {} Swap Files queued for node {} to Rebalancing Partition",
-                            contents.getActiveFlowFiles().size(), contents.getSwapLocations().size(), nodeId);
-                    } else {
-                        logger.debug("Will not transfer FlowFiles queued for node {} to Rebalancing Partition because Partitioner {} indicates that the FlowFiles should stay where they are", nodeId,
-                            partitioner);
-                    }
-                } finally {
-                    partitionReadLock.unlock();
+                if (isRebalanceOnFailure(partitionerUsed)) {
+                    final FlowFileQueueContents contents = queueContentsFunction.apply(rebalancingPartition.getSwapPartitionName());
+                    rebalancingPartition.rebalance(contents);
+                    logger.debug("Transferring all {} FlowFiles and {} Swap Files queued for node {} to Rebalancing Partition",
+                        contents.getActiveFlowFiles().size(), contents.getSwapLocations().size(), nodeId);
+                } else {
+                    logger.debug("Will not transfer FlowFiles queued for node {} to Rebalancing Partition because Partitioner {} indicates that the FlowFiles should stay where they are",
+                        nodeId, partitionerUsed);
                 }
             }
 
             @Override
             public boolean isRebalanceOnFailure(final FlowFilePartitioner partitionerUsed) {
-                partitionReadLock.lock();
-                try {
-                    if (!partitionerUsed.equals(partitioner)) {
-                        return true;
-                    }
-
-                    return partitioner.isRebalanceOnFailure();
-                } finally {
-                    partitionReadLock.unlock();
-                }
+                return partitionerUsed.isRebalanceOnFailure() || !partitionerUsed.equals(partitioner);
             }
         };
 
@@ -525,6 +507,17 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
     @Override
     public boolean isEmpty() {
         return size().getObjectCount() == 0;
+    }
+
+    @Override
+    public boolean isFull() {
+        for (QueuePartition queuePartition : queuePartitions) {
+            if (!isFull(queuePartition.size())) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     @Override
@@ -744,6 +737,7 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
         putAndGetPartition(flowFile);
     }
 
+
     protected QueuePartition putAndGetPartition(final FlowFileRecord flowFile) {
         final QueuePartition partition;
 
@@ -769,8 +763,26 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
                 putAll(flowFiles);
             } else {
                 logger.debug("Received the following FlowFiles from Peer: {}. Will accept FlowFiles to the local partition", flowFiles);
-                localPartition.putAll(flowFiles);
+
+                // As explained in the putAllAndGetPartitions() method, we must ensure that we call adjustSize() before we
+                // put the FlowFiles on the queue. Otherwise, we will encounter a race condition. Specifically, that race condition
+                // can play out like so:
+                //
+                // Thread 1: Call localPartition.putAll() when the queue is empty (has a queue size of 0) but has not yet adjusted the size.
+                // Thread 2: Call poll() to obtain the FlowFile just received.
+                // Thread 2: Transfer the FlowFile to some Relationship
+                // Thread 2: Commit the session, which will call acknowledge on this queue.
+                // Thread 2: The acknowledge() method attempts to decrement the size of the queue to -1.
+                //           This causes an Exception to be thrown and the queue size to remain at 0.
+                //           However, the FlowFile has already been successfully transferred to the next Queue.
+                // Thread 1: Call adjustSize() to increment the size of the queue to 1 FlowFile.
+                //
+                // In this scenario, we now have no FlowFiles in the queue. However, the queue size is set to 1.
+                // We can avoid this race condition by simply ensuring that we call adjustSize() before making the FlowFiles
+                // available on the queue. This way, we cannot possibly obtain the FlowFiles and process/acknowledge them before the queue
+                // size has been updated to account for them and therefore we will not attempt to assign a negative queue size.
                 adjustSize(flowFiles.size(), flowFiles.stream().mapToLong(FlowFileRecord::getSize).sum());
+                localPartition.putAll(flowFiles);
             }
         } finally {
             partitionReadLock.unlock();
@@ -958,16 +970,11 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
             provenanceEvents.add(provenanceEvent);
 
             final long flowFileLife = System.currentTimeMillis() - flowFile.getEntryDate();
-            logger.info("{} terminated due to FlowFile expiration; life of FlowFile = {} ms", new Object[] {flowFile, flowFileLife});
+            logger.debug("{} terminated due to FlowFile expiration; life of FlowFile = {} ms", new Object[] {flowFile, flowFileLife});
         }
 
         try {
             flowFileRepo.updateRepository(expiredRecords);
-
-            for (final RepositoryRecord expiredRecord : expiredRecords) {
-                contentRepo.decrementClaimantCount(expiredRecord.getCurrentClaim());
-            }
-
             provRepo.registerEvents(provenanceEvents);
 
             adjustSize(-expired.size(), -expired.stream().mapToLong(FlowFileRecord::getSize).sum());
@@ -1146,6 +1153,11 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
                 partitionWriteLock.unlock();
             }
         }
+    }
+
+    @Override
+    public String toString() {
+        return "FlowFileQueue[id=" + getIdentifier() + ", Load Balance Strategy=" + getLoadBalanceStrategy() + ", size=" + size() + "]";
     }
 }
 

@@ -18,13 +18,15 @@ package org.apache.nifi.processors.standard.sql;
 
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processors.standard.AbstractQueryDatabaseTable;
 
 import java.io.IOException;
 import java.io.OutputStream;
 import java.sql.ResultSet;
 import java.util.Collections;
 import java.util.Map;
+
+import static org.apache.nifi.util.db.JdbcCommon.ResultSetRowCallback;
+
 
 /**
  * The SqlWriter interface provides a standard way for processors such as ExecuteSQL, ExecuteSQLRecord, QueryDatabaseTable, and QueryDatabaseTableRecord
@@ -42,7 +44,7 @@ public interface SqlWriter {
      * @return the number of rows written to the output stream
      * @throws Exception if any errors occur during the writing of the result set to the output stream
      */
-    long writeResultSet(ResultSet resultSet, OutputStream outputStream, ComponentLog logger, AbstractQueryDatabaseTable.MaxValueResultSetRowCollector callback) throws Exception;
+    long writeResultSet(ResultSet resultSet, OutputStream outputStream, ComponentLog logger, ResultSetRowCallback callback) throws Exception;
 
     /**
      * Returns a map of attribute key/value pairs to be added to any outgoing flow file(s). The default implementation is to return an empty map.

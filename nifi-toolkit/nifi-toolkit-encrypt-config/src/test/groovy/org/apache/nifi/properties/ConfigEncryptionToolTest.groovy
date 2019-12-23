@@ -38,6 +38,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.contrib.java.lang.system.Assertion
 import org.junit.contrib.java.lang.system.ExpectedSystemExit
+import org.junit.contrib.java.lang.system.SystemErrRule
 import org.junit.contrib.java.lang.system.SystemOutRule
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
@@ -48,6 +49,7 @@ import org.xmlunit.diff.DefaultNodeMatcher
 import org.xmlunit.diff.Diff
 import org.xmlunit.diff.ElementSelectors
 
+import javax.crypto.BadPaddingException
 import javax.crypto.Cipher
 import javax.crypto.SecretKey
 import javax.crypto.SecretKeyFactory
@@ -67,6 +69,9 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
 
     @Rule
     public final SystemOutRule systemOutRule = new SystemOutRule().enableLog()
+
+    @Rule
+    public final SystemErrRule systemErrRule = new SystemErrRule().enableLog()
 
     private static final String KEY_HEX_128 = "0123456789ABCDEFFEDCBA9876543210"
     private static final String KEY_HEX_256 = KEY_HEX_128 * 2
@@ -4525,6 +4530,98 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         newCipherTexts.every {
             assert it[4..<36] == saltHex
         }
+    }
+
+    /**
+     * This test is tightly scoped to the migration of the flow XML content to ensure the expected exception type is thrown.
+     */
+    @Test
+    void testMigrateFlowXmlContentWithIncorrectExistingPasswordShouldFailWithBadPaddingException() {
+        // Arrange
+        String flowXmlPath = "src/test/resources/flow.xml"
+        File flowXmlFile = new File(flowXmlPath)
+
+        File tmpDir = setupTmpDir()
+
+        File workingFile = new File("target/tmp/tmp-flow.xml")
+        workingFile.delete()
+        Files.copy(flowXmlFile.toPath(), workingFile.toPath())
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+        tool.isVerbose = true
+
+        // Use the wrong existing password
+        String wrongExistingFlowPassword = DEFAULT_LEGACY_SENSITIVE_PROPS_KEY.reverse()
+        String newFlowPassword = FLOW_PASSWORD
+
+        String xmlContent = workingFile.text
+
+        // Act
+        def message = shouldFail(BadPaddingException) {
+            String migratedXmlContent = tool.migrateFlowXmlContent(xmlContent, wrongExistingFlowPassword, newFlowPassword)
+            logger.info("Migrated flow.xml: \n${migratedXmlContent}")
+        }
+        logger.expected(message)
+
+        // Assert
+        assert message =~ "pad block corrupted"
+    }
+
+    /**
+     * This test is scoped to the higher-level method to ensure that if a bad padding exception is thrown, the right errors are displayed.
+     */
+    @Test
+    void testHandleFlowXmlMigrationWithIncorrectExistingPasswordShouldProvideHelpfulErrorMessage() {
+        // Arrange
+//        exit.expectSystemExitWithStatus(ExitCode.ERROR_MIGRATING_FLOW.ordinal())
+        systemOutRule.clearLog()
+
+        String flowXmlPath = "src/test/resources/flow.xml"
+        File flowXmlFile = new File(flowXmlPath)
+
+        File tmpDir = setupTmpDir()
+
+        File workingFile = new File("target/tmp/tmp-flow.xml")
+        workingFile.delete()
+        Files.copy(flowXmlFile.toPath(), workingFile.toPath())
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+        tool.isVerbose = true
+
+        // Use the wrong existing password
+        String wrongExistingFlowPassword = DEFAULT_LEGACY_SENSITIVE_PROPS_KEY.reverse()
+        String newFlowPassword = FLOW_PASSWORD
+
+        tool.flowXml = workingFile.text
+        def nifiProperties = wrapNFP([(NiFiProperties.SENSITIVE_PROPS_KEY): wrongExistingFlowPassword])
+        tool.niFiProperties = nifiProperties
+        tool.flowPropertiesPassword = newFlowPassword
+        tool.handlingNiFiProperties = false
+
+        // Act
+        def message = shouldFail(Exception) {
+            tool.handleFlowXml()
+            logger.info("Migrated flow.xml: \n${tool.flowXml}")
+        }
+        logger.expected(message)
+
+//        final String standardOutput = systemOutRule.getLog()
+//        List<String> lines = standardOutput.split("\n")
+//        logger.info("Captured ${lines.size()} lines of log output")
+//        lines.each { String l -> logger.info("\t$l") }
+
+//        final String errorOutput = systemErrRule.getLog()
+//        List<String> errorlines = errorOutput.split("\n")
+//        logger.info("Captured ${errorlines.size()} lines of error log output")
+//        errorlines.each { String l -> logger.info("\t$l") }
+
+        // Assert
+        // TODO: Assert that this message was in the log output (neither the STDOUT and STDERR buffers contain it, but it is printed)
+//        assert message =~ "Error performing flow XML content migration because some sensitive values could not be decrypted. Ensure that the existing flow password \\[\\-p\\] is correct."
+        assert message == "Encountered an error migrating flow content"
+    }
+
+    private static StandardNiFiProperties wrapNFP(Map<String, String> map) {
+        new StandardNiFiProperties(
+                new Properties(map))
     }
 
     @Test

@@ -84,11 +84,14 @@ final class JMSPublisher extends JMSWorker {
             for (Entry<String, String> entry : flowFileAttributesToSend.entrySet()) {
                 try {
                     if (entry.getKey().equals(JmsHeaders.DELIVERY_MODE)) {
-                        message.setJMSDeliveryMode(Integer.parseInt(entry.getValue()));
+                        this.jmsTemplate.setDeliveryMode(Integer.parseInt(entry.getValue()));
+                        this.jmsTemplate.setExplicitQosEnabled(true);
                     } else if (entry.getKey().equals(JmsHeaders.EXPIRATION)) {
-                        message.setJMSExpiration(Integer.parseInt(entry.getValue()));
+                        this.jmsTemplate.setTimeToLive(Integer.parseInt(entry.getValue()));
+                        this.jmsTemplate.setExplicitQosEnabled(true);
                     } else if (entry.getKey().equals(JmsHeaders.PRIORITY)) {
-                        message.setJMSPriority(Integer.parseInt(entry.getValue()));
+                        this.jmsTemplate.setPriority(Integer.parseInt(entry.getValue()));
+                        this.jmsTemplate.setExplicitQosEnabled(true);
                     } else if (entry.getKey().equals(JmsHeaders.REDELIVERED)) {
                         message.setJMSRedelivered(Boolean.parseBoolean(entry.getValue()));
                     } else if (entry.getKey().equals(JmsHeaders.TIMESTAMP)) {
@@ -102,14 +105,14 @@ final class JMSPublisher extends JMSWorker {
                         if (destination != null) {
                             message.setJMSReplyTo(destination);
                         } else {
-                            logUnbuildableDestination(entry.getKey(), JmsHeaders.REPLY_TO);
+                            logUnbuildableDestination(entry.getValue(), JmsHeaders.REPLY_TO);
                         }
                     } else if (entry.getKey().equals(JmsHeaders.DESTINATION)) {
                         Destination destination = buildDestination(entry.getValue());
                         if (destination != null) {
                             message.setJMSDestination(destination);
                         } else {
-                            logUnbuildableDestination(entry.getKey(), JmsHeaders.DESTINATION);
+                            logUnbuildableDestination(entry.getValue(), JmsHeaders.DESTINATION);
                         }
                     } else {
                         // not a special attribute handled above, so send it as a property using the specified property type

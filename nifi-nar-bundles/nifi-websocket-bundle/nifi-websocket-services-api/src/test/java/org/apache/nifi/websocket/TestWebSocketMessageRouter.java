@@ -23,7 +23,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.anyString;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -69,7 +69,7 @@ public class TestWebSocketMessageRouter {
         final AbstractWebSocketSession session = mock(AbstractWebSocketSession.class);
         when(session.getSessionId()).thenReturn("session-1");
         doAnswer(invocation -> {
-            assertEquals("message", invocation.getArgumentAt(0, String.class));
+            assertEquals("message", invocation.getArgument(0));
             return null;
         }).when(session).sendString(anyString());
 

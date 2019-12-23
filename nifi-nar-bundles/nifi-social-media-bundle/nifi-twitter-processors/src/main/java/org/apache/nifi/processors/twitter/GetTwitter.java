@@ -51,6 +51,8 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
+import org.apache.nifi.annotation.notification.OnPrimaryNodeStateChange;
+import org.apache.nifi.annotation.notification.PrimaryNodeState;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
@@ -84,6 +86,17 @@ public class GetTwitter extends AbstractProcessor {
             .required(true)
             .allowableValues(ENDPOINT_SAMPLE, ENDPOINT_FIREHOSE, ENDPOINT_FILTER)
             .defaultValue(ENDPOINT_SAMPLE.getValue())
+            .build();
+    public static final PropertyDescriptor MAX_CLIENT_ERROR_RETRIES = new PropertyDescriptor.Builder()
+            .name("max-client-error-retries")
+            .displayName("Max Client Error Retries")
+            .description("The maximum number of retries to attempt when client experience retryable connection errors."
+                    + " Client continues attempting to reconnect using an exponential back-off pattern until it successfully reconnects"
+                    + " or until it reaches the retry limit."
+                    +"  It is recommended to raise this value when client is getting rate limited by Twitter API. Default value is 5.")
+            .required(true)
+            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .defaultValue("5")
             .build();
     public static final PropertyDescriptor CONSUMER_KEY = new PropertyDescriptor.Builder()
             .name("Consumer Key")
@@ -154,6 +167,7 @@ public class GetTwitter extends AbstractProcessor {
 
     private final BlockingQueue<Event> eventQueue = new LinkedBlockingQueue<>(1000);
 
+    private volatile ClientBuilder clientBuilder;
     private volatile Client client;
     private volatile BlockingQueue<String> messageQueue = new LinkedBlockingQueue<>(5000);
 
@@ -161,6 +175,7 @@ public class GetTwitter extends AbstractProcessor {
     protected void init(final ProcessorInitializationContext context) {
         final List<PropertyDescriptor> descriptors = new ArrayList<>();
         descriptors.add(ENDPOINT);
+        descriptors.add(MAX_CLIENT_ERROR_RETRIES);
         descriptors.add(CONSUMER_KEY);
         descriptors.add(CONSUMER_SECRET);
         descriptors.add(ACCESS_TOKEN);
@@ -222,6 +237,7 @@ public class GetTwitter extends AbstractProcessor {
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
         final String endpointName = context.getProperty(ENDPOINT).getValue();
+        final int maxRetries = context.getProperty(MAX_CLIENT_ERROR_RETRIES).asInteger().intValue();
         final Authentication oauth = new OAuth1(context.getProperty(CONSUMER_KEY).getValue(),
                 context.getProperty(CONSUMER_SECRET).getValue(),
                 context.getProperty(ACCESS_TOKEN).getValue(),
@@ -319,8 +335,19 @@ public class GetTwitter extends AbstractProcessor {
         }
 
         clientBuilder.hosts(host).endpoint(streamingEndpoint);
-        client = clientBuilder.build();
-        client.connect();
+        clientBuilder.retries(maxRetries);
+        this.clientBuilder = clientBuilder;
+    }
+
+    public synchronized void connectNewClient() {
+        if (client == null || client.isDone()) {
+            client = clientBuilder.build();
+            try {
+                client.connect();
+            } catch (Exception e) {
+                client.stop();
+            }
+        }
     }
 
     @OnStopped
@@ -330,8 +357,22 @@ public class GetTwitter extends AbstractProcessor {
         }
     }
 
+    @OnPrimaryNodeStateChange
+    public void onPrimaryNodeChange(final PrimaryNodeState newState) {
+        if (newState == PrimaryNodeState.PRIMARY_NODE_REVOKED) {
+            shutdownClient();
+        }
+    }
+
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+        if (client == null || client.isDone()) {
+            connectNewClient();
+            if (client.isDone()) {
+                context.yield();
+                return;
+            }
+        }
         final Event event = eventQueue.poll();
         if (event != null) {
             switch (event.getEventType()) {

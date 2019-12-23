@@ -35,6 +35,9 @@ class StandardNiFiPropertiesGroovyTest extends GroovyTestCase {
     private static final String PREK = NiFiProperties.PROVENANCE_REPO_ENCRYPTION_KEY
     private static final String PREKID = NiFiProperties.PROVENANCE_REPO_ENCRYPTION_KEY_ID
 
+    private static final String CREK = NiFiProperties.CONTENT_REPOSITORY_ENCRYPTION_KEY
+    private static final String CREKID = NiFiProperties.CONTENT_REPOSITORY_ENCRYPTION_KEY_ID
+
     @BeforeClass
     static void setUpOnce() throws Exception {
         logger.metaClass.methodMissing = { String name, args ->
@@ -323,6 +326,179 @@ class StandardNiFiPropertiesGroovyTest extends GroovyTestCase {
         assert keys == [(KEY_ID): KEY_HEX, (KEY_ID_2): KEY_HEX_2, (KEY_ID_3): KEY_HEX_3]
     }
 
+    @Test
+    void testShouldGetContentRepositoryEncryptionKeyFromDefaultProperty() throws Exception {
+        // Arrange
+        Properties rawProperties = new Properties()
+        final String KEY_ID = "arbitraryKeyId"
+        final String KEY_HEX = "0123456789ABCDEFFEDCBA9876543210"
+        rawProperties.setProperty(CREKID, KEY_ID)
+        rawProperties.setProperty(CREK, KEY_HEX)
+        NiFiProperties niFiProperties = new StandardNiFiProperties(rawProperties)
+        logger.info("niFiProperties has ${niFiProperties.size()} properties: ${niFiProperties.getPropertyKeys()}")
+
+        // Act
+        def keyId = niFiProperties.getContentRepositoryEncryptionKeyId()
+        def key = niFiProperties.getContentRepositoryEncryptionKey()
+        def keys = niFiProperties.getContentRepositoryEncryptionKeys()
+
+        logger.info("Retrieved key ID: ${keyId}")
+        logger.info("Retrieved key: ${key}")
+        logger.info("Retrieved keys: ${keys}")
+
+        // Assert
+        assert keyId == KEY_ID
+        assert key == KEY_HEX
+        assert keys == [(KEY_ID): KEY_HEX]
+    }
+
+    @Test
+    void testShouldGetContentRepositoryEncryptionKeysFromMultipleProperties() throws Exception {
+        // Arrange
+        Properties rawProperties = new Properties()
+        final String KEY_ID = "arbitraryKeyId"
+        final String KEY_HEX = "0123456789ABCDEFFEDCBA9876543210"
+        final String KEY_ID_2 = "arbitraryKeyId2"
+        final String KEY_HEX_2 = "AAAABBBBCCCCDDDDEEEEFFFF00001111"
+        final String KEY_ID_3 = "arbitraryKeyId3"
+        final String KEY_HEX_3 = "01010101010101010101010101010101"
+
+        rawProperties.setProperty(CREKID, KEY_ID)
+        rawProperties.setProperty(CREK, KEY_HEX)
+        rawProperties.setProperty("${CREK}.id.${KEY_ID_2}", KEY_HEX_2)
+        rawProperties.setProperty("${CREK}.id.${KEY_ID_3}", KEY_HEX_3)
+        NiFiProperties niFiProperties = new StandardNiFiProperties(rawProperties)
+        logger.info("niFiProperties has ${niFiProperties.size()} properties: ${niFiProperties.getPropertyKeys()}")
+
+        // Act
+        def keyId = niFiProperties.getContentRepositoryEncryptionKeyId()
+        def key = niFiProperties.getContentRepositoryEncryptionKey()
+        def keys = niFiProperties.getContentRepositoryEncryptionKeys()
+
+        logger.info("Retrieved key ID: ${keyId}")
+        logger.info("Retrieved key: ${key}")
+        logger.info("Retrieved keys: ${keys}")
+
+        // Assert
+        assert keyId == KEY_ID
+        assert key == KEY_HEX
+        assert keys == [(KEY_ID): KEY_HEX, (KEY_ID_2): KEY_HEX_2, (KEY_ID_3): KEY_HEX_3]
+    }
+
+    @Test
+    void testShouldGetContentRepositoryEncryptionKeysWithNoDefaultDefined() throws Exception {
+        // Arrange
+        Properties rawProperties = new Properties()
+        final String KEY_ID = "arbitraryKeyId"
+        final String KEY_HEX = "0123456789ABCDEFFEDCBA9876543210"
+        final String KEY_ID_2 = "arbitraryKeyId2"
+        final String KEY_HEX_2 = "AAAABBBBCCCCDDDDEEEEFFFF00001111"
+        final String KEY_ID_3 = "arbitraryKeyId3"
+        final String KEY_HEX_3 = "01010101010101010101010101010101"
+
+        rawProperties.setProperty(CREKID, KEY_ID)
+        rawProperties.setProperty("${CREK}.id.${KEY_ID}", KEY_HEX)
+        rawProperties.setProperty("${CREK}.id.${KEY_ID_2}", KEY_HEX_2)
+        rawProperties.setProperty("${CREK}.id.${KEY_ID_3}", KEY_HEX_3)
+        NiFiProperties niFiProperties = new StandardNiFiProperties(rawProperties)
+        logger.info("niFiProperties has ${niFiProperties.size()} properties: ${niFiProperties.getPropertyKeys()}")
+
+        // Act
+        def keyId = niFiProperties.getContentRepositoryEncryptionKeyId()
+        def key = niFiProperties.getContentRepositoryEncryptionKey()
+        def keys = niFiProperties.getContentRepositoryEncryptionKeys()
+
+        logger.info("Retrieved key ID: ${keyId}")
+        logger.info("Retrieved key: ${key}")
+        logger.info("Retrieved keys: ${keys}")
+
+        // Assert
+        assert keyId == KEY_ID
+        assert key == KEY_HEX
+        assert keys == [(KEY_ID): KEY_HEX, (KEY_ID_2): KEY_HEX_2, (KEY_ID_3): KEY_HEX_3]
+    }
+
+    @Test
+    void testShouldGetContentRepositoryEncryptionKeysWithNoneDefined() throws Exception {
+        // Arrange
+        Properties rawProperties = new Properties()
+        NiFiProperties niFiProperties = new StandardNiFiProperties(rawProperties)
+        logger.info("niFiProperties has ${niFiProperties.size()} properties: ${niFiProperties.getPropertyKeys()}")
+
+        // Act
+        def keyId = niFiProperties.getContentRepositoryEncryptionKeyId()
+        def key = niFiProperties.getContentRepositoryEncryptionKey()
+        def keys = niFiProperties.getContentRepositoryEncryptionKeys()
+
+        logger.info("Retrieved key ID: ${keyId}")
+        logger.info("Retrieved key: ${key}")
+        logger.info("Retrieved keys: ${keys}")
+
+        // Assert
+        assert keyId == null
+        assert key == null
+        assert keys == [:]
+    }
+
+    @Test
+    void testShouldNotGetContentRepositoryEncryptionKeysIfFileBasedKeyProvider() throws Exception {
+        // Arrange
+        Properties rawProperties = new Properties()
+        final String KEY_ID = "arbitraryKeyId"
+
+        rawProperties.setProperty(CREKID, KEY_ID)
+        NiFiProperties niFiProperties = new StandardNiFiProperties(rawProperties)
+        logger.info("niFiProperties has ${niFiProperties.size()} properties: ${niFiProperties.getPropertyKeys()}")
+
+        // Act
+        def keyId = niFiProperties.getContentRepositoryEncryptionKeyId()
+        def key = niFiProperties.getContentRepositoryEncryptionKey()
+        def keys = niFiProperties.getContentRepositoryEncryptionKeys()
+
+        logger.info("Retrieved key ID: ${keyId}")
+        logger.info("Retrieved key: ${key}")
+        logger.info("Retrieved keys: ${keys}")
+
+        // Assert
+        assert keyId == KEY_ID
+        assert key == null
+        assert keys == [:]
+    }
+
+    @Test
+    void testGetContentRepoEncryptionKeysShouldFilterOtherProperties() throws Exception {
+        // Arrange
+        Properties rawProperties = new Properties()
+        final String KEY_ID = "arbitraryKeyId"
+        final String KEY_HEX = "0123456789ABCDEFFEDCBA9876543210"
+        final String KEY_ID_2 = "arbitraryKeyId2"
+        final String KEY_HEX_2 = "AAAABBBBCCCCDDDDEEEEFFFF00001111"
+        final String KEY_ID_3 = "arbitraryKeyId3"
+        final String KEY_HEX_3 = "01010101010101010101010101010101"
+
+        rawProperties.setProperty(CREKID, KEY_ID)
+        rawProperties.setProperty("${CREK}.id.${KEY_ID}", KEY_HEX)
+        rawProperties.setProperty("${CREK}.id.${KEY_ID_2}", KEY_HEX_2)
+        rawProperties.setProperty("${CREK}.id.${KEY_ID_3}", KEY_HEX_3)
+        rawProperties.setProperty(NiFiProperties.CONTENT_REPOSITORY_ENCRYPTION_KEY_PROVIDER_IMPLEMENTATION_CLASS, "some.class.provider")
+        rawProperties.setProperty(NiFiProperties.CONTENT_REPOSITORY_ENCRYPTION_KEY_PROVIDER_LOCATION, "some://url")
+        NiFiProperties niFiProperties = new StandardNiFiProperties(rawProperties)
+        logger.info("niFiProperties has ${niFiProperties.size()} properties: ${niFiProperties.getPropertyKeys()}")
+
+        // Act
+        def keyId = niFiProperties.getContentRepositoryEncryptionKeyId()
+        def key = niFiProperties.getContentRepositoryEncryptionKey()
+        def keys = niFiProperties.getContentRepositoryEncryptionKeys()
+
+        logger.info("Retrieved key ID: ${keyId}")
+        logger.info("Retrieved key: ${key}")
+        logger.info("Retrieved keys: ${keys}")
+
+        // Assert
+        assert keyId == KEY_ID
+        assert key == KEY_HEX
+        assert keys == [(KEY_ID): KEY_HEX, (KEY_ID_2): KEY_HEX_2, (KEY_ID_3): KEY_HEX_3]
+    }
 
     @Test
     void testShouldNormalizeContextPathProperty() {

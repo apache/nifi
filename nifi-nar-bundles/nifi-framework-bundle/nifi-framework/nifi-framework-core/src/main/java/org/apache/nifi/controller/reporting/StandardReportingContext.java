@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.controller.reporting;
 
+import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.attribute.expression.language.PreparedQuery;
 import org.apache.nifi.attribute.expression.language.Query;
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
@@ -53,10 +54,12 @@ public class StandardReportingContext implements ReportingContext, ControllerSer
     private final Map<PropertyDescriptor, String> properties;
     private final Map<PropertyDescriptor, PreparedQuery> preparedQueries;
     private final VariableRegistry variableRegistry;
+    private final ParameterLookup parameterLookup;
+    private final boolean analyticsEnabled;
 
     public StandardReportingContext(final FlowController flowController, final BulletinRepository bulletinRepository,
                                     final Map<PropertyDescriptor, String> properties, final ReportingTask reportingTask,
-                                    final VariableRegistry variableRegistry) {
+                                    final VariableRegistry variableRegistry, final ParameterLookup parameterLookup) {
         this.flowController = flowController;
         this.eventAccess = flowController.getEventAccess();
         this.bulletinRepository = bulletinRepository;
@@ -64,7 +67,10 @@ public class StandardReportingContext implements ReportingContext, ControllerSer
         this.serviceProvider = flowController.getControllerServiceProvider();
         this.reportingTask = reportingTask;
         this.variableRegistry = variableRegistry;
+        this.parameterLookup = parameterLookup;
+        this.analyticsEnabled = flowController.getStatusAnalyticsEngine() != null;
         preparedQueries = new HashMap<>();
+
         for (final Map.Entry<PropertyDescriptor, String> entry : properties.entrySet()) {
             final PropertyDescriptor desc = entry.getKey();
             String value = entry.getValue();
@@ -123,7 +129,7 @@ public class StandardReportingContext implements ReportingContext, ControllerSer
         }
 
         final String configuredValue = properties.get(property);
-        return new StandardPropertyValue(configuredValue == null ? descriptor.getDefaultValue() : configuredValue, this, preparedQueries.get(property), variableRegistry);
+        return new StandardPropertyValue(configuredValue == null ? descriptor.getDefaultValue() : configuredValue, this, parameterLookup, preparedQueries.get(property), variableRegistry);
     }
 
     @Override
@@ -175,5 +181,10 @@ public class StandardReportingContext implements ReportingContext, ControllerSer
     public String getClusterNodeIdentifier() {
         final NodeIdentifier nodeId = flowController.getNodeId();
         return nodeId == null ? null : nodeId.getId();
+    }
+
+    @Override
+    public boolean isAnalyticsEnabled() {
+        return this.analyticsEnabled;
     }
 }

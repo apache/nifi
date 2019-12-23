@@ -179,6 +179,7 @@ public class MergeRecord extends AbstractSessionFactoryProcessor {
         .required(true)
         .defaultValue("1")
         .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .build();
     public static final PropertyDescriptor MAX_RECORDS = new PropertyDescriptor.Builder()
         .name("max-records")
@@ -188,6 +189,7 @@ public class MergeRecord extends AbstractSessionFactoryProcessor {
         .required(false)
         .defaultValue("1000")
         .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .build();
     public static final PropertyDescriptor MAX_BIN_COUNT = new PropertyDescriptor.Builder()
         .name("max.bin.count")
@@ -268,8 +270,8 @@ public class MergeRecord extends AbstractSessionFactoryProcessor {
     protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         final List<ValidationResult> results = new ArrayList<>();
 
-        final Integer minRecords = validationContext.getProperty(MIN_RECORDS).asInteger();
-        final Integer maxRecords = validationContext.getProperty(MAX_RECORDS).asInteger();
+        final Integer minRecords = validationContext.getProperty(MIN_RECORDS).evaluateAttributeExpressions().asInteger();
+        final Integer maxRecords = validationContext.getProperty(MAX_RECORDS).evaluateAttributeExpressions().asInteger();
         if (minRecords != null && maxRecords != null && maxRecords < minRecords) {
             results.add(new ValidationResult.Builder()
                 .subject("Max Records")
@@ -277,6 +279,22 @@ public class MergeRecord extends AbstractSessionFactoryProcessor {
                 .valid(false)
                 .explanation("<Maximum Number of Records> property cannot be smaller than <Minimum Number of Records> property")
                 .build());
+        }
+        if (minRecords != null && minRecords <= 0) {
+            results.add(new ValidationResult.Builder()
+                    .subject("Min Records")
+                    .input(String.valueOf(minRecords))
+                    .valid(false)
+                    .explanation("<Minimum Number of Records> property cannot be negative or zero")
+                    .build());
+        }
+        if (maxRecords != null && maxRecords <= 0) {
+            results.add(new ValidationResult.Builder()
+                    .subject("Max Records")
+                    .input(String.valueOf(maxRecords))
+                    .valid(false)
+                    .explanation("<Maximum Number of Records> property cannot be negative or zero")
+                    .build());
         }
 
         final Double minSize = validationContext.getProperty(MIN_SIZE).asDataSize(DataUnit.B);
@@ -314,7 +332,7 @@ public class MergeRecord extends AbstractSessionFactoryProcessor {
 
         final String mergeStrategy = context.getProperty(MERGE_STRATEGY).getValue();
         final boolean block;
-        if (MERGE_STRATEGY_DEFRAGMENT.equals(mergeStrategy)) {
+        if (MERGE_STRATEGY_DEFRAGMENT.getValue().equals(mergeStrategy)) {
             block = true;
         } else if (context.getProperty(CORRELATION_ATTRIBUTE_NAME).isSet()) {
             block = true;
@@ -335,9 +353,10 @@ public class MergeRecord extends AbstractSessionFactoryProcessor {
             session.commit();
         }
 
-        // If there is no more data queued up, complete any bin that meets our minimum threshold
+        // If there is no more data queued up, or strategy is defragment, complete any bin that meets our minimum threshold
+        // Otherwise, run one more cycle to process queued FlowFiles to add more fragment into available bins.
         int completedBins = 0;
-        if (flowFiles.isEmpty()) {
+        if (flowFiles.isEmpty() || MERGE_STRATEGY_DEFRAGMENT.getValue().equals(mergeStrategy)) {
             try {
                 completedBins += manager.completeFullEnoughBins();
             } catch (final Exception e) {
@@ -378,12 +397,12 @@ public class MergeRecord extends AbstractSessionFactoryProcessor {
 
     protected String getGroupId(final ProcessContext context, final FlowFile flowFile, final RecordSchema schema, final ProcessSession session) {
         final String mergeStrategy = context.getProperty(MERGE_STRATEGY).getValue();
-        if (MERGE_STRATEGY_DEFRAGMENT.equals(mergeStrategy)) {
+        if (MERGE_STRATEGY_DEFRAGMENT.getValue().equals(mergeStrategy)) {
             return flowFile.getAttribute(FRAGMENT_ID_ATTRIBUTE);
         }
 
         final Optional<String> optionalText = schema.getSchemaText();
-        final String schemaText = optionalText.isPresent() ? optionalText.get() : AvroTypeUtil.extractAvroSchema(schema).toString();
+        final String schemaText = optionalText.orElseGet(() -> AvroTypeUtil.extractAvroSchema(schema).toString());
 
         final String groupId;
         final String correlationshipAttributeName = context.getProperty(CORRELATION_ATTRIBUTE_NAME).getValue();

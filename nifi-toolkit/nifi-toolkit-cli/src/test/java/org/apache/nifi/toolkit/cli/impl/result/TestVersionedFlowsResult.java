@@ -21,6 +21,7 @@ import org.apache.nifi.toolkit.cli.api.Context;
 import org.apache.nifi.toolkit.cli.api.ReferenceResolver;
 import org.apache.nifi.toolkit.cli.api.ResultType;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
+import org.apache.nifi.toolkit.cli.impl.result.registry.VersionedFlowsResult;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;

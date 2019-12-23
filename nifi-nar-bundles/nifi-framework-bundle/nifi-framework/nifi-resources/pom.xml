@@ -13,12 +13,12 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-framework</artifactId>
-        <version>1.9.0-SNAPSHOT</version>
+        <version>1.11.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-resources</artifactId>
     <packaging>pom</packaging>
@@ -158,6 +158,8 @@
         <nifi.security.user.oidc.client.id />
         <nifi.security.user.oidc.client.secret />
         <nifi.security.user.oidc.preferred.jwsalgorithm />
+        <nifi.security.user.oidc.additional.scopes />
+        <nifi.security.user.oidc.claim.identifying.user />
 
         <!-- nifi.properties: apache knox -->
         <nifi.security.user.knox.url />
@@ -190,8 +192,6 @@
         <nifi.cluster.load.balance.max.thread.count>8</nifi.cluster.load.balance.max.thread.count>
         <nifi.cluster.load.balance.comms.timeout>30 sec</nifi.cluster.load.balance.comms.timeout>
 
-        <nifi.cluster.request.replication.claim.timeout>15 secs</nifi.cluster.request.replication.claim.timeout>
-
         <!--  nifi.properties: zookeeper properties -->
         <nifi.zookeeper.connect.string />
         <nifi.zookeeper.connect.timeout>3 secs</nifi.zookeeper.connect.timeout>
@@ -208,6 +208,14 @@
         <nifi.kerberos.spnego.principal />
         <nifi.kerberos.spnego.keytab.location />
         <nifi.kerberos.spnego.authentication.expiration>12 hours</nifi.kerberos.spnego.authentication.expiration>
+
+        <!-- nifi.properties: analytics properties -->
+        <nifi.analytics.predict.enabled>false</nifi.analytics.predict.enabled>
+        <nifi.analytics.predict.interval>3 mins</nifi.analytics.predict.interval>
+        <nifi.analytics.query.interval>5 mins</nifi.analytics.query.interval>
+        <nifi.analytics.connection.model.implementation>org.apache.nifi.controller.status.analytics.models.OrdinaryLeastSquares</nifi.analytics.connection.model.implementation>
+        <nifi.analytics.connection.model.score.name>rSquared</nifi.analytics.connection.model.score.name>
+        <nifi.analytics.connection.model.score.threshold>.90</nifi.analytics.connection.model.score.threshold>
     </properties>
     <build>
         <plugins>

@@ -19,8 +19,7 @@ package org.apache.nifi.processors.standard.sql;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processors.standard.AbstractQueryDatabaseTable;
-import org.apache.nifi.processors.standard.util.JdbcCommon;
+import org.apache.nifi.util.db.JdbcCommon;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -29,20 +28,23 @@ import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.apache.nifi.util.db.JdbcCommon.AvroConversionOptions;
+import static org.apache.nifi.util.db.JdbcCommon.ResultSetRowCallback;
+
 public class DefaultAvroSqlWriter implements SqlWriter {
 
-    private final JdbcCommon.AvroConversionOptions options;
+    private final AvroConversionOptions options;
 
     private final Map<String,String> attributesToAdd = new HashMap<String,String>() {{
         put(CoreAttributes.MIME_TYPE.key(), JdbcCommon.MIME_TYPE_AVRO_BINARY);
     }};
 
-    public DefaultAvroSqlWriter(JdbcCommon.AvroConversionOptions options) {
+    public DefaultAvroSqlWriter(AvroConversionOptions options) {
         this.options = options;
     }
 
     @Override
-    public long writeResultSet(ResultSet resultSet, OutputStream outputStream, ComponentLog logger, AbstractQueryDatabaseTable.MaxValueResultSetRowCollector callback) throws Exception {
+    public long writeResultSet(ResultSet resultSet, OutputStream outputStream, ComponentLog logger, ResultSetRowCallback callback) throws Exception {
         try {
             return JdbcCommon.convertToAvroStream(resultSet, outputStream, options, callback);
         } catch (SQLException e) {

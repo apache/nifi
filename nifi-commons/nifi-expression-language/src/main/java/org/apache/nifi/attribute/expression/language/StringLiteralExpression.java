@@ -17,8 +17,6 @@
 
 package org.apache.nifi.attribute.expression.language;
 
-import java.util.Map;
-
 import org.apache.nifi.expression.AttributeValueDecorator;
 
 public class StringLiteralExpression implements Expression {
@@ -29,7 +27,7 @@ public class StringLiteralExpression implements Expression {
     }
 
     @Override
-    public String evaluate(Map<String, String> variables, AttributeValueDecorator decorator, Map<String, String> stateVariables) {
+    public String evaluate(final EvaluationContext evaluationContext, AttributeValueDecorator decorator) {
         return value;
     }
 }

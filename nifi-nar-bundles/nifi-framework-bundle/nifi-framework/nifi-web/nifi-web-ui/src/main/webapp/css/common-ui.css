@@ -171,7 +171,6 @@ ul.links span.header-link-over {
     font-weight: bold !important;
 }
 
-
 .ellipsis {
     white-space: nowrap;
     overflow: hidden;
@@ -259,6 +258,12 @@ textarea {
     overflow-y: auto;
     overflow-x: hidden;
     text-overflow: ellipsis;
+}
+
+textarea[disabled] {
+    background: #b2b8c1;
+    color: #dbdee2;
+    border: 1px solid #b2b8c1;
 }
 
 ul.property-info {
@@ -415,6 +420,33 @@ input.filter {
     margin-bottom: 5px;
 }
 
+/* overlay icon styles */
+
+.stop-configure-icon.fa-stop {
+    display : inline-block;
+    font-size: 15px;
+    position : relative;
+    top : -1px;
+}
+
+.stop-configure-icon::after {
+    content : "\f013";
+    font-size: 14px;
+    position : relative;
+    top : 0px;
+    left : -8px;
+    color : #ffffff;
+    -webkit-text-stroke-width : 1px;
+    -webkit-text-stroke-color : #004849;
+
+}
+
+*.stop-configure-icon + span {
+    display : inline-block;
+    padding  : 0px 0px 0px 0px;
+    margin-left  : -10px;
+}
+
 /* buttons */
 
 button.fa {
@@ -441,6 +473,11 @@ div.button-icon {
     float: left !important;
     margin-left: 20px;
     font-size: 18px !important;
+}
+
+div.button.auto-width,
+div.button-icon.auto-width {
+    width : auto !important;
 }
 
 div.button {

@@ -42,6 +42,8 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 
+import com.google.common.base.Throwables;
+
 
 public class CSVRecordReader extends AbstractCSVRecordReader {
     private final CSVParser csvParser;
@@ -72,45 +74,49 @@ public class CSVRecordReader extends AbstractCSVRecordReader {
 
     @Override
     public Record nextRecord(final boolean coerceTypes, final boolean dropUnknownFields) throws IOException, MalformedRecordException {
-        final RecordSchema schema = getSchema();
 
-        final List<RecordField> recordFields = getRecordFields();
-        final int numFieldNames = recordFields.size();
+        try {
+            final RecordSchema schema = getSchema();
 
-        for (final CSVRecord csvRecord : csvParser) {
-            final Map<String, Object> values = new LinkedHashMap<>(recordFields.size() * 2);
-            for (int i = 0; i < csvRecord.size(); i++) {
-                final String rawValue = csvRecord.get(i);
+            final List<RecordField> recordFields = getRecordFields();
+            final int numFieldNames = recordFields.size();
+            for (final CSVRecord csvRecord : csvParser) {
+                final Map<String, Object> values = new LinkedHashMap<>(recordFields.size() * 2);
+                for (int i = 0; i < csvRecord.size(); i++) {
+                    final String rawValue = csvRecord.get(i);
 
-                final String rawFieldName;
-                final DataType dataType;
-                if (i >= numFieldNames) {
-                    if (!dropUnknownFields) {
-                        values.put("unknown_field_index_" + i, rawValue);
+                    final String rawFieldName;
+                    final DataType dataType;
+                    if (i >= numFieldNames) {
+                        if (!dropUnknownFields) {
+                            values.put("unknown_field_index_" + i, rawValue);
+                        }
+
+                        continue;
+                    } else {
+                        final RecordField recordField = recordFields.get(i);
+                        rawFieldName = recordField.getFieldName();
+                        dataType = recordField.getDataType();
                     }
 
-                    continue;
-                } else {
-                    final RecordField recordField = recordFields.get(i);
-                    rawFieldName = recordField.getFieldName();
-                    dataType = recordField.getDataType();
+
+                    final Object value;
+                    if (coerceTypes) {
+                        value = convert(rawValue, dataType, rawFieldName);
+                    } else {
+                        // The CSV Reader is going to return all fields as Strings, because CSV doesn't have any way to
+                        // dictate a field type. As a result, we will use the schema that we have to attempt to convert
+                        // the value into the desired type if it's a simple type.
+                        value = convertSimpleIfPossible(rawValue, dataType, rawFieldName);
+                    }
+
+                    values.put(rawFieldName, value);
                 }
 
-
-                final Object value;
-                if (coerceTypes) {
-                    value = convert(rawValue, dataType, rawFieldName);
-                } else {
-                    // The CSV Reader is going to return all fields as Strings, because CSV doesn't have any way to
-                    // dictate a field type. As a result, we will use the schema that we have to attempt to convert
-                    // the value into the desired type if it's a simple type.
-                    value = convertSimpleIfPossible(rawValue, dataType, rawFieldName);
-                }
-
-                values.put(rawFieldName, value);
+                return new MapRecord(schema, values, coerceTypes, dropUnknownFields);
             }
-
-            return new MapRecord(schema, values, coerceTypes, dropUnknownFields);
+        } catch (Exception e) {
+            throw new MalformedRecordException("Error while getting next record. Root cause: " +  Throwables.getRootCause(e), e);
         }
 
         return null;

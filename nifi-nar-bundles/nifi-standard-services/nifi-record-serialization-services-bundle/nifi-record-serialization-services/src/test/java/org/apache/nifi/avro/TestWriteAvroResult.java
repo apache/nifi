@@ -26,6 +26,7 @@ import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.DataType;
+import org.apache.nifi.serialization.record.ListRecordSet;
 import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
@@ -66,7 +67,75 @@ public abstract class TestWriteAvroResult {
 
     protected abstract GenericRecord readRecord(InputStream in, Schema schema) throws IOException;
 
+    protected abstract List<GenericRecord> readRecords(InputStream in, Schema schema, int recordCount) throws IOException;
+
     protected void verify(final WriteResult writeResult) {
+    }
+
+    @Test
+    public void testWriteRecord() throws IOException {
+        final Schema schema = new Schema.Parser().parse(new File("src/test/resources/avro/simple.avsc"));
+
+        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("msg", RecordFieldType.STRING.getDataType()));
+        final RecordSchema recordSchema = new SimpleRecordSchema(fields);
+
+        final Map<String, Object> values = new HashMap<>();
+        values.put("msg", "nifi");
+        final Record record = new MapRecord(recordSchema, values);
+
+        try (final RecordSetWriter writer = createWriter(schema, baos)) {
+            writer.write(record);
+        }
+
+        final byte[] data = baos.toByteArray();
+
+        try (final InputStream in = new ByteArrayInputStream(data)) {
+            final GenericRecord avroRecord = readRecord(in, schema);
+
+            assertNotNull(avroRecord);
+            assertNotNull(avroRecord.get("msg"));
+            assertEquals("nifi", avroRecord.get("msg").toString());
+        }
+    }
+
+    @Test
+    public void testWriteRecordSet() throws IOException {
+        final Schema schema = new Schema.Parser().parse(new File("src/test/resources/avro/simple.avsc"));
+
+        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("msg", RecordFieldType.STRING.getDataType()));
+        final RecordSchema recordSchema = new SimpleRecordSchema(fields);
+
+        final int recordCount = 3;
+        List<Record> records = new ArrayList<>();
+        for (int i = 0; i < recordCount; i++){
+            final Map<String, Object> values = new HashMap<>();
+            values.put("msg", "nifi" + i);
+            final Record record = new MapRecord(recordSchema, values);
+            records.add(record);
+        }
+
+        try (final RecordSetWriter writer = createWriter(schema, baos)) {
+            writer.write(new ListRecordSet(recordSchema, records));
+        }
+
+        final byte[] data = baos.toByteArray();
+
+        try (final InputStream in = new ByteArrayInputStream(data)) {
+            final List<GenericRecord> avroRecords = readRecords(in, schema, recordCount);
+            for (int i = 0; i < recordCount; i++) {
+                final GenericRecord avroRecord = avroRecords.get(i);
+
+                assertNotNull(avroRecord);
+                assertNotNull(avroRecord.get("msg"));
+                assertEquals("nifi" + i, avroRecord.get("msg").toString());
+            }
+        }
     }
 
     @Test

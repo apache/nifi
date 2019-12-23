@@ -17,30 +17,6 @@
 
 package org.apache.nifi.serialization.record.util;
 
-import java.math.BigInteger;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
-import java.sql.Date;
-import java.sql.Time;
-import java.sql.Timestamp;
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.TimeZone;
-import java.util.function.Predicate;
-import java.util.function.Supplier;
-import java.util.regex.Pattern;
-
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.MapRecord;
@@ -54,6 +30,42 @@ import org.apache.nifi.serialization.record.type.MapDataType;
 import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.InputStream;
+import java.io.Reader;
+import java.lang.reflect.Array;
+import java.math.BigInteger;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.sql.Blob;
+import java.sql.Clob;
+import java.sql.Date;
+import java.sql.Time;
+import java.sql.Timestamp;
+import java.sql.Types;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Queue;
+import java.util.Set;
+import java.util.TimeZone;
+import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
+import java.util.regex.Pattern;
 
 public class DataTypeUtils {
     private static final Logger logger = LoggerFactory.getLogger(DataTypeUtils.class);
@@ -196,35 +208,8 @@ public class DataTypeUtils {
             case LONG:
                 return isLongTypeCompatible(value);
             case RECORD: {
-                if (value == null) {
-                    return false;
-                }
-                if (!(value instanceof Record)) {
-                    return false;
-                }
-
                 final RecordSchema schema = ((RecordDataType) dataType).getChildSchema();
-                if (schema == null) {
-                    return true;
-                }
-
-                final Record record = (Record) value;
-                for (final RecordField childField : schema.getFields()) {
-                    final Object childValue = record.getValue(childField);
-                    if (childValue == null && !childField.isNullable()) {
-                        logger.debug("Value is not compatible with schema because field {} has a null value, which is not allowed in the schema", childField.getFieldName());
-                        return false;
-                    }
-                    if (childValue == null) {
-                        continue; // consider compatible
-                    }
-
-                    if (!isCompatibleDataType(childValue, childField.getDataType())) {
-                        return false;
-                    }
-                }
-
-                return true;
+                return isRecordTypeCompatible(schema, value);
             }
             case SHORT:
                 return isShortTypeCompatible(value);
@@ -246,17 +231,75 @@ public class DataTypeUtils {
     }
 
     public static DataType chooseDataType(final Object value, final ChoiceDataType choiceType) {
-        for (final DataType subType : choiceType.getPossibleSubTypes()) {
-            if (isCompatibleDataType(value, subType)) {
-                if (subType.getFieldType() == RecordFieldType.CHOICE) {
-                    return chooseDataType(value, (ChoiceDataType) subType);
-                }
+        Queue<DataType> possibleSubTypes = new LinkedList<>(choiceType.getPossibleSubTypes());
+        List<DataType> compatibleSimpleSubTypes = new ArrayList<>();
 
-                return subType;
+        DataType subType;
+        while ((subType = possibleSubTypes.poll()) != null) {
+            if (subType instanceof ChoiceDataType) {
+                possibleSubTypes.addAll(((ChoiceDataType) subType).getPossibleSubTypes());
+            } else {
+                if (isCompatibleDataType(value, subType)) {
+                    compatibleSimpleSubTypes.add(subType);
+                }
             }
         }
 
-        return null;
+        int nrOfCompatibleSimpleSubTypes = compatibleSimpleSubTypes.size();
+
+        final DataType chosenSimpleType;
+        if (nrOfCompatibleSimpleSubTypes == 0) {
+            chosenSimpleType = null;
+        } else if (nrOfCompatibleSimpleSubTypes == 1) {
+            chosenSimpleType = compatibleSimpleSubTypes.get(0);
+        } else {
+            chosenSimpleType = findMostSuitableType(value, compatibleSimpleSubTypes, Function.identity())
+                    .orElse(compatibleSimpleSubTypes.get(0));
+        }
+
+        return chosenSimpleType;
+    }
+
+    public static <T> Optional<T> findMostSuitableType(Object value, List<T> types, Function<T, DataType> dataTypeMapper) {
+        if (value instanceof String) {
+            return findMostSuitableTypeByStringValue((String) value, types, dataTypeMapper);
+        } else {
+            DataType inferredDataType = inferDataType(value, null);
+
+            if (inferredDataType != null && !inferredDataType.getFieldType().equals(RecordFieldType.STRING)) {
+                for (T type : types) {
+                    if (inferredDataType.equals(dataTypeMapper.apply(type))) {
+                        return Optional.of(type);
+                    }
+                }
+
+                for (T type : types) {
+                    if (getWiderType(dataTypeMapper.apply(type), inferredDataType).isPresent()) {
+                        return Optional.of(type);
+                    }
+                }
+            }
+        }
+
+        return Optional.empty();
+    }
+
+    public static <T> Optional<T> findMostSuitableTypeByStringValue(String valueAsString, List<T> types, Function<T, DataType> dataTypeMapper) {
+        // Sorting based on the RecordFieldType enum ordering looks appropriate here as we want simpler types
+        //  first and the enum's ordering seems to reflect that
+        Collections.sort(types, Comparator.comparing(type -> dataTypeMapper.apply(type).getFieldType()));
+
+        for (T type : types) {
+            try {
+                if (isCompatibleDataType(valueAsString, dataTypeMapper.apply(type))) {
+                    return Optional.of(type);
+                }
+            } catch (Exception e) {
+                logger.error("Exception thrown while checking if '" + valueAsString + "' is compatible with '" + type + "'", e);
+            }
+        }
+
+        return Optional.empty();
     }
 
     public static Record toRecord(final Object value, final RecordSchema recordSchema, final String fieldName) {
@@ -279,7 +322,7 @@ public class DataTypeUtils {
             }
 
             final Map<?, ?> map = (Map<?, ?>) value;
-            final Map<String, Object> coercedValues = new HashMap<>();
+            final Map<String, Object> coercedValues = new LinkedHashMap<>();
 
             for (final Map.Entry<?, ?> entry : map.entrySet()) {
                 final Object keyValue = entry.getKey();
@@ -304,8 +347,253 @@ public class DataTypeUtils {
         throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to Record for field " + fieldName);
     }
 
-    public static boolean isRecordTypeCompatible(final Object value) {
-        return value != null && value instanceof Record;
+    public static Record toRecord(final Object value, final String fieldName) {
+        return toRecord(value, fieldName, StandardCharsets.UTF_8);
+    }
+
+    public static RecordSchema inferSchema(final Map<String, Object> values, final String fieldName, final Charset charset) {
+        if (values == null) {
+            return null;
+        }
+
+        final List<RecordField> inferredFieldTypes = new ArrayList<>();
+        final Map<String, Object> coercedValues = new LinkedHashMap<>();
+
+        for (final Map.Entry<?, ?> entry : values.entrySet()) {
+            final Object keyValue = entry.getKey();
+            if (keyValue == null) {
+                continue;
+            }
+
+            final String key = keyValue.toString();
+            final Object rawValue = entry.getValue();
+            final DataType inferredDataType = inferDataType(rawValue, RecordFieldType.STRING.getDataType());
+
+            final RecordField recordField = new RecordField(key, inferredDataType, true);
+            inferredFieldTypes.add(recordField);
+
+            final Object coercedValue = convertType(rawValue, inferredDataType, fieldName, charset);
+            coercedValues.put(key, coercedValue);
+        }
+
+        final RecordSchema inferredSchema = new SimpleRecordSchema(inferredFieldTypes);
+        return inferredSchema;
+    }
+
+    public static Record toRecord(final Object value, final String fieldName, final Charset charset) {
+        if (value == null) {
+            return null;
+        }
+
+        if (value instanceof Record) {
+            return ((Record) value);
+        }
+
+        final List<RecordField> inferredFieldTypes = new ArrayList<>();
+        if (value instanceof Map) {
+            final Map<?, ?> map = (Map<?, ?>) value;
+            final Map<String, Object> coercedValues = new LinkedHashMap<>();
+
+            for (final Map.Entry<?, ?> entry : map.entrySet()) {
+                final Object keyValue = entry.getKey();
+                if (keyValue == null) {
+                    continue;
+                }
+
+                final String key = keyValue.toString();
+                final Object rawValue = entry.getValue();
+                final DataType inferredDataType = inferDataType(rawValue, RecordFieldType.STRING.getDataType());
+
+                final RecordField recordField = new RecordField(key, inferredDataType, true);
+                inferredFieldTypes.add(recordField);
+
+                final Object coercedValue = convertType(rawValue, inferredDataType, fieldName, charset);
+                coercedValues.put(key, coercedValue);
+            }
+
+            final RecordSchema inferredSchema = new SimpleRecordSchema(inferredFieldTypes);
+            return new MapRecord(inferredSchema, coercedValues);
+        }
+
+        throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to Record for field " + fieldName);
+    }
+
+    public static DataType inferDataType(final Object value, final DataType defaultType) {
+        if (value == null) {
+            return defaultType;
+        }
+
+        if (value instanceof String) {
+            return RecordFieldType.STRING.getDataType();
+        }
+
+        if (value instanceof Record) {
+            final RecordSchema schema = ((Record) value).getSchema();
+            return RecordFieldType.RECORD.getRecordDataType(schema);
+        }
+
+        if (value instanceof Number) {
+            if (value instanceof Long) {
+                return RecordFieldType.LONG.getDataType();
+            }
+            if (value instanceof Integer) {
+                return RecordFieldType.INT.getDataType();
+            }
+            if (value instanceof Short) {
+                return RecordFieldType.SHORT.getDataType();
+            }
+            if (value instanceof Byte) {
+                return RecordFieldType.BYTE.getDataType();
+            }
+            if (value instanceof Float) {
+                return RecordFieldType.FLOAT.getDataType();
+            }
+            if (value instanceof Double) {
+                return RecordFieldType.DOUBLE.getDataType();
+            }
+            if (value instanceof BigInteger) {
+                return RecordFieldType.BIGINT.getDataType();
+            }
+        }
+
+        if (value instanceof Boolean) {
+            return RecordFieldType.BOOLEAN.getDataType();
+        }
+        if (value instanceof java.sql.Time) {
+            return RecordFieldType.TIME.getDataType();
+        }
+        if (value instanceof java.sql.Timestamp) {
+            return RecordFieldType.TIMESTAMP.getDataType();
+        }
+        if (value instanceof java.util.Date) {
+            return RecordFieldType.DATE.getDataType();
+        }
+        if (value instanceof Character) {
+            return RecordFieldType.CHAR.getDataType();
+        }
+
+        // A value of a Map could be either a Record or a Map type. In either case, it must have Strings as keys.
+        if (value instanceof Map) {
+            final Map<String, ?> map = (Map<String, ?>) value;
+            return inferRecordDataType(map);
+//            // Check if all types are the same.
+//            if (map.isEmpty()) {
+//                return RecordFieldType.MAP.getMapDataType(RecordFieldType.STRING.getDataType());
+//            }
+//
+//            Object valueFromMap = null;
+//            Class<?> valueClass = null;
+//            for (final Object val : map.values()) {
+//                if (val == null) {
+//                    continue;
+//                }
+//
+//                valueFromMap = val;
+//                final Class<?> currentValClass = val.getClass();
+//                if (valueClass == null) {
+//                    valueClass = currentValClass;
+//                } else {
+//                    // If we have two elements that are of different types, then we cannot have a Map. Must be a Record.
+//                    if (valueClass != currentValClass) {
+//                        return inferRecordDataType(map);
+//                    }
+//                }
+//            }
+//
+//            // All values appear to be of the same type, so assume that it's a map.
+//            final DataType elementDataType = inferDataType(valueFromMap, RecordFieldType.STRING.getDataType());
+//            return RecordFieldType.MAP.getMapDataType(elementDataType);
+        }
+        if (value.getClass().isArray()) {
+            DataType mergedDataType = null;
+
+            int length = Array.getLength(value);
+            for(int index = 0; index < length; index++) {
+                final DataType inferredDataType = inferDataType(Array.get(value, index), RecordFieldType.STRING.getDataType());
+                mergedDataType = mergeDataTypes(mergedDataType, inferredDataType);
+            }
+
+            if (mergedDataType == null) {
+                mergedDataType = RecordFieldType.STRING.getDataType();
+            }
+
+            return RecordFieldType.ARRAY.getArrayDataType(mergedDataType);
+        }
+        if (value instanceof Iterable) {
+            final Iterable iterable = (Iterable<?>) value;
+
+            DataType mergedDataType = null;
+            for (final Object arrayValue : iterable) {
+                final DataType inferredDataType = inferDataType(arrayValue, RecordFieldType.STRING.getDataType());
+                mergedDataType = mergeDataTypes(mergedDataType, inferredDataType);
+            }
+
+            if (mergedDataType == null) {
+                mergedDataType = RecordFieldType.STRING.getDataType();
+            }
+
+            return RecordFieldType.ARRAY.getArrayDataType(mergedDataType);
+        }
+
+        return defaultType;
+    }
+
+    private static DataType inferRecordDataType(final Map<String, ?> map) {
+        final List<RecordField> fields = new ArrayList<>(map.size());
+        for (final Map.Entry<String, ?> entry : map.entrySet()) {
+            final String key = entry.getKey();
+            final Object value = entry.getValue();
+
+            final DataType dataType = inferDataType(value, RecordFieldType.STRING.getDataType());
+            final RecordField field = new RecordField(key, dataType, true);
+            fields.add(field);
+        }
+
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+        return RecordFieldType.RECORD.getRecordDataType(schema);
+    }
+
+    /**
+     * Check if the given record structured object compatible with the schema.
+     * @param schema record schema, schema validation will not be performed if schema is null
+     * @param value the record structured object, i.e. Record or Map
+     * @return True if the object is compatible with the schema
+     */
+    private static boolean isRecordTypeCompatible(RecordSchema schema, Object value) {
+
+        if (value == null) {
+            return false;
+        }
+
+        if (!(value instanceof Record) && !(value instanceof Map)) {
+            return false;
+        }
+
+        if (schema == null) {
+            return true;
+        }
+
+        for (final RecordField childField : schema.getFields()) {
+            final Object childValue;
+            if (value instanceof Record) {
+                childValue = ((Record) value).getValue(childField);
+            } else {
+                childValue = ((Map) value).get(childField.getFieldName());
+            }
+
+            if (childValue == null && !childField.isNullable()) {
+                logger.debug("Value is not compatible with schema because field {} has a null value, which is not allowed in the schema", childField.getFieldName());
+                return false;
+            }
+            if (childValue == null) {
+                continue; // consider compatible
+            }
+
+            if (!isCompatibleDataType(childValue, childField.getDataType())) {
+                return false;
+            }
+        }
+        return true;
     }
 
     public static Object[] toArray(final Object value, final String fieldName, final DataType elementDataType) {
@@ -344,7 +632,28 @@ public class DataTypeUtils {
             return list.toArray();
         }
 
-        throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to Object Array for field " + fieldName);
+        try {
+            if (value instanceof Blob) {
+                Blob blob = (Blob) value;
+                long rawBlobLength = blob.length();
+                if(rawBlobLength > Integer.MAX_VALUE) {
+                    throw new IllegalTypeConversionException("Value of type " + value.getClass() + " too large to convert to Object Array for field " + fieldName);
+                }
+                int blobLength = (int) rawBlobLength;
+                byte[] src = blob.getBytes(1, blobLength);
+                Byte[] dest = new Byte[blobLength];
+                for (int i = 0; i < src.length; i++) {
+                    dest[i] = src[i];
+                }
+                return dest;
+            } else {
+                throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to Object Array for field " + fieldName);
+            }
+        } catch (IllegalTypeConversionException itce) {
+            throw itce;
+        } catch (Exception e) {
+            throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to Object Array for field " + fieldName, e);
+        }
     }
 
     public static boolean isArrayTypeCompatible(final Object value, final DataType elementDataType) {
@@ -374,7 +683,7 @@ public class DataTypeUtils {
                 return (Map<String, Object>) value;
             }
 
-            final Map<String, Object> transformed = new HashMap<>();
+            final Map<String, Object> transformed = new LinkedHashMap<>();
             for (final Map.Entry<?, ?> entry : original.entrySet()) {
                 final Object key = entry.getKey();
                 if (key == null) {
@@ -395,7 +704,7 @@ public class DataTypeUtils {
                     + " because Record does not have an associated Schema");
             }
 
-            final Map<String, Object> map = new HashMap<>();
+            final Map<String, Object> map = new LinkedHashMap<>();
             for (final String recordFieldName : recordSchema.getFieldNames()) {
                 map.put(recordFieldName, record.getValue(recordFieldName));
             }
@@ -426,20 +735,20 @@ public class DataTypeUtils {
             if (recordSchema == null) {
                 throw new IllegalTypeConversionException("Cannot convert value of type Record to Map because Record does not have an associated Schema");
             }
-            final Map<String, Object> recordMap = new HashMap<>();
+
+            final Map<String, Object> recordMap = new LinkedHashMap<>();
             for (RecordField field : recordSchema.getFields()) {
                 final DataType fieldDataType = field.getDataType();
                 final String fieldName = field.getFieldName();
                 Object fieldValue = record.getValue(fieldName);
+
                 if (fieldValue == null) {
                     recordMap.put(fieldName, null);
                 } else if (isScalarValue(fieldDataType, fieldValue)) {
                     recordMap.put(fieldName, fieldValue);
-
                 } else if (fieldDataType instanceof RecordDataType) {
                     Record nestedRecord = (Record) fieldValue;
                     recordMap.put(fieldName, convertRecordFieldtoObject(nestedRecord, fieldDataType));
-
                 } else if (fieldDataType instanceof MapDataType) {
                     recordMap.put(fieldName, convertRecordMapToJavaMap((Map) fieldValue, ((MapDataType)fieldDataType).getValueType()));
 
@@ -452,9 +761,12 @@ public class DataTypeUtils {
             }
             return recordMap;
         } else if (value instanceof Map) {
-            return convertRecordMapToJavaMap((Map)value, ((MapDataType)dataType).getValueType());
+            return convertRecordMapToJavaMap((Map) value, ((MapDataType) dataType).getValueType());
         } else if (dataType != null && isScalarValue(dataType, value)) {
             return value;
+        } else if (value instanceof Object[] && dataType instanceof ArrayDataType) {
+            // This is likely a Map whose values are represented as an array. Return a new array with each element converted to a Java object
+            return convertRecordArrayToJavaArray((Object[]) value, ((ArrayDataType) dataType).getElementType());
         }
 
         throw new IllegalTypeConversionException("Cannot convert value of class " + value.getClass().getName() + " because the type is not supported");
@@ -489,7 +801,7 @@ public class DataTypeUtils {
     }
 
     public static boolean isMapTypeCompatible(final Object value) {
-        return value != null && value instanceof Map;
+        return value != null && (value instanceof Map || value instanceof MapRecord);
     }
 
 
@@ -539,6 +851,20 @@ public class DataTypeUtils {
                 return ""; // Empty array = empty string
             }
         }
+        if (value instanceof Clob) {
+            Clob clob = (Clob) value;
+            StringBuilder sb = new StringBuilder();
+            char[] buffer = new char[32 * 1024]; // 32K default buffer
+            try (Reader reader = clob.getCharacterStream()) {
+                int charsRead;
+                while ((charsRead = reader.read(buffer)) != -1) {
+                    sb.append(buffer, 0, charsRead);
+                }
+                return sb.toString();
+            } catch (Exception e) {
+                throw new IllegalTypeConversionException("Cannot convert value " + value + " of type " + value.getClass() + " to a valid String", e);
+            }
+        }
 
         return value.toString();
     }
@@ -581,6 +907,34 @@ public class DataTypeUtils {
         if (value instanceof java.util.Date) {
             return getDateFormat(format).format((java.util.Date) value);
         }
+        if (value instanceof Blob) {
+            Blob blob = (Blob) value;
+            StringBuilder sb = new StringBuilder();
+            byte[] buffer = new byte[32 * 1024]; // 32K default buffer
+            try (InputStream inStream = blob.getBinaryStream()) {
+                int bytesRead;
+                while ((bytesRead = inStream.read(buffer)) != -1) {
+                    sb.append(new String(buffer, charset), 0, bytesRead);
+                }
+                return sb.toString();
+            } catch (Exception e) {
+                throw new IllegalTypeConversionException("Cannot convert value " + value + " of type " + value.getClass() + " to a valid String", e);
+            }
+        }
+        if (value instanceof Clob) {
+            Clob clob = (Clob) value;
+            StringBuilder sb = new StringBuilder();
+            char[] buffer = new char[32 * 1024]; // 32K default buffer
+            try (Reader reader = clob.getCharacterStream()) {
+                int charsRead;
+                while ((charsRead = reader.read(buffer)) != -1) {
+                    sb.append(buffer, 0, charsRead);
+                }
+                return sb.toString();
+            } catch (Exception e) {
+                throw new IllegalTypeConversionException("Cannot convert value " + value + " of type " + value.getClass() + " to a valid String", e);
+            }
+        }
 
         if (value instanceof Object[]) {
             return Arrays.toString((Object[]) value);
@@ -602,13 +956,13 @@ public class DataTypeUtils {
             return null;
         }
 
+        if (value instanceof Date) {
+            return (Date) value;
+        }
+
         if (value instanceof java.util.Date) {
             java.util.Date _temp = (java.util.Date)value;
             return new Date(_temp.getTime());
-        }
-
-        if (value instanceof Date) {
-            return (Date) value;
         }
 
         if (value instanceof Number) {
@@ -730,6 +1084,15 @@ public class DataTypeUtils {
         return df;
     }
 
+    public static DateFormat getDateFormat(final String format, final String timezoneID) {
+        if (format == null || timezoneID == null) {
+            return null;
+        }
+        final DateFormat df = new SimpleDateFormat(format);
+        df.setTimeZone(TimeZone.getTimeZone(timezoneID));
+        return df;
+    }
+
     public static boolean isTimeTypeCompatible(final Object value, final String format) {
         return isDateTypeCompatible(value, format);
     }
@@ -739,12 +1102,12 @@ public class DataTypeUtils {
             return null;
         }
 
-        if (value instanceof java.util.Date) {
-            return new Timestamp(((java.util.Date)value).getTime());
-        }
-
         if (value instanceof Timestamp) {
             return (Timestamp) value;
+        }
+
+        if (value instanceof java.util.Date) {
+            return new Timestamp(((java.util.Date)value).getTime());
         }
 
         if (value instanceof Number) {
@@ -753,12 +1116,12 @@ public class DataTypeUtils {
         }
 
         if (value instanceof String) {
-            try {
-                final String string = ((String) value).trim();
-                if (string.isEmpty()) {
-                    return null;
-                }
+            final String string = ((String) value).trim();
+            if (string.isEmpty()) {
+                return null;
+            }
 
+            try {
                 if (format == null) {
                     return new Timestamp(Long.parseLong(string));
                 }
@@ -767,11 +1130,23 @@ public class DataTypeUtils {
                 if (dateFormat == null) {
                     return new Timestamp(Long.parseLong(string));
                 }
+
                 final java.util.Date utilDate = dateFormat.parse(string);
                 return new Timestamp(utilDate.getTime());
             } catch (final ParseException e) {
+                final DateFormat dateFormat = format.get();
+                final String formatDescription;
+                if (dateFormat == null) {
+                    formatDescription = "Numeric";
+                } else if (dateFormat instanceof SimpleDateFormat) {
+                    formatDescription = ((SimpleDateFormat) dateFormat).toPattern();
+                } else {
+                    formatDescription = dateFormat.toString();
+                }
+
                 throw new IllegalTypeConversionException("Could not convert value [" + value
-                    + "] of type java.lang.String to Timestamp for field " + fieldName + " because the value is not in the expected date format: " + format);
+                    + "] of type java.lang.String to Timestamp for field " + fieldName + " because the value is not in the expected date format: "
+                    + formatDescription);
             }
         }
 
@@ -791,15 +1166,25 @@ public class DataTypeUtils {
         if (value instanceof BigInteger) {
             return (BigInteger) value;
         }
-        if (value instanceof Long) {
-            return BigInteger.valueOf((Long) value);
+
+        if (value instanceof Number) {
+            return BigInteger.valueOf(((Number) value).longValue());
+        }
+
+        if (value instanceof String) {
+            try {
+                return new BigInteger((String) value);
+            } catch (NumberFormatException nfe) {
+                throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to BigInteger for field " + fieldName
+                        + ", value is not a valid representation of BigInteger", nfe);
+            }
         }
 
         throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to BigInteger for field " + fieldName);
     }
 
     public static boolean isBigIntTypeCompatible(final Object value) {
-        return value == null && (value instanceof BigInteger || value instanceof Long);
+        return isNumberTypeCompatible(value, DataTypeUtils::isIntegral);
     }
 
     public static Boolean toBoolean(final Object value, final String fieldName) {
@@ -970,7 +1355,10 @@ public class DataTypeUtils {
         return false;
     }
 
-    private static boolean isIntegral(final String value, final long minValue, final long maxValue) {
+    /**
+     * Check if the value is an integral.
+     */
+    private static boolean isIntegral(final String value) {
         if (value == null || value.isEmpty()) {
             return false;
         }
@@ -991,6 +1379,18 @@ public class DataTypeUtils {
             }
         }
 
+        return true;
+    }
+
+    /**
+     * Check if the value is an integral within a value range.
+     */
+    private static boolean isIntegral(final String value, final long minValue, final long maxValue) {
+
+        if (!isIntegral(value)) {
+            return false;
+        }
+
         try {
             final long longValue = Long.parseLong(value);
             return longValue >= minValue && longValue <= maxValue;
@@ -999,7 +1399,6 @@ public class DataTypeUtils {
             return false;
         }
     }
-
 
     public static Integer toInteger(final Object value, final String fieldName) {
         if (value == null) {
@@ -1186,14 +1585,155 @@ public class DataTypeUtils {
             defaultValue = thisField.getDefaultValue();
         }
 
-        final DataType dataType;
-        if (thisField.getDataType().equals(otherField.getDataType())) {
-            dataType = thisField.getDataType();
-        } else {
-            dataType = RecordFieldType.CHOICE.getChoiceDataType(thisField.getDataType(), otherField.getDataType());
+        final DataType dataType = mergeDataTypes(thisField.getDataType(), otherField.getDataType());
+        return new RecordField(fieldName, dataType, defaultValue, aliases, thisField.isNullable() || otherField.isNullable());
+    }
+
+    public static DataType mergeDataTypes(final DataType thisDataType, final DataType otherDataType) {
+        if (thisDataType == null) {
+            return otherDataType;
         }
 
-        return new RecordField(fieldName, dataType, defaultValue, aliases, thisField.isNullable() || otherField.isNullable());
+        if (otherDataType == null) {
+            return thisDataType;
+        }
+
+        if (thisDataType.equals(otherDataType)) {
+            return thisDataType;
+        } else {
+            // If one type is 'wider' than the other (such as an INT and a LONG), just use the wider type (LONG, in this case),
+            // rather than using a CHOICE of the two.
+            final Optional<DataType> widerType = getWiderType(thisDataType, otherDataType);
+            if (widerType.isPresent()) {
+                return widerType.get();
+            }
+
+            final Set<DataType> possibleTypes = new LinkedHashSet<>();
+            if (thisDataType.getFieldType() == RecordFieldType.CHOICE) {
+                possibleTypes.addAll(((ChoiceDataType) thisDataType).getPossibleSubTypes());
+            } else {
+                possibleTypes.add(thisDataType);
+            }
+
+            if (otherDataType.getFieldType() == RecordFieldType.CHOICE) {
+                possibleTypes.addAll(((ChoiceDataType) otherDataType).getPossibleSubTypes());
+            } else {
+                possibleTypes.add(otherDataType);
+            }
+
+            ArrayList<DataType> possibleChildTypes = new ArrayList<>(possibleTypes);
+            Collections.sort(possibleChildTypes, Comparator.comparing(DataType::getFieldType));
+
+            return RecordFieldType.CHOICE.getChoiceDataType(possibleChildTypes);
+        }
+    }
+
+    public static Optional<DataType> getWiderType(final DataType thisDataType, final DataType otherDataType) {
+        final RecordFieldType thisFieldType = thisDataType.getFieldType();
+        final RecordFieldType otherFieldType = otherDataType.getFieldType();
+
+        final int thisIntTypeValue = getIntegerTypeValue(thisFieldType);
+        final int otherIntTypeValue = getIntegerTypeValue(otherFieldType);
+        if (thisIntTypeValue > -1 && otherIntTypeValue > -1) {
+            if (thisIntTypeValue > otherIntTypeValue) {
+                return Optional.of(thisDataType);
+            }
+
+            return Optional.of(otherDataType);
+        }
+
+        switch (thisFieldType) {
+            case FLOAT:
+                if (otherFieldType == RecordFieldType.DOUBLE) {
+                    return Optional.of(otherDataType);
+                }
+                break;
+            case DOUBLE:
+                if (otherFieldType == RecordFieldType.FLOAT) {
+                    return Optional.of(thisDataType);
+                }
+                break;
+
+
+            case CHAR:
+                if (otherFieldType == RecordFieldType.STRING) {
+                    return Optional.of(otherDataType);
+                }
+                break;
+            case STRING:
+                if (otherFieldType == RecordFieldType.CHAR) {
+                    return Optional.of(thisDataType);
+                }
+                break;
+        }
+
+        return Optional.empty();
+    }
+
+    private static int getIntegerTypeValue(final RecordFieldType fieldType) {
+        switch (fieldType) {
+            case BIGINT:
+                return 4;
+            case LONG:
+                return 3;
+            case INT:
+                return 2;
+            case SHORT:
+                return 1;
+            case BYTE:
+                return 0;
+            default:
+                return -1;
+        }
+    }
+
+    /**
+     * Converts the specified field data type into a java.sql.Types constant (INTEGER = 4, e.g.)
+     *
+     * @param dataType the DataType to be converted
+     * @return the SQL type corresponding to the specified RecordFieldType
+     */
+    public static int getSQLTypeValue(final DataType dataType) {
+        if (dataType == null) {
+            return Types.NULL;
+        }
+        RecordFieldType fieldType = dataType.getFieldType();
+        switch (fieldType) {
+            case BIGINT:
+            case LONG:
+                return Types.BIGINT;
+            case BOOLEAN:
+                return Types.BOOLEAN;
+            case BYTE:
+                return Types.TINYINT;
+            case CHAR:
+                return Types.CHAR;
+            case DATE:
+                return Types.DATE;
+            case DOUBLE:
+                return Types.DOUBLE;
+            case FLOAT:
+                return Types.FLOAT;
+            case INT:
+                return Types.INTEGER;
+            case SHORT:
+                return Types.SMALLINT;
+            case STRING:
+                return Types.VARCHAR;
+            case TIME:
+                return Types.TIME;
+            case TIMESTAMP:
+                return Types.TIMESTAMP;
+            case ARRAY:
+                return Types.ARRAY;
+            case MAP:
+            case RECORD:
+                return Types.STRUCT;
+            case CHOICE:
+                throw new IllegalTypeConversionException("Cannot convert CHOICE, type must be explicit");
+            default:
+                throw new IllegalTypeConversionException("Cannot convert unknown type " + fieldType.name());
+        }
     }
 
     public static boolean isScalarValue(final DataType dataType, final Object value) {

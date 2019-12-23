@@ -59,6 +59,7 @@ import org.apache.nifi.util.StopWatch;
 import org.apache.nifi.util.StringUtils;
 
 import java.io.FilenameFilter;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
@@ -69,8 +70,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -296,56 +297,108 @@ public class JoltTransformRecord extends AbstractProcessor {
         final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
 
         final RecordSchema schema;
-        final ClassLoader originalContextClassLoader = Thread.currentThread().getContextClassLoader();
+        FlowFile transformed = null;
+
         try (final InputStream in = session.read(original);
              final RecordReader reader = readerFactory.createRecordReader(original, in, getLogger())) {
             schema = writerFactory.getSchema(original.getAttributes(), reader.getSchema());
-            Record record;
 
-            FlowFile transformed = session.create(original);
             final Map<String, String> attributes = new HashMap<>();
             final WriteResult writeResult;
-            try (final OutputStream out = session.write(transformed);
-                 final RecordSetWriter writer = writerFactory.createWriter(getLogger(), schema, out)) {
+            transformed = session.create(original);
+
+            // We want to transform the first record before creating the Record Writer. We do this because the Record will likely end up with a different structure
+            // and therefore a difference Schema after being transformed. As a result, we want to transform the Record and then provide the transformed schema to the
+            // Record Writer so that if the Record Writer chooses to inherit the Record Schema from the Record itself, it will inherit the transformed schema, not the
+            // schema determined by the Record Reader.
+            final Record firstRecord = reader.nextRecord();
+            if (firstRecord == null) {
+                try (final OutputStream out = session.write(transformed);
+                     final RecordSetWriter writer = writerFactory.createWriter(getLogger(), schema, out, transformed)) {
+
+                    writer.beginRecordSet();
+                    writeResult = writer.finishRecordSet();
+
+                    attributes.put("record.count", String.valueOf(writeResult.getRecordCount()));
+                    attributes.put(CoreAttributes.MIME_TYPE.key(), writer.getMimeType());
+                    attributes.putAll(writeResult.getAttributes());
+                }
+
+                transformed = session.putAllAttributes(transformed, attributes);
+                logger.info("{} had no Records to transform", new Object[]{original});
+            } else {
 
                 final JoltTransform transform = getTransform(context, original);
-                writer.beginRecordSet();
-                while ((record = reader.nextRecord()) != null) {
-                    Map<String, Object> recordMap = (Map<String, Object>) DataTypeUtils.convertRecordFieldtoObject(record, RecordFieldType.RECORD.getRecordDataType(record.getSchema()));
-                    // JOLT expects arrays to be of type List where our Record code uses Object[].
-                    // Make another pass of the transformed objects to change Object[] to List.
-                    recordMap = (Map<String, Object>) normalizeJoltObjects(recordMap);
-                    Object transformedObject = transform(transform, recordMap);
-                    // JOLT expects arrays to be of type List where our Record code uses Object[].
-                    // Make another pass of the transformed objects to change List to Object[].
-                    Record r = DataTypeUtils.toRecord(normalizeRecordObjects(transformedObject), schema, "r");
-                    writer.write(r);
+                final Record transformedFirstRecord = transform(firstRecord, transform);
+
+                if (transformedFirstRecord == null) {
+                    throw new ProcessException("Error transforming the first record");
                 }
-                writeResult = writer.finishRecordSet();
 
-                attributes.put("record.count", String.valueOf(writeResult.getRecordCount()));
-                attributes.put(CoreAttributes.MIME_TYPE.key(), writer.getMimeType());
-                attributes.putAll(writeResult.getAttributes());
-            } catch (Exception e) {
-                logger.error("Unable to write transformed records {} due to {}", new Object[]{original, e.toString(), e});
-                session.remove(transformed);
-                session.transfer(original, REL_FAILURE);
-                return;
+                final RecordSchema writeSchema = writerFactory.getSchema(original.getAttributes(), transformedFirstRecord.getSchema());
+
+                // TODO: Is it possible that two Records with the same input schema could have different schemas after transformation?
+                // If so, then we need to avoid this pattern of writing all Records from the input FlowFile to the same output FlowFile
+                // and instead use a Map<RecordSchema, RecordSetWriter>. This way, even if many different output schemas are possible,
+                // the output FlowFiles will each only contain records that have the same schema.
+                try (final OutputStream out = session.write(transformed);
+                     final RecordSetWriter writer = writerFactory.createWriter(getLogger(), writeSchema, out, transformed)) {
+
+                    writer.beginRecordSet();
+
+                    writer.write(transformedFirstRecord);
+
+                    Record record;
+                    while ((record = reader.nextRecord()) != null) {
+                        final Record transformedRecord = transform(record, transform);
+                        writer.write(transformedRecord);
+                    }
+
+                    writeResult = writer.finishRecordSet();
+
+                    try {
+                        writer.close();
+                    } catch (final IOException ioe) {
+                        getLogger().warn("Failed to close Writer for {}", new Object[]{transformed});
+                    }
+
+                    attributes.put("record.count", String.valueOf(writeResult.getRecordCount()));
+                    attributes.put(CoreAttributes.MIME_TYPE.key(), writer.getMimeType());
+                    attributes.putAll(writeResult.getAttributes());
+                }
+
+                final String transformType = context.getProperty(JOLT_TRANSFORM).getValue();
+                transformed = session.putAllAttributes(transformed, attributes);
+                session.getProvenanceReporter().modifyContent(transformed, "Modified With " + transformType, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
+                logger.debug("Transformed {}", new Object[]{original});
             }
-
-            final String transformType = context.getProperty(JOLT_TRANSFORM).getValue();
-            transformed = session.putAllAttributes(transformed, attributes);
-            session.transfer(transformed, REL_SUCCESS);
-            session.getProvenanceReporter().modifyContent(transformed, "Modified With " + transformType, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
-            session.transfer(original, REL_ORIGINAL);
-            logger.debug("Transformed {}", new Object[]{original});
-
-
         } catch (final Exception ex) {
             logger.error("Unable to transform {} due to {}", new Object[]{original, ex.toString(), ex});
             session.transfer(original, REL_FAILURE);
+            if (transformed != null) {
+                session.remove(transformed);
+            }
             return;
         }
+        if (transformed != null) {
+            session.transfer(transformed, REL_SUCCESS);
+        }
+        session.transfer(original, REL_ORIGINAL);
+    }
+
+    private Record transform(final Record record, final JoltTransform transform) {
+        Map<String, Object> recordMap = (Map<String, Object>) DataTypeUtils.convertRecordFieldtoObject(record, RecordFieldType.RECORD.getRecordDataType(record.getSchema()));
+
+        // JOLT expects arrays to be of type List where our Record code uses Object[].
+        // Make another pass of the transformed objects to change Object[] to List.
+        recordMap = (Map<String, Object>) normalizeJoltObjects(recordMap);
+        final Object transformedObject = transform(transform, recordMap);
+
+        // JOLT expects arrays to be of type List where our Record code uses Object[].
+        // Make another pass of the transformed objects to change List to Object[].
+        final Object normalizedRecordValues = normalizeRecordObjects(transformedObject);
+        final Record updatedRecord = DataTypeUtils.toRecord(normalizedRecordValues, "r");
+        return updatedRecord;
     }
 
     private JoltTransform getTransform(final ProcessContext context, final FlowFile flowFile) {

@@ -28,12 +28,15 @@ import groovy.lang.GroovyObject;
 import org.codehaus.groovy.runtime.InvokerHelper;
 
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
+import java.nio.charset.UnsupportedCharsetException;
 
 /**
  * SessionFile with groovy specific methods.
@@ -279,6 +282,36 @@ public class GroovySessionFile extends SessionFile implements GroovyObject {
                 r.close();
             }
         });
+    }
+
+    public GroovySessionFile withInputStream(Closure c) throws IOException {
+        InputStream inStream = session.read(this);
+        c.call(inStream);
+        inStream.close();
+        return this;
+    }
+
+    public GroovySessionFile withOutputStream(Closure c) throws IOException {
+        OutputStream outStream = session.write(this);
+        c.call(outStream);
+        outStream.close();
+        return this;
+    }
+
+    public GroovySessionFile withReader(String charset, Closure c) throws IOException, UnsupportedCharsetException {
+        InputStream inStream = session.read(this);
+        BufferedReader br = new BufferedReader(new InputStreamReader(inStream, charset));
+        c.call(br);
+        br.close();
+        return this;
+    }
+
+    public GroovySessionFile withWriter(String charset, Closure c) throws IOException, UnsupportedCharsetException {
+        OutputStream outStream = session.write(this);
+        BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(outStream, charset));
+        c.call(bw);
+        bw.close();
+        return this;
     }
 
 }

@@ -32,7 +32,7 @@ public class ClojureScriptEngineConfigurator extends AbstractModuleClassloaderCo
                     + "[org.apache.nifi.flowfile FlowFile]\n"
                     + "[org.apache.nifi.processor "
                     + "AbstractProcessor AbstractSessionFactoryProcessor DataUnit FlowFileFilter ProcessContext Processor "
-                    + "ProcessorInitializationContext ProcessSession ProcessSessionFactory Relationship SchedulingContext"
+                    + "ProcessorInitializationContext ProcessSession ProcessSessionFactory Relationship ProcessContext"
                     + "]\n"
                     + "[org.apache.nifi.processor.exception FlowFileAccessException FlowFileHandlingException MissingFlowFileException ProcessException]\n"
                     + "[org.apache.nifi.processor.io InputStreamCallback OutputStreamCallback StreamCallback]\n"
@@ -41,6 +41,7 @@ public class ClojureScriptEngineConfigurator extends AbstractModuleClassloaderCo
                     + "[org.apache.nifi.script ScriptingComponentHelper ScriptingComponentUtils]\n"
                     + "[org.apache.nifi.logging ComponentLog]\n"
                     + "[org.apache.nifi.lookup LookupService RecordLookupService StringLookupService LookupFailureException]\n"
+                    + "[org.apache.nifi.record.sink RecordSinkService]\n"
                     + ")\n";
 
 

@@ -61,6 +61,8 @@
 
     var nfCanvas;
     var drag;
+    var snapAlignmentPixels = 8;
+    var snapEnabled = true;
 
     /**
      * Updates the positioning of all selected components.
@@ -213,15 +215,16 @@
                             });
                     } else {
                         // update the position of the drag selection
+                        // snap align the position unless the user is holding shift
+                        snapEnabled = !d3.event.sourceEvent.shiftKey;
                         dragSelection.attr('x', function (d) {
                             d.x += d3.event.dx;
-                            return d.x;
-                        })
-                            .attr('y', function (d) {
+                            return snapEnabled ? (Math.round(d.x/snapAlignmentPixels) * snapAlignmentPixels) : d.x;
+                        }).attr('y', function (d) {
                                 d.y += d3.event.dy;
-                                return d.y;
-                            });
-                    }
+                                return snapEnabled ? (Math.round(d.y/snapAlignmentPixels) * snapAlignmentPixels) : d.y;
+                        });
+                     }
                 })
                 .on('end', function () {
                     // stop further propagation
@@ -260,8 +263,8 @@
          */
         updateComponentPosition: function (d, delta) {
             var newPosition = {
-                'x': d.position.x + delta.x,
-                'y': d.position.y + delta.y
+                'x': snapEnabled ? (Math.round((d.position.x + delta.x)/snapAlignmentPixels) * snapAlignmentPixels) : d.position.x + delta.x,
+                'y': snapEnabled ? (Math.round((d.position.y + delta.y)/snapAlignmentPixels) * snapAlignmentPixels) : d.position.y + delta.y
             };
 
             // build the entity
@@ -292,15 +295,7 @@
                         id: d.id
                     });
                 }).fail(function (xhr, status, error) {
-                    if (xhr.status === 400 || xhr.status === 404 || xhr.status === 409) {
-                        nfDialog.showOkDialog({
-                            headerText: 'Component Position',
-                            dialogContent: nfCommon.escapeHtml(xhr.responseText)
-                        });
-                    } else {
-                        nfErrorHandler.handleAjaxError(xhr, status, error);
-                    }
-
+                    nfErrorHandler.handleAjaxError(xhr, status, error);
                     deferred.reject();
                 });
             }).promise();
@@ -354,14 +349,7 @@
                         id: d.id
                     });
                 }).fail(function (xhr, status, error) {
-                    if (xhr.status === 400 || xhr.status === 404 || xhr.status === 409) {
-                        nfDialog.showOkDialog({
-                            headerText: 'Component Position',
-                            dialogContent: nfCommon.escapeHtml(xhr.responseText)
-                        });
-                    } else {
-                        nfErrorHandler.handleAjaxError(xhr, status, error);
-                    }
+                    nfErrorHandler.handleAjaxError(xhr, status, error);
 
                     deferred.reject();
                 });

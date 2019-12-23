@@ -273,18 +273,21 @@ public class StandardValidators {
         }
     };
 
-    public static final Validator ISO8061_INSTANT_VALIDATOR = new Validator() {
+    public static final Validator ISO8601_INSTANT_VALIDATOR = new Validator() {
         @Override
         public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
 
             try {
                 Instant.parse(input);
-                return new ValidationResult.Builder().subject(subject).input(input).explanation("Valid ISO8061 Instant Date").valid(true).build();
+                return new ValidationResult.Builder().subject(subject).input(input).explanation("Valid ISO 8601 Instant Date").valid(true).build();
             } catch (final Exception e) {
-                return new ValidationResult.Builder().subject(subject).input(input).explanation("Not a valid ISO8061 Instant Date, please enter in UTC time").valid(false).build();
+                return new ValidationResult.Builder().subject(subject).input(input).explanation("Not a valid ISO 8601 Instant Date, please enter in UTC time").valid(false).build();
             }
         }
     };
+    // Old name retained for compatibility
+    @Deprecated
+    public static final Validator ISO8061_INSTANT_VALIDATOR = ISO8601_INSTANT_VALIDATOR;
 
     public static final Validator NON_NEGATIVE_INTEGER_VALIDATOR = new Validator() {
         @Override

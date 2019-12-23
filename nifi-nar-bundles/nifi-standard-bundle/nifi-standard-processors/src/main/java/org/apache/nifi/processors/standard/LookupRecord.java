@@ -44,7 +44,10 @@ import org.apache.nifi.record.path.RecordPath;
 import org.apache.nifi.record.path.RecordPathResult;
 import org.apache.nifi.record.path.util.RecordPathCache;
 import org.apache.nifi.record.path.validation.RecordPathValidator;
+import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordField;
+import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.apache.nifi.util.Tuple;
@@ -70,7 +73,7 @@ import java.util.stream.Collectors;
     @WritesAttribute(attribute = "mime.type", description = "Sets the mime.type attribute to the MIME Type specified by the Record Writer"),
     @WritesAttribute(attribute = "record.count", description = "The number of records in the FlowFile")
 })
-@Tags({"lookup", "enrichment", "route", "record", "csv", "json", "avro", "logs", "convert", "filter"})
+@Tags({"lookup", "enrichment", "route", "record", "csv", "json", "avro", "database", "db", "logs", "convert", "filter"})
 @CapabilityDescription("Extracts one or more fields from a Record and looks up a value for those fields in a LookupService. If a result is returned by the LookupService, "
     + "that result is optionally added to the Record. In this case, the processor functions as an Enrichment processor. Regardless, the Record is then "
     + "routed to either the 'matched' relationship or 'unmatched' relationship (if the 'Routing Strategy' property is configured to do so), "
@@ -84,7 +87,8 @@ import java.util.stream.Collectors;
     + "the schema that is configured for your Record Writer) then the fields will not be written out to the FlowFile.")
 @DynamicProperty(name = "Value To Lookup", value = "Valid Record Path", expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
                     description = "A RecordPath that points to the field whose value will be looked up in the configured Lookup Service")
-@SeeAlso(value = {ConvertRecord.class, SplitRecord.class}, classNames = {"org.apache.nifi.lookup.SimpleKeyValueLookupService", "org.apache.nifi.lookup.maxmind.IPLookupService"})
+@SeeAlso(value = {ConvertRecord.class, SplitRecord.class},
+        classNames = {"org.apache.nifi.lookup.SimpleKeyValueLookupService", "org.apache.nifi.lookup.maxmind.IPLookupService", "org.apache.nifi.lookup.db.DatabaseRecordLookupService"})
 public class LookupRecord extends AbstractRouteRecord<Tuple<Map<String, RecordPath>, RecordPath>> {
 
     private volatile RecordPathCache recordPathCache = new RecordPathCache(25);
@@ -157,7 +161,7 @@ public class LookupRecord extends AbstractRouteRecord<Tuple<Map<String, RecordPa
     private static final Set<Relationship> UNMATCHED_COLLECTION = Collections.singleton(REL_UNMATCHED);
     private static final Set<Relationship> SUCCESS_COLLECTION = Collections.singleton(REL_SUCCESS);
 
-    private volatile Set<Relationship> relationships = new HashSet<>(Arrays.asList(new Relationship[] {REL_SUCCESS, REL_FAILURE}));
+    private volatile Set<Relationship> relationships = new HashSet<>(Arrays.asList(REL_SUCCESS, REL_FAILURE));
     private volatile boolean routeToMatchedUnmatched = false;
 
     @OnScheduled
@@ -197,8 +201,8 @@ public class LookupRecord extends AbstractRouteRecord<Tuple<Map<String, RecordPa
     @SuppressWarnings("unchecked")
     protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         final Set<String> dynamicPropNames = validationContext.getProperties().keySet().stream()
-            .filter(prop -> prop.isDynamic())
-            .map(prop -> prop.getName())
+            .filter(PropertyDescriptor::isDynamic)
+            .map(PropertyDescriptor::getName)
             .collect(Collectors.toSet());
 
         if (dynamicPropNames.isEmpty()) {
@@ -305,8 +309,6 @@ public class LookupRecord extends AbstractRouteRecord<Tuple<Map<String, RecordPa
         // Ensure that the Record has the appropriate schema to account for the newly added values
         final RecordPath resultPath = flowFileContext.getValue();
         if (resultPath != null) {
-            record.incorporateSchema(writeSchema);
-
             final Object lookupValue = lookupValueOption.get();
             final RecordPathResult resultPathResult = flowFileContext.getValue().evaluate(record);
 
@@ -314,7 +316,7 @@ public class LookupRecord extends AbstractRouteRecord<Tuple<Map<String, RecordPa
             if (RESULT_RECORD_FIELDS.getValue().equals(resultContentsValue) && lookupValue instanceof Record) {
                 final Record lookupRecord = (Record) lookupValue;
 
-                // Use wants to add all fields of the resultant Record to the specified Record Path.
+                // User wants to add all fields of the resultant Record to the specified Record Path.
                 // If the destination Record Path returns to us a Record, then we will add all field values of
                 // the Lookup Record to the destination Record. However, if the destination Record Path returns
                 // something other than a Record, then we can't add the fields to it. We can only replace it,
@@ -327,19 +329,32 @@ public class LookupRecord extends AbstractRouteRecord<Tuple<Map<String, RecordPa
 
                         for (final String fieldName : lookupRecord.getRawFieldNames()) {
                             final Object value = lookupRecord.getValue(fieldName);
-                            destinationRecord.setValue(fieldName, value);
+
+                            final Optional<RecordField> recordFieldOption = lookupRecord.getSchema().getField(fieldName);
+                            if (recordFieldOption.isPresent()) {
+                                // Even if the looked up field is not nullable, if the lookup key didn't match with any record,
+                                // and matched/unmatched records are written to the same FlowFile routed to 'success' relationship,
+                                // then enriched fields should be nullable to support unmatched records whose enriched fields will be null.
+                                RecordField field = recordFieldOption.get();
+                                if (!routeToMatchedUnmatched && !field.isNullable()) {
+                                    field = new RecordField(field.getFieldName(), field.getDataType(), field.getDefaultValue(), field.getAliases(), true);
+                                }
+                                destinationRecord.setValue(field, value);
+                            } else {
+                                destinationRecord.setValue(fieldName, value);
+                            }
                         }
                     } else {
                         final Optional<Record> parentOption = fieldVal.getParentRecord();
-
-                        if (parentOption.isPresent()) {
-                            parentOption.get().setValue(fieldVal.getField().getFieldName(), lookupRecord);
-                        }
+                        parentOption.ifPresent(parent -> parent.setValue(fieldVal.getField(), lookupRecord));
                     }
                 });
             } else {
-                resultPathResult.getSelectedFields().forEach(fieldVal -> fieldVal.updateValue(lookupValue));
+                final DataType inferredDataType = DataTypeUtils.inferDataType(lookupValue, RecordFieldType.STRING.getDataType());
+                resultPathResult.getSelectedFields().forEach(fieldVal -> fieldVal.updateValue(lookupValue, inferredDataType));
             }
+
+            record.incorporateInactiveFields();
         }
 
         final Set<Relationship> rels = routeToMatchedUnmatched ? MATCHED_COLLECTION : SUCCESS_COLLECTION;

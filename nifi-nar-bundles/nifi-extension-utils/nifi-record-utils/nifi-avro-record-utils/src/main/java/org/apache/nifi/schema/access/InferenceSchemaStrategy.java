@@ -23,7 +23,7 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.codehaus.jackson.map.ObjectMapper;
-import sun.misc.IOUtils;
+import org.apache.commons.io.IOUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -39,7 +39,7 @@ public class InferenceSchemaStrategy implements JsonSchemaAccessStrategy {
 
     @Override
     public RecordSchema getSchema(Map<String, String> variables, InputStream contentStream, RecordSchema readSchema) throws SchemaNotFoundException, IOException {
-        byte[] bytes = IOUtils.readFully(contentStream, -1, true);
+        byte[] bytes = IOUtils.toByteArray(contentStream);
         ObjectMapper mapper = new ObjectMapper();
 
         return convertSchema(mapper.readValue(bytes, Map.class));

@@ -56,6 +56,8 @@ import org.apache.nifi.controller.status.PortStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
 import org.apache.nifi.controller.status.RemoteProcessGroupStatus;
+import org.apache.nifi.controller.status.analytics.StatusAnalytics;
+import org.apache.nifi.controller.status.analytics.StatusAnalyticsEngine;
 import org.apache.nifi.controller.status.history.ComponentStatusRepository;
 import org.apache.nifi.diagnostics.SystemDiagnostics;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
@@ -78,8 +80,8 @@ import org.apache.nifi.provenance.search.SearchTerms;
 import org.apache.nifi.provenance.search.SearchableField;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.registry.flow.VersionedProcessGroup;
+import org.apache.nifi.remote.PublicPort;
 import org.apache.nifi.remote.RemoteGroupPort;
-import org.apache.nifi.remote.RootGroupPort;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.services.FlowService;
@@ -180,6 +182,10 @@ public class ControllerFacade implements Authorizable {
         return flowController.getExtensionManager();
     }
 
+    public FlowManager getFlowManager() {
+        return flowController.getFlowManager();
+    }
+
     /**
      * Sets the name of this controller.
      *
@@ -256,35 +262,19 @@ public class ControllerFacade implements Authorizable {
     }
 
     /**
-     * Gets the input ports on the root group.
-     *
+     * Gets the remotely accessible InputPorts in any ProcessGroup.
      * @return input ports
      */
-    public Set<RootGroupPort> getInputPorts() {
-        final Set<RootGroupPort> inputPorts = new HashSet<>();
-        ProcessGroup rootGroup = getRootGroup();
-        for (final Port port : rootGroup.getInputPorts()) {
-            if (port instanceof RootGroupPort) {
-                inputPorts.add((RootGroupPort) port);
-            }
-        }
-        return inputPorts;
+    public Set<Port> getPublicInputPorts() {
+        return flowController.getFlowManager().getPublicInputPorts();
     }
 
     /**
-     * Gets the output ports on the root group.
-     *
+     * Gets the remotely accessible OutputPorts in any ProcessGroup.
      * @return output ports
      */
-    public Set<RootGroupPort> getOutputPorts() {
-        final Set<RootGroupPort> outputPorts = new HashSet<>();
-        ProcessGroup rootGroup = getRootGroup();
-        for (final Port port : rootGroup.getOutputPorts()) {
-            if (port instanceof RootGroupPort) {
-                outputPorts.add((RootGroupPort) port);
-            }
-        }
-        return outputPorts;
+    public Set<Port> getPublicOutputPorts() {
+        return flowController.getFlowManager().getPublicOutputPorts();
     }
 
     /**
@@ -697,6 +687,37 @@ public class ControllerFacade implements Authorizable {
     }
 
     /**
+     * Gets status analytics for the specified connection.
+     *
+     * @param connectionId connection id
+     * @return the statistics for the specified connection
+     */
+    public StatusAnalytics getConnectionStatusAnalytics(final String connectionId) {
+        final ProcessGroup root = getRootGroup();
+        final Connection connection = root.findConnection(connectionId);
+
+        // ensure the connection was found
+        if (connection == null) {
+            throw new ResourceNotFoundException(String.format("Unable to locate connection with id '%s'.", connectionId));
+        }
+
+        // calculate the process group status
+        final String groupId = connection.getProcessGroup().getIdentifier();
+        final ProcessGroupStatus processGroupStatus = flowController.getEventAccess().getGroupStatus(groupId, NiFiUserUtils.getNiFiUser(), 1);
+        if (processGroupStatus == null) {
+            throw new ResourceNotFoundException(String.format("Unable to locate group with id '%s'.", groupId));
+        }
+
+        // get from flow controller
+        final StatusAnalyticsEngine statusAnalyticsEngine = flowController.getStatusAnalyticsEngine();
+        if (statusAnalyticsEngine == null) {
+            throw new ResourceNotFoundException(String.format("Unable to provide analytics for connection with id '%s'. Analytics may not be enabled", connectionId));
+        }
+
+        return statusAnalyticsEngine.getStatusAnalytics(connectionId);
+    }
+
+    /**
      * Gets the status for the specified input port.
      *
      * @param portId input port id
@@ -848,6 +869,10 @@ public class ControllerFacade implements Authorizable {
         resources.add(ResourceFactory.getProxyResource());
         resources.add(ResourceFactory.getResourceResource());
         resources.add(ResourceFactory.getSiteToSiteResource());
+        resources.add(ResourceFactory.getParameterContextsResource());
+
+        // add each parameter context
+        flowController.getFlowManager().getParameterContextManager().getParameterContexts().forEach(parameterContext -> resources.add(parameterContext.getResource()));
 
         // restricted components
         resources.add(ResourceFactory.getRestrictedComponentsResource());
@@ -907,7 +932,7 @@ public class ControllerFacade implements Authorizable {
             resources.add(ResourceFactory.getProvenanceDataResource(inputPortResource));
             resources.add(ResourceFactory.getPolicyResource(inputPortResource));
             resources.add(ResourceFactory.getOperationResource(inputPortResource));
-            if (inputPort instanceof RootGroupPort) {
+            if (inputPort instanceof PublicPort) {
                 resources.add(ResourceFactory.getDataTransferResource(inputPortResource));
             }
         }
@@ -920,7 +945,7 @@ public class ControllerFacade implements Authorizable {
             resources.add(ResourceFactory.getProvenanceDataResource(outputPortResource));
             resources.add(ResourceFactory.getPolicyResource(outputPortResource));
             resources.add(ResourceFactory.getOperationResource(outputPortResource));
-            if (outputPort instanceof RootGroupPort) {
+            if (outputPort instanceof PublicPort) {
                 resources.add(ResourceFactory.getDataTransferResource(outputPortResource));
             }
         }
@@ -1597,6 +1622,7 @@ public class ControllerFacade implements Authorizable {
         final SearchResultsDTO results = new SearchResultsDTO();
 
         controllerSearchService.search(results, search, rootGroup);
+        controllerSearchService.searchParameters(results, search);
 
         return results;
     }

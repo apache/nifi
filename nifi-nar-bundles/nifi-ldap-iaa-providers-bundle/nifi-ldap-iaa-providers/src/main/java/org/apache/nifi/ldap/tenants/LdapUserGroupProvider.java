@@ -96,6 +96,7 @@ public class LdapUserGroupProvider implements UserGroupProvider {
     public static final String PROP_REFERRAL_STRATEGY = "Referral Strategy";
     public static final String PROP_URL = "Url";
     public static final String PROP_PAGE_SIZE = "Page Size";
+    public static final String PROP_GROUP_MEMBERSHIP_ENFORCE_CASE_SENSITIVITY = "Group Membership - Enforce Case Sensitivity";
 
     public static final String PROP_USER_SEARCH_BASE = "User Search Base";
     public static final String PROP_USER_OBJECT_CLASS = "User Object Class";
@@ -144,6 +145,8 @@ public class LdapUserGroupProvider implements UserGroupProvider {
     private boolean performGroupSearch;
 
     private Integer pageSize;
+
+    private boolean groupMembershipEnforceCaseSensitivity;
 
     @Override
     public void initialize(final UserGroupProviderInitializationContext initializationContext) throws AuthorizerCreationException {
@@ -349,6 +352,10 @@ public class LdapUserGroupProvider implements UserGroupProvider {
             pageSize = rawPageSize.asInteger();
         }
 
+        // get whether group membership should be case sensitive
+        final String rawGroupMembershipEnforceCaseSensitivity = configurationContext.getProperty(PROP_GROUP_MEMBERSHIP_ENFORCE_CASE_SENSITIVITY).getValue();
+        groupMembershipEnforceCaseSensitivity = Boolean.parseBoolean(rawGroupMembershipEnforceCaseSensitivity);
+
         // extract the identity mappings from nifi.properties if any are provided
         identityMappings = Collections.unmodifiableList(IdentityMappingUtil.getIdentityMappings(properties));
         groupMappings = Collections.unmodifiableList(IdentityMappingUtil.getGroupMappings(properties));
@@ -392,7 +399,16 @@ public class LdapUserGroupProvider implements UserGroupProvider {
             }
 
             // schedule the background thread to load the users/groups
-            ldapSync.scheduleWithFixedDelay(() -> load(context), syncInterval, syncInterval, TimeUnit.MILLISECONDS);
+            ldapSync.scheduleWithFixedDelay(() -> {
+                try {
+                    load(context);
+                } catch (final Throwable t) {
+                    logger.error("Failed to sync User/Groups from LDAP due to {}. Will try again in {} millis.", new Object[] {t.toString(), syncInterval});
+                    if (logger.isDebugEnabled()) {
+                        logger.error("", t);
+                    }
+                }
+            }, syncInterval, syncInterval, TimeUnit.MILLISECONDS);
         } catch (final AuthorizationAccessException e) {
             throw new AuthorizerCreationException(e);
         }
@@ -497,13 +513,28 @@ public class LdapUserGroupProvider implements UserGroupProvider {
                                 final Attribute attributeGroups = ctx.getAttributes().get(userGroupNameAttribute);
 
                                 if (attributeGroups == null) {
-                                    logger.warn("User group name attribute [" + userGroupNameAttribute + "] does not exist. Ignoring group membership.");
+                                    logger.debug(String.format("User group name attribute [%s] does not exist for %s. This may be due to "
+                                            + "misconfiguration or the user may just not belong to any groups. Ignoring group membership.", userGroupNameAttribute, identity));
                                 } else {
                                     try {
                                         final NamingEnumeration<String> groupValues = (NamingEnumeration<String>) attributeGroups.getAll();
                                         while (groupValues.hasMoreElements()) {
-                                            // store the group -> user identifier mapping
-                                            groupToUserIdentifierMappings.computeIfAbsent(groupValues.next(), g -> new HashSet<>()).add(user.getIdentifier());
+                                            final String groupValue = groupValues.next();
+
+                                            // if we are performing a group search, then we need to normalize the group value so that each
+                                            // user associating with it can be matched. if we are not performing a group search then these
+                                            // values will be used to actually build the group itself. case sensitivity is for group
+                                            // membership, not group identification.
+                                            final String groupValueNormalized;
+                                            if (performGroupSearch) {
+                                                groupValueNormalized = groupMembershipEnforceCaseSensitivity ? groupValue : groupValue.toLowerCase();
+                                            } else {
+                                                groupValueNormalized = groupValue;
+                                            }
+
+                                            // store the group -> user identifier mapping... if case sensitivity is disabled, the group reference value will
+                                            // be lowercased when adding to groupToUserIdentifierMappings
+                                            groupToUserIdentifierMappings.computeIfAbsent(groupValueNormalized, g -> new HashSet<>()).add(user.getIdentifier());
                                         }
                                     } catch (NamingException e) {
                                         throw new AuthorizationAccessException("Error while retrieving user group name attribute [" + userIdentityAttribute + "].");
@@ -553,7 +584,8 @@ public class LdapUserGroupProvider implements UserGroupProvider {
                             if (!StringUtils.isBlank(groupMemberAttribute)) {
                                 Attribute attributeUsers = ctx.getAttributes().get(groupMemberAttribute);
                                 if (attributeUsers == null) {
-                                    logger.warn("Group member attribute [" + groupMemberAttribute + "] does not exist. Ignoring group membership.");
+                                    logger.debug(String.format("Group member attribute [%s] does not exist for %s. This may be due to "
+                                            + "misconfiguration or the group may not have any members. Ignoring group membership.", groupMemberAttribute, name));
                                 } else {
                                     try {
                                         final NamingEnumeration<String> userValues = (NamingEnumeration<String>) attributeUsers.getAll();
@@ -561,23 +593,30 @@ public class LdapUserGroupProvider implements UserGroupProvider {
                                             final String userValue = userValues.next();
 
                                             if (performUserSearch) {
-                                                // find the user by it's referenced attribute and add the identifier to this group
-                                                final User user = userLookup.get(userValue);
+                                                // find the user by it's referenced attribute and add the identifier to this group.
+                                                // need to normalize here based on the desired case sensitivity. if case sensitivity
+                                                // is disabled, the user reference value will be lowercased when adding to userLookup
+                                                final String userValueNormalized = groupMembershipEnforceCaseSensitivity ? userValue : userValue.toLowerCase();
+                                                final User user = userLookup.get(userValueNormalized);
 
                                                 // ensure the user is known
                                                 if (user != null) {
                                                     groupToUserIdentifierMappings.computeIfAbsent(referencedGroupValue, g -> new HashSet<>()).add(user.getIdentifier());
                                                 } else {
-                                                    logger.warn(String.format("%s contains member %s but that user was not found while searching users. Ignoring group membership.", name, userValue));
+                                                    logger.debug(String.format("%s contains member %s but that user was not found while searching users. This may be due "
+                                                                    + "to a misconfiguration or it's possible the user is not a NiFi user. Ignoring group membership.", name, userValue));
                                                 }
                                             } else {
-                                                // since performUserSearch is false, then the referenced group attribute must be blank... the user value must be the dn
+                                                // since performUserSearch is false, then the referenced group attribute must be blank... the user value must be the dn.
+                                                // no need to normalize here since group membership is driven solely through this group (not through the userLookup
+                                                // populated above). we are either going to use this value directly as the user identity or we are going to query
+                                                // the directory server again which should handle the case sensitivity accordingly.
                                                 final String userDn = userValue;
 
                                                 final String userIdentity;
                                                 if (useDnForUserIdentity) {
                                                     // use the user value to avoid the unnecessary look up
-                                                    userIdentity = userDn;
+                                                    userIdentity = IdentityMappingUtil.mapIdentity(userDn, identityMappings);
                                                 } else {
                                                     // lookup the user to extract the user identity
                                                     userIdentity = getUserIdentity((DirContextAdapter) ldapTemplate.lookup(userDn));
@@ -612,8 +651,8 @@ public class LdapUserGroupProvider implements UserGroupProvider {
 
                 // any remaining groupDn's were referenced by a user but not found while searching groups
                 groupToUserIdentifierMappings.forEach((referencedGroupValue, userIdentifiers) -> {
-                    logger.warn(String.format("[%s] are members of %s but that group was not found while searching users. Ignoring group membership.",
-                            StringUtils.join(userIdentifiers, ", "), referencedGroupValue));
+                    logger.debug(String.format("[%s] are members of %s but that group was not found while searching groups. This may be due to a misconfiguration "
+                                    + "or it's possible the group is not a NiFi group. Ignoring group membership.", StringUtils.join(userIdentifiers, ", "), referencedGroupValue));
                 });
             } else {
                 // since performGroupSearch is false, then the referenced user attribute must be blank... the group value must be the dn
@@ -623,7 +662,7 @@ public class LdapUserGroupProvider implements UserGroupProvider {
                     final String groupName;
                     if (useDnForGroupName) {
                         // use the dn to avoid the unnecessary look up
-                        groupName = groupDn;
+                        groupName = IdentityMappingUtil.mapIdentity(groupDn, groupMappings);
                     } else {
                         groupName = getGroupName((DirContextAdapter) ldapTemplate.lookup(groupDn));
                     }
@@ -637,6 +676,16 @@ public class LdapUserGroupProvider implements UserGroupProvider {
                     // build the group
                     groupList.add(groupBuilder.build());
                 });
+            }
+
+            if (logger.isDebugEnabled()) {
+                logger.debug("-------------------------------------");
+                logger.debug("Loaded the following users from LDAP:");
+                userList.forEach((user) -> logger.debug(" - " + user));
+                logger.debug("--------------------------------------");
+                logger.debug("Loaded the following groups from LDAP:");
+                groupList.forEach((group) -> logger.debug(" - " + group));
+                logger.debug("--------------------------------------");
             }
 
             // record the updated tenants
@@ -689,7 +738,7 @@ public class LdapUserGroupProvider implements UserGroupProvider {
             }
         }
 
-        return referencedUserValue;
+        return groupMembershipEnforceCaseSensitivity ? referencedUserValue : referencedUserValue.toLowerCase();
     }
 
     private String getGroupName(final DirContextOperations ctx) {
@@ -731,7 +780,7 @@ public class LdapUserGroupProvider implements UserGroupProvider {
             }
         }
 
-        return referencedGroupValue;
+        return groupMembershipEnforceCaseSensitivity ? referencedGroupValue : referencedGroupValue.toLowerCase();
     }
 
     @AuthorizerContext

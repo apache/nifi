@@ -26,6 +26,10 @@ import org.apache.nifi.bundle.BundleDetails;
 import org.apache.nifi.controller.UninheritableFlowException;
 import org.apache.nifi.controller.serialization.FlowSerializationException;
 import org.apache.nifi.controller.serialization.FlowSynchronizationException;
+import org.apache.nifi.diagnostics.DiagnosticsDump;
+import org.apache.nifi.diagnostics.DiagnosticsDumpElement;
+import org.apache.nifi.diagnostics.DiagnosticsFactory;
+import org.apache.nifi.diagnostics.ThreadDumpTask;
 import org.apache.nifi.documentation.DocGenerator;
 import org.apache.nifi.lifecycle.LifeCycleStartException;
 import org.apache.nifi.nar.ExtensionDiscoveringManager;
@@ -47,7 +51,10 @@ import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.ContentAccess;
 import org.apache.nifi.web.NiFiWebConfigurationContext;
 import org.apache.nifi.web.UiExtensionType;
-import org.apache.nifi.web.security.ContentSecurityPolicyFilter;
+import org.apache.nifi.web.security.headers.ContentSecurityPolicyFilter;
+import org.apache.nifi.web.security.headers.StrictTransportSecurityFilter;
+import org.apache.nifi.web.security.headers.XFrameOptionsFilter;
+import org.apache.nifi.web.security.headers.XSSProtectionFilter;
 import org.eclipse.jetty.annotations.AnnotationConfiguration;
 import org.eclipse.jetty.deploy.App;
 import org.eclipse.jetty.deploy.DeploymentManager;
@@ -81,18 +88,15 @@ import org.springframework.web.context.support.WebApplicationContextUtils;
 
 import javax.servlet.DispatcherType;
 import javax.servlet.Filter;
-import javax.servlet.FilterChain;
-import javax.servlet.FilterConfig;
 import javax.servlet.ServletContext;
-import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
-import javax.servlet.http.HttpServletResponse;
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
@@ -140,6 +144,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
     private Set<Bundle> bundles;
     private ExtensionMapping extensionMapping;
     private NarAutoLoader narAutoLoader;
+    private DiagnosticsFactory diagnosticsFactory;
 
     private WebAppContext webApiContext;
     private WebAppContext webDocsContext;
@@ -583,13 +588,13 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         // configure the max form size (3x the default)
         webappContext.setMaxFormContentSize(600000);
 
-        // add a filter to set the X-Frame-Options filter
-        webappContext.addFilter(new FilterHolder(FRAME_OPTIONS_FILTER), "/*", EnumSet.allOf(DispatcherType.class));
-
-        // add a filter to set the Content Security Policy frame-ancestors directive
-        FilterHolder cspFilter = new FilterHolder(new ContentSecurityPolicyFilter());
-        cspFilter.setName(ContentSecurityPolicyFilter.class.getSimpleName());
-        webappContext.addFilter(cspFilter, "/*", EnumSet.allOf(DispatcherType.class));
+        // add HTTP security headers to all responses
+        final String ALL_PATHS = "/*";
+        ArrayList<Class<? extends Filter>> filters = new ArrayList<>(Arrays.asList(XFrameOptionsFilter.class, ContentSecurityPolicyFilter.class, XSSProtectionFilter.class));
+        if(props.isHTTPSConfigured()) {
+            filters.add(StrictTransportSecurityFilter.class);
+        }
+        filters.forEach( (filter) -> addFilters(filter, ALL_PATHS, webappContext));
 
         try {
             // configure the class loader - webappClassLoader -> jetty nar -> web app's nar -> ...
@@ -600,6 +605,12 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
 
         logger.info("Loading WAR: " + warFile.getAbsolutePath() + " with context path set to " + contextPath);
         return webappContext;
+    }
+
+    private void addFilters(Class<? extends Filter> clazz, String path, WebAppContext webappContext) {
+        FilterHolder holder = new FilterHolder(clazz);
+        holder.setName(clazz.getSimpleName());
+        webappContext.addFilter(holder, path, EnumSet.allOf(DispatcherType.class));
     }
 
     private void addDocsServlets(WebAppContext docsContext) {
@@ -620,12 +631,15 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
 
             ServletHolder docs = new ServletHolder("docs", DefaultServlet.class);
             docs.setInitParameter("resourceBase", docsDir.getPath());
+            docs.setInitParameter("dirAllowed", "false");
 
             ServletHolder components = new ServletHolder("components", DefaultServlet.class);
             components.setInitParameter("resourceBase", workingDocsDirectory.getPath());
+            components.setInitParameter("dirAllowed", "false");
 
             ServletHolder restApi = new ServletHolder("rest-api", DefaultServlet.class);
             restApi.setInitParameter("resourceBase", webApiDocsDir.getPath());
+            restApi.setInitParameter("dirAllowed", "false");
 
             docsContext.addServlet(docs, "/html/*");
             docsContext.addServlet(components, "/components/*");
@@ -866,6 +880,11 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
     }
 
     protected static void configureSslContextFactory(SslContextFactory contextFactory, NiFiProperties props) {
+        // Need to set SslContextFactory's endpointIdentificationAlgorithm to null; this is a server,
+        // not a client.  Server does not need to perform hostname verification on the client.
+        // Previous to Jetty 9.4.15.v20190215, this defaulted to null, and now defaults to "HTTPS".
+        contextFactory.setEndpointIdentificationAlgorithm(null);
+
         // require client auth when not supporting login, Kerberos service, or anonymous access
         if (props.isClientAuthRequiredForRestApi()) {
             contextFactory.setNeedClientAuth(true);
@@ -976,6 +995,8 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
                         webContentViewerContext.addFilter(securityFilter, "/*", EnumSet.allOf(DispatcherType.class));
                     }
                 }
+
+                diagnosticsFactory = webApplicationContext.getBean("diagnosticsFactory", DiagnosticsFactory.class);
             }
 
             // ensure the web document war was loaded and provide the extension mapping
@@ -1034,6 +1055,19 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         } catch (Exception ex) {
             startUpFailure(ex);
         }
+    }
+
+    @Override
+    public DiagnosticsFactory getDiagnosticsFactory() {
+        // The diagnosticsFactory is initialized during server startup. If the diagnostics factory happens to be
+        // requested before the Server starts, or after the server fails to start, we cannot provide the fully initialized
+        // diagnostics factory. But it is still helpful to provide what we can, so we will provide the Thread Dump Factory.
+        return diagnosticsFactory == null ? getThreadDumpFactory() : diagnosticsFactory;
+    }
+
+    @Override
+    public DiagnosticsFactory getThreadDumpFactory() {
+        return new ThreadDumpDiagnosticsFactory();
     }
 
     private void performInjectionForComponentUis(final Collection<WebAppContext> componentUiExtensionWebContexts,
@@ -1148,30 +1182,6 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         }
     }
 
-    private static final Filter FRAME_OPTIONS_FILTER = new Filter() {
-        private static final String FRAME_OPTIONS = "X-Frame-Options";
-        private static final String SAME_ORIGIN = "SAMEORIGIN";
-
-        @Override
-        public void doFilter(final ServletRequest req, final ServletResponse resp, final FilterChain filterChain)
-                throws IOException, ServletException {
-
-            // set frame options accordingly
-            final HttpServletResponse response = (HttpServletResponse) resp;
-            response.setHeader(FRAME_OPTIONS, SAME_ORIGIN);
-
-            filterChain.doFilter(req, resp);
-        }
-
-        @Override
-        public void init(final FilterConfig config) {
-        }
-
-        @Override
-        public void destroy() {
-        }
-    };
-
     /**
      * Holds the result of loading WARs for custom UIs.
      */
@@ -1213,6 +1223,25 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
 
         public Map<String, List<UiExtension>> getComponentUiExtensionsByType() {
             return componentUiExtensionsByType;
+        }
+    }
+
+    private static class ThreadDumpDiagnosticsFactory implements DiagnosticsFactory {
+        @Override
+        public DiagnosticsDump create(final boolean verbose) {
+            return new DiagnosticsDump() {
+                @Override
+                public void writeTo(final OutputStream out) throws IOException {
+                    final DiagnosticsDumpElement threadDumpElement = new ThreadDumpTask().captureDump(verbose);
+                    final BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(out));
+                    for (final String detail : threadDumpElement.getDetails()) {
+                        writer.write(detail);
+                        writer.write("\n");
+                    }
+
+                    writer.flush();
+                }
+            };
         }
     }
 }

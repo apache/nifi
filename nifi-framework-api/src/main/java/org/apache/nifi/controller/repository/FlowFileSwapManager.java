@@ -16,11 +16,11 @@
  */
 package org.apache.nifi.controller.repository;
 
+import org.apache.nifi.controller.queue.FlowFileQueue;
+
 import java.io.IOException;
 import java.util.List;
 import java.util.Set;
-
-import org.apache.nifi.controller.queue.FlowFileQueue;
 
 /**
  * Defines a mechanism by which FlowFiles can be move into external storage or
@@ -125,4 +125,11 @@ public interface FlowFileSwapManager {
      * Purge all known Swap Files without updating FlowFileRepository or Provenance Repository
      */
     void purge();
+
+    /**
+     * Returns the ID of the queue that the given swap file belongs to
+     * @param swapLocation the swap location
+     * @return the ID of the queue, or <code>null</code> if unknown
+     */
+    String getQueueIdentifier(String swapLocation);
 }

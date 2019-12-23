@@ -70,6 +70,10 @@ public final class StandardContentClaim implements ContentClaim, Comparable<Cont
             return false;
         }
 
+        if (length != other.getLength()) {
+            return false;
+        }
+
         return resourceClaim.equals(other.getResourceClaim());
     }
 

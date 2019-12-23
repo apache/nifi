@@ -33,7 +33,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.runners.MockitoJUnitRunner;
+import org.mockito.junit.MockitoJUnitRunner;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -53,8 +53,7 @@ import java.security.cert.X509Certificate;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
-import static org.mockito.Matchers.anyInt;
-import static org.mockito.Matchers.anyString;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -108,13 +107,6 @@ public class TlsCertificateAuthorityServiceHandlerTest {
             return new BufferedReader(new StringReader(stringWriter.toString()));
         });
         doAnswer(invocation -> statusCode = (int) invocation.getArguments()[0]).when(httpServletResponse).setStatus(anyInt());
-        doAnswer(invocation -> {
-            statusCode = (int) invocation.getArguments()[0];
-            StringWriter stringWriter = new StringWriter();
-            stringWriter.write((String) invocation.getArguments()[1]);
-            response = stringWriter;
-            return null;
-        }).when(httpServletResponse).sendError(anyInt(), anyString());
         when(httpServletResponse.getWriter()).thenAnswer(invocation -> {
             response = new StringWriter();
             return new PrintWriter(response);

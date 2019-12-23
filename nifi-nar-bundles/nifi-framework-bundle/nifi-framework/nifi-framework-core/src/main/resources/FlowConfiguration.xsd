@@ -28,6 +28,8 @@
 
             <xs:element name="registries" type="RegistriesType" minOccurs="0" maxOccurs="1" />
 
+            <xs:element name="parameterContexts" type="ParameterContextsType" minOccurs="0" maxOccurs="1" />
+
             <!-- Groupings of Processors/Ports -->
             <xs:element name="rootGroup" type="RootProcessGroupType" />
 
@@ -52,6 +54,30 @@
             <xs:element name="name" type="NonEmptyStringType" />
             <xs:element name="url" type="NonEmptyStringType" />
             <xs:element name="description" type="xs:string" />
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="ParameterContextsType">
+        <xs:sequence>
+            <xs:element name="parameterContext" type="ParameterContextType" minOccurs="0" maxOccurs="unbounded" />
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="ParameterContextType">
+        <xs:sequence>
+            <xs:element name="id" type="NonEmptyStringType" />
+            <xs:element name="name" type="NonEmptyStringType" />
+            <xs:element name="description" type="xs:string" minOccurs="0" maxOccurs="1" />
+            <xs:element name="parameter" type="ParameterType" minOccurs="0" maxOccurs="unbounded" />
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="ParameterType">
+        <xs:sequence>
+            <xs:element name="name" type="NonEmptyStringType" />
+            <xs:element name="description" type="xs:string" />
+            <xs:element name="sensitive" type="xs:boolean" />
+            <xs:element name="value" type="xs:string" />
         </xs:sequence>
     </xs:complexType>
 
@@ -157,8 +183,8 @@
             <!-- Each "processor" defines the actual dataflow work horses that make dataflow happen-->
             <xs:element name="processor" type="ProcessorType" minOccurs="0" maxOccurs="unbounded"/>
 
-            <xs:element name="inputPort" type="PortType" minOccurs="0" maxOccurs="unbounded"/>
-            <xs:element name="outputPort" type="PortType" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:element name="inputPort" type="PublicPortType" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:element name="outputPort" type="PublicPortType" minOccurs="0" maxOccurs="unbounded"/>
 
             <xs:element name="label" type="LabelType" minOccurs="0" maxOccurs="unbounded" />
             <xs:element name="funnel" type="FunnelType" minOccurs="0" maxOccurs="unbounded" />
@@ -168,6 +194,7 @@
             <xs:element name="controllerService" type="ControllerServiceType" minOccurs="0" maxOccurs="unbounded" />
             <xs:element name="template" type="TemplateType" minOccurs="0" maxOccurs="unbounded" />
             <xs:element name="variable" type="VariableType" minOccurs="0" maxOccurs="unbounded"  />
+            <xs:element name="parameterContextId" type="xs:string" minOccurs="0" maxOccurs="1" />
         </xs:sequence>
     </xs:complexType>
 
@@ -188,8 +215,9 @@
         </xs:sequence>
     </xs:complexType>
 
-    <!-- Same as ProcessGroupType except that instead of input ports & output ports being of type PortType,
-    they are of type RootGroupPortType -->
+    <!-- Same as ProcessGroupType except:
+         - RootProcessGroupType doesn't have versionControlInformation
+         - RootProcessGroupType doesn't have variable -->
     <xs:complexType name="RootProcessGroupType">
         <xs:sequence>
             <xs:element name="id" type="NonEmptyStringType" />
@@ -201,8 +229,8 @@
             <!-- Each "processor" defines the actual dataflow work horses that make dataflow happen-->
             <xs:element name="processor" type="ProcessorType" minOccurs="0" maxOccurs="unbounded"/>
 
-            <xs:element name="inputPort" type="RootGroupPortType" minOccurs="0" maxOccurs="unbounded"/>
-            <xs:element name="outputPort" type="RootGroupPortType" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:element name="inputPort" type="PublicPortType" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:element name="outputPort" type="PublicPortType" minOccurs="0" maxOccurs="unbounded"/>
 
             <xs:element name="label" type="LabelType" minOccurs="0" maxOccurs="unbounded" />
             <xs:element name="funnel" type="FunnelType" minOccurs="0" maxOccurs="unbounded" />
@@ -211,6 +239,8 @@
             <xs:element name="connection" type="ConnectionType" minOccurs="0" maxOccurs="unbounded" />
             <xs:element name="controllerService" type="ControllerServiceType" minOccurs="0" maxOccurs="unbounded" />
             <xs:element name="template" type="TemplateType" minOccurs="0" maxOccurs="unbounded" />
+            <xs:element name="variable" type="VariableType" minOccurs="0" maxOccurs="unbounded"  />
+            <xs:element name="parameterContextId" type="xs:string" minOccurs="0" maxOccurs="1" />
         </xs:sequence>
     </xs:complexType>
 
@@ -311,13 +341,14 @@
         </xs:sequence>
     </xs:complexType>
 
-    <xs:complexType name="RootGroupPortType">
+    <xs:complexType name="PublicPortType">
         <xs:complexContent>
             <xs:extension base="PortType">
                 <xs:sequence>
-                    <xs:element name="maxConcurrentTasks" type="xs:positiveInteger"></xs:element>
+                    <xs:element name="maxConcurrentTasks" type="xs:positiveInteger" minOccurs="0" ></xs:element>
                     <xs:element name="userAccessControl" type="xs:string" minOccurs="0" maxOccurs="unbounded" />
                     <xs:element name="groupAccessControl" type="xs:string" minOccurs="0" maxOccurs="unbounded" />
+                    <xs:element name="allowRemoteAccess" type="xs:boolean" minOccurs="0" maxOccurs="1" />
                 </xs:sequence>
             </xs:extension>
         </xs:complexContent>

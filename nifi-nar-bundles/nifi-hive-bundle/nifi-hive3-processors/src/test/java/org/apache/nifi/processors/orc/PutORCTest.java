@@ -81,7 +81,7 @@ import java.util.TimeZone;
 import java.util.function.BiFunction;
 
 import static org.junit.Assert.assertEquals;
-import static org.mockito.Matchers.any;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 public class PutORCTest {
@@ -138,6 +138,34 @@ public class PutORCTest {
         testRunner.enableControllerService(readerFactory);
 
         testRunner.setProperty(PutORC.RECORD_READER, "mock-reader-factory");
+    }
+
+    @Test
+    public void testOverwriteFile() throws InitializationException {
+        configure(proc, 1);
+
+        final String filename = "testORCWithDefaults-" + System.currentTimeMillis();
+
+        final Map<String, String> flowFileAttributes = new HashMap<>();
+        flowFileAttributes.put(CoreAttributes.FILENAME.key(), filename);
+
+        testRunner.setProperty(PutORC.OVERWRITE, "true");
+
+        testRunner.enqueue("trigger", flowFileAttributes);
+        testRunner.run();
+        testRunner.assertAllFlowFilesTransferred(PutORC.REL_SUCCESS, 1);
+
+        MockRecordParser readerFactory = (MockRecordParser) testRunner.getControllerService("mock-reader-factory");
+        readerFactory.addRecord("name", 1, "blue", 10.0);
+        testRunner.enqueue("trigger", flowFileAttributes);
+        testRunner.run();
+        testRunner.assertAllFlowFilesTransferred(PutORC.REL_SUCCESS, 2);
+
+        testRunner.setProperty(PutORC.OVERWRITE, "false");
+        readerFactory.addRecord("name", 1, "blue", 10.0);
+        testRunner.enqueue("trigger", flowFileAttributes);
+        testRunner.run();
+        testRunner.assertTransferCount(PutORC.REL_FAILURE, 1);
     }
 
     @Test

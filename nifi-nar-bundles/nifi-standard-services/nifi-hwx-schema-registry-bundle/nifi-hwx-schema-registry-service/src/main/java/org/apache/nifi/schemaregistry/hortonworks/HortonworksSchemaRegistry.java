@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.schemaregistry.hortonworks;
 
+import com.google.common.collect.ImmutableMap;
 import com.hortonworks.registries.schemaregistry.SchemaMetadata;
 import com.hortonworks.registries.schemaregistry.SchemaMetadataInfo;
 import com.hortonworks.registries.schemaregistry.SchemaVersionInfo;
@@ -33,12 +34,14 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.kerberos.KerberosCredentialsService;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.schema.access.SchemaField;
 import org.apache.nifi.schemaregistry.services.SchemaRegistry;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.SchemaIdentifier;
+import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.Tuple;
 
 import java.io.IOException;
@@ -60,6 +63,8 @@ import java.util.concurrent.TimeUnit;
 public class HortonworksSchemaRegistry extends AbstractControllerService implements SchemaRegistry {
     private static final Set<SchemaField> schemaFields = EnumSet.of(SchemaField.SCHEMA_NAME, SchemaField.SCHEMA_BRANCH_NAME, SchemaField.SCHEMA_TEXT,
         SchemaField.SCHEMA_TEXT_FORMAT, SchemaField.SCHEMA_IDENTIFIER, SchemaField.SCHEMA_VERSION);
+
+    private static final String CLIENT_SSL_PROPERTY_PREFIX = "schema.registry.client.ssl";
 
     private final ConcurrentMap<Tuple<SchemaIdentifier, String>, RecordSchema> schemaNameToSchemaMap = new ConcurrentHashMap<>();
     private final ConcurrentMap<Tuple<String,String>, Tuple<SchemaVersionInfo, Long>> schemaVersionByNameCache = new ConcurrentHashMap<>();
@@ -96,6 +101,22 @@ public class HortonworksSchemaRegistry extends AbstractControllerService impleme
         .required(true)
         .build();
 
+    static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
+        .name("ssl-context-service")
+        .displayName("SSL Context Service")
+        .description("Specifies the SSL Context Service to use for communicating with Schema Registry.")
+        .required(false)
+        .identifiesControllerService(SSLContextService.class)
+        .build();
+
+    static final PropertyDescriptor KERBEROS_CREDENTIALS_SERVICE = new PropertyDescriptor.Builder()
+        .name("kerberos-credentials-service")
+        .displayName("Kerberos Credentials Service")
+        .description("Specifies the Kerberos Credentials Controller Service that should be used for authenticating with Kerberos")
+        .identifiesControllerService(KerberosCredentialsService.class)
+        .required(false)
+        .build();
+
     private volatile SchemaRegistryClient schemaRegistryClient;
     private volatile boolean initialized;
     private volatile Map<String, Object> schemaRegistryConfig;
@@ -120,9 +141,51 @@ public class HortonworksSchemaRegistry extends AbstractControllerService impleme
         schemaRegistryConfig.put(SchemaRegistryClient.Configuration.CLASSLOADER_CACHE_EXPIRY_INTERVAL_SECS.name(), context.getProperty(CACHE_EXPIRATION).asTimePeriod(TimeUnit.SECONDS));
         schemaRegistryConfig.put(SchemaRegistryClient.Configuration.SCHEMA_VERSION_CACHE_SIZE.name(), context.getProperty(CACHE_SIZE).asInteger());
         schemaRegistryConfig.put(SchemaRegistryClient.Configuration.SCHEMA_VERSION_CACHE_EXPIRY_INTERVAL_SECS.name(), context.getProperty(CACHE_EXPIRATION).asTimePeriod(TimeUnit.SECONDS));
+        Map<String, String> sslProperties = buildSslProperties(context);
+        if (!sslProperties.isEmpty()) {
+            schemaRegistryConfig.put(CLIENT_SSL_PROPERTY_PREFIX, sslProperties);
+        }
+
+        final KerberosCredentialsService kerberosCredentialsService = context.getProperty(KERBEROS_CREDENTIALS_SERVICE)
+                .asControllerService(KerberosCredentialsService.class);
+        if (kerberosCredentialsService != null) {
+            final String principal = kerberosCredentialsService.getPrincipal();
+            final String keytab = kerberosCredentialsService.getKeytab();
+            final String jaasConfigString = getJaasConfig(principal, keytab);
+            schemaRegistryConfig.put(SchemaRegistryClient.Configuration.SASL_JAAS_CONFIG.name(), jaasConfigString);
+        }
     }
 
+    private String getJaasConfig(final String principal, final String keytab) {
+        return "com.sun.security.auth.module.Krb5LoginModule required "
+                + "useTicketCache=false "
+                + "renewTicket=true "
+                + "useKeyTab=true "
+                + "keyTab=\"" + keytab + "\" "
+                + "principal=\"" + principal + "\";";
+    }
 
+    private Map<String, String> buildSslProperties(final ConfigurationContext context) {
+        final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
+        ImmutableMap.Builder<String, String> propertiesBuilder = ImmutableMap.builder();
+        if (sslContextService != null) {
+            propertiesBuilder.put("protocol", sslContextService.getSslAlgorithm());
+            if (sslContextService.isKeyStoreConfigured()) {
+                propertiesBuilder.put("keyStorePath", sslContextService.getKeyStoreFile());
+                propertiesBuilder.put("keyStorePassword", sslContextService.getKeyStorePassword());
+                propertiesBuilder.put("keyStoreType", sslContextService.getKeyStoreType());
+                if (sslContextService.getKeyPassword() != null) {
+                    propertiesBuilder.put("keyPassword", sslContextService.getKeyPassword());
+                }
+            }
+            if (sslContextService.isTrustStoreConfigured()) {
+                propertiesBuilder.put("trustStorePath", sslContextService.getTrustStoreFile());
+                propertiesBuilder.put("trustStorePassword", sslContextService.getTrustStorePassword());
+                propertiesBuilder.put("trustStoreType", sslContextService.getTrustStoreType());
+            }
+        }
+      return propertiesBuilder.build();
+    }
 
     @OnDisabled
     public void close() {
@@ -140,6 +203,8 @@ public class HortonworksSchemaRegistry extends AbstractControllerService impleme
         properties.add(URL);
         properties.add(CACHE_SIZE);
         properties.add(CACHE_EXPIRATION);
+        properties.add(SSL_CONTEXT_SERVICE);
+        properties.add(KERBEROS_CREDENTIALS_SERVICE);
         return properties;
     }
 

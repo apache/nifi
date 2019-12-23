@@ -66,7 +66,7 @@ public class ServiceStateTransition {
 
             validateReferences(serviceNode);
 
-            enabledFutures.stream().forEach(future -> future.complete(null));
+            enabledFutures.forEach(future -> future.complete(null));
             return true;
         } finally {
             writeLock.unlock();
@@ -99,7 +99,7 @@ public class ServiceStateTransition {
         writeLock.lock();
         try {
             state = ControllerServiceState.DISABLED;
-            disabledFutures.stream().forEach(future -> future.complete(null));
+            disabledFutures.forEach(future -> future.complete(null));
         } finally {
             writeLock.unlock();
         }

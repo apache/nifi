@@ -368,6 +368,70 @@ public class PutHDFSTest {
         runner.assertNotValid();
     }
 
+    @Test
+    public void testPutFilePermissionsWithProcessorConfiguredUmask() throws IOException {
+        // assert the file permission is the same value as processor's property
+        MockFileSystem fileSystem = new MockFileSystem();
+        PutHDFS proc = new TestablePutHDFS(kerberosProperties, fileSystem);
+        TestRunner runner = TestRunners.newTestRunner(proc);
+        runner.setProperty(PutHDFS.DIRECTORY, "target/test-classes");
+        runner.setProperty(PutHDFS.CONFLICT_RESOLUTION, "replace");
+        String umaskPropertyValue = "027";
+        runner.setProperty(PutHDFS.UMASK, umaskPropertyValue);
+        // invoke the abstractOnScheduled method so the Hadoop configuration is available to apply the MockFileSystem instance
+        proc.abstractOnScheduled(runner.getProcessContext());
+        fileSystem.setConf(proc.getConfiguration());
+        try (FileInputStream fis = new FileInputStream("src/test/resources/testdata/randombytes-1")) {
+            Map<String, String> attributes = new HashMap<>();
+            attributes.put(CoreAttributes.FILENAME.key(), "randombytes-1");
+            runner.enqueue(fis, attributes);
+            runner.run();
+        }
+        assertEquals(FsPermission.getFileDefault().applyUMask(new FsPermission(umaskPropertyValue)), fileSystem.getFileStatus(new Path("target/test-classes/randombytes-1")).getPermission());
+    }
+
+    @Test
+    public void testPutFilePermissionsWithXmlConfiguredUmask() throws IOException {
+        // assert the file permission is the same value as xml
+        MockFileSystem fileSystem = new MockFileSystem();
+        PutHDFS proc = new TestablePutHDFS(kerberosProperties, fileSystem);
+        TestRunner runner = TestRunners.newTestRunner(proc);
+        runner.setProperty(PutHDFS.DIRECTORY, "target/test-classes");
+        runner.setProperty(PutHDFS.CONFLICT_RESOLUTION, "replace");
+        runner.setProperty(PutHDFS.HADOOP_CONFIGURATION_RESOURCES, "src/test/resources/core-site-perms.xml");
+        // invoke the abstractOnScheduled method so the Hadoop configuration is available to apply the MockFileSystem instance
+        proc.abstractOnScheduled(runner.getProcessContext());
+        fileSystem.setConf(proc.getConfiguration());
+        try (FileInputStream fis = new FileInputStream("src/test/resources/testdata/randombytes-1")) {
+            Map<String, String> attributes = new HashMap<>();
+            attributes.put(CoreAttributes.FILENAME.key(), "randombytes-1");
+            runner.enqueue(fis, attributes);
+            runner.run();
+        }
+        assertEquals(FsPermission.getFileDefault().applyUMask(new FsPermission("777")), fileSystem.getFileStatus(new Path("target/test-classes/randombytes-1")).getPermission());
+    }
+
+    @Test
+    public void testPutFilePermissionsWithNoConfiguredUmask() throws IOException {
+        // assert the file permission fallback works. It should read FsPermission.DEFAULT_UMASK
+        MockFileSystem fileSystem = new MockFileSystem();
+        PutHDFS proc = new TestablePutHDFS(kerberosProperties, fileSystem);
+        TestRunner runner = TestRunners.newTestRunner(proc);
+        runner.setProperty(PutHDFS.DIRECTORY, "target/test-classes");
+        runner.setProperty(PutHDFS.CONFLICT_RESOLUTION, "replace");
+        // invoke the abstractOnScheduled method so the Hadoop configuration is available to apply the MockFileSystem instance
+        proc.abstractOnScheduled(runner.getProcessContext());
+        fileSystem.setConf(proc.getConfiguration());
+        try (FileInputStream fis = new FileInputStream("src/test/resources/testdata/randombytes-1")) {
+            Map<String, String> attributes = new HashMap<>();
+            attributes.put(CoreAttributes.FILENAME.key(), "randombytes-1");
+            runner.enqueue(fis, attributes);
+            runner.run();
+        }
+        assertEquals(FsPermission.getFileDefault().applyUMask(new FsPermission((short)FsPermission.DEFAULT_UMASK)),
+            fileSystem.getFileStatus(new Path("target/test-classes/randombytes-1")).getPermission());
+    }
+
     private class TestablePutHDFS extends PutHDFS {
 
         private KerberosProperties testKerberosProperties;
@@ -385,6 +449,7 @@ public class PutHDFSTest {
 
         @Override
         protected FileSystem getFileSystem(Configuration config) {
+            fileSystem.setConf(config);
             return fileSystem;
         }
 
@@ -410,7 +475,7 @@ public class PutHDFSTest {
         @Override
         public FSDataOutputStream create(final Path f, final FsPermission permission, final boolean overwrite, final int bufferSize, final short replication,
                                          final long blockSize, final Progressable progress) {
-            pathToStatus.put(f, newFile(f));
+            pathToStatus.put(f, newFile(f, permission));
             return new FSDataOutputStream(new ByteArrayOutputStream(), new Statistics(""));
         }
 
@@ -477,8 +542,8 @@ public class PutHDFSTest {
             return pathToStatus.containsKey(f);
         }
 
-        private FileStatus newFile(Path p) {
-            return new FileStatus(100L, false, 3, 128 * 1024 * 1024, 1523456000000L, 1523457000000L, perms((short) 0644), "owner", "group", p);
+        private FileStatus newFile(Path p, FsPermission permission) {
+            return new FileStatus(100L, false, 3, 128 * 1024 * 1024, 1523456000000L, 1523457000000L, permission, "owner", "group", p);
         }
 
         private FileStatus newDir(Path p) {

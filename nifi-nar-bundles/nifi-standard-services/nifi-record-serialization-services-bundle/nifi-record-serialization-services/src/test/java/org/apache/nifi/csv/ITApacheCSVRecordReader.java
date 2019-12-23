@@ -17,6 +17,7 @@
 package org.apache.nifi.csv;
 
 import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.QuoteMode;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.SimpleRecordSchema;
@@ -27,22 +28,30 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import com.google.common.base.Throwables;
+
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
 
 public class ITApacheCSVRecordReader {
 
     private final CSVFormat format = CSVFormat.DEFAULT.withFirstRecordAsHeader().withTrim().withQuote('"');
 
     private List<RecordField> getDefaultFields() {
+        return createStringFields(new String[]{"id", "name", "balance", "address", "city", "state", "zipCode", "country"});
+    }
+
+    private List<RecordField> createStringFields(String[] fieldNames) {
         final List<RecordField> fields = new ArrayList<>();
-        for (final String fieldName : new String[]{"id", "name", "balance", "address", "city", "state", "zipCode", "country"}) {
+        for (final String fieldName : fieldNames) {
             fields.add(new RecordField(fieldName, RecordFieldType.STRING.getDataType()));
         }
         return fields;
@@ -69,6 +78,30 @@ public class ITApacheCSVRecordReader {
                 numRecords++;
             }
             assertEquals(NUM_LINES, numRecords);
+        }
+    }
+
+    @Test
+    public void testExceptionThrownOnParseProblem() throws IOException, MalformedRecordException {
+        CSVFormat csvFormat = CSVFormat.DEFAULT.withFirstRecordAsHeader().withQuoteMode(QuoteMode.ALL).withTrim().withDelimiter(',');
+        final int NUM_LINES = 25;
+        StringBuilder sb = new StringBuilder("\"id\",\"name\",\"balance\"");
+        for (int i = 0; i < NUM_LINES; i++) {
+            sb.append(String.format("\"%s\",\"John Doe\",\"4750.89D\"\n", i));
+        }
+        // cause a parse problem
+        sb.append(String.format("\"%s\"dieParser,\"John Doe\",\"4750.89D\"\n", NUM_LINES ));
+        sb.append(String.format("\"%s\",\"John Doe\",\"4750.89D\"\n", NUM_LINES + 1));
+        final RecordSchema schema = new SimpleRecordSchema(createStringFields(new String[] {"id", "name", "balance"}));
+
+        try (final InputStream bais = new ByteArrayInputStream(sb.toString().getBytes());
+             final CSVRecordReader reader = new CSVRecordReader(bais, Mockito.mock(ComponentLog.class), schema, csvFormat, true, false,
+                     RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "UTF-8")) {
+
+            while (reader.nextRecord() != null) {}
+        } catch (Exception e) {
+            assertThat(e, instanceOf(MalformedRecordException.class));
+            assertThat(Throwables.getRootCause(e), instanceOf(IOException.class));
         }
     }
 }

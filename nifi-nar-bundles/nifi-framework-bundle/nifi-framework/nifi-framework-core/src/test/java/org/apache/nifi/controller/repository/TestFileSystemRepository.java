@@ -16,20 +16,35 @@
  */
 package org.apache.nifi.controller.repository;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertTrue;
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
+import org.apache.nifi.controller.repository.claim.ContentClaim;
+import org.apache.nifi.controller.repository.claim.ResourceClaim;
+import org.apache.nifi.controller.repository.claim.StandardContentClaim;
+import org.apache.nifi.controller.repository.claim.StandardResourceClaim;
+import org.apache.nifi.controller.repository.claim.StandardResourceClaimManager;
+import org.apache.nifi.controller.repository.util.DiskUtils;
+import org.apache.nifi.processor.DataUnit;
+import org.apache.nifi.stream.io.StreamUtils;
+import org.apache.nifi.util.NiFiProperties;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Ignore;
+import org.junit.Test;
+import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.reflect.Method;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -45,24 +60,12 @@ import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.nifi.controller.repository.claim.ContentClaim;
-import org.apache.nifi.controller.repository.claim.StandardContentClaim;
-import org.apache.nifi.controller.repository.claim.StandardResourceClaim;
-import org.apache.nifi.controller.repository.claim.StandardResourceClaimManager;
-import org.apache.nifi.controller.repository.util.DiskUtils;
-import org.apache.nifi.processor.DataUnit;
-import org.apache.nifi.stream.io.StreamUtils;
-import org.apache.nifi.util.NiFiProperties;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
-import org.slf4j.LoggerFactory;
-
-import ch.qos.logback.classic.Level;
-import ch.qos.logback.classic.Logger;
-import ch.qos.logback.classic.spi.ILoggingEvent;
-import ch.qos.logback.core.read.ListAppender;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeFalse;
 
 public class TestFileSystemRepository {
@@ -166,6 +169,50 @@ public class TestFileSystemRepository {
     }
 
     @Test
+    public void testContentNotFoundExceptionThrownIfResourceClaimTooShort() throws IOException {
+        final File contentFile = new File("target/content_repository/0/0.bin");
+        try (final OutputStream fos = new FileOutputStream(contentFile)) {
+            fos.write("Hello World".getBytes(StandardCharsets.UTF_8));
+        }
+
+        final ResourceClaim resourceClaim = new StandardResourceClaim(claimManager, "default", "0", "0.bin", false);
+        final StandardContentClaim existingContentClaim = new StandardContentClaim(resourceClaim, 0);
+        existingContentClaim.setLength(11);
+
+        try (final InputStream in = repository.read(existingContentClaim)) {
+            final byte[] buff = new byte[11];
+            StreamUtils.fillBuffer(in, buff);
+            assertEquals("Hello World", new String(buff, StandardCharsets.UTF_8));
+        }
+
+        final StandardContentClaim halfContentClaim = new StandardContentClaim(resourceClaim, 6);
+        halfContentClaim.setLength(5);
+
+        try (final InputStream in = repository.read(halfContentClaim)) {
+            final byte[] buff = new byte[5];
+            StreamUtils.fillBuffer(in, buff);
+            assertEquals("World", new String(buff, StandardCharsets.UTF_8));
+        }
+
+        final StandardContentClaim emptyContentClaim = new StandardContentClaim(resourceClaim, 11);
+        existingContentClaim.setLength(0);
+
+        try (final InputStream in = repository.read(emptyContentClaim)) {
+            assertEquals(-1, in.read());
+        }
+
+        final StandardContentClaim missingContentClaim = new StandardContentClaim(resourceClaim, 12);
+        missingContentClaim.setLength(1);
+
+        try {
+            repository.read(missingContentClaim);
+            Assert.fail("Did not throw ContentNotFoundException");
+        } catch (final ContentNotFoundException cnfe) {
+            // Expected
+        }
+    }
+
+    @Test
     public void testBogusFile() throws IOException {
         repository.shutdown();
         System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, TestFileSystemRepository.class.getResource("/conf/nifi.properties").getFile());
@@ -189,6 +236,28 @@ public class TestFileSystemRepository {
         final ContentClaim claim = repository.create(true);
         assertNotNull(claim);
         assertEquals(1, repository.getClaimantCount(claim));
+    }
+
+    @Test
+    public void testReadClaimThenWriteThenReadMore() throws IOException {
+        final ContentClaim claim = repository.create(false);
+
+        final OutputStream out = repository.write(claim);
+        out.write("hello".getBytes());
+        out.flush();
+
+        final InputStream in = repository.read(claim);
+        final byte[] buffer = new byte[5];
+        StreamUtils.fillBuffer(in, buffer);
+
+        assertEquals("hello", new String(buffer));
+
+        out.write("good-bye".getBytes());
+        out.close();
+
+        final byte[] buffer2 = new byte[8];
+        StreamUtils.fillBuffer(in, buffer2);
+        assertEquals("good-bye", new String(buffer2));
     }
 
     @Test

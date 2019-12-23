@@ -17,9 +17,17 @@
 
 package org.apache.nifi.record.path;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import org.apache.nifi.record.path.exception.RecordPathException;
+import org.apache.nifi.serialization.SimpleRecordSchema;
+import org.apache.nifi.serialization.record.DataType;
+import org.apache.nifi.serialization.record.MapRecord;
+import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordField;
+import org.apache.nifi.serialization.record.RecordFieldType;
+import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.type.ArrayDataType;
+import org.apache.nifi.serialization.record.util.DataTypeUtils;
+import org.junit.Test;
 
 import java.nio.charset.IllegalCharsetNameException;
 import java.nio.charset.StandardCharsets;
@@ -36,16 +44,10 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import org.apache.nifi.record.path.exception.RecordPathException;
-import org.apache.nifi.serialization.SimpleRecordSchema;
-import org.apache.nifi.serialization.record.DataType;
-import org.apache.nifi.serialization.record.MapRecord;
-import org.apache.nifi.serialization.record.Record;
-import org.apache.nifi.serialization.record.RecordField;
-import org.apache.nifi.serialization.record.RecordFieldType;
-import org.apache.nifi.serialization.record.RecordSchema;
-import org.apache.nifi.serialization.record.util.DataTypeUtils;
-import org.junit.Test;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 public class TestRecordPath {
 
@@ -249,6 +251,26 @@ public class TestRecordPath {
         final Record record = new MapRecord(schema, values);
 
         final FieldValue fieldValue = RecordPath.compile("/attributes['city']").evaluate(record).getSelectedFields().findFirst().get();
+        assertTrue(fieldValue.getField().getFieldName().equals("attributes"));
+        assertEquals("New York", fieldValue.getValue());
+        assertEquals(record, fieldValue.getParentRecord().get());
+    }
+
+    @Test
+    public void testMapKeyReferencedWithCurrentField() {
+        final RecordSchema schema = new SimpleRecordSchema(getDefaultFields());
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("city", "New York");
+        attributes.put("state", "NY");
+
+        final Map<String, Object> values = new HashMap<>();
+        values.put("id", 48);
+        values.put("name", "John Doe");
+        values.put("attributes", attributes);
+        final Record record = new MapRecord(schema, values);
+
+        final FieldValue fieldValue = RecordPath.compile("/attributes/.['city']").evaluate(record).getSelectedFields().findFirst().get();
         assertTrue(fieldValue.getField().getFieldName().equals("attributes"));
         assertEquals("New York", fieldValue.getValue());
         assertEquals(record, fieldValue.getParentRecord().get());
@@ -1026,6 +1048,133 @@ public class TestRecordPath {
         assertEquals("Jxohn Dxoe", RecordPath.compile("replaceRegex(/name, '(?<hello>[JD])', '${hello}x')").evaluate(record).getSelectedFields().findFirst().get().getValue());
 
         assertEquals("48ohn 48oe", RecordPath.compile("replaceRegex(/name, '(?<hello>[JD])', /id)").evaluate(record).getSelectedFields().findFirst().get().getValue());
+
+    }
+
+    @Test
+    public void testReplaceRegexEscapedCharacters() {
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
+        fields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
+
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        final Map<String, Object> values = new HashMap<>();
+        values.put("id", 48);
+        final Record record = new MapRecord(schema, values);
+
+        // Special character cases
+        values.put("name", "John Doe");
+        assertEquals("Replacing whitespace to new line",
+                "John\nDoe", RecordPath.compile("replaceRegex(/name, '[\\s]', '\\n')")
+                        .evaluate(record).getSelectedFields().findFirst().get().getValue());
+
+        values.put("name", "John\nDoe");
+        assertEquals("Replacing new line to whitespace",
+                "John Doe", RecordPath.compile("replaceRegex(/name, '\\n', ' ')")
+                        .evaluate(record).getSelectedFields().findFirst().get().getValue());
+
+        values.put("name", "John Doe");
+        assertEquals("Replacing whitespace to tab",
+                "John\tDoe", RecordPath.compile("replaceRegex(/name, '[\\s]', '\\t')")
+                        .evaluate(record).getSelectedFields().findFirst().get().getValue());
+
+        values.put("name", "John\tDoe");
+        assertEquals("Replacing tab to whitespace",
+                "John Doe", RecordPath.compile("replaceRegex(/name, '\\t', ' ')")
+                        .evaluate(record).getSelectedFields().findFirst().get().getValue());
+
+    }
+
+    @Test
+    public void testReplaceRegexEscapedQuotes() {
+
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
+        fields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
+
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        final Map<String, Object> values = new HashMap<>();
+        values.put("id", 48);
+        final Record record = new MapRecord(schema, values);
+
+        // Quotes
+        // NOTE: At Java code, a single back-slash needs to be escaped with another-back slash, but needn't to do so at NiFi UI.
+        //       The test record path is equivalent to replaceRegex(/name, '\'', '"')
+        values.put("name", "'John' 'Doe'");
+        assertEquals("Replacing quote to double-quote",
+                "\"John\" \"Doe\"", RecordPath.compile("replaceRegex(/name, '\\'', '\"')")
+                        .evaluate(record).getSelectedFields().findFirst().get().getValue());
+
+        values.put("name", "\"John\" \"Doe\"");
+        assertEquals("Replacing double-quote to single-quote",
+                "'John' 'Doe'", RecordPath.compile("replaceRegex(/name, '\"', '\\'')")
+                        .evaluate(record).getSelectedFields().findFirst().get().getValue());
+
+        values.put("name", "'John' 'Doe'");
+        assertEquals("Replacing quote to double-quote, the function arguments are wrapped by double-quote",
+                "\"John\" \"Doe\"", RecordPath.compile("replaceRegex(/name, \"'\", \"\\\"\")")
+                        .evaluate(record).getSelectedFields().findFirst().get().getValue());
+
+        values.put("name", "\"John\" \"Doe\"");
+        assertEquals("Replacing double-quote to single-quote, the function arguments are wrapped by double-quote",
+                "'John' 'Doe'", RecordPath.compile("replaceRegex(/name, \"\\\"\", \"'\")")
+                        .evaluate(record).getSelectedFields().findFirst().get().getValue());
+
+    }
+
+    @Test
+    public void testReplaceRegexEscapedBackSlashes() {
+
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
+        fields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
+
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        final Map<String, Object> values = new HashMap<>();
+        values.put("id", 48);
+        final Record record = new MapRecord(schema, values);
+
+        // Back-slash
+        // NOTE: At Java code, a single back-slash needs to be escaped with another-back slash, but needn't to do so at NiFi UI.
+        //       The test record path is equivalent to replaceRegex(/name, '\\', '/')
+        values.put("name", "John\\Doe");
+        assertEquals("Replacing a back-slash to forward-slash",
+                "John/Doe", RecordPath.compile("replaceRegex(/name, '\\\\', '/')")
+                        .evaluate(record).getSelectedFields().findFirst().get().getValue());
+
+        values.put("name", "John/Doe");
+        assertEquals("Replacing a forward-slash to back-slash",
+                "John\\Doe", RecordPath.compile("replaceRegex(/name, '/', '\\\\')")
+                        .evaluate(record).getSelectedFields().findFirst().get().getValue());
+
+    }
+
+    @Test
+    public void testReplaceRegexEscapedBrackets() {
+
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
+        fields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
+
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        final Map<String, Object> values = new HashMap<>();
+        values.put("id", 48);
+        final Record record = new MapRecord(schema, values);
+
+        // Brackets
+        values.put("name", "J[o]hn Do[e]");
+        assertEquals("Square brackets can be escaped with back-slash",
+                "J(o)hn Do(e)", RecordPath.compile("replaceRegex(replaceRegex(/name, '\\[', '('), '\\]', ')')")
+                .evaluate(record).getSelectedFields().findFirst().get().getValue());
+
+        values.put("name", "J(o)hn Do(e)");
+        assertEquals("Brackets can be escaped with back-slash",
+                "J[o]hn Do[e]", RecordPath.compile("replaceRegex(replaceRegex(/name, '\\(', '['), '\\)', ']')")
+                        .evaluate(record).getSelectedFields().findFirst().get().getValue());
     }
 
     @Test
@@ -1064,6 +1213,68 @@ public class TestRecordPath {
         assertEquals("John Doe: 48", RecordPath.compile("concat(/firstName, ' ', /lastName, ': ', 48)").evaluate(record).getSelectedFields().findFirst().get().getValue());
     }
 
+    private Record getCaseTestRecord() {
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("middleName", RecordFieldType.STRING.getDataType()));
+        fields.add(new RecordField("lastName", RecordFieldType.STRING.getDataType()));
+        fields.add(new RecordField("firstName", RecordFieldType.STRING.getDataType()));
+
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        final Map<String, Object> values = new HashMap<>();
+        values.put("lastName", "Doe");
+        values.put("firstName", "John");
+        values.put("middleName", "Smith");
+        return new MapRecord(schema, values);
+    }
+
+    @Test
+    public void testToUpperCase() {
+        final Record record = getCaseTestRecord();
+
+        assertEquals("JOHN SMITH DOE", RecordPath.compile("toUpperCase(concat(/firstName, ' ', /middleName, ' ', /lastName))").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("", RecordPath.compile("toLowerCase(/notDefined)").evaluate(record).getSelectedFields().findFirst().get().getValue());
+    }
+
+    @Test
+    public void testToLowerCase() {
+        final Record record = getCaseTestRecord();
+
+        assertEquals("john smith doe", RecordPath.compile("toLowerCase(concat(/firstName, ' ', /middleName, ' ', /lastName))").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("", RecordPath.compile("toLowerCase(/notDefined)").evaluate(record).getSelectedFields().findFirst().get().getValue());
+    }
+
+    @Test
+    public void testTrimString() {
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("fullName", RecordFieldType.STRING.getDataType()));
+
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        final Map<String, Object> values = new HashMap<>();
+        values.put("fullName", "   John Smith     ");
+        final Record record = new MapRecord(schema, values);
+
+        assertEquals("John Smith", RecordPath.compile("trim(/fullName)").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("", RecordPath.compile("trim(/missing)").evaluate(record).getSelectedFields().findFirst().get().getValue());
+    }
+
+    @Test
+    public void testTrimArray() {
+        final List<RecordField> fields = new ArrayList<>();
+        final DataType dataType = new ArrayDataType(RecordFieldType.STRING.getDataType());
+        fields.add(new RecordField("names", dataType));
+
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        final Map<String, Object> values = new HashMap<>();
+        values.put("names", new String[]{"   John Smith     ", "   Jane Smith     "});
+        final Record record = new MapRecord(schema, values);
+
+        final List<FieldValue> results = RecordPath.compile("trim(/names[*])").evaluate(record).getSelectedFields().collect(Collectors.toList());
+        assertEquals("John Smith", results.get(0).getValue());
+        assertEquals("Jane Smith", results.get(1).getValue());
+    }
     @Test
     public void testFieldName() {
         final List<RecordField> fields = new ArrayList<>();
@@ -1096,6 +1307,7 @@ public class TestRecordPath {
         final Record record = new MapRecord(schema, values);
 
         assertTrue(RecordPath.compile("toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss'Z'\")").evaluate(record).getSelectedFields().findFirst().get().getValue() instanceof Date);
+        assertTrue(RecordPath.compile("toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss'Z'\", \"GMT+8:00\")").evaluate(record).getSelectedFields().findFirst().get().getValue() instanceof Date);
     }
 
     @Test
@@ -1116,6 +1328,7 @@ public class TestRecordPath {
 
         // since the field is a long it shouldn't do the conversion and should return the value unchanged
         assertTrue(RecordPath.compile("toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss'Z'\")").evaluate(record).getSelectedFields().findFirst().get().getValue() instanceof Long);
+        assertTrue(RecordPath.compile("toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss'Z'\", \"GMT+8:00\")").evaluate(record).getSelectedFields().findFirst().get().getValue() instanceof Long);
     }
 
     @Test
@@ -1134,6 +1347,8 @@ public class TestRecordPath {
         // since the field is a string it shouldn't do the conversion and should return the value unchanged
         final FieldValue fieldValue = RecordPath.compile("toDate(/name, \"yyyy-MM-dd'T'HH:mm:ss'Z'\")").evaluate(record).getSelectedFields().findFirst().get();
         assertEquals("John Doe", fieldValue.getValue());
+        final FieldValue fieldValue2 = RecordPath.compile("toDate(/name, \"yyyy-MM-dd'T'HH:mm:ss'Z'\", \"GMT+8:00\")").evaluate(record).getSelectedFields().findFirst().get();
+        assertEquals("John Doe", fieldValue2.getValue());
     }
 
     @Test
@@ -1151,9 +1366,19 @@ public class TestRecordPath {
 
         final FieldValue fieldValue = RecordPath.compile("format( toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss'Z'\"), 'yyyy-MM-dd' )").evaluate(record).getSelectedFields().findFirst().get();
         assertEquals("2017-10-20", fieldValue.getValue());
+        final FieldValue fieldValue2 = RecordPath.compile("format( toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss'Z'\"), 'yyyy-MM-dd' , 'GMT+8:00')")
+            .evaluate(record).getSelectedFields().findFirst().get();
+        assertEquals("2017-10-20", fieldValue2.getValue());
+
+        final FieldValue fieldValue3 = RecordPath.compile("format( toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss'Z'\"), 'yyyy-MM-dd HH:mm', 'GMT+8:00')")
+            .evaluate(record).getSelectedFields().findFirst().get();
+        assertEquals("2017-10-20 19:00", fieldValue3.getValue());
 
         final FieldValue fieldValueUnchanged = RecordPath.compile("format( toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss'Z'\"), 'INVALID' )").evaluate(record).getSelectedFields().findFirst().get();
         assertEquals(DataTypeUtils.getDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'").parse("2017-10-20T11:00:00Z"), fieldValueUnchanged.getValue());
+        final FieldValue fieldValueUnchanged2 = RecordPath.compile("format( toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss'Z'\"), 'INVALID' , 'INVALID')")
+            .evaluate(record).getSelectedFields().findFirst().get();
+        assertEquals(DataTypeUtils.getDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'").parse("2017-10-20T11:00:00Z"), fieldValueUnchanged2.getValue());
     }
 
     @Test
@@ -1173,9 +1398,12 @@ public class TestRecordPath {
         final Record record = new MapRecord(schema, values);
 
         assertEquals("2017-10-20", RecordPath.compile("format(/date, 'yyyy-MM-dd' )").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("2017-10-20 08:00:00", RecordPath.compile("format(/date, 'yyyy-MM-dd HH:mm:ss', 'GMT+8:00' )").evaluate(record).getSelectedFields().findFirst().get().getValue());
 
         final FieldValue fieldValueUnchanged = RecordPath.compile("format(/date, 'INVALID' )").evaluate(record).getSelectedFields().findFirst().get();
         assertEquals(dateValue, fieldValueUnchanged.getValue());
+        final FieldValue fieldValueUnchanged2 = RecordPath.compile("format(/date, 'INVALID', 'INVALID' )").evaluate(record).getSelectedFields().findFirst().get();
+        assertEquals(dateValue, fieldValueUnchanged2.getValue());
     }
 
     @Test
@@ -1196,9 +1424,12 @@ public class TestRecordPath {
         final Record record = new MapRecord(schema, values);
 
         assertEquals("2017-10-20", RecordPath.compile("format(/date, 'yyyy-MM-dd')").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("2017-10-20 08:00:00", RecordPath.compile("format(/date, 'yyyy-MM-dd HH:mm:ss', 'GMT+8:00')").evaluate(record).getSelectedFields().findFirst().get().getValue());
 
         final FieldValue fieldValueUnchanged = RecordPath.compile("format(/date, 'INVALID')").evaluate(record).getSelectedFields().findFirst().get();
         assertEquals(dateValue, fieldValueUnchanged.getValue());
+        final FieldValue fieldValueUnchanged2 = RecordPath.compile("format(/date, 'INVALID', 'INVALID' )").evaluate(record).getSelectedFields().findFirst().get();
+        assertEquals(dateValue, fieldValueUnchanged2.getValue());
     }
 
     @Test
@@ -1215,6 +1446,7 @@ public class TestRecordPath {
         final Record record = new MapRecord(schema, values);
 
         assertEquals("John Doe", RecordPath.compile("format(/name, 'yyyy-MM')").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("John Doe", RecordPath.compile("format(/name, 'yyyy-MM', 'GMT+8:00')").evaluate(record).getSelectedFields().findFirst().get().getValue());
     }
 
     @Test
@@ -1347,6 +1579,56 @@ public class TestRecordPath {
                 assertTrue(Arrays.equals((byte[]) expectedObject, (byte[]) actualObject));
             }
         });
+    }
+
+    @Test
+    public void testPadLeft() {
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("someString", RecordFieldType.STRING.getDataType()));
+        fields.add(new RecordField("emptyString", RecordFieldType.STRING.getDataType()));
+        fields.add(new RecordField("nullString", RecordFieldType.STRING.getDataType()));
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        final Map<String, Object> values = new HashMap<>();
+        values.put("someString", "MyString");
+        values.put("emptyString", "");
+        values.put("nullString", null);
+        final Record record = new MapRecord(schema, values);
+
+        assertEquals("##MyString", RecordPath.compile("padLeft(/someString, 10, '#')").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("__MyString", RecordPath.compile("padLeft(/someString, 10)").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("MyString", RecordPath.compile("padLeft(/someString, 3)").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("MyString", RecordPath.compile("padLeft(/someString, -10)").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("@@@@@@@@@@", RecordPath.compile("padLeft(/emptyString, 10, '@')").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertNull(RecordPath.compile("padLeft(/nullString, 10, '@')").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("xyMyString", RecordPath.compile("padLeft(/someString, 10, \"xy\")").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("aVMyString", RecordPath.compile("padLeft(/someString, 10, \"aVeryLongPadding\")").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("fewfewfewfewMyString", RecordPath.compile("padLeft(/someString, 20, \"few\")").evaluate(record).getSelectedFields().findFirst().get().getValue());
+    }
+
+    @Test
+    public void testPadRight() {
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("someString", RecordFieldType.STRING.getDataType()));
+        fields.add(new RecordField("emptyString", RecordFieldType.STRING.getDataType()));
+        fields.add(new RecordField("nullString", RecordFieldType.STRING.getDataType()));
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        final Map<String, Object> values = new HashMap<>();
+        values.put("someString", "MyString");
+        values.put("emptyString", "");
+        values.put("nullString", null);
+        final Record record = new MapRecord(schema, values);
+
+        assertEquals("MyString##", RecordPath.compile("padRight(/someString, 10, \"#\")").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("MyString__", RecordPath.compile("padRight(/someString, 10)").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("MyString", RecordPath.compile("padRight(/someString, 3)").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("MyString", RecordPath.compile("padRight(/someString, -10)").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("@@@@@@@@@@", RecordPath.compile("padRight(/emptyString, 10, '@')").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertNull(null, RecordPath.compile("padRight(/nullString, 10, '@')").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("MyStringxy", RecordPath.compile("padRight(/someString, 10, \"xy\")").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("MyStringaV", RecordPath.compile("padRight(/someString, 10, \"aVeryLongPadding\")").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("MyStringfewfewfewfew", RecordPath.compile("padRight(/someString, 20, \"few\")").evaluate(record).getSelectedFields().findFirst().get().getValue());
     }
 
     private List<RecordField> getDefaultFields() {

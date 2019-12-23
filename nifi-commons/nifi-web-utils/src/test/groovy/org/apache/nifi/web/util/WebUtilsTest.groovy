@@ -32,10 +32,10 @@ import sun.security.x509.X500Name
 import javax.net.ssl.SSLPeerUnverifiedException
 import javax.servlet.http.HttpServletRequest
 import javax.ws.rs.core.UriBuilderException
-import javax.ws.rs.client.Client;
+import javax.ws.rs.client.Client
 import javax.net.ssl.SSLContext
-import javax.net.ssl.HostnameVerifier;
-import java.security.cert.X509Certificate;
+import javax.net.ssl.HostnameVerifier
+import java.security.cert.X509Certificate
 
 
 @RunWith(JUnit4.class)
@@ -44,9 +44,10 @@ class WebUtilsTest extends GroovyTestCase {
 
     static final String PCP_HEADER = "X-ProxyContextPath"
     static final String FC_HEADER = "X-Forwarded-Context"
+    static final String FP_HEADER = "X-Forwarded-Prefix"
 
     static final String WHITELISTED_PATH = "/some/context/path"
-    private static final String OCSP_REQUEST_CONTENT_TYPE = "application/ocsp-request";
+    private static final String OCSP_REQUEST_CONTENT_TYPE = "application/ocsp-request"
 
     @BeforeClass
     static void setUpOnce() throws Exception {
@@ -78,6 +79,9 @@ class WebUtilsTest extends GroovyTestCase {
                         case FC_HEADER:
                             return keys["forward"]
                             break
+                        case FP_HEADER:
+                            return keys["prefix"]
+                            break
                         default:
                             return ""
                     }
@@ -94,8 +98,12 @@ class WebUtilsTest extends GroovyTestCase {
         // Variety of requests with different ordering of context paths (the correct one is always "some/context/path"
         HttpServletRequest proxyRequest = mockRequest([proxy: CORRECT_CONTEXT_PATH])
         HttpServletRequest forwardedRequest = mockRequest([forward: CORRECT_CONTEXT_PATH])
+        HttpServletRequest prefixRequest = mockRequest([prefix: CORRECT_CONTEXT_PATH])
         HttpServletRequest proxyBeforeForwardedRequest = mockRequest([proxy: CORRECT_CONTEXT_PATH, forward: WRONG_CONTEXT_PATH])
-        List<HttpServletRequest> requests = [proxyRequest, forwardedRequest, proxyBeforeForwardedRequest]
+        HttpServletRequest proxyBeforePrefixRequest = mockRequest([proxy: CORRECT_CONTEXT_PATH, prefix: WRONG_CONTEXT_PATH])
+        HttpServletRequest forwardBeforePrefixRequest = mockRequest([forward: CORRECT_CONTEXT_PATH, prefix: WRONG_CONTEXT_PATH])
+        List<HttpServletRequest> requests = [proxyRequest, forwardedRequest, prefixRequest, proxyBeforeForwardedRequest,
+                                             proxyBeforePrefixRequest, forwardBeforePrefixRequest]
 
         // Act
         requests.each { HttpServletRequest request ->
@@ -117,8 +125,12 @@ class WebUtilsTest extends GroovyTestCase {
         HttpServletRequest proxySpacesRequest = mockRequest([proxy: "   "])
         HttpServletRequest forwardedRequest = mockRequest([forward: ""])
         HttpServletRequest forwardedSpacesRequest = mockRequest([forward: "   "])
-        HttpServletRequest proxyBeforeForwardedRequest = mockRequest([proxy: "", forward: ""])
-        List<HttpServletRequest> requests = [proxyRequest, proxySpacesRequest, forwardedRequest, forwardedSpacesRequest, proxyBeforeForwardedRequest]
+        HttpServletRequest prefixRequest = mockRequest([prefix: ""])
+        HttpServletRequest prefixSpacesRequest = mockRequest([prefix: "   "])
+        HttpServletRequest proxyBeforeForwardedOrPrefixRequest = mockRequest([proxy: "", forward: "", prefix: ""])
+        HttpServletRequest proxyBeforeForwardedOrPrefixSpacesRequest = mockRequest([proxy: "   ", forward: "   ", prefix: "   "])
+        List<HttpServletRequest> requests = [proxyRequest, proxySpacesRequest, forwardedRequest, forwardedSpacesRequest, prefixRequest, prefixSpacesRequest,
+                                             proxyBeforeForwardedOrPrefixRequest, proxyBeforeForwardedOrPrefixSpacesRequest]
 
         // Act
         requests.each { HttpServletRequest request ->
@@ -156,7 +168,9 @@ class WebUtilsTest extends GroovyTestCase {
 
         HttpServletRequest requestWithProxyHeader = mockRequest([proxy: "any/context/path"])
         HttpServletRequest requestWithProxyAndForwardHeader = mockRequest([proxy: "any/context/path", forward: "any/other/context/path"])
-        List<HttpServletRequest> requests = [requestWithProxyHeader, requestWithProxyAndForwardHeader]
+        HttpServletRequest requestWithProxyAndForwardAndPrefixHeader = mockRequest([proxy : "any/context/path", forward: "any/other/context/path",
+                                                                                    prefix: "any/other/prefix/path"])
+        List<HttpServletRequest> requests = [requestWithProxyHeader, requestWithProxyAndForwardHeader, requestWithProxyAndForwardAndPrefixHeader]
 
         // Act
         requests.each { HttpServletRequest request ->
@@ -179,7 +193,10 @@ class WebUtilsTest extends GroovyTestCase {
         HttpServletRequest requestWithProxyHeader = mockRequest([proxy: "some/context/path"])
         HttpServletRequest requestWithForwardHeader = mockRequest([forward: "some/context/path"])
         HttpServletRequest requestWithProxyAndForwardHeader = mockRequest([proxy: "some/context/path", forward: "any/other/context/path"])
-        List<HttpServletRequest> requests = [requestWithProxyHeader, requestWithForwardHeader, requestWithProxyAndForwardHeader]
+        HttpServletRequest requestWithProxyAndForwardAndPrefixHeader = mockRequest([proxy: "some/context/path", forward: "any/other/context/path",
+                                                                                    prefix: "any/other/prefix/path"])
+        List<HttpServletRequest> requests = [requestWithProxyHeader, requestWithForwardHeader, requestWithProxyAndForwardHeader,
+                                             requestWithProxyAndForwardAndPrefixHeader]
 
         // Act
         requests.each { HttpServletRequest request ->
@@ -194,15 +211,19 @@ class WebUtilsTest extends GroovyTestCase {
     @Test
     void testGetResourcePathShouldAllowContextPathHeaderIfElementInMultipleWhitelist() throws Exception {
         // Arrange
-        String multipleWhitelistedPaths = [WHITELISTED_PATH, "/another/path", "/a/third/path"].join(",")
+        String multipleWhitelistedPaths = [WHITELISTED_PATH, "/another/path", "/a/third/path", "/a/prefix/path"].join(",")
         logger.info("Whitelisted path(s): ${multipleWhitelistedPaths}")
 
         final List<String> VALID_RESOURCE_PATHS = multipleWhitelistedPaths.split(",").collect { "$it/actualResource" }
 
         HttpServletRequest requestWithProxyHeader = mockRequest([proxy: "some/context/path"])
         HttpServletRequest requestWithForwardHeader = mockRequest([forward: "another/path"])
+        HttpServletRequest requestWithPrefixHeader = mockRequest([prefix: "a/prefix/path"])
         HttpServletRequest requestWithProxyAndForwardHeader = mockRequest([proxy: "a/third/path", forward: "any/other/context/path"])
-        List<HttpServletRequest> requests = [requestWithProxyHeader, requestWithForwardHeader, requestWithProxyAndForwardHeader]
+        HttpServletRequest requestWithProxyAndForwardAndPrefixHeader = mockRequest([proxy : "a/third/path", forward: "any/other/context/path",
+                                                                                    prefix: "any/other/prefix/path"])
+        List<HttpServletRequest> requests = [requestWithProxyHeader, requestWithForwardHeader, requestWithProxyAndForwardHeader,
+                                             requestWithPrefixHeader, requestWithProxyAndForwardAndPrefixHeader]
 
         // Act
         requests.each { HttpServletRequest request ->

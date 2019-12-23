@@ -8,18 +8,17 @@
     by applicable law or agreed to in writing, software distributed under the
     License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS
     OF ANY KIND, either express or implied. See the License for the specific
-    language governing permissions and limitations under the License. -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    language governing permissions and limitations under the License. --><project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.apache</groupId>
         <artifactId>apache</artifactId>
-        <version>19</version>
+        <version>21</version>
         <relativePath />
     </parent>
     <groupId>org.apache.nifi</groupId>
     <artifactId>nifi</artifactId>
-    <version>1.9.0-SNAPSHOT</version>
+    <version>1.11.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <description>Apache NiFi is an easy to use, powerful, and reliable system to process and distribute data.</description>
     <modules>
@@ -35,16 +34,17 @@
         <module>nifi-external</module>
         <module>nifi-toolkit</module>
         <module>nifi-docker</module>
-    </modules>
-    <url>http://nifi.apache.org</url>
+        <module>nifi-system-tests</module>
+  </modules>
+    <url>https://nifi.apache.org</url>
     <organization>
         <name>Apache NiFi Project</name>
-        <url>http://nifi.apache.org/</url>
+        <url>https://nifi.apache.org/</url>
     </organization>
     <licenses>
         <license>
             <name>Apache License, Version 2.0</name>
-            <url>http://www.apache.org/licenses/LICENSE-2.0</url>
+            <url>https://www.apache.org/licenses/LICENSE-2.0</url>
         </license>
     </licenses>
     <mailingLists>
@@ -53,21 +53,21 @@
             <subscribe>dev-subscribe@nifi.apache.org</subscribe>
             <unsubscribe>dev-unsubscribe@nifi.apache.org</unsubscribe>
             <post>dev@nifi.apache.org</post>
-            <archive>http://mail-archives.apache.org/mod_mbox/nifi-dev</archive>
+            <archive>https://mail-archives.apache.org/mod_mbox/nifi-dev</archive>
         </mailingList>
         <mailingList>
             <name>Users</name>
             <subscribe>users-subscribe@nifi.apache.org</subscribe>
             <unsubscribe>users-unsubscribe@nifi.apache.org</unsubscribe>
             <post>users@nifi.apache.org</post>
-            <archive>http://mail-archives.apache.org/mod_mbox/nifi-users</archive>
+            <archive>https://mail-archives.apache.org/mod_mbox/nifi-users</archive>
         </mailingList>
         <mailingList>
             <name>Commits</name>
             <subscribe>commits-subscribe@nifi.apache.org</subscribe>
             <unsubscribe>commits-unsubscribe@nifi.apache.org</unsubscribe>
             <post>commits@nifi.apache.org</post>
-            <archive>http://mail-archives.apache.org/mod_mbox/nifi-commits</archive>
+            <archive>https://mail-archives.apache.org/mod_mbox/nifi-commits</archive>
         </mailingList>
     </mailingLists>
     <prerequisites>
@@ -86,14 +86,22 @@
     <properties>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
-        <maven.min-version>3.1.0</maven.min-version>
-        <maven.surefire.arguments />
+        <maven.min-version>3.1.1</maven.min-version>
+        <maven.surefire.arguments/>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <inceptionYear>2014</inceptionYear>
-        <org.slf4j.version>1.7.25</org.slf4j.version>
-        <ranger.version>1.0.0</ranger.version>
-        <jetty.version>9.4.11.v20180605</jetty.version>
+        <org.slf4j.version>1.7.26</org.slf4j.version>
+        <ranger.version>2.0.0</ranger.version>
+        <jetty.version>9.4.19.v20190610</jetty.version>
+        <jackson.version>2.9.10</jackson.version>
+        <jackson-databind.version>2.9.10.1</jackson-databind.version>
+        <nifi.registry.version>0.5.0</nifi.registry.version>
+        <nifi.groovy.version>2.5.4</nifi.groovy.version>
+        <surefire.version>2.22.0</surefire.version>
+        <!-- The Hadoop version used by nifi-hadoop-libraries-nar and any NARs that depend on it, other NARs that need
+            a specific version should override this property, or use a more specific property like abc.hadoop.version -->
+        <hadoop.version>3.2.0</hadoop.version>
     </properties>
 
     <repositories>
@@ -123,7 +131,7 @@
         </repository>
         <repository>
             <id>jcenter</id>
-            <url>http://jcenter.bintray.com</url>
+            <url>https://jcenter.bintray.com</url>
             <snapshots>
                 <enabled>false</enabled>
             </snapshots>
@@ -132,6 +140,20 @@
             </releases>
         </repository>
     </repositories>
+
+    <pluginRepositories>
+        <pluginRepository>
+            <id>bintray</id>
+            <name>Groovy Bintray</name>
+            <url>https://dl.bintray.com/groovy/maven</url>
+            <releases>
+                <updatePolicy>never</updatePolicy>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </pluginRepository>
+    </pluginRepositories>
 
     <dependencyManagement>
         <dependencies>
@@ -159,6 +181,7 @@
                 <groupId>ch.qos.logback</groupId>
                 <artifactId>logback-classic</artifactId>
                 <version>1.2.3</version>
+                <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>ch.qos.logback</groupId>
@@ -216,25 +239,34 @@
             <dependency>
                 <groupId>org.mockito</groupId>
                 <artifactId>mockito-core</artifactId>
-                <version>1.10.19</version>
-            </dependency>
-            <dependency>
-                <groupId>org.mockito</groupId>
-                <artifactId>mockito-all</artifactId>
-                <version>1.10.19</version>
-                <scope>test</scope>
+                <version>2.28.2</version>
             </dependency>
             <dependency>
                 <groupId>org.codehaus.groovy</groupId>
                 <artifactId>groovy-all</artifactId>
-                <version>2.4.13</version>
+                <version>${nifi.groovy.version}</version>
+                <type>pom</type>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.codehaus.groovy</groupId>
+                <artifactId>groovy-test</artifactId>
+                <version>${nifi.groovy.version}</version>
                 <scope>test</scope>
             </dependency>
             <dependency>
                 <groupId>org.spockframework</groupId>
                 <artifactId>spock-core</artifactId>
-                <version>1.0-groovy-2.4</version>
+                <version>1.3-groovy-2.5</version>
                 <scope>test</scope>
+                <exclusions>
+                    <exclusion>
+                        <!-- exclude transitive groovy dependencies to force spock to use the the managed groovy dependencies
+                        inherited from the parent pom -->
+                        <groupId>org.codehaus.groovy</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>org.hamcrest</groupId>
@@ -242,7 +274,12 @@
                 <version>1.3</version>
                 <scope>test</scope>
             </dependency>
-
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>testcontainers</artifactId>
+                <version>1.11.3</version>
+                <scope>test</scope>
+            </dependency>
             <!-- These Jetty dependencies are required for the Jetty Web Server all nars extend from it so we dont want this getting overriden -->
             <dependency>
                 <groupId>org.eclipse.jetty</groupId>
@@ -313,7 +350,8 @@
         </dependency>
         <dependency>
             <groupId>org.codehaus.groovy</groupId>
-            <artifactId>groovy-all</artifactId>
+            <artifactId>groovy-test</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 
@@ -323,6 +361,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
+                    <version>3.8.1</version>
                     <configuration>
                         <fork>true</fork>
                         <optimize>true</optimize>
@@ -333,8 +372,13 @@
                 <plugin>
                     <groupId>org.codehaus.groovy</groupId>
                     <artifactId>groovy-eclipse-compiler</artifactId>
-                    <version>2.9.2-01</version>
+                    <version>3.4.0-01</version>
                     <extensions>true</extensions>
+                </plugin>
+                <plugin>
+                    <groupId>org.codehaus.groovy</groupId>
+                    <artifactId>groovy-eclipse-batch</artifactId>
+                    <version>${nifi.groovy.version}-01</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -438,12 +482,12 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-checkstyle-plugin</artifactId>
-                    <version>2.17</version>
+                    <version>3.0.0</version>
                     <dependencies>
                         <dependency>
                             <groupId>com.puppycrawl.tools</groupId>
                             <artifactId>checkstyle</artifactId>
-                            <version>8.12</version>
+                            <version>8.21</version>
                         </dependency>
                     </dependencies>
                 </plugin>
@@ -453,6 +497,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.8.1</version>
                 <executions>
                     <!-- Only run for tests -->
                     <execution>
@@ -466,27 +511,30 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <source>1.8</source>
-                    <target>1.8</target>
+                    <source>${maven.compiler.source}</source>
+                    <target>${maven.compiler.target}</target>
                 </configuration>
                 <dependencies>
                     <dependency>
                         <groupId>org.codehaus.groovy</groupId>
                         <artifactId>groovy-eclipse-compiler</artifactId>
-                        <version>2.9.2-01</version>
+                        <version>3.4.0-01</version>
                     </dependency>
                     <dependency>
                         <groupId>org.codehaus.groovy</groupId>
                         <artifactId>groovy-eclipse-batch</artifactId>
-                        <version>2.4.3-01</version>
+                        <version>${nifi.groovy.version}-01</version>
                     </dependency>
                 </dependencies>
             </plugin>
             <plugin>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-nar-maven-plugin</artifactId>
-                <version>1.2.0</version>
+                <version>1.3.1</version>
                 <extensions>true</extensions>
+                <configuration>
+                    <enforceDocGeneration>true</enforceDocGeneration>
+                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.sonatype.plugins</groupId>
@@ -533,74 +581,76 @@
                         <module name="Checker">
                             <property name="charset" value="UTF-8" />
                             <property name="severity" value="warning" />
+                            <property name="cacheFile" value="target/checkstyleCache" />
                             <!-- Checks for whitespace -->
                             <!-- See http://checkstyle.sf.net/config_whitespace.html -->
                             <module name="FileTabCharacter">
-                                <property name="eachLine" value="true" />
+                                <property name="eachLine" value="true"/>
                             </module>
                             <module name="TreeWalker">
                                 <module name="RegexpSinglelineJava">
-                                    <property name="format" value="\s+$" />
-                                    <property name="message" value="Line has trailing whitespace." />
+                                    <property name="format" value="\s+$"/>
+                                    <property name="message" value="Line has trailing whitespace."/>
                                 </module>
                                 <module name="RegexpSinglelineJava">
-                                    <property name="format" value="[@]see\s+[{][@]link" />
-                                    <property name="message" value="Javadoc @see does not need @link: pick one or the other." />
+                                    <property name="format" value="[@]see\s+[{][@]link"/>
+                                    <property name="message" value="Javadoc @see does not need @link: pick one or the other."/>
                                 </module>
-                                <module name="OuterTypeFilename" />
+                                <module name="OuterTypeFilename"/>
                                 <module name="LineLength">
                                     <!-- needs extra, because Eclipse formatter
                                         ignores the ending left brace -->
-                                    <property name="max" value="200" />
-                                    <property name="ignorePattern" value="^package.*|^import.*|a href|href|http://|https://|ftp://" />
+                                    <property name="max" value="200"/>
+                                    <property name="ignorePattern" value="^package.*|^import.*|a href|href|http://|https://|ftp://"/>
                                 </module>
-                                <module name="AvoidStarImport" />
+                                <module name="AvoidStarImport"/>
                                 <module name="UnusedImports">
-                                    <property name="processJavadoc" value="true" />
+                                    <property name="processJavadoc" value="true"/>
                                 </module>
-                                <module name="NoLineWrap" />
-                                <module name="LeftCurly" />
-                                <module name="RightCurly" />
+                                <module name="NoLineWrap"/>
+                                <module name="LeftCurly"/>
+                                <module name="RightCurly"/>
                                 <module name="RightCurly">
-                                    <property name="option" value="alone" />
-                                    <property name="tokens" value="CLASS_DEF, METHOD_DEF, CTOR_DEF, LITERAL_FOR, LITERAL_WHILE, STATIC_INIT" />
+                                    <property name="option" value="alone_or_singleline"/>
+                                    <property name="tokens" value="CLASS_DEF, METHOD_DEF, CTOR_DEF, LITERAL_FOR, LITERAL_WHILE, STATIC_INIT"/>
                                 </module>
                                 <module name="SeparatorWrap">
-                                    <property name="tokens" value="DOT" />
-                                    <property name="option" value="nl" />
+                                    <property name="tokens" value="DOT"/>
+                                    <property name="option" value="nl"/>
                                 </module>
                                 <module name="SeparatorWrap">
-                                    <property name="tokens" value="COMMA" />
-                                    <property name="option" value="EOL" />
+                                    <property name="tokens" value="COMMA"/>
+                                    <property name="option" value="EOL"/>
                                 </module>
                                 <module name="PackageName">
-                                    <property name="format" value="^[a-z]+(\.[a-z][a-zA-Z0-9]*)*$" />
+                                    <property name="format" value="^[a-z]+(\.[a-z][a-zA-Z0-9]*)*$"/>
                                 </module>
                                 <module name="MethodTypeParameterName">
-                                    <property name="format" value="(^[A-Z][0-9]?)$|([A-Z][a-zA-Z0-9]*[T]$)" />
+                                    <property name="format" value="(^[A-Z][0-9]?)$|([A-Z][a-zA-Z0-9]*[T]$)"/>
                                 </module>
-                                <module name="MethodParamPad" />
+                                <module name="MethodParamPad"/>
                                 <module name="OperatorWrap">
-                                    <property name="option" value="NL" />
-                                    <property name="tokens" value="BAND, BOR, BSR, BXOR, DIV, EQUAL, GE, GT, LAND, LE, LITERAL_INSTANCEOF, LOR, LT, MINUS, MOD, NOT_EQUAL, QUESTION, SL, SR, STAR " />
+                                    <property name="option" value="NL"/>
+                                    <property name="tokens" value="BAND, BOR, BSR, BXOR, DIV, EQUAL, GE, GT, LAND, LE, LITERAL_INSTANCEOF, LOR, LT, MINUS, MOD, NOT_EQUAL, QUESTION, SL, SR, STAR "/>
                                 </module>
                                 <module name="AnnotationLocation">
-                                    <property name="tokens" value="CLASS_DEF, INTERFACE_DEF, ENUM_DEF, METHOD_DEF, CTOR_DEF" />
+                                    <property name="tokens" value="CLASS_DEF, INTERFACE_DEF, ENUM_DEF, METHOD_DEF, CTOR_DEF"/>
                                 </module>
                                 <module name="AnnotationLocation">
-                                    <property name="tokens" value="VARIABLE_DEF" />
-                                    <property name="allowSamelineMultipleAnnotations" value="true" />
+                                    <property name="tokens" value="VARIABLE_DEF"/>
+                                    <property name="allowSamelineMultipleAnnotations" value="true"/>
                                 </module>
-                                <module name="NonEmptyAtclauseDescription" />
+                                <module name="NonEmptyAtclauseDescription"/>
                                 <module name="JavadocMethod">
-                                    <property name="allowMissingJavadoc" value="true" />
-                                    <property name="allowMissingParamTags" value="true" />
-                                    <property name="allowMissingThrowsTags" value="true" />
-                                    <property name="allowMissingReturnTag" value="true" />
-                                    <property name="allowedAnnotations" value="Override,Test,BeforeClass,AfterClass,Before,After" />
-                                    <property name="allowThrowsTagsForSubclasses" value="true" />
+                                    <property name="allowUndeclaredRTE" value="true"/>
+                                    <property name="allowMissingJavadoc" value="true"/>
+                                    <property name="allowMissingParamTags" value="true"/>
+                                    <property name="allowMissingThrowsTags" value="true"/>
+                                    <property name="allowMissingReturnTag" value="true"/>
+                                    <property name="allowedAnnotations" value="Override,Test,BeforeClass,AfterClass,Before,After"/>
+                                    <property name="allowThrowsTagsForSubclasses" value="true"/>
                                 </module>
-                                <module name="SingleLineJavadoc" />
+                                <module name="SingleLineJavadoc"/>
                             </module>
                         </module>
                     </checkstyleRules>
@@ -613,6 +663,7 @@
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
                     <consoleOutput>true</consoleOutput>
+                    <useIdeaDefaultExcludes>true</useIdeaDefaultExcludes>
                     <excludes>
                         <exclude>nb-configuration.xml</exclude> <!-- courtesy excludes for netbeans users -->
                         <exclude>nbactions.xml</exclude> <!-- courtesy excludes for netbeans users -->
@@ -681,6 +732,11 @@
                                 <phase>verify</phase>
                                 <configuration>
                                     <encoding>UTF-8</encoding>
+                                    <excludes>**/generated-sources/**/*</excludes>
+                                    <sourceDirectories>
+                                        <sourceDirectory>${project.build.sourceDirectory}</sourceDirectory>
+                                        <sourceDirectory>${project.build.testSourceDirectory}</sourceDirectory>
+                                    </sourceDirectories>
                                 </configuration>
                                 <goals>
                                     <goal>check</goal>
@@ -695,12 +751,12 @@
             <!-- This profile will disable DocLint which performs strict
                 JavaDoc processing which was introduced in JDK 8. These are technically errors
                 in the JavaDoc which we need to eventually address. However, if a release
-                is performed using JDK 8, the JavaDoc generation would fail. By activating
-                this profile when running on JDK 8 we can ensure the JavaDocs continue to
+                is performed using JDK 8 or newer, the JavaDoc generation would fail. By activating
+                this profile when running on JDK 8 or newer we can ensure the JavaDocs continue to
                 generate successfully -->
             <id>disable-doclint</id>
             <activation>
-                <jdk>1.8</jdk>
+                <jdk>[1.8,)</jdk>
             </activation>
             <build>
                 <pluginManagement>
@@ -715,6 +771,58 @@
                     </plugins>
                 </pluginManagement>
             </build>
+        </profile>
+        <profile>
+            <!-- This profile, activating when compiling on Java versions above 1.8, provides configuration changes to
+                 allow NiFi to be compiled on those JDKs. -->
+            <id>jigsaw</id>
+            <activation>
+                <jdk>(1.8,)</jdk>
+            </activation>
+            <properties>
+                <maven.compiler.source>11</maven.compiler.source>
+                <maven.compiler.target>11</maven.compiler.target>
+            </properties>
+            <build>
+                <pluginManagement>
+                    <plugins>
+                        <plugin>
+                            <groupId>org.jvnet.jaxb2.maven2</groupId>
+                            <artifactId>maven-jaxb2-plugin</artifactId>
+                            <version>0.14.0</version>
+                        </plugin>
+                    </plugins>
+                </pluginManagement>
+            </build>
+            <dependencyManagement>
+                <dependencies>
+                    <dependency>
+                        <groupId>javax.xml.bind</groupId>
+                        <artifactId>jaxb-api</artifactId>
+                        <version>2.3.0</version>
+                    </dependency>
+                    <dependency>
+                        <groupId>com.sun.xml.bind</groupId>
+                        <artifactId>jaxb-core</artifactId>
+                        <version>2.3.0</version>
+                    </dependency>
+                    <dependency>
+                        <groupId>com.sun.xml.bind</groupId>
+                        <artifactId>jaxb-impl</artifactId>
+                        <version>2.3.0</version>
+                    </dependency>
+                    <dependency>
+                        <groupId>com.sun.activation</groupId>
+                        <artifactId>javax.activation</artifactId>
+                        <version>1.2.0</version>
+                    </dependency>
+                    <dependency>
+                        <groupId>javax.annotation</groupId>
+                        <artifactId>javax.annotation-api</artifactId>
+                        <version>1.3.2</version>
+                    </dependency>
+                </dependencies>
+            </dependencyManagement>
         </profile>
         <!-- The following profiles are here as a convenience for folks that
             want to build against vendor-specific distributions of the various Hadoop
@@ -731,7 +839,7 @@
                 <repository>
                     <id>hortonworks-releases</id>
                     <name>Hortonworks Repository</name>
-                    <url>http://repo.hortonworks.com/content/repositories/releases/</url>
+                    <url>https://repo.hortonworks.com/content/repositories/releases/</url>
                     <releases>
                         <enabled>true</enabled>
                         <updatePolicy>always</updatePolicy>
@@ -746,7 +854,7 @@
                 <repository>
                     <id>hortonworks-jetty</id>
                     <name>Hortonworks Jetty Repository</name>
-                    <url>http://repo.hortonworks.com/content/repositories/jetty-hadoop/</url>
+                    <url>https://repo.hortonworks.com/content/repositories/jetty-hadoop/</url>
                     <releases>
                         <enabled>true</enabled>
                         <updatePolicy>always</updatePolicy>
@@ -772,7 +880,7 @@
                 <repository>
                     <id>mapr-releases</id>
                     <name>MapR Repository</name>
-                    <url>http://repository.mapr.com/maven/</url>
+                    <url>https://repository.mapr.com/maven/</url>
                     <snapshots>
                         <enabled>false</enabled>
                     </snapshots>

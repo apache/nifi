@@ -95,20 +95,20 @@ public interface AuthorizableLookup {
     Authorizable getFlow();
 
     /**
-     * Get the authorizable RootGroup InputPort.
+     * Get the authorizable public InputPort.
      *
      * @param id input port id
      * @return authorizable
      */
-    RootGroupPortAuthorizable getRootGroupInputPort(String id);
+    PublicPortAuthorizable getPublicInputPort(String id);
 
     /**
-     * Get the authorizable RootGroup OutputPort.
+     * Get the authorizable public OutputPort.
      *
      * @param id output port id
      * @return authorizable
      */
-    RootGroupPortAuthorizable getRootGroupOutputPort(String id);
+    PublicPortAuthorizable getPublicOutputPort(String id);
 
     /**
      * Get the authorizable InputPort.
@@ -190,6 +190,20 @@ public interface AuthorizableLookup {
      * @return authorizable
      */
     ComponentAuthorizable getReportingTask(String id);
+
+    /**
+     * Get the authorizable Parameter Context
+     *
+     * @param id the ID of the Parameter Context
+     * @return authorizable
+     */
+    Authorizable getParameterContext(String id);
+
+    /**
+     * Get the authorizable for Parameter Contexts
+     * @return authorizable
+     */
+    Authorizable getParameterContexts();
 
     /**
      * Get the authorizable Template.

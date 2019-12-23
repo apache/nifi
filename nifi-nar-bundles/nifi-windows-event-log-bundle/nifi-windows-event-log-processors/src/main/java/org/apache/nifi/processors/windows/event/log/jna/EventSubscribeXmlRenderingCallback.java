@@ -46,6 +46,7 @@ public class EventSubscribeXmlRenderingCallback implements WEvtApi.EVT_SUBSCRIBE
     private Memory buffer;
     private Memory used;
     private Memory propertyCount;
+    private boolean subscriptionFailed;
 
     public EventSubscribeXmlRenderingCallback(ComponentLog logger, Consumer<String> consumer, int maxBufferSize, WEvtApi wEvtApi, Kernel32 kernel32, ErrorLookup errorLookup) {
         this.logger = logger;
@@ -67,11 +68,20 @@ public class EventSubscribeXmlRenderingCallback implements WEvtApi.EVT_SUBSCRIBE
         }
 
         if (evtSubscribeNotifyAction == WEvtApi.EvtSubscribeNotifyAction.ERROR) {
-            if (eventHandle.getPointer().getInt(0) == WEvtApi.EvtSubscribeErrors.ERROR_EVT_QUERY_RESULT_STALE) {
-                logger.error(MISSING_EVENT_MESSAGE);
-            } else {
-                logger.error(RECEIVED_THE_FOLLOWING_WIN32_ERROR + eventHandle.getPointer().getInt(0));
+            try {
+                final int errorCode = eventHandle.getPointer().getInt(0);
+                if (errorCode == WEvtApi.EvtSubscribeErrors.ERROR_EVT_QUERY_RESULT_STALE) {
+                    logger.error(MISSING_EVENT_MESSAGE);
+                } else {
+                    logger.error(RECEIVED_THE_FOLLOWING_WIN32_ERROR + errorCode);
+                }
+            } catch (final Error e) {
+                logger.error("Failed to get error code onEvent("
+                    + evtSubscribeNotifyAction + ", " + userContext + ", " + eventHandle);
+            } finally {
+                subscriptionFailed = true;
             }
+
         } else if (evtSubscribeNotifyAction == WEvtApi.EvtSubscribeNotifyAction.DELIVER) {
             wEvtApi.EvtRender(null, eventHandle, WEvtApi.EvtRenderFlags.EVENT_XML, size, buffer, used, propertyCount);
 
@@ -103,5 +113,9 @@ public class EventSubscribeXmlRenderingCallback implements WEvtApi.EVT_SUBSCRIBE
         }
         // Ignored, see https://msdn.microsoft.com/en-us/library/windows/desktop/aa385577(v=vs.85).aspx
         return 0;
+    }
+
+    public boolean isSubscriptionFailed() {
+        return subscriptionFailed;
     }
 }

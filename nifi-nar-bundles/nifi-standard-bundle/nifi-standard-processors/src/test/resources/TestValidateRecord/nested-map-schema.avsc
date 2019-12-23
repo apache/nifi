@@ -1,0 +1,32 @@
+{
+  "type": "record",
+  "name": "example",
+  "fields": [
+    {
+      "name": "images",
+      "type": {
+        "type": "array",
+        "items": {
+          "type": "record",
+          "name": "images",
+          "fields": [
+            {
+              "name": "id",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            {
+              "name": "headers",
+              "type": {
+                "type": "map",
+                "values": "string"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

@@ -16,6 +16,22 @@
  */
 package org.apache.nifi.nar;
 
+import java.io.IOException;
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.ServiceLoader;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
+
 import org.apache.nifi.annotation.behavior.RequiresInstanceClassLoading;
 import org.apache.nifi.authentication.LoginIdentityProvider;
 import org.apache.nifi.authorization.AccessPolicyProvider;
@@ -30,6 +46,7 @@ import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.repository.ContentRepository;
 import org.apache.nifi.controller.repository.FlowFileRepository;
 import org.apache.nifi.controller.repository.FlowFileSwapManager;
+import org.apache.nifi.controller.status.analytics.StatusAnalyticsModel;
 import org.apache.nifi.controller.status.history.ComponentStatusRepository;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.init.ConfigurableComponentInitializer;
@@ -41,21 +58,6 @@ import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.net.URL;
-import java.net.URLClassLoader;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.ServiceLoader;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 /**
  * Scans through the classpath to load all FlowFileProcessors, FlowFileComparators, and ReportingTasks using the service provider API and running through all classloaders (root, NARs).
@@ -94,6 +96,7 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
         definitionMap.put(FlowFileSwapManager.class, new HashSet<>());
         definitionMap.put(ContentRepository.class, new HashSet<>());
         definitionMap.put(StateProvider.class, new HashSet<>());
+        definitionMap.put(StatusAnalyticsModel.class, new HashSet<>());
     }
 
     @Override
@@ -150,43 +153,63 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
 
             final ServiceLoader<?> serviceLoader = ServiceLoader.load(entry.getKey(), bundle.getClassLoader());
             for (final Object o : serviceLoader) {
-                // create a cache of temp ConfigurableComponent instances, the initialize here has to happen before the checks below
-                if ((isControllerService || isProcessor || isReportingTask) && o instanceof ConfigurableComponent) {
-                    final ConfigurableComponent configurableComponent = (ConfigurableComponent) o;
-                    initializeTempComponent(configurableComponent);
-
-                    final String cacheKey = getClassBundleKey(o.getClass().getCanonicalName(), bundle.getBundleDetails().getCoordinate());
-                    tempComponentLookup.put(cacheKey, (ConfigurableComponent)o);
-                }
-
-                // only consider extensions discovered directly in this bundle
-                boolean registerExtension = bundle.getClassLoader().equals(o.getClass().getClassLoader());
-
-                if (registerExtension) {
-                    final Class extensionType = o.getClass();
-                    if (isControllerService && !checkControllerServiceEligibility(extensionType)) {
-                        registerExtension = false;
-                        logger.error(String.format(
-                                "Skipping Controller Service %s because it is bundled with its supporting APIs and requires instance class loading.", extensionType.getName()));
-                    }
-
-                    final boolean canReferenceControllerService = (isControllerService || isProcessor || isReportingTask) && o instanceof ConfigurableComponent;
-                    if (canReferenceControllerService && !checkControllerServiceReferenceEligibility((ConfigurableComponent) o, bundle.getClassLoader())) {
-                        registerExtension = false;
-                        logger.error(String.format(
-                                "Skipping component %s because it is bundled with its referenced Controller Service APIs and requires instance class loading.", extensionType.getName()));
-                    }
-
-                    if (registerExtension) {
-                        registerServiceClass(o.getClass(), classNameBundleLookup, bundleCoordinateClassesLookup, bundle, entry.getValue());
+                try {
+                    loadExtension(o, entry.getKey(), bundle);
+                } catch (Exception e) {
+                    logger.warn("Failed to register extension {} due to: {}" , new Object[]{o.getClass().getCanonicalName(), e.getMessage()});
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("", e);
                     }
                 }
-
             }
 
             classLoaderBundleLookup.put(bundle.getClassLoader(), bundle);
         }
     }
+
+    protected void loadExtension(final Object extension, final Class<?> extensionType, final Bundle bundle) {
+        final boolean isControllerService = ControllerService.class.equals(extensionType);
+        final boolean isProcessor = Processor.class.equals(extensionType);
+        final boolean isReportingTask = ReportingTask.class.equals(extensionType);
+
+        // create a cache of temp ConfigurableComponent instances, the initialize here has to happen before the checks below
+        if ((isControllerService || isProcessor || isReportingTask) && extension instanceof ConfigurableComponent) {
+            final ConfigurableComponent configurableComponent = (ConfigurableComponent) extension;
+            initializeTempComponent(configurableComponent);
+
+            final String cacheKey = getClassBundleKey(extension.getClass().getCanonicalName(), bundle.getBundleDetails().getCoordinate());
+            tempComponentLookup.put(cacheKey, configurableComponent);
+        }
+
+        // only consider extensions discovered directly in this bundle
+        boolean registerExtension = bundle.getClassLoader().equals(extension.getClass().getClassLoader());
+
+        if (registerExtension) {
+            final Class<?> extensionClass = extension.getClass();
+            if (isControllerService && !checkControllerServiceEligibility(extensionClass)) {
+                registerExtension = false;
+                logger.error(String.format(
+                    "Skipping Controller Service %s because it is bundled with its supporting APIs and requires instance class loading.", extensionClass.getName()));
+            }
+
+            final boolean canReferenceControllerService = (isControllerService || isProcessor || isReportingTask) && extension instanceof ConfigurableComponent;
+            if (canReferenceControllerService && !checkControllerServiceReferenceEligibility((ConfigurableComponent) extension, bundle.getClassLoader())) {
+                registerExtension = false;
+                logger.error(String.format(
+                    "Skipping component %s because it is bundled with its referenced Controller Service APIs and requires instance class loading.", extensionClass.getName()));
+            }
+
+            if (registerExtension) {
+                registerExtensionClass(extensionType, extension.getClass(), bundle);
+            }
+        }
+    }
+
+    protected void registerExtensionClass(final Class<?> extensionType, final Class<?> implementationClass, final Bundle bundle) {
+        final Set<Class> registeredClasses = definitionMap.get(extensionType);
+        registerServiceClass(implementationClass, classNameBundleLookup, bundleCoordinateClassesLookup, bundle, registeredClasses);
+    }
+
 
     private void initializeTempComponent(final ConfigurableComponent configurableComponent) {
         ConfigurableComponentInitializer initializer = null;
@@ -218,7 +241,7 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
         if (!cobundledApis.isEmpty()) {
             logger.warn(String.format(
                     "Component %s is bundled with its referenced Controller Service APIs %s. The service APIs should not be bundled with component implementations that reference it.",
-                    component.getClass().getName(), StringUtils.join(cobundledApis.stream().map(cls -> cls.getName()).collect(Collectors.toSet()), ", ")));
+                    component.getClass().getName(), StringUtils.join(cobundledApis.stream().map(Class::getName).collect(Collectors.toSet()), ", ")));
         }
 
         // the component is eligible when it does not require instance classloading or when the supporting APIs are bundled in a parent NAR
@@ -245,7 +268,7 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
 
         if (!cobundledApis.isEmpty()) {
             logger.warn(String.format("Controller Service %s is bundled with its supporting APIs %s. The service APIs should not be bundled with the implementations.",
-                    originalExtensionType.getName(), StringUtils.join(cobundledApis.stream().map(cls -> cls.getName()).collect(Collectors.toSet()), ", ")));
+                    originalExtensionType.getName(), StringUtils.join(cobundledApis.stream().map(Class::getName).collect(Collectors.toSet()), ", ")));
         }
 
         // the service is eligible when it does not require instance classloading or when the supporting APIs are bundled in a parent NAR
@@ -344,9 +367,7 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
             logger.debug("Including ClassLoader resources from {} for component {}", new Object[] {bundle.getBundleDetails(), instanceIdentifier});
 
             final Set<URL> instanceUrls = new LinkedHashSet<>();
-            for (final URL url : narBundleClassLoader.getURLs()) {
-                instanceUrls.add(url);
-            }
+            instanceUrls.addAll(Arrays.asList(narBundleClassLoader.getURLs()));
 
             ClassLoader ancestorClassLoader = narBundleClassLoader.getParent();
 
@@ -354,7 +375,7 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
                 final ConfigurableComponent component = getTempComponent(classType, bundle.getBundleDetails().getCoordinate());
                 final Set<BundleCoordinate> reachableApiBundles = findReachableApiBundles(component);
 
-                while (ancestorClassLoader != null && ancestorClassLoader instanceof NarClassLoader) {
+                while (ancestorClassLoader instanceof NarClassLoader) {
                     final Bundle ancestorNarBundle = classLoaderBundleLookup.get(ancestorClassLoader);
 
                     // stop including ancestor resources when we reach one of the APIs, or when we hit the Jetty NAR
@@ -364,9 +385,7 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
                     }
 
                     final NarClassLoader ancestorNarClassLoader = (NarClassLoader) ancestorClassLoader;
-                    for (final URL url : ancestorNarClassLoader.getURLs()) {
-                        instanceUrls.add(url);
-                    }
+                    Collections.addAll(instanceUrls, ancestorNarClassLoader.getURLs());
                     ancestorClassLoader = ancestorNarClassLoader.getParent();
                 }
             }
@@ -478,7 +497,7 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
             throw new IllegalArgumentException("Class cannot be null");
         }
         final Set<Class> extensions = definitionMap.get(definition);
-        return (extensions == null) ? Collections.<Class>emptySet() : extensions;
+        return (extensions == null) ? Collections.emptySet() : extensions;
     }
 
     @Override
@@ -507,8 +526,7 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
             builder.append("\n\t=== ").append(entry.getKey().getSimpleName()).append(" Type ===");
 
             for (final Class type : entry.getValue()) {
-                final List<Bundle> bundles = classNameBundleLookup.containsKey(type.getName())
-                        ? classNameBundleLookup.get(type.getName()) : Collections.emptyList();
+                final List<Bundle> bundles = classNameBundleLookup.getOrDefault(type.getName(), Collections.emptyList());
 
                 builder.append("\n\t").append(type.getName());
 

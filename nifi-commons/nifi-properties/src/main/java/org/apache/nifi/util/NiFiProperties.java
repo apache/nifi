@@ -77,7 +77,6 @@ public abstract class NiFiProperties {
     public static final String REMOTE_CONTENTS_CACHE_EXPIRATION = "nifi.remote.contents.cache.expiration";
     public static final String TEMPLATE_DIRECTORY = "nifi.templates.directory";
     public static final String ADMINISTRATIVE_YIELD_DURATION = "nifi.administrative.yield.duration";
-    public static final String PERSISTENT_STATE_DIRECTORY = "nifi.persistent.state.directory";
     public static final String BORED_YIELD_DURATION = "nifi.bored.yield.duration";
     public static final String PROCESSOR_SCHEDULING_TIMEOUT = "nifi.processor.scheduling.timeout";
     public static final String BACKPRESSURE_COUNT = "nifi.queue.backpressure.count";
@@ -94,6 +93,10 @@ public abstract class NiFiProperties {
     public static final String CONTENT_ARCHIVE_ENABLED = "nifi.content.repository.archive.enabled";
     public static final String CONTENT_ARCHIVE_CLEANUP_FREQUENCY = "nifi.content.repository.archive.cleanup.frequency";
     public static final String CONTENT_VIEWER_URL = "nifi.content.viewer.url";
+    public static final String CONTENT_REPOSITORY_ENCRYPTION_KEY = "nifi.content.repository.encryption.key";
+    public static final String CONTENT_REPOSITORY_ENCRYPTION_KEY_ID = "nifi.content.repository.encryption.key.id";
+    public static final String CONTENT_REPOSITORY_ENCRYPTION_KEY_PROVIDER_IMPLEMENTATION_CLASS = "nifi.content.repository.encryption.key.provider.implementation";
+    public static final String CONTENT_REPOSITORY_ENCRYPTION_KEY_PROVIDER_LOCATION = "nifi.content.repository.encryption.key.provider.location";
 
     // flowfile repository properties
     public static final String FLOWFILE_REPOSITORY_IMPLEMENTATION = "nifi.flowfile.repository.implementation";
@@ -158,6 +161,8 @@ public abstract class NiFiProperties {
     public static final String SECURITY_USER_OIDC_CLIENT_ID = "nifi.security.user.oidc.client.id";
     public static final String SECURITY_USER_OIDC_CLIENT_SECRET = "nifi.security.user.oidc.client.secret";
     public static final String SECURITY_USER_OIDC_PREFERRED_JWSALGORITHM = "nifi.security.user.oidc.preferred.jwsalgorithm";
+    public static final String SECURITY_USER_OIDC_ADDITIONAL_SCOPES = "nifi.security.user.oidc.additional.scopes";
+    public static final String SECURITY_USER_OIDC_CLAIM_IDENTIFYING_USER = "nifi.security.user.oidc.claim.identifying.user";
 
     // apache knox
     public static final String SECURITY_USER_KNOX_URL = "nifi.security.user.knox.url";
@@ -236,6 +241,14 @@ public abstract class NiFiProperties {
     // expression language properties
     public static final String VARIABLE_REGISTRY_PROPERTIES = "nifi.variable.registry.properties";
 
+    // analytics properties
+    public static final String ANALYTICS_PREDICTION_ENABLED = "nifi.analytics.predict.enabled";
+    public static final String ANALYTICS_PREDICTION_INTERVAL = "nifi.analytics.predict.interval";
+    public static final String ANALYTICS_QUERY_INTERVAL = "nifi.analytics.query.interval";
+    public static final String ANALYTICS_CONNECTION_MODEL_IMPLEMENTATION = "nifi.analytics.connection.model.implementation";
+    public static final String ANALYTICS_CONNECTION_MODEL_SCORE_NAME= "nifi.analytics.connection.model.score.name";
+    public static final String ANALYTICS_CONNECTION_MODEL_SCORE_THRESHOLD = "nifi.analytics.connection.model.score.threshold";
+
     // defaults
     public static final Boolean DEFAULT_AUTO_RESUME_STATE = true;
     public static final String DEFAULT_AUTHORIZER_CONFIGURATION_FILE = "conf/authorizers.xml";
@@ -262,7 +275,6 @@ public abstract class NiFiProperties {
     public static final long DEFAULT_BACKPRESSURE_COUNT = 10_000L;
     public static final String DEFAULT_BACKPRESSURE_SIZE = "1 GB";
     public static final String DEFAULT_ADMINISTRATIVE_YIELD_DURATION = "30 sec";
-    public static final String DEFAULT_PERSISTENT_STATE_DIRECTORY = "./conf/state";
     public static final String DEFAULT_COMPONENT_STATUS_SNAPSHOT_FREQUENCY = "5 mins";
     public static final String DEFAULT_BORED_YIELD_DURATION = "10 millis";
     public static final String DEFAULT_ZOOKEEPER_CONNECT_TIMEOUT = "3 secs";
@@ -306,6 +318,13 @@ public abstract class NiFiProperties {
     // Kerberos defaults
     public static final String DEFAULT_KERBEROS_AUTHENTICATION_EXPIRATION = "12 hours";
 
+    // analytics defaults
+    public static final String DEFAULT_ANALYTICS_PREDICTION_ENABLED = "false";
+    public static final String DEFAULT_ANALYTICS_PREDICTION_INTERVAL = "3 mins";
+    public static final String DEFAULT_ANALYTICS_QUERY_INTERVAL = "3 mins";
+    public final static String DEFAULT_ANALYTICS_CONNECTION_MODEL_IMPLEMENTATION = "org.apache.nifi.controller.status.analytics.models.OrdinaryLeastSquares";
+    public static final String DEFAULT_ANALYTICS_CONNECTION_SCORE_NAME = "rSquared";
+    public static final double DEFAULT_ANALYTICS_CONNECTION_SCORE_THRESHOLD = .90;
 
     /**
      * Retrieves the property value for the given property key.
@@ -712,16 +731,6 @@ public abstract class NiFiProperties {
                 DEFAULT_CLUSTER_NODE_CONNECTION_TIMEOUT);
     }
 
-    public File getPersistentStateDirectory() {
-        final String dirName = getProperty(PERSISTENT_STATE_DIRECTORY,
-                DEFAULT_PERSISTENT_STATE_DIRECTORY);
-        final File file = new File(dirName);
-        if (!file.exists()) {
-            file.mkdirs();
-        }
-        return file;
-    }
-
     // getters for cluster node properties //
     public boolean isNode() {
         return Boolean.parseBoolean(getProperty(CLUSTER_IS_NODE));
@@ -945,6 +954,30 @@ public abstract class NiFiProperties {
      */
     public String getOidcPreferredJwsAlgorithm() {
         return getProperty(SECURITY_USER_OIDC_PREFERRED_JWSALGORITHM);
+    }
+
+    /**
+     * Returns additional scopes to be sent when requesting the access token from the IDP.
+     *
+     * @return List of additional scopes to be sent
+     */
+    public List<String> getOidcAdditionalScopes() {
+        String rawProperty = getProperty(SECURITY_USER_OIDC_ADDITIONAL_SCOPES, "");
+        if (rawProperty.isEmpty()) {
+            return new ArrayList<>();
+        }
+        List<String> additionalScopes = Arrays.asList(rawProperty.split(","));
+        return additionalScopes.stream().map(String::trim).collect(Collectors.toList());
+    }
+
+    /**
+     * Returns the claim to be used to identify a user.
+     * Claim must be requested by adding the scope for it.
+     * Default is 'email'.
+     * @return The claim to be used to identify the user.
+     */
+    public String getOidcClaimIdentifyingUser() {
+        return getProperty(SECURITY_USER_OIDC_CLAIM_IDENTIFYING_USER, "email").trim();
     }
 
     /**
@@ -1225,7 +1258,7 @@ public abstract class NiFiProperties {
         final String vrPropertiesFiles = getVariableRegistryProperties();
         if (!StringUtils.isEmpty(vrPropertiesFiles)) {
 
-            final List<String> vrPropertiesFileList = Arrays.asList(vrPropertiesFiles.split(","));
+            final String[] vrPropertiesFileList = vrPropertiesFiles.split(",");
 
             for (String propertiesFile : vrPropertiesFileList) {
                 vrPropertiesPaths.add(Paths.get(propertiesFile));
@@ -1333,6 +1366,55 @@ public abstract class NiFiProperties {
         return keys;
     }
 
+    public String getContentRepositoryEncryptionKeyId() {
+        return getProperty(CONTENT_REPOSITORY_ENCRYPTION_KEY_ID);
+    }
+
+    /**
+     * Returns the active content repository encryption key if a {@code StaticKeyProvider} is in use.
+     * If no key ID is specified in the properties file, the default
+     * {@code nifi.content.repository.encryption.key} value is returned. If a key ID is specified in
+     * {@code nifi.content.repository.encryption.key.id}, it will attempt to read from
+     * {@code nifi.content.repository.encryption.key.id.XYZ} where {@code XYZ} is the provided key
+     * ID. If that value is empty, it will use the default property
+     * {@code nifi.content.repository.encryption.key}.
+     *
+     * @return the content repository encryption key in hex form
+     */
+    public String getContentRepositoryEncryptionKey() {
+        String keyId = getContentRepositoryEncryptionKeyId();
+        String keyKey = StringUtils.isBlank(keyId) ? CONTENT_REPOSITORY_ENCRYPTION_KEY : CONTENT_REPOSITORY_ENCRYPTION_KEY + ".id." + keyId;
+        return getProperty(keyKey, getProperty(CONTENT_REPOSITORY_ENCRYPTION_KEY));
+    }
+
+    /**
+     * Returns a map of keyId -> key in hex loaded from the {@code nifi.properties} file if a
+     * {@code StaticKeyProvider} is defined. If {@code FileBasedKeyProvider} is defined, use
+     * {@code CryptoUtils#readKeys()} instead -- this method will return an empty map.
+     *
+     * @return a Map of the keys identified by key ID
+     */
+    public Map<String, String> getContentRepositoryEncryptionKeys() {
+        // TODO: Duplicate logic with different constants as provenance should be refactored to helper method
+        Map<String, String> keys = new HashMap<>();
+        List<String> keyProperties = getContentRepositoryEncryptionKeyProperties();
+
+        // Retrieve the actual key values and store non-empty values in the map
+        for (String prop : keyProperties) {
+            final String value = getProperty(prop);
+            if (!StringUtils.isBlank(value)) {
+                if (prop.equalsIgnoreCase(CONTENT_REPOSITORY_ENCRYPTION_KEY)) {
+                    prop = getContentRepositoryEncryptionKeyId();
+                } else {
+                    // Extract nifi.content.repository.encryption.key.id.key1 -> key1
+                    prop = prop.substring(prop.lastIndexOf(".") + 1);
+                }
+                keys.put(prop, value);
+            }
+        }
+        return keys;
+    }
+
     /**
      * Returns the whitelisted proxy hostnames (and IP addresses) as a comma-delimited string.
      * The hosts have been normalized to the form {@code somehost.com}, {@code somehost.com:port}, or {@code 127.0.0.1}.
@@ -1405,6 +1487,13 @@ public abstract class NiFiProperties {
         // Filter all the property keys that define a key
         return getPropertyKeys().stream().filter(k ->
                 k.startsWith(PROVENANCE_REPO_ENCRYPTION_KEY_ID + ".") || k.equalsIgnoreCase(PROVENANCE_REPO_ENCRYPTION_KEY)
+        ).collect(Collectors.toList());
+    }
+
+    private List<String> getContentRepositoryEncryptionKeyProperties() {
+        // Filter all the property keys that define a key
+        return getPropertyKeys().stream().filter(k ->
+                k.startsWith(CONTENT_REPOSITORY_ENCRYPTION_KEY_ID + ".") || k.equalsIgnoreCase(CONTENT_REPOSITORY_ENCRYPTION_KEY)
         ).collect(Collectors.toList());
     }
 

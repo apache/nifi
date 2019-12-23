@@ -59,6 +59,7 @@ import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.StringUtils;
 
 import javax.net.ssl.SSLContext;
+import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.Proxy;
@@ -298,8 +299,11 @@ public class RestLookupService extends AbstractControllerService implements Reco
                 return Optional.empty();
             }
 
-            InputStream is = responseBody.byteStream();
-            Record record = handleResponse(is, context);
+            final Record record;
+            try (final InputStream is = responseBody.byteStream();
+                final InputStream bufferedIn = new BufferedInputStream(is)) {
+                record = handleResponse(bufferedIn, responseBody.contentLength(), context);
+            }
 
             return Optional.ofNullable(record);
         } catch (Exception e) {
@@ -338,9 +342,9 @@ public class RestLookupService extends AbstractControllerService implements Reco
         return client.newCall(request).execute();
     }
 
-    private Record handleResponse(InputStream is, Map<String, String> context) throws SchemaNotFoundException, MalformedRecordException, IOException {
+    private Record handleResponse(InputStream is, long inputLength, Map<String, String> context) throws SchemaNotFoundException, MalformedRecordException, IOException {
 
-        try (RecordReader reader = readerFactory.createRecordReader(context, is, getLogger())) {
+        try (RecordReader reader = readerFactory.createRecordReader(context, is, inputLength, getLogger())) {
 
             Record record = reader.nextRecord();
 

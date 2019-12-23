@@ -46,7 +46,6 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -204,14 +203,11 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
                     if (!controllerServiceNode.isActive()) {
                         final Future<Void> future = enableControllerServiceDependenciesFirst(controllerServiceNode);
 
-                        try {
-                            future.get(30, TimeUnit.SECONDS);
-                            logger.debug("Successfully enabled {}; service state = {}", controllerServiceNode, controllerServiceNode.getState());
-                        } catch (final Exception e) {
-                            logger.warn("Failed to enable service {}", controllerServiceNode, e);
-                            // Nothing we can really do. Will attempt to enable this service anyway.
-                        }
+                        future.get(30, TimeUnit.SECONDS);
+                        logger.debug("Successfully enabled {}; service state = {}", controllerServiceNode, controllerServiceNode.getState());
                     }
+                } catch (final ControllerServiceNotValidException csnve) {
+                    logger.warn("Failed to enable service {} because it is not currently valid", controllerServiceNode);
                 } catch (Exception e) {
                     logger.error("Failed to enable " + controllerServiceNode, e);
                     if (this.bulletinRepo != null) {
@@ -332,16 +328,14 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
         return orderedNodeLists;
     }
 
-    private static void determineEnablingOrder(
-            final Map<String, ControllerServiceNode> serviceNodeMap,
-            final ControllerServiceNode contextNode,
-            final List<ControllerServiceNode> orderedNodes,
-            final Set<ControllerServiceNode> visited) {
+    private static void determineEnablingOrder(final Map<String, ControllerServiceNode> serviceNodeMap, final ControllerServiceNode contextNode,
+            final List<ControllerServiceNode> orderedNodes, final Set<ControllerServiceNode> visited) {
+
         if (visited.contains(contextNode)) {
             return;
         }
 
-        for (final Map.Entry<PropertyDescriptor, String> entry : contextNode.getProperties().entrySet()) {
+        for (final Map.Entry<PropertyDescriptor, String> entry : contextNode.getEffectivePropertyValues().entrySet()) {
             if (entry.getKey().getControllerServiceDefinition() != null) {
                 final String referencedServiceId = entry.getValue();
                 if (referencedServiceId != null) {
@@ -475,13 +469,13 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
     @Override
     public boolean isControllerServiceEnabled(final String serviceIdentifier) {
         final ControllerServiceNode node = getControllerServiceNode(serviceIdentifier);
-        return node == null ? false : ControllerServiceState.ENABLED == node.getState();
+        return node != null && ControllerServiceState.ENABLED == node.getState();
     }
 
     @Override
     public boolean isControllerServiceEnabling(final String serviceIdentifier) {
         final ControllerServiceNode node = getControllerServiceNode(serviceIdentifier);
-        return node == null ? false : ControllerServiceState.ENABLING == node.getState();
+        return node != null && ControllerServiceState.ENABLING == node.getState();
     }
 
     @Override
@@ -527,7 +521,10 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
 
     @Override
     public void removeControllerService(final ControllerServiceNode serviceNode) {
-        final ProcessGroup group = requireNonNull(serviceNode).getProcessGroup();
+        requireNonNull(serviceNode);
+        serviceCache.remove(serviceNode.getIdentifier());
+
+        final ProcessGroup group = serviceNode.getProcessGroup();
         if (group == null) {
             flowManager.removeRootControllerService(serviceNode);
             return;
@@ -542,7 +539,9 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
 
     @Override
     public Collection<ControllerServiceNode> getNonRootControllerServices() {
-        return serviceCache.values();
+        return serviceCache.values().stream()
+            .filter(serviceNode -> serviceNode.getProcessGroup() != null)
+            .collect(Collectors.toSet());
     }
 
 
@@ -571,16 +570,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
         for (final ControllerServiceNode nodeToEnable : recursiveReferences) {
             if (!nodeToEnable.isActive()) {
                 logger.debug("Enabling {} because it references {}", nodeToEnable, serviceNode);
-                final Future<?> enableFuture = enableControllerService(nodeToEnable);
-                try {
-                    enableFuture.get();
-                } catch (final ExecutionException ee) {
-                    throw new IllegalStateException("Failed to enable Controller Service " + nodeToEnable, ee.getCause());
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    throw new IllegalStateException("Interrupted while enabling Controller Service");
-                }
-
+                enableControllerService(nodeToEnable);
                 updated.add(nodeToEnable);
             }
         }

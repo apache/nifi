@@ -19,6 +19,7 @@ package org.apache.nifi.reporting;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayInputStream;
@@ -33,6 +34,7 @@ import java.util.UUID;
 import javax.json.Json;
 import javax.json.JsonObject;
 import javax.json.JsonReader;
+import javax.json.JsonValue;
 
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -42,7 +44,8 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.remote.Transaction;
 import org.apache.nifi.remote.TransferDirection;
 import org.apache.nifi.remote.client.SiteToSiteClient;
-import org.apache.nifi.reporting.AbstractSiteToSiteReportingTask.NiFiUrlValidator;
+import org.apache.nifi.reporting.s2s.SiteToSiteUtils;
+import org.apache.nifi.reporting.s2s.SiteToSiteUtils.NiFiUrlValidator;
 import org.apache.nifi.util.MockPropertyValue;
 import org.junit.Assert;
 import org.junit.Test;
@@ -59,7 +62,7 @@ public class TestSiteToSiteBulletinReportingTask {
             @Override
             public PropertyValue answer(InvocationOnMock invocation) throws Throwable {
                 String value = (String) invocation.getArguments()[0];
-                return new StandardPropertyValue(value, null);
+                return new StandardPropertyValue(value, null, null);
             }
         });
 
@@ -94,13 +97,13 @@ public class TestSiteToSiteBulletinReportingTask {
         for (final PropertyDescriptor descriptor : task.getSupportedPropertyDescriptors()) {
             properties.put(descriptor, descriptor.getDefaultValue());
         }
-        properties.put(SiteToSiteBulletinReportingTask.BATCH_SIZE, "1000");
-        properties.put(SiteToSiteBulletinReportingTask.PLATFORM, "nifi");
+        properties.put(SiteToSiteUtils.BATCH_SIZE, "1000");
+        properties.put(SiteToSiteUtils.PLATFORM, "nifi");
 
         Mockito.doAnswer(new Answer<PropertyValue>() {
             @Override
             public PropertyValue answer(final InvocationOnMock invocation) throws Throwable {
-                final PropertyDescriptor descriptor = invocation.getArgumentAt(0, PropertyDescriptor.class);
+                final PropertyDescriptor descriptor = invocation.getArgument(0, PropertyDescriptor.class);
                 return new MockPropertyValue(properties.get(descriptor));
             }
         }).when(context).getProperty(Mockito.any(PropertyDescriptor.class));
@@ -121,6 +124,54 @@ public class TestSiteToSiteBulletinReportingTask {
         JsonObject bulletinJson = jsonReader.readArray().getJsonObject(0);
         assertEquals("message", bulletinJson.getString("bulletinMessage"));
         assertEquals("group-name", bulletinJson.getString("bulletinGroupName"));
+        assertNull(bulletinJson.get("bulletinSourceType"));
+    }
+
+    @Test
+    public void testSerializedFormWithNullValues() throws IOException, InitializationException {
+        // creating the list of bulletins
+        final List<Bulletin> bulletins = new ArrayList<Bulletin>();
+        bulletins.add(BulletinFactory.createBulletin("group-id", "group-name", "source-id", "source-name", "category", "severity", "message"));
+
+        // mock the access to the list of bulletins
+        final ReportingContext context = Mockito.mock(ReportingContext.class);
+        final BulletinRepository repository = Mockito.mock(BulletinRepository.class);
+        Mockito.when(context.getBulletinRepository()).thenReturn(repository);
+        Mockito.when(repository.findBulletins(Mockito.any(BulletinQuery.class))).thenReturn(bulletins);
+
+        // creating reporting task
+        final MockSiteToSiteBulletinReportingTask task = new MockSiteToSiteBulletinReportingTask();
+
+        // settings properties and mocking access to properties
+        final Map<PropertyDescriptor, String> properties = new HashMap<>();
+        for (final PropertyDescriptor descriptor : task.getSupportedPropertyDescriptors()) {
+            properties.put(descriptor, descriptor.getDefaultValue());
+        }
+        properties.put(SiteToSiteUtils.BATCH_SIZE, "1000");
+        properties.put(SiteToSiteUtils.PLATFORM, "nifi");
+        properties.put(SiteToSiteStatusReportingTask.ALLOW_NULL_VALUES, "true");
+
+        Mockito.doAnswer(new Answer<PropertyValue>() {
+            @Override
+            public PropertyValue answer(final InvocationOnMock invocation) throws Throwable {
+                final PropertyDescriptor descriptor = invocation.getArgument(0, PropertyDescriptor.class);
+                return new MockPropertyValue(properties.get(descriptor));
+            }
+        }).when(context).getProperty(Mockito.any(PropertyDescriptor.class));
+
+        // setup the mock initialization context
+        final ComponentLog logger = Mockito.mock(ComponentLog.class);
+        final ReportingInitializationContext initContext = Mockito.mock(ReportingInitializationContext.class);
+        Mockito.when(initContext.getIdentifier()).thenReturn(UUID.randomUUID().toString());
+        Mockito.when(initContext.getLogger()).thenReturn(logger);
+
+        task.initialize(initContext);
+        task.onTrigger(context);
+
+        final String msg = new String(task.dataSent.get(0), StandardCharsets.UTF_8);
+        JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
+        JsonObject bulletinJson = jsonReader.readArray().getJsonObject(0);
+        assertEquals(JsonValue.NULL, bulletinJson.get("bulletinSourceType"));
     }
 
     private static final class MockSiteToSiteBulletinReportingTask extends SiteToSiteBulletinReportingTask {
@@ -140,11 +191,11 @@ public class TestSiteToSiteBulletinReportingTask {
                 Mockito.doAnswer(new Answer<Object>() {
                     @Override
                     public Object answer(final InvocationOnMock invocation) throws Throwable {
-                        final byte[] data = invocation.getArgumentAt(0, byte[].class);
+                        final byte[] data = invocation.getArgument(0, byte[].class);
                         dataSent.add(data);
                         return null;
                     }
-                }).when(transaction).send(Mockito.any(byte[].class), Mockito.anyMapOf(String.class, String.class));
+                }).when(transaction).send(Mockito.any(byte[].class), Mockito.anyMap());
 
                 Mockito.when(client.createTransaction(Mockito.any(TransferDirection.class))).thenReturn(transaction);
             } catch (final Exception e) {

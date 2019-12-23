@@ -17,6 +17,7 @@
 package org.apache.nifi.controller.druid;
 
 import com.metamx.tranquility.beam.Beam;
+import com.metamx.tranquility.druid.DruidDimensions;
 import com.metamx.tranquility.tranquilizer.MessageDroppedException;
 import com.metamx.tranquility.tranquilizer.Tranquilizer;
 import com.metamx.tranquility.typeclass.Timestamper;
@@ -37,7 +38,7 @@ import scala.runtime.BoxedUnit;
 import java.util.List;
 import java.util.Map;
 
-import static org.mockito.Matchers.anyObject;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -112,7 +113,7 @@ public class MockDruidTranquilityController extends DruidTranquilityController {
                 return null;
             }
         };
-        when(t.send(anyObject())).thenReturn(future);
+        when(t.send(any())).thenReturn(future);
         when(t.status()).thenReturn(new Status() {
         });
         cf = mock(CuratorFramework.class);
@@ -137,7 +138,7 @@ public class MockDruidTranquilityController extends DruidTranquilityController {
     @SuppressWarnings("unchecked")
     @Override
     Beam<Map<String, Object>> buildBeam(String dataSource, String indexService, String discoveryPath, int clusterPartitions, int clusterReplication,
-                                        String segmentGranularity, String queryGranularity, String windowPeriod, String indexRetryPeriod, List<String> dimensions,
+                                        String segmentGranularity, String queryGranularity, String windowPeriod, String firehoseGracePeriod, String indexRetryPeriod, DruidDimensions dimensions,
                                         List<AggregatorFactory> aggregator, Timestamper<Map<String, Object>> timestamper, TimestampSpec timestampSpec) {
         return mock(Beam.class);
     }

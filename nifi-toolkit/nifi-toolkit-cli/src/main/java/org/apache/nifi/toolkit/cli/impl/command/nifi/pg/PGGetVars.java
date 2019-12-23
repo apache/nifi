@@ -24,7 +24,7 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ProcessGroupClient;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.AbstractNiFiCommand;
-import org.apache.nifi.toolkit.cli.impl.result.VariableRegistryResult;
+import org.apache.nifi.toolkit.cli.impl.result.nifi.VariableRegistryResult;
 import org.apache.nifi.web.api.entity.VariableRegistryEntity;
 
 import java.io.IOException;

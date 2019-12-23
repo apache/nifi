@@ -16,63 +16,54 @@
  */
 package org.apache.nifi.processors.azure.storage;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URISyntaxException;
-import java.security.InvalidKeyException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-
+import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processors.azure.AbstractAzureBlobProcessor;
-import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
+import org.junit.Before;
 import org.junit.Test;
 
-import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.blob.CloudBlob;
-import com.microsoft.azure.storage.blob.CloudBlobContainer;
+import java.util.List;
 
-public class ITFetchAzureBlobStorage {
+public class ITFetchAzureBlobStorage extends AbstractAzureBlobStorageIT {
+
+    @Override
+    protected Class<? extends Processor> getProcessorClass() {
+        return FetchAzureBlobStorage.class;
+    }
+
+    @Before
+    public void setUp() throws Exception {
+        runner.setProperty(FetchAzureBlobStorage.BLOB, TEST_BLOB_NAME);
+
+        uploadTestBlob();
+    }
 
     @Test
-    public void testFetchingBlob() throws InvalidKeyException, URISyntaxException, StorageException, IOException {
-        String containerName = String.format("%s-%s", AzureTestUtil.TEST_CONTAINER_NAME_PREFIX, UUID.randomUUID());
-        CloudBlobContainer container = AzureTestUtil.getContainer(containerName);
-        container.createIfNotExists();
+    public void testFetchBlob() throws Exception {
+        runner.assertValid();
+        runner.enqueue(new byte[0]);
+        runner.run();
 
-        CloudBlob blob = container.getBlockBlobReference(AzureTestUtil.TEST_BLOB_NAME);
-        byte[] buf = "0123456789".getBytes();
-        InputStream in = new ByteArrayInputStream(buf);
-        blob.upload(in, 10);
+        assertResult();
+    }
 
-        final TestRunner runner = TestRunners.newTestRunner(new FetchAzureBlobStorage());
+    @Test
+    public void testFetchBlobUsingCredentialService() throws Exception {
+        configureCredentialsService();
 
-        try {
-            runner.setProperty(AzureStorageUtils.ACCOUNT_NAME, AzureTestUtil.getAccountName());
-            runner.setProperty(AzureStorageUtils.ACCOUNT_KEY, AzureTestUtil.getAccountKey());
-            runner.setProperty(AzureStorageUtils.CONTAINER, containerName);
-            runner.setProperty(FetchAzureBlobStorage.BLOB, "${azure.blobname}");
+        runner.assertValid();
+        runner.enqueue(new byte[0]);
+        runner.run();
 
-            final Map<String, String> attributes = new HashMap<>();
-            attributes.put("azure.primaryUri", "https://" + AzureTestUtil.getAccountName() + ".blob.core.windows.net/" + containerName + "/" + AzureTestUtil.TEST_BLOB_NAME);
-            attributes.put("azure.blobname", AzureTestUtil.TEST_BLOB_NAME);
-            attributes.put("azure.blobtype", AzureStorageUtils.BLOCK);
-            runner.enqueue(new byte[0], attributes);
-            runner.run();
+        assertResult();
+    }
 
-            runner.assertAllFlowFilesTransferred(AbstractAzureBlobProcessor.REL_SUCCESS, 1);
-            List<MockFlowFile> flowFilesForRelationship = runner.getFlowFilesForRelationship(FetchAzureBlobStorage.REL_SUCCESS);
-            for (MockFlowFile flowFile : flowFilesForRelationship) {
-                flowFile.assertContentEquals("0123456789".getBytes());
-                flowFile.assertAttributeEquals("azure.length", "10");
-            }
-        } finally {
-            container.deleteIfExists();
+    private void assertResult() throws Exception {
+        runner.assertAllFlowFilesTransferred(AbstractAzureBlobProcessor.REL_SUCCESS, 1);
+        List<MockFlowFile> flowFilesForRelationship = runner.getFlowFilesForRelationship(FetchAzureBlobStorage.REL_SUCCESS);
+        for (MockFlowFile flowFile : flowFilesForRelationship) {
+            flowFile.assertContentEquals("0123456789".getBytes());
+            flowFile.assertAttributeEquals("azure.length", "10");
         }
     }
 }

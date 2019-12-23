@@ -16,16 +16,9 @@
  */
 package org.apache.nifi.provenance;
 
-import java.io.Serializable;
-import org.apache.commons.codec.binary.Hex;
+import org.apache.nifi.security.repository.RepositoryObjectEncryptionMetadata;
 
-public class EncryptionMetadata implements Serializable {
-    protected String keyId;
-    protected String algorithm;
-    protected byte[] ivBytes;
-    protected String version;
-    protected int cipherByteLength;
-
+public class EncryptionMetadata extends RepositoryObjectEncryptionMetadata {
     EncryptionMetadata() {
     }
 
@@ -39,17 +32,8 @@ public class EncryptionMetadata implements Serializable {
 
     @Override
     public String toString() {
-        String sb = "AES Provenance Record Encryption Metadata" +
-                " Key ID: " +
-                keyId +
-                " Algorithm: " +
-                algorithm +
-                " IV: " +
-                Hex.encodeHexString(ivBytes) +
-                " Version: " +
-                version +
-                " Cipher text length: " +
-                cipherByteLength;
+        String sb = "Provenance Record Encryption Metadata: " +
+                super.toString();
         return sb;
     }
 }

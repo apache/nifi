@@ -466,24 +466,25 @@ public class ValidateCsv extends AbstractProcessor {
         session.read(flowFile, new InputStreamCallback() {
             @Override
             public void process(final InputStream in) throws IOException {
-                NifiCsvListReader listReader = null;
-                try {
-                    listReader = new NifiCsvListReader(new InputStreamReader(in), csvPref);
+                try(final NifiCsvListReader listReader = new NifiCsvListReader(new InputStreamReader(in), csvPref)) {
 
                     // handling of header
                     if(header) {
-                        List<String> headerList = listReader.read();
+
+                        // read header
+                        listReader.read();
+
                         if(!isWholeFFValidation) {
                             invalidFF.set(session.append(invalidFF.get(), new OutputStreamCallback() {
                                 @Override
                                 public void process(OutputStream out) throws IOException {
-                                    out.write(print(headerList, csvPref, isFirstLineInvalid.get()));
+                                    out.write(print(listReader.getUntokenizedRow(), csvPref, true));
                                 }
                             }));
                             validFF.set(session.append(validFF.get(), new OutputStreamCallback() {
                                 @Override
                                 public void process(OutputStream out) throws IOException {
-                                    out.write(print(headerList, csvPref, isFirstLineValid.get()));
+                                    out.write(print(listReader.getUntokenizedRow(), csvPref, true));
                                 }
                             }));
                             isFirstLineValid.set(false);
@@ -496,14 +497,14 @@ public class ValidateCsv extends AbstractProcessor {
                     while (!stop) {
                         try {
 
-                            final List<Object> list = listReader.read(cellProcs);
-                            stop = list == null;
+                            // read next row and check if no more row
+                            stop = listReader.read(cellProcs) == null;
 
                             if(!isWholeFFValidation && !stop) {
                                 validFF.set(session.append(validFF.get(), new OutputStreamCallback() {
                                     @Override
                                     public void process(OutputStream out) throws IOException {
-                                        out.write(print(list, csvPref, isFirstLineValid.get()));
+                                        out.write(print(listReader.getUntokenizedRow(), csvPref, isFirstLineValid.get()));
                                     }
                                 }));
                                 okCount.set(okCount.get() + 1);
@@ -524,7 +525,7 @@ public class ValidateCsv extends AbstractProcessor {
                                 invalidFF.set(session.append(invalidFF.get(), new OutputStreamCallback() {
                                     @Override
                                     public void process(OutputStream out) throws IOException {
-                                        out.write(print(e.getCsvContext().getRowSource(), csvPref, isFirstLineInvalid.get()));
+                                        out.write(print(listReader.getUntokenizedRow(), csvPref, isFirstLineInvalid.get()));
                                     }
                                 }));
 
@@ -546,10 +547,6 @@ public class ValidateCsv extends AbstractProcessor {
                 } catch (final IOException e) {
                     valid.set(false);
                     logger.error("Failed to validate {} against schema due to {}", new Object[]{flowFile}, e);
-                } finally {
-                    if(listReader != null) {
-                        listReader.close();
-                    }
                 }
             }
         });
@@ -602,35 +599,12 @@ public class ValidateCsv extends AbstractProcessor {
         }
     }
 
-    /**
-     * Method used to correctly write the lines by taking into account end of line
-     * character and separator character.
-     * @param list list of elements of the current row
-     * @param csvPref CSV preferences
-     * @param isFirstLine true if this is the first line we append
-     * @return String to append in the flow file
-     */
-    private byte[] print(List<?> list, CsvPreference csvPref, boolean isFirstLine) {
+    private byte[] print(String row, CsvPreference csvPref, boolean isFirstLine) {
         StringBuffer buffer = new StringBuffer();
-
         if (!isFirstLine) {
             buffer.append(csvPref.getEndOfLineSymbols());
         }
-
-        final int size = list.size();
-        int i = 0;
-        for (Object item : list) {
-            if (item != null) {
-                buffer.append(item.toString());
-            }
-
-            if (i < size - 1) {
-                buffer.append((char) csvPref.getDelimiterChar());
-            }
-            i++;
-        }
-
-        return buffer.toString().getBytes();
+        return buffer.append(row).toString().getBytes();
     }
 
     /**

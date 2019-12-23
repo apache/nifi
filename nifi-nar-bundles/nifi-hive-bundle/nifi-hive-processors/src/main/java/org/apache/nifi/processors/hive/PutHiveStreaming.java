@@ -631,6 +631,7 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
                     throw new ShouldRetryException("Hive Streaming connect/write error, flow file will be penalized and routed to retry. " + e, e);
 
                 case Self:
+                    getLogger().error(String.format("Error writing %s to Hive Streaming transaction due to %s", input, e), e);
                     abortAndCloseWriters(writers);
                     break;
 

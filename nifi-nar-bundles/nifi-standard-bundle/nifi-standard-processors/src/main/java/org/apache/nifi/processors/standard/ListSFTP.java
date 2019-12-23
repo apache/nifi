@@ -17,9 +17,14 @@
 
 package org.apache.nifi.processors.standard;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.PrimaryNodeOnly;
@@ -31,13 +36,16 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.context.PropertyContext;
+import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.list.ListedEntityTracker;
+import org.apache.nifi.processors.standard.util.FileInfo;
 import org.apache.nifi.processors.standard.util.FTPTransfer;
 import org.apache.nifi.processors.standard.util.FileTransfer;
 import org.apache.nifi.processors.standard.util.SFTPTransfer;
@@ -67,6 +75,8 @@ import org.apache.nifi.processors.standard.util.SFTPTransfer;
     + "this date the next time that the Processor is run. State is stored across the cluster so that this Processor can be run on Primary Node only and if "
     + "a new Primary Node is selected, the new node will not duplicate the data that was listed by the previous Primary Node.")
 public class ListSFTP extends ListFileTransfer {
+
+    private final AtomicReference<Predicate<FileInfo>> fileFilterRef = new AtomicReference();
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -102,6 +112,10 @@ public class ListSFTP extends ListFileTransfer {
         properties.add(ListedEntityTracker.TRACKING_STATE_CACHE);
         properties.add(ListedEntityTracker.TRACKING_TIME_WINDOW);
         properties.add(ListedEntityTracker.INITIAL_LISTING_TARGET);
+        properties.add(ListFile.MIN_AGE);
+        properties.add(ListFile.MAX_AGE);
+        properties.add(ListFile.MIN_SIZE);
+        properties.add(ListFile.MAX_SIZE);
         return properties;
     }
 
@@ -125,5 +139,48 @@ public class ListSFTP extends ListFileTransfer {
     @Override
     protected void customValidate(ValidationContext validationContext, Collection<ValidationResult> results) {
         SFTPTransfer.validateProxySpec(validationContext, results);
+    }
+
+    @Override
+    protected List<FileInfo> performListing(final ProcessContext context, final Long minTimestamp) throws IOException {
+        final List<FileInfo> listing = super.performListing(context, minTimestamp);
+
+        return listing.stream()
+                .filter(fileFilterRef.get())
+                .collect(Collectors.toList());
+    }
+
+    @OnScheduled
+    public void onScheduled(final ProcessContext context) {
+        fileFilterRef.set(createFileFilter(context));
+    }
+
+    private Predicate<FileInfo> createFileFilter(final ProcessContext context) {
+        final long minSize = context.getProperty(ListFile.MIN_SIZE).asDataSize(DataUnit.B).longValue();
+        final Double maxSize = context.getProperty(ListFile.MAX_SIZE).asDataSize(DataUnit.B);
+        final long minAge = context.getProperty(ListFile.MIN_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
+        final Long maxAge = context.getProperty(ListFile.MAX_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
+
+        return (attributes) -> {
+            if(attributes.isDirectory()) {
+                return true;
+            }
+
+            if (minSize > attributes.getSize()) {
+                return false;
+            }
+            if (maxSize != null && maxSize < attributes.getSize()) {
+                return false;
+            }
+            final long fileAge = System.currentTimeMillis() - attributes.getLastModifiedTime();
+            if (minAge > fileAge) {
+                return false;
+            }
+            if (maxAge != null && maxAge < fileAge) {
+                return false;
+            }
+
+            return true;
+        };
     }
 }

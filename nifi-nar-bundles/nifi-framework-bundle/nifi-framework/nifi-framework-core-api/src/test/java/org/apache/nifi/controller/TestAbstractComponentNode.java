@@ -17,15 +17,7 @@
 
 package org.apache.nifi.controller;
 
-import static org.junit.Assert.assertEquals;
-
-import java.net.URL;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
-
+import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.bundle.BundleCoordinate;
@@ -36,9 +28,19 @@ import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.components.validation.ValidationTrigger;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
+import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.junit.Test;
 import org.mockito.Mockito;
+
+import java.net.URL;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+
+import static org.junit.Assert.assertEquals;
 
 public class TestAbstractComponentNode {
 
@@ -141,6 +143,11 @@ public class TestAbstractComponentNode {
         }
 
         @Override
+        public ParameterLookup getParameterLookup() {
+            return ParameterLookup.EMPTY;
+        }
+
+        @Override
         public String getProcessGroupIdentifier() {
             return "1234";
         }
@@ -157,6 +164,11 @@ public class TestAbstractComponentNode {
 
         @Override
         public void verifyModifiable() throws IllegalStateException {
+        }
+
+        @Override
+        protected ParameterContext getParameterContext() {
+            return null;
         }
     }
 }

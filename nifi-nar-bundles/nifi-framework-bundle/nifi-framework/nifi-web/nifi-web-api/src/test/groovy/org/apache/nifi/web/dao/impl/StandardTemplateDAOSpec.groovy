@@ -115,34 +115,34 @@ class StandardTemplateDAOSpec extends Specification {
         rootGroupId | oldOriginX | oldOriginY | newOriginX | newOriginY | idGenerationSeed | encodingVersion | snippet
         'g1'        | 0.0        | 0.0        | 5.0        | 5.0        | 'AAAA'           | null            | new FlowSnippetDTO()
         'g1'        | 10.0       | 10.0       | 5.0        | 5.0        | 'AAAA'           | '0.7'           | new FlowSnippetDTO(
-                processors: [new ProcessorDTO(id:"c81f6810-0155-1000-0000-c4af042cb1559", name: 'proc1', bundle: new BundleDTO("org.apache.nifi", "standard", "1.0"),
+                processors: [new ProcessorDTO(id:"c81f6810-0155-1000-0000-c4af042cb155", name: 'proc1', bundle: new BundleDTO("org.apache.nifi", "standard", "1.0"),
                         config: new ProcessorConfigDTO(), position: new PositionDTO(x: 10, y: 10))])
         'g1'        | 10.0       | -10.0      | 5.0        | 5.0        | 'AAAA'           | null           | new FlowSnippetDTO(
-                processors: [new ProcessorDTO(id:"c81f6810-0155-1000-0001-c4af042cb1559", name: 'proc2', bundle: new BundleDTO("org.apache.nifi", "standard", "1.0"),
+                processors: [new ProcessorDTO(id:"c81f6810-0155-1000-0001-c4af042cb155", name: 'proc2', bundle: new BundleDTO("org.apache.nifi", "standard", "1.0"),
                         config: new ProcessorConfigDTO(), position: new PositionDTO(x: 10, y: 10))],
                 processGroups: [
-                        new ProcessGroupDTO(id:"c81f6810-0a55-1000-0000-c4af042cb1559",
+                        new ProcessGroupDTO(id:"c81f6810-0a55-1000-0000-c4af042cb155",
                                 name: 'g2',
                                 position: new PositionDTO(x: 105, y: -10),
-                                contents: new FlowSnippetDTO(processors: [new ProcessorDTO(id:"c81f6810-0155-1000-0002-c4af042cb1559", name: 'proc3', bundle: new BundleDTO("org.apache.nifi", "standard", "1.0"),
+                                contents: new FlowSnippetDTO(processors: [new ProcessorDTO(id:"c81f6810-0155-1000-0002-c4af042cb155", name: 'proc3', bundle: new BundleDTO("org.apache.nifi", "standard", "1.0"),
                                         config: new ProcessorConfigDTO(), position: new PositionDTO(x: 50, y: 60))]))])
         'g1'        | 10.0       | -10.0      | 5.0        | 5.0        | 'AAAA'           | '0.7'           | new FlowSnippetDTO(
-                processors: [new ProcessorDTO(id:"c81f6810-0155-1000-0003-c4af042cb1559", name: 'proc2', bundle: new BundleDTO("org.apache.nifi", "standard", "1.0"),
+                processors: [new ProcessorDTO(id:"c81f6810-0155-1000-0003-c4af042cb155", name: 'proc2', bundle: new BundleDTO("org.apache.nifi", "standard", "1.0"),
                         config: new ProcessorConfigDTO(), position: new PositionDTO(x: 10, y: 10))],
                 processGroups: [
-                        new ProcessGroupDTO(id:"c81f6810-0a55-1000-0001-c4af042cb1559",
+                        new ProcessGroupDTO(id:"c81f6810-0a55-1000-0001-c4af042cb155",
                                 name: 'g2',
                                 position: new PositionDTO(x: 105, y: -10),
-                                contents: new FlowSnippetDTO(processors: [new ProcessorDTO(id:"c81f6810-0155-1000-0004-c4af042cb1559", name: 'proc3', bundle: new BundleDTO("org.apache.nifi", "standard", "1.0"),
+                                contents: new FlowSnippetDTO(processors: [new ProcessorDTO(id:"c81f6810-0155-1000-0004-c4af042cb155", name: 'proc3', bundle: new BundleDTO("org.apache.nifi", "standard", "1.0"),
                                         config: new ProcessorConfigDTO(), position: new PositionDTO(x: 50, y: 60))]))])
         'g1'        | 10.0       | -10.0      | 5.0        | 5.0        | 'AAAA'           | '1.0'           | new FlowSnippetDTO(
-                processors: [new ProcessorDTO(id:"c81f6810-0155-1000-0005-c4af042cb1559", name: 'proc2', bundle: new BundleDTO("org.apache.nifi", "standard", "1.0"),
+                processors: [new ProcessorDTO(id:"c81f6810-0155-1000-0005-c4af042cb155", name: 'proc2', bundle: new BundleDTO("org.apache.nifi", "standard", "1.0"),
                         config: new ProcessorConfigDTO(), position: new PositionDTO(x: 10, y: 10))],
                 processGroups: [
-                        new ProcessGroupDTO(id:"c81f6810-0a55-1000-0003-c4af042cb1559",
+                        new ProcessGroupDTO(id:"c81f6810-0a55-1000-0003-c4af042cb155",
                                 name: 'g2',
                                 position: new PositionDTO(x: 105, y: -10),
-                                contents: new FlowSnippetDTO(processors: [new ProcessorDTO(id:"c81f6810-0155-1000-0006-c4af042cb1559", name: 'proc3', bundle: new BundleDTO("org.apache.nifi", "standard", "1.0"),
+                                contents: new FlowSnippetDTO(processors: [new ProcessorDTO(id:"c81f6810-0155-1000-0006-c4af042cb155", name: 'proc3', bundle: new BundleDTO("org.apache.nifi", "standard", "1.0"),
                                         config: new ProcessorConfigDTO(), position: new PositionDTO(x: 50, y: 60))]))])
     }
 

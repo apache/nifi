@@ -17,13 +17,17 @@
 package org.apache.nifi.processors.aws.s3;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import com.amazonaws.services.s3.model.SSEAlgorithm;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
@@ -32,12 +36,16 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.exception.FlowFileAccessException;
 import org.apache.nifi.processor.util.StandardValidators;
 
 import com.amazonaws.AmazonClientException;
@@ -63,7 +71,8 @@ import com.amazonaws.services.s3.model.S3Object;
     @WritesAttribute(attribute = "s3.expirationTime", description = "If the file has an expiration date, this attribute will be set, containing the milliseconds since epoch in UTC time"),
     @WritesAttribute(attribute = "s3.expirationTimeRuleId", description = "The ID of the rule that dictates this object's expiration time"),
     @WritesAttribute(attribute = "s3.sseAlgorithm", description = "The server side encryption algorithm of the object"),
-    @WritesAttribute(attribute = "s3.version", description = "The version of the S3 object"),})
+    @WritesAttribute(attribute = "s3.version", description = "The version of the S3 object"),
+    @WritesAttribute(attribute = "s3.encryptionStrategy", description = "The name of the encryption strategy that was used to store the S3 object (if it is encrypted)"),})
 public class FetchS3Object extends AbstractS3Processor {
 
     public static final PropertyDescriptor VERSION_ID = new PropertyDescriptor.Builder()
@@ -73,14 +82,48 @@ public class FetchS3Object extends AbstractS3Processor {
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(false)
             .build();
+    public static final PropertyDescriptor REQUESTER_PAYS = new PropertyDescriptor.Builder()
+            .name("requester-pays")
+            .displayName("Requester Pays")
+            .required(true)
+            .description("If true, indicates that the requester consents to pay any charges associated with retrieving objects from "
+                    + "the S3 bucket.  This sets the 'x-amz-request-payer' header to 'requester'.")
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .allowableValues(new AllowableValue("true", "True", "Indicates that the requester consents to pay any charges associated "
+                    + "with retrieving objects from the S3 bucket."), new AllowableValue("false", "False", "Does not consent to pay "
+                            + "requester charges for retrieving objects from the S3 bucket."))
+            .defaultValue("false")
+            .build();
 
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
             Arrays.asList(BUCKET, KEY, REGION, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE, AWS_CREDENTIALS_PROVIDER_SERVICE, TIMEOUT, VERSION_ID,
-                SSL_CONTEXT_SERVICE, ENDPOINT_OVERRIDE, SIGNER_OVERRIDE, PROXY_CONFIGURATION_SERVICE, PROXY_HOST, PROXY_HOST_PORT, PROXY_USERNAME, PROXY_PASSWORD));
+                SSL_CONTEXT_SERVICE, ENDPOINT_OVERRIDE, SIGNER_OVERRIDE, ENCRYPTION_SERVICE, PROXY_CONFIGURATION_SERVICE, PROXY_HOST,
+                PROXY_HOST_PORT, PROXY_USERNAME, PROXY_PASSWORD, REQUESTER_PAYS));
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return properties;
+    }
+
+    @Override
+    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+        final List<ValidationResult> problems = new ArrayList<>(super.customValidate(validationContext));
+
+        AmazonS3EncryptionService encryptionService = validationContext.getProperty(ENCRYPTION_SERVICE).asControllerService(AmazonS3EncryptionService.class);
+        if (encryptionService != null) {
+            String strategyName = encryptionService.getStrategyName();
+            if (strategyName.equals(AmazonS3EncryptionService.STRATEGY_NAME_SSE_S3) || strategyName.equals(AmazonS3EncryptionService.STRATEGY_NAME_SSE_KMS)) {
+                problems.add(new ValidationResult.Builder()
+                        .subject(ENCRYPTION_SERVICE.getDisplayName())
+                        .valid(false)
+                        .explanation(encryptionService.getStrategyDisplayName() + " is not a valid encryption strategy for fetching objects. Decryption will be handled automatically " +
+                                "during the fetch of S3 objects encrypted with " + encryptionService.getStrategyDisplayName())
+                        .build()
+                );
+            }
+        }
+
+        return problems;
     }
 
     @Override
@@ -94,6 +137,7 @@ public class FetchS3Object extends AbstractS3Processor {
         final String bucket = context.getProperty(BUCKET).evaluateAttributeExpressions(flowFile).getValue();
         final String key = context.getProperty(KEY).evaluateAttributeExpressions(flowFile).getValue();
         final String versionId = context.getProperty(VERSION_ID).evaluateAttributeExpressions(flowFile).getValue();
+        final boolean requesterPays = context.getProperty(REQUESTER_PAYS).asBoolean();
 
         final AmazonS3 client = getClient();
         final GetObjectRequest request;
@@ -102,9 +146,20 @@ public class FetchS3Object extends AbstractS3Processor {
         } else {
             request = new GetObjectRequest(bucket, key, versionId);
         }
+        request.setRequesterPays(requesterPays);
 
         final Map<String, String> attributes = new HashMap<>();
+
+        AmazonS3EncryptionService encryptionService = context.getProperty(ENCRYPTION_SERVICE).asControllerService(AmazonS3EncryptionService.class);
+        if (encryptionService != null) {
+            encryptionService.configureGetObjectRequest(request, new ObjectMetadata());
+            attributes.put("s3.encryptionStrategy", encryptionService.getStrategyName());
+        }
+
         try (final S3Object s3Object = client.getObject(request)) {
+            if (s3Object == null) {
+                throw new IOException("AWS refused to execute this request.");
+            }
             flowFile = session.importFrom(s3Object.getObjectContent(), flowFile);
             attributes.put("s3.bucket", s3Object.getBucketName());
 
@@ -140,7 +195,13 @@ public class FetchS3Object extends AbstractS3Processor {
                 attributes.putAll(metadata.getUserMetadata());
             }
             if (metadata.getSSEAlgorithm() != null) {
-                attributes.put("s3.sseAlgorithm", metadata.getSSEAlgorithm());
+                String sseAlgorithmName = metadata.getSSEAlgorithm();
+                attributes.put("s3.sseAlgorithm", sseAlgorithmName);
+                if (sseAlgorithmName.equals(SSEAlgorithm.AES256.getAlgorithm())) {
+                    attributes.put("s3.encryptionStrategy", AmazonS3EncryptionService.STRATEGY_NAME_SSE_S3);
+                } else if (sseAlgorithmName.equals(SSEAlgorithm.KMS.getAlgorithm())) {
+                    attributes.put("s3.encryptionStrategy", AmazonS3EncryptionService.STRATEGY_NAME_SSE_KMS);
+                }
             }
             if (metadata.getVersionId() != null) {
                 attributes.put("s3.version", metadata.getVersionId());
@@ -150,6 +211,14 @@ public class FetchS3Object extends AbstractS3Processor {
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
             return;
+        } catch (final FlowFileAccessException ffae) {
+            if (ExceptionUtils.indexOfType(ffae, AmazonClientException.class) != -1) {
+                getLogger().error("Failed to retrieve S3 Object for {}; routing to failure", new Object[]{flowFile, ffae});
+                flowFile = session.penalize(flowFile);
+                session.transfer(flowFile, REL_FAILURE);
+                return;
+            }
+            throw ffae;
         }
 
         if (!attributes.isEmpty()) {
