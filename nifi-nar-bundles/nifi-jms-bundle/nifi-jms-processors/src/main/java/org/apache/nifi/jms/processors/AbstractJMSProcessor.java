@@ -119,7 +119,8 @@ abstract class AbstractJMSProcessor<T extends JMSWorker> extends AbstractProcess
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
     static final PropertyDescriptor ALLOW_ILLEGAL_HEADER_CHARS = new PropertyDescriptor.Builder()
-            .name("Allow Illegal Characters in Header Names")
+            .name("allow-illegal-chars-in-jms-header-names")
+            .displayName("Allow Illegal Characters in Header Names")
             .description("Specifies whether illegal characters in header names should be sent to the JMS broker. " +
                     "Usually hyphens and full-stops.")
             .required(true)
@@ -128,12 +129,13 @@ abstract class AbstractJMSProcessor<T extends JMSWorker> extends AbstractProcess
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     public static final PropertyDescriptor ATTRIBUTES_AS_HEADERS_REGEX = new PropertyDescriptor.Builder()
-            .name("Attributes to Send as JMS Headers (Regex)")
+            .name("attributes-to-send-as-jms-headers-regex")
+            .displayName("Attributes to Send as JMS Headers (Regex)")
             .description("Specifies the Regular Expression that determines the names of FlowFile attributes that" +
                     " should be sent as JMS Headers")
             .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
             .defaultValue(".*")
-            .required(false)
+            .required(true)
             .build();
 
 
