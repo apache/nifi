@@ -90,7 +90,7 @@ public class Put<FC, C extends AutoCloseable> {
                 session.transfer(routedFlowFiles, relationship)));
 
         if (flowFiles == null || flowFiles.isEmpty()) {
-            logger.debug("No incoming FlowFiles.");
+            //logger.debug("No incoming FlowFiles.");
             return;
         }
 

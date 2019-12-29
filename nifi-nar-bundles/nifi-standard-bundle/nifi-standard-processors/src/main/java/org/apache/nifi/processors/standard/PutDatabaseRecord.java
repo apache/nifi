@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.standard;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import org.apache.commons.lang3.StringUtils;
@@ -54,10 +55,14 @@ import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.record.DataType;
+import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
+import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -72,6 +77,7 @@ import java.sql.SQLException;
 import java.sql.SQLIntegrityConstraintViolationException;
 import java.sql.SQLNonTransientException;
 import java.sql.Statement;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -261,6 +267,16 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
             .defaultValue("false")
             .build();
 
+    static final PropertyDescriptor MAP_RECORD_TO_JSON = new PropertyDescriptor.Builder()
+            .name("put-db-record-map-record-to-json")
+            .displayName("Map \"record\" types to JSON")
+            .description("If enabled, fields that are a record type in their schema will be turned into a JSON string for insertion " +
+                    "into a SQL JSON field.")
+            .required(true)
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .build();
+
     static final PropertyDescriptor QUOTED_IDENTIFIERS = new PropertyDescriptor.Builder()
             .name("put-db-record-quoted-identifiers")
             .displayName("Quote Column Identifiers")
@@ -356,6 +372,7 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
         pds.add(UPDATE_KEYS);
         pds.add(FIELD_CONTAINING_SQL);
         pds.add(ALLOW_MULTIPLE_STATEMENTS);
+        pds.add(MAP_RECORD_TO_JSON);
         pds.add(QUOTED_IDENTIFIERS);
         pds.add(QUOTED_TABLE_IDENTIFIER);
         pds.add(QUERY_TIMEOUT);
@@ -702,6 +719,7 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
         }
 
         final SqlAndIncludedColumns sqlHolder;
+        boolean mapRecordAsJson = context.getProperty(MAP_RECORD_TO_JSON).asBoolean();
         if (INSERT_TYPE.equalsIgnoreCase(statementType)) {
             sqlHolder = generateInsert(recordSchema, fqTableName, tableSchema, settings);
 
@@ -744,29 +762,39 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
                     if (fieldIndexes != null) {
                         for (int i = 0; i < fieldIndexes.size(); i++) {
                             final int currentFieldIndex = fieldIndexes.get(i);
-                            final Object currentValue = values[currentFieldIndex];
+                            Object currentValue = values[currentFieldIndex];
                             final DataType dataType = dataTypes.get(currentFieldIndex);
-                            final int sqlType = DataTypeUtils.getSQLTypeValue(dataType);
+                            int sqlType = DataTypeUtils.getSQLTypeValue(dataType);
 
                             // If DELETE type, insert the object twice because of the null check (see generateDelete for details)
                             if (DELETE_TYPE.equalsIgnoreCase(statementType)) {
                                 ps.setObject(i * 2 + 1, currentValue, sqlType);
                                 ps.setObject(i * 2 + 2, currentValue, sqlType);
                             } else {
+                                if (mapRecordAsJson && dataType.getFieldType() == RecordFieldType.RECORD) {
+                                    sqlType = Types.OTHER;
+                                    currentValue = convertMapRecord((Record)currentValue);
+                                }
+
                                 ps.setObject(i + 1, currentValue, sqlType);
+
                             }
                         }
                     } else {
                         // If there's no index map, assume all values are included and set them in order
                         for (int i = 0; i < values.length; i++) {
-                            final Object currentValue = values[i];
+                            Object currentValue = values[i];
                             final DataType dataType = dataTypes.get(i);
-                            final int sqlType = DataTypeUtils.getSQLTypeValue(dataType);
+                            int sqlType = DataTypeUtils.getSQLTypeValue(dataType);
                             // If DELETE type, insert the object twice because of the null check (see generateDelete for details)
                             if (DELETE_TYPE.equalsIgnoreCase(statementType)) {
                                 ps.setObject(i * 2 + 1, currentValue, sqlType);
                                 ps.setObject(i * 2 + 2, currentValue, sqlType);
                             } else {
+                                if (mapRecordAsJson && dataType == RecordFieldType.RECORD.getDataType()) {
+                                    sqlType = Types.OTHER;
+                                    currentValue = convertMapRecord((Record)currentValue);
+                                }
                                 ps.setObject(i + 1, currentValue, sqlType);
                             }
                         }
@@ -865,7 +893,9 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
                 RecordField field = recordSchema.getField(i);
                 String fieldName = field.getFieldName();
 
-                final ColumnDescription desc = tableSchema.getColumns().get(normalizeColumnName(fieldName, settings.translateFieldNames));
+
+                String normalized = normalizeColumnName(fieldName, settings.translateFieldNames);
+                final ColumnDescription desc = tableSchema.getColumns().get(normalized);
                 if (desc == null && !settings.ignoreUnmappedFields) {
                     throw new SQLDataException("Cannot map field '" + fieldName + "' to any column in the database");
                 }
@@ -1165,7 +1195,22 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
         return colName == null ? null : (translateColumnNames ? colName.toUpperCase().replace("_", "") : colName);
     }
 
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+
+    private static String convertMapRecord(Record record) {
+        try {
+            MapRecord mapRecord = (MapRecord)record;
+            Map<String, Object> converted = mapRecord.toMap();
+            return MAPPER.writeValueAsString(converted);
+        } catch (Exception ex) {
+            throw new ProcessException(ex);
+        }
+    }
+
     static class TableSchema {
+        private static Logger LOGGER = LoggerFactory.getLogger(TableSchema.class);
+
+
         private List<String> requiredColumnNames;
         private Set<String> primaryKeyColumnNames;
         private Map<String, ColumnDescription> columns;
@@ -1210,6 +1255,7 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
                 final List<ColumnDescription> cols = new ArrayList<>();
                 while (colrs.next()) {
                     final ColumnDescription col = ColumnDescription.from(colrs);
+                    LOGGER.info(String.format("Description: %s", col));
                     cols.add(col);
                 }
 
