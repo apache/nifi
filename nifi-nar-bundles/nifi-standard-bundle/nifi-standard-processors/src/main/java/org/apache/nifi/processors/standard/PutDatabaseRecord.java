@@ -1255,7 +1255,9 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
                 final List<ColumnDescription> cols = new ArrayList<>();
                 while (colrs.next()) {
                     final ColumnDescription col = ColumnDescription.from(colrs);
-                    LOGGER.info(String.format("Description: %s", col));
+                    if (LOGGER.isDebugEnabled()) {
+                        LOGGER.debug(String.format("Description: %s", col));
+                    }
                     cols.add(col);
                 }
 
