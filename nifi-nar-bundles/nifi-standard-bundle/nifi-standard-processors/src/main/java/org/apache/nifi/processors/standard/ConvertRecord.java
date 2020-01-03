@@ -59,7 +59,7 @@ public class ConvertRecord extends AbstractRecordProcessor {
     }
 
     @Override
-    protected Record process(final Record record, final FlowFile flowFile, final ProcessContext context) {
+    protected Record process(final Record record, final FlowFile flowFile, final ProcessContext context, final long count) {
         return record;
     }
 

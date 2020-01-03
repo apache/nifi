@@ -22,6 +22,7 @@ import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -66,11 +67,14 @@ import java.util.stream.Stream;
     + "This Processor requires that at least one user-defined Property be added. The name of the Property should indicate a RecordPath that determines the field that should "
     + "be updated. The value of the Property is either a replacement value (optionally making use of the Expression Language) or is itself a RecordPath that extracts a value from "
     + "the Record. Whether the Property value is determined to be a RecordPath or a literal value depends on the configuration of the <Replacement Value Strategy> Property.")
+@WritesAttribute(attribute = "record.index", description = "This attribute provides the current row index and is only available inside the literal value expression.")
 @SeeAlso({ConvertRecord.class})
 public class UpdateRecord extends AbstractRecordProcessor {
     private static final String FIELD_NAME = "field.name";
     private static final String FIELD_VALUE = "field.value";
     private static final String FIELD_TYPE = "field.type";
+
+    private static final String RECORD_INDEX = "record.index";
 
     private volatile RecordPathCache recordPathCache;
     private volatile List<String> recordPaths;
@@ -142,7 +146,7 @@ public class UpdateRecord extends AbstractRecordProcessor {
     }
 
     @Override
-    protected Record process(Record record, final FlowFile flowFile, final ProcessContext context) {
+    protected Record process(Record record, final FlowFile flowFile, final ProcessContext context, final long count) {
         final boolean evaluateValueAsRecordPath = context.getProperty(REPLACEMENT_VALUE_STRATEGY).getValue().equals(RECORD_PATH_VALUES.getValue());
 
         for (final String recordPathText : recordPaths) {
@@ -171,6 +175,7 @@ public class UpdateRecord extends AbstractRecordProcessor {
                         fieldVariables.put(FIELD_NAME, fieldVal.getField().getFieldName());
                         fieldVariables.put(FIELD_VALUE, DataTypeUtils.toString(fieldVal.getValue(), (String) null));
                         fieldVariables.put(FIELD_TYPE, fieldVal.getField().getDataType().getFieldType().name());
+                        fieldVariables.put(RECORD_INDEX, String.valueOf(count));
 
                         final String evaluatedReplacementVal = replacementValue.evaluateAttributeExpressions(flowFile, fieldVariables).getValue();
                         fieldVal.updateValue(evaluatedReplacementVal, RecordFieldType.STRING.getDataType());
