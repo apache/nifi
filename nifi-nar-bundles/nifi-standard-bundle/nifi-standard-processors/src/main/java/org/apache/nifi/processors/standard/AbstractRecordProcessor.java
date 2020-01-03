@@ -144,7 +144,7 @@ public abstract class AbstractRecordProcessor extends AbstractProcessor {
                             return;
                         }
 
-                        firstRecord = AbstractRecordProcessor.this.process(firstRecord, original, context);
+                        firstRecord = AbstractRecordProcessor.this.process(firstRecord, original, context, 1L);
 
                         final RecordSchema writeSchema = writerFactory.getSchema(originalAttributes, firstRecord.getSchema());
                         try (final RecordSetWriter writer = writerFactory.createWriter(getLogger(), writeSchema, out, originalAttributes)) {
@@ -153,8 +153,9 @@ public abstract class AbstractRecordProcessor extends AbstractProcessor {
                             writer.write(firstRecord);
 
                             Record record;
+                            long count = 1L;
                             while ((record = reader.nextRecord()) != null) {
-                                final Record processed = AbstractRecordProcessor.this.process(record, original, context);
+                                final Record processed = AbstractRecordProcessor.this.process(record, original, context, ++count);
                                 writer.write(processed);
                             }
 
@@ -189,5 +190,5 @@ public abstract class AbstractRecordProcessor extends AbstractProcessor {
         getLogger().info("Successfully converted {} records for {}", new Object[] {count, flowFile});
     }
 
-    protected abstract Record process(Record record, FlowFile flowFile, ProcessContext context);
+    protected abstract Record process(Record record, FlowFile flowFile, ProcessContext context, long count);
 }

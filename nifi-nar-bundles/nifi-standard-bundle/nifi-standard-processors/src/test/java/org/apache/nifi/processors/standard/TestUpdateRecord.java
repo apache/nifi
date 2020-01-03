@@ -118,6 +118,31 @@ public class TestUpdateRecord {
     }
 
     @Test
+    public void testLiteralReplacementRowIndexValueExpressionLanguage() throws InitializationException {
+        readerService = new MockRecordParser();
+        readerService.addSchemaField("id", RecordFieldType.LONG);
+        readerService.addSchemaField("name", RecordFieldType.STRING);
+        readerService.addSchemaField("age", RecordFieldType.INT);
+        runner.addControllerService("reader", readerService);
+        runner.enableControllerService(readerService);
+
+        runner.setProperty(UpdateRecord.REPLACEMENT_VALUE_STRATEGY, UpdateRecord.LITERAL_VALUES);
+        runner.setProperty("/id", "${record.index}");
+
+        runner.enqueue("");
+
+        readerService.addRecord(null, "John Doe", 35);
+        readerService.addRecord(null, "Jane Doe", 36);
+        readerService.addRecord(null, "John Smith", 37);
+        readerService.addRecord(null, "Jane Smith", 38);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(UpdateRecord.REL_SUCCESS, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(UpdateRecord.REL_SUCCESS).get(0);
+        out.assertContentEquals("header\n1,John Doe,35\n2,Jane Doe,36\n3,John Smith,37\n4,Jane Smith,38\n");
+    }
+
+    @Test
     public void testReplaceWithMissingRecordPath() throws InitializationException {
         readerService = new MockRecordParser();
         readerService.addSchemaField("name", RecordFieldType.STRING);
