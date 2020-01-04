@@ -193,6 +193,7 @@ public class NiFiAtlasClient {
         }
 
         final AtlasEntity nifiFlowEntity = nifiFlowExt.getEntity();
+        final Map<String, AtlasEntity> nifiFlowReferredEntities = nifiFlowExt.getReferredEntities();
         final Map<String, Object> attributes = nifiFlowEntity.getAttributes();
         final NiFiFlow nifiFlow = new NiFiFlow(rootProcessGroupId);
         nifiFlow.setExEntity(nifiFlowEntity);
@@ -201,12 +202,12 @@ public class NiFiAtlasClient {
         nifiFlow.setUrl(toStr(attributes.get(ATTR_URL)));
         nifiFlow.setDescription(toStr(attributes.get(ATTR_DESCRIPTION)));
 
-        nifiFlow.getQueues().putAll(toQualifiedNameIds(toAtlasObjectIds(nifiFlowEntity.getAttribute(ATTR_QUEUES))));
-        nifiFlow.getRootInputPortEntities().putAll(toQualifiedNameIds(toAtlasObjectIds(nifiFlowEntity.getAttribute(ATTR_INPUT_PORTS))));
-        nifiFlow.getRootOutputPortEntities().putAll(toQualifiedNameIds(toAtlasObjectIds(nifiFlowEntity.getAttribute(ATTR_OUTPUT_PORTS))));
+        nifiFlow.getQueues().putAll(fetchFlowComponents(TYPE_NIFI_QUEUE, nifiFlowReferredEntities));
+        nifiFlow.getRootInputPortEntities().putAll(fetchFlowComponents(TYPE_NIFI_INPUT_PORT, nifiFlowReferredEntities));
+        nifiFlow.getRootOutputPortEntities().putAll(fetchFlowComponents(TYPE_NIFI_OUTPUT_PORT, nifiFlowReferredEntities));
 
         final Map<String, NiFiFlowPath> flowPaths = nifiFlow.getFlowPaths();
-        final Map<AtlasObjectId, AtlasEntity> flowPathEntities = toQualifiedNameIds(toAtlasObjectIds(attributes.get(ATTR_FLOW_PATHS)));
+        final Map<AtlasObjectId, AtlasEntity> flowPathEntities = fetchFlowComponents(TYPE_NIFI_FLOW_PATH, nifiFlowReferredEntities);
 
         for (AtlasEntity flowPathEntity : flowPathEntities.values()) {
             final String pathQualifiedName = toStr(flowPathEntity.getAttribute(ATTR_QUALIFIED_NAME));
@@ -228,6 +229,35 @@ public class NiFiAtlasClient {
 
         nifiFlow.startTrackingChanges();
         return nifiFlow;
+    }
+
+    /**
+     * Retrieves the flow components of type {@code componentType} from Atlas server.
+     * Deleted components will be filtered out before calling Atlas.
+     * Atlas object ids will be initialized with all the attributes (guid, type, unique attributes) in order to be able
+     * to match ids retrieved from Atlas (having guid) and ids created by the reporting task (not having guid yet).
+     *
+     * @param componentType Atlas type of the flow component (nifi_flow_path, nifi_queue, nifi_input_port, nifi_output_port)
+     * @param referredEntities referred entities of the flow entity (returned when the flow fetched) containing the basic data (id, status) of the flow components
+     * @return flow component entities mapped to their object ids
+     */
+    private Map<AtlasObjectId, AtlasEntity> fetchFlowComponents(String componentType, Map<String, AtlasEntity> referredEntities) {
+        return referredEntities.values().stream()
+                .filter(referredEntity -> referredEntity.getTypeName().equals(componentType))
+                .filter(referredEntity -> referredEntity.getStatus() == AtlasEntity.Status.ACTIVE)
+                .map(referredEntity -> {
+                    final Map<String, Object> uniqueAttributes = Collections.singletonMap(ATTR_QUALIFIED_NAME, referredEntity.getAttribute(ATTR_QUALIFIED_NAME));
+                    final AtlasObjectId id = new AtlasObjectId(referredEntity.getGuid(), componentType, uniqueAttributes);
+                    try {
+                        final AtlasEntity.AtlasEntityWithExtInfo fetchedEntityExt = searchEntityDef(id);
+                        return new Tuple<>(id, fetchedEntityExt.getEntity());
+                    } catch (AtlasServiceException e) {
+                        logger.warn("Failed to search entity by id {}, due to {}", id, e);
+                        return null;
+                    }
+                })
+                .filter(Objects::nonNull)
+                .collect(Collectors.toMap(Tuple::getKey, Tuple::getValue));
     }
 
     @SuppressWarnings("unchecked")
