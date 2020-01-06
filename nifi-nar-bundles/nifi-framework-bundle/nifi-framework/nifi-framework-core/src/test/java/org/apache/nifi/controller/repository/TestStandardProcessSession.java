@@ -115,7 +115,7 @@ public class TestStandardProcessSession {
     private ProvenanceEventRepository provenanceRepo;
     private MockFlowFileRepository flowFileRepo;
     private CounterRepository counterRepository;
-    private FlowFileEventRepository flowFileEventRepo;
+    private FlowFileEventRepository flowFileEventRepository;
     private final Relationship FAKE_RELATIONSHIP = new Relationship.Builder().name("FAKE").build();
     private static StandardResourceClaimManager resourceClaimManager;
 
@@ -157,7 +157,7 @@ public class TestStandardProcessSession {
         resourceClaimManager = new StandardResourceClaimManager();
 
         System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, TestStandardProcessSession.class.getResource("/conf/nifi.properties").getFile());
-        flowFileEventRepo = new RingBufferEventRepository(1);
+        flowFileEventRepository = new RingBufferEventRepository(1);
         counterRepository = new StandardCounterRepository();
         provenanceRepo = new MockProvenanceRepository();
 
@@ -198,7 +198,7 @@ public class TestStandardProcessSession {
         contentRepo.initialize(new StandardResourceClaimManager());
         flowFileRepo = new MockFlowFileRepository(contentRepo);
 
-        context = new RepositoryContext(connectable, new AtomicLong(0L), contentRepo, flowFileRepo, flowFileEventRepo, counterRepository, provenanceRepo);
+        context = new RepositoryContext(connectable, new AtomicLong(0L), contentRepo, flowFileRepo, flowFileEventRepository, counterRepository, provenanceRepo);
         session = new StandardProcessSession(context, () -> false);
     }
 
@@ -399,7 +399,7 @@ public class TestStandardProcessSession {
         session.transfer(flowFile);
         session.commit();
 
-        final RepositoryStatusReport report = flowFileEventRepo.reportTransferEvents(0L);
+        final RepositoryStatusReport report = flowFileEventRepository.reportTransferEvents(0L);
         final long bytesRead = report.getReportEntry("connectable-1").getBytesRead();
         assertEquals(1, bytesRead);
     }
@@ -430,9 +430,47 @@ public class TestStandardProcessSession {
         session.transfer(flowFile);
         session.commit();
 
-        final RepositoryStatusReport report = flowFileEventRepo.reportTransferEvents(0L);
+        final RepositoryStatusReport report = flowFileEventRepository.reportTransferEvents(0L);
         final long bytesRead = report.getReportEntry("connectable-1").getBytesRead();
         assertEquals(1, bytesRead);
+    }
+
+    public void testCheckpointMergesMaps() {
+        for (int i=0; i < 2; i++) {
+            final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
+                .id(i)
+                .entryDate(System.currentTimeMillis())
+                .size(0L)
+                .build();
+
+            flowFileQueue.put(flowFileRecord);
+        }
+
+        final Relationship relationship = new Relationship.Builder().name("A").build();
+
+        for (int i=0; i < 2; i++) {
+            FlowFile ff1 = session.get();
+            assertNotNull(ff1);
+            session.transfer(ff1, relationship);
+            session.adjustCounter("counter", 1, false);
+            session.adjustCounter("counter", 1, true);
+            session.checkpoint();
+        }
+
+        session.commit();
+
+        final RepositoryStatusReport report = flowFileEventRepository.reportTransferEvents(0L);
+        final FlowFileEvent queueFlowFileEvent = report.getReportEntry("conn-uuid");
+        assertNotNull(queueFlowFileEvent);
+        assertEquals(2, queueFlowFileEvent.getFlowFilesOut());
+        assertEquals(0L, queueFlowFileEvent.getContentSizeOut());
+
+        final FlowFileEvent componentFlowFileEvent = report.getReportEntry("connectable-1");
+        final Map<String, Long> counters = componentFlowFileEvent.getCounters();
+        assertNotNull(counters);
+        assertEquals(1, counters.size());
+        assertTrue(counters.containsKey("counter"));
+        assertEquals(4L, counters.get("counter").longValue()); // increment twice for each FlowFile, once immediate, once not.
     }
 
     @Test
