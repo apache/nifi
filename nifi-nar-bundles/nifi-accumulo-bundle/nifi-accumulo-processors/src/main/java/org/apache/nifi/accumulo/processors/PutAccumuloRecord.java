@@ -68,6 +68,7 @@ import org.apache.nifi.accumulo.data.AccumuloRecordConfiguration;
 
 import javax.xml.bind.DatatypeConverter;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -321,7 +322,7 @@ public class PutAccumuloRecord extends BaseAccumuloProcessor {
 
     @Override
     public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        final List<PropertyDescriptor> properties = super.getSupportedPropertyDescriptors();
+        final List<PropertyDescriptor> properties = new ArrayList<>(baseProperties);
         properties.add(RECORD_READER_FACTORY);
         properties.add(ROW_FIELD_NAME);
         properties.add(ROW_FIELD_NAME);

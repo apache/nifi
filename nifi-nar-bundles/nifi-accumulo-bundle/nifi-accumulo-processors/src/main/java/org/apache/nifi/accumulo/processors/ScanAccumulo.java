@@ -211,7 +211,8 @@ public class ScanAccumulo extends BaseAccumuloProcessor {
         final boolean startKeyInclusive = processContext.getProperty(START_KEY_INCLUSIVE).asBoolean();
         final boolean endKeyInclusive = processContext.getProperty(END_KEY_INCLUSIVE).asBoolean();
         final String endKey = processContext.getProperty(END_KEY).evaluateAttributeExpressions(flowAttributes).getValue();
-        final String authorizations = processContext.getProperty(AUTHORIZATIONS).evaluateAttributeExpressions(flowAttributes).getValue();
+        final String authorizations = processContext.getProperty(AUTHORIZATIONS).isSet() ?
+                processContext.getProperty(AUTHORIZATIONS).evaluateAttributeExpressions(flowAttributes).getValue() : "";
         final int threads = processContext.getProperty(THREADS).asInteger();
         final String startKeyCf = processContext.getProperty(COLUMNFAMILY).evaluateAttributeExpressions(flowAttributes).getValue();
         final String endKeyCf = processContext.getProperty(COLUMNFAMILY_END).evaluateAttributeExpressions(flowAttributes).getValue();
@@ -333,7 +334,7 @@ public class ScanAccumulo extends BaseAccumuloProcessor {
 
     @Override
     public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        final List<PropertyDescriptor> properties = super.getSupportedPropertyDescriptors();
+        final List<PropertyDescriptor> properties = new ArrayList<>(baseProperties);
         properties.add(START_KEY);
         properties.add(START_KEY_INCLUSIVE);
         properties.add(END_KEY);

@@ -40,7 +40,7 @@ public class KeySchema implements RecordSchema {
         KEY_FIELDS.add(new RecordField("row", RecordFieldType.STRING.getDataType(),false));
         KEY_FIELDS.add(new RecordField("columnFamily",RecordFieldType.STRING.getDataType(),true));
         KEY_FIELDS.add(new RecordField("columnQualifier",RecordFieldType.STRING.getDataType(),true));
-        KEY_FIELDS.add(new RecordField("columnVisibililty",RecordFieldType.STRING.getDataType(),true));
+        KEY_FIELDS.add(new RecordField("columnVisibility",RecordFieldType.STRING.getDataType(),true));
         KEY_FIELDS.add(new RecordField("timestamp",RecordFieldType.LONG.getDataType(),true));
         DATA_TYPES.add(RecordFieldType.STRING.getDataType());
         DATA_TYPES.add(RecordFieldType.LONG.getDataType());

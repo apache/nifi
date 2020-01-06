@@ -17,6 +17,7 @@
  */
 package org.apache.nifi.accumulo.processors;
 
+import com.google.common.collect.ImmutableList;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -24,6 +25,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.accumulo.controllerservices.BaseAccumuloService;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -33,7 +35,8 @@ import java.util.List;
 public abstract class BaseAccumuloProcessor extends AbstractProcessor {
 
     protected static final PropertyDescriptor ACCUMULO_CONNECTOR_SERVICE = new PropertyDescriptor.Builder()
-            .name("Accumulo Connector Service")
+            .name("accumulo-connector-service")
+            .displayName("Accumulo Connector Service")
             .description("Specifies the Controller Service to use for accessing Accumulo.")
             .required(true)
             .identifiesControllerService(BaseAccumuloService.class)
@@ -66,17 +69,12 @@ public abstract class BaseAccumuloProcessor extends AbstractProcessor {
             .defaultValue("10")
             .build();
 
+    /**
+     * Implementations can decide to include all base properties or individually include them. List is immutable
+     * so that implementations must constructor their own lists knowingly
+     */
 
-    @Override
-    public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(ACCUMULO_CONNECTOR_SERVICE);
-        properties.add(TABLE_NAME);
-        properties.add(CREATE_TABLE);
-        properties.add(THREADS);
-        return properties;
-    }
-
+    protected static final ImmutableList<PropertyDescriptor> baseProperties = ImmutableList.of(ACCUMULO_CONNECTOR_SERVICE,TABLE_NAME,CREATE_TABLE,THREADS);
 
 
 }

@@ -40,15 +40,15 @@ public class AccumuloRecordConfiguration {
                                           final String timestampField, final String fieldDelimiter,
                                           final boolean encodeFieldDelimiter,
                                           final boolean qualifierInKey, final boolean deleteKeys) {
-        this.tableName=tableName;
-        this.rowFieldName=rowFieldName;
-        this.columnFamily=columnFamily;
-        this.columnFamilyField=columnFamilyField;
-        this.timestampField=timestampField;
-        this.fieldDelimiter=fieldDelimiter;
-        this.encodeFieldDelimiter=encodeFieldDelimiter;
-        this.qualifierInKey=qualifierInKey;
-        this.deleteKeys=deleteKeys;
+        this.tableName = tableName;
+        this.rowFieldName = rowFieldName;
+        this.columnFamily = columnFamily;
+        this.columnFamilyField = columnFamilyField;
+        this.timestampField = timestampField;
+        this.fieldDelimiter = fieldDelimiter;
+        this.encodeFieldDelimiter = encodeFieldDelimiter;
+        this.qualifierInKey = qualifierInKey;
+        this.deleteKeys = deleteKeys;
     }
 
     public String getTableName(){
@@ -96,48 +96,48 @@ public class AccumuloRecordConfiguration {
         }
 
         public Builder setRowField(final String rowFieldName){
-            this.rowFieldName=rowFieldName;
+            this.rowFieldName = rowFieldName;
             return this;
         }
 
         public Builder setTableName(final String tableName){
-            this.tableName=tableName;
+            this.tableName = tableName;
             return this;
         }
 
         public Builder setEncodeFieldDelimiter(final boolean encodeFieldDelimiter){
-            this.encodeFieldDelimiter=encodeFieldDelimiter;
+            this.encodeFieldDelimiter = encodeFieldDelimiter;
             return this;
         }
 
 
         public Builder setColumnFamily(final String columnFamily){
-            this.columnFamily=columnFamily;
+            this.columnFamily = columnFamily;
             return this;
         }
 
         public Builder setColumnFamilyField(final String columnFamilyField){
-            this.columnFamilyField=columnFamilyField;
+            this.columnFamilyField = columnFamilyField;
             return this;
         }
 
         public Builder setTimestampField(final String timestampField){
-            this.timestampField=timestampField;
+            this.timestampField = timestampField;
             return this;
         }
 
         public Builder setQualifierInKey(final boolean qualifierInKey){
-            this.qualifierInKey=qualifierInKey;
+            this.qualifierInKey = qualifierInKey;
             return this;
         }
 
         public Builder setFieldDelimiter(final String fieldDelimiter){
-            this.fieldDelimiter=fieldDelimiter;
+            this.fieldDelimiter = fieldDelimiter;
             return this;
         }
 
         public Builder setDelete(final boolean deleteKeys){
-            this.deleteKeys=deleteKeys;
+            this.deleteKeys = deleteKeys;
             return this;
         }
 

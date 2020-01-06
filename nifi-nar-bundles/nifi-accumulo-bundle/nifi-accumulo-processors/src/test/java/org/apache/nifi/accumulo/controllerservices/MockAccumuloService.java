@@ -36,7 +36,7 @@ public class MockAccumuloService {
         properties.put(AccumuloService.INSTANCE_NAME.getName(), instanceName);
         runner.addControllerService("accclient", accclient, properties);
         runner.enableControllerService(accclient);
-        runner.setProperty("Accumulo Connector Service","accclient");
+        runner.setProperty("accumulo-connector-service","accclient");
         return accclient;
     }
 }

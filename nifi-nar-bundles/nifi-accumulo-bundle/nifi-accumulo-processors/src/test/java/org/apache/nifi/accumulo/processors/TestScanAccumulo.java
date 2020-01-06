@@ -211,6 +211,11 @@ public class TestScanAccumulo {
         basicPutSetup(false,"2019","2019","family1","family2",true,null,"",null,false,5);
     }
 
+    @Test
+    public void testSameRowCfValueInCqWithAuths() throws Exception {
+        basicPutSetup(false,"2019","2019","family1","family2",true,null,"abcd",new Authorizations("abcd"),false,5);
+    }
+
     @Test(expected = AssertionError.class)
     public void testSameRowCfValueInCqErrorCfEnd() throws Exception {
         basicPutSetup(false,"2019","2019","family1","",true,null,"",null,false,5);
