@@ -18,15 +18,11 @@
 package org.apache.nifi.accumulo.processors;
 
 import com.google.common.collect.ImmutableList;
+import org.apache.nifi.accumulo.controllerservices.BaseAccumuloService;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.accumulo.controllerservices.BaseAccumuloService;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 
 /**
  * Base Accumulo class that provides connector services, table name, and thread
