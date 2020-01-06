@@ -137,7 +137,7 @@ public class PublicNTLMEngineImpl implements NTLMEngine {
      *            the 8 byte array the server sent.
      * @return The type 3 message.
      * @throws NTLMEngineException
-     *             If {@encrypt(byte[],byte[])} fails.
+     *             If encrypt(byte[],byte[]) fails.
      */
     static String getType3Message(final String user, final String password, final String host, final String domain,
                                   final byte[] nonce, final int type2Flags, final String target, final byte[] targetInformation)
@@ -949,10 +949,10 @@ public class PublicNTLMEngineImpl implements NTLMEngine {
             // Use only the base domain name!
             final String unqualifiedDomain = convertDomain(domain);
 
-            hostBytes = unqualifiedHost != null ?
-                    unqualifiedHost.getBytes(UNICODE_LITTLE_UNMARKED) : null;
-            domainBytes = unqualifiedDomain != null ?
-                    unqualifiedDomain.toUpperCase(Locale.ROOT).getBytes(UNICODE_LITTLE_UNMARKED) : null;
+            hostBytes = unqualifiedHost != null
+                    ? unqualifiedHost.getBytes(UNICODE_LITTLE_UNMARKED) : null;
+            domainBytes = unqualifiedDomain != null
+                    ? unqualifiedDomain.toUpperCase(Locale.ROOT).getBytes(UNICODE_LITTLE_UNMARKED) : null;
         }
 
         Type1Message() {
@@ -976,28 +976,24 @@ public class PublicNTLMEngineImpl implements NTLMEngine {
 
             // Flags. These are the complete set of flags we support.
             addULong(
-                    //FLAG_WORKSTATION_PRESENT |
-                    //FLAG_DOMAIN_PRESENT |
+                    //FLAG_WORKSTATION_PRESENT
+                    //| FLAG_DOMAIN_PRESENT
 
                     // Required flags
-                    //FLAG_REQUEST_LAN_MANAGER_KEY |
-                    FLAG_REQUEST_NTLMv1 |
-                            FLAG_REQUEST_NTLM2_SESSION |
-
+                    //| FLAG_REQUEST_LAN_MANAGER_KEY
+                    FLAG_REQUEST_NTLMv1
+                            | FLAG_REQUEST_NTLM2_SESSION
                             // Protocol version request
-                            FLAG_REQUEST_VERSION |
-
+                            | FLAG_REQUEST_VERSION
                             // Recommended privacy settings
-                            FLAG_REQUEST_ALWAYS_SIGN |
-                            //FLAG_REQUEST_SEAL |
-                            //FLAG_REQUEST_SIGN |
-
+                            | FLAG_REQUEST_ALWAYS_SIGN
+                            //| FLAG_REQUEST_SEAL
+                            //| FLAG_REQUEST_SIGN
                             // These must be set according to documentation, based on use of SEAL above
-                            FLAG_REQUEST_128BIT_KEY_EXCH |
-                            FLAG_REQUEST_56BIT_ENCRYPTION |
-                            //FLAG_REQUEST_EXPLICIT_KEY_EXCH |
-
-                            FLAG_REQUEST_UNICODE_ENCODING);
+                            | FLAG_REQUEST_128BIT_KEY_EXCH
+                            | FLAG_REQUEST_56BIT_ENCRYPTION
+                            //| FLAG_REQUEST_EXPLICIT_KEY_EXCH
+                            | FLAG_REQUEST_UNICODE_ENCODING);
 
             // Domain length (two times).
             addUShort(/*domainBytes.length*/0);
@@ -1154,8 +1150,8 @@ public class PublicNTLMEngineImpl implements NTLMEngine {
             try {
                 // This conditional may not work on Windows Server 2008 R2 and above, where it has not yet
                 // been tested
-                if (((type2Flags & FLAG_TARGETINFO_PRESENT) != 0) &&
-                        targetInformation != null && target != null) {
+                if (((type2Flags & FLAG_TARGETINFO_PRESENT) != 0)
+                        && targetInformation != null && target != null) {
                     // NTLMv2
                     ntResp = gen.getNTLMv2Response();
                     lmResp = gen.getLMv2Response();
@@ -1291,26 +1287,22 @@ public class PublicNTLMEngineImpl implements NTLMEngine {
                     //FLAG_DOMAIN_PRESENT |
 
                     // Required flags
-                    (type2Flags & FLAG_REQUEST_LAN_MANAGER_KEY) |
-                            (type2Flags & FLAG_REQUEST_NTLMv1) |
-                            (type2Flags & FLAG_REQUEST_NTLM2_SESSION) |
-
+                    (type2Flags & FLAG_REQUEST_LAN_MANAGER_KEY)
+                            | (type2Flags & FLAG_REQUEST_NTLMv1)
+                            | (type2Flags & FLAG_REQUEST_NTLM2_SESSION)
                             // Protocol version request
-                            FLAG_REQUEST_VERSION |
-
+                            | FLAG_REQUEST_VERSION
                             // Recommended privacy settings
-                            (type2Flags & FLAG_REQUEST_ALWAYS_SIGN) |
-                            (type2Flags & FLAG_REQUEST_SEAL) |
-                            (type2Flags & FLAG_REQUEST_SIGN) |
-
+                            | (type2Flags & FLAG_REQUEST_ALWAYS_SIGN)
+                            | (type2Flags & FLAG_REQUEST_SEAL)
+                            | (type2Flags & FLAG_REQUEST_SIGN)
                             // These must be set according to documentation, based on use of SEAL above
-                            (type2Flags & FLAG_REQUEST_128BIT_KEY_EXCH) |
-                            (type2Flags & FLAG_REQUEST_56BIT_ENCRYPTION) |
-                            (type2Flags & FLAG_REQUEST_EXPLICIT_KEY_EXCH) |
-
-                            (type2Flags & FLAG_TARGETINFO_PRESENT) |
-                            (type2Flags & FLAG_REQUEST_UNICODE_ENCODING) |
-                            (type2Flags & FLAG_REQUEST_TARGET)
+                            | (type2Flags & FLAG_REQUEST_128BIT_KEY_EXCH)
+                            | (type2Flags & FLAG_REQUEST_56BIT_ENCRYPTION)
+                            | (type2Flags & FLAG_REQUEST_EXPLICIT_KEY_EXCH)
+                            | (type2Flags & FLAG_TARGETINFO_PRESENT)
+                            | (type2Flags & FLAG_REQUEST_UNICODE_ENCODING)
+                            | (type2Flags & FLAG_REQUEST_TARGET)
             );
 
             // Version

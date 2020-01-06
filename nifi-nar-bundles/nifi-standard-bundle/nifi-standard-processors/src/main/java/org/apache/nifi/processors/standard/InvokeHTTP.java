@@ -746,11 +746,9 @@ public final class InvokeHTTP extends AbstractProcessor {
 
         if (!authUser.isEmpty() && !authDomain.isEmpty()
                 && "true".equalsIgnoreCase(context.getProperty(PROP_NTLM_AUTH).getValue())) {
-            logger.info("NTLM Authentication on domain {}" , new Object [] { authDomain} );
+            logger.info("NTLM Authentication on domain {}", new Object[]{authDomain});
             okHttpClientBuilder.authenticator(new NTLMAuthenticator(authUser, authPass, authDomain));
-        }
-        // If the username/password properties are set then check if digest auth is being used
-        else if (!authUser.isEmpty()
+        } else if (!authUser.isEmpty() // check digest authentication
                 && "true".equalsIgnoreCase(context.getProperty(PROP_DIGEST_AUTH).getValue())) {
             logger.info("Digest Authentication");
 
