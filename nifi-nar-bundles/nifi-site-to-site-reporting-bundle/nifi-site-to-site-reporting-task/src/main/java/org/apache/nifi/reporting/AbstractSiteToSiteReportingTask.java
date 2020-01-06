@@ -117,7 +117,7 @@ public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingT
     }
 
     public void setup(final ReportingContext reportContext) throws IOException {
-        if (siteToSiteClient != null) {
+        if (siteToSiteClient == null) {
             siteToSiteClient = SiteToSiteUtils.getClient(reportContext, getLogger());
         }
     }
@@ -127,6 +127,7 @@ public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingT
         final SiteToSiteClient client = getClient();
         if (client != null) {
             client.close();
+            siteToSiteClient = null;
         }
     }
 
