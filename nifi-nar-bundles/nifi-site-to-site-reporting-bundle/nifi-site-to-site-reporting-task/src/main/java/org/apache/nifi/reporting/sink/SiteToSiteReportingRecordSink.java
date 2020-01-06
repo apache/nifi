@@ -21,6 +21,7 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
@@ -61,6 +62,7 @@ public class SiteToSiteReportingRecordSink extends AbstractControllerService imp
     private List<PropertyDescriptor> properties;
     private volatile SiteToSiteClient siteToSiteClient;
     private volatile RecordSetWriterFactory writerFactory;
+    private volatile StateManager stateManager;
 
     @Override
     protected void init(final ControllerServiceInitializationContext context) {
@@ -79,6 +81,7 @@ public class SiteToSiteReportingRecordSink extends AbstractControllerService imp
         properties.add(SiteToSiteUtils.HTTP_PROXY_USERNAME);
         properties.add(SiteToSiteUtils.HTTP_PROXY_PASSWORD);
         this.properties = Collections.unmodifiableList(properties);
+        this.stateManager = context.getStateManager();
     }
 
     @Override
@@ -118,6 +121,7 @@ public class SiteToSiteReportingRecordSink extends AbstractControllerService imp
                     .useCompression(context.getProperty(SiteToSiteUtils.COMPRESS).asBoolean())
                     .eventReporter(eventReporter)
                     .sslContext(sslContext)
+                    .stateManager(stateManager)
                     .timeout(context.getProperty(SiteToSiteUtils.TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS)
                     .transportProtocol(mode)
                     .httpProxy(httpProxy)
