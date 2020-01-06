@@ -58,6 +58,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.standard.util.NTLMAuthenticator;
 import org.apache.nifi.processors.standard.util.ProxyAuthenticator;
 import org.apache.nifi.processors.standard.util.SoftLimitBoundedByteArrayOutputStream;
 import org.apache.nifi.proxy.ProxyConfiguration;
@@ -113,9 +114,10 @@ import java.util.regex.Pattern;
 import static org.apache.commons.lang3.StringUtils.trimToEmpty;
 
 @SupportsBatching
-@Tags({"http", "https", "rest", "client"})
+@Tags({"http", "https", "rest", "client","ntlm"})
 @InputRequirement(Requirement.INPUT_ALLOWED)
 @CapabilityDescription("An HTTP client processor which can interact with a configurable HTTP Endpoint. The destination URL and HTTP Method are configurable."
+    + " Also supports NTLM authentication to communicate with a sharepoint webservice"
     + " FlowFile attributes are converted to HTTP headers and the FlowFile contents are included as the body of the request (if the HTTP Method is PUT, POST or PATCH).")
 @WritesAttributes({
     @WritesAttribute(attribute = "invokehttp.status.code", description = "The status code that is returned"),
@@ -324,6 +326,25 @@ public final class InvokeHTTP extends AbstractProcessor {
             .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("^[\\x20-\\x7e\\x80-\\xff]+$")))
             .build();
 
+    public static final PropertyDescriptor PROP_NTLM_DOMAIN = new PropertyDescriptor.Builder()
+            .name("NTLM Domain")
+            .displayName("NTLM Domain")
+            .description("The NTLM domain name to be used by the client to authenticate against the Remote URL.  Cannot include control characters (0-31), ':', or DEL (127).")
+            .required(false)
+            .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("^[\\x20-\\x39\\x3b-\\x7e\\x80-\\xff]+$")))
+            .build();
+
+    public static final PropertyDescriptor PROP_NTLM_AUTH = new PropertyDescriptor.Builder()
+            .name("NTLM Authentication")
+            .displayName("Use NTLM Authentication")
+            .description("Whether to communicate with the website using NTLM Authentication. 'Basic Authentication Username' and 'Basic Authentication Password' are used "
+                    + "for authentication.")
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .required(false)
+            .defaultValue("false")
+            .allowableValues("true", "false")
+            .build();
+
     public static final PropertyDescriptor PROP_PUT_OUTPUT_IN_ATTRIBUTE = new PropertyDescriptor.Builder()
             .name("Put Response Body In Attribute")
             .description("If set, the response body received back will be put into an attribute of the original FlowFile instead of a separate "
@@ -422,6 +443,8 @@ public final class InvokeHTTP extends AbstractProcessor {
             PROP_ATTRIBUTES_TO_SEND,
             PROP_BASIC_AUTH_USERNAME,
             PROP_BASIC_AUTH_PASSWORD,
+            PROP_NTLM_AUTH,
+            PROP_NTLM_DOMAIN,
             PROXY_CONFIGURATION_SERVICE,
             PROP_PROXY_HOST,
             PROP_PROXY_PORT,
@@ -716,11 +739,20 @@ public final class InvokeHTTP extends AbstractProcessor {
     }
 
     private void setAuthenticator(OkHttpClient.Builder okHttpClientBuilder, ProcessContext context) {
+        final ComponentLog logger = getLogger();
         final String authUser = trimToEmpty(context.getProperty(PROP_BASIC_AUTH_USERNAME).getValue());
+        final String authPass = trimToEmpty(context.getProperty(PROP_BASIC_AUTH_PASSWORD).getValue());
+        final String authDomain = trimToEmpty(context.getProperty(PROP_NTLM_DOMAIN).getValue());
 
+        if (!authUser.isEmpty() && !authDomain.isEmpty()
+                && "true".equalsIgnoreCase(context.getProperty(PROP_NTLM_AUTH).getValue())) {
+            logger.info("NTLM Authentication on domain {}" , new Object [] { authDomain} );
+            okHttpClientBuilder.authenticator(new NTLMAuthenticator(authUser, authPass, authDomain));
+        }
         // If the username/password properties are set then check if digest auth is being used
-        if (!authUser.isEmpty() && "true".equalsIgnoreCase(context.getProperty(PROP_DIGEST_AUTH).getValue())) {
-            final String authPass = trimToEmpty(context.getProperty(PROP_BASIC_AUTH_PASSWORD).getValue());
+        else if (!authUser.isEmpty()
+                && "true".equalsIgnoreCase(context.getProperty(PROP_DIGEST_AUTH).getValue())) {
+            logger.info("Digest Authentication");
 
             /*
              * OkHttp doesn't have built-in Digest Auth Support. A ticket for adding it is here[1] but they authors decided instead to rely on a 3rd party lib.
@@ -733,6 +765,8 @@ public final class InvokeHTTP extends AbstractProcessor {
 
             okHttpClientBuilder.interceptors().add(new AuthenticationCacheInterceptor(authCache));
             okHttpClientBuilder.authenticator(new CachingAuthenticatorDecorator(digestAuthenticator, authCache));
+        } else {
+            logger.info("Basic Authentication");
         }
     }
 
