@@ -41,8 +41,8 @@ public class QueryMetricsUtil {
             .name("sql-reporting-query")
             .displayName("SQL Query")
             .description("SQL SELECT statement specifies which tables to query and how data should be filtered/transformed. "
-                    + "SQL SELECT can select from the CONNECTION_STATUS, PROCESSOR_STATUS, BULLETINS, PROCESS_GROUP_STATUS, JVM_METRICS, or CONNECTION_STATUS_PREDICTIONS tables. Note that the "
-                    + "CONNECTION_STATUS_PREDICTIONS table is not available for querying if analytics are not enabled).")
+                    + "SQL SELECT can select from the CONNECTION_STATUS, PROCESSOR_STATUS, BULLETINS, PROCESS_GROUP_STATUS, JVM_METRICS, CONNECTION_STATUS_PREDICTIONS, or PROVENANCE tables. "
+                    + "Note that the CONNECTION_STATUS_PREDICTIONS table is not available for querying if analytics are not enabled).")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(new SqlValidator())
