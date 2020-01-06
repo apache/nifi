@@ -19,6 +19,7 @@ package org.apache.nifi.processors.standard;
 import org.apache.nifi.components.AbstractConfigurableComponent;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.record.sink.RecordSinkService;
+import org.apache.nifi.record.sink.RetryableIOException;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.Record;
@@ -36,9 +37,21 @@ public class MockRecordSinkService extends AbstractConfigurableComponent impleme
 
     private List<Map<String, Object>> rows = new ArrayList<>();
     private boolean transmitted = false;
+    private boolean failWithRetryableError = false;
+
+    public MockRecordSinkService() {
+    }
+
+    public MockRecordSinkService(boolean failWithRetryableError) {
+        this();
+        this.failWithRetryableError = failWithRetryableError;
+    }
 
     @Override
-    public WriteResult sendData(RecordSet recordSet, Map<String,String> attributes, boolean sendZeroResults) throws IOException {
+    public WriteResult sendData(RecordSet recordSet, Map<String, String> attributes, boolean sendZeroResults) throws IOException {
+        if (failWithRetryableError) {
+            throw new RetryableIOException("Retryable");
+        }
         int numRecordsWritten = 0;
         RecordSchema recordSchema = recordSet.getSchema();
         Record record;
@@ -50,7 +63,7 @@ public class MockRecordSinkService extends AbstractConfigurableComponent impleme
             numRecordsWritten++;
         }
 
-        if(numRecordsWritten > 0 || sendZeroResults) {
+        if (numRecordsWritten > 0 || sendZeroResults) {
             transmitted = true;
         }
         return WriteResult.of(numRecordsWritten, Collections.emptyMap());
@@ -71,5 +84,9 @@ public class MockRecordSinkService extends AbstractConfigurableComponent impleme
 
     public boolean isTransmitted() {
         return transmitted;
+    }
+
+    public void setFailWithRetryableError(boolean failWithRetryableError) {
+        this.failWithRetryableError = failWithRetryableError;
     }
 }

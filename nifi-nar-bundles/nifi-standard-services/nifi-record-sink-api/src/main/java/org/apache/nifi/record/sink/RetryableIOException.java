@@ -22,4 +22,20 @@ import java.io.IOException;
  * This is a marker class for IOExceptions that may succeed if the operation is performed again, it is a hint to retry the operation
  */
 public class RetryableIOException extends IOException {
+
+    public RetryableIOException() {
+        super();
+    }
+
+    public RetryableIOException(String message) {
+        super(message);
+    }
+
+    public RetryableIOException(String message, Throwable cause) {
+        super(message, cause);
+    }
+
+    public RetryableIOException(Throwable cause) {
+        super(cause);
+    }
 }

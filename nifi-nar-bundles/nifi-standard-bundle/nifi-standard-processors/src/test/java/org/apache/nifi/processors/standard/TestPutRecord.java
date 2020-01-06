@@ -125,4 +125,26 @@ public class TestPutRecord {
 
         testRunner.assertAllFlowFilesTransferred(PutRecord.REL_FAILURE, 1);
     }
+
+    @Test
+    public void testRetryableError() throws Exception {
+        recordReader = new MockRecordParser();
+        testRunner.addControllerService("reader", recordReader);
+        testRunner.enableControllerService(recordReader);
+
+        mockRecordSinkService.setFailWithRetryableError(true);
+        testRunner.addControllerService("MockRecordSinkService", mockRecordSinkService);
+        testRunner.enableControllerService(mockRecordSinkService);
+
+        recordReader.addSchemaField("name", RecordFieldType.STRING);
+        recordReader.addSchemaField("age", RecordFieldType.INT);
+        recordReader.addSchemaField("sport", RecordFieldType.STRING);
+
+        recordReader.addRecord("John Doe", 48, "Soccer");
+
+        testRunner.enqueue("");
+        testRunner.run();
+
+        testRunner.assertAllFlowFilesTransferred(PutRecord.REL_RETRY, 1);
+    }
 }
