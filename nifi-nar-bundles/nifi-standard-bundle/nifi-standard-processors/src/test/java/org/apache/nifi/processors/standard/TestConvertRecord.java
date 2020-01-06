@@ -269,4 +269,39 @@ public class TestConvertRecord {
                 "`123`\t`John`\t`|'^`\n";
         assertEquals(expected, new String(flowFile.toByteArray()));
     }
+
+    @Test
+    public void testCSVNullEscapeQuote() throws InitializationException, IOException {
+        TestRunner runner = TestRunners.newTestRunner(ConvertRecord.class);
+
+        CSVReader csvReader = new CSVReader();
+        runner.addControllerService("csv-reader", csvReader);
+        runner.setProperty(csvReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, "csv-header-derived");
+        runner.setProperty(csvReader, CSVReader.CSV_PARSER, CSVReader.JACKSON_CSV);
+        runner.setProperty(csvReader, CSVUtils.CSV_FORMAT, CSVUtils.CUSTOM);
+        runner.setProperty(csvReader, CSVUtils.VALUE_SEPARATOR, "\t");
+        runner.setProperty(csvReader, CSVUtils.RECORD_SEPARATOR, "\n");
+        runner.enableControllerService(csvReader);
+
+        CSVRecordSetWriter csvWriter = new CSVRecordSetWriter();
+        runner.addControllerService("csv-writer", csvWriter);
+        runner.setProperty(csvWriter, CSVUtils.CSV_FORMAT, CSVUtils.CUSTOM);
+        runner.setProperty(csvWriter, CSVUtils.VALUE_SEPARATOR, ",");
+        runner.setProperty(csvWriter, CSVUtils.RECORD_SEPARATOR, "\n");
+        runner.enableControllerService(csvWriter);
+
+        runner.setProperty(ConvertRecord.RECORD_READER, "csv-reader");
+        runner.setProperty(ConvertRecord.RECORD_WRITER, "csv-writer");
+
+        runner.enqueue(Paths.get("src/test/resources/TestConvertRecord/input/tabDelimitedData.csv"));
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ConvertRecord.REL_SUCCESS, 1);
+
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(ConvertRecord.REL_SUCCESS).get(0);
+
+        String expected = "c1,c2,c3\n" +
+                          "val\"ue1/,value2/,value3/\n";
+        assertEquals(expected, new String(flowFile.toByteArray()));
+    }
 }

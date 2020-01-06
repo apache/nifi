@@ -116,8 +116,8 @@ public class CSVUtilsTest {
         CSVFormat csvFormat = CSVUtils.createCSVFormat(context, Collections.emptyMap());
 
         assertEquals(',', csvFormat.getDelimiter());
-        assertEquals('"', (char) csvFormat.getQuoteCharacter());
-        assertEquals('\\', (char) csvFormat.getEscapeCharacter());
+        assertEquals(null, csvFormat.getQuoteCharacter());
+        assertEquals(null, csvFormat.getEscapeCharacter());
         assertNull(csvFormat.getCommentMarker());
     }
 
@@ -134,8 +134,8 @@ public class CSVUtilsTest {
         CSVFormat csvFormat = CSVUtils.createCSVFormat(context, attributes);
 
         assertEquals(',', csvFormat.getDelimiter());
-        assertEquals('"', (char) csvFormat.getQuoteCharacter());
-        assertEquals('\\', (char) csvFormat.getEscapeCharacter());
+        assertEquals(null, csvFormat.getQuoteCharacter());
+        assertEquals(null, csvFormat.getEscapeCharacter());
         assertNull(csvFormat.getCommentMarker());
     }
 

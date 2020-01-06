@@ -67,8 +67,8 @@ public class JacksonCSVRecordReader extends AbstractCSVRecordReader {
                 // be handled correctly when using the header for mapping.
                 .setUseHeader(false);
 
-        csvSchemaBuilder = (csvFormat.getQuoteCharacter() == null) ? csvSchemaBuilder : csvSchemaBuilder.setQuoteChar(csvFormat.getQuoteCharacter());
-        csvSchemaBuilder = (csvFormat.getEscapeCharacter() == null) ? csvSchemaBuilder : csvSchemaBuilder.setEscapeChar(csvFormat.getEscapeCharacter());
+        csvSchemaBuilder = (csvFormat.getQuoteCharacter() == null) ? csvSchemaBuilder.disableQuoteChar() : csvSchemaBuilder.setQuoteChar(csvFormat.getQuoteCharacter());
+        csvSchemaBuilder = (csvFormat.getEscapeCharacter() == null) ? csvSchemaBuilder.disableEscapeChar() : csvSchemaBuilder.setEscapeChar(csvFormat.getEscapeCharacter());
 
         if (hasHeader) {
             if (ignoreHeader) {

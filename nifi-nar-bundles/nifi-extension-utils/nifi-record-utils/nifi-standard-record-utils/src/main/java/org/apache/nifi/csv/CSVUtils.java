@@ -68,8 +68,6 @@ public class CSVUtils {
                 "but the expression gets evaluated to an invalid Quote Character at runtime, then it will be skipped and the default Quote Character will be used.")
         .addValidator(new CSVValidators.SingleCharacterValidator())
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-        .defaultValue("\"")
-        .required(true)
         .build();
     public static final PropertyDescriptor FIRST_LINE_IS_HEADER = new PropertyDescriptor.Builder()
         .name("Skip Header Line")
@@ -109,8 +107,6 @@ public class CSVUtils {
                 "but the expression gets evaluated to an invalid Escape Character at runtime, then it will be skipped and the default Escape Character will be used.")
         .addValidator(new CSVValidators.SingleCharacterValidator())
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-        .defaultValue("\\")
-        .required(true)
         .build();
     public static final PropertyDescriptor NULL_STRING = new PropertyDescriptor.Builder()
         .name("Null String")
@@ -257,11 +253,19 @@ public class CSVUtils {
             format = format.withFirstRecordAsHeader();
         }
 
-        final Character quoteChar = getCharUnescaped(context, QUOTE_CHAR, variables);
-        format = format.withQuote(quoteChar);
+        if(context.getProperty(QUOTE_CHAR).evaluateAttributeExpressions(variables).getValue() == null) {
+            format = format.withQuote(null);
+        } else {
+            final Character quoteChar = getCharUnescaped(context, QUOTE_CHAR, variables);
+            format = format.withQuote(quoteChar);
+        }
 
-        final Character escapeChar = getCharUnescaped(context, ESCAPE_CHAR, variables);
-        format = format.withEscape(escapeChar);
+        if(context.getProperty(ESCAPE_CHAR).evaluateAttributeExpressions(variables).getValue() == null) {
+            format = format.withEscape(null);
+        } else {
+            final Character escapeChar = getCharUnescaped(context, ESCAPE_CHAR, variables);
+            format = format.withEscape(escapeChar);
+        }
 
         format = format.withTrim(context.getProperty(TRIM_FIELDS).asBoolean());
 
