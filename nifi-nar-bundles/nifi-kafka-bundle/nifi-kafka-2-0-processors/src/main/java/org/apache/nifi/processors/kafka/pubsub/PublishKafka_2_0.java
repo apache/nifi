@@ -18,6 +18,9 @@
 package org.apache.nifi.processors.kafka.pubsub;
 
 import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.common.errors.AuthorizationException;
+import org.apache.kafka.common.errors.OutOfOrderSequenceException;
+import org.apache.kafka.common.errors.ProducerFencedException;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -413,65 +416,72 @@ public class PublishKafka_2_0 extends AbstractProcessor {
 
         final long startTime = System.nanoTime();
         try (final PublisherLease lease = pool.obtainPublisher()) {
-            if (useTransactions) {
-                lease.beginTransaction();
-            }
-
-            // Send each FlowFile to Kafka asynchronously.
-            for (final FlowFile flowFile : flowFiles) {
-                if (!isScheduled()) {
-                    // If stopped, re-queue FlowFile instead of sending it
-                    if (useTransactions) {
-                        session.rollback();
-                        lease.rollback();
-                        return;
-                    }
-
-                    session.transfer(flowFile);
-                    continue;
+            try {
+                if (useTransactions) {
+                    lease.beginTransaction();
                 }
 
-                final byte[] messageKey = getMessageKey(flowFile, context);
-                final String topic = context.getProperty(TOPIC).evaluateAttributeExpressions(flowFile).getValue();
-                final byte[] demarcatorBytes;
-                if (useDemarcator) {
-                    demarcatorBytes = context.getProperty(MESSAGE_DEMARCATOR).evaluateAttributeExpressions(flowFile).getValue().getBytes(StandardCharsets.UTF_8);
-                } else {
-                    demarcatorBytes = null;
-                }
-
-                final Integer partition = getPartition(context, flowFile);
-                session.read(flowFile, new InputStreamCallback() {
-                    @Override
-                    public void process(final InputStream rawIn) throws IOException {
-                        try (final InputStream in = new BufferedInputStream(rawIn)) {
-                            lease.publish(flowFile, in, messageKey, demarcatorBytes, topic, partition);
+                // Send each FlowFile to Kafka asynchronously.
+                for (final FlowFile flowFile : flowFiles) {
+                    if (!isScheduled()) {
+                        // If stopped, re-queue FlowFile instead of sending it
+                        if (useTransactions) {
+                            session.rollback();
+                            lease.rollback();
+                            return;
                         }
+
+                        session.transfer(flowFile);
+                        continue;
                     }
-                });
-            }
 
-            // Complete the send
-            final PublishResult publishResult = lease.complete();
+                    final byte[] messageKey = getMessageKey(flowFile, context);
+                    final String topic = context.getProperty(TOPIC).evaluateAttributeExpressions(flowFile).getValue();
+                    final byte[] demarcatorBytes;
+                    if (useDemarcator) {
+                        demarcatorBytes = context.getProperty(MESSAGE_DEMARCATOR).evaluateAttributeExpressions(flowFile).getValue().getBytes(StandardCharsets.UTF_8);
+                    } else {
+                        demarcatorBytes = null;
+                    }
 
-            if (publishResult.isFailure()) {
-                getLogger().info("Failed to send FlowFile to kafka; transferring to failure");
+                    final Integer partition = getPartition(context, flowFile);
+                    session.read(flowFile, new InputStreamCallback() {
+                        @Override
+                        public void process(final InputStream rawIn) throws IOException {
+                            try (final InputStream in = new BufferedInputStream(rawIn)) {
+                                lease.publish(flowFile, in, messageKey, demarcatorBytes, topic, partition);
+                            }
+                        }
+                    });
+                }
+
+                // Complete the send
+                final PublishResult publishResult = lease.complete();
+
+                if (publishResult.isFailure()) {
+                    getLogger().info("Failed to send FlowFile to kafka; transferring to failure");
+                    session.transfer(flowFiles, REL_FAILURE);
+                    return;
+                }
+
+                // Transfer any successful FlowFiles.
+                final long transmissionMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime);
+                for (FlowFile success : flowFiles) {
+                    final String topic = context.getProperty(TOPIC).evaluateAttributeExpressions(success).getValue();
+
+                    final int msgCount = publishResult.getSuccessfulMessageCount(success);
+                    success = session.putAttribute(success, MSG_COUNT, String.valueOf(msgCount));
+                    session.adjustCounter("Messages Sent", msgCount, true);
+
+                    final String transitUri = KafkaProcessorUtils.buildTransitURI(securityProtocol, bootstrapServers, topic);
+                    session.getProvenanceReporter().send(success, transitUri, "Sent " + msgCount + " messages", transmissionMillis);
+                    session.transfer(success, REL_SUCCESS);
+                }
+            } catch (final ProducerFencedException | OutOfOrderSequenceException | AuthorizationException e) {
+                lease.poison();
+                getLogger().error("Failed to send messages to Kafka; will yield Processor and transfer FlowFiles to failure");
                 session.transfer(flowFiles, REL_FAILURE);
-                return;
-            }
-
-            // Transfer any successful FlowFiles.
-            final long transmissionMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime);
-            for (FlowFile success : flowFiles) {
-                final String topic = context.getProperty(TOPIC).evaluateAttributeExpressions(success).getValue();
-
-                final int msgCount = publishResult.getSuccessfulMessageCount(success);
-                success = session.putAttribute(success, MSG_COUNT, String.valueOf(msgCount));
-                session.adjustCounter("Messages Sent", msgCount, true);
-
-                final String transitUri = KafkaProcessorUtils.buildTransitURI(securityProtocol, bootstrapServers, topic);
-                session.getProvenanceReporter().send(success, transitUri, "Sent " + msgCount + " messages", transmissionMillis);
-                session.transfer(success, REL_SUCCESS);
+                context.yield();
             }
         }
     }

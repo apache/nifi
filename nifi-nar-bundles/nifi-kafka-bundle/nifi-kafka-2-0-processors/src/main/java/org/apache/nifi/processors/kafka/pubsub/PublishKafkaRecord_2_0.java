@@ -18,6 +18,9 @@
 package org.apache.nifi.processors.kafka.pubsub;
 
 import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.common.errors.AuthorizationException;
+import org.apache.kafka.common.errors.OutOfOrderSequenceException;
+import org.apache.kafka.common.errors.ProducerFencedException;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -445,76 +448,83 @@ public class PublishKafkaRecord_2_0 extends AbstractProcessor {
 
         final long startTime = System.nanoTime();
         try (final PublisherLease lease = pool.obtainPublisher()) {
-            if (useTransactions) {
-                lease.beginTransaction();
-            }
+            try {
+                if (useTransactions) {
+                    lease.beginTransaction();
+                }
 
-            // Send each FlowFile to Kafka asynchronously.
-            final Iterator<FlowFile> itr = flowFiles.iterator();
-            while (itr.hasNext()) {
-                final FlowFile flowFile = itr.next();
+                // Send each FlowFile to Kafka asynchronously.
+                final Iterator<FlowFile> itr = flowFiles.iterator();
+                while (itr.hasNext()) {
+                    final FlowFile flowFile = itr.next();
 
-                if (!isScheduled()) {
-                    // If stopped, re-queue FlowFile instead of sending it
-                    if (useTransactions) {
-                        session.rollback();
-                        lease.rollback();
-                        return;
+                    if (!isScheduled()) {
+                        // If stopped, re-queue FlowFile instead of sending it
+                        if (useTransactions) {
+                            session.rollback();
+                            lease.rollback();
+                            return;
+                        }
+
+                        session.transfer(flowFile);
+                        itr.remove();
+                        continue;
                     }
 
-                    session.transfer(flowFile);
-                    itr.remove();
-                    continue;
-                }
+                    final String topic = context.getProperty(TOPIC).evaluateAttributeExpressions(flowFile).getValue();
+                    final String messageKeyField = context.getProperty(MESSAGE_KEY_FIELD).evaluateAttributeExpressions(flowFile).getValue();
 
-                final String topic = context.getProperty(TOPIC).evaluateAttributeExpressions(flowFile).getValue();
-                final String messageKeyField = context.getProperty(MESSAGE_KEY_FIELD).evaluateAttributeExpressions(flowFile).getValue();
+                    final Function<Record, Integer> partitioner = getPartitioner(context, flowFile);
 
-                final Function<Record, Integer> partitioner = getPartitioner(context, flowFile);
+                    try {
+                        session.read(flowFile, new InputStreamCallback() {
+                            @Override
+                            public void process(final InputStream in) throws IOException {
+                                try {
+                                    final RecordReader reader = readerFactory.createRecordReader(flowFile, in, getLogger());
+                                    final RecordSet recordSet = reader.createRecordSet();
 
-                try {
-                    session.read(flowFile, new InputStreamCallback() {
-                        @Override
-                        public void process(final InputStream in) throws IOException {
-                            try {
-                                final RecordReader reader = readerFactory.createRecordReader(flowFile, in, getLogger());
-                                final RecordSet recordSet = reader.createRecordSet();
-
-                                final RecordSchema schema = writerFactory.getSchema(flowFile.getAttributes(), recordSet.getSchema());
-                                lease.publish(flowFile, recordSet, writerFactory, schema, messageKeyField, topic, partitioner);
-                            } catch (final SchemaNotFoundException | MalformedRecordException e) {
-                                throw new ProcessException(e);
+                                    final RecordSchema schema = writerFactory.getSchema(flowFile.getAttributes(), recordSet.getSchema());
+                                    lease.publish(flowFile, recordSet, writerFactory, schema, messageKeyField, topic, partitioner);
+                                } catch (final SchemaNotFoundException | MalformedRecordException e) {
+                                    throw new ProcessException(e);
+                                }
                             }
-                        }
-                    });
-                } catch (final Exception e) {
-                    // The FlowFile will be obtained and the error logged below, when calling publishResult.getFailedFlowFiles()
-                    lease.fail(flowFile, e);
-                    continue;
+                        });
+                    } catch (final Exception e) {
+                        // The FlowFile will be obtained and the error logged below, when calling publishResult.getFailedFlowFiles()
+                        lease.fail(flowFile, e);
+                        continue;
+                    }
                 }
-            }
 
-            // Complete the send
-            final PublishResult publishResult = lease.complete();
+                // Complete the send
+                final PublishResult publishResult = lease.complete();
 
-            if (publishResult.isFailure()) {
-                getLogger().info("Failed to send FlowFile to kafka; transferring to failure");
+                if (publishResult.isFailure()) {
+                    getLogger().info("Failed to send FlowFile to kafka; transferring to failure");
+                    session.transfer(flowFiles, REL_FAILURE);
+                    return;
+                }
+
+                // Transfer any successful FlowFiles.
+                final long transmissionMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime);
+                for (FlowFile success : flowFiles) {
+                    final String topic = context.getProperty(TOPIC).evaluateAttributeExpressions(success).getValue();
+
+                    final int msgCount = publishResult.getSuccessfulMessageCount(success);
+                    success = session.putAttribute(success, MSG_COUNT, String.valueOf(msgCount));
+                    session.adjustCounter("Messages Sent", msgCount, true);
+
+                    final String transitUri = KafkaProcessorUtils.buildTransitURI(securityProtocol, bootstrapServers, topic);
+                    session.getProvenanceReporter().send(success, transitUri, "Sent " + msgCount + " messages", transmissionMillis);
+                    session.transfer(success, REL_SUCCESS);
+                }
+            } catch (final ProducerFencedException | OutOfOrderSequenceException | AuthorizationException e) {
+                lease.poison();
+                getLogger().error("Failed to send messages to Kafka; will yield Processor and transfer FlowFiles to failure");
                 session.transfer(flowFiles, REL_FAILURE);
-                return;
-            }
-
-            // Transfer any successful FlowFiles.
-            final long transmissionMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime);
-            for (FlowFile success : flowFiles) {
-                final String topic = context.getProperty(TOPIC).evaluateAttributeExpressions(success).getValue();
-
-                final int msgCount = publishResult.getSuccessfulMessageCount(success);
-                success = session.putAttribute(success, MSG_COUNT, String.valueOf(msgCount));
-                session.adjustCounter("Messages Sent", msgCount, true);
-
-                final String transitUri = KafkaProcessorUtils.buildTransitURI(securityProtocol, bootstrapServers, topic);
-                session.getProvenanceReporter().send(success, transitUri, "Sent " + msgCount + " messages", transmissionMillis);
-                session.transfer(success, REL_SUCCESS);
+                context.yield();
             }
         }
     }

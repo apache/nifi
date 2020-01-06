@@ -17,19 +17,6 @@
 
 package org.apache.nifi.processors.kafka.pubsub;
 
-import java.io.ByteArrayOutputStream;
-import java.io.Closeable;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
-import java.util.Collections;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.regex.Pattern;
-
 import org.apache.kafka.clients.producer.Callback;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -47,6 +34,19 @@ import org.apache.nifi.serialization.record.RecordSet;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.stream.io.exception.TokenTooLargeException;
 import org.apache.nifi.stream.io.util.StreamDemarcator;
+
+import java.io.ByteArrayOutputStream;
+import java.io.Closeable;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.regex.Pattern;
 
 public class PublisherLease implements Closeable {
     private final ComponentLog logger;
@@ -88,12 +88,18 @@ public class PublisherLease implements Closeable {
             return;
         }
 
-        if (!transactionsInitialized) {
-            producer.initTransactions();
-            transactionsInitialized = true;
+        try {
+            if (!transactionsInitialized) {
+                producer.initTransactions();
+                transactionsInitialized = true;
+            }
+
+            producer.beginTransaction();
+        } catch (final Exception e) {
+            poison();
+            throw e;
         }
 
-        producer.beginTransaction();
         activeTransaction = true;
     }
 
@@ -102,7 +108,13 @@ public class PublisherLease implements Closeable {
             return;
         }
 
-        producer.abortTransaction();
+        try {
+            producer.abortTransaction();
+        } catch (final Exception e) {
+            poison();
+            throw e;
+        }
+
         activeTransaction = false;
     }
 
@@ -255,11 +267,16 @@ public class PublisherLease implements Closeable {
             throw new IllegalStateException("Cannot complete publishing to Kafka because Publisher Lease was already closed");
         }
 
-        producer.flush();
+        try {
+            producer.flush();
 
-        if (activeTransaction) {
-            producer.commitTransaction();
-            activeTransaction = false;
+            if (activeTransaction) {
+                producer.commitTransaction();
+                activeTransaction = false;
+            }
+        } catch (final Exception e) {
+            poison();
+            throw e;
         }
 
         try {
