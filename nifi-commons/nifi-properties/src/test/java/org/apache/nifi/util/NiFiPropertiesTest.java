@@ -23,6 +23,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.io.File;
+import java.net.InetSocketAddress;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.util.HashMap;
@@ -167,4 +168,97 @@ public class NiFiPropertiesTest {
         return NiFiProperties.createBasicNiFiProperties(realPath, additionalProperties);
     }
 
+    @Test
+    public void testShouldVerifyValidFormatPortValue() {
+        // Testing with CLUSTER_NODE_PROTOCOL_PORT
+
+        // Arrange
+        String portValue = "8000";
+        Map<String, String> additionalProperties = new HashMap<>();
+        additionalProperties.put(NiFiProperties.CLUSTER_NODE_PROTOCOL_PORT, portValue);
+        NiFiProperties properties = loadNiFiProperties("/NiFiProperties/conf/nifi.blank.properties", additionalProperties);
+
+        // Act
+        Integer clusterProtocolPort = properties.getClusterNodeProtocolPort();
+
+        // Assert
+        assertEquals(Integer.parseInt(portValue), clusterProtocolPort.intValue());
+    }
+
+    @Test(expected = NumberFormatException.class)
+    public void testShouldVerifyExceptionThrownWhenInValidFormatPortValue() {
+        // Testing with CLUSTER_NODE_PROTOCOL_PORT
+
+        // Arrange
+        // Port Value is invalid Format
+        String portValue = "8000a";
+        Map<String, String> additionalProperties = new HashMap<>();
+        additionalProperties.put(NiFiProperties.CLUSTER_NODE_PROTOCOL_PORT, portValue);
+        NiFiProperties properties = loadNiFiProperties("/NiFiProperties/conf/nifi.blank.properties", additionalProperties);
+
+        // Act
+        Integer clusterProtocolPort = properties.getClusterNodeProtocolPort();
+
+        // Assert
+        // Expect NumberFormatException thrown
+        assertEquals(Integer.parseInt(portValue), clusterProtocolPort.intValue());
+    }
+
+    @Test
+    public void testShouldVerifyValidPortValue() {
+        // Testing with CLUSTER_NODE_ADDRESS
+
+        // Arrange
+        String portValue = "8000";
+        String addressValue = "127.0.0.1";
+        Map<String, String> additionalProperties = new HashMap<>();
+        additionalProperties.put(NiFiProperties.CLUSTER_NODE_PROTOCOL_PORT, portValue);
+        additionalProperties.put(NiFiProperties.CLUSTER_NODE_ADDRESS, addressValue);
+        NiFiProperties properties = loadNiFiProperties("/NiFiProperties/conf/nifi.blank.properties", additionalProperties);
+
+        // Act
+        InetSocketAddress clusterProtocolAddress = properties.getClusterNodeProtocolAddress();
+
+        // Assert
+        assertEquals(Integer.parseInt(portValue), clusterProtocolAddress.getPort());
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void testShouldVerifyExceptionThrownWhenInvalidPortValue() {
+        // Testing with CLUSTER_NODE_ADDRESS
+
+        // Arrange
+        // Port value is out of range
+        String portValue = "70000";
+        String addressValue = "127.0.0.1";
+        Map<String, String> additionalProperties = new HashMap<>();
+        additionalProperties.put(NiFiProperties.CLUSTER_NODE_PROTOCOL_PORT, portValue);
+        additionalProperties.put(NiFiProperties.CLUSTER_NODE_ADDRESS, addressValue);
+        NiFiProperties properties = loadNiFiProperties("/NiFiProperties/conf/nifi.blank.properties", additionalProperties);
+
+        // Act
+        InetSocketAddress clusterProtocolAddress = properties.getClusterNodeProtocolAddress();
+
+        // Assert
+        // Expect RuntimeException thrown
+        assertEquals(Integer.parseInt(portValue), clusterProtocolAddress.getPort());
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void testShouldVerifyExceptionThrownWhenPortValueIsZero() {
+        // Arrange
+        String portValue = "0";
+        String addressValue = "127.0.0.1";
+        Map<String, String> additionalProperties = new HashMap<>();
+        additionalProperties.put(NiFiProperties.CLUSTER_NODE_PROTOCOL_PORT, portValue);
+        additionalProperties.put(NiFiProperties.CLUSTER_NODE_ADDRESS, addressValue);
+        NiFiProperties properties = loadNiFiProperties("/NiFiProperties/conf/nifi.blank.properties", additionalProperties);
+
+        // Act
+        InetSocketAddress clusterProtocolAddress = properties.getClusterNodeProtocolAddress();
+
+        // Assert
+        // Expect RuntimeException thrown
+        assertEquals(Integer.parseInt(portValue), clusterProtocolAddress.getPort());
+    }
 }
