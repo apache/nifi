@@ -117,7 +117,7 @@ import static org.apache.commons.lang3.StringUtils.trimToEmpty;
 @Tags({"http", "https", "rest", "client","ntlm"})
 @InputRequirement(Requirement.INPUT_ALLOWED)
 @CapabilityDescription("An HTTP client processor which can interact with a configurable HTTP Endpoint. The destination URL and HTTP Method are configurable."
-    + " Also supports NTLM authentication to communicate with a sharepoint webservice"
+    + " Also supports NTLM authentication to communicate with e.g. a SharePoint webservice"
     + " FlowFile attributes are converted to HTTP headers and the FlowFile contents are included as the body of the request (if the HTTP Method is PUT, POST or PATCH).")
 @WritesAttributes({
     @WritesAttribute(attribute = "invokehttp.status.code", description = "The status code that is returned"),
