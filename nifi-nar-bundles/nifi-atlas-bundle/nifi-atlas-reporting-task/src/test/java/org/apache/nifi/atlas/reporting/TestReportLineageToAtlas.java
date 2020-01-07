@@ -203,14 +203,7 @@ public class TestReportLineageToAtlas {
 
         Map<PropertyDescriptor, String> properties = initReportingTaskProperties(atlasConfDir);
 
-        ConfigurationContext configurationContext = new MockConfigurationContext(properties, null);
-
-        testSubject.initialize(initializationContext);
-        testSubject.setup(configurationContext);
-
-        Configuration atlasProperties = ApplicationProperties.get();
-        boolean isAsync = atlasProperties.getBoolean(AtlasHook.ATLAS_NOTIFICATION_ASYNCHRONOUS, Boolean.TRUE);
-        assertFalse(isAsync);
+        testNotificationSendingIsSynchronous(properties);
     }
 
     @Test
@@ -224,6 +217,10 @@ public class TestReportLineageToAtlas {
         Map<PropertyDescriptor, String> properties = initReportingTaskProperties(atlasConfDir);
         properties.put(ATLAS_CONF_CREATE, "false");
 
+        testNotificationSendingIsSynchronous(properties);
+    }
+
+    private void testNotificationSendingIsSynchronous(Map<PropertyDescriptor, String> properties) throws Exception {
         ConfigurationContext configurationContext = new MockConfigurationContext(properties, null);
 
         testSubject.initialize(initializationContext);
@@ -235,7 +232,7 @@ public class TestReportLineageToAtlas {
     }
 
     @Test(expected = ProcessException.class)
-    public void testNotificationSendingIsSynchronousWhenAtlasConfIsProvidedButSynchronousModeHasNotBeenSet() throws Exception {
+    public void testThrowExceptionWhenAtlasConfIsProvidedButSynchronousModeHasNotBeenSet() throws Exception {
         String atlasConfDir = createAtlasConfDir();
 
         Properties atlasConf = new Properties();

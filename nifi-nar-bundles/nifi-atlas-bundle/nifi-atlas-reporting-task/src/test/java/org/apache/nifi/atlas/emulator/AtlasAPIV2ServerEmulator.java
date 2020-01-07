@@ -95,7 +95,7 @@ public class AtlasAPIV2ServerEmulator {
         server.start();
         logger.info("Starting {} on port {}", AtlasAPIV2ServerEmulator.class.getSimpleName(), httpConnector.getLocalPort());
 
-        embeddedKafka = new EmbeddedKafka(false);
+        embeddedKafka = new EmbeddedKafka();
         embeddedKafka.start();
 
         notificationServerEmulator.consume(m -> {

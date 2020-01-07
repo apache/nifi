@@ -49,8 +49,8 @@
             <artifactId>nifi-kerberos-credentials-service-api</artifactId>
         </dependency>
 
-        <!-- Explicitly force beanutils 1.9.3 because versions prior to 1.9.2 had a vuln
-             Can remove this once atlas client which depends on hadoop-common uses a more recent version -->
+        <!-- Explicitly force beanutils 1.9.4 in order to avoid vulnerabilities in earlier versions.
+             Can remove this once atlas client which depends on hadoop-common uses a more recent version. -->
         <dependency>
             <groupId>commons-beanutils</groupId>
             <artifactId>commons-beanutils</artifactId>
