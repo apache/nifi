@@ -70,7 +70,7 @@ public class SSLContextFactory {
             FileUtils.closeQuietly(keyStoreStream);
         }
         final KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-        if (keyPassword != null && !Arrays.equals(keyPassword, keystorePass)) {
+        if (isKeyAndKeystorePasswordDifferent()) {
             keyManagerFactory.init(keyStore, keyPassword);
         } else {
             keyManagerFactory.init(keyStore, keystorePass);
@@ -89,6 +89,10 @@ public class SSLContextFactory {
 
         keyManagers = keyManagerFactory.getKeyManagers();
         trustManagers = trustManagerFactory.getTrustManagers();
+    }
+
+    private boolean isKeyAndKeystorePasswordDifferent() {
+        return keyPassword != null && !(new String(keyPassword).trim().isEmpty()) && !Arrays.equals(keyPassword, keystorePass);
     }
 
     private static char[] getPass(final String password) {
