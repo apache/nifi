@@ -3351,21 +3351,6 @@ long time before starting processing if we reach at least this number of nodes i
 |`nifi.cluster.load.balance.comms.timeout`|When communicating with another node, if this amount of time elapses without making any progress when reading from or writing to a socket, then a TimeoutException will be thrown. This will then result in the data either being retried or sent to another node in the cluster, depending on the configured Load Balancing Strategy. The default value is `30 sec`.
 |====
 
-[[claim_management]]
-=== Claim Management
-
-Whenever a request is made to change the dataflow, it is important that
-all nodes in the NiFi cluster are kept in-sync. In order to allow for this, NiFi employs a two-phase commit. The request
-is first replicated to all nodes in the cluster, simply asking whether or not the request is allowed. Each node then determines
-whether or not it will allow the request and if so issues a "Claim" on the component(s) being modified. This claim can be
-thought of as a mutually-exclusive lock that is owned by the requestor. Once all nodes have voted on whether or not the request
-is allowed, the node from which the request originated must decide whether or not to complete the request. If any node voted
-'NO' then the request is canceled and the Claim is canceled with an error message sent back to the user. However, if the nodes
-all vote 'YES' then the request is completed. In this sort of distributed environment, it is possible that the node that
-made the original request will fail after the voting has occurred and before the request was completed. This would leave
-the component locked indefinitely so that no more changes can be made to the component. In order to avoid this, the Claim
-will time out after some period of time.
-
 === ZooKeeper Properties
 
 NiFi depends on Apache ZooKeeper for determining which node in the cluster should play the role of Primary Node
