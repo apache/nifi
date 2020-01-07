@@ -49,7 +49,7 @@ public class ArrayListRecordWriter extends AbstractControllerService implements 
 
     @Override
     public RecordSetWriter createWriter(final ComponentLog logger, final RecordSchema schema, final OutputStream out, final Map<String, String> variables) {
-        return new ArrayListRecordSetWriter(records);
+        return new ArrayListRecordSetWriter(records, out);
     }
 
     public List<Record> getRecordsWritten() {
@@ -58,9 +58,11 @@ public class ArrayListRecordWriter extends AbstractControllerService implements 
 
     public static class ArrayListRecordSetWriter implements RecordSetWriter {
         private final List<Record> records;
+        private final OutputStream out;
 
-        public ArrayListRecordSetWriter(final List<Record> records) {
+        public ArrayListRecordSetWriter(final List<Record> records, OutputStream out) {
             this.records = records;
+            this.out = out;
         }
 
         @Override
@@ -97,11 +99,13 @@ public class ArrayListRecordWriter extends AbstractControllerService implements 
         }
 
         @Override
-        public void flush() {
+        public void flush() throws IOException {
+            out.flush();
         }
 
         @Override
-        public void close() {
+        public void close() throws IOException {
+            out.close();
         }
     }
 }
