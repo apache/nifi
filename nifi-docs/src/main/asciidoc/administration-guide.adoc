@@ -2895,13 +2895,31 @@ configure two days worth of historical data with a data point snapshot occurring
 are 12 (60 / 5) snapshot windows for that time period. To keep that data for 48 hours (12 * 48) you end up with a buffer size
 of 576.
 
+The following properties are applicable to all implementations of the Component Status Repository:
+
 |====
 |*Property*|*Description*
-|`nifi.components.status.repository.implementation`|The Component Status Repository implementation. The default value is `org.apache.nifi.controller.status.history.VolatileComponentStatusRepository` and should not be changed.
+|`nifi.components.status.repository.implementation`|The Component Status Repository implementation. The default value is `org.apache.nifi.controller.status.history.VolatileComponentStatusRepository`. The only other option at this time
+is `org.apache.nifi.controller.status.history.RocksDBComponentStatusRepository`
 |`nifi.components.status.repository.buffer.size`|Specifies the buffer size for the Component Status Repository. The default value is `1440`.
 |`nifi.components.status.snapshot.frequency`|This value indicates how often to present a snapshot of the components' status history. The default value is `1 min`.
 |====
 
+=== Volatile Component Status Repository
+
+The default implementation of a Component Status Repository. This implementation keeps the configured amount of history in memory as long as NiFi is running.
+
+=== RocksDB Component Status Repository
+
+The RocksDB Component Status Repository is a new implementation which has thus far only been built and tested in a Centos 7 environment.
+It stores component status histories in RocksDB so that they continue to be available after restarts of NiFi. This implementation
+will remove older entries as the buffer size limit is reached. Storage requirements are directly proportional to the amount of components
+that exist on the graph multiplied by the number of snapshots it is configured to keep but should be minimal overall due to the fact that each status history is a relatively small json object.
+
+|====
+|*Property*|*Description*
+|`nifi.components.status.repository.storage.location`|The path where the RocksDB file(s) are stored. If it does not already exist an attempt will be made to create it. The default value is "./stats_history".
+|====
 
 [[site_to_site_properties]]
 === Site to Site Properties
