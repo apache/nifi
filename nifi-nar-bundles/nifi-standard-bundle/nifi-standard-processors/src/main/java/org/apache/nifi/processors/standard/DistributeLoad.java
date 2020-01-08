@@ -98,15 +98,6 @@ public class DistributeLoad extends AbstractProcessor {
             .allowableValues(STRATEGY_ROUND_ROBIN, STRATEGY_NEXT_AVAILABLE, STRATEGY_LOAD_DISTRIBUTION_SERVICE)
             .defaultValue(STRATEGY_ROUND_ROBIN)
             .build();
-    public static final PropertyDescriptor RELATIONSHIP_ATTRIBUTE_ENABLED = new PropertyDescriptor.Builder()
-            .name("Relationship Attribute Enabled")
-            .description("Whether or not this processor should include the 'distribute.load.relationship' attribute capturing " +
-                    "which relationship a FlowFile was routed through.")
-            .defaultValue(Boolean.FALSE.toString())
-            .required(true)
-            .allowableValues(Boolean.TRUE.toString(), Boolean.FALSE.toString())
-            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
-            .build();
     public static final PropertyDescriptor HOSTNAMES = new PropertyDescriptor.Builder()
             .name("Hostnames")
             .description("List of remote servers to distribute across. Each server must be FQDN and use either ',', ';', or [space] as a delimiter")
@@ -153,7 +144,6 @@ public class DistributeLoad extends AbstractProcessor {
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(NUM_RELATIONSHIPS);
         properties.add(DISTRIBUTION_STRATEGY);
-        properties.add(RELATIONSHIP_ATTRIBUTE_ENABLED);
         this.properties = Collections.unmodifiableList(properties);
     }
 
@@ -202,7 +192,6 @@ public class DistributeLoad extends AbstractProcessor {
             final List<PropertyDescriptor> props = new ArrayList<>();
             props.add(NUM_RELATIONSHIPS);
             props.add(DISTRIBUTION_STRATEGY);
-            props.add(RELATIONSHIP_ATTRIBUTE_ENABLED);
             this.properties = Collections.unmodifiableList(props);
         }
         return properties;
@@ -377,9 +366,8 @@ public class DistributeLoad extends AbstractProcessor {
             return;
         }
 
-        if (context.getProperty(RELATIONSHIP_ATTRIBUTE_ENABLED).asBoolean()) {
-            session.putAttribute(flowFile, RELATIONSHIP_ATTRIBUTE, relationship.getName());
-        }
+        // add an attribute capturing which relationship a flowfile was routed through
+        session.putAttribute(flowFile, RELATIONSHIP_ATTRIBUTE, relationship.getName());
 
         session.transfer(flowFile, relationship);
         session.getProvenanceReporter().route(flowFile, relationship);

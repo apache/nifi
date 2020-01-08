@@ -17,7 +17,6 @@
 package org.apache.nifi.processors.standard;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
 
 import java.util.List;
 
@@ -145,7 +144,6 @@ public class TestDistributeLoad {
     public void testFlowFileAttributesAdded() {
         final TestRunner testRunner = TestRunners.newTestRunner(new DistributeLoad());
 
-        testRunner.setProperty(DistributeLoad.RELATIONSHIP_ATTRIBUTE_ENABLED, Boolean.TRUE.toString());
         testRunner.setProperty(DistributeLoad.NUM_RELATIONSHIPS, "100");
         testRunner.setProperty(DistributeLoad.DISTRIBUTION_STRATEGY, DistributeLoad.STRATEGY_NEXT_AVAILABLE);
 
@@ -163,26 +161,5 @@ public class TestDistributeLoad {
             final MockFlowFile mockFlowFile = flowFilesForRelationship.get(0);
             assertEquals(String.valueOf(i), mockFlowFile.getAttribute(DistributeLoad.RELATIONSHIP_ATTRIBUTE));
         }
-    }
-
-    @Test
-    public void testRelationshipAttributeNotAddedWhenDisabled() {
-        final TestRunner testRunner = TestRunners.newTestRunner(new DistributeLoad());
-
-        // default value for relationship attribute enabled is false, so no need to set it here
-        testRunner.setProperty(DistributeLoad.NUM_RELATIONSHIPS, "1");
-        testRunner.setProperty(DistributeLoad.DISTRIBUTION_STRATEGY, DistributeLoad.STRATEGY_NEXT_AVAILABLE);
-        testRunner.enqueue(new byte[0]);
-
-        testRunner.run();
-        testRunner.assertQueueEmpty();
-
-        final String relationship = "1";
-        testRunner.assertTransferCount(relationship, 1);
-        final List<MockFlowFile> flowFilesForRelationship = testRunner.getFlowFilesForRelationship(relationship);
-        assertEquals(1, flowFilesForRelationship.size());
-        final MockFlowFile mockFlowFile = flowFilesForRelationship.get(0);
-        // the relationship attribute should not be populated
-        assertNull(mockFlowFile.getAttribute(DistributeLoad.RELATIONSHIP_ATTRIBUTE));
     }
 }
