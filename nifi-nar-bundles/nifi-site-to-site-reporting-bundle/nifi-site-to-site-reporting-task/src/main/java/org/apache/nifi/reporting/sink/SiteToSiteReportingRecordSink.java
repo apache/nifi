@@ -161,9 +161,11 @@ public class SiteToSiteReportingRecordSink extends AbstractControllerService imp
 
                 if (recordCount > 0 || sendZeroResults) {
                     transaction.send(out.toByteArray(), attributes);
+                    transaction.confirm();
+                    transaction.complete();
+                } else {
+                    transaction.cancel("No data to send");
                 }
-                transaction.confirm();
-                transaction.complete();
             }
             return writeResult;
         } catch(IOException ioe) {
@@ -179,6 +181,7 @@ public class SiteToSiteReportingRecordSink extends AbstractControllerService imp
         final SiteToSiteClient client = getClient();
         if (client != null) {
             client.close();
+            this.siteToSiteClient = null;
         }
     }
 
