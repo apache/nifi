@@ -43,7 +43,6 @@ import org.apache.nifi.util.MockControllerServiceInitializationContext;
 import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import java.io.IOException;
@@ -100,6 +99,29 @@ public class TestSiteToSiteReportingRecordSink {
         assertEquals("World!", data[1]);
     }
 
+    @Test
+    public void testNoRows() throws IOException, InitializationException {
+        final Map<PropertyDescriptor, String> properties = new HashMap<>();
+        properties.put(SiteToSiteReportingRecordSink.RECORD_WRITER_FACTORY, "record-writer");
+        MockSiteToSiteReportingRecordSink task = initTask(properties);
+
+        List<RecordField> recordFields = Arrays.asList(
+                new RecordField("field1", RecordFieldType.INT.getDataType()),
+                new RecordField("field2", RecordFieldType.STRING.getDataType())
+        );
+        RecordSchema recordSchema = new SimpleRecordSchema(recordFields);
+
+        task.sendData(RecordSet.of(recordSchema), new HashMap<>(), true);
+
+        // One entry of an empty byte array
+        assertEquals(1, task.dataSent.size());
+        assertEquals(0, task.dataSent.get(0).length);
+
+        task.sendData(RecordSet.of(recordSchema), new HashMap<>(), false);
+        // Still only one entry even after two sends (toggled sendZeroResults)
+        assertEquals(1, task.dataSent.size());
+    }
+
     public MockSiteToSiteReportingRecordSink initTask(Map<PropertyDescriptor, String> customProperties) throws InitializationException, IOException {
 
         final MockSiteToSiteReportingRecordSink task = new MockSiteToSiteReportingRecordSink();
@@ -133,13 +155,10 @@ public class TestSiteToSiteReportingRecordSink {
             final Transaction transaction = Mockito.mock(Transaction.class);
 
             try {
-                Mockito.doAnswer(new Answer<Object>() {
-                    @Override
-                    public Object answer(final InvocationOnMock invocation) throws Throwable {
-                        final byte[] data = invocation.getArgument(0, byte[].class);
-                        dataSent.add(data);
-                        return null;
-                    }
+                Mockito.doAnswer((Answer<Object>) invocation -> {
+                    final byte[] data = invocation.getArgument(0, byte[].class);
+                    dataSent.add(data);
+                    return null;
                 }).when(transaction).send(Mockito.any(byte[].class), Mockito.any(Map.class));
 
                 Mockito.when(client.createTransaction(Mockito.any(TransferDirection.class))).thenReturn(transaction);
