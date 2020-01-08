@@ -169,6 +169,16 @@ public class ValidateRecord extends AbstractProcessor {
         .defaultValue("true")
         .required(true)
         .build();
+    static final PropertyDescriptor ALLOW_MISSING_NULL_VALUES = new PropertyDescriptor.Builder()
+            .name("allow-missing-null-values")
+            .displayName("Allow Missing Null Values")
+            .description("If the incoming data is missing null fields that are present in the schema, this property determines whether or not the Record is valid." +
+                    "If true, the Record is still valid. If false, the Record will be invalid due to missing null fields.")
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .allowableValues("true", "false")
+            .defaultValue("true")
+            .required(true)
+            .build();
     static final PropertyDescriptor STRICT_TYPE_CHECKING = new PropertyDescriptor.Builder()
         .name("strict-type-checking")
         .displayName("Strict Type Checking")
@@ -206,6 +216,7 @@ public class ValidateRecord extends AbstractProcessor {
         properties.add(SCHEMA_NAME);
         properties.add(SCHEMA_TEXT);
         properties.add(ALLOW_EXTRA_FIELDS);
+        properties.add(ALLOW_MISSING_NULL_VALUES);
         properties.add(STRICT_TYPE_CHECKING);
         return properties;
     }
@@ -259,6 +270,7 @@ public class ValidateRecord extends AbstractProcessor {
         final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
 
         final boolean allowExtraFields = context.getProperty(ALLOW_EXTRA_FIELDS).asBoolean();
+        final boolean allowMissingNullFields = context.getProperty(ALLOW_MISSING_NULL_VALUES).asBoolean();
         final boolean strictTypeChecking = context.getProperty(STRICT_TYPE_CHECKING).asBoolean();
 
         RecordSetWriter validWriter = null;
@@ -270,7 +282,7 @@ public class ValidateRecord extends AbstractProcessor {
             final RecordReader reader = readerFactory.createRecordReader(flowFile, in, getLogger())) {
 
             final RecordSchema validationSchema = getValidationSchema(context, flowFile, reader);
-            final SchemaValidationContext validationContext = new SchemaValidationContext(validationSchema, allowExtraFields, strictTypeChecking);
+            final SchemaValidationContext validationContext = new SchemaValidationContext(validationSchema, allowExtraFields, allowMissingNullFields, strictTypeChecking);
             final RecordSchemaValidator validator = new StandardSchemaValidator(validationContext);
 
             int recordCount = 0;

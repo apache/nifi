@@ -311,6 +311,27 @@ public class MapRecord implements Record {
     }
 
     @Override
+    public boolean isFieldPresent(String fieldName) {
+        return values.containsKey(fieldName);
+    }
+
+    @Override
+    public boolean isFieldPresent(RecordField field) {
+        final Set<String> rawFieldNames = this.getRawFieldNames();
+        if (rawFieldNames.contains(field.getFieldName())) {
+            return true;
+        }
+
+        for (final String alias : field.getAliases()) {
+            if (rawFieldNames.contains(alias)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    @Override
     public Map<String, Object> toMap() {
         return Collections.unmodifiableMap(values);
     }

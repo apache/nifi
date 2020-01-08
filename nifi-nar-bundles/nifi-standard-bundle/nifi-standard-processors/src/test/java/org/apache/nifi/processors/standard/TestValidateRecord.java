@@ -547,4 +547,46 @@ public class TestValidateRecord {
         final MockFlowFile validFlowFileInferredSchema = runner.getFlowFilesForRelationship(ValidateRecord.REL_VALID).get(0);
         validFlowFileInferredSchema.assertContentEquals(new File("src/test/resources/TestValidateRecord/timestamp.json"));
     }
+
+    @Test
+    public void testValidateMissingFields() throws InitializationException, IOException {
+        final String validateSchema = new String(Files.readAllBytes(Paths.get("src/test/resources/TestValidateRecord/missing-fields.avsc")), StandardCharsets.UTF_8);
+
+        final CSVReader csvReader = new CSVReader();
+        runner.addControllerService("reader", csvReader);
+        runner.setProperty(csvReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, "schema-text-property");
+        runner.setProperty(csvReader, SchemaAccessUtils.SCHEMA_TEXT, validateSchema);
+        runner.enableControllerService(csvReader);
+
+        final MockRecordWriter validWriter = new MockRecordWriter("valid", true);
+        runner.addControllerService("valid-writer", validWriter);
+        runner.enableControllerService(validWriter);
+
+        final MockRecordWriter invalidWriter = new MockRecordWriter("invalid", true);
+        runner.addControllerService("invalid-writer", invalidWriter);
+        runner.enableControllerService(invalidWriter);
+
+        runner.setProperty(ValidateRecord.RECORD_READER, "reader");
+        runner.setProperty(ValidateRecord.RECORD_WRITER, "valid-writer");
+        runner.setProperty(ValidateRecord.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
+        runner.setProperty(ValidateRecord.SCHEMA_TEXT, validateSchema);
+        runner.setProperty(ValidateRecord.INVALID_RECORD_WRITER, "invalid-writer");
+        runner.setProperty(ValidateRecord.ALLOW_EXTRA_FIELDS, "true");
+        runner.setProperty(ValidateRecord.ALLOW_MISSING_NULL_VALUES, "false");
+
+        // The record is invalid due to not containing the required array from the schema
+        runner.setProperty(ValidateRecord.STRICT_TYPE_CHECKING, "false");
+        runner.enqueue(Paths.get("src/test/resources/TestValidateRecord/missing-fields.csv"));
+        runner.run();
+
+        runner.assertTransferCount(ValidateRecord.REL_VALID, 1);
+        runner.assertTransferCount(ValidateRecord.REL_INVALID, 1);
+        runner.assertTransferCount(ValidateRecord.REL_FAILURE, 0);
+
+        final MockFlowFile validFlowFile = runner.getFlowFilesForRelationship(ValidateRecord.REL_VALID).get(0);
+        assertEquals("4", validFlowFile.getAttribute("record.count"));
+        final MockFlowFile inValidFlowFile = runner.getFlowFilesForRelationship(ValidateRecord.REL_INVALID).get(0);
+        assertEquals("2", inValidFlowFile.getAttribute("record.count"));
+        runner.clearTransferState();
+    }
 }

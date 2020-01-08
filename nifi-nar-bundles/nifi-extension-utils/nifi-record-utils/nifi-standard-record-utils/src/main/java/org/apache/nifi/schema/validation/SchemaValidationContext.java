@@ -22,11 +22,13 @@ import org.apache.nifi.serialization.record.RecordSchema;
 public class SchemaValidationContext {
     private final RecordSchema schema;
     private final boolean allowExtraFields;
+    private final boolean allowMissingNullFields;
     private final boolean strictTypeChecking;
 
-    public SchemaValidationContext(final RecordSchema schema, final boolean allowExtraFields, final boolean strictTypeChecking) {
+    public SchemaValidationContext(final RecordSchema schema, final boolean allowExtraFields, final boolean allowMissingNullFields, final boolean strictTypeChecking) {
         this.schema = schema;
         this.allowExtraFields = allowExtraFields;
+        this.allowMissingNullFields = allowMissingNullFields;
         this.strictTypeChecking = strictTypeChecking;
     }
 
@@ -36,6 +38,10 @@ public class SchemaValidationContext {
 
     public boolean isExtraFieldAllowed() {
         return allowExtraFields;
+    }
+
+    public boolean isAllowMissingNullFields() {
+        return allowMissingNullFields;
     }
 
     public boolean isStrictTypeChecking() {

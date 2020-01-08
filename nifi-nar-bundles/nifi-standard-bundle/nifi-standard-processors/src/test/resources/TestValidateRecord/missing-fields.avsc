@@ -1,0 +1,11 @@
+{
+   "type" : "record",
+   "name" : "missing.fields",
+   "fields" : [
+      { "name" : "c1" , "type" : ["null","string"] },
+      { "name" : "c2" , "type" : ["null","string"] },
+      { "name" : "c3" , "type" : ["null","string"] },
+      { "name" : "c4" , "type" : ["null","string"] },
+      { "name" : "c5" , "type" : ["null","string"] }
+   ]
+}

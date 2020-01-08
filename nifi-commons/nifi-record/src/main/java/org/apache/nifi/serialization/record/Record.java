@@ -115,6 +115,22 @@ public interface Record {
     Optional<SerializedForm> getSerializedForm();
 
     /**
+     * If <code>true</code>, the fieldName exists in the record.
+     *
+     * @return <code>true</code> if the fieldName exists, <code>false</code>
+     *         if the fieldName does not exist.
+     */
+    boolean isFieldPresent(String fieldName);
+
+    /**
+     * If <code>true</code>, the field exists in the record.
+     *
+     * @return <code>true</code> if the field exists, <code>false</code>
+     *         if the field does not exist.
+     */
+    boolean isFieldPresent(RecordField field);
+
+    /**
      * Updates the value of the field with the given name to the given value. If the field specified
      * is not present in this Record's schema, this method will do nothing. If this method does change
      * any value in the Record, any {@link SerializedForm} that was provided will be removed (i.e., any

@@ -49,15 +49,18 @@ public class StandardSchemaValidator implements RecordSchemaValidator {
 
     private SchemaValidationResult validate(final Record record, final RecordSchema schema, final String fieldPrefix) {
         // Ensure that for every field in the schema, the type is correct (if we care) and that
-        // a value is present (unless it is nullable).
+        // a value is present (unless it is nullable or missing nulls are allowed).
         final StandardSchemaValidationResult result = new StandardSchemaValidationResult();
 
         for (final RecordField field : schema.getFields()) {
             final Object rawValue = record.getValue(field);
+            final boolean allowMissingNullFields = validationContext.isAllowMissingNullFields();
+            final boolean isFieldPresent = record.isFieldPresent(field);
 
-            // If there is no value, then it is always valid unless the field is required.
+            // If there is no value and allowMissingNullFields is true, then it is always valid unless the field is required.
+            // Otherwise we will check to see if the field is actually in the record and mark the record invalid if it's missing.
             if (rawValue == null) {
-                if (!field.isNullable() && field.getDefaultValue() == null) {
+                if ((!field.isNullable() && field.getDefaultValue() == null) || (!allowMissingNullFields && !isFieldPresent)) {
                     result.addValidationError(new StandardValidationError(concat(fieldPrefix, field), ValidationErrorType.MISSING_FIELD, "Field is required"));
                 }
 

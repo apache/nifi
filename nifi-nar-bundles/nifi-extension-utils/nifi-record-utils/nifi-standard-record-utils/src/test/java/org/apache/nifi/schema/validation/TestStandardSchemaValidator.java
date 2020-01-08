@@ -105,7 +105,7 @@ public class TestStandardSchemaValidator {
 
         final Record record = new MapRecord(schema, valueMap);
 
-        final SchemaValidationContext validationContext = new SchemaValidationContext(schema, false, true);
+        final SchemaValidationContext validationContext = new SchemaValidationContext(schema, false, true, true);
         final StandardSchemaValidator validator = new StandardSchemaValidator(validationContext);
 
         final SchemaValidationResult result = validator.validate(record);
@@ -125,8 +125,8 @@ public class TestStandardSchemaValidator {
         valueMap.put("id", 1);
         Record record = new MapRecord(schema, valueMap);
 
-        final SchemaValidationContext strictValidationContext = new SchemaValidationContext(schema, false, true);
-        final SchemaValidationContext lenientValidationContext = new SchemaValidationContext(schema, false, false);
+        final SchemaValidationContext strictValidationContext = new SchemaValidationContext(schema, false, true, true);
+        final SchemaValidationContext lenientValidationContext = new SchemaValidationContext(schema, false, true, false);
 
         // Validate with correct type of int and a strict validation
         StandardSchemaValidator validator = new StandardSchemaValidator(strictValidationContext);
@@ -177,7 +177,7 @@ public class TestStandardSchemaValidator {
         valueMap.put("id", 1);
         final Record record = new MapRecord(schema, valueMap, false, false);
 
-        final SchemaValidationContext allowExtraFieldsContext = new SchemaValidationContext(schema, true, true);
+        final SchemaValidationContext allowExtraFieldsContext = new SchemaValidationContext(schema, true, true, true);
 
         StandardSchemaValidator validator = new StandardSchemaValidator(allowExtraFieldsContext);
         SchemaValidationResult result = validator.validate(record);
@@ -189,7 +189,7 @@ public class TestStandardSchemaValidator {
     }
 
     @Test
-    public void testMissingNullableField() {
+    public void testMissingNotNullableField() {
         final List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
         fields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
@@ -199,13 +199,33 @@ public class TestStandardSchemaValidator {
         valueMap.put("id", 1);
         Record record = new MapRecord(schema, valueMap, false, false);
 
-        final SchemaValidationContext allowExtraFieldsContext = new SchemaValidationContext(schema, true, true);
+        final SchemaValidationContext allowExtraFieldsContext = new SchemaValidationContext(schema, true, true, true);
 
         StandardSchemaValidator validator = new StandardSchemaValidator(allowExtraFieldsContext);
         SchemaValidationResult result = validator.validate(record);
         assertTrue(result.isValid());
         assertNotNull(result.getValidationErrors());
         assertTrue(result.getValidationErrors().isEmpty());
+    }
+
+    @Test
+    public void testMissingNullableField() {
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
+        fields.add(new RecordField("name", RecordFieldType.STRING.getDataType(), true));
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        final Map<String, Object> valueMap = new LinkedHashMap<>();
+        valueMap.put("id", 1);
+        Record record = new MapRecord(schema, valueMap, false, false);
+
+        final SchemaValidationContext allowExtraFieldsContext = new SchemaValidationContext(schema, true, false, true);
+
+        StandardSchemaValidator validator = new StandardSchemaValidator(allowExtraFieldsContext);
+        SchemaValidationResult result = validator.validate(record);
+        assertFalse(result.isValid());
+        assertNotNull(result.getValidationErrors());
+        assertFalse(result.getValidationErrors().isEmpty());
     }
 
     @Test
@@ -219,8 +239,8 @@ public class TestStandardSchemaValidator {
         valueMap.put("name", "John Doe");
         Record record = new MapRecord(schema, valueMap, false, false);
 
-        final SchemaValidationContext allowExtraFieldsContext = new SchemaValidationContext(schema, true, true);
-        final SchemaValidationContext forbidExtraFieldsContext = new SchemaValidationContext(schema, false, false);
+        final SchemaValidationContext allowExtraFieldsContext = new SchemaValidationContext(schema, true, true,true);
+        final SchemaValidationContext forbidExtraFieldsContext = new SchemaValidationContext(schema, false, true, false);
 
         StandardSchemaValidator validator = new StandardSchemaValidator(allowExtraFieldsContext);
         SchemaValidationResult result = validator.validate(record);
@@ -262,8 +282,8 @@ public class TestStandardSchemaValidator {
         valueMap.put("account", accountRecord);
         Record record = new MapRecord(schema, valueMap, false, false);
 
-        final SchemaValidationContext strictValidationContext = new SchemaValidationContext(schema, false, true);
-        final SchemaValidationContext lenientValidationContext = new SchemaValidationContext(schema, false, false);
+        final SchemaValidationContext strictValidationContext = new SchemaValidationContext(schema, false, false,true);
+        final SchemaValidationContext lenientValidationContext = new SchemaValidationContext(schema, false, true, false);
 
         StandardSchemaValidator validator = new StandardSchemaValidator(strictValidationContext);
         SchemaValidationResult result = validator.validate(record);
@@ -294,8 +314,8 @@ public class TestStandardSchemaValidator {
         valueMap.put("numbers", new Object[] {1, "2", "3"});
         Record record = new MapRecord(schema, valueMap, false, false);
 
-        final SchemaValidationContext strictValidationContext = new SchemaValidationContext(schema, false, true);
-        final SchemaValidationContext lenientValidationContext = new SchemaValidationContext(schema, false, false);
+        final SchemaValidationContext strictValidationContext = new SchemaValidationContext(schema, false, true, true);
+        final SchemaValidationContext lenientValidationContext = new SchemaValidationContext(schema, false, true, false);
 
         StandardSchemaValidator validator = new StandardSchemaValidator(strictValidationContext);
         SchemaValidationResult result = validator.validate(record);

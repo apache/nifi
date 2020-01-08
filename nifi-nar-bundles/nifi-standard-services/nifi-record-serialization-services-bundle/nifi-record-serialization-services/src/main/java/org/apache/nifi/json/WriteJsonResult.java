@@ -46,7 +46,6 @@ import java.math.BigInteger;
 import java.text.DateFormat;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.Supplier;
 
 public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSetWriter, RawRecordWriter {
@@ -186,7 +185,7 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
                     final String fieldName = field.getFieldName();
                     final Object value = record.getValue(field);
                     if (value == null) {
-                        if (nullSuppression == NullSuppression.NEVER_SUPPRESS || (nullSuppression == NullSuppression.SUPPRESS_MISSING) && isFieldPresent(field, record)) {
+                        if (nullSuppression == NullSuppression.NEVER_SUPPRESS || (nullSuppression == NullSuppression.SUPPRESS_MISSING) && record.isFieldPresent(field)) {
                             generator.writeNullField(fieldName);
                         }
 
@@ -219,21 +218,6 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
             logger.error("Failed to write {} with schema {} as a JSON Object due to {}", new Object[] {record, record.getSchema(), e.toString(), e});
             throw e;
         }
-    }
-
-    private boolean isFieldPresent(final RecordField field, final Record record) {
-        final Set<String> rawFieldNames = record.getRawFieldNames();
-        if (rawFieldNames.contains(field.getFieldName())) {
-            return true;
-        }
-
-        for (final String alias : field.getAliases()) {
-            if (rawFieldNames.contains(alias)) {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     @SuppressWarnings("unchecked")
