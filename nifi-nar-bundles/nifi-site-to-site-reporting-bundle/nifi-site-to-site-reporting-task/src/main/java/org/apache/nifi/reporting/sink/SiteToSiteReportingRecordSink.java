@@ -163,8 +163,6 @@ public class SiteToSiteReportingRecordSink extends AbstractControllerService imp
                     transaction.send(out.toByteArray(), attributes);
                     transaction.confirm();
                     transaction.complete();
-                } else {
-                    transaction.cancel("No data to send");
                 }
             }
             return writeResult;
