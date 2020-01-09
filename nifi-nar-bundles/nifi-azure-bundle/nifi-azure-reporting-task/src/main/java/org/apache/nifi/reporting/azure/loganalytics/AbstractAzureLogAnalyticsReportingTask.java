@@ -133,11 +133,15 @@ public abstract class AbstractAzureLogAnalyticsReportingTask extends AbstractRep
 
     protected void sendToLogAnalytics(final HttpPost request, final String workspaceId, final String linuxPrimaryKey,
             final String rawJson) throws IllegalArgumentException, RuntimeException, IOException {
+
         final int bodyLength = rawJson.getBytes(UTF8).length;
-        final String nowRfc1123 = RFC_1123_DATE_TIME.format(ZonedDateTime.now(ZoneOffset.UTC));
+        final ZonedDateTime zNow = ZonedDateTime.now(ZoneOffset.UTC);
+        final String nowRfc1123 = zNow.format(DateTimeFormatter.RFC_1123_DATE_TIME);
+        final String nowISO8601 = zNow.format(DateTimeFormatter.ISO_DATE_TIME);
         final String createAuthorization = createAuthorization(workspaceId, linuxPrimaryKey, bodyLength, nowRfc1123);
         request.addHeader("Authorization", createAuthorization);
         request.addHeader("x-ms-date", nowRfc1123);
+        request.addHeader("time-generated-field", nowISO8601);
         request.setEntity(new StringEntity(rawJson));
         try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
             postRequest(httpClient, request);
