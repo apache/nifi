@@ -25,6 +25,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -45,6 +46,8 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -183,9 +186,8 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
             .name("gethdfsfileinfo-batch-size")
             .description("Number of records to put into an output flowfile when 'Destination' is set to 'Content'"
                 + " and 'Group Results' is set to 'None'")
-            .required(true)
-            .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
-            .defaultValue("1")
+            .required(false)
+            .addValidator(StandardValidators.createAllowEmptyValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR))
             .build();
 
     static final AllowableValue DESTINATION_ATTRIBUTES = new AllowableValue("gethdfsfileinfo-dest-attr", "Attributes",
@@ -264,6 +266,31 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
         super.onPropertyModified(descriptor, oldValue, newValue);
         // drop request details to rebuild it
         req = null;
+    }
+
+    @Override
+    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+        final List<ValidationResult> validationResults = new ArrayList<>(super.customValidate(validationContext));
+
+        String destination = validationContext.getProperty(DESTINATION).getValue();
+        String grouping = validationContext.getProperty(GROUPING).getValue();
+        String batchSize = validationContext.getProperty(BATCH_SIZE).getValue();
+
+        if (
+            (!DESTINATION_CONTENT.getValue().equals(destination) || !GROUP_NONE.getValue().equals(grouping))
+                && batchSize != null
+                && !batchSize.equals("")
+        ) {
+            validationResults.add(new ValidationResult.Builder()
+                .valid(false)
+                .subject(BATCH_SIZE.getDisplayName())
+                .explanation("'" + BATCH_SIZE.getDisplayName() + "' is applicable only when " +
+                    "'" + DESTINATION.getDisplayName() + "'='" + DESTINATION_CONTENT.getDisplayName() + "' and " +
+                    "'" + GROUPING.getDisplayName() + "'='" + GROUP_NONE.getDisplayName() + "'")
+                .build());
+        }
+
+        return validationResults;
     }
 
     @Override
@@ -609,7 +636,11 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
         req.isIgnoreDotDirs = context.getProperty(IGNORE_DOTTED_DIRS).asBoolean();
 
         req.groupping = HDFSFileInfoRequest.Groupping.getEnum(context.getProperty(GROUPING).getValue());
-        req.batchSize = context.getProperty(BATCH_SIZE).asInteger();
+        req.batchSize = Optional.ofNullable(context.getProperty(BATCH_SIZE))
+            .filter(propertyValue -> propertyValue.getValue() != null)
+            .filter(propertyValue -> !propertyValue.getValue().equals(""))
+            .map(PropertyValue::asInteger)
+            .orElse(1);
 
         v = context.getProperty(DESTINATION).getValue();
         if (DESTINATION_CONTENT.getValue().equals(v)) {
@@ -659,15 +690,15 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
     }
 
     static class ExecutionContext {
-        private int nrOfWaitingHDFSObjects;
-        private FlowFile flowfile;
+        int nrOfWaitingHDFSObjects;
+        FlowFile flowfile;
 
-        public void reset() {
+        void reset() {
             nrOfWaitingHDFSObjects = 0;
             flowfile = null;
         }
 
-        public void finish(ProcessSession session) {
+        void finish(ProcessSession session) {
             if (flowfile != null) {
                 session.transfer(flowfile, REL_SUCCESS);
                 flowfile = null;

@@ -507,6 +507,20 @@ public class StandardValidators {
     // FACTORY METHODS FOR VALIDATORS
     //
     //
+    public static Validator createAllowEmptyValidator(Validator delegate) {
+        return (subject, input, context) -> {
+            ValidationResult validationResult;
+
+            if (input == null || input.equals("")) {
+                validationResult = new ValidationResult.Builder().subject(subject).input(input).explanation("Empty/Null value is allowed").valid(true).build();
+            } else {
+                validationResult = delegate.validate(subject, input, context);
+            }
+
+            return validationResult;
+        };
+    }
+
     public static Validator createDirectoryExistsValidator(final boolean allowExpressionLanguage, final boolean createDirectoryIfMissing) {
         return new DirectoryExistsValidator(allowExpressionLanguage, createDirectoryIfMissing);
     }
