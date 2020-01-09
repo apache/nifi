@@ -14,3 +14,4 @@
 # limitations under the License.
 
 org.apache.nifi.cs.tests.system.StandardSleepService
+org.apache.nifi.cs.tests.system.FakeControllerService1

@@ -173,6 +173,12 @@
             <version>1.11.0-SNAPSHOT</version>
             <type>nar</type>
         </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-system-test-extensions2-nar</artifactId>
+            <version>1.11.0-SNAPSHOT</version>
+            <type>nar</type>
+        </dependency>
 
         <!-- dependencies for jaxb/activation/annotation for running NiFi on Java 11 -->
         <!-- TODO: remove these once minimum Java version is 11 -->

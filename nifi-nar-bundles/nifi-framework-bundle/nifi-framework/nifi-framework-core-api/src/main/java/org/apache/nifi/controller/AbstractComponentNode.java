@@ -719,6 +719,10 @@ public abstract class AbstractComponentNode implements ComponentNode {
 
     private ValidationResult validateControllerServiceApi(final PropertyDescriptor descriptor, final ControllerServiceNode controllerServiceNode) {
         final Class<? extends ControllerService> controllerServiceApiClass = descriptor.getControllerServiceDefinition();
+        // If a processor accepts any service don't validate it.
+        if (controllerServiceApiClass.equals(ControllerService.class)) {
+            return null;
+        }
         final ClassLoader controllerServiceApiClassLoader = controllerServiceApiClass.getClassLoader();
         final ExtensionManager extensionManager = serviceProvider.getExtensionManager();
 
