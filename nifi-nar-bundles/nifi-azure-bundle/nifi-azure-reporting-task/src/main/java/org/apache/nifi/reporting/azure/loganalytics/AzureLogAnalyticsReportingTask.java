@@ -70,6 +70,7 @@ public class AzureLogAnalyticsReportingTask extends AbstractAzureLogAnalyticsRep
         properties.add(INSTANCE_ID);
         properties.add(PROCESS_GROUP_IDS);
         properties.add(JOB_NAME);
+        properties.add(SEND_JVM_METRICS);
         properties.add(LOG_ANALYTICS_URL_ENDPOINT_FORMAT);
         return properties;
     }
