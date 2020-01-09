@@ -27,10 +27,15 @@ import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -39,6 +44,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.util.Progressable;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.hadoop.KerberosProperties;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.reporting.InitializationException;
@@ -51,6 +57,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class TestGetHDFSFileInfo {
+    private static final Pattern SINGLE_JSON_PATTERN = Pattern.compile("^\\{[^\\}]*\\}$");
 
     private TestRunner runner;
     private GetHDFSFileInfoWithMockedFileSystem proc;
@@ -561,6 +568,135 @@ public class TestGetHDFSFileInfo {
             }
         }
         Assert.assertEquals(matchCount, 5);
+    }
+
+    @Test
+    public void testBatchSizeWithGroupAllBatchSizeNull() throws Exception {
+        testBatchSize(null, GetHDFSFileInfo.GROUP_ALL, 1);
+    }
+    @Test
+    public void testBatchSizeWithGroupAllBatchSize1() throws Exception {
+        testBatchSize(1, GetHDFSFileInfo.GROUP_ALL, 1);
+    }
+    @Test
+    public void testBatchSizeWithGroupAllBatchSize3() throws Exception {
+        testBatchSize(3, GetHDFSFileInfo.GROUP_ALL, 1);
+    }
+    @Test
+    public void testBatchSizeWithGroupAllBatchSize100() throws Exception {
+        testBatchSize(100, GetHDFSFileInfo.GROUP_ALL, 1);
+    }
+
+    @Test
+    public void testBatchSizeWithGroupDirBatchSizeNull() throws Exception {
+        testBatchSize(null, GetHDFSFileInfo.GROUP_PARENT_DIR, 5);
+    }
+    @Test
+    public void testBatchSizeWithGroupDirBatchSize1() throws Exception {
+        testBatchSize(1, GetHDFSFileInfo.GROUP_PARENT_DIR, 5);
+    }
+    @Test
+    public void testBatchSizeWithGroupDirBatchSize3() throws Exception {
+        testBatchSize(3, GetHDFSFileInfo.GROUP_PARENT_DIR, 5);
+    }
+    @Test
+    public void testBatchSizeWithGroupDirBatchSize100() throws Exception {
+        testBatchSize(100, GetHDFSFileInfo.GROUP_PARENT_DIR, 5);
+    }
+
+    @Test
+    public void testBatchSizeWithDestAttributeGroupNoneBatchSizeNull() throws Exception {
+        testBatchSize(null, GetHDFSFileInfo.GROUP_NONE, 9);
+    }
+    @Test
+    public void testBatchSizeWithDestAttributeGroupNoneBatchSize1() throws Exception {
+        testBatchSize(1, GetHDFSFileInfo.GROUP_NONE, 9);
+    }
+    @Test
+    public void testBatchSizeWithDestAttributeGroupNoneBatchSize3() throws Exception {
+        testBatchSize(3, GetHDFSFileInfo.GROUP_NONE, 9);
+    }
+    @Test
+    public void testBatchSizeWithDestAttributeGroupNoneBatchSize100() throws Exception {
+        testBatchSize(100, GetHDFSFileInfo.GROUP_NONE, 9);
+    }
+
+    @Test
+    public void testBatchSizeWithDestContentGroupNoneBatchSizeNull() throws Exception {
+        testBatchSize(null, GetHDFSFileInfo.GROUP_NONE, GetHDFSFileInfo.DESTINATION_CONTENT, 9);
+
+        checkContentSizes(Arrays.asList(1, 1, 1, 1, 1, 1, 1, 1, 1));
+    }
+    @Test
+    public void testBatchSizeWithDestContentGroupNoneBatchSize1() throws Exception {
+        testBatchSize(1, GetHDFSFileInfo.GROUP_NONE, GetHDFSFileInfo.DESTINATION_CONTENT, 9);
+        checkContentSizes(Arrays.asList(1, 1, 1, 1, 1, 1, 1, 1, 1));
+    }
+    @Test
+    public void testBatchSizeWithDestContentGroupNoneBatchSize3() throws Exception {
+        testBatchSize(3, GetHDFSFileInfo.GROUP_NONE, GetHDFSFileInfo.DESTINATION_CONTENT, 3);
+        checkContentSizes(Arrays.asList(3, 3, 3));
+    }
+    @Test
+    public void testBatchSizeWithDestContentGroupNoneBatchSize4() throws Exception {
+        testBatchSize(4, GetHDFSFileInfo.GROUP_NONE, GetHDFSFileInfo.DESTINATION_CONTENT, 3);
+        checkContentSizes(Arrays.asList(4, 4, 1));
+    }
+    @Test
+    public void testBatchSizeWithDestContentGroupNoneBatchSize5() throws Exception {
+        testBatchSize(5, GetHDFSFileInfo.GROUP_NONE, GetHDFSFileInfo.DESTINATION_CONTENT, 2);
+        checkContentSizes(Arrays.asList(5, 4));
+    }
+    @Test
+    public void testBatchSizeWithDestContentGroupNoneBatchSize9() throws Exception {
+        testBatchSize(9, GetHDFSFileInfo.GROUP_NONE, GetHDFSFileInfo.DESTINATION_CONTENT, 1);
+        checkContentSizes(Arrays.asList(9));
+    }
+    @Test
+    public void testBatchSizeWithDestContentGroupNoneBatchSize100() throws Exception {
+        testBatchSize(100, GetHDFSFileInfo.GROUP_NONE, GetHDFSFileInfo.DESTINATION_CONTENT, 1);
+        checkContentSizes(Arrays.asList(9));
+    }
+
+    private void testBatchSize(Integer batchSize, AllowableValue grouping, int expectedNrTransferedToSuccess) {
+        testBatchSize(batchSize, grouping, GetHDFSFileInfo.DESTINATION_ATTRIBUTES, expectedNrTransferedToSuccess);
+    }
+
+    private void testBatchSize(Integer batchSize, AllowableValue grouping, AllowableValue destination, int expectedNrTransferedToSuccess) {
+        setFileSystemBasicTree(proc.fileSystem);
+
+        runner.setIncomingConnection(false);
+        runner.setProperty(GetHDFSFileInfo.FULL_PATH, "/some/home/mydir");
+        runner.setProperty(GetHDFSFileInfo.RECURSE_SUBDIRS, "true");
+        runner.setProperty(GetHDFSFileInfo.IGNORE_DOTTED_DIRS, "true");
+        runner.setProperty(GetHDFSFileInfo.IGNORE_DOTTED_FILES, "true");
+        runner.setProperty(GetHDFSFileInfo.DESTINATION, destination);
+        runner.setProperty(GetHDFSFileInfo.GROUPING, grouping);
+        if (batchSize != null) {
+            runner.setProperty(GetHDFSFileInfo.BATCH_SIZE, "" + batchSize);
+        }
+
+        runner.run();
+
+        runner.assertTransferCount(GetHDFSFileInfo.REL_ORIGINAL, 0);
+        runner.assertTransferCount(GetHDFSFileInfo.REL_SUCCESS, expectedNrTransferedToSuccess);
+        runner.assertTransferCount(GetHDFSFileInfo.REL_FAILURE, 0);
+        runner.assertTransferCount(GetHDFSFileInfo.REL_NOT_FOUND, 0);
+    }
+
+    private void checkContentSizes(List<Integer> expectedNumberOfRecords) {
+        List<Integer> actualNumberOfRecords = runner.getFlowFilesForRelationship(GetHDFSFileInfo.REL_SUCCESS).stream()
+            .map(MockFlowFile::toByteArray)
+            .map(String::new)
+            .map(
+                content -> Arrays.stream(content.split("\n"))
+                    .filter(line -> SINGLE_JSON_PATTERN.matcher(line).matches())
+                    .count()
+            )
+            .map(Long::intValue)
+            .collect(Collectors.toList());
+
+        assertEquals(expectedNumberOfRecords, actualNumberOfRecords);
     }
 
     /*
