@@ -2660,6 +2660,7 @@ key5=c6FzfnKm7UR7xqI2NFpZ+fEKBfSU7+1NvRw+XWQ9U39MONWqk5gvoyOCdFR1kUgeg46jrN5dGXk
 
 Each line defines a key ID and then the Base64-encoded cipher text of a 16 byte IV and wrapped AES-128, AES-192, or AES-256 key depending on the JCE policies available. The individual keys are wrapped by AES/GCM encryption using the **master key** defined by `nifi.bootstrap.sensitive.key` in _conf/bootstrap.conf_.
 
+[[provenance-repository-key-rotation]]
 ===== Key Rotation
 Simply update _nifi.properties_ to reference a new key ID in `nifi.provenance.repository.encryption.key.id`. Previously-encrypted events can still be decrypted as long as that key is still available in the key definition file or `nifi.provenance.repository.encryption.key.id.<OldKeyID>` as the key ID is serialized alongside the encrypted record.
 
@@ -2682,7 +2683,7 @@ When switching between implementation "families" (i.e. `VolatileProvenanceReposi
 
 * Switching between unencrypted and encrypted repositories
 ** If a user has an existing repository (`WriteAheadProvenanceRepository` only -- **not** `PersistentProvenanceRepository`) that is not encrypted and switches their configuration to use an encrypted repository, the application writes an error to the log but starts up. However, previous events are not accessible through the provenance query interface and new events will overwrite the existing events. The same behavior occurs if a user switches from an encrypted repository to an unencrypted repository. Automatic roll-over is a future effort (link:https://issues.apache.org/jira/browse/NIFI-3722[NIFI-3722^]) but NiFi is not intended for long-term storage of provenance events so the impact should be minimal. There are two scenarios for roll-over:
-*** Encrypted -> unencrypted -- if the previous repository implementation was encrypted, these events should be handled seamlessly as long as the key provider available still has the keys used to encrypt the events (see **Key Rotation**)
+*** Encrypted -> unencrypted -- if the previous repository implementation was encrypted, these events should be handled seamlessly as long as the key provider available still has the keys used to encrypt the events (see <<provenance-repository-key-rotation,Key Rotation>>)
 *** Unencrypted -> encrypted -- if the previous repository implementation was unencrypted, these events should be handled seamlessly as the previously recorded events simply need to be read with a plaintext schema record reader and then written back with the encrypted record writer
 ** There is also a future effort to provide a standalone tool in NiFi Toolkit to encrypt/decrypt an existing provenance repository to make the transition easier. The translation process could take a long time depending on the size of the existing repository, and being able to perform this task outside of application startup would be valuable (link:https://issues.apache.org/jira/browse/NIFI-3723[NIFI-3723^]).
 * Multiple repositories -- No additional effort or testing has been applied to multiple repositories at this time. It is possible/likely issues will occur with repositories on different physical devices. There is no option to provide a heterogenous environment (i.e. one encrypted, one plaintext repository).
@@ -2745,6 +2746,7 @@ Tool_ or `FileBasedKeyProvider`, those _keys_ will be protected using `AES/GCM` 
 over the key material.
 ****
 
+[[content-repository-key-rotation]]
 ==== Key Rotation
 Simply update _nifi.properties_ to reference a new key ID in `nifi.content.repository.encryption.key.id`. Previously-encrypted content claims can still be decrypted as long as that key is still available in the key definition file or `nifi.content.repository.encryption.key.id.<OldKeyID>` as the key ID is serialized alongside the encrypted content.
 
@@ -2767,7 +2769,7 @@ When switching between implementation "families" (i.e. `VolatileContentRepositor
 
 * Switching between unencrypted and encrypted repositories
 ** If a user has an existing repository (`FileSystemRepository`) that is not encrypted and switches their configuration to use an encrypted repository, the application writes an error to the log but starts up. However, previous content claims are not accessible through the provenance query interface and new content claims will overwrite the existing claims. The same behavior occurs if a user switches from an encrypted repository to an unencrypted repository. Automatic roll-over is a future effort (link:https://issues.apache.org/jira/browse/NIFI-6783[NIFI-6783^]) but NiFi is not intended for long-term storage of content claims so the impact should be minimal. There are two scenarios for roll-over:
-*** Encrypted -> unencrypted -- if the previous repository implementation was encrypted, these claims should be handled seamlessly as long as the key provider available still has the keys used to encrypt the claims (see **Key Rotation**)
+*** Encrypted -> unencrypted -- if the previous repository implementation was encrypted, these claims should be handled seamlessly as long as the key provider available still has the keys used to encrypt the claims (see <<content-repository-key-rotation,Key Rotation>>)
 *** Unencrypted -> encrypted -- if the previous repository implementation was unencrypted, these claims should be handled seamlessly as the previously written claims simply need to be read with a plaintext `InputStream` and then be written back with the `EncryptedContentRepositoryOutputStream`
 ** There is also a future effort to provide a standalone tool in NiFi Toolkit to encrypt/decrypt an existing content repository to make the transition easier. The translation process could take a long time depending on the size of the existing repository, and being able to perform this task outside of application startup would be valuable (link:https://issues.apache.org/jira/browse/NIFI-6783[NIFI-6783^]).
 * Multiple repositories -- No additional effort or testing has been applied to multiple repositories at this time. It is possible/likely issues will occur with repositories on different physical devices. There is no option to provide a heterogenous environment (i.e. one encrypted, one plaintext repository).
@@ -2823,6 +2825,7 @@ key5=c6FzfnKm7UR7xqI2NFpZ+fEKBfSU7+1NvRw+XWQ9U39MONWqk5gvoyOCdFR1kUgeg46jrN5dGXk
 
 Each line defines a key ID and then the Base64-encoded cipher text of a 16 byte IV and wrapped AES-128, AES-192, or AES-256 key depending on the JCE policies available. The individual keys are wrapped by AES/GCM encryption using the **master key** defined by `nifi.bootstrap.sensitive.key` in _conf/bootstrap.conf_.
 
+[[flowfile-repository-key-rotation]]
 ==== Key Rotation
 Simply update _nifi.properties_ to reference a new key ID in `nifi.flowfile.repository.encryption.key.id`. Previously-encrypted flowfile records can still be decrypted as long as that key is still available in the key definition file or `nifi.flowfile.repository.encryption.key.id.<OldKeyID>` as the key ID is serialized alongside the encrypted record.
 
@@ -2847,7 +2850,7 @@ It is not recommended to switch between any implementation other than `Sequentia
 
 * Switching between unencrypted and encrypted repositories
 ** If a user has an existing write-ahead repository (`WriteAheadFlowFileRepository`) that is not encrypted (uses the `SequentialAccessWriteAheadLog`) and switches their configuration to use an encrypted repository, the application handles this and all flowfile records will be recovered on startup. Future writes (including re-serialization of these same flowfiles) will be encrypted. If a user switches from an encrypted repository to an unencrypted repository, the flowfiles cannot be recovered, and it is recommended to delete the existing flowfile repository before switching in this direction. Automatic roll-over is a future effort (link:https://issues.apache.org/jira/browse/NIFI-6994[NIFI-6994^]) but NiFi is not intended for long-term storage of flowfile records so the impact should be minimal. There are two scenarios for roll-over:
-*** Encrypted -> unencrypted -- if the previous repository implementation was encrypted, these records should be handled seamlessly as long as the key provider available still has the keys used to encrypt the claims (see **Key Rotation**)
+*** Encrypted -> unencrypted -- if the previous repository implementation was encrypted, these records should be handled seamlessly as long as the key provider available still has the keys used to encrypt the claims (see <<flowfile-repository-key-rotation,Key Rotation>>)
 *** Unencrypted -> encrypted -- currently handled seamlesssly for `SequentialAccessWriteAheadLog` but there are other initial implementations which could be handled
 ** There is also a future effort to provide a standalone tool in NiFi Toolkit to encrypt/decrypt an existing flowfile repository to make the transition easier. The translation process could take a long time depending on the size of the existing repository, and being able to perform this task outside of application startup would be valuable (link:https://issues.apache.org/jira/browse/NIFI-6994[NIFI-6994^]).
 * Multiple repositories -- No additional effort or testing has been applied to multiple repositories at this time. Current implementations of the flowfile repository allow only for one repository, though it can reside across multiple volumes and partitions. It is possible/likely issues will occur with repositories on different physical devices. There is no option to provide a heterogenous environment (i.e. one encrypted, one plaintext partition/directory).

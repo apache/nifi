@@ -2553,7 +2553,7 @@ nifi.flowfile.repository.implementation=org.apache.nifi.controller.repository.Wr
 nifi.flowfile.repository.wal.implementation=org.apache.nifi.wali.EncryptedSequentialAccessWriteAheadLog
 nifi.flowfile.repository.encryption.key.provider.implementation=org.apache.nifi.security.kms.StaticKeyProvider
 nifi.flowfile.repository.encryption.key.provider.location=
-nifi.flowfile.repository.encryption.key.id=K1
+nifi.flowfile.repository.encryption.key.id=Key1
 nifi.flowfile.repository.encryption.key=0123456789ABCDEFFEDCBA98765432100123456789ABCDEFFEDCBA9876543210
 ....
 
@@ -2737,7 +2737,7 @@ The simplest configuration is below:
 nifi.content.repository.implementation=org.apache.nifi.controller.repository.crypto.EncryptedFileSystemRepository
 nifi.content.repository.encryption.key.provider.implementation=org.apache.nifi.security.kms.StaticKeyProvider
 nifi.content.repository.encryption.key.provider.location=
-nifi.content.repository.encryption.key.id=K1
+nifi.content.repository.encryption.key.id=Key1
 nifi.content.repository.encryption.key=0123456789ABCDEFFEDCBA98765432100123456789ABCDEFFEDCBA9876543210
 ....
 
