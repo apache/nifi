@@ -121,6 +121,27 @@ public class PutCassandraRecordTest {
     }
 
     @Test
+    public void testSimpleUpdate() throws InitializationException {
+        setUpStandardTestConfig();
+        testRunner.setProperty(PutCassandraRecord.STATEMENT_TYPE, "UPDATE");
+        testRunner.setProperty(PutCassandraRecord.UPDATE_METHOD, "SET");
+        testRunner.setProperty(PutCassandraRecord.UPDATE_KEYS, "name,age");
+
+        recordReader.addSchemaField("name", RecordFieldType.STRING);
+        recordReader.addSchemaField("age", RecordFieldType.INT);
+        recordReader.addSchemaField("goals", RecordFieldType.INT);
+
+        recordReader.addRecord("John Doe", 48,1);
+        recordReader.addRecord("Jane Doe", 47, 2);
+        recordReader.addRecord("Sally Doe", 47, 0);
+
+        testRunner.enqueue("");
+        testRunner.run();
+
+        testRunner.assertAllFlowFilesTransferred(PutCassandraRecord.REL_SUCCESS, 1);
+    }
+
+    @Test
     public void testEL() throws InitializationException {
         testRunner.setProperty(PutCassandraRecord.CONTACT_POINTS, "${contact.points}");
         testRunner.setProperty(PutCassandraRecord.PASSWORD, "${pass}");

@@ -19,8 +19,11 @@ package org.apache.nifi.processors.cassandra;
 import com.datastax.driver.core.BatchStatement;
 import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.Session;
+import com.datastax.driver.core.querybuilder.Assignment;
 import com.datastax.driver.core.querybuilder.Insert;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
+import com.datastax.driver.core.Statement;
+import com.datastax.driver.core.querybuilder.Update;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -57,6 +60,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 @CapabilityDescription("This is a record aware processor that reads the content of the incoming FlowFile as individual records using the " +
         "configured 'Record Reader' and writes them to Apache Cassandra using native protocol version 3 or higher.")
 public class PutCassandraRecord extends AbstractCassandraProcessor {
+    static final String UPDATE_TYPE = "UPDATE";
+    static final String INSERT_TYPE = "INSERT";
+    static final String INCR_TYPE = "INCREMENT";
+    static final String SET_TYPE = "SET";
+    static final String DECR_TYPE = "DECREMENT";
 
     static final PropertyDescriptor RECORD_READER_FACTORY = new PropertyDescriptor.Builder()
             .name("put-cassandra-record-reader")
@@ -65,6 +73,35 @@ public class PutCassandraRecord extends AbstractCassandraProcessor {
                     "and determining the schema")
             .identifiesControllerService(RecordReaderFactory.class)
             .required(true)
+            .build();
+
+    static final PropertyDescriptor STATEMENT_TYPE = new PropertyDescriptor.Builder()
+            .name("put-cassandra-record-statement-type")
+            .displayName("Statement Type")
+            .description("Specifies the type of CQL Statement to generate.")
+            .required(true)
+            .defaultValue(INSERT_TYPE)
+            .allowableValues(UPDATE_TYPE, INSERT_TYPE)
+            .build();
+
+    static final PropertyDescriptor UPDATE_METHOD = new PropertyDescriptor.Builder()
+            .name("put-cassandra-record-update-method")
+            .displayName("Update Method")
+            .description("Specifies the method to use to SET the values.")
+            .required(false)
+            .defaultValue(SET_TYPE)
+            .allowableValues(INCR_TYPE, DECR_TYPE, SET_TYPE)
+            .build();
+
+    static final PropertyDescriptor UPDATE_KEYS = new PropertyDescriptor.Builder()
+            .name("put-cassandra-record-update-keys")
+            .displayName("Update Keys")
+            .description("A comma-separated list of column names that uniquely identifies a row in the database for UPDATE statements. "
+                    + "If the Statement Type is UPDATE and this property is not set, the conversion to CQL will fail. "
+                    + "This property is ignored if the Statement Type is INSERT.")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
     static final PropertyDescriptor TABLE = new PropertyDescriptor.Builder()
@@ -102,7 +139,7 @@ public class PutCassandraRecord extends AbstractCassandraProcessor {
             .build();
 
     private final static List<PropertyDescriptor> propertyDescriptors = Collections.unmodifiableList(Arrays.asList(
-            CONNECTION_PROVIDER_SERVICE, CONTACT_POINTS, KEYSPACE, TABLE, CLIENT_AUTH, USERNAME, PASSWORD,
+            CONNECTION_PROVIDER_SERVICE, CONTACT_POINTS, KEYSPACE, TABLE, STATEMENT_TYPE, UPDATE_KEYS, UPDATE_METHOD, CLIENT_AUTH, USERNAME, PASSWORD,
             RECORD_READER_FACTORY, BATCH_SIZE, CONSISTENCY_LEVEL, BATCH_STATEMENT_TYPE, PROP_SSL_CONTEXT_SERVICE));
 
     private final static Set<Relationship> relationships = Collections.unmodifiableSet(
@@ -131,6 +168,9 @@ public class PutCassandraRecord extends AbstractCassandraProcessor {
         final int batchSize = context.getProperty(BATCH_SIZE).evaluateAttributeExpressions().asInteger();
         final String batchStatementType = context.getProperty(BATCH_STATEMENT_TYPE).getValue();
         final String serialConsistencyLevel = context.getProperty(CONSISTENCY_LEVEL).getValue();
+        final String statementType = context.getProperty(STATEMENT_TYPE).getValue();
+        final String updateKeys = context.getProperty(UPDATE_KEYS).evaluateAttributeExpressions(inputFlowFile).getValue();
+        final String updateMethod = context.getProperty(UPDATE_METHOD).getValue();
 
         final BatchStatement batchStatement;
         final Session connectionSession = cassandraSession.get();
@@ -151,18 +191,16 @@ public class PutCassandraRecord extends AbstractCassandraProcessor {
             while((record = reader.nextRecord()) != null) {
                 Map<String, Object> recordContentMap = (Map<String, Object>) DataTypeUtils
                         .convertRecordFieldtoObject(record, RecordFieldType.RECORD.getRecordDataType(record.getSchema()));
-                Insert insertQuery;
 
-                if (cassandraTable.contains(".")) {
-                    String keyspaceAndTable[] = cassandraTable.split("\\.");
-                    insertQuery = QueryBuilder.insertInto(keyspaceAndTable[0], keyspaceAndTable[1]);
+                Statement query;
+                if (INSERT_TYPE.equalsIgnoreCase(statementType)) {
+                    query = generateInsert(cassandraTable, schema, recordContentMap);
+                } else if (UPDATE_TYPE.equalsIgnoreCase(statementType)) {
+                    query = generateUpdate(cassandraTable, schema, updateKeys, updateMethod, recordContentMap);
                 } else {
-                    insertQuery = QueryBuilder.insertInto(cassandraTable);
+                    throw new IllegalArgumentException("Statement Type '" + statementType + "' is not valid.");
                 }
-                for (String fieldName : schema.getFieldNames()) {
-                    insertQuery.value(fieldName, recordContentMap.get(fieldName));
-                }
-                batchStatement.add(insertQuery);
+                batchStatement.add(query);
 
                 if (recordsAdded.incrementAndGet() == batchSize) {
                     connectionSession.execute(batchStatement);
@@ -191,6 +229,74 @@ public class PutCassandraRecord extends AbstractCassandraProcessor {
             }
         }
 
+    }
+
+    private Statement generateUpdate(String cassandraTable, RecordSchema schema, String updateKeys, String updateMethod, Map<String, Object> recordContentMap) {
+        Update updateQuery;
+
+        // Split up the update key names separated by a comma, we need at least 1 key.
+        final Set<String> updateKeyNames;
+        updateKeyNames = new HashSet<>();
+        for (final String updateKey : updateKeys.split(",")) {
+            updateKeyNames.add(updateKey.trim());
+        }
+        if (updateKeyNames.isEmpty()) {
+            throw new IllegalArgumentException("No Update Keys were specified");
+        }
+
+        // Prepare keyspace/table names
+        if (cassandraTable.contains(".")) {
+            String keyspaceAndTable[] = cassandraTable.split("\\.");
+            updateQuery = QueryBuilder.update(keyspaceAndTable[0], keyspaceAndTable[1]);
+        } else {
+            updateQuery = QueryBuilder.update(cassandraTable);
+        }
+
+        // Loop through the field names, setting those that are not in the update key set, and using those
+        // in the update key set as conditions.
+        for (String fieldName : schema.getFieldNames()) {
+            Object fieldValue = recordContentMap.get(fieldName);
+
+            if (updateKeyNames.contains(fieldName)) {
+                updateQuery.where(QueryBuilder.eq(fieldName, fieldValue));
+            } else {
+                Assignment assignment;
+                if (SET_TYPE.equalsIgnoreCase(updateMethod)) {
+                    assignment = QueryBuilder.set(fieldName, fieldValue);
+                } else {
+                    // Check if the fieldValue is of type long, as this is the only type that is can be used,
+                    // to increment or decrement.
+                    if (!(fieldValue instanceof Long)) {
+                        throw new IllegalArgumentException("Field '" + fieldName + "' is not of type Long, and cannot be used" +
+                                " to increment or decrement.");
+                    }
+
+                    if (INCR_TYPE.equalsIgnoreCase(updateMethod)) {
+                        assignment = QueryBuilder.incr(fieldName, (Long)fieldValue);
+                    } else if (DECR_TYPE.equalsIgnoreCase(updateMethod)) {
+                        assignment = QueryBuilder.decr(fieldName, (Long)fieldValue);
+                    } else {
+                        throw new IllegalArgumentException("Update Method '" + updateMethod + "' is not valid.");
+                    }
+                }
+                updateQuery.with(assignment);
+            }
+        }
+        return updateQuery;
+    }
+
+    private Statement generateInsert(String cassandraTable, RecordSchema schema, Map<String, Object> recordContentMap) {
+        Insert insertQuery;
+        if (cassandraTable.contains(".")) {
+            String keyspaceAndTable[] = cassandraTable.split("\\.");
+            insertQuery = QueryBuilder.insertInto(keyspaceAndTable[0], keyspaceAndTable[1]);
+        } else {
+            insertQuery = QueryBuilder.insertInto(cassandraTable);
+        }
+        for (String fieldName : schema.getFieldNames()) {
+            insertQuery.value(fieldName, recordContentMap.get(fieldName));
+        }
+        return insertQuery;
     }
 
     @OnUnscheduled
