@@ -737,7 +737,8 @@
 
 
         // processor name
-        $('<span class="referencing-component-name link"></span>').text(affectedProcessor.name).on('click', function () {
+        $('<span class="referencing-component-name link ellipsis affected-component-setting-width"></span>').text(affectedProcessor.name)
+            .prop('title', affectedProcessor.name).on('click', function () {
             // check if there are outstanding changes
             handleOutstandingChanges().done(function () {
                 // show the component in question
@@ -797,7 +798,8 @@
         $('<div class="referencing-component-bulletins"></div>').addClass(affectedControllerService.id + '-affected-bulletins').appendTo(affectedControllerServiceContainer);
 
         // controller service name
-        $('<span class="referencing-component-name link"></span>').text(affectedControllerService.name).on('click', function () {
+        $('<span class="referencing-component-name link ellipsis affected-component-setting-width"></span>')
+            .prop('title', affectedControllerService.name).text(affectedControllerService.name).on('click', function () {
             // check if there are outstanding changes
             handleOutstandingChanges().done(function () {
                 // show the component in question
@@ -923,7 +925,7 @@
                         }
                     } else {
                         var affectedUnauthorizedComponentContainer = $('<li class="affected-component-container"></li>').appendTo(unauthorizedComponentsContainer);
-                        $('<span class="referencing-component-name link ellipsis"></span>')
+                        $('<span class="referencing-component-name link ellipsis affected-component-setting-width"></span>')
                             .prop('title', unauthorizedAffectedComponentEntity.id)
                             .text(unauthorizedAffectedComponentEntity.id)
                             .on('click', function () {
