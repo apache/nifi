@@ -35,7 +35,9 @@ import org.junit.Test;
 
 import javax.net.ssl.SSLContext;
 import java.net.InetSocketAddress;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -118,6 +120,366 @@ public class PutCassandraRecordTest {
         testRunner.run();
 
         testRunner.assertAllFlowFilesTransferred(PutCassandraRecord.REL_SUCCESS, 1);
+    }
+
+    @Test
+    public void testSimpleUpdate() throws InitializationException {
+        setUpStandardTestConfig();
+        testRunner.setProperty(PutCassandraRecord.STATEMENT_TYPE, PutCassandraRecord.UPDATE_TYPE);
+        testRunner.setProperty(PutCassandraRecord.UPDATE_METHOD, PutCassandraRecord.SET_TYPE);
+        testRunner.setProperty(PutCassandraRecord.UPDATE_KEYS, "name,age");
+        testRunner.setProperty(PutCassandraRecord.BATCH_STATEMENT_TYPE, PutCassandraRecord.COUNTER_TYPE);
+
+        recordReader.addSchemaField("name", RecordFieldType.STRING);
+        recordReader.addSchemaField("age", RecordFieldType.INT);
+        recordReader.addSchemaField("goals", RecordFieldType.INT);
+
+        recordReader.addRecord("John Doe", 48, 1L);
+        recordReader.addRecord("Jane Doe", 47, 2L);
+        recordReader.addRecord("Sally Doe", 47, 0);
+
+        testRunner.enqueue("");
+        testRunner.run();
+
+        testRunner.assertAllFlowFilesTransferred(PutCassandraRecord.REL_SUCCESS, 1);
+    }
+
+    @Test
+    public void testUpdateInvalidFieldType() throws InitializationException {
+        setUpStandardTestConfig();
+        testRunner.setProperty(PutCassandraRecord.STATEMENT_TYPE, PutCassandraRecord.UPDATE_TYPE);
+        testRunner.setProperty(PutCassandraRecord.UPDATE_METHOD, PutCassandraRecord.INCR_TYPE);
+        testRunner.setProperty(PutCassandraRecord.UPDATE_KEYS, "name,age");
+        testRunner.setProperty(PutCassandraRecord.BATCH_STATEMENT_TYPE, PutCassandraRecord.COUNTER_TYPE);
+
+        recordReader.addSchemaField("name", RecordFieldType.STRING);
+        recordReader.addSchemaField("age", RecordFieldType.INT);
+        recordReader.addSchemaField("goals", RecordFieldType.STRING);
+
+        recordReader.addRecord("John Doe", 48,"1");
+        recordReader.addRecord("Jane Doe", 47, "1");
+        recordReader.addRecord("Sally Doe", 47, "1");
+
+        testRunner.enqueue("");
+        testRunner.run();
+
+        testRunner.assertTransferCount(PutCassandraRecord.REL_FAILURE, 1);
+        testRunner.assertTransferCount(PutCassandraRecord.REL_SUCCESS, 0);
+        testRunner.assertTransferCount(PutCassandraRecord.REL_RETRY, 0);
+    }
+
+    @Test
+    public void testUpdateEmptyUpdateKeys() throws InitializationException {
+        setUpStandardTestConfig();
+        testRunner.setProperty(PutCassandraRecord.STATEMENT_TYPE, PutCassandraRecord.UPDATE_TYPE);
+        testRunner.setProperty(PutCassandraRecord.UPDATE_METHOD, PutCassandraRecord.INCR_TYPE);
+        testRunner.setProperty(PutCassandraRecord.UPDATE_KEYS, "");
+        testRunner.setProperty(PutCassandraRecord.BATCH_STATEMENT_TYPE, PutCassandraRecord.COUNTER_TYPE);
+
+        testRunner.assertNotValid();
+    }
+
+    @Test
+    public void testUpdateNullUpdateKeys() throws InitializationException {
+        setUpStandardTestConfig();
+        testRunner.setProperty(PutCassandraRecord.STATEMENT_TYPE, PutCassandraRecord.UPDATE_TYPE);
+        testRunner.setProperty(PutCassandraRecord.UPDATE_METHOD, PutCassandraRecord.SET_TYPE);
+        testRunner.setProperty(PutCassandraRecord.BATCH_STATEMENT_TYPE, PutCassandraRecord.COUNTER_TYPE);
+
+        testRunner.assertNotValid();
+    }
+
+    @Test
+    public void testUpdateZeroLengthUpdateKeys() throws InitializationException {
+        setUpStandardTestConfig();
+        testRunner.setProperty(PutCassandraRecord.STATEMENT_TYPE, PutCassandraRecord.UPDATE_TYPE);
+        testRunner.setProperty(PutCassandraRecord.UPDATE_METHOD, PutCassandraRecord.INCR_TYPE);
+        testRunner.setProperty(PutCassandraRecord.UPDATE_KEYS, ",");
+        testRunner.setProperty(PutCassandraRecord.BATCH_STATEMENT_TYPE, PutCassandraRecord.COUNTER_TYPE);
+
+        testRunner.assertValid();
+
+        recordReader.addSchemaField("name", RecordFieldType.STRING);
+        recordReader.addSchemaField("age", RecordFieldType.INT);
+        recordReader.addSchemaField("goals", RecordFieldType.STRING);
+
+        recordReader.addRecord("John Doe", 48, "1");
+        recordReader.addRecord("Jane Doe", 47, "1");
+        recordReader.addRecord("Sally Doe", 47, "1");
+
+        testRunner.enqueue("");
+        testRunner.run();
+
+        testRunner.assertTransferCount(PutCassandraRecord.REL_FAILURE, 1);
+        testRunner.assertTransferCount(PutCassandraRecord.REL_SUCCESS, 0);
+        testRunner.assertTransferCount(PutCassandraRecord.REL_RETRY, 0);
+    }
+
+    @Test
+    public void testUpdateSetLoggedBatch() throws InitializationException {
+        setUpStandardTestConfig();
+        testRunner.setProperty(PutCassandraRecord.STATEMENT_TYPE, PutCassandraRecord.UPDATE_TYPE);
+        testRunner.setProperty(PutCassandraRecord.UPDATE_METHOD, PutCassandraRecord.SET_TYPE);
+        testRunner.setProperty(PutCassandraRecord.UPDATE_KEYS, "name,age");
+        testRunner.setProperty(PutCassandraRecord.BATCH_STATEMENT_TYPE, PutCassandraRecord.LOGGED_TYPE);
+
+        testRunner.assertValid();
+    }
+
+    @Test
+    public void testUpdateCounterWrongBatchStatementType() throws InitializationException {
+        setUpStandardTestConfig();
+        testRunner.setProperty(PutCassandraRecord.STATEMENT_TYPE, PutCassandraRecord.UPDATE_TYPE);
+        testRunner.setProperty(PutCassandraRecord.UPDATE_METHOD, PutCassandraRecord.INCR_TYPE);
+        testRunner.setProperty(PutCassandraRecord.UPDATE_KEYS, "name,age");
+        testRunner.setProperty(PutCassandraRecord.BATCH_STATEMENT_TYPE, PutCassandraRecord.LOGGED_TYPE);
+
+        testRunner.assertNotValid();
+    }
+
+    @Test
+    public void testUpdateWithUpdateMethodAndKeyAttributes() throws InitializationException {
+        setUpStandardTestConfig();
+        testRunner.setProperty(PutCassandraRecord.STATEMENT_TYPE, PutCassandraRecord.UPDATE_TYPE);
+        testRunner.setProperty(PutCassandraRecord.UPDATE_METHOD, PutCassandraRecord.UPDATE_METHOD_USE_ATTR_TYPE);
+        testRunner.setProperty(PutCassandraRecord.UPDATE_KEYS, "${cql.update.keys}");
+        testRunner.setProperty(PutCassandraRecord.BATCH_STATEMENT_TYPE, PutCassandraRecord.COUNTER_TYPE);
+
+        testRunner.assertValid();
+
+        recordReader.addSchemaField("name", RecordFieldType.STRING);
+        recordReader.addSchemaField("age", RecordFieldType.INT);
+        recordReader.addSchemaField("goals", RecordFieldType.LONG);
+
+        recordReader.addRecord("John Doe", 48, 1L);
+        recordReader.addRecord("Jane Doe", 47, 1L);
+        recordReader.addRecord("Sally Doe", 47, 1L);
+
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put("cql.update.method", "Increment");
+        attributes.put("cql.update.keys", "name,age");
+        testRunner.enqueue("", attributes);
+        testRunner.run();
+
+        testRunner.assertTransferCount(PutCassandraRecord.REL_FAILURE, 0);
+        testRunner.assertTransferCount(PutCassandraRecord.REL_SUCCESS, 1);
+        testRunner.assertTransferCount(PutCassandraRecord.REL_RETRY, 0);
+    }
+
+    @Test
+    public void testInsertWithStatementAttribute() throws InitializationException {
+        setUpStandardTestConfig();
+        testRunner.setProperty(PutCassandraRecord.STATEMENT_TYPE, PutCassandraRecord.STATEMENT_TYPE_USE_ATTR_TYPE);
+
+        testRunner.assertValid();
+
+        recordReader.addSchemaField("name", RecordFieldType.STRING);
+        recordReader.addSchemaField("age", RecordFieldType.INT);
+        recordReader.addSchemaField("goals", RecordFieldType.LONG);
+
+        recordReader.addRecord("John Doe", 48, 1L);
+        recordReader.addRecord("Jane Doe", 47, 1L);
+        recordReader.addRecord("Sally Doe", 47, 1L);
+
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put("cql.statement.type", "Insert");
+        testRunner.enqueue("", attributes);
+        testRunner.run();
+
+        testRunner.assertTransferCount(PutCassandraRecord.REL_FAILURE, 0);
+        testRunner.assertTransferCount(PutCassandraRecord.REL_SUCCESS, 1);
+        testRunner.assertTransferCount(PutCassandraRecord.REL_RETRY, 0);
+    }
+
+    @Test
+    public void testInsertWithStatementAttributeInvalid() throws InitializationException {
+        setUpStandardTestConfig();
+        testRunner.setProperty(PutCassandraRecord.STATEMENT_TYPE, PutCassandraRecord.STATEMENT_TYPE_USE_ATTR_TYPE);
+
+        testRunner.assertValid();
+
+        recordReader.addSchemaField("name", RecordFieldType.STRING);
+        recordReader.addSchemaField("age", RecordFieldType.INT);
+        recordReader.addSchemaField("goals", RecordFieldType.LONG);
+
+        recordReader.addRecord("John Doe", 48, 1L);
+        recordReader.addRecord("Jane Doe", 47, 1L);
+        recordReader.addRecord("Sally Doe", 47, 1L);
+
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put("cql.statement.type", "invalid-type");
+        testRunner.enqueue("", attributes);
+        testRunner.run();
+
+        testRunner.assertTransferCount(PutCassandraRecord.REL_FAILURE, 1);
+        testRunner.assertTransferCount(PutCassandraRecord.REL_SUCCESS, 0);
+        testRunner.assertTransferCount(PutCassandraRecord.REL_RETRY, 0);
+    }
+
+    @Test
+    public void testInsertWithBatchStatementAttribute() throws InitializationException {
+        setUpStandardTestConfig();
+        testRunner.setProperty(PutCassandraRecord.STATEMENT_TYPE, PutCassandraRecord.INSERT_TYPE);
+        testRunner.setProperty(PutCassandraRecord.BATCH_STATEMENT_TYPE, PutCassandraRecord.BATCH_STATEMENT_TYPE_USE_ATTR_TYPE);
+
+        testRunner.assertValid();
+
+        recordReader.addSchemaField("name", RecordFieldType.STRING);
+        recordReader.addSchemaField("age", RecordFieldType.INT);
+        recordReader.addSchemaField("goals", RecordFieldType.LONG);
+
+        recordReader.addRecord("John Doe", 48, 1L);
+        recordReader.addRecord("Jane Doe", 47, 1L);
+        recordReader.addRecord("Sally Doe", 47, 1L);
+
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put("cql.batch.statement.type", "counter");
+        testRunner.enqueue("", attributes);
+        testRunner.run();
+
+        testRunner.assertTransferCount(PutCassandraRecord.REL_FAILURE, 0);
+        testRunner.assertTransferCount(PutCassandraRecord.REL_SUCCESS, 1);
+        testRunner.assertTransferCount(PutCassandraRecord.REL_RETRY, 0);
+    }
+
+    @Test
+    public void testInsertWithBatchStatementAttributeInvalid() throws InitializationException {
+        setUpStandardTestConfig();
+        testRunner.setProperty(PutCassandraRecord.STATEMENT_TYPE, PutCassandraRecord.INSERT_TYPE);
+        testRunner.setProperty(PutCassandraRecord.BATCH_STATEMENT_TYPE, PutCassandraRecord.BATCH_STATEMENT_TYPE_USE_ATTR_TYPE);
+
+        testRunner.assertValid();
+
+        recordReader.addSchemaField("name", RecordFieldType.STRING);
+        recordReader.addSchemaField("age", RecordFieldType.INT);
+        recordReader.addSchemaField("goals", RecordFieldType.LONG);
+
+        recordReader.addRecord("John Doe", 48, 1L);
+        recordReader.addRecord("Jane Doe", 47, 1L);
+        recordReader.addRecord("Sally Doe", 47, 1L);
+
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put("cql.batch.statement.type", "invalid-type");
+        testRunner.enqueue("", attributes);
+        testRunner.run();
+
+        testRunner.assertTransferCount(PutCassandraRecord.REL_FAILURE, 1);
+        testRunner.assertTransferCount(PutCassandraRecord.REL_SUCCESS, 0);
+        testRunner.assertTransferCount(PutCassandraRecord.REL_RETRY, 0);
+    }
+
+    @Test
+    public void testUpdateWithAttributesInvalidUpdateMethod() throws InitializationException {
+        setUpStandardTestConfig();
+        testRunner.setProperty(PutCassandraRecord.STATEMENT_TYPE, PutCassandraRecord.UPDATE_TYPE);
+        testRunner.setProperty(PutCassandraRecord.UPDATE_METHOD, PutCassandraRecord.UPDATE_METHOD_USE_ATTR_TYPE);
+        testRunner.setProperty(PutCassandraRecord.UPDATE_KEYS, "${cql.update.keys}");
+        testRunner.setProperty(PutCassandraRecord.BATCH_STATEMENT_TYPE, PutCassandraRecord.COUNTER_TYPE);
+
+        testRunner.assertValid();
+
+        recordReader.addSchemaField("name", RecordFieldType.STRING);
+        recordReader.addSchemaField("age", RecordFieldType.INT);
+        recordReader.addSchemaField("goals", RecordFieldType.INT);
+
+        recordReader.addRecord("John Doe", 48, 1L);
+        recordReader.addRecord("Jane Doe", 47, 1L);
+        recordReader.addRecord("Sally Doe", 47, 1L);
+
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put("cql.update.method", "invalid-method");
+        attributes.put("cql.update.keys", "name,age");
+        testRunner.enqueue("", attributes);
+        testRunner.run();
+
+        testRunner.assertTransferCount(PutCassandraRecord.REL_FAILURE, 1);
+        testRunner.assertTransferCount(PutCassandraRecord.REL_SUCCESS, 0);
+        testRunner.assertTransferCount(PutCassandraRecord.REL_RETRY, 0);
+    }
+
+    @Test
+    public void testUpdateWithAttributesIncompatibleBatchStatementType() throws InitializationException {
+        setUpStandardTestConfig();
+        testRunner.setProperty(PutCassandraRecord.STATEMENT_TYPE, PutCassandraRecord.UPDATE_TYPE);
+        testRunner.setProperty(PutCassandraRecord.UPDATE_METHOD, PutCassandraRecord.INCR_TYPE);
+        testRunner.setProperty(PutCassandraRecord.UPDATE_KEYS, "name,age");
+        testRunner.setProperty(PutCassandraRecord.BATCH_STATEMENT_TYPE, PutCassandraRecord.BATCH_STATEMENT_TYPE_USE_ATTR_TYPE);
+
+        testRunner.assertValid();
+
+        recordReader.addSchemaField("name", RecordFieldType.STRING);
+        recordReader.addSchemaField("age", RecordFieldType.INT);
+        recordReader.addSchemaField("goals", RecordFieldType.INT);
+
+        recordReader.addRecord("John Doe", 48, 1L);
+        recordReader.addRecord("Jane Doe", 47, 1L);
+        recordReader.addRecord("Sally Doe", 47, 1L);
+
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put("cql.batch.statement.type", "LOGGED");
+        testRunner.enqueue("", attributes);
+        testRunner.run();
+
+        testRunner.assertTransferCount(PutCassandraRecord.REL_FAILURE, 1);
+        testRunner.assertTransferCount(PutCassandraRecord.REL_SUCCESS, 0);
+        testRunner.assertTransferCount(PutCassandraRecord.REL_RETRY, 0);
+    }
+
+    @Test
+    public void testUpdateWithAttributesEmptyUpdateKeysAttribute() throws InitializationException {
+        setUpStandardTestConfig();
+        testRunner.setProperty(PutCassandraRecord.STATEMENT_TYPE, PutCassandraRecord.UPDATE_TYPE);
+        testRunner.setProperty(PutCassandraRecord.UPDATE_METHOD, PutCassandraRecord.UPDATE_METHOD_USE_ATTR_TYPE);
+        testRunner.setProperty(PutCassandraRecord.UPDATE_KEYS, "${cql.update.keys}");
+        testRunner.setProperty(PutCassandraRecord.BATCH_STATEMENT_TYPE, PutCassandraRecord.COUNTER_TYPE);
+
+        testRunner.assertValid();
+
+        recordReader.addSchemaField("name", RecordFieldType.STRING);
+        recordReader.addSchemaField("age", RecordFieldType.INT);
+        recordReader.addSchemaField("goals", RecordFieldType.LONG);
+
+        recordReader.addRecord("John Doe", 48, 1L);
+        recordReader.addRecord("Jane Doe", 47, 1L);
+        recordReader.addRecord("Sally Doe", 47, 1L);
+
+        HashMap<String, String> attributes = new HashMap<>();
+        attributes.put("cql.update.method", "Increment");
+        attributes.put("cql.update.keys", "");
+        testRunner.enqueue("", attributes);
+        testRunner.run();
+
+        testRunner.assertTransferCount(PutCassandraRecord.REL_FAILURE, 1);
+        testRunner.assertTransferCount(PutCassandraRecord.REL_SUCCESS, 0);
+        testRunner.assertTransferCount(PutCassandraRecord.REL_RETRY, 0);
+    }
+
+    @Test
+    public void testUpdateWithAttributesEmptyUpdateMethodAttribute() throws InitializationException {
+        setUpStandardTestConfig();
+        testRunner.setProperty(PutCassandraRecord.STATEMENT_TYPE, PutCassandraRecord.UPDATE_TYPE);
+        testRunner.setProperty(PutCassandraRecord.UPDATE_METHOD, PutCassandraRecord.UPDATE_METHOD_USE_ATTR_TYPE);
+        testRunner.setProperty(PutCassandraRecord.UPDATE_KEYS, "name,age");
+        testRunner.setProperty(PutCassandraRecord.BATCH_STATEMENT_TYPE, PutCassandraRecord.COUNTER_TYPE);
+
+        testRunner.assertValid();
+
+        recordReader.addSchemaField("name", RecordFieldType.STRING);
+        recordReader.addSchemaField("age", RecordFieldType.INT);
+        recordReader.addSchemaField("goals", RecordFieldType.LONG);
+
+        recordReader.addRecord("John Doe", 48, 1L);
+        recordReader.addRecord("Jane Doe", 47, 1L);
+        recordReader.addRecord("Sally Doe", 47, 1L);
+
+        HashMap<String, String> attributes = new HashMap<>();
+        attributes.put("cql.update.method", "");
+        testRunner.enqueue("", attributes);
+        testRunner.run();
+
+        testRunner.assertTransferCount(PutCassandraRecord.REL_FAILURE, 1);
+        testRunner.assertTransferCount(PutCassandraRecord.REL_SUCCESS, 0);
+        testRunner.assertTransferCount(PutCassandraRecord.REL_RETRY, 0);
     }
 
     @Test
