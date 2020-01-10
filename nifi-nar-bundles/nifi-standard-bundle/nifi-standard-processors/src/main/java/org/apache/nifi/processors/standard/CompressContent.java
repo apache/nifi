@@ -76,12 +76,14 @@ import org.xerial.snappy.SnappyOutputStream;
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"content", "compress", "decompress", "gzip", "bzip2", "lzma", "xz-lzma2", "snappy", "snappy framed", "lz4-framed"})
 @CapabilityDescription("Compresses or decompresses the contents of FlowFiles using a user-specified compression algorithm and updates the mime.type "
-    + "attribute as appropriate")
+    + "attribute as appropriate. This processor operates in a very memory efficient way so very large objects well beyond the heap size "
+    + "are generally fine to process")
 @ReadsAttribute(attribute = "mime.type", description = "If the Compression Format is set to use mime.type attribute, this attribute is used to "
     + "determine the compression type. Otherwise, this attribute is ignored.")
 @WritesAttribute(attribute = "mime.type", description = "If the Mode property is set to compress, the appropriate MIME Type is set. If the Mode "
     + "property is set to decompress and the file is successfully decompressed, this attribute is removed, as the MIME Type is no longer known.")
 @SystemResourceConsideration(resource = SystemResource.CPU)
+@SystemResourceConsideration(resource = SystemResource.MEMORY)
 public class CompressContent extends AbstractProcessor {
 
     public static final String COMPRESSION_FORMAT_ATTRIBUTE = "use mime.type attribute";
@@ -107,8 +109,9 @@ public class CompressContent extends AbstractProcessor {
     .build();
     public static final PropertyDescriptor COMPRESSION_LEVEL = new PropertyDescriptor.Builder()
     .name("Compression Level")
-    .description("The compression level to use; this is valid only when using GZIP compression. A lower value results in faster processing "
-        + "but less compression; a value of 0 indicates no compression but simply archiving")
+    .description("The compression level to use; this is valid only when using gzip or xz-lzma2 compression. A lower value results in faster processing "
+        + "but less compression; a value of 0 indicates no (that is, simple archiving) for gzip or minimal for xz-lzma2 compression."
+        + " Higher levels can mean much larger memory usage such as the case with levels 7-9 for xz-lzma/2 so be careful relative to heap size.")
         .defaultValue("1")
         .required(true)
         .allowableValues("0", "1", "2", "3", "4", "5", "6", "7", "8", "9")
@@ -264,7 +267,8 @@ public class CompressContent extends AbstractProcessor {
                                     mimeTypeRef.set("application/x-lzma");
                                     break;
                                 case COMPRESSION_FORMAT_XZ_LZMA2:
-                                    compressionOut = new XZOutputStream(bufferedOut, new LZMA2Options());
+                                    final int xzCompressionLevel = context.getProperty(COMPRESSION_LEVEL).asInteger();
+                                    compressionOut = new XZOutputStream(bufferedOut, new LZMA2Options(xzCompressionLevel));
                                     mimeTypeRef.set("application/x-xz");
                                     break;
                                 case COMPRESSION_FORMAT_SNAPPY:
