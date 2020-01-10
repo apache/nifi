@@ -319,6 +319,10 @@ li.affected-component-container {
     height: 16px;
 }
 
+span.affected-component-setting-width {
+    max-width: 90%;
+}
+
 div.slick-cell div.overridden {
     text-decoration: line-through;
 }
