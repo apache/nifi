@@ -493,12 +493,12 @@ public class NiFiAtlasClient {
     public AtlasEntity.AtlasEntityWithExtInfo searchEntityDef(AtlasObjectId id) throws AtlasServiceException {
         final String guid = id.getGuid();
         if (!StringUtils.isEmpty(guid)) {
-            return atlasClient.getEntityByGuid(guid);
+            return atlasClient.getEntityByGuid(guid, true, false);
         }
         final Map<String, String> attributes = new HashMap<>();
         id.getUniqueAttributes().entrySet().stream().filter(entry -> entry.getValue() != null)
                 .forEach(entry -> attributes.put(entry.getKey(), entry.getValue().toString()));
-        return atlasClient.getEntityByAttribute(id.getTypeName(), attributes);
+        return atlasClient.getEntityByAttribute(id.getTypeName(), attributes, true, false);
     }
 
 }

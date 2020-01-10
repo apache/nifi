@@ -52,7 +52,7 @@ import java.util.Optional;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
-public class TestKuduLookupService {
+public class ITestKuduLookupService {
 
     // The KuduTestHarness automatically starts and stops a real Kudu cluster
     // when each test is run. Kudu persists its on-disk state in a temporary

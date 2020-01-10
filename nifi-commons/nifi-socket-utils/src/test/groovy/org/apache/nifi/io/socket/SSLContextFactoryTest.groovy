@@ -147,4 +147,28 @@ class SSLContextFactoryTest extends GroovyTestCase {
         // The SSLContext was accessible and correct
         assert sslContext
     }
+
+    @Test
+    void testShouldVerifyKeystoreWithEmptyKeyPassword() throws Exception {
+        // Arrange
+
+        // Set up the keystore configuration as NiFiProperties object
+        // (re-opened NIFI-6830, an UnrecoverableKeyException was thrown due to an empty password being provided)
+        NiFiProperties np = buildNiFiProperties([
+                (NiFiProperties.SECURITY_KEY_PASSWD): ""
+        ])
+
+        // Create the SSLContextFactory with the config
+        SSLContextFactory sslcf = new SSLContextFactory(np)
+
+        // Act
+
+        // Access the SSLContextFactory to create an SSLContext
+        SSLContext sslContext = sslcf.createSslContext()
+
+        // Assert
+
+        // The SSLContext was accessible and correct
+        assert sslContext
+    }
 }

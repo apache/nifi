@@ -857,5 +857,24 @@ class ProtectedNiFiPropertiesGroovyTest extends GroovyTestCase {
         assert allKeys == rawProperties.keySet()
     }
 
+    @Test
+    void testShouldThrowExceptionWhenImproperValueGiven() throws Exception {
+        // Arrange
+        final String KEYSTORE_PASSWORD_KEY = "nifi.security.keystorePasswd"
+
+        ProtectedNiFiProperties properties = loadFromFile("/conf/nifi_with_sensitive_properties_protected_aes_improper_delimiter_value.properties")
+
+        // Act
+        def msg = shouldFail(SensitivePropertyProtectionException) {
+            NiFiProperties unprotectedProperties = properties.getUnprotectedProperties()
+            String retrievedKeystorePassword = unprotectedProperties.getProperty(KEYSTORE_PASSWORD_KEY)
+        }
+        logger.expected(msg)
+
+        // Assert
+        assert msg =~ "Failed to unprotect key ${KEYSTORE_PASSWORD_KEY}"
+        assert msg =~ "The cipher text does not contain the delimiter ||"
+    }
+
     // TODO: Add tests for protectPlainProperties
 }
