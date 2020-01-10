@@ -26,6 +26,7 @@ import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.queue.SwappablePriorityQueue;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.events.EventReporter;
+import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.util.MockFlowFile;
@@ -76,6 +77,63 @@ public class TestSwappablePriorityQueue {
 
         when(flowFileQueue.getIdentifier()).thenReturn("unit-test");
         queue = new SwappablePriorityQueue(swapManager, 10000, eventReporter, flowFileQueue, dropAction, "local");
+    }
+
+    @Test
+    public void testPrioritizersBigQueue() {
+        final FlowFilePrioritizer iAttributePrioritizer = new FlowFilePrioritizer() {
+            @Override
+            public int compare(final FlowFile o1, final FlowFile o2) {
+                final int i1 = Integer.parseInt(o1.getAttribute("i"));
+                final int i2 = Integer.parseInt(o2.getAttribute("i"));
+                return Integer.compare(i1, i2);
+            }
+        };
+
+        queue.setPriorities(Collections.singletonList(iAttributePrioritizer));
+        final int iterations = 29000;
+
+        for (int i=0; i < iterations; i++) {
+            final MockFlowFile flowFile = new MockFlowFile(i);
+            flowFile.putAttributes(Collections.singletonMap("i", String.valueOf(i)));
+            queue.put(flowFile);
+        }
+
+        for (int i=0; i < iterations; i++) {
+            final MockFlowFile flowFile = new MockFlowFile(i + iterations);
+            flowFile.putAttributes(Collections.singletonMap("i", String.valueOf(i + iterations)));
+
+            final FlowFileRecord polled = queue.poll(Collections.emptySet(), 0L);
+            assertEquals(polled.getAttribute("i"), String.valueOf(i));
+
+            queue.put(flowFile);
+        }
+
+        // Make sure that the data is pulled from the queue and added back a couple of times.
+        // This will trigger swapping to occur, but also leave a lot of data in memory on the queue.
+        // This specifically tests the edge case where data is swapped out, and we want to make sure that
+        // when we read from the queue, that we swap the data back in before processing anything on the
+        // pending 'swap queue' internally.
+        repopulateQueue();
+        repopulateQueue();
+
+        int i=iterations;
+        FlowFileRecord flowFile;
+        while ((flowFile = queue.poll(Collections.emptySet(), 0)) != null) {
+            assertEquals(String.valueOf(i), flowFile.getAttribute("i"));
+            i++;
+        }
+    }
+
+
+    private void repopulateQueue() {
+        final List<FlowFileRecord> ffs = new ArrayList<>();
+        FlowFileRecord ff;
+        while ((ff = queue.poll(Collections.emptySet(), 0L)) != null) {
+            ffs.add(ff);
+        }
+
+        queue.putAll(ffs);
     }
 
 
