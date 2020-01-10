@@ -89,9 +89,6 @@ public abstract class AbstractNativeLibHandlingClassLoader extends URLClassLoade
         }
     }
 
-    /**
-     * Compare to {@link #youLikeThisFunctionalApproachBetterAfterAllDontYou(String)}
-     */
     public String findLibrary(String libname) {
         String libLocationString;
 
@@ -118,31 +115,6 @@ public abstract class AbstractNativeLibHandlingClassLoader extends URLClassLoade
         } else {
             libLocationString = libLocation.toFile().getAbsolutePath();
         }
-
-        return libLocationString;
-    }
-
-    private String youLikeThisFunctionalApproachBetterAfterAllDontYou(String libname) {
-        Path libLocation = nativeLibNameToPath.compute(
-                libname,
-                (__, currentLocation) ->
-                        Optional.ofNullable(currentLocation)
-                                .filter(Objects::nonNull)
-                                .filter(location -> location.toFile().exists())
-                                .orElseGet(
-                                        () -> nativeLibDirList.stream()
-                                                .map(nativeLibDir -> findLibrary(libname, nativeLibDir))
-                                                .filter(Objects::nonNull)
-                                                .findFirst()
-                                                .map(libraryOriginalPathString -> createTempCopy(libname, libraryOriginalPathString))
-                                                .orElse(null)
-                                )
-        );
-
-        String libLocationString = Optional.ofNullable(libLocation)
-                .map(Path::toFile)
-                .map(File::getAbsolutePath)
-                .orElse(null);
 
         return libLocationString;
     }

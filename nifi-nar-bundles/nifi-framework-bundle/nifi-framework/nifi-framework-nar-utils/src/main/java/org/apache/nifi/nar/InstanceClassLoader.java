@@ -80,9 +80,6 @@ public class InstanceClassLoader extends AbstractNativeLibHandlingClassLoader {
     private static List<File> initNativeLibDirList(Set<File> narNativeLibDirs, Set<URL> additionalResourceUrls) {
         List<File> nativeLibDirList = new ArrayList<>(narNativeLibDirs);
 
-        /**
-         * Compare to {@link #youLikeThisFunctionalApproachBetterAfterAllDontYou()}
-         */
         Set<File> additionalNativeLibDirs = new HashSet<>();
         if (additionalResourceUrls != null) {
             for (URL url : additionalResourceUrls) {
@@ -107,29 +104,6 @@ public class InstanceClassLoader extends AbstractNativeLibHandlingClassLoader {
         nativeLibDirList.addAll(additionalNativeLibDirs);
 
         return nativeLibDirList;
-    }
-
-    private Set<File> youLikeThisFunctionalApproachBetterAfterAllDontYou(Set<URL> additionalResourceUrls) {
-        return Optional.ofNullable(additionalResourceUrls)
-                .map(Collection::stream)
-                .orElseGet(Stream::empty)
-                .map(url -> {
-                    File file;
-
-                    try {
-                        file = new File(url.toURI());
-                    } catch (URISyntaxException e) {
-                        file = new File(url.getPath());
-                    } catch (Exception e) {
-                        logger.error("Couldn't convert url '" + url + "' to a file");
-                        file = null;
-                    }
-
-                    return file;
-                })
-                .map(AbstractNativeLibHandlingClassLoader::toDir)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toSet());
     }
 
     private static URL[] combineURLs(final Set<URL> instanceUrls, final Set<URL> additionalResourceUrls) {
