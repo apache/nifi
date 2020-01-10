@@ -182,7 +182,7 @@ then you can access it from code <code>SQL.mydb.rows('select * from mytable')</c
 
 <h2>Handling processor start &amp; stop</h2>
 
-<p>In the extended groovy processor you can catch `start` and `stop` events by providing corresponding static methods:</p>
+<p>In the extended groovy processor you can catch `start` and `stop` and `unscheduled` events by providing corresponding static methods:</p>
 <pre>
   import org.apache.nifi.processor.ProcessContext
   import java.util.concurrent.atomic.AtomicLong
@@ -203,6 +203,10 @@ then you can access it from code <code>SQL.mydb.rows('select * from mytable')</c
     println "onStop $context executed ${ Const.triggerCount } times during ${ alive } seconds"
   }
 
+  static onUnscheduled(ProcessContext context){
+    def alive = (System.currentTimeMillis() - Const.startTime.getTime()) / 1000
+    println "onUnscheduled $context executed ${ Const.triggerCount } times during ${ alive } seconds"
+  }
 
   flowFile.'trigger.count' = Const.triggerCount.incrementAndGet()
   REL_SUCCESS << flowFile

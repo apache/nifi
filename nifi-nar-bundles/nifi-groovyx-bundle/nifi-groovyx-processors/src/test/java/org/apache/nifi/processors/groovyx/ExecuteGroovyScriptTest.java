@@ -40,9 +40,11 @@ import org.junit.Test;
 import org.junit.FixMethodOrder;
 import org.junit.runners.MethodSorters;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 
+import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 
 import java.util.Arrays;
@@ -53,6 +55,7 @@ import java.sql.DriverManager;
 import java.sql.Connection;
 import java.sql.Statement;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 import org.apache.nifi.controller.AbstractControllerService;
@@ -469,6 +472,39 @@ public class ExecuteGroovyScriptTest {
         runner.assertAllFlowFilesTransferred(ExecuteGroovyScript.REL_SUCCESS.getName(), 1);
         MockFlowFile flowFile = runner.getFlowFilesForRelationship(ExecuteGroovyScript.REL_SUCCESS).get(0);
         flowFile.assertContentEquals("5678".getBytes(StandardCharsets.UTF_16LE));
+    }
+
+    @Test
+    public void test_onStart_onStop() throws Exception {
+        runner.setProperty(ExecuteGroovyScript.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "test_onStart_onStop.groovy");
+        runner.assertValid();
+        runner.enqueue("");
+        final PrintStream originalOut = System.out;
+        final ByteArrayOutputStream outContent = new ByteArrayOutputStream();
+        System.setOut(new PrintStream(outContent));
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ExecuteGroovyScript.REL_SUCCESS.getName(), 1);
+        final List<MockFlowFile> result = runner.getFlowFilesForRelationship(ExecuteGroovyScript.REL_SUCCESS.getName());
+        MockFlowFile resultFile = result.get(0);
+        resultFile.assertAttributeExists("a");
+        resultFile.assertAttributeEquals("a", "A");
+        System.setOut(originalOut);
+        assertEquals("onStop invoked successfully\n", outContent.toString());
+
+        // Inspect the output visually for onStop, no way to pass back values
+    }
+
+    @Test
+    public void test_onUnscheduled() throws Exception {
+        runner.setProperty(ExecuteGroovyScript.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "test_onUnscheduled.groovy");
+        runner.assertValid();
+        final PrintStream originalOut = System.out;
+        final ByteArrayOutputStream outContent = new ByteArrayOutputStream();
+        System.setOut(new PrintStream(outContent));
+        runner.run();
+        System.setOut(originalOut);
+        assertEquals("onUnscheduled invoked successfully\n", outContent.toString());
     }
 
 
