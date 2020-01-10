@@ -511,7 +511,7 @@ public class StandardValidators {
         return (subject, input, context) -> {
             ValidationResult validationResult;
 
-            if (input == null || input.equals("")) {
+            if (isEmpty(input)) {
                 validationResult = new ValidationResult.Builder().subject(subject).input(input).explanation("Empty/Null value is allowed").valid(true).build();
             } else {
                 validationResult = delegate.validate(subject, input, context);

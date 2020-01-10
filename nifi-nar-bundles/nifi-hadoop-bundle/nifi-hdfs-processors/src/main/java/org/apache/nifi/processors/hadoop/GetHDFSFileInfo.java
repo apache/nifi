@@ -59,6 +59,8 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.hadoop.GetHDFSFileInfo.HDFSFileInfoRequest.Groupping;
 
+import static org.apache.commons.lang3.StringUtils.isEmpty;
+
 @InputRequirement(Requirement.INPUT_ALLOWED)
 @Tags({"hadoop", "HDFS", "get", "list", "ingest", "source", "filesystem"})
 @CapabilityDescription("Retrieves a listing of files and directories from HDFS. "
@@ -187,7 +189,7 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
             .description("Number of records to put into an output flowfile when 'Destination' is set to 'Content'"
                 + " and 'Group Results' is set to 'None'")
             .required(false)
-            .addValidator(StandardValidators.createAllowEmptyValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR))
+            .addValidator(StandardValidators.createAllowEmptyValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR))
             .build();
 
     static final AllowableValue DESTINATION_ATTRIBUTES = new AllowableValue("gethdfsfileinfo-dest-attr", "Attributes",
@@ -278,8 +280,7 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
 
         if (
             (!DESTINATION_CONTENT.getValue().equals(destination) || !GROUP_NONE.getValue().equals(grouping))
-                && batchSize != null
-                && !batchSize.equals("")
+                && !isEmpty(batchSize)
         ) {
             validationResults.add(new ValidationResult.Builder()
                 .valid(false)
@@ -637,8 +638,7 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
 
         req.groupping = HDFSFileInfoRequest.Groupping.getEnum(context.getProperty(GROUPING).getValue());
         req.batchSize = Optional.ofNullable(context.getProperty(BATCH_SIZE))
-            .filter(propertyValue -> propertyValue.getValue() != null)
-            .filter(propertyValue -> !propertyValue.getValue().equals(""))
+            .filter(propertyValue -> !isEmpty(propertyValue.getValue()))
             .map(PropertyValue::asInteger)
             .orElse(1);
 

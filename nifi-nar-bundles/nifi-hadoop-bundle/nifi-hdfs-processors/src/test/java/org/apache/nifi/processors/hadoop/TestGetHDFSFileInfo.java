@@ -90,6 +90,15 @@ public class TestGetHDFSFileInfo {
     }
 
     @Test
+    public void testInvalidBatchSizeWhenValueIsInvalid() throws Exception {
+        Arrays.asList("-1", "0", "someString").forEach(
+            inValidBatchSize -> {
+                testValidateBatchSize(GetHDFSFileInfo.DESTINATION_CONTENT, GetHDFSFileInfo.GROUP_NONE, inValidBatchSize, false);
+            }
+        );
+    }
+
+    @Test
     public void testValidBatchSize() throws Exception {
         Arrays.asList("1", "2", "100").forEach(
             validBatchSize -> {
@@ -99,11 +108,12 @@ public class TestGetHDFSFileInfo {
 
         Arrays.asList("", null).forEach(
             emptyBatchSize -> {
-                testValidateBatchSize(GetHDFSFileInfo.DESTINATION_ATTRIBUTES, GetHDFSFileInfo.GROUP_NONE, emptyBatchSize, true);
-                testValidateBatchSize(GetHDFSFileInfo.DESTINATION_ATTRIBUTES, GetHDFSFileInfo.GROUP_PARENT_DIR, emptyBatchSize, true);
                 testValidateBatchSize(GetHDFSFileInfo.DESTINATION_ATTRIBUTES, GetHDFSFileInfo.GROUP_ALL, emptyBatchSize, true);
+                testValidateBatchSize(GetHDFSFileInfo.DESTINATION_ATTRIBUTES, GetHDFSFileInfo.GROUP_PARENT_DIR, emptyBatchSize, true);
+                testValidateBatchSize(GetHDFSFileInfo.DESTINATION_ATTRIBUTES, GetHDFSFileInfo.GROUP_NONE, emptyBatchSize, true);
                 testValidateBatchSize(GetHDFSFileInfo.DESTINATION_CONTENT, GetHDFSFileInfo.GROUP_ALL, emptyBatchSize, true);
                 testValidateBatchSize(GetHDFSFileInfo.DESTINATION_CONTENT, GetHDFSFileInfo.GROUP_PARENT_DIR, emptyBatchSize, true);
+                testValidateBatchSize(GetHDFSFileInfo.DESTINATION_CONTENT, GetHDFSFileInfo.GROUP_NONE, emptyBatchSize, true);
             }
         );
     }
