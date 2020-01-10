@@ -107,8 +107,8 @@ public class CompressContent extends AbstractProcessor {
     .build();
     public static final PropertyDescriptor COMPRESSION_LEVEL = new PropertyDescriptor.Builder()
     .name("Compression Level")
-    .description("The compression level to use; this is valid only when using GZIP compression. A lower value results in faster processing "
-        + "but less compression; a value of 0 indicates no compression but simply archiving")
+    .description("The compression level to use; this is valid only when using gzip or xz-lzma2 compression. A lower value results in faster processing "
+        + "but less compression; a value of 0 indicates no (that is, simple archiving) for gzip or minimal for xz-lzma2 compression")
         .defaultValue("1")
         .required(true)
         .allowableValues("0", "1", "2", "3", "4", "5", "6", "7", "8", "9")
@@ -264,7 +264,8 @@ public class CompressContent extends AbstractProcessor {
                                     mimeTypeRef.set("application/x-lzma");
                                     break;
                                 case COMPRESSION_FORMAT_XZ_LZMA2:
-                                    compressionOut = new XZOutputStream(bufferedOut, new LZMA2Options());
+                                    final int xzCompressionLevel = context.getProperty(COMPRESSION_LEVEL).asInteger();
+                                    compressionOut = new XZOutputStream(bufferedOut, new LZMA2Options(xzCompressionLevel));
                                     mimeTypeRef.set("application/x-xz");
                                     break;
                                 case COMPRESSION_FORMAT_SNAPPY:
