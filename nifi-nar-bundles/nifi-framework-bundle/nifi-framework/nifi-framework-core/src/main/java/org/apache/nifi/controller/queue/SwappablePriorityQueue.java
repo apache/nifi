@@ -217,19 +217,8 @@ public class SwappablePriorityQueue {
             }
         }
 
-        // Pull any records off of the temp queue that won't fit back on the active queue, and add those to the
-        // swap queue. Then add the records back to the active queue.
-        swapQueue.clear();
-        long updatedSwapQueueBytes = 0L;
-        while (tempQueue.size() > swapThreshold) {
-            final FlowFileRecord record = tempQueue.poll();
-            swapQueue.add(record);
-            updatedSwapQueueBytes += record.getSize();
-        }
-
-        Collections.reverse(swapQueue); // currently ordered in reverse priority order based on the ordering of the temp queue
-
         // replace the contents of the active queue, since we've merged it with the swap queue.
+        swapQueue.clear();
         activeQueue.clear();
         FlowFileRecord toRequeue;
         long activeQueueBytes = 0L;
@@ -242,12 +231,9 @@ public class SwappablePriorityQueue {
         while (!updated) {
             final FlowFileQueueSize originalSize = getFlowFileQueueSize();
 
-            final int addedSwapRecords = swapQueue.size() - originalSwapQueueCount;
-            final long addedSwapBytes = updatedSwapQueueBytes - originalSwapQueueBytes;
-
             final FlowFileQueueSize newSize = new FlowFileQueueSize(activeQueue.size(), activeQueueBytes,
-                originalSize.getSwappedCount() + addedSwapRecords + flowFilesSwappedOut,
-                originalSize.getSwappedBytes() + addedSwapBytes + bytesSwappedOut,
+                originalSize.getSwappedCount() - originalSwapQueueCount + flowFilesSwappedOut,
+                originalSize.getSwappedBytes() - originalSwapQueueBytes + bytesSwappedOut,
                 originalSize.getSwapFileCount() + numSwapFiles,
                 originalSize.getUnacknowledgedCount(), originalSize.getUnacknowledgedBytes());
             updated = updateSize(originalSize, newSize);
