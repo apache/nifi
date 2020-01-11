@@ -239,8 +239,12 @@ public class ConsumeWindowsEventLog extends AbstractSessionFactoryProcessor {
         return null;
     }
 
+    private boolean isSubscriptionHandleOpen(){
+        return subscriptionHandle != null && subscriptionHandle.getPointer() != null;
+    }
+
     private boolean isSubscribed() {
-        final boolean subscribed = subscriptionHandle != null && subscriptionHandle.getPointer() != null;
+        final boolean subscribed = isSubscriptionHandleOpen();
         final boolean subscriptionFailed = evtSubscribeCallback != null
             && ((EventSubscribeXmlRenderingCallback) evtSubscribeCallback).isSubscriptionFailed();
         final boolean subscribing = subscribed && !subscriptionFailed;
@@ -287,7 +291,7 @@ public class ConsumeWindowsEventLog extends AbstractSessionFactoryProcessor {
     }
 
     private void unsubscribe() {
-        if (isSubscribed()) {
+        if (isSubscriptionHandleOpen()) {
             wEvtApi.EvtClose(subscriptionHandle);
         }
         subscriptionHandle = null;
