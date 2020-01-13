@@ -280,7 +280,7 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
 
         if (
             (!DESTINATION_CONTENT.getValue().equals(destination) || !GROUP_NONE.getValue().equals(grouping))
-                && !isEmpty(batchSize)
+                && batchSize != null
         ) {
             validationResults.add(new ValidationResult.Builder()
                 .valid(false)
@@ -638,7 +638,7 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
 
         req.groupping = HDFSFileInfoRequest.Groupping.getEnum(context.getProperty(GROUPING).getValue());
         req.batchSize = Optional.ofNullable(context.getProperty(BATCH_SIZE))
-            .filter(propertyValue -> !isEmpty(propertyValue.getValue()))
+            .filter(propertyValue -> propertyValue.getValue() != null)
             .map(PropertyValue::asInteger)
             .orElse(1);
 
