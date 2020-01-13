@@ -179,134 +179,132 @@ public class PutAzureEventHub extends AbstractProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-    	populateSenderQueue(context);
-        
+        populateSenderQueue(context);
+
         final StopWatch stopWatch = new StopWatch(true);
-    	
+
         final String partitioningKeyAttributeName = context.getProperty(PARTITIONING_KEY_ATTRIBUTE_NAME).getValue();
-        
+
         // Get N flow files
         final int maxBatchSize = NumberUtils.toInt(context.getProperty(MAX_BATCH_SIZE).getValue(), 100);
         final List<FlowFile> flowFileList = session.get(maxBatchSize);
-        
+
         // Convert and send each flow file
         final BlockingQueue<CompletableFuture<FlowFileResultCarrier<Relationship>>> futureQueue = new LinkedBlockingQueue<>();
         for (FlowFile flowFile : flowFileList) {
             if (flowFile == null) {
                 continue;
             }
-            
+
             futureQueue.offer(handleFlowFile(flowFile, partitioningKeyAttributeName, session));
-		}
-        
+        }
+
         waitForAllFutures(context, session, stopWatch, futureQueue);
     }
 
-	/**
-	 * Joins all the futures so it can determine which flow files from given batch were sent successfully and which were not.
-	 * 
-	 * @param context of this instance of the processor
-	 * @param session that handles all flow files sent within the future queue
-	 * @param stopWatch for time measurements
-	 * @param futureQueue a list of futures of messages that had been sent within above context and session before this method was called. 
-	 */
-	protected void waitForAllFutures(
-			final ProcessContext context, 
-			final ProcessSession session,
-			final StopWatch stopWatch,
-			final BlockingQueue<CompletableFuture<FlowFileResultCarrier<Relationship>>> futureQueue)
-	{
-		try {   	
-	        for (CompletableFuture<FlowFileResultCarrier<Relationship>> completableFuture : futureQueue) {
-	        	completableFuture.join();
-	        	
-	        	final FlowFileResultCarrier<Relationship> flowFileResult = completableFuture.get();
-	        	if(flowFileResult == null) {
-	        		continue;
-	        	}
+    /**
+     * Joins all the futures so it can determine which flow files from given batch were sent successfully and which were not.
+     *
+     * @param context of this instance of the processor
+     * @param session that handles all flow files sent within the future queue
+     * @param stopWatch for time measurements
+     * @param futureQueue a list of futures of messages that had been sent within above context and session before this method was called.
+     */
+    protected void waitForAllFutures(
+            final ProcessContext context,
+            final ProcessSession session,
+            final StopWatch stopWatch,
+            final BlockingQueue<CompletableFuture<FlowFileResultCarrier<Relationship>>> futureQueue){
 
-	        	final FlowFile flowFile = flowFileResult.getFlowFile();
-	        	
-	        	if(flowFileResult.getResult() == REL_SUCCESS) {
-	    	        final String namespace = context.getProperty(NAMESPACE).getValue();
-	    	        final String eventHubName = context.getProperty(EVENT_HUB_NAME).getValue();
-	    	        session.getProvenanceReporter().send(flowFile, "amqps://" + namespace + ".servicebus.windows.net" + "/" + eventHubName, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
-	    	        session.transfer(flowFile, REL_SUCCESS);
-	    	        
-	        	} else {
-	        		final Throwable processException = flowFileResult.getException();
-	    			getLogger().error("Failed to send {} to EventHub due to {}; routing to failure", new Object[]{flowFile, processException}, processException);
-	                session.transfer(session.penalize(flowFile), REL_FAILURE);
-	        	} 	
-			}
-	        
-		} 
-		catch (InterruptedException | ExecutionException | CancellationException | CompletionException e) {
-			getLogger().error("Batch processing failed", e);
-			session.rollback();
-			
-			if(e instanceof InterruptedException) {
-				Thread.currentThread().interrupt();	
-			}
-			
-			throw new ProcessException("Batch processing failed", e);
-		}
-	}
-    
+        try {
+            for (CompletableFuture<FlowFileResultCarrier<Relationship>> completableFuture : futureQueue) {
+                completableFuture.join();
+
+                final FlowFileResultCarrier<Relationship> flowFileResult = completableFuture.get();
+                if(flowFileResult == null) {
+                    continue;
+                }
+
+                final FlowFile flowFile = flowFileResult.getFlowFile();
+
+                if(flowFileResult.getResult() == REL_SUCCESS) {
+                    final String namespace = context.getProperty(NAMESPACE).getValue();
+                    final String eventHubName = context.getProperty(EVENT_HUB_NAME).getValue();
+                    session.getProvenanceReporter().send(flowFile, "amqps://" + namespace + ".servicebus.windows.net" + "/" + eventHubName, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
+                    session.transfer(flowFile, REL_SUCCESS);
+
+                } else {
+                    final Throwable processException = flowFileResult.getException();
+                    getLogger().error("Failed to send {} to EventHub due to {}; routing to failure", new Object[]{flowFile, processException}, processException);
+                    session.transfer(session.penalize(flowFile), REL_FAILURE);
+                }
+            }
+        } catch (InterruptedException | ExecutionException | CancellationException | CompletionException e) {
+            getLogger().error("Batch processing failed", e);
+            session.rollback();
+
+            if(e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
+
+            throw new ProcessException("Batch processing failed", e);
+        }
+    }
+
     /**
      * Convert flow file to eventhub message entities (and send)!!!
-     * 
+     *
      * @param flowFile to be converted to a message and sent to Eventhub (Body = content, User Properties = attributes, partitioning key = value configured attribute)
      * @param partitioningKeyAttributeName where the partitioning is saved within each flow file
      * @param session under which is this flow file being managed
-     * 
+     *
      * @return Completable future carrying the context of flowfile used as a base for message being send. Never Null.
      * */
-	protected CompletableFuture<FlowFileResultCarrier<Relationship>> handleFlowFile(FlowFile flowFile, final String partitioningKeyAttributeName, final ProcessSession session) {
+    protected CompletableFuture<FlowFileResultCarrier<Relationship>> handleFlowFile(FlowFile flowFile, final String partitioningKeyAttributeName, final ProcessSession session) {
 
-    	// Read message body
+        // Read message body
         final byte[] buffer = new byte[(int) flowFile.getSize()];
         session.read(flowFile, in -> StreamUtils.fillBuffer(in, buffer));
-        
+
         // Lift partitioning key
         final String partitioningKey;
         if (StringUtils.isNotBlank(partitioningKeyAttributeName)) {
             partitioningKey = flowFile.getAttribute(partitioningKeyAttributeName);
         } else {
-        	partitioningKey = null;
+            partitioningKey = null;
         }
 
         // Prepare user properties
         final Map<String, Object> userProperties;
         Map<String, String> attributes = flowFile.getAttributes();
         if(attributes == null) {
-        	userProperties = Collections.emptyMap();
+            userProperties = Collections.emptyMap();
         }else {
-        	userProperties = new HashMap<>(attributes);
+            userProperties = new HashMap<>(attributes);
         }
-        
+
         // Send the message
         try {
-        	return sendMessage(buffer, partitioningKey, userProperties)
-            		.thenApplyAsync(param -> {
-            			return new FlowFileResultCarrier<Relationship>(flowFile, REL_SUCCESS);
-            			})
-            		.exceptionally(processException -> {
-            			return new FlowFileResultCarrier<Relationship>(flowFile, REL_FAILURE, processException);
-            			});
+            return sendMessage(buffer, partitioningKey, userProperties)
+                    .thenApplyAsync(param -> {
+                        return new FlowFileResultCarrier<Relationship>(flowFile, REL_SUCCESS);
+                    })
+                    .exceptionally(processException -> {
+                        return new FlowFileResultCarrier<Relationship>(flowFile, REL_FAILURE, processException);
+                    });
 
         } catch (final ProcessException processException) {
             return CompletableFuture.completedFuture(new FlowFileResultCarrier<Relationship>(flowFile, REL_FAILURE, processException));
         }
     }
-    
-    
+
+
     /**
      * Prepare at least one Event hub sender based on this instance of processor.
-     * 
+     *
      * @param context of this processor instance from which all connectivity information properties are taken.
      */
-	protected void populateSenderQueue(ProcessContext context) {
+    protected void populateSenderQueue(ProcessContext context) {
         if(senderQueue.size() == 0){
             final int numThreads = context.getMaxConcurrentTasks();
             senderQueue = new LinkedBlockingQueue<>(numThreads);
@@ -323,15 +321,15 @@ public class PutAzureEventHub extends AbstractProcessor {
             }
         }
     }
-    
+
     /**
      * @param namespace name of the Eventhub namespace (part of the domain name)
      * @param eventHubName name of the eventhub, a message broker entity. Like topic.
      * @param policyName technically it is username bound to eventhub namespace or hub and privileges.
      * @param policyKey password belonging to the above policy
      * @param executor thread executor to perform the client connection.
-     * @return An initialized eventhub client based on supplied parameters. 
-     * @throws ProcessException
+     * @return An initialized eventhub client based on supplied parameters.
+     * @throws ProcessException when creation of event hub fails due to formatting of conection string. Authorization or even network connectivity.
      */
     protected EventHubClient createEventHubClient(
         final String namespace,
@@ -349,44 +347,44 @@ public class PutAzureEventHub extends AbstractProcessor {
             throw new ProcessException(e);
         }
     }
-    
+
     protected String getConnectionString(final String namespace, final String eventHubName, final String policyName, final String policyKey){
         return new ConnectionStringBuilder().setNamespaceName(namespace).setEventHubName(eventHubName).setSasKeyName(policyName).setSasKey(policyKey).toString();
     }
-    
+
     /**
-     * @param buffer Block of data to be sent as a message body. Entire array is used. See Event hub limits for body size. 
+     * @param buffer Block of data to be sent as a message body. Entire array is used. See Event hub limits for body size.
      * @param partitioningKey A hint for Eventhub message broker how to distribute messages consistently amongst multiple partitions.
      * @param userProperties A key value set of customary information that is attached in User defined properties part of the message.
-     * @return future object for referencing a success/failure of this message sending. 
+     * @return future object for referencing a success/failure of this message sending.
      * @throws ProcessException
-     * 
-     * {@link https://docs.microsoft.com/en-us/azure/event-hubs/event-hubs-quotas} 
+     *
+     * @see <a href="https://docs.microsoft.com/en-us/azure/event-hubs/event-hubs-quotas">Event Hubs Quotas</a>
      */
     protected CompletableFuture<Void> sendMessage(final byte[] buffer, String partitioningKey, Map<String, Object> userProperties) throws ProcessException {
 
         final EventHubClient sender = senderQueue.poll();
         if(sender == null) {
-        	throw new ProcessException("No EventHubClients are configured for sending");
+            throw new ProcessException("No EventHubClients are configured for sending");
         }
-        
+
         // Create message with properties
         final EventData eventData = EventData.create(buffer);
         final Map<String, Object> properties = eventData.getProperties();
         if(userProperties != null && properties != null) {
-        	properties.putAll(userProperties);
+            properties.putAll(userProperties);
         }
-        
-        // Send with optional partition key
-    	final CompletableFuture<Void> eventFuture;
-    	if(StringUtils.isNotBlank(partitioningKey)) {
-    		eventFuture = sender.send(eventData, partitioningKey);
-    	}else {
-    		eventFuture = sender.send(eventData);
-    	}
 
-    	senderQueue.offer(sender);
-    	
-    	return eventFuture;
+        // Send with optional partition key
+        final CompletableFuture<Void> eventFuture;
+        if(StringUtils.isNotBlank(partitioningKey)) {
+            eventFuture = sender.send(eventData, partitioningKey);
+        }else {
+            eventFuture = sender.send(eventData);
+        }
+
+        senderQueue.offer(sender);
+
+        return eventFuture;
     }
 }
