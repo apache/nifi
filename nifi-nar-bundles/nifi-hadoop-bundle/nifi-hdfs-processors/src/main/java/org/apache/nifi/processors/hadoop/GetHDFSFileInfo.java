@@ -59,8 +59,6 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.hadoop.GetHDFSFileInfo.HDFSFileInfoRequest.Groupping;
 
-import static org.apache.commons.lang3.StringUtils.isEmpty;
-
 @InputRequirement(Requirement.INPUT_ALLOWED)
 @Tags({"hadoop", "HDFS", "get", "list", "ingest", "source", "filesystem"})
 @CapabilityDescription("Retrieves a listing of files and directories from HDFS. "
