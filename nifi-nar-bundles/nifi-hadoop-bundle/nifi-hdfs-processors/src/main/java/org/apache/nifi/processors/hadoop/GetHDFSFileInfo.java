@@ -189,7 +189,7 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
             .description("Number of records to put into an output flowfile when 'Destination' is set to 'Content'"
                 + " and 'Group Results' is set to 'None'")
             .required(false)
-            .addValidator(StandardValidators.createAllowEmptyValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR))
+            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .build();
 
     static final AllowableValue DESTINATION_ATTRIBUTES = new AllowableValue("gethdfsfileinfo-dest-attr", "Attributes",

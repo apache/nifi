@@ -106,19 +106,19 @@ public class TestGetHDFSFileInfo {
             }
         );
 
-        Arrays.asList("", null).forEach(
-            emptyBatchSize -> {
-                testValidateBatchSize(GetHDFSFileInfo.DESTINATION_ATTRIBUTES, GetHDFSFileInfo.GROUP_ALL, emptyBatchSize, true);
-                testValidateBatchSize(GetHDFSFileInfo.DESTINATION_ATTRIBUTES, GetHDFSFileInfo.GROUP_PARENT_DIR, emptyBatchSize, true);
-                testValidateBatchSize(GetHDFSFileInfo.DESTINATION_ATTRIBUTES, GetHDFSFileInfo.GROUP_NONE, emptyBatchSize, true);
-                testValidateBatchSize(GetHDFSFileInfo.DESTINATION_CONTENT, GetHDFSFileInfo.GROUP_ALL, emptyBatchSize, true);
-                testValidateBatchSize(GetHDFSFileInfo.DESTINATION_CONTENT, GetHDFSFileInfo.GROUP_PARENT_DIR, emptyBatchSize, true);
-                testValidateBatchSize(GetHDFSFileInfo.DESTINATION_CONTENT, GetHDFSFileInfo.GROUP_NONE, emptyBatchSize, true);
+        Arrays.asList((String)null).forEach(
+            nullBatchSize -> {
+                testValidateBatchSize(GetHDFSFileInfo.DESTINATION_ATTRIBUTES, GetHDFSFileInfo.GROUP_ALL, nullBatchSize, true);
+                testValidateBatchSize(GetHDFSFileInfo.DESTINATION_ATTRIBUTES, GetHDFSFileInfo.GROUP_PARENT_DIR, nullBatchSize, true);
+                testValidateBatchSize(GetHDFSFileInfo.DESTINATION_ATTRIBUTES, GetHDFSFileInfo.GROUP_NONE, nullBatchSize, true);
+                testValidateBatchSize(GetHDFSFileInfo.DESTINATION_CONTENT, GetHDFSFileInfo.GROUP_ALL, nullBatchSize, true);
+                testValidateBatchSize(GetHDFSFileInfo.DESTINATION_CONTENT, GetHDFSFileInfo.GROUP_PARENT_DIR, nullBatchSize, true);
+                testValidateBatchSize(GetHDFSFileInfo.DESTINATION_CONTENT, GetHDFSFileInfo.GROUP_NONE, nullBatchSize, true);
             }
         );
     }
 
-    public void testValidateBatchSize(AllowableValue destination, AllowableValue grouping, String batchSize, boolean expectedValid) {
+    private void testValidateBatchSize(AllowableValue destination, AllowableValue grouping, String batchSize, boolean expectedValid) {
         runner.clearProperties();
 
         runner.setIncomingConnection(false);
@@ -637,56 +637,30 @@ public class TestGetHDFSFileInfo {
     public void testBatchSizeWithDestAttributesGroupAllBatchSizeNull() throws Exception {
         testBatchSize(null, GetHDFSFileInfo.DESTINATION_ATTRIBUTES, GetHDFSFileInfo.GROUP_ALL, 1);
     }
-    @Test
-    public void testBatchSizeWithDestAttributesGroupAllBatchSizeEmpty() throws Exception {
-        testBatchSize("", GetHDFSFileInfo.DESTINATION_ATTRIBUTES, GetHDFSFileInfo.GROUP_ALL, 1);
-    }
 
     @Test
     public void testBatchSizeWithDestAttributesGroupDirBatchSizeNull() throws Exception {
         testBatchSize(null, GetHDFSFileInfo.DESTINATION_ATTRIBUTES, GetHDFSFileInfo.GROUP_PARENT_DIR, 5);
-    }
-    @Test
-    public void testBatchSizeWithDestAttributesGroupDirBatchSizeEmpty() throws Exception {
-        testBatchSize("", GetHDFSFileInfo.DESTINATION_ATTRIBUTES, GetHDFSFileInfo.GROUP_PARENT_DIR, 5);
     }
 
     @Test
     public void testBatchSizeWithDestAttributesGroupNoneBatchSizeNull() throws Exception {
         testBatchSize(null, GetHDFSFileInfo.DESTINATION_ATTRIBUTES, GetHDFSFileInfo.GROUP_NONE, 9);
     }
-    @Test
-    public void testBatchSizeWithDestAttributesGroupNoneBatchSizeEmpty() throws Exception {
-        testBatchSize("", GetHDFSFileInfo.DESTINATION_ATTRIBUTES, GetHDFSFileInfo.GROUP_NONE, 9);
-    }
 
     @Test
     public void testBatchSizeWithDestContentGroupAllBatchSizeNull() throws Exception {
         testBatchSize(null, GetHDFSFileInfo.DESTINATION_CONTENT, GetHDFSFileInfo.GROUP_ALL, 1);
-    }
-    @Test
-    public void testBatchSizeWithDestContentGroupAllBatchSizeEmpty() throws Exception {
-        testBatchSize("", GetHDFSFileInfo.DESTINATION_CONTENT, GetHDFSFileInfo.GROUP_ALL, 1);
     }
 
     @Test
     public void testBatchSizeWithDestContentGroupDirBatchSizeNull() throws Exception {
         testBatchSize(null, GetHDFSFileInfo.DESTINATION_CONTENT, GetHDFSFileInfo.GROUP_PARENT_DIR, 5);
     }
-    @Test
-    public void testBatchSizeWithDestContentGroupDirBatchSizeEmpty() throws Exception {
-        testBatchSize("", GetHDFSFileInfo.DESTINATION_CONTENT, GetHDFSFileInfo.GROUP_PARENT_DIR, 5);
-    }
 
     @Test
     public void testBatchSizeWithDestContentGroupNoneBatchSizeNull() throws Exception {
         testBatchSize(null, GetHDFSFileInfo.DESTINATION_CONTENT, GetHDFSFileInfo.GROUP_NONE, 9);
-
-        checkContentSizes(Arrays.asList(1, 1, 1, 1, 1, 1, 1, 1, 1));
-    }
-    @Test
-    public void testBatchSizeWithDestContentGroupNoneBatchSizeEmptyString() throws Exception {
-        testBatchSize("", GetHDFSFileInfo.DESTINATION_CONTENT, GetHDFSFileInfo.GROUP_NONE, 9);
 
         checkContentSizes(Arrays.asList(1, 1, 1, 1, 1, 1, 1, 1, 1));
     }

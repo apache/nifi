@@ -25,9 +25,7 @@ import org.mockito.Mockito;
 
 import java.util.concurrent.TimeUnit;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
@@ -309,41 +307,5 @@ public class TestStandardValidators {
 
         vr = val.validate("foo", "http://localhost , https://host2:8080 ", vc);
         assertTrue(vr.isValid());
-    }
-
-    @Test
-    public void testAllowEmptyValidator() {
-        testAllowEmptyValidator("", true, false);
-        testAllowEmptyValidator(null, true, false);
-
-        testAllowEmptyValidator("otherValue", null, true);
-        testAllowEmptyValidator("-1", null, true);
-        testAllowEmptyValidator("0", null, true);
-        testAllowEmptyValidator("1", null, true);
-    }
-
-    public void testAllowEmptyValidator(String input, Boolean expectedToBeValid, boolean expectedToBeDelegated) {
-        // GIVEN
-        ValidationResult delegateValidationResult = new ValidationResult.Builder()
-            .valid(true)
-            .explanation("uniqueExplanationUsedInEquals")
-            .build();
-
-        Validator delegate = (__, ___, ____) -> delegateValidationResult;
-
-        Validator testSubject = StandardValidators.createAllowEmptyValidator(delegate);
-
-        ValidationContext validationContext = mock(ValidationContext.class);
-
-        // WHEN
-        ValidationResult actual = testSubject.validate("unimportant", input, validationContext);
-
-        // THEN
-        if (expectedToBeDelegated) {
-            assertEquals(delegateValidationResult, actual);
-        } else {
-            assertNotEquals(delegateValidationResult, actual);
-            assertEquals(expectedToBeValid, actual.isValid());
-        }
     }
 }
