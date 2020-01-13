@@ -128,6 +128,37 @@ public class TestSwappablePriorityQueue {
 
 
     @Test
+    public void testOrderingWithCornerCases() {
+        final FlowFilePrioritizer iAttributePrioritizer = new FlowFilePrioritizer() {
+            @Override
+            public int compare(final FlowFile o1, final FlowFile o2) {
+                final int i1 = Integer.parseInt(o1.getAttribute("i"));
+                final int i2 = Integer.parseInt(o2.getAttribute("i"));
+                return Integer.compare(i1, i2);
+            }
+        };
+
+        queue.setPriorities(Collections.singletonList(iAttributePrioritizer));
+
+        for (final int queueSize : new int[] {1, 9999, 10_000, 10_001, 19_999, 20_000, 20_001}) {
+            System.out.println("Queue Size: " + queueSize);
+
+            for (int i=0; i < queueSize; i++) {
+                final MockFlowFile flowFile = new MockFlowFile(i);
+                flowFile.putAttributes(Collections.singletonMap("i", String.valueOf(i)));
+                queue.put(flowFile);
+            }
+
+            for (int i=0; i < queueSize; i++) {
+                final FlowFileRecord flowFile = queue.poll(Collections.emptySet(), 0);
+                assertEquals(String.valueOf(i), flowFile.getAttribute("i"));
+            }
+
+            assertNull(queue.poll(Collections.emptySet(), 0));
+        }
+    }
+
+    @Test
     public void testPrioritizerWhenOutOfOrderDataEntersSwapQueue() {
         final FlowFilePrioritizer iAttributePrioritizer = new FlowFilePrioritizer() {
             @Override

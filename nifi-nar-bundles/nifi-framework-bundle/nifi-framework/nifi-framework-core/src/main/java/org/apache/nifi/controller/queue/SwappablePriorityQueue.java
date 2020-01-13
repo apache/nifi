@@ -281,9 +281,7 @@ public class SwappablePriorityQueue {
         // Calling this method when records are polled prevents this condition by migrating FlowFiles from the
         // Swap Queue to the Active Queue. However, we don't do this if there are FlowFiles already swapped out
         // to disk, because we want them to be swapped back in in the same order that they were swapped out.
-
-        final int activeQueueSize = activeQueue.size();
-        if (activeQueueSize > 0 && activeQueueSize > swapThreshold - SWAP_RECORD_POLL_SIZE) {
+        if (!activeQueue.isEmpty()) {
             return;
         }
 
@@ -310,20 +308,33 @@ public class SwappablePriorityQueue {
             return;
         }
 
+        // Swap Queue is not currently ordered. We want to migrate the highest priority FlowFiles to the Active Queue, then re-queue the lowest priority items.
+        final PriorityQueue<FlowFileRecord> tempQueue = new PriorityQueue<>(swapQueue.size(), new QueuePrioritizer(getPriorities()));
+        tempQueue.addAll(swapQueue);
+
         int recordsMigrated = 0;
         long bytesMigrated = 0L;
-        final Iterator<FlowFileRecord> swapItr = swapQueue.iterator();
-        while (activeQueue.size() < swapThreshold && swapItr.hasNext()) {
-            final FlowFileRecord toMigrate = swapItr.next();
+        while (activeQueue.size() < swapThreshold) {
+            final FlowFileRecord toMigrate = tempQueue.poll();
+            if (toMigrate == null) {
+                break;
+            }
+
             activeQueue.add(toMigrate);
             bytesMigrated += toMigrate.getSize();
             recordsMigrated++;
-            swapItr.remove();
+        }
+
+        swapQueue.clear();
+        FlowFileRecord toRequeue;
+        while ((toRequeue = tempQueue.poll()) != null) {
+            swapQueue.add(toRequeue);
         }
 
         if (recordsMigrated > 0) {
             incrementActiveQueueSize(recordsMigrated, bytesMigrated);
             incrementSwapQueueSize(-recordsMigrated, -bytesMigrated, 0);
+            logger.debug("Migrated {} FlowFiles from swap queue to active queue for {}", recordsMigrated, this);
         }
 
         if (size.getSwappedCount() == 0) {
