@@ -61,8 +61,9 @@ public class TestFlowFileAccessInputStream {
                 return -1;
             }
         });
-        // Flow file size is 32
+        // Flow file total size is 32
         Mockito.when(flowFile.getSize()).thenReturn(32l);
+        
         FlowFileAccessInputStream flowFileAccessInputStream = new FlowFileAccessInputStream(in, flowFile, claim);
         try {
             while (flowFileAccessInputStream.read(data) != -1) {
