@@ -13,6 +13,5 @@ nb-configuration.xml
 *.iml
 *.iws
 *~
-.factorypath
 
 .vscode/

@@ -1,5 +1,23 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.nifi.dbcp;
 
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
@@ -23,50 +41,59 @@ import java.sql.SQLIntegrityConstraintViolationException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class DBCPClientMapCacheService extends AbstractControllerService implements AtomicDistributedMapCacheClient<Integer> {
+@Tags({"distributed", "cache", "state", "map", "cluster", "rdbms", "database"})
+@CapabilityDescription("A relational-database-based map cache service. The processor expects a primary key on the key-column " +
+        "and should work with most ANSI SQL Databases like Derby, PostgreSQL, MySQL, and MariaDB")
+public class DBCPClientMapCacheService extends AbstractControllerService implements AtomicDistributedMapCacheClient<Long> {
 
     public static final PropertyDescriptor DBCP_CONNECTION_POOL = new PropertyDescriptor.Builder()
-            .name("DBCP Connection Pool")
-            .description("Specifies the DBCP Connection Pool Used.")
+            .name("dbcp-connection-pool")
+            .displayName("Database Connection Pooling Servicel")
+            .description("The Controller Service that is used to obtain connection to database")
             .required(true)
             .identifiesControllerService(DBCPService.class)
             .build();
 
     public static final PropertyDescriptor SCHEMA_NAME = new PropertyDescriptor.Builder()
-            .name("Schema Name")
-            .description("Schema Name")
+            .name("schema-name")
+            .displayName("Schema Name")
+            .description("The name of the database schema to be queried. Note that this may be case-sensitive depending on the database.")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor TABLE_NAME = new PropertyDescriptor.Builder()
-            .name("Table Name")
-            .description("Table Name")
+            .name("table-name")
+            .displayName("Table Name")
+            .description("The name of the database table to be queried. Note that this may be case-sensitive depending on the database.")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor KEY_COLUMN_NAME = new PropertyDescriptor.Builder()
-            .name("Key Column")
-            .description("Key Column Name")
+            .name("key-column")
+            .displayName("Key Column")
+            .description("The primary key column in the table being queried. Note that this may be case-sensitive depending on the database.")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor VAL_COLUMN_NAME = new PropertyDescriptor.Builder()
-            .name("Value Column")
-            .description("Value Column Name")
+            .name("value-column")
+            .displayName("Value Column")
+            .description("The value column in the table being queried. Note that this may be case-sensitive depending on the database.")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor REV_COLUMN_NAME = new PropertyDescriptor.Builder()
-            .name("Revision Column")
-            .description("Revision Column Name")
+            .name("revision-column")
+            .displayName("Revision Column")
+            .description("The revision column in the table being queried. Note that this may be case-sensitive depending on the database.")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -179,7 +206,7 @@ public class DBCPClientMapCacheService extends AbstractControllerService impleme
     }
 
     @Override
-    public <K, V> AtomicCacheEntry<K, V, Integer> fetch(K key, Serializer<K> keySerializer, Deserializer<V> valueDeserializer) throws IOException {
+    public <K, V> AtomicCacheEntry<K, V, Long> fetch(K key, Serializer<K> keySerializer, Deserializer<V> valueDeserializer) throws IOException {
         final byte[] keyBytes = serialize(key, keySerializer);
         try (Connection con = dbcpConnectionPool.getConnection()) {
             try (PreparedStatement stmt = con.prepareStatement(buildAtomicSelect())) {
@@ -187,8 +214,8 @@ public class DBCPClientMapCacheService extends AbstractControllerService impleme
                 try (ResultSet rs = stmt.executeQuery()) {
                     if (rs.next()) {
                         byte[] valueBytes = rs.getBytes(1);
-                        Integer revInt = rs.getInt(2);
-                        return new AtomicCacheEntry<>(key, deserialize(valueBytes, valueDeserializer), revInt);
+                        Long revLong = rs.getLong(2);
+                        return new AtomicCacheEntry<>(key, deserialize(valueBytes, valueDeserializer), revLong);
                     }
                 }
             }
@@ -199,22 +226,22 @@ public class DBCPClientMapCacheService extends AbstractControllerService impleme
     }
 
     @Override
-    public <K, V> boolean replace(AtomicCacheEntry<K, V, Integer> entry, Serializer<K> keySerializer, Serializer<V> valueSerializer) throws IOException {
+    public <K, V> boolean replace(AtomicCacheEntry<K, V, Long> entry, Serializer<K> keySerializer, Serializer<V> valueSerializer) throws IOException {
         final byte[] keyBytes = serialize(entry.getKey(), keySerializer);
         final byte[] valueBytes = serialize(entry.getValue(), valueSerializer);
-        final Integer revInt = entry.getRevision().orElse(1);
+        final Long revLong = entry.getRevision().orElse(1L);
         try (Connection con = dbcpConnectionPool.getConnection()) {
             try (PreparedStatement stmt = con.prepareStatement(buildAtomicInsert())) {
                 stmt.setBytes(1, keyBytes);
                 stmt.setBytes(2, valueBytes);
-                stmt.setInt(3, revInt);
+                stmt.setLong(3, revLong);
                 stmt.executeUpdate();
             } catch (SQLIntegrityConstraintViolationException e) {
                 try (PreparedStatement stmt = con.prepareStatement(buildAtomicUpdate())) {
                     stmt.setBytes(1, valueBytes);
-                    stmt.setInt(2, revInt + 1);
+                    stmt.setLong(2, revLong + 1);
                     stmt.setBytes(3, keyBytes);
-                    stmt.setInt(4, revInt);
+                    stmt.setLong(4, revLong);
                     int rowCount = stmt.executeUpdate();
                     if (rowCount == 0) return false;
                 }
