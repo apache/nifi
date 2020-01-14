@@ -16,10 +16,14 @@
  */
 package org.apache.nifi.jms.processors;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
@@ -29,11 +33,17 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.jms.BytesMessage;
 import javax.jms.JMSException;
+import javax.jms.MapMessage;
 import javax.jms.Message;
+import javax.jms.ObjectMessage;
 import javax.jms.Session;
+import javax.jms.StreamMessage;
 import javax.jms.TextMessage;
 import javax.jms.Topic;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.commons.lang3.SerializationUtils;
 import org.apache.nifi.jms.processors.JMSConsumer.ConsumerCallback;
 import org.apache.nifi.jms.processors.JMSConsumer.JMSResponse;
 import org.apache.nifi.logging.ComponentLog;
@@ -44,6 +54,160 @@ import org.springframework.jms.core.MessageCreator;
 import org.springframework.jms.support.JmsHeaders;
 
 public class JMSPublisherConsumerIT {
+
+    @Test
+    public void testObjectMessage() throws Exception {
+        final String destinationName = "testObjectMessage";
+
+        MessageCreator messageCreator = session -> {
+            ObjectMessage message = session.createObjectMessage();
+
+            message.setObject("stringAsObject");
+
+            return message;
+        };
+
+        ConsumerCallback responseChecker = response -> {
+            assertEquals(
+                "stringAsObject",
+                SerializationUtils.deserialize(response.getMessageBody())
+            );
+        };
+
+        testMessage(destinationName, messageCreator, responseChecker);
+    }
+
+    @Test
+    public void testStreamMessage() throws Exception {
+        final String destinationName = "testStreamMessage";
+
+        MessageCreator messageCreator = session -> {
+            StreamMessage message = session.createStreamMessage();
+
+            message.writeBoolean(true);
+            message.writeByte(Integer.valueOf(1).byteValue());
+            message.writeBytes(new byte[] {2, 3, 4});
+            message.writeShort((short)32);
+            message.writeInt(64);
+            message.writeLong(128L);
+            message.writeFloat(1.25F);
+            message.writeDouble(100.867);
+            message.writeChar('c');
+            message.writeString("someString");
+            message.writeObject("stringAsObject");
+
+            return message;
+        };
+
+        byte[] expected;
+        try (
+            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+            DataOutputStream dataOutputStream = new DataOutputStream(byteArrayOutputStream);
+        ) {
+            dataOutputStream.writeBoolean(true);
+            dataOutputStream.writeByte(1);
+            dataOutputStream.write(new byte[] {2, 3, 4});
+            dataOutputStream.writeShort((short)32);
+            dataOutputStream.writeInt(64);
+            dataOutputStream.writeLong(128L);
+            dataOutputStream.writeFloat(1.25F);
+            dataOutputStream.writeDouble(100.867);
+            dataOutputStream.writeChar('c');
+            dataOutputStream.writeUTF("someString");
+            dataOutputStream.writeUTF("stringAsObject");
+
+            dataOutputStream.flush();
+
+            expected = byteArrayOutputStream.toByteArray();
+        }
+
+        ConsumerCallback responseChecker = response -> {
+            byte[] actual = response.getMessageBody();
+
+            assertArrayEquals(
+                expected,
+                actual
+            );
+        };
+
+        testMessage(destinationName, messageCreator, responseChecker);
+    }
+
+    @Test
+    public void testMapMessage() throws Exception {
+        final String destinationName = "testObjectMessage";
+
+        MessageCreator messageCreator = session -> {
+            MapMessage message = session.createMapMessage();
+
+            message.setBoolean("boolean", true);
+            message.setByte("byte", Integer.valueOf(1).byteValue());
+            message.setBytes("bytes", new byte[] {2, 3, 4});
+            message.setShort("short", (short)32);
+            message.setInt("int", 64);
+            message.setLong("long", 128L);
+            message.setFloat("float", 1.25F);
+            message.setDouble("double", 100.867);
+            message.setChar("char", 'c');
+            message.setString("string", "someString");
+            message.setObject("object", "stringAsObject");
+
+            return message;
+        };
+
+        String expectedJson = "{" +
+            "\"boolean\":true," +
+            "\"byte\":1," +
+            "\"bytes\":[2, 3, 4]," +
+            "\"short\":32," +
+            "\"int\":64," +
+            "\"long\":128," +
+            "\"float\":1.25," +
+            "\"double\":100.867," +
+            "\"char\":\"c\"," +
+            "\"string\":\"someString\"," +
+            "\"object\":\"stringAsObject\"" +
+            "}";
+
+        testMapMessage(destinationName, messageCreator, expectedJson);
+    }
+
+    private void testMapMessage(String destinationName, MessageCreator messageCreator, String expectedJson) {
+        ConsumerCallback responseChecker = response -> {
+            ObjectMapper objectMapper = new ObjectMapper();
+
+            try {
+                Map<String, Object> actual = objectMapper.readValue(response.getMessageBody(), new TypeReference<Map<String, Object>>() {});
+                Map<String, Object> expected = objectMapper.readValue(expectedJson.getBytes(), new TypeReference<Map<String, Object>>() {});
+
+                assertEquals(expected, actual);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        };
+
+        testMessage(destinationName, messageCreator, responseChecker);
+    }
+
+    private void testMessage(String destinationName, MessageCreator messageCreator, ConsumerCallback responseChecker) {
+        JmsTemplate jmsTemplate = CommonTest.buildJmsTemplateForDestination(false);
+
+        AtomicBoolean callbackInvoked = new AtomicBoolean();
+
+        try {
+            jmsTemplate.send(destinationName, messageCreator);
+
+            JMSConsumer consumer = new JMSConsumer((CachingConnectionFactory) jmsTemplate.getConnectionFactory(), jmsTemplate, mock(ComponentLog.class));
+            consumer.consume(destinationName, null, false, false, null, "UTF-8", response -> {
+                callbackInvoked.set(true);
+                responseChecker.accept(response);
+            });
+
+            assertTrue(callbackInvoked.get());
+        } finally {
+            ((CachingConnectionFactory) jmsTemplate.getConnectionFactory()).destroy();
+        }
+    }
 
     @Test
     public void validateBytesConvertedToBytesMessageOnSend() throws Exception {
@@ -116,7 +280,7 @@ public class JMSPublisherConsumerIT {
             });
 
             JMSConsumer consumer = new JMSConsumer((CachingConnectionFactory) jmsTemplate.getConnectionFactory(), jmsTemplate, mock(ComponentLog.class));
-            consumer.consume(destinationName, false, false, null, "UTF-8", new ConsumerCallback() {
+            consumer.consume(destinationName, null, false, false, null, "UTF-8", new ConsumerCallback() {
                 @Override
                 public void accept(JMSResponse response) {
                     // noop
@@ -146,7 +310,7 @@ public class JMSPublisherConsumerIT {
 
             JMSConsumer consumer = new JMSConsumer((CachingConnectionFactory) jmsTemplate.getConnectionFactory(), jmsTemplate, mock(ComponentLog.class));
             final AtomicBoolean callbackInvoked = new AtomicBoolean();
-            consumer.consume(destinationName, false, false, null, "UTF-8", new ConsumerCallback() {
+            consumer.consume(destinationName, null, false, false, null, "UTF-8", new ConsumerCallback() {
                 @Override
                 public void accept(JMSResponse response) {
                     callbackInvoked.set(true);
@@ -193,7 +357,7 @@ public class JMSPublisherConsumerIT {
                         JMSConsumer consumer = new JMSConsumer((CachingConnectionFactory) consumeTemplate.getConnectionFactory(), consumeTemplate, mock(ComponentLog.class));
 
                         for (int j = 0; j < 1000 && msgCount.get() < 4000; j++) {
-                            consumer.consume(destinationName, false, false, null, "UTF-8", callback);
+                            consumer.consume(destinationName, null, false, false, null, "UTF-8", callback);
                         }
                     } finally {
                         ((CachingConnectionFactory) consumeTemplate.getConnectionFactory()).destroy();
@@ -232,7 +396,7 @@ public class JMSPublisherConsumerIT {
             JMSConsumer consumer = new JMSConsumer((CachingConnectionFactory) jmsTemplate.getConnectionFactory(), jmsTemplate, mock(ComponentLog.class));
             final AtomicBoolean callbackInvoked = new AtomicBoolean();
             try {
-                consumer.consume(destinationName, false, false, null, "UTF-8", new ConsumerCallback() {
+                consumer.consume(destinationName, null, false, false, null, "UTF-8", new ConsumerCallback() {
                     @Override
                     public void accept(JMSResponse response) {
                         callbackInvoked.set(true);
@@ -249,7 +413,7 @@ public class JMSPublisherConsumerIT {
 
             // should receive the same message, but will process it successfully
             while (!callbackInvoked.get()) {
-                consumer.consume(destinationName, false, false, null, "UTF-8", new ConsumerCallback() {
+                consumer.consume(destinationName, null, false, false, null, "UTF-8", new ConsumerCallback() {
                     @Override
                     public void accept(JMSResponse response) {
                         if (response == null) {
@@ -268,7 +432,7 @@ public class JMSPublisherConsumerIT {
             // receiving next message and fail again
             try {
                 while (!callbackInvoked.get()) {
-                    consumer.consume(destinationName, false, false, null, "UTF-8", new ConsumerCallback() {
+                    consumer.consume(destinationName, null, false, false, null, "UTF-8", new ConsumerCallback() {
                         @Override
                         public void accept(JMSResponse response) {
                             if (response == null) {
@@ -290,7 +454,7 @@ public class JMSPublisherConsumerIT {
             // should receive the same message, but will process it successfully
             try {
                 while (!callbackInvoked.get()) {
-                    consumer.consume(destinationName, false, false, null, "UTF-8", new ConsumerCallback() {
+                    consumer.consume(destinationName, null, false, false, null, "UTF-8", new ConsumerCallback() {
                         @Override
                         public void accept(JMSResponse response) {
                             if (response == null) {

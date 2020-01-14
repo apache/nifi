@@ -179,6 +179,8 @@ abstract class AbstractJMSProcessor<T extends JMSWorker> extends AbstractProcess
 
         try {
             rendezvousWithJms(context, session, worker);
+        } catch (Exception e) {
+            getLogger().error("Error while trying to process JMS message", e);
         } finally {
             //in case of exception during worker's connection (consumer or publisher),
             //an appropriate service is responsible to invalidate the worker.
