@@ -16,15 +16,28 @@
  */
 package org.apache.nifi.jms.processors;
 
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import javax.jms.BytesMessage;
 import javax.jms.JMSException;
+import javax.jms.MapMessage;
+import javax.jms.MessageEOFException;
+import javax.jms.ObjectMessage;
+import javax.jms.StreamMessage;
 import javax.jms.TextMessage;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.SerializationUtils;
 
 /**
  *
@@ -57,7 +70,7 @@ abstract class MessageBodyToBytesConverter {
                 return message.getText().getBytes(charset);
             }
         } catch (JMSException e) {
-            throw new MessageConversionException("Failed to convert BytesMessage to byte[]", e);
+            throw new MessageConversionException("Failed to convert " + TextMessage.class.getSimpleName() + " to byte[]", e);
         }
     }
 
@@ -71,7 +84,111 @@ abstract class MessageBodyToBytesConverter {
             InputStream is = new BytesMessageInputStream(message);
             return IOUtils.toByteArray(is);
         } catch (Exception e) {
-            throw new MessageConversionException("Failed to convert BytesMessage to byte[]", e);
+            throw new MessageConversionException("Failed to convert " + BytesMessage.class.getSimpleName() + " to byte[]", e);
+        }
+    }
+
+    /**
+     *
+     * @param message instance of {@link ObjectMessage}
+     * @return byte array representing the {@link ObjectMessage}
+     */
+    public static byte[] toBytes(ObjectMessage message) {
+        try {
+            return SerializationUtils.serialize(message.getObject());
+        } catch (Exception e) {
+            throw new MessageConversionException("Failed to convert " + ObjectMessage.class.getSimpleName() + " to byte[]", e);
+        }
+    }
+
+    /**
+     * @param message instance of {@link StreamMessage}
+     * @return byte array representing the {@link StreamMessage}
+     */
+    public static byte[] toBytes(StreamMessage message) {
+        try (
+            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+            DataOutputStream dataOutputStream = new DataOutputStream(byteArrayOutputStream);
+        ) {
+            while (true) {
+                try {
+                    Object element = message.readObject();
+                    if (element instanceof Boolean) {
+                        dataOutputStream.writeBoolean((Boolean) element);
+                    } else if (element instanceof byte[]) {
+                        dataOutputStream.write((byte[]) element);
+                    } else if (element instanceof Byte) {
+                        dataOutputStream.writeByte((Byte) element);
+                    } else if (element instanceof Short) {
+                        dataOutputStream.writeShort((Short) element);
+                    } else if (element instanceof Integer) {
+                        dataOutputStream.writeInt((Integer) element);
+                    } else if (element instanceof Long) {
+                        dataOutputStream.writeLong((Long) element);
+                    } else if (element instanceof Float) {
+                        dataOutputStream.writeFloat((Float) element);
+                    } else if (element instanceof Double) {
+                        dataOutputStream.writeDouble((Double) element);
+                    } else if (element instanceof Character) {
+                        dataOutputStream.writeChar((Character) element);
+                    } else if (element instanceof String) {
+                        dataOutputStream.writeUTF((String) element);
+                    } else {
+                        throw new MessageConversionException("Unsupported type in " + StreamMessage.class.getSimpleName() + ": '" + element.getClass() + "'");
+                    }
+                } catch (MessageEOFException mEofE) {
+                    break;
+                }
+            }
+
+            dataOutputStream.flush();
+
+            byte[] bytes = byteArrayOutputStream.toByteArray();
+
+            return bytes;
+        } catch (Exception e) {
+            throw new MessageConversionException("Failed to convert " + StreamMessage.class.getSimpleName() + " to byte[]", e);
+        }
+    }
+
+    /**
+     * @param message instance of {@link MapMessage}
+     * @return byte array representing the {@link MapMessage}
+     */
+    public static byte[] toBytes(MapMessage message) {
+        ObjectMapper objectMapper = new ObjectMapper();
+
+        try (
+            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        ) {
+            Map<String, Object> objectMap = new HashMap<>();
+
+            Enumeration mapNames = message.getMapNames();
+
+            while (mapNames.hasMoreElements()) {
+                String name = (String) mapNames.nextElement();
+                Object value = message.getObject(name);
+                if (value instanceof byte[]) {
+                    byte[] bytes = (byte[]) value;
+                    List<Byte> byteList = new ArrayList<>(bytes.length);
+                    for (byte aByte : bytes) {
+                        byteList.add(aByte);
+                    }
+                    objectMap.put(name, byteList);
+                } else {
+                    objectMap.put(name, value);
+                }
+            }
+
+            objectMapper.writeValue(byteArrayOutputStream, objectMap);
+
+            byte[] jsonAsByteArray = byteArrayOutputStream.toByteArray();
+
+            return jsonAsByteArray;
+        } catch (JMSException e) {
+            throw new MessageConversionException("Couldn't read incoming " + MapMessage.class.getSimpleName(), e);
+        } catch (IOException e) {
+            throw new MessageConversionException("Couldn't transform incoming " + MapMessage.class.getSimpleName() + " to JSON", e);
         }
     }
 

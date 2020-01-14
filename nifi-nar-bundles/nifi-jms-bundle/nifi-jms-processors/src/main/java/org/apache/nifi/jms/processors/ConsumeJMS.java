@@ -25,6 +25,8 @@ import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.jms.cf.JMSConnectionFactoryProvider;
@@ -41,6 +43,7 @@ import org.springframework.jms.support.JmsHeaders;
 
 import javax.jms.Session;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -59,8 +62,9 @@ import java.util.concurrent.TimeUnit;
  */
 @Tags({ "jms", "get", "message", "receive", "consume" })
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
-@CapabilityDescription("Consumes JMS Message of type BytesMessage or TextMessage transforming its content to "
-        + "a FlowFile and transitioning it to 'success' relationship. JMS attributes such as headers and properties will be copied as FlowFile attributes.")
+@CapabilityDescription("Consumes JMS Message of type BytesMessage, TextMessage, ObjectMessage, MapMessage or StreamMessage transforming its content to "
+        + "a FlowFile and transitioning it to 'success' relationship. JMS attributes such as headers and properties will be copied as FlowFile attributes. "
+        + "MapMessages will be transformed into JSONs and then into byte arrays. The other types will have their raw contents as byte array transferred into the flowfile.")
 @WritesAttributes({
         @WritesAttribute(attribute = JmsHeaders.DELIVERY_MODE, description = "The JMSDeliveryMode from the message header."),
         @WritesAttribute(attribute = JmsHeaders.EXPIRATION, description = "The JMSExpiration from the message header."),
@@ -72,10 +76,12 @@ import java.util.concurrent.TimeUnit;
         @WritesAttribute(attribute = JmsHeaders.TYPE, description = "The JMSType from the message header."),
         @WritesAttribute(attribute = JmsHeaders.REPLY_TO, description = "The JMSReplyTo from the message header."),
         @WritesAttribute(attribute = JmsHeaders.DESTINATION, description = "The JMSDestination from the message header."),
+        @WritesAttribute(attribute = ConsumeJMS.JMS_MESSAGETYPE, description = "The JMS message type, can be TextMessage, BytesMessage, ObjectMessage, MapMessage or StreamMessage)."),
         @WritesAttribute(attribute = "other attributes", description = "Each message property is written to an attribute.")
 })
 @SeeAlso(value = { PublishJMS.class, JMSConnectionFactoryProvider.class })
 public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
+    public static final String JMS_MESSAGETYPE = "jms.messagetype";
 
     static final AllowableValue AUTO_ACK = new AllowableValue(String.valueOf(Session.AUTO_ACKNOWLEDGE),
             "AUTO_ACKNOWLEDGE (" + String.valueOf(Session.AUTO_ACKNOWLEDGE) + ")",
@@ -137,6 +143,14 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
             .defaultValue("1 sec")
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
+    static final PropertyDescriptor ERROR_QUEUE = new PropertyDescriptor.Builder()
+            .name("Error Queue Name")
+            .description("The name of a JMS Queue where - if set - unprocessed messages will be routed. Usually provided by the administrator (e.g., 'queue://myErrorQueue' or 'myErrorQueue')." +
+                "Only applicable if 'Destination Type' is set to 'QUEUE'")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
@@ -166,11 +180,31 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
         _propertyDescriptors.add(SHARED_SUBSCRIBER);
         _propertyDescriptors.add(SUBSCRIPTION_NAME);
         _propertyDescriptors.add(TIMEOUT);
+        _propertyDescriptors.add(ERROR_QUEUE);
         thisPropertyDescriptors = Collections.unmodifiableList(_propertyDescriptors);
 
         Set<Relationship> _relationships = new HashSet<>();
         _relationships.add(REL_SUCCESS);
         relationships = Collections.unmodifiableSet(_relationships);
+    }
+
+    @Override
+    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+        final List<ValidationResult> validationResults = new ArrayList<>(super.customValidate(validationContext));
+
+        String destinationType = validationContext.getProperty(DESTINATION_TYPE).getValue();
+        String errorQueue = validationContext.getProperty(ERROR_QUEUE).getValue();
+
+        if (errorQueue != null && !QUEUE.equals(destinationType)) {
+            validationResults.add(new ValidationResult.Builder()
+                .valid(false)
+                .subject(ERROR_QUEUE.getDisplayName())
+                .explanation("'" + ERROR_QUEUE.getDisplayName() + "' is applicable only when " +
+                    "'" + DESTINATION_TYPE.getDisplayName() + "'='" + QUEUE + "'")
+                .build());
+        }
+
+        return validationResults;
     }
 
     /**
@@ -183,6 +217,7 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
     @Override
     protected void rendezvousWithJms(final ProcessContext context, final ProcessSession processSession, final JMSConsumer consumer) throws ProcessException {
         final String destinationName = context.getProperty(DESTINATION).evaluateAttributeExpressions().getValue();
+        final String errorQueueName = context.getProperty(ERROR_QUEUE).evaluateAttributeExpressions().getValue();
         final Boolean durableBoolean = context.getProperty(DURABLE_SUBSCRIBER).evaluateAttributeExpressions().asBoolean();
         final boolean durable = durableBoolean == null ? false : durableBoolean;
         final Boolean sharedBoolean = context.getProperty(SHARED_SUBSCRIBER).evaluateAttributeExpressions().asBoolean();
@@ -191,7 +226,7 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
         final String charset = context.getProperty(CHARSET).evaluateAttributeExpressions().getValue();
 
         try {
-            consumer.consume(destinationName, durable, shared, subscriptionName, charset, new ConsumerCallback() {
+            consumer.consume(destinationName, errorQueueName, durable, shared, subscriptionName, charset, new ConsumerCallback() {
                 @Override
                 public void accept(final JMSResponse response) {
                     if (response == null) {
@@ -209,6 +244,7 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
                     flowFile = processSession.putAttribute(flowFile, JMS_SOURCE_DESTINATION_NAME, destinationName);
 
                     processSession.getProvenanceReporter().receive(flowFile, destinationName);
+                    processSession.putAttribute(flowFile, JMS_MESSAGETYPE, response.getMessageType());
                     processSession.transfer(flowFile, REL_SUCCESS);
                     processSession.commit();
                 }
