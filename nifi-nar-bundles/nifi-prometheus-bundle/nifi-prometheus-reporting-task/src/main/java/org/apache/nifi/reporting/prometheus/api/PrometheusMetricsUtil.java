@@ -329,16 +329,18 @@ public class PrometheusMetricsUtil {
         final String componentId = status.getId();
         final String componentName = status.getName();
 
-        // Clear all collectors to deal with removed/renamed components
-        try {
-            for (final Field field : PrometheusMetricsUtil.class.getDeclaredFields()) {
-                if (Modifier.isStatic(field.getModifiers()) && (field.get(null) instanceof SimpleCollector)) {
-                    SimpleCollector sc = (SimpleCollector)(field.get(null));
-                    sc.clear();
+        // Clear all collectors to deal with removed/renamed components -- for root PG only
+        if("RootProcessGroup".equals(componentType)) {
+            try {
+                for (final Field field : PrometheusMetricsUtil.class.getDeclaredFields()) {
+                    if (Modifier.isStatic(field.getModifiers()) && (field.get(null) instanceof SimpleCollector)) {
+                        SimpleCollector<?> sc = (SimpleCollector<?>) (field.get(null));
+                        sc.clear();
+                    }
                 }
+            } catch (IllegalAccessException e) {
+                // ignore
             }
-        } catch (IllegalAccessException e) {
-            // ignore
         }
 
         AMOUNT_FLOWFILES_SENT.labels(instanceId, componentType, componentName, componentId, parentPGId).set(status.getFlowFilesSent());
@@ -372,7 +374,7 @@ public class PrometheusMetricsUtil {
 
         // Report metrics for child process groups if specified
         if (METRICS_STRATEGY_PG.getValue().equals(metricsStrategy) || METRICS_STRATEGY_COMPONENTS.getValue().equals(metricsStrategy)) {
-            status.getProcessGroupStatus().forEach((childGroupStatus) -> createNifiMetrics(childGroupStatus, instanceId, parentPGId, "ProcessGroup", metricsStrategy));
+            status.getProcessGroupStatus().forEach((childGroupStatus) -> createNifiMetrics(childGroupStatus, instanceId, componentId, "ProcessGroup", metricsStrategy));
         }
 
         if (METRICS_STRATEGY_COMPONENTS.getValue().equals(metricsStrategy)) {
