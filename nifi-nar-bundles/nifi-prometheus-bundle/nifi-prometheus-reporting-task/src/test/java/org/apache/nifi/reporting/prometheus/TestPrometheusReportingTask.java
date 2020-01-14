@@ -19,6 +19,8 @@ package org.apache.nifi.reporting.prometheus;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 
 import org.apache.http.HttpEntity;
@@ -93,6 +95,28 @@ public class TestPrometheusReportingTask {
         outputPortStatus.setActiveThreadCount(1);
 
         rootGroupStatus.setOutputPortStatus(Collections.singletonList(outputPortStatus));
+        // Create a nested group status
+        ProcessGroupStatus groupStatus2 = new ProcessGroupStatus();
+        groupStatus2.setFlowFilesReceived(5);
+        groupStatus2.setBytesReceived(10000);
+        groupStatus2.setFlowFilesSent(10);
+        groupStatus2.setBytesSent(20000);
+        groupStatus2.setQueuedCount(100);
+        groupStatus2.setQueuedContentSize(1024L);
+        groupStatus2.setActiveThreadCount(2);
+        groupStatus2.setBytesRead(12345L);
+        groupStatus2.setBytesWritten(11111L);
+        groupStatus2.setFlowFilesTransferred(5);
+        groupStatus2.setBytesTransferred(10000);
+        groupStatus2.setOutputContentSize(1000L);
+        groupStatus2.setInputContentSize(1000L);
+        groupStatus2.setOutputCount(100);
+        groupStatus2.setInputCount(1000);
+        groupStatus2.setId("3378");
+        groupStatus2.setName("nestedPG");
+        Collection<ProcessGroupStatus> nestedGroupStatuses = new ArrayList<>();
+        nestedGroupStatuses.add(groupStatus2);
+        rootGroupStatus.setProcessGroupStatus(nestedGroupStatuses);
     }
 
     @Test
@@ -107,6 +131,8 @@ public class TestPrometheusReportingTask {
                 "nifi_amount_flowfiles_received{instance=\"localhost\",component_type=\"RootProcessGroup\",component_name=\"root\",component_id=\"1234\",parent_id=\"\",} 5.0"));
         Assert.assertTrue(content.contains(
                 "nifi_amount_threads_active{instance=\"localhost\",component_type=\"RootProcessGroup\",component_name=\"root\",component_id=\"1234\",parent_id=\"\",} 5.0"));
+        Assert.assertTrue(content.contains(
+                "nifi_amount_threads_active{instance=\"localhost\",component_type=\"ProcessGroup\",component_name=\"nestedPG\",component_id=\"3378\",parent_id=\"1234\",} 2.0"));
 
         // Rename the component
         rootGroupStatus.setName("rootroot");
