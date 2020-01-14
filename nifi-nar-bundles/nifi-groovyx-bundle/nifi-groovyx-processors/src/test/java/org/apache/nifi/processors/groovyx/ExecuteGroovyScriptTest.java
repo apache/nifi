@@ -16,6 +16,13 @@
  */
 package org.apache.nifi.processors.groovyx;
 
+import org.apache.nifi.serialization.RecordSetWriterFactory;
+import org.apache.nifi.serialization.SimpleRecordSchema;
+import org.apache.nifi.serialization.record.MockRecordParser;
+import org.apache.nifi.serialization.record.MockRecordWriter;
+import org.apache.nifi.serialization.record.RecordField;
+import org.apache.nifi.serialization.record.RecordFieldType;
+import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.MockProcessorInitializationContext;
@@ -38,6 +45,7 @@ import java.io.FileInputStream;
 
 import java.nio.charset.StandardCharsets;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.HashMap;
 
@@ -61,6 +69,9 @@ public class ExecuteGroovyScriptTest {
 
     protected TestRunner runner;
     protected static DBCPService dbcp = null;  //to make single initialization
+    protected MockRecordParser recordParser = null;
+    protected RecordSetWriterFactory recordWriter = null;
+    protected RecordSchema recordSchema = null;
     protected ExecuteGroovyScript proc;
     public final String TEST_RESOURCE_LOCATION = "target/test/resources/groovy/";
     private final String TEST_CSV_DATA = "gender,title,first,last\n"
@@ -121,6 +132,21 @@ public class ExecuteGroovyScriptTest {
         runner = TestRunners.newTestRunner(proc);
         runner.addControllerService("dbcp", dbcp, new HashMap<>());
         runner.enableControllerService(dbcp);
+
+        List<RecordField> recordFields = Arrays.asList(
+                new RecordField("id", RecordFieldType.INT.getDataType()),
+                new RecordField("name", RecordFieldType.STRING.getDataType()),
+                new RecordField("code", RecordFieldType.INT.getDataType()));
+        recordSchema = new SimpleRecordSchema(recordFields);
+
+        recordParser = new MockRecordParser();
+        recordFields.forEach((r) -> recordParser.addSchemaField(r));
+        runner.addControllerService("myreader", recordParser, new HashMap<>());
+        runner.enableControllerService(recordParser);
+
+        recordWriter = new MockRecordWriter();
+        runner.addControllerService("mywriter", recordWriter, new HashMap<>());
+        runner.enableControllerService(recordWriter);
     }
 
     /**
@@ -225,6 +251,7 @@ public class ExecuteGroovyScriptTest {
         runner.setProperty(proc.SCRIPT_BODY, " { { ");
         runner.assertNotValid();
     }
+
     //---------------------------------------------------------
     @Test
     public void test_ctl_01_access() throws Exception {
@@ -307,6 +334,23 @@ public class ExecuteGroovyScriptTest {
         List<String> lines = ResourceGroovyMethods.readLines(new File(TEST_RESOURCE_LOCATION + "test_sql_04_insert_and_json.json"), "UTF-8");
         //pass through to&from json before compare
         resultFile.assertContentEquals(JsonOutput.toJson(new JsonSlurper().parseText(lines.get(1))), "UTF-8");
+    }
+
+    @Test
+    public void test_record_reader_writer_access() throws Exception {
+        runner.setProperty(ExecuteGroovyScript.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "test_record_reader_writer.groovy");
+        runner.setProperty("RecordReader.myreader", "myreader"); //pass myreader as a service to script
+        runner.setProperty("RecordWriter.mywriter", "mywriter"); //pass mywriter as a service to script
+        runner.assertValid();
+
+        recordParser.addRecord(1, "A", "XYZ");
+        runner.enqueue("");
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ExecuteGroovyScript.REL_SUCCESS.getName(), 1);
+        final List<MockFlowFile> result = runner.getFlowFilesForRelationship(ExecuteGroovyScript.REL_SUCCESS.getName());
+        MockFlowFile resultFile = result.get(0);
+        resultFile.assertContentEquals("\"1\",\"A\",\"XYZ\"\n", "UTF-8");
     }
 
     @Test
