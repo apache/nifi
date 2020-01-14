@@ -27,7 +27,9 @@ import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.util.EntityUtils;
+import org.apache.nifi.controller.status.PortStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
+import org.apache.nifi.controller.status.RunStatus;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.reporting.prometheus.api.PrometheusMetricsUtil;
 import org.apache.nifi.state.MockStateManager;
@@ -83,6 +85,14 @@ public class TestPrometheusReportingTask {
         rootGroupStatus.setOutputCount(100);
         rootGroupStatus.setInputCount(1000);
 
+        PortStatus outputPortStatus = new PortStatus();
+        outputPortStatus.setId("9876");
+        outputPortStatus.setName("out");
+        outputPortStatus.setGroupId("1234");
+        outputPortStatus.setRunStatus(RunStatus.Stopped);
+        outputPortStatus.setActiveThreadCount(1);
+
+        rootGroupStatus.setOutputPortStatus(Collections.singletonList(outputPortStatus));
     }
 
     @Test
