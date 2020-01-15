@@ -73,7 +73,7 @@ public class ScriptingComponentUtils {
     public static final PropertyDescriptor USE_DYNAMIC_RELATIONSHIPS = new PropertyDescriptor.Builder()
             .name("Use Dynamic Relationships")
             .description("Whether properties prefixed with \"REL_\" should create a dynamic relationship or not. The default will change to \"true\" in NIFI 2.0.")
-            .required(false)
+            .required(true)
             .allowableValues(Boolean.FALSE.toString(), Boolean.TRUE.toString())
             .defaultValue(Boolean.FALSE.toString())
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
