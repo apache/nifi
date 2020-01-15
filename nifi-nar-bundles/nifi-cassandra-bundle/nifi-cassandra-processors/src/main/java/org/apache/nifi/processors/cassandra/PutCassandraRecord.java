@@ -24,11 +24,13 @@ import com.datastax.driver.core.querybuilder.Insert;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.querybuilder.Update;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
@@ -54,17 +56,18 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 @Tags({"cassandra", "cql", "put", "insert", "update", "set", "record"})
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @CapabilityDescription("This is a record aware processor that reads the content of the incoming FlowFile as individual records using the " +
         "configured 'Record Reader' and writes them to Apache Cassandra using native protocol version 3 or higher.")
 public class PutCassandraRecord extends AbstractCassandraProcessor {
-    static final String UPDATE_TYPE = "UPDATE";
-    static final String INSERT_TYPE = "INSERT";
-    static final String INCR_TYPE = "INCREMENT";
-    static final String SET_TYPE = "SET";
-    static final String DECR_TYPE = "DECREMENT";
+    static final AllowableValue UPDATE_TYPE = new AllowableValue("UPDATE", "UPDATE", "Use an UPDATE statement.");
+    static final AllowableValue INSERT_TYPE = new AllowableValue("INSERT", "INSERT", "Use an INSERT statement.");
+    static final AllowableValue INCR_TYPE = new AllowableValue("INCREMENT", "Increment", "Use an increment operation (+=) for the update statement.");
+    static final AllowableValue SET_TYPE = new AllowableValue("SET", "Set", "Use a set operation (=) for the update statement.");
+    static final AllowableValue DECR_TYPE = new AllowableValue("DECREMENT", "Decrement", "Use a decrement operation (-=) for the update statement.");
 
     static final PropertyDescriptor RECORD_READER_FACTORY = new PropertyDescriptor.Builder()
             .name("put-cassandra-record-reader")
@@ -80,16 +83,16 @@ public class PutCassandraRecord extends AbstractCassandraProcessor {
             .displayName("Statement Type")
             .description("Specifies the type of CQL Statement to generate.")
             .required(true)
-            .defaultValue(INSERT_TYPE)
+            .defaultValue(INSERT_TYPE.getValue())
             .allowableValues(UPDATE_TYPE, INSERT_TYPE)
             .build();
 
     static final PropertyDescriptor UPDATE_METHOD = new PropertyDescriptor.Builder()
             .name("put-cassandra-record-update-method")
             .displayName("Update Method")
-            .description("Specifies the method to use to SET the values.")
+            .description("Specifies the method to use to SET the values. This property is used if the Statement Type is Update and ignored otherwise.")
             .required(false)
-            .defaultValue(SET_TYPE)
+            .defaultValue(SET_TYPE.getValue())
             .allowableValues(INCR_TYPE, DECR_TYPE, SET_TYPE)
             .build();
 
@@ -98,7 +101,7 @@ public class PutCassandraRecord extends AbstractCassandraProcessor {
             .displayName("Update Keys")
             .description("A comma-separated list of column names that uniquely identifies a row in the database for UPDATE statements. "
                     + "If the Statement Type is UPDATE and this property is not set, the conversion to CQL will fail. "
-                    + "This property is ignored if the Statement Type is INSERT.")
+                    + "This property is ignored if the Statement Type is not UPDATE.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -193,9 +196,9 @@ public class PutCassandraRecord extends AbstractCassandraProcessor {
                         .convertRecordFieldtoObject(record, RecordFieldType.RECORD.getRecordDataType(record.getSchema()));
 
                 Statement query;
-                if (INSERT_TYPE.equalsIgnoreCase(statementType)) {
+                if (INSERT_TYPE.getValue().equalsIgnoreCase(statementType)) {
                     query = generateInsert(cassandraTable, schema, recordContentMap);
-                } else if (UPDATE_TYPE.equalsIgnoreCase(statementType)) {
+                } else if (UPDATE_TYPE.getValue().equalsIgnoreCase(statementType)) {
                     query = generateUpdate(cassandraTable, schema, updateKeys, updateMethod, recordContentMap);
                 } else {
                     throw new IllegalArgumentException("Statement Type '" + statementType + "' is not valid.");
@@ -236,10 +239,10 @@ public class PutCassandraRecord extends AbstractCassandraProcessor {
 
         // Split up the update key names separated by a comma, we need at least 1 key.
         final Set<String> updateKeyNames;
-        updateKeyNames = new HashSet<>();
-        for (final String updateKey : updateKeys.split(",")) {
-            updateKeyNames.add(updateKey.trim());
-        }
+        updateKeyNames = Arrays.stream(updateKeys.split(","))
+                .map(String::trim)
+                .filter(StringUtils::isNotEmpty)
+                .collect(Collectors.toSet());
         if (updateKeyNames.isEmpty()) {
             throw new IllegalArgumentException("No Update Keys were specified");
         }
@@ -261,7 +264,7 @@ public class PutCassandraRecord extends AbstractCassandraProcessor {
                 updateQuery.where(QueryBuilder.eq(fieldName, fieldValue));
             } else {
                 Assignment assignment;
-                if (SET_TYPE.equalsIgnoreCase(updateMethod)) {
+                if (SET_TYPE.getValue().equalsIgnoreCase(updateMethod)) {
                     assignment = QueryBuilder.set(fieldName, fieldValue);
                 } else {
                     // Check if the fieldValue is of type long, as this is the only type that is can be used,
@@ -271,9 +274,9 @@ public class PutCassandraRecord extends AbstractCassandraProcessor {
                                 " to increment or decrement.");
                     }
 
-                    if (INCR_TYPE.equalsIgnoreCase(updateMethod)) {
+                    if (INCR_TYPE.getValue().equalsIgnoreCase(updateMethod)) {
                         assignment = QueryBuilder.incr(fieldName, (Long)fieldValue);
-                    } else if (DECR_TYPE.equalsIgnoreCase(updateMethod)) {
+                    } else if (DECR_TYPE.getValue().equalsIgnoreCase(updateMethod)) {
                         assignment = QueryBuilder.decr(fieldName, (Long)fieldValue);
                     } else {
                         throw new IllegalArgumentException("Update Method '" + updateMethod + "' is not valid.");
