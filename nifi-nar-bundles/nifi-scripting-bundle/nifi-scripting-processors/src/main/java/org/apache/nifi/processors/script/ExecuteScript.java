@@ -198,21 +198,10 @@ public class ExecuteScript extends AbstractSessionFactoryProcessor implements Se
     private PropertyDescriptor getDynamicRelationshipDescriptor(final String propertyDescriptorName) {
         // we allow for arbitrary relationship names, even empty strings
         final String relName = getRelationshipName(propertyDescriptorName);
-        if (!isValidRelationshipName(relName)) {
-            log.warn("dynamic property for relationship is invalid: '{}'. It must not be named REL_SUCCESS or REL_FAILURE (case in-sensitive)",
-                    new Object[]{propertyDescriptorName}
-            );
-            return new PropertyDescriptor.Builder()
-                    .addValidator(new RelationshipInvalidator())
-                    .dynamic(true)
-                    .required(false)
-                    .name(propertyDescriptorName)
-                    .build();
-        }
         return new PropertyDescriptor.Builder()
                 .name(propertyDescriptorName)
                 .required(false)
-                .addValidator(Validator.VALID)
+                .addValidator(new RelationshipInvalidator())
                 .expressionLanguageSupported(ExpressionLanguageScope.NONE)
                 .dynamic(true)
                 .description(String.format("This property adds the relationship '%s'", relName))
@@ -464,11 +453,17 @@ public class ExecuteScript extends AbstractSessionFactoryProcessor implements Se
     private static class RelationshipInvalidator implements Validator {
         @Override
         public ValidationResult validate(String subject, String input, ValidationContext validationContext) {
+            final String relName = getRelationshipName(input);
+            final boolean isValid = isValidRelationshipName(relName);
+            final String msg = isValid
+                    ? null
+                    : "dynamic property for relationship is invalid: '{}'. It must not be named REL_SUCCESS or "
+                    + "REL_FAILURE (case in-sensitive)";
             return new ValidationResult.Builder()
                     .subject(subject)
                     .input(input)
-                    .explanation("invalid dynamic relationship specified")
-                    .valid(false)
+                    .explanation(msg)
+                    .valid(isValid)
                     .build();
         }
     }
