@@ -140,7 +140,6 @@ public class ExecuteScript extends AbstractSessionFactoryProcessor implements Se
     protected void init(ProcessorInitializationContext context) {
         super.init(context);
         log = getLogger();
-        log.warn("The default for USE_DYNAMIC_RELATIONSHIPS will change from \"false\" to \"true\" starting in NIFI 2.0");
     }
 
     /**
