@@ -46,6 +46,8 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.elasticsearch.AbstractElasticsearchHttpProcessor.ElasticsearchTypeValidator;
+import org.apache.nifi.processors.elasticsearch.AbstractElasticsearchHttpProcessor.ElasticsearchVersion;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -135,12 +137,11 @@ public class ScrollElasticsearchHttp extends AbstractElasticsearchHttpProcessor 
     public static final PropertyDescriptor TYPE = new PropertyDescriptor.Builder()
             .name("scroll-es-type")
             .displayName("Type")
-            .description(
-                    "The (optional) type of this query, used by Elasticsearch for indexing and searching. If the property is empty, "
-                    + "the the query will match across all types.")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .required(false)
+            .description("The type of this document (if empty, searches across all types).  "
+                    + "This must be empty (check 'Set empty string') or '_doc' for Elasticsearch 7.0+.")
+            .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .addValidator(new ElasticsearchTypeValidator(false))
             .build();
 
     public static final PropertyDescriptor FIELDS = new PropertyDescriptor.Builder()
@@ -185,6 +186,7 @@ public class ScrollElasticsearchHttp extends AbstractElasticsearchHttpProcessor 
         relationships = Collections.unmodifiableSet(_rels);
 
         final List<PropertyDescriptor> descriptors = new ArrayList<>(COMMON_PROPERTY_DESCRIPTORS);
+        descriptors.add(ES_VERSION);
         descriptors.add(QUERY);
         descriptors.add(SCROLL_DURATION);
         descriptors.add(PAGE_SIZE);
@@ -244,6 +246,8 @@ public class ScrollElasticsearchHttp extends AbstractElasticsearchHttpProcessor 
                 .evaluateAttributeExpressions(flowFile).getValue() : null;
         final String scroll = context.getProperty(SCROLL_DURATION).isSet() ? context
                 .getProperty(SCROLL_DURATION).evaluateAttributeExpressions(flowFile).getValue() : null;
+        final ElasticsearchVersion esVersion = ElasticsearchVersion.valueOf(context.getProperty(ES_VERSION)
+                .getValue());
 
         // Authentication
         final String username = context.getProperty(USERNAME).evaluateAttributeExpressions().getValue();
@@ -260,7 +264,7 @@ public class ScrollElasticsearchHttp extends AbstractElasticsearchHttpProcessor 
                     .getValue());
             if (scrollId != null) {
                 final URL scrollurl = buildRequestURL(urlstr, query, index, docType, fields, sort,
-                        scrollId, pageSize, scroll, context);
+                        scrollId, pageSize, scroll, context, esVersion);
                 final long startNanos = System.nanoTime();
 
                 final String scrollBody = String.format("{ \"scroll\": \"%s\", \"scroll_id\": \"%s\" }", scroll,
@@ -278,7 +282,7 @@ public class ScrollElasticsearchHttp extends AbstractElasticsearchHttpProcessor 
 
                 // read the url property from the context
                 final URL queryUrl = buildRequestURL(urlstr, query, index, docType, fields, sort,
-                        scrollId, pageSize, scroll, context);
+                        scrollId, pageSize, scroll, context, esVersion);
                 final long startNanos = System.nanoTime();
 
                 final Response getResponse = sendRequestToElasticsearch(okHttpClient, queryUrl,
@@ -415,7 +419,7 @@ public class ScrollElasticsearchHttp extends AbstractElasticsearchHttpProcessor 
     }
 
     private URL buildRequestURL(String baseUrl, String query, String index, String type, String fields,
-            String sort, String scrollId, int pageSize, String scroll, ProcessContext context) throws MalformedURLException {
+            String sort, String scrollId, int pageSize, String scroll, ProcessContext context, ElasticsearchVersion esVersion) throws MalformedURLException {
         if (StringUtils.isEmpty(baseUrl)) {
             throw new MalformedURLException("Base URL cannot be null");
         }
@@ -433,7 +437,8 @@ public class ScrollElasticsearchHttp extends AbstractElasticsearchHttpProcessor 
             builder.addQueryParameter(SIZE_QUERY_PARAM, String.valueOf(pageSize));
             if (!StringUtils.isEmpty(fields)) {
                 String trimmedFields = Stream.of(fields.split(",")).map(String::trim).collect(Collectors.joining(","));
-                builder.addQueryParameter(FIELD_INCLUDE_QUERY_PARAM, trimmedFields);
+                final String fieldIncludeParameter = getFieldIncludeParameter(esVersion);
+                builder.addQueryParameter(fieldIncludeParameter, trimmedFields);
             }
             if (!StringUtils.isEmpty(sort)) {
                 String trimmedFields = Stream.of(sort.split(",")).map(String::trim).collect(Collectors.joining(","));
