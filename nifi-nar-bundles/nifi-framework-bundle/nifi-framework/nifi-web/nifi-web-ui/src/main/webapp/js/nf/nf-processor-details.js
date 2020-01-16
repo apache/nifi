@@ -179,6 +179,9 @@
                 readOnly: true,
                 getParameterContext: function (groupId) {
                     // processors being configured must be in the current group
+                    if(typeof nfCanvasUtils === "undefined"){
+                        return null;
+                    }
                     return nfCanvasUtils.getParameterContext();
                 }
             });
