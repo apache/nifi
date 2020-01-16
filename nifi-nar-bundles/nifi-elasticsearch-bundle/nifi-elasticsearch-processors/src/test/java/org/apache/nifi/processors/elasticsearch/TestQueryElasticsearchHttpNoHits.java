@@ -189,9 +189,56 @@ public class TestQueryElasticsearchHttpNoHits {
                 runAndVerify(3,3,2,true);
         }
 
+        @Test
+        public void testQueryElasticsearchOnTrigger_Hits_AppendAsAttributes() throws IOException {
+                runner = TestRunners.newTestRunner(new QueryElasticsearchHttpTestProcessor(false));
+                runner.setValidateExpressionUsage(true);
+                runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
 
+                runner.setProperty(QueryElasticsearchHttp.INDEX, "doc");
+                runner.assertNotValid();
+                runner.setProperty(QueryElasticsearchHttp.TYPE, "status");
+                runner.assertNotValid();
+                runner.setProperty(QueryElasticsearchHttp.QUERY,
+                        "source:Twitter AND identifier:\"${identifier}\"");
+                runner.assertValid();
+                runner.setProperty(QueryElasticsearchHttp.PAGE_SIZE, "2");
+                runner.assertValid();
+                runner.setProperty(QueryElasticsearchHttp.ROUTING_QUERY_INFO_STRATEGY, QueryElasticsearchHttp.QueryInfoRouteStrategy.APPEND_AS_ATTRIBUTES.name());
+                runner.assertValid();
+
+                runner.setIncomingConnection(true);
+                runAndVerify(1,0,0,false, false);
+        }
+
+        @Test
+        public void testQueryElasticsearchOnTrigger_Hits_AppendAsAttributes_noHits() throws IOException {
+                runner = TestRunners.newTestRunner(new QueryElasticsearchHttpTestProcessor(true));
+                runner.setValidateExpressionUsage(true);
+                runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
+
+                runner.setProperty(QueryElasticsearchHttp.INDEX, "doc");
+                runner.assertNotValid();
+                runner.setProperty(QueryElasticsearchHttp.TYPE, "status");
+                runner.assertNotValid();
+                runner.setProperty(QueryElasticsearchHttp.QUERY,
+                        "source:Twitter AND identifier:\"${identifier}\"");
+                runner.assertValid();
+                runner.setProperty(QueryElasticsearchHttp.PAGE_SIZE, "2");
+                runner.assertValid();
+                runner.setProperty(QueryElasticsearchHttp.ROUTING_QUERY_INFO_STRATEGY, QueryElasticsearchHttp.QueryInfoRouteStrategy.APPEND_AS_ATTRIBUTES.name());
+                runner.assertValid();
+
+                runner.setIncomingConnection(false);
+                runAndVerify(3,3,2,true, false);
+        }
 
         private void runAndVerify(int expectedResults,int expectedQueryInfoResults,int expectedHits, boolean targetIsContent) {
+            runAndVerify(expectedResults, expectedQueryInfoResults, expectedHits, targetIsContent, true);
+        }
+
+        private void runAndVerify(int expectedResults,int expectedQueryInfoResults,int expectedHits, boolean targetIsContent,
+                boolean expectHitCountOnQueryInfo) {
                 runner.enqueue("blah".getBytes(), new HashMap<String, String>() {
                         {
                                 put("identifier", "28039652140");
@@ -201,20 +248,27 @@ public class TestQueryElasticsearchHttpNoHits {
                 // Running once should page through the no hit doc
                 runner.run(1, true, true);
 
-                runner.assertTransferCount(QueryElasticsearchHttp.REL_QUERY_INFO, expectedQueryInfoResults);
-                if (expectedQueryInfoResults > 0) {
+                if (expectHitCountOnQueryInfo) {
+                    runner.assertTransferCount(QueryElasticsearchHttp.REL_QUERY_INFO, expectedQueryInfoResults);
+                    if (expectedQueryInfoResults > 0) {
                         final MockFlowFile out = runner.getFlowFilesForRelationship(QueryElasticsearchHttp.REL_QUERY_INFO).get(0);
                         assertNotNull(out);
                         if (targetIsContent) {
+                            if (expectHitCountOnQueryInfo) {
                                 out.assertAttributeEquals("es.query.hitcount", String.valueOf(expectedHits));
-                                Assert.assertTrue(out.getAttribute("es.query.url").startsWith("http://127.0.0.1:9200/doc/status/_search?q=source:Twitter%20AND%20identifier:%22%22&size=2"));
+                            }
+                            Assert.assertTrue(out.getAttribute("es.query.url").startsWith("http://127.0.0.1:9200/doc/status/_search?q=source:Twitter%20AND%20identifier:%22%22&size=2"));
                         }
+                    }
                 }
 
                 runner.assertTransferCount(QueryElasticsearchHttp.REL_SUCCESS, expectedResults);
                 if (expectedResults > 0) {
                         final MockFlowFile out = runner.getFlowFilesForRelationship(QueryElasticsearchHttp.REL_SUCCESS).get(0);
                         assertNotNull(out);
+                        if (!expectHitCountOnQueryInfo) {
+                            out.assertAttributeEquals("es.query.hitcount", String.valueOf(expectedHits));
+                        }
                         if (targetIsContent) {
                                 out.assertAttributeEquals("filename", "abc-97b-ASVsZu_" + "vShwtGCJpGOObmuSqUJRUC3L_-SEND-S3");
                         }

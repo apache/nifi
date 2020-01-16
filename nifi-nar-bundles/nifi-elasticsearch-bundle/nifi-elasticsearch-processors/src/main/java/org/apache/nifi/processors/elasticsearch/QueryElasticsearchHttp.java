@@ -91,7 +91,8 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
     public enum QueryInfoRouteStrategy {
         NEVER,
         ALWAYS,
-        NOHIT
+        NOHIT,
+        APPEND_AS_ATTRIBUTES
     }
 
     private static final String FROM_QUERY_PARAM = "from";
@@ -103,6 +104,8 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
     static final AllowableValue ALWAYS = new AllowableValue(QueryInfoRouteStrategy.ALWAYS.name(), "Always", "Always route Query Info");
     static final AllowableValue NEVER = new AllowableValue(QueryInfoRouteStrategy.NEVER.name(), "Never", "Never route Query Info");
     static final AllowableValue NO_HITS = new AllowableValue(QueryInfoRouteStrategy.NOHIT.name(), "No Hits", "Route Query Info if the Query returns no hits");
+    static final AllowableValue APPEND_AS_ATTRIBUTES = new AllowableValue(QueryInfoRouteStrategy.APPEND_AS_ATTRIBUTES.name(), "Append as Attributes",
+            "Always append Query Info as attributes, using the existing relationships (does not add the Query Info relationship).");
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description(
@@ -221,7 +224,7 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
             .displayName("Routing Strategy for Query Info")
             .description("Specifies when to generate and route Query Info after a successful query")
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
-            .allowableValues(ALWAYS, NEVER, NO_HITS)
+            .allowableValues(ALWAYS, NEVER, NO_HITS, APPEND_AS_ATTRIBUTES)
             .defaultValue(NEVER.getValue())
             .required(false)
             .build();
@@ -399,9 +402,9 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
             if ( (hits.size() == 0 && priorResultCount == 0 && queryInfoRouteStrategy == QueryInfoRouteStrategy.NOHIT)
                     || queryInfoRouteStrategy == QueryInfoRouteStrategy.ALWAYS) {
                 FlowFile queryInfo = flowFile == null ? session.create() : session.create(flowFile);
-                session.putAttribute(queryInfo, "es.query.url", url.toExternalForm());
-                session.putAttribute(queryInfo, "es.query.hitcount", String.valueOf(hits.size()));
-                session.putAttribute(queryInfo, MIME_TYPE.key(), "application/json");
+                queryInfo = session.putAttribute(queryInfo, "es.query.url", url.toExternalForm());
+                queryInfo = session.putAttribute(queryInfo, "es.query.hitcount", String.valueOf(hits.size()));
+                queryInfo = session.putAttribute(queryInfo, MIME_TYPE.key(), "application/json");
                 session.transfer(queryInfo,REL_QUERY_INFO);
             }
 
@@ -416,6 +419,10 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
                     documentFlowFile = targetIsContent ? session.create(flowFile) : session.clone(flowFile);
                 } else {
                     documentFlowFile = session.create();
+                }
+
+                if (queryInfoRouteStrategy == QueryInfoRouteStrategy.APPEND_AS_ATTRIBUTES) {
+                    documentFlowFile = session.putAttribute(documentFlowFile, "es.query.hitcount", String.valueOf(hits.size()));
                 }
 
                 JsonNode source = hit.get("_source");
@@ -451,9 +458,20 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
                 }
                 page.add(documentFlowFile);
             }
-            logger.debug("Elasticsearch retrieved " + responseJson.size() + " documents, routing to success");
 
-            session.transfer(page, REL_SUCCESS);
+            logger.debug("Elasticsearch retrieved " + responseJson.size() + " documents, routing to success");
+            // If we want to append query info as attributes but there were no hits,
+            // pass along the original, if present.
+            if (queryInfoRouteStrategy == QueryInfoRouteStrategy.APPEND_AS_ATTRIBUTES && page.isEmpty()
+                    && flowFile != null) {
+                FlowFile documentFlowFile = null;
+                documentFlowFile = targetIsContent ? session.create(flowFile) : session.clone(flowFile);
+                documentFlowFile = session.putAttribute(documentFlowFile, "es.query.hitcount", String.valueOf(hits.size()));
+                documentFlowFile = session.putAttribute(documentFlowFile, "es.query.url", url.toExternalForm());
+                session.transfer(documentFlowFile, REL_SUCCESS);
+            } else {
+                session.transfer(page, REL_SUCCESS);
+            }
         } else {
             try {
                 // 5xx -> RETRY, but a server error might last a while, so yield
