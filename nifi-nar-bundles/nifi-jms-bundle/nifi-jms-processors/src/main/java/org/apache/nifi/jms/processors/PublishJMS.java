@@ -133,17 +133,8 @@ public class PublishJMS extends AbstractJMSProcessor<JMSPublisher> {
                 for (final Map.Entry<String, String> entry : flowFile.getAttributes().entrySet()) {
                     final String key = entry.getKey();
                     if (pattern.matcher(key).matches()) {
-                        attributesToSend.put(key, flowFile.getAttribute(key));
-                    }
-                }
-
-                // Optionally remove illegal headers names apart from .type attributes for JMS variable types
-                if (!allowIllegalChars) {
-                    for (final Map.Entry<String,String> entry : attributesToSend.entrySet()) {
-                        if (!entry.getKey().endsWith(".type")){
-                            if (entry.getKey().contains("-") || entry.getKey().contains(".")) {
-                                attributesToSend.remove(entry.getKey());
-                            }
+                        if (allowIllegalChars || key.endsWith(".type") || (!key.contains("-") && !key.contains("."))) {
+                            attributesToSend.put(key, flowFile.getAttribute(key));
                         }
                     }
                 }
