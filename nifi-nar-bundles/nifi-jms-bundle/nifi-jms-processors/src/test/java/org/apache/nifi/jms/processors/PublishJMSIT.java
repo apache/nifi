@@ -63,7 +63,10 @@ public class PublishJMSIT {
         Map<String, String> attributes = new HashMap<>();
         attributes.put("foo", "foo");
         attributes.put(JmsHeaders.REPLY_TO, "cooQueue");
-        attributes.put("test-attribute", "value");
+        attributes.put("test-attribute.type", "allowed1");
+        attributes.put("test.attribute.type", "allowed2");
+        attributes.put("test-attribute", "notAllowed1");
+        attributes.put("jms.source.destination", "notAllowed2");
         runner.enqueue("Hey dude!".getBytes(), attributes);
         runner.run(1, false); // Run once but don't shut down because we want the Connection Factory left in tact so that we can use it.
 
@@ -77,7 +80,10 @@ public class PublishJMSIT {
         assertEquals("Hey dude!", new String(messageBytes));
         assertEquals("cooQueue", ((Queue) message.getJMSReplyTo()).getQueueName());
         assertEquals("foo", message.getStringProperty("foo"));
+        assertEquals("allowed1", message.getStringProperty("test-attribute.type"));
+        assertEquals("allowed2", message.getStringProperty("test.attribute.type"));
         assertNull(message.getStringProperty("test-attribute"));
+        assertNull(message.getStringProperty("jms.source.destination"));
 
         runner.run(1, true, false); // Run once just so that we can trigger the shutdown of the Connection Factory
     }
