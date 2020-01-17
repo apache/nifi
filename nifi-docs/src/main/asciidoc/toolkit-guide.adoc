@@ -747,7 +747,7 @@ Standalone mode is invoked by running `./bin/tls-toolkit.sh standalone` or `bin\
 ===== Usage
 To show help:
 
- ./bin/tls-toolkit.sh standlone -h
+ ./bin/tls-toolkit.sh standalone -h
 
 The following are available options:
 
