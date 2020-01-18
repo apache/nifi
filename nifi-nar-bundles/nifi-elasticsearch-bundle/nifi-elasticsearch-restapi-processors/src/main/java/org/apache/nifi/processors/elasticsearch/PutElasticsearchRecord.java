@@ -225,6 +225,9 @@ public class PutElasticsearchRecord extends AbstractProcessor implements Elastic
                 }
             }
 
+            reader.close();
+            inStream.close();
+
             session.transfer(input, REL_SUCCESS);
         } catch (ElasticsearchError ese) {
             String msg = String.format("Encountered a server-side problem with Elasticsearch. %s",
