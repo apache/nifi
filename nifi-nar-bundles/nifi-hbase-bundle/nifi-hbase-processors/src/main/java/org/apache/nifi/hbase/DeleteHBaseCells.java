@@ -109,6 +109,7 @@ public class DeleteHBaseCells extends AbstractDeleteHBase {
                 String[] parts = line.split(separator);
                 if (parts.length < 3 || parts.length > 4) {
                     final String msg = String.format("Invalid line length. It must have 3 or 4 components. It had %d.", parts.length);
+                    is.close();
                     input = writeErrorAttributes(lineNum, msg, input, session);
                     session.transfer(input, REL_FAILURE);
                     getLogger().error(msg);

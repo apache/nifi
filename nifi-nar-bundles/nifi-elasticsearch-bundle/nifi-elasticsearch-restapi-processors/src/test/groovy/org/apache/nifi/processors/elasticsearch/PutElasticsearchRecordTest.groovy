@@ -25,6 +25,8 @@ import org.apache.nifi.json.JsonRecordSetWriter
 import org.apache.nifi.json.JsonTreeReader
 import org.apache.nifi.processors.elasticsearch.mock.MockBulkLoadClientService
 import org.apache.nifi.schema.access.SchemaAccessUtils
+import org.apache.nifi.serialization.RecordReaderFactory
+import org.apache.nifi.serialization.record.MockRecordParser
 import org.apache.nifi.serialization.record.MockSchemaRegistry
 import org.apache.nifi.util.TestRunner
 import org.apache.nifi.util.TestRunners
@@ -38,7 +40,7 @@ import static groovy.json.JsonOutput.toJson
 class PutElasticsearchRecordTest {
     MockBulkLoadClientService clientService
     MockSchemaRegistry registry
-    JsonTreeReader reader
+    RecordReaderFactory reader
     TestRunner runner
 
     static final String SCHEMA = prettyPrint(toJson([
@@ -92,6 +94,15 @@ class PutElasticsearchRecordTest {
 
     @Test
     void simpleTest() {
+        basicTest(0, 0, 1)
+    }
+
+    @Test
+    void simpleTestWithMockReader() {
+        reader = new MockRecordParser()
+        runner.addControllerService("mockReader", reader)
+        runner.setProperty(PutElasticsearchRecord.RECORD_READER, "mockReader")
+        runner.enableControllerService(reader)
         basicTest(0, 0, 1)
     }
 
