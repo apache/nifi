@@ -441,14 +441,20 @@ public class MapRecord implements Record {
 
     @Override
     public void incorporateInactiveFields() {
-        if (inactiveFields == null || inactiveFields.isEmpty()) {
-            return;
-        }
-
         final List<RecordField> updatedFields = new ArrayList<>();
 
+        boolean fieldUpdated = false;
         for (final RecordField field : schema.getFields()) {
-            updatedFields.add(getUpdatedRecordField(field));
+            final RecordField updated = getUpdatedRecordField(field);
+            if (!updated.equals(field)) {
+                fieldUpdated = true;
+            }
+
+            updatedFields.add(updated);
+        }
+
+        if (!fieldUpdated && (inactiveFields == null || inactiveFields.isEmpty())) {
+            return;
         }
 
         if (inactiveFields != null) {
