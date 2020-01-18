@@ -17,6 +17,7 @@
 
 package org.apache.nifi.record.path.functions;
 
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.nifi.record.path.FieldValue;
 import org.apache.nifi.record.path.RecordPathEvaluationContext;
 import org.apache.nifi.record.path.StandardFieldValue;
@@ -31,7 +32,6 @@ import java.security.Security;
 import java.util.stream.Stream;
 
 public class Hash extends RecordPathSegment {
-    private static final char[] DIGITS = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
     private static final String SUPPORTED_ALGORITHMS = String.join(", ", Security.getAlgorithms("MessageDigest"));
 
     private final RecordPathSegment recordPath;
@@ -56,8 +56,8 @@ public class Hash extends RecordPathSegment {
 
                 final MessageDigest digest = getDigest(algorithmValue);
                 final String value = DataTypeUtils.toString(fv.getValue(), (String) null);
-                final byte[] dv = digest.digest(value.getBytes());
-                return new StandardFieldValue(encodeHex(dv), fv.getField(), fv.getParent().orElse(null));
+                String encoded = new DigestUtils(digest).digestAsHex(value);
+                return new StandardFieldValue(encoded, fv.getField(), fv.getParent().orElse(null));
             });
     }
 
@@ -67,22 +67,6 @@ public class Hash extends RecordPathSegment {
         } catch (NoSuchAlgorithmException e) {
             throw new RecordPathException("Invalid hash algorithm: " + algorithm + "not in set [" + SUPPORTED_ALGORITHMS + "]", e);
         }
-    }
-
-    /**
-     * @see org.apache.commons.codec.binary.Hex
-     * @return A char[] containing the appropriate characters from the alphabet For best results, this should be either
-     * upper- or lower-case hex.
-     */
-    private static String encodeHex(final byte[] data) {
-        final int l = data.length;
-        final char[] out = new char[l << 1];
-        // two characters form the hex value.
-        for (int i = 0, j = 0; i < l; i++) {
-            out[j++] = DIGITS[(0xF0 & data[i]) >>> 4];
-            out[j++] = DIGITS[0x0F & data[i]];
-        }
-        return new String(out);
     }
 
 }

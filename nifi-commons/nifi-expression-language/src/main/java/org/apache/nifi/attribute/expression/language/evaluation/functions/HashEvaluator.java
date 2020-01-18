@@ -20,6 +20,7 @@ package org.apache.nifi.attribute.expression.language.evaluation.functions;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.Security;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.nifi.attribute.expression.language.EvaluationContext;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
@@ -28,7 +29,6 @@ import org.apache.nifi.attribute.expression.language.evaluation.StringQueryResul
 import org.apache.nifi.attribute.expression.language.exception.AttributeExpressionLanguageException;
 
 public class HashEvaluator extends StringEvaluator {
-    private static final char[] DIGITS = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
     private static final String SUPPORTED_ALGORITHMS = String.join(", ", Security.getAlgorithms("MessageDigest"));
 
     private final Evaluator<String> algorithm;
@@ -48,9 +48,8 @@ public class HashEvaluator extends StringEvaluator {
 
         final String algorithmValue = algorithm.evaluate(context).getValue();
         final MessageDigest digest = getDigest(algorithmValue);
-
-        final byte[] dv = digest.digest(subjectValue.getBytes());
-        return new StringQueryResult(encodeHex(dv));
+        String encoded = new DigestUtils(digest).digestAsHex(subjectValue);
+        return new StringQueryResult(encoded);
     }
 
     @Override
@@ -65,20 +64,4 @@ public class HashEvaluator extends StringEvaluator {
             throw new AttributeExpressionLanguageException("Invalid hash algorithm: " + algorithm + " not in set [" + SUPPORTED_ALGORITHMS + "]", e);
         }
     }
-
-    /**
-     * @see org.apache.commons.codec.binary.Hex
-     * @return A char[] containing the appropriate characters from the alphabet For best results, this will be lower-case hex.
-     */
-    private static String encodeHex(final byte[] data) {
-        final int l = data.length;
-        final char[] out = new char[l << 1];
-        // two characters form the hex value.
-        for (int i = 0, j = 0; i < l; i++) {
-            out[j++] = DIGITS[(0xF0 & data[i]) >>> 4];
-            out[j++] = DIGITS[0x0F & data[i]];
-        }
-        return new String(out);
-    }
-
 }
