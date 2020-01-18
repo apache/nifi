@@ -85,6 +85,40 @@ public class TestPutFile {
     }
 
     @Test
+    public void testCreateRelativeDirectory() throws IOException {
+        final TestRunner runner = TestRunners.newTestRunner(new PutFile());
+        String newDir = TARGET_DIRECTORY + "/new-folder";
+        runner.setProperty(PutFile.DIRECTORY, newDir);
+        runner.setProperty(PutFile.CONFLICT_RESOLUTION, PutFile.REPLACE_RESOLUTION);
+
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put(CoreAttributes.FILENAME.key(), "targetFile.txt");
+        runner.enqueue("Hello world!!".getBytes(), attributes);
+        runner.run();
+        runner.assertAllFlowFilesTransferred(FetchFile.REL_SUCCESS, 1);
+        Path targetPath = Paths.get(newDir + "/targetFile.txt");
+        byte[] content = Files.readAllBytes(targetPath);
+        assertEquals("Hello world!!", new String(content));
+    }
+
+    @Test(expected = AssertionError.class)
+    public void testCreateEmptyStringDirectory() throws IOException {
+        final TestRunner runner = TestRunners.newTestRunner(new PutFile());
+        String newDir = "";
+        runner.setProperty(PutFile.DIRECTORY, newDir);
+        runner.setProperty(PutFile.CONFLICT_RESOLUTION, PutFile.REPLACE_RESOLUTION);
+
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put(CoreAttributes.FILENAME.key(), "targetFile.txt");
+        runner.enqueue("Hello world!!".getBytes(), attributes);
+        runner.run();
+        runner.assertAllFlowFilesTransferred(FetchFile.REL_SUCCESS, 1);
+        Path targetPath = Paths.get(newDir + "/targetFile.txt");
+        byte[] content = Files.readAllBytes(targetPath);
+        assertEquals("Hello world!!", new String(content));
+    }
+
+    @Test
     public void testReplaceConflictResolution() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new PutFile());
         runner.setProperty(PutFile.DIRECTORY, targetDir.getAbsolutePath());
