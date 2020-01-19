@@ -13,7 +13,7 @@
     <parent>
         <groupId>org.apache</groupId>
         <artifactId>apache</artifactId>
-        <version>21</version>
+        <version>22</version>
         <relativePath />
     </parent>
     <groupId>org.apache.nifi</groupId>
@@ -234,7 +234,7 @@
             <dependency>
                 <groupId>junit</groupId>
                 <artifactId>junit</artifactId>
-                <version>4.12</version>
+                <version>4.13</version>
             </dependency>
             <dependency>
                 <groupId>org.mockito</groupId>
@@ -482,12 +482,12 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-checkstyle-plugin</artifactId>
-                    <version>3.0.0</version>
+                    <version>3.1.0</version>
                     <dependencies>
                         <dependency>
                             <groupId>com.puppycrawl.tools</groupId>
                             <artifactId>checkstyle</artifactId>
-                            <version>8.21</version>
+                            <version>8.28</version>
                         </dependency>
                     </dependencies>
                 </plugin>
@@ -587,6 +587,12 @@
                             <module name="FileTabCharacter">
                                 <property name="eachLine" value="true"/>
                             </module>
+                            <module name="LineLength">
+                                <!-- needs extra, because Eclipse formatter
+                                    ignores the ending left brace -->
+                                <property name="max" value="200"/>
+                                <property name="ignorePattern" value="^package.*|^import.*|a href|href|http://|https://|ftp://"/>
+                            </module>
                             <module name="TreeWalker">
                                 <module name="RegexpSinglelineJava">
                                     <property name="format" value="\s+$"/>
@@ -597,12 +603,6 @@
                                     <property name="message" value="Javadoc @see does not need @link: pick one or the other."/>
                                 </module>
                                 <module name="OuterTypeFilename"/>
-                                <module name="LineLength">
-                                    <!-- needs extra, because Eclipse formatter
-                                        ignores the ending left brace -->
-                                    <property name="max" value="200"/>
-                                    <property name="ignorePattern" value="^package.*|^import.*|a href|href|http://|https://|ftp://"/>
-                                </module>
                                 <module name="AvoidStarImport"/>
                                 <module name="UnusedImports">
                                     <property name="processJavadoc" value="true"/>
@@ -642,13 +642,9 @@
                                 </module>
                                 <module name="NonEmptyAtclauseDescription"/>
                                 <module name="JavadocMethod">
-                                    <property name="allowUndeclaredRTE" value="true"/>
-                                    <property name="allowMissingJavadoc" value="true"/>
                                     <property name="allowMissingParamTags" value="true"/>
-                                    <property name="allowMissingThrowsTags" value="true"/>
                                     <property name="allowMissingReturnTag" value="true"/>
                                     <property name="allowedAnnotations" value="Override,Test,BeforeClass,AfterClass,Before,After"/>
-                                    <property name="allowThrowsTagsForSubclasses" value="true"/>
                                 </module>
                                 <module name="SingleLineJavadoc"/>
                             </module>
