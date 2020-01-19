@@ -49,7 +49,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @see ConsumeJMS
  * @see JMSConnectionFactoryProviderDefinition
  */
-abstract class AbstractJMSProcessor<T extends JMSWorker> extends AbstractProcessor {
+public abstract class AbstractJMSProcessor<T extends JMSWorker> extends AbstractProcessor {
 
     static final String QUEUE = "QUEUE";
     static final String TOPIC = "TOPIC";
@@ -191,6 +191,7 @@ abstract class AbstractJMSProcessor<T extends JMSWorker> extends AbstractProcess
                 getLogger().debug("Worker is invalid. Will try re-create... ");
                 final JMSConnectionFactoryProviderDefinition cfProvider = context.getProperty(CF_SERVICE).asControllerService(JMSConnectionFactoryProviderDefinition.class);
                 try {
+                    worker.shutdown();
                     // Safe to cast. Method #buildTargetResource(ProcessContext context) sets only CachingConnectionFactory
                     CachingConnectionFactory currentCF = (CachingConnectionFactory)worker.jmsTemplate.getConnectionFactory();
                     cfProvider.resetConnectionFactory(currentCF.getTargetConnectionFactory());
