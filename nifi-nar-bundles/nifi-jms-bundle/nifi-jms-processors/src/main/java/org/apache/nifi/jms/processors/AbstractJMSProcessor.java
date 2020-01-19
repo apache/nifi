@@ -196,6 +196,9 @@ public abstract class AbstractJMSProcessor<T extends JMSWorker> extends Abstract
                 getLogger().debug("Worker is invalid. Will try re-create... ");
                 final JMSConnectionFactoryProviderDefinition cfProvider = context.getProperty(CF_SERVICE).asControllerService(JMSConnectionFactoryProviderDefinition.class);
                 try {
+                    if (worker != null) {
+                        worker.shutdown();
+                    }
                     // Safe to cast. Method #buildTargetResource(ProcessContext context) sets only CachingConnectionFactory
                     CachingConnectionFactory currentCF = (CachingConnectionFactory)worker.jmsTemplate.getConnectionFactory();
                     cfProvider.resetConnectionFactory(currentCF.getTargetConnectionFactory());

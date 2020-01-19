@@ -16,23 +16,6 @@
  */
 package org.apache.nifi.jms.processors;
 
-import org.apache.activemq.ActiveMQConnectionFactory;
-import org.apache.nifi.jms.cf.JMSConnectionFactoryProviderDefinition;
-import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.junit.Test;
-import org.springframework.jms.core.JmsTemplate;
-import org.springframework.jms.support.JmsHeaders;
-
-import javax.jms.BytesMessage;
-import javax.jms.ConnectionFactory;
-import javax.jms.Message;
-import javax.jms.Queue;
-import javax.jms.TextMessage;
-import java.util.HashMap;
-import java.util.Map;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -40,6 +23,37 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+
+import org.apache.activemq.ActiveMQConnectionFactory;
+import org.apache.activemq.broker.BrokerService;
+import org.apache.activemq.broker.TransportConnector;
+import org.apache.activemq.transport.tcp.TcpTransport;
+import org.apache.activemq.transport.tcp.TcpTransportFactory;
+import org.apache.activemq.wireformat.WireFormat;
+import org.apache.nifi.jms.cf.JMSConnectionFactoryProviderDefinition;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.Test;
+import org.springframework.jms.core.JmsTemplate;
+import org.springframework.jms.support.JmsHeaders;
+
+import java.io.IOException;
+import java.net.URI;
+import java.net.UnknownHostException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
+
+import javax.jms.BytesMessage;
+import javax.jms.ConnectionFactory;
+import javax.jms.Message;
+import javax.jms.Queue;
+import javax.jms.TextMessage;
+import javax.net.SocketFactory;
 
 public class PublishJMSIT {
 
@@ -307,5 +321,64 @@ public class PublishJMSIT {
         assertNull(message.getStringProperty("bar"));
 
         runner.run(1, true, false); // Run once just so that we can trigger the shutdown of the Connection Factory
+    }
+    /**
+     * <p>
+     * This test validates the connection resources are closed if the publisher is marked as invalid.
+     * </p>
+     * <p>
+     * This tests validates the proper resources handling for TCP connections using ActiveMQ (the bug was discovered against ActiveMQ 5.x). In this test, using some ActiveMQ's classes is possible to
+     * verify if an opened socket is closed. See <a href="NIFI-7034">https://issues.apache.org/jira/browse/NIFI-7034</a>.
+     * </p>
+     * @throws Exception any error related to the broker.
+     */
+    @Test(timeout = 10000)
+    public void validateNIFI7034() throws Exception {
+        class PublishJmsForNifi7034 extends PublishJMS {
+            @Override
+            protected void rendezvousWithJms(ProcessContext context, ProcessSession processSession, JMSPublisher publisher) throws ProcessException {
+                super.rendezvousWithJms(context, processSession, publisher);
+                publisher.setValid(false);
+            }
+        }
+        BrokerService broker = new BrokerService();
+        try {
+            broker.setPersistent(false);
+            broker.setBrokerName("nifi7034publisher");
+            TransportConnector connector = broker.addConnector("tcp://127.0.0.1:0");
+            int port = connector.getServer().getSocketAddress().getPort();
+            broker.start();
+
+            ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory("validateNIFI7034://127.0.0.1:" + port);
+            final String destinationName = "nifi7034";
+            final AtomicReference<TcpTransport> tcpTransport = new AtomicReference<TcpTransport>();
+            TcpTransportFactory.registerTransportFactory("validateNIFI7034", new TcpTransportFactory() {
+                @Override
+                protected TcpTransport createTcpTransport(WireFormat wf, SocketFactory socketFactory, URI location, URI localLocation) throws UnknownHostException, IOException {
+                    TcpTransport transport = super.createTcpTransport(wf, socketFactory, location, localLocation);
+                    tcpTransport.set(transport);
+                    return transport;
+                }
+            });
+
+            TestRunner runner = TestRunners.newTestRunner(new PublishJmsForNifi7034());
+            JMSConnectionFactoryProviderDefinition cs = mock(JMSConnectionFactoryProviderDefinition.class);
+            when(cs.getIdentifier()).thenReturn("cfProvider");
+            when(cs.getConnectionFactory()).thenReturn(cf);
+            runner.addControllerService("cfProvider", cs);
+            runner.enableControllerService(cs);
+
+            runner.setProperty(PublishJMS.CF_SERVICE, "cfProvider");
+            runner.setProperty(PublishJMS.DESTINATION, destinationName);
+            runner.setProperty(PublishJMS.DESTINATION_TYPE, PublishJMS.TOPIC);
+
+            runner.enqueue("hi".getBytes());
+            runner.run();
+            assertFalse("It is expected transport be closed. ", tcpTransport.get().isConnected());
+        } finally {
+            if (broker != null) {
+                broker.stop();
+            }
+        }
     }
 }
