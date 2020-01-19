@@ -29,6 +29,7 @@ import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.springframework.jms.connection.CachingConnectionFactory;
+import org.springframework.jms.connection.SingleConnectionFactory;
 import org.springframework.jms.connection.UserCredentialsConnectionFactoryAdapter;
 import org.springframework.jms.core.JmsTemplate;
 
@@ -164,6 +165,10 @@ public abstract class AbstractJMSProcessor<T extends JMSWorker> extends Abstract
         propertyDescriptors.add(ATTRIBUTES_AS_HEADERS_REGEX);
     }
 
+    protected static String getClientId(ProcessContext context) {
+        return context.getProperty(CLIENT_ID).evaluateAttributeExpressions().getValue();
+      }
+
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return propertyDescriptors;
@@ -261,12 +266,7 @@ public abstract class AbstractJMSProcessor<T extends JMSWorker> extends Abstract
         cfCredentialsAdapter.setPassword(context.getProperty(PASSWORD).getValue());
 
         final CachingConnectionFactory cachingFactory = new CachingConnectionFactory(cfCredentialsAdapter);
-
-        String clientId = context.getProperty(CLIENT_ID).evaluateAttributeExpressions().getValue();
-        if (clientId != null) {
-            clientId = clientId + "-" + clientIdCounter.getAndIncrement();
-            cachingFactory.setClientId(clientId);
-        }
+        setClientId(context, cachingFactory);
 
         JmsTemplate jmsTemplate = new JmsTemplate();
         jmsTemplate.setConnectionFactory(cachingFactory);
@@ -274,4 +274,21 @@ public abstract class AbstractJMSProcessor<T extends JMSWorker> extends Abstract
 
         return finishBuildingJmsWorker(cachingFactory, jmsTemplate, context);
     }
+
+    /**
+     * Set clientId for JMS connections when <tt>clientId</tt> is not null.
+     * It is overridden by {@code}ConsumeJMS{@code} when durable subscriptions
+     * is configured on the processor.
+     * @param context context.
+     * @param connectionFactory the connection factory.
+     * @since NIFI-6915
+     */
+    protected void setClientId(ProcessContext context, final SingleConnectionFactory connectionFactory) {
+        String clientId = getClientId(context);
+        if (clientId != null) {
+            clientId = clientId + "-" + clientIdCounter.getAndIncrement();
+            connectionFactory.setClientId(clientId);
+        }
+    }
+
 }
