@@ -26,6 +26,8 @@ import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.core.querybuilder.Update;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.ReadsAttribute;
+import org.apache.nifi.annotation.behavior.ReadsAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnShutdown;
@@ -59,6 +61,17 @@ import static java.lang.String.format;
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @CapabilityDescription("This is a record aware processor that reads the content of the incoming FlowFile as individual records using the " +
         "configured 'Record Reader' and writes them to Apache Cassandra using native protocol version 3 or higher.")
+@ReadsAttributes({
+        @ReadsAttribute(attribute = "cql.statement.type", description = "If 'Use cql.statement.type Attribute' is selected for the Statement " +
+                "Type property, the value of the cql.statement.type Attribute will be used to determine which type of statement (UPDATE, INSERT) " +
+                "will be generated and executed"),
+        @ReadsAttribute(attribute = "cql.update.method", description = "If 'Use cql.update.method Attribute' is selected for the Update " +
+                "Method property, the value of the cql.update.method Attribute will be used to determine which operation (Set, Increment, Decrement) " +
+                "will be used to generate and execute the Update statement. Ignored if the Statement Type property is not set to UPDATE"),
+        @ReadsAttribute(attribute = "cql.batch.statement.type", description = "If 'Use cql.batch.statement.type Attribute' is selected for the Batch " +
+                "Statement Type property, the value of the cql.batch.statement.type Attribute will be used to determine which type of batch statement " +
+                "(LOGGED, UNLOGGED, COUNTER) will be generated and executed")
+})
 public class PutCassandraRecord extends AbstractCassandraProcessor {
     static final AllowableValue UPDATE_TYPE = new AllowableValue("UPDATE", "UPDATE",
             "Use an UPDATE statement.");
