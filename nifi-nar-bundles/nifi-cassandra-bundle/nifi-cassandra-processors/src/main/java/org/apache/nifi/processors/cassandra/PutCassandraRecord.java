@@ -19,10 +19,10 @@ package org.apache.nifi.processors.cassandra;
 import com.datastax.driver.core.BatchStatement;
 import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.Session;
+import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.querybuilder.Assignment;
 import com.datastax.driver.core.querybuilder.Insert;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
-import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.querybuilder.Update;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -39,8 +39,8 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.RecordReader;
+import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
@@ -48,26 +48,48 @@ import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.apache.nifi.util.StopWatch;
 
 import java.io.InputStream;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
+
+import static java.lang.String.format;
 
 @Tags({"cassandra", "cql", "put", "insert", "update", "set", "record"})
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @CapabilityDescription("This is a record aware processor that reads the content of the incoming FlowFile as individual records using the " +
         "configured 'Record Reader' and writes them to Apache Cassandra using native protocol version 3 or higher.")
 public class PutCassandraRecord extends AbstractCassandraProcessor {
-    static final AllowableValue UPDATE_TYPE = new AllowableValue("UPDATE", "UPDATE", "Use an UPDATE statement.");
-    static final AllowableValue INSERT_TYPE = new AllowableValue("INSERT", "INSERT", "Use an INSERT statement.");
-    static final AllowableValue INCR_TYPE = new AllowableValue("INCREMENT", "Increment", "Use an increment operation (+=) for the update statement.");
-    static final AllowableValue SET_TYPE = new AllowableValue("SET", "Set", "Use a set operation (=) for the update statement.");
-    static final AllowableValue DECR_TYPE = new AllowableValue("DECREMENT", "Decrement", "Use a decrement operation (-=) for the update statement.");
+    static final AllowableValue UPDATE_TYPE = new AllowableValue("UPDATE", "UPDATE",
+            "Use an UPDATE statement.");
+    static final AllowableValue INSERT_TYPE = new AllowableValue("INSERT", "INSERT",
+            "Use an INSERT statement.");
+    static final AllowableValue STATEMENT_TYPE_USE_ATTR_TYPE = new AllowableValue("USE_ATTR", "Use cql.statement.type Attribute",
+            "The value of the cql.statement.type Attribute will be used to determine which type of statement (UPDATE, INSERT) " +
+                    "will be generated and executed");
+    static final String STATEMENT_TYPE_ATTRIBUTE = "cql.statement.type";
+
+    static final AllowableValue INCR_TYPE = new AllowableValue("INCREMENT", "Increment",
+            "Use an increment operation (+=) for the Update statement.");
+    static final AllowableValue SET_TYPE = new AllowableValue("SET", "Set",
+            "Use a set operation (=) for the Update statement.");
+    static final AllowableValue DECR_TYPE = new AllowableValue("DECREMENT", "Decrement",
+            "Use a decrement operation (-=) for the Update statement.");
+    static final AllowableValue UPDATE_METHOD_USE_ATTR_TYPE = new AllowableValue("USE_ATTR", "Use cql.update.method Attribute",
+            "The value of the cql.update.method Attribute will be used to determine which operation (Set, Increment, Decrement) " +
+                    "will be used to generate and execute the Update statement.");
+    static final String UPDATE_METHOD_ATTRIBUTE = "cql.update.method";
+
+    static final AllowableValue LOGGED_TYPE = new AllowableValue("LOGGED", "LOGGED",
+            "Use a LOGGED batch statement");
+    static final AllowableValue UNLOGGED_TYPE = new AllowableValue("UNLOGGED", "UNLOGGED",
+            "Use an UNLOGGED batch statement");
+    static final AllowableValue COUNTER_TYPE = new AllowableValue("COUNTER", "COUNTER",
+            "Use a COUNTER batch statement");
+    static final AllowableValue BATCH_STATEMENT_TYPE_USE_ATTR_TYPE = new AllowableValue("USE_ATTR", "Use cql.batch.statement.type Attribute",
+            "The value of the cql.batch.statement.type Attribute will be used to determine which type of batch statement (LOGGED, UNLOGGED or COUNTER) " +
+                    "will be used to generate and execute the Update statement.");
+    static final String BATCH_STATEMENT_TYPE_ATTRIBUTE = "cql.batch.statement.type";
 
     static final PropertyDescriptor RECORD_READER_FACTORY = new PropertyDescriptor.Builder()
             .name("put-cassandra-record-reader")
@@ -84,16 +106,17 @@ public class PutCassandraRecord extends AbstractCassandraProcessor {
             .description("Specifies the type of CQL Statement to generate.")
             .required(true)
             .defaultValue(INSERT_TYPE.getValue())
-            .allowableValues(UPDATE_TYPE, INSERT_TYPE)
+            .allowableValues(UPDATE_TYPE, INSERT_TYPE, STATEMENT_TYPE_USE_ATTR_TYPE)
             .build();
 
     static final PropertyDescriptor UPDATE_METHOD = new PropertyDescriptor.Builder()
             .name("put-cassandra-record-update-method")
             .displayName("Update Method")
-            .description("Specifies the method to use to SET the values. This property is used if the Statement Type is Update and ignored otherwise.")
+            .description("Specifies the method to use to SET the values. This property is used if the Statement Type is " +
+                    "UPDATE and ignored otherwise.")
             .required(false)
             .defaultValue(SET_TYPE.getValue())
-            .allowableValues(INCR_TYPE, DECR_TYPE, SET_TYPE)
+            .allowableValues(INCR_TYPE, DECR_TYPE, SET_TYPE, UPDATE_METHOD_USE_ATTR_TYPE)
             .build();
 
     static final PropertyDescriptor UPDATE_KEYS = new PropertyDescriptor.Builder()
@@ -130,8 +153,8 @@ public class PutCassandraRecord extends AbstractCassandraProcessor {
             .name("put-cassandra-record-batch-statement-type")
             .displayName("Batch Statement Type")
             .description("Specifies the type of 'Batch Statement' to be used.")
-            .allowableValues(BatchStatement.Type.values())
-            .defaultValue(BatchStatement.Type.LOGGED.toString())
+            .allowableValues(LOGGED_TYPE, UNLOGGED_TYPE, COUNTER_TYPE, BATCH_STATEMENT_TYPE_USE_ATTR_TYPE)
+            .defaultValue(LOGGED_TYPE.getValue())
             .required(false)
             .build();
 
@@ -169,11 +192,39 @@ public class PutCassandraRecord extends AbstractCassandraProcessor {
         final String cassandraTable = context.getProperty(TABLE).evaluateAttributeExpressions(inputFlowFile).getValue();
         final RecordReaderFactory recordParserFactory = context.getProperty(RECORD_READER_FACTORY).asControllerService(RecordReaderFactory.class);
         final int batchSize = context.getProperty(BATCH_SIZE).evaluateAttributeExpressions().asInteger();
-        final String batchStatementType = context.getProperty(BATCH_STATEMENT_TYPE).getValue();
         final String serialConsistencyLevel = context.getProperty(CONSISTENCY_LEVEL).getValue();
-        final String statementType = context.getProperty(STATEMENT_TYPE).getValue();
         final String updateKeys = context.getProperty(UPDATE_KEYS).evaluateAttributeExpressions(inputFlowFile).getValue();
-        final String updateMethod = context.getProperty(UPDATE_METHOD).getValue();
+
+        // Get the statement type from the attribute if necessary
+        final String statementTypeProperty = context.getProperty(STATEMENT_TYPE).getValue();
+        String statementType = statementTypeProperty;
+        if (STATEMENT_TYPE_USE_ATTR_TYPE.getValue().equals(statementTypeProperty)) {
+            statementType = inputFlowFile.getAttribute(STATEMENT_TYPE_ATTRIBUTE);
+        }
+        if (StringUtils.isEmpty(statementType)) {
+            throw new IllegalArgumentException(format("Statement Type is not specified, FlowFile %s", inputFlowFile));
+        }
+
+        // Get the update method from the attribute if necessary
+        final String updateMethodProperty = context.getProperty(UPDATE_METHOD).getValue();
+        String updateMethod = updateMethodProperty;
+        if (UPDATE_METHOD_USE_ATTR_TYPE.getValue().equals(updateMethodProperty)) {
+            updateMethod = inputFlowFile.getAttribute(UPDATE_METHOD_ATTRIBUTE);
+        }
+        // throw an exception if update method is empty and the statement type is set to update
+        if (StringUtils.isEmpty(updateMethod) && UPDATE_TYPE.getValue().equalsIgnoreCase(statementType)) {
+            throw new IllegalArgumentException(format("Update Method is not specified, FlowFile %s", inputFlowFile));
+        }
+
+        // Get the batch statement type from the attribute if necessary
+        final String batchStatementTypeProperty = context.getProperty(BATCH_STATEMENT_TYPE).getValue();
+        String batchStatementType = batchStatementTypeProperty;
+        if (BATCH_STATEMENT_TYPE_USE_ATTR_TYPE.getValue().equals(batchStatementTypeProperty)) {
+            batchStatementType = inputFlowFile.getAttribute(BATCH_STATEMENT_TYPE_ATTRIBUTE).toUpperCase();
+        }
+        if (StringUtils.isEmpty(batchStatementType)) {
+            throw new IllegalArgumentException(format("Batch Statement Type is not specified, FlowFile %s", inputFlowFile));
+        }
 
         final BatchStatement batchStatement;
         final Session connectionSession = cassandraSession.get();
@@ -249,7 +300,7 @@ public class PutCassandraRecord extends AbstractCassandraProcessor {
 
         // Prepare keyspace/table names
         if (cassandraTable.contains(".")) {
-            String keyspaceAndTable[] = cassandraTable.split("\\.");
+            String[] keyspaceAndTable = cassandraTable.split("\\.");
             updateQuery = QueryBuilder.update(keyspaceAndTable[0], keyspaceAndTable[1]);
         } else {
             updateQuery = QueryBuilder.update(cassandraTable);
@@ -291,7 +342,7 @@ public class PutCassandraRecord extends AbstractCassandraProcessor {
     private Statement generateInsert(String cassandraTable, RecordSchema schema, Map<String, Object> recordContentMap) {
         Insert insertQuery;
         if (cassandraTable.contains(".")) {
-            String keyspaceAndTable[] = cassandraTable.split("\\.");
+            String[] keyspaceAndTable = cassandraTable.split("\\.");
             insertQuery = QueryBuilder.insertInto(keyspaceAndTable[0], keyspaceAndTable[1]);
         } else {
             insertQuery = QueryBuilder.insertInto(cassandraTable);
