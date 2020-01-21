@@ -280,6 +280,7 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
             });
         } catch(Exception e) {
             consumer.setValid(false);
+            context.yield();
             throw e; // for backward compatibility with exception handling in flows
         }
     }
