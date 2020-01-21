@@ -85,6 +85,6 @@ class NssShellCommands implements ShellCommandsProvider {
      * @return Shell command string that will exit normally (0) on a suitable system.
      */
     public String getSystemCheck() {
-        return "getent passwd";
+        return "getent --version";
     }
 }
