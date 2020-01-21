@@ -16,17 +16,6 @@
  */
 package org.apache.nifi.script;
 
-import org.apache.commons.io.IOUtils;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.controller.AbstractControllerService;
-import org.apache.nifi.controller.ConfigurationContext;
-import org.apache.nifi.expression.ExpressionLanguageScope;
-import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.processor.util.StandardValidators;
-
-import javax.script.ScriptEngine;
 import java.io.FileInputStream;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -36,11 +25,22 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import javax.script.ScriptEngine;
+import org.apache.commons.io.IOUtils;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ScriptableComponent;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.controller.AbstractControllerService;
+import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.util.StandardValidators;
 
 /**
  * An abstract class with common methods and variables for reuse among Controller Services
  */
-public abstract class AbstractScriptedControllerService extends AbstractControllerService {
+public abstract class AbstractScriptedControllerService extends AbstractControllerService implements ScriptableComponent {
 
     protected final AtomicReference<Collection<ValidationResult>> validationResults = new AtomicReference<>(new ArrayList<>());
 

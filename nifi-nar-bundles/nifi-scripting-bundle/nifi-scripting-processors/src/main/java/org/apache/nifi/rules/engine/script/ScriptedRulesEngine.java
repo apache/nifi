@@ -16,6 +16,14 @@
  */
 package org.apache.nifi.rules.engine.script;
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
+import javax.script.Invocable;
+import javax.script.ScriptException;
 import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.behavior.Restriction;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -23,6 +31,7 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.RequiredPermission;
+import org.apache.nifi.components.ScriptableComponent;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.logging.ComponentLog;
@@ -32,15 +41,6 @@ import org.apache.nifi.rules.Action;
 import org.apache.nifi.rules.engine.RulesEngineService;
 import org.apache.nifi.script.AbstractScriptedControllerService;
 import org.apache.nifi.script.ScriptingComponentHelper;
-
-import javax.script.Invocable;
-import javax.script.ScriptException;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicReference;
 
 @Tags({"rules", "rules engine", "script", "invoke", "groovy", "python", "jython", "jruby", "ruby", "javascript", "js", "lua", "luaj"})
 @CapabilityDescription("Allows the user to provide a scripted RulesEngineService for custom firing of rules depending on the supplied facts. The script must set a variable 'rulesEngine' to an "
@@ -52,7 +52,7 @@ import java.util.concurrent.atomic.AtomicReference;
                         explanation = "Provides operator the ability to execute arbitrary code assuming all permissions that NiFi has.")
         }
 )
-public class ScriptedRulesEngine extends AbstractScriptedControllerService implements RulesEngineService {
+public class ScriptedRulesEngine extends AbstractScriptedControllerService implements RulesEngineService, ScriptableComponent {
 
     protected final AtomicReference<RulesEngineService> rulesEngine = new AtomicReference<>();
 

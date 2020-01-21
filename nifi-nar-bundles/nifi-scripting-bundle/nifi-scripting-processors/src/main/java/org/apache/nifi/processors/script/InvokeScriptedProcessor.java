@@ -27,11 +27,9 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
-
 import javax.script.Invocable;
 import javax.script.ScriptEngine;
 import javax.script.ScriptException;
-
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
@@ -45,6 +43,7 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.RequiredPermission;
+import org.apache.nifi.components.ScriptableComponent;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.state.Scope;
@@ -85,7 +84,7 @@ import org.apache.nifi.script.impl.FilteredPropertiesValidationContextAdapter;
                         explanation = "Provides operator the ability to execute arbitrary code assuming all permissions that NiFi has.")
         }
 )
-public class InvokeScriptedProcessor extends AbstractSessionFactoryProcessor {
+public class InvokeScriptedProcessor extends AbstractSessionFactoryProcessor implements ScriptableComponent {
 
     private final AtomicReference<Processor> processor = new AtomicReference<>();
     private final AtomicReference<Collection<ValidationResult>> validationResults = new AtomicReference<>(new ArrayList<>());
@@ -275,6 +274,7 @@ public class InvokeScriptedProcessor extends AbstractSessionFactoryProcessor {
         final Collection<ValidationResult> results = new HashSet<>();
 
         try (final FileInputStream scriptStream = new FileInputStream(scriptPath)) {
+            // TODO: Could be susceptible to DoS through massive script file
             return reloadScript(IOUtils.toString(scriptStream, Charset.defaultCharset()));
 
         } catch (final Exception e) {

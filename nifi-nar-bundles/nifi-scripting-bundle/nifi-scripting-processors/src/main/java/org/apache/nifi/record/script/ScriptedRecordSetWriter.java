@@ -16,12 +16,21 @@
  */
 package org.apache.nifi.record.script;
 
+import java.io.IOException;
+import java.io.OutputStream;
+import java.lang.reflect.UndeclaredThrowableException;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Map;
+import javax.script.Invocable;
+import javax.script.ScriptException;
 import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.behavior.Restriction;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.RequiredPermission;
+import org.apache.nifi.components.ScriptableComponent;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.logging.ComponentLog;
@@ -30,15 +39,6 @@ import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.record.RecordSchema;
-
-import javax.script.Invocable;
-import javax.script.ScriptException;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.lang.reflect.UndeclaredThrowableException;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Map;
 
 /**
  * A RecordSetWriter implementation that allows the user to script the RecordWriter instance
@@ -52,7 +52,7 @@ import java.util.Map;
                         explanation = "Provides operator the ability to execute arbitrary code assuming all permissions that NiFi has.")
         }
 )
-public class ScriptedRecordSetWriter extends AbstractScriptedRecordFactory<RecordSetWriterFactory> implements RecordSetWriterFactory {
+public class ScriptedRecordSetWriter extends AbstractScriptedRecordFactory<RecordSetWriterFactory> implements RecordSetWriterFactory, ScriptableComponent {
 
     @Override
     @OnEnabled

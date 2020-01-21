@@ -16,10 +16,6 @@
  */
 package org.apache.nifi.script;
 
-import org.apache.nifi.controller.ConfigurationContext;
-import org.apache.nifi.expression.ExpressionLanguageScope;
-import org.apache.nifi.logging.ComponentLog;
-
 import java.io.File;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -44,11 +40,14 @@ import javax.script.ScriptEngine;
 import javax.script.ScriptEngineFactory;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
-
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.script.ScriptEngineConfigurator;
 import org.apache.nifi.util.StringUtils;
@@ -291,26 +290,28 @@ public class ScriptingComponentHelper {
     }
 
     public void setupVariables(ProcessContext context) {
-        scriptEngineName = context.getProperty(SCRIPT_ENGINE).getValue();
-        scriptPath = context.getProperty(ScriptingComponentUtils.SCRIPT_FILE).evaluateAttributeExpressions().getValue();
-        scriptBody = context.getProperty(ScriptingComponentUtils.SCRIPT_BODY).getValue();
-        String modulePath = context.getProperty(ScriptingComponentUtils.MODULES).evaluateAttributeExpressions().getValue();
-        if (!StringUtils.isEmpty(modulePath)) {
-            modules = modulePath.split(",");
-        } else {
-            modules = new String[0];
-        }
+        setupVariables(context.getProperty(SCRIPT_ENGINE),
+                context.getProperty(ScriptingComponentUtils.SCRIPT_FILE),
+                context.getProperty(ScriptingComponentUtils.SCRIPT_BODY),
+                context.getProperty(ScriptingComponentUtils.MODULES));
     }
 
     public void setupVariables(ConfigurationContext context) {
-        scriptEngineName = context.getProperty(SCRIPT_ENGINE).getValue();
-        scriptPath = context.getProperty(ScriptingComponentUtils.SCRIPT_FILE).evaluateAttributeExpressions().getValue();
-        scriptBody = context.getProperty(ScriptingComponentUtils.SCRIPT_BODY).getValue();
-        String modulePath = context.getProperty(ScriptingComponentUtils.MODULES).evaluateAttributeExpressions().getValue();
+        setupVariables(context.getProperty(SCRIPT_ENGINE),
+                context.getProperty(ScriptingComponentUtils.SCRIPT_FILE),
+                context.getProperty(ScriptingComponentUtils.SCRIPT_BODY),
+                context.getProperty(ScriptingComponentUtils.MODULES));
+    }
+
+    private void setupVariables(PropertyValue scriptEngine, PropertyValue scriptPath, PropertyValue scriptBody, PropertyValue modules) {
+        scriptEngineName = scriptEngine.getValue();
+        this.scriptPath = scriptPath.evaluateAttributeExpressions().getValue();
+        this.scriptBody = scriptBody.getValue();
+        String modulePath = modules.evaluateAttributeExpressions().getValue();
         if (!StringUtils.isEmpty(modulePath)) {
-            modules = modulePath.split(",");
+            this.modules = modulePath.split(",");
         } else {
-            modules = new String[0];
+            this.modules = new String[0];
         }
     }
 

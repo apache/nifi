@@ -18,6 +18,17 @@ package org.apache.nifi.processors.groovyx;
 
 import groovy.lang.GroovyShell;
 import groovy.lang.Script;
+import java.io.File;
+import java.lang.reflect.Method;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -27,10 +38,11 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
-import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
+import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.RequiredPermission;
+import org.apache.nifi.components.ScriptableComponent;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.ControllerService;
@@ -53,18 +65,6 @@ import org.codehaus.groovy.control.CompilerConfiguration;
 import org.codehaus.groovy.runtime.ResourceGroovyMethods;
 import org.codehaus.groovy.runtime.StackTraceUtils;
 
-import java.io.File;
-import java.lang.reflect.Method;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 @EventDriven
 @InputRequirement(InputRequirement.Requirement.INPUT_ALLOWED)
 @Tags({"script", "groovy", "groovyx"})
@@ -86,12 +86,12 @@ import java.util.Set;
         description = "Updates a script engine property specified by the Dynamic Property's key with the value specified by the Dynamic Property's value. "
                 + "Use `CTL.` to access any controller services, `SQL.` to access any DBCPServices, `RecordReader.` to access RecordReaderFactory instances, or "
                 + "`RecordWriter.` to access any RecordSetWriterFactory instances.")
-public class ExecuteGroovyScript extends AbstractProcessor {
+public class ExecuteGroovyScript extends AbstractProcessor implements ScriptableComponent {
     public static final String GROOVY_CLASSPATH = "${groovy.classes.path}";
 
     private static final String PRELOADS = "import org.apache.nifi.components.*;" + "import org.apache.nifi.flowfile.FlowFile;" + "import org.apache.nifi.processor.*;"
             + "import org.apache.nifi.processor.FlowFileFilter.FlowFileFilterResult;" + "import org.apache.nifi.processor.exception.*;" + "import org.apache.nifi.processor.io.*;"
-            + "import org.apache.nifi.processor.util.*;" + "import org.apache.nifi.processors.script.*;" + "import org.apache.nifi.logging.ComponentLog;";
+            + "import org.apache.nifi.processor.util.*;" + "import org.apache.nifi.processors.script.*;" + "import org.apache.nifi.logging.ComponentLog\n";
 
     public static final PropertyDescriptor SCRIPT_FILE = new PropertyDescriptor.Builder()
             .name("groovyx-script-file")
@@ -249,10 +249,12 @@ public class ExecuteGroovyScript extends AbstractProcessor {
      * Performs setup operations when the processor is scheduled to run. This includes evaluating the processor's
      * properties, as well as reloading the script (from file or the "Script Body" property)
      *
+     * See {@link ExecuteScript#setup()} and {@link InvokeScriptedProcessor#setup()} for other examples.
+     *
      * @param context the context in which to perform the setup operations
      */
     @OnScheduled
-    public void onScheduled(final ProcessContext context) {
+    public void setup(final ProcessContext context) {
         this.scriptFile = asFile(context.getProperty(SCRIPT_FILE).evaluateAttributeExpressions().getValue());  //SCRIPT_FILE
         this.scriptBody = context.getProperty(SCRIPT_BODY).getValue(); //SCRIPT_BODY
         this.addClasspath = context.getProperty(ADD_CLASSPATH).evaluateAttributeExpressions().getValue(); //ADD_CLASSPATH

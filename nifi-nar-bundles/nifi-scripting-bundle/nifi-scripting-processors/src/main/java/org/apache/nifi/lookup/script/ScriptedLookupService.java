@@ -16,17 +16,17 @@
  */
 package org.apache.nifi.lookup.script;
 
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.behavior.Restriction;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.RequiredPermission;
+import org.apache.nifi.components.ScriptableComponent;
 import org.apache.nifi.lookup.LookupFailureException;
 import org.apache.nifi.lookup.LookupService;
-
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
 
 /**
  * A Controller service that allows the user to script the lookup operation to be performed (by LookupRecord, e.g.)
@@ -42,7 +42,7 @@ import java.util.Set;
                         explanation = "Provides operator the ability to execute arbitrary code assuming all permissions that NiFi has.")
         }
 )
-public class ScriptedLookupService extends BaseScriptedLookupService implements LookupService<Object> {
+public class ScriptedLookupService extends BaseScriptedLookupService implements LookupService<Object>, ScriptableComponent {
 
     @Override
     @SuppressWarnings("unchecked")

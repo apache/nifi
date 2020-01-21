@@ -16,16 +16,16 @@
  */
 package org.apache.nifi.record.script;
 
-import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.script.ScriptingComponentHelper;
-import org.apache.nifi.script.AbstractScriptedControllerService;
-
 import java.util.concurrent.atomic.AtomicReference;
+import org.apache.nifi.components.ScriptableComponent;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.script.AbstractScriptedControllerService;
+import org.apache.nifi.script.ScriptingComponentHelper;
 
 /**
  * An abstract base class containing code common to the Scripted record reader/writer implementations
  */
-public abstract class AbstractScriptedRecordFactory<T> extends AbstractScriptedControllerService {
+public abstract class AbstractScriptedRecordFactory<T> extends AbstractScriptedControllerService implements ScriptableComponent {
 
     protected final AtomicReference<T> recordFactory = new AtomicReference<>();
 

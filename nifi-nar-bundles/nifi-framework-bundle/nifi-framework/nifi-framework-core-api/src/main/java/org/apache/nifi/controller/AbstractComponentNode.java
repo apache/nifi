@@ -16,11 +16,35 @@
  */
 package org.apache.nifi.controller;
 
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ScriptableComponent;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.validation.DisabledServiceValidationResult;
@@ -44,29 +68,6 @@ import org.apache.nifi.util.CharacterFilterUtils;
 import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 public abstract class AbstractComponentNode implements ComponentNode {
     private static final Logger logger = LoggerFactory.getLogger(AbstractComponentNode.class);
@@ -92,7 +93,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
     private volatile boolean triggerValidation = true;
     private final Map<String, Integer> parameterReferenceCounts = new ConcurrentHashMap<>();
 
-    // guaraded by lock
+    // guarded by lock
     private ValidationContext validationContext = null;
 
     public AbstractComponentNode(final String id,
@@ -287,7 +288,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
                     final ParameterReference reference = referenceList.get(0);
                     if (reference.getStartOffset() != 0 || reference.getEndOffset() != value.length() - 1) {
                         throw new IllegalArgumentException("The property '" + descriptor.getDisplayName() + "' is a sensitive property so it can reference a Parameter only if there is no other " +
-                            "context around the value. For instance, the value '#{abc}' is allowed but 'password#{abc}' is not allowed.");
+                                "context around the value. For instance, the value '#{abc}' is allowed but 'password#{abc}' is not allowed.");
                     }
 
                     final ParameterContext parameterContext = getParameterContext();
@@ -304,8 +305,17 @@ public abstract class AbstractComponentNode implements ComponentNode {
                     for (final ParameterReference reference : referenceList) {
                         final Optional<Parameter> parameter = parameterContext.getParameter(reference.getParameterName());
                         if (parameter.isPresent() && parameter.get().getDescriptor().isSensitive()) {
-                            throw new IllegalArgumentException("The property '" + descriptor.getDisplayName() + "' cannot reference Parameter '" + parameter.get().getDescriptor().getName()
-                                + "' because Sensitive Parameters may only be referenced by Sensitive Properties.");
+                            if (isScriptableComponent(getComponent())) {
+                                logger.warn("The property descriptor {} is marked as non-sensitive, but the parameter being assigned (#{}) is sensitive and the component {} is scriptable",
+                                        getDescriptorLocator(descriptor), parameter.get().getDescriptor().getName(), componentType);
+                                logger.warn("\tThis likely indicates a property descriptor that was generated by a scriptable component and " +
+                                        "marked as sensitive at creation but is not marked as such in the flow.xml.gz definition");
+                                logger.warn("\tNiFi will treat this property descriptor as sensitive moving forward");
+                                // descriptor = changeDescriptorToSensitive(descriptor);
+                            } else {
+                                throw new IllegalArgumentException("The property '" + descriptor.getDisplayName() + "' cannot reference Parameter '" + parameter.get().getDescriptor().getName()
+                                        + "' because Sensitive Parameters may only be referenced by Sensitive Properties.");
+                            }
                         }
                     }
                 }
@@ -314,10 +324,51 @@ public abstract class AbstractComponentNode implements ComponentNode {
             if (descriptor.getControllerServiceDefinition() != null) {
                 if (!referenceList.isEmpty()) {
                     throw new IllegalArgumentException("The property '" + descriptor.getDisplayName() + "' cannot reference a Parameter because the property is a Controller Service reference. " +
-                        "Allowing Controller Service references to make use of Parameters could result in security issues and a poor user experience. As a result, this is not allowed.");
+                            "Allowing Controller Service references to make use of Parameters could result in security issues and a poor user experience. As a result, this is not allowed.");
                 }
             }
         }
+    }
+
+    /**
+     * Returns {@code true} if this component is a "scriptable" component which can generate dynamic property
+     * descriptors which are sensitive. A user cannot do this through the UI/API, but certain components can define
+     * additional property descriptors at runtime and mark them sensitive. This is not persisted in the flow.xml.gz
+     * definition so it must be detected based on the presence of a sensitive parameter in the value.
+     * <p>
+     * This method now uses Java inheritance by checking for the presence of the {@link ScriptableComponent} marker interface.
+     * <p>
+     *
+     * @param component the component to check
+     * @return true for specific components which have this capability
+     */
+    static boolean isScriptableComponent(ConfigurableComponent component) {
+        return component instanceof ScriptableComponent;
+    }
+
+
+    /**
+     * Returns a string containing the necessary elements to uniquely and helpfully identify a specific property
+     * descriptor so a user can find it in the flow, either in the XML definition or via the canvas/API.
+     * <p>
+     * The format is "componentName" [componentType - ID].propertyDescriptorName (propertyDescriptorDisplayName if different)
+     * <p>
+     * Ex:
+     * <p>
+     * {@code "Load Sensor Data" [InvokeHTTP - 0123-45-6789].invokehttp-proxy-user (Proxy Username)}
+     *
+     * @param descriptor the property descriptor
+     * @return the generated descriptor locator
+     */
+    private String getDescriptorLocator(PropertyDescriptor descriptor) {
+        StringBuilder sb = new StringBuilder("\"")
+                .append(this.name.get())
+                .append("\" [").append(this.componentType).append(" - ").append(this.id).append("].")
+                .append(descriptor.getName());
+        if (!descriptor.getName().equals(descriptor.getDisplayName())) {
+            sb.append(" (").append(descriptor.getDisplayName()).append(")");
+        }
+        return sb.toString();
     }
 
     @Override
@@ -377,7 +428,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
      * optional its value might be reset to default or will be removed entirely
      * if was a dynamic property.
      *
-     * @param name the property to remove
+     * @param name                             the property to remove
      * @param allowRemovalOfRequiredProperties whether or not the property should be removed if it's required
      * @return true if removed; false otherwise
      * @throws java.lang.IllegalArgumentException if the name is null
@@ -516,7 +567,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
         final Set<URL> additionalUrls = this.getAdditionalClasspathResources(descriptors);
 
         final String newFingerprint = ClassLoaderUtils.generateAdditionalUrlsFingerprint(additionalUrls);
-        if(!StringUtils.equals(additionalResourcesFingerprint, newFingerprint)) {
+        if (!StringUtils.equals(additionalResourcesFingerprint, newFingerprint)) {
             setAdditionalResourcesFingerprint(newFingerprint);
             try {
                 logger.info("Updating classpath for " + this.componentType + " with the ID " + this.getIdentifier());
@@ -612,7 +663,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
         } catch (final ControllerServiceDisabledException e) {
             getLogger().debug("Failed to perform validation due to " + e, e);
             return Collections.singleton(
-                new DisabledServiceValidationResult("Component", e.getControllerServiceId(), "performing validation depends on referencing a Controller Service that is currently disabled"));
+                    new DisabledServiceValidationResult("Component", e.getControllerServiceId(), "performing validation depends on referencing a Controller Service that is currently disabled"));
         } catch (final Exception e) {
             // We don't want to log this as an error because we will return a ValidationResult that is
             // invalid. However, we do want to make the stack trace available if needed, so we log it at
@@ -625,10 +676,10 @@ public abstract class AbstractComponentNode implements ComponentNode {
         }
 
         return Collections.singleton(new ValidationResult.Builder()
-            .subject("Component")
-            .valid(false)
-            .explanation("Failed to perform validation due to " + failureCause)
-            .build());
+                .subject("Component")
+                .valid(false)
+                .explanation("Failed to perform validation due to " + failureCause)
+                .build());
     }
 
     private List<ValidationResult> validateParameterReferences(final ValidationContext validationContext) {
@@ -642,11 +693,11 @@ public abstract class AbstractComponentNode implements ComponentNode {
 
             if (parameterContext == null && !referencedParameters.isEmpty()) {
                 results.add(new ValidationResult.Builder()
-                    .subject(propertyDescriptor.getDisplayName())
-                    .valid(false)
-                    .explanation(assignedToProcessGroup ? "Property references one or more Parameters but no Parameter Context is currently set on the Process Group"
-                        : "Property references one or more Parameters, but Parameters may be referenced only by Processors and Controller Services that reside within a Process Group.")
-                    .build());
+                        .subject(propertyDescriptor.getDisplayName())
+                        .valid(false)
+                        .explanation(assignedToProcessGroup ? "Property references one or more Parameters but no Parameter Context is currently set on the Process Group"
+                                : "Property references one or more Parameters, but Parameters may be referenced only by Processors and Controller Services that reside within a Process Group.")
+                        .build());
 
                 continue;
             }
@@ -654,20 +705,20 @@ public abstract class AbstractComponentNode implements ComponentNode {
             for (final String paramName : referencedParameters) {
                 if (!validationContext.isParameterDefined(paramName)) {
                     results.add(new ValidationResult.Builder()
-                        .subject(propertyDescriptor.getDisplayName())
-                        .valid(false)
-                        .explanation("Property references Parameter '" + paramName + "' but the currently selected Parameter Context does not have a Parameter with that name")
-                        .build());
+                            .subject(propertyDescriptor.getDisplayName())
+                            .valid(false)
+                            .explanation("Property references Parameter '" + paramName + "' but the currently selected Parameter Context does not have a Parameter with that name")
+                            .build());
 
                     continue;
                 }
 
                 if (!validationContext.isParameterSet(paramName)) {
                     results.add(new ValidationResult.Builder()
-                        .subject(propertyDescriptor.getDisplayName())
-                        .valid(false)
-                        .explanation("Property references Parameter '" + paramName + "' but the currently selected Parameter Context does not have a value set for that Parameter")
-                        .build());
+                            .subject(propertyDescriptor.getDisplayName())
+                            .valid(false)
+                            .explanation("Property references Parameter '" + paramName + "' but the currently selected Parameter Context does not have a value set for that Parameter")
+                            .build());
                 }
             }
         }
@@ -696,7 +747,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
             final ControllerServiceNode controllerServiceNode = getControllerServiceProvider().getControllerServiceNode(controllerServiceId);
             if (controllerServiceNode == null) {
                 final ValidationResult result = createInvalidResult(controllerServiceId, descriptor.getDisplayName(),
-                    "Invalid Controller Service: " + controllerServiceId + " is not a valid Controller Service Identifier");
+                        "Invalid Controller Service: " + controllerServiceId + " is not a valid Controller Service Identifier");
 
                 validationResults.add(result);
                 continue;
@@ -748,11 +799,11 @@ public abstract class AbstractComponentNode implements ComponentNode {
             final String controllerServiceApiType = controllerServiceApiClass.getSimpleName();
 
             final String explanation = new StringBuilder()
-                .append(controllerServiceType).append(" - ").append(controllerServiceCoordinate.getVersion())
-                .append(" from ").append(controllerServiceCoordinate.getGroup()).append(" - ").append(controllerServiceCoordinate.getId())
-                .append(" is not compatible with ").append(controllerServiceApiType).append(" - ").append(controllerServiceApiCoordinate.getVersion())
-                .append(" from ").append(controllerServiceApiCoordinate.getGroup()).append(" - ").append(controllerServiceApiCoordinate.getId())
-                .toString();
+                    .append(controllerServiceType).append(" - ").append(controllerServiceCoordinate.getVersion())
+                    .append(" from ").append(controllerServiceCoordinate.getGroup()).append(" - ").append(controllerServiceCoordinate.getId())
+                    .append(" is not compatible with ").append(controllerServiceApiType).append(" - ").append(controllerServiceApiCoordinate.getVersion())
+                    .append(" from ").append(controllerServiceApiCoordinate.getGroup()).append(" - ").append(controllerServiceApiCoordinate.getId())
+                    .toString();
 
             return createInvalidResult(serviceId, propertyName, explanation);
         }
@@ -762,18 +813,18 @@ public abstract class AbstractComponentNode implements ComponentNode {
 
     private ValidationResult createInvalidResult(final String serviceId, final String propertyName, final String explanation) {
         return new ValidationResult.Builder()
-            .input(serviceId)
-            .subject(propertyName)
-            .valid(false)
-            .explanation(explanation)
-            .build();
+                .input(serviceId)
+                .subject(propertyName)
+                .valid(false)
+                .explanation(explanation)
+                .build();
     }
 
     /**
      * Determines if the given controller service node has the required API as an ancestor.
      *
      * @param controllerServiceImplBundle the bundle of a controller service being referenced by a processor
-     * @param requiredApiCoordinate the controller service API required by the processor
+     * @param requiredApiCoordinate       the controller service API required by the processor
      * @return true if the controller service node has the require API as an ancestor, false otherwise
      */
     private boolean matchesApi(final ExtensionManager extensionManager, final Bundle controllerServiceImplBundle, final BundleCoordinate requiredApiCoordinate) {
@@ -874,7 +925,11 @@ public abstract class AbstractComponentNode implements ComponentNode {
             validationState.set(new ValidationState(ValidationStatus.VALIDATING, Collections.emptyList()));
 
             if (isTriggerValidation()) {
-                validationTrigger.triggerAsync(this);
+                if (validationTrigger != null) {
+                    validationTrigger.triggerAsync(this);
+                } else {
+                    logger.warn("Tried to reset validation state of {} but validation trigger was null", this);
+                }
             } else {
                 logger.debug("Reset validation state of {} but will not trigger async validation because trigger has been paused", this);
             }
@@ -917,8 +972,8 @@ public abstract class AbstractComponentNode implements ComponentNode {
         }
 
         final Set<String> ignoredServiceIds = servicesToIgnore.stream()
-            .map(ControllerServiceNode::getIdentifier)
-            .collect(Collectors.toSet());
+                .map(ControllerServiceNode::getIdentifier)
+                .collect(Collectors.toSet());
 
         final List<ValidationResult> retainedValidationErrors = new ArrayList<>();
         for (final ValidationResult result : validationErrors) {
