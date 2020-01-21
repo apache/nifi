@@ -178,6 +178,9 @@
         'Refresh Delay' - duration to wait between subsequent refreshes.  Default is '5 mins'.
         'Exclude Groups' - regular expression used to exclude groups.  Default is '', which means no groups are excluded.
         'Exclude Users' - regular expression used to exclude users.  Default is '', which means no users are excluded.
+        'Legacy Identifier Mode' - preserves the legacy behavior for id generation. Disabling this will ensure that
+                                    user and group ids are differentiated to handle the case where a user and group have
+                                    the same identity. Default is 'true', which means users and groups are not differentiated.
     -->
     <!-- To enable the shell-user-group-provider remove 2 lines. This is 1 of 2.
     <userGroupProvider>
@@ -186,6 +189,7 @@
         <property name="Refresh Delay">5 mins</property>
         <property name="Exclude Groups"></property>
         <property name="Exclude Users"></property>
+        <property name="Legacy Identifier Mode">true</property>
     </userGroupProvider>
     To enable the shell-user-group-provider remove 2 lines. This is 2 of 2. -->
 
