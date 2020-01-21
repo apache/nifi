@@ -33,7 +33,7 @@ public class ShellRunner {
 
     static String SHELL = "sh";
     static String OPTS = "-c";
-    static Integer TIMEOUT = 30;
+    static Integer TIMEOUT = 60;
 
     public static List<String> runShell(String command) throws IOException {
         return runShell(command, "<unknown>");
@@ -46,10 +46,15 @@ public class ShellRunner {
         logger.debug("Run Command '" + description + "': " + builderCommand);
         final Process proc = builder.start();
 
+        boolean completed;
         try {
-            proc.waitFor(TIMEOUT, TimeUnit.SECONDS);
+            completed = proc.waitFor(TIMEOUT, TimeUnit.SECONDS);
         } catch (InterruptedException irexc) {
             throw new IOException(irexc.getMessage(), irexc.getCause());
+        }
+
+        if (!completed) {
+            throw new IllegalStateException("Shell command '" + command + "' did not complete during the allotted time period");
         }
 
         if (proc.exitValue() != 0) {
