@@ -38,6 +38,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Test;
@@ -390,6 +391,30 @@ public class ConsumeJMSIT {
             if (broker != null) {
                 broker.stop();
             }
+        }
+    }
+
+    @Test(timeout = 10000)
+    public void whenExceptionIsRaisedTheProcessorShouldBeYielded() throws Exception {
+        TestRunner runner = TestRunners.newTestRunner(new ConsumeJMS());
+        JMSConnectionFactoryProviderDefinition cs = mock(JMSConnectionFactoryProviderDefinition.class);
+        ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory("tcp://invalidhost:9999?soTimeout=3");
+
+        when(cs.getIdentifier()).thenReturn("cfProvider");
+        when(cs.getConnectionFactory()).thenReturn(cf);
+        runner.addControllerService("cfProvider", cs);
+        runner.enableControllerService(cs);
+
+        runner.setProperty(ConsumeJMS.CF_SERVICE, "cfProvider");
+        runner.setProperty(ConsumeJMS.DESTINATION, "foo");
+        runner.setProperty(ConsumeJMS.DESTINATION_TYPE, ConsumeJMS.TOPIC);
+
+        try {
+            runner.run();
+            fail("The test was implemented in a way this line should not be reached.");
+        } catch (AssertionError e) {
+        } finally {
+            assertTrue("In case of an exception, the processor should be yielded.", ((MockProcessContext) runner.getProcessContext()).isYieldCalled());
         }
     }
 
