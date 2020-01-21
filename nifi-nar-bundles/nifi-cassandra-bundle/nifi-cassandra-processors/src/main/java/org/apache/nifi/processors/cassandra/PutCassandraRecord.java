@@ -138,7 +138,7 @@ public class PutCassandraRecord extends AbstractCassandraProcessor {
             .description("A comma-separated list of column names that uniquely identifies a row in the database for UPDATE statements. "
                     + "If the Statement Type is UPDATE and this property is not set, the conversion to CQL will fail. "
                     + "This property is ignored if the Statement Type is not UPDATE.")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .addValidator(StandardValidators.createListValidator(false,true, StandardValidators.NON_EMPTY_VALIDATOR))
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
@@ -301,7 +301,7 @@ public class PutCassandraRecord extends AbstractCassandraProcessor {
     private Statement generateUpdate(String cassandraTable, RecordSchema schema, String updateKeys, String updateMethod, Map<String, Object> recordContentMap) {
         Update updateQuery;
 
-        // Split up the update key names separated by a comma, we need at least 1 key.
+        // Split up the update key names separated by a comma, should not be empty
         final Set<String> updateKeyNames;
         updateKeyNames = Arrays.stream(updateKeys.split(","))
                 .map(String::trim)
@@ -309,6 +309,13 @@ public class PutCassandraRecord extends AbstractCassandraProcessor {
                 .collect(Collectors.toSet());
         if (updateKeyNames.isEmpty()) {
             throw new IllegalArgumentException("No Update Keys were specified");
+        }
+
+        // Verify if all update keys are present in the record
+        for (String updateKey : updateKeyNames) {
+            if (!schema.getFieldNames().contains(updateKey)) {
+                throw new IllegalArgumentException("Update key '" + updateKey + "' is not present in the record schema");
+            }
         }
 
         // Prepare keyspace/table names
