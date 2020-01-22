@@ -32,28 +32,23 @@ if [ ! -z "${NIFI_JVM_DEBUGGER}" ]; then
     uncomment "java.arg.debug" ${nifi_bootstrap_file}
 fi
 
+# Replace NiFi properties with environment variables
+NIFI_ENV_VARS=$(printenv | awk -F= '/^NIFI_/ {print $1}')
+
+for ENV_VAR in $NIFI_ENV_VARS; do
+    PROP_NAME=$(echo "$ENV_VAR" | tr _ . | tr '[:upper:]' '[:lower:]')
+    PROP_VALUE=$(printenv "$ENV_VAR")
+    prop_replace "$PROP_NAME" "$PROP_VALUE"
+done
+
 # Establish baseline properties
-prop_replace 'nifi.web.http.port'               "${NIFI_WEB_HTTP_PORT:-8080}"
-prop_replace 'nifi.web.http.host'               "${NIFI_WEB_HTTP_HOST:-$HOSTNAME}"
-prop_replace 'nifi.remote.input.host'           "${NIFI_REMOTE_INPUT_HOST:-$HOSTNAME}"
-prop_replace 'nifi.remote.input.socket.port'    "${NIFI_REMOTE_INPUT_SOCKET_PORT:-10000}"
-prop_replace 'nifi.remote.input.secure'         'false'
+prop_replace 'nifi.cluster.node.address'   "${NIFI_CLUSTER_NODE_ADDRESS:-$HOSTNAME}"
+prop_replace 'nifi.remote.input.host'      "${NIFI_REMOTE_INPUT_HOST:-$HOSTNAME}"
+prop_replace 'nifi.web.http.host'          "${NIFI_WEB_HTTP_HOST:-$HOSTNAME}"
 
 # Set nifi-toolkit properties files and baseUrl
 "${scripts_dir}/toolkit.sh"
 prop_replace 'baseUrl' "http://${NIFI_WEB_HTTP_HOST:-$HOSTNAME}:${NIFI_WEB_HTTP_PORT:-8080}" ${nifi_toolkit_props_file}
-
-prop_replace 'nifi.variable.registry.properties'    "${NIFI_VARIABLE_REGISTRY_PROPERTIES:-}"
-prop_replace 'nifi.cluster.is.node'                         "${NIFI_CLUSTER_IS_NODE:-false}"
-prop_replace 'nifi.cluster.node.address'                    "${NIFI_CLUSTER_ADDRESS:-$HOSTNAME}"
-prop_replace 'nifi.cluster.node.protocol.port'              "${NIFI_CLUSTER_NODE_PROTOCOL_PORT:-}"
-prop_replace 'nifi.cluster.node.protocol.threads'           "${NIFI_CLUSTER_NODE_PROTOCOL_THREADS:-10}"
-prop_replace 'nifi.cluster.node.protocol.max.threads'       "${NIFI_CLUSTER_NODE_PROTOCOL_MAX_THREADS:-50}"
-prop_replace 'nifi.zookeeper.connect.string'                "${NIFI_ZK_CONNECT_STRING:-}"
-prop_replace 'nifi.zookeeper.root.node'                     "${NIFI_ZK_ROOT_NODE:-/nifi}"
-prop_replace 'nifi.cluster.flow.election.max.wait.time'     "${NIFI_ELECTION_MAX_WAIT:-5 mins}"
-prop_replace 'nifi.cluster.flow.election.max.candidates'    "${NIFI_ELECTION_MAX_CANDIDATES:-}"
-prop_replace 'nifi.web.proxy.context.path'                  "${NIFI_WEB_PROXY_CONTEXT_PATH:-}"
 
 . "${scripts_dir}/update_cluster_state_management.sh"
 
