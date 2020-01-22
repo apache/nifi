@@ -143,7 +143,7 @@ public class PutCassandraRecord extends AbstractCassandraProcessor {
             .description("A comma-separated list of column names that uniquely identifies a row in the database for UPDATE statements. "
                     + "If the Statement Type is UPDATE and this property is not set, the conversion to CQL will fail. "
                     + "This property is ignored if the Statement Type is not UPDATE.")
-            .addValidator(StandardValidators.createListValidator(false,true, StandardValidators.NON_EMPTY_VALIDATOR))
+            .addValidator(StandardValidators.createListValidator(true, false, StandardValidators.NON_EMPTY_VALIDATOR))
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
@@ -303,7 +303,7 @@ public class PutCassandraRecord extends AbstractCassandraProcessor {
 
     }
 
-    private Statement generateUpdate(String cassandraTable, RecordSchema schema, String updateKeys, String updateMethod, Map<String, Object> recordContentMap) {
+    protected Statement generateUpdate(String cassandraTable, RecordSchema schema, String updateKeys, String updateMethod, Map<String, Object> recordContentMap) {
         Update updateQuery;
 
         // Split up the update key names separated by a comma, should not be empty
