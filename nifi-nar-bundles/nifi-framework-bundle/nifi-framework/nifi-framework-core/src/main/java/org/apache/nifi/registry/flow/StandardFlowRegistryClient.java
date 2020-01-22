@@ -27,6 +27,8 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+import org.apache.http.client.utils.URIBuilder;
+
 public class StandardFlowRegistryClient implements FlowRegistryClient {
     private NiFiProperties nifiProperties;
     private ConcurrentMap<String, FlowRegistry> registryById = new ConcurrentHashMap<>();
@@ -60,7 +62,7 @@ public class StandardFlowRegistryClient implements FlowRegistryClient {
     public FlowRegistry addFlowRegistry(final String registryId, final String registryName, final String registryUrl, final String description) {
         final URI uri;
         try {
-            uri = new URI(registryUrl);
+            uri = new URIBuilder(registryUrl).setPath("").removeQuery().build();
         } catch (URISyntaxException e) {
             throw new IllegalArgumentException("The given Registry URL is not valid: " + registryUrl);
         }
@@ -71,7 +73,7 @@ public class StandardFlowRegistryClient implements FlowRegistryClient {
         }
 
         // Handles case where the URI entered has a trailing slash, or includes the trailing /nifi-registry-api
-        final String registryBaseUrl = uri.getScheme() + "://" + uri.getHost() + ":" + uri.getPort();
+        final String registryBaseUrl = uri.toString();
 
         final FlowRegistry registry;
         if (uriScheme.equalsIgnoreCase("http") || uriScheme.equalsIgnoreCase("https")) {
