@@ -15,13 +15,13 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
-login_providers_file=${NIFI_REGISTRY_HOME}/conf/identity-providers.xml
+login_providers_file="${NIFI_REGISTRY_HOME}/conf/identity-providers.xml"
 property_xpath='//identityProviders/provider/property'
 
 # Update a given property in the login-identity-providers file if a value is specified
 edit_property() {
-  property_name=$1
-  property_value=$2
+  property_name="$1"
+  property_value="$2"
 
   if [ -n "${property_value}" ]; then
     xmlstarlet ed --inplace -u "${property_xpath}[@name='${property_name}']" -v "${property_value}" "${login_providers_file}"

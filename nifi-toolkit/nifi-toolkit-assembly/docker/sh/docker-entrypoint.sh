@@ -20,21 +20,21 @@
 
 toolkit_path="${NIFI_TOOLKIT_HOME}/bin"
 
-program=$1
+program="$1"
 
 print_help () {
-    if [ -z ${program} ]; then
+    if [ -z "${program}" ]; then
         echo "No program option specified."
     else
         echo "Could not find program \"${program}\" to execute."
     fi
-    echo 'Options available include: ' $(for script in $(find "${toolkit_path}" -type f -name '*.sh'); do basename ${script} '.sh'; done)
+    echo 'Options available include: ' "$(for script in "${toolkit_path}"/*.sh; do basename "${script}" '.sh'; done)"
 }
 
 # Find out which component of the Toolkit we are using
-if ! [ -f "${toolkit_path}/${program}.sh" ]; then
-    print_help ${program}
+if [ ! -f "${toolkit_path}/${program}.sh" ]; then
+    print_help "${program}"
 else
     shift
-    exec ${toolkit_path}/${program}.sh "$@"
+    exec "${toolkit_path}/${program}.sh" "$@"
 fi

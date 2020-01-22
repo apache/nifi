@@ -15,12 +15,12 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
-providers_file=${NIFI_REGISTRY_HOME}/conf/providers.xml
+providers_file="${NIFI_REGISTRY_HOME}/conf/providers.xml"
 property_xpath='/providers/flowPersistenceProvider'
 
 add_property() {
-  property_name=$1
-  property_value=$2
+  property_name="$1"
+  property_value="$2"
 
   if [ -n "${property_value}" ]; then
     xmlstarlet ed --inplace --subnode "${property_xpath}" --type elem -n property -v "${property_value}" \
@@ -31,7 +31,7 @@ add_property() {
 
 xmlstarlet ed --inplace -u "${property_xpath}/property[@name='Flow Storage Directory']" -v "${NIFI_REGISTRY_FLOW_STORAGE_DIR:-./flow_storage}" "${providers_file}"
 
-case ${NIFI_REGISTRY_FLOW_PROVIDER} in
+case "${NIFI_REGISTRY_FLOW_PROVIDER}" in
     file)
         xmlstarlet ed --inplace -u "${property_xpath}/class" -v "org.apache.nifi.registry.provider.flow.FileSystemFlowPersistenceProvider" "${providers_file}"
         ;;
@@ -41,7 +41,7 @@ case ${NIFI_REGISTRY_FLOW_PROVIDER} in
         add_property "Remote Access User"  "${NIFI_REGISTRY_GIT_USER:-}"
         add_property "Remote Access Password"    "${NIFI_REGISTRY_GIT_PASSWORD:-}"
 
-	if [ ! -z "$NIFI_REGISTRY_GIT_REPO" ]; then
+	if [ -n "$NIFI_REGISTRY_GIT_REPO" ]; then
 		add_property "Remote Clone Repository" "${NIFI_REGISTRY_GIT_REPO:-}"
 	fi
         ;;

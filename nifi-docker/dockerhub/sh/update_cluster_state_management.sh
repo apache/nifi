@@ -19,8 +19,8 @@ state_providers_file="${NIFI_HOME}/conf/state-management.xml"
 property_xpath='/stateManagement/cluster-provider/property'
 
 edit_property() {
-  property_name=$1
-  property_value=$2
+  property_name="$1"
+  property_value="$2"
 
   if [ -n "${property_value}" ]; then
     xmlstarlet ed --inplace -u "${property_xpath}[@name='${property_name}']" -v "${property_value}" "${state_providers_file}"

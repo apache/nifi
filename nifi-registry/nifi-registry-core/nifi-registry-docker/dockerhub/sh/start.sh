@@ -17,13 +17,14 @@
 
 scripts_dir='/opt/nifi-registry/scripts'
 
+# shellcheck source=./common.sh
 [ -f "${scripts_dir}/common.sh" ] && . "${scripts_dir}/common.sh"
 
 # Establish baseline properties
 prop_replace 'nifi.registry.web.http.port'      "${NIFI_REGISTRY_WEB_HTTP_PORT:-18080}"
-prop_replace 'nifi.registry.web.http.host'      "${NIFI_REGISTRY_WEB_HTTP_HOST:-$HOSTNAME}"
+prop_replace 'nifi.registry.web.http.host'      "${NIFI_REGISTRY_WEB_HTTP_HOST:-$hostname}"
 
-. ${scripts_dir}/update_database.sh
+. "${scripts_dir}/update_database.sh"
 
 # Check if we are secured or unsecured
 case ${AUTH} in
@@ -56,7 +57,7 @@ tail -F "${NIFI_REGISTRY_HOME}/logs/nifi-registry-app.log" &
 "${NIFI_REGISTRY_HOME}/bin/nifi-registry.sh" run &
 nifi_registry_pid="$!"
 
-trap "echo Received trapped signal, beginning shutdown...;" KILL TERM HUP INT EXIT;
+trap "echo Received trapped signal, beginning shutdown...;" TERM HUP INT EXIT;
 
 echo NiFi-Registry running with PID ${nifi_registry_pid}.
 wait ${nifi_registry_pid}

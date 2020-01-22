@@ -17,6 +17,7 @@
 
 scripts_dir='/opt/nifi/scripts'
 
+# shellcheck source=./common.sh
 [ -f "${scripts_dir}/common.sh" ] && . "${scripts_dir}/common.sh"
 
 # Perform idempotent changes of configuration to support secure environments
@@ -54,7 +55,7 @@ prop_replace 'keyPasswd'          "${KEY_PASSWORD:-$KEYSTORE_PASSWORD}" "${nifi_
 prop_replace 'truststore'         "${TRUSTSTORE_PATH}"                  "${nifi_toolkit_props_file}"
 prop_replace 'truststoreType'     "${TRUSTSTORE_TYPE}"                  "${nifi_toolkit_props_file}"
 # shellcheck disable=SC2086
-prop_replace 'truststorePasswd'   "${TRUSTSTORE_PASSWORD}"              ${nifi_toolkit_props_file}
+prop_replace 'truststorePasswd'   "${TRUSTSTORE_PASSWORD}"              "${nifi_toolkit_props_file}"
 
 # Disable HTTP and enable HTTPS
 prop_replace 'nifi.web.http.port'   ''

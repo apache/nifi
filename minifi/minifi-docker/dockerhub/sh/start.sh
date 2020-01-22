@@ -20,7 +20,7 @@ tail -F "${MINIFI_HOME}/logs/minifi-app.log" &
 "${MINIFI_HOME}/bin/minifi.sh" run &
 minifi_pid="$!"
 
-trap "echo Received trapped signal, beginning shutdown...;" KILL TERM HUP INT EXIT;
+trap "echo Received trapped signal, beginning shutdown...;" TERM HUP INT EXIT;
 
 echo MiNiFi running with PID ${minifi_pid}.
 wait ${minifi_pid}

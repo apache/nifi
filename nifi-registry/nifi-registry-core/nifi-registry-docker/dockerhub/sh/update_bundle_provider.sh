@@ -15,12 +15,12 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
-providers_file=${NIFI_REGISTRY_HOME}/conf/providers.xml
+providers_file="${NIFI_REGISTRY_HOME}/conf/providers.xml"
 property_xpath='/providers/extensionBundlePersistenceProvider'
 
 add_property() {
-  property_name=$1
-  property_value=$2
+  property_name="$1"
+  property_value="$2"
 
   if [ -n "${property_value}" ]; then
     xmlstarlet ed --inplace --subnode "${property_xpath}" --type elem -n property -v "${property_value}" \
@@ -31,7 +31,7 @@ add_property() {
 
 xmlstarlet ed --inplace -u "${property_xpath}/property[@name='Extension Bundle Storage Directory']" -v "${NIFI_REGISTRY_BUNDLE_STORAGE_DIR:-./extension_bundles}" "${providers_file}"
 
-case ${NIFI_REGISTRY_BUNDLE_PROVIDER} in
+case "${NIFI_REGISTRY_BUNDLE_PROVIDER}" in
     file)
         xmlstarlet ed --inplace -u "${property_xpath}/class" -v "org.apache.nifi.registry.provider.extension.FileSystemBundlePersistenceProvider" "${providers_file}"
         ;;
