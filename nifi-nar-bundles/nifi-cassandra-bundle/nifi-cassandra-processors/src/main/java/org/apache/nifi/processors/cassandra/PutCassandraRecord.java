@@ -342,26 +342,24 @@ public class PutCassandraRecord extends AbstractCassandraProcessor {
                 Assignment assignment;
                 if (SET_TYPE.getValue().equalsIgnoreCase(updateMethod)) {
                     assignment = QueryBuilder.set(fieldName, fieldValue);
+                } else if (INCR_TYPE.getValue().equalsIgnoreCase(updateMethod)) {
+                    assignment = QueryBuilder.incr(fieldName, convertFieldObjectToLong(fieldName, fieldValue));
+                } else if (DECR_TYPE.getValue().equalsIgnoreCase(updateMethod)) {
+                    assignment = QueryBuilder.decr(fieldName, convertFieldObjectToLong(fieldName, fieldValue));
                 } else {
-                    // Check if the fieldValue is of type long, as this is the only type that is can be used,
-                    // to increment or decrement.
-                    if (!(fieldValue instanceof Long)) {
-                        throw new IllegalArgumentException("Field '" + fieldName + "' is not of type Long, and cannot be used" +
-                                " to increment or decrement.");
-                    }
-
-                    if (INCR_TYPE.getValue().equalsIgnoreCase(updateMethod)) {
-                        assignment = QueryBuilder.incr(fieldName, (Long)fieldValue);
-                    } else if (DECR_TYPE.getValue().equalsIgnoreCase(updateMethod)) {
-                        assignment = QueryBuilder.decr(fieldName, (Long)fieldValue);
-                    } else {
-                        throw new IllegalArgumentException("Update Method '" + updateMethod + "' is not valid.");
-                    }
+                    throw new IllegalArgumentException("Update Method '" + updateMethod + "' is not valid.");
                 }
                 updateQuery.with(assignment);
             }
         }
         return updateQuery;
+    }
+
+    private Long convertFieldObjectToLong(String name, Object value) {
+        if (!(value instanceof Number)) {
+            throw new IllegalArgumentException("Field '" + name + "' is not of type Number");
+        }
+        return ((Number) value).longValue();
     }
 
     private Statement generateInsert(String cassandraTable, RecordSchema schema, Map<String, Object> recordContentMap) {
