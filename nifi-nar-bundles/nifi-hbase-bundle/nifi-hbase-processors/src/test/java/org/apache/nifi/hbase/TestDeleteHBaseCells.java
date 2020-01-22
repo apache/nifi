@@ -17,6 +17,7 @@
 package org.apache.nifi.hbase;
 
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.util.MockFlowFile;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -42,5 +43,22 @@ public class TestDeleteHBaseCells extends DeleteTestBase {
         runner.enqueue(sb.toString().trim());
         runner.run();
         runner.assertAllFlowFilesTransferred(DeleteHBaseCells.REL_SUCCESS);
+    }
+
+    @Test
+    public void testWrongNumberOfInputs() {
+        final String SEP = "::::";
+        List<String> ids = populateTable(10000);
+        runner.setProperty(DeleteHBaseCells.SEPARATOR, SEP);
+        runner.assertValid();
+        StringBuilder sb = new StringBuilder();
+        for (String id : ids) {
+            sb.append(String.format("%s%sX\n", id, SEP));
+        }
+        runner.enqueue(sb.toString().trim());
+        runner.run();
+        runner.assertAllFlowFilesTransferred(DeleteHBaseCells.REL_FAILURE);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(DeleteHBaseCells.REL_FAILURE).get(0);
+        flowFile.assertAttributeEquals(DeleteHBaseCells.ERROR_MSG, "Invalid line length. It must have 3 or 4 components. It had 2.");
     }
 }

@@ -17,18 +17,17 @@
 
 package org.apache.nifi.processors.standard;
 
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 import org.apache.nifi.processors.standard.util.TestInvokeHttpCommon;
-import org.apache.nifi.web.util.TestServer;
 import org.apache.nifi.ssl.StandardSSLContextService;
 import org.apache.nifi.util.TestRunners;
+import org.apache.nifi.web.util.TestServer;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
-
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * Executes the same tests as TestInvokeHttp but with one-way SSL enabled.  The Jetty server created for these tests
@@ -46,7 +45,7 @@ public class TestInvokeHttpSSL extends TestInvokeHttpCommon {
         // don't commit this with this property enabled, or any 'mvn test' will be really verbose
         // System.setProperty("org.slf4j.simpleLogger.log.nifi.processors.standard", "debug");
 
-        // create the SSL properties, which basically store keystore / trustore information
+        // create the SSL properties, which basically store keystore / truststore information
         // this is used by the StandardSSLContextService and the Jetty Server
         serverSslProperties = createServerSslProperties(false);
         sslProperties = createClientSslProperties(false);
@@ -138,8 +137,9 @@ public class TestInvokeHttpSSL extends TestInvokeHttpCommon {
 
     private static Map<String, String> getTruststoreProperties() {
         final Map<String, String> map = new HashMap<>();
-        map.put(StandardSSLContextService.TRUSTSTORE.getName(), "src/test/resources/truststore.jks");
-        map.put(StandardSSLContextService.TRUSTSTORE_PASSWORD.getName(), "passwordpassword");
+        map.put(StandardSSLContextService.TRUSTSTORE.getName(), "src/test/resources/truststore.no-password.jks");
+        // Commented this line to test passwordless truststores for NIFI-6770
+        // map.put(StandardSSLContextService.TRUSTSTORE_PASSWORD.getName(), "passwordpassword");
         map.put(StandardSSLContextService.TRUSTSTORE_TYPE.getName(), "JKS");
         return map;
     }

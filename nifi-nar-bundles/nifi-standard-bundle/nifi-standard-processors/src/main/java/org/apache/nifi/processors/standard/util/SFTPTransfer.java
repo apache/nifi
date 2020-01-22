@@ -709,7 +709,11 @@ public class SFTPTransfer implements FileTransfer {
 
         int perms = 0;
         final String permissions = ctx.getProperty(PERMISSIONS).evaluateAttributeExpressions(flowFile).getValue();
-        if (permissions != null && !permissions.trim().isEmpty()) {
+        if (permissions == null || permissions.trim().isEmpty()) {
+            sftpClient.getFileTransfer().setPreserveAttributes(false); //We will accept whatever the default permissions are of the destination
+            perms = 0;
+        } else {
+            sftpClient.getFileTransfer().setPreserveAttributes(true); //We will use the permissions supplied by evaluating processor property expression
             perms = numberPermissions(permissions);
         }
 

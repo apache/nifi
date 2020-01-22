@@ -229,7 +229,7 @@ public class PutFile extends AbstractProcessor {
 
         Path tempDotCopyFile = null;
         try {
-            final Path rootDirPath = configuredRootDirPath;
+            final Path rootDirPath = configuredRootDirPath.toAbsolutePath();
             String filename = flowFile.getAttribute(CoreAttributes.FILENAME.key());
             final Path tempCopyFile = rootDirPath.resolve("." + filename);
             final Path copyFile = rootDirPath.resolve(filename);

@@ -57,6 +57,7 @@ public abstract class AbstractInfluxDBProcessor extends AbstractProcessor {
 
     public static final PropertyDescriptor INFLUX_DB_CONNECTION_TIMEOUT = new PropertyDescriptor.Builder()
             .name("InfluxDB Max Connection Time Out (seconds)")
+            .displayName("InfluxDB Max Connection Time Out (seconds)")
             .description("The maximum time for establishing connection to the InfluxDB")
             .defaultValue("0 seconds")
             .required(true)

@@ -23,6 +23,7 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
@@ -38,6 +39,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.springframework.jms.connection.CachingConnectionFactory;
+import org.springframework.jms.connection.SingleConnectionFactory;
 import org.springframework.jms.core.JmsTemplate;
 import org.springframework.jms.support.JmsHeaders;
 
@@ -188,6 +190,23 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
         relationships = Collections.unmodifiableSet(_relationships);
     }
 
+    private static boolean isDurableSubscriber(final ProcessContext context) {
+        final Boolean durableBoolean = context.getProperty(DURABLE_SUBSCRIBER).evaluateAttributeExpressions().asBoolean();
+        return durableBoolean == null ? false : durableBoolean;
+    }
+
+    private static boolean isShared(final ProcessContext context) {
+        final Boolean sharedBoolean = context.getProperty(SHARED_SUBSCRIBER).evaluateAttributeExpressions().asBoolean();
+        return sharedBoolean == null ? false : sharedBoolean;
+    }
+
+    @OnScheduled
+    public void onSchedule(ProcessContext context) {
+        if (context.getMaxConcurrentTasks() > 1 && isDurableSubscriber(context) && !isShared(context)) {
+            throw new ProcessException("Durable non shared subscriptions cannot work on multiple threads. Check javax/jms/Session#createDurableConsumer API doc.");
+        }
+    }
+
     @Override
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
         final List<ValidationResult> validationResults = new ArrayList<>(super.customValidate(validationContext));
@@ -203,7 +222,6 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
                     "'" + DESTINATION_TYPE.getDisplayName() + "'='" + QUEUE + "'")
                 .build());
         }
-
         return validationResults;
     }
 
@@ -218,10 +236,8 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
     protected void rendezvousWithJms(final ProcessContext context, final ProcessSession processSession, final JMSConsumer consumer) throws ProcessException {
         final String destinationName = context.getProperty(DESTINATION).evaluateAttributeExpressions().getValue();
         final String errorQueueName = context.getProperty(ERROR_QUEUE).evaluateAttributeExpressions().getValue();
-        final Boolean durableBoolean = context.getProperty(DURABLE_SUBSCRIBER).evaluateAttributeExpressions().asBoolean();
-        final boolean durable = durableBoolean == null ? false : durableBoolean;
-        final Boolean sharedBoolean = context.getProperty(SHARED_SUBSCRIBER).evaluateAttributeExpressions().asBoolean();
-        final boolean shared = sharedBoolean == null ? false : sharedBoolean;
+        final boolean durable = isDurableSubscriber(context);
+        final boolean shared = isShared(context);
         final String subscriptionName = context.getProperty(SUBSCRIPTION_NAME).evaluateAttributeExpressions().getValue();
         final String charset = context.getProperty(CHARSET).evaluateAttributeExpressions().getValue();
 
@@ -277,6 +293,27 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return thisPropertyDescriptors;
+    }
+
+    /**
+     * <p>
+     * Use provided clientId for non shared durable consumers, if not set
+     * always a different value as defined in {@link AbstractJMSProcessor#setClientId(ProcessContext, SingleConnectionFactory)}.
+     * </p>
+     * See {@link Session#createDurableConsumer(javax.jms.Topic, String, String, boolean)},
+     * in special following part: <i>An unshared durable subscription is
+     * identified by a name specified by the client and by the client identifier,
+     * which must be set. An application which subsequently wishes to create
+     * a consumer on that unshared durable subscription must use the same
+     * client identifier.</i>
+     */
+    @Override
+    protected void setClientId(ProcessContext context, SingleConnectionFactory cachingFactory) {
+        if (isDurableSubscriber(context) && !isShared(context)) {
+            cachingFactory.setClientId(getClientId(context));
+        } else {
+            super.setClientId(context, cachingFactory);
+        }
     }
 
     /**
