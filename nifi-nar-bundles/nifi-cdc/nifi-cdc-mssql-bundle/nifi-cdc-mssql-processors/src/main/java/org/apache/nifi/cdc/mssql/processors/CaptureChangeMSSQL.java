@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.cdc.mssql.processors;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.Stateful;
@@ -226,8 +225,9 @@ public class CaptureChangeMSSQL extends AbstractSessionFactoryProcessor {
 
         final String[] allTables = schemaCache.keySet().toArray(new String[schemaCache.size()]);
 
-        String[] tables = StringUtils
-                .split(processContext.getProperty(CDC_TABLES).evaluateAttributeExpressions().getValue(), ",");
+        String[] tables = processContext.getProperty(CDC_TABLES).evaluateAttributeExpressions().getValue()
+                .trim()
+                .split("\\s*,\\s*");
 
         if(tables == null || tables.length == 0){
             tables = allTables;

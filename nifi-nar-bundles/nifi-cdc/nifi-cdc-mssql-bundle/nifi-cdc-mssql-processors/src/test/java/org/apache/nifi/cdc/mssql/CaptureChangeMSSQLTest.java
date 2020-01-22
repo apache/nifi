@@ -248,7 +248,7 @@ public class CaptureChangeMSSQLTest {
     @Test
     public void testRetrieveAllChanges() throws SQLException, IOException {
         setupNamesTable();
-        
+
         runner.setIncomingConnection(false);
 
         runner.setProperty(CaptureChangeMSSQL.CDC_TABLES, "Names");
@@ -560,13 +560,13 @@ public class CaptureChangeMSSQLTest {
 
         runner.setIncomingConnection(false);
 
-        runner.setProperty(CaptureChangeMSSQL.CDC_TABLES, "Names");
+        runner.setProperty(CaptureChangeMSSQL.CDC_TABLES, " Names , Names2 ");
         runner.setProperty(CaptureChangeMSSQL.TAKE_INITIAL_SNAPSHOT, "true");
         runner.setProperty(CaptureChangeMSSQL.FULL_SNAPSHOT_ROW_LIMIT, "2");
 
         runner.run();
 
-        runner.assertAllFlowFilesTransferred(CaptureChangeMSSQL.REL_SUCCESS, 1);
+        runner.assertAllFlowFilesTransferred(CaptureChangeMSSQL.REL_SUCCESS, 2);
         MockFlowFile flowFile = runner.getFlowFilesForRelationship(CaptureChangeMSSQL.REL_SUCCESS).get(0);
 
         Map<String,String> attributes = flowFile.getAttributes();
