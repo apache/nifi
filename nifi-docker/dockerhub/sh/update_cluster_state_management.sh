@@ -15,7 +15,7 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
-state_providers_file=${NIFI_HOME}/conf/state-management.xml
+state_providers_file="${NIFI_HOME}/conf/state-management.xml"
 property_xpath='/stateManagement/cluster-provider/property'
 
 edit_property() {

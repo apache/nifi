@@ -15,7 +15,7 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
-login_providers_file=${NIFI_HOME}/conf/login-identity-providers.xml
+login_providers_file="${NIFI_HOME}/conf/login-identity-providers.xml"
 property_xpath='//loginIdentityProviders/provider/property'
 
 # Update a given property in the login-identity-providers file if a value is specified

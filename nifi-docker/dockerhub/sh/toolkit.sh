@@ -15,7 +15,8 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
-cat <<EOT > ${nifi_toolkit_props_file}
+# shellcheck disable=SC2154
+cat <<EOT > "${nifi_toolkit_props_file}"
 baseUrl=
 keystore=
 keystoreType=
@@ -27,6 +28,6 @@ truststorePasswd=
 proxiedEntity=
 EOT
 
-cat <<EOT > ${HOME}/.nifi-cli.config
+cat <<EOT > "${HOME}/.nifi-cli.config"
 nifi.props=${nifi_toolkit_props_file}
 EOT
