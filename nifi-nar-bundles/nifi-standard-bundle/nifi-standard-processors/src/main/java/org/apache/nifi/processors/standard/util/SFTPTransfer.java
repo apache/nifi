@@ -548,18 +548,19 @@ public class SFTPTransfer implements FileTransfer {
             });
         }
 
-        // Load known hosts file if specified, otherwise load default
-        final String hostKeyVal = ctx.getProperty(HOST_KEY_FILE).getValue();
-        if (hostKeyVal != null) {
-            sshClient.loadKnownHosts(new File(hostKeyVal));
-        } else {
-            sshClient.loadKnownHosts();
-        }
-
         // If strict host key checking is false, add a HostKeyVerifier that always returns true
         final boolean strictHostKeyChecking = ctx.getProperty(STRICT_HOST_KEY_CHECKING).asBoolean();
         if (!strictHostKeyChecking) {
             sshClient.addHostKeyVerifier(new PromiscuousVerifier());
+        }
+        
+        // Load known hosts file if specified, otherwise load default
+        final String hostKeyVal = ctx.getProperty(HOST_KEY_FILE).getValue();
+        if (hostKeyVal != null) {
+            sshClient.loadKnownHosts(new File(hostKeyVal));
+            // Load default known_hosts file only when 'Strict Host Key Checking' property is enabled
+        } else if (strictHostKeyChecking) {
+            sshClient.loadKnownHosts();
         }
 
         // Enable compression on the client if specified in properties
