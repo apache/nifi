@@ -66,7 +66,7 @@ public class CSVHeaderSchemaStrategy implements SchemaAccessStrategy {
                 return new SimpleRecordSchema(fields);
             }
         } catch (final Exception e) {
-            throw new SchemaNotFoundException("Failed to read Header line from CSV", e);
+            throw new SchemaNotFoundException("Failed to read Header line from CSV. " + e.getMessage() , e);
         }
     }
 

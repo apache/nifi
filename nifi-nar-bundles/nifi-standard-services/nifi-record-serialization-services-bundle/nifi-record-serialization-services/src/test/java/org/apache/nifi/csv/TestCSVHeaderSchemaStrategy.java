@@ -18,6 +18,7 @@
 package org.apache.nifi.csv;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayInputStream;
@@ -97,6 +98,34 @@ public class TestCSVHeaderSchemaStrategy {
 
         assertTrue(schema.getFields().stream()
                 .allMatch(field -> field.getDataType().equals(RecordFieldType.STRING.getDataType())));
+    }
+
+    @Test
+    public void testDuplicatedHeader() throws SchemaNotFoundException, IOException {
+        final String headerLine = "name, age, name";
+        final byte[] headerBytes = headerLine.getBytes();
+
+        final Map<PropertyDescriptor, String> properties = new HashMap<>();
+        properties.put(CSVUtils.CSV_FORMAT, CSVUtils.CUSTOM.getValue());
+        properties.put(CSVUtils.COMMENT_MARKER, "#");
+        properties.put(CSVUtils.VALUE_SEPARATOR, ",");
+        properties.put(CSVUtils.TRIM_FIELDS, "true");
+        properties.put(CSVUtils.QUOTE_CHAR, "\"");
+        properties.put(CSVUtils.ESCAPE_CHAR, "\\");
+
+        final ConfigurationContext context = new MockConfigurationContext(properties, null);
+        final CSVHeaderSchemaStrategy strategy = new CSVHeaderSchemaStrategy(context);
+
+        final Exception exception;
+        try (final InputStream bais = new ByteArrayInputStream(headerBytes)) {
+            exception = assertThrows(SchemaNotFoundException.class, () -> {
+                strategy.getSchema(null, bais, null);
+            });
+        }
+
+        String expectErrMsg = "Failed to read Header line from CSV. The header contains a duplicate name: \"name\" in [name, age, name]";
+        assertEquals(exception.getMessage(), expectErrMsg);
+
     }
 
 }
