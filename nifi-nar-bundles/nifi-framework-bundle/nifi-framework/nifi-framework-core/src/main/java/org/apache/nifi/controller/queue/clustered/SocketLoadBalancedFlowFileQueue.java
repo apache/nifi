@@ -145,25 +145,19 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
         sortedNodeIdentifiers.sort(Comparator.comparing(NodeIdentifier::getApiAddress));
 
         if (sortedNodeIdentifiers.isEmpty()) {
-            // No Node Identifiers are known yet. Just create the partitions using the local partition.
             queuePartitions = new QueuePartition[] { localPartition };
         } else {
-            // The node identifiers are known. Create the partitions using the local partition and 1 Remote Partition for each node
-            // that is not the local node identifier. If the Local Node Identifier is not yet known, that's okay. When it becomes known,
-            // the queuePartitions array will be recreated with the appropriate partitions.
-            final List<QueuePartition> partitionList = new ArrayList<>();
-            partitionList.add(localPartition);
+            queuePartitions = new QueuePartition[sortedNodeIdentifiers.size()];
 
-            final NodeIdentifier localNodeId = clusterCoordinator.getLocalNodeIdentifier();
-            for (final NodeIdentifier nodeId : sortedNodeIdentifiers) {
-                if (nodeId.equals(localNodeId)) {
-                    continue;
+            for (int i = 0; i < sortedNodeIdentifiers.size(); i++) {
+                final NodeIdentifier nodeId = sortedNodeIdentifiers.get(i);
+                if (nodeId.equals(clusterCoordinator.getLocalNodeIdentifier())) {
+                    queuePartitions[i] = localPartition;
+                } else {
+                    queuePartitions[i] = createRemotePartition(nodeId);
                 }
-
-                partitionList.add(createRemotePartition(nodeId));
             }
 
-            queuePartitions = partitionList.toArray(new QueuePartition[0]);
         }
 
         partitioner = new LocalPartitionPartitioner();
