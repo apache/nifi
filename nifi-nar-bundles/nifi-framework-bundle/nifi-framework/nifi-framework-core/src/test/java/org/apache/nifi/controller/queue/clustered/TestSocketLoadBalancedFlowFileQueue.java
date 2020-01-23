@@ -37,6 +37,8 @@ import org.apache.nifi.controller.repository.SwapSummary;
 import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 import org.apache.nifi.controller.repository.claim.StandardResourceClaimManager;
 import org.apache.nifi.events.EventReporter;
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.provenance.ProvenanceEventRepository;
 import org.junit.Assert;
 import org.junit.Before;
@@ -134,6 +136,78 @@ public class TestSocketLoadBalancedFlowFileQueue {
     private NodeIdentifier createNodeIdentifier(final String uuid) {
         return new NodeIdentifier(uuid, "localhost", nodePort++, "localhost", nodePort++,
             "localhost", nodePort++, "localhost", nodePort++, nodePort++, true, Collections.emptySet());
+    }
+
+
+    @Test
+    public void testPriorities() {
+        final FlowFilePrioritizer iValuePrioritizer = new FlowFilePrioritizer() {
+            @Override
+            public int compare(final FlowFile o1, final FlowFile o2) {
+                final int i1 = Integer.parseInt(o1.getAttribute("i"));
+                final int i2 = Integer.parseInt(o2.getAttribute("i"));
+                return Integer.compare(i1, i2);
+            }
+        };
+
+        queue.setPriorities(Collections.singletonList(iValuePrioritizer));
+
+        final Map<String, String> attributes = new HashMap<>();
+
+        // Add 100 FlowFiles, each with a descending 'i' value (first has i=99, second has i=98, etc.)
+        for (int i = 99; i >= 0; i--) {
+            attributes.put("i", String.valueOf(i));
+            final MockFlowFileRecord flowFile = new MockFlowFileRecord(new HashMap<>(attributes), 0L);
+            queue.put(flowFile);
+        }
+
+        for (int i=0; i < 100; i++) {
+            final FlowFileRecord polled = queue.poll(Collections.emptySet());
+            assertNotNull(polled);
+            assertEquals(String.valueOf(i), polled.getAttribute("i"));
+        }
+
+        assertNull(queue.poll(Collections.emptySet()));
+    }
+
+    @Test
+    public void testPrioritiesWhenSetBeforeLocalNodeIdDetermined() {
+        final FlowFilePrioritizer iValuePrioritizer = new FlowFilePrioritizer() {
+            @Override
+            public int compare(final FlowFile o1, final FlowFile o2) {
+                final int i1 = Integer.parseInt(o1.getAttribute("i"));
+                final int i2 = Integer.parseInt(o2.getAttribute("i"));
+                return Integer.compare(i1, i2);
+            }
+        };
+
+        final ProcessScheduler scheduler = mock(ProcessScheduler.class);
+        final AsyncLoadBalanceClientRegistry registry = mock(AsyncLoadBalanceClientRegistry.class);
+        when(clusterCoordinator.getLocalNodeIdentifier()).thenReturn(null);
+
+        queue = new SocketLoadBalancedFlowFileQueue("unit-test", new NopConnectionEventListener(), scheduler, flowFileRepo, provRepo,
+            contentRepo, claimManager, clusterCoordinator, registry, swapManager, 10000, eventReporter);
+        queue.setPriorities(Collections.singletonList(iValuePrioritizer));
+
+        when(clusterCoordinator.getLocalNodeIdentifier()).thenReturn(null);
+        queue.setNodeIdentifiers(new HashSet<>(nodeIds), true);
+
+        final Map<String, String> attributes = new HashMap<>();
+
+        // Add 100 FlowFiles, each with a descending 'i' value (first has i=99, second has i=98, etc.)
+        for (int i = 99; i >= 0; i--) {
+            attributes.put("i", String.valueOf(i));
+            final MockFlowFileRecord flowFile = new MockFlowFileRecord(new HashMap<>(attributes), 0L);
+            queue.put(flowFile);
+        }
+
+        for (int i=0; i < 100; i++) {
+            final FlowFileRecord polled = queue.poll(Collections.emptySet());
+            assertNotNull(polled);
+            assertEquals(String.valueOf(i), polled.getAttribute("i"));
+        }
+
+        assertNull(queue.poll(Collections.emptySet()));
     }
 
     @Test
@@ -395,8 +469,8 @@ public class TestSocketLoadBalancedFlowFileQueue {
         assertPartitionSizes(expectedPartitionSizes);
     }
 
-    @Test(timeout = 100000)
-    public void testLocalNodeIdentifierSet() throws InterruptedException {
+    @Test(timeout = 10000)
+    public void testDataInRemotePartitionForLocalIdIsMovedToLocalPartition() throws InterruptedException {
         nodeIds.clear();
 
         final NodeIdentifier id1 = createNodeIdentifier();
@@ -410,7 +484,7 @@ public class TestSocketLoadBalancedFlowFileQueue {
 
         final AsyncLoadBalanceClientRegistry registry = mock(AsyncLoadBalanceClientRegistry.class);
         queue = new SocketLoadBalancedFlowFileQueue("unit-test", new NopConnectionEventListener(), mock(ProcessScheduler.class), flowFileRepo, provRepo,
-                contentRepo, claimManager, clusterCoordinator, registry, swapManager, 10000, eventReporter);
+            contentRepo, claimManager, clusterCoordinator, registry, swapManager, 10000, eventReporter);
 
         queue.setFlowFilePartitioner(new RoundRobinPartitioner());
 
@@ -421,21 +495,27 @@ public class TestSocketLoadBalancedFlowFileQueue {
             queue.put(new MockFlowFileRecord(attributes, 0));
         }
 
-        for (int i=0; i < 3; i++) {
-            assertEquals(2, queue.getPartition(i).size().getObjectCount());
-        }
-
-        assertEquals(0, queue.getLocalPartition().size().getObjectCount());
-
         when(clusterCoordinator.getLocalNodeIdentifier()).thenReturn(id1);
         clusterTopologyEventListener.onLocalNodeIdentifierSet(id1);
 
-        assertPartitionSizes(new int[] {2, 2, 2});
+        assertEquals(6, queue.size().getObjectCount());
 
-        while (queue.getLocalPartition().size().getObjectCount() != 2) {
-            Thread.sleep(10L);
+        // Ensure that the partitions' object sizes add up to 6. This could take a short time because rebalancing will occur.
+        // So we wait in a loop.
+        while (true) {
+            int totalObjectCount = 0;
+            for (int i = 0; i < queue.getPartitionCount(); i++) {
+                totalObjectCount += queue.getPartition(i).size().getObjectCount();
+            }
+
+            if (totalObjectCount == 6) {
+                break;
+            }
         }
+
+        assertEquals(3, queue.getPartitionCount());
     }
+
 
     private void assertPartitionSizes(final int[] expectedSizes) {
         final int[] partitionSizes = new int[queue.getPartitionCount()];

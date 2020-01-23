@@ -44,6 +44,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public abstract class AbstractFlowFileQueue implements FlowFileQueue {
     private static final Logger logger = LoggerFactory.getLogger(AbstractFlowFileQueue.class);
@@ -61,6 +64,10 @@ public abstract class AbstractFlowFileQueue implements FlowFileQueue {
 
     private LoadBalanceStrategy loadBalanceStrategy = LoadBalanceStrategy.DO_NOT_LOAD_BALANCE;
     private String partitioningAttribute = null;
+
+    private final ReadWriteLock loadBalanceRWLock = new ReentrantReadWriteLock();
+    private final Lock loadBalanceReadLock = loadBalanceRWLock.readLock();
+    private final Lock loadBalanceWriteLock = loadBalanceRWLock.writeLock();
 
     private LoadBalanceCompression compression = LoadBalanceCompression.DO_NOT_COMPRESS;
 
@@ -423,32 +430,57 @@ public abstract class AbstractFlowFileQueue implements FlowFileQueue {
     }
 
     @Override
-    public synchronized void setLoadBalanceStrategy(final LoadBalanceStrategy strategy, final String partitioningAttribute) {
-        if (strategy == LoadBalanceStrategy.PARTITION_BY_ATTRIBUTE && !FlowFile.KeyValidator.isValid(partitioningAttribute)) {
-            throw new IllegalArgumentException("Cannot set Load Balance Strategy to " + strategy + " without providing a valid Partitioning Attribute");
+    public void setLoadBalanceStrategy(final LoadBalanceStrategy strategy, final String partitioningAttribute) {
+        loadBalanceWriteLock.lock();
+        try {
+            if (strategy == LoadBalanceStrategy.PARTITION_BY_ATTRIBUTE && !FlowFile.KeyValidator.isValid(partitioningAttribute)) {
+                throw new IllegalArgumentException("Cannot set Load Balance Strategy to " + strategy + " without providing a valid Partitioning Attribute");
+            }
+
+            this.loadBalanceStrategy = strategy;
+            this.partitioningAttribute = partitioningAttribute;
+        } finally {
+            loadBalanceWriteLock.unlock();
         }
-
-        this.loadBalanceStrategy = strategy;
-        this.partitioningAttribute = partitioningAttribute;
     }
 
     @Override
-    public synchronized String getPartitioningAttribute() {
-        return partitioningAttribute;
+    public String getPartitioningAttribute() {
+        loadBalanceReadLock.lock();
+        try {
+            return partitioningAttribute;
+        } finally {
+            loadBalanceReadLock.unlock();
+        }
     }
 
     @Override
-    public synchronized LoadBalanceStrategy getLoadBalanceStrategy() {
-        return loadBalanceStrategy;
+    public LoadBalanceStrategy getLoadBalanceStrategy() {
+        loadBalanceReadLock.lock();
+        try {
+            return loadBalanceStrategy;
+        } finally {
+            loadBalanceReadLock.unlock();
+        }
     }
 
     @Override
     public synchronized void setLoadBalanceCompression(final LoadBalanceCompression compression) {
-        this.compression = compression;
+        loadBalanceWriteLock.lock();
+        try {
+            this.compression = compression;
+        } finally {
+            loadBalanceWriteLock.unlock();
+        }
     }
 
     @Override
     public synchronized LoadBalanceCompression getLoadBalanceCompression() {
-        return compression;
+        loadBalanceReadLock.lock();
+        try {
+            return compression;
+        } finally {
+            loadBalanceReadLock.unlock();
+        }
     }
 }

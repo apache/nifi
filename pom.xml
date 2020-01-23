@@ -18,7 +18,7 @@
     </parent>
     <groupId>org.apache.nifi</groupId>
     <artifactId>nifi</artifactId>
-    <version>1.11.0-SNAPSHOT</version>
+    <version>1.12.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <description>Apache NiFi is an easy to use, powerful, and reliable system to process and distribute data.</description>
     <modules>
@@ -87,7 +87,7 @@
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
         <maven.min-version>3.1.1</maven.min-version>
-        <maven.surefire.arguments/>
+        <maven.surefire.arguments />
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <inceptionYear>2014</inceptionYear>
@@ -584,68 +584,68 @@
                             <!-- Checks for whitespace -->
                             <!-- See http://checkstyle.sf.net/config_whitespace.html -->
                             <module name="FileTabCharacter">
-                                <property name="eachLine" value="true"/>
+                                <property name="eachLine" value="true" />
                             </module>
                             <module name="LineLength">
                                 <!-- needs extra, because Eclipse formatter
                                     ignores the ending left brace -->
-                                <property name="max" value="200"/>
-                                <property name="ignorePattern" value="^package.*|^import.*|a href|href|http://|https://|ftp://"/>
+                                <property name="max" value="200" />
+                                <property name="ignorePattern" value="^package.*|^import.*|a href|href|http://|https://|ftp://" />
                             </module>
                             <module name="TreeWalker">
                                 <module name="RegexpSinglelineJava">
-                                    <property name="format" value="\s+$"/>
-                                    <property name="message" value="Line has trailing whitespace."/>
+                                    <property name="format" value="\s+$" />
+                                    <property name="message" value="Line has trailing whitespace." />
                                 </module>
                                 <module name="RegexpSinglelineJava">
-                                    <property name="format" value="[@]see\s+[{][@]link"/>
-                                    <property name="message" value="Javadoc @see does not need @link: pick one or the other."/>
+                                    <property name="format" value="[@]see\s+[{][@]link" />
+                                    <property name="message" value="Javadoc @see does not need @link: pick one or the other." />
                                 </module>
-                                <module name="OuterTypeFilename"/>
-                                <module name="AvoidStarImport"/>
+                                <module name="OuterTypeFilename" />
+                                <module name="AvoidStarImport" />
                                 <module name="UnusedImports">
-                                    <property name="processJavadoc" value="true"/>
+                                    <property name="processJavadoc" value="true" />
                                 </module>
-                                <module name="NoLineWrap"/>
-                                <module name="LeftCurly"/>
-                                <module name="RightCurly"/>
+                                <module name="NoLineWrap" />
+                                <module name="LeftCurly" />
+                                <module name="RightCurly" />
                                 <module name="RightCurly">
-                                    <property name="option" value="alone_or_singleline"/>
-                                    <property name="tokens" value="CLASS_DEF, METHOD_DEF, CTOR_DEF, LITERAL_FOR, LITERAL_WHILE, STATIC_INIT"/>
+                                    <property name="option" value="alone_or_singleline" />
+                                    <property name="tokens" value="CLASS_DEF, METHOD_DEF, CTOR_DEF, LITERAL_FOR, LITERAL_WHILE, STATIC_INIT" />
                                 </module>
                                 <module name="SeparatorWrap">
-                                    <property name="tokens" value="DOT"/>
-                                    <property name="option" value="nl"/>
+                                    <property name="tokens" value="DOT" />
+                                    <property name="option" value="nl" />
                                 </module>
                                 <module name="SeparatorWrap">
-                                    <property name="tokens" value="COMMA"/>
-                                    <property name="option" value="EOL"/>
+                                    <property name="tokens" value="COMMA" />
+                                    <property name="option" value="EOL" />
                                 </module>
                                 <module name="PackageName">
-                                    <property name="format" value="^[a-z]+(\.[a-z][a-zA-Z0-9]*)*$"/>
+                                    <property name="format" value="^[a-z]+(\.[a-z][a-zA-Z0-9]*)*$" />
                                 </module>
                                 <module name="MethodTypeParameterName">
-                                    <property name="format" value="(^[A-Z][0-9]?)$|([A-Z][a-zA-Z0-9]*[T]$)"/>
+                                    <property name="format" value="(^[A-Z][0-9]?)$|([A-Z][a-zA-Z0-9]*[T]$)" />
                                 </module>
-                                <module name="MethodParamPad"/>
+                                <module name="MethodParamPad" />
                                 <module name="OperatorWrap">
-                                    <property name="option" value="NL"/>
-                                    <property name="tokens" value="BAND, BOR, BSR, BXOR, DIV, EQUAL, GE, GT, LAND, LE, LITERAL_INSTANCEOF, LOR, LT, MINUS, MOD, NOT_EQUAL, QUESTION, SL, SR, STAR "/>
+                                    <property name="option" value="NL" />
+                                    <property name="tokens" value="BAND, BOR, BSR, BXOR, DIV, EQUAL, GE, GT, LAND, LE, LITERAL_INSTANCEOF, LOR, LT, MINUS, MOD, NOT_EQUAL, QUESTION, SL, SR, STAR " />
                                 </module>
                                 <module name="AnnotationLocation">
-                                    <property name="tokens" value="CLASS_DEF, INTERFACE_DEF, ENUM_DEF, METHOD_DEF, CTOR_DEF"/>
+                                    <property name="tokens" value="CLASS_DEF, INTERFACE_DEF, ENUM_DEF, METHOD_DEF, CTOR_DEF" />
                                 </module>
                                 <module name="AnnotationLocation">
-                                    <property name="tokens" value="VARIABLE_DEF"/>
-                                    <property name="allowSamelineMultipleAnnotations" value="true"/>
+                                    <property name="tokens" value="VARIABLE_DEF" />
+                                    <property name="allowSamelineMultipleAnnotations" value="true" />
                                 </module>
-                                <module name="NonEmptyAtclauseDescription"/>
+                                <module name="NonEmptyAtclauseDescription" />
                                 <module name="JavadocMethod">
-                                    <property name="allowMissingParamTags" value="true"/>
-                                    <property name="allowMissingReturnTag" value="true"/>
-                                    <property name="allowedAnnotations" value="Override,Test,BeforeClass,AfterClass,Before,After"/>
+                                    <property name="allowMissingParamTags" value="true" />
+                                    <property name="allowMissingReturnTag" value="true" />
+                                    <property name="allowedAnnotations" value="Override,Test,BeforeClass,AfterClass,Before,After" />
                                 </module>
-                                <module name="SingleLineJavadoc"/>
+                                <module name="SingleLineJavadoc" />
                             </module>
                         </module>
                     </checkstyleRules>
