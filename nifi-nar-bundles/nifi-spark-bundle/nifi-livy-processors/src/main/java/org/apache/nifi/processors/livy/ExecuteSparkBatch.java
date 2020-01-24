@@ -154,10 +154,10 @@ public class ExecuteSparkBatch extends AbstractProcessor {
 
             flowFile = session.putAttribute(flowFile, "livy.batchid", Integer.toString(batchId));
 
-            while (!jobState.equalsIgnoreCase("error") &&
-                    !jobState.equalsIgnoreCase("dead") &&
-                    !jobState.equalsIgnoreCase("killed") &&
-                    !jobState.equalsIgnoreCase("success")) {
+            while (!jobState.equalsIgnoreCase("error")
+                    && !jobState.equalsIgnoreCase("dead")
+                    && !jobState.equalsIgnoreCase("killed")
+                    && !jobState.equalsIgnoreCase("success")) {
                 log.debug("executeSparkBatch() Job status is: " + jobState + ". Waiting for job to complete...");
                 Thread.sleep(statusCheckInterval);
                 jobState = livyBatchService.getBatchStatus(batchId);
@@ -173,9 +173,9 @@ public class ExecuteSparkBatch extends AbstractProcessor {
             }
 
             // Job has ended, handle error/cancel states
-            if(jobState.equalsIgnoreCase("error") ||
-                jobState.equalsIgnoreCase("dead") ||
-                jobState.equalsIgnoreCase("killed")) {
+            if(jobState.equalsIgnoreCase("error")
+                    || jobState.equalsIgnoreCase("dead")
+                    || jobState.equalsIgnoreCase("killed")) {
                 session.transfer(flowFile, REL_FAILURE);
             } else {
                 session.transfer(flowFile, REL_SUCCESS);
