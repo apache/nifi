@@ -30,7 +30,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.http.client.HttpClient;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -372,8 +371,7 @@ public class LivySessionController extends AbstractControllerService implements 
                     }
 
                     // If security is enabled, do owner/proxy checks
-                    if (credentialsService != null &&
-                            (!credentialPrincipal.equals(sessionOwner)
+                    if (credentialsService != null && (!credentialPrincipal.equals(sessionOwner)
                                     || !appropriateProxy.equals(sessionProxy))) {
 
                         log.debug("manageSessions() Dropping session, not owned or proxied by this account. session ID: {}",
@@ -461,8 +459,7 @@ public class LivySessionController extends AbstractControllerService implements 
                 // Sessions that are running may need to be "connected" to remotely to reset their timeouts.
                 // Otherwise Livy will kill them based on bug LIVY-547.
                 if(keepSessionsAlive){
-                    for(Map.Entry<Integer, JSONObject> me : sessionsInfo.entrySet())
-                    {
+                    for(Map.Entry<Integer, JSONObject> me : sessionsInfo.entrySet()) {
                         // Check if session is busy before updating it's activity date
                         String state = me.getValue().getString("state");
                         if(state.equalsIgnoreCase("busy")){

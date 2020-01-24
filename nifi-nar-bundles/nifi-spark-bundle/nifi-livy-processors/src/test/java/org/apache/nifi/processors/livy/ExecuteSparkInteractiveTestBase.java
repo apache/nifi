@@ -84,8 +84,7 @@ class ExecuteSparkInteractiveTestBase {
                         responseBody = "{\"id\": 1, \"kind\": \"spark\", \"state\": \"idle\"}";
                     } else if ("/sessions/1/connect".equalsIgnoreCase(target)) {
                         responseBody = "{\"id\": 1, \"kind\": \"spark\", \"state\": \"idle\"}";
-                    }
-                    else if ("/sessions/1/statements".equalsIgnoreCase(target)) {
+                    } else if ("/sessions/1/statements".equalsIgnoreCase(target)) {
                         responseBody = "{\"id\": 7}";
                     }
                 } catch (JsonProcessingException e) {
