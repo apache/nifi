@@ -20,6 +20,9 @@ org.apache.nifi.json.JsonTreeReader
 org.apache.nifi.json.JsonPathReader
 org.apache.nifi.json.JsonRecordSetWriter
 
+org.apache.nifi.lookup.RecordSetWriterLookup
+org.apache.nifi.lookup.ReaderLookup
+
 org.apache.nifi.csv.CSVReader
 org.apache.nifi.csv.CSVRecordSetWriter
 
