@@ -526,6 +526,8 @@
                         <exclude>src/test/resources/TestIdentifyMimeType/1.txt.gz</exclude>
                         <exclude>src/test/resources/TestIdentifyMimeType/1.zip</exclude>
                         <exclude>src/test/resources/TestIdentifyMimeType/flowfilev1.tar</exclude>
+                        <exclude>src/test/resources/TestIdentifyMimeType/2.custom</exclude>
+                        <exclude>src/test/resources/TestIdentifyMimeType/.customConfig.xml</exclude>
                         <exclude>src/test/resources/TestUnpackContent/data.tar</exclude>
                         <exclude>src/test/resources/TestUnpackContent/data.zip</exclude>
                         <exclude>src/test/resources/TestUnpackContent/invalid_data.zip</exclude>
