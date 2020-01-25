@@ -123,15 +123,13 @@ public class FlowFileEnumerator implements Enumerator<Object> {
     private Object cast(Object o) {
         if (o == null) {
             return null;
-        }
-        else if (o.getClass().isArray()) {
+        } else if (o.getClass().isArray()) {
             List<Object> l = new ArrayList(Array.getLength(o));
             for (int i = 0; i < Array.getLength(o); i++) {
                 l.add(Array.get(o, i));
             }
             return l;
-        }
-        else {
+        } else {
             return o;
         }
     }
