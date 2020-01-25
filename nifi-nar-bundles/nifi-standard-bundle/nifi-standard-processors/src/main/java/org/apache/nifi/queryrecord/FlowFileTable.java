@@ -42,6 +42,7 @@ import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.type.ArrayDataType;
 
 import java.lang.reflect.Type;
 import java.math.BigInteger;
@@ -50,7 +51,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
 
 public class FlowFileTable extends AbstractTable implements QueryableTable, TranslatableTable {
 
@@ -214,7 +214,8 @@ public class FlowFileTable extends AbstractTable implements QueryableTable, Tran
             case STRING:
                 return typeFactory.createJavaType(String.class);
             case ARRAY:
-                return typeFactory.createJavaType(Object[].class);
+                ArrayDataType array = (ArrayDataType) fieldType;
+                return typeFactory.createArrayType(getRelDataType(array.getElementType(), typeFactory), -1);
             case RECORD:
                 return typeFactory.createJavaType(Record.class);
             case MAP:
