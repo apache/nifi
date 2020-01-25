@@ -24,9 +24,15 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
+import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.Record;
 
 import java.io.InputStream;
+import java.lang.reflect.Array;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 public class FlowFileEnumerator implements Enumerator<Object> {
     private final ProcessSession session;
@@ -111,10 +117,26 @@ public class FlowFileEnumerator implements Enumerator<Object> {
         final Object[] filtered = new Object[fields.length];
         for (int i = 0; i < fields.length; i++) {
             final int indexToKeep = fields[i];
-            filtered[i] = row[indexToKeep];
+            filtered[i] = cast(row[indexToKeep]);
         }
 
         return filtered;
+    }
+
+    private Object cast(Object o) {
+        if (o == null) {
+            return null;
+        }
+        else if (o.getClass().isArray()) {
+            List<Object> l = new ArrayList(Array.getLength(o));
+            for (int i = 0; i < Array.getLength(o); i++) {
+                l.add(Array.get(o, i));
+            }
+            return l;
+        }
+        else {
+            return o;
+        }
     }
 
     @Override
