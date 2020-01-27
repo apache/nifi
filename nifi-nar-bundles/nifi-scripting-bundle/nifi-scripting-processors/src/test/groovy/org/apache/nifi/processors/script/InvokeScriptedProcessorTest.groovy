@@ -85,11 +85,13 @@ class InvokeScriptedProcessorTest extends BaseScriptTest {
         def parameters = ["test_password": new Parameter(testPasswordDescriptor, "thisIsABadPassword")]
         context.setParameters(parameters)
 
+        // Act
         InvokeScriptedProcessor isp = runner.processor as InvokeScriptedProcessor
         isp.setup(runner.processContext)
 
-        // Check that the dynamic property descriptor from the script exists
+        // Assert
 
+        // Check that the dynamic property descriptor from the script exists
         def pds = isp.propertyDescriptors
         logger.info("Current property descriptors (${pds.size()}): ${pds}")
         def supportedPDs = (isp as InvokeScriptedProcessor).getSupportedPropertyDescriptors()
@@ -99,32 +101,6 @@ class InvokeScriptedProcessorTest extends BaseScriptTest {
         def passwordPD = pds.find { it.name == "Password" }
         assert passwordPD.sensitive
         assert passwordPD.required
-
-        // Assign the sensitive parameter to dynamic sensitive property
-        def resolvedPasswordParamPropertyValue = runner.processContext.newPropertyValue("#{test_password}")
-        (runner.processContext as MockProcessContext).setProperty(passwordPD, resolvedPasswordParamPropertyValue.value)
-
-        logger.info("Set script body to dynamic sensitive property script")
-//        Relationship success = runner.processor.relationships.first()
-        runner.assertValid()
-
-        // TODO: Figure out where properties map is originating
-        // TODO: Allow getPropertyDescriptor() to check dynamic properties as well (#getSupportedPropertyDescriptors())
-
-        // Act
-        runner.run()
-
-        // Assert
-//        runner.assertAllFlowFilesTransferred(success, 1)
-//        final List<MockFlowFile> result = runner.getFlowFilesForRelationship(ExecuteScript.REL_SUCCESS)
-//
-//        result.eachWithIndex { MockFlowFile flowFile, int i ->
-//            logger.info("Resulting flowfile [${i}] attributes: ${flowFile.attributes}")
-//
-//            flowFile.assertAttributeExists("time-updated")
-//            flowFile.assertAttributeExists("thread")
-//            assert flowFile.getAttribute("thread") =~ /pool-\d+-thread-1/
-//        }
     }
 
     /**
@@ -211,9 +187,7 @@ class InvokeScriptedProcessorTest extends BaseScriptTest {
         def parameters = ["test_password": new Parameter(testPasswordDescriptor, "thisIsABadPassword")]
         context.setParameters(parameters)
 
-        // Run the script once to add the dynamic sensitive property
         InvokeScriptedProcessor isp = runner.processor as InvokeScriptedProcessor
-//        isp.setup(runner.processContext)
 
         // Check that the dynamic property descriptor from the script does not exist
         def pds = isp.propertyDescriptors
@@ -221,14 +195,6 @@ class InvokeScriptedProcessorTest extends BaseScriptTest {
         def supportedPDs = (isp as InvokeScriptedProcessor).getSupportedPropertyDescriptors()
         logger.info("Supported property descriptors (${supportedPDs.size()}): ${supportedPDs}")
         assert !supportedPDs*.name.contains("Password")
-
-//        def passwordPD = pds.find { it.name == "Password" }
-//        assert passwordPD.sensitive
-//        assert passwordPD.required
-
-        // Assign the sensitive parameter to dynamic sensitive property
-//        def resolvedPasswordParamPropertyValue = runner.processContext.newPropertyValue("#{test_password}")
-//        (runner.processContext as MockProcessContext).setProperty(passwordPD, resolvedPasswordParamPropertyValue.value)
 
         logger.info("Set script body to dynamic sensitive property script")
         runner.assertValid()
@@ -240,8 +206,7 @@ class InvokeScriptedProcessorTest extends BaseScriptTest {
         /* This calls AbstractComponentNode.updateProperties and verifyCanUpdateProperties, which is where the mismatch occurs
          The properties saved in the flow.xml.gz contain the Password -> "#{test_password}" definition but the processor doesn't have the "added" property descriptor defined yet
          This assumes any not-present PD is a dynamic property and dynamic properties cannot be sensitive
-         We can't just allow dynamic properties to be sensitive because then any user could add a dynamic property and expose sensitive parameters
-         Perhaps an exception should be made for ISP and ES/EGS because they can modify PDs anyway?
+         Now scriptable components are allowed to create sensitive property descriptors and any dynamic/generated PD which references a sensitive parameter is treated as sensitive
          */
         processorNode.setProperties(processorProperties)
         logger.info("Successfully set processor ${processorNode} properties to ${processorProperties}")
@@ -265,7 +230,6 @@ class InvokeScriptedProcessorTest extends BaseScriptTest {
 
         // Create StandardProcessorNode wrapper around ISP processor
         ProcessorNode processorNode = new StandardProcessorNode(logWrapper, uuid, mockValidationContextFactory, mockProcessScheduler, mockControllerServiceProvider, mockVariableRegistry, mockReloadComponent, extensionManager, mockValidationTrigger)
-//        processorNode.pauseValidationTrigger()
         processorNode
     }
 
@@ -275,13 +239,6 @@ class InvokeScriptedProcessorTest extends BaseScriptTest {
         ]))
         Bundle systemBundle = SystemBundle.create(niFiProperties)
 
-//        BundleDetails mockBundleDetails = new BundleDetails.Builder()
-//                .workingDir(new File("target/"))
-//                .coordinate(new BundleCoordinate("org.apache.nifi.processors.script",
-//                "test-system",
-//                "1.0.0"))
-//                .build()
-//        Bundle mockSystemBundle = new Bundle(mockBundleDetails, ClassLoader.getSystemClassLoader())
         def extensionManager = new StandardExtensionDiscoveringManager()
         extensionManager.discoverExtensions(systemBundle, Collections.emptySet())
         extensionManager
