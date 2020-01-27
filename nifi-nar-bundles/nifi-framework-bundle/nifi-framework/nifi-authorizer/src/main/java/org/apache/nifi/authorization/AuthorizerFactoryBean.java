@@ -161,8 +161,11 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, UserG
                         authorizers.put(authorizer.getIdentifier(), createAuthorizer(authorizer.getIdentifier(), authorizer.getClazz(), authorizer.getClasspath()));
                     }
 
-                    // configure each authorizer
+                    // configure each authorizer, except the authorizer that is selected in nifi.properties
                     for (final org.apache.nifi.authorization.generated.Authorizer provider : authorizerConfiguration.getAuthorizer()) {
+                        if (provider.getIdentifier().equals(authorizerIdentifier)) {
+                            continue;
+                        }
                         final Authorizer instance = authorizers.get(provider.getIdentifier());
                         instance.onConfigured(loadAuthorizerConfiguration(provider.getIdentifier(), provider.getProperty()));
                     }
@@ -174,7 +177,23 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, UserG
                     if (authorizer == null) {
                         throw new Exception(String.format("The specified authorizer '%s' could not be found.", authorizerIdentifier));
                     } else {
+                        // install integrity checks
                         authorizer = AuthorizerFactory.installIntegrityChecks(authorizer);
+
+                        // configure authorizer after integrity checks are installed
+                        AuthorizerConfigurationContext authorizerConfigurationContext = null;
+                        for (final org.apache.nifi.authorization.generated.Authorizer provider : authorizerConfiguration.getAuthorizer()) {
+                            if (provider.getIdentifier().equals(authorizerIdentifier)) {
+                                authorizerConfigurationContext = loadAuthorizerConfiguration(provider.getIdentifier(), provider.getProperty());
+                                break;
+                            }
+                        }
+
+                        if (authorizerConfigurationContext == null) {
+                            throw new IllegalStateException("Unable to load configuration for authorizer with id: " + authorizerIdentifier);
+                        }
+
+                        authorizer.onConfigured(authorizerConfigurationContext);
                     }
                 }
             }
