@@ -53,6 +53,12 @@
             <version>${nifi.groovy.version}</version>
             <scope>provided</scope>
         </dependency>
+        <!-- groovy-all does not include groovy-dateutil by default, so must explicitly include it here -->
+        <dependency>
+            <groupId>org.codehaus.groovy</groupId>
+            <artifactId>groovy-dateutil</artifactId>
+            <version>${nifi.groovy.version}</version>
+        </dependency>
         <dependency>
             <groupId>org.apache.ivy</groupId>
             <artifactId>ivy</artifactId>
