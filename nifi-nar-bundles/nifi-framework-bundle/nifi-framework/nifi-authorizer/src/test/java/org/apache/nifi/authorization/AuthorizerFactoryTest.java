@@ -185,13 +185,7 @@ public class AuthorizerFactoryTest {
         userGroupProvider.addGroup(group1);
 
         User user = new User.Builder().identifier("user-id-2").identity("abc").build();
-
-        try {
-            userGroupProvider.addUser(user);
-            Assert.fail("Should have thrown exception");
-        } catch (IllegalStateException e) {
-
-        }
+        userGroupProvider.addUser(user);
     }
 
     @Test
@@ -208,12 +202,7 @@ public class AuthorizerFactoryTest {
         userGroupProvider.addUser(user);
 
         Group group1 = new Group.Builder().identifier("group-id-1").name("abc").build();
-        try {
-            userGroupProvider.addGroup(group1);
-            Assert.fail("Should have thrown exception");
-        } catch (IllegalStateException e) {
-
-        }
+        userGroupProvider.addGroup(group1);
     }
 
     @Test
