@@ -556,7 +556,7 @@ public class SFTPTransfer implements FileTransfer {
         if (!strictHostKeyChecking) {
             sshClient.addHostKeyVerifier(new PromiscuousVerifier());
         }
-        
+
         // Load known hosts file if specified, otherwise load default
         final String hostKeyVal = ctx.getProperty(HOST_KEY_FILE).getValue();
         if (hostKeyVal != null) {

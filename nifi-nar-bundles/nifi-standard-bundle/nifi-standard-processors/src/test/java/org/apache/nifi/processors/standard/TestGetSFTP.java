@@ -95,14 +95,14 @@ public class TestGetSFTP {
 
         getSFTPRunner.clearTransferState();
     }
-    
+
     @Test
     public void testGetSFTPShouldNotThrowIOExceptionIfUserHomeDirNotExixts() throws IOException {
         emptyTestDirectory();
 
         String userHome = System.getProperty("user.home");
         try {
-            // Set 'user.home' system property value to not_existdir 
+            // Set 'user.home' system property value to not_existdir
             System.setProperty("user.home", "/not_existdir");
             touchFile(sshTestServer.getVirtualFileSystemPath() + "testFile1.txt");
             touchFile(sshTestServer.getVirtualFileSystemPath() + "testFile2.txt");
@@ -118,7 +118,7 @@ public class TestGetSFTP {
             }
 
             getSFTPRunner.clearTransferState();
-            
+
         } finally {
             // set back the original value for 'user.home' system property
             System.setProperty("user.home", userHome);
