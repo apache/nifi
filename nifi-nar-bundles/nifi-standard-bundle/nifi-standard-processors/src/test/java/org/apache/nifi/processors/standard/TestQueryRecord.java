@@ -249,7 +249,7 @@ public class TestQueryRecord {
     }
 
     @Test
-    public void testArrayFunctionsWithWhereClause() throws InitializationException {
+    public void testCollectionFunctionsWithWhereClause() throws InitializationException {
         final Record sample = createTaggedRecord("1", "a", "b", "c");
 
         final ArrayListRecordReader recordReader = new ArrayListRecordReader(sample.getSchema());
@@ -288,6 +288,56 @@ public class TestQueryRecord {
         assertArrayEquals(new Object[]{"b", "e"}, (Object[]) output1.getValue("tags"));
     }
 
+
+    @Test
+    public void testArrayColumnWithIndex() throws InitializationException {
+        final Record sample = createTaggedRecord("1", "a", "b", "c");
+
+        final ArrayListRecordReader recordReader = new ArrayListRecordReader(sample.getSchema());
+        recordReader.addRecord(createTaggedRecord("1", "a", "d", "g"));
+        recordReader.addRecord(createTaggedRecord("2", "b", "e"));
+        recordReader.addRecord(createTaggedRecord("3", "c", "f", "h"));
+
+
+        final ArrayListRecordWriter writer = new ArrayListRecordWriter(sample.getSchema());
+
+        TestRunner runner = getRunner();
+        runner.addControllerService("reader", recordReader);
+        runner.enableControllerService(recordReader);
+        runner.addControllerService("writer", writer);
+        runner.enableControllerService(writer);
+
+        runner.setProperty(QueryRecord.RECORD_READER_FACTORY, "reader");
+        runner.setProperty(QueryRecord.RECORD_WRITER_FACTORY, "writer");
+        runner.setProperty(REL_NAME,
+                "SELECT id, tags[1] as first, tags[2] as \"second\", tags[CARDINALITY(tags)] as last FROM FLOWFILE");
+        runner.enqueue(new byte[0]);
+
+        runner.run();
+
+        runner.assertTransferCount(REL_NAME, 1);
+
+        final List<Record> written = writer.getRecordsWritten();
+        assertEquals(3, written.size());
+
+        final Record output0 = written.get(0);
+        assertEquals("1", output0.getValue("id"));
+        assertEquals("a", output0.getValue("first"));
+        assertEquals("d", output0.getValue("second"));
+        assertEquals("g", output0.getValue("last"));
+
+        final Record output1 = written.get(1);
+        assertEquals("2", output1.getValue("id"));
+        assertEquals("b", output1.getValue("first"));
+        assertEquals("e", output1.getValue("second"));
+        assertEquals("e", output1.getValue("last"));
+
+        final Record output2 = written.get(2);
+        assertEquals("3", output2.getValue("id"));
+        assertEquals("c", output2.getValue("first"));
+        assertEquals("f", output2.getValue("second"));
+        assertEquals("h", output2.getValue("last"));
+    }
 
     @Test
     public void testCompareResultsOfTwoRecordPathsAgainstArray() throws InitializationException {
