@@ -1426,6 +1426,44 @@ Each of the following functions will encode a string according the rules of the 
 
 
 
+[.function]
+=== UUID3
+
+*Description*: [.description]#Returns a type 3 (MD5 hashed) namespace name-based UUID.#
+
+*Subject Type*: [.subject]#String#
+
+*Arguments*:
+
+	- [.argName]#_namespace_# : [.argDesc]#The namespace UUID identifier#
+
+*Return Type*: [.returnType]#String#
+
+*Examples*: ${attr:UUID3('b9e81de3-7047-4b5e-a822-8fff5b49f808')} returns a value similar to 7ab88cc4-7748-3214-812a-1bc4500a911a
+
+
+
+
+
+[.function]
+=== UUID5
+
+*Description*: [.description]#Returns a type 5 (SHA-1 hashed) namespace name-based UUID.#
+
+*Subject Type*: [.subject]#String#
+
+*Arguments*:
+
+	- [.argName]#_namespace_# : [.argDesc]#The namespace UUID identifier#
+
+*Return Type*: [.returnType]#String#
+
+*Examples*: ${attr:UUID5('245b55a8-397d-4480-a41e-16603c8cf9ad')} returns a value similar to 6448f0c0-fd2b-30ad-b05a-deb456f8b060
+
+
+
+
+
 [[searching]]
 == Searching
 
@@ -2330,7 +2368,7 @@ an error when validating the function.
 [.function]
 === UUID
 
-*Description*: [.description]#Returns a randomly generated UUID.#
+*Description*: [.description]#Returns a randomly generated type 4 UUID.#
 
 *Subject Type*: [.subjectless]#No Subject#
 
