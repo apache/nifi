@@ -43,12 +43,13 @@ import java.util.List;
 
 @Tags({"distributed", "cache", "state", "map", "cluster", "rdbms", "database"})
 @CapabilityDescription("A relational-database-based map cache service. The processor expects a primary key on the key-column " +
-        "and should work with most ANSI SQL Databases like Derby, PostgreSQL, MySQL, and MariaDB")
+        "and should work with most ANSI SQL Databases like Derby, PostgreSQL, MySQL, and MariaDB. The key and value columns " +
+        "are expected to be varbinary and the revision column should be a long")
 public class DBCPClientMapCacheService extends AbstractControllerService implements AtomicDistributedMapCacheClient<Long> {
 
     public static final PropertyDescriptor DBCP_CONNECTION_POOL = new PropertyDescriptor.Builder()
             .name("dbcp-connection-pool")
-            .displayName("Database Connection Pooling Servicel")
+            .displayName("Database Connection Pooling Service")
             .description("The Controller Service that is used to obtain connection to database")
             .required(true)
             .identifiesControllerService(DBCPService.class)
