@@ -773,7 +773,7 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
                             } else {
                                 if (mapRecordAsJson && dataType.getFieldType() == RecordFieldType.RECORD) {
                                     sqlType = Types.OTHER;
-                                    currentValue = convertMapRecord((Record)currentValue);
+                                    currentValue = convertMapRecordToJson((Record)currentValue);
                                 }
 
                                 ps.setObject(i + 1, currentValue, sqlType);
@@ -793,7 +793,7 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
                             } else {
                                 if (mapRecordAsJson && dataType == RecordFieldType.RECORD.getDataType()) {
                                     sqlType = Types.OTHER;
-                                    currentValue = convertMapRecord((Record)currentValue);
+                                    currentValue = convertMapRecordToJson((Record)currentValue);
                                 }
                                 ps.setObject(i + 1, currentValue, sqlType);
                             }
@@ -1197,7 +1197,7 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
-    private static String convertMapRecord(Record record) {
+    private static String convertMapRecordToJson(Record record) {
         try {
             MapRecord mapRecord = (MapRecord)record;
             Map<String, Object> converted = mapRecord.toMap();
