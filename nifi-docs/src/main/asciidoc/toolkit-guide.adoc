@@ -721,7 +721,7 @@ Example usage to send a FlowFile with the contents of "hey nifi" to a local unse
 == TLS Toolkit
 In order to facilitate the secure setup of NiFi, you can use the `tls-toolkit` command line utility to automatically generate the required keystores, truststore, and relevant configuration files. This is especially useful for securing multiple NiFi nodes, which can be a tedious and error-prone process.
 
-NOTE: Please note that there are new requirements for trusted certificates in macOS 10.15. Details can be found link:https://support.apple.com/en-us/HT210176[here^], but of particular importance is that all TLS server certificates issued after July 1, 2019 must have a validity period of 825 days or less. Because the TLS Toolkit defaults this value to 1,095 days, the validity period should be explicitly set to meet this requirement (using the `--days` option) when generating certificates for macOS 10.15.
+NOTE: Please note that there are new requirements for trusted certificates in macOS 10.15. Details can be found link:https://support.apple.com/en-us/HT210176[here^], but of particular importance is that all TLS server certificates issued after July 1, 2019 must have a validity period of 825 days or less.
 
 [[wildcard_certificates]]
 === Wildcard Certificates
