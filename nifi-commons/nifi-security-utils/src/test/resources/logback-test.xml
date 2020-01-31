@@ -32,7 +32,7 @@
     <logger name="org.apache.nifi" level="INFO"/>
     <logger name="org.apache.nifi.security.util.crypto" level="DEBUG"/>
 
-    <root level="DEBUG">
+    <root level="INFO">
         <appender-ref ref="CONSOLE"/>
     </root>
 
