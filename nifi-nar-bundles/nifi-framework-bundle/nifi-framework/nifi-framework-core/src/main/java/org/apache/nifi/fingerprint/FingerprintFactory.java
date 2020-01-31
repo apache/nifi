@@ -342,7 +342,7 @@ public class FingerprintFactory {
 
         // append value
         if (isEncrypted(value)) {
-            // propValue is non null, no need to use getValue
+            // Get a secure, deterministic, loggable representation of this value
             builder.append(getLoggableRepresentationOfSensitiveValue(value));
         } else {
             builder.append(getValue(value, NO_VALUE));
@@ -557,15 +557,12 @@ public class FingerprintFactory {
      * @return a deterministic string value which represents this input but is safe to print in a log
      */
     private String getLoggableRepresentationOfSensitiveValue(String encryptedPropertyValue) {
-        // TODO: Implement Scrypt or Argon2 secure hash of decrypted value
-
         // TODO: Use DI/IoC to inject this implementation in the constructor of the FingerprintFactory
         // There is little initialization cost, so it doesn't make sense to cache this as a field
         SecureHasher secureHasher = new Argon2SecureHasher();
 
         // TODO: Extend {@link StringEncryptor} with secure hashing capability and inject?
-        String hexEncodedHash = secureHasher.hashHex(decrypt(encryptedPropertyValue));
-        return hexEncodedHash;
+        return secureHasher.hashHex(decrypt(encryptedPropertyValue));
     }
 
     private StringBuilder addPortFingerprint(final StringBuilder builder, final Element portElem) throws FingerprintException {

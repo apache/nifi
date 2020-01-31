@@ -42,7 +42,6 @@ import org.slf4j.LoggerFactory;
 public class Argon2SecureHasher implements SecureHasher {
     private static final Logger logger = LoggerFactory.getLogger(Argon2SecureHasher.class);
 
-    private static final int DEFAULT_SALT_LENGTH = 16;
     private static final int DEFAULT_HASH_LENGTH = 32;
     private static final int DEFAULT_PARALLELISM = 1;
     private static final int DEFAULT_MEMORY = 1 << 12;
@@ -74,7 +73,7 @@ public class Argon2SecureHasher implements SecureHasher {
      * Instantiates an Argon2 secure hasher using the provided cost parameters. A unique
      * {@link #DEFAULT_SALT_LENGTH} byte salt will be generated on every hash request.
      *
-     * @param hashLength  the output length in bytes ({@code 4 to 2^32 -1})
+     * @param hashLength  the output length in bytes ({@code 4 to 2^32 - 1})
      * @param memory      the integer number of KB used ({@code 8p to 2^32 - 1})
      * @param parallelism degree of parallelism ({@code 1 to 2^24 - 1})
      * @param iterations  number of iterations ({@code 1 to 2^32 - 1})
@@ -87,7 +86,7 @@ public class Argon2SecureHasher implements SecureHasher {
      * Instantiates an Argon2 secure hasher using the provided cost parameters. A unique
      * salt of the specified length will be generated on every hash request.
      *
-     * @param hashLength  the output length in bytes ({@code 4 to 2^32 -1})
+     * @param hashLength  the output length in bytes ({@code 4 to 2^32 - 1})
      * @param memory      the integer number of KB used ({@code 8p to 2^32 - 1})
      * @param parallelism degree of parallelism ({@code 1 to 2^24 - 1})
      * @param iterations  number of iterations ({@code 1 to 2^32 - 1})
@@ -137,7 +136,7 @@ public class Argon2SecureHasher implements SecureHasher {
     }
 
     /**
-     * Returns a String representation of {@code CHF(input)} in hex-encoded format.
+     * Returns a String representation of {@code Argon2(input)} in hex-encoded format.
      *
      * @param input the input
      * @return the hex-encoded hash
@@ -153,7 +152,7 @@ public class Argon2SecureHasher implements SecureHasher {
     }
 
     /**
-     * Returns a String representation of {@code CHF(input)} in Base 64-encoded format.
+     * Returns a String representation of {@code Argon2(input)} in Base 64-encoded format.
      *
      * @param input the input
      * @return the Base 64-encoded hash
@@ -169,7 +168,7 @@ public class Argon2SecureHasher implements SecureHasher {
     }
 
     /**
-     * Returns a byte[] representation of {@code CHF(input)}.
+     * Returns a byte[] representation of {@code Argon2(input)}.
      *
      * @param input the input
      * @return the hash
