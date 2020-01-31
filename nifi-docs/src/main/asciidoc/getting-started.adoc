@@ -58,14 +58,20 @@ dataflows.
 
 == Downloading and Installing NiFi
 
-NiFi can be downloaded from the link:http://nifi.apache.org/download.html[NiFi Downloads Page^]. There are two packaging options
-available: a "tarball" that is tailored more to Linux and a zip file that is more applicable for Windows users. Mac OS X users
-may also use the tarball or can install via Homebrew.
+WARNING: Before proceeding, check the Admin Guide to confirm you have the <<administration-guide.adoc#system_requirements,minimum system requirements>> to install and run NiFi.
 
-To install via Homebrew, simply run the command `brew install nifi`.
+NiFi can be downloaded from the link:http://nifi.apache.org/download.html[NiFi Downloads page^]. There are two packaging options
+available:
+
+- a "tarball" (tar.gz) that is tailored more to Linux
+- a zip file that is more applicable for Windows users
+
+Mac OS X users may also use the tarball or can install via link:https://brew.sh[Homebrew^] by simply running the command `brew install nifi` from the command line terminal.
+
+NOTE: NiFi requires Java 8 or 11. It is recommended that you have installed one of these Java versions prior to installing NiFi via Homebrew. Homebrew is aware NiFi depends on Java but not the specific supported versions, so it may prompt to install an incompatible JDK as part of its NiFi install. 
 
 For users who are not running OS X or do not have Homebrew installed, after downloading the version of NiFi that you
-would like to use simply extract the archive to the location that you wish to run the application from.
+would like to use, simply extract the archive to the location that you wish to run the application from.
 
 For information on how to configure the instance of NiFi (for example, to configure security, data storage
 configuration, or the port that NiFi is running on), see the link:administration-guide.html[Admin Guide].
@@ -92,9 +98,9 @@ To run NiFi in the foreground, run `bin/nifi.sh run`. This will leave the applic
 the user presses Ctrl-C. At that time, it will initiate shutdown of the application.
 
 To run NiFi in the background, instead run `bin/nifi.sh start`. This will initiate the application to
-begin running. To check the status and see if NiFi is currently running, execute the command `bin/nifi.sh status`.
-NiFi can be shutdown by executing the command `bin/nifi.sh stop`.
+begin running. To check the status and see if NiFi is currently running, execute the command `bin/nifi.sh status`. NiFi can be shutdown by executing the command `bin/nifi.sh stop`.
 
+If NiFi was installed with Homebrew, run the commands `nifi start` or `nifi stop` from anywhere in your file system to start or stop NiFi.
 
 === Installing as a Service
 
