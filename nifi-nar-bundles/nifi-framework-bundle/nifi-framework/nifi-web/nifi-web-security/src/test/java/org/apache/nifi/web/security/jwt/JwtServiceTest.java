@@ -16,8 +16,22 @@
  */
 package org.apache.nifi.web.security.jwt;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 import io.jsonwebtoken.JwtException;
-import org.apache.commons.codec.CharEncoding;
+import java.nio.charset.StandardCharsets;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.nifi.admin.service.AdministrationException;
 import org.apache.nifi.admin.service.KeyService;
@@ -39,22 +53,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
-
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
-import java.io.UnsupportedEncodingException;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
-import java.util.LinkedHashMap;
-import java.util.Map;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class JwtServiceTest {
 
@@ -155,8 +153,8 @@ public class JwtServiceTest {
         try {
             logger.info("Generating token for " + rawHeader + " + " + rawPayload);
 
-            String base64Header = Base64.encodeBase64URLSafeString(rawHeader.getBytes(CharEncoding.UTF_8));
-            String base64Payload = Base64.encodeBase64URLSafeString(rawPayload.getBytes(CharEncoding.UTF_8));
+            String base64Header = Base64.encodeBase64URLSafeString(rawHeader.getBytes(StandardCharsets.UTF_8));
+            String base64Payload = Base64.encodeBase64URLSafeString(rawPayload.getBytes(StandardCharsets.UTF_8));
             // TODO: Support valid/invalid manipulation
 
             final String body = base64Header + TOKEN_DELIMITER + base64Payload;
@@ -164,7 +162,7 @@ public class JwtServiceTest {
             String signature = generateHMAC(hmacSecret, body);
 
             return body + TOKEN_DELIMITER + signature;
-        } catch (NoSuchAlgorithmException | InvalidKeyException | UnsupportedEncodingException e) {
+        } catch (NoSuchAlgorithmException | InvalidKeyException e) {
             final String errorMessage = "Could not generate the token";
             logger.error(errorMessage, e);
             fail(errorMessage);
@@ -173,11 +171,11 @@ public class JwtServiceTest {
     }
 
     private static String generateHMAC(String hmacSecret, String body) throws NoSuchAlgorithmException,
-            UnsupportedEncodingException, InvalidKeyException {
+            InvalidKeyException {
         Mac hmacSHA256 = Mac.getInstance("HmacSHA256");
-        SecretKeySpec secret_key = new SecretKeySpec(hmacSecret.getBytes("UTF-8"), "HmacSHA256");
+        SecretKeySpec secret_key = new SecretKeySpec(hmacSecret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
         hmacSHA256.init(secret_key);
-        return Base64.encodeBase64URLSafeString(hmacSHA256.doFinal(body.getBytes("UTF-8")));
+        return Base64.encodeBase64URLSafeString(hmacSHA256.doFinal(body.getBytes(StandardCharsets.UTF_8)));
     }
 
     @Before
@@ -481,7 +479,6 @@ public class JwtServiceTest {
 
     @Test
     public void testShouldLogOutUser() throws Exception {
-
         // Arrange
         expectedException.expect(JwtException.class);
         expectedException.expectMessage("Unable to validate the access token.");
