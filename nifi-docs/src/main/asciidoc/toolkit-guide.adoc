@@ -721,6 +721,8 @@ Example usage to send a FlowFile with the contents of "hey nifi" to a local unse
 == TLS Toolkit
 In order to facilitate the secure setup of NiFi, you can use the `tls-toolkit` command line utility to automatically generate the required keystores, truststore, and relevant configuration files. This is especially useful for securing multiple NiFi nodes, which can be a tedious and error-prone process.
 
+NOTE: Please note that there are new requirements for trusted certificates in macOS 10.15. Details can be found link:https://support.apple.com/en-us/HT210176[here^], but of particular importance is that all TLS server certificates issued after July 1, 2019 must have a validity period of 825 days or less.
+
 [[wildcard_certificates]]
 === Wildcard Certificates
 Wildcard certificates (i.e. two nodes `node1.nifi.apache.org` and `node2.nifi.apache.org` being assigned the same certificate with a CN or SAN entry of `+*.nifi.apache.org+`) are *not officially supported* and *not recommended*. There are numerous disadvantages to using wildcard certificates, and a cluster working with wildcard certificates has occurred in previous versions out of lucky accidents, not intentional support. Wildcard SAN entries are acceptable *if* each cert maintains an additional unique SAN entry and CN entry.
