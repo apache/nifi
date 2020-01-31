@@ -35,7 +35,8 @@ import java.util.Map;
         "requires an attribute named 'record.sink.name' to be passed in when asking for a connection, and will throw an exception " +
         "if the attribute is missing. The value of 'record.sink.name' will be used to select the RecordSinkService that has been " +
         "registered with that name. This will allow multiple RecordSinkServices to be defined and registered, and then selected " +
-        "dynamically at runtime by tagging flow files with the appropriate 'record.sink.name' attribute.")
+        "dynamically at runtime by tagging flow files with the appropriate 'record.sink.name' attribute. Note that this controller service " +
+        "is not intended for use in reporting tasks that employ RecordSinkService instances, such as QueryNiFiReportingTask.")
 @DynamicProperty(name = "The name to register the specified RecordSinkService", value = "The RecordSinkService",
         description = "If '" + RecordSinkServiceLookup.RECORD_SINK_NAME_ATTRIBUTE + "' attribute contains " +
                 "the name of the dynamic property, then the RecordSinkService (registered in the value) will be selected.",
@@ -61,12 +62,12 @@ public class RecordSinkServiceLookup
     public WriteResult sendData(RecordSet recordSet, Map<String, String> attributes, boolean sendZeroResults) throws IOException {
         try {
             RecordSinkService recordSink = lookupService(attributes);
-            WriteResult writeResult = recordSink.sendData(recordSet, attributes, sendZeroResults);
-            if (recordSinkService == null) {
-                // Save for later reset()
+            if (recordSinkService != recordSink) {
+                // Save for later reset(), and do a reset now since it has changed
                 recordSinkService = recordSink;
+                recordSinkService.reset();
             }
-            return writeResult;
+            return recordSinkService.sendData(recordSet, attributes, sendZeroResults);
         } catch (ProcessException pe) {
             // Lookup was unsuccessful, wrap the exception in an IOException to honor the contract
             throw new IOException(pe);

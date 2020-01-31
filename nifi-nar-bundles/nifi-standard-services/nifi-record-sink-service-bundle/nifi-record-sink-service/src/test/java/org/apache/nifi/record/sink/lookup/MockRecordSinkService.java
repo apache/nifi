@@ -38,6 +38,7 @@ public class MockRecordSinkService extends AbstractConfigurableComponent impleme
     private boolean transmitted = false;
     private boolean failWithRetryableError = false;
     private String name;
+    private int resetCount = 0;
 
     public MockRecordSinkService(String name) {
         this.name = name;
@@ -74,6 +75,11 @@ public class MockRecordSinkService extends AbstractConfigurableComponent impleme
     }
 
     @Override
+    public void reset() {
+        resetCount++;
+    }
+
+    @Override
     public String getIdentifier() {
         return name;
     }
@@ -88,6 +94,10 @@ public class MockRecordSinkService extends AbstractConfigurableComponent impleme
 
     public boolean isTransmitted() {
         return transmitted;
+    }
+
+    public int getResetCount() {
+        return resetCount;
     }
 
     public void setFailWithRetryableError(boolean failWithRetryableError) {

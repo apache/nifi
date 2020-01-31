@@ -44,7 +44,7 @@ import static org.junit.Assert.fail;
 
 public class TestRecordSinkServiceLookup {
 
-    private RecordSinkServiceLookup sinkLookup;
+    private MockRecordSinkServiceLookup sinkLookup;
     private TestRunner runner;
     private MockRecordSinkService sinkA, sinkB;
     private RecordSet recordSet;
@@ -53,7 +53,7 @@ public class TestRecordSinkServiceLookup {
     public void setup() throws InitializationException {
         sinkA = new MockRecordSinkService("a");
         sinkB = new MockRecordSinkService("b");
-        sinkLookup = new RecordSinkServiceLookup();
+        sinkLookup = new MockRecordSinkServiceLookup();
 
         runner = TestRunners.newTestRunner(TestProcessor.class);
 
@@ -122,6 +122,61 @@ public class TestRecordSinkServiceLookup {
         }
     }
 
+    @Test
+    public void testLookupServiceAThenB() {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put(RecordSinkServiceLookup.RECORD_SINK_NAME_ATTRIBUTE, "a");
+
+        try {
+            final WriteResult writeResult = sinkLookup.sendData(recordSet, attributes, false);
+            String returnedName = writeResult.getAttributes().get("my.name");
+            assertEquals("a", returnedName);
+            assertEquals(1, sinkA.getResetCount());
+        } catch (IOException ioe) {
+            fail("Should have completed successfully");
+        }
+
+        attributes.put(RecordSinkServiceLookup.RECORD_SINK_NAME_ATTRIBUTE, "b");
+
+        try {
+            final WriteResult writeResult = sinkLookup.sendData(recordSet, attributes, false);
+            String returnedName = writeResult.getAttributes().get("my.name");
+            assertEquals("b", returnedName);
+            assertEquals(1, sinkB.getResetCount());
+        } catch (IOException ioe) {
+            fail("Should have completed successfully");
+        }
+        // reset() was called on the retrieved sinks (not the lookup itself) in sendData() when the sink changed
+        assertEquals(0, sinkLookup.getResetCount());
+        sinkLookup.reset();
+        assertEquals(1, sinkLookup.getResetCount());
+    }
+
+    @Test
+    public void testLookupServiceAThenA() {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put(RecordSinkServiceLookup.RECORD_SINK_NAME_ATTRIBUTE, "a");
+
+        try {
+            WriteResult writeResult = sinkLookup.sendData(recordSet, attributes, false);
+            String returnedName = writeResult.getAttributes().get("my.name");
+            assertEquals("a", returnedName);
+            assertEquals(1, sinkA.getResetCount());
+            writeResult = sinkLookup.sendData(recordSet, attributes, false);
+            returnedName = writeResult.getAttributes().get("my.name");
+            assertEquals("a", returnedName);
+            assertEquals(1, sinkA.getResetCount());
+
+        } catch (IOException ioe) {
+            fail("Should have completed successfully");
+        }
+
+        // reset() was called on the retrieved sinks (not the lookup itself) in sendData() when the sink changed
+        assertEquals(0, sinkLookup.getResetCount());
+        sinkLookup.reset();
+        assertEquals(1, sinkLookup.getResetCount());
+    }
+
     @Test(expected = IOException.class)
     public void testLookupWithoutAttributes() throws IOException {
         sinkLookup.sendData(recordSet, Collections.emptyMap(), false);
@@ -136,6 +191,19 @@ public class TestRecordSinkServiceLookup {
     public void testLookupWithDatabaseNameThatDoesNotExist() throws IOException {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put(RecordSinkServiceLookup.RECORD_SINK_NAME_ATTRIBUTE, "DOES-NOT-EXIST");
-        sinkLookup.sendData(recordSet, Collections.emptyMap(), false);
+        sinkLookup.sendData(recordSet, attributes, false);
+    }
+
+    public static class MockRecordSinkServiceLookup extends RecordSinkServiceLookup {
+        private int resetCount = 0;
+
+        @Override
+        public void reset() {
+            resetCount++;
+        }
+
+        public int getResetCount() {
+            return resetCount;
+        }
     }
 }
