@@ -61,7 +61,6 @@ class EncryptStreamCallback implements ExtendedStreamCallback {
         try {
             encrypt(in, out, session);
         } catch (PGPException e) {
-            session.getLogger().error("e 0a:" + e);
             throw new ProcessException(e);
         }
     }

@@ -74,7 +74,7 @@ public class SignPGP extends AbstractProcessorPGP {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
-    private static String getSignatureHashDefaultValue() {
+    static String getSignatureHashDefaultValue() {
         return String.valueOf(PGPUtil.SHA256);
     }
 
@@ -129,12 +129,6 @@ public class SignPGP extends AbstractProcessorPGP {
         properties.add(SIGNATURE_ATTRIBUTE);
         properties.add(SIGNATURE_HASH_ALGORITHM);
         return properties;
-    }
-
-    @Override
-    protected Collection<ValidationResult> customValidate(final ValidationContext context) {
-        final List<ValidationResult> validationResults = new ArrayList<>(super.customValidate(context));
-        return null;
     }
 
     private SignStreamSession buildSignSession(ProcessContext context, FlowFile flowFile, ProcessSession session) throws PGPException, IOException {

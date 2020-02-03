@@ -78,6 +78,12 @@ public class DecryptPGP extends AbstractProcessorPGP {
 
     private DecryptStreamSession buildDecryptSession(ProcessContext context) {
         final PGPKeyMaterialService service = context.getProperty(PGP_KEY_SERVICE).asControllerService(PGPKeyMaterialService.class);
+
+        char[] passphrase = service.getPBEPassPhrase();
+        if (passphrase != null && passphrase.length != 0) {
+            return new PBEDecryptStreamSession(getLogger(), passphrase);
+        }
+
         return new PrivateKeyDecryptStreamSession(getLogger(), service.getPrivateKey());
     }
 }

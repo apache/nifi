@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.standard.pgp;
 
+import org.apache.nifi.processor.exception.ProcessException;
 import org.bouncycastle.openpgp.PGPCompressedData;
 import org.bouncycastle.openpgp.PGPEncryptedData;
 import org.bouncycastle.openpgp.PGPEncryptedDataList;
@@ -58,7 +59,11 @@ class DecryptStreamCallback implements ExtendedStreamCallback {
      */
     @Override
     public void process(InputStream in, OutputStream out) throws IOException {
-        decrypt(in, out, options);
+        try {
+            decrypt(in, out, options);
+        } catch (final IOException e) {
+            throw new ProcessException(e);
+        }
     }
 
     /**

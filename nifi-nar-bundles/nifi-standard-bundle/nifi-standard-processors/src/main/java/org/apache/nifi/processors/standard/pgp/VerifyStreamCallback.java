@@ -57,7 +57,7 @@ class VerifyStreamCallback implements ExtendedStreamCallback {
             if (!verify(options, in, out)) {
                 throw new ProcessException("Could not verify signature with data.");
             }
-        } catch (final PGPException e) {
+        } catch (final PGPException | IOException e) {
             throw new ProcessException(e);
         }
     }

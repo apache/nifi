@@ -53,6 +53,9 @@ class SignStreamCallback implements ExtendedStreamCallback {
      * @throws PGPException when the input cannot be read as PGP data
      */
     static void sign(InputStream input, OutputStream output, OutputStream signature, SignStreamSession options) throws IOException, PGPException {
+        if (options == null || options.privateKey == null) {
+            throw new IOException("Sign operation invalid without Private Key");
+        }
         JcaPGPContentSignerBuilder builder = new JcaPGPContentSignerBuilder(KEY_ALGORITHM, options.signHashAlgorithm).setProvider("BC");
         PGPSignatureGenerator generator = new PGPSignatureGenerator(builder);
         generator.init(PGPSignature.BINARY_DOCUMENT, options.privateKey);
@@ -76,7 +79,7 @@ class SignStreamCallback implements ExtendedStreamCallback {
         try {
             sign(in, out, sig, options);
             options.signature = sig.toByteArray();
-        } catch (PGPException e) {
+        } catch (PGPException | IOException e) {
             throw new ProcessException(e);
         }
     }

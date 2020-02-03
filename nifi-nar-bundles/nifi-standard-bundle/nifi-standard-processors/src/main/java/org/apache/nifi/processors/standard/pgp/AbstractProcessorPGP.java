@@ -27,6 +27,7 @@ import java.util.Set;
  *
  */
 public abstract class AbstractProcessorPGP extends AbstractProcessor {
+    public static final String SERVICE_ID = "pgp-key-service";
     public static final String DEFAULT_SIGNATURE_ATTRIBUTE = "content-signature";
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -47,7 +48,7 @@ public abstract class AbstractProcessorPGP extends AbstractProcessor {
      */
     static PropertyDescriptor buildKeyServiceProperty(String desc) {
         return new PropertyDescriptor.Builder()
-                .name("pgp-key-service")
+                .name(SERVICE_ID)
                 .description(desc)
                 .required(true)
                 .identifiesControllerService(PGPKeyMaterialService.class)
