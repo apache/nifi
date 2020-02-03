@@ -56,7 +56,7 @@ public class TestEncryptContent {
 
     private static final Logger logger = LoggerFactory.getLogger(TestEncryptContent.class);
 
-    public static AllowableValue[] getPGPCipherList() {
+    private static AllowableValue[] getPGPCipherList() {
         try{
             Method method = EncryptContent.class.getDeclaredMethod("buildPGPSymmetricCipherAllowableValues");
             method.setAccessible(true);

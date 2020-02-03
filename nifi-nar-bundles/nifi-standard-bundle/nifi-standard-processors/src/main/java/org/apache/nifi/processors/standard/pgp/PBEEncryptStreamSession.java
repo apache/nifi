@@ -22,7 +22,7 @@ import org.bouncycastle.openpgp.operator.jcajce.JcePBEKeyEncryptionMethodGenerat
 import org.bouncycastle.openpgp.operator.jcajce.JcePGPDataEncryptorBuilder;
 
 /**
- * This is only partially working?
+ * This class encapsulates an encryption session with a PBE pass-phrase.
  */
 class PBEEncryptStreamSession extends AbstractEncryptStreamSession {
 

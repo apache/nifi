@@ -59,28 +59,28 @@ public class PGPKeyMaterialControllerService extends AbstractControllerService i
 
     public static final PropertyDescriptor PUBLIC_KEYRING_FILE = new PropertyDescriptor.Builder()
             .name("public-keyring-file")
-            .displayName("Public Key or Keyring File")
+            .displayName("Public Key File")
             .description("PGP public key or keyring file.")
             .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor PUBLIC_KEYRING_TEXT = new PropertyDescriptor.Builder()
             .name("public-keyring-text")
-            .displayName("Public Key or Keyring Text")
-            .description("PGP public key or keyring as text (also called Armored text or ASCII text).")
+            .displayName("Public Key Text")
+            .description("PGP public key or keyring as encoded text.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor PUBLIC_KEY_USER_ID = new PropertyDescriptor.Builder()
             .name("public-key-user-id")
             .displayName("Public Key User ID")
-            .description("Public Key user ID (also called ID or Name) for the key within the public key keyring.")
+            .description("Public Key user ID (also called ID or Name) of the key within the public keyring.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor SECRET_KEYRING_FILE = new PropertyDescriptor.Builder()
             .name("secret-keyring-file")
-            .displayName("Secret Key or Keyring File")
+            .displayName("Secret Key File")
             .description("PGP secret key or keyring file.")
             .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
             .build();
@@ -88,7 +88,7 @@ public class PGPKeyMaterialControllerService extends AbstractControllerService i
     public static final PropertyDescriptor SECRET_KEYRING_TEXT = new PropertyDescriptor.Builder()
             .name("secret-keyring-text")
             .displayName("Secret Key or Keyring Text")
-            .description("PGP secret key or keyring as text (also called Armored text or ASCII text).")
+            .description("PGP secret key or keyring as encoded text.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .sensitive(true)
             .build();
@@ -96,25 +96,23 @@ public class PGPKeyMaterialControllerService extends AbstractControllerService i
     public static final PropertyDescriptor SECRET_KEY_USER_ID = new PropertyDescriptor.Builder()
             .name("secret-key-user-id")
             .displayName("Secret Key User ID")
-            .description("Secret Key user ID (also called ID or Name) for the key within the secret keyring.")
+            .description("Secret Key user ID (also called ID or Name) of the key within the secret keyring.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor PRIVATE_KEY_PASS_PHRASE = new PropertyDescriptor.Builder()
             .name("private-key-passphrase")
             .displayName("Private Key Pass Phrase")
-            .description("This is the pass-phrase for the specified secret key.")
+            .description("Pass-phrase for the private key contained in the secret key, if any.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .sensitive(true)
             .build();
 
     public static final PropertyDescriptor PBE_PASS_PHRASE = new PropertyDescriptor.Builder()
             .name("pbe-pass-phrase")
             .displayName("Encryption Pass Phrase")
-            .description("This is the pass phrase for password-based encryption and decryption.")
+            .description("Pass-phrase for password-based encryption and decryption.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .sensitive(true)
             .build();
 
