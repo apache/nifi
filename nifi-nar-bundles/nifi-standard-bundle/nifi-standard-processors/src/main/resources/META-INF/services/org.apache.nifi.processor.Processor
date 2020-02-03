@@ -123,3 +123,7 @@ org.apache.nifi.processors.standard.ValidateCsv
 org.apache.nifi.processors.standard.ValidateRecord
 org.apache.nifi.processors.standard.ValidateXml
 org.apache.nifi.processors.standard.Wait
+org.apache.nifi.processors.standard.pgp.EncryptPGP
+org.apache.nifi.processors.standard.pgp.DecryptPGP
+org.apache.nifi.processors.standard.pgp.SignPGP
+org.apache.nifi.processors.standard.pgp.VerifyPGP
