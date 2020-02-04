@@ -34,6 +34,8 @@ import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
@@ -219,9 +221,6 @@ public class PutCassandraRecord extends AbstractCassandraProcessor {
         if (STATEMENT_TYPE_USE_ATTR_TYPE.getValue().equals(statementTypeProperty)) {
             statementType = inputFlowFile.getAttribute(STATEMENT_TYPE_ATTRIBUTE);
         }
-        if (StringUtils.isEmpty(statementType)) {
-            throw new IllegalArgumentException(format("Statement Type is not specified, FlowFile %s", inputFlowFile));
-        }
 
         // Get the update method from the attribute if necessary
         final String updateMethodProperty = context.getProperty(UPDATE_METHOD).getValue();
@@ -229,10 +228,7 @@ public class PutCassandraRecord extends AbstractCassandraProcessor {
         if (UPDATE_METHOD_USE_ATTR_TYPE.getValue().equals(updateMethodProperty)) {
             updateMethod = inputFlowFile.getAttribute(UPDATE_METHOD_ATTRIBUTE);
         }
-        // throw an exception if update method is empty and the statement type is set to update
-        if (StringUtils.isEmpty(updateMethod) && UPDATE_TYPE.getValue().equalsIgnoreCase(statementType)) {
-            throw new IllegalArgumentException(format("Update Method is not specified, FlowFile %s", inputFlowFile));
-        }
+
 
         // Get the batch statement type from the attribute if necessary
         final String batchStatementTypeProperty = context.getProperty(BATCH_STATEMENT_TYPE).getValue();
@@ -254,6 +250,29 @@ public class PutCassandraRecord extends AbstractCassandraProcessor {
         try (final InputStream inputStream = session.read(inputFlowFile);
              final RecordReader reader = recordParserFactory.createRecordReader(inputFlowFile, inputStream, getLogger())){
 
+            // throw an exception if statement type is not set
+            if (StringUtils.isEmpty(statementType)) {
+                throw new IllegalArgumentException(format("Statement Type is not specified, FlowFile %s", inputFlowFile));
+            }
+
+            // throw an exception if the statement type is set to update and updateMethod or updateKeys is empty
+            if (UPDATE_TYPE.getValue().equalsIgnoreCase(statementType)) {
+                if (StringUtils.isEmpty(updateMethod)) {
+                    throw new IllegalArgumentException(format("Update Method is not specified, FlowFile %s", inputFlowFile));
+                }
+                if (StringUtils.isEmpty(updateKeys)) {
+                    throw new IllegalArgumentException(format("Update Keys are not specified, FlowFile %s", inputFlowFile));
+                }
+            }
+
+            // throw an exception if the Update Method is Increment or Decrement and the batch statement type is not UNLOGGED or COUNTER
+            if (INCR_TYPE.getValue().equalsIgnoreCase(updateMethod) || DECR_TYPE.getValue().equalsIgnoreCase(updateMethod)) {
+                if (!(UNLOGGED_TYPE.getValue().equalsIgnoreCase(batchStatementType) || COUNTER_TYPE.getValue().equalsIgnoreCase(batchStatementType))) {
+                    throw new IllegalArgumentException(format("Increment/Decrement Update Method can only be used with COUNTER " +
+                            "or UNLOGGED Batch Statement Type, FlowFile %s", inputFlowFile));
+                }
+            }
+
             final RecordSchema schema = reader.getSchema();
             Record record;
 
@@ -270,7 +289,7 @@ public class PutCassandraRecord extends AbstractCassandraProcessor {
                 } else if (UPDATE_TYPE.getValue().equalsIgnoreCase(statementType)) {
                     query = generateUpdate(cassandraTable, schema, updateKeys, updateMethod, recordContentMap);
                 } else {
-                    throw new IllegalArgumentException("Statement Type '" + statementType + "' is not valid.");
+                    throw new IllegalArgumentException(format("Statement Type %s is not valid, FlowFile %s", statementType, inputFlowFile));
                 }
                 batchStatement.add(query);
 
@@ -360,6 +379,38 @@ public class PutCassandraRecord extends AbstractCassandraProcessor {
             throw new IllegalArgumentException("Field '" + name + "' is not of type Number");
         }
         return ((Number) value).longValue();
+    }
+
+    @Override
+    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+        Set<ValidationResult> results = (Set<ValidationResult>) super.customValidate(validationContext);
+
+        String statementType = validationContext.getProperty(STATEMENT_TYPE).getValue();
+
+        if (UPDATE_TYPE.getValue().equalsIgnoreCase(statementType)) {
+            // Check that update keys and update method are set
+            String updateKeys = validationContext.getProperty(UPDATE_KEYS).getValue();
+            String updateMethod = validationContext.getProperty(UPDATE_METHOD).getValue();
+            if (StringUtils.isEmpty(updateKeys)) {
+                results.add(new ValidationResult.Builder().subject("Update statement configuration").valid(false).explanation(
+                        "if the Statement Type is set to Update, then the Update Keys must be specified as well").build());
+            }
+            if (StringUtils.isEmpty(updateMethod)) {
+                results.add(new ValidationResult.Builder().subject("Update statement configuration").valid(false).explanation(
+                        "if the Statement Type is set to Update, then the Update Method must be specified as well").build());
+            }
+
+            // Check that if the update method is set to increment or decrement that the batch statement type is set to
+            // unlogged or counter (or USE_ATTR_TYPE, which we cannot check at this point).
+            String batchStatementType = validationContext.getProperty(BATCH_STATEMENT_TYPE).getValue();
+            if (!Set.of(COUNTER_TYPE.getValue(), UNLOGGED_TYPE.getValue(), BATCH_STATEMENT_TYPE_USE_ATTR_TYPE.getValue()).contains(batchStatementType)) {
+                results.add(new ValidationResult.Builder().subject("Update method configuration").valid(false).explanation(
+                        "if the Update Method is set to Increment or Decrement, then the Batch Statement Type must be set " +
+                                "to either COUNTER or UNLOGGED").build());
+            }
+        }
+
+        return results;
     }
 
     private Statement generateInsert(String cassandraTable, RecordSchema schema, Map<String, Object> recordContentMap) {

@@ -125,9 +125,10 @@ public class PutCassandraRecordTest {
     @Test
     public void testSimpleUpdate() throws InitializationException {
         setUpStandardTestConfig();
-        testRunner.setProperty(PutCassandraRecord.STATEMENT_TYPE, "UPDATE");
-        testRunner.setProperty(PutCassandraRecord.UPDATE_METHOD, "SET");
+        testRunner.setProperty(PutCassandraRecord.STATEMENT_TYPE, PutCassandraRecord.UPDATE_TYPE);
+        testRunner.setProperty(PutCassandraRecord.UPDATE_METHOD, PutCassandraRecord.SET_TYPE);
         testRunner.setProperty(PutCassandraRecord.UPDATE_KEYS, "name,age");
+        testRunner.setProperty(PutCassandraRecord.BATCH_STATEMENT_TYPE, PutCassandraRecord.COUNTER_TYPE);
 
         recordReader.addSchemaField("name", RecordFieldType.STRING);
         recordReader.addSchemaField("age", RecordFieldType.INT);
@@ -149,6 +150,7 @@ public class PutCassandraRecordTest {
         testRunner.setProperty(PutCassandraRecord.STATEMENT_TYPE, PutCassandraRecord.UPDATE_TYPE);
         testRunner.setProperty(PutCassandraRecord.UPDATE_METHOD, PutCassandraRecord.INCR_TYPE);
         testRunner.setProperty(PutCassandraRecord.UPDATE_KEYS, "name,age");
+        testRunner.setProperty(PutCassandraRecord.BATCH_STATEMENT_TYPE, PutCassandraRecord.COUNTER_TYPE);
 
         recordReader.addSchemaField("name", RecordFieldType.STRING);
         recordReader.addSchemaField("age", RecordFieldType.INT);
@@ -172,6 +174,17 @@ public class PutCassandraRecordTest {
         testRunner.setProperty(PutCassandraRecord.STATEMENT_TYPE, PutCassandraRecord.UPDATE_TYPE);
         testRunner.setProperty(PutCassandraRecord.UPDATE_METHOD, PutCassandraRecord.INCR_TYPE);
         testRunner.setProperty(PutCassandraRecord.UPDATE_KEYS, "");
+        testRunner.setProperty(PutCassandraRecord.BATCH_STATEMENT_TYPE, PutCassandraRecord.COUNTER_TYPE);
+
+        testRunner.assertNotValid();
+    }
+
+    @Test
+    public void testUpdateNullUpdateKeys() throws InitializationException {
+        setUpStandardTestConfig();
+        testRunner.setProperty(PutCassandraRecord.STATEMENT_TYPE, PutCassandraRecord.UPDATE_TYPE);
+        testRunner.setProperty(PutCassandraRecord.UPDATE_METHOD, PutCassandraRecord.SET_TYPE);
+        testRunner.setProperty(PutCassandraRecord.BATCH_STATEMENT_TYPE, PutCassandraRecord.COUNTER_TYPE);
 
         testRunner.assertNotValid();
     }
@@ -182,6 +195,7 @@ public class PutCassandraRecordTest {
         testRunner.setProperty(PutCassandraRecord.STATEMENT_TYPE, PutCassandraRecord.UPDATE_TYPE);
         testRunner.setProperty(PutCassandraRecord.UPDATE_METHOD, PutCassandraRecord.INCR_TYPE);
         testRunner.setProperty(PutCassandraRecord.UPDATE_KEYS, ",");
+        testRunner.setProperty(PutCassandraRecord.BATCH_STATEMENT_TYPE, PutCassandraRecord.COUNTER_TYPE);
 
         testRunner.assertValid();
 
@@ -202,11 +216,23 @@ public class PutCassandraRecordTest {
     }
 
     @Test
+    public void testUpdateCounterWrongBatchStatementType() throws InitializationException {
+        setUpStandardTestConfig();
+        testRunner.setProperty(PutCassandraRecord.STATEMENT_TYPE, PutCassandraRecord.UPDATE_TYPE);
+        testRunner.setProperty(PutCassandraRecord.UPDATE_METHOD, PutCassandraRecord.INCR_TYPE);
+        testRunner.setProperty(PutCassandraRecord.UPDATE_KEYS, "name,age");
+        testRunner.setProperty(PutCassandraRecord.BATCH_STATEMENT_TYPE, PutCassandraRecord.LOGGED_TYPE);
+
+        testRunner.assertNotValid();
+    }
+
+    @Test
     public void testUpdateWithUpdateMethodAndKeyAttributes() throws InitializationException {
         setUpStandardTestConfig();
         testRunner.setProperty(PutCassandraRecord.STATEMENT_TYPE, PutCassandraRecord.UPDATE_TYPE);
         testRunner.setProperty(PutCassandraRecord.UPDATE_METHOD, PutCassandraRecord.UPDATE_METHOD_USE_ATTR_TYPE);
         testRunner.setProperty(PutCassandraRecord.UPDATE_KEYS, "${cql.update.keys}");
+        testRunner.setProperty(PutCassandraRecord.BATCH_STATEMENT_TYPE, PutCassandraRecord.COUNTER_TYPE);
 
         testRunner.assertValid();
 
@@ -337,6 +363,7 @@ public class PutCassandraRecordTest {
         testRunner.setProperty(PutCassandraRecord.STATEMENT_TYPE, PutCassandraRecord.UPDATE_TYPE);
         testRunner.setProperty(PutCassandraRecord.UPDATE_METHOD, PutCassandraRecord.UPDATE_METHOD_USE_ATTR_TYPE);
         testRunner.setProperty(PutCassandraRecord.UPDATE_KEYS, "${cql.update.keys}");
+        testRunner.setProperty(PutCassandraRecord.BATCH_STATEMENT_TYPE, PutCassandraRecord.COUNTER_TYPE);
 
         testRunner.assertValid();
 
@@ -360,11 +387,40 @@ public class PutCassandraRecordTest {
     }
 
     @Test
+    public void testUpdateWithAttributesIncompatibleBatchStatementType() throws InitializationException {
+        setUpStandardTestConfig();
+        testRunner.setProperty(PutCassandraRecord.STATEMENT_TYPE, PutCassandraRecord.UPDATE_TYPE);
+        testRunner.setProperty(PutCassandraRecord.UPDATE_METHOD, PutCassandraRecord.INCR_TYPE);
+        testRunner.setProperty(PutCassandraRecord.UPDATE_KEYS, "name,age");
+        testRunner.setProperty(PutCassandraRecord.BATCH_STATEMENT_TYPE, PutCassandraRecord.BATCH_STATEMENT_TYPE_USE_ATTR_TYPE);
+
+        testRunner.assertValid();
+
+        recordReader.addSchemaField("name", RecordFieldType.STRING);
+        recordReader.addSchemaField("age", RecordFieldType.INT);
+        recordReader.addSchemaField("goals", RecordFieldType.INT);
+
+        recordReader.addRecord("John Doe", 48, 1L);
+        recordReader.addRecord("Jane Doe", 47, 1L);
+        recordReader.addRecord("Sally Doe", 47, 1L);
+
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put("cql.batch.statement.type", "LOGGED");
+        testRunner.enqueue("", attributes);
+        testRunner.run();
+
+        testRunner.assertTransferCount(PutCassandraRecord.REL_FAILURE, 1);
+        testRunner.assertTransferCount(PutCassandraRecord.REL_SUCCESS, 0);
+        testRunner.assertTransferCount(PutCassandraRecord.REL_RETRY, 0);
+    }
+
+    @Test
     public void testUpdateWithAttributesEmptyUpdateKeysAttribute() throws InitializationException {
         setUpStandardTestConfig();
         testRunner.setProperty(PutCassandraRecord.STATEMENT_TYPE, PutCassandraRecord.UPDATE_TYPE);
         testRunner.setProperty(PutCassandraRecord.UPDATE_METHOD, PutCassandraRecord.UPDATE_METHOD_USE_ATTR_TYPE);
         testRunner.setProperty(PutCassandraRecord.UPDATE_KEYS, "${cql.update.keys}");
+        testRunner.setProperty(PutCassandraRecord.BATCH_STATEMENT_TYPE, PutCassandraRecord.COUNTER_TYPE);
 
         testRunner.assertValid();
 
