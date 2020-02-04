@@ -24,7 +24,9 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.bouncycastle.openpgp.PGPException;
 import org.bouncycastle.openpgp.PGPSignature;
 import org.bouncycastle.openpgp.PGPSignatureGenerator;
-import org.bouncycastle.openpgp.operator.jcajce.JcaPGPContentSignerBuilder;
+import org.bouncycastle.openpgp.operator.PGPContentSignerBuilder;
+import org.bouncycastle.openpgp.operator.bc.BcPGPContentSignerBuilder;
+
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -56,7 +58,8 @@ class SignStreamCallback implements ExtendedStreamCallback {
         if (options == null || options.privateKey == null) {
             throw new IOException("Sign operation invalid without Private Key");
         }
-        JcaPGPContentSignerBuilder builder = new JcaPGPContentSignerBuilder(KEY_ALGORITHM, options.signHashAlgorithm).setProvider("BC");
+
+        PGPContentSignerBuilder builder = new BcPGPContentSignerBuilder(KEY_ALGORITHM, options.signHashAlgorithm);
         PGPSignatureGenerator generator = new PGPSignatureGenerator(builder);
         generator.init(PGPSignature.BINARY_DOCUMENT, options.privateKey);
         copyAndUpdate(input, output, generator);

@@ -1,9 +1,24 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.nifi.processors.standard.pgp;
 
 import org.apache.commons.codec.binary.Hex;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processors.standard.EncryptContent;
 import org.apache.nifi.reporting.InitializationException;
@@ -11,59 +26,21 @@ import org.apache.nifi.security.util.KeyDerivationFunction;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.bouncycastle.openpgp.PGPEncryptedData;
-import org.bouncycastle.openpgp.PGPException;
-import org.bouncycastle.openpgp.PGPUtil;
 import org.junit.Assert;
-import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-class AbstractTestPGP {
-    static final String SERVICE_ID = AbstractProcessorPGP.SERVICE_ID;
-    TestRunner runner;
-    PGPKeyMaterialControllerService service;
-    byte[] plainBytes;
-
-    @BeforeClass
-    public static void setupServiceControllerTestClass() throws IOException {
-        PGPKeyMaterialControllerServiceTest.setupKeyAndKeyRings();
-    }
-
-    @Before
-    public void recreatePlainBytes() {
-        plainBytes = Random.randomBytes(128 + Random.randomInt(128+1024));
-    }
-
-    public void recreateRunner(Processor processor) {
-        runner = TestRunners.newTestRunner(processor);
-        runner.setProperty(SERVICE_ID, SERVICE_ID);
-    }
-
-    public void recreateService(Map<String, String> properties) throws InitializationException {
-        service = new PGPKeyMaterialControllerService();
-        runner.addControllerService(SERVICE_ID, service, properties);
-    }
-}
 
 /**
  * The controller tests are separate but related; refer to those classes for more tests.
  *
  */
 public class TestEncryptPGP extends AbstractTestPGP {
-
-
     @Test
     public void combinedProcessorsReferenceTest() throws InitializationException {
         // Configure an EncryptPGP processor with a PGP key service that has our public key:
@@ -140,7 +117,7 @@ public class TestEncryptPGP extends AbstractTestPGP {
 
     @Test
     public void combinedEncryptAndDecryptPbeReferenceTest() throws InitializationException {
-        // Configure an EncryptPGP processor with a PGP key service that has our PBE pass-phrase:
+        // Configure an EncryptPGP processor with a PGP key service that has our PBE passphrase:
         recreateRunner(new EncryptPGP());
         runner.setProperty(EncryptPGP.ENCRYPT_ALGORITHM, EncryptPGP.getCipherDefaultValue());
         recreateService(new HashMap<>() {{
@@ -158,7 +135,7 @@ public class TestEncryptPGP extends AbstractTestPGP {
         byte[] cipherBytes = flows.get(0).toByteArray();
         Assert.assertNotEquals(Hex.encodeHex(cipherBytes), Hex.encodeHex(plainBytes));
 
-        // Configure a DecryptPGP processor with a PGP key service that has our PBE pass-phrase:
+        // Configure a DecryptPGP processor with a PGP key service that has our PBE passphrase:
         recreateRunner(new DecryptPGP());
         recreateService(new HashMap<>() {{
             put(PGPKeyMaterialControllerService.PBE_PASS_PHRASE.getName(), PGPKeyMaterialControllerServiceTest.CORRECT_PASSWORD);
@@ -175,51 +152,12 @@ public class TestEncryptPGP extends AbstractTestPGP {
         Assert.assertArrayEquals(flows.get(0).toByteArray(), plainBytes);
     }
 
-        // Move to EncryptStreamCallback / DecryptStreamCallback tests
-    private static void runEncryptAndDecrypt(KeyProvider keys) throws IOException, PGPException {
-        byte[] plain = Random.randomBytes(32 + Random.randomInt(4096));
-        InputStream plainInput = new ByteArrayInputStream(plain);
-        ByteArrayOutputStream cipherOutput = new ByteArrayOutputStream();
-        EncryptStreamSession enc = new PublicKeyEncryptKeySession(null, keys.getPublicKey(), PGPEncryptedData.BLOWFISH, true);
-
-        EncryptStreamCallback.encrypt(plainInput, cipherOutput, enc);
-        byte[] ciphered = cipherOutput.toByteArray();
-        InputStream cipherInput = new ByteArrayInputStream(cipherOutput.toByteArray());
-        ByteArrayOutputStream plainOutput = new ByteArrayOutputStream();
-        DecryptStreamSession dec = new PrivateKeyDecryptStreamSession(null, keys.getPrivateKey());
-
-        DecryptStreamCallback.decrypt(cipherInput, plainOutput, dec);
-        byte[] deciphered = plainOutput.toByteArray();
-
-        Assert.assertNotEquals(plain.length, ciphered.length);
-        Assert.assertNotEquals(Hex.encodeHexString(plain), Hex.encodeHexString(ciphered));
-        Assert.assertEquals(plain.length, deciphered.length);
-        Assert.assertEquals(Hex.encodeHexString(plain), Hex.encodeHexString(deciphered));
-    }
-
-    // Move to SignStreamCallback / VerifyStreamCallback tests
-    private static void runSignAndVerify(KeyProvider keys) throws IOException, PGPException {
-        byte[] plain = Random.randomBytes(32 + Random.randomInt(4096));
-        InputStream plainInput = new ByteArrayInputStream(plain);
-        ByteArrayOutputStream sigOutput = new ByteArrayOutputStream();
-        SignStreamSession options = new SignStreamSession(keys.getPrivateKey(), PGPUtil.SHA256);
-        OutputStream plainOut = new ByteArrayOutputStream();
-        SignStreamCallback.sign(plainInput, plainOut, sigOutput, options);
-        byte[] signature = sigOutput.toByteArray();
-        VerifyStreamSession verifyOptions = new VerifyStreamSession(null, keys.getPublicKey(), new ByteArrayInputStream(signature));
-
-        boolean verified = VerifyStreamCallback.verify(verifyOptions, new ByteArrayInputStream(plain), new ByteArrayOutputStream());
-        Assert.assertNotEquals(Hex.encodeHexString(plain), Hex.encodeHexString(signature));
-        Assert.assertTrue("Signature unverified: ", verified);
-    }
-
     @Ignore
     @Test
-    public void testEncryptContentBenchmarks() throws IOException, InterruptedException {
+    public void testEncryptContentBenchmarks() throws IOException, InterruptedException, InitializationException {
         TestRunner testEnc = TestRunners.newTestRunner(new EncryptContent());
-
         ProcessorBenchmark.run(
-                "EncryptContent/PBE",
+                "EncryptContent (encrypt then decrypt mode) using PBE",
                 testEnc,
                 EncryptContent.REL_SUCCESS,
                 EncryptContent.REL_FAILURE,
@@ -251,12 +189,17 @@ public class TestEncryptPGP extends AbstractTestPGP {
                 }
         );
 
-        TestRunner testPGP = TestRunners.newTestRunner(new EncryptPGP());
-        // testPGP.addControllerService("pgp-", service, new HashMap<>());
+        service = new PGPKeyMaterialControllerService();
+        final TestRunner[] testPGP = {TestRunners.newTestRunner(new EncryptPGP())};
+        testPGP[0].setProperty(SERVICE_ID, SERVICE_ID);
+        testPGP[0].addControllerService(SERVICE_ID, service, new HashMap<>() {{
+            put(PGPKeyMaterialControllerService.PBE_PASS_PHRASE.getName(), PGPKeyMaterialControllerServiceTest.CORRECT_PASSWORD);
+        }});
+        testPGP[0].enableControllerService(service);
 
         ProcessorBenchmark.run(
-                "EncryptPGP/PBE",
-                testPGP,
+                "EncryptPGP then DecryptPGP using PBE",
+                testPGP[0],
                 EncryptPGP.REL_SUCCESS,
                 EncryptPGP.REL_FAILURE,
 
@@ -272,16 +215,19 @@ public class TestEncryptPGP extends AbstractTestPGP {
                 },
 
                 (TestRunner runner, Map<PropertyDescriptor, String> config) -> {
-                    // testPGP.setProperty(service, Random.randomBytes(32).toString());
-                    testPGP.setProperty(EncryptPGP.ENCRYPT_ENCODING, "0");
-
+                    testPGP[0].setProperty(EncryptPGP.ENCRYPT_ENCODING, "0");
                     for (PropertyDescriptor key : config.keySet()) {
-                        testPGP.setProperty(key, config.get(key));
+                        testPGP[0].setProperty(key, config.get(key));
                     }
                 },
 
                 (TestRunner runner, Map<PropertyDescriptor, String> config) -> {
-                    // testPGP.setProperty(EncryptContentPGP.MODE, EncryptContentPGP.DECRYPT_MODE);
+                    testPGP[0] = TestRunners.newTestRunner(new DecryptPGP());
+                    testPGP[0].setProperty(SERVICE_ID, SERVICE_ID);
+                    testPGP[0].addControllerService(AbstractProcessorPGP.SERVICE_ID, service, new HashMap<>() {{
+                        put(PGPKeyMaterialControllerService.PBE_PASS_PHRASE.getName(), PGPKeyMaterialControllerServiceTest.CORRECT_PASSWORD);
+                    }});
+                    testPGP[0].enableControllerService(service);
                 }
         );
     }

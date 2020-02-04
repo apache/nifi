@@ -19,11 +19,13 @@ package org.apache.nifi.processors.standard.pgp;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.bouncycastle.openpgp.PGPCompressedData;
 import org.bouncycastle.openpgp.PGPException;
+import org.bouncycastle.openpgp.PGPObjectFactory;
 import org.bouncycastle.openpgp.PGPSignature;
 import org.bouncycastle.openpgp.PGPSignatureList;
 import org.bouncycastle.openpgp.PGPUtil;
-import org.bouncycastle.openpgp.jcajce.JcaPGPObjectFactory;
-import org.bouncycastle.openpgp.operator.jcajce.JcaPGPContentVerifierBuilderProvider;
+import org.bouncycastle.openpgp.bc.BcPGPObjectFactory;
+import org.bouncycastle.openpgp.operator.PGPContentVerifierBuilderProvider;
+import org.bouncycastle.openpgp.operator.bc.BcPGPContentVerifierBuilderProvider;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -34,7 +36,7 @@ import java.io.OutputStream;
  *
  */
 class VerifyStreamCallback implements ExtendedStreamCallback {
-    private static final JcaPGPContentVerifierBuilderProvider contentVerifier = new JcaPGPContentVerifierBuilderProvider().setProvider("BC");
+    private static final PGPContentVerifierBuilderProvider contentVerifier = new BcPGPContentVerifierBuilderProvider();
     private final VerifyStreamSession options;
 
     VerifyStreamCallback(VerifyStreamSession options) {
@@ -71,13 +73,13 @@ class VerifyStreamCallback implements ExtendedStreamCallback {
      * @throws PGPException when the input cannot be read as PGP data
      */
     static boolean verify(VerifyStreamSession session, InputStream input, OutputStream output) throws IOException, PGPException {
-        JcaPGPObjectFactory signatureFactory = new JcaPGPObjectFactory(PGPUtil.getDecoderStream(session.signature));
+        PGPObjectFactory signatureFactory = new BcPGPObjectFactory(PGPUtil.getDecoderStream(session.signature));
         PGPSignatureList signatures;
 
         Object head = signatureFactory.nextObject();
         if (head instanceof PGPCompressedData) {
             PGPCompressedData compressed = (PGPCompressedData) head;
-            signatureFactory = new JcaPGPObjectFactory(compressed.getDataStream());
+            signatureFactory = new BcPGPObjectFactory(compressed.getDataStream());
             signatures = (PGPSignatureList) signatureFactory.nextObject();
         } else if (head instanceof  PGPSignatureList) {
             signatures = (PGPSignatureList) head;

@@ -22,7 +22,7 @@ import org.bouncycastle.openpgp.PGPException;
 import org.bouncycastle.openpgp.PGPPrivateKey;
 import org.bouncycastle.openpgp.PGPPublicKeyEncryptedData;
 import org.bouncycastle.openpgp.operator.PublicKeyDataDecryptorFactory;
-import org.bouncycastle.openpgp.operator.jcajce.JcePublicKeyDataDecryptorFactoryBuilder;
+import org.bouncycastle.openpgp.operator.bc.BcPublicKeyDataDecryptorFactory;
 
 import java.io.InputStream;
 
@@ -36,7 +36,7 @@ class PrivateKeyDecryptStreamSession implements DecryptStreamSession {
 
     PrivateKeyDecryptStreamSession(ComponentLog logger, PGPPrivateKey privateKey) {
         this.logger = logger;
-        pkFactory = new JcePublicKeyDataDecryptorFactoryBuilder().setProvider("BC").build(privateKey);
+        pkFactory = new BcPublicKeyDataDecryptorFactory(privateKey);
     }
 
     public InputStream getInputStream(PGPEncryptedData packet) throws PGPException {

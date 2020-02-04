@@ -18,24 +18,21 @@ package org.apache.nifi.processors.standard.pgp;
 
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.controller.AbstractControllerService;
-import org.apache.nifi.controller.ConfigurationContext;
-import org.apache.nifi.expression.ExpressionLanguageScope;
-import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.reporting.InitializationException;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.openpgp.PGPException;
 import org.bouncycastle.openpgp.PGPPrivateKey;
 import org.bouncycastle.openpgp.PGPPublicKey;
 import org.bouncycastle.openpgp.PGPSecretKey;
 import org.bouncycastle.openpgp.operator.PBESecretKeyDecryptor;
-import org.bouncycastle.openpgp.operator.jcajce.JcePBESecretKeyDecryptorBuilder;
+import org.bouncycastle.openpgp.operator.bc.BcPBESecretKeyDecryptorBuilder;
+import org.bouncycastle.openpgp.operator.bc.BcPGPDigestCalculatorProvider;
+
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -102,16 +99,16 @@ public class PGPKeyMaterialControllerService extends AbstractControllerService i
 
     public static final PropertyDescriptor PRIVATE_KEY_PASS_PHRASE = new PropertyDescriptor.Builder()
             .name("private-key-passphrase")
-            .displayName("Private Key Pass Phrase")
-            .description("Pass-phrase for the private key contained in the secret key, if any.")
+            .displayName("Private Key Passphrase")
+            .description("Passphrase for the private key contained in the secret key, if any.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .sensitive(true)
             .build();
 
     public static final PropertyDescriptor PBE_PASS_PHRASE = new PropertyDescriptor.Builder()
-            .name("pbe-pass-phrase")
-            .displayName("Encryption Pass Phrase")
-            .description("Pass-phrase for password-based encryption and decryption.")
+            .name("pbe-passphrase")
+            .displayName("PBE Passphrase")
+            .description("Passphrase for password-based encryption and decryption.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .sensitive(true)
             .build();
@@ -198,12 +195,7 @@ public class PGPKeyMaterialControllerService extends AbstractControllerService i
 
         if (context.getProperty(PRIVATE_KEY_PASS_PHRASE).isSet()) {
             privateKeyPassPhrase = context.getProperty(PRIVATE_KEY_PASS_PHRASE).getValue().toCharArray();
-
-            try {
-                decryptor = new JcePBESecretKeyDecryptorBuilder().setProvider("BC").build(privateKeyPassPhrase);
-            } catch (PGPException e) {
-                return null;
-            }
+            decryptor = new BcPBESecretKeyDecryptorBuilder(new BcPGPDigestCalculatorProvider()).build(privateKeyPassPhrase);
         }
 
         if (context.getProperty(SECRET_KEYRING_TEXT).isSet()) {
@@ -280,7 +272,7 @@ public class PGPKeyMaterialControllerService extends AbstractControllerService i
         problems.add(new ValidationResult.Builder()
                 .subject(CONTROLLER_NAME)
                 .valid(false)
-                .explanation("Controller requires a public key or PBE pass-phrase for Encrypt operations.")
+                .explanation("Controller requires a public key or PBE passphrase for Encrypt operations.")
                 .build());
         return problems;
     }
@@ -301,7 +293,7 @@ public class PGPKeyMaterialControllerService extends AbstractControllerService i
         problems.add(new ValidationResult.Builder()
                 .subject(CONTROLLER_NAME)
                 .valid(false)
-                .explanation("Controller requires a secret key or PBE pass-phrase for Decrypt operations.")
+                .explanation("Controller requires a secret key or PBE passphrase for Decrypt operations.")
                 .build());
         return problems;
     }

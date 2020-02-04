@@ -18,6 +18,7 @@ package org.apache.nifi.processors.standard.pgp;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
 
 import java.io.IOException;
@@ -27,12 +28,12 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 class ProcessorBenchmark {
-    static List<BenchmarkMeasurement> bench(String title, TestRunner runner, Relationship success, Relationship failure, BenchmarkParameters params, BenchmarkConfigurator forward, BenchmarkConfigurator reverse) throws IOException, InterruptedException {
+    static List<BenchmarkMeasurement> bench(String title, TestRunner runner, Relationship success, Relationship failure, BenchmarkParameters params, BenchmarkConfigurator forward, BenchmarkConfigurator reverse) throws IOException, InterruptedException, InitializationException {
         List<BenchmarkMeasurement> results = new ArrayList<>();
         int flowBodySize = 1024 * 1024;
         byte[] body = Random.randomBytes(flowBodySize);
 
-        int benchmarkRuns = 10;  // number of times to run the benchmark
+        int benchmarkRuns = 5;  // number of times to run the benchmark
         int warmUpRuns = 3;      // number of initial runs to discard
         int testIterations = 100; // number of iterations for the TestRunner
 
@@ -59,7 +60,8 @@ class ProcessorBenchmark {
                     runner.clearTransferState();
                     runner.run(1);
                     runner.assertAllFlowFilesTransferred(success, 1);
-                    runner.getFlowFilesForRelationship(success).get(0).assertContentEquals(body);
+                    // can't do this in our two-processor setup :(
+                    // runner.getFlowFilesForRelationship(success).get(0).assertContentEquals(body);
                 }
 
                 if (i >= warmUpRuns) {
@@ -106,7 +108,7 @@ class ProcessorBenchmark {
         }
     }
 
-    static void run(String title, TestRunner runner, Relationship success, Relationship failure, BenchmarkParameters params, BenchmarkConfigurator forward, BenchmarkConfigurator reverse) throws IOException, InterruptedException {
+    static void run(String title, TestRunner runner, Relationship success, Relationship failure, BenchmarkParameters params, BenchmarkConfigurator forward, BenchmarkConfigurator reverse) throws IOException, InterruptedException, InitializationException {
         report(bench(title, runner, success, failure, params, forward, reverse));
     }
 
@@ -115,7 +117,7 @@ class ProcessorBenchmark {
     }
 
     static interface BenchmarkConfigurator {
-        void setup(TestRunner runner, Map<PropertyDescriptor, String> config);
+        void setup(TestRunner runner, Map<PropertyDescriptor, String> config) throws InitializationException;
     }
 
     static class BenchmarkMeasurement {

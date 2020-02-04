@@ -18,17 +18,17 @@ package org.apache.nifi.processors.standard.pgp;
 
 import org.apache.nifi.logging.ComponentLog;
 import org.bouncycastle.openpgp.PGPEncryptedDataGenerator;
-import org.bouncycastle.openpgp.operator.jcajce.JcePBEKeyEncryptionMethodGenerator;
-import org.bouncycastle.openpgp.operator.jcajce.JcePGPDataEncryptorBuilder;
+import org.bouncycastle.openpgp.operator.bc.BcPBEKeyEncryptionMethodGenerator;
+import org.bouncycastle.openpgp.operator.bc.BcPGPDataEncryptorBuilder;
+
 
 /**
- * This class encapsulates an encryption session with a PBE pass-phrase.
+ * This class encapsulates an encryption session with a PBE passphrase.
  */
 class PBEEncryptStreamSession extends AbstractEncryptStreamSession {
-
     PBEEncryptStreamSession(ComponentLog logger, char[] passphrase, int algo, boolean armor) {
         super(logger, armor);
-        generator = new PGPEncryptedDataGenerator(new JcePGPDataEncryptorBuilder(algo).setWithIntegrityPacket(true).setSecureRandom(random).setProvider("BC"));
-        generator.addMethod(new JcePBEKeyEncryptionMethodGenerator(passphrase).setProvider("BC"));
+        generator = new PGPEncryptedDataGenerator(new BcPGPDataEncryptorBuilder(algo).setWithIntegrityPacket(true).setSecureRandom(random));
+        generator.addMethod(new BcPBEKeyEncryptionMethodGenerator(passphrase));
     }
 }

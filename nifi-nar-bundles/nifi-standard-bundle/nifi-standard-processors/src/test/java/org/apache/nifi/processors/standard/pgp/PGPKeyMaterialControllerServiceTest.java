@@ -20,8 +20,12 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.bouncycastle.openpgp.PGPException;
+import org.bouncycastle.openpgp.PGPPrivateKey;
 import org.bouncycastle.openpgp.PGPPublicKey;
 import org.bouncycastle.openpgp.PGPSecretKey;
+import org.bouncycastle.openpgp.operator.bc.BcPBESecretKeyDecryptorBuilder;
+import org.bouncycastle.openpgp.operator.bc.BcPGPDigestCalculatorProvider;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -35,6 +39,14 @@ import java.util.HashMap;
 import java.util.List;
 
 
+/**
+ * These tests rely on the artifacts created by the gen-keys.sh script, refer to that
+ * file and associated README for details.
+ *
+ * For the assertions within this setup, we're not comparing key list sizes to the user id list size
+ * because exported keys aren't 1:1.
+ *
+ */
 @Tags({"integration"})
 public class PGPKeyMaterialControllerServiceTest {
     public static final String INCORRECT_PASSWORD = "incorrect";
@@ -52,8 +64,9 @@ public class PGPKeyMaterialControllerServiceTest {
     private static String manySecretKeysRaw;
     private static String manySecretKeysFile;
 
-    private static PGPPublicKey onePublicKey;
-    private static PGPSecretKey oneSecretKey;
+    static PGPPublicKey onePublicKey;
+    static PGPSecretKey oneSecretKey;
+    static PGPPrivateKey onePrivateKey;
 
     public static String onePublicKeyRaw;
     static String onePublicKeyFile;
@@ -62,17 +75,8 @@ public class PGPKeyMaterialControllerServiceTest {
     static String oneSecretKeyFile;
     private static String VALID_USER_ID;
 
-
-    /**
-     * These are our known-good key user ids, created by the gen-keys.sh script, refer to that
-     * file and associated README for details.
-     *
-     * For the assertions within this setup, we're not comparing key list sizes to the user id list size
-     * because exported keys aren't 1:1.
-     *
-     */
     @BeforeClass
-    public static void setupKeyAndKeyRings() throws IOException {
+    public static void setupKeyAndKeyRings() throws IOException, PGPException {
         // NB:  the first two elements in this list are the two keys exported explicitly by name.
         userIDs = new ArrayList<>(Arrays.asList(
                 "rsa-encrypter",
@@ -146,6 +150,10 @@ public class PGPKeyMaterialControllerServiceTest {
         // This shows that the exported ascii keys are the same as the exported binary keys:
         Assert.assertEquals(onePublicKey.getKeyID(), onePublicKeyBin.getKeyID());
         Assert.assertEquals(oneSecretKey.getKeyID(), oneSecretKeyBin.getKeyID());
+
+        // Also extract the private key
+        onePrivateKey = oneSecretKey.extractPrivateKey(new BcPBESecretKeyDecryptorBuilder(new BcPGPDigestCalculatorProvider()).build(CORRECT_PASSWORD.toCharArray()));
+        Assert.assertNotNull(onePrivateKey);
 
         manyPublicKeysRaw = new String(keyResourceStream("many-public-keys.asc").readAllBytes());
         manySecretKeysRaw = new String(keyResourceStream("many-secret-keys.asc").readAllBytes());
@@ -283,46 +291,45 @@ public class PGPKeyMaterialControllerServiceTest {
         TestRunner runner = TestRunners.newTestRunner(new DecryptPGP());
         PGPKeyMaterialControllerService service = new PGPKeyMaterialControllerService();
 
-        // valid for decryption with a secret key and valid pass-phrase:
+        // valid for decryption with a secret key and valid passphrase:
         runner.addControllerService(SERVICE_ID, service, new HashMap<>() {{
             put(PGPKeyMaterialControllerService.SECRET_KEYRING_TEXT.getName(), oneSecretKeyRaw);
             put(PGPKeyMaterialControllerService.PRIVATE_KEY_PASS_PHRASE.getName(), CORRECT_PASSWORD);
         }});
         runner.assertValid(service);
-        if (true) return;
 
-        // invalid for decryption with a secret key and no pass-phrase:
+        // invalid for decryption with a secret key and no passphrase:
         runner.addControllerService(SERVICE_ID, service, new HashMap<>() {{
             put(PGPKeyMaterialControllerService.SECRET_KEYRING_TEXT.getName(), oneSecretKeyRaw);
         }});
         runner.assertNotValid(service);
 
-        // invalid for decryption with a secret key and incorrect pass-phrase:
+        // invalid for decryption with a secret key and incorrect passphrase:
         runner.addControllerService(SERVICE_ID, service, new HashMap<>() {{
             put(PGPKeyMaterialControllerService.SECRET_KEYRING_TEXT.getName(), oneSecretKeyRaw);
             put(PGPKeyMaterialControllerService.PRIVATE_KEY_PASS_PHRASE.getName(), INCORRECT_PASSWORD);
         }});
         runner.assertNotValid(service);
 
-        // valid for decryption with a secret key and valid pass-phrase:
+        // valid for decryption with a secret key and valid passphrase:
         runner.addControllerService(SERVICE_ID, service, new HashMap<>() {{
             put(PGPKeyMaterialControllerService.SECRET_KEYRING_TEXT.getName(), manySecretKeysRaw);
             put(PGPKeyMaterialControllerService.PRIVATE_KEY_PASS_PHRASE.getName(), CORRECT_PASSWORD);
         }});
         runner.assertValid(service);
 
-        // invalid for decryption with a secret key and no pass-phrase:
+        // valid for a secret keyring and no passphrase:
         runner.addControllerService(SERVICE_ID, service, new HashMap<>() {{
             put(PGPKeyMaterialControllerService.SECRET_KEYRING_TEXT.getName(), manySecretKeysRaw);
         }});
-        runner.assertNotValid(service);
+        runner.assertValid(service);
 
-        // invalid for decryption with a secret key and incorrect pass-phrase:
+        // valid for decryption with a secret key and incorrect passphrase:
         runner.addControllerService(SERVICE_ID, service, new HashMap<>() {{
             put(PGPKeyMaterialControllerService.SECRET_KEYRING_TEXT.getName(), manySecretKeysRaw);
             put(PGPKeyMaterialControllerService.PRIVATE_KEY_PASS_PHRASE.getName(), INCORRECT_PASSWORD);
         }});
-        runner.assertNotValid(service);
+        runner.assertValid(service);
     }
 
     @Test
@@ -330,48 +337,45 @@ public class PGPKeyMaterialControllerServiceTest {
         TestRunner runner = TestRunners.newTestRunner(new DecryptPGP());
         PGPKeyMaterialControllerService service = new PGPKeyMaterialControllerService();
 
-        // valid for decryption with a secret key file and a valid pass-phrase:
+        // valid for decryption with a secret key file and a valid passphrase:
         runner.addControllerService(SERVICE_ID, service, new HashMap<>() {{
             put(PGPKeyMaterialControllerService.SECRET_KEYRING_FILE.getName(), oneSecretKeyFile);
             put(PGPKeyMaterialControllerService.PRIVATE_KEY_PASS_PHRASE.getName(), CORRECT_PASSWORD);
         }});
         runner.assertValid(service);
 
-        // remaining tests are super slow, need to move to integration tests:
-        if (true) return;
-
-        // valid for decryption with a secret key file and no pass-phrase:
+        // valid for decryption with a secret key file and no passphrase:
         runner.addControllerService(SERVICE_ID, service, new HashMap<>() {{
             put(PGPKeyMaterialControllerService.SECRET_KEYRING_FILE.getName(), oneSecretKeyFile);
         }});
         runner.assertNotValid(service);
 
-        // invalid for decryption with a secret key file and a valid pass-phrase:
+        // invalid for decryption with a secret key file and a valid passphrase:
         runner.addControllerService(SERVICE_ID, service, new HashMap<>() {{
             put(PGPKeyMaterialControllerService.SECRET_KEYRING_FILE.getName(), oneSecretKeyFile);
             put(PGPKeyMaterialControllerService.PRIVATE_KEY_PASS_PHRASE.getName(), INCORRECT_PASSWORD);
         }});
         runner.assertNotValid(service);
 
-        // valid for decryption with a secret key and valid pass-phrase:
+        // valid for decryption with a secret key and valid passphrase:
         runner.addControllerService(SERVICE_ID, service, new HashMap<>() {{
             put(PGPKeyMaterialControllerService.SECRET_KEYRING_FILE.getName(), manySecretKeysFile);
             put(PGPKeyMaterialControllerService.PRIVATE_KEY_PASS_PHRASE.getName(), CORRECT_PASSWORD);
         }});
         runner.assertValid(service);
 
-        // invalid for decryption with a secret key and no pass-phrase:
+        // valid for decryption with a secret key and no passphrase:
         runner.addControllerService(SERVICE_ID, service, new HashMap<>() {{
             put(PGPKeyMaterialControllerService.SECRET_KEYRING_FILE.getName(), manySecretKeysFile);
         }});
-        runner.assertNotValid(service);
+        runner.assertValid(service);
 
-        // invalid for decryption with a secret key and incorrect pass-phrase:
+        // valid for decryption with a secret key and incorrect passphrase:
         runner.addControllerService(SERVICE_ID, service, new HashMap<>() {{
             put(PGPKeyMaterialControllerService.SECRET_KEYRING_FILE.getName(), manySecretKeysFile);
             put(PGPKeyMaterialControllerService.PRIVATE_KEY_PASS_PHRASE.getName(), INCORRECT_PASSWORD);
         }});
-        runner.assertNotValid(service);
+        runner.assertValid(service);
     }
 
 

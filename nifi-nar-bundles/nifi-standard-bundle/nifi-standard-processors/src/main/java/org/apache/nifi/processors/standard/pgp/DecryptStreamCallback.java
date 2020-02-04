@@ -27,7 +27,7 @@ import org.bouncycastle.openpgp.PGPPBEEncryptedData;
 import org.bouncycastle.openpgp.PGPPrivateKey;
 import org.bouncycastle.openpgp.PGPPublicKeyEncryptedData;
 import org.bouncycastle.openpgp.PGPUtil;
-import org.bouncycastle.openpgp.jcajce.JcaPGPObjectFactory;
+import org.bouncycastle.openpgp.bc.BcPGPObjectFactory;
 import org.bouncycastle.openpgp.operator.bc.BcKeyFingerprintCalculator;
 import org.bouncycastle.util.io.Streams;
 
@@ -103,12 +103,12 @@ class DecryptStreamCallback implements ExtendedStreamCallback {
                     }
                     clearInput = options.getInputStream(data);
 
-                    JcaPGPObjectFactory plainFactory = new JcaPGPObjectFactory(clearInput);
+                    PGPObjectFactory plainFactory = new BcPGPObjectFactory(clearInput);
                     Object plain = plainFactory.nextObject();
 
                     if (plain instanceof PGPCompressedData) {
                         PGPCompressedData compressed = (PGPCompressedData) plain;
-                        plain = (new JcaPGPObjectFactory(compressed.getDataStream())).nextObject();
+                        plain = (new BcPGPObjectFactory(compressed.getDataStream())).nextObject();
                     }
 
                     if (plain instanceof PGPLiteralData) {

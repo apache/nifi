@@ -19,8 +19,9 @@ package org.apache.nifi.processors.standard.pgp;
 import org.apache.nifi.logging.ComponentLog;
 import org.bouncycastle.openpgp.PGPEncryptedDataGenerator;
 import org.bouncycastle.openpgp.PGPPublicKey;
-import org.bouncycastle.openpgp.operator.jcajce.JcePGPDataEncryptorBuilder;
-import org.bouncycastle.openpgp.operator.jcajce.JcePublicKeyKeyEncryptionMethodGenerator;
+import org.bouncycastle.openpgp.operator.bc.BcPGPDataEncryptorBuilder;
+import org.bouncycastle.openpgp.operator.bc.BcPublicKeyKeyEncryptionMethodGenerator;
+
 
 /**
  * This class encapsulates a public key encryption session.
@@ -28,7 +29,7 @@ import org.bouncycastle.openpgp.operator.jcajce.JcePublicKeyKeyEncryptionMethodG
 class PublicKeyEncryptKeySession extends AbstractEncryptStreamSession {
     PublicKeyEncryptKeySession(ComponentLog logger, PGPPublicKey publicKey, int algo, boolean armor) {
         super(logger, armor);
-        generator = new PGPEncryptedDataGenerator(new JcePGPDataEncryptorBuilder(algo).setWithIntegrityPacket(true).setSecureRandom(random).setProvider("BC"));
-        generator.addMethod(new JcePublicKeyKeyEncryptionMethodGenerator(publicKey).setProvider("BC"));
+        generator = new PGPEncryptedDataGenerator(new BcPGPDataEncryptorBuilder(algo).setWithIntegrityPacket(true).setSecureRandom(random));
+        generator.addMethod(new BcPublicKeyKeyEncryptionMethodGenerator(publicKey));
     }
 }

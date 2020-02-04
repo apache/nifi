@@ -20,16 +20,17 @@ import org.bouncycastle.openpgp.PGPException;
 import org.bouncycastle.openpgp.PGPPrivateKey;
 import org.bouncycastle.openpgp.PGPPublicKey;
 import org.bouncycastle.openpgp.PGPPublicKeyRing;
+import org.bouncycastle.openpgp.PGPPublicKeyRingCollection;
 import org.bouncycastle.openpgp.PGPSecretKey;
 import org.bouncycastle.openpgp.PGPSecretKeyRing;
 import org.bouncycastle.openpgp.PGPSecretKeyRingCollection;
 import org.bouncycastle.openpgp.PGPUtil;
-import org.bouncycastle.openpgp.jcajce.JcaPGPPublicKeyRingCollection;
-import org.bouncycastle.openpgp.operator.KeyFingerPrintCalculator;
+import org.bouncycastle.openpgp.bc.BcPGPPublicKeyRingCollection;
 import org.bouncycastle.openpgp.operator.PBESecretKeyDecryptor;
 import org.bouncycastle.openpgp.operator.PGPDigestCalculator;
 import org.bouncycastle.openpgp.operator.bc.BcKeyFingerprintCalculator;
-import org.bouncycastle.openpgp.operator.jcajce.JcePBESecretKeyDecryptorBuilder;
+import org.bouncycastle.openpgp.operator.bc.BcPBESecretKeyDecryptorBuilder;
+import org.bouncycastle.openpgp.operator.bc.BcPGPDigestCalculatorProvider;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -72,7 +73,7 @@ class StaticKeyMaterialProvider extends AbstractKeyProvider {
      * @throws PGPException thrown if key streams are not valid
      */
     public static PGPPublicKey readPublicKey(InputStream in) throws IOException, PGPException {
-        JcaPGPPublicKeyRingCollection rings = new JcaPGPPublicKeyRingCollection(PGPUtil.getDecoderStream(in));
+        PGPPublicKeyRingCollection rings = new BcPGPPublicKeyRingCollection(PGPUtil.getDecoderStream(in));
         Iterator<PGPPublicKeyRing> ringWalker = rings.iterator();
 
         while (ringWalker.hasNext()) {
@@ -105,7 +106,7 @@ class StaticKeyMaterialProvider extends AbstractKeyProvider {
             while (keyWalker.hasNext()) {
                 PGPSecretKey key = keyWalker.next();
                 if (key != null && !key.isPrivateKeyEmpty() && key.getKeyID() == (keyId != 0 ? keyId : key.getKeyID())) {
-                    PBESecretKeyDecryptor dec = new JcePBESecretKeyDecryptorBuilder().setProvider("BC").build(passphrase);
+                    PBESecretKeyDecryptor dec = new BcPBESecretKeyDecryptorBuilder(new BcPGPDigestCalculatorProvider()).build(passphrase);
                     try {
                         return key.extractPrivateKey(dec);
                     } catch (final PGPException ignored) {
@@ -125,10 +126,10 @@ class StaticKeyMaterialProvider extends AbstractKeyProvider {
      */
     static public List<PGPPublicKey> getPublicKeys(InputStream in) {
         List<PGPPublicKey> keys = new ArrayList<>();
-        JcaPGPPublicKeyRingCollection rings;
+        PGPPublicKeyRingCollection rings;
 
         try {
-            rings = new JcaPGPPublicKeyRingCollection(PGPUtil.getDecoderStream(in));
+            rings = new BcPGPPublicKeyRingCollection(PGPUtil.getDecoderStream(in));
         } catch (final IOException | PGPException ignored) {
             return null;
         }
@@ -150,11 +151,10 @@ class StaticKeyMaterialProvider extends AbstractKeyProvider {
      */
     public static List<PGPSecretKey> getSecretKeys(InputStream in) {
         List<PGPSecretKey> keys = new ArrayList<>();
-        KeyFingerPrintCalculator calc = new BcKeyFingerprintCalculator();
         PGPSecretKeyRingCollection rings;
 
         try {
-            rings = new PGPSecretKeyRingCollection(PGPUtil.getDecoderStream(in), calc);
+            rings = new PGPSecretKeyRingCollection(PGPUtil.getDecoderStream(in), new BcKeyFingerprintCalculator());
         } catch (final IOException | PGPException ignored) {
             return null;
         }

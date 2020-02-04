@@ -21,15 +21,13 @@ import org.bouncycastle.openpgp.PGPEncryptedData;
 import org.bouncycastle.openpgp.PGPException;
 import org.bouncycastle.openpgp.PGPPBEEncryptedData;
 import org.bouncycastle.openpgp.operator.PBEDataDecryptorFactory;
-import org.bouncycastle.openpgp.operator.PGPDigestCalculatorProvider;
+import org.bouncycastle.openpgp.operator.bc.BcPBEDataDecryptorFactory;
 import org.bouncycastle.openpgp.operator.bc.BcPGPDigestCalculatorProvider;
-import org.bouncycastle.openpgp.operator.jcajce.JcaPGPDigestCalculatorProviderBuilder;
-import org.bouncycastle.openpgp.operator.jcajce.JcePBEDataDecryptorFactoryBuilder;
 
 import java.io.InputStream;
 
 /**
- * This class encapsulates a decryption session with a PBE pass-phrase.
+ * This class encapsulates a decryption session with a PBE passphrase.
  */
 class PBEDecryptStreamSession implements DecryptStreamSession {
     final ComponentLog logger;
@@ -37,15 +35,7 @@ class PBEDecryptStreamSession implements DecryptStreamSession {
 
     PBEDecryptStreamSession(ComponentLog logger, char[] passphrase) {
         this.logger = logger;
-        PGPDigestCalculatorProvider calc = null;
-
-        try {
-            calc = new JcaPGPDigestCalculatorProviderBuilder().setProvider("BC").build();
-        } catch (PGPException e) {
-            calc = new BcPGPDigestCalculatorProvider(); // hmm?
-        }
-
-        pbeFactory = new JcePBEDataDecryptorFactoryBuilder(calc).setProvider("BC").build(passphrase);
+        pbeFactory = new BcPBEDataDecryptorFactory(passphrase, new BcPGPDigestCalculatorProvider());
     }
 
     public InputStream getInputStream(PGPEncryptedData packet) throws PGPException {
