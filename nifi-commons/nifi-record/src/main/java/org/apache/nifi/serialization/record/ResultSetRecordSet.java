@@ -153,25 +153,32 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
             final int column = i + 1;
             final int sqlType = metadata.getColumnType(column);
 
-            final DataType dataType = getDataType(sqlType, rs, column, readerSchema);
             final String fieldName = metadata.getColumnLabel(column);
+            Optional<RecordField> readerField = readerSchema == null ? Optional.empty() : readerSchema.getField(fieldName);
 
-            final int nullableFlag = metadata.isNullable(column);
-            final boolean nullable;
-            if (nullableFlag == ResultSetMetaData.columnNoNulls) {
-                nullable = false;
+            // If in readerSchema this field already exists, re-use it
+            if (readerField.isPresent()) {
+                fields.add(readerField.get());
             } else {
-                nullable = true;
-            }
+                final DataType dataType = getDataType(sqlType, rs, column);
 
-            final RecordField field = new RecordField(fieldName, dataType, nullable);
-            fields.add(field);
+                final int nullableFlag = metadata.isNullable(column);
+                final boolean nullable;
+                if (nullableFlag == ResultSetMetaData.columnNoNulls) {
+                    nullable = false;
+                } else {
+                    nullable = true;
+                }
+
+                final RecordField field = new RecordField(fieldName, dataType, nullable);
+                fields.add(field);
+            }
         }
 
         return new SimpleRecordSchema(fields);
     }
 
-    private static DataType getDataType(final int sqlType, final ResultSet rs, final int columnIndex, final RecordSchema readerSchema) throws SQLException {
+    private static DataType getDataType(final int sqlType, final ResultSet rs, final int columnIndex) throws SQLException {
         switch (sqlType) {
             case Types.ARRAY:
                 // The JDBC API does not allow us to know what the base type of an array is through the metadata.
@@ -200,15 +207,6 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
                     return RecordFieldType.RECORD.getDataType();
                 }
 
-                final String columnName = rs.getMetaData().getColumnName(columnIndex);
-
-                if (readerSchema != null) {
-                    Optional<DataType> dataType = readerSchema.getDataType(columnName);
-                    if (dataType.isPresent()) {
-                        return dataType.get();
-                    }
-                }
-
                 final Object obj = rs.getObject(columnIndex);
                 if (!(obj instanceof Record)) {
                     final List<DataType> dataTypes = Stream.of(RecordFieldType.BIGINT, RecordFieldType.BOOLEAN, RecordFieldType.BYTE, RecordFieldType.CHAR, RecordFieldType.DATE,
@@ -225,15 +223,6 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
                 return RecordFieldType.RECORD.getRecordDataType(recordSchema);
             }
             default: {
-                final String columnName = rs.getMetaData().getColumnName(columnIndex);
-
-                if (readerSchema != null) {
-                    Optional<DataType> dataType = readerSchema.getDataType(columnName);
-                    if (dataType.isPresent()) {
-                        return dataType.get();
-                    }
-                }
-
                 return getFieldType(sqlType, rs.getMetaData().getColumnClassName(columnIndex)).getDataType();
             }
         }
