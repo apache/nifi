@@ -19,19 +19,20 @@ package org.apache.nifi.lookup.db;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Expiry;
-import org.apache.commons.lang3.StringUtils;
+import org.apache.avro.Schema;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
+import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
-import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.lookup.LookupFailureException;
 import org.apache.nifi.lookup.RecordLookupService;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.ResultSetRecordSet;
 import org.apache.nifi.util.Tuple;
 
@@ -49,6 +50,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Tags({"lookup", "cache", "enrich", "join", "rdbms", "database", "reloadable", "key", "value", "record"})
@@ -68,17 +70,23 @@ public class DatabaseRecordLookupService extends AbstractDatabaseLookupService i
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
+    static final PropertyDescriptor JDBC_AVRO_SCHEMA = new PropertyDescriptor.Builder()
+            .name("dbrecord-jdbc-avro-schema")
+            .displayName("JDBC Avro Schema")
+            .description("Instead of invoke a schema from JDBC state the schema as avro text.")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .build();
+
     @Override
-    protected void init(final ControllerServiceInitializationContext context) {
+    protected List<PropertyDescriptor> getValueProperties() {
         final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(DBCP_SERVICE);
-        properties.add(TABLE_NAME);
-        properties.add(LOOKUP_KEY_COLUMN);
+
         properties.add(LOOKUP_VALUE_COLUMNS);
-        properties.add(CACHE_SIZE);
-        properties.add(CLEAR_CACHE_ON_ENABLED);
-        properties.add(CACHE_EXPIRATION);
-        this.properties = Collections.unmodifiableList(properties);
+        properties.add(JDBC_AVRO_SCHEMA);
+
+        return properties;
     }
 
     @OnEnabled
@@ -117,23 +125,12 @@ public class DatabaseRecordLookupService extends AbstractDatabaseLookupService i
         }
     }
 
-    @Override
-    public Optional<Record> lookup(Map<String, Object> coordinates) throws LookupFailureException {
-        return lookup(coordinates, null);
+    private static boolean isNotBlank(final String value) {
+        return value != null && !value.trim().isEmpty();
     }
 
     @Override
-    public Optional<Record> lookup(final Map<String, Object> coordinates, Map<String, String> context) throws LookupFailureException {
-        if (coordinates == null) {
-            return Optional.empty();
-        }
-
-        final Object key = coordinates.get(KEY);
-        if (StringUtils.isBlank(key.toString())) {
-            return Optional.empty();
-        }
-
-        final String tableName = getProperty(TABLE_NAME).evaluateAttributeExpressions(context).getValue();
+    protected String sqlSelectList(Map<String, String> context) {
         final String lookupValueColumnsList = getProperty(LOOKUP_VALUE_COLUMNS).evaluateAttributeExpressions(context).getValue();
 
         Set<String> lookupValueColumnsSet = new LinkedHashSet<>();
@@ -145,21 +142,53 @@ public class DatabaseRecordLookupService extends AbstractDatabaseLookupService i
                     .forEach(lookupValueColumnsSet::add);
         }
 
-        final String lookupValueColumns = lookupValueColumnsSet.isEmpty() ? "*" : String.join(",", lookupValueColumnsSet);
+        return lookupValueColumnsSet.isEmpty() ? "*" : String.join(",", lookupValueColumnsSet);
+    }
 
-        Tuple<String, Object> cacheLookupKey = new Tuple<>(tableName, key);
+    @Override
+    public Optional<Record> lookup(Map<String, Object> coordinates) throws LookupFailureException {
+        return lookup(coordinates, null);
+    }
+
+    @Override
+    public Optional<Record> lookup(final Map<String, Object> coordinates, Map<String, String> context) throws LookupFailureException {
+        if (coordinates == null) {
+            return Optional.empty();
+        }
+
+        final String selectQuery = buildSQLStatement(context);
+        final List<Object> keys = getCoordinates(coordinates);
+
+        if (keys.isEmpty()) {
+            return Optional.empty();
+        }
+
+        Tuple<String, Object> cacheLookupKey = new Tuple<>(selectQuery, keys.hashCode());
 
         // Not using the function param of cache.get so we can catch and handle the checked exceptions
         Record foundRecord = cache.get(cacheLookupKey, k -> null);
 
         if (foundRecord == null) {
-            final String selectQuery = "SELECT " + lookupValueColumns + " FROM " + tableName + " WHERE " + lookupKeyColumn + " = ?";
             try (final Connection con = dbcpService.getConnection(context);
                  final PreparedStatement st = con.prepareStatement(selectQuery)) {
 
-                st.setObject(1, key);
+                int iterPos = 1;
+                for (Object key : keys) {
+                    st.setObject(iterPos, key);
+                    iterPos++;
+                }
+                st.execute();
+
                 ResultSet resultSet = st.executeQuery();
-                ResultSetRecordSet resultSetRecordSet = new ResultSetRecordSet(resultSet, null);
+
+                // If Avro Schema is given use it instead of invoke the schema
+                RecordSchema schema = null;
+                final String avroSchemaText = getProperty(JDBC_AVRO_SCHEMA).evaluateAttributeExpressions().getValue();
+                if(avroSchemaText != null)
+                    schema = AvroTypeUtil.createSchema(new Schema.Parser().parse(avroSchemaText));
+
+                ResultSetRecordSet resultSetRecordSet = new ResultSetRecordSet(resultSet, schema);
+
                 foundRecord = resultSetRecordSet.next();
 
                 // Populate the cache if the record is present
@@ -168,10 +197,18 @@ public class DatabaseRecordLookupService extends AbstractDatabaseLookupService i
                 }
 
             } catch (SQLException se) {
-                throw new LookupFailureException("Error executing SQL statement: " + selectQuery + "for value " + key.toString()
+                String commaSeparatedKeys = keys
+                        .stream()
+                        .map(obj -> String.valueOf(obj))
+                        .collect(Collectors.joining(","));
+                throw new LookupFailureException("Error executing SQL statement: " + selectQuery + "for values " + commaSeparatedKeys
                         + " : " + (se.getCause() == null ? se.getMessage() : se.getCause().getMessage()), se);
             } catch (IOException ioe) {
-                throw new LookupFailureException("Error retrieving result set for SQL statement: " + selectQuery + "for value " + key.toString()
+                String commaSeparatedKeys = keys
+                        .stream()
+                        .map(obj -> String.valueOf(obj))
+                        .collect(Collectors.joining(","));
+                throw new LookupFailureException("Error retrieving result set for SQL statement: " + selectQuery + "for values " + commaSeparatedKeys
                         + " : " + (ioe.getCause() == null ? ioe.getMessage() : ioe.getCause().getMessage()), ioe);
             }
         }
@@ -179,12 +216,9 @@ public class DatabaseRecordLookupService extends AbstractDatabaseLookupService i
         return Optional.ofNullable(foundRecord);
     }
 
-    private static boolean isNotBlank(final String value) {
-        return value != null && !value.trim().isEmpty();
-    }
-
     @Override
     public Set<String> getRequiredKeys() {
-        return REQUIRED_KEYS;
+        return Collections.emptySet();
     }
+
 }

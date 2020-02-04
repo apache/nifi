@@ -17,22 +17,23 @@
 package org.apache.nifi.lookup.db;
 
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.AbstractControllerService;
+import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import java.util.Map;
 
-public class AbstractDatabaseLookupService extends AbstractControllerService {
+public abstract class AbstractDatabaseLookupService extends AbstractControllerService {
 
     static final String KEY = "key";
-
-    static final Set<String> REQUIRED_KEYS = Collections.unmodifiableSet(Stream.of(KEY).collect(Collectors.toSet()));
 
     static final PropertyDescriptor DBCP_SERVICE = new PropertyDescriptor.Builder()
             .name("dbrecord-lookup-dbcp-service")
@@ -42,13 +43,22 @@ public class AbstractDatabaseLookupService extends AbstractControllerService {
             .identifiesControllerService(DBCPService.class)
             .build();
 
+    static final PropertyDescriptor SQL_STATEMENT = new PropertyDescriptor.Builder()
+            .name("dbrecord-lookup-sql-statement")
+            .displayName("SQL statement")
+            .description("The SQL statement to be used to query the database. This can be used alternative to Table Name.")
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
     static final PropertyDescriptor TABLE_NAME = new PropertyDescriptor.Builder()
             .name("dbrecord-lookup-table-name")
             .displayName("Table Name")
             .description("The name of the database table to be queried. Note that this may be case-sensitive depending on the database.")
-            .required(true)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
     static final PropertyDescriptor LOOKUP_KEY_COLUMN = new PropertyDescriptor.Builder()
@@ -56,9 +66,9 @@ public class AbstractDatabaseLookupService extends AbstractControllerService {
             .displayName("Lookup Key Column")
             .description("The column in the table that will serve as the lookup key. This is the column that will be matched against "
                     + "the property specified in the lookup processor. Note that this may be case-sensitive depending on the database.")
-            .required(true)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
     static final PropertyDescriptor CACHE_SIZE = new PropertyDescriptor.Builder()
@@ -97,8 +107,97 @@ public class AbstractDatabaseLookupService extends AbstractControllerService {
 
     volatile String lookupKeyColumn;
 
+    protected List<Object> getCoordinates(final Map<String, Object> coordinates) {
+        if (coordinates.isEmpty())
+            return Collections.emptyList();
+
+        List<Object> lookupCoordinates = new ArrayList<>();
+        Object coordinate = coordinates.get(KEY);
+
+        if (coordinate != null) {
+            // Only one key is provided
+            lookupCoordinates.add(coordinate);
+
+        } else {
+            // Multiple key's are provided in the form of key.1, key.2 .. key.x
+            int i = 1;
+            while (true) {
+                coordinate = coordinates.get(String.format("%s.%d", KEY, i));
+                i++;
+                if (coordinate != null) {
+                    lookupCoordinates.add(coordinate);
+                } else {
+                    break;
+                }
+            }
+        }
+
+        return lookupCoordinates;
+    }
+
+    protected abstract String sqlSelectList(Map<String, String> context);
+
+    protected String buildSQLStatement(Map<String, String> context) {
+        final String providedSQLStatement = getProperty(SQL_STATEMENT).evaluateAttributeExpressions(context).getValue();
+
+        if (providedSQLStatement != null) {
+            // Get the provided statement
+            return getProperty(SQL_STATEMENT).evaluateAttributeExpressions(context).getValue();
+        } else {
+            // Or let's build one our self
+            final String tableName = getProperty(TABLE_NAME).evaluateAttributeExpressions(context).getValue();
+
+            final String selectQuery = "SELECT " + sqlSelectList(context) + " FROM " + tableName + " WHERE " + lookupKeyColumn + " = ?";
+            return selectQuery;
+        }
+    }
+
+    protected abstract List<PropertyDescriptor> getValueProperties();
+
+    @Override
+    protected void init(final ControllerServiceInitializationContext context) {
+        final List<PropertyDescriptor> properties = new ArrayList<>();
+        properties.add(DBCP_SERVICE);
+        properties.add(TABLE_NAME);
+        properties.add(LOOKUP_KEY_COLUMN);
+        properties.addAll(getValueProperties());
+        properties.add(SQL_STATEMENT);
+        properties.add(CACHE_SIZE);
+        properties.add(CLEAR_CACHE_ON_ENABLED);
+        properties.add(CACHE_EXPIRATION);
+        this.properties = Collections.unmodifiableList(properties);
+    }
+
+    @Override
+    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+        final List<ValidationResult> results = new ArrayList<>();
+        String sqlStatement = validationContext.getProperty(SQL_STATEMENT).getValue();
+        String tableName = validationContext.getProperty(TABLE_NAME).getValue();
+        String keyColumn = validationContext.getProperty(LOOKUP_KEY_COLUMN).getValue();
+
+        if (sqlStatement == null && tableName == null) {
+            results.add(new ValidationResult.Builder()
+                    .subject("Table Name or SQL Statement missing")
+                    .valid(false)
+                    .explanation("Please provide <Table Name> with <Lookup Key Column> for a simple select query. " +
+                            "Or Provide a custom sql query under <SQL Statement>")
+                    .build());
+        }
+
+        if (tableName != null && keyColumn == null) {
+            results.add(new ValidationResult.Builder()
+                    .subject("Key Column not set for Table Name mode")
+                    .valid(false)
+                    .explanation("If your are using the Table Name mode, Key Column must be set")
+                    .build());
+        }
+
+        return results;
+    }
+
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return properties;
     }
+
 }

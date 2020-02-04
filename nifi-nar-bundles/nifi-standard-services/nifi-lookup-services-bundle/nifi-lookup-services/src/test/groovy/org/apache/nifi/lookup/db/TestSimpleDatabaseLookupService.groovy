@@ -109,6 +109,46 @@ class TestSimpleDatabaseLookupService {
     }
 
     @Test
+    void testDatabaseLookupServiceSqlStatement() throws InitializationException, IOException, LookupFailureException {
+        // remove previous test database, if any
+        final File dbLocation = new File(DB_LOCATION)
+        dbLocation.delete()
+
+        // load test data to database
+        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).connection
+        final Statement stmt = con.createStatement()
+
+        try {
+            stmt.execute("drop table TEST")
+        } catch (final SQLException sqle) {
+        }
+
+        stmt.execute("create table TEST (id integer not null, val1 integer, val2 varchar(10), constraint my_pk primary key (id))")
+        stmt.execute("insert into TEST (id, val1, val2) VALUES (0, NULL, 'Hello')")
+        stmt.execute("insert into TEST (id, val1, val2) VALUES (1, 1, 'World')")
+
+        final SimpleDatabaseLookupService service = new SimpleDatabaseLookupService()
+
+        runner.addControllerService("db-lookup-service", service)
+        runner.setProperty(service, SimpleDatabaseLookupService.DBCP_SERVICE, "dbcp")
+        runner.assertNotValid()
+        runner.setProperty(service, SimpleDatabaseLookupService.SQL_STATEMENT, "SELECT val2 FROM test WHERE id = ?")
+        runner.enableControllerService(service)
+        runner.assertValid(service)
+
+        def lookupService = (SimpleDatabaseLookupService) runner.processContext.controllerServiceLookup.getControllerService("db-lookup-service")
+
+        assertThat(lookupService, instanceOf(LookupService.class))
+
+        // Lookup VAL1
+        final Optional<String> property1 = lookupService.lookup(Collections.singletonMap("key", "0"))
+        assertEquals("Hello", property1.get())
+        // Key not found
+        final Optional<String> property3 = lookupService.lookup(Collections.singletonMap("key", "2"))
+        assertEquals(EMPTY_RECORD, property3)
+    }
+
+    @Test
     void exerciseCacheLogic() {
         // remove previous test database, if any
         final File dbLocation = new File(DB_LOCATION)

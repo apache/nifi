@@ -25,7 +25,6 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
-import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.lookup.LookupFailureException;
@@ -57,22 +56,16 @@ public class SimpleDatabaseLookupService extends AbstractDatabaseLookupService i
                     .name("lookup-value-column")
                     .displayName("Lookup Value Column")
                     .description("The column whose value will be returned when the Lookup value is matched")
-                    .required(true)
                     .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
                     .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
                     .build();
 
     @Override
-    protected void init(final ControllerServiceInitializationContext context) {
+    protected List<PropertyDescriptor> getValueProperties() {
         final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(DBCP_SERVICE);
-        properties.add(TABLE_NAME);
-        properties.add(LOOKUP_KEY_COLUMN);
         properties.add(LOOKUP_VALUE_COLUMN);
-        properties.add(CACHE_SIZE);
-        properties.add(CLEAR_CACHE_ON_ENABLED);
-        properties.add(CACHE_EXPIRATION);
-        this.properties = Collections.unmodifiableList(properties);
+
+        return properties;
     }
 
     @OnEnabled
@@ -112,6 +105,11 @@ public class SimpleDatabaseLookupService extends AbstractDatabaseLookupService i
     }
 
     @Override
+    protected String sqlSelectList(Map<String, String> context) {
+        return getProperty(LOOKUP_VALUE_COLUMN).evaluateAttributeExpressions(context).getValue();
+    }
+
+    @Override
     public Optional<String> lookup(Map<String, Object> coordinates) throws LookupFailureException {
         return lookup(coordinates, null);
     }
@@ -127,16 +125,15 @@ public class SimpleDatabaseLookupService extends AbstractDatabaseLookupService i
             return Optional.empty();
         }
 
-        final String tableName = getProperty(TABLE_NAME).evaluateAttributeExpressions(context).getValue();
-        final String lookupValueColumn = getProperty(LOOKUP_VALUE_COLUMN).evaluateAttributeExpressions(context).getValue();
+        final String selectQuery = buildSQLStatement(context);
+        final List<Object> lookupKeys = getCoordinates(coordinates);
 
-        Tuple<String, Object> cacheLookupKey = new Tuple<>(tableName, key);
+        Tuple<String, Object> cacheLookupKey = new Tuple<>(selectQuery, lookupKeys.hashCode());
 
         // Not using the function param of cache.get so we can catch and handle the checked exceptions
         String foundRecord = cache.get(cacheLookupKey, k -> null);
 
         if (foundRecord == null) {
-            final String selectQuery = "SELECT " + lookupValueColumn + " FROM " + tableName + " WHERE " + lookupKeyColumn + " = ?";
             try (final Connection con = dbcpService.getConnection(context);
                  final PreparedStatement st = con.prepareStatement(selectQuery)) {
 
@@ -147,7 +144,7 @@ public class SimpleDatabaseLookupService extends AbstractDatabaseLookupService i
                     return Optional.empty();
                 }
 
-                Object o = resultSet.getObject(lookupValueColumn);
+                Object o = resultSet.getObject(1);
                 if (o == null) {
                     return Optional.empty();
                 }
@@ -169,6 +166,7 @@ public class SimpleDatabaseLookupService extends AbstractDatabaseLookupService i
 
     @Override
     public Set<String> getRequiredKeys() {
-        return REQUIRED_KEYS;
+        return Collections.emptySet();
     }
+
 }
