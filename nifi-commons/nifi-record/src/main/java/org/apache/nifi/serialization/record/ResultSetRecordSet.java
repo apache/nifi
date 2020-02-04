@@ -128,13 +128,17 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
     }
 
     @SuppressWarnings("rawtypes")
-    private Object normalizeValue(final Object value) {
+    private Object normalizeValue(final Object value) throws SQLException {
         if (value == null) {
             return null;
         }
 
         if (value instanceof List) {
             return ((List) value).toArray();
+        }
+
+        if (value instanceof Array) {
+            return ((Array) value).getArray();
         }
 
         return value;
