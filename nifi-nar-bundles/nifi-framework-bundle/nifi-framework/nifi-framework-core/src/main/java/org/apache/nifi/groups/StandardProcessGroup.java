@@ -5072,7 +5072,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                     final FlowFileQueue flowFileQueue = connection.getFlowFileQueue();
                     if (!flowFileQueue.isEmpty()) {
                         throw new IllegalStateException(this + " cannot be updated to the proposed flow because the proposed flow "
-                                + "does not contain " + connection + " and the connection currently has data in the queue.");
+                                + "does not contain a match for " + connection + " and the connection currently has data in the queue.");
                     }
                 }
             }
@@ -5100,7 +5100,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                             .filter(connection -> !connection.getFlowFileQueue().isEmpty()).findFirst().orElse(null);
                     if (removedConnection != null) {
                         throw new IllegalStateException(this + " cannot be updated to the proposed flow because the proposed flow "
-                                + "does not contain " + removedConnection + " and the connection currently has data in the queue.");
+                                + "does not contain a match for " + removedConnection + " and the connection currently has data in the queue.");
                     }
                 }
             } else {
