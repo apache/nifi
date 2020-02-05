@@ -25,6 +25,7 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 import okhttp3.Route;
+import okhttp3.internal.platform.Platform;
 import org.apache.commons.text.StringEscapeUtils;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
@@ -40,11 +41,18 @@ import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.StringUtils;
 
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.TrustManagerFactory;
+import javax.net.ssl.X509TrustManager;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.Proxy;
 import java.net.URL;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -212,7 +220,18 @@ public abstract class AbstractElasticsearchHttpProcessor extends AbstractElastic
 
         // check if the ssl context is set and add the factory if so
         if (sslContext != null) {
-            okHttpClient.sslSocketFactory(sslContext.getSocketFactory());
+            try {
+                final TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance("X509");
+                trustManagerFactory.init((KeyStore) null);
+                TrustManager[] trustManagers = trustManagerFactory.getTrustManagers();
+                if (trustManagers.length != 1 || !(trustManagers[0] instanceof X509TrustManager)) {
+                    throw new ProcessException("Missing expected trust manager");
+                }
+                X509TrustManager trustManager = (X509TrustManager) trustManagers[0];
+                okHttpClient = new OkHttpClient.Builder().sslSocketFactory(sslContext.getSocketFactory(), trustManager);
+            } catch (NoSuchAlgorithmException | KeyStoreException e) {
+                throw new ProcessException(e);
+            }
         }
 
         okHttpClientAtomicReference.set(okHttpClient.build());
