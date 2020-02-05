@@ -4633,9 +4633,9 @@ public final class StandardProcessGroup implements ProcessGroup {
             processor.setPosition(new Position(proposed.getPosition().getX(), proposed.getPosition().getY()));
 
             if (proposed.getScheduledState() == org.apache.nifi.registry.flow.ScheduledState.DISABLED) {
-                disableProcessor(processor);
+                processor.getProcessGroup().disableProcessor(processor);
             } else if (processor.getScheduledState() == ScheduledState.DISABLED) {
-                enableProcessor(processor);
+                processor.getProcessGroup().enableProcessor(processor);
             }
 
             if (!isEqual(processor.getBundleCoordinate(), proposed.getBundle())) {
