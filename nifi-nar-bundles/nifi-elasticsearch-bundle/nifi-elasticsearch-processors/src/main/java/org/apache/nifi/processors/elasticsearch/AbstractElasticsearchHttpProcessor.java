@@ -44,6 +44,8 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.Proxy;
@@ -51,6 +53,7 @@ import java.net.URL;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -220,9 +223,26 @@ public abstract class AbstractElasticsearchHttpProcessor extends AbstractElastic
 
         // check if the ssl context is set and add the factory if so
         if (sslContext != null) {
+            KeyStore trustStore = null;
+
+            if (sslService.isTrustStoreConfigured()) {
+                final String trustStoreFile = sslService.getTrustStoreFile();
+                final String trustStorePassword = sslService.getTrustStorePassword();
+                final String trustStoreType = sslService.getTrustStoreType();
+                char[] trustStorePass = new char[0];
+                if (!StringUtils.isBlank(trustStorePassword)) {
+                    trustStorePass = trustStorePassword.toCharArray();
+                }
+                try {
+                    trustStore = KeyStore.getInstance(trustStoreType);
+                    trustStore.load(new FileInputStream(trustStoreFile), trustStorePass);
+                } catch (KeyStoreException | CertificateException | NoSuchAlgorithmException | IOException e) {
+                    throw new ProcessException(e);
+                }
+            }
             try {
                 final TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance("X509");
-                trustManagerFactory.init((KeyStore) null);
+                trustManagerFactory.init(trustStore);
                 TrustManager[] trustManagers = trustManagerFactory.getTrustManagers();
                 if (trustManagers.length != 1 || !(trustManagers[0] instanceof X509TrustManager)) {
                     throw new ProcessException("Missing expected trust manager");
