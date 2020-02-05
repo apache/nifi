@@ -24,6 +24,7 @@ import com.datastax.driver.core.querybuilder.Assignment;
 import com.datastax.driver.core.querybuilder.Insert;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.core.querybuilder.Update;
+import com.google.common.collect.Sets;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
@@ -54,6 +55,7 @@ import org.apache.nifi.util.StopWatch;
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -255,14 +257,9 @@ public class PutCassandraRecord extends AbstractCassandraProcessor {
                 throw new IllegalArgumentException(format("Statement Type is not specified, FlowFile %s", inputFlowFile));
             }
 
-            // throw an exception if the statement type is set to update and updateMethod or updateKeys is empty
-            if (UPDATE_TYPE.getValue().equalsIgnoreCase(statementType)) {
-                if (StringUtils.isEmpty(updateMethod)) {
-                    throw new IllegalArgumentException(format("Update Method is not specified, FlowFile %s", inputFlowFile));
-                }
-                if (StringUtils.isEmpty(updateKeys)) {
+            // throw an exception if the statement type is set to update and updateKeys is empty
+            if (UPDATE_TYPE.getValue().equalsIgnoreCase(statementType) && StringUtils.isEmpty(updateKeys)) {
                     throw new IllegalArgumentException(format("Update Keys are not specified, FlowFile %s", inputFlowFile));
-                }
             }
 
             // throw an exception if the Update Method is Increment or Decrement and the batch statement type is not UNLOGGED or COUNTER
@@ -388,22 +385,18 @@ public class PutCassandraRecord extends AbstractCassandraProcessor {
         String statementType = validationContext.getProperty(STATEMENT_TYPE).getValue();
 
         if (UPDATE_TYPE.getValue().equalsIgnoreCase(statementType)) {
-            // Check that update keys and update method are set
+            // Check that update keys are set
             String updateKeys = validationContext.getProperty(UPDATE_KEYS).getValue();
             String updateMethod = validationContext.getProperty(UPDATE_METHOD).getValue();
             if (StringUtils.isEmpty(updateKeys)) {
                 results.add(new ValidationResult.Builder().subject("Update statement configuration").valid(false).explanation(
                         "if the Statement Type is set to Update, then the Update Keys must be specified as well").build());
             }
-            if (StringUtils.isEmpty(updateMethod)) {
-                results.add(new ValidationResult.Builder().subject("Update statement configuration").valid(false).explanation(
-                        "if the Statement Type is set to Update, then the Update Method must be specified as well").build());
-            }
 
             // Check that if the update method is set to increment or decrement that the batch statement type is set to
             // unlogged or counter (or USE_ATTR_TYPE, which we cannot check at this point).
             String batchStatementType = validationContext.getProperty(BATCH_STATEMENT_TYPE).getValue();
-            if (!Set.of(COUNTER_TYPE.getValue(), UNLOGGED_TYPE.getValue(), BATCH_STATEMENT_TYPE_USE_ATTR_TYPE.getValue()).contains(batchStatementType)) {
+            if (!Sets.newHashSet(COUNTER_TYPE.getValue(), UNLOGGED_TYPE.getValue(), BATCH_STATEMENT_TYPE_USE_ATTR_TYPE.getValue()).contains(batchStatementType)) {
                 results.add(new ValidationResult.Builder().subject("Update method configuration").valid(false).explanation(
                         "if the Update Method is set to Increment or Decrement, then the Batch Statement Type must be set " +
                                 "to either COUNTER or UNLOGGED").build());
