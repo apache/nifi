@@ -183,7 +183,7 @@ public class DatabaseRecordLookupService extends AbstractDatabaseLookupService i
 
                 // If Avro Schema is given use it instead of invoke the schema
                 RecordSchema schema = null;
-                final String avroSchemaText = getProperty(JDBC_AVRO_SCHEMA).evaluateAttributeExpressions().getValue();
+                final String avroSchemaText = getProperty(JDBC_AVRO_SCHEMA).evaluateAttributeExpressions(context).getValue();
                 if(avroSchemaText != null)
                     schema = AvroTypeUtil.createSchema(new Schema.Parser().parse(avroSchemaText));
 
