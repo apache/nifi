@@ -132,11 +132,17 @@ attribute within the `CoreAttributes` enum.
 
 - Filename ("filename"): The filename of the FlowFile. The filename should not contain any directory structure.
 
+- File Size ("fileSize"): The file size of the FlowFile in bytes.
+
 - UUID ("uuid"): A Universally Unique Identifier assigned to this FlowFile that distinguishes the FlowFile from other FlowFiles in the system.
 
 - Path ("path"): The FlowFile's path indicates the relative directory to which a FlowFile belongs and does not contain the filename.
 
 - Absolute Path ("absolute.path"): The FlowFile's absolute path indicates the absolute directory to which a FlowFile belongs and does not contain the filename.
+
+- Entry Date ("entryDate"): The date and time at which the FlowFile entered the system (i.e., was created). The value of this attribute is a number that represents the number of milliseconds since midnight, Jan. 1, 1970 (UTC).
+
+- Lineage Start Date ("lineageStartDate"): Any time that a FlowFile is cloned, merged, or split, this results in a "child" FlowFile being created. As those children are then cloned, merged, or split, a chain of ancestors is built. This value represents the date and time at which the oldest ancestor entered the system. Another way to think about this is that this attribute represents the latency of the FlowFile through the system. The value is a number that represents the number of milliseconds since midnight, Jan. 1, 1970 (UTC).
 
 - Priority ("priority"): A numeric value indicating the FlowFile priority.
 
