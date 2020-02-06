@@ -3928,6 +3928,10 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
     })
     public Response initiateReplaceProcessGroup(@ApiParam(value = "The process group id.", required = true) @PathParam("id") final String groupId,
                                                 @ApiParam(value = "The process group replace request entity", required = true) final ProcessGroupImportEntity importEntity) {
+        if (importEntity == null) {
+            throw new IllegalArgumentException("Process Group Import Entity is required");
+        }
+
         // replacing a flow under version control is not permitted via import. Versioned flows have additional requirements to allow
         // them only to be replaced by a different version of the same flow.
         if (serviceFacade.isAnyProcessGroupUnderVersionControl(groupId)) {
@@ -3946,7 +3950,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
         sanitizeRegistryInfo(versionedFlowSnapshot.getFlowContents());
 
         return initiateFlowUpdate(groupId, importEntity, true, "replace-requests",
-                "/nifi-api/process-groups/" + groupId + "/replace", importEntity::getVersionedFlowSnapshot);
+                "/nifi-api/process-groups/" + groupId + "/flow-contents", importEntity::getVersionedFlowSnapshot);
     }
 
     /**
@@ -3963,7 +3967,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
     }
 
     /**
-     * Replace the Process Group with the given ID with the specified Process Group.
+     * Replace the Process Group contents with the given ID with the specified Process Group contents.
      *
      * This is the endpoint used in a cluster update replication scenario.
      *
@@ -3974,9 +3978,9 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
     @PUT
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    @Path("{id}/replace")
+    @Path("{id}/flow-contents")
     @ApiOperation(
-            value = "Replace Process Group with the given ID with the specified Process Group",
+            value = "Replace Process Group contents with the given ID with the specified Process Group contents",
             response = ProcessGroupImportEntity.class,
             notes = "This endpoint is used for replication within a cluster, when replacing a flow with a new flow. It expects that the flow being"
                     + "replaced is not under version control and that the given snapshot will not modify any Processor that is currently running "
@@ -3995,8 +3999,11 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
     })
     public Response replaceProcessGroup(@ApiParam(value = "The process group id.", required = true) @PathParam("id") final String groupId,
                                         @ApiParam(value = "The process group replace request entity.", required = true) final ProcessGroupImportEntity importEntity) {
-
         // Verify the request
+        if (importEntity == null) {
+            throw new IllegalArgumentException("Process Group Import Entity is required");
+        }
+
         final RevisionDTO revisionDto = importEntity.getProcessGroupRevision();
         if (revisionDto == null) {
             throw new IllegalArgumentException("Process Group Revision must be specified.");
@@ -4114,7 +4121,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
                                                    final boolean verifyNotModified, final boolean updateDescendantVersionedFlows) {
         logger.info("Replacing Process Group with ID {} with imported Process Group with ID {}", groupId, flowSnapshot.getFlowContents().getIdentifier());
 
-        // Step 10-11. Update Process Group to the new flow (including name) and update variable registry with any Variables that were added or removed
+        // Update Process Group to the new flow (including name) and update variable registry with any Variables that were added or removed
         return serviceFacade.updateProcessGroupContents(revision, groupId, null, flowSnapshot, idGenerationSeed, verifyNotModified,
                 true, updateDescendantVersionedFlows);
     }
