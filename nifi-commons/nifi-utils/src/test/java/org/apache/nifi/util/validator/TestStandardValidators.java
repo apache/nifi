@@ -16,18 +16,19 @@
  */
 package org.apache.nifi.util.validator;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+
+import java.util.concurrent.TimeUnit;
+
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.junit.Test;
 import org.mockito.Mockito;
-
-import java.util.concurrent.TimeUnit;
-
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
 
 public class TestStandardValidators {
 
@@ -102,7 +103,8 @@ public class TestStandardValidators {
 
     @Test
     public void testTimePeriodValidator() {
-        Validator val = StandardValidators.createTimePeriodValidator(1L, TimeUnit.SECONDS, Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+        Validator val = StandardValidators
+            .createTimePeriodValidator(1L, TimeUnit.SECONDS, Long.MAX_VALUE, TimeUnit.NANOSECONDS);
         ValidationResult vr;
 
         final ValidationContext validationContext = Mockito.mock(ValidationContext.class);
@@ -159,90 +161,133 @@ public class TestStandardValidators {
 
     @Test
     public void testListValidator() {
-        Validator val = StandardValidators.createListValidator(true, false, StandardValidators.NON_EMPTY_VALIDATOR);
+        // use the TestMockValidator to be sure the item validator get's called when we think it should
+        // note that it will reset the count after every get call.
+        // note that we fail fast, so if there are 3 items, and the second fails validation, the call
+        // count will be 2
+        InstrumentedStandardValidator mockValidator = new InstrumentedStandardValidator(StandardValidators.NON_EMPTY_VALIDATOR, true);
+        Validator val = StandardValidators.createListValidator(true, false, mockValidator);
         ValidationResult vr;
 
         final ValidationContext validationContext = Mockito.mock(ValidationContext.class);
 
         vr = val.validate("List", null, validationContext);
         assertFalse(vr.isValid());
+        assertEquals(0, mockValidator.getValidateCallCount());
 
         vr = val.validate("List", "", validationContext);
         assertFalse(vr.isValid());
+        assertEquals(1, mockValidator.getValidateCallCount());
 
         // Whitespace will be trimmed
         vr = val.validate("List", " ", validationContext);
         assertFalse(vr.isValid());
+        assertEquals(1, mockValidator.getValidateCallCount());
 
         vr = val.validate("List", "1", validationContext);
         assertTrue(vr.isValid());
+        assertEquals(1, mockValidator.getValidateCallCount());
 
         vr = val.validate("List", "1,2,3", validationContext);
         assertTrue(vr.isValid());
+        assertEquals(3, mockValidator.getValidateCallCount());
 
         // The parser will not bother with whitespace after the last comma
         vr = val.validate("List", "a,", validationContext);
         assertTrue(vr.isValid());
+        assertEquals(1, mockValidator.getValidateCallCount());
 
         // However it will bother if there is an empty element in the list (two commas in a row, e.g.)
         vr = val.validate("List", "a,,c", validationContext);
         assertFalse(vr.isValid());
+        assertEquals(2, mockValidator.getValidateCallCount());
 
         vr = val.validate("List", "a,  ,c, ", validationContext);
         assertFalse(vr.isValid());
+        assertEquals(2, mockValidator.getValidateCallCount());
 
         // Try without trim and use a non-blank validator instead of a non-empty one
-        val = StandardValidators.createListValidator(false, true, StandardValidators.NON_BLANK_VALIDATOR);
+        //
+        // use the TestMockValidator to be sure the item validator get's called when we think it should
+        // note that it will reset the count after every get call.
+        // note that we fail fast, so if there are 3 items, and the second fails validation, the call
+        // count will be 2
+        mockValidator = new InstrumentedStandardValidator(StandardValidators.NON_BLANK_VALIDATOR, true);
+        val = StandardValidators.createListValidator(false, true, mockValidator);
 
         vr = val.validate("List", null, validationContext);
         assertFalse(vr.isValid());
+        assertEquals(0, mockValidator.getValidateCallCount());
 
-        // Validator will ignore empty entries
+        // List Validator will ignore empty entries
         vr = val.validate("List", "", validationContext);
         assertTrue(vr.isValid());
+        assertEquals(0, mockValidator.getValidateCallCount());
 
         // Whitespace will not be trimmed, but it is still invalid because a non-blank validator is used
         vr = val.validate("List", " ", validationContext);
         assertFalse(vr.isValid());
+        assertEquals(1, mockValidator.getValidateCallCount());
 
         vr = val.validate("List", "a,,c", validationContext);
         assertTrue(vr.isValid());
+        assertEquals(2, mockValidator.getValidateCallCount());
 
         vr = val.validate("List", "a,  ,c, ", validationContext);
         assertFalse(vr.isValid());
+        assertEquals(2, mockValidator.getValidateCallCount());
 
         // Try without trim and use a non-empty validator
-        val = StandardValidators.createListValidator(false, false, StandardValidators.NON_EMPTY_VALIDATOR);
+        // use the TestMockValidator to be sure the item validator get's called when we think it should
+        // note that it will reset the count after every get call.
+        // note that we fail fast, so if there are 3 items, and the second fails validation, the call
+        // count will be 2
+        mockValidator = new InstrumentedStandardValidator(StandardValidators.NON_EMPTY_VALIDATOR, true);
+        val = StandardValidators.createListValidator(false, false, mockValidator);
 
         vr = val.validate("List", null, validationContext);
         assertFalse(vr.isValid());
+        assertEquals(0, mockValidator.getValidateCallCount());
 
         vr = val.validate("List", "", validationContext);
         assertFalse(vr.isValid());
+        assertEquals(1, mockValidator.getValidateCallCount());
 
         // Whitespace will not be trimmed
         vr = val.validate("List", " ", validationContext);
         assertTrue(vr.isValid());
+        assertEquals(1, mockValidator.getValidateCallCount());
 
         vr = val.validate("List", "a,  ,c, ", validationContext);
         assertTrue(vr.isValid());
+        assertEquals(4, mockValidator.getValidateCallCount());
 
-        // Try with trim and use a boolean validator
-        val = StandardValidators.createListValidator(true, true, StandardValidators.BOOLEAN_VALIDATOR);
+        // Try with trim and use a boolean validator // Try without trim and use a non-empty validator
+        // use the TestMockValidator to be sure the item validator get's called when we think it should
+        // note that it will reset the count after every get call.
+        // note that we fail fast, so if there are 3 items, and the second fails validation, the call
+        //  count will be 2
+        mockValidator = new InstrumentedStandardValidator(StandardValidators.BOOLEAN_VALIDATOR, true);
+        val = StandardValidators.createListValidator(true, true, mockValidator);
         vr = val.validate("List", "notbool", validationContext);
         assertFalse(vr.isValid());
+        assertEquals(1, mockValidator.getValidateCallCount());
 
         vr = val.validate("List", "    notbool \n   ", validationContext);
         assertFalse(vr.isValid());
+        assertEquals(1, mockValidator.getValidateCallCount());
 
         vr = val.validate("List", "true", validationContext);
         assertTrue(vr.isValid());
+        assertEquals(1, mockValidator.getValidateCallCount());
 
         vr = val.validate("List", "    true   \n   ", validationContext);
         assertTrue(vr.isValid());
+        assertEquals(1, mockValidator.getValidateCallCount());
 
         vr = val.validate("List", " , false,  true,\n", validationContext);
         assertTrue(vr.isValid());
+        assertEquals(2, mockValidator.getValidateCallCount());
     }
 
     @Test
