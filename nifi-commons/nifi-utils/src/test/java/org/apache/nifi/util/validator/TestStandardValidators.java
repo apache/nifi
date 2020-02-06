@@ -188,6 +188,9 @@ public class TestStandardValidators {
         vr = val.validate("List", ",", validationContext);
         assertFalse(vr.isValid());
 
+        vr = val.validate("List", " , ", validationContext);
+        assertFalse(vr.isValid());
+
         // will evaluate to no entry
         vr = val.validate("List", ",,,,", validationContext);
         assertFalse(vr.isValid());
