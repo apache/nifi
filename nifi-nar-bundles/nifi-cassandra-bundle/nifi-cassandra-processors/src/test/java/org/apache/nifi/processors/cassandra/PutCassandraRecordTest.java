@@ -444,6 +444,34 @@ public class PutCassandraRecordTest {
     }
 
     @Test
+    public void testUpdateWithAttributesEmptyUpdateMethodAttribute() throws InitializationException {
+        setUpStandardTestConfig();
+        testRunner.setProperty(PutCassandraRecord.STATEMENT_TYPE, PutCassandraRecord.UPDATE_TYPE);
+        testRunner.setProperty(PutCassandraRecord.UPDATE_METHOD, PutCassandraRecord.UPDATE_METHOD_USE_ATTR_TYPE);
+        testRunner.setProperty(PutCassandraRecord.UPDATE_KEYS, "name,age");
+        testRunner.setProperty(PutCassandraRecord.BATCH_STATEMENT_TYPE, PutCassandraRecord.COUNTER_TYPE);
+
+        testRunner.assertValid();
+
+        recordReader.addSchemaField("name", RecordFieldType.STRING);
+        recordReader.addSchemaField("age", RecordFieldType.INT);
+        recordReader.addSchemaField("goals", RecordFieldType.LONG);
+
+        recordReader.addRecord("John Doe", 48, 1L);
+        recordReader.addRecord("Jane Doe", 47, 1L);
+        recordReader.addRecord("Sally Doe", 47, 1L);
+
+        HashMap<String, String> attributes = new HashMap<>();
+        attributes.put("cql.update.method", "");
+        testRunner.enqueue("", attributes);
+        testRunner.run();
+
+        testRunner.assertTransferCount(PutCassandraRecord.REL_FAILURE, 1);
+        testRunner.assertTransferCount(PutCassandraRecord.REL_SUCCESS, 0);
+        testRunner.assertTransferCount(PutCassandraRecord.REL_RETRY, 0);
+    }
+
+    @Test
     public void testEL() throws InitializationException {
         testRunner.setProperty(PutCassandraRecord.CONTACT_POINTS, "${contact.points}");
         testRunner.setProperty(PutCassandraRecord.PASSWORD, "${pass}");
