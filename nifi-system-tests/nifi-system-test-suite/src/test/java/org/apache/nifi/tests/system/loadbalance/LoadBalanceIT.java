@@ -31,6 +31,7 @@ import org.apache.nifi.web.api.dto.status.NodeConnectionStatusSnapshotDTO;
 import org.apache.nifi.web.api.entity.ClusterEntity;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.ConnectionStatusEntity;
+import org.apache.nifi.web.api.entity.FlowFileEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.junit.Assert;
 import org.junit.Test;
@@ -38,8 +39,10 @@ import org.junit.Test;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LongSummaryStatistics;
 import java.util.Map;
+import java.util.Set;
 
 import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.assertEquals;
@@ -155,6 +158,64 @@ public class LoadBalanceIT extends NiFiSystemIT {
 
         // Number of empty nodes should be one less than total number of nodes.
         assertEquals(numNodes - 1, emptyNodes);
+    }
+
+    @Test
+    public void testPartitionByAttribute() throws NiFiClientException, IOException, InterruptedException {
+        final ProcessorEntity generate = getClientUtil().createProcessor("GenerateFlowFile");
+        final ProcessorEntity count = getClientUtil().createProcessor("CountEvents");
+
+        final ConnectionEntity connection = getClientUtil().createConnection(generate, count, "success");
+        getClientUtil().setAutoTerminatedRelationships(count, "success");
+
+        // Configure Processor to generate 10 FlowFiles, each 1 MB, on each node, for a total of 20 FlowFiles.
+        final Map<String, String> generateProperties = new HashMap<>();
+        generateProperties.put("File Size", "1 MB");
+        generateProperties.put("Batch Size", "10");
+        generateProperties.put("number", "0");
+        getClientUtil().updateProcessorProperties(generate, generateProperties);
+        getClientUtil().updateProcessorExecutionNode(generate, ExecutionNode.PRIMARY);
+
+        // Round Robin between nodes. This should result in 10 FlowFiles on each node.
+        getClientUtil().updateConnectionLoadBalancing(connection, LoadBalanceStrategy.PARTITION_BY_ATTRIBUTE, LoadBalanceCompression.DO_NOT_COMPRESS, "number");
+
+        // Queue 100 FlowFiles. 10 with number=0, 10 with number=1, 10 with number=2, etc. to up 10 with number=9
+        for (int i=1; i <= 10; i++) {
+            // Generate the data.
+            getNifiClient().getProcessorClient().startProcessor(generate);
+
+            final int expectedQueueSize = 10 * i;
+
+            // Wait until all 10 FlowFiles are queued up.
+            waitFor(() -> {
+                final ConnectionStatusEntity statusEntity = getConnectionStatus(connection.getId());
+                return statusEntity.getConnectionStatus().getAggregateSnapshot().getFlowFilesQueued() == expectedQueueSize;
+            });
+
+
+            getNifiClient().getProcessorClient().stopProcessor(generate);
+            getClientUtil().waitForStoppedProcessor(generate.getId());
+
+            generateProperties.put("number", String.valueOf(i));
+            getClientUtil().updateProcessorProperties(generate, generateProperties);
+        }
+
+        // Wait until load balancing is complete
+        waitFor(() -> isConnectionDoneLoadBalancing(connection.getId()));
+
+        final Map<String, Set<String>> nodesByAttribute = new HashMap<>();
+        for (int i=0; i < 100; i++) {
+            final FlowFileEntity flowFile = getClientUtil().getQueueFlowFile(connection.getId(), i);
+            final String numberValue = flowFile.getFlowFile().getAttributes().get("number");
+            final Set<String> nodes = nodesByAttribute.computeIfAbsent(numberValue, key -> new HashSet<>());
+            nodes.add(flowFile.getFlowFile().getClusterNodeId());
+        }
+
+        assertEquals(10, nodesByAttribute.size());
+        for (final Map.Entry<String, Set<String>> entry : nodesByAttribute.entrySet()) {
+            final Set<String> nodes = entry.getValue();
+            assertEquals("FlowFile with attribute number=" + entry.getKey() + " went to nodes " + nodes, 1, nodes.size());
+        }
     }
 
     @Test
