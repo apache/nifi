@@ -95,7 +95,7 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>com.squareup.okhttp3</groupId>
             <artifactId>okhttp</artifactId>
-            <version>3.3.1</version>
+            <version>3.14.4</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
