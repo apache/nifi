@@ -16,10 +16,11 @@
  */
 package org.apache.nifi.proxy;
 
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.context.PropertyContext;
+import static org.apache.nifi.proxy.ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE;
+import static org.apache.nifi.proxy.ProxySpec.HTTP;
+import static org.apache.nifi.proxy.ProxySpec.HTTP_AUTH;
+import static org.apache.nifi.proxy.ProxySpec.SOCKS;
+import static org.apache.nifi.proxy.ProxySpec.SOCKS_AUTH;
 
 import java.net.InetSocketAddress;
 import java.net.Proxy;
@@ -28,12 +29,10 @@ import java.util.Collection;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-
-import static org.apache.nifi.proxy.ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE;
-import static org.apache.nifi.proxy.ProxySpec.HTTP;
-import static org.apache.nifi.proxy.ProxySpec.HTTP_AUTH;
-import static org.apache.nifi.proxy.ProxySpec.SOCKS;
-import static org.apache.nifi.proxy.ProxySpec.SOCKS_AUTH;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.context.PropertyContext;
 
 public class ProxyConfiguration {
 
@@ -202,6 +201,15 @@ public class ProxyConfiguration {
      */
     public Proxy createProxy() {
         return Proxy.Type.DIRECT.equals(proxyType) ? Proxy.NO_PROXY : new Proxy(proxyType, new InetSocketAddress(proxyServerHost, proxyServerPort));
+    }
+
+    /**
+     * Returns {@code true} if the {@link #getProxyServerHost()} and {@link #getProxyServerPort()} are non-null.
+     *
+     * @return true if the proxy can be created from this configuration
+     */
+    public boolean isValid() {
+        return proxyServerHost != null && proxyServerPort != null;
     }
 
 }

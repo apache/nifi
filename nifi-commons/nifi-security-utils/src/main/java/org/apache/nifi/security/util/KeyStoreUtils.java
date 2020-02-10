@@ -68,7 +68,7 @@ public class KeyStoreUtils {
                 return KeyStore.getInstance(keyStoreType, keyStoreProvider);
             } catch (Exception e) {
                 logger.error("Unable to load " + keyStoreProvider + " " + keyStoreType
-                        + " keystore.  This may cause issues getting trusted CA certificates as well as Certificate Chains for use in TLS.", e);
+                        + " keystore. This may cause issues getting trusted CA certificates as well as Certificate Chains for use in TLS.", e);
             }
         }
         return KeyStore.getInstance(keyStoreType);

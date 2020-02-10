@@ -18,13 +18,21 @@ package org.apache.nifi.processors.elasticsearch;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import okhttp3.Authenticator;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 import okhttp3.Credentials;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
-import okhttp3.Route;
 import org.apache.commons.text.StringEscapeUtils;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
@@ -34,22 +42,10 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processor.util.http.OkHttpUtils;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxySpec;
-import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.StringUtils;
-
-import javax.net.ssl.SSLContext;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.Proxy;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * A base class for Elasticsearch processors that use the HTTP API
@@ -167,53 +163,18 @@ public abstract class AbstractElasticsearchHttpProcessor extends AbstractElastic
     protected void createElasticsearchClient(ProcessContext context) throws ProcessException {
         okHttpClientAtomicReference.set(null);
 
-        OkHttpClient.Builder okHttpClient = new OkHttpClient.Builder();
+        // Construct the PD mapping so the utility class can retrieve the proper values from the context
+        Map<String, String> pdMap = new HashMap<>();
+        pdMap.put(OkHttpUtils.PROXY_HOST_NAME, PROXY_HOST.getName());
+        pdMap.put(OkHttpUtils.PROXY_PORT_NAME, PROXY_PORT.getName());
+        pdMap.put(OkHttpUtils.PROXY_USERNAME_NAME, PROXY_USERNAME.getName());
+        pdMap.put(OkHttpUtils.PROXY_PASSWORD_NAME, PROXY_PASSWORD.getName());
+        pdMap.put(OkHttpUtils.CONNECTION_TIMEOUT_NAME, CONNECT_TIMEOUT.getName());
+        pdMap.put(OkHttpUtils.READ_TIMEOUT_NAME, RESPONSE_TIMEOUT.getName());
+        pdMap.put(OkHttpUtils.SSL_CS_NAME, PROP_SSL_CONTEXT_SERVICE.getName());
 
-        // Add a proxy if set
-        final ProxyConfiguration proxyConfig = ProxyConfiguration.getConfiguration(context, () -> {
-            final String proxyHost = context.getProperty(PROXY_HOST).evaluateAttributeExpressions().getValue();
-            final Integer proxyPort = context.getProperty(PROXY_PORT).evaluateAttributeExpressions().asInteger();
-            if (proxyHost != null && proxyPort != null) {
-                final ProxyConfiguration componentProxyConfig = new ProxyConfiguration();
-                componentProxyConfig.setProxyType(Proxy.Type.HTTP);
-                componentProxyConfig.setProxyServerHost(proxyHost);
-                componentProxyConfig.setProxyServerPort(proxyPort);
-                componentProxyConfig.setProxyUserName(context.getProperty(PROXY_USERNAME).evaluateAttributeExpressions().getValue());
-                componentProxyConfig.setProxyUserPassword(context.getProperty(PROXY_PASSWORD).evaluateAttributeExpressions().getValue());
-                return componentProxyConfig;
-            }
-            return ProxyConfiguration.DIRECT_CONFIGURATION;
-        });
-
-        if (!Proxy.Type.DIRECT.equals(proxyConfig.getProxyType())) {
-            final Proxy proxy = proxyConfig.createProxy();
-            okHttpClient.proxy(proxy);
-
-            if (proxyConfig.hasCredential()){
-                okHttpClient.proxyAuthenticator(new Authenticator() {
-                    @Override
-                    public Request authenticate(Route route, Response response) throws IOException {
-                        final String credential=Credentials.basic(proxyConfig.getProxyUserName(), proxyConfig.getProxyUserPassword());
-                        return response.request().newBuilder()
-                                .header("Proxy-Authorization", credential)
-                                .build();
-                    }
-                });
-            }
-        }
-
-
-        // Set timeouts
-        okHttpClient.connectTimeout((context.getProperty(CONNECT_TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS).intValue()), TimeUnit.MILLISECONDS);
-        okHttpClient.readTimeout(context.getProperty(RESPONSE_TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS).intValue(), TimeUnit.MILLISECONDS);
-
-        final SSLContextService sslService = context.getProperty(PROP_SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
-        final SSLContext sslContext = sslService == null ? null : sslService.createSSLContext(SSLContextService.ClientAuth.NONE);
-
-        // check if the ssl context is set and add the factory if so
-        if (sslContext != null) {
-            okHttpClient.sslSocketFactory(sslContext.getSocketFactory());
-        }
+        // Delegate the construction to the utility class
+        OkHttpClient.Builder okHttpClient = OkHttpUtils.buildOkHttpClientFromProcessorConfig(context, pdMap);
 
         okHttpClientAtomicReference.set(okHttpClient.build());
     }
@@ -221,7 +182,7 @@ public abstract class AbstractElasticsearchHttpProcessor extends AbstractElastic
     @Override
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
         List<ValidationResult> results = new ArrayList<>(super.customValidate(validationContext));
-        if(validationContext.getProperty(PROXY_HOST).isSet() != validationContext.getProperty(PROXY_PORT).isSet()) {
+        if (validationContext.getProperty(PROXY_HOST).isSet() != validationContext.getProperty(PROXY_PORT).isSet()) {
             results.add(new ValidationResult.Builder()
                     .valid(false)
                     .explanation("Proxy Host and Proxy Port must be both set or empty")
@@ -257,7 +218,7 @@ public abstract class AbstractElasticsearchHttpProcessor extends AbstractElastic
             throw new IllegalArgumentException("Elasticsearch REST API verb not supported by this processor: " + verb);
         }
 
-        if(!StringUtils.isEmpty(username) && !StringUtils.isEmpty(password)) {
+        if (!StringUtils.isEmpty(username) && !StringUtils.isEmpty(password)) {
             String credential = Credentials.basic(username, password);
             requestBuilder = requestBuilder.header("Authorization", credential);
         }

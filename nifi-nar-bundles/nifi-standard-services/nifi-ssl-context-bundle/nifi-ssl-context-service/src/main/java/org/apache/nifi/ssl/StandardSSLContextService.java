@@ -39,7 +39,9 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.security.util.KeyStoreUtils;
 import org.apache.nifi.security.util.KeystoreType;
+import org.apache.nifi.security.util.SSLConfig;
 import org.apache.nifi.security.util.SslContextFactory;
+import org.apache.nifi.security.util.StandardSSLConfig;
 import org.apache.nifi.util.StringUtils;
 
 @Tags({"ssl", "secure", "certificate", "keystore", "truststore", "jks", "p12", "pkcs12", "pkcs", "tls"})
@@ -306,6 +308,20 @@ public class StandardSSLContextService extends AbstractControllerService impleme
         return configContext.getProperty(SSL_ALGORITHM).getValue();
     }
 
+    @Override
+    public SSLConfig getSSLConfig() {
+        SSLConfig sslConfig = new StandardSSLConfig();
+        sslConfig.setKeystorePath(getKeyStoreFile());
+        sslConfig.setKeystorePassword(getKeyStorePassword());
+        sslConfig.setKeyPassword(getKeyPassword());
+        sslConfig.setKeystoreType(getKeyStoreType());
+        sslConfig.setTruststorePath(getTrustStoreFile());
+        sslConfig.setTruststorePassword(getTrustStorePassword());
+        sslConfig.setTruststoreType(getTrustStoreType());
+        sslConfig.setProtocol(getSslAlgorithm());
+        return sslConfig;
+    }
+
     /**
      * Returns a list of {@link ValidationResult}s for the provided
      * keystore/truststore properties. Called during
@@ -420,9 +436,9 @@ public class StandardSSLContextService extends AbstractControllerService impleme
      * Returns a list of {@link ValidationResult}s when validating an actual JKS or PKCS12 file on disk. Verifies the
      * file permissions and existence, and attempts to open the file given the provided password.
      *
-     * @param filename     the path of the file on disk
-     * @param password     the file password
-     * @param type         the type (JKS or PKCS12)
+     * @param filename the path of the file on disk
+     * @param password the file password
+     * @param type     the type (JKS or PKCS12)
      * @return the list of validation results (empty is valid)
      */
     private static List<ValidationResult> validateTruststoreFile(String filename, String password, String type) {
@@ -466,10 +482,10 @@ public class StandardSSLContextService extends AbstractControllerService impleme
      * Returns a list of {@link ValidationResult}s when validating an actual JKS or PKCS12 file on disk. Verifies the
      * file permissions and existence, and attempts to open the file given the provided (keystore or key) password.
      *
-     * @param filename     the path of the file on disk
-     * @param password     the file password
-     * @param keyPassword  the (optional) key-specific password
-     * @param type         the type (JKS or PKCS12)
+     * @param filename    the path of the file on disk
+     * @param password    the file password
+     * @param keyPassword the (optional) key-specific password
+     * @param type        the type (JKS or PKCS12)
      * @return the list of validation results (empty is valid)
      */
     private static List<ValidationResult> validateKeystoreFile(String filename, String password, String keyPassword, String type) {

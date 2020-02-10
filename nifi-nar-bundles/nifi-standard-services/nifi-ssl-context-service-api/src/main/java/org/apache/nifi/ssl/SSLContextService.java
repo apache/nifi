@@ -23,14 +23,13 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
 import javax.net.ssl.SSLContext;
-
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.security.util.SSLConfig;
 
 /**
  * Definition for SSLContextService.
@@ -41,32 +40,33 @@ import org.apache.nifi.processor.exception.ProcessException;
         + "that configuration throughout the application")
 public interface SSLContextService extends ControllerService {
 
-    public static enum ClientAuth {
+    // TODO: Replace all uses with SSLContextFactory.ClientAuth
+    enum ClientAuth {
 
         WANT,
         REQUIRED,
         NONE
     }
 
-    public SSLContext createSSLContext(final ClientAuth clientAuth) throws ProcessException;
+    SSLContext createSSLContext(final ClientAuth clientAuth) throws ProcessException;
 
-    public String getTrustStoreFile();
+    String getTrustStoreFile();
 
-    public String getTrustStoreType();
+    String getTrustStoreType();
 
-    public String getTrustStorePassword();
+    String getTrustStorePassword();
 
-    public boolean isTrustStoreConfigured();
+    boolean isTrustStoreConfigured();
 
-    public String getKeyStoreFile();
+    String getKeyStoreFile();
 
-    public String getKeyStoreType();
+    String getKeyStoreType();
 
-    public String getKeyStorePassword();
+    String getKeyStorePassword();
 
-    public String getKeyPassword();
+    String getKeyPassword();
 
-    public boolean isKeyStoreConfigured();
+    boolean isKeyStoreConfigured();
 
     String getSslAlgorithm();
 
@@ -104,4 +104,6 @@ public interface SSLContextService extends ControllerService {
         }
         return protocolAllowableValues.toArray(new AllowableValue[numProtocols]);
     }
+
+    SSLConfig getSSLConfig();
 }

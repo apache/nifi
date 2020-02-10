@@ -16,14 +16,12 @@
  */
 package org.apache.nifi.processors.standard.util;
 
+import java.io.IOException;
 import okhttp3.Authenticator;
 import okhttp3.Credentials;
 import okhttp3.Request;
 import okhttp3.Response;
 import okhttp3.Route;
-
-import javax.annotation.Nullable;
-import java.io.IOException;
 
 public class ProxyAuthenticator implements Authenticator {
 
@@ -46,7 +44,6 @@ public class ProxyAuthenticator implements Authenticator {
         this.proxyPassword = proxyPassword;
     }
 
-    @Nullable
     @Override
     public Request authenticate(Route route, Response response) throws IOException {
         String credential = Credentials.basic(proxyUsername, proxyPassword);

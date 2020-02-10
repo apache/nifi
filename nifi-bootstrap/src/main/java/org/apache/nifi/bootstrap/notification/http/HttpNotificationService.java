@@ -28,16 +28,13 @@ import org.apache.nifi.bootstrap.notification.NotificationFailedException;
 import org.apache.nifi.bootstrap.notification.NotificationInitializationContext;
 import org.apache.nifi.bootstrap.notification.NotificationType;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.expression.ExpressionLanguageScope;
-import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.util.Tuple;
 
 import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 import java.util.ArrayList;
@@ -196,12 +193,25 @@ public class HttpNotificationService extends AbstractNotificationService {
         // check if the keystore is set and add the factory if so
         if (url.toLowerCase().startsWith("https")) {
             try {
-                Tuple<SSLSocketFactory, TrustManager[]> sslSocketFactoryWithTrustManagers = getSslSocketFactory(context);
+                Tuple<SSLContext, TrustManager[]> sslContextTuple = SslContextFactory.createTrustSslContextWithTrustManagers(
+                        context.getProperty(HttpNotificationService.PROP_KEYSTORE).getValue(),
+                        context.getProperty(HttpNotificationService.PROP_KEYSTORE_PASSWORD).isSet()
+                                ? context.getProperty(HttpNotificationService.PROP_KEYSTORE_PASSWORD).getValue().toCharArray() : null,
+                        context.getProperty(HttpNotificationService.PROP_KEY_PASSWORD).isSet()
+                                ? context.getProperty(HttpNotificationService.PROP_KEY_PASSWORD).getValue().toCharArray() : null,
+                        context.getProperty(HttpNotificationService.PROP_KEYSTORE_TYPE).getValue(),
+                        context.getProperty(HttpNotificationService.PROP_TRUSTSTORE).getValue(),
+                        context.getProperty(HttpNotificationService.PROP_TRUSTSTORE_PASSWORD).isSet()
+                                ? context.getProperty(HttpNotificationService.PROP_TRUSTSTORE_PASSWORD).getValue().toCharArray() : null,
+                        context.getProperty(HttpNotificationService.PROP_TRUSTSTORE_TYPE).getValue(),
+                        SslContextFactory.ClientAuth.REQUIRED,
+                        context.getProperty(HttpNotificationService.SSL_ALGORITHM).getValue()
+                );
                 // Find the first X509TrustManager
-                List<X509TrustManager> x509TrustManagers = Arrays.stream(sslSocketFactoryWithTrustManagers.getValue())
+                List<X509TrustManager> x509TrustManagers = Arrays.stream(sslContextTuple.getValue())
                         .filter(trustManager -> trustManager instanceof X509TrustManager)
                         .map(trustManager -> (X509TrustManager) trustManager).collect(Collectors.toList());
-                okHttpClientBuilder.sslSocketFactory(sslSocketFactoryWithTrustManagers.getKey(), x509TrustManagers.get(0));
+                okHttpClientBuilder.sslSocketFactory(sslContextTuple.getKey().getSocketFactory(), x509TrustManagers.get(0));
             } catch (Exception e) {
                 throw new IllegalStateException(e);
             }
@@ -247,53 +257,6 @@ public class HttpNotificationService extends AbstractNotificationService {
             throw e;
         } catch (Exception e) {
             throw new NotificationFailedException("Failed to send Http Notification", e);
-        }
-    }
-
-    private static Tuple<SSLSocketFactory, TrustManager[]> getSslSocketFactory(NotificationInitializationContext context) {
-
-        final String protocol = context.getProperty(SSL_ALGORITHM).getValue();
-        try {
-            final PropertyValue keyPasswdProp = context.getProperty(PROP_KEY_PASSWORD);
-            final char[] keyPassword = keyPasswdProp.isSet() ? keyPasswdProp.getValue().toCharArray() : null;
-
-            final Tuple<SSLContext, TrustManager[]> sslContextWithTrustManagers;
-            final String truststoreFile = context.getProperty(PROP_TRUSTSTORE).getValue();
-            final String keystoreFile = context.getProperty(PROP_KEYSTORE).getValue();
-
-            if (keystoreFile == null) {
-                // If keystore not specified, create SSL Context based only on trust store.
-                sslContextWithTrustManagers = SslContextFactory.createTrustSslContextWithTrustManagers(
-                        context.getProperty(PROP_TRUSTSTORE).getValue(),
-                        context.getProperty(PROP_TRUSTSTORE_PASSWORD).getValue().toCharArray(),
-                        context.getProperty(PROP_TRUSTSTORE_TYPE).getValue(),
-                        protocol);
-
-            } else if (truststoreFile == null) {
-                // If truststore not specified, create SSL Context based only on key store.
-                sslContextWithTrustManagers = SslContextFactory.createSslContextWithTrustManagers(
-                        context.getProperty(PROP_KEYSTORE).getValue(),
-                        context.getProperty(PROP_KEYSTORE_PASSWORD).getValue().toCharArray(),
-                        keyPassword,
-                        context.getProperty(PROP_KEYSTORE_TYPE).getValue(),
-                        protocol);
-
-            } else {
-                sslContextWithTrustManagers = SslContextFactory.createSslContextWithTrustManagers(
-                        context.getProperty(PROP_KEYSTORE).getValue(),
-                        context.getProperty(PROP_KEYSTORE_PASSWORD).getValue().toCharArray(),
-                        keyPassword,
-                        context.getProperty(PROP_KEYSTORE_TYPE).getValue(),
-                        context.getProperty(PROP_TRUSTSTORE).getValue(),
-                        context.getProperty(PROP_TRUSTSTORE_PASSWORD).getValue().toCharArray(),
-                        context.getProperty(PROP_TRUSTSTORE_TYPE).getValue(),
-                        SslContextFactory.ClientAuth.REQUIRED,
-                        protocol);
-            }
-
-            return new Tuple<>(sslContextWithTrustManagers.getKey().getSocketFactory(), sslContextWithTrustManagers.getValue());
-        } catch (final Exception e) {
-            throw new ProcessException(e);
         }
     }
 }

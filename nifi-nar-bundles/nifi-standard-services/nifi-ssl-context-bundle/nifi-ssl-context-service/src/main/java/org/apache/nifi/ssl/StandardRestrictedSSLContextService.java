@@ -23,6 +23,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.security.util.SSLConfig;
 
 /**
  * This class is functionally the same as {@link StandardSSLContextService}, but it restricts the allowable
@@ -71,5 +72,13 @@ public class StandardRestrictedSSLContextService extends StandardSSLContextServi
     @Override
     public String getSslAlgorithm() {
         return configContext.getProperty(RESTRICTED_SSL_ALGORITHM).getValue();
+    }
+
+    @Override
+    public SSLConfig getSSLConfig() {
+        SSLConfig sslConfig = super.getSSLConfig();
+        // Ensure we are getting the restricted algorithm value
+        sslConfig.setProtocol(getSslAlgorithm());
+        return sslConfig;
     }
 }

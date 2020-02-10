@@ -113,6 +113,7 @@ public final class CertificateUtils {
         return Collections.unmodifiableMap(orderMap);
     }
 
+    // TODO: Replace all uses with SSLContextFactory.ClientAuth
     public enum ClientAuth {
         NONE(0, "none"),
         WANT(1, "want"),

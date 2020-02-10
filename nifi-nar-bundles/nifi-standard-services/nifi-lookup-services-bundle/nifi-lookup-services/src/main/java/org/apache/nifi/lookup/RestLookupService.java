@@ -17,10 +17,20 @@
 
 package org.apache.nifi.lookup;
 
-import com.burgstaller.okhttp.AuthenticationCacheInterceptor;
-import com.burgstaller.okhttp.CachingAuthenticatorDecorator;
-import com.burgstaller.okhttp.digest.CachingAuthenticator;
-import com.burgstaller.okhttp.digest.DigestAuthenticator;
+import static org.apache.commons.lang3.StringUtils.trimToEmpty;
+
+import java.io.BufferedInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import okhttp3.Credentials;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
@@ -41,6 +51,7 @@ import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processor.util.http.OkHttpUtils;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxyConfigurationService;
 import org.apache.nifi.proxy.ProxySpec;
@@ -58,116 +69,97 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.StringUtils;
 
-import javax.net.ssl.SSLContext;
-import java.io.BufferedInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.Proxy;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-
-import static org.apache.commons.lang3.StringUtils.trimToEmpty;
-
-@Tags({ "rest", "lookup", "json", "xml", "http" })
+@Tags({"rest", "lookup", "json", "xml", "http"})
 @CapabilityDescription("Use a REST service to look up values.")
 @DynamicProperties({
-    @DynamicProperty(name = "*", value = "*", description = "All dynamic properties are added as HTTP headers with the name " +
-            "as the header name and the value as the header value.")
+        @DynamicProperty(name = "*", value = "*", description = "All dynamic properties are added as HTTP headers with the name " +
+                "as the header name and the value as the header value.")
 })
 public class RestLookupService extends AbstractControllerService implements RecordLookupService {
     static final PropertyDescriptor URL = new PropertyDescriptor.Builder()
-        .name("rest-lookup-url")
-        .displayName("URL")
-        .description("The URL for the REST endpoint. Expression language is evaluated against the lookup key/value pairs, " +
-                "not flowfile attributes.")
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-        .required(true)
-        .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-        .build();
+            .name("rest-lookup-url")
+            .displayName("URL")
+            .description("The URL for the REST endpoint. Expression language is evaluated against the lookup key/value pairs, " +
+                    "not flowfile attributes.")
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .required(true)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .build();
 
     static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
-        .name("rest-lookup-record-reader")
-        .displayName("Record Reader")
-        .description("The record reader to use for loading the payload and handling it as a record set.")
-        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
-        .identifiesControllerService(RecordReaderFactory.class)
-        .required(true)
-        .build();
+            .name("rest-lookup-record-reader")
+            .displayName("Record Reader")
+            .description("The record reader to use for loading the payload and handling it as a record set.")
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .identifiesControllerService(RecordReaderFactory.class)
+            .required(true)
+            .build();
 
     static final PropertyDescriptor RECORD_PATH = new PropertyDescriptor.Builder()
-        .name("rest-lookup-record-path")
-        .displayName("Record Path")
-        .description("An optional record path that can be used to define where in a record to get the real data to merge " +
-                "into the record set to be enriched. See documentation for examples of when this might be useful.")
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-        .addValidator(new RecordPathValidator())
-        .required(false)
-        .build();
+            .name("rest-lookup-record-path")
+            .displayName("Record Path")
+            .description("An optional record path that can be used to define where in a record to get the real data to merge " +
+                    "into the record set to be enriched. See documentation for examples of when this might be useful.")
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(new RecordPathValidator())
+            .required(false)
+            .build();
 
     static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
-        .name("rest-lookup-ssl-context-service")
-        .displayName("SSL Context Service")
-        .description("The SSL Context Service used to provide client certificate information for TLS/SSL "
-                + "connections.")
-        .required(false)
-        .identifiesControllerService(SSLContextService.class)
-        .build();
+            .name("rest-lookup-ssl-context-service")
+            .displayName("SSL Context Service")
+            .description("The SSL Context Service used to provide client certificate information for TLS/SSL "
+                    + "connections.")
+            .required(false)
+            .identifiesControllerService(SSLContextService.class)
+            .build();
 
     public static final PropertyDescriptor PROP_BASIC_AUTH_USERNAME = new PropertyDescriptor.Builder()
-        .name("rest-lookup-basic-auth-username")
-        .displayName("Basic Authentication Username")
-        .description("The username to be used by the client to authenticate against the Remote URL.  Cannot include control characters (0-31), ':', or DEL (127).")
-        .required(false)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-        .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("^[\\x20-\\x39\\x3b-\\x7e\\x80-\\xff]+$")))
-        .build();
+            .name("rest-lookup-basic-auth-username")
+            .displayName("Basic Authentication Username")
+            .description("The username to be used by the client to authenticate against the Remote URL.  Cannot include control characters (0-31), ':', or DEL (127).")
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("^[\\x20-\\x39\\x3b-\\x7e\\x80-\\xff]+$")))
+            .build();
 
     public static final PropertyDescriptor PROP_BASIC_AUTH_PASSWORD = new PropertyDescriptor.Builder()
-        .name("rest-lookup-basic-auth-password")
-        .displayName("Basic Authentication Password")
-        .description("The password to be used by the client to authenticate against the Remote URL.")
-        .required(false)
-        .sensitive(true)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-        .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("^[\\x20-\\x7e\\x80-\\xff]+$")))
-        .build();
+            .name("rest-lookup-basic-auth-password")
+            .displayName("Basic Authentication Password")
+            .description("The password to be used by the client to authenticate against the Remote URL.")
+            .required(false)
+            .sensitive(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("^[\\x20-\\x7e\\x80-\\xff]+$")))
+            .build();
 
     public static final PropertyDescriptor PROP_DIGEST_AUTH = new PropertyDescriptor.Builder()
-        .name("rest-lookup-digest-auth")
-        .displayName("Use Digest Authentication")
-        .description("Whether to communicate with the website using Digest Authentication. 'Basic Authentication Username' and 'Basic Authentication Password' are used "
-                + "for authentication.")
-        .required(false)
-        .defaultValue("false")
-        .allowableValues("true", "false")
-        .build();
+            .name("rest-lookup-digest-auth")
+            .displayName("Use Digest Authentication")
+            .description("Whether to communicate with the website using Digest Authentication. 'Basic Authentication Username' and 'Basic Authentication Password' are used "
+                    + "for authentication.")
+            .required(false)
+            .defaultValue("false")
+            .allowableValues("true", "false")
+            .build();
 
     public static final PropertyDescriptor PROP_CONNECT_TIMEOUT = new PropertyDescriptor.Builder()
-        .name("rest-lookup-connection-timeout")
-        .displayName("Connection Timeout")
-        .description("Max wait time for connection to remote service.")
-        .required(true)
-        .defaultValue("5 secs")
-        .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-        .build();
+            .name("rest-lookup-connection-timeout")
+            .displayName("Connection Timeout")
+            .description("Max wait time for connection to remote service.")
+            .required(true)
+            .defaultValue("5 secs")
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .build();
 
     public static final PropertyDescriptor PROP_READ_TIMEOUT = new PropertyDescriptor.Builder()
-        .name("rest-lookup-read-timeout")
-        .displayName("Read Timeout")
-        .description("Max wait time for response from remote service.")
-        .required(true)
-        .defaultValue("15 secs")
-        .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-        .build();
+            .name("rest-lookup-read-timeout")
+            .displayName("Read Timeout")
+            .description("Max wait time for response from remote service.")
+            .required(true)
+            .defaultValue("15 secs")
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .build();
 
     private static final ProxySpec[] PROXY_SPECS = {ProxySpec.HTTP_AUTH, ProxySpec.SOCKS};
     public static final PropertyDescriptor PROXY_CONFIGURATION_SERVICE
@@ -184,16 +176,16 @@ public class RestLookupService extends AbstractControllerService implements Reco
 
     static {
         DESCRIPTORS = Collections.unmodifiableList(Arrays.asList(
-            URL,
-            RECORD_READER,
-            RECORD_PATH,
-            SSL_CONTEXT_SERVICE,
-            PROXY_CONFIGURATION_SERVICE,
-            PROP_BASIC_AUTH_USERNAME,
-            PROP_BASIC_AUTH_PASSWORD,
-            PROP_DIGEST_AUTH,
-            PROP_CONNECT_TIMEOUT,
-            PROP_READ_TIMEOUT
+                URL,
+                RECORD_READER,
+                RECORD_PATH,
+                SSL_CONTEXT_SERVICE,
+                PROXY_CONFIGURATION_SERVICE,
+                PROP_BASIC_AUTH_USERNAME,
+                PROP_BASIC_AUTH_PASSWORD,
+                PROP_DIGEST_AUTH,
+                PROP_CONNECT_TIMEOUT,
+                PROP_READ_TIMEOUT
         ));
         KEYS = Collections.emptySet();
     }
@@ -218,26 +210,24 @@ public class RestLookupService extends AbstractControllerService implements Reco
         proxyConfigurationService = context.getProperty(PROXY_CONFIGURATION_SERVICE)
                 .asControllerService(ProxyConfigurationService.class);
 
-        OkHttpClient.Builder builder = new OkHttpClient.Builder();
+        // Construct the PD mapping so the utility class can retrieve the proper values from the context
+        Map<String, String> pdMap = new HashMap<>();
+        pdMap.put(OkHttpUtils.CONNECTION_TIMEOUT_NAME, PROP_CONNECT_TIMEOUT.getName());
+        pdMap.put(OkHttpUtils.READ_TIMEOUT_NAME, PROP_READ_TIMEOUT.getName());
+        pdMap.put(OkHttpUtils.SSL_CS_NAME, SSL_CONTEXT_SERVICE.getName());
 
-        setAuthenticator(builder, context);
-
-        // Set timeouts
-        builder.connectTimeout((context.getProperty(PROP_CONNECT_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue()), TimeUnit.MILLISECONDS);
-        builder.readTimeout(context.getProperty(PROP_READ_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue(), TimeUnit.MILLISECONDS);
+        // Delegate the construction to the utility class
+        OkHttpClient.Builder okHttpClientBuilder = OkHttpUtils.buildOkHttpClientFromProcessorConfig(context, pdMap);
 
         if (proxyConfigurationService != null) {
-            setProxy(builder);
+            OkHttpUtils.setProxyConfiguration(okHttpClientBuilder, proxyConfigurationService.getConfiguration());
         }
 
-        final SSLContextService sslService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
-        final SSLContext sslContext = sslService == null ? null : sslService.createSSLContext(SSLContextService.ClientAuth.WANT);
-        if (sslService != null) {
-            builder.sslSocketFactory(sslContext.getSocketFactory());
-        }
+        setAuthenticator(okHttpClientBuilder, context);
 
-        client = builder.build();
+        client = okHttpClientBuilder.build();
 
+        // Non HTTP-client config
         String path = context.getProperty(RECORD_PATH).isSet() ? context.getProperty(RECORD_PATH).getValue() : null;
         if (!StringUtils.isBlank(path)) {
             recordPath = RecordPath.compile(path);
@@ -259,30 +249,12 @@ public class RestLookupService extends AbstractControllerService implements Reco
         for (PropertyDescriptor descriptor : context.getProperties().keySet()) {
             if (descriptor.isDynamic()) {
                 headers.put(
-                    descriptor.getDisplayName(),
-                    context.getProperty(descriptor).evaluateAttributeExpressions().getValue()
+                        descriptor.getDisplayName(),
+                        context.getProperty(descriptor).evaluateAttributeExpressions().getValue()
                 );
             }
         }
     }
-
-    private void setProxy(OkHttpClient.Builder builder) {
-        ProxyConfiguration config = proxyConfigurationService.getConfiguration();
-        if (!config.getProxyType().equals(Proxy.Type.DIRECT)) {
-            final Proxy proxy = config.createProxy();
-            builder.proxy(proxy);
-
-            if (config.hasCredential()){
-                builder.proxyAuthenticator((route, response) -> {
-                    final String credential= Credentials.basic(config.getProxyUserName(), config.getProxyUserPassword());
-                    return response.request().newBuilder()
-                            .header("Proxy-Authorization", credential)
-                            .build();
-                });
-            }
-        }
-    }
-
 
     @Override
     public Optional<Record> lookup(Map<String, Object> coordinates) throws LookupFailureException {
@@ -292,9 +264,9 @@ public class RestLookupService extends AbstractControllerService implements Reco
     @Override
     public Optional<Record> lookup(Map<String, Object> coordinates, Map<String, String> context) throws LookupFailureException {
         final String endpoint = determineEndpoint(coordinates);
-        final String mimeType = (String)coordinates.get(MIME_TYPE_KEY);
-        final String method   = ((String)coordinates.getOrDefault(METHOD_KEY, "get")).trim().toLowerCase();
-        final String body     = (String)coordinates.get(BODY_KEY);
+        final String mimeType = (String) coordinates.get(MIME_TYPE_KEY);
+        final String method = ((String) coordinates.getOrDefault(METHOD_KEY, "get")).trim().toLowerCase();
+        final String body = (String) coordinates.get(BODY_KEY);
 
         validateVerb(method);
 
@@ -328,7 +300,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
 
             final Record record;
             try (final InputStream is = responseBody.byteStream();
-                final InputStream bufferedIn = new BufferedInputStream(is)) {
+                 final InputStream bufferedIn = new BufferedInputStream(is)) {
                 record = handleResponse(bufferedIn, responseBody.contentLength(), context);
             }
 
@@ -347,22 +319,22 @@ public class RestLookupService extends AbstractControllerService implements Reco
 
     protected String determineEndpoint(Map<String, Object> coordinates) {
         Map<String, String> converted = coordinates.entrySet().stream()
-            .filter(e -> e.getValue() != null)
-            .collect(Collectors.toMap(
-                e -> e.getKey(),
-                e -> e.getValue().toString()
-            ));
+                .filter(e -> e.getValue() != null)
+                .collect(Collectors.toMap(
+                        e -> e.getKey(),
+                        e -> e.getValue().toString()
+                ));
         return urlTemplate.evaluateAttributeExpressions(converted).getValue();
     }
 
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
         return new PropertyDescriptor.Builder()
-            .name(propertyDescriptorName)
-            .displayName(propertyDescriptorName)
-            .addValidator(Validator.VALID)
-            .dynamic(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .build();
+                .name(propertyDescriptorName)
+                .displayName(propertyDescriptorName)
+                .addValidator(Validator.VALID)
+                .dynamic(true)
+                .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+                .build();
     }
 
     protected Response executeRequest(Request request) throws IOException {
@@ -414,7 +386,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
         }
         Request.Builder request = new Request.Builder()
                 .url(endpoint);
-        switch(method) {
+        switch (method) {
             case "delete":
                 request = body != null ? request.delete(requestBody) : request.delete();
                 break;
@@ -453,18 +425,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
         this.basicPass = authPass;
         // If the username/password properties are set then check if digest auth is being used
         if (!authUser.isEmpty() && isDigest) {
-
-            /*
-             * OkHttp doesn't have built-in Digest Auth Support. A ticket for adding it is here[1] but they authors decided instead to rely on a 3rd party lib.
-             *
-             * [1] https://github.com/square/okhttp/issues/205#issuecomment-154047052
-             */
-            final Map<String, CachingAuthenticator> authCache = new ConcurrentHashMap<>();
-            com.burgstaller.okhttp.digest.Credentials credentials = new com.burgstaller.okhttp.digest.Credentials(authUser, authPass);
-            final DigestAuthenticator digestAuthenticator = new DigestAuthenticator(credentials);
-
-            okHttpClientBuilder.interceptors().add(new AuthenticationCacheInterceptor(authCache));
-            okHttpClientBuilder.authenticator(new CachingAuthenticatorDecorator(digestAuthenticator, authCache));
+            OkHttpUtils.addDigestAuthenticator(okHttpClientBuilder, authUser, authPass);
         }
     }
 

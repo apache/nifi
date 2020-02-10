@@ -21,6 +21,16 @@ package org.apache.nifi.security.util;
  */
 public enum KeystoreType {
 
-    PKCS12,
-    JKS;
+    PKCS12("PKCS12"),
+    JKS("JKS");
+
+    private final String name;
+
+    KeystoreType(String name) {
+        this.name = name;
+    }
+
+    public String getName() {
+        return this.name;
+    }
 }

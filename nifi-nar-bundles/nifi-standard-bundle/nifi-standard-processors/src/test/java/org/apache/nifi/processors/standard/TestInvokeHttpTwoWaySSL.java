@@ -46,6 +46,8 @@ public class TestInvokeHttpTwoWaySSL extends TestInvokeHttpSSL {
         Thread.sleep(500);
         // this is the base url with the random port
         url = server.getSecureUrl();
+
+        // TestRunner.setValidateExpressionUsage(false);
     }
 
 }
