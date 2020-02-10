@@ -23,12 +23,16 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.module.jaxb.JaxbAnnotationIntrospector;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
-import java.security.KeyStore;
+import java.security.KeyManagementException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.UnrecoverableKeyException;
+import java.security.cert.CertificateException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -39,12 +43,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.zip.GZIPInputStream;
-import javax.net.ssl.KeyManager;
-import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
-import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
 import javax.ws.rs.HttpMethod;
 import javax.ws.rs.core.MultivaluedHashMap;
@@ -70,6 +71,9 @@ import org.apache.nifi.util.Tuple;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.StreamUtils;
+// Using static imports because of the name conflict:
+import static org.apache.nifi.security.util.SslContextFactory.ClientAuth.WANT;
+import static org.apache.nifi.security.util.SslContextFactory.createTrustSslContextWithTrustManagers;
 
 public class OkHttpReplicationClient implements HttpReplicationClient {
     private static final Logger logger = LoggerFactory.getLogger(OkHttpReplicationClient.class);
@@ -103,7 +107,8 @@ public class OkHttpReplicationClient implements HttpReplicationClient {
 
     /**
      * Checks the content length header on DELETE requests to ensure it is set to '0', avoiding request timeouts on replicated requests.
-     * @param method the HTTP method of the request
+     *
+     * @param method  the HTTP method of the request
      * @param headers the header keys and values
      */
     private void checkContentLengthHeader(String method, Map<String, String> headers) {
@@ -327,57 +332,22 @@ public class OkHttpReplicationClient implements HttpReplicationClient {
         }
 
         try {
-            final KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-            final TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance("X509");
-
-            // initialize the KeyManager array to null and we will overwrite later if a keystore is loaded
-            KeyManager[] keyManagers = null;
-
-            // we will only initialize the keystore if properties have been supplied by the SSLContextService
-            final String keystoreLocation = properties.getProperty(NiFiProperties.SECURITY_KEYSTORE);
-            final String keystorePass = properties.getProperty(NiFiProperties.SECURITY_KEYSTORE_PASSWD);
-            final String keystoreType = properties.getProperty(NiFiProperties.SECURITY_KEYSTORE_TYPE);
-
-            // prepare the keystore
-            final KeyStore keyStore = KeyStore.getInstance(keystoreType);
-
-            try (FileInputStream keyStoreStream = new FileInputStream(keystoreLocation)) {
-                keyStore.load(keyStoreStream, keystorePass.toCharArray());
-            }
-
-            keyManagerFactory.init(keyStore, keystorePass.toCharArray());
-            keyManagers = keyManagerFactory.getKeyManagers();
-
-            // we will only initialize the truststure if properties have been supplied by the SSLContextService
-            // load truststore
-            final String truststoreLocation = properties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE);
-            final String truststorePass = properties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD);
-            final String truststoreType = properties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_TYPE);
-
-            KeyStore truststore = KeyStore.getInstance(truststoreType);
-            truststore.load(new FileInputStream(truststoreLocation), truststorePass.toCharArray());
-            trustManagerFactory.init(truststore);
-
-            // TrustManagerFactory.getTrustManagers returns a trust manager for each type of trust material. Since we are getting a trust manager factory that uses "X509"
-            // as it's trust management algorithm, we are able to grab the first (and thus the most preferred) and use it as our x509 Trust Manager
-            //
-            // https://docs.oracle.com/javase/8/docs/api/javax/net/ssl/TrustManagerFactory.html#getTrustManagers--
-            final X509TrustManager x509TrustManager;
-            TrustManager[] trustManagers = trustManagerFactory.getTrustManagers();
-            if (trustManagers[0] != null) {
-                x509TrustManager = (X509TrustManager) trustManagers[0];
-            } else {
-                throw new IllegalStateException("List of trust managers is null");
-            }
-
-            // if keystore properties were not supplied, the keyManagers array will be null
-            sslContext.init(keyManagers, trustManagerFactory.getTrustManagers(), null);
-
-            final SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
-            return new Tuple<>(sslSocketFactory, x509TrustManager);
-        } catch (final Exception e) {
-            throw new RuntimeException("Failed to create SSL Socket Factory for replicating requests across the cluster");
+            Tuple<SSLContext, TrustManager[]> sslContextTuple = createTrustSslContextWithTrustManagers(
+                    properties.getProperty(NiFiProperties.SECURITY_KEYSTORE),
+                    properties.getProperty(NiFiProperties.SECURITY_KEYSTORE_PASSWD) != null ? properties.getProperty(NiFiProperties.SECURITY_KEYSTORE_PASSWD).toCharArray() : null,
+                    properties.getProperty(NiFiProperties.SECURITY_KEY_PASSWD) != null ? properties.getProperty(NiFiProperties.SECURITY_KEY_PASSWD).toCharArray() : null,
+                    properties.getProperty(NiFiProperties.SECURITY_KEYSTORE_TYPE),
+                    properties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE),
+                    properties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD) != null ? properties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD).toCharArray() : null,
+                    properties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_TYPE),
+                    WANT,
+                    sslContext.getProtocol());
+            List<X509TrustManager> x509TrustManagers = Arrays.stream(sslContextTuple.getValue())
+                    .filter(trustManager -> trustManager instanceof X509TrustManager)
+                    .map(trustManager -> (X509TrustManager) trustManager).collect(Collectors.toList());
+            return new Tuple<>(sslContextTuple.getKey().getSocketFactory(), x509TrustManagers.get(0));
+        } catch (CertificateException | UnrecoverableKeyException | NoSuchAlgorithmException | KeyStoreException | KeyManagementException | IOException e) {
+            return null;
         }
     }
-
 }
