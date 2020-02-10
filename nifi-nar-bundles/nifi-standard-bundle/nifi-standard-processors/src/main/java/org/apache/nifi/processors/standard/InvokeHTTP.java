@@ -55,6 +55,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
@@ -104,9 +105,11 @@ import org.apache.nifi.processors.standard.util.ProxyAuthenticator;
 import org.apache.nifi.processors.standard.util.SoftLimitBoundedByteArrayOutputStream;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxySpec;
+import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.ssl.SSLContextService.ClientAuth;
 import org.apache.nifi.stream.io.StreamUtils;
+import org.apache.nifi.util.Tuple;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 
@@ -634,8 +637,21 @@ public final class InvokeHTTP extends AbstractProcessor {
 
         // check if the ssl context is set and add the factory if so
         if (sslContext != null) {
-            setSslSocketFactory(okHttpClientBuilder, sslService, sslContext, isHttpsProxy);
-        }
+            Tuple<SSLContext, TrustManager[]> sslContextTuple =SslContextFactory.createTrustSslContextWithTrustManagers(
+                        sslService.getKeyStoreFile(),
+                        sslService.getKeyStorePassword() != null ? sslService.getKeyStorePassword().toCharArray() : null,
+                        sslService.getKeyPassword() != null ? sslService.getKeyPassword().toCharArray() : null,
+                        sslService.getKeyStoreType(),
+                        sslService.getTrustStoreFile(),
+                        sslService.getTrustStorePassword() != null ? sslService.getTrustStorePassword().toCharArray() : null,
+                        sslService.getTrustStoreType(),
+                        SslContextFactory.ClientAuth.NONE,
+                        sslService.getSslAlgorithm());
+            List<X509TrustManager> x509TrustManagers = Arrays.stream(sslContextTuple.getValue())
+                    .filter(trustManager -> trustManager instanceof X509TrustManager)
+                    .map(trustManager -> (X509TrustManager) trustManager).collect(Collectors.toList());
+            okHttpClientBuilder.sslSocketFactory(sslContextTuple.getKey().getSocketFactory(), x509TrustManagers.get(0));
+            }
 
         setAuthenticator(okHttpClientBuilder, context);
 
