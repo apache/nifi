@@ -151,15 +151,19 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
             // that is not the local node identifier. If the Local Node Identifier is not yet known, that's okay. When it becomes known,
             // the queuePartitions array will be recreated with the appropriate partitions.
             final List<QueuePartition> partitionList = new ArrayList<>();
-            partitionList.add(localPartition);
 
             final NodeIdentifier localNodeId = clusterCoordinator.getLocalNodeIdentifier();
             for (final NodeIdentifier nodeId : sortedNodeIdentifiers) {
                 if (nodeId.equals(localNodeId)) {
-                    continue;
+                    partitionList.add(localPartition);
+                } else {
+                    partitionList.add(createRemotePartition(nodeId));
                 }
+            }
 
-                partitionList.add(createRemotePartition(nodeId));
+            // Ensure that our list of queue partitions always contains the local partition.
+            if (!partitionList.contains(localPartition)) {
+                partitionList.add(localPartition);
             }
 
             queuePartitions = partitionList.toArray(new QueuePartition[0]);
