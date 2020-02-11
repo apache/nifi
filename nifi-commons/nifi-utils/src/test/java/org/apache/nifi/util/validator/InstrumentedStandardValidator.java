@@ -26,7 +26,7 @@ import org.apache.nifi.components.Validator;
  * are not mockable with with mockito, this is required to know, when running a test, if a
  * {@class Validator} was in fact called, for example.
  */
-public class TestMockValidator implements Validator {
+public class InstrumentedStandardValidator implements Validator {
 
     /**
      * Flag to reset a count after retrieving it.
@@ -45,7 +45,7 @@ public class TestMockValidator implements Validator {
      *
      * @param mockedValidator the {@class Validator} to wrap.
      */
-    public TestMockValidator(Validator mockedValidator) {
+    public InstrumentedStandardValidator(Validator mockedValidator) {
         this(mockedValidator,false);
     }
 
@@ -54,7 +54,7 @@ public class TestMockValidator implements Validator {
      *
      * @param mockedValidator the {@class Validator} to wrap.
      */
-    public TestMockValidator(Validator mockedValidator, boolean resetOnGet) {
+    public InstrumentedStandardValidator(Validator mockedValidator, boolean resetOnGet) {
         this.mockedValidator = mockedValidator;
         this.doReset = resetOnGet;
     }
@@ -63,7 +63,7 @@ public class TestMockValidator implements Validator {
      * Default constructor without wrapping not supported.
      *
      */
-    private TestMockValidator(){}
+    private InstrumentedStandardValidator(){}
 
     @Override
     public ValidationResult validate(String subject, String input, ValidationContext context) {

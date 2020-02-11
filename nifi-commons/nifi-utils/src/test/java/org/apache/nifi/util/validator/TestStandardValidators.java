@@ -165,7 +165,7 @@ public class TestStandardValidators {
         // note that it will reset the count after every get call.
         // note that we fail fast, so if there are 3 items, and the second fails validation, the call
         // count will be 2
-        TestMockValidator mockValidator = new TestMockValidator(StandardValidators.NON_EMPTY_VALIDATOR, true);
+        InstrumentedStandardValidator mockValidator = new InstrumentedStandardValidator(StandardValidators.NON_EMPTY_VALIDATOR, true);
         Validator val = StandardValidators.createListValidator(true, false, mockValidator);
         ValidationResult vr;
 
@@ -212,7 +212,7 @@ public class TestStandardValidators {
         // note that it will reset the count after every get call.
         // note that we fail fast, so if there are 3 items, and the second fails validation, the call
         // count will be 2
-        mockValidator = new TestMockValidator(StandardValidators.NON_BLANK_VALIDATOR, true);
+        mockValidator = new InstrumentedStandardValidator(StandardValidators.NON_BLANK_VALIDATOR, true);
         val = StandardValidators.createListValidator(false, true, mockValidator);
 
         vr = val.validate("List", null, validationContext);
@@ -242,7 +242,7 @@ public class TestStandardValidators {
         // note that it will reset the count after every get call.
         // note that we fail fast, so if there are 3 items, and the second fails validation, the call
         // count will be 2
-        mockValidator = new TestMockValidator(StandardValidators.NON_EMPTY_VALIDATOR, true);
+        mockValidator = new InstrumentedStandardValidator(StandardValidators.NON_EMPTY_VALIDATOR, true);
         val = StandardValidators.createListValidator(false, false, mockValidator);
 
         vr = val.validate("List", null, validationContext);
@@ -267,7 +267,7 @@ public class TestStandardValidators {
         // note that it will reset the count after every get call.
         // note that we fail fast, so if there are 3 items, and the second fails validation, the call
         //  count will be 2
-        mockValidator = new TestMockValidator(StandardValidators.BOOLEAN_VALIDATOR, true);
+        mockValidator = new InstrumentedStandardValidator(StandardValidators.BOOLEAN_VALIDATOR, true);
         val = StandardValidators.createListValidator(true, true, mockValidator);
         vr = val.validate("List", "notbool", validationContext);
         assertFalse(vr.isValid());
