@@ -20,8 +20,8 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 
-/**
- * TestMockValidator wraps a {@class Validator} and provides statistics on it's interactions.
+/**:
+ * InstrumentedStandarValidator wraps a {@class Validator} and provides statistics on it's interactions.
  * Because many of the {@class Validator} instances returned from {@class StandardValidator }
  * are not mockable with with mockito, this is required to know, when running a test, if a
  * {@class Validator} was in fact called, for example.
@@ -41,7 +41,7 @@ public class InstrumentedStandardValidator implements Validator {
     private Validator mockedValidator;
 
     /**
-     * Constructs a new {@class TestMockValidator}.
+     * Constructs a new {@class InstrumentedStandarValidator}.
      *
      * @param mockedValidator the {@class Validator} to wrap.
      */
@@ -50,7 +50,7 @@ public class InstrumentedStandardValidator implements Validator {
     }
 
     /**
-     * Constructs a new {@class TestMockValidator}.
+     * Constructs a new {@class InstrumentedStandarValidator}.
      *
      * @param mockedValidator the {@class Validator} to wrap.
      */
