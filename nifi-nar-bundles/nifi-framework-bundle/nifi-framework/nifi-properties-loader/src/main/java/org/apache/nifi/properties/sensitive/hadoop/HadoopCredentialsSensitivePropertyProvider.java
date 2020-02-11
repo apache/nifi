@@ -24,10 +24,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.security.Key;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
@@ -97,7 +97,7 @@ public class HadoopCredentialsSensitivePropertyProvider implements SensitiveProp
         String passwordFile = System.getProperty(KEYSTORE_PASSWORD_FILE_SYS_PROP);
         if (StringUtils.isNotBlank(passwordFile)) {
             try {
-                fromFile = Files.readString(Path.of(passwordFile));
+                fromFile = new String(Files.readAllBytes(new File(passwordFile).toPath()), Charset.defaultCharset());
             } catch (IOException e) {
                 throw new SensitivePropertyConfigurationException(e);
             }
@@ -181,15 +181,14 @@ public class HadoopCredentialsSensitivePropertyProvider implements SensitiveProp
     /**
      * This method returns the first loadable key store instance referenced by the paths array.
      *
-     * @return loaded KeyStore
      * @throws SensitivePropertyProtectionException when no key store is loadable
      */
     private void loadKeyStore() {
         for (String filename : paths) {
-            File file = new File(filename);
             for (String password : getKeyStorePasswords()) {
                 try {
-                    keyStore = KeyStore.getInstance(file, password.toCharArray());
+                    keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
+                    keyStore.load(new FileInputStream(new File(filename)), password.toCharArray());
                     keyStorePassword = password;
                     return;
                 } catch (KeyStoreException | IOException | NoSuchAlgorithmException | CertificateException | IllegalArgumentException e) {

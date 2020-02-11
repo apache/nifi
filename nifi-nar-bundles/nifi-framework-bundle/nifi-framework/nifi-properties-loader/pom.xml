@@ -85,7 +85,13 @@
         <dependency>
           <groupId>com.google.cloud</groupId>
           <artifactId>google-cloud-kms</artifactId>
-          <version>1.23.0</version>
+          <version>1.36.1</version>
+        </dependency>
+        <dependency>
+            <groupId>com.google.api</groupId>
+            <artifactId>gax</artifactId>
+            <version>1.48.0</version>
+            <scope>compile</scope>
         </dependency>
     </dependencies>
     <build>
@@ -109,6 +115,16 @@
                         </configuration>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.rat</groupId>
+                <artifactId>apache-rat-plugin</artifactId>
+                <configuration>
+                    <excludes>
+                        <exclude>src/test/resources/hadoop_keystores/password.sidefile</exclude>
+                        <exclude>src/test/resources/hadoop_keystores/bad-password.sidefile</exclude>
+                    </excludes>
+                </configuration>
             </plugin>
         </plugins>
     </build>
