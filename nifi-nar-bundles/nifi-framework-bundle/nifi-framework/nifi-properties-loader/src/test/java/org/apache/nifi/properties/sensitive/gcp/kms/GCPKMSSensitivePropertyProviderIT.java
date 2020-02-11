@@ -44,11 +44,43 @@ import java.util.regex.Pattern;
  * creating and using KMS keys.
  *
  * These tests create a key ring with a random name, and all of our tests use just that ring.  This ensures we cannot destroy and existing user key.
-
- Configure your test environment like:
-
- $ export GOOGLE_APPLICATION_CREDENTIALS=/var/run/nifi-gcp-it.json
- $ export GOOGLE_PROJECT=nifi-gcp-unit-tests-project
+ *
+ * To configure these tests, follow this recipe:
+ *
+ * 1.  Access your GCP console:  https://console.cloud.google.com
+ *
+ * 2.  Create a "New Project" and name it to your liking
+ *
+ * 3.  Export the project name in your test environment.  This might be your IDE or your terminal; the shell commands
+ *     look like this:
+ *
+ *     $ export GOOGLE_PROJECT="purple-bunnies-23733"
+ *
+ *    The IDE setup is slightly different.  Create a "Run Configuration" for JUnit and include the environment variables as shown.
+ *
+ * 4.  In the GCP console, select "APIs & Services", then "Enable APIs and Services".  Search for "Cloud Key Management Service (KMS) API"
+ *     and enable it.
+ *
+ * 5.  In the GCP console, make sure your project is selected, then choose "IAM" and then "Service accounts".
+ *
+ * 6.  Create a service account, name it how you like, but make sure to add these roles to the account:
+ *
+ *     - Cloud KMS Admin
+ *     - Cloud KMS CryptoKey Encrypter/Decrypter
+ *
+ * 7.  Press the "Create Key" button to download the service account key to your computer.  Select "JSON" format.
+ *
+ * 8.  In your test environment, export another variable, this time pointed to the service key file you just downloaded:
+ *
+ *     $ export GOOGLE_APPLICATION_CREDENTIALS="/Users/example/Downloads/purple-bunnies-service-23733-997.json"
+ *
+ *     If you're using an IDE run configuration, add this environment variable and value there.
+ *
+ * 9.  Run this test case and expect all tests to pass.  :)
+ *
+ * 10. After testing is complete, delete the project within the GCP console, remove the service account key file from
+ *     local disk, and unset the two environment variables.
+ *
  */
 public class GCPKMSSensitivePropertyProviderIT extends AbstractSensitivePropertyProviderTest {
     private static final Logger logger = LoggerFactory.getLogger(GCPKMSSensitivePropertyProviderIT.class);
