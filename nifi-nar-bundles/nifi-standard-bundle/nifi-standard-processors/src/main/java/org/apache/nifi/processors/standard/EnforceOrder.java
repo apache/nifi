@@ -64,7 +64,7 @@ import static org.apache.commons.lang3.StringUtils.isBlank;
 @Tags({"sort", "order"})
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @TriggerSerially
-@CapabilityDescription("Enforces expected ordering of FlowFiles those belong to the same data group. " +
+@CapabilityDescription("Enforces expected ordering of FlowFiles that belong to the same data group within a single node. " +
         " Although PriorityAttributePrioritizer can be used on a connection to ensure that flow files going through that connection are in priority order," +
         " depending on error-handling, branching, and other flow designs, it is possible for FlowFiles to get out-of-order." +
         " EnforceOrder can be used to enforce original ordering for those FlowFiles." +
