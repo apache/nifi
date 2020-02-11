@@ -195,7 +195,8 @@ public class HttpNotificationService extends AbstractNotificationService {
             try {
                 Tuple<SSLContext, TrustManager[]> sslContextTuple = SslContextFactory.createTrustSslContextWithTrustManagers(
                         context.getProperty(HttpNotificationService.PROP_KEYSTORE).getValue(),
-                        context.getProperty(HttpNotificationService.PROP_KEYSTORE_PASSWORD).getValue().toCharArray(),
+                        context.getProperty(HttpNotificationService.PROP_KEYSTORE_PASSWORD).isSet()
+                                ? context.getProperty(HttpNotificationService.PROP_KEYSTORE_PASSWORD).getValue().toCharArray() : null,
                         context.getProperty(HttpNotificationService.PROP_KEY_PASSWORD).isSet()
                                 ? context.getProperty(HttpNotificationService.PROP_KEY_PASSWORD).getValue().toCharArray() : null,
                         context.getProperty(HttpNotificationService.PROP_KEYSTORE_TYPE).getValue(),

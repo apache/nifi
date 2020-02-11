@@ -71,6 +71,9 @@ import org.apache.nifi.util.Tuple;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.StreamUtils;
+// Using static imports because of the name conflict:
+import static org.apache.nifi.security.util.SslContextFactory.ClientAuth.WANT;
+import static org.apache.nifi.security.util.SslContextFactory.createTrustSslContextWithTrustManagers;
 
 public class OkHttpReplicationClient implements HttpReplicationClient {
     private static final Logger logger = LoggerFactory.getLogger(OkHttpReplicationClient.class);
@@ -329,7 +332,7 @@ public class OkHttpReplicationClient implements HttpReplicationClient {
         }
 
         try {
-            Tuple<SSLContext, TrustManager[]> sslContextTuple = org.apache.nifi.security.util.SslContextFactory.createTrustSslContextWithTrustManagers(
+            Tuple<SSLContext, TrustManager[]> sslContextTuple = createTrustSslContextWithTrustManagers(
                     properties.getProperty(NiFiProperties.SECURITY_KEYSTORE),
                     properties.getProperty(NiFiProperties.SECURITY_KEYSTORE_PASSWD) != null ? properties.getProperty(NiFiProperties.SECURITY_KEYSTORE_PASSWD).toCharArray() : null,
                     properties.getProperty(NiFiProperties.SECURITY_KEY_PASSWD) != null ? properties.getProperty(NiFiProperties.SECURITY_KEY_PASSWD).toCharArray() : null,
@@ -337,7 +340,7 @@ public class OkHttpReplicationClient implements HttpReplicationClient {
                     properties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE),
                     properties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD) != null ? properties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD).toCharArray() : null,
                     properties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_TYPE),
-                    org.apache.nifi.security.util.SslContextFactory.ClientAuth.NONE,
+                    WANT,
                     sslContext.getProtocol());
             List<X509TrustManager> x509TrustManagers = Arrays.stream(sslContextTuple.getValue())
                     .filter(trustManager -> trustManager instanceof X509TrustManager)

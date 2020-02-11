@@ -223,18 +223,16 @@ public abstract class AbstractElasticsearchHttpProcessor extends AbstractElastic
 
         // check if the ssl context is set and add the factory if so
         if (sslContext != null) {
-            String trustStorePassword = sslService.getTrustStorePassword();
-            char[] trustStorePass = trustStorePassword != null ? trustStorePassword.toCharArray() : null;
             try {
                 Tuple<SSLContext, TrustManager[]> sslContextTuple = SslContextFactory.createTrustSslContextWithTrustManagers(
                         sslService.getKeyStoreFile(),
-                        sslService.getKeyStorePassword().toCharArray(),
-                        sslService.getKeyPassword().toCharArray(),
+                        sslService.getKeyStorePassword() != null ? sslService.getKeyStorePassword().toCharArray() : null,
+                        sslService.getKeyPassword() != null ? sslService.getKeyPassword().toCharArray() : null,
                         sslService.getKeyStoreType(),
                         sslService.getTrustStoreFile(),
-                        trustStorePass,
+                        sslService.getTrustStorePassword() != null ? sslService.getTrustStorePassword().toCharArray() : null,
                         sslService.getTrustStoreType(),
-                        SslContextFactory.ClientAuth.NONE,
+                        SslContextFactory.ClientAuth.WANT,
                         sslService.getSslAlgorithm()
                 );
                 List<X509TrustManager> x509TrustManagers = Arrays.stream(sslContextTuple.getValue())
