@@ -117,10 +117,10 @@ before_install:
   - cat ~/.mavenrc
   # Remove nifi repo again to save travis from caching it
   - rm -rf $HOME/.m2/repository/org/apache/nifi/
-  # Install Maven 3.6.1
-  - wget -O /tmp/apache-maven-3.6.1-bin.tar.gz https://archive.apache.org/dist/maven/maven-3/3.6.1/binaries/apache-maven-3.6.1-bin.tar.gz
-  - tar xzf /tmp/apache-maven-3.6.1-bin.tar.gz -C /tmp
-  - export M2_HOME=/tmp/apache-maven-3.6.1
+  # Install Maven 3.6.3
+  - wget -O /tmp/apache-maven-3.6.3-bin.tar.gz https://apache.brunneis.com/maven/maven-3/3.6.3/binaries/apache-maven-3.6.3-bin.tar.gz
+  - tar xzf /tmp/apache-maven-3.6.3-bin.tar.gz -C /tmp
+  - export M2_HOME=/tmp/apache-maven-3.6.3
   - export PATH=$M2_HOME/bin:$PATH
 
 install: true
