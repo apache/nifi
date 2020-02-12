@@ -28,8 +28,10 @@ matrix:
           echo "Cached Maven repository exists, skipping dependency cache"
         fi
     - stage: "Cache"
-      name: "Cache Dependencies - openjdk8"
-      jdk: openjdk8
+      name: "Cache Dependencies - openjdk8 & openjdk11"
+      jdk:
+        - openjdk8
+        - openjdk11
       script: >-
         if [ ! -d "$HOME"/.m2/repository ] || [ ! "$(ls -A "$HOME"/.m2/repository)" ] ; then
           echo "Cached Maven repository does not exist, downloading dependencies..."
@@ -38,6 +40,7 @@ matrix:
         else
           echo "Cached Maven repository exists, skipping dependency cache"
         fi
+
     # For the build stages, use -pl to exclude the following from the build to reduce build time:
     #   non-api nar modules
     #   assembly modules
@@ -74,18 +77,8 @@ matrix:
         && test ${PIPESTATUS[0]} -eq 0
     - stage: "Build"
       name: "Build Java 11 EN"
-      # Do not specify "jdk:" here, install-jdk.sh will download the JDK set JAVA_HOME appropriately
-      before_script:
-        # Download the newest version of sormuras' install-jdk.sh to /tmp
-        # install-jdk.sh is used by Travis internally, sormoras is the maintainer of that script
-        - wget -O /tmp/install-jdk.sh https://github.com/sormuras/bach/raw/master/install-jdk.sh
-        # Need to specifically install AdoptOpenJDK 11.0.4 (Linux, HotSpot) since Travis does not offer it by default
-        # The link to the AdoptOpenJDK 11.0.4 .tar.gz is taken directly from AdoptOpenJDK's website
-        - >-
-          source /tmp/install-jdk.sh
-          --url 'https://github.com/AdoptOpenJDK/openjdk11-binaries/releases/download/jdk-11.0.4%2B11/OpenJDK11U-jdk_x64_linux_hotspot_11.0.4_11.tar.gz'
-      script:
-        - >-
+      jdk: openjdk11
+      script: >-
           mvn clean install -V -T 1C
           -pl `find . -type d \( -name "*-nar" -or -name "*-assembly" -or -name "*hive3*" -or -name "nifi-system-test*" \) -and -not -name "*api-nar" -and -not -path "*/target/*" -and -not -name "*__*" -printf "!./%P,"`
           -Pcontrib-check,include-grpc -Ddir-only
