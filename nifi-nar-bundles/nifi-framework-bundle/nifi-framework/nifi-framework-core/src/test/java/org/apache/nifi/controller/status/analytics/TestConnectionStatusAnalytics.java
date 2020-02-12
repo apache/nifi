@@ -26,12 +26,11 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.List;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -88,7 +87,7 @@ public class TestConnectionStatusAnalytics {
         final FlowFileEvent flowFileEvent = Mockito.mock(FlowFileEvent.class);
 
 
-        final List<Connection> connections = new ArrayList<>();
+        final Set<Connection> connections = new HashSet<>();
         final String connectionIdentifier = "1";
         connections.add(connection);
 
@@ -96,7 +95,7 @@ public class TestConnectionStatusAnalytics {
         when(flowFileQueue.getBackPressureObjectThreshold()).thenReturn(100L);
         when(connection.getIdentifier()).thenReturn(connectionIdentifier);
         when(connection.getFlowFileQueue()).thenReturn(flowFileQueue);
-        when(processGroup.findAllConnections()).thenReturn(connections);
+        when(flowManager.findAllConnections()).thenReturn(connections);
         when(flowManager.getRootGroup()).thenReturn(processGroup);
         when(flowFileEvent.getContentSizeIn()).thenReturn(10L);
         when(flowFileEvent.getContentSizeOut()).thenReturn(10L);
