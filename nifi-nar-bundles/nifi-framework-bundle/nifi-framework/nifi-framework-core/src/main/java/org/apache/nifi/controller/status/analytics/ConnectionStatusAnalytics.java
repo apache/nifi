@@ -21,7 +21,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
-import java.util.Optional;
 import java.util.stream.Stream;
 
 import org.apache.commons.collections4.MapUtils;
@@ -33,7 +32,6 @@ import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.repository.RepositoryStatusReport;
 import org.apache.nifi.controller.status.history.ComponentStatusRepository;
 import org.apache.nifi.controller.status.history.StatusHistory;
-import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.util.Tuple;
 import org.slf4j.Logger;
@@ -336,9 +334,14 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
     }
 
     private Connection getConnection() {
-        final ProcessGroup rootGroup = flowManager.getRootGroup();
-        Optional<Connection> connection = rootGroup.findAllConnections().stream().filter(c -> c.getIdentifier().equals(this.connectionIdentifier)).findFirst();
-        return connection.orElse(null);
+        Connection connection = null;
+        for (Connection c : flowManager.findAllConnections()) {
+            if (c.getIdentifier().equals(this.connectionIdentifier)) {
+                connection = c;
+                break;
+            }
+        }
+        return connection;
     }
 
     private FlowFileEvent getStatusReport() {
