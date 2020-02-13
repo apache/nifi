@@ -47,9 +47,11 @@ import org.apache.nifi.security.krb.KerberosKeytabUser;
 import org.apache.nifi.security.krb.KerberosUser;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.util.DataTypeUtils;
 
 import javax.security.auth.login.LoginException;
 import java.math.BigDecimal;
+import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 import java.util.List;
@@ -182,47 +184,50 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
                     if (schema.getColumnByIndex(colIdx).isKey()) {
                         throw new IllegalArgumentException(String.format("Can't set primary key column %s to null ", colName));
                     } else if(!schema.getColumnByIndex(colIdx).isNullable()) {
-                        throw new IllegalArgumentException(String.format("Can't set primary key column %s to null ", colName));
+                        throw new IllegalArgumentException(String.format("Can't set column %s to null ", colName));
                     }
 
                     if (!ignoreNull) {
                         row.setNull(colName);
-                        continue;
                     }
                 } else {
-                    switch (colType.getDataType(colSchema.getTypeAttributes())) {
+                    Object value = record.getValue(recordFieldName);
+                    switch (colType) {
                         case BOOL:
-                            row.addBoolean(colIdx, record.getAsBoolean(recordFieldName));
-                            break;
-                        case FLOAT:
-                            row.addFloat(colIdx, record.getAsFloat(recordFieldName));
-                            break;
-                        case DOUBLE:
-                            row.addDouble(colIdx, record.getAsDouble(recordFieldName));
-                            break;
-                        case BINARY:
-                            row.addBinary(colIdx, record.getAsString(recordFieldName).getBytes());
+                            row.addBoolean(colIdx, DataTypeUtils.toBoolean(value, recordFieldName));
                             break;
                         case INT8:
-                            row.addByte(colIdx, record.getAsInt(recordFieldName).byteValue());
+                            row.addByte(colIdx, DataTypeUtils.toByte(value, recordFieldName));
                             break;
                         case INT16:
-                            row.addShort(colIdx, record.getAsInt(recordFieldName).shortValue());
+                            row.addShort(colIdx,  DataTypeUtils.toShort(value, recordFieldName));
                             break;
                         case INT32:
-                            row.addInt(colIdx, record.getAsInt(recordFieldName));
+                            row.addInt(colIdx,  DataTypeUtils.toInteger(value, recordFieldName));
                             break;
                         case INT64:
+                            row.addLong(colIdx,  DataTypeUtils.toLong(value, recordFieldName));
+                            break;
                         case UNIXTIME_MICROS:
-                            row.addLong(colIdx, record.getAsLong(recordFieldName));
+                            DataType fieldType = record.getSchema().getDataType(recordFieldName).get();
+                            Timestamp timestamp = DataTypeUtils.toTimestamp(record.getValue(recordFieldName),
+                                    () -> DataTypeUtils.getDateFormat(fieldType.getFormat()), recordFieldName);
+                            row.addTimestamp(colIdx, timestamp);
                             break;
                         case STRING:
-                            row.addString(colIdx, record.getAsString(recordFieldName));
+                            row.addString(colIdx, DataTypeUtils.toString(value, recordFieldName));
                             break;
-                        case DECIMAL32:
-                        case DECIMAL64:
-                        case DECIMAL128:
-                            row.addDecimal(colIdx, new BigDecimal(record.getAsString(recordFieldName)));
+                        case BINARY:
+                            row.addBinary(colIdx, DataTypeUtils.toString(value, recordFieldName).getBytes());
+                            break;
+                        case FLOAT:
+                            row.addFloat(colIdx, DataTypeUtils.toFloat(value, recordFieldName));
+                            break;
+                        case DOUBLE:
+                            row.addDouble(colIdx, DataTypeUtils.toDouble(value, recordFieldName));
+                            break;
+                        case DECIMAL:
+                            row.addDecimal(colIdx, new BigDecimal(DataTypeUtils.toString(value, recordFieldName)));
                             break;
                         default:
                             throw new IllegalStateException(String.format("unknown column type %s", colType));
