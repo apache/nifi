@@ -99,9 +99,8 @@ public class ITPutKudu {
         KuduClient client =  harness.getClient();
         List<ColumnSchema> columns = new ArrayList<>();
         columns.add(new ColumnSchema.ColumnSchemaBuilder("id", Type.INT32).key(true).build());
-        columns.add(new ColumnSchema.ColumnSchemaBuilder("stringVal", Type.STRING).build());
-        columns.add(new ColumnSchema.ColumnSchemaBuilder("num32Val", Type.INT32).build());
-        columns.add(new ColumnSchema.ColumnSchemaBuilder("doubleVal", Type.DOUBLE).build());
+        columns.add(new ColumnSchema.ColumnSchemaBuilder("stringval", Type.STRING).build());
+        columns.add(new ColumnSchema.ColumnSchemaBuilder("num32val", Type.INT32).build());
         Schema schema = new Schema(columns);
         CreateTableOptions opts = new CreateTableOptions()
             .addHashPartitions(Collections.singletonList("id"), 4);
@@ -113,10 +112,12 @@ public class ITPutKudu {
         readerFactory.addSchemaField("id", RecordFieldType.INT);
         readerFactory.addSchemaField("stringVal", RecordFieldType.STRING);
         readerFactory.addSchemaField("num32Val", RecordFieldType.INT);
+        // Add two extra columns to test handleSchemaDrift = true.
         readerFactory.addSchemaField("doubleVal", RecordFieldType.DOUBLE);
+        readerFactory.addSchemaField("floatVal", RecordFieldType.FLOAT);
 
         for (int i = 0; i < numOfRecord; i++) {
-            readerFactory.addRecord(i, "val_" + i, 1000 + i, 100.88 + i);
+            readerFactory.addRecord(i, "val_" + i, 1000 + i, 100.88 + i, 100.88 + i);
         }
 
         testRunner.addControllerService("mock-reader-factory", readerFactory);
@@ -138,6 +139,18 @@ public class ITPutKudu {
         testRunner.setProperty(PutKudu.INSERT_OPERATION, OperationType.UPSERT.toString());
         testRunner.setProperty(PutKudu.BATCH_SIZE, "10");
         testRunner.setProperty(PutKudu.FLOWFILE_BATCH_SIZE, "2");
+
+        // Don't ignore null values.
+        flowFileAttributes.put("kudu.ignore.null", "false");
+        testRunner.setProperty(PutKudu.IGNORE_NULL, "${kudu.ignore.null}");
+
+        // Enable lowercase handling.
+        flowFileAttributes.put("kudu.lowercase.field.names", "true");
+        testRunner.setProperty(PutKudu.LOWERCASE_FIELD_NAMES, "${kudu.lowercase.field.names}");
+
+        // Enable schema drift handling.
+        flowFileAttributes.put("kudu.handle.schema.drift", "true");
+        testRunner.setProperty(PutKudu.HANDLE_SCHEMA_DRIFT, "${kudu.handle.schema.drift}");
 
         // Increase the thread count to better simulate a production environment
         testRunner.setThreadCount(4);
@@ -163,9 +176,15 @@ public class ITPutKudu {
         final ProvenanceEventRecord provEvent = provEvents.get(0);
         Assert.assertEquals(ProvenanceEventType.SEND, provEvent.getEventType());
 
-        // Verify Kudu record count.
         KuduClient client = harness.getClient();
         KuduTable kuduTable = client.openTable(DEFAULT_TABLE_NAME);
+
+        // Verify the extra field was added.
+        Assert.assertEquals(5, kuduTable.getSchema().getColumnCount());
+        Assert.assertTrue(kuduTable.getSchema().hasColumn("doubleval"));
+        Assert.assertTrue(kuduTable.getSchema().hasColumn("floatval"));
+
+        // Verify Kudu record count.
         KuduScanner scanner = client.newScannerBuilder(kuduTable).build();
         int count = 0;
         for (RowResult unused : scanner) {
