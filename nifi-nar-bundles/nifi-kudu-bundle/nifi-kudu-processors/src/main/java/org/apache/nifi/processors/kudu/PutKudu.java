@@ -17,7 +17,10 @@
 
 package org.apache.nifi.processors.kudu;
 
+import org.apache.kudu.Schema;
+import org.apache.kudu.client.AlterTableOptions;
 import org.apache.kudu.client.KuduClient;
+import org.apache.kudu.client.KuduException;
 import org.apache.kudu.client.KuduTable;
 import org.apache.kudu.client.KuduSession;
 import org.apache.kudu.client.Operation;
@@ -34,6 +37,7 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyDescriptor.Builder;
+import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
@@ -46,6 +50,7 @@ import org.apache.nifi.security.krb.KerberosUser;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordSet;
 
 import javax.security.auth.login.LoginException;
@@ -59,6 +64,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @EventDriven
 @SupportsBatching
@@ -102,6 +108,16 @@ public class PutKudu extends AbstractKuduProcessor {
     protected static final PropertyDescriptor LOWERCASE_FIELD_NAMES = new Builder()
             .name("Lowercase Field Names")
             .description("Convert column names to lowercase when finding index of Kudu table columns")
+            .defaultValue("false")
+            .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .build();
+
+    protected static final PropertyDescriptor HANDLE_SCHEMA_DRIFT = new Builder()
+            .name("Handle Schema Drift")
+            .description("If set to true, when fields with names that are not in the target Kudu table " +
+                    "are encountered, the Kudu table will be altered to include new columns for those fields.")
             .defaultValue("false")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -158,7 +174,6 @@ public class PutKudu extends AbstractKuduProcessor {
         .name("Ignore NULL")
         .description("Ignore NULL on Kudu Put Operation, Update only non-Null columns if set true")
         .defaultValue("false")
-        .allowableValues("true", "false")
         .required(true)
         .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -188,6 +203,7 @@ public class PutKudu extends AbstractKuduProcessor {
         properties.add(KERBEROS_CREDENTIALS_SERVICE);
         properties.add(SKIP_HEAD_LINE);
         properties.add(LOWERCASE_FIELD_NAMES);
+        properties.add(HANDLE_SCHEMA_DRIFT);
         properties.add(RECORD_READER);
         properties.add(INSERT_OPERATION);
         properties.add(FLUSH_MODE);
@@ -251,16 +267,52 @@ public class PutKudu extends AbstractKuduProcessor {
         OperationType prevOperationType = OperationType.INSERT;
         final List<RowError> pendingRowErrors = new ArrayList<>();
         for (FlowFile flowFile : flowFiles) {
-            final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions(flowFile).getValue();
-            final OperationType operationType = OperationType.valueOf(context.getProperty(INSERT_OPERATION).evaluateAttributeExpressions(flowFile).getValue());
-            final Boolean ignoreNull = Boolean.valueOf(context.getProperty(IGNORE_NULL).evaluateAttributeExpressions(flowFile).getValue());
-            final Boolean lowercaseFields = Boolean.valueOf(context.getProperty(LOWERCASE_FIELD_NAMES).evaluateAttributeExpressions(flowFile).getValue());
-
             try (final InputStream in = session.read(flowFile);
                 final RecordReader recordReader = recordReaderFactory.createRecordReader(flowFile, in, getLogger())) {
+
+                final String tableName = getEvaluatedProperty(TABLE_NAME, context, flowFile);
+                final OperationType operationType = OperationType.valueOf(getEvaluatedProperty(INSERT_OPERATION, context, flowFile));
+                final Boolean ignoreNull = Boolean.valueOf(getEvaluatedProperty(IGNORE_NULL, context, flowFile));
+                final Boolean lowercaseFields = Boolean.valueOf(getEvaluatedProperty(LOWERCASE_FIELD_NAMES, context, flowFile));
+                final Boolean handleSchemaDrift = Boolean.valueOf(getEvaluatedProperty(HANDLE_SCHEMA_DRIFT, context, flowFile));
+
                 final RecordSet recordSet = recordReader.createRecordSet();
                 final List<String> fieldNames = recordReader.getSchema().getFieldNames();
-                final KuduTable kuduTable = kuduClient.openTable(tableName);
+                KuduTable kuduTable = kuduClient.openTable(tableName);
+
+                // If handleSchemaDrift is true, check for any missing columns and alter the Kudu table to add them.
+                if (handleSchemaDrift) {
+                    final Schema schema = kuduTable.getSchema();
+                    Stream<RecordField> fields = recordReader.getSchema().getFields().stream();
+                    List<RecordField> missing = fields.filter(field -> !schema.hasColumn(
+                            lowercaseFields ? field.getFieldName().toLowerCase() : field.getFieldName()))
+                            .collect(Collectors.toList());
+                    if (!missing.isEmpty()) {
+                        getLogger().info("adding {} columns to table '{}' to handle schema drift",
+                                new Object[]{missing.size(), tableName});
+                        // Add each column one at a time to avoid failing if some of the missing columns
+                        // we created by a concurrent thread or application attempting to handle schema drift.
+                        for (RecordField field : missing) {
+                            try {
+                                String columnName = lowercaseFields ? field.getFieldName().toLowerCase() : field.getFieldName();
+                                AlterTableOptions alter = new AlterTableOptions();
+                                alter.addNullableColumn(columnName, toKuduType(field.getDataType()));
+                                kuduClient.alterTable(tableName, alter);
+                            } catch (KuduException e) {
+                                // Ignore the exception if the column already exists due to concurrent
+                                // threads or applications attempting to handle schema drift.
+                                if (e.getStatus().isAlreadyPresent()) {
+                                    getLogger().info("column already exists in table '{}' while handling schema drift",
+                                            new Object[]{tableName});
+                                } else {
+                                    throw new ProcessException(e);
+                                }
+                            }
+                        }
+                        // Re-open the table to get the new schema.
+                        kuduTable = kuduClient.openTable(tableName);
+                    }
+                }
 
                 // In the case of INSERT_IGNORE the Kudu session is modified to ignore row errors.
                 // Because the session is shared across flow files, for batching efficiency, we
@@ -346,6 +398,14 @@ public class PutKudu extends AbstractKuduProcessor {
         }
 
         session.adjustCounter("Records Inserted", totalCount, false);
+    }
+
+    private String getEvaluatedProperty(PropertyDescriptor property, ProcessContext context, FlowFile flowFile) {
+        PropertyValue evaluatedProperty = context.getProperty(property).evaluateAttributeExpressions(flowFile);
+        if (property.isRequired() && evaluatedProperty == null) {
+            throw new ProcessException(String.format("Property `%s` is required but evaluated to null", property.getDisplayName()));
+        }
+        return evaluatedProperty.getValue();
     }
 
     protected KuduSession createKuduSession(final KuduClient client) {

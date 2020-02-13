@@ -45,6 +45,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.security.krb.KerberosAction;
 import org.apache.nifi.security.krb.KerberosKeytabUser;
 import org.apache.nifi.security.krb.KerberosUser;
+import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.Record;
 
 import javax.security.auth.login.LoginException;
@@ -228,6 +229,35 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
                     }
                 }
             }
+        }
+    }
+
+    /**
+     * Converts a NiFi DataType to it's equivalent Kudu Type.
+     */
+    protected Type toKuduType(DataType nifiType) {
+        switch (nifiType.getFieldType()) {
+            case BOOLEAN:
+                return Type.BOOL;
+            case BYTE:
+                return Type.INT8;
+            case SHORT:
+                return Type.INT16;
+            case INT:
+                return Type.INT32;
+            case LONG:
+                return Type.INT64;
+            case FLOAT:
+                return Type.FLOAT;
+            case DOUBLE:
+                return Type.DOUBLE;
+            case TIMESTAMP:
+                return Type.UNIXTIME_MICROS;
+            case CHAR:
+            case STRING:
+                return Type.STRING;
+            default:
+                throw new IllegalArgumentException(String.format("unsupported type %s", nifiType));
         }
     }
 
