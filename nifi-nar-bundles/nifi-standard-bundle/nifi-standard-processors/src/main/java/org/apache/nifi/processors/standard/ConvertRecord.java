@@ -41,7 +41,8 @@ import java.util.List;
 @Tags({"convert", "record", "generic", "schema", "json", "csv", "avro", "log", "logs", "freeform", "text"})
 @WritesAttributes({
     @WritesAttribute(attribute = "mime.type", description = "Sets the mime.type attribute to the MIME Type specified by the Record Writer"),
-    @WritesAttribute(attribute = "record.count", description = "The number of records in the FlowFile")
+    @WritesAttribute(attribute = "record.count", description = "The number of records in the FlowFile"),
+    @WritesAttribute(attribute = "record.error.message", description = "This attribute provides on failure the error message encountered by the Reader or Writer.")
 })
 @CapabilityDescription("Converts records from one data format to another using configured Record Reader and Record Write Controller Services. "
     + "The Reader and Writer must be configured with \"matching\" schemas. By this, we mean the schemas must have the same field names. The types of the fields "

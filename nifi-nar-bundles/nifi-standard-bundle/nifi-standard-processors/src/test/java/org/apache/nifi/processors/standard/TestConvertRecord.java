@@ -18,7 +18,6 @@
 package org.apache.nifi.processors.standard;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -120,7 +119,7 @@ public class TestConvertRecord {
     }
 
     @Test
-    public void testReadFailure() throws InitializationException {
+    public void testReadFailure() throws InitializationException, IOException {
         final MockRecordParser readerService = new MockRecordParser(2);
         final MockRecordWriter writerService = new MockRecordWriter("header", false);
 
@@ -146,12 +145,13 @@ public class TestConvertRecord {
         // Original FlowFile should be routed to 'failure' relationship without modification
         runner.assertAllFlowFilesTransferred(ConvertRecord.REL_FAILURE, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(ConvertRecord.REL_FAILURE).get(0);
-        assertTrue(original == out);
+        out.assertContentEquals(original.toByteArray());
+        out.assertAttributeEquals("record.error.message","Intentional Unit Test Exception because 2 records have been read");
     }
 
 
     @Test
-    public void testWriteFailure() throws InitializationException {
+    public void testWriteFailure() throws InitializationException, IOException {
         final MockRecordParser readerService = new MockRecordParser();
         final MockRecordWriter writerService = new MockRecordWriter("header", false, 2);
 
@@ -177,7 +177,8 @@ public class TestConvertRecord {
         // Original FlowFile should be routed to 'failure' relationship without modification
         runner.assertAllFlowFilesTransferred(ConvertRecord.REL_FAILURE, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(ConvertRecord.REL_FAILURE).get(0);
-        assertTrue(original == out);
+        out.assertContentEquals(original.toByteArray());
+        out.assertAttributeEquals("record.error.message","Unit Test intentionally throwing IOException after 2 records were written");
     }
 
     @Test
