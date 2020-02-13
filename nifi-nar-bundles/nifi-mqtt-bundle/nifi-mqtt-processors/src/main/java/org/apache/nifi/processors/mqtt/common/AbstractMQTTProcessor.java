@@ -23,6 +23,7 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.AttributeExpression;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -125,6 +126,7 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
             .name("Client ID")
             .description("MQTT client ID to use. If not set, a UUID will be generated.")
             .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 
@@ -298,7 +300,7 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
 
     protected void onScheduled(final ProcessContext context){
         broker = context.getProperty(PROP_BROKER_URI).getValue();
-        clientID = context.getProperty(PROP_CLIENTID).getValue();
+        clientID = context.getProperty(PROP_CLIENTID).evaluateAttributeExpressions().getValue();
 
         if (clientID == null) {
             clientID = UUID.randomUUID().toString();
