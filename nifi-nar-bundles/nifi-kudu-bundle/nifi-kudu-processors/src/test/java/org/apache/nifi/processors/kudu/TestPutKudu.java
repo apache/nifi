@@ -60,6 +60,7 @@ import org.mockito.stubbing.OngoingStubbing;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -424,7 +425,7 @@ public class TestPutKudu {
             new RecordField(recordIdName, RecordFieldType.BIGINT.getDataType()),
             new RecordField("name", RecordFieldType.STRING.getDataType()),
             new RecordField("age", RecordFieldType.SHORT.getDataType()),
-            new RecordField("updated_at", RecordFieldType.BIGINT.getDataType()),
+            new RecordField("updated_at", RecordFieldType.TIMESTAMP.getDataType()),
             new RecordField("score", RecordFieldType.LONG.getDataType())));
 
         Map<String, Object> values = new HashMap<>();
@@ -432,7 +433,7 @@ public class TestPutKudu {
         values.put(recordIdName, id);
         values.put("name", name);
         values.put("age", age);
-        values.put("updated_at", System.currentTimeMillis() * 1000);
+        values.put("updated_at", new Timestamp(System.currentTimeMillis()));
         values.put("score", 10000L);
         processor.buildPartialRow(
             kuduSchema,
