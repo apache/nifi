@@ -43,6 +43,7 @@ import org.junit.Rule;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -53,6 +54,8 @@ import java.util.stream.IntStream;
 public class ITPutKudu {
 
     public static final String DEFAULT_TABLE_NAME = "Nifi-Kudu-Table";
+
+    public static final Timestamp NOW = new Timestamp(System.currentTimeMillis());
 
     // The KuduTestHarness automatically starts and stops a real Kudu cluster
     // when each test is run. Kudu persists its on-disk state in a temporary
@@ -101,6 +104,7 @@ public class ITPutKudu {
         columns.add(new ColumnSchema.ColumnSchemaBuilder("id", Type.INT32).key(true).build());
         columns.add(new ColumnSchema.ColumnSchemaBuilder("stringval", Type.STRING).build());
         columns.add(new ColumnSchema.ColumnSchemaBuilder("num32val", Type.INT32).build());
+        columns.add(new ColumnSchema.ColumnSchemaBuilder("timestampval", Type.UNIXTIME_MICROS).build());
         Schema schema = new Schema(columns);
         CreateTableOptions opts = new CreateTableOptions()
             .addHashPartitions(Collections.singletonList("id"), 4);
@@ -112,12 +116,13 @@ public class ITPutKudu {
         readerFactory.addSchemaField("id", RecordFieldType.INT);
         readerFactory.addSchemaField("stringVal", RecordFieldType.STRING);
         readerFactory.addSchemaField("num32Val", RecordFieldType.INT);
+        readerFactory.addSchemaField("timestampVal", RecordFieldType.TIMESTAMP);
         // Add two extra columns to test handleSchemaDrift = true.
         readerFactory.addSchemaField("doubleVal", RecordFieldType.DOUBLE);
         readerFactory.addSchemaField("floatVal", RecordFieldType.FLOAT);
 
         for (int i = 0; i < numOfRecord; i++) {
-            readerFactory.addRecord(i, "val_" + i, 1000 + i, 100.88 + i, 100.88 + i);
+            readerFactory.addRecord(i, "val_" + i, 1000 + i, NOW, 100.88 + i, 100.88 + i);
         }
 
         testRunner.addControllerService("mock-reader-factory", readerFactory);
@@ -183,14 +188,15 @@ public class ITPutKudu {
         KuduTable kuduTable = client.openTable(DEFAULT_TABLE_NAME);
 
         // Verify the extra field was added.
-        Assert.assertEquals(5, kuduTable.getSchema().getColumnCount());
+        Assert.assertEquals(6, kuduTable.getSchema().getColumnCount());
         Assert.assertTrue(kuduTable.getSchema().hasColumn("doubleval"));
         Assert.assertTrue(kuduTable.getSchema().hasColumn("floatval"));
 
         // Verify Kudu record count.
         KuduScanner scanner = client.newScannerBuilder(kuduTable).build();
         int count = 0;
-        for (RowResult unused : scanner) {
+        for (RowResult row : scanner) {
+            Assert.assertEquals(NOW, row.getTimestamp("timestampval"));
             count++;
         }
         Assert.assertEquals(recordCount, count);
