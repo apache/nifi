@@ -174,6 +174,7 @@ public abstract class AbstractRecordProcessor extends AbstractProcessor {
             });
         } catch (final Exception e) {
             getLogger().error("Failed to process {}; will route to failure", new Object[] {flowFile, e});
+            session.putAttribute(flowFile,"record.error.message",e.getCause().getLocalizedMessage());
             session.transfer(flowFile, REL_FAILURE);
             return;
         }
