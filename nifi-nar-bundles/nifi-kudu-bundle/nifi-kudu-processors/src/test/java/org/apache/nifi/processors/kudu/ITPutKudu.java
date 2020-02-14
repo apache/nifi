@@ -136,9 +136,12 @@ public class ITPutKudu {
         flowFileAttributes.put(CoreAttributes.FILENAME.key(), filename);
 
         // Use values to ensure multiple batches and multiple flow files per-trigger
-        testRunner.setProperty(PutKudu.INSERT_OPERATION, OperationType.UPSERT.toString());
         testRunner.setProperty(PutKudu.BATCH_SIZE, "10");
         testRunner.setProperty(PutKudu.FLOWFILE_BATCH_SIZE, "2");
+
+        // Set the operation type.
+        flowFileAttributes.put("kudu.operation.type", "upsert");
+        testRunner.setProperty(PutKudu.INSERT_OPERATION, "${kudu.operation.type}");
 
         // Don't ignore null values.
         flowFileAttributes.put("kudu.ignore.null", "false");
