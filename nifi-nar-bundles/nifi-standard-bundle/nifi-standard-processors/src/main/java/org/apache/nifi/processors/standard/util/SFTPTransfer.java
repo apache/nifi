@@ -209,7 +209,7 @@ public class SFTPTransfer implements FileTransfer {
 
         final boolean ignoreDottedFiles = ctx.getProperty(FileTransfer.IGNORE_DOTTED_FILES).asBoolean();
         final boolean recurse = ctx.getProperty(FileTransfer.RECURSIVE_SEARCH).asBoolean();
-        final boolean symlink  = ctx.getProperty(FileTransfer.FOLLOW_SYMLINK).asBoolean();
+        final boolean symlink = ctx.getProperty(FileTransfer.FOLLOW_SYMLINK).asBoolean();
         final String fileFilterRegex = ctx.getProperty(FileTransfer.FILE_FILTER_REGEX).getValue();
         final Pattern pattern = (fileFilterRegex == null) ? null : Pattern.compile(fileFilterRegex);
         final String pathFilterRegex = ctx.getProperty(FileTransfer.PATH_FILTER_REGEX).getValue();
@@ -235,6 +235,7 @@ public class SFTPTransfer implements FileTransfer {
 
         //subDirs list is used for both 'sub directories' and 'symlinks'
         final List<RemoteResourceInfo> subDirs = new ArrayList<>();
+        final List<RemoteResourceInfo> syms = new ArrayList<>();
         try {
             final RemoteResourceFilter filter = (entry) -> {
                 final String entryFilename = entry.getName();
@@ -249,8 +250,13 @@ public class SFTPTransfer implements FileTransfer {
                     return false;
                 }
 
+                if (symlink && entry.getAttributes().getType() == FileMode.Type.SYMLINK) {
+                    syms.add(entry);
+                    return false;
+                }
+
                 // if is a directory and we're supposed to recurse OR if is a link and we're supposed to follow symlink
-                if ((recurse && entry.isDirectory()) || (symlink && (entry.getAttributes().getType() == FileMode.Type.SYMLINK))){
+                if (entry.getAttributes().getType() == FileMode.Type.DIRECTORY && recurse) {
                     subDirs.add(entry);
                     return false;
                 }
@@ -262,7 +268,7 @@ public class SFTPTransfer implements FileTransfer {
                 }
 
                 // if is not a directory and is not a link and it matches FILE_FILTER_REGEX - then let's add it
-                if (!entry.isDirectory() && !(entry.getAttributes().getType() == FileMode.Type.SYMLINK) && isPathMatch) {
+                if (entry.getAttributes().getType() == FileMode.Type.REGULAR && isPathMatch) {
                     if (pattern == null || pattern.matcher(entryFilename).matches()) {
                         listing.add(newFileInfo(entry, path));
                     }
@@ -289,6 +295,22 @@ public class SFTPTransfer implements FileTransfer {
             }
         }
 
+        for (final RemoteResourceInfo entry : syms) {
+            final String entryFilename = entry.getName();
+            final File newFullPath = new File(path, entryFilename);
+            final String newFullForwardPath = newFullPath.getPath().replace("\\", "/");
+
+            FileAttributes fa = sftpClient.statExistence(newFullForwardPath);
+
+            if (recurse && fa.getType() == FileMode.Type.DIRECTORY) {
+                subDirs.add(entry);
+            } else if (fa.getType() == FileMode.Type.REGULAR) {
+                if (pattern == null || pattern.matcher(entryFilename).matches()) {
+                    listing.add(newFileInfo(entry, path, fa));
+                }
+            }
+        }
+
         for (final RemoteResourceInfo entry : subDirs) {
             final String entryFilename = entry.getName();
             final File newFullPath = new File(path, entryFilename);
@@ -304,6 +326,10 @@ public class SFTPTransfer implements FileTransfer {
     }
 
     private FileInfo newFileInfo(final RemoteResourceInfo entry, String path) {
+        return newFileInfo(entry, path, null);
+    }
+
+    private FileInfo newFileInfo(final RemoteResourceInfo entry, String path, FileAttributes fa) {
         if (entry == null) {
             return null;
         }
@@ -312,6 +338,15 @@ public class SFTPTransfer implements FileTransfer {
 
         final StringBuilder permsBuilder = new StringBuilder();
         final Set<FilePermission> permissions = entry.getAttributes().getPermissions();
+
+        long filesize = 0;
+
+        FileAttributes entryAttributes = null;
+        if (fa != null) {
+            entryAttributes = fa;
+        } else {
+            entryAttributes = entry.getAttributes();
+        }
 
         appendPermission(permsBuilder, permissions, FilePermission.USR_R, "r");
         appendPermission(permsBuilder, permissions, FilePermission.USR_W, "w");
@@ -326,14 +361,14 @@ public class SFTPTransfer implements FileTransfer {
         appendPermission(permsBuilder, permissions, FilePermission.OTH_X, "x");
 
         final FileInfo.Builder builder = new FileInfo.Builder()
-            .filename(entry.getName())
-            .fullPathFileName(newFullForwardPath)
-            .directory(entry.isDirectory())
-            .size(entry.getAttributes().getSize())
-            .lastModifiedTime(entry.getAttributes().getMtime() * 1000L)
-            .permissions(permsBuilder.toString())
-            .owner(Integer.toString(entry.getAttributes().getUID()))
-            .group(Integer.toString(entry.getAttributes().getGID()));
+                .filename(entry.getName())
+                .fullPathFileName(newFullForwardPath)
+                .directory(entry.isDirectory())
+                .size(entryAttributes.getSize())
+                .lastModifiedTime(entryAttributes.getMtime() * 1000L)
+                .permissions(permsBuilder.toString())
+                .owner(Integer.toString(entryAttributes.getUID()))
+                .group(Integer.toString(entryAttributes.getGID()));
         return builder.build();
     }
 
@@ -451,10 +486,10 @@ public class SFTPTransfer implements FileTransfer {
         if (directoryName.getParent() != null && !directoryName.getParentFile().equals(new File(File.separator))) {
             ensureDirectoryExists(flowFile, directoryName.getParentFile());
         }
-        logger.debug("Remote Directory {} does not exist; creating it", new Object[] {remoteDirectory});
+        logger.debug("Remote Directory {} does not exist; creating it", new Object[]{remoteDirectory});
         try {
             sftpClient.mkdir(remoteDirectory);
-            logger.debug("Created {}", new Object[] {remoteDirectory});
+            logger.debug("Created {}", new Object[]{remoteDirectory});
         } catch (final SFTPException e) {
             throw new IOException("Failed to create remote directory " + remoteDirectory + " due to " + getMessage(e), e);
         }
@@ -496,7 +531,6 @@ public class SFTPTransfer implements FileTransfer {
         }
 
         // Initialize a new SSHClient...
-
         // If use keep-alive is set then set the provider which sends max of 5 keep-alives, otherwise set the no-op provider
         final DefaultConfig sshClientConfig = new DefaultConfig();
         final boolean useKeepAliveOnTimeout = ctx.getProperty(USE_KEEPALIVE_ON_TIMEOUT).asBoolean();
@@ -644,7 +678,7 @@ public class SFTPTransfer implements FileTransfer {
                 sftpClient.close();
             }
         } catch (final Exception ex) {
-            logger.warn("Failed to close SFTPClient due to {}", new Object[] {ex.toString()}, ex);
+            logger.warn("Failed to close SFTPClient due to {}", new Object[]{ex.toString()}, ex);
         }
         sftpClient = null;
 
@@ -653,7 +687,7 @@ public class SFTPTransfer implements FileTransfer {
                 sshClient.disconnect();
             }
         } catch (final Exception ex) {
-            logger.warn("Failed to close SSHClient due to {}", new Object[] {ex.toString()}, ex);
+            logger.warn("Failed to close SSHClient due to {}", new Object[]{ex.toString()}, ex);
         }
         sshClient = null;
     }
@@ -743,7 +777,7 @@ public class SFTPTransfer implements FileTransfer {
 
                 sftpClient.setattr(tempPath, modifiedAttributes);
             } catch (final Exception e) {
-                logger.error("Failed to set lastModifiedTime on {} to {} due to {}", new Object[] {tempPath, lastModifiedTime, e});
+                logger.error("Failed to set lastModifiedTime on {} to {} due to {}", new Object[]{tempPath, lastModifiedTime, e});
             }
         }
 
@@ -752,7 +786,7 @@ public class SFTPTransfer implements FileTransfer {
             try {
                 sftpClient.chown(tempPath, Integer.parseInt(owner));
             } catch (final Exception e) {
-                logger.error("Failed to set owner on {} to {} due to {}", new Object[] {tempPath, owner, e});
+                logger.error("Failed to set owner on {} to {} due to {}", new Object[]{tempPath, owner, e});
             }
         }
 
@@ -761,7 +795,7 @@ public class SFTPTransfer implements FileTransfer {
             try {
                 sftpClient.chgrp(tempPath, Integer.parseInt(group));
             } catch (final Exception e) {
-                logger.error("Failed to set group on {} to {} due to {}", new Object[] {tempPath, group, e});
+                logger.error("Failed to set group on {} to {} due to {}", new Object[]{tempPath, group, e});
             }
         }
 

@@ -31,8 +31,10 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import org.apache.nifi.util.MockFlowFile;
 
 public class TestGetSFTP {
 
@@ -53,7 +55,7 @@ public class TestGetSFTP {
     }
 
     @Before
-    public void setup(){
+    public void setup() {
         getSFTPRunner = TestRunners.newTestRunner(GetSFTP.class);
         getSFTPRunner.setProperty(SFTPTransfer.HOSTNAME, "localhost");
         getSFTPRunner.setProperty(SFTPTransfer.PORT, Integer.toString(sshTestServer.getSSHPort()));
@@ -63,7 +65,7 @@ public class TestGetSFTP {
         getSFTPRunner.setProperty(SFTPTransfer.DATA_TIMEOUT, "30 sec");
         getSFTPRunner.setProperty(SFTPTransfer.REMOTE_PATH, "/");
         getSFTPRunner.removeProperty(SFTPTransfer.FILE_FILTER_REGEX);
-        getSFTPRunner.setProperty(SFTPTransfer.PATH_FILTER_REGEX, "");
+
         getSFTPRunner.setProperty(SFTPTransfer.POLLING_INTERVAL, "60 sec");
         getSFTPRunner.setProperty(SFTPTransfer.RECURSIVE_SEARCH, "false");
         getSFTPRunner.setProperty(SFTPTransfer.IGNORE_DOTTED_FILES, "true");
@@ -88,7 +90,7 @@ public class TestGetSFTP {
         getSFTPRunner.assertTransferCount(GetSFTP.REL_SUCCESS, 4);
 
         //Verify files deleted
-        for(int i=1;i<5;i++){
+        for (int i = 1; i < 5; i++) {
             Path file1 = Paths.get(sshTestServer.getVirtualFileSystemPath() + "/testFile" + i + ".txt");
             Assert.assertTrue("File not deleted.", !file1.toAbsolutePath().toFile().exists());
         }
@@ -152,6 +154,118 @@ public class TestGetSFTP {
         Assert.assertTrue("File deleted.", file1.toAbsolutePath().toFile().exists());
 
         getSFTPRunner.clearTransferState();
+    }
+
+    @Test
+    public void testGetSymFile() throws IOException {
+        emptyTestDirectory();
+        TestRunner runner = TestRunners.newTestRunner(GetSFTP.class);
+        runner.setProperty(SFTPTransfer.HOSTNAME, "localhost");
+        runner.setProperty(SFTPTransfer.PORT, Integer.toString(sshTestServer.getSSHPort()));
+        runner.setProperty(SFTPTransfer.USERNAME, sshTestServer.getUsername());
+        runner.setProperty(SFTPTransfer.PASSWORD, sshTestServer.getPassword());
+        runner.setProperty(SFTPTransfer.STRICT_HOST_KEY_CHECKING, "false");
+        runner.setProperty(SFTPTransfer.DELETE_ORIGINAL, "true");
+        runner.setProperty(SFTPTransfer.FOLLOW_SYMLINK, "true");
+        runner.setProperty(SFTPTransfer.REMOTE_PATH, "/");
+
+        String fileContent = "not the sym";
+
+        FileUtils.writeStringToFile(new File(sshTestServer.getVirtualFileSystemPath() + "/bar/testFile2.txt"), fileContent, "UTF-8");
+        FileUtils.forceMkdir(new File(sshTestServer.getVirtualFileSystemPath() + "/foo/"));
+        Files.createSymbolicLink(Paths.get(sshTestServer.getVirtualFileSystemPath() + "/foo/testFile1.txt").toAbsolutePath(),
+                Paths.get(sshTestServer.getVirtualFileSystemPath() + "/bar/testFile2.txt").toAbsolutePath());
+        Files.createSymbolicLink(Paths.get(sshTestServer.getVirtualFileSystemPath() + "/testFile.txt").toAbsolutePath(),
+                Paths.get(sshTestServer.getVirtualFileSystemPath() + "/foo/testFile1.txt").toAbsolutePath());
+
+        runner.run();
+
+        runner.assertTransferCount(GetSFTP.REL_SUCCESS, 1);
+
+        final MockFlowFile retrievedFile = runner.getFlowFilesForRelationship(ListSFTP.REL_SUCCESS).get(0);
+        retrievedFile.assertContentEquals(fileContent);
+
+        Path file = Paths.get(sshTestServer.getVirtualFileSystemPath() + "testFile1.txt");
+        Assert.assertTrue("Sym deleted", !file.toAbsolutePath().toFile().exists());
+
+        file = Paths.get(sshTestServer.getVirtualFileSystemPath() + "bar/testFile2.txt");
+        Assert.assertTrue("Sym target not deleted", file.toAbsolutePath().toFile().exists());
+
+        runner.clearTransferState();
+    }
+
+    @Test
+    public void testRecurseSymDirWhenSpecified() throws IOException {
+        emptyTestDirectory();
+
+        TestRunner runner = TestRunners.newTestRunner(GetSFTP.class);
+        runner.setProperty(SFTPTransfer.HOSTNAME, "localhost");
+        runner.setProperty(SFTPTransfer.PORT, Integer.toString(sshTestServer.getSSHPort()));
+        runner.setProperty(SFTPTransfer.USERNAME, sshTestServer.getUsername());
+        runner.setProperty(SFTPTransfer.PASSWORD, sshTestServer.getPassword());
+        runner.setProperty(SFTPTransfer.STRICT_HOST_KEY_CHECKING, "false");
+        runner.setProperty(SFTPTransfer.DELETE_ORIGINAL, "true");
+        runner.setProperty(SFTPTransfer.FOLLOW_SYMLINK, "true");
+        runner.setProperty(SFTPTransfer.RECURSIVE_SEARCH, "true");
+        runner.setProperty(SFTPTransfer.REMOTE_PATH, "foo/");
+
+        touchFile(sshTestServer.getVirtualFileSystemPath() + "foo/testFile1.txt");
+        touchFile(sshTestServer.getVirtualFileSystemPath() + "stuff/testFile2.txt");
+
+        Files.createSymbolicLink(Paths.get(sshTestServer.getVirtualFileSystemPath() + "/foo/bar").toAbsolutePath(),
+                Paths.get(sshTestServer.getVirtualFileSystemPath() + "bar").toAbsolutePath());
+
+        Files.createSymbolicLink(Paths.get(sshTestServer.getVirtualFileSystemPath() + "/bar").toAbsolutePath(),
+                Paths.get(sshTestServer.getVirtualFileSystemPath() + "stuff").toAbsolutePath());
+
+        runner.run();
+
+        runner.assertTransferCount(GetSFTP.REL_SUCCESS, 2);
+
+        Path file = Paths.get(sshTestServer.getVirtualFileSystemPath() + "foo/testFile1.txt");
+        Assert.assertTrue("File deleted", !file.toAbsolutePath().toFile().exists());
+
+        file = Paths.get(sshTestServer.getVirtualFileSystemPath() + "bar/testFile2.txt");
+        Assert.assertTrue("File deleted", !file.toAbsolutePath().toFile().exists());
+
+        runner.clearTransferState();
+    }
+
+    @Test
+    public void testDoesntRecurseSymDirWhenNotSpecified() throws IOException {
+        emptyTestDirectory();
+
+        TestRunner runner = TestRunners.newTestRunner(GetSFTP.class);
+        runner.setProperty(SFTPTransfer.HOSTNAME, "localhost");
+        runner.setProperty(SFTPTransfer.PORT, Integer.toString(sshTestServer.getSSHPort()));
+        runner.setProperty(SFTPTransfer.USERNAME, sshTestServer.getUsername());
+        runner.setProperty(SFTPTransfer.PASSWORD, sshTestServer.getPassword());
+        runner.setProperty(SFTPTransfer.STRICT_HOST_KEY_CHECKING, "false");
+        runner.setProperty(SFTPTransfer.DELETE_ORIGINAL, "true");
+        runner.setProperty(SFTPTransfer.FOLLOW_SYMLINK, "true");
+        runner.setProperty(SFTPTransfer.RECURSIVE_SEARCH, "false");
+        runner.setProperty(SFTPTransfer.REMOTE_PATH, "foo/");
+
+        touchFile(sshTestServer.getVirtualFileSystemPath() + "foo/testFile1.txt");
+        touchFile(sshTestServer.getVirtualFileSystemPath() + "stuff/testFile2.txt");
+
+        Files.createSymbolicLink(Paths.get(sshTestServer.getVirtualFileSystemPath() + "/foo/bar").toAbsolutePath(),
+                Paths.get(sshTestServer.getVirtualFileSystemPath() + "bar").toAbsolutePath());
+
+        Files.createSymbolicLink(Paths.get(sshTestServer.getVirtualFileSystemPath() + "/bar").toAbsolutePath(),
+                Paths.get(sshTestServer.getVirtualFileSystemPath() + "stuff").toAbsolutePath());
+
+        runner.run();
+
+        runner.assertTransferCount(GetSFTP.REL_SUCCESS, 1);
+
+        Path file = Paths.get(sshTestServer.getVirtualFileSystemPath() + "foo/testFile1.txt");
+        Assert.assertTrue("File deleted", !file.toAbsolutePath().toFile().exists());
+
+        file = Paths.get(sshTestServer.getVirtualFileSystemPath() + "bar/testFile2.txt");
+        Assert.assertTrue("File not deleted", file.toAbsolutePath().toFile().exists());
+
+        runner.clearTransferState();
     }
 
     private void touchFile(String file) throws IOException {
