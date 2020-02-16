@@ -34,6 +34,7 @@ import org.slf4j.LoggerFactory;
 import java.io.InputStream;
 import java.io.Reader;
 import java.lang.reflect.Array;
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -147,6 +148,8 @@ public class DataTypeUtils {
                 return toDate(value, dateFormat, fieldName);
             case DOUBLE:
                 return toDouble(value, fieldName);
+            case DECIMAL:
+                return toBigDecimal(value, fieldName);
             case FLOAT:
                 return toFloat(value, fieldName);
             case INT:
@@ -201,6 +204,8 @@ public class DataTypeUtils {
                 return isDateTypeCompatible(value, dataType.getFormat());
             case DOUBLE:
                 return isDoubleTypeCompatible(value);
+            case DECIMAL:
+                return isDecimalTypeCompatible(value);
             case FLOAT:
                 return isFloatTypeCompatible(value);
             case INT:
@@ -453,6 +458,10 @@ public class DataTypeUtils {
             }
             if (value instanceof BigInteger) {
                 return RecordFieldType.BIGINT.getDataType();
+            }
+            if (value instanceof BigDecimal) {
+                return RecordFieldType.DECIMAL.getDecimalDataType(
+                		((BigDecimal) value).precision(), ((BigDecimal) value).scale());
             }
         }
 
@@ -1253,8 +1262,36 @@ public class DataTypeUtils {
         throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to Double for field " + fieldName);
     }
 
+    public static BigDecimal toBigDecimal(final Object value, final String fieldName) {
+        if (value == null) {
+            return null;
+        }
+
+        if(value instanceof BigDecimal) {
+        	return (BigDecimal) value;
+        }
+        
+        if (value instanceof Long) {
+            return BigDecimal.valueOf((Long) value);
+        }
+
+        if (value instanceof Double) {
+            return BigDecimal.valueOf((Double) value);
+        }
+        
+        if (value instanceof String) {
+            return new BigDecimal((String) value);
+        }
+
+        throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to BigDecimal for field " + fieldName);
+    }
+
     public static boolean isDoubleTypeCompatible(final Object value) {
         return isNumberTypeCompatible(value, s -> isDouble(s));
+    }
+
+    public static boolean isDecimalTypeCompatible(final Object value) {
+        return isNumberTypeCompatible(value, DataTypeUtils::isDecimal);
     }
 
     private static boolean isNumberTypeCompatible(final Object value, final Predicate<String> stringPredicate) {
@@ -1331,6 +1368,26 @@ public class DataTypeUtils {
         return true;
     }
 
+
+    private static boolean isDecimal(final String value) {
+        if (value == null || value.isEmpty()) {
+            return false;
+        }
+
+        if (!FLOATING_POINT_PATTERN.matcher(value).matches()) {
+            return false;
+        }
+
+        // Just to ensure that the exponents are in range, etc.
+        try {
+            new BigDecimal(value);
+        } catch (final NumberFormatException nfe) {
+            return false;
+        }
+
+        return true;
+    }
+    
     public static Long toLong(final Object value, final String fieldName) {
         if (value == null) {
             return null;
@@ -1670,6 +1727,11 @@ public class DataTypeUtils {
                 }
                 break;
 
+            case DECIMAL:
+                if (otherFieldType == RecordFieldType.FLOAT || otherFieldType == RecordFieldType.DOUBLE) {
+                    return Optional.of(thisDataType);
+                }
+                break;
 
             case CHAR:
                 if (otherFieldType == RecordFieldType.STRING) {
@@ -1728,6 +1790,8 @@ public class DataTypeUtils {
                 return Types.DATE;
             case DOUBLE:
                 return Types.DOUBLE;
+            case DECIMAL:
+                return Types.DECIMAL;
             case FLOAT:
                 return Types.FLOAT;
             case INT:

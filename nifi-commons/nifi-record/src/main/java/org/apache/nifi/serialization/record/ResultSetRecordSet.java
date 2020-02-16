@@ -23,6 +23,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.sql.Array;
 import java.sql.ResultSet;
@@ -212,7 +213,7 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
                 final Object obj = rs.getObject(columnIndex);
                 if (!(obj instanceof Record)) {
                     final List<DataType> dataTypes = Stream.of(RecordFieldType.BIGINT, RecordFieldType.BOOLEAN, RecordFieldType.BYTE, RecordFieldType.CHAR, RecordFieldType.DATE,
-                        RecordFieldType.DOUBLE, RecordFieldType.FLOAT, RecordFieldType.INT, RecordFieldType.LONG, RecordFieldType.SHORT, RecordFieldType.STRING, RecordFieldType.TIME,
+                        RecordFieldType.DECIMAL, RecordFieldType.DOUBLE, RecordFieldType.FLOAT, RecordFieldType.INT, RecordFieldType.LONG, RecordFieldType.SHORT, RecordFieldType.STRING, RecordFieldType.TIME,
                         RecordFieldType.TIMESTAMP)
                     .map(RecordFieldType::getDataType)
                     .collect(Collectors.toList());
@@ -269,6 +270,9 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
         if (arrayValue instanceof double[]) {
             return RecordFieldType.DOUBLE.getDataType();
         }
+        if (arrayValue instanceof BigDecimal[]) {
+            return RecordFieldType.DECIMAL.getDataType();
+        }
         if (arrayValue instanceof char[]) {
             return RecordFieldType.CHAR.getDataType();
         }
@@ -309,6 +313,9 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
             }
             if (valueToLookAt instanceof Double) {
                 return RecordFieldType.DOUBLE.getDataType();
+            }
+            if (valueToLookAt instanceof BigDecimal) {
+                return RecordFieldType.DECIMAL.getDataType();
             }
             if (valueToLookAt instanceof Boolean) {
                 return RecordFieldType.BOOLEAN.getDataType();
@@ -354,6 +361,7 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
             case Types.DATE:
                 return RecordFieldType.DATE;
             case Types.DECIMAL:
+                return RecordFieldType.DECIMAL;
             case Types.DOUBLE:
             case Types.NUMERIC:
             case Types.REAL:

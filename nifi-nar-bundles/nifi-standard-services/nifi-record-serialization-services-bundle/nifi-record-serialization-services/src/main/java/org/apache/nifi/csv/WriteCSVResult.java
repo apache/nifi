@@ -157,6 +157,7 @@ public class WriteCSVResult extends AbstractRecordSetWriter implements RecordSet
             case BIGINT:
             case BYTE:
             case DOUBLE:
+            case DECIMAL:
             case FLOAT:
             case LONG:
             case INT:

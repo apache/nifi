@@ -138,10 +138,17 @@ public class MetricsService {
 
     private Map<String,Double> getDoubleMetrics(JvmMetrics virtualMachineMetrics) {
         final Map<String,Double> metrics = new HashMap<>();
-        metrics.put(MetricNames.JVM_HEAP_USED, virtualMachineMetrics.heapUsed(DataUnit.B));
-        metrics.put(MetricNames.JVM_HEAP_USAGE, virtualMachineMetrics.heapUsage());
-        metrics.put(MetricNames.JVM_NON_HEAP_USAGE, virtualMachineMetrics.nonHeapUsage());
-        metrics.put(MetricNames.JVM_FILE_DESCRIPTOR_USAGE, virtualMachineMetrics.fileDescriptorUsage());
+
+        final double jvmHeapUsed = virtualMachineMetrics.heapUsed(DataUnit.B);
+        final double jvmHeapUsage = virtualMachineMetrics.heapUsage();
+        final double jvmNonHeapUsage = virtualMachineMetrics.nonHeapUsage();
+        final double jvmFileDescriptorUsage = virtualMachineMetrics.fileDescriptorUsage();
+       
+        metrics.put(MetricNames.JVM_HEAP_USED, Double.isNaN(jvmHeapUsed) ? null : jvmHeapUsed);
+        metrics.put(MetricNames.JVM_HEAP_USAGE, Double.isNaN(jvmHeapUsage) ? null : jvmHeapUsage);
+        metrics.put(MetricNames.JVM_NON_HEAP_USAGE, Double.isNaN(jvmNonHeapUsage) ? null : jvmNonHeapUsage);
+        metrics.put(MetricNames.JVM_FILE_DESCRIPTOR_USAGE, Double.isNaN(jvmFileDescriptorUsage) ? null : jvmFileDescriptorUsage);
+
         return metrics;
     }
 

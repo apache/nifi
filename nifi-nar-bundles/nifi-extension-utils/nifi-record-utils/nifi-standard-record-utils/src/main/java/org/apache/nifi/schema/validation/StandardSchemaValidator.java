@@ -17,6 +17,7 @@
 
 package org.apache.nifi.schema.validation;
 
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Map;
 
@@ -243,6 +244,8 @@ public class StandardSchemaValidator implements RecordSchemaValidator {
                 return value instanceof Character;
             case DATE:
                 return value instanceof java.sql.Date;
+            case DECIMAL:
+                return value instanceof BigDecimal;
             case DOUBLE:
                 return value instanceof Double;
             case FLOAT:

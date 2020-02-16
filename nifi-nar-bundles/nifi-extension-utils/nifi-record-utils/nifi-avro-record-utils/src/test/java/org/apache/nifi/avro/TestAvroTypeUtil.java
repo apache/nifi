@@ -434,10 +434,10 @@ public class TestAvroTypeUtil {
 
         final Object resultObject = convertedMap.get("amount");
         assertNotNull(resultObject);
-        assertTrue(resultObject instanceof Double);
+        assertTrue(resultObject instanceof BigDecimal);
 
-        final Double resultDouble = (Double) resultObject;
-        assertEquals(Double.valueOf(expectedDecimalValue.doubleValue()), resultDouble);
+        final BigDecimal resultDouble = (BigDecimal) resultObject;
+        assertEquals(expectedDecimalValue, resultDouble);
     }
 
     @Test

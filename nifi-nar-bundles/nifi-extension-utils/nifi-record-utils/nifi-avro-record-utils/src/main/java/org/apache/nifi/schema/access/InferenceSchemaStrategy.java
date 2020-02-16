@@ -27,6 +27,7 @@ import org.apache.commons.io.IOUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.EnumSet;
@@ -58,6 +59,11 @@ public class InferenceSchemaStrategy implements JsonSchemaAccessStrategy {
                 field = new RecordField(entry.getKey(), RecordFieldType.BOOLEAN.getDataType());
             } else if (entry.getValue() instanceof Double) {
                 field = new RecordField(entry.getKey(), RecordFieldType.DOUBLE.getDataType());
+            } else if (entry.getValue() instanceof BigDecimal) {
+                field = new RecordField(entry.getKey(), 
+                		RecordFieldType.DECIMAL.getDecimalDataType(
+                				((BigDecimal) entry.getValue()).precision(),
+                				((BigDecimal) entry.getValue()).scale()));
             } else if (entry.getValue() instanceof Date) {
                 field = new RecordField(entry.getKey(), RecordFieldType.DATE.getDataType());
             } else if (entry.getValue() instanceof List) {

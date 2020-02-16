@@ -44,6 +44,7 @@ import org.apache.nifi.serialization.record.SchemaIdentifier;
 import org.apache.nifi.serialization.record.StandardSchemaIdentifier;
 import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.type.ChoiceDataType;
+import org.apache.nifi.serialization.record.type.DecimalDataType;
 import org.apache.nifi.serialization.record.type.MapDataType;
 import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
@@ -256,6 +257,10 @@ public class AvroTypeUtil {
             case LONG:
                 schema = Schema.create(Type.LONG);
                 break;
+            case DECIMAL:
+            	final DecimalDataType decimalDataType = (DecimalDataType) dataType;
+            	schema = LogicalTypes.decimal(decimalDataType.getPrecision(), decimalDataType.getScale()).addToSchema(Schema.create(Type.BYTES));
+                break;
             case MAP:
                 schema = Schema.createMap(buildAvroSchema(((MapDataType) dataType).getValueType(), fieldName, false));
                 break;
@@ -341,7 +346,15 @@ public class AvroTypeUtil {
                 case LOGICAL_TYPE_TIMESTAMP_MICROS:
                     return RecordFieldType.TIMESTAMP.getDataType();
                 case LOGICAL_TYPE_DECIMAL:
-                    // We convert Decimal to Double.
+                	// Convert here into a DECIMAL type with a specified precision and scale
+                	if(logicalType instanceof LogicalTypes.Decimal) {
+                		
+                		return RecordFieldType.DECIMAL.getDecimalDataType(
+                				((LogicalTypes.Decimal) logicalType).getPrecision(),
+                				((LogicalTypes.Decimal) logicalType).getScale());
+                	}
+                	
+                	// We convert Decimal to Double.
                     // Alternatively we could convert it to String, but numeric type is generally more preferable by users.
                     return RecordFieldType.DOUBLE.getDataType();
             }

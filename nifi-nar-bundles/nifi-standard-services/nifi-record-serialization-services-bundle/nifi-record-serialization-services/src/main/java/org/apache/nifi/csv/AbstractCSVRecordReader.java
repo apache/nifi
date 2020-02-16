@@ -104,6 +104,8 @@ abstract public class AbstractCSVRecordReader implements RecordReader {
             case LONG:
             case FLOAT:
             case DOUBLE:
+            case BIGINT:
+            case DECIMAL:
             case BYTE:
             case CHAR:
             case SHORT:

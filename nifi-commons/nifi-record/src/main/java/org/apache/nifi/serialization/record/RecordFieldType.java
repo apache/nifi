@@ -19,6 +19,7 @@ package org.apache.nifi.serialization.record;
 
 import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.type.ChoiceDataType;
+import org.apache.nifi.serialization.record.type.DecimalDataType;
 import org.apache.nifi.serialization.record.type.MapDataType;
 import org.apache.nifi.serialization.record.type.RecordDataType;
 
@@ -71,6 +72,11 @@ public enum RecordFieldType {
      * A double field type. Fields of this type use a {@code double} value.
      */
     DOUBLE("double", FLOAT),
+
+    /**
+     * A decimal field type. Fields of this type use a {@code java.math.BigDecimal} value.
+     */
+    DECIMAL("decimal", null, new DecimalDataType(15, 2)),
 
     /**
      * A timestamp field type. Fields of this type use a {@code java.sql.Timestamp} value.
@@ -280,6 +286,25 @@ public enum RecordFieldType {
         return new RecordDataType(childSchema);
     }
 
+    /**
+     * Returns a data type that represents a DECIMAL value with given precision and scale
+     * 
+     * @param precision
+     * @param scale
+     * 
+     * @return a DataType that represents a DECIMAL with specified precision and scale, or <code>null</code> if this RecordFieldType
+     *         is not a DECIMAL type
+     */
+    
+    public DataType getDecimalDataType(int precision, int scale) {
+    	if(this != DECIMAL) {
+    		return null;
+    	}
+    	
+    	return new DecimalDataType(precision, scale);
+    }
+    
+    
     /**
      * Returns a Data Type that represents an "ARRAY" type with the given element type.
      *
