@@ -46,6 +46,8 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.util.StringUtils;
 
+import static org.apache.nifi.processor.util.list.AbstractListProcessor.REL_SUCCESS;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -219,6 +221,9 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
     private volatile List<String> latestIdentifiersProcessed = new ArrayList<>();
 
     private volatile ListedEntityTracker<T> listedEntityTracker;
+    
+    private final String FILE_LIST_BATCH_COUNT = "file.list.batch.count";
+    private final String FILE_LIST_BATCH_ID = "file.list.batch.id";
 
     /*
      * A constant used in determining an internal "yield" of processing files. Given the logic to provide a pause on the newest
@@ -553,7 +558,8 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
                     orderedEntries.remove(latestListedEntryTimestampThisCycleMillis);
                 }
             }
-
+            int entitiesCount = entityList.size();
+            long batchId = System.currentTimeMillis();
             for (Map.Entry<Long, List<T>> timestampEntities : orderedEntries.entrySet()) {
                 List<T> entities = timestampEntities.getValue();
                 if (timestampEntities.getKey().equals(lastProcessedLatestEntryTimestampMillis)) {
@@ -565,6 +571,9 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
                     // Create the FlowFile for this path.
                     final Map<String, String> attributes = createAttributes(entity, context);
                     FlowFile flowFile = session.create();
+                    session.putAttribute(flowFile, FILE_LIST_BATCH_COUNT, Long.toString(entitiesCount));
+                	session.putAttribute(flowFile, FILE_LIST_BATCH_ID, Long.toString(batchId));
+                                        
                     flowFile = session.putAllAttributes(flowFile, attributes);
                     session.transfer(flowFile, REL_SUCCESS);
                     flowfilesCreated++;
