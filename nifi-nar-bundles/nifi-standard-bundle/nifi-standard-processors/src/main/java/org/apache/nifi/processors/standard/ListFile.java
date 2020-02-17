@@ -280,6 +280,8 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
     public static final String FILE_SIZE_ATTRIBUTE = "file.size";
     public static final String FILE_OWNER_ATTRIBUTE = "file.owner";
     public static final String FILE_GROUP_ATTRIBUTE = "file.group";
+    public static final String FILE_LIST_BATCH_COUNT = "file.list.batch.count";
+    public static final String FILE_LIST_BATCH_ID = "file.list.batch.id";
     public static final String FILE_PERMISSIONS_ATTRIBUTE = "file.permissions";
     public static final String FILE_MODIFY_DATE_ATTR_FORMAT = "yyyy-MM-dd'T'HH:mm:ssZ";
 

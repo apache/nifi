@@ -141,6 +141,8 @@ public class ListedEntityTracker<T extends ListableEntity> {
     private final String componentId;
     private final ComponentLog logger;
 
+    private final String FILE_LIST_BATCH_COUNT = "file.list.batch.count";
+    private final String FILE_LIST_BATCH_ID = "file.list.batch.id";
     /*
      * The scope, nodeId and mapCacheClient being used at the previous trackEntities method execution is captured,
      * so that it can be used when resetListedEntities is called.
@@ -311,10 +313,14 @@ public class ListedEntityTracker<T extends ListableEntity> {
 
         // Remove old entries.
         oldEntityIds.forEach(oldEntityId -> alreadyListedEntities.remove(oldEntityId));
-
+        long entitiesCount = updatedEntities.size(); // Total entities for this execution
+        long batchId = System.currentTimeMillis(); //Unique id for this execution to relate listedEntities are belonging to this batch
         // Emit updated entities.
         for (T updatedEntity : updatedEntities) {
             FlowFile flowFile = session.create();
+        
+            session.putAttribute(flowFile, FILE_LIST_BATCH_COUNT, Long.toString(entitiesCount));
+        	session.putAttribute(flowFile, FILE_LIST_BATCH_ID, Long.toString(batchId));
             flowFile = session.putAllAttributes(flowFile, createAttributes.apply(updatedEntity));
             session.transfer(flowFile, REL_SUCCESS);
             // In order to reduce object size, discard meta data captured at the sub-classes.
