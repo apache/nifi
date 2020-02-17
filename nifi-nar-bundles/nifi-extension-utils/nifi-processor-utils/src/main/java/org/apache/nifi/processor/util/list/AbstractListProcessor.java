@@ -46,7 +46,6 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.util.StringUtils;
 
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
