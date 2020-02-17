@@ -46,7 +46,6 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.util.StringUtils;
 
-import static org.apache.nifi.processor.util.list.AbstractListProcessor.REL_SUCCESS;
 
 import java.io.File;
 import java.io.FileInputStream;
