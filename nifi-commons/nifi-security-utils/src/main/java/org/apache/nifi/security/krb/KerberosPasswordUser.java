@@ -44,6 +44,13 @@ public class KerberosPasswordUser extends AbstractKerberosUser {
         Validate.notBlank(this.password);
     }
 
+    /**
+     * @return the password for the principal
+     */
+    public String getPassword() {
+        return password;
+    }
+
     @Override
     protected LoginContext createLoginContext(final Subject subject) throws LoginException {
         final Configuration configuration = new PasswordConfig();
