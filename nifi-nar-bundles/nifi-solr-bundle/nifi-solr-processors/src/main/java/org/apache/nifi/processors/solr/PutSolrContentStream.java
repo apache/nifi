@@ -58,6 +58,8 @@ import static org.apache.nifi.processors.solr.SolrUtils.BASIC_PASSWORD;
 import static org.apache.nifi.processors.solr.SolrUtils.BASIC_USERNAME;
 import static org.apache.nifi.processors.solr.SolrUtils.COLLECTION;
 import static org.apache.nifi.processors.solr.SolrUtils.KERBEROS_CREDENTIALS_SERVICE;
+import static org.apache.nifi.processors.solr.SolrUtils.KERBEROS_PASSWORD;
+import static org.apache.nifi.processors.solr.SolrUtils.KERBEROS_PRINCIPAL;
 import static org.apache.nifi.processors.solr.SolrUtils.SOLR_CONNECTION_TIMEOUT;
 import static org.apache.nifi.processors.solr.SolrUtils.SOLR_LOCATION;
 import static org.apache.nifi.processors.solr.SolrUtils.SOLR_MAX_CONNECTIONS;
@@ -136,6 +138,8 @@ public class PutSolrContentStream extends SolrProcessor {
         descriptors.add(CONTENT_TYPE);
         descriptors.add(COMMIT_WITHIN);
         descriptors.add(KERBEROS_CREDENTIALS_SERVICE);
+        descriptors.add(KERBEROS_PRINCIPAL);
+        descriptors.add(KERBEROS_PASSWORD);
         descriptors.add(BASIC_USERNAME);
         descriptors.add(BASIC_PASSWORD);
         descriptors.add(SSL_CONTEXT_SERVICE);
