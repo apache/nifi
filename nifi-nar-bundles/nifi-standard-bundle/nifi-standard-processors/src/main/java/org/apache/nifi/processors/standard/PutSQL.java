@@ -155,6 +155,14 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
             .allowableValues("true", "false")
             .defaultValue("true")
             .build();
+    static final PropertyDescriptor SUPPORT_TRANSACTION_ROLLBACK = new PropertyDescriptor.Builder()
+            .name("Support Database Transaction RollBack")
+            .description("If the <Support Fragmented Transactions> property is set to true and the <Rollback On Failure> is set to false, specifies that whether the processor support database transaction rollback." +
+                    "If false, the  database transaction will not rollback when some SQL failed. If this value is true, the database transaction will rollback when some SQL failed. If the <Rollback On Failure> is set to true," +
+                    "this property will be ignored")
+            .allowableValues("true", "false")
+            .defaultValue("true")
+            .build();
     static final PropertyDescriptor TRANSACTION_TIMEOUT = new PropertyDescriptor.Builder()
             .name("Transaction Timeout")
             .description("If the <Support Fragmented Transactions> property is set to true, specifies how long to wait for all FlowFiles for a particular fragment.identifier attribute "
@@ -201,6 +209,7 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
         properties.add(CONNECTION_POOL);
         properties.add(SQL_STATEMENT);
         properties.add(SUPPORT_TRANSACTIONS);
+        properties.add(SUPPORT_TRANSACTION_ROLLBACK);
         properties.add(AUTO_COMMIT);
         properties.add(TRANSACTION_TIMEOUT);
         properties.add(BATCH_SIZE);
@@ -215,6 +224,7 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
         final String support_transactions = context.getProperty(SUPPORT_TRANSACTIONS).getValue();
         final String rollback_on_failure = context.getProperty(RollbackOnFailure.ROLLBACK_ON_FAILURE).getValue();
         final String auto_commit = context.getProperty(AUTO_COMMIT).getValue();
+        final String support_database_rollback = context.getProperty(SUPPORT_TRANSACTION_ROLLBACK).getValue();
 
         if(auto_commit.equalsIgnoreCase("true")) {
             if(support_transactions.equalsIgnoreCase("true")) {
@@ -224,6 +234,14 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
                                         + "Transactions for batch updates cannot be supported when auto commit is set to 'true'",
                                         SUPPORT_TRANSACTIONS.getDisplayName(), AUTO_COMMIT.getDisplayName()))
                                 .build());
+            }
+            if(support_database_rollback.equalsIgnoreCase("true")) {
+                results.add(new ValidationResult.Builder()
+                        .subject(SUPPORT_TRANSACTION_ROLLBACK.getDisplayName())
+                        .explanation(format("'%s' cannot be set to 'true' when '%s' is also set to 'true'."
+                                        + "Transactions for batch updates cannot be supported when auto commit is set to 'true'",
+                                SUPPORT_TRANSACTION_ROLLBACK.getDisplayName(), AUTO_COMMIT.getDisplayName()))
+                        .build());
             }
             if(rollback_on_failure.equalsIgnoreCase("true")) {
                 results.add(new ValidationResult.Builder()
@@ -252,8 +270,8 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
         private boolean originalAutoCommit = false;
         private final long startNanos = System.nanoTime();
 
-        private FunctionContext(boolean rollbackOnFailure) {
-            super(rollbackOnFailure, true);
+        private FunctionContext(boolean rollbackOnFailure,boolean databaseTransactionRollBack) {
+            super(rollbackOnFailure, true,databaseTransactionRollBack);
         }
 
         private boolean isSupportBatching() {
@@ -595,7 +613,9 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
     @Override
     public void onTrigger(ProcessContext context, ProcessSessionFactory sessionFactory) throws ProcessException {
         final Boolean rollbackOnFailure = context.getProperty(RollbackOnFailure.ROLLBACK_ON_FAILURE).asBoolean();
-        final FunctionContext functionContext = new FunctionContext(rollbackOnFailure);
+        final Boolean dbTransactionRollbackConfig = context.getProperty(SUPPORT_TRANSACTION_ROLLBACK).asBoolean();
+        final Boolean supportTransaction = context.getProperty(SUPPORT_TRANSACTIONS).asBoolean();
+        final FunctionContext functionContext = new FunctionContext(rollbackOnFailure,dbTransactionRollbackConfig&supportTransaction);
         functionContext.obtainKeys = context.getProperty(OBTAIN_GENERATED_KEYS).asBoolean();
         RollbackOnFailure.onTrigger(context, sessionFactory, functionContext, getLogger(), session -> process.onTrigger(context, session, functionContext));
     }

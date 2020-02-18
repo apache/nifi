@@ -24,6 +24,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.pattern.ErrorTypes.Result;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.BiFunction;
@@ -229,6 +230,16 @@ public class ExceptionHandler<C> {
             for (FlowFile f : g.getFlowFiles()) {
                 final FlowFile maybePenalized = penalize(context, session, f, r.penalty());
                 routingResult.routeTo(maybePenalized, routeTo);
+            }
+            //After routingResult, if database can do database's rollback,then throw DataBaseTransactionException
+            if(r.isDatabaseRollBack()){
+                //if routingResult  contains relRetry,then we route all flowfiles of the routingResult to relRetry,otherwise route to relFailure
+                Relationship relationship = routingResult.contains(relRetry)?relRetry:relFailure;
+                List<FlowFile> flowFiles = new ArrayList<>();
+                routingResult.getRoutedFlowFiles().forEach((k,v)->flowFiles.addAll(v));
+                routingResult.getRoutedFlowFiles().clear();
+                routingResult.routeTo(flowFiles,relationship);
+                throw new DataBaseTransactionException(e.getMessage(),e.getCause());
             }
         };
     }

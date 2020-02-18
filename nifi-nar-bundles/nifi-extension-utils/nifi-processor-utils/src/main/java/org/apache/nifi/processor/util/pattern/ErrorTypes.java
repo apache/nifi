@@ -104,10 +104,24 @@ public enum ErrorTypes {
     public static class Result {
         private final Destination destination;
         private final Penalty penalty;
+        // indicate if we need do database rollback or not
+        private boolean databaseRollBack;
 
         public Result(Destination destination, Penalty penalty) {
+            this(destination,penalty,false);
+        }
+        public Result(Destination destination, Penalty penalty,boolean databaseRollBack) {
             this.destination = destination;
             this.penalty = penalty;
+            this.databaseRollBack = databaseRollBack;
+        }
+
+        public boolean isDatabaseRollBack() {
+            return databaseRollBack;
+        }
+
+        public void databaseCanRollBack() {
+            this.databaseRollBack = true;
         }
 
         public Destination destination() {
@@ -123,6 +137,7 @@ public enum ErrorTypes {
             return "Result{" +
                     "destination=" + destination +
                     ", penalty=" + penalty +
+                    ", databaseRollBack="+ databaseRollBack +
                     '}';
         }
 

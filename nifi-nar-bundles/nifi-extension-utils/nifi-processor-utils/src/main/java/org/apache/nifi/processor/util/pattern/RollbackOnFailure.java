@@ -51,6 +51,7 @@ public class RollbackOnFailure {
 
     private final boolean rollbackOnFailure;
     private final boolean transactional;
+    private boolean databaseTransactionRollBack;
     private boolean discontinue;
 
     private int processedCount = 0;
@@ -63,8 +64,24 @@ public class RollbackOnFailure {
      *                      that indicates processor made an operation that can not be undone.
      */
     public RollbackOnFailure(boolean rollbackOnFailure, boolean transactional) {
+        this(rollbackOnFailure,transactional,false);
+    }
+    /**
+     * Constructor.
+     * @param rollbackOnFailure Should be set by user via processor configuration.
+     * @param transactional Specify whether a processor is transactional.
+     *                      If not, it is important to call {@link #proceed()} after successful execution of processors task,
+     *                      that indicates processor made an operation that can not be undone.
+     * @param dbTransactionRollBackConfig Should be set by user via processor configuration.
+     */
+    public RollbackOnFailure(boolean rollbackOnFailure, boolean transactional,boolean dbTransactionRollBackConfig) {
         this.rollbackOnFailure = rollbackOnFailure;
         this.transactional = transactional;
+        //1:Only when the process is transactional databaseTransactionRollBack can be true
+        //if the transactional is true:
+        //2.1: if rollbackOnFailure is true,the dbTransactionRollBackConfig will be ignored
+        //2.2: if rollbackOnFailure is false and the dbTransactionRollBackConfig is true,then the databaseTransactionRollBack is true
+        this.databaseTransactionRollBack = transactional&(rollbackOnFailure || dbTransactionRollBackConfig);
     }
 
     public static final PropertyDescriptor ROLLBACK_ON_FAILURE = createRollbackOnFailureProperty("");
@@ -128,16 +145,22 @@ public class RollbackOnFailure {
                     }
                     break;
             }
-
+            ErrorTypes.Result result;
             if (adjusted != null) {
                 if (logger.isDebugEnabled()) {
                     logger.debug("Adjusted {} to {} based on context rollbackOnFailure={}, processedCount={}, transactional={}",
                             new Object[]{t, adjusted, c.isRollbackOnFailure(), c.getProcessedCount(), c.isTransactional()});
                 }
-                return adjusted;
+                result = adjusted;
+            }else {
+                result = t.result();
+            }
+            // if the  process can support database rollback,then set the result's databaseRollBack true
+            if(c.isDatabaseTransactionRollBack()){
+                result.databaseCanRollBack();
             }
 
-            return t.result();
+            return result;
         };
     }
 
@@ -206,6 +229,10 @@ public class RollbackOnFailure {
 
     public boolean isRollbackOnFailure() {
         return rollbackOnFailure;
+    }
+
+    public boolean isDatabaseTransactionRollBack() {
+        return databaseTransactionRollBack;
     }
 
     public boolean isTransactional() {

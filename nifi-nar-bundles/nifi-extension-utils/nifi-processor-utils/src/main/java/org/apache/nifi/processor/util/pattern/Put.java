@@ -103,6 +103,20 @@ public class Put<FC, C extends AutoCloseable> {
                 } catch (DiscontinuedException e) {
                     // Whether it was an error or semi normal is depends on the implementation and reason why it wanted to discontinue.
                     // So, no logging is needed here.
+                }catch (DataBaseTransactionException e) {
+                    if (onFailed != null) {
+                        onFailed.apply(context, session, functionContext, connection, e);
+                    }
+                    logger.error("Failed to execute due to {},database roll back", new Object[]{e});
+                    //if we catch the DataBaseTransactionException,these flowfiles should be in one transaction,and we need
+                    //to put these flowfiles to the same relationship.
+                    Relationship[] relationshipKeys = new Relationship[1];
+                    //if  we catch DataBaseTransactionException, then RoutedFlowFiles should only contains one relationship key,relRetry or relFailure
+                    result.getRoutedFlowFiles().keySet().toArray(relationshipKeys);
+                    Relationship relationshipKey = relationshipKeys[0];
+                    int index = result.getRoutedFlowFiles().get(relationshipKey).size();
+                    //route The flowfiles not executed in the transaction
+                    result.routeTo(flowFiles.subList(index,flowFiles.size()),relationshipKey);
                 }
 
                 // Extension point to alter routes.
