@@ -387,7 +387,6 @@ public class PutCassandraRecord extends AbstractCassandraProcessor {
         if (UPDATE_TYPE.getValue().equalsIgnoreCase(statementType)) {
             // Check that update keys are set
             String updateKeys = validationContext.getProperty(UPDATE_KEYS).getValue();
-            String updateMethod = validationContext.getProperty(UPDATE_METHOD).getValue();
             if (StringUtils.isEmpty(updateKeys)) {
                 results.add(new ValidationResult.Builder().subject("Update statement configuration").valid(false).explanation(
                         "if the Statement Type is set to Update, then the Update Keys must be specified as well").build());
