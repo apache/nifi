@@ -153,6 +153,7 @@ public abstract class NiFiProperties {
     public static final String SECURITY_TRUSTSTORE_TYPE = "nifi.security.truststoreType";
     public static final String SECURITY_TRUSTSTORE_PASSWD = "nifi.security.truststorePasswd";
     public static final String SECURITY_USER_AUTHORIZER = "nifi.security.user.authorizer";
+    public static final String SECURITY_ANONYMOUS_AUTHENTICATION = "nifi.security.allow.anonymous.authentication";
     public static final String SECURITY_USER_LOGIN_IDENTITY_PROVIDER = "nifi.security.user.login.identity.provider";
     public static final String SECURITY_OCSP_RESPONDER_URL = "nifi.security.ocsp.responder.url";
     public static final String SECURITY_OCSP_RESPONDER_CERTIFICATE = "nifi.security.ocsp.responder.certificate";
@@ -920,9 +921,18 @@ public abstract class NiFiProperties {
     }
 
     /**
+     * @return True if property value is 'true'; False otherwise.
+     */
+    public Boolean isAnonymousAuthenticationAllowed() {
+        final String anonymousAuthenticationAllowed = getProperty(SECURITY_ANONYMOUS_AUTHENTICATION, "false");
+
+        return "true".equalsIgnoreCase(anonymousAuthenticationAllowed);
+    }
+
+    /**
      * Returns whether an OpenId Connect (OIDC) URL is set.
      *
-     * @return whether an OpenId Connection URL is set
+     * @return whether an OpenId Connect URL is set
      */
     public boolean isOidcEnabled() {
         return !StringUtils.isBlank(getOidcDiscoveryUrl());
@@ -1066,12 +1076,13 @@ public abstract class NiFiProperties {
      * - Kerberos service support is not enabled
      * - openid connect is not enabled
      * - knox sso is not enabled
+     * - anonymous authentication is not enabled
      * </p>
      *
      * @return true if client certificates are required for access to the REST API
      */
     public boolean isClientAuthRequiredForRestApi() {
-        return !isLoginIdentityProviderEnabled() && !isKerberosSpnegoSupportEnabled() && !isOidcEnabled() && !isKnoxSsoEnabled();
+        return !isLoginIdentityProviderEnabled() && !isKerberosSpnegoSupportEnabled() && !isOidcEnabled() && !isKnoxSsoEnabled() && !isAnonymousAuthenticationAllowed();
     }
 
     public InetSocketAddress getNodeApiAddress() {

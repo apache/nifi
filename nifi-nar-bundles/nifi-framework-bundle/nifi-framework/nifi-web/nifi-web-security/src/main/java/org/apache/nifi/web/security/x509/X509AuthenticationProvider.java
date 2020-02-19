@@ -64,11 +64,13 @@ public class X509AuthenticationProvider extends NiFiAuthenticationProvider {
 
     private X509IdentityProvider certificateIdentityProvider;
     private Authorizer authorizer;
+    final NiFiProperties properties;
 
     public X509AuthenticationProvider(final X509IdentityProvider certificateIdentityProvider, final Authorizer authorizer, final NiFiProperties nifiProperties) {
         super(nifiProperties, authorizer);
         this.certificateIdentityProvider = certificateIdentityProvider;
         this.authorizer = authorizer;
+        this.properties = nifiProperties;
     }
 
     @Override
@@ -99,6 +101,11 @@ public class X509AuthenticationProvider extends NiFiAuthenticationProvider {
                 // determine if the user is anonymous
                 final boolean isAnonymous = StringUtils.isBlank(identity);
                 if (isAnonymous) {
+                    // prevent anonymous users unless it's been explicitly configured
+                    if (!properties.isAnonymousAuthenticationAllowed()) {
+                        throw new InvalidAuthenticationException("Anonymous authentication has not been configured.");
+                    }
+
                     identity = StandardNiFiUser.ANONYMOUS_IDENTITY;
                 } else {
                     identity = mapIdentity(identity);
