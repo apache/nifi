@@ -1,0 +1,111 @@
+name: ci-workflow
+
+on: [push, pull_request]
+
+jobs:
+  ubuntu-build:
+
+    timeout-minutes: 90
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        java: [ '1.8', '11' ]
+    name: Ubuntu Build NiFi - JDK${{ matrix.java }}
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v2
+    - name: Check NPM Cache
+      uses: actions/cache@v1.1.2
+      with:
+        path: ~/.npm
+        key: linux-${{ matrix.java }}-npm-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: |
+          linux-${{ matrix.java }}-npm-
+    - name: Check Maven Com Cache
+      uses: actions/cache@v1.1.2
+      with:
+        path: ~/.m2/repository/com
+        key: linux-${{ matrix.java }}-maven-com-${{ hashFiles('**/pom.xml') }}
+        restore-keys: |
+          linux-${{ matrix.java }}-maven-com-
+    - name: Check Maven Org Cache
+      uses: actions/cache@v1.1.2
+      with:
+        path: ~/.m2/repository/org
+        key: linux-${{ matrix.java }}-maven-org-${{ hashFiles('**/pom.xml') }}
+        restore-keys: |
+          linux-${{ matrix.java }}-maven-org-
+    - name: Check Maven Net Cache
+      uses: actions/cache@v1.1.2
+      with:
+        path: ~/.m2/repository/net
+        key: linux-${{ matrix.java }}-maven-net-${{ hashFiles('**/pom.xml') }}
+        restore-keys: |
+          linux-${{ matrix.java }}-maven-net-
+    - name: Check Maven IO Cache
+      uses: actions/cache@v1.1.2
+      with:
+        path: ~/.m2/repository/io
+        key: linux-${{ matrix.java }}-maven-io-${{ hashFiles('**/pom.xml') }}
+        restore-keys: |
+          linux-${{ matrix.java }}-maven-io-
+    - name: Set up JDK ${{ matrix.java }}
+      uses: actions/setup-java@v1.3.0
+      with:
+        java-version: ${{ matrix.java }}
+    - name: Build with Maven
+      env:
+        MAVEN_OPTS: -Xmx2g -XX:ReservedCodeCacheSize=1g -XX:+UseG1GC -Dorg.slf4j.simpleLogger.defaultLogLevel=WARN
+      run: |
+        mvn -version
+        mvn -T 1C install -B -Pcontrib-check,include-grpc -Ddir-only -ntp -ff
+        rm -rf ~/.m2/repository/org/apache/nifi
+
+  windows-build:
+
+    runs-on: windows-latest
+    name: Windows Build NiFi - JDK 1.8
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+      - name: Check Maven Com Cache
+        uses: actions/cache@v1.1.2
+        with:
+          path: ~\.m2\repository\com
+          key: windows-maven-com-${{ hashFiles('**\pom.xml') }}
+          restore-keys: |
+            windows-maven-com-
+      - name: Check Maven Org Cache
+        uses: actions/cache@v1.1.2
+        with:
+          path: ~\.m2\repository\org
+          key: windows-maven-org-${{ hashFiles('**\pom.xml') }}
+          restore-keys: |
+            windows-maven-org-
+      - name: Check Maven Net Cache
+        uses: actions/cache@v1.1.2
+        with:
+          path: ~\.m2\repository\net
+          key: windows-maven-net-${{ hashFiles('**\pom.xml') }}
+          restore-keys: |
+            windows-maven-net-
+      - name: Check Maven IO Cache
+        uses: actions/cache@v1.1.2
+        with:
+          path: ~\.m2\repository\io
+          key: windows-maven-io-${{ hashFiles('**\pom.xml') }}
+          restore-keys: |
+            windows-maven-io-
+      - name: Set up JDK 1.8
+        uses: actions/setup-java@v1.3.0
+        with:
+          java-version: 1.8
+      - name: Build with Maven
+        env:
+          MAVEN_OPTS: -Xmx2g -Dorg.slf4j.simpleLogger.defaultLogLevel=WARN
+        run: |
+          mvn -version
+          mvn -T 1C install -B -Ddir-only -ntp -ff -DskipTests
+          Remove-Item -path '~\.m2\repository\org\apache\nifi' -recurse -force
