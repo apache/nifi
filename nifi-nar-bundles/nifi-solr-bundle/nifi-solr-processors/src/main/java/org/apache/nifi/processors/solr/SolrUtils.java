@@ -152,7 +152,8 @@ public class SolrUtils {
             .build();
 
     public static final PropertyDescriptor KERBEROS_PRINCIPAL = new PropertyDescriptor.Builder()
-            .name("Kerberos Principal")
+            .name("kerberos-principal")
+            .displayName("Kerberos Principal")
             .description("The principal to use when specifying the principal and password directly in the processor for authenticating to Solr via Kerberos.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -161,12 +162,12 @@ public class SolrUtils {
             .build();
 
     public static final PropertyDescriptor KERBEROS_PASSWORD = new PropertyDescriptor.Builder()
-            .name("Kerberos Password")
+            .name("kerberos-password")
+            .displayName("Kerberos Password")
             .description("The password to use when specifying the principal and password directly in the processor for authenticating to Solr via Kerberos.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING))
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .sensitive(true)
             .build();
 
@@ -235,7 +236,7 @@ public class SolrUtils {
         final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
         final KerberosCredentialsService kerberosCredentialsService = context.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
         final String kerberosPrincipal = context.getProperty(KERBEROS_PRINCIPAL).evaluateAttributeExpressions().getValue();
-        final String kerberosPassword = context.getProperty(KERBEROS_PASSWORD).evaluateAttributeExpressions().getValue();
+        final String kerberosPassword = context.getProperty(KERBEROS_PASSWORD).getValue();
 
         final ModifiableSolrParams params = new ModifiableSolrParams();
         params.set(HttpClientUtil.PROP_SO_TIMEOUT, socketTimeout);
