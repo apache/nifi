@@ -44,12 +44,27 @@ public class Stream {
 
         if (lsn == null) {
          // More details about pgoutput options: https://github.com/postgres/postgres/blob/master/src/backend/replication/pgoutput/pgoutput.c
-            this.repStream = pgcon.getReplicationAPI().replicationStream().logical().withSlotName(slt).withSlotOption("proto_version", "1").withSlotOption("publication_names", pub).withStatusInterval(1, TimeUnit.SECONDS).start();
+            this.repStream = pgcon.getReplicationAPI()
+                    .replicationStream()
+                    .logical()
+                    .withSlotName(slt)
+                    .withSlotOption("proto_version", "1")
+                    .withSlotOption("publication_names", pub)
+                    .withStatusInterval(1, TimeUnit.SECONDS)
+                    .start();
 
         } else { // Reading from LSN start position
             LogSequenceNumber startLSN = LogSequenceNumber.valueOf(lsn);
 
-            this.repStream = pgcon.getReplicationAPI().replicationStream().logical().withSlotName(slt).withSlotOption("proto_version", "1").withSlotOption("publication_names", pub).withStatusInterval(1, TimeUnit.SECONDS).withStartPosition(startLSN).start();
+            this.repStream = pgcon.getReplicationAPI()
+                    .replicationStream()
+                    .logical()
+                    .withSlotName(slt)
+                    .withSlotOption("proto_version", "1")
+                    .withSlotOption("publication_names", pub)
+                    .withStatusInterval(1, TimeUnit.SECONDS)
+                    .withStartPosition(startLSN)
+                    .start();
         }
     }
 
@@ -78,7 +93,7 @@ public class Stream {
                 change = this.decode.decodeLogicalReplicationMessage(buffer, json, withBeginCommit).toJSONString().replace("\\\"", "\"");
             }
 
-            if (!change.equals("{}")) // Skip empty transactions
+            if (!change.equals("{}")) //Skip empty transactions
                 changes.addLast(change);
 
             /* Feedback */

@@ -90,65 +90,127 @@ public class CaptureChangePostgreSQL extends AbstractProcessor {
     // Relationships
     public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success").description("Successfully created FlowFile from CDC event.").build();
     // Properties
-    public static final PropertyDescriptor HOST = new PropertyDescriptor.Builder().name("cdc-postgresql-host").displayName("PostgreSQL Host")
+    public static final PropertyDescriptor HOST = new PropertyDescriptor.Builder()
+            .name("cdc-postgresql-host")
+            .displayName("PostgreSQL Host")
             .description("A list of hostname/port entries corresponding to nodes in a PostgreSQL cluster. The entries should be comma separated "
                     + "using a colon such as host1:port,host2:port,....  For example postgresql.myhost.com:5432. This processor will attempt to connect to "
                     + "the hosts in the list in order. If one node goes down and failover is enabled for the cluster, then the processor will connect "
                     + "to the active node (assuming its host entry is specified in this property.  The default port for PostgreSQL connections is 5432.")
-            .required(true).addValidator(StandardValidators.NON_EMPTY_VALIDATOR).build();
+            .required(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
 
-    public static final PropertyDescriptor DRIVER_NAME = new PropertyDescriptor.Builder().name("cdc-postgresql-driver-class").displayName("PostgreSQL Driver Class Name")
-            .description("The class name of the PostgreSQL database driver class").defaultValue("org.postgresql.Driver").required(true).addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY).build();
+    public static final PropertyDescriptor DRIVER_NAME = new PropertyDescriptor.Builder()
+            .name("cdc-postgresql-driver-class")
+            .displayName("PostgreSQL Driver Class Name")
+            .description("The class name of the PostgreSQL database driver class")
+            .defaultValue("org.postgresql.Driver")
+            .required(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
 
-    public static final PropertyDescriptor DRIVER_LOCATION = new PropertyDescriptor.Builder().name("cdc-postgresql-driver-locations").displayName("PostgreSQL Driver Location(s)")
-            .description("Comma-separated list of files/folders and/or URLs containing the PostgreSQL driver JAR and its dependencies (if any). " + "For example '/var/tmp/postgresql-42.2.9.jar'")
-            .defaultValue(null).required(false).addValidator(StandardValidators.createListValidator(true, true, StandardValidators.createURLorFileValidator()))
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY).build();
+    public static final PropertyDescriptor DRIVER_LOCATION = new PropertyDescriptor.Builder()
+            .name("cdc-postgresql-driver-locations")
+            .displayName("PostgreSQL Driver Location(s)")
+            .description("Comma-separated list of files/folders and/or URLs containing the PostgreSQL driver JAR and its dependencies (if any)."
+                    + "For example '/var/tmp/postgresql-42.2.9.jar'")
+            .defaultValue(null)
+            .required(false)
+            .addValidator(StandardValidators.createListValidator(true, true, StandardValidators.createURLorFileValidator()))
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
 
-    public static final PropertyDescriptor DATABASE_NAME = new PropertyDescriptor.Builder().name("cdc-postgresql-database").displayName("Database")
-            .description("Specifies the name of the database to connect to.").required(true).addValidator(StandardValidators.NON_EMPTY_VALIDATOR).build();
-
-    public static final PropertyDescriptor USERNAME = new PropertyDescriptor.Builder().name("cdc-postgresql-user").displayName("Username").description("Username to access PostgreSQL cluster.")
-            .required(true).addValidator(StandardValidators.NON_EMPTY_VALIDATOR).build();
-
-    public static final PropertyDescriptor PASSWORD = new PropertyDescriptor.Builder().name("cdc-postgresql-password").displayName("Password").description("Password to access PostgreSQL cluster.")
-            .required(false).sensitive(true).addValidator(StandardValidators.NON_EMPTY_VALIDATOR).build();
-
-    public static final PropertyDescriptor PUBLICATION = new PropertyDescriptor.Builder().name("cdc-postgresql-publication").displayName("Publication")
-            .description("PostgreSQL publication name. A publication is essentially a group of tables whose data changes are intended to be replicated through logical replication.").required(true)
+    public static final PropertyDescriptor DATABASE_NAME = new PropertyDescriptor.Builder()
+            .name("cdc-postgresql-database")
+            .displayName("Database")
+            .description("Specifies the name of the database to connect to.")
+            .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR).build();
 
-    public static final PropertyDescriptor SLOT_NAME = new PropertyDescriptor.Builder().name("cdc-postgresql-slot-name").displayName("Slot Name")
-            .description("A unique, cluster-wide identifier for the replication slot").required(true).addValidator(StandardValidators.NON_EMPTY_VALIDATOR).build();
+    public static final PropertyDescriptor USERNAME = new PropertyDescriptor.Builder()
+            .name("cdc-postgresql-user")
+            .displayName("Username")
+            .description("Username to access PostgreSQL cluster.")
+            .required(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
 
-    public static final PropertyDescriptor SNAPSHOT = new PropertyDescriptor.Builder().name("cdc-postgresql-snapshot").displayName("Make Snapshot")
+    public static final PropertyDescriptor PASSWORD = new PropertyDescriptor.Builder()
+            .name("cdc-postgresql-password")
+            .displayName("Password")
+            .description("Password to access PostgreSQL cluster.")
+            .required(false)
+            .sensitive(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor PUBLICATION = new PropertyDescriptor.Builder()
+            .name("cdc-postgresql-publication")
+            .displayName("Publication")
+            .description("PostgreSQL publication name. A publication is essentially a group of tables whose data changes are intended to be replicated through logical replication.")
+            .required(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor SLOT_NAME = new PropertyDescriptor.Builder()
+            .name("cdc-postgresql-slot-name")
+            .displayName("Slot Name")
+            .description("A unique, cluster-wide identifier for the replication slot")
+            .required(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor SNAPSHOT = new PropertyDescriptor.Builder()
+            .name("cdc-postgresql-snapshot")
+            .displayName("Make Snapshot")
             .description("The initial data in existing subscribed tables are snapshotted and copied in a parallel instance of a special kind of apply "
                     + "process. This process will create its own temporary replication slot and copy the existing data. Once existing data is copied, "
                     + "the worker enters synchronization mode, which ensures that the table is brought up to a synchronized state with the main apply "
                     + "process by streaming any changes that happened during the initial data copy using standard logical replication. Once the "
                     + "synchronization is done, the control of the replication of the table is given back to the main apply process where the replication " + "continues as normal.")
-            .required(true).allowableValues("true", "false").defaultValue("false").addValidator(StandardValidators.BOOLEAN_VALIDATOR).build();
+            .required(true)
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .build();
 
-    public static final PropertyDescriptor INCLUDE_BEGIN_COMMIT = new PropertyDescriptor.Builder().name("cdc-postgresql-include-begin-commit").displayName("Include Begin/Commit Events")
+    public static final PropertyDescriptor INCLUDE_BEGIN_COMMIT = new PropertyDescriptor.Builder()
+            .name("cdc-postgresql-include-begin-commit")
+            .displayName("Include Begin/Commit Events")
             .description("Specifies whether to emit events corresponding to a BEGIN or COMMIT event. Set to true if the BEGIN/COMMIT events are necessary in the downstream flow, "
                     + "otherwise set to false, which suppresses generation of these events and can increase flow performance.")
-            .required(true).allowableValues("true", "false").defaultValue("false").addValidator(StandardValidators.BOOLEAN_VALIDATOR).build();
+            .required(true)
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .build();
 
-    public static final PropertyDescriptor INIT_LSN = new PropertyDescriptor.Builder().name("cdc-postgresql-init-lsn").displayName("Initial Log Sequence Number - LSN")
+    public static final PropertyDescriptor INIT_LSN = new PropertyDescriptor.Builder()
+            .name("cdc-postgresql-init-lsn")
+            .displayName("Initial Log Sequence Number - LSN")
             .description("Specifies an initial Log Sequence Number - LSN to use if this processor's State does not have a current "
                     + "sequence identifier. If a Log Sequence Number - LSN  is present in the processor's State, this property is ignored. Log Sequence Number - LSN are "
                     + "monotonically increasing integers that record the order of flow files generated by the processor. They can be used with the EnforceOrder "
                     + "processor to guarantee ordered delivery of CDC events.")
-            .required(false).addValidator(StandardValidators.POSITIVE_LONG_VALIDATOR).build();
+            .required(false)
+            .addValidator(StandardValidators.POSITIVE_LONG_VALIDATOR)
+            .build();
 
-    public static final PropertyDescriptor DROP_SLOT_IF_EXISTS = new PropertyDescriptor.Builder().name("cdc-postgresql-drop-slot-if-exists").displayName("Drop If Exists Replication Slot")
+    public static final PropertyDescriptor DROP_SLOT_IF_EXISTS = new PropertyDescriptor.Builder()
+            .name("cdc-postgresql-drop-slot-if-exists")
+            .displayName("Drop If Exists Replication Slot")
             .description("The initial data in existing subscribed tables are snapshotted and copied in a parallel instance of a special kind of apply "
                     + "process. This process will create its own temporary replication slot and copy the existing data. Once existing data is copied, "
                     + "the worker enters synchronization mode, which ensures that the table is brought up to a synchronized state with the main apply "
                     + "process by streaming any changes that happened during the initial data copy using standard logical replication. Once the "
                     + "synchronization is done, the control of the replication of the table is given back to the main apply process where the replication " + "continues as normal.")
-            .required(true).allowableValues("true", "false").defaultValue("false").addValidator(StandardValidators.BOOLEAN_VALIDATOR).build();
+            .required(true)
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .build();
 
     private List<PropertyDescriptor> descriptors;
     private Set<Relationship> relationships;
