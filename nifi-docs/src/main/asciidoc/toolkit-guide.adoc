@@ -758,7 +758,7 @@ The following are available options:
 * `-B`,`--clientCertPassword <arg>`             Password for client certificate. Must either be one value or one for each client DN (auto-generate if not specified)
 * `-c`,`--certificateAuthorityHostname <arg>`   Hostname of NiFi Certificate Authority (default: `localhost`)
 * `-C`,`--clientCertDn <arg>`                   Generate client certificate suitable for use in browser with specified DN (Can be specified multiple times)
-* `-d`,`--days <arg>`                           Number of days issued certificate should be valid for (default: `1095`)
+* `-d`,`--days <arg>`                           Number of days issued certificate should be valid for (default: `825`)
 * `-f`,`--nifiPropertiesFile <arg>`             Base _nifi.properties_ file to update (Embedded file identical to the one in a default NiFi install will be used if not specified)
 * `-g`,`--differentKeyAndKeystorePasswords`     Use different generated password for the key and the keystore
 * `-G`,`--globalPortSequence <arg>`             Use sequential ports that are calculated for all hosts according to the provided hostname expressions (Can be specified multiple times, MUST BE SAME FROM RUN TO RUN)
@@ -819,7 +819,7 @@ The following are available options:
 
 * `-a`,`--keyAlgorithm <arg>`                   Algorithm to use for generated keys (default: `RSA`)
 * `--configJsonIn <arg>`                        The place to read configuration info from (defaults to the value of configJson), implies useConfigJson if set (default: `configJson` value)
-* `-d`,`--days <arg>`                           Number of days issued certificate should be valid for (default: `1095`)
+* `-d`,`--days <arg>`                           Number of days issued certificate should be valid for (default: `825`)
 * `-D`,`--dn <arg>`                             The dn to use for the CA certificate (default: `CN=YOUR_CA_HOSTNAME,OU=NIFI`)
 * `-f`,`--configJson <arg>`                     The place to write configuration info (default: `config.json`)
 * `-F`,`--useConfigJson`                        Flag specifying that all configuration is read from `configJson` to facilitate automated use (otherwise `configJson` will only be written to)
