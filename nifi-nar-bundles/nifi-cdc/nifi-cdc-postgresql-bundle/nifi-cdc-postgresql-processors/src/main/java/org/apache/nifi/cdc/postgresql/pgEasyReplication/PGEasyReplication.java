@@ -65,10 +65,8 @@ public class PGEasyReplication {
     public void createReplicationSlot() {
         try {
             PGConnection pgcon = ConnectionManager.getReplicationConnection().unwrap(PGConnection.class);
-
-            pgcon.getReplicationAPI().createReplicationSlot().logical().withSlotName(this.slot).withOutputPlugin("pgoutput") // More details about pgoutput options:
-                                                                                                                             // https://github.com/postgres/postgres/blob/master/src/backend/replication/pgoutput/pgoutput.c
-                    .make();
+            // More details about pgoutput options: https://github.com/postgres/postgres/blob/master/src/backend/replication/pgoutput/pgoutput.c
+            pgcon.getReplicationAPI().createReplicationSlot().logical().withSlotName(this.slot).withOutputPlugin("pgoutput").make();
 
         } catch (SQLException e) {
             e.printStackTrace();
