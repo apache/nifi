@@ -43,15 +43,13 @@ public class Stream {
         PGConnection pgcon = ConnectionManager.getReplicationConnection().unwrap(PGConnection.class);
 
         if (lsn == null) {
-            this.repStream = pgcon.getReplicationAPI().replicationStream().logical().withSlotName(slt).withSlotOption("proto_version", "1") // More details about pgoutput options:
-                                                                                                                                            // https://github.com/postgres/postgres/blob/master/src/backend/replication/pgoutput/pgoutput.c
-                    .withSlotOption("publication_names", pub).withStatusInterval(1, TimeUnit.SECONDS).start();
+         // More details about pgoutput options: https://github.com/postgres/postgres/blob/master/src/backend/replication/pgoutput/pgoutput.c
+            this.repStream = pgcon.getReplicationAPI().replicationStream().logical().withSlotName(slt).withSlotOption("proto_version", "1").withSlotOption("publication_names", pub).withStatusInterval(1, TimeUnit.SECONDS).start();
 
         } else { // Reading from LSN start position
             LogSequenceNumber startLSN = LogSequenceNumber.valueOf(lsn);
 
-            this.repStream = pgcon.getReplicationAPI().replicationStream().logical().withSlotName(slt).withSlotOption("proto_version", "1").withSlotOption("publication_names", pub)
-                    .withStatusInterval(1, TimeUnit.SECONDS).withStartPosition(startLSN).start();
+            this.repStream = pgcon.getReplicationAPI().replicationStream().logical().withSlotName(slt).withSlotOption("proto_version", "1").withSlotOption("publication_names", pub).withStatusInterval(1, TimeUnit.SECONDS).withStartPosition(startLSN).start();
         }
     }
 
