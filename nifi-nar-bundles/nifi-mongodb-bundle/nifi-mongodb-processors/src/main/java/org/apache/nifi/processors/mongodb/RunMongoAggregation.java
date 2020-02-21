@@ -39,6 +39,8 @@ import org.apache.nifi.processor.util.JsonValidator;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.bson.Document;
 import org.bson.conversions.Bson;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -73,11 +75,12 @@ public class RunMongoAggregation extends AbstractMongoProcessor {
 
     static final List<Bson> buildAggregationQuery(String query) throws IOException {
         List<Bson> result = new ArrayList<>();
+        JSONArray queryArray = new JSONArray(query);
 
-        ObjectMapper mapper = new ObjectMapper();
-        List<Map> values = mapper.readValue(query, List.class);
-        for (Map<?, ?> val : values) {
-            result.add(new BasicDBObject(val));
+        for (int i = 0; i < queryArray.length(); i++) {
+            JSONObject fase = queryArray.getJSONObject(i);
+            BasicDBObject bson = BasicDBObject.parse(fase.toString());
+            result.add(bson);
         }
 
         return result;
