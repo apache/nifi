@@ -75,9 +75,10 @@ public class RunMongoAggregation extends AbstractMongoProcessor {
         List<Bson> result = new ArrayList<>();
 
         ObjectMapper mapper = new ObjectMapper();
-        List<Map> values = mapper.readValue(query, List.class);
-        for (Map<?, ?> val : values) {
-            result.add(new BasicDBObject(val));
+        List<Map> querySteps = mapper.readValue(query, List.class);
+        for (Map<?, ?> queryStep : querySteps) {
+            BasicDBObject bson = BasicDBObject.parse(mapper.writeValueAsString(queryStep));
+            result.add(bson);
         }
 
         return result;
