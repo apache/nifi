@@ -137,11 +137,12 @@ public class SiteToSiteBulletinReportingTask extends AbstractSiteToSiteReporting
         final JsonArray jsonArray = arrayBuilder.build();
 
         // Send the JSON document for the current batch
+        Transaction transaction = null;
         try {
             // Lazily create SiteToSiteClient to provide a StateManager
             setup(context);
 
-            final Transaction transaction = getClient().createTransaction(TransferDirection.SEND);
+            transaction = getClient().createTransaction(TransferDirection.SEND);
             if (transaction == null) {
                 getLogger().info("All destination nodes are penalized; will attempt to send data later");
                 return;
@@ -162,8 +163,15 @@ public class SiteToSiteBulletinReportingTask extends AbstractSiteToSiteReporting
             final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
             getLogger().info("Successfully sent {} Bulletins to destination in {} ms; Transaction ID = {}; First Event ID = {}",
                     new Object[]{bulletins.size(), transferMillis, transactionId, bulletins.get(0).getId()});
-        } catch (final IOException e) {
-            throw new ProcessException("Failed to send Bulletins to destination due to IOException:" + e.getMessage(), e);
+        } catch (final Exception e) {
+            if (transaction != null) {
+                transaction.error();
+            }
+            if (e instanceof ProcessException) {
+                throw (ProcessException) e;
+            } else {
+                throw new ProcessException("Failed to send Bulletins to destination due to IOException:" + e.getMessage(), e);
+            }
         }
 
         lastSentBulletinId = currMaxId;

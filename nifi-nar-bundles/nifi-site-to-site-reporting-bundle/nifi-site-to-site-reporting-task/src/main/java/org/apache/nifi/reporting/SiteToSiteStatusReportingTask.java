@@ -161,12 +161,13 @@ public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTa
 
         while(!jsonBatch.isEmpty()) {
             // Send the JSON document for the current batch
+            Transaction transaction = null;
             try {
                 // Lazily create SiteToSiteClient to provide a StateManager
                 setup(context);
 
                 long start = System.nanoTime();
-                final Transaction transaction = getClient().createTransaction(TransferDirection.SEND);
+                transaction = getClient().createTransaction(TransferDirection.SEND);
                 if (transaction == null) {
                     getLogger().debug("All destination nodes are penalized; will attempt to send data later");
                     return;
@@ -197,8 +198,15 @@ public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTa
                 fromIndex = toIndex;
                 toIndex = Math.min(fromIndex + batchSize, jsonArray.size());
                 jsonBatch = jsonArray.subList(fromIndex, toIndex);
-            } catch (final IOException e) {
-                throw new ProcessException("Failed to send Status Records to destination due to IOException:" + e.getMessage(), e);
+            } catch (final Exception e) {
+                if (transaction != null) {
+                    transaction.error();
+                }
+                if (e instanceof ProcessException) {
+                    throw (ProcessException) e;
+                } else {
+                    throw new ProcessException("Failed to send Status Records to destination due to IOException:" + e.getMessage(), e);
+                }
             }
         }
     }
