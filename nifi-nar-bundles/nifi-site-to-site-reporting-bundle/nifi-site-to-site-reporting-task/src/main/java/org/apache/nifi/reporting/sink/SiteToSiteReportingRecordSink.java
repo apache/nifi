@@ -135,10 +135,10 @@ public class SiteToSiteReportingRecordSink extends AbstractControllerService imp
 
     @Override
     public WriteResult sendData(final RecordSet recordSet, final Map<String,String> attributes, final boolean sendZeroResults) throws IOException {
-
+        Transaction transaction = null;
         try {
             WriteResult writeResult = null;
-            final Transaction transaction = getClient().createTransaction(TransferDirection.SEND);
+            transaction = getClient().createTransaction(TransferDirection.SEND);
             if (transaction == null) {
                 getLogger().info("All destination nodes are penalized; will attempt to send data later");
             } else {
@@ -166,12 +166,16 @@ public class SiteToSiteReportingRecordSink extends AbstractControllerService imp
                 }
             }
             return writeResult;
-        } catch(IOException ioe) {
-            throw ioe;
         } catch (Exception e) {
-            throw new IOException("Failed to write metrics using record writer: " + e.getMessage(), e);
+            if (transaction != null) {
+                transaction.error();
+            }
+            if (e instanceof IOException) {
+                throw (IOException) e;
+            } else {
+                throw new IOException("Failed to write metrics using record writer: " + e.getMessage(), e);
+            }
         }
-
     }
 
     @OnDisabled
