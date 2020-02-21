@@ -459,7 +459,7 @@ public class TestLuceneEventIndex {
 
             final QueryResult result = submission.getResult();
             assertNotNull(result);
-            result.awaitCompletion(100, TimeUnit.MILLISECONDS);
+            result.awaitCompletion(2000, TimeUnit.MILLISECONDS);
 
             assertTrue(result.isFinished());
             assertNull(result.getError());
@@ -502,7 +502,7 @@ public class TestLuceneEventIndex {
 
             final QueryResult result = submission.getResult();
             assertNotNull(result);
-            result.awaitCompletion(100, TimeUnit.MILLISECONDS);
+            result.awaitCompletion(2000, TimeUnit.MILLISECONDS);
 
             assertTrue(result.isFinished());
             assertNull(result.getError());
