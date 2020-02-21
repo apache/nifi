@@ -144,7 +144,7 @@ attribute within the `CoreAttributes` enum and how it appears in the UI/API.
 
 - Discard Reason (`discard.reason`): Specifies the reason that a FlowFile is being discarded.
 
-- Alternative Identifier (`alternate.identifier`): Indicates an identifier other than the FlowFile's UUID that is known to refer to this FlowFile.
+- Alternate Identifier (`alternate.identifier`): Indicates an identifier other than the FlowFile's UUID that is known to refer to this FlowFile.
 
 ===== Additional Common Attributes
 
