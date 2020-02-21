@@ -22,6 +22,7 @@ import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.PathNotFoundException;
 import com.jayway.jsonpath.spi.json.JacksonJsonProvider;
+import java.util.Objects;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.SimpleRecordSchema;
@@ -180,7 +181,7 @@ public class JsonPathRowRecordReader extends AbstractJsonRowRecordReader {
             return new MapRecord(childSchema, values);
         }
 
-        if (value instanceof String) {
+        if (value instanceof String && Objects.nonNull(dataType)) {
             switch (dataType.getFieldType()) {
                 case DATE:
                 case TIME:
