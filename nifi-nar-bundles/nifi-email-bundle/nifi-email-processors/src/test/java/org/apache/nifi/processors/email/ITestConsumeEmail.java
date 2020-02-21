@@ -41,7 +41,7 @@ import java.util.Properties;
 import static org.junit.Assert.assertEquals;
 
 
-public class TestConsumeEmail {
+public class ITestConsumeEmail {
 
     private GreenMail mockIMAP4Server;
     private GreenMail mockPOP3Server;
