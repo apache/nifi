@@ -181,7 +181,7 @@ public class JsonPathRowRecordReader extends AbstractJsonRowRecordReader {
             return new MapRecord(childSchema, values);
         }
 
-        if (value instanceof String && Objects.nonNull(dataType)) {
+        if (dataType != null && value instanceof String) {
             switch (dataType.getFieldType()) {
                 case DATE:
                 case TIME:
