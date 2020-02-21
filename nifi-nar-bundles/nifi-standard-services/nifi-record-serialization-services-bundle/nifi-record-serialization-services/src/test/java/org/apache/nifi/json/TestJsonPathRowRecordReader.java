@@ -174,6 +174,7 @@ public class TestJsonPathRowRecordReader {
 
         final LinkedHashMap<String, JsonPath> jsonPaths = new LinkedHashMap<>();
         jsonPaths.put("timestamp", JsonPath.compile("$.timestamp"));
+        jsonPaths.put("field_not_in_schema", JsonPath.compile("$.field_not_in_schema"));
 
         for (final boolean coerceTypes : new boolean[] {true, false}) {
             try (final InputStream in = new FileInputStream(new File("src/test/resources/json/timestamp.json"));
@@ -182,6 +183,9 @@ public class TestJsonPathRowRecordReader {
                 final Record record = reader.nextRecord(coerceTypes, false);
                 final Object value = record.getValue("timestamp");
                 assertTrue("With coerceTypes set to " + coerceTypes + ", value is not a Timestamp", value instanceof java.sql.Timestamp);
+
+                final Object valueNotInSchema = record.getValue("field_not_in_schema");
+                assertTrue("field_not_in_schema should be String", valueNotInSchema instanceof String);
             }
         }
     }
