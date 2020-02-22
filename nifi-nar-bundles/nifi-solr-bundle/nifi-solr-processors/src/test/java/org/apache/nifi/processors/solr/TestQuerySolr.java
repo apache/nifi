@@ -183,17 +183,17 @@ public class TestQuerySolr {
             } else if (name.equals("facet_fields")) {
                 reader.beginObject();
                 assertEquals(reader.nextName(), "integer_multi");
-                assertEquals(returnCheckSumForArrayOfJsonObjects(reader), 30);
+                assertEquals(30, returnCheckSumForArrayOfJsonObjects(reader));
                 reader.endObject();
             } else if (name.equals("facet_ranges")) {
                 reader.beginObject();
                 assertEquals(reader.nextName(), "created");
-                assertEquals(returnCheckSumForArrayOfJsonObjects(reader), 10);
+                assertEquals(10, returnCheckSumForArrayOfJsonObjects(reader));
                 reader.endObject();
             } else if (name.equals("facet_intervals")) {
                 reader.beginObject();
                 assertEquals(reader.nextName(), "integer_single");
-                assertEquals(returnCheckSumForArrayOfJsonObjects(reader), 7);
+                assertEquals(7, returnCheckSumForArrayOfJsonObjects(reader));
                 reader.endObject();
             }
         }
@@ -255,7 +255,7 @@ public class TestQuerySolr {
         JsonReader reader_stats = new JsonReader(new InputStreamReader(new ByteArrayInputStream(
                 runner.getContentAsByteArray(runner.getFlowFilesForRelationship(QuerySolr.STATS).get(0)))));
         reader_stats.beginObject();
-        assertEquals(reader_stats.nextName(), "stats_fields");
+        assertEquals("stats_fields", reader_stats.nextName());
         reader_stats.beginObject();
         assertFalse(reader_stats.hasNext());
         reader_stats.endObject();
@@ -281,17 +281,17 @@ public class TestQuerySolr {
         JsonReader reader = new JsonReader(new InputStreamReader(new ByteArrayInputStream(
                 runner.getContentAsByteArray(runner.getFlowFilesForRelationship(QuerySolr.STATS).get(0)))));
         reader.beginObject();
-        assertEquals(reader.nextName(), "stats_fields");
+        assertEquals("stats_fields", reader.nextName());
         reader.beginObject();
-        assertEquals(reader.nextName(), "integer_single");
+        assertEquals("integer_single", reader.nextName());
         reader.beginObject();
         while (reader.hasNext()) {
             String name = reader.nextName();
             switch (name) {
-                case "min": assertEquals(reader.nextString(), "0.0"); break;
-                case "max": assertEquals(reader.nextString(), "9.0"); break;
-                case "count": assertEquals(reader.nextInt(), 10); break;
-                case "sum": assertEquals(reader.nextString(), "45.0"); break;
+                case "min": assertEquals("0.0", reader.nextString()); break;
+                case "max": assertEquals("9.0", reader.nextString()); break;
+                case "count": assertEquals(10, reader.nextInt()); break;
+                case "sum": assertEquals("45.0", reader.nextString()); break;
                 default: reader.skipValue(); break;
             }
         }
@@ -522,7 +522,7 @@ public class TestQuerySolr {
 
         for (MockFlowFile flowFile : flowFiles) {
             Map<String,String> attributes = flowFile.getAttributes();
-            assertEquals(attributes.get(QuerySolr.ATTRIBUTE_SOLR_START), startParam.toString());
+            assertEquals(startParam.toString(), attributes.get(QuerySolr.ATTRIBUTE_SOLR_START));
             startParam += 2;
 
             StringBuffer expectedXml = new StringBuffer()
@@ -628,7 +628,7 @@ public class TestQuerySolr {
         reader.close();
         solrClient.close();
 
-        assertEquals(controlScore, 45);
+        assertEquals(45, controlScore);
     }
 
     @Test
