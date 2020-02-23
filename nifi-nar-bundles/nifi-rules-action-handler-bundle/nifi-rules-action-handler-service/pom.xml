@@ -54,7 +54,7 @@
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
-            <version>3.8.1</version>
+            <version>3.9</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -64,7 +64,7 @@
         <dependency>
             <groupId>org.mvel</groupId>
             <artifactId>mvel2</artifactId>
-            <version>2.4.4.Final</version>
+            <version>2.4.5.Final</version>
         </dependency>
         <dependency>
             <groupId>org.springframework</groupId>
@@ -74,7 +74,7 @@
         <dependency>
             <groupId>org.jeasy</groupId>
             <artifactId>easy-rules-mvel</artifactId>
-            <version>3.3.0</version>
+            <version>3.4.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
