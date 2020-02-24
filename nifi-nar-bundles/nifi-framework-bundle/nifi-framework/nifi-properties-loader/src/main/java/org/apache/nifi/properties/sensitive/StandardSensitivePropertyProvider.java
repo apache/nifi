@@ -20,7 +20,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.properties.sensitive.aes.AESSensitivePropertyProvider;
 import org.apache.nifi.properties.sensitive.aws.kms.AWSKMSSensitivePropertyProvider;
 import org.apache.nifi.properties.sensitive.azure.keyvault.AzureKeyVaultSensitivePropertyProvider;
-import org.apache.nifi.properties.sensitive.gcp.kms.GCPKMSSensitivePropertyProvider;
 import org.apache.nifi.properties.sensitive.hadoop.HadoopCredentialsSensitivePropertyProvider;
 import org.apache.nifi.properties.sensitive.hashicorp.vault.VaultSensitivePropertyProvider;
 import org.apache.nifi.properties.sensitive.keystore.KeyStoreWrappedSensitivePropertyProvider;
@@ -73,10 +72,6 @@ public class StandardSensitivePropertyProvider {
             logger.debug("StandardSensitivePropertyProvider selected specific KeyStore provider for key: " + KeyStoreWrappedSensitivePropertyProvider.toPrintableString(key));
             return new KeyStoreWrappedSensitivePropertyProvider(key);
 
-        } else if (GCPKMSSensitivePropertyProvider.isProviderFor(key)) {
-            logger.debug("StandardSensitivePropertyProvider selected specific GCP KMS provider for key: " + GCPKMSSensitivePropertyProvider.toPrintableString(key));
-            return new GCPKMSSensitivePropertyProvider(key);
-
         } else if (AWSKMSSensitivePropertyProvider.isProviderFor(key)) {
             logger.debug("StandardSensitivePropertyProvider selected specific AWS KMS provider for key: " + AWSKMSSensitivePropertyProvider.toPrintableString(key));
             return new AWSKMSSensitivePropertyProvider(key);
@@ -100,7 +95,6 @@ public class StandardSensitivePropertyProvider {
                 || AzureKeyVaultSensitivePropertyProvider.isProviderFor(scheme)
                 || VaultSensitivePropertyProvider.isProviderFor(scheme)
                 || KeyStoreWrappedSensitivePropertyProvider.isProviderFor(scheme)
-                || GCPKMSSensitivePropertyProvider.isProviderFor(scheme)
                 || AWSKMSSensitivePropertyProvider.isProviderFor(scheme)
                 || AESSensitivePropertyProvider.isProviderFor(scheme);
     }

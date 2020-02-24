@@ -474,8 +474,13 @@ public class ProtectedNiFiProperties extends StandardNiFiProperties {
             final String protectionScheme = getProperty(getProtectionKey(key));
             // If we don't have a provider for the scheme, we try match the identifier of default provider.  this gives us part of our compatibility across providers + schemes.
             if (!StandardSensitivePropertyProvider.hasProviderFor(protectionScheme)) {
-                if (this.sensitivePropertyProvider != null && this.sensitivePropertyProvider.getIdentifierKey().equals(protectionScheme))
-                    return this.sensitivePropertyProvider.unprotect(retrievedValue);
+                try {
+                    if (this.sensitivePropertyProvider != null && this.sensitivePropertyProvider.getIdentifierKey().equals(protectionScheme)) {
+                        return this.sensitivePropertyProvider.unprotect(retrievedValue);
+                    }
+                } catch (IllegalArgumentException e) {
+                    throw new SensitivePropertyProtectionException("Error unprotecting value for " + key, e);
+                }
             }
             throw new SensitivePropertyProtectionException("Error unprotecting value for " + key);
         }

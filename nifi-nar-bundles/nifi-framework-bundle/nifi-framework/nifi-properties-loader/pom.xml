@@ -82,17 +82,6 @@
             <artifactId>azure</artifactId>
             <version>1.24.1</version>
         </dependency>
-        <dependency>
-          <groupId>com.google.cloud</groupId>
-          <artifactId>google-cloud-kms</artifactId>
-          <version>1.36.1</version>
-        </dependency>
-        <dependency>
-            <groupId>com.google.api</groupId>
-            <artifactId>gax</artifactId>
-            <version>1.48.0</version>
-            <scope>compile</scope>
-        </dependency>
     </dependencies>
     <build>
         <!-- Required to run Groovy tests without any Java tests -->
