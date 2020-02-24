@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.rules;
 
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -23,7 +24,7 @@ import java.util.Map;
  * The type of action is dictated by the type field and attributes are used as parameters to configure
  * the Action's executor/handler
  */
-public class Action {
+public class Action implements Cloneable{
     private String type;
     private Map<String,String> attributes;
 
@@ -50,4 +51,13 @@ public class Action {
     public void setAttributes(Map<String, String> attributes) {
         this.attributes = attributes;
     }
+
+    public Action clone(){
+        Action action = new Action();
+        action.setType(type);
+        Map<String, String> attributeMap = new HashMap<>(attributes);
+        action.setAttributes(attributeMap);
+        return action;
+    }
+
 }
