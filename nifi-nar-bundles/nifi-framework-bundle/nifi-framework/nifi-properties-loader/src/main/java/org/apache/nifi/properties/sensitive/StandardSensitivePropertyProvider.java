@@ -30,6 +30,15 @@ import org.slf4j.LoggerFactory;
 import java.security.Security;
 
 /**
+ *
+ * This class describes the available sensitive property providers {@link SensitivePropertyProvider} which can be chosen to encrypt/decrypt the sensitive properties in the nifi.properties file.
+ * Most of these providers will require external setup in their respective system (eg. Hashicorp Vault) and then configuration given in the nifi.properties file.
+ *
+ * For further details, review the <a href="https://nifi.apache.org/docs/nifi-docs/html/user-guide.html#sensitive_property_providers">Apache NiFi User Guide - Sensitive Property Providers</a> section.
+ *
+ * As of Apache NiFi 1.12.0 this implementation is considered <a href="https://nifi.apache.org/docs/nifi-docs/html/user-guide.html#experimental_warning">*experimental*</a>.
+ * Available implementations can be found listed in StandardSensitivePropertyProvider.
+ *
  * This class hides the various SPP subclass construction from clients.
  *
  */
