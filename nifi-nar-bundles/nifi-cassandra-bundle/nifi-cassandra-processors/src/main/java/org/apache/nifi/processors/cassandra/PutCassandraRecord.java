@@ -394,11 +394,17 @@ public class PutCassandraRecord extends AbstractCassandraProcessor {
 
             // Check that if the update method is set to increment or decrement that the batch statement type is set to
             // unlogged or counter (or USE_ATTR_TYPE, which we cannot check at this point).
+            String updateMethod = validationContext.getProperty(UPDATE_METHOD).getValue();
             String batchStatementType = validationContext.getProperty(BATCH_STATEMENT_TYPE).getValue();
-            if (!Sets.newHashSet(COUNTER_TYPE.getValue(), UNLOGGED_TYPE.getValue(), BATCH_STATEMENT_TYPE_USE_ATTR_TYPE.getValue()).contains(batchStatementType)) {
-                results.add(new ValidationResult.Builder().subject("Update method configuration").valid(false).explanation(
-                        "if the Update Method is set to Increment or Decrement, then the Batch Statement Type must be set " +
-                                "to either COUNTER or UNLOGGED").build());
+            if (INCR_TYPE.getValue().equalsIgnoreCase(updateMethod)
+                    || DECR_TYPE.getValue().equalsIgnoreCase(updateMethod)) {
+                if (!(COUNTER_TYPE.getValue().equalsIgnoreCase(batchStatementType)
+                        || UNLOGGED_TYPE.getValue().equalsIgnoreCase(batchStatementType)
+                        || BATCH_STATEMENT_TYPE_USE_ATTR_TYPE.getValue().equalsIgnoreCase(batchStatementType))) {
+                    results.add(new ValidationResult.Builder().subject("Update method configuration").valid(false).explanation(
+                            "if the Update Method is set to Increment or Decrement, then the Batch Statement Type must be set " +
+                                    "to either COUNTER or UNLOGGED").build());
+                }
             }
         }
 

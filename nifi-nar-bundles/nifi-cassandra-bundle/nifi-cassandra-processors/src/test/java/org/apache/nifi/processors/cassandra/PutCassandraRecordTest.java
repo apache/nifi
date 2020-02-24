@@ -216,6 +216,17 @@ public class PutCassandraRecordTest {
     }
 
     @Test
+    public void testUpdateSetLoggedBatch() throws InitializationException {
+        setUpStandardTestConfig();
+        testRunner.setProperty(PutCassandraRecord.STATEMENT_TYPE, PutCassandraRecord.UPDATE_TYPE);
+        testRunner.setProperty(PutCassandraRecord.UPDATE_METHOD, PutCassandraRecord.SET_TYPE);
+        testRunner.setProperty(PutCassandraRecord.UPDATE_KEYS, "name,age");
+        testRunner.setProperty(PutCassandraRecord.BATCH_STATEMENT_TYPE, PutCassandraRecord.LOGGED_TYPE);
+
+        testRunner.assertValid();
+    }
+
+    @Test
     public void testUpdateCounterWrongBatchStatementType() throws InitializationException {
         setUpStandardTestConfig();
         testRunner.setProperty(PutCassandraRecord.STATEMENT_TYPE, PutCassandraRecord.UPDATE_TYPE);
