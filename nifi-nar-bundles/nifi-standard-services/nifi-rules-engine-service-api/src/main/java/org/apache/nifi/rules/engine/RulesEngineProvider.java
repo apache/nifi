@@ -19,29 +19,20 @@ package org.apache.nifi.rules.engine;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.controller.ControllerService;
-import org.apache.nifi.rules.Action;
-
-import java.util.List;
-import java.util.Map;
 
 /**
  * <p>
- * A Controller Service that is responsible for executing a rules engine against provided facts.  The subsequent
- * actions can be executed either by the rules engine or a list of {@link Action} can be returned and interrogated/executed by
- * the caller.
+ * A Controller Service that is responsible for providing an instance of a Rules Engine.
  * </p>
  * </p>
  */
 @Tags({"rules", "rules-engine","facts","actions"})
-@CapabilityDescription("Specifies a Controller Service which hosts a rules engine, that can be used to determine actions that should be performed given provided facts.")
-public interface RulesEngineService extends ControllerService {
+@CapabilityDescription("Specifies a Controller Service which provides access to an instance of a Rules Engine.")
+public interface RulesEngineProvider extends ControllerService {
 
     /**
-     * Returns the list of Actions that should be triggered as determined by the rules engine for the the given facts.
-     * Action in this case have not been executed by the engine.
-     * @param facts a Map of key and facts values, as objects, that should be evaluated by the rules engine
-     * @return a List of Actions that should be triggered
+     * Retrieve an instance of a rules engine
+     * @return RulesEngine instance
      */
-    List<Action> fireRules(Map<String, Object> facts);
-
+    RulesEngine getRulesEngine();
 }
