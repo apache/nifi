@@ -39,7 +39,7 @@ language governing permissions and limitations under the License. -->
             <artifactId>swagger-annotations</artifactId>
             <!-- TODO - remove version tag here after core NiFi upgrades dependency
                 from com.wordnik:swagger-annotations to io.swagger:swagger-annotations. -->
-            <version>1.5.12</version>
+            <version>1.6.0</version>
         </dependency>
         <dependency>
             <groupId>com.squareup.okhttp</groupId>

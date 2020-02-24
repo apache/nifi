@@ -90,12 +90,12 @@
         <inceptionYear>2014</inceptionYear>
         <org.slf4j.version>1.7.30</org.slf4j.version>
         <ranger.version>2.0.0</ranger.version>
-        <jetty.version>9.4.19.v20190610</jetty.version>
+        <jetty.version>9.4.26.v20200117</jetty.version>
         <jackson.version>2.9.10</jackson.version>
         <jackson-databind.version>2.9.10.3</jackson-databind.version>
         <nifi.registry.version>0.5.0</nifi.registry.version>
         <nifi.groovy.version>2.5.4</nifi.groovy.version>
-        <surefire.version>2.22.0</surefire.version>
+        <surefire.version>2.22.2</surefire.version>
         <!-- The Hadoop version used by nifi-hadoop-libraries-nar and any NARs that depend on it, other NARs that need
             a specific version should override this property, or use a more specific property like abc.hadoop.version -->
         <hadoop.version>3.2.1</hadoop.version>
