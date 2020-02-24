@@ -245,6 +245,11 @@ SERVICEDESCRIPTOR
         ln -s "/etc/init.d/${SVC_NAME}" "/etc/rc2.d/K65${SVC_NAME}" || { echo "Could not create link /etc/rc2.d/K65${SVC_NAME}"; exit 1; }
         echo "Service ${SVC_NAME} installed"
     fi
+
+    # systemd: generate nifi.service from init.d
+    if [ -d "/run/systemd/system/" ] || [ ! -z "$(pidof systemd 2>/dev/null)" ]; then
+        systemctl daemon-reload
+    fi
 }
 
 is_nonzero_integer() {
