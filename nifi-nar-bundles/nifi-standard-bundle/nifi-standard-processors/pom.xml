@@ -588,6 +588,11 @@
                         <exclude>src/test/resources/TestLookupRecord/lookup-array-output.json</exclude>
                         <exclude>src/test/resources/TestValidateRecord/int-maps-schema.avsc</exclude>
                         <exclude>src/test/resources/TestValidateRecord/int-maps-data.json</exclude>
+                        <exclude>src/test/resources/PGPControllerServiceTest/many-public-keys.asc</exclude>
+                        <exclude>src/test/resources/PGPControllerServiceTest/one-public-key.asc</exclude>
+                        <exclude>src/test/resources/PGPControllerServiceTest/one-secret-key.asc</exclude>
+                        <exclude>src/test/resources/PGPControllerServiceTest/gen-keys.sh</exclude>
+                        <exclude>src/test/resources/PGPControllerServiceTest/many-secret-keys.asc</exclude>
                     </excludes>
                 </configuration>
             </plugin>

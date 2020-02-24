@@ -576,6 +576,48 @@ public interface ProvenanceReporter {
     void modifyAttributes(FlowFile flowFile, String details);
 
     /**
+     * Emits a Provenance Event of type
+     * {@link ProvenanceEventType#ATTRIBUTES_MODIFIED ATTRIBUTES_MODIFIED} that
+     * indicates that the Attributes of the given FlowFile were updated. It is
+     * not necessary to emit such an event for a FlowFile if other Events are
+     * already emitted by a Processor. For example, one should call both
+     * {@link #modifyContent(FlowFile)} and {@link #modifyAttributes(FlowFile)}
+     * for the same FlowFile in the same Processor. Rather, the Processor should
+     * call just the {@link #modifyContent(FlowFile)}, as the call to
+     * {@link #modifyContent(FlowFile)} will generate a Provenance Event that
+     * already contains all FlowFile attributes. As such, emitting another event
+     * that contains those attributes is unneeded and can result in a
+     * significant amount of overhead for storage and processing.
+     *
+     * @param flowFile the FlowFile whose attributes were modified
+     * @param processingMillis the number of milliseconds spent processing the
+     * FlowFile attributes
+     */
+    void modifyAttributes(FlowFile flowFile, long processingMillis);
+
+    /**
+     * Emits a Provenance Event of type
+     * {@link ProvenanceEventType#ATTRIBUTES_MODIFIED ATTRIBUTES_MODIFIED} that
+     * indicates that the Attributes of the given FlowFile were updated. It is
+     * not necessary to emit such an event for a FlowFile if other Events are
+     * already emitted by a Processor. For example, one should call both
+     * {@link #modifyContent(FlowFile)} and {@link #modifyAttributes(FlowFile)}
+     * for the same FlowFile in the same Processor. Rather, the Processor should
+     * call just the {@link #modifyContent(FlowFile)}, as the call to
+     * {@link #modifyContent(FlowFile)} will generate a Provenance Event that
+     * already contains all FlowFile attributes. As such, emitting another event
+     * that contains those attributes is unneeded and can result in a
+     * significant amount of overhead for storage and processing.
+     *
+     * @param flowFile the FlowFile whose attributes were modified
+     * @param details any details should be provided about the attribute
+     * modification
+     * @param processingMillis the number of milliseconds spent processing the
+     * FlowFile attributes
+     */
+    void modifyAttributes(FlowFile flowFile, String details, long processingMillis);
+
+    /**
      * Emits a Provenance Event of type {@link ProvenanceEventType#ROUTE ROUTE}
      * that indicates that the given FlowFile was routed to the given
      * {@link Relationship}. <b>Note: </b> this Event is intended for Processors

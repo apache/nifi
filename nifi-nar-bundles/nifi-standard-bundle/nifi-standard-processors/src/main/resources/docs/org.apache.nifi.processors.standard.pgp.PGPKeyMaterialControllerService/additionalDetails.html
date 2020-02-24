@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+    <!--
+      Licensed to the Apache Software Foundation (ASF) under one or more
+      contributor license agreements.  See the NOTICE file distributed with
+      this work for additional information regarding copyright ownership.
+      The ASF licenses this file to You under the Apache License, Version 2.0
+      (the "License"); you may not use this file except in compliance with
+      the License.  You may obtain a copy of the License at
+          http://www.apache.org/licenses/LICENSE-2.0
+      Unless required by applicable law or agreed to in writing, software
+      distributed under the License is distributed on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      See the License for the specific language governing permissions and
+      limitations under the License.
+    -->
+    <head>
+        <meta charset="utf-8"/>
+        <title>PGPKeyMaterialControllerService</title>
+        <link rel="stylesheet" href="../../../../../css/component-usage.css" type="text/css"/>
+    </head>
+
+    <body>
+    <h2>Description</h2>
+    <p>
+        Controller Service that maintains PGP Key Materials.
+    </p>
+
+    <p>
+        The controller service supports the following operations via the four related PGP processors:
+    </p>
+    <ul>
+        <li>FlowFile content encryption via <code>EncryptPGP</code></li>
+        <li>Content decryption via <code>DecryptPGP</code></li>
+        <li>Digital signing of content via <code>SignPGP</code></li>
+        <li>Digital signature verification via <code>VerifyPGP</code></li>
+    </ul>
+
+    <p>
+        Each of these operations requires a specific Controller Service configuration: 
+    </p>
+    <ul>
+        <li>Encrypt requires either Public Key Text, Public Key File, or a PBE pass-phrase</li>
+        <li>Decrypt requires either Secret Key Text, Secret Key File, or a PBE pass-phrase</li>
+        <li>Sign requires Secret Key Text or Secret Key File</li>
+        <li>Verify requires Public Key Text or Public Key File</li>
+    </ul>
+    <p>
+        Public and Secret Keys may be specified directly via the text fields, or as filenames via the file fields.
+        In each of these cases, the specific key the controller uses may be specified by the <code>User ID</code> fields.
+        If no user id is specified, the controller uses the first available key.
+    </p>
+    </body>
+
+</html>

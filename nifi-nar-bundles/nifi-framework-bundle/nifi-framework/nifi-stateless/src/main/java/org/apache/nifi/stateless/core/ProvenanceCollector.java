@@ -434,10 +434,20 @@ public class ProvenanceCollector implements ProvenanceReporter {
 
     @Override
     public void modifyAttributes(final FlowFile flowFile, final String details) {
+        modifyAttributes(flowFile, details, -1L);
+    }
+
+    @Override
+    public void modifyAttributes(FlowFile flowFile, long processingMillis) {
+        modifyAttributes(flowFile, null, processingMillis);
+    }
+
+    @Override
+    public void modifyAttributes(FlowFile flowFile, String details, long processingMillis) {
         verifyFlowFileKnown(flowFile);
 
         try {
-            final ProvenanceEventRecord record = build(flowFile, ProvenanceEventType.ATTRIBUTES_MODIFIED).setDetails(details).build();
+            final ProvenanceEventRecord record = build(flowFile, ProvenanceEventType.ATTRIBUTES_MODIFIED).setEventDuration(processingMillis).setDetails(details).build();
             events.add(record);
         } catch (final Exception e) {
             logger.error("Failed to generate Provenance Event due to " + e);

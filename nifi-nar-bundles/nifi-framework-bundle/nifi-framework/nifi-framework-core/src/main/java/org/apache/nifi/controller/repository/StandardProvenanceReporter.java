@@ -446,11 +446,26 @@ public class StandardProvenanceReporter implements ProvenanceReporter {
     }
 
     @Override
+    public void modifyAttributes(final FlowFile flowFile, final long processingMills) {
+        modifyAttributes(flowFile, null, -1L);
+        verifyFlowFileKnown(flowFile);
+    }
+
+    @Override
     public void modifyAttributes(final FlowFile flowFile, final String details) {
+        modifyAttributes(flowFile, details, -1L);
+        verifyFlowFileKnown(flowFile);
+    }
+
+    @Override
+    public void modifyAttributes(final FlowFile flowFile, final String details, final long processingMillis) {
         verifyFlowFileKnown(flowFile);
 
         try {
-            final ProvenanceEventRecord record = build(flowFile, ProvenanceEventType.ATTRIBUTES_MODIFIED).setDetails(details).build();
+            final ProvenanceEventRecord record = build(flowFile, ProvenanceEventType.ATTRIBUTES_MODIFIED)
+                    .setEventDuration(processingMillis)
+                    .setDetails(details)
+                    .build();
             events.add(record);
         } catch (final Exception e) {
             logger.error("Failed to generate Provenance Event due to " + e);
