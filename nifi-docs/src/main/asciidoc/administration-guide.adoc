@@ -358,7 +358,7 @@ To enable authentication via OpenId Connect the following properties must be con
 |`nifi.security.user.oidc.read.timeout` | Read timeout when communicating with the OpenId Connect Provider.
 |`nifi.security.user.oidc.client.id` | The client id for NiFi after registration with the OpenId Connect Provider.
 |`nifi.security.user.oidc.client.secret` | The client secret for NiFi after registration with the OpenId Connect Provider.
-|`nifi.security.user.oidc.preferred.jwsalgorithm` | The preferred algorithm for for validating identity tokens. If this value is blank, it will default to `RS256` which is required to be supported
+|`nifi.security.user.oidc.preferred.jwsalgorithm` | The preferred algorithm for validating identity tokens. If this value is blank, it will default to `RS256` which is required to be supported
 |`nifi.security.user.oidc.additional.scopes` | Comma separated scopes that are sent to OpenId Connect Provider in addition to `openid` and `email`.
 |`nifi.security.user.oidc.claim.identifying.user` | Claim that identifies the user to be logged in; default is `email`. May need to be requested via the `nifi.security.user.oidc.additional.scopes` before usage.
 by the OpenId Connect Provider according to the specification. If this value is `HS256`, `HS384`, or `HS512`, NiFi will attempt to validate HMAC protected tokens using the specified client secret.
@@ -1904,25 +1904,26 @@ that indicates that any user is allowed to have full permissions to the data, or
 allowed to access the data. Which ACL is used depends on the value of the `Access Control` property for the `ZooKeeperStateProvider` (see the
 <<state_providers>> section for more information).
 
-In order to use an ACL that indicates that only the Creator is allowed to access the data, we need to tell ZooKeeper who the Creator is. There are two
+In order to use an ACL that indicates that only the Creator is allowed to access the data, we need to tell ZooKeeper who the Creator is. There are three
 mechanisms for accomplishing this. The first mechanism is to provide authentication using Kerberos. See <<zk_kerberos_client>> for more information.
 
-The second option is to use a user name and password. This is configured by specifying a value for the `Username` and a value for the `Password` properties
+The second option, which additionally ensures that network communication is encrypted, is to authenticate using an X.509 certificate on a TLS-enabled ZooKeeper server. See
+<<zk_tls_client>> for more information.
+
+The third option is to use a user name and password. This is configured by specifying a value for the `Username` and a value for the `Password` properties
 for the `ZooKeeperStateProvider` (see the <<state_providers>> section for more information). The important thing to keep in mind here, though, is that ZooKeeper
 will pass around the password in plain text. This means that using a user name and password should not be used unless ZooKeeper is running on localhost as a
-one-instance cluster, or if communications with ZooKeeper occur only over encrypted communications, such as a VPN or an SSL connection. ZooKeeper will be
-providing support for SSL connections in version 3.5.0.
+one-instance cluster, or if communications with ZooKeeper occur only over encrypted communications, such as a VPN or an SSL connection.
 
 
 
 [[securing_zookeeper]]
-=== Securing ZooKeeper
+=== Securing ZooKeeper with Kerberos
 When NiFi communicates with ZooKeeper, all communications, by default, are non-secure, and anyone who logs into ZooKeeper is able to view and manipulate all
-of the NiFi state that is stored in ZooKeeper. To prevent this, we can use Kerberos to manage the authentication. At this time, ZooKeeper does not provide
-support for encryption via SSL. Support for SSL in ZooKeeper is being actively developed and is expected to be available in the 3.5.x release version.
+of the NiFi state that is stored in ZooKeeper. To prevent this, one option is to use Kerberos to manage authentication.
 
-In order to secure the communications, we need to ensure that both the client and the server support the same configuration. Instructions for configuring the
-NiFi ZooKeeper client and embedded ZooKeeper server to use Kerberos are provided below.
+In order to secure the communications with Kerberos, we need to ensure that both the client and the server support the same configuration. Instructions for
+configuring the NiFi ZooKeeper client and embedded ZooKeeper server to use Kerberos are provided below.
 
 If Kerberos is not already setup in your environment, you can find information on installing and setting up a Kerberos Server at
 https://access.redhat.com/documentation/en-US/Red_Hat_Enterprise_Linux/6/html/Managing_Smart_Cards/Configuring_a_Kerberos_5_Server.html[Red Hat Customer Portal: Configuring a Kerberos 5 Server]. This guide assumes that Kerberos already has been installed in the environment in which NiFi is running.
@@ -2111,6 +2112,56 @@ java.arg.16=-Dsun.security.krb5.debug=true
 
 This will cause the debug output to be written to the NiFi Bootstrap log file. By default, this is located at _$NIFI_HOME/logs/nifi-bootstrap.log_.
 This output can be rather verbose but provides extremely valuable information for troubleshooting Kerberos failures.
+
+
+
+[[securing_zookeeper_with_tls]]
+=== Securing ZooKeeper with TLS
+As discussed above, communications with ZooKeeper are insecure by default. The second option for securely authenticating to and communicating with ZooKeeper is to use
+certificate-based authentication with a TLS-enabled ZooKeeper server (available in ZooKeeper's 3.5.x releases). While NiFi doesn't expose an application-level ZooKeeper TLS
+configuration, client-server TLS can be enabled by adding ZooKeeper client Java properties to the _$NIFI_HOME/conf/bootstrap.conf_ file. At this time, TLS cannot be enabled
+for NiFi's embedded ZooKeeper server. Instructions for enabling TLS on an external ZooKeeper ensemble can be found in the link:https://zookeeper.apache.org/doc/r3.5.5/zookeeperAdmin.html#sc_authOptions[ZooKeeper Administrator's Guide].
+
+
+
+[[zk_tls_client]]
+==== Enabling TLS for NiFi's ZooKeeper Client
+Assuming you have a TLS-enabled instance of ZooKeeper, TLS can be enabled for the NiFi client by configuring the client connection factory, instructing it to use secure
+client access, and specifying the certificates to use for authentication.
+
+ZooKeeper uses Netty to support network encryption and certificate-based authentication. Both the server and client must be configured to use Netty-based connection
+factories instead of the default NIO implementations. This can be enabled for the NiFi client by adding `zookeeper.clientCnxnSocket` to the _bootstrap.conf_ (the numbers
+following `java.arg.` below aren't specific to the configuration; see <<bootstrap_properties>> for more details):
+
+[source]
+java.arg.18=-Dzookeeper.clientCnxnSocket=org.apache.zookeeper.ClientCnxnSocketNetty
+
+Upon enabling Netty, you should see log messages like the following in _$NIFI_HOME/logs/nifi-app.log_:
+
+[source]
+2020-02-24 23:37:54,082 INFO [nioEventLoopGroup-3-1] o.apache.zookeeper.ClientCnxnSocketNetty SSL handler added for channel: [id: 0xa831f9c3]
+2020-02-24 23:37:54,104 INFO [nioEventLoopGroup-3-1] o.apache.zookeeper.ClientCnxnSocketNetty channel is connected: [id: 0xa831f9c3, L:/172.17.0.4:56510 - R:8e38869cd1d1/172.17.0.3:2281]
+
+Next, in order to instruct NiFi to use secure client access you should set the `zookeeper.client.secure` property to _true_:
+
+[source]
+java.arg.19=-Dzookeeper.client.secure=true
+
+And, finally, specify the paths to the keystore and truststore and their respective passwords; for example:
+
+[source]
+java.arg.20=-Dzookeeper.ssl.keyStore.location=/path/to/client/keystore.jks
+java.arg.21=-Dzookeeper.ssl.keyStore.password=changeme
+java.arg.22=-Dzookeeper.ssl.trustStore.location=/path/to/client/truststore.jks
+java.arg.23=-Dzookeeper.ssl.trustStore.password=changeme
+
+After starting NiFi, network communication with ZooKeeper will be secure and ZooKeeper will now use the NiFi node's certificate principal when authenticating access. This will
+be reflected in log messages like the following on the ZooKeeper server:
+
+[source]
+2020-02-24 23:37:52,671 [myid:2] - INFO  [nioEventLoopGroup-4-1:X509AuthenticationProvider@172] - Authenticated Id 'CN=ec8f947eb670' for Scheme 'x509'
+
+
 
 [[zookeeper_migrator]]
 === ZooKeeper Migrator
