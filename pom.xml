@@ -13,7 +13,7 @@
     <parent>
         <groupId>org.apache</groupId>
         <artifactId>apache</artifactId>
-        <version>22</version>
+        <version>23</version>
         <relativePath />
     </parent>
     <groupId>org.apache.nifi</groupId>
@@ -70,9 +70,6 @@
             <archive>https://mail-archives.apache.org/mod_mbox/nifi-commits</archive>
         </mailingList>
     </mailingLists>
-    <prerequisites>
-        <maven>${maven.min-version}</maven>
-    </prerequisites>
     <scm>
         <connection>scm:git:git://git.apache.org/nifi.git</connection>
         <developerConnection>scm:git:https://git-wip-us.apache.org/repos/asf/nifi.git</developerConnection>
@@ -91,7 +88,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <inceptionYear>2014</inceptionYear>
-        <org.slf4j.version>1.7.26</org.slf4j.version>
+        <org.slf4j.version>1.7.30</org.slf4j.version>
         <ranger.version>2.0.0</ranger.version>
         <jetty.version>9.4.19.v20190610</jetty.version>
         <jackson.version>2.9.10</jackson.version>
