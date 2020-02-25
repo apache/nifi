@@ -28,11 +28,12 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 
+import org.apache.nifi.cdc.postgresql.pgEasyReplication.ConnectionManager;
+
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
 public class Decode {
-
     private static HashMap<Integer, String> dataTypes = new HashMap<Integer, String>();
     private HashMap<Integer, Relation> relations = new HashMap<Integer, Relation>();
 
@@ -365,7 +366,7 @@ public class Decode {
 
             position += 1; /* (Byte1) Identifies the following TupleData message as a new tuple ('N'). */
 
-            jsonMessage_I.put(this.relations.get(relationId_I).getName(), parseTupleDataSimple(relationId_I, buffer, position)[0]);
+            jsonMessage_I.put(this.relations.get(relationId_I).getFullName(), parseTupleDataSimple(relationId_I, buffer, position)[0]);
 
             json.put("insert", jsonMessage_I);
             return json;
@@ -383,7 +384,7 @@ public class Decode {
             Object[] tupleData1 = parseTupleDataSimple(relationId_U, buffer, position); /* TupleData N, K or O */
 
             if (tupleType1 == 'N') {
-                jsonMessage_U.put(this.relations.get(relationId_U).getName(), tupleData1[0]);
+                jsonMessage_U.put(this.relations.get(relationId_U).getFullName(), tupleData1[0]);
                 json.put("update", jsonMessage_U);
                 return json;
             }
@@ -392,7 +393,7 @@ public class Decode {
 
             position += 1; /* (Byte1) Either identifies the following TupleData submessage as a key ('K') or as an old tuple ('O') or as a new tuple ('N'). */
 
-            jsonMessage_U.put(this.relations.get(relationId_U).getName(), parseTupleDataSimple(relationId_U, buffer, position)[0]); /* TupleData N */
+            jsonMessage_U.put(this.relations.get(relationId_U).getFullName(), parseTupleDataSimple(relationId_U, buffer, position)[0]); /* TupleData N */
 
             json.put("update", jsonMessage_U);
             return json;
@@ -406,7 +407,7 @@ public class Decode {
 
             position += 1; /* (Byte1) Either identifies the following TupleData submessage as a key ('K') or as an old tuple ('O'). */
 
-            jsonMessage_D.put(this.relations.get(relationId_D).getName(), parseTupleDataSimple(relationId_D, buffer, position)[0]); /* TupleData */
+            jsonMessage_D.put(this.relations.get(relationId_D).getFullName(), parseTupleDataSimple(relationId_D, buffer, position)[0]); /* TupleData */
 
             json.put("delete", jsonMessage_D);
             return json;
@@ -476,9 +477,9 @@ public class Decode {
         return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss z Z").format(cal.getTime());
     }
 
-    public void loadDataTypes() throws SQLException {
+    public void loadDataTypes(ConnectionManager connectionManager) throws SQLException {
 
-        Statement stmt = ConnectionManager.getSQLConnection().createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+        Statement stmt = connectionManager.getSQLConnection().createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
 
         ResultSet rs = stmt.executeQuery("SELECT oid, typname FROM pg_catalog.pg_type");
 

@@ -32,13 +32,15 @@ import org.postgresql.copy.CopyManager;
 public class Snapshot {
 
     private String publication;
+    private ConnectionManager connectionManager;
 
-    public Snapshot(String pub) {
+    public Snapshot(String pub, ConnectionManager connectionManager) {
         this.publication = pub;
+        this.connectionManager = connectionManager;
     }
 
     public ArrayList<String> getPublicationTables() throws SQLException {
-        PreparedStatement stmt = ConnectionManager.getSQLConnection().prepareStatement("SELECT schemaname, tablename FROM pg_publication_tables WHERE pubname = ?");
+        PreparedStatement stmt = this.connectionManager.getSQLConnection().prepareStatement("SELECT schemaname, tablename FROM pg_publication_tables WHERE pubname = ?");
 
         stmt.setString(1, this.publication);
         ResultSet rs = stmt.executeQuery();
@@ -56,7 +58,7 @@ public class Snapshot {
     }
 
     public ArrayList<String> getInitialSnapshotTable(String tableName) throws SQLException, IOException {
-        PGConnection pgcon = ConnectionManager.getSQLConnection().unwrap(PGConnection.class);
+        PGConnection pgcon = this.connectionManager.getSQLConnection().unwrap(PGConnection.class);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
 
         CopyManager manager = pgcon.getCopyAPI();

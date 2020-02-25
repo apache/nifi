@@ -40,6 +40,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;
 
 import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.PrimaryNodeOnly;
 import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -59,6 +60,7 @@ import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -76,8 +78,9 @@ import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
  */
 @TriggerSerially
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
+@PrimaryNodeOnly
 @Tags({ "sql", "jdbc", "cdc", "postgresql" })
-@CapabilityDescription("Retrieves Change Data Capture (CDC) events from a PostgreSQL database. CDC Events include INSERT, UPDATE, DELETE operations. Events "
+@CapabilityDescription("Retrieves Change Data Capture (CDC) events from a PostgreSQL database. Works for PostgreSQL version 10+. CDC Events include INSERT, UPDATE, DELETE operations. Events "
         + "are output as individual flow files ordered by the time at which the operation occurred. This processor use a replication connection to stream data and sql connection to snapshot.")
 @Stateful(scopes = Scope.CLUSTER, description = "Information such as a 'pointer' to the current CDC event in the database is stored by this processor, such "
         + "that it can continue from the same location if restarted.")
@@ -157,7 +160,8 @@ public class CaptureChangePostgreSQL extends AbstractProcessor {
     public static final PropertyDescriptor SLOT_NAME = new PropertyDescriptor.Builder()
             .name("cdc-postgresql-slot-name")
             .displayName("Slot Name")
-            .description("A unique, cluster-wide identifier for the replication slot")
+            .description("A unique, cluster-wide identifier for the replication slot. Each replication slot has a name, which can contain lower-case letters, numbers, "
+                    + "and the underscore character. Existing replication slots and their state can be seen in the pg_replication_slots view.")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
@@ -216,7 +220,6 @@ public class CaptureChangePostgreSQL extends AbstractProcessor {
     private Set<Relationship> relationships;
 
     // Attribute keys
-    public static final String MIME_TYPE_ATTRIBUTE = "mime.type";
     public static final String MIME_TYPE_VALUE = "application/json";
     public static final String LAST_LSN_RECEIVED = "last.lsn.received";
 
@@ -227,6 +230,7 @@ public class CaptureChangePostgreSQL extends AbstractProcessor {
     private Long initialLSN = 0L;
     private PGEasyReplication pgEasyReplication = null;
     boolean hasSnapshot = false;
+    private ConnectionManager connectionManager;
 
     // update lastLSNReceived on processor state
     private void updateState(StateManager stateManager) throws IOException {
@@ -317,8 +321,8 @@ public class CaptureChangePostgreSQL extends AbstractProcessor {
 
     protected void stop(StateManager stateManager) throws CDCException {
         try {
-            ConnectionManager.closeReplicationConnection();
-            ConnectionManager.closeSQLConnection();
+            this.connectionManager.closeReplicationConnection();
+            this.connectionManager.closeSQLConnection();
             this.pgEasyReplication = null;
 
             if (this.lastLSNReceived != null)
@@ -424,13 +428,14 @@ public class CaptureChangePostgreSQL extends AbstractProcessor {
             // Actual JDBC connection is created after PostgreSQL client gets started,
             // because we need the connect-able host same as the PostgreSQL client.
             registerDriver(driverLocation, driverName);
-            ConnectionManager.setProperties(host, database, username, password, driverName);
-            ConnectionManager.createSQLConnection();
-            ConnectionManager.createReplicationConnection();
+            this.connectionManager = new ConnectionManager();
+            this.connectionManager.setProperties(host, database, username, password, driverName);
+            this.connectionManager.createSQLConnection();
+            this.connectionManager.createReplicationConnection();
 
             stateMap = stateManager.getState(Scope.CLUSTER);
 
-            this.pgEasyReplication = new PGEasyReplication(publicationName, replicationSlotName, dropSlotIfExists);
+            this.pgEasyReplication = new PGEasyReplication(publicationName, replicationSlotName, dropSlotIfExists, this.connectionManager);
             this.pgEasyReplication.initializeLogicalReplication();
 
             if (stateMap.get(LAST_LSN_RECEIVED) != null) {
@@ -503,7 +508,7 @@ public class CaptureChangePostgreSQL extends AbstractProcessor {
                             }
                         });
 
-                        flowFile = session.putAttribute(flowFile, MIME_TYPE_ATTRIBUTE, MIME_TYPE_VALUE);
+                        flowFile = session.putAttribute(flowFile, CoreAttributes.MIME_TYPE.key(), MIME_TYPE_VALUE);
                         listFlowFiles.add(flowFile);
                     }
                 }
