@@ -29,18 +29,22 @@ import org.postgresql.PGConnection;
 import org.postgresql.replication.LogSequenceNumber;
 import org.postgresql.replication.PGReplicationStream;
 
+import org.apache.nifi.cdc.postgresql.pgEasyReplication.ConnectionManager;
+
 public class Stream {
 
     private PGReplicationStream repStream;
     private Long lastReceiveLSN;
     private Decode decode;
+    private ConnectionManager connectionManager;
 
-    public Stream(String pub, String slt) throws SQLException {
-        this(pub, slt, null);
+    public Stream(String pub, String slt, ConnectionManager connectionManager) throws SQLException {
+        this(pub, slt, null, connectionManager);
     }
 
-    public Stream(String pub, String slt, Long lsn) throws SQLException {
-        PGConnection pgcon = ConnectionManager.getReplicationConnection().unwrap(PGConnection.class);
+    public Stream(String pub, String slt, Long lsn, ConnectionManager connectionManager) throws SQLException {
+        this.connectionManager = connectionManager;
+        PGConnection pgcon = this.connectionManager.getReplicationConnection().unwrap(PGConnection.class);
 
         if (lsn == null) {
          // More details about pgoutput options: https://github.com/postgres/postgres/blob/master/src/backend/replication/pgoutput/pgoutput.c
@@ -74,7 +78,7 @@ public class Stream {
 
         if (this.decode == null) { // First read
             this.decode = new Decode();
-            decode.loadDataTypes();
+            decode.loadDataTypes(this.connectionManager);
         }
 
         while (true) {

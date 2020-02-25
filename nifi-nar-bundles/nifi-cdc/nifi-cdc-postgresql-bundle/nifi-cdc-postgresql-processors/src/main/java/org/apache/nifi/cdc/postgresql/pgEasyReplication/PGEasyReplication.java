@@ -34,16 +34,18 @@ public class PGEasyReplication {
     private String slot;
     private boolean slotDropIfExists;
     private Stream stream;
+    private ConnectionManager connectionManager;
 
-    public PGEasyReplication(String pub, String slt, boolean sltDropIfExists) {
+    public PGEasyReplication(String pub, String slt, boolean sltDropIfExists, ConnectionManager connectionManager) {
         this.publication = pub;
         this.slot = slt;
         this.slotDropIfExists = sltDropIfExists;
+        this.connectionManager = connectionManager;
     }
 
     public void initializeLogicalReplication() {
         try {
-            PreparedStatement stmt = ConnectionManager.getSQLConnection().prepareStatement("select 1 from pg_catalog.pg_replication_slots WHERE slot_name = ?");
+            PreparedStatement stmt = this.connectionManager.getSQLConnection().prepareStatement("select 1 from pg_catalog.pg_replication_slots WHERE slot_name = ?");
 
             stmt.setString(1, this.slot);
             ResultSet rs = stmt.executeQuery();
@@ -64,8 +66,10 @@ public class PGEasyReplication {
 
     public void createReplicationSlot() {
         try {
-            PGConnection pgcon = ConnectionManager.getReplicationConnection().unwrap(PGConnection.class);
+            PGConnection pgcon = this.connectionManager.getReplicationConnection().unwrap(PGConnection.class);
             // More details about pgoutput options: https://github.com/postgres/postgres/blob/master/src/backend/replication/pgoutput/pgoutput.c
+            //PostgreSQL at GitHub: https://github.com/postgres
+            //Source file: postgres/src/backend/replication/pgoutput/pgoutput.c
             pgcon.getReplicationAPI()
             .createReplicationSlot()
             .logical()
@@ -80,7 +84,7 @@ public class PGEasyReplication {
 
     public void dropReplicationSlot() {
         try {
-            PGConnection pgcon = ConnectionManager.getReplicationConnection().unwrap(PGConnection.class);
+            PGConnection pgcon = this.connectionManager.getReplicationConnection().unwrap(PGConnection.class);
             pgcon.getReplicationAPI().dropReplicationSlot(this.slot);
         } catch (SQLException e) {
             e.printStackTrace();
@@ -91,7 +95,7 @@ public class PGEasyReplication {
         Event event = null;
 
         try {
-            Snapshot snapshot = new Snapshot(this.publication);
+            Snapshot snapshot = new Snapshot(this.publication, this.connectionManager);
             event = snapshot.getInitialSnapshot();
 
         } catch (SQLException e) {
@@ -120,7 +124,7 @@ public class PGEasyReplication {
 
         try {
             if (this.stream == null) { // First read
-                this.stream = new Stream(this.publication, this.slot, startLSN);
+                this.stream = new Stream(this.publication, this.slot, startLSN, this.connectionManager);
             }
 
             event = this.stream.readStream(isSimpleEvent, withBeginCommit);

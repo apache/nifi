@@ -23,74 +23,74 @@ import java.util.Properties;
 
 public class ConnectionManager {
 
-    private static String server;
-    private static String database;
-    private static String driverName;
-    private static String user;
-    private static String password;
-    private static Connection sqlConnection;
-    private static Connection repConnection;
+    private String server;
+    private String database;
+    private String driverName;
+    private String user;
+    private String password;
+    private Connection sqlConnection;
+    private Connection repConnection;
 
-    public static void setProperties(String server, String database, String user, String password, String driverName) {
-        ConnectionManager.server = server;
-        ConnectionManager.database = database;
-        ConnectionManager.user = user;
-        ConnectionManager.driverName = driverName;
+    public void setProperties(String server, String database, String user, String password, String driverName) {
+        this.server = server;
+        this.database = database;
+        this.user = user;
+        this.driverName = driverName;
 
         if (password == null) {
             password = "";
         }
 
-        ConnectionManager.password = password;
+        this.password = password;
 
     }
 
-    public static void createReplicationConnection() throws Exception {
+    public void createReplicationConnection() throws Exception {
 
-        String url = "jdbc:postgresql://" + ConnectionManager.server + "/" + ConnectionManager.database;
+        String url = "jdbc:postgresql://" + this.server + "/" + this.database;
 
         Properties props = new Properties();
-        props.put("user", ConnectionManager.user);
-        props.put("password", ConnectionManager.password);
+        props.put("user", this.user);
+        props.put("password", this.password);
         props.put("assumeMinServerVersion", "10");
         props.put("replication", "database");
         props.put("preferQueryMode", "simple");
 
         Connection conn = null;
-        Class.forName(ConnectionManager.driverName);
+        Class.forName(this.driverName);
         conn = DriverManager.getConnection(url, props);
-        ConnectionManager.repConnection = conn;
+        this.repConnection = conn;
     }
 
-    public static Connection getReplicationConnection() {
-        return ConnectionManager.repConnection;
+    public Connection getReplicationConnection() {
+        return this.repConnection;
     }
 
-    public static void closeReplicationConnection() throws Exception {
-        ConnectionManager.repConnection.close();
+    public void closeReplicationConnection() throws Exception {
+        this.repConnection.close();
     }
 
-    public static void createSQLConnection() throws Exception {
+    public void createSQLConnection() throws Exception {
 
-        String url = "jdbc:postgresql://" + ConnectionManager.server + "/" + ConnectionManager.database;
+        String url = "jdbc:postgresql://" + this.server + "/" + this.database;
 
         Properties props = new Properties();
-        props.put("user", ConnectionManager.user);
-        props.put("password", ConnectionManager.password);
+        props.put("user", this.user);
+        props.put("password", this.password);
 
         Connection conn = null;
-        Class.forName(ConnectionManager.driverName);
+        Class.forName(this.driverName);
         conn = DriverManager.getConnection(url, props);
         conn.setAutoCommit(true);
-        ConnectionManager.sqlConnection = conn;
+        this.sqlConnection = conn;
     }
 
-    public static Connection getSQLConnection() {
-        return ConnectionManager.sqlConnection;
+    public Connection getSQLConnection() {
+        return this.sqlConnection;
     }
 
-    public static void closeSQLConnection() throws Exception {
-        ConnectionManager.sqlConnection.close();
+    public void closeSQLConnection() throws Exception {
+        this.sqlConnection.close();
     }
 
 }
