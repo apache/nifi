@@ -40,6 +40,14 @@
             <version>1.12.0-SNAPSHOT</version>
             <type>nar</type>
         </dependency>
+        
+        <!-- nifi-metrics dependency to include in the NAR for processor to use at runtime -->
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-metrics</artifactId>
+            <type>jar</type>
+            <scope>runtime</scope>
+        </dependency>
 
         <!-- Groovy dependencies to include in the NAR for processors to use at runtime -->
         <dependency>
