@@ -14,29 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.properties.sensitive;
+package org.apache.nifi.properties;
 
-/**
- *
- * ExternalProperties is an interface for reading external values by name.
- *
- */
-public interface ExternalProperties {
-    /**
-     * Looks up the Authorizer with the specified identifier
-     *
-     * @param name The identifier of the Authorizer
-     * @return The Authorizer
-     */
+public interface SensitivePropertyProviderFactory {
 
-    String get(String name);
+    SensitivePropertyProvider getProvider();
 
-    /**
-     * Read an external property by name with default.
-     *
-     * @param name the name or key of the external property
-     * @param missing value to return if external value is not found
-     * @return external value if found, missing value if not
-     */
-    String get(String name, String missing);
 }

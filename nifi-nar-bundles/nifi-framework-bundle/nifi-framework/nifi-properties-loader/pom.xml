@@ -25,18 +25,10 @@
         performs any decryption/retrieval of sensitive configuration properties.
     </description>
     <packaging>jar</packaging>
-    <properties>
-        <aws-java-sdk-version>1.11.461</aws-java-sdk-version>
-    </properties>
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-properties</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.amazonaws</groupId>
-            <artifactId>aws-java-sdk-kms</artifactId>
-            <version>${aws-java-sdk-version}</version>
         </dependency>
         <dependency>
             <groupId>org.bouncycastle</groupId>
@@ -53,34 +45,6 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-security-utils</artifactId>
-        </dependency>
-        <dependency>        
-            <groupId>org.testcontainers</groupId>
-            <artifactId>testcontainers</artifactId>
-            <version>1.11.3</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.vault</groupId>
-            <artifactId>spring-vault-core</artifactId>
-            <version>1.1.3.RELEASE</version>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-web</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-core</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-security-utils</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.microsoft.azure</groupId>
-            <artifactId>azure</artifactId>
-            <version>1.24.1</version>
         </dependency>
     </dependencies>
     <build>
@@ -104,16 +68,6 @@
                         </configuration>
                     </execution>
                 </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.rat</groupId>
-                <artifactId>apache-rat-plugin</artifactId>
-                <configuration>
-                    <excludes>
-                        <exclude>src/test/resources/hadoop_keystores/password.sidefile</exclude>
-                        <exclude>src/test/resources/hadoop_keystores/bad-password.sidefile</exclude>
-                    </excludes>
-                </configuration>
             </plugin>
         </plugins>
     </build>

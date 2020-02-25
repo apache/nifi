@@ -14,9 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.properties.sensitive;
+package org.apache.nifi.properties;
 
-public class SensitivePropertyException extends RuntimeException  {
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
+import org.apache.commons.lang3.StringUtils;
+
+public class MultipleSensitivePropertyProtectionException extends SensitivePropertyProtectionException {
+
+    private Set<String> failedKeys;
+
     /**
      * Constructs a new throwable with {@code null} as its detail message.
      * The cause is not initialized, and may subsequently be initialized by a
@@ -25,7 +33,7 @@ public class SensitivePropertyException extends RuntimeException  {
      * <p>The {@link #fillInStackTrace()} method is called to initialize
      * the stack trace data in the newly created throwable.
      */
-    public SensitivePropertyException() {
+    public MultipleSensitivePropertyProtectionException() {
     }
 
     /**
@@ -39,7 +47,7 @@ public class SensitivePropertyException extends RuntimeException  {
      * @param message the detail message. The detail message is saved for
      *                later retrieval by the {@link #getMessage()} method.
      */
-    public SensitivePropertyException(String message) {
+    public MultipleSensitivePropertyProtectionException(String message) {
         super(message);
     }
 
@@ -58,8 +66,9 @@ public class SensitivePropertyException extends RuntimeException  {
      *                {@link #getCause()} method).  (A {@code null} value is
      *                permitted, and indicates that the cause is nonexistent or
      *                unknown.)
+     * @since 1.4
      */
-    public SensitivePropertyException(String message, Throwable cause) {
+    public MultipleSensitivePropertyProtectionException(String message, Throwable cause) {
         super(message, cause);
     }
 
@@ -77,13 +86,43 @@ public class SensitivePropertyException extends RuntimeException  {
      *              {@link #getCause()} method).  (A {@code null} value is
      *              permitted, and indicates that the cause is nonexistent or
      *              unknown.)
+     * @since 1.4
      */
-    public SensitivePropertyException(Throwable cause) {
+    public MultipleSensitivePropertyProtectionException(Throwable cause) {
         super(cause);
+    }
+
+    /**
+     * Constructs a new exception with the provided message and a unique set of the keys that caused the error.
+     *
+     * @param message    the message
+     * @param failedKeys any failed keys
+     */
+    public MultipleSensitivePropertyProtectionException(String message, Collection<String> failedKeys) {
+        this(message, failedKeys, null);
+    }
+
+    /**
+     * Constructs a new exception with the provided message and a unique set of the keys that caused the error.
+     *
+     * @param message    the message
+     * @param failedKeys any failed keys
+     * @param cause      the cause (which is saved for later retrieval by the
+     *                   {@link #getCause()} method).  (A {@code null} value is
+     *                   permitted, and indicates that the cause is nonexistent or
+     *                   unknown.)
+     */
+    public MultipleSensitivePropertyProtectionException(String message, Collection<String> failedKeys, Throwable cause) {
+        super(message, cause);
+        this.failedKeys = new HashSet<>(failedKeys);
+    }
+
+    public Set<String> getFailedKeys() {
+        return this.failedKeys;
     }
 
     @Override
     public String toString() {
-        return "SensitivePropertyException: " + getLocalizedMessage();
+        return "SensitivePropertyProtectionException for [" + StringUtils.join(this.failedKeys, ", ") + "]: " + getLocalizedMessage();
     }
 }

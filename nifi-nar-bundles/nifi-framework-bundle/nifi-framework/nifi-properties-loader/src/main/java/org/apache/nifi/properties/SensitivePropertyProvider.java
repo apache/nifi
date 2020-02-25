@@ -14,19 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.properties.sensitive;
+package org.apache.nifi.properties;
 
-/**
- * This class represents the sensitive property providers {@link SensitivePropertyProvider} used to encrypt/decrypt the sensitive properties in the nifi.properties file.
- *
- * For further details, including documentation on how to configure these, review the <a href="https://nifi.apache.org/docs/nifi-docs/html/user-guide.html#sensitive_property_providers">Apache NiFi User Guide - Sensitive Property Providers</a> section.
- *
- * As of Apache NiFi 1.12.0 this implementation is considered <a href="https://nifi.apache.org/docs/nifi-docs/html/user-guide.html#experimental_warning">*experimental*</a>.
- * Available implementations can be found listed in StandardSensitivePropertyProvider.
- *
- */
 public interface SensitivePropertyProvider {
-
 
     /**
      * Returns the name of the underlying implementation.

@@ -18,7 +18,7 @@ package org.apache.nifi.web.security.spring
 
 import org.apache.nifi.authentication.generated.Property
 import org.apache.nifi.authentication.generated.Provider
-import org.apache.nifi.properties.sensitive.StandardSensitivePropertyProvider
+import org.apache.nifi.properties.AESSensitivePropertyProvider
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.junit.After
 import org.junit.AfterClass
@@ -55,7 +55,7 @@ class LoginIdentityProviderFactoryBeanTest extends GroovyTestCase {
     private static final String PASSWORD = "thisIsABadPassword"
 
     @BeforeClass
-    static void setUpOnce() throws Exception {
+    public static void setUpOnce() throws Exception {
         Security.addProvider(new BouncyCastleProvider())
 
         logger.metaClass.methodMissing = { String name, args ->
@@ -64,17 +64,18 @@ class LoginIdentityProviderFactoryBeanTest extends GroovyTestCase {
     }
 
     @AfterClass
-    static void tearDownOnce() throws Exception {
+    public static void tearDownOnce() throws Exception {
     }
 
     @Before
-    void setUp() throws Exception {
-        LoginIdentityProviderFactoryBean.SENSITIVE_PROPERTY_PROVIDER = StandardSensitivePropertyProvider.fromKey(KEY_HEX)
+    public void setUp() throws Exception {
+        LoginIdentityProviderFactoryBean.SENSITIVE_PROPERTY_PROVIDER = new AESSensitivePropertyProvider(KEY_HEX)
     }
 
     @After
-    void tearDown() throws Exception {
+    public void tearDown() throws Exception {
         LoginIdentityProviderFactoryBean.SENSITIVE_PROPERTY_PROVIDER = null
+        LoginIdentityProviderFactoryBean.SENSITIVE_PROPERTY_PROVIDER_FACTORY = null
     }
 
     private static boolean isUnlimitedStrengthCryptoAvailable() {

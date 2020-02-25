@@ -28,11 +28,6 @@ import org.apache.commons.cli.Options
 import org.apache.commons.cli.ParseException
 import org.apache.commons.codec.binary.Hex
 import org.apache.commons.io.IOUtils
-import org.apache.nifi.properties.sensitive.ProtectedNiFiProperties
-import org.apache.nifi.properties.sensitive.SensitivePropertyProtectionException
-import org.apache.nifi.properties.sensitive.SensitivePropertyProvider
-import org.apache.nifi.properties.sensitive.StandardSensitivePropertyProvider
-import org.apache.nifi.properties.sensitive.aes.AESSensitivePropertyProvider
 import org.apache.nifi.toolkit.tls.commandLine.CommandLineParseException
 import org.apache.nifi.toolkit.tls.commandLine.ExitCode
 import org.apache.nifi.util.NiFiProperties
@@ -71,7 +66,7 @@ class ConfigEncryptionTool {
     public String flowXmlPath
     public String outputFlowXmlPath
 
-    private String keyOrKeyId
+    private String keyHex
     private String migrationKeyHex
     private String password
     private String migrationPassword
@@ -443,12 +438,12 @@ class ConfigEncryptionTool {
                     password = commandLine.getOptionValue(PASSWORD_ARG)
                 }
             } else {
-                keyOrKeyId = commandLine.getOptionValue(KEY_ARG)
-                usingPassword = !keyOrKeyId
+                keyHex = commandLine.getOptionValue(KEY_ARG)
+                usingPassword = !keyHex
             }
 
             if (commandLine.hasOption(USE_KEY_ARG)) {
-                if (keyOrKeyId || password) {
+                if (keyHex || password) {
                     logger.warn("If the key or password is provided in the arguments, '-r'/'--${USE_KEY_ARG}' is ignored")
                 } else {
                     usingPassword = false
@@ -531,7 +526,7 @@ class ConfigEncryptionTool {
     }
 
     private String getKey(TextDevice textDevice = TextDevices.defaultTextDevice()) {
-        getKeyInternal(textDevice, keyOrKeyId, password, usingPassword)
+        getKeyInternal(textDevice, keyHex, password, usingPassword)
     }
 
     private String getMigrationKey() {
@@ -559,7 +554,7 @@ class ConfigEncryptionTool {
      * @return the formatted hex string in uppercase
      * @throws KeyException if the key is not a valid length after parsing
      */
-    private static String parseHexKey(String rawKey) throws KeyException {
+    private static String parseKey(String rawKey) throws KeyException {
         String hexKey = rawKey.replaceAll("[^0-9a-fA-F]", "")
         def validKeyLengths = getValidKeyLengths()
         if (!validKeyLengths.contains(hexKey.size() * 4)) {
@@ -583,7 +578,7 @@ class ConfigEncryptionTool {
      * @return the NiFiProperties instance
      * @throw IOException if the nifi.properties file cannot be read
      */
-    private NiFiProperties loadNiFiProperties(String existingKeyHex = keyOrKeyId) throws IOException {
+    private NiFiProperties loadNiFiProperties(String existingKeyHex = keyHex) throws IOException {
         File niFiPropertiesFile
         if (niFiPropertiesPath && (niFiPropertiesFile = new File(niFiPropertiesPath)).exists()) {
             NiFiProperties properties
@@ -610,7 +605,7 @@ class ConfigEncryptionTool {
      * @return the file content
      * @throw IOException if the login-identity-providers.xml file cannot be read
      */
-    private String loadLoginIdentityProviders(String existingKeyHex = keyOrKeyId) throws IOException {
+    private String loadLoginIdentityProviders(String existingKeyHex = keyHex) throws IOException {
         File loginIdentityProvidersFile
         if (loginIdentityProvidersPath && (loginIdentityProvidersFile = new File(loginIdentityProvidersPath)).exists()) {
             try {
@@ -638,7 +633,7 @@ class ConfigEncryptionTool {
      * @return the file content
      * @throw IOException if the authorizers.xml file cannot be read
      */
-    private String loadAuthorizers(String existingKeyHex = keyOrKeyId) throws IOException {
+    private String loadAuthorizers(String existingKeyHex = keyHex) throws IOException {
         File authorizersFile
         if (authorizersPath && (authorizersFile = new File(authorizersPath)).exists()) {
             try {
@@ -878,7 +873,7 @@ class ConfigEncryptionTool {
         }
     }
 
-    String decryptLoginIdentityProviders(String encryptedXml, String existingKeyHex = keyOrKeyId) {
+    String decryptLoginIdentityProviders(String encryptedXml, String existingKeyHex = keyHex) {
         AESSensitivePropertyProvider sensitivePropertyProvider = new AESSensitivePropertyProvider(existingKeyHex)
 
         try {
@@ -914,7 +909,7 @@ class ConfigEncryptionTool {
         }
     }
 
-    String decryptAuthorizers(String encryptedXml, String existingKeyHex = keyOrKeyId) {
+    String decryptAuthorizers(String encryptedXml, String existingKeyHex = keyHex) {
         AESSensitivePropertyProvider sensitivePropertyProvider = new AESSensitivePropertyProvider(existingKeyHex)
 
         try {
@@ -956,7 +951,7 @@ class ConfigEncryptionTool {
         }
     }
 
-    String encryptLoginIdentityProviders(String plainXml, String newKeyHex = keyOrKeyId) {
+    String encryptLoginIdentityProviders(String plainXml, String newKeyHex = keyHex) {
         AESSensitivePropertyProvider sensitivePropertyProvider = new AESSensitivePropertyProvider(newKeyHex)
 
         // TODO: Switch to XmlParser & XmlNodePrinter to maintain "empty" element structure
@@ -998,7 +993,7 @@ class ConfigEncryptionTool {
         }
     }
 
-    String encryptAuthorizers(String plainXml, String newKeyHex = keyOrKeyId) {
+    String encryptAuthorizers(String plainXml, String newKeyHex = keyHex) {
         AESSensitivePropertyProvider sensitivePropertyProvider = new AESSensitivePropertyProvider(newKeyHex)
 
         // TODO: Switch to XmlParser & XmlNodePrinter to maintain "empty" element structure
@@ -1049,12 +1044,12 @@ class ConfigEncryptionTool {
      * @param plainProperties the NiFiProperties instance containing the raw values
      * @return the NiFiProperties containing protected values
      */
-    public NiFiProperties encryptSensitiveProperties(NiFiProperties plainProperties, String keyOrKeyId) {
+    private NiFiProperties encryptSensitiveProperties(NiFiProperties plainProperties) {
         if (!plainProperties) {
             throw new IllegalArgumentException("Cannot encrypt empty NiFiProperties")
         }
 
-        ProtectedNiFiProperties protectedWrapper = new ProtectedNiFiProperties(plainProperties, keyOrKeyId)
+        ProtectedNiFiProperties protectedWrapper = new ProtectedNiFiProperties(plainProperties)
 
         List<String> sensitivePropertyKeys = protectedWrapper.getSensitivePropertyKeys()
         if (sensitivePropertyKeys.isEmpty()) {
@@ -1065,7 +1060,9 @@ class ConfigEncryptionTool {
         // Holder for encrypted properties and protection schemes
         Properties encryptedProperties = new Properties()
 
-        SensitivePropertyProvider spp = StandardSensitivePropertyProvider.fromKey(keyOrKeyId);
+        AESSensitivePropertyProvider spp = new AESSensitivePropertyProvider(keyHex)
+        protectedWrapper.addSensitivePropertyProvider(spp)
+
         List<String> keysToSkip = []
 
         // Iterate over each -- encrypt and add .protected if populated
@@ -1142,7 +1139,7 @@ class ConfigEncryptionTool {
      * @return the updated lines
      */
     private List<String> updateBootstrapContentsWithKey(List<String> lines) {
-        String keyLine = "${BOOTSTRAP_KEY_PREFIX}${keyOrKeyId}"
+        String keyLine = "${BOOTSTRAP_KEY_PREFIX}${keyHex}"
         // Try to locate the key property line
         int keyLineIndex = lines.findIndexOf { it.startsWith(BOOTSTRAP_KEY_PREFIX) }
 
@@ -1255,7 +1252,7 @@ class ConfigEncryptionTool {
                 File niFiPropertiesFile = new File(niFiPropertiesPath)
                 if (niFiPropertiesFile.exists() && niFiPropertiesFile.canRead()) {
                     // Instead of just writing the NiFiProperties instance to a properties file, this method attempts to maintain the structure of the original file and preserves comments
-                    linesToPersist = serializeNiFiPropertiesAndPreserveFormat(niFiProperties, niFiPropertiesFile, keyOrKeyId)
+                    linesToPersist = serializeNiFiPropertiesAndPreserveFormat(niFiProperties, niFiPropertiesFile)
                 } else {
                     linesToPersist = serializeNiFiProperties(niFiProperties)
                 }
@@ -1273,10 +1270,10 @@ class ConfigEncryptionTool {
     }
 
     private
-    static List<String> serializeNiFiPropertiesAndPreserveFormat(NiFiProperties niFiProperties, File originalPropertiesFile, String keyHex) {
+    static List<String> serializeNiFiPropertiesAndPreserveFormat(NiFiProperties niFiProperties, File originalPropertiesFile) {
         List<String> lines = originalPropertiesFile.readLines()
 
-        ProtectedNiFiProperties protectedNiFiProperties = new ProtectedNiFiProperties(niFiProperties, keyHex)
+        ProtectedNiFiProperties protectedNiFiProperties = new ProtectedNiFiProperties(niFiProperties)
         // Only need to replace the keys that have been protected AND nifi.sensitive.props.key
         Map<String, String> protectedKeys = protectedNiFiProperties.getProtectedPropertyKeys()
         if (!protectedKeys.containsKey(NiFiProperties.SENSITIVE_PROPS_KEY)) {
@@ -1411,7 +1408,7 @@ class ConfigEncryptionTool {
     boolean niFiPropertiesAreEncrypted() {
         if (niFiPropertiesPath) {
             try {
-                def nfp = NiFiPropertiesLoader.withKey(keyOrKeyId).readProtectedPropertiesFromDisk(new File(niFiPropertiesPath))
+                def nfp = NiFiPropertiesLoader.withKey(keyHex).readProtectedPropertiesFromDisk(new File(niFiPropertiesPath))
                 return nfp.hasProtectedKeys()
             } catch (SensitivePropertyProtectionException | IOException e) {
                 return true
@@ -1450,15 +1447,15 @@ class ConfigEncryptionTool {
                 if (tool.translatingCli) {
                     if (tool.bootstrapConfPath) {
                         // Check to see if bootstrap.conf has a master key
-                        tool.keyOrKeyId = NiFiPropertiesLoader.extractKeyFromBootstrapFile(tool.bootstrapConfPath)
+                        tool.keyHex = NiFiPropertiesLoader.extractKeyFromBootstrapFile(tool.bootstrapConfPath)
                     }
 
-                    if (!tool.keyOrKeyId) {
+                    if (!tool.keyHex) {
                         logger.info("No master key detected in ${tool.bootstrapConfPath} -- if ${tool.niFiPropertiesPath} is encrypted, the translation will fail")
                     }
 
                     // Load the existing properties (decrypting if necessary)
-                    tool.niFiProperties = tool.loadNiFiProperties(tool.keyOrKeyId)
+                    tool.niFiProperties = tool.loadNiFiProperties(tool.keyHex)
 
                     String cliOutput = tool.translateNiFiPropertiesToCLI()
 
@@ -1470,18 +1467,18 @@ class ConfigEncryptionTool {
                 if (!tool.ignorePropertiesFiles || (tool.handlingFlowXml && existingNiFiPropertiesAreEncrypted)) {
                     // If we are handling the flow.xml.gz and nifi.properties is already encrypted, try getting the key from bootstrap.conf rather than the console
                     if (tool.ignorePropertiesFiles) {
-                        tool.keyOrKeyId = NiFiPropertiesLoader.extractKeyFromBootstrapFile(tool.bootstrapConfPath)
+                        tool.keyHex = NiFiPropertiesLoader.extractKeyFromBootstrapFile(tool.bootstrapConfPath)
                     } else {
-                        tool.keyOrKeyId = tool.getKey()
+                        tool.keyHex = tool.getKey()
                     }
 
-                    if (!tool.keyOrKeyId) {
+                    if (!tool.keyHex) {
                         tool.printUsageAndThrow("Hex key must be provided", ExitCode.INVALID_ARGS)
                     }
 
                     try {
                         // Validate the length and format
-                        tool.keyOrKeyId = parseHexKey(tool.keyOrKeyId)
+                        tool.keyHex = parseKey(tool.keyHex)
                     } catch (KeyException e) {
                         if (tool.isVerbose) {
                             logger.error("Encountered an error", e)
@@ -1498,7 +1495,7 @@ class ConfigEncryptionTool {
 
                         try {
                             // Validate the length and format
-                            tool.migrationKeyHex = parseHexKey(migrationKeyHex)
+                            tool.migrationKeyHex = parseKey(migrationKeyHex)
                         } catch (KeyException e) {
                             if (tool.isVerbose) {
                                 logger.error("Encountered an error", e)
@@ -1507,7 +1504,7 @@ class ConfigEncryptionTool {
                         }
                     }
                 }
-                String existingKeyHex = tool.migrationKeyHex ?: tool.keyOrKeyId
+                String existingKeyHex = tool.migrationKeyHex ?: tool.keyHex
 
                 // Load NiFiProperties for either scenario; only encrypt if "handling" (see after flow XML)
                 if (tool.handlingNiFiProperties || tool.handlingFlowXml) {
@@ -1549,7 +1546,7 @@ class ConfigEncryptionTool {
                 }
 
                 if (tool.handlingNiFiProperties) {
-                    tool.niFiProperties = tool.encryptSensitiveProperties(tool.niFiProperties, tool.keyOrKeyId)
+                    tool.niFiProperties = tool.encryptSensitiveProperties(tool.niFiProperties)
                 }
             } catch (CommandLineParseException e) {
                 if (e.exitCode == ExitCode.HELP) {
@@ -1636,7 +1633,7 @@ class ConfigEncryptionTool {
 
             // If the tool is not going to encrypt NiFiProperties and the existing file is already encrypted, encrypt and update the new sensitive props key
             if (!handlingNiFiProperties && existingNiFiPropertiesAreEncrypted) {
-                AESSensitivePropertyProvider spp = new AESSensitivePropertyProvider(keyOrKeyId)
+                AESSensitivePropertyProvider spp = new AESSensitivePropertyProvider(keyHex)
                 String encryptedSPK = spp.protect(newFlowPassword)
                 rawProperties.put(NiFiProperties.SENSITIVE_PROPS_KEY, encryptedSPK)
                 // Manually update the protection scheme or it will be lost
