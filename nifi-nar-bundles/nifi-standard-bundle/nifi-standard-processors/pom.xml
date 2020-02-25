@@ -583,6 +583,8 @@
                         <exclude>src/test/resources/TestValidateRecord/nested-map-schema.avsc</exclude>
                         <exclude>src/test/resources/TestValidateRecord/timestamp.avsc</exclude>
                         <exclude>src/test/resources/TestValidateRecord/timestamp.json</exclude>
+                        <exclude>src/test/resources/TestLookupRecord/lookup-array-input.json</exclude>
+                        <exclude>src/test/resources/TestLookupRecord/lookup-array-output.json</exclude>
                     </excludes>
                 </configuration>
             </plugin>

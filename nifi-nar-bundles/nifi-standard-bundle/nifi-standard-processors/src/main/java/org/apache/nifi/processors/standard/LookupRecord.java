@@ -144,6 +144,18 @@ public class LookupRecord extends AbstractRouteRecord<Tuple<Map<String, RecordPa
         .required(true)
         .build();
 
+    static final PropertyDescriptor IN_PLACE_REPLACEMENT = new PropertyDescriptor.Builder()
+        .name("in-place-replacement")
+        .displayName("In-place replacement")
+        .description("If set to true, the \"Result RecordPath\" property will be ignored and the lookup service must be a single simple key "
+                + "lookup service. The value retrieved from the lookup service will replace the field used as a key. It is possible to configure "
+                + "multiple dynamic properties to replace multiple fields in one execution. This feature only supports simple fields (strings, ints, etc).")
+        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+        .allowableValues("true", "false")
+        .defaultValue("false")
+        .required(true)
+        .build();
+
     static final Relationship REL_MATCHED = new Relationship.Builder()
         .name("matched")
         .description("All records for which the lookup returns a value will be routed to this relationship")
@@ -182,6 +194,7 @@ public class LookupRecord extends AbstractRouteRecord<Tuple<Map<String, RecordPa
         properties.add(RESULT_RECORD_PATH);
         properties.add(ROUTING_STRATEGY);
         properties.add(RESULT_CONTENTS);
+        properties.add(IN_PLACE_REPLACEMENT);
         return properties;
     }
 
@@ -214,24 +227,36 @@ public class LookupRecord extends AbstractRouteRecord<Tuple<Map<String, RecordPa
         }
 
         final Set<String> requiredKeys = validationContext.getProperty(LOOKUP_SERVICE).asControllerService(LookupService.class).getRequiredKeys();
-        final Set<String> missingKeys = requiredKeys.stream()
-            .filter(key -> !dynamicPropNames.contains(key))
-            .collect(Collectors.toSet());
 
-        if (!missingKeys.isEmpty()) {
-            final List<ValidationResult> validationResults = new ArrayList<>();
-            for (final String missingKey : missingKeys) {
-                final ValidationResult result = new ValidationResult.Builder()
-                    .subject(missingKey)
-                    .valid(false)
-                    .explanation("The configured Lookup Services requires that a key be provided with the name '" + missingKey
-                        + "'. Please add a new property to this Processor with a name '" + missingKey
-                        + "' and provide a RecordPath that can be used to retrieve the appropriate value.")
-                    .build();
-                validationResults.add(result);
+        if(validationContext.getProperty(IN_PLACE_REPLACEMENT).asBoolean()) {
+            // it must be a single key lookup service
+            if(requiredKeys.size() != 1) {
+                return Collections.singleton(new ValidationResult.Builder()
+                        .subject(LOOKUP_SERVICE.getDisplayName())
+                        .valid(false)
+                        .explanation("The configured Lookup Services should only require one key when in-place replacement is set to true.")
+                        .build());
             }
+        } else {
+            final Set<String> missingKeys = requiredKeys.stream()
+                .filter(key -> !dynamicPropNames.contains(key))
+                .collect(Collectors.toSet());
 
-            return validationResults;
+            if (!missingKeys.isEmpty()) {
+                final List<ValidationResult> validationResults = new ArrayList<>();
+                for (final String missingKey : missingKeys) {
+                    final ValidationResult result = new ValidationResult.Builder()
+                        .subject(missingKey)
+                        .valid(false)
+                        .explanation("The configured Lookup Services requires that a key be provided with the name '" + missingKey
+                            + "'. Please add a new property to this Processor with a name '" + missingKey
+                            + "' and provide a RecordPath that can be used to retrieve the appropriate value.")
+                        .build();
+                    validationResults.add(result);
+                }
+
+                return validationResults;
+            }
         }
 
         return Collections.emptyList();
@@ -263,6 +288,70 @@ public class LookupRecord extends AbstractRouteRecord<Tuple<Map<String, RecordPa
     protected Set<Relationship> route(final Record record, final RecordSchema writeSchema, final FlowFile flowFile, final ProcessContext context,
         final Tuple<Map<String, RecordPath>, RecordPath> flowFileContext) {
 
+        final boolean isInPlaceReplacement = context.getProperty(IN_PLACE_REPLACEMENT).asBoolean();
+
+        if(isInPlaceReplacement) {
+            return doInPlaceReplacement(record, writeSchema, flowFile, context, flowFileContext);
+        } else {
+            return doResultPathReplacement(record, writeSchema, flowFile, context, flowFileContext);
+        }
+
+    }
+
+    private Set<Relationship> doInPlaceReplacement(Record record, RecordSchema writeSchema, FlowFile flowFile,
+            ProcessContext context, Tuple<Map<String, RecordPath>, RecordPath> flowFileContext) {
+
+        final String lookupKey = (String) context.getProperty(LOOKUP_SERVICE).asControllerService(LookupService.class).getRequiredKeys().iterator().next();
+
+        final Map<String, RecordPath> recordPaths = flowFileContext.getKey();
+        final Map<String, Object> lookupCoordinates = new HashMap<>(recordPaths.size());
+
+        for (final Map.Entry<String, RecordPath> entry : recordPaths.entrySet()) {
+            final String coordinateKey = entry.getKey();
+            final RecordPath recordPath = entry.getValue();
+
+            final RecordPathResult pathResult = recordPath.evaluate(record);
+            final List<FieldValue> lookupFieldValues = pathResult.getSelectedFields()
+                .filter(fieldVal -> fieldVal.getValue() != null)
+                .collect(Collectors.toList());
+
+            if (lookupFieldValues.isEmpty()) {
+                final Set<Relationship> rels = routeToMatchedUnmatched ? UNMATCHED_COLLECTION : SUCCESS_COLLECTION;
+                getLogger().debug("RecordPath for property '{}' did not match any fields in a record for {}; routing record to {}", new Object[] {coordinateKey, flowFile, rels});
+                return rels;
+            }
+
+            for (FieldValue fieldValue : lookupFieldValues) {
+                final Object coordinateValue = (fieldValue.getValue() instanceof Number || fieldValue.getValue() instanceof Boolean)
+                        ? fieldValue.getValue() : DataTypeUtils.toString(fieldValue.getValue(), (String) null);
+                lookupCoordinates.put(lookupKey, coordinateValue);
+
+                final Optional<?> lookupValueOption;
+                try {
+                    lookupValueOption = lookupService.lookup(lookupCoordinates, flowFile.getAttributes());
+                } catch (final Exception e) {
+                    throw new ProcessException("Failed to lookup coordinates " + lookupCoordinates + " in Lookup Service", e);
+                }
+
+                if (!lookupValueOption.isPresent()) {
+                    final Set<Relationship> rels = routeToMatchedUnmatched ? UNMATCHED_COLLECTION : SUCCESS_COLLECTION;
+                    return rels;
+                }
+
+                final Object lookupValue = lookupValueOption.get();
+
+                final DataType inferredDataType = DataTypeUtils.inferDataType(lookupValue, RecordFieldType.STRING.getDataType());
+                fieldValue.updateValue(lookupValue, inferredDataType);
+
+            }
+        }
+
+        final Set<Relationship> rels = routeToMatchedUnmatched ? MATCHED_COLLECTION : SUCCESS_COLLECTION;
+        return rels;
+    }
+
+    private Set<Relationship> doResultPathReplacement(Record record, RecordSchema writeSchema, FlowFile flowFile,
+            ProcessContext context, Tuple<Map<String, RecordPath>, RecordPath> flowFileContext) {
         final Map<String, RecordPath> recordPaths = flowFileContext.getKey();
         final Map<String, Object> lookupCoordinates = new HashMap<>(recordPaths.size());
 
