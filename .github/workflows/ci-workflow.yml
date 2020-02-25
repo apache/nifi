@@ -3,14 +3,11 @@ name: ci-workflow
 on: [push, pull_request]
 
 jobs:
-  ubuntu-build:
+  ubuntu-build-fr:
 
     timeout-minutes: 90
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        java: [ '1.8', '11' ]
-    name: Ubuntu Build NiFi - JDK${{ matrix.java }}
+    name: Ubuntu Build NiFi - JDK 1.8 FR
 
     steps:
     - name: Checkout Code
@@ -19,48 +16,160 @@ jobs:
       uses: actions/cache@v1.1.2
       with:
         path: ~/.npm
-        key: linux-${{ matrix.java }}-npm-${{ hashFiles('**/package-lock.json') }}
+        key: linux-1.8-npm-${{ hashFiles('**/package-lock.json') }}
         restore-keys: |
-          linux-${{ matrix.java }}-npm-
+          linux-1.8-npm-
     - name: Check Maven Com Cache
       uses: actions/cache@v1.1.2
       with:
         path: ~/.m2/repository/com
-        key: linux-${{ matrix.java }}-maven-com-${{ hashFiles('**/pom.xml') }}
+        key: linux-1.8-maven-com-${{ hashFiles('**/pom.xml') }}
         restore-keys: |
-          linux-${{ matrix.java }}-maven-com-
+          linux-1.8-maven-com-
     - name: Check Maven Org Cache
       uses: actions/cache@v1.1.2
       with:
         path: ~/.m2/repository/org
-        key: linux-${{ matrix.java }}-maven-org-${{ hashFiles('**/pom.xml') }}
+        key: linux-1.8-maven-org-${{ hashFiles('**/pom.xml') }}
         restore-keys: |
-          linux-${{ matrix.java }}-maven-org-
+          linux-1.8-maven-org-
     - name: Check Maven Net Cache
       uses: actions/cache@v1.1.2
       with:
         path: ~/.m2/repository/net
-        key: linux-${{ matrix.java }}-maven-net-${{ hashFiles('**/pom.xml') }}
+        key: linux-1.8-maven-net-${{ hashFiles('**/pom.xml') }}
         restore-keys: |
-          linux-${{ matrix.java }}-maven-net-
+          linux-1.8-maven-net-
     - name: Check Maven IO Cache
       uses: actions/cache@v1.1.2
       with:
         path: ~/.m2/repository/io
-        key: linux-${{ matrix.java }}-maven-io-${{ hashFiles('**/pom.xml') }}
+        key: linux-1.8-maven-io-${{ hashFiles('**/pom.xml') }}
         restore-keys: |
-          linux-${{ matrix.java }}-maven-io-
-    - name: Set up JDK ${{ matrix.java }}
+          linux-1.8-maven-io-
+    - name: Set up JDK 1.8 FR
       uses: actions/setup-java@v1.3.0
       with:
-        java-version: ${{ matrix.java }}
+        java-version: 1.8
     - name: Build with Maven
       env:
-        MAVEN_OPTS: -Xmx2g -XX:ReservedCodeCacheSize=1g -XX:+UseG1GC -Dorg.slf4j.simpleLogger.defaultLogLevel=WARN
+        MAVEN_OPTS: -Xmx2g -XX:ReservedCodeCacheSize=1g -XX:+UseG1GC -Dorg.slf4j.simpleLogger.defaultLogLevel=WARN -Dmaven.surefire.arguments="-Duser.language=fr -Duser.region=FR"
       run: |
         mvn -version
         mvn -T 1C install -B -Pcontrib-check,include-grpc -Ddir-only -ntp -ff
         rm -rf ~/.m2/repository/org/apache/nifi
+
+  ubuntu-build-en:
+
+    timeout-minutes: 90
+    runs-on: ubuntu-latest
+    name: Ubuntu Build NiFi - JDK 11 EN
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+      - name: Check NPM Cache
+        uses: actions/cache@v1.1.2
+        with:
+          path: ~/.npm
+          key: linux-1.11-npm-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            linux-1.11-npm-
+      - name: Check Maven Com Cache
+        uses: actions/cache@v1.1.2
+        with:
+          path: ~/.m2/repository/com
+          key: linux-1.11-maven-com-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            linux-1.11-maven-com-
+      - name: Check Maven Org Cache
+        uses: actions/cache@v1.1.2
+        with:
+          path: ~/.m2/repository/org
+          key: linux-1.11-maven-org-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            linux-1.11-maven-org-
+      - name: Check Maven Net Cache
+        uses: actions/cache@v1.1.2
+        with:
+          path: ~/.m2/repository/net
+          key: linux-1.11-maven-net-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            linux-1.11-maven-net-
+      - name: Check Maven IO Cache
+        uses: actions/cache@v1.1.2
+        with:
+          path: ~/.m2/repository/io
+          key: linux-1.11-maven-io-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            linux-1.11-maven-io-
+      - name: Set up JDK 11 EN
+        uses: actions/setup-java@v1.3.0
+        with:
+          java-version: 11
+      - name: Build with Maven
+        env:
+          MAVEN_OPTS: -Xmx2g -XX:ReservedCodeCacheSize=1g -XX:+UseG1GC -Dorg.slf4j.simpleLogger.defaultLogLevel=WARN -Dmaven.surefire.arguments="-Duser.language=en -Duser.region=US"
+        run: |
+          mvn -version
+          mvn -T 1C install -B -Pcontrib-check,include-grpc -Ddir-only -ntp -ff
+          rm -rf ~/.m2/repository/org/apache/nifi
+
+  osx-build-jp:
+
+    timeout-minutes: 90
+    runs-on: macos-latest
+    name: MacOS Build NiFi - JDK 1.8 JP
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+      - name: Check NPM Cache
+        uses: actions/cache@v1.1.2
+        with:
+          path: ~/.npm
+          key: linux-1.8osx-npm-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            linux-1.8osx-npm-
+      - name: Check Maven Com Cache
+        uses: actions/cache@v1.1.2
+        with:
+          path: ~/.m2/repository/com
+          key: linux-1.8osx-maven-com-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            linux-1.8osx-maven-com-
+      - name: Check Maven Org Cache
+        uses: actions/cache@v1.1.2
+        with:
+          path: ~/.m2/repository/org
+          key: linux-1.8osx-maven-org-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            linux-1.8osx-maven-org-
+      - name: Check Maven Net Cache
+        uses: actions/cache@v1.1.2
+        with:
+          path: ~/.m2/repository/net
+          key: linux-1.8osx-maven-net-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            linux-1.8osx-maven-net-
+      - name: Check Maven IO Cache
+        uses: actions/cache@v1.1.2
+        with:
+          path: ~/.m2/repository/io
+          key: linux-1.8osx-maven-io-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            linux-1.8osx-maven-io-
+      - name: Set up JDK 1.8 JP
+        uses: actions/setup-java@v1.3.0
+        with:
+          java-version: 1.8
+      - name: Build with Maven
+        env:
+          MAVEN_OPTS: -Xmx2g -XX:ReservedCodeCacheSize=1g -XX:+UseG1GC -Dorg.slf4j.simpleLogger.defaultLogLevel=WARN -Dmaven.surefire.arguments="-Duser.language=ja -Duser.region=JP"
+        run: |
+          mvn -version
+          mvn -T 1C install -B -Pcontrib-check,include-grpc -Ddir-only -ntp -ff
+          rm -rf ~/.m2/repository/org/apache/nifi
 
   windows-build:
 
