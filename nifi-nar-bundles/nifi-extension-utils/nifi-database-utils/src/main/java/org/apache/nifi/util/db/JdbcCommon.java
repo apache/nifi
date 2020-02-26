@@ -79,7 +79,6 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.time.temporal.TemporalAccessor;
 import java.util.Date;
 import java.util.Map;
 import java.util.function.Function;
@@ -773,10 +772,11 @@ public class JdbcCommon {
                     stmt.setTime(parameterIndex, time);
                     break;
                 case Types.TIMESTAMP:
-                    long lTimestamp=0L;
+                    Timestamp ts;
 
                     // Backwards compatibility note: Format was unsupported for a timestamp field.
                     if (valueFormat.equals("")) {
+                        long lTimestamp = 0L;
                         if(LONG_PATTERN.matcher(parameterValue).matches()){
                             lTimestamp = Long.parseLong(parameterValue);
                         } else {
@@ -784,15 +784,14 @@ public class JdbcCommon {
                             java.util.Date parsedDate = dateFormat.parse(parameterValue);
                             lTimestamp = parsedDate.getTime();
                         }
+                        ts = new Timestamp(lTimestamp);
                     } else {
                         final DateTimeFormatter dtFormatter = getDateTimeFormatter(valueFormat);
-                        TemporalAccessor accessor = dtFormatter.parse(parameterValue);
-                        java.util.Date parsedDate = java.util.Date.from(Instant.from(accessor));
-                        lTimestamp = parsedDate.getTime();
+                        LocalDateTime ldt = LocalDateTime.parse(parameterValue, dtFormatter);
+                        ts = Timestamp.from(ldt.atZone(ZoneId.of("UTC")).toInstant());
                     }
 
-                    stmt.setTimestamp(parameterIndex, new Timestamp(lTimestamp));
-
+                    stmt.setTimestamp(parameterIndex, ts);
                     break;
                 case Types.BINARY:
                 case Types.VARBINARY:
