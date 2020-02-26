@@ -39,9 +39,14 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessorInitializationContext;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.security.krb.KerberosKeytabUser;
+import org.apache.nifi.security.krb.KerberosPasswordUser;
+import org.apache.nifi.security.krb.KerberosUser;
 
 import javax.net.SocketFactory;
+import javax.security.auth.login.LoginException;
 import java.io.File;
 import java.io.IOException;
 import java.lang.ref.WeakReference;
@@ -100,8 +105,12 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
             .defaultValue(CompressionType.NONE.toString())
             .build();
 
+    /*
+     * TODO This property has been deprecated, remove for NiFi 2.0
+     */
     public static final PropertyDescriptor KERBEROS_RELOGIN_PERIOD = new PropertyDescriptor.Builder()
-            .name("Kerberos Relogin Period").required(false)
+            .name("Kerberos Relogin Period")
+            .required(false)
             .description("Period of time which should pass before attempting a kerberos relogin.\n\nThis property has been deprecated, and has no effect on processing. " +
                     "Relogins now occur automatically.")
             .defaultValue("4 hours")
@@ -130,6 +139,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
     public static final String ABSOLUTE_HDFS_PATH_ATTRIBUTE = "absolute.hdfs.path";
 
     private static final Object RESOURCES_LOCK = new Object();
+    private static final HdfsResources EMPTY_HDFS_RESOURCES = new HdfsResources(null, null, null, null);
 
     protected KerberosProperties kerberosProperties;
     protected List<PropertyDescriptor> properties;
@@ -144,7 +154,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
 
     @Override
     protected void init(ProcessorInitializationContext context) {
-        hdfsResources.set(new HdfsResources(null, null, null));
+        hdfsResources.set(EMPTY_HDFS_RESOURCES);
 
         kerberosConfigFile = context.getKerberosConfigurationFile();
         kerberosProperties = getKerberosProperties(kerberosConfigFile);
@@ -154,6 +164,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
         props.add(KERBEROS_CREDENTIALS_SERVICE);
         props.add(kerberosProperties.getKerberosPrincipal());
         props.add(kerberosProperties.getKerberosKeytab());
+        props.add(kerberosProperties.getKerberosPassword());
         props.add(KERBEROS_RELOGIN_PERIOD);
         props.add(ADDITIONAL_CLASSPATH_RESOURCES);
         properties = Collections.unmodifiableList(props);
@@ -173,10 +184,12 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
         final String configResources = validationContext.getProperty(HADOOP_CONFIGURATION_RESOURCES).evaluateAttributeExpressions().getValue();
         final String explicitPrincipal = validationContext.getProperty(kerberosProperties.getKerberosPrincipal()).evaluateAttributeExpressions().getValue();
         final String explicitKeytab = validationContext.getProperty(kerberosProperties.getKerberosKeytab()).evaluateAttributeExpressions().getValue();
+        final String explicitPassword = validationContext.getProperty(kerberosProperties.getKerberosPassword()).evaluateAttributeExpressions().getValue();
         final KerberosCredentialsService credentialsService = validationContext.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
 
         final String resolvedPrincipal;
         final String resolvedKeytab;
+        final String resolvedPassword;
         if (credentialsService == null) {
             resolvedPrincipal = explicitPrincipal;
             resolvedKeytab = explicitKeytab;
@@ -184,6 +197,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
             resolvedPrincipal = credentialsService.getPrincipal();
             resolvedKeytab = credentialsService.getKeytab();
         }
+        resolvedPassword = explicitPassword;
 
         final List<ValidationResult> results = new ArrayList<>();
 
@@ -205,8 +219,8 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
             }
 
             final Configuration conf = resources.getConfiguration();
-            results.addAll(KerberosProperties.validatePrincipalAndKeytab(
-                this.getClass().getSimpleName(), conf, resolvedPrincipal, resolvedKeytab, getLogger()));
+            results.addAll(KerberosProperties.validatePrincipalWithKeytabOrPassword(
+                this.getClass().getSimpleName(), conf, resolvedPrincipal, resolvedKeytab, resolvedPassword, getLogger()));
 
         } catch (final IOException e) {
             results.add(new ValidationResult.Builder()
@@ -216,20 +230,20 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
                     .build());
         }
 
-        if (credentialsService != null && (explicitPrincipal != null || explicitKeytab != null)) {
+        if (credentialsService != null && (explicitPrincipal != null || explicitKeytab != null || explicitPassword != null)) {
             results.add(new ValidationResult.Builder()
                 .subject("Kerberos Credentials")
                 .valid(false)
-                .explanation("Cannot specify both a Kerberos Credentials Service and a principal/keytab")
+                .explanation("Cannot specify a Kerberos Credentials Service while also specifying a Kerberos Principal, Kerberos Keytab, or Kerberos Password")
                 .build());
         }
 
-        final String allowExplicitKeytabVariable = System.getenv(ALLOW_EXPLICIT_KEYTAB);
-        if ("false".equalsIgnoreCase(allowExplicitKeytabVariable) && (explicitPrincipal != null || explicitKeytab != null)) {
+        final String allowExplicitKeytabVariable = getAllowExplicitKeytabEnvironmentVariable();
+        if ("false".equalsIgnoreCase(allowExplicitKeytabVariable) && explicitKeytab != null) {
             results.add(new ValidationResult.Builder()
                 .subject("Kerberos Credentials")
                 .valid(false)
-                .explanation("The '" + ALLOW_EXPLICIT_KEYTAB + "' system environment variable is configured to forbid explicitly configuring principal/keytab in processors. "
+                .explanation("The '" + ALLOW_EXPLICIT_KEYTAB + "' system environment variable is configured to forbid explicitly configuring Kerberos Keytab in processors. "
                     + "The Kerberos Credentials Service should be used instead of setting the Kerberos Keytab or Kerberos Principal property.")
                 .build());
         }
@@ -253,7 +267,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
             }
         } catch (Exception ex) {
             getLogger().error("HDFS Configuration error - {}", new Object[] { ex });
-            hdfsResources.set(new HdfsResources(null, null, null));
+            hdfsResources.set(EMPTY_HDFS_RESOURCES);
             throw ex;
         }
     }
@@ -294,7 +308,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
         }
 
         // Clear out the reference to the resources
-        hdfsResources.set(new HdfsResources(null, null, null));
+        hdfsResources.set(EMPTY_HDFS_RESOURCES);
     }
 
     private void interruptStatisticsThread(final FileSystem fileSystem) throws NoSuchFieldException, IllegalAccessException {
@@ -371,10 +385,12 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
         // -- use RESOURCE_LOCK to guarantee UserGroupInformation is accessed by only a single thread at at time
         FileSystem fs;
         UserGroupInformation ugi;
+        KerberosUser kerberosUser;
         synchronized (RESOURCES_LOCK) {
             if (SecurityUtil.isSecurityEnabled(config)) {
                 String principal = context.getProperty(kerberosProperties.getKerberosPrincipal()).evaluateAttributeExpressions().getValue();
                 String keyTab = context.getProperty(kerberosProperties.getKerberosKeytab()).evaluateAttributeExpressions().getValue();
+                String password = context.getProperty(kerberosProperties.getKerberosPassword()).evaluateAttributeExpressions().getValue();
 
                 // If the Kerberos Credentials Service is specified, we need to use its configuration, not the explicit properties for principal/keytab.
                 // The customValidate method ensures that only one can be set, so we know that the principal & keytab above are null.
@@ -384,22 +400,29 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
                     keyTab = credentialsService.getKeytab();
                 }
 
-                ugi = SecurityUtil.loginKerberos(config, principal, keyTab);
-                fs = getFileSystemAsUser(config, ugi);
+                if (keyTab != null) {
+                    kerberosUser = new KerberosKeytabUser(principal, keyTab);
+                } else if (password != null) {
+                    kerberosUser = new KerberosPasswordUser(principal, password);
+                } else {
+                    throw new IOException("Unable to authenticate with Kerberos, no keytab or password was provided");
+                }
+                ugi = SecurityUtil.getUgiForKerberosUser(config, kerberosUser);
             } else {
                 config.set("ipc.client.fallback-to-simple-auth-allowed", "true");
                 config.set("hadoop.security.authentication", "simple");
                 ugi = SecurityUtil.loginSimple(config);
-                fs = getFileSystemAsUser(config, ugi);
+                kerberosUser = null;
             }
+            fs = getFileSystemAsUser(config, ugi);
         }
-        getLogger().debug("resetHDFSResources UGI {}", new Object[]{ugi});
+        getLogger().debug("resetHDFSResources UGI [{}], KerberosUser [{}]", new Object[]{ugi, kerberosUser});
 
         final Path workingDir = fs.getWorkingDirectory();
         getLogger().info("Initialized a new HDFS File System with working dir: {} default block size: {} default replication: {} config: {}",
                 new Object[]{workingDir, fs.getDefaultBlockSize(workingDir), fs.getDefaultReplication(workingDir), config.toString()});
 
-        return new HdfsResources(config, fs, ugi);
+        return new HdfsResources(config, fs, ugi, kerberosUser);
     }
 
     /**
@@ -518,18 +541,43 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
     }
 
     protected UserGroupInformation getUserGroupInformation() {
+        getLogger().trace("getting UGI instance");
+        if (hdfsResources.get().getKerberosUser() != null) {
+            // if there's a KerberosUser associated with this UGI, check the TGT and relogin if it is close to expiring
+            KerberosUser kerberosUser = hdfsResources.get().getKerberosUser();
+            synchronized (kerberosUser) {
+                getLogger().debug("kerberosUser is " + kerberosUser);
+                try {
+                    getLogger().debug("checking TGT on kerberosUser [{}]" + kerberosUser);
+                    kerberosUser.checkTGTAndRelogin();
+                } catch (LoginException e) {
+                    throw new ProcessException("Unable to relogin with kerberos credentials for " + kerberosUser.getPrincipal(), e);
+                }
+            }
+        } else {
+            getLogger().debug("kerberosUser was null, will not refresh TGT with KerberosUser");
+        }
         return hdfsResources.get().getUserGroupInformation();
+    }
+
+    /*
+     * Overridable by subclasses in the same package, mainly intended for testing purposes to allow verification without having to set environment variables.
+     */
+    String getAllowExplicitKeytabEnvironmentVariable() {
+        return System.getenv(ALLOW_EXPLICIT_KEYTAB);
     }
 
     static protected class HdfsResources {
         private final Configuration configuration;
         private final FileSystem fileSystem;
         private final UserGroupInformation userGroupInformation;
+        private final KerberosUser kerberosUser;
 
-        public HdfsResources(Configuration configuration, FileSystem fileSystem, UserGroupInformation userGroupInformation) {
+        public HdfsResources(Configuration configuration, FileSystem fileSystem, UserGroupInformation userGroupInformation, KerberosUser kerberosUser) {
             this.configuration = configuration;
             this.fileSystem = fileSystem;
             this.userGroupInformation = userGroupInformation;
+            this.kerberosUser = kerberosUser;
         }
 
         public Configuration getConfiguration() {
@@ -542,6 +590,10 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
 
         public UserGroupInformation getUserGroupInformation() {
             return userGroupInformation;
+        }
+
+        public KerberosUser getKerberosUser() {
+            return kerberosUser;
         }
     }
 

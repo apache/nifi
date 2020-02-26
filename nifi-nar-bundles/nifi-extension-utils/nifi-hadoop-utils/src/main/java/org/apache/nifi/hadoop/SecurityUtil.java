@@ -19,9 +19,18 @@ package org.apache.nifi.hadoop;
 import org.apache.commons.lang3.Validate;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.nifi.security.krb.KerberosUser;
 
+import javax.security.auth.Subject;
+import javax.security.auth.kerberos.KerberosPrincipal;
+import javax.security.auth.login.LoginException;
 import java.io.IOException;
+import java.security.AccessControlContext;
+import java.security.AccessController;
+import java.security.PrivilegedActionException;
+import java.security.PrivilegedExceptionAction;
 import java.util.Random;
+import java.util.stream.Collectors;
 
 /**
  * Provides synchronized access to UserGroupInformation to avoid multiple processors/services from
@@ -67,6 +76,29 @@ public class SecurityUtil {
         UserGroupInformation.setConfiguration(config);
         UserGroupInformation.loginUserFromKeytab(principal.trim(), keyTab.trim());
         return UserGroupInformation.getCurrentUser();
+    }
+
+    public static synchronized UserGroupInformation getUgiForKerberosUser(final Configuration config, final KerberosUser kerberosUser) throws IOException {
+        UserGroupInformation.setConfiguration(config);
+        try {
+            if (kerberosUser.isLoggedIn()) {
+                kerberosUser.checkTGTAndRelogin();
+            } else {
+                kerberosUser.login();
+            }
+            return kerberosUser.doAs((PrivilegedExceptionAction<UserGroupInformation>) () -> {
+                AccessControlContext context = AccessController.getContext();
+                Subject subject = Subject.getSubject(context);
+                Validate.notEmpty(
+                        subject.getPrincipals(KerberosPrincipal.class).stream().filter(p -> p.getName().startsWith(kerberosUser.getPrincipal())).collect(Collectors.toSet()),
+                        "No Subject was found matching the given principal");
+                return UserGroupInformation.getUGIFromSubject(subject);
+            });
+        } catch (PrivilegedActionException e) {
+            throw new IOException("Unable to acquire UGI for KerberosUser: " + e.getException().getLocalizedMessage(), e.getException());
+        } catch (LoginException e) {
+            throw new IOException("Unable to acquire UGI for KerberosUser: " + e.getLocalizedMessage(), e);
+        }
     }
 
     /**
