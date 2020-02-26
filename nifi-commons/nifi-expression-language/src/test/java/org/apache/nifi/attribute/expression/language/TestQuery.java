@@ -91,8 +91,6 @@ public class TestQuery {
         assertInvalid("${UUID():nextInt()}");
         assertValid("${attr:UUID3('94c09378-43a6-11ea-8bcc-acde48001122')}");
         assertValid("${attr:UUID5('94c09378-43a6-11ea-8bcc-acde48001122')}");
-        assertInvalid("${attr:UUID3('94c09378-43a6-11ea-8bcc-acde48001122', 3)}");
-        assertInvalid("${attr:UUID5('94c09378-43a6-11ea-8bcc-acde48001122', 5)}");
         assertInvalid("${UUID3('94c09378-43a6-11ea-8bcc-acde48001122', attr)}");
         assertInvalid("${UUID5('94c09378-43a6-11ea-8bcc-acde48001122', attr)}");
         assertValid("${nextInt()}");
