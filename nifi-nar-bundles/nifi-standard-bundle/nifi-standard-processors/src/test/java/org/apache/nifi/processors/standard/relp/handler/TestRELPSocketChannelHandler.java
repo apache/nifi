@@ -153,8 +153,8 @@ public class TestRELPSocketChannelHandler {
                 }
             }
 
-            // wait up to 10 seconds to verify the responses
-            long timeout = 10000;
+            // wait up to 25 seconds to verify the responses
+            long timeout = 25000;
             long startTime = System.currentTimeMillis();
             while (events.size() < messages.size() && (System.currentTimeMillis() - startTime < timeout)) {
                 Thread.sleep(100);
