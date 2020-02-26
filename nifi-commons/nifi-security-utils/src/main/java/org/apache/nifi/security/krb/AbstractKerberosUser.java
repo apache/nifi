@@ -70,7 +70,11 @@ public abstract class AbstractKerberosUser implements KerberosUser {
             // If it's the first time ever calling login then we need to initialize a new context
             if (loginContext == null) {
                 LOGGER.debug("Initializing new login context...");
-                this.subject = new Subject();
+                if (this.subject == null) {
+                    // only create a new subject if a current one does not exist
+                    // other classes may be referencing an existing subject and replacing it may break functionality of those other classes after relogin
+                    this.subject = new Subject();
+                }
                 this.loginContext = createLoginContext(subject);
             }
 
@@ -100,7 +104,6 @@ public abstract class AbstractKerberosUser implements KerberosUser {
             loggedIn.set(false);
             LOGGER.debug("Successful logout for {}", new Object[]{principal});
 
-            subject = null;
             loginContext = null;
         } catch (LoginException e) {
             throw new LoginException("Logout failed due to: " + e.getMessage());
@@ -240,4 +243,11 @@ public abstract class AbstractKerberosUser implements KerberosUser {
         return this.subject;
     }
 
+    @Override
+    public String toString() {
+        return "KerberosUser{" +
+                "principal='" + principal + '\'' +
+                ", loggedIn=" + loggedIn +
+                '}';
+    }
 }

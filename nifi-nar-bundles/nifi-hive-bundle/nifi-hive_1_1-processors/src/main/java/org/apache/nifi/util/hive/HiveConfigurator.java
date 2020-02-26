@@ -50,7 +50,7 @@ public class HiveConfigurator {
 
         final Configuration hiveConfig = resources.getConfiguration();
 
-        problems.addAll(KerberosProperties.validatePrincipalAndKeytab(this.getClass().getSimpleName(), hiveConfig, principal, keyTab, log));
+        problems.addAll(KerberosProperties.validatePrincipalWithKeytabOrPassword(this.getClass().getSimpleName(), hiveConfig, principal, keyTab, null, log));
 
         return problems;
     }

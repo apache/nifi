@@ -261,7 +261,7 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
 
             final Configuration hbaseConfig = resources.getConfiguration();
 
-            problems.addAll(KerberosProperties.validatePrincipalAndKeytab(getClass().getSimpleName(), hbaseConfig, resolvedPrincipal, resolvedKeytab, getLogger()));
+            problems.addAll(KerberosProperties.validatePrincipalWithKeytabOrPassword(getClass().getSimpleName(), hbaseConfig, resolvedPrincipal, resolvedKeytab, null, getLogger()));
         }
 
         if (credentialsService != null && (explicitPrincipal != null || explicitKeytab != null)) {
