@@ -126,7 +126,7 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
             .name("Client ID")
             .description("MQTT client ID to use. If not set, a UUID will be generated.")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 
