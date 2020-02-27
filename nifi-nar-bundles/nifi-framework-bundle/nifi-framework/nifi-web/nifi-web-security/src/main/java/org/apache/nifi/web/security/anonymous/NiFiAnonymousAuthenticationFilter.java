@@ -16,16 +16,12 @@
  */
 package org.apache.nifi.web.security.anonymous;
 
-import org.apache.nifi.web.security.InvalidAuthenticationException;
 import org.apache.nifi.web.security.NiFiAuthenticationFilter;
-import org.apache.nifi.web.security.jwt.JwtAuthenticationRequestToken;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
 
 import javax.servlet.http.HttpServletRequest;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * Extracts an anonymous authentication request from a specified servlet request.
