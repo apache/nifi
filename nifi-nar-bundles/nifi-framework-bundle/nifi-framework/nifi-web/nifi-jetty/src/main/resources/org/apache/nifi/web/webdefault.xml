@@ -551,6 +551,24 @@
             <http-method-omission>TRACE</http-method-omission>
         </web-resource-collection>
     </security-constraint>
-
+    <filter>
+        <filter-name>DoSFilter</filter-name>
+        <filter-class>org.eclipse.jetty.servlets.DoSFilter</filter-class>
+        <init-param>
+            <param-name>maxRequestsPerSec</param-name>
+            <param-value>3000</param-value>
+        </init-param>
+        <init-param>
+            <param-name>delayMs</param-name>
+            <param-value>1000</param-value>
+        </init-param>
+        <init-param>
+            <param-name>trackSessions</param-name>
+            <param-value>false</param-value>
+        </init-param>
+    </filter>
+    <filter-mapping>
+        <filter-name>DoSFilter</filter-name>
+        <url-pattern>/*</url-pattern>
+    </filter-mapping>
 </web-app>
-

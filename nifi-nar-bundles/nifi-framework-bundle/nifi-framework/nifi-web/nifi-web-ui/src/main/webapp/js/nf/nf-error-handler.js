@@ -73,6 +73,8 @@
                     $('#message-title').text('Insufficient Permissions');
                 } else if (xhr.status === 409) {
                     $('#message-title').text('Invalid State');
+                } else if (xhr.status === 413) {
+                    $('#message-title').text('Payload Too Large');
                 } else {
                     $('#message-title').text('An unexpected error has occurred');
                 }
@@ -89,7 +91,7 @@
             }
 
             // status code 400, 404, and 409 are expected response codes for nfCommon errors.
-            if (xhr.status === 400 || xhr.status === 404 || xhr.status === 409 || xhr.status === 503) {
+            if (xhr.status === 400 || xhr.status === 404 || xhr.status === 409 || xhr.status == 413 || xhr.status === 503) {
                 nfDialog.showOkDialog({
                     headerText: 'Error',
                     dialogContent: nfCommon.escapeHtml(xhr.responseText)
