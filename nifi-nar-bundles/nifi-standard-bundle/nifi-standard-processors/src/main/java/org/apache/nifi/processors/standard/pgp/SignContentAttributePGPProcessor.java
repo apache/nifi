@@ -34,7 +34,6 @@ import org.bouncycastle.openpgp.PGPException;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
