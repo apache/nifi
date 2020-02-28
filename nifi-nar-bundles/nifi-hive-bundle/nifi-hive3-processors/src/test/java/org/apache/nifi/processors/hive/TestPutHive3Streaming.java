@@ -61,6 +61,7 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.schema.access.SchemaAccessUtils;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
+import org.apache.nifi.security.krb.KerberosUser;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.record.MapRecord;
@@ -115,9 +116,12 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -262,7 +266,7 @@ public class TestPutHive3Streaming {
     }
 
     @Test
-    public void testUgiGetsCleared() throws Exception {
+    public void testUgiAndKerberosUserGetsCleared() throws Exception {
         configure(processor, 0);
         runner.setProperty(PutHive3Streaming.METASTORE_URI, "thrift://localhost:9083");
         runner.setProperty(PutHive3Streaming.DB_NAME, "default");
@@ -270,6 +274,7 @@ public class TestPutHive3Streaming {
         processor.ugi = mock(UserGroupInformation.class);
         runner.run();
         assertNull(processor.ugi);
+        assertNull(processor.kerberosUserReference.get());
     }
 
     @Test
@@ -281,12 +286,13 @@ public class TestPutHive3Streaming {
         runner.setProperty(KERBEROS_CREDENTIALS_SERVICE, "kcs");
         runner.enableControllerService(kcs);
         ugi = mock(UserGroupInformation.class);
-        when(hiveConfigurator.authenticate(eq(hiveConf), anyString(), anyString())).thenReturn(ugi);
+        when(hiveConfigurator.authenticate(eq(hiveConf), any(KerberosUser.class))).thenReturn(ugi);
         runner.setProperty(PutHive3Streaming.METASTORE_URI, "thrift://localhost:9083");
         runner.setProperty(PutHive3Streaming.DB_NAME, "default");
         runner.setProperty(PutHive3Streaming.TABLE_NAME, "users");
         runner.enqueue(new byte[0]);
         runner.run();
+        verify(hiveConfigurator, times(1)).authenticate(eq(hiveConf), any(KerberosUser.class));
     }
 
     @Test(expected = AssertionError.class)

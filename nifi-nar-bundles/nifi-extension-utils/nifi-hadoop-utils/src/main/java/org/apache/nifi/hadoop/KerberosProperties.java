@@ -104,8 +104,7 @@ public class KerberosProperties {
                 .name("Kerberos Password")
                 .required(false)
                 .description("Kerberos password associated with the principal.")
-                .addValidator(StandardValidators.ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR)
-                .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+                .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
                 .sensitive(true)
                 .build();
     }

@@ -74,22 +74,22 @@ class AbstractHadoopProcessorSpec extends Specification {
         actualValidationErrors.size() == expectedValidationErrorCount
 
         where:
-        testName | configuredPrincipal | configuredKeytab | configuredPassword | allowExplicitKeytab | configuredKeytabCredentialsService | configuredKeytabCredentialsServicePrincipal | configuredKeytabCredentialsServiceKeytab || expectedValidationErrorCount
-        "success case 1"       | "principal"         | "keytab"         | null               | "true"              | false                              | null                                        | null                                     || 0
-        "success case 2"       | "principal"         | null             | "password"         | "true"              | false                              | null                                        | null                                     || 0
-        "success case 3"       | "principal"         | null             | "password"         | "false"             | false                              | null                                        | null                                     || 0
-        "success case 4"       | null                | null             | null               | "true"              | true                               | "principal"                                 | "keytab"                                 || 0
-        "success case 5"       | null                | null             | null               | "false"             | true                               | "principal"                                 | "keytab"                                 || 0
+        testName         | configuredPrincipal | configuredKeytab | configuredPassword | allowExplicitKeytab | configuredKeytabCredentialsService | configuredKeytabCredentialsServicePrincipal | configuredKeytabCredentialsServiceKeytab || expectedValidationErrorCount
+        "success case 1" | "principal"         | "keytab"         | null               | true                | false                              | null                                        | null                                     || 0
+        "success case 2" | "principal"         | null             | "password"         | true                | false                              | null                                        | null                                     || 0
+        "success case 3" | "principal"         | null             | "password"         | false               | false                              | null                                        | null                                     || 0
+        "success case 4" | null                | null             | null               | true                | true                               | "principal"                                 | "keytab"                                 || 0
+        "success case 5" | null                | null             | null               | false               | true                               | "principal"                                 | "keytab"                                 || 0
         // do not allow explicit keytab, but provide one anyway; validation fails
-        "failure case 1"       | "principal"         | "keytab"         | null               | "false"             | false                              | null                                        | null                                     || 1
-        "failure case 2"       | null                | "keytab"         | null               | "false"             | false                              | null                                        | null                                     || 2
+        "failure case 1" | "principal"         | "keytab"         | null               | false               | false                              | null                                        | null                                     || 1
+        "failure case 2" | null                | "keytab"         | null               | false               | false                              | null                                        | null                                     || 2
         // keytab credentials service is provided, but explicit properties for principal, password, or keytab are also provided; validation fails
-        "failure case 3"       | "principal"         | null             | null               | "true"              | true                               | "principal"                                 | "keytab"                                 || 1
-        "failure case 4"       | null                | "keytab"         | null               | "true"              | true                               | "principal"                                 | "keytab"                                 || 1
-        "failure case 5"       | null                | null             | "password"         | "true"              | true                               | "principal"                                 | "keytab"                                 || 2
-        "failure case 6"       | "principal"         | null             | null               | "false"             | true                               | "principal"                                 | "keytab"                                 || 1
-        "failure case 7"       | null                | "keytab"         | null               | "false"             | true                               | "principal"                                 | "keytab"                                 || 2
-        "failure case 8"       | null                | null             | "password"         | "false"             | true                               | "principal"                                 | "keytab"                                 || 2
+        "failure case 3" | "principal"         | null             | null               | true                | true                               | "principal"                                 | "keytab"                                 || 1
+        "failure case 4" | null                | "keytab"         | null               | true                | true                               | "principal"                                 | "keytab"                                 || 1
+        "failure case 5" | null                | null             | "password"         | true                | true                               | "principal"                                 | "keytab"                                 || 2
+        "failure case 6" | "principal"         | null             | null               | false               | true                               | "principal"                                 | "keytab"                                 || 1
+        "failure case 7" | null                | "keytab"         | null               | false               | true                               | "principal"                                 | "keytab"                                 || 2
+        "failure case 8" | null                | null             | "password"         | false               | true                               | "principal"                                 | "keytab"                                 || 2
     }
 
     private class TestAbstractHadoopProcessor extends AbstractHadoopProcessor {
@@ -105,7 +105,7 @@ class AbstractHadoopProcessorSpec extends Specification {
         }
 
         @Override
-        String getAllowExplicitKeytabEnvironmentVariable() {
+        boolean isAllowExplicitKeytab() {
             allowExplicitKeytab
         }
 

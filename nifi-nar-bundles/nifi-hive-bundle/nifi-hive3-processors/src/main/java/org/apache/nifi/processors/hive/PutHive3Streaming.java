@@ -39,6 +39,7 @@ import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.hadoop.SecurityUtil;
@@ -54,6 +55,9 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processor.util.pattern.DiscontinuedException;
 import org.apache.nifi.processor.util.pattern.RollbackOnFailure;
 import org.apache.nifi.processors.hadoop.exception.RecordReaderFactoryException;
+import org.apache.nifi.security.krb.KerberosKeytabUser;
+import org.apache.nifi.security.krb.KerberosPasswordUser;
+import org.apache.nifi.security.krb.KerberosUser;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.util.StringUtils;
@@ -201,6 +205,25 @@ public class PutHive3Streaming extends AbstractProcessor {
             .required(false)
             .build();
 
+    static final PropertyDescriptor KERBEROS_PRINCIPAL = new PropertyDescriptor.Builder()
+            .name("kerberos-principal")
+            .displayName("Kerberos Principal")
+            .description("The principal to use when specifying the principal and password directly in the processor for authenticating via Kerberos.")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING))
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
+
+    static final PropertyDescriptor KERBEROS_PASSWORD = new PropertyDescriptor.Builder()
+            .name("kerberos-password")
+            .displayName("Kerberos Password")
+            .description("The password to use when specifying the principal and password directly in the processor for authenticating via Kerberos.")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .sensitive(true)
+            .build();
+
     // Relationships
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
@@ -225,6 +248,7 @@ public class PutHive3Streaming extends AbstractProcessor {
 
     protected volatile HiveConfigurator hiveConfigurator = new HiveConfigurator();
     protected volatile UserGroupInformation ugi;
+    final protected AtomicReference<KerberosUser> kerberosUserReference = new AtomicReference<>();
     protected volatile HiveConf hiveConfig;
 
     protected volatile int callTimeout;
@@ -247,6 +271,8 @@ public class PutHive3Streaming extends AbstractProcessor {
         props.add(DISABLE_STREAMING_OPTIMIZATIONS);
         props.add(ROLLBACK_ON_FAILURE);
         props.add(KERBEROS_CREDENTIALS_SERVICE);
+        props.add(KERBEROS_PRINCIPAL);
+        props.add(KERBEROS_PASSWORD);
 
         propertyDescriptors = Collections.unmodifiableList(props);
 
@@ -274,14 +300,23 @@ public class PutHive3Streaming extends AbstractProcessor {
         final List<ValidationResult> problems = new ArrayList<>();
 
         final KerberosCredentialsService credentialsService = validationContext.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
+        final String explicitPrincipal = validationContext.getProperty(KERBEROS_PRINCIPAL).evaluateAttributeExpressions().getValue();
+        final String explicitPassword = validationContext.getProperty(KERBEROS_PASSWORD).getValue();
 
-        final String resolvedPrincipal = credentialsService != null ? credentialsService.getPrincipal() : null;
+        final String resolvedPrincipal = credentialsService != null ? credentialsService.getPrincipal() : explicitPrincipal;
         final String resolvedKeytab = credentialsService != null ? credentialsService.getKeytab() : null;
         if (confFileProvided) {
             final String configFiles = validationContext.getProperty(HIVE_CONFIGURATION_RESOURCES).evaluateAttributeExpressions().getValue();
-            problems.addAll(hiveConfigurator.validate(configFiles, resolvedPrincipal, resolvedKeytab, validationResourceHolder, getLogger()));
+            problems.addAll(hiveConfigurator.validate(configFiles, resolvedPrincipal, resolvedKeytab, explicitPassword, validationResourceHolder, getLogger()));
         }
 
+        if (credentialsService != null && (explicitPrincipal != null || explicitPassword != null)) {
+            problems.add(new ValidationResult.Builder()
+                    .subject(KERBEROS_CREDENTIALS_SERVICE.getDisplayName())
+                    .valid(false)
+                    .explanation("kerberos principal/password and kerberos credential service cannot be configured at the same time")
+                    .build());
+        }
         return problems;
     }
 
@@ -310,20 +345,33 @@ public class PutHive3Streaming extends AbstractProcessor {
 
         if (SecurityUtil.isSecurityEnabled(hiveConfig)) {
             final KerberosCredentialsService credentialsService = context.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
+            final String explicitPrincipal = context.getProperty(KERBEROS_PRINCIPAL).evaluateAttributeExpressions().getValue();
+            final String explicitPassword = context.getProperty(KERBEROS_PASSWORD).getValue();
 
-            final String resolvedPrincipal = credentialsService.getPrincipal();
-            final String resolvedKeytab = credentialsService.getKeytab();
+            final String resolvedPrincipal = credentialsService != null ? credentialsService.getPrincipal() : explicitPrincipal;
+            final String resolvedKeytab = credentialsService != null ? credentialsService.getKeytab() : null;
 
-            log.info("Hive Security Enabled, logging in as principal {} with keytab {}", new Object[]{resolvedPrincipal, resolvedKeytab});
+            if (resolvedKeytab != null) {
+                kerberosUserReference.set(new KerberosKeytabUser(resolvedPrincipal, resolvedKeytab));
+                log.info("Hive Security Enabled, logging in as principal {} with keytab {}", new Object[] {resolvedPrincipal, resolvedKeytab});
+            } else if (explicitPassword != null) {
+                kerberosUserReference.set(new KerberosPasswordUser(resolvedPrincipal, explicitPassword));
+                log.info("Hive Security Enabled, logging in as principal {} with password", new Object[] {resolvedPrincipal});
+            } else {
+                throw new ProcessException("Unable to authenticate with Kerberos, no keytab or password was provided");
+            }
+
             try {
-                ugi = hiveConfigurator.authenticate(hiveConfig, resolvedPrincipal, resolvedKeytab);
+                ugi = hiveConfigurator.authenticate(hiveConfig, kerberosUserReference.get());
             } catch (AuthenticationFailedException ae) {
-                throw new ProcessException("Kerberos authentication failed for Hive Streaming", ae);
+                log.error(ae.getMessage(), ae);
+                throw new ProcessException(ae);
             }
 
             log.info("Successfully logged in as principal {} with keytab {}", new Object[]{resolvedPrincipal, resolvedKeytab});
         } else {
             ugi = null;
+            kerberosUserReference.set(null);
         }
 
         callTimeout = context.getProperty(CALL_TIMEOUT).evaluateAttributeExpressions().asInteger() * 1000; // milliseconds
@@ -532,6 +580,7 @@ public class PutHive3Streaming extends AbstractProcessor {
         }
 
         ugi = null;
+        kerberosUserReference.set(null);
     }
 
     private void abortAndCloseConnection(StreamingConnection connection) {

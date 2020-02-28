@@ -184,12 +184,11 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
         final String configResources = validationContext.getProperty(HADOOP_CONFIGURATION_RESOURCES).evaluateAttributeExpressions().getValue();
         final String explicitPrincipal = validationContext.getProperty(kerberosProperties.getKerberosPrincipal()).evaluateAttributeExpressions().getValue();
         final String explicitKeytab = validationContext.getProperty(kerberosProperties.getKerberosKeytab()).evaluateAttributeExpressions().getValue();
-        final String explicitPassword = validationContext.getProperty(kerberosProperties.getKerberosPassword()).evaluateAttributeExpressions().getValue();
+        final String explicitPassword = validationContext.getProperty(kerberosProperties.getKerberosPassword()).getValue();
         final KerberosCredentialsService credentialsService = validationContext.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
 
         final String resolvedPrincipal;
         final String resolvedKeytab;
-        final String resolvedPassword;
         if (credentialsService == null) {
             resolvedPrincipal = explicitPrincipal;
             resolvedKeytab = explicitKeytab;
@@ -197,7 +196,6 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
             resolvedPrincipal = credentialsService.getPrincipal();
             resolvedKeytab = credentialsService.getKeytab();
         }
-        resolvedPassword = explicitPassword;
 
         final List<ValidationResult> results = new ArrayList<>();
 
@@ -220,7 +218,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
 
             final Configuration conf = resources.getConfiguration();
             results.addAll(KerberosProperties.validatePrincipalWithKeytabOrPassword(
-                this.getClass().getSimpleName(), conf, resolvedPrincipal, resolvedKeytab, resolvedPassword, getLogger()));
+                this.getClass().getSimpleName(), conf, resolvedPrincipal, resolvedKeytab, explicitPassword, getLogger()));
 
         } catch (final IOException e) {
             results.add(new ValidationResult.Builder()
@@ -238,8 +236,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
                 .build());
         }
 
-        final String allowExplicitKeytabVariable = getAllowExplicitKeytabEnvironmentVariable();
-        if ("false".equalsIgnoreCase(allowExplicitKeytabVariable) && explicitKeytab != null) {
+        if (!isAllowExplicitKeytab() && explicitKeytab != null) {
             results.add(new ValidationResult.Builder()
                 .subject("Kerberos Credentials")
                 .valid(false)
@@ -390,7 +387,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
             if (SecurityUtil.isSecurityEnabled(config)) {
                 String principal = context.getProperty(kerberosProperties.getKerberosPrincipal()).evaluateAttributeExpressions().getValue();
                 String keyTab = context.getProperty(kerberosProperties.getKerberosKeytab()).evaluateAttributeExpressions().getValue();
-                String password = context.getProperty(kerberosProperties.getKerberosPassword()).evaluateAttributeExpressions().getValue();
+                String password = context.getProperty(kerberosProperties.getKerberosPassword()).getValue();
 
                 // If the Kerberos Credentials Service is specified, we need to use its configuration, not the explicit properties for principal/keytab.
                 // The customValidate method ensures that only one can be set, so we know that the principal & keytab above are null.
@@ -545,15 +542,13 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
         if (hdfsResources.get().getKerberosUser() != null) {
             // if there's a KerberosUser associated with this UGI, check the TGT and relogin if it is close to expiring
             KerberosUser kerberosUser = hdfsResources.get().getKerberosUser();
-            synchronized (kerberosUser) {
-                getLogger().debug("kerberosUser is " + kerberosUser);
-                try {
-                    getLogger().debug("checking TGT on kerberosUser [{}]" + kerberosUser);
-                    kerberosUser.checkTGTAndRelogin();
-                } catch (LoginException e) {
-                    throw new ProcessException("Unable to relogin with kerberos credentials for " + kerberosUser.getPrincipal(), e);
+            getLogger().debug("kerberosUser is " + kerberosUser);
+            try {
+                getLogger().debug("checking TGT on kerberosUser " + kerberosUser);
+                kerberosUser.checkTGTAndRelogin();
+            } catch (LoginException e) {
+                throw new ProcessException("Unable to relogin with kerberos credentials for " + kerberosUser.getPrincipal(), e);
                 }
-            }
         } else {
             getLogger().debug("kerberosUser was null, will not refresh TGT with KerberosUser");
         }
@@ -563,8 +558,8 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
     /*
      * Overridable by subclasses in the same package, mainly intended for testing purposes to allow verification without having to set environment variables.
      */
-    String getAllowExplicitKeytabEnvironmentVariable() {
-        return System.getenv(ALLOW_EXPLICIT_KEYTAB);
+    boolean isAllowExplicitKeytab() {
+        return Boolean.parseBoolean(System.getenv(ALLOW_EXPLICIT_KEYTAB));
     }
 
     static protected class HdfsResources {

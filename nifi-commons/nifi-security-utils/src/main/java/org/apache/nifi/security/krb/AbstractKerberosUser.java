@@ -82,7 +82,9 @@ public abstract class AbstractKerberosUser implements KerberosUser {
             loggedIn.set(true);
             LOGGER.debug("Successful login for {}", new Object[]{principal});
         } catch (LoginException le) {
-            throw new LoginException("Unable to login with " + principal + " due to: " + le.getMessage());
+            LoginException loginException = new LoginException("Unable to login with " + principal + " due to: " + le.getMessage());
+            loginException.setStackTrace(le.getStackTrace());
+            throw loginException;
         }
     }
 
