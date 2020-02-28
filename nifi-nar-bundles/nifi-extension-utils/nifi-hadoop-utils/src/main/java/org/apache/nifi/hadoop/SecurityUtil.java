@@ -19,7 +19,6 @@ package org.apache.nifi.hadoop;
 import org.apache.commons.lang3.Validate;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.nifi.security.krb.KerberosPasswordUser;
 import org.apache.nifi.security.krb.KerberosUser;
 
 import javax.security.auth.Subject;
@@ -79,15 +78,6 @@ public class SecurityUtil {
         return UserGroupInformation.getCurrentUser();
     }
 
-    public static synchronized UserGroupInformation loginKerberosWithPassword(final Configuration config, final String principal, final String password) throws IOException {
-        Validate.notNull(config);
-        Validate.notNull(principal);
-        Validate.notNull(password);
-
-        KerberosPasswordUser kerberosPasswordUser = new KerberosPasswordUser(principal, password);
-        return getUgiForKerberosUser(config, kerberosPasswordUser);
-    }
-
     public static synchronized UserGroupInformation getUgiForKerberosUser(final Configuration config, final KerberosUser kerberosUser) throws IOException {
         UserGroupInformation.setConfiguration(config);
         try {
@@ -104,9 +94,10 @@ public class SecurityUtil {
                         "No Subject was found matching the given principal");
                 return UserGroupInformation.getUGIFromSubject(subject);
             });
-        } catch (PrivilegedActionException | LoginException e) {
-            throw new IOException("Unable to acquire UGI for KerberosUser: " + e.getLocalizedMessage(),
-                    e instanceof PrivilegedActionException ? ((PrivilegedActionException)e).getException() : e);
+        } catch (PrivilegedActionException e) {
+            throw new IOException("Unable to acquire UGI for KerberosUser: " + e.getException().getLocalizedMessage(), e.getException());
+        } catch (LoginException e) {
+            throw new IOException("Unable to acquire UGI for KerberosUser: " + e.getLocalizedMessage(), e);
         }
     }
 

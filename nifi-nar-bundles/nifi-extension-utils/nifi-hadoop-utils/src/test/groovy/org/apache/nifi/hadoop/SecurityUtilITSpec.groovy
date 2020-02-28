@@ -54,21 +54,6 @@ class SecurityUtilITSpec extends Specification {
         miniKdc.stop()
     }
 
-    def "loginKerberosWithPassword returns correct UGI"() {
-        given:
-        def principal = "testprincipal1"
-        def password = "password"
-        miniKdc.createPrincipal principal, password
-
-        when: "A UGI is acquired for a principal and password"
-        def ugi = SecurityUtil.loginKerberosWithPassword configuration, principal, password
-
-        then: "the acquired UGI is valid for the given principal"
-        ugi != null
-        ugi.getShortUserName() == principal
-        LOGGER.debug "UGI = [{}]", ugi
-    }
-
     def "getUgiForKerberosUser with unauthenticated KerberosPasswordUser returns correct UGI"() {
         given:
         def principal = "testprincipal2"

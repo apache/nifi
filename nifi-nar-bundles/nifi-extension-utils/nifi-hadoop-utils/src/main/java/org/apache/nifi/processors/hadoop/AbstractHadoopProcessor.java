@@ -238,14 +238,13 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
                 .build());
         }
 
-        final String allowExplicitKeytabVariable = System.getenv(ALLOW_EXPLICIT_KEYTAB);
-        if ("false".equalsIgnoreCase(allowExplicitKeytabVariable) && (explicitPrincipal != null || explicitKeytab != null || explicitPassword != null)) {
+        final String allowExplicitKeytabVariable = getAllowExplicitKeytabEnvironmentVariable();
+        if ("false".equalsIgnoreCase(allowExplicitKeytabVariable) && explicitKeytab != null) {
             results.add(new ValidationResult.Builder()
                 .subject("Kerberos Credentials")
                 .valid(false)
-                .explanation("The '" + ALLOW_EXPLICIT_KEYTAB + "' system environment variable is configured to forbid explicitly configuring principal " +
-                        "with keytab/password in processors. The Kerberos Credentials Service should be used instead of setting the Kerberos Keytab, " +
-                        "Kerberos Password, or Kerberos Principal property.")
+                .explanation("The '" + ALLOW_EXPLICIT_KEYTAB + "' system environment variable is configured to forbid explicitly configuring Kerberos Keytab in processors. "
+                    + "The Kerberos Credentials Service should be used instead of setting the Kerberos Keytab or Kerberos Principal property.")
                 .build());
         }
 
@@ -559,6 +558,13 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
             getLogger().debug("kerberosUser was null, will not refresh TGT with KerberosUser");
         }
         return hdfsResources.get().getUserGroupInformation();
+    }
+
+    /*
+     * Overridable by subclasses in the same package, mainly intended for testing purposes to allow verification without having to set environment variables.
+     */
+    String getAllowExplicitKeytabEnvironmentVariable() {
+        return System.getenv(ALLOW_EXPLICIT_KEYTAB);
     }
 
     static protected class HdfsResources {
