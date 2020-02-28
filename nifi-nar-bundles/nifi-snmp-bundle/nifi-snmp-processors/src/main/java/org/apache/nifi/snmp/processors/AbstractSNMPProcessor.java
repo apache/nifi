@@ -127,8 +127,8 @@ abstract class AbstractSNMPProcessor<T extends SNMPWorker> extends AbstractProce
     /** property to define SNMP authentication password to use */
     public static final PropertyDescriptor SNMP_AUTH_PASSWORD = new PropertyDescriptor.Builder()
             .name("snmp-authentication-passphrase")
-            .displayName("SNMP Authentication pass phrase")
-            .description("Pass phrase used for SNMP authentication protocol")
+            .displayName("SNMP Authentication passphrase")
+            .description("Passphrase used for SNMP authentication protocol")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .sensitive(true)
@@ -147,8 +147,8 @@ abstract class AbstractSNMPProcessor<T extends SNMPWorker> extends AbstractProce
     /** property to define SNMP private password to use */
     public static final PropertyDescriptor SNMP_PRIV_PASSWORD = new PropertyDescriptor.Builder()
             .name("snmp-private-protocol-passphrase")
-            .displayName("SNMP Private protocol pass phrase")
-            .description("Pass phrase used for SNMP private protocol")
+            .displayName("SNMP Private protocol passphrase")
+            .description("Passphrase used for SNMP private protocol")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .sensitive(true)

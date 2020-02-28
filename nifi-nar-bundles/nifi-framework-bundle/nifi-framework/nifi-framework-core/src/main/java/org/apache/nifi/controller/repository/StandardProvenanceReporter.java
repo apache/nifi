@@ -448,13 +448,11 @@ public class StandardProvenanceReporter implements ProvenanceReporter {
     @Override
     public void modifyAttributes(final FlowFile flowFile, final long processingMills) {
         modifyAttributes(flowFile, null, -1L);
-        verifyFlowFileKnown(flowFile);
     }
 
     @Override
     public void modifyAttributes(final FlowFile flowFile, final String details) {
         modifyAttributes(flowFile, details, -1L);
-        verifyFlowFileKnown(flowFile);
     }
 
     @Override

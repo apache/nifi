@@ -51,6 +51,7 @@ public class CurrentUserEndpointMergerTest {
 
         final Set<ComponentRestrictionPermissionDTO> componentRestrictionsNode1 = new HashSet<>();
         componentRestrictionsNode1.add(buildComponentRestriction(RequiredPermission.ACCESS_KEYTAB, true, true));
+        componentRestrictionsNode1.add(buildComponentRestriction(RequiredPermission.ACCESS_ENCRYPTION_KEY, true, true));
         componentRestrictionsNode1.add(buildComponentRestriction(RequiredPermission.WRITE_FILESYSTEM, false, true));
         componentRestrictionsNode1.add(buildComponentRestriction(RequiredPermission.READ_FILESYSTEM, true, true));
         userNode1.setComponentRestrictionPermissions(componentRestrictionsNode1);
@@ -67,6 +68,7 @@ public class CurrentUserEndpointMergerTest {
 
         final Set<ComponentRestrictionPermissionDTO> componentRestrictionsNode2 = new HashSet<>();
         componentRestrictionsNode2.add(buildComponentRestriction(RequiredPermission.ACCESS_KEYTAB, true, false));
+        componentRestrictionsNode1.add(buildComponentRestriction(RequiredPermission.ACCESS_ENCRYPTION_KEY, true, false));
         componentRestrictionsNode2.add(buildComponentRestriction(RequiredPermission.WRITE_FILESYSTEM, true, false));
         componentRestrictionsNode2.add(buildComponentRestriction(RequiredPermission.EXECUTE_CODE, true, true));
         userNode2.setComponentRestrictionPermissions(componentRestrictionsNode2);
@@ -94,10 +96,14 @@ public class CurrentUserEndpointMergerTest {
         assertTrue(userNode1.getTenantsPermissions().getCanWrite());
 
         userNode1.getComponentRestrictionPermissions().forEach(componentRestriction -> {
-            if (RequiredPermission.ACCESS_KEYTAB.getPermissionIdentifier().equals(componentRestriction.getRequiredPermission().getId())) {
+            final boolean accessKeyTab = RequiredPermission.ACCESS_KEYTAB.getPermissionIdentifier().equals(componentRestriction.getRequiredPermission().getId());
+            final boolean accessEncKey = RequiredPermission.ACCESS_ENCRYPTION_KEY.getPermissionIdentifier().equals(componentRestriction.getRequiredPermission().getId());
+            final boolean writeFileSystem = RequiredPermission.WRITE_FILESYSTEM.getPermissionIdentifier().equals(componentRestriction.getRequiredPermission().getId());
+
+            if (accessKeyTab || accessEncKey) {
                 assertTrue(componentRestriction.getPermissions().getCanRead());
                 assertFalse(componentRestriction.getPermissions().getCanWrite());
-            } else if (RequiredPermission.WRITE_FILESYSTEM.getPermissionIdentifier().equals(componentRestriction.getRequiredPermission().getId())) {
+            } else if (writeFileSystem) {
                 assertFalse(componentRestriction.getPermissions().getCanRead());
                 assertFalse(componentRestriction.getPermissions().getCanWrite());
             } else {

@@ -20,6 +20,8 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.Relationship;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -35,19 +37,22 @@ import java.util.Set;
  * members and a helper method for creating their set.
  *
  */
-public abstract class AbstractProcessorPGP extends AbstractProcessor {
-    public static final String SERVICE_ID = "pgp-key-service";
+public abstract class AbstractPGPProcessor extends AbstractProcessor {
+    public static final String SERVICE_ID = "pgp-service";
+    public static final String SERVICE_NAME = "PGP Controller Service";
     public static final String DEFAULT_SIGNATURE_ATTRIBUTE = "content-signature";
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
-            .description("Any FlowFile that is successfully encrypted or decrypted will be routed to success")
+            .description("Any FlowFile that is successfully processed by a PGP operation will be routed to success")
             .build();
 
     public static final Relationship REL_FAILURE = new Relationship.Builder()
             .name("failure")
-            .description("Any FlowFile that cannot be encrypted or decrypted will be routed to failure")
+            .description("Any FlowFile that cannot be processed by a PGP operation will be routed to failure")
             .build();
+
+    public static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(REL_SUCCESS, REL_FAILURE)));
 
     /**
      * Helper for subclasses to create their own PGP controller service property.
@@ -58,6 +63,7 @@ public abstract class AbstractProcessorPGP extends AbstractProcessor {
     static PropertyDescriptor buildControllerServiceProperty(String desc) {
         return new PropertyDescriptor.Builder()
                 .name(SERVICE_ID)
+                .displayName(SERVICE_NAME)
                 .description(desc)
                 .required(true)
                 .identifiesControllerService(PGPService.class)
@@ -71,9 +77,6 @@ public abstract class AbstractProcessorPGP extends AbstractProcessor {
      */
     @Override
     public Set<Relationship> getRelationships() {
-        HashSet<Relationship> relationships = new HashSet<>();
-        relationships.add(REL_SUCCESS);
-        relationships.add(REL_FAILURE);
-        return relationships;
+        return RELATIONSHIPS;
     }
 }

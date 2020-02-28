@@ -29,11 +29,14 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.util.StopWatch;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 /**
- * The DecryptContentPGP processor attempts to decrypt flow file contents when triggered.  The processor uses a
+ * The DecryptContentPGPProcessor processor attempts to decrypt flow file contents when triggered.  The processor uses a
  * {@link PGPControllerService} to provide decryption operations.
  *
  * The PGP libraries do all of the lifting for decrypt operations, including content detection.  This is is why there
@@ -45,9 +48,9 @@ import java.util.concurrent.TimeUnit;
 @CapabilityDescription("Decrypts a FlowFile using a PGP key.")
 @SystemResourceConsideration(resource = SystemResource.CPU)
 
-public class DecryptContentPGP extends AbstractProcessorPGP {
+public class DecryptContentPGPProcessor extends AbstractPGPProcessor {
     public static final PropertyDescriptor PGP_KEY_SERVICE =
-            AbstractProcessorPGP.buildControllerServiceProperty("PGP Key Material Controller Service that provides the private key or passphrase for decryption.");
+            AbstractPGPProcessor.buildControllerServiceProperty("PGP Key Material Controller Service that provides the private key or passphrase for decryption.");
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
@@ -63,19 +66,18 @@ public class DecryptContentPGP extends AbstractProcessorPGP {
             final FlowFile finalFlow = session.write(flowFile, (in, out) -> {
                 service.decrypt(in, out, service.optionsForDecrypt());
             });
-            getLogger().debug("Called to decrypt flow {}", new Object[]{flowFile});
-            session.getProvenanceReporter().modifyContent(finalFlow, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
+            long elapsed = stopWatch.getElapsed(TimeUnit.MILLISECONDS);
+            getLogger().debug("Called to decrypt flow {} completed in {}ms", new Object[]{flowFile, elapsed});
+            session.getProvenanceReporter().modifyContent(finalFlow, elapsed);
             session.transfer(finalFlow, REL_SUCCESS);
         } catch (final ProcessException e) {
-            getLogger().error("Exception in decrypt flow {} ", new Object[]{flowFile});
+            getLogger().debug("Exception in decrypt flow {} ", new Object[]{flowFile});
             session.transfer(flowFile, REL_FAILURE);
         }
     }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(PGP_KEY_SERVICE);
-        return properties;
+        return Collections.unmodifiableList(Collections.singletonList(PGP_KEY_SERVICE));
     }
 }

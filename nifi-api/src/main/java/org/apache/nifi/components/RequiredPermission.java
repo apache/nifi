@@ -26,6 +26,7 @@ public enum RequiredPermission {
     WRITE_FILESYSTEM("write-filesystem", "write filesystem"),
     EXECUTE_CODE("execute-code", "execute code"),
     ACCESS_KEYTAB("access-keytab", "access keytab"),
+    ACCESS_ENCRYPTION_KEY("access-encryption-key", "access encryption key"),
     EXPORT_NIFI_DETAILS("export-nifi-details", "export nifi details");
 
     private String permissionIdentifier;

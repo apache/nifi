@@ -35,11 +35,13 @@ import org.bouncycastle.openpgp.PGPException;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 /**
- * The SignContentAttributePGP processor attempts to create a signature of flow file contents when triggered.  The processor uses a
+ * The SignContentAttributePGPProcessor processor attempts to create a signature of flow file contents when triggered.  The processor uses a
  * {@link PGPControllerService} to provide signature keys.
  */
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
@@ -47,9 +49,9 @@ import java.util.concurrent.TimeUnit;
 @CapabilityDescription("Signs a FlowFile using a PGP key.")
 @SystemResourceConsideration(resource = SystemResource.CPU)
 
-public class SignContentAttributePGP extends AbstractProcessorPGP {
+public class SignContentAttributePGPProcessor extends AbstractPGPProcessor {
     public static final PropertyDescriptor PGP_KEY_SERVICE =
-            AbstractProcessorPGP.buildControllerServiceProperty("PGP Key Material Controller Service that provides the private key for signing.");
+            AbstractPGPProcessor.buildControllerServiceProperty("PGP Key Material Controller Service that provides the private key for signing.");
 
     public static final PropertyDescriptor SIGNATURE_HASH_ALGORITHM = new PropertyDescriptor.Builder()
             .name("signature-hash-algorithm")
@@ -63,7 +65,7 @@ public class SignContentAttributePGP extends AbstractProcessorPGP {
             .name("signature-attribute")
             .displayName("Signature Attribute")
             .description("The name of the FlowFile Attribute for the signature.")
-            .defaultValue(AbstractProcessorPGP.DEFAULT_SIGNATURE_ATTRIBUTE)
+            .defaultValue(AbstractPGPProcessor.DEFAULT_SIGNATURE_ATTRIBUTE)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -97,21 +99,18 @@ public class SignContentAttributePGP extends AbstractProcessorPGP {
         try {
             service.sign(session.read(flowFile), signature, service.optionsForSign(context.getProperty(SIGNATURE_HASH_ALGORITHM).asInteger()));
             session.putAttribute(flowFile, context.getProperty(SIGNATURE_ATTRIBUTE).getValue(), Hex.encodeHexString(signature.toByteArray()));
-            getLogger().debug("Called to sign flow {}", new Object[]{flowFile});
-            session.getProvenanceReporter().modifyAttributes(flowFile, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
+            long elapsed = stopWatch.getElapsed(TimeUnit.MILLISECONDS);
+            getLogger().debug("Called to sign flow {} completed in {}ms", new Object[]{flowFile, elapsed});
+            session.getProvenanceReporter().modifyAttributes(flowFile, elapsed);
             session.transfer(flowFile, REL_SUCCESS);
         } catch (final ProcessException | PGPException | IOException e) {
-            getLogger().error("Exception in sign flow {} ", new Object[]{flowFile});
+            getLogger().debug("Exception in sign flow {} ", new Object[]{flowFile});
             session.transfer(flowFile, REL_FAILURE);
         }
     }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(PGP_KEY_SERVICE);
-        properties.add(SIGNATURE_ATTRIBUTE);
-        properties.add(SIGNATURE_HASH_ALGORITHM);
-        return properties;
+        return Collections.unmodifiableList(Arrays.asList(PGP_KEY_SERVICE, SIGNATURE_ATTRIBUTE, SIGNATURE_HASH_ALGORITHM));
     }
 }

@@ -36,12 +36,14 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 
 /**
- * The VerifyContentAttributePGP processor attempts to verify a flow file signature when triggered.  The processor uses a
+ * The VerifyContentAttributePGPProcessor processor attempts to verify a flow file signature when triggered.  The processor uses a
  * {@link PGPControllerService} to provide verification keys.
  */
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
@@ -49,15 +51,15 @@ import java.util.concurrent.TimeUnit;
 @CapabilityDescription("Verifies a FlowFile using a PGP key.")
 @SystemResourceConsideration(resource = SystemResource.CPU)
 
-public class VerifyContentAttributePGP extends AbstractProcessorPGP {
+public class VerifyContentAttributePGPProcessor extends AbstractPGPProcessor {
     public static final PropertyDescriptor PGP_KEY_SERVICE =
-            AbstractProcessorPGP.buildControllerServiceProperty("PGP Key Material Controller Service that provides the public key for verification.");
+            AbstractPGPProcessor.buildControllerServiceProperty("PGP Key Material Controller Service that provides the public key for verification.");
 
     public static final PropertyDescriptor SIGNATURE_ATTRIBUTE = new PropertyDescriptor.Builder()
             .name("signature-attribute")
             .displayName("Signature Attribute")
             .description("The name of the FlowFile Attribute that should have the signature to verify.")
-            .defaultValue(AbstractProcessorPGP.DEFAULT_SIGNATURE_ATTRIBUTE)
+            .defaultValue(AbstractPGPProcessor.DEFAULT_SIGNATURE_ATTRIBUTE)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -75,21 +77,19 @@ public class VerifyContentAttributePGP extends AbstractProcessorPGP {
             if (!service.verify(session.read(flowFile), getSignature(context, flowFile), service.optionsForVerify())) {
                 throw new ProcessException("FlowFile unverified.");
             }
-            getLogger().debug("Called to verify flow {}", new Object[]{flowFile});
-            session.getProvenanceReporter().modifyAttributes(flowFile, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
+            long elapsed = stopWatch.getElapsed(TimeUnit.MILLISECONDS);
+            getLogger().debug("Called to verify flow {} completed in {}ms", new Object[]{flowFile, elapsed});
+            session.getProvenanceReporter().modifyAttributes(flowFile, elapsed);
             session.transfer(flowFile, REL_SUCCESS);
         } catch (final ProcessException | DecoderException | PGPException | IOException e) {
-            getLogger().error("Exception in verify flow {} ", new Object[]{flowFile});
+            getLogger().debug("Exception in verify flow {} ", new Object[]{flowFile});
             session.transfer(flowFile, REL_FAILURE);
         }
     }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(PGP_KEY_SERVICE);
-        properties.add(SIGNATURE_ATTRIBUTE);
-        return properties;
+        return Collections.unmodifiableList(Arrays.asList(PGP_KEY_SERVICE, SIGNATURE_ATTRIBUTE));
     }
 
     private InputStream getSignature(ProcessContext context, FlowFile flowFile) throws DecoderException {

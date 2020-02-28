@@ -33,11 +33,14 @@ import org.bouncycastle.openpgp.PGPEncryptedData;
 import org.bouncycastle.openpgp.PGPException;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 /**
- * The EncryptContentPGP processor attempts to encrypt flow file contents when triggered.  The processor uses a
+ * The EncryptContentPGPProcessor processor attempts to encrypt flow file contents when triggered.  The processor uses a
  * {@link PGPControllerService} to provide encryption operations.
  *
  * This processor exposes the encryption algorithm selection to the user, and also exposes a property that controls
@@ -50,11 +53,11 @@ import java.util.concurrent.TimeUnit;
 @CapabilityDescription("Encrypts a FlowFile using a PGP key.")
 @SystemResourceConsideration(resource = SystemResource.CPU)
 
-public class EncryptContentPGP extends AbstractProcessorPGP {
+public class EncryptContentPGPProcessor extends AbstractPGPProcessor {
     public static final PropertyDescriptor PGP_KEY_SERVICE =
-        AbstractProcessorPGP.buildControllerServiceProperty("PGP Key Material Controller Service that provides the public key or passphrase for encryption.");
+        AbstractPGPProcessor.buildControllerServiceProperty("PGP Key Material Controller Service that provides the public key or passphrase for encryption.");
 
-    public static final PropertyDescriptor ENCRYPT_ALGORITHM = new PropertyDescriptor.Builder()
+    protected static final PropertyDescriptor ENCRYPT_ALGORITHM = new PropertyDescriptor.Builder()
             .name("encrypt-algorithm")
             .displayName("Encryption Cipher Algorithm")
             .description("The cipher algorithm used when encrypting data.")
@@ -62,7 +65,7 @@ public class EncryptContentPGP extends AbstractProcessorPGP {
             .defaultValue(getCipherDefaultValue())
             .build();
 
-    public static final PropertyDescriptor ENCRYPT_ENCODING = new PropertyDescriptor.Builder()
+    protected static final PropertyDescriptor ENCRYPT_ENCODING = new PropertyDescriptor.Builder()
             .name("encrypt-encoding")
             .displayName("Encryption Data Encoding")
             .description("The data encoding method used when writing encrypting data.")
@@ -91,22 +94,19 @@ public class EncryptContentPGP extends AbstractProcessorPGP {
 
         try {
             final FlowFile finalFlow = session.write(flowFile, callback);
-            getLogger().debug("Called to encrypt flow {}", new Object[]{flowFile});
-            session.getProvenanceReporter().modifyContent(finalFlow, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
+            long elapsed = stopWatch.getElapsed(TimeUnit.MILLISECONDS);
+            getLogger().debug("Called to encrypt flow {} completed in {}ms", new Object[]{flowFile, elapsed});
+            session.getProvenanceReporter().modifyContent(finalFlow, elapsed);
             session.transfer(finalFlow, REL_SUCCESS);
         } catch (final ProcessException e) {
-            getLogger().error("Exception in encrypt flow {} ", new Object[]{flowFile});
+            getLogger().debug("Exception in encrypt flow {} ", new Object[]{flowFile});
             session.transfer(flowFile, REL_FAILURE);
         }
     }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(PGP_KEY_SERVICE);
-        properties.add(ENCRYPT_ALGORITHM);
-        properties.add(ENCRYPT_ENCODING);
-        return properties;
+        return Collections.unmodifiableList(Arrays.asList(PGP_KEY_SERVICE, ENCRYPT_ALGORITHM, ENCRYPT_ENCODING));
     }
 
     private int getAlgorithm(ProcessContext context) {
