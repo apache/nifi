@@ -147,9 +147,6 @@ public class TestAbstractHeartbeatMonitor {
         adapter.requestNodeConnect(nodeId1);
         adapter.requestNodeConnect(nodeId2);
 
-        // ensure each node is connected
-        assertTrue(adapter.getNodeIdentifiers(NodeConnectionState.CONNECTING).containsAll(Arrays.asList(nodeId1, nodeId2)));
-
         // let each node heartbeat in
         monitor.addHeartbeat(createHeartbeat(nodeId1, NodeConnectionState.CONNECTED));
         monitor.addHeartbeat(createHeartbeat(nodeId2, NodeConnectionState.CONNECTED));
