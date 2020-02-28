@@ -125,6 +125,33 @@ public class RunMongoAggregationIT {
     }
 
     @Test
+    public void testExtendedJsonSupport() throws Exception {
+        String pattern = "yyyy-MM-dd'T'hh:mm:ss'Z'";
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat(pattern);
+        final String queryInput = "[\n" +
+            "  {\n" +
+            "    \"$match\": {\n" +
+            "      \"date\": { \"$gte\": { \"$date\": \"2019-01-01T00:00:00Z\" }, \"$lt\": { \"$date\": \"" + simpleDateFormat.format(now.getTime()) + "\" } }\n" +
+            "    }\n" +
+            "  },\n" +
+            "  {\n" +
+            "    \"$group\": {\n" +
+            "      \"_id\": \"$val\",\n" +
+            "      \"doc_count\": {\n" +
+            "        \"$sum\": 1\n" +
+            "      }\n" +
+            "    }\n" +
+            "  }\n" +
+            "]\n";
+
+        runner.setProperty(RunMongoAggregation.QUERY, queryInput);
+        runner.enqueue("test");
+        runner.run(1, true, true);
+
+        runner.assertTransferCount(RunMongoAggregation.REL_RESULTS, mappings.size());
+    }
+
+    @Test
     public void testExpressionLanguageSupport() throws Exception {
         runner.setVariable("fieldName", "$val");
         runner.setProperty(RunMongoAggregation.QUERY, "[\n" +
