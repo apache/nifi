@@ -64,6 +64,7 @@ import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.kerberos.KerberosContext;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
@@ -77,6 +78,7 @@ public class StandardProcessorTestRunner implements TestRunner {
 
     private final Processor processor;
     private final MockProcessContext context;
+    private final KerberosContext kerberosContext;
     private final MockFlowFileQueue flowFileQueue;
     private final SharedSessionState sharedState;
     private final AtomicLong idGenerator;
@@ -99,10 +101,18 @@ public class StandardProcessorTestRunner implements TestRunner {
     }
 
     StandardProcessorTestRunner(final Processor processor, String processorName) {
-        this(processor, processorName, null);
+        this(processor, processorName, null, null);
+    }
+
+    StandardProcessorTestRunner(final Processor processor, String processorName, KerberosContext kerberosContext) {
+        this(processor, processorName, null, kerberosContext);
     }
 
     StandardProcessorTestRunner(final Processor processor, String processorName, MockComponentLog logger) {
+        this(processor, processorName, logger, null);
+    }
+
+    StandardProcessorTestRunner(final Processor processor, String processorName, MockComponentLog logger, KerberosContext kerberosContext) {
         this.processor = processor;
         this.idGenerator = new AtomicLong(0L);
         this.sharedState = new SharedSessionState(processor, idGenerator);
@@ -111,8 +121,9 @@ public class StandardProcessorTestRunner implements TestRunner {
         this.processorStateManager = new MockStateManager(processor);
         this.variableRegistry = new MockVariableRegistry();
         this.context = new MockProcessContext(processor, processorName, processorStateManager, variableRegistry);
+        this.kerberosContext = kerberosContext;
 
-        final MockProcessorInitializationContext mockInitContext = new MockProcessorInitializationContext(processor, context, logger);
+        final MockProcessorInitializationContext mockInitContext = new MockProcessorInitializationContext(processor, context, logger, kerberosContext);
         processor.initialize(mockInitContext);
         this.logger =  mockInitContext.getLogger();
 

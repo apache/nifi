@@ -26,6 +26,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.hadoop.KerberosProperties;
 import org.apache.nifi.hadoop.SecurityUtil;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.security.krb.KerberosUser;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -38,7 +39,8 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public class HiveConfigurator {
 
-    public Collection<ValidationResult> validate(String configFiles, String principal, String keyTab, AtomicReference<ValidationResources> validationResourceHolder, ComponentLog log) {
+    public Collection<ValidationResult> validate(String configFiles, String principal, String keyTab, String password,
+                                                 AtomicReference<ValidationResources> validationResourceHolder, ComponentLog log) {
 
         final List<ValidationResult> problems = new ArrayList<>();
         ValidationResources resources = validationResourceHolder.get();
@@ -53,7 +55,7 @@ public class HiveConfigurator {
 
         final Configuration hiveConfig = resources.getConfiguration();
 
-        problems.addAll(KerberosProperties.validatePrincipalWithKeytabOrPassword(this.getClass().getSimpleName(), hiveConfig, principal, keyTab, null, log));
+        problems.addAll(KerberosProperties.validatePrincipalWithKeytabOrPassword(this.getClass().getSimpleName(), hiveConfig, principal, keyTab, password, log));
 
         return problems;
     }
@@ -78,6 +80,22 @@ public class HiveConfigurator {
     }
 
     /**
+     * Acquires a {@link UserGroupInformation} using the given {@link Configuration} and {@link KerberosUser}.
+     * @see SecurityUtil#getUgiForKerberosUser(Configuration, KerberosUser)
+     * @param hiveConfig The Configuration to apply to the acquired UserGroupInformation
+     * @param kerberosUser The KerberosUser to authenticate
+     * @return A UserGroupInformation instance created using the Subject of the given KerberosUser
+     * @throws AuthenticationFailedException if authentication fails
+     */
+    public UserGroupInformation authenticate(final Configuration hiveConfig, KerberosUser kerberosUser) throws AuthenticationFailedException {
+        try {
+            return SecurityUtil.getUgiForKerberosUser(hiveConfig, kerberosUser);
+        } catch (IOException ioe) {
+            throw new AuthenticationFailedException("Kerberos Authentication for Hive failed", ioe);
+        }
+    }
+
+    /**
      * As of Apache NiFi 1.5.0, due to changes made to
      * {@link SecurityUtil#loginKerberos(Configuration, String, String)}, which is used by this
      * class to authenticate a principal with Kerberos, Hive controller services no longer
@@ -94,7 +112,9 @@ public class HiveConfigurator {
      * authentication attempts that would leave the Hive controller service in an unrecoverable state.
      *
      * @see SecurityUtil#loginKerberos(Configuration, String, String)
+     * @deprecated Use {@link SecurityUtil#getUgiForKerberosUser(Configuration, KerberosUser)}
      */
+    @Deprecated
     public UserGroupInformation authenticate(final Configuration hiveConfig, String principal, String keyTab) throws AuthenticationFailedException {
         UserGroupInformation ugi;
         try {

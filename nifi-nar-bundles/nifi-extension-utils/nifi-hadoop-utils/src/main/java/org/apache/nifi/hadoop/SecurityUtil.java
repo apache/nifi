@@ -78,6 +78,15 @@ public class SecurityUtil {
         return UserGroupInformation.getCurrentUser();
     }
 
+    /**
+     * Authenticates a {@link KerberosUser} and acquires a {@link UserGroupInformation} instance using {@link UserGroupInformation#getUGIFromSubject(Subject)}.
+     * The {@link UserGroupInformation} will use the given {@link Configuration}.
+     *
+     * @param config The Configuration to apply to the acquired UserGroupInformation instance
+     * @param kerberosUser The KerberosUser to authenticate
+     * @return A UserGroupInformation instance created using the Subject of the given KerberosUser
+     * @throws IOException if authentication fails
+     */
     public static synchronized UserGroupInformation getUgiForKerberosUser(final Configuration config, final KerberosUser kerberosUser) throws IOException {
         UserGroupInformation.setConfiguration(config);
         try {
