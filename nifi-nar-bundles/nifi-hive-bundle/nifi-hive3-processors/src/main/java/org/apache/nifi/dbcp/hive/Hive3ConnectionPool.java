@@ -338,7 +338,7 @@ public class Hive3ConnectionPool extends AbstractControllerService implements Hi
                     .build());
             }
 
-            if (isAllowExplicitKeytab() && explicitKeytab != null) {
+            if (!isAllowExplicitKeytab() && explicitKeytab != null) {
                 problems.add(new ValidationResult.Builder()
                     .subject("Kerberos Credentials")
                     .valid(false)
