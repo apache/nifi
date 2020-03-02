@@ -213,7 +213,7 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
 
         final KerberosCredentialsService kerberosCredentialsService = context.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
 
-        if (kerberosCredentialsService != null && kerberosPrincipalProvided && kerberosPasswordProvided) {
+        if (kerberosCredentialsService != null && (kerberosPrincipalProvided || kerberosPasswordProvided)) {
             results.add(new ValidationResult.Builder()
                     .subject(KERBEROS_CREDENTIALS_SERVICE.getDisplayName())
                     .valid(false)
