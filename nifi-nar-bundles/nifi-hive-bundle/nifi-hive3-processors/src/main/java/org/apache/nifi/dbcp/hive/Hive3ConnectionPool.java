@@ -295,7 +295,7 @@ public class Hive3ConnectionPool extends AbstractControllerService implements Hi
         kerberosProperties = new KerberosProperties(kerberosConfigFile);
         props.add(kerberosProperties.getKerberosPrincipal());
         props.add(kerberosProperties.getKerberosKeytab());
-        props.add(kerberosProperties.getKerberosPrincipal());
+        props.add(kerberosProperties.getKerberosPassword());
         properties = props;
     }
 

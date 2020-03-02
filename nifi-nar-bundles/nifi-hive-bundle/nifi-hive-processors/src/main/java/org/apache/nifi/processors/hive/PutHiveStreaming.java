@@ -405,7 +405,7 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
             final String configFiles = validationContext.getProperty(HIVE_CONFIGURATION_RESOURCES).evaluateAttributeExpressions().getValue();
             problems.addAll(hiveConfigurator.validate(configFiles, resolvedPrincipal, resolvedKeytab, explicitPassword, validationResourceHolder, getLogger()));
 
-            if (credentialsService != null && (explicitPrincipal != null || explicitKeytab != null)) {
+            if (credentialsService != null && (explicitPrincipal != null || explicitKeytab != null || explicitPassword != null)) {
                 problems.add(new ValidationResult.Builder()
                     .subject("Kerberos Credentials")
                     .valid(false)
@@ -413,7 +413,7 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
                     .build());
             }
 
-            if (!isAllowExplicitKeytab() && (explicitPrincipal != null || explicitKeytab != null)) {
+            if (!isAllowExplicitKeytab() && explicitKeytab != null) {
                 problems.add(new ValidationResult.Builder()
                     .subject("Kerberos Credentials")
                     .valid(false)
