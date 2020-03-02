@@ -87,7 +87,7 @@ public class PutMongoRecord extends AbstractMongoProcessor {
             .required(true)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .build();
-    
+
     private final static Set<Relationship> relationships;
     private final static List<PropertyDescriptor> propertyDescriptors;
 
@@ -118,9 +118,9 @@ public class PutMongoRecord extends AbstractMongoProcessor {
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
 
-    	final FlowFile flowFile = session.get();
+        final FlowFile flowFile = session.get();
 
-    	if (flowFile == null) {
+        if (flowFile == null) {
             return;
         }
 
@@ -136,16 +136,16 @@ public class PutMongoRecord extends AbstractMongoProcessor {
         try (final InputStream inStream = session.read(flowFile);
              final RecordReader reader = recordParserFactory.createRecordReader(flowFile, inStream, getLogger())) {
 
-        	final MongoCollection<Document> collection = getCollection(context, flowFile).withWriteConcern(writeConcern);
+            final MongoCollection<Document> collection = getCollection(context, flowFile).withWriteConcern(writeConcern);
 
             Record record;
 
             while ((record = reader.nextRecord()) != null) {
- 
-            	// Convert each Record to HashMap and put into the Mongo document
 
-            	inserts.add(convertArrays(new Document(buildRecord(record))));
-            	
+                // Convert each Record to HashMap and put into the Mongo document
+
+                inserts.add(convertArrays(new Document(buildRecord(record))));
+
                 // If inserts pending reach a specific level, trigger a write
                 if (inserts.size() == ceiling) {
                     collection.insertMany(inserts);
@@ -153,22 +153,20 @@ public class PutMongoRecord extends AbstractMongoProcessor {
                     inserts = new ArrayList<>();
                 }
             }
-            
+
             // Flush any pending inserts
             if (!inserts.isEmpty()) {
-            	collection.insertMany(inserts);
+                collection.insertMany(inserts);
             }
         } catch (SchemaNotFoundException | IOException | MalformedRecordException | MongoException e) {
             getLogger().error("PutMongoRecord failed with error:", e);
             session.transfer(flowFile, REL_FAILURE);
             error = true;
-        } 
-        catch(Exception ex) {
+        } catch(Exception ex) {
             getLogger().error("PutMongoRecord failed with error:", ex);
             session.transfer(flowFile, REL_FAILURE);
             error = true;
-        }
-        finally {
+        } finally {
             if (!error) {
                 String url = clientService != null ? clientService.getURI() : context.getProperty(URI).evaluateAttributeExpressions().getValue();
                 session.getProvenanceReporter().send(flowFile, url, String.format("Added %d documents to MongoDB.", added));
@@ -210,39 +208,39 @@ public class PutMongoRecord extends AbstractMongoProcessor {
 
         return retVal;
     }
-    
+
     private Map<String,Object> buildRecord(final Record record) {
 
-    	Map<String,Object> result = new HashMap<>();
-    	
-    	for(RecordField field : record.getSchema().getFields()) {
+        Map<String,Object> result = new HashMap<>();
 
-    		result.put(field.getFieldName(), mapValue(field.getFieldName(), record.getValue(field.getFieldName()), field.getDataType()));
-    	}
-    	
-		return result;
+        for(RecordField field : record.getSchema().getFields()) {
+
+            result.put(field.getFieldName(), mapValue(field.getFieldName(), record.getValue(field.getFieldName()), field.getDataType()));
+        }
+
+        return result;
     }
 
     @SuppressWarnings("unchecked")
     private Object mapValue(final String fieldName, final Object value, final DataType dataType) {
 
-    	if(value == null) {
-    		
-    		return null;
-    	}
-    	
+        if(value == null) {
+
+            return null;
+        }
+
         final DataType chosenDataType = dataType.getFieldType() == RecordFieldType.CHOICE ? DataTypeUtils.chooseDataType(value, (ChoiceDataType) dataType) : dataType;
         final Object coercedValue = DataTypeUtils.convertType(value, chosenDataType, fieldName);
 
         if(coercedValue == null) {
-        	
-        	return null;
+
+            return null;
         }
-        
+
         switch (chosenDataType.getFieldType()) {
-        
-        	case DATE:
-        	case TIME:
+
+            case DATE:
+            case TIME:
             case DOUBLE:
             case FLOAT:
             case LONG:
@@ -253,37 +251,37 @@ public class PutMongoRecord extends AbstractMongoProcessor {
             case STRING:
             case BIGINT:
             case BOOLEAN:
-            	return coercedValue;
-            	
+                return coercedValue;
+
             case TIMESTAMP:
-            	return ((Timestamp) coercedValue).toInstant();
-            	
+                return ((Timestamp) coercedValue).toInstant();
+
             case DECIMAL:
-            	return new Decimal128((BigDecimal) coercedValue);
-            
+                return new Decimal128((BigDecimal) coercedValue);
+
             case RECORD:
                 return buildRecord((Record) coercedValue);
 
             case ARRAY:
-            	// Map the value of each element of the array
-            	return Arrays.stream((Object[]) coercedValue)
-            		.map(v -> mapValue(fieldName, v, ((ArrayDataType) chosenDataType).getElementType())).collect(Collectors.toList()).toArray();
+                // Map the value of each element of the array
+                return Arrays.stream((Object[]) coercedValue)
+                    .map(v -> mapValue(fieldName, v, ((ArrayDataType) chosenDataType).getElementType())).collect(Collectors.toList()).toArray();
 
             case MAP: {
-            	// Map the values of each entry in the map
+                // Map the values of each entry in the map
 
-            	Map<String,Object> result = new HashMap<>();
-            	
-            	for(Map.Entry<String,Object> entry : ((Map<String, Object>) coercedValue).entrySet()) {
-            		
-            		result.put(entry.getKey(), mapValue(entry.getKey(), entry.getValue(), ((MapDataType) chosenDataType).getValueType()));
-            	}
-            	
-            	return result;
+                Map<String,Object> result = new HashMap<>();
+
+                for(Map.Entry<String,Object> entry : ((Map<String, Object>) coercedValue).entrySet()) {
+
+                    result.put(entry.getKey(), mapValue(entry.getKey(), entry.getValue(), ((MapDataType) chosenDataType).getValueType()));
+                }
+
+                return result;
             }
 
             default:
-            	return coercedValue.toString();
+                return coercedValue.toString();
         }
     }
 }

@@ -288,23 +288,23 @@ public enum RecordFieldType {
 
     /**
      * Returns a data type that represents a DECIMAL value with given precision and scale
-     * 
-     * @param precision
-     * @param scale
-     * 
+     *
+     * @param precision indicates the expected number of digits before the decimal point
+     * @param scale indicates the expected number of digits after the decimal point
+     *
      * @return a DataType that represents a DECIMAL with specified precision and scale, or <code>null</code> if this RecordFieldType
      *         is not a DECIMAL type
      */
-    
+
     public DataType getDecimalDataType(int precision, int scale) {
-    	if(this != DECIMAL) {
-    		return null;
-    	}
-    	
-    	return new DecimalDataType(precision, scale);
+        if(this != DECIMAL) {
+            return null;
+        }
+
+        return new DecimalDataType(precision, scale);
     }
-    
-    
+
+
     /**
      * Returns a Data Type that represents an "ARRAY" type with the given element type.
      *

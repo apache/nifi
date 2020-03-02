@@ -461,7 +461,7 @@ public class DataTypeUtils {
             }
             if (value instanceof BigDecimal) {
                 return RecordFieldType.DECIMAL.getDecimalDataType(
-                		((BigDecimal) value).precision(), ((BigDecimal) value).scale());
+                        ((BigDecimal) value).precision(), ((BigDecimal) value).scale());
             }
         }
 

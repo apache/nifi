@@ -143,7 +143,7 @@ public class MetricsService {
         final double jvmHeapUsage = virtualMachineMetrics.heapUsage();
         final double jvmNonHeapUsage = virtualMachineMetrics.nonHeapUsage();
         final double jvmFileDescriptorUsage = virtualMachineMetrics.fileDescriptorUsage();
-       
+
         metrics.put(MetricNames.JVM_HEAP_USED, Double.isNaN(jvmHeapUsed) ? null : jvmHeapUsed);
         metrics.put(MetricNames.JVM_HEAP_USAGE, Double.isNaN(jvmHeapUsage) ? null : jvmHeapUsage);
         metrics.put(MetricNames.JVM_NON_HEAP_USAGE, Double.isNaN(jvmNonHeapUsage) ? null : jvmNonHeapUsage);

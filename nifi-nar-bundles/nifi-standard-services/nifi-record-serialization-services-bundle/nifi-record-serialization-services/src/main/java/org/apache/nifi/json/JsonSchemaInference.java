@@ -63,10 +63,10 @@ public class JsonSchemaInference extends HierarchicalSchemaInference<JsonNode> {
         }
 
         if (jsonNode.isFloatingPointNumber()) {
-        	if(jsonNode.isBigDecimal()) {
-            	return RecordFieldType.DECIMAL.getDataType();
-        	}
-        	return RecordFieldType.DOUBLE.getDataType();
+            if(jsonNode.isBigDecimal()) {
+                return RecordFieldType.DECIMAL.getDataType();
+            }
+            return RecordFieldType.DOUBLE.getDataType();
         }
         if (jsonNode.isBinary()) {
             return RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType());

@@ -416,7 +416,7 @@ public class SolrUtils {
                 break;
             }
             case DECIMAL:
-            	// Decimal will map to Double for Solr as there is no general purpose large decimal type suitable
+                // Decimal will map to Double for Solr as there is no general purpose large decimal type suitable
             case DOUBLE:
                 addFieldToSolrDocument(inputDocument,fieldName,DataTypeUtils.toDouble(coercedValue, fieldName),fieldsToIndex);
                 break;

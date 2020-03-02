@@ -13,7 +13,7 @@ public class DecimalDataType extends DataType {
         this.precision = precision;
         this.scale = scale;
     }
-    
+
     public int getPrecision() {
         return precision;
     }
