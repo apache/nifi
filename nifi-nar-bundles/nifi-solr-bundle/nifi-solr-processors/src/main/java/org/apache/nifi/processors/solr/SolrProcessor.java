@@ -284,7 +284,7 @@ public abstract class SolrProcessor extends AbstractProcessor {
                     .build());
         }
 
-        if (kerberosCredentialsService != null && kerberosPrincipalProvided && kerberosPasswordProvided) {
+        if (kerberosCredentialsService != null && (kerberosPrincipalProvided || kerberosPasswordProvided)) {
             problems.add(new ValidationResult.Builder()
                     .subject(KERBEROS_CREDENTIALS_SERVICE.getDisplayName())
                     .valid(false)

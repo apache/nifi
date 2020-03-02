@@ -22,7 +22,6 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.security.krb.KerberosKeytabUser;
-import org.apache.nifi.security.krb.KerberosPasswordUser;
 import org.apache.nifi.security.krb.KerberosUser;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.TestRunner;
@@ -486,7 +485,6 @@ public class TestPutSolrContentStream {
         final KerberosUser kerberosUser = proc.getMockKerberosKeytabUser();
         Assert.assertNotNull(kerberosUser);
         Assert.assertEquals(kerberosPrincipal, kerberosUser.getPrincipal());
-        Assert.assertEquals(kerberosPassword, ((KerberosPasswordUser)kerberosUser).getPassword());
     }
 
     @Test
