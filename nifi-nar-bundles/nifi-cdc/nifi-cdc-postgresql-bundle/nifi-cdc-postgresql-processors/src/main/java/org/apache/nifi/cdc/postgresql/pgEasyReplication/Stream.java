@@ -34,11 +34,8 @@ import org.postgresql.replication.PGReplicationStream;
 
 import org.apache.nifi.cdc.postgresql.pgEasyReplication.ConnectionManager;
 
-/* 
- * Streams are data changes captured (BEGIN, COMMIT, INSERT, UPDATE, DELETE, etc.) 
- * via Slot Replication API and decoded. 
- * */
 
+/* Streams are data changes captured (BEGIN, COMMIT, INSERT, UPDATE, DELETE, etc.) via Slot Replication API and decoded. */
 public class Stream {
 
     private PGReplicationStream repStream;
