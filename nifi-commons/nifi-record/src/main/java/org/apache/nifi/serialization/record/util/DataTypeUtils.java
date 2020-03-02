@@ -1268,9 +1268,9 @@ public class DataTypeUtils {
         }
 
         if(value instanceof BigDecimal) {
-        	return (BigDecimal) value;
+            return (BigDecimal) value;
         }
-        
+
         if (value instanceof Long) {
             return BigDecimal.valueOf((Long) value);
         }
@@ -1278,7 +1278,7 @@ public class DataTypeUtils {
         if (value instanceof Double) {
             return BigDecimal.valueOf((Double) value);
         }
-        
+
         if (value instanceof String) {
             return new BigDecimal((String) value);
         }
@@ -1387,7 +1387,7 @@ public class DataTypeUtils {
 
         return true;
     }
-    
+
     public static Long toLong(final Object value, final String fieldName) {
         if (value == null) {
             return null;

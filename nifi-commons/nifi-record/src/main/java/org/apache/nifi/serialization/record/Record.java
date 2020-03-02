@@ -19,7 +19,6 @@ package org.apache.nifi.serialization.record;
 
 import org.apache.nifi.serialization.record.util.IllegalTypeConversionException;
 
-import java.math.BigDecimal;
 import java.util.Date;
 import java.util.Map;
 import java.util.Optional;

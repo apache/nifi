@@ -7,19 +7,19 @@ public class DecimalDataType extends DataType {
 
     private final int precision;
     private final int scale;
-	
-	public DecimalDataType(int precision, int scale) {
-	    super(RecordFieldType.DECIMAL, null);
-	    this.precision = precision;
-	    this.scale = scale;
-	}
-    
-    public int getPrecision() {
-    	return precision;
+
+    public DecimalDataType(int precision, int scale) {
+        super(RecordFieldType.DECIMAL, null);
+        this.precision = precision;
+        this.scale = scale;
     }
     
+    public int getPrecision() {
+        return precision;
+    }
+
     public int getScale() {
-    	return scale;
+        return scale;
     }
 
     @Override
