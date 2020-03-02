@@ -29,10 +29,16 @@ import java.util.LinkedList;
 import org.postgresql.PGConnection;
 import org.postgresql.copy.CopyManager;
 
+/*
+ * Snapshots are copies of published table data.
+ */
+
 public class Snapshot {
 
     private String publication;
     private ConnectionManager connectionManager;
+
+    public static final String MIME_TYPE_OUTPUT_DEFAULT = "application/json";
 
     public Snapshot(String pub, ConnectionManager connectionManager) {
         this.publication = pub;
@@ -57,7 +63,7 @@ public class Snapshot {
         return pubTables;
     }
 
-    public ArrayList<String> getInitialSnapshotTable(String tableName) throws SQLException, IOException {
+    public ArrayList<String> getInitialSnapshotTableJSON(String tableName) throws SQLException, IOException {
         PGConnection pgcon = this.connectionManager.getSQLConnection().unwrap(PGConnection.class);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
 
@@ -67,17 +73,25 @@ public class Snapshot {
         return new ArrayList<String>(Arrays.asList(out.toString("UTF-8").split("\n")));
     }
 
-    public Event getInitialSnapshot() throws SQLException, IOException {
+    public Event getInitialSnapshot(String outputFormat) throws SQLException, IOException {
         LinkedList<String> snapshot = new LinkedList<String>();
 
         ArrayList<String> pubTables = this.getPublicationTables();
 
-        for (String table : pubTables) {
-            ArrayList<String> lines = this.getInitialSnapshotTable(table);
+        switch (outputFormat) {
+        case MIME_TYPE_OUTPUT_DEFAULT:
 
-            snapshot.add("{\"snaphost\":{\"" + table + "\":" + lines.toString().replace("\\\\\"", "\\\"") + "}}");
+            for (String table : pubTables) {
+                ArrayList<String> lines = this.getInitialSnapshotTableJSON(table);
+
+                snapshot.add("{\"snapshot\":{\"relationName\":\"" + table + "\",\"tupleData\":" + lines.toString().replace("\\\\\"", "\\\"") + "}}");
+            }
+
+            return new Event(snapshot, null, true, false, false);
+
+        default:
+
+            throw new IllegalArgumentException("Invalid output format!");
         }
-
-        return new Event(snapshot, null, true, false, false);
     }
 }

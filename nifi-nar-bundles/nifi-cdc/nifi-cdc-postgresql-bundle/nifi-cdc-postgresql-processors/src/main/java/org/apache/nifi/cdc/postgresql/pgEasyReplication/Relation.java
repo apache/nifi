@@ -56,12 +56,12 @@ public class Relation {
         return name;
     }
 
-    public String getFullName() {
-        return (namespace != null) ? this.namespace + "." + this.name : "pg_catalog." + this.name;
-    }
-
     public void setName(String name) {
         this.name = name;
+    }
+
+    public String getFullName() {
+        return (namespace != null) ? namespace + "." + name : "pg_catalog." + name;
     }
 
     public char getReplicaIdentity() {

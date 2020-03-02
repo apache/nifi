@@ -25,6 +25,8 @@ import java.sql.SQLException;
 import java.text.ParseException;
 import org.postgresql.PGConnection;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+
 import org.apache.nifi.cdc.postgresql.pgEasyReplication.Event;
 import org.apache.nifi.cdc.postgresql.pgEasyReplication.Snapshot;
 
@@ -32,26 +34,34 @@ public class PGEasyReplication {
 
     private String publication;
     private String slot;
-    private boolean slotDropIfExists;
     private Stream stream;
     private ConnectionManager connectionManager;
 
-    public PGEasyReplication(String pub, String slt, boolean sltDropIfExists, ConnectionManager connectionManager) {
+    public static final boolean SLOT_DROP_IF_EXISTS_DEFAULT = false;
+    public static final boolean IS_SIMPLE_EVENT_DEFAULT = true;
+    public static final boolean INCLUDE_BEGIN_COMMIT_DEFAULT = false;
+    public static final String MIME_TYPE_OUTPUT_DEFAULT = "application/json";
+
+    public PGEasyReplication(String pub, String slt, ConnectionManager connectionManager) {
         this.publication = pub;
         this.slot = slt;
-        this.slotDropIfExists = sltDropIfExists;
         this.connectionManager = connectionManager;
     }
 
     public void initializeLogicalReplication() {
+        this.initializeLogicalReplication(SLOT_DROP_IF_EXISTS_DEFAULT);
+    }
+
+    public void initializeLogicalReplication(boolean slotDropIfExists) {
         try {
             PreparedStatement stmt = this.connectionManager.getSQLConnection().prepareStatement("select 1 from pg_catalog.pg_replication_slots WHERE slot_name = ?");
 
             stmt.setString(1, this.slot);
             ResultSet rs = stmt.executeQuery();
 
-            if (rs.next()) { // If slot exists
-                if (this.slotDropIfExists) {
+            if (rs.next()) {
+                // If slot exists
+                if (slotDropIfExists) {
                     this.dropReplicationSlot();
                     this.createReplicationSlot();
                 }
@@ -67,15 +77,9 @@ public class PGEasyReplication {
     public void createReplicationSlot() {
         try {
             PGConnection pgcon = this.connectionManager.getReplicationConnection().unwrap(PGConnection.class);
-            // More details about pgoutput options: https://github.com/postgres/postgres/blob/master/src/backend/replication/pgoutput/pgoutput.c
-            //PostgreSQL at GitHub: https://github.com/postgres
-            //Source file: postgres/src/backend/replication/pgoutput/pgoutput.c
-            pgcon.getReplicationAPI()
-            .createReplicationSlot()
-            .logical()
-            .withSlotName(this.slot)
-            .withOutputPlugin("pgoutput")
-            .make();
+
+            // More details about pgoutput options in PostgreSQL project: https://github.com/postgres, source file: postgres/src/backend/replication/pgoutput/pgoutput.c
+            pgcon.getReplicationAPI().createReplicationSlot().logical().withSlotName(this.slot).withOutputPlugin("pgoutput").make();
 
         } catch (SQLException e) {
             e.printStackTrace();
@@ -92,11 +96,15 @@ public class PGEasyReplication {
     }
 
     public Event getSnapshot() {
+        return this.getSnapshot(MIME_TYPE_OUTPUT_DEFAULT);
+    }
+
+    public Event getSnapshot(String outputFormat) {
         Event event = null;
 
         try {
             Snapshot snapshot = new Snapshot(this.publication, this.connectionManager);
-            event = snapshot.getInitialSnapshot();
+            event = snapshot.getInitialSnapshot(outputFormat);
 
         } catch (SQLException e) {
             e.printStackTrace();
@@ -108,26 +116,31 @@ public class PGEasyReplication {
     }
 
     public Event readEvent() {
-        return this.readEvent(true, true, null);
+        return this.readEvent(IS_SIMPLE_EVENT_DEFAULT, INCLUDE_BEGIN_COMMIT_DEFAULT, MIME_TYPE_OUTPUT_DEFAULT, null);
     }
 
     public Event readEvent(boolean isSimpleEvent) {
-        return this.readEvent(isSimpleEvent, true, null);
+        return this.readEvent(isSimpleEvent, INCLUDE_BEGIN_COMMIT_DEFAULT, MIME_TYPE_OUTPUT_DEFAULT, null);
     }
 
     public Event readEvent(boolean isSimpleEvent, boolean withBeginCommit) {
-        return this.readEvent(isSimpleEvent, withBeginCommit, null);
+        return this.readEvent(isSimpleEvent, withBeginCommit, MIME_TYPE_OUTPUT_DEFAULT, null);
     }
 
-    public Event readEvent(boolean isSimpleEvent, boolean withBeginCommit, Long startLSN) {
+    public Event readEvent(boolean isSimpleEvent, boolean withBeginCommit, String outputFormat) {
+        return this.readEvent(isSimpleEvent, withBeginCommit, outputFormat, null);
+    }
+
+    public Event readEvent(boolean isSimpleEvent, boolean withBeginCommit, String outputFormat, Long startLSN) {
         Event event = null;
 
         try {
-            if (this.stream == null) { // First read
+            if (this.stream == null) {
+                // First read stream
                 this.stream = new Stream(this.publication, this.slot, startLSN, this.connectionManager);
             }
 
-            event = this.stream.readStream(isSimpleEvent, withBeginCommit);
+            event = this.stream.readStream(isSimpleEvent, withBeginCommit, outputFormat);
 
         } catch (SQLException e) {
             e.printStackTrace();
@@ -136,6 +149,8 @@ public class PGEasyReplication {
         } catch (ParseException e) {
             e.printStackTrace();
         } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        } catch (JsonProcessingException e) {
             e.printStackTrace();
         }
 
