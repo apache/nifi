@@ -33,6 +33,7 @@ import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.queue.FlowFileQueue;
+import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
@@ -175,13 +176,67 @@ public class ControllerSearchService {
             }
         }
 
+        for (final ControllerServiceNode controllerServiceNode : group.getControllerServices(false)) {
+            if (controllerServiceNode.isAuthorized(authorizer, RequestAction.READ, user)) {
+                final ComponentSearchResultDTO match = search(search, controllerServiceNode);
+                if (match != null) {
+                    match.setGroupId(group.getIdentifier());
+                    match.setParentGroup(buildResultGroup(group, user));
+                    match.setVersionedGroup(buildVersionedGroup(group, user));
+                    results.getControllerServiceNodeResults().add(match);
+                }
+            }
+        }
+
         for (final ProcessGroup processGroup : group.getProcessGroups()) {
             search(results, search, processGroup);
         }
     }
 
     /**
+     * Searches controller service for the given search term
+     *
+     * @param search                the search term
+     * @param controllerServiceNode a group controller service node
+     */
+    private ComponentSearchResultDTO search(final String search, final ControllerServiceNode controllerServiceNode) {
+        final List<String> matches = new ArrayList<>();
+        addIfAppropriate(search, controllerServiceNode.getIdentifier(), "Id", matches);
+        addIfAppropriate(search, controllerServiceNode.getVersionedComponentId().orElse(null), "Version Control ID", matches);
+        addIfAppropriate(search, controllerServiceNode.getName(), "Name", matches);
+        addIfAppropriate(search, controllerServiceNode.getComments(), "Comments", matches);
+
+        // search property values
+        controllerServiceNode.getRawPropertyValues().forEach((property, propertyValue) -> {
+            addIfAppropriate(search, property.getName(), "Property Name", matches);
+            addIfAppropriate(search, property.getDescription(), "Property Description", matches);
+
+            // never include sensitive properties in search results
+            if (property.isSensitive()) {
+                return;
+            }
+
+            if (propertyValue != null) {
+                addIfAppropriate(search, propertyValue, "Property Value", matches);
+            } else {
+                addIfAppropriate(search, property.getDefaultValue(), "Property Value", matches);
+            }
+        });
+
+        if (matches.isEmpty()) {
+            return null;
+        }
+
+        final ComponentSearchResultDTO dto = new ComponentSearchResultDTO();
+        dto.setId(controllerServiceNode.getIdentifier());
+        dto.setName(controllerServiceNode.getName());
+        dto.setMatches(matches);
+        return dto;
+    }
+
+    /**
      * Searches all parameter contexts and parameters
+     *
      * @param results Search results
      * @param search  The search term
      */
