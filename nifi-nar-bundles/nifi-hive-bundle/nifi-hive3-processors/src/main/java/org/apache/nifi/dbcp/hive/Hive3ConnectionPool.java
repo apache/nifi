@@ -338,8 +338,7 @@ public class Hive3ConnectionPool extends AbstractControllerService implements Hi
                     .build());
             }
 
-            final String allowExplicitKeytabVariable = System.getenv(ALLOW_EXPLICIT_KEYTAB);
-            if ("false".equalsIgnoreCase(allowExplicitKeytabVariable) && explicitKeytab != null) {
+            if (isAllowExplicitKeytab() && explicitKeytab != null) {
                 problems.add(new ValidationResult.Builder()
                     .subject("Kerberos Credentials")
                     .valid(false)
@@ -543,4 +542,10 @@ public class Hive3ConnectionPool extends AbstractControllerService implements Hi
         return connectionUrl;
     }
 
+    /*
+     * Overridable by subclasses in the same package, mainly intended for testing purposes to allow verification without having to set environment variables.
+     */
+    boolean isAllowExplicitKeytab() {
+        return Boolean.parseBoolean(System.getenv(ALLOW_EXPLICIT_KEYTAB));
+    }
 }

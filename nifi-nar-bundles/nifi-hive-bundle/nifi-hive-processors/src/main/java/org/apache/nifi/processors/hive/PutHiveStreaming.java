@@ -413,8 +413,7 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
                     .build());
             }
 
-            final String allowExplicitKeytabVariable = System.getenv(ALLOW_EXPLICIT_KEYTAB);
-            if ("false".equalsIgnoreCase(allowExplicitKeytabVariable) && (explicitPrincipal != null || explicitKeytab != null)) {
+            if (!isAllowExplicitKeytab() && (explicitPrincipal != null || explicitKeytab != null)) {
                 problems.add(new ValidationResult.Builder()
                     .subject("Kerberos Credentials")
                     .valid(false)
@@ -1179,6 +1178,13 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
             getLogger().debug("kerberosUser was null, will not refresh TGT with KerberosUser");
         }
         return ugi;
+    }
+
+    /*
+     * Overridable by subclasses in the same package, mainly intended for testing purposes to allow verification without having to set environment variables.
+     */
+    boolean isAllowExplicitKeytab() {
+        return Boolean.parseBoolean(System.getenv(ALLOW_EXPLICIT_KEYTAB));
     }
 
     protected class HiveStreamingRecord {
