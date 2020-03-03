@@ -42,10 +42,10 @@ import org.apache.nifi.serialization.record.type.ChoiceDataType;
 import org.apache.nifi.serialization.record.type.MapDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.bson.Document;
-import org.bson.types.Decimal128;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.util.ArrayList;
@@ -86,6 +86,14 @@ public class PutMongoRecord extends AbstractMongoProcessor {
             .defaultValue("100")
             .required(true)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .build();
+    static final PropertyDescriptor USE_DECIMAL128 = new PropertyDescriptor.Builder()
+            .name("use_decimal128")
+            .displayName("Use Decimal128")
+            .description("Use the Decimal128 type if available (Mongo3.4+) for Decimal values defined in the Avro Schema")
+            .defaultValue("false")
+            .required(false)
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .build();
 
     private final static Set<Relationship> relationships;
@@ -144,7 +152,7 @@ public class PutMongoRecord extends AbstractMongoProcessor {
 
                 // Convert each Record to HashMap and put into the Mongo document
 
-                inserts.add(convertArrays(new Document(buildRecord(record))));
+                inserts.add(convertArrays(new Document(buildRecord(record, context))));
 
                 // If inserts pending reach a specific level, trigger a write
                 if (inserts.size() == ceiling) {
@@ -209,20 +217,20 @@ public class PutMongoRecord extends AbstractMongoProcessor {
         return retVal;
     }
 
-    private Map<String,Object> buildRecord(final Record record) {
+    private Map<String,Object> buildRecord(final Record record, final ProcessContext context) {
 
         Map<String,Object> result = new HashMap<>();
 
         for(RecordField field : record.getSchema().getFields()) {
 
-            result.put(field.getFieldName(), mapValue(field.getFieldName(), record.getValue(field.getFieldName()), field.getDataType()));
+            result.put(field.getFieldName(), mapValue(field.getFieldName(), record.getValue(field.getFieldName()), field.getDataType(), context));
         }
 
         return result;
     }
 
     @SuppressWarnings("unchecked")
-    private Object mapValue(final String fieldName, final Object value, final DataType dataType) {
+    private Object mapValue(final String fieldName, final Object value, final DataType dataType, final ProcessContext context) {
 
         if(value == null) {
 
@@ -257,15 +265,16 @@ public class PutMongoRecord extends AbstractMongoProcessor {
                 return ((Timestamp) coercedValue).toInstant();
 
             case DECIMAL:
-                return new Decimal128((BigDecimal) coercedValue);
+                return context.getProperty(USE_DECIMAL128).asBoolean().booleanValue()
+                        ? buildDecimal128orDouble((BigDecimal) coercedValue) : ((BigDecimal) coercedValue).doubleValue();
 
             case RECORD:
-                return buildRecord((Record) coercedValue);
+                return buildRecord((Record) coercedValue, context);
 
             case ARRAY:
                 // Map the value of each element of the array
                 return Arrays.stream((Object[]) coercedValue)
-                    .map(v -> mapValue(fieldName, v, ((ArrayDataType) chosenDataType).getElementType())).collect(Collectors.toList()).toArray();
+                    .map(v -> mapValue(fieldName, v, ((ArrayDataType) chosenDataType).getElementType(), context)).collect(Collectors.toList()).toArray();
 
             case MAP: {
                 // Map the values of each entry in the map
@@ -274,7 +283,7 @@ public class PutMongoRecord extends AbstractMongoProcessor {
 
                 for(Map.Entry<String,Object> entry : ((Map<String, Object>) coercedValue).entrySet()) {
 
-                    result.put(entry.getKey(), mapValue(entry.getKey(), entry.getValue(), ((MapDataType) chosenDataType).getValueType()));
+                    result.put(entry.getKey(), mapValue(entry.getKey(), entry.getValue(), ((MapDataType) chosenDataType).getValueType(), context));
                 }
 
                 return result;
@@ -282,6 +291,36 @@ public class PutMongoRecord extends AbstractMongoProcessor {
 
             default:
                 return coercedValue.toString();
+        }
+    }
+
+    /***
+     * Return a Double or Decimal128 value.
+     *
+     * If the Decimal128 type is available (mongodb driver >= 3.4) then this method will return a Decimal128 for the BigDecimal
+     * otherwise it will revert to using a Double value
+     *
+     * @param value BigDecimal value to be converted to Decimal128 or Double
+     * @return Returns a Decimal128 type object or a Double type object
+     */
+    private Object buildDecimal128orDouble(BigDecimal value) {
+
+        try {
+            Class<?> clazz = Class.forName("org.bson.types.Decimal128");
+
+            return clazz.getConstructor(BigDecimal.class).newInstance(value);
+
+        } catch(LinkageError | ClassNotFoundException ex) {
+
+            getLogger().info("org.bson.types.Decimal128 type not available, using double value instead");
+
+            return value.doubleValue();
+        } catch(NoSuchMethodException | InvocationTargetException | InstantiationException
+                | IllegalAccessException | IllegalArgumentException | SecurityException ex) {
+
+            getLogger().info("Failed to construct a new instance of org.bson.types.Decimal128, using double value instead");
+
+            return value.doubleValue();
         }
     }
 }
