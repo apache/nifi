@@ -43,7 +43,7 @@ public class NiFiAnonymousAuthenticationProvider extends NiFiAuthenticationProvi
         final NiFiAnonymousAuthenticationRequestToken request = (NiFiAnonymousAuthenticationRequestToken) authentication;
 
         if (request.isSecureRequest() && !properties.isAnonymousAuthenticationAllowed()) {
-            throw new InvalidAuthenticationException("Anonymous authentication is not been configured.");
+            throw new InvalidAuthenticationException("Anonymous authentication has not been configured.");
         }
 
         return new NiFiAuthenticationToken(new NiFiUserDetails(StandardNiFiUser.populateAnonymousUser(null, request.getClientAddress())));
