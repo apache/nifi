@@ -268,4 +268,42 @@ public class TestInvokeHTTP extends TestInvokeHttpCommon {
         assertNull(regexAttributesToSendField.get(processor));
 
     }
+    @Test
+    public void testEmptyGzipHttpReponse() throws Exception {
+        addHandler(new EmptyGzipResponseHandler());
+
+        runner.setProperty(InvokeHTTP.PROP_URL, url);
+
+        createFlowFiles(runner);
+
+        runner.run();
+
+        runner.assertTransferCount(InvokeHTTP.REL_SUCCESS_REQ, 1);
+        runner.assertTransferCount(InvokeHTTP.REL_RESPONSE, 1);
+        runner.assertTransferCount(InvokeHTTP.REL_RETRY, 0);
+        runner.assertTransferCount(InvokeHTTP.REL_NO_RETRY, 0);
+        runner.assertTransferCount(InvokeHTTP.REL_FAILURE, 0);
+        runner.assertPenalizeCount(0);
+
+        //expected empty content in response FlowFile
+        final MockFlowFile bundle = runner.getFlowFilesForRelationship(InvokeHTTP.REL_RESPONSE).get(0);
+        bundle.assertContentEquals(new byte[0]);
+        bundle.assertAttributeEquals(InvokeHTTP.STATUS_CODE, "200");
+        bundle.assertAttributeEquals(InvokeHTTP.STATUS_MESSAGE, "OK");
+        bundle.assertAttributeEquals("Foo", "Bar");
+        bundle.assertAttributeEquals("Content-Type", "text/plain");
+    }
+
+    public static class EmptyGzipResponseHandler extends AbstractHandler {
+
+        @Override
+        public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
+            baseRequest.setHandled(true);
+            response.setStatus(200);
+            response.setContentLength(0);
+            response.setContentType("text/plain");
+            response.setHeader("Content-Encoding", "gzip");
+        }
+
+    }
 }
