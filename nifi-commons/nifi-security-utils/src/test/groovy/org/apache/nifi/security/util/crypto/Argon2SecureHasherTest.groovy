@@ -254,9 +254,9 @@ class Argon2SecureHasherTest extends GroovyTestCase {
     }
 
     @Test
-    void testShouldVerifyInvalidHashLengthBoundary() throws Exception {
+    void testShouldFailHashLengthBoundary() throws Exception {
         // Arrange
-        def hashLengths = [0, 1, 2]
+        def hashLengths = [-8, 0, 1, 2]
 
         // Act
         def results = hashLengths.collect { hashLength ->
@@ -286,7 +286,7 @@ class Argon2SecureHasherTest extends GroovyTestCase {
     @Test
     void testShouldFailMemorySizeBoundary() throws Exception {
         // Arrange
-        def memorySizes = [0, 1, 6]
+        def memorySizes = [-12, 0, 1, 6]
 
         // Act
         def results = memorySizes.collect { memory ->
@@ -316,7 +316,7 @@ class Argon2SecureHasherTest extends GroovyTestCase {
     @Test
     void testShouldFailParalellismBoundary() throws Exception {
         // Arrange
-        def parallelisms = [0, 16777220, 16778000]
+        def parallelisms = [-8, 0, 16777220, 16778000]
 
         // Act
         def results = parallelisms.collect { paralellism ->

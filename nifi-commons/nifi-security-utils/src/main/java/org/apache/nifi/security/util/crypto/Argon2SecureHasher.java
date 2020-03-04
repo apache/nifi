@@ -53,10 +53,13 @@ public class Argon2SecureHasher implements SecureHasher {
     private final int iterations;
     private final int saltLength;
 
-    private final boolean usingStaticSalt;
+    private boolean usingStaticSalt;
 
     // A 16 byte salt (nonce) is recommended for password hashing
     private static final byte[] staticSalt = "NiFi Static Salt".getBytes(StandardCharsets.UTF_8);
+
+    // Upper boundary for several cost parameters
+    private static final double upperBoundary = Math.pow(2, 32) - 1;
 
     /**
      * Instantiates an Argon2 secure hasher using the default cost parameters
@@ -93,18 +96,51 @@ public class Argon2SecureHasher implements SecureHasher {
      * @param saltLength  the salt length in bytes {@code 8 to 2^32 - 1})
      */
     public Argon2SecureHasher(int hashLength, int memory, int parallelism, int iterations, int saltLength) {
+
+        validateParameters(hashLength, memory, parallelism, iterations, saltLength);
+
         this.hashLength = hashLength;
         this.memory = memory;
         this.parallelism = parallelism;
         this.iterations = iterations;
 
         this.saltLength = saltLength;
+    }
+
+    /**
+     * Enforces valid Argon2 secure hasher cost parameters are provided.
+     *
+     * @param hashLength  the output length in bytes ({@code 4 to 2^32 - 1})
+     * @param memory      the integer number of KB used ({@code 8p to 2^32 - 1})
+     * @param parallelism degree of parallelism ({@code 1 to 2^24 - 1})
+     * @param iterations  number of iterations ({@code 1 to 2^32 - 1})
+     * @param saltLength  the salt length in bytes {@code 8 to 2^32 - 1})
+     */
+    private void validateParameters(int hashLength, int memory, int parallelism, int iterations, int saltLength) {
+
+        if (!isHashLengthValid(hashLength)) {
+            logger.error("The provided hash length {} is outside the boundary of 4 to 2^32 - 1.", hashLength);
+            throw new IllegalArgumentException("Invalid hash length is not within the hashLength boundary.");
+        }
+        if (!isMemorySizeValid(memory)) {
+            logger.error("The provided memory size {} KiB is outside the boundary of 8p to 2^32 - 1.", memory);
+            throw new IllegalArgumentException("Invalid memory size is not within the memory boundary.");
+        }
+        if (!isParallelismValid(parallelism)) {
+            logger.error("The provided parallelization factor {} is outside the boundary of 1 to 2^24 - 1.", parallelism);
+            throw new IllegalArgumentException("Invalid parallelization factor exceeds the parallelism boundary.");
+        }
+        if (!isIterationsValid(iterations)) {
+            logger.error("The iteration count {} is outside the boundary of 1 to 2^32 - 1.", iterations);
+            throw new IllegalArgumentException("Invalid iteration count exceeds the iterations boundary.");
+        }
+
         if (saltLength > 0) {
-            if (saltLength < 16) {
+            if (saltLength <= 16) {
                 logger.warn("The provided dynamic salt length {} is below the recommended minimum 16", saltLength);
             }
             if (!isSaltLengthValid(saltLength)) {
-                logger.warn("The salt length {} is out of bounds.", saltLength);
+                logger.error("The salt length {} is outside the boundary of 8 to 2^32 - 1.", saltLength);
                 throw new IllegalArgumentException("Invalid salt length exceeds the saltLength boundary.");
             }
             this.usingStaticSalt = false;
@@ -112,37 +148,7 @@ public class Argon2SecureHasher implements SecureHasher {
             this.usingStaticSalt = true;
             logger.debug("Configured to use static salt");
         }
-
-        if (hashLength < DEFAULT_HASH_LENGTH) {
-            logger.warn("The provided hash length {} is below the recommended minimum {}.", hashLength, DEFAULT_HASH_LENGTH);
-        }
-        if (memory < DEFAULT_MEMORY) {
-            logger.warn("The provided memory size {} KiB is below the recommended minimum {} KiB.", memory, DEFAULT_MEMORY);
-        }
-        if (parallelism < DEFAULT_PARALLELISM) {
-            logger.warn("The provided parallelization factor {} is below the recommended minimum {}.", parallelism, DEFAULT_PARALLELISM);
-        }
-        if (iterations < DEFAULT_ITERATIONS) {
-            logger.warn("The provided iteration count {} is below the recommended minimum {}.", iterations, DEFAULT_ITERATIONS);
-        }
-        if (!isHashLengthValid(hashLength)) {
-            logger.warn("The provided hash length {} is out of bounds.", hashLength);
-            throw new IllegalArgumentException("Invalid hash length is not within the hashLength boundary.");
-        }
-        if (!isMemorySizeValid(memory)) {
-            logger.warn("The provided memory size {} KiB is out of bounds.", memory);
-            throw new IllegalArgumentException("Invalid memory size is not within the memory boundary.");
-        }
-        if (!isParallelismValid(parallelism)) {
-            logger.warn("The provided parallelization factor {} is out of bounds.", parallelism);
-            throw new IllegalArgumentException("Invalid parallelization factor exceeds the parallelism boundary");
-        }
-        if (!isIterationsValid(iterations)) {
-            logger.warn("The iteration count {} is out of bounds.", iterations);
-            throw new IllegalArgumentException("Invalid iteration count exceeds the iterations boundary.");
-        }
     }
-
 
     /**
      * Returns {@code true} if this instance is configured to use a static salt.
@@ -173,52 +179,64 @@ public class Argon2SecureHasher implements SecureHasher {
 
     /**
      * Returns whether the provided hash length (hashLength) is within boundaries. The lower bound >= 4 and the
-     * upper bound 2^32 - 1.
+     * upper bound <= 2^32 - 1.
      * @param hashLength the output length in bytes
      * @return true if hashLength is within boundaries
      */
     public static boolean isHashLengthValid(int hashLength) {
-        return hashLength >= 4 && hashLength <= (Math.pow(2, 32) - 1);
+        if (hashLength < DEFAULT_HASH_LENGTH) {
+            logger.warn("The provided hash length {} is below the recommended minimum {}.", hashLength, DEFAULT_HASH_LENGTH);
+        }
+        return hashLength >= 4 && hashLength <= upperBoundary;
     }
 
     /**
      * Returns whether the provided memory size (memory) is within boundaries. The lower bound >= 8 and the
-     * upper bound 2^32 - 1.
+     * upper bound <= 2^32 - 1.
      * @param memory the integer number of KB used
      * @return true if memory is within boundaries
      */
     public static boolean isMemorySizeValid(int memory) {
-        return memory >= 8 && memory <= (Math.pow(2, 32) - 1);
+        if (memory < DEFAULT_MEMORY) {
+            logger.warn("The provided memory size {} KiB is below the recommended minimum {} KiB.", memory, DEFAULT_MEMORY);
+        }
+        return memory >= 8 && memory <= upperBoundary;
     }
 
     /**
-     * Returns whether the provided parallelization factor (parallelism) is within boundaries. The lower bound >= 0 and the
-     * upper bound 2^24 - 1.
+     * Returns whether the provided parallelization factor (parallelism) is within boundaries. The lower bound >= 1 and the
+     * upper bound <= 2^24 - 1.
      * @param parallelism degree of parallelism
      * @return true if parallelism is within boundaries
      */
     public static boolean isParallelismValid(int parallelism) {
-        return parallelism > 0 && parallelism <= (Math.pow(2, 24) - 1);
+        if (parallelism < DEFAULT_PARALLELISM) {
+            logger.warn("The provided parallelization factor {} is below the recommended minimum {}.", parallelism, DEFAULT_PARALLELISM);
+        }
+        return parallelism >= 1 && parallelism <= (Math.pow(2, 24) - 1);
     }
 
     /**
-     * Returns whether the provided iteration count (iterations) is within boundaries. The lower bound >= 0 and the
-     * upper bound 2^32 - 1.
+     * Returns whether the provided iteration count (iterations) is within boundaries. The lower bound >= 1 and the
+     * upper bound <= 2^32 - 1.
      * @param iterations number of iterations
      * @return true if iterations is within boundaries
      */
     public static boolean isIterationsValid(int iterations) {
-        return iterations > 0 && iterations <= (Math.pow(2, 32) - 1);
+        if (iterations < DEFAULT_ITERATIONS) {
+            logger.warn("The provided iteration count {} is below the recommended minimum {}.", iterations, DEFAULT_ITERATIONS);
+        }
+        return iterations >= 1 && iterations <= upperBoundary;
     }
 
     /**
      * Returns whether the provided salt length (saltLength) is within boundaries. The lower bound >= 8 and the
-     * upper bound 2^32 - 1.
+     * upper bound <= 2^32 - 1.
      * @param saltLength the salt length in bytes
      * @return true if saltLength is within boundaries
      */
     public static boolean isSaltLengthValid(int saltLength) {
-        return saltLength >= 8 && saltLength <= (Math.pow(2, 32) - 1);
+        return saltLength >= 8 && saltLength <= upperBoundary;
     }
 
     /**
