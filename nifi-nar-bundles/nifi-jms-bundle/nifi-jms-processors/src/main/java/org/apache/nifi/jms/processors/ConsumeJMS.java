@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.jms.processors;
 
+import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -81,6 +82,10 @@ import java.util.concurrent.TimeUnit;
         @WritesAttribute(attribute = ConsumeJMS.JMS_MESSAGETYPE, description = "The JMS message type, can be TextMessage, BytesMessage, ObjectMessage, MapMessage or StreamMessage)."),
         @WritesAttribute(attribute = "other attributes", description = "Each message property is written to an attribute.")
 })
+@DynamicProperty(name = "The name of a Connection Factory configuration property.", value = "The value of a given Connection Factory configuration property.",
+        description = "Additional configuration property for the Connection Factory. It can be used when the Connection Factory is being configured via the 'JNDI *' or the 'JMS *'" +
+                "properties of the processor. For more information, see the Additional Details page.",
+        expressionLanguageScope = ExpressionLanguageScope.VARIABLE_REGISTRY)
 @SeeAlso(value = { PublishJMS.class, JMSConnectionFactoryProvider.class })
 public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
     public static final String JMS_MESSAGETYPE = "jms.messagetype";
@@ -161,21 +166,25 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
 
     private final static Set<Relationship> relationships;
 
-    private final static List<PropertyDescriptor> thisPropertyDescriptors;
+    private final static List<PropertyDescriptor> propertyDescriptors;
 
     static {
         List<PropertyDescriptor> _propertyDescriptors = new ArrayList<>();
-        _propertyDescriptors.addAll(propertyDescriptors);
-        _propertyDescriptors.remove(MESSAGE_BODY);
-        _propertyDescriptors.remove(ALLOW_ILLEGAL_HEADER_CHARS);
-        _propertyDescriptors.remove(ATTRIBUTES_AS_HEADERS_REGEX);
+
+        _propertyDescriptors.add(CF_SERVICE);
+        _propertyDescriptors.add(DESTINATION);
+        _propertyDescriptors.add(DESTINATION_TYPE);
+        _propertyDescriptors.add(USER);
+        _propertyDescriptors.add(PASSWORD);
+        _propertyDescriptors.add(CLIENT_ID);
+        _propertyDescriptors.add(SESSION_CACHE_SIZE);
 
         // change the validator on CHARSET property
-        _propertyDescriptors.remove(CHARSET);
-        PropertyDescriptor CHARSET_WITH_EL_VALIDATOR_PROPERTY = new PropertyDescriptor.Builder().fromPropertyDescriptor(CHARSET)
+        PropertyDescriptor charsetWithELValidatorProperty = new PropertyDescriptor.Builder()
+                .fromPropertyDescriptor(CHARSET)
                 .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR_WITH_EVALUATION)
                 .build();
-        _propertyDescriptors.add(CHARSET_WITH_EL_VALIDATOR_PROPERTY);
+        _propertyDescriptors.add(charsetWithELValidatorProperty);
 
         _propertyDescriptors.add(ACKNOWLEDGEMENT_MODE);
         _propertyDescriptors.add(DURABLE_SUBSCRIBER);
@@ -183,7 +192,11 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
         _propertyDescriptors.add(SUBSCRIPTION_NAME);
         _propertyDescriptors.add(TIMEOUT);
         _propertyDescriptors.add(ERROR_QUEUE);
-        thisPropertyDescriptors = Collections.unmodifiableList(_propertyDescriptors);
+
+        _propertyDescriptors.addAll(JNDI_JMS_CF_PROPERTIES);
+        _propertyDescriptors.addAll(JMS_CF_PROPERTIES);
+
+        propertyDescriptors = Collections.unmodifiableList(_propertyDescriptors);
 
         Set<Relationship> _relationships = new HashSet<>();
         _relationships.add(REL_SUCCESS);
@@ -292,7 +305,7 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return thisPropertyDescriptors;
+        return propertyDescriptors;
     }
 
     /**
