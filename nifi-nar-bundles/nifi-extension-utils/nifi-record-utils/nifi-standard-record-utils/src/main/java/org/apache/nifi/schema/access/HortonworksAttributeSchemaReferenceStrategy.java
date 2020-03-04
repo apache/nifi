@@ -17,10 +17,6 @@
 
 package org.apache.nifi.schema.access;
 
-import org.apache.nifi.schemaregistry.services.SchemaRegistry;
-import org.apache.nifi.serialization.record.RecordSchema;
-import org.apache.nifi.serialization.record.SchemaIdentifier;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collections;
@@ -28,16 +24,20 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.nifi.schemaregistry.services.SchemaRegistry;
+import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.SchemaIdentifier;
+
 public class HortonworksAttributeSchemaReferenceStrategy implements SchemaAccessStrategy {
     private final Set<SchemaField> schemaFields;
 
     public static final String SCHEMA_ID_ATTRIBUTE = "schema.identifier";
     public static final String SCHEMA_VERSION_ATTRIBUTE = "schema.version";
     public static final String SCHEMA_PROTOCOL_VERSION_ATTRIBUTE = "schema.protocol.version";
-
+    public static final String SCHEMA_VERSION_ID_ATTRIBUTE = "schema.version.id";
 
     private final SchemaRegistry schemaRegistry;
-
+    static final int LATEST_PROTOCOL_VERSION = 3;
 
     public HortonworksAttributeSchemaReferenceStrategy(final SchemaRegistry schemaRegistry) {
         this.schemaRegistry = schemaRegistry;
@@ -45,6 +45,7 @@ public class HortonworksAttributeSchemaReferenceStrategy implements SchemaAccess
         schemaFields = new HashSet<>();
         schemaFields.add(SchemaField.SCHEMA_IDENTIFIER);
         schemaFields.add(SchemaField.SCHEMA_VERSION);
+        schemaFields.add(SchemaField.SCHEMA_VERSION_ID);
         schemaFields.addAll(schemaRegistry == null ? Collections.emptySet() : schemaRegistry.getSuppliedSchemaFields());
     }
 
@@ -57,7 +58,8 @@ public class HortonworksAttributeSchemaReferenceStrategy implements SchemaAccess
         final String schemaIdentifier = variables.get(SCHEMA_ID_ATTRIBUTE);
         final String schemaVersion = variables.get(SCHEMA_VERSION_ATTRIBUTE);
         final String schemaProtocol = variables.get(SCHEMA_PROTOCOL_VERSION_ATTRIBUTE);
-        if (schemaIdentifier == null || schemaVersion == null || schemaProtocol == null) {
+        final String schemaVersionId = variables.get(SCHEMA_VERSION_ID_ATTRIBUTE);
+        if ((schemaVersionId == null && (schemaIdentifier == null || schemaVersion == null)) || schemaProtocol == null) {
             throw new SchemaNotFoundException("Could not determine Schema for " + variables + " because it is missing one of the following three required attributes: "
                 + SCHEMA_ID_ATTRIBUTE + ", " + SCHEMA_VERSION_ATTRIBUTE + ", " + SCHEMA_PROTOCOL_VERSION_ATTRIBUTE);
         }
@@ -68,28 +70,34 @@ public class HortonworksAttributeSchemaReferenceStrategy implements SchemaAccess
         }
 
         final int protocol = Integer.parseInt(schemaProtocol);
-        if (protocol != 1) {
-            throw new SchemaNotFoundException("Could not determine Schema for " + variables + " because the " + SCHEMA_PROTOCOL_VERSION_ATTRIBUTE + " has a value of '"
-                + schemaProtocol + "', which is not a valid Protocol Version number. Expected Protocol Version to be 1.");
+        if (protocol > LATEST_PROTOCOL_VERSION) {
+            throw new SchemaNotFoundException("Schema Encoding appears to be of an incompatible version. The latest known Protocol is Version "
+                    + LATEST_PROTOCOL_VERSION + " but the data was encoded with version " + protocol + " or was not encoded with this data format");
         }
 
-        if (!isNumber(schemaIdentifier)) {
-            throw new SchemaNotFoundException("Could not determine Schema for " + variables + " because the " + SCHEMA_ID_ATTRIBUTE + " has a value of '"
-                + schemaProtocol + "', which is not a valid Schema Identifier number");
+        SchemaIdentifier identifier;
+        if (!isNumber(schemaVersionId)) {
+            if (!isNumber(schemaIdentifier)) {
+                throw new SchemaNotFoundException("Could not determine Schema for " + variables + " because the " + SCHEMA_ID_ATTRIBUTE + " has a value of '"
+                    + schemaProtocol + "', which is not a valid Schema Identifier number");
+            }
+
+            if (!isNumber(schemaVersion)) {
+                throw new SchemaNotFoundException("Could not determine Schema for " + variables + " because the " + SCHEMA_VERSION_ATTRIBUTE + " has a value of '"
+                    + schemaProtocol + "', which is not a valid Schema Version number");
+            }
+
+            final long schemaId = Long.parseLong(schemaIdentifier);
+            final int version = Integer.parseInt(schemaVersion);
+            identifier = SchemaIdentifier.builder().id(schemaId).version(version).protocol(protocol).build();
+        } else {
+            final long svi = Long.parseLong(schemaVersionId);
+            identifier = SchemaIdentifier.builder().schemaVersionId(svi).protocol(protocol).build();
         }
 
-        if (!isNumber(schemaVersion)) {
-            throw new SchemaNotFoundException("Could not determine Schema for " + variables + " because the " + SCHEMA_VERSION_ATTRIBUTE + " has a value of '"
-                + schemaProtocol + "', which is not a valid Schema Version number");
-        }
-
-        final long schemaId = Long.parseLong(schemaIdentifier);
-        final int version = Integer.parseInt(schemaVersion);
-
-        final SchemaIdentifier identifier = SchemaIdentifier.builder().id(schemaId).version(version).build();
         final RecordSchema schema = schemaRegistry.retrieveSchema(identifier);
         if (schema == null) {
-            throw new SchemaNotFoundException("Could not find a Schema in the Schema Registry with Schema Identifier '" + schemaId + "' and Version '" + version + "'");
+            throw new SchemaNotFoundException("Could not find a Schema in the Schema Registry with Schema Identifier '" + identifier.toString() + "'");
         }
 
         return schema;
