@@ -17,38 +17,57 @@
 
 package org.apache.nifi.schema.access;
 
-import org.apache.nifi.serialization.record.RecordSchema;
-import org.apache.nifi.serialization.record.SchemaIdentifier;
-
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Map;
-import java.util.OptionalInt;
-import java.util.OptionalLong;
 import java.util.Set;
+
+import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.SchemaIdentifier;
 
 public class HortonworksEncodedSchemaReferenceWriter implements SchemaAccessWriter {
     private static final Set<SchemaField> requiredSchemaFields = EnumSet.of(SchemaField.SCHEMA_IDENTIFIER, SchemaField.SCHEMA_VERSION);
-    private static final int LATEST_PROTOCOL_VERSION = 1;
+    private static final int LATEST_PROTOCOL_VERSION = 3;
 
     @Override
     public void writeHeader(final RecordSchema schema, final OutputStream out) throws IOException {
         final SchemaIdentifier identifier = schema.getIdentifier();
-        final Long id = identifier.getIdentifier().getAsLong();
-        final Integer version = identifier.getVersion().getAsInt();
 
-        // This decoding follows the pattern that is provided for serializing data by the Hortonworks Schema Registry serializer
-        // as it is provided at:
-        // https://github.com/hortonworks/registry/blob/master/schema-registry/serdes/src/main/java/com/hortonworks/registries/schemaregistry/serdes/avro/AvroSnapshotSerializer.java
-        final ByteBuffer bb = ByteBuffer.allocate(13);
-        bb.put((byte) LATEST_PROTOCOL_VERSION);
-        bb.putLong(id);
-        bb.putInt(version);
+        // This encoding follows the pattern that is provided for serializing data by the Hortonworks Schema Registry serializer
+        // See: https://registry-project.readthedocs.io/en/latest/serdes.html#
+        switch(identifier.getProtocol()) {
+            case 1:
+                final Long id = identifier.getIdentifier().getAsLong();
+                final Integer version = identifier.getVersion().getAsInt();
+                final ByteBuffer bbv1 = ByteBuffer.allocate(13);
+                bbv1.put((byte) 1);
+                bbv1.putLong(id);
+                bbv1.putInt(version);
+                out.write(bbv1.array());
+                return;
+            case 2:
+                final Long sviV2 = identifier.getIdentifier().getAsLong();
+                final ByteBuffer bbv2 = ByteBuffer.allocate(9);
+                bbv2.put((byte) 2);
+                bbv2.putLong(sviV2);
+                out.write(bbv2.array());
+                return;
+            case 3:
+                final Long sviV3 = identifier.getIdentifier().getAsLong();
+                final ByteBuffer bbv3 = ByteBuffer.allocate(5);
+                bbv3.put((byte) 3);
+                bbv3.putInt(sviV3.intValue());
+                out.write(bbv3.array());
+                return;
+            default:
+                throw new IOException("Schema Encoding appears to be of an incompatible version. The latest known Protocol is Version "
+                        + LATEST_PROTOCOL_VERSION + " but the data was encoded with version " + identifier.getProtocol() + " or was not encoded with this data format");
+        }
 
-        out.write(bb.array());
+
     }
 
     @Override
@@ -59,14 +78,14 @@ public class HortonworksEncodedSchemaReferenceWriter implements SchemaAccessWrit
     @Override
     public void validateSchema(RecordSchema schema) throws SchemaNotFoundException {
         final SchemaIdentifier identifier = schema.getIdentifier();
-        final OptionalLong identifierOption = identifier.getIdentifier();
-        if (!identifierOption.isPresent()) {
-            throw new SchemaNotFoundException("Cannot write Encoded Schema Reference because the Schema Identifier is not known");
-        }
 
-        final OptionalInt versionOption = identifier.getVersion();
-        if (!versionOption.isPresent()) {
-            throw new SchemaNotFoundException("Cannot write Encoded Schema Reference because the Schema Version is not known");
+        if(!identifier.getSchemaVersionId().isPresent()) {
+            if (!identifier.getIdentifier().isPresent()) {
+                throw new SchemaNotFoundException("Cannot write Encoded Schema Reference because the Schema Identifier is not known");
+            }
+            if (!identifier.getVersion().isPresent()) {
+                throw new SchemaNotFoundException("Cannot write Encoded Schema Reference because the Schema Version is not known");
+            }
         }
     }
 

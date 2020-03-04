@@ -17,9 +17,6 @@
 
 package org.apache.nifi.schema.access;
 
-import org.apache.nifi.serialization.record.RecordSchema;
-import org.apache.nifi.serialization.record.SchemaIdentifier;
-
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.EnumSet;
@@ -27,9 +24,12 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.SchemaIdentifier;
+
 public class HortonworksAttributeSchemaReferenceWriter implements SchemaAccessWriter {
     private static final Set<SchemaField> requiredSchemaFields = EnumSet.of(SchemaField.SCHEMA_IDENTIFIER, SchemaField.SCHEMA_VERSION);
-    static final int LATEST_PROTOCOL_VERSION = 1;
+    static final int LATEST_PROTOCOL_VERSION = 3;
     static final String SCHEMA_BRANCH_ATTRIBUTE = "schema.branch";
 
     @Override
@@ -46,10 +46,14 @@ public class HortonworksAttributeSchemaReferenceWriter implements SchemaAccessWr
 
         attributes.put(HortonworksAttributeSchemaReferenceStrategy.SCHEMA_ID_ATTRIBUTE, String.valueOf(schemaId));
         attributes.put(HortonworksAttributeSchemaReferenceStrategy.SCHEMA_VERSION_ATTRIBUTE, String.valueOf(schemaVersion));
-        attributes.put(HortonworksAttributeSchemaReferenceStrategy.SCHEMA_PROTOCOL_VERSION_ATTRIBUTE, String.valueOf(LATEST_PROTOCOL_VERSION));
+        attributes.put(HortonworksAttributeSchemaReferenceStrategy.SCHEMA_PROTOCOL_VERSION_ATTRIBUTE, String.valueOf(id.getProtocol()));
 
         if (id.getBranch().isPresent()) {
             attributes.put(SCHEMA_BRANCH_ATTRIBUTE, id.getBranch().get());
+        }
+
+        if (id.getSchemaVersionId().isPresent()) {
+            attributes.put(HortonworksAttributeSchemaReferenceStrategy.SCHEMA_VERSION_ID_ATTRIBUTE, String.valueOf(id.getSchemaVersionId().getAsLong()));
         }
 
         return attributes;
@@ -57,12 +61,15 @@ public class HortonworksAttributeSchemaReferenceWriter implements SchemaAccessWr
 
     @Override
     public void validateSchema(final RecordSchema schema) throws SchemaNotFoundException {
-        final SchemaIdentifier id = schema.getIdentifier();
-        if (!id.getIdentifier().isPresent()) {
-            throw new SchemaNotFoundException("Cannot write Schema Reference as Attributes because it does not contain a Schema Identifier");
-        }
-        if (!id.getVersion().isPresent()) {
-            throw new SchemaNotFoundException("Cannot write Schema Reference as Attributes because it does not contain a Schema Version");
+        final SchemaIdentifier identifier = schema.getIdentifier();
+
+        if(!identifier.getSchemaVersionId().isPresent()) {
+            if (!identifier.getIdentifier().isPresent()) {
+                throw new SchemaNotFoundException("Cannot write Encoded Schema Reference because the Schema Identifier is not known");
+            }
+            if (!identifier.getVersion().isPresent()) {
+                throw new SchemaNotFoundException("Cannot write Encoded Schema Reference because the Schema Version is not known");
+            }
         }
     }
 

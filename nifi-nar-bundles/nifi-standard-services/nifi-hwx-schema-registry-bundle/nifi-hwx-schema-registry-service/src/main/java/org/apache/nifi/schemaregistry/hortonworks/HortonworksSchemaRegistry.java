@@ -17,6 +17,7 @@
 package org.apache.nifi.schemaregistry.hortonworks;
 
 import com.google.common.collect.ImmutableMap;
+import com.hortonworks.registries.schemaregistry.SchemaIdVersion;
 import com.hortonworks.registries.schemaregistry.SchemaMetadata;
 import com.hortonworks.registries.schemaregistry.SchemaMetadataInfo;
 import com.hortonworks.registries.schemaregistry.SchemaVersionInfo;
@@ -64,8 +65,13 @@ import java.util.concurrent.TimeUnit;
 @Tags({"schema", "registry", "avro", "hortonworks", "hwx"})
 @CapabilityDescription("Provides a Schema Registry Service that interacts with a Hortonworks Schema Registry, available at https://github.com/hortonworks/registry")
 public class HortonworksSchemaRegistry extends AbstractControllerService implements SchemaRegistry {
-    private static final Set<SchemaField> schemaFields = EnumSet.of(SchemaField.SCHEMA_NAME, SchemaField.SCHEMA_BRANCH_NAME, SchemaField.SCHEMA_TEXT,
-        SchemaField.SCHEMA_TEXT_FORMAT, SchemaField.SCHEMA_IDENTIFIER, SchemaField.SCHEMA_VERSION);
+    private static final Set<SchemaField> schemaFields = EnumSet.of(SchemaField.SCHEMA_NAME,
+            SchemaField.SCHEMA_BRANCH_NAME,
+            SchemaField.SCHEMA_TEXT,
+            SchemaField.SCHEMA_TEXT_FORMAT,
+            SchemaField.SCHEMA_IDENTIFIER,
+            SchemaField.SCHEMA_VERSION,
+            SchemaField.SCHEMA_VERSION_ID);
 
     private static final String CLIENT_SSL_PROPERTY_PREFIX = "schema.registry.client.ssl";
 
@@ -420,6 +426,7 @@ public class HortonworksSchemaRegistry extends AbstractControllerService impleme
                 .name(schemaName.get())
                 .branch(schemaBranchName.orElse(null))
                 .version(versionInfo.getVersion())
+                .protocol(schemaIdentifier.getProtocol())
                 .build();
 
         final Tuple<SchemaIdentifier, String> tuple = new Tuple<>(resultSchemaIdentifier, schemaText);
@@ -470,6 +477,7 @@ public class HortonworksSchemaRegistry extends AbstractControllerService impleme
                 .name(schemaName)
                 .id(schemaId.getAsLong())
                 .version(version.getAsInt())
+                .protocol(schemaIdentifier.getProtocol())
                 .build();
 
         final Tuple<SchemaIdentifier, String> tuple = new Tuple<>(resultSchemaIdentifier, schemaText);
@@ -481,11 +489,47 @@ public class HortonworksSchemaRegistry extends AbstractControllerService impleme
 
     @Override
     public RecordSchema retrieveSchema(final SchemaIdentifier schemaIdentifier) throws IOException, org.apache.nifi.schema.access.SchemaNotFoundException {
-        if (schemaIdentifier.getIdentifier().isPresent()) {
+        if (schemaIdentifier.getSchemaVersionId().isPresent()) {
+            return retrieveSchemaBySchemaVersionId(schemaIdentifier);
+        } else if (schemaIdentifier.getIdentifier().isPresent()) {
             return retrieveSchemaByIdAndVersion(schemaIdentifier);
         } else {
             return retrieveSchemaByName(schemaIdentifier);
         }
+    }
+
+    private RecordSchema retrieveSchemaBySchemaVersionId(final SchemaIdentifier schemaIdentifier) throws IOException, org.apache.nifi.schema.access.SchemaNotFoundException {
+        final SchemaRegistryClient client = getClient();
+        final OptionalLong schemaVersionId = schemaIdentifier.getSchemaVersionId();
+
+        final SchemaIdVersion svi = new SchemaIdVersion(schemaVersionId.getAsLong());
+
+        final String schemaName;
+        final SchemaVersionInfo versionInfo;
+
+        try {
+            versionInfo = client.getSchemaVersionInfo(svi);
+            schemaName = versionInfo.getName();
+        } catch (final Exception e) {
+            handleException("Failed to retrieve schema with Schema Version ID '" + schemaVersionId.getAsLong() + "'", e);
+            return null;
+        }
+
+        final String schemaText = versionInfo.getSchemaText();
+
+        final SchemaIdentifier resultSchemaIdentifier = SchemaIdentifier.builder()
+                .name(schemaName)
+                .id(versionInfo.getSchemaMetadataId())
+                .version(versionInfo.getVersion())
+                .schemaVersionId(schemaVersionId.getAsLong())
+                .protocol(schemaIdentifier.getProtocol())
+                .build();
+
+        final Tuple<SchemaIdentifier, String> tuple = new Tuple<>(resultSchemaIdentifier, schemaText);
+        return schemaNameToSchemaMap.computeIfAbsent(tuple, t -> {
+            final Schema schema = new Schema.Parser().parse(schemaText);
+            return AvroTypeUtil.createSchema(schema, schemaText, resultSchemaIdentifier);
+        });
     }
 
     private String createErrorMessage(final String baseMessage, final Optional<String> schemaName, final Optional<String> branchName, final OptionalInt version) {

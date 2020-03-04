@@ -25,15 +25,20 @@ public class StandardSchemaIdentifier implements SchemaIdentifier {
     private final Optional<String> name;
     private final OptionalLong identifier;
     private final OptionalInt version;
+    private final OptionalLong schemaVersionId;
     private final Optional<String> branch;
+    private final int protocol;
 
-    StandardSchemaIdentifier(final String name, final Long identifier, final Integer version, final String branch) {
+    StandardSchemaIdentifier(final String name, final Long identifier, final Integer version,
+            final Long schemaVersionId, final String branch, final int protocol) {
         this.name = Optional.ofNullable(name);
-        this.identifier = identifier == null ? OptionalLong.empty() : OptionalLong.of(identifier);;
-        this.version = version == null ? OptionalInt.empty() : OptionalInt.of(version);;
+        this.identifier = identifier == null ? OptionalLong.empty() : OptionalLong.of(identifier);
+        this.version = version == null ? OptionalInt.empty() : OptionalInt.of(version);
+        this.schemaVersionId = schemaVersionId == null ? OptionalLong.empty() : OptionalLong.of(schemaVersionId);
         this.branch = Optional.ofNullable(branch);
+        this.protocol = protocol;
 
-        if (this.name == null && this.identifier == null) {
+        if ((this.name == null && this.identifier == null) || this.schemaVersionId == null) {
             throw new IllegalStateException("Name or Identifier must be provided");
         }
     }
@@ -54,13 +59,24 @@ public class StandardSchemaIdentifier implements SchemaIdentifier {
     }
 
     @Override
+    public OptionalLong getSchemaVersionId() {
+        return schemaVersionId;
+    }
+
+    @Override
     public Optional<String> getBranch() {
         return branch;
     }
 
     @Override
+    public Integer getProtocol() {
+        return protocol;
+    }
+
+    @Override
     public int hashCode() {
-        return 31 + 41 * getName().hashCode() + 41 * getIdentifier().hashCode() + 41 * getVersion().hashCode() + 41 * getBranch().hashCode();
+        return 31 + 41 * getName().hashCode() + 41 * getIdentifier().hashCode() + 41 * getVersion().hashCode()
+                + 41 * getSchemaVersionId().hashCode() + 41 * getBranch().hashCode();
     }
 
     @Override
@@ -78,7 +94,18 @@ public class StandardSchemaIdentifier implements SchemaIdentifier {
         return getName().equals(other.getName())
                 && getIdentifier().equals(other.getIdentifier())
                 && getVersion().equals(other.getVersion())
+                && getSchemaVersionId().equals(other.getSchemaVersionId())
                 && getBranch().equals(other.getBranch());
+    }
+
+    @Override
+    public String toString() {
+        return "[ name = " + name + ", "
+                + "identifier = " + identifier + ", "
+                + "version = " + version + ", "
+                + "schemaVersionId = " + schemaVersionId + ", "
+                + "branch = " + branch + ", "
+                + "protocol = " + protocol + " ]";
     }
 
     /**
@@ -90,6 +117,8 @@ public class StandardSchemaIdentifier implements SchemaIdentifier {
         private String branch;
         private Long identifier;
         private Integer version;
+        private Long schemaVersionId;
+        private Integer protocol;
 
         @Override
         public SchemaIdentifier.Builder name(final String name) {
@@ -116,8 +145,20 @@ public class StandardSchemaIdentifier implements SchemaIdentifier {
         }
 
         @Override
+        public SchemaIdentifier.Builder schemaVersionId(final Long schemaVersionId) {
+            this.schemaVersionId = schemaVersionId;
+            return this;
+        }
+
+        @Override
+        public SchemaIdentifier.Builder protocol(final Integer protocol) {
+            this.protocol = protocol;
+            return this;
+        }
+
+        @Override
         public SchemaIdentifier build() {
-            return new StandardSchemaIdentifier(name, identifier, version, branch);
+            return new StandardSchemaIdentifier(name, identifier, version, schemaVersionId, branch, protocol);
         }
     }
 }
