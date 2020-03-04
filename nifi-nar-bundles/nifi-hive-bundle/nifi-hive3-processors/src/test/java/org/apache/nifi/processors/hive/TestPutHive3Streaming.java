@@ -155,7 +155,7 @@ public class TestPutHive3Streaming {
         System.setProperty("java.security.krb5.kdc", "nifi.kdc");
 
         ugi = null;
-        processor = new MockPutHive3Streaming();
+        processor = new MockPutHive3Streaming(ugi);
         hiveConfigurator = mock(HiveConfigurator.class);
         hiveConf = new HiveConf();
         when(hiveConfigurator.getConfigurationFromFiles(anyString())).thenReturn(hiveConf);
@@ -272,6 +272,7 @@ public class TestPutHive3Streaming {
         runner.setProperty(PutHive3Streaming.DB_NAME, "default");
         runner.setProperty(PutHive3Streaming.TABLE_NAME, "users");
         processor.ugi = mock(UserGroupInformation.class);
+        processor.kerberosUserReference.set(mock(KerberosUser.class));
         runner.run();
         assertNull(processor.ugi);
         assertNull(processor.kerberosUserReference.get());
@@ -1128,6 +1129,10 @@ public class TestPutHive3Streaming {
                 new FieldSchema("scale", serdeConstants.DOUBLE_TYPE_NAME, "")
         );
 
+        private MockPutHive3Streaming(UserGroupInformation ugi) {
+            this.ugi = ugi;
+        }
+
         @Override
         StreamingConnection makeStreamingConnection(HiveOptions options, RecordReader reader) throws StreamingException {
 
@@ -1174,6 +1179,11 @@ public class TestPutHive3Streaming {
 
         public void setGeneratePermissionsFailure(boolean generatePermissionsFailure) {
             this.generatePermissionsFailure = generatePermissionsFailure;
+        }
+
+        @Override
+        UserGroupInformation getUgi() {
+            return ugi;
         }
     }
 
