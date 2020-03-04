@@ -463,7 +463,7 @@ public class TestLookupRecord {
         runner.enableControllerService(lookupService);
 
         runner.setProperty(LookupRecord.ROUTING_STRATEGY, LookupRecord.ROUTE_TO_SUCCESS);
-        runner.setProperty(LookupRecord.IN_PLACE_REPLACEMENT, "true");
+        runner.setProperty(LookupRecord.REPLACEMENT_STRATEGY, LookupRecord.REPLACE_EXISTING_VALUES);
         runner.setProperty(LookupRecord.RECORD_READER, "reader");
         runner.setProperty(LookupRecord.RECORD_WRITER, "writer");
         runner.setProperty(LookupRecord.LOOKUP_SERVICE, "lookup");
@@ -505,7 +505,7 @@ public class TestLookupRecord {
         runner.enableControllerService(lookupService);
 
         runner.setProperty(LookupRecord.ROUTING_STRATEGY, LookupRecord.ROUTE_TO_MATCHED_UNMATCHED);
-        runner.setProperty(LookupRecord.IN_PLACE_REPLACEMENT, "true");
+        runner.setProperty(LookupRecord.REPLACEMENT_STRATEGY, LookupRecord.REPLACE_EXISTING_VALUES);
         runner.setProperty(LookupRecord.RECORD_READER, "reader");
         runner.setProperty(LookupRecord.RECORD_WRITER, "writer");
         runner.setProperty(LookupRecord.LOOKUP_SERVICE, "lookup");
@@ -537,6 +537,7 @@ public class TestLookupRecord {
             return String.class;
         }
 
+        @Override
         public Optional<String> lookup(final Map<String, Object> coordinates, Map<String, String> context) {
             validateContext(context);
             return lookup(coordinates);

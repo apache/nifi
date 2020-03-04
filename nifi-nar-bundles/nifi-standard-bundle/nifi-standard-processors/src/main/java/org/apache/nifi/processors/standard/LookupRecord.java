@@ -105,6 +105,14 @@ public class LookupRecord extends AbstractRouteRecord<Tuple<Map<String, RecordPa
     static final AllowableValue RESULT_RECORD_FIELDS = new AllowableValue("record-fields", "Insert Record Fields",
         "All of the fields in the Record that is retrieved from the Lookup Service will be inserted into the destination path.");
 
+    static final AllowableValue USE_PROPERTY = new AllowableValue("use-property", "Use Property",
+            "The \"Result RecordPath\" property will be used to determine which part of the record should be updated with the value returned by the Lookup Service");
+    static final AllowableValue REPLACE_EXISTING_VALUES = new AllowableValue("replace-existing-values", "Replace Existing Values",
+            "The \"Result RecordPath\" property will be ignored and the lookup service must be a single simple key lookup service. Every dynamic property value should "
+            + "be a record path. For each dynamic property, the value contained in the field corresponding to the record path will be used as the key in the Lookup "
+            + "Service and the value returned by the Lookup Service will be used to replace the existing value. It is possible to configure multiple dynamic properties "
+            + "to replace multiple values in one execution. This strategy only supports simple types replacements (strings, integers, etc).");
+
     static final PropertyDescriptor LOOKUP_SERVICE = new PropertyDescriptor.Builder()
         .name("lookup-service")
         .displayName("Lookup Service")
@@ -144,15 +152,13 @@ public class LookupRecord extends AbstractRouteRecord<Tuple<Map<String, RecordPa
         .required(true)
         .build();
 
-    static final PropertyDescriptor IN_PLACE_REPLACEMENT = new PropertyDescriptor.Builder()
-        .name("in-place-replacement")
-        .displayName("In-place replacement")
-        .description("If set to true, the \"Result RecordPath\" property will be ignored and the lookup service must be a single simple key "
-                + "lookup service. The value retrieved from the lookup service will replace the field used as a key. It is possible to configure "
-                + "multiple dynamic properties to replace multiple fields in one execution. This feature only supports simple fields (strings, ints, etc).")
+    static final PropertyDescriptor REPLACEMENT_STRATEGY = new PropertyDescriptor.Builder()
+        .name("record-update-strategy")
+        .displayName("Record Update Strategy")
+        .description("This property defines the strategy to use when updating the record with the value returned by the Lookup Service.")
         .expressionLanguageSupported(ExpressionLanguageScope.NONE)
-        .allowableValues("true", "false")
-        .defaultValue("false")
+        .allowableValues(REPLACE_EXISTING_VALUES, USE_PROPERTY)
+        .defaultValue(USE_PROPERTY.getValue())
         .required(true)
         .build();
 
@@ -194,7 +200,7 @@ public class LookupRecord extends AbstractRouteRecord<Tuple<Map<String, RecordPa
         properties.add(RESULT_RECORD_PATH);
         properties.add(ROUTING_STRATEGY);
         properties.add(RESULT_CONTENTS);
-        properties.add(IN_PLACE_REPLACEMENT);
+        properties.add(REPLACEMENT_STRATEGY);
         return properties;
     }
 
@@ -228,13 +234,14 @@ public class LookupRecord extends AbstractRouteRecord<Tuple<Map<String, RecordPa
 
         final Set<String> requiredKeys = validationContext.getProperty(LOOKUP_SERVICE).asControllerService(LookupService.class).getRequiredKeys();
 
-        if(validationContext.getProperty(IN_PLACE_REPLACEMENT).asBoolean()) {
+        if(validationContext.getProperty(REPLACEMENT_STRATEGY).getValue().equals(REPLACE_EXISTING_VALUES.getValue())) {
             // it must be a single key lookup service
             if(requiredKeys.size() != 1) {
                 return Collections.singleton(new ValidationResult.Builder()
                         .subject(LOOKUP_SERVICE.getDisplayName())
                         .valid(false)
-                        .explanation("The configured Lookup Services should only require one key when in-place replacement is set to true.")
+                        .explanation("When using \"" + REPLACE_EXISTING_VALUES.getDisplayName() + "\" as Record Update Strategy, "
+                                + "only a Lookup Service requiring a single key can be used.")
                         .build());
             }
         } else {
@@ -288,18 +295,17 @@ public class LookupRecord extends AbstractRouteRecord<Tuple<Map<String, RecordPa
     protected Set<Relationship> route(final Record record, final RecordSchema writeSchema, final FlowFile flowFile, final ProcessContext context,
         final Tuple<Map<String, RecordPath>, RecordPath> flowFileContext) {
 
-        final boolean isInPlaceReplacement = context.getProperty(IN_PLACE_REPLACEMENT).asBoolean();
+        final boolean isInPlaceReplacement = context.getProperty(REPLACEMENT_STRATEGY).getValue().equals(REPLACE_EXISTING_VALUES.getValue());
 
         if(isInPlaceReplacement) {
-            return doInPlaceReplacement(record, writeSchema, flowFile, context, flowFileContext);
+            return doInPlaceReplacement(record, flowFile, context, flowFileContext);
         } else {
-            return doResultPathReplacement(record, writeSchema, flowFile, context, flowFileContext);
+            return doResultPathReplacement(record, flowFile, context, flowFileContext);
         }
 
     }
 
-    private Set<Relationship> doInPlaceReplacement(Record record, RecordSchema writeSchema, FlowFile flowFile,
-            ProcessContext context, Tuple<Map<String, RecordPath>, RecordPath> flowFileContext) {
+    private Set<Relationship> doInPlaceReplacement(Record record, FlowFile flowFile, ProcessContext context, Tuple<Map<String, RecordPath>, RecordPath> flowFileContext) {
 
         final String lookupKey = (String) context.getProperty(LOOKUP_SERVICE).asControllerService(LookupService.class).getRequiredKeys().iterator().next();
 
@@ -350,8 +356,7 @@ public class LookupRecord extends AbstractRouteRecord<Tuple<Map<String, RecordPa
         return rels;
     }
 
-    private Set<Relationship> doResultPathReplacement(Record record, RecordSchema writeSchema, FlowFile flowFile,
-            ProcessContext context, Tuple<Map<String, RecordPath>, RecordPath> flowFileContext) {
+    private Set<Relationship> doResultPathReplacement(Record record, FlowFile flowFile, ProcessContext context, Tuple<Map<String, RecordPath>, RecordPath> flowFileContext) {
         final Map<String, RecordPath> recordPaths = flowFileContext.getKey();
         final Map<String, Object> lookupCoordinates = new HashMap<>(recordPaths.size());
 
