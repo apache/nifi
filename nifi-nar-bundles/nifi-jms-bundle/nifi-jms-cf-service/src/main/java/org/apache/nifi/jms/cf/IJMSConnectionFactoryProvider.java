@@ -16,24 +16,28 @@
  */
 package org.apache.nifi.jms.cf;
 
-import org.apache.nifi.annotation.lifecycle.OnEnabled;
-import org.apache.nifi.controller.ConfigurationContext;
-
-import java.util.Map;
+import javax.jms.ConnectionFactory;
 
 /**
- * Sub-class of {@link JMSConnectionFactoryProvider} only for testing purpose
+ * Defines a strategy to create implementations to load and initialize third
+ * party implementations of the {@link ConnectionFactory}
  */
-public class JMSConnectionFactoryProviderForTest extends JMSConnectionFactoryProvider {
+public interface IJMSConnectionFactoryProvider {
 
-    @OnEnabled
-    @Override
-    public void onEnabled(ConfigurationContext context) {
-        delegate = new JMSConnectionFactoryHandlerForTest(context, getLogger());
-        delegate.setConnectionFactoryProperties();
-    }
+    /**
+     * Returns an instance of the {@link ConnectionFactory} specific to the
+     * target messaging system (eg. org.apache.activemq.ActiveMQConnectionFactory).
+     *
+     * @return instance of {@link ConnectionFactory}
+     */
+    ConnectionFactory getConnectionFactory();
 
-    public Map<String, Object> getConfiguredProperties() {
-        return ((JMSConnectionFactoryHandlerForTest) delegate).getConfiguredProperties();
-    }
+    /**
+     * Resets {@link ConnectionFactory}.
+     * Provider should reset {@link ConnectionFactory} only if a copy provided by a client matches
+     * current {@link ConnectionFactory}.
+     * @param cachedFactory - {@link ConnectionFactory} cached by client.
+     */
+    void resetConnectionFactory(ConnectionFactory cachedFactory);
+
 }
