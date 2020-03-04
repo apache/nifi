@@ -268,7 +268,6 @@ public class TestInvokeHTTP extends TestInvokeHttpCommon {
         assertNull(regexAttributesToSendField.get(processor));
 
     }
-    
     @Test
     public void testEmptyGzipHttpReponse() throws Exception {
         addHandler(new EmptyGzipResponseHandler());
