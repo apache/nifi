@@ -52,6 +52,7 @@ import org.apache.orc.OrcConf;
 import org.apache.orc.impl.MemoryManagerImpl;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.sql.Date;
 import java.sql.Timestamp;
@@ -103,6 +104,10 @@ public class NiFiOrcUtils {
             }
             if (o instanceof Double) {
                 return new DoubleWritable((double) o);
+            }
+            // Map BigDecimal to a Double type - this should be improved to map to Hive Decimal type
+            if (o instanceof BigDecimal) {
+                return new DoubleWritable(((BigDecimal) o).doubleValue());
             }
             if (o instanceof String) {
                 return new Text(o.toString());
@@ -161,6 +166,12 @@ public class NiFiOrcUtils {
                 double[] doubleArray = (double[]) o;
                 return Arrays.stream(doubleArray)
                         .mapToObj((element) -> convertToORCObject(TypeInfoFactory.getPrimitiveTypeInfo("double"), element, hiveFieldNames))
+                        .collect(Collectors.toList());
+            }
+            if (o instanceof BigDecimal[]) {
+                BigDecimal[] bigDecimalArray = (BigDecimal[]) o;
+                return Arrays.stream(bigDecimalArray)
+                        .map((element) -> convertToORCObject(TypeInfoFactory.getPrimitiveTypeInfo("double"), element, hiveFieldNames))
                         .collect(Collectors.toList());
             }
             if (o instanceof boolean[]) {
@@ -280,6 +291,7 @@ public class NiFiOrcUtils {
                 || RecordFieldType.LONG.equals(fieldType)
                 || RecordFieldType.BOOLEAN.equals(fieldType)
                 || RecordFieldType.DOUBLE.equals(fieldType)
+                || RecordFieldType.DECIMAL.equals(fieldType)
                 || RecordFieldType.FLOAT.equals(fieldType)
                 || RecordFieldType.STRING.equals(fieldType)) {
             return getPrimitiveOrcTypeFromPrimitiveFieldType(dataType);
@@ -361,6 +373,10 @@ public class NiFiOrcUtils {
         if (RecordFieldType.DOUBLE.equals(fieldType)) {
             return TypeInfoFactory.getPrimitiveTypeInfo("double");
         }
+        // Map BigDecimal to a Double type - this should be improved to map to Hive Decimal type
+        if (RecordFieldType.DECIMAL.equals(fieldType)) {
+            return TypeInfoFactory.getPrimitiveTypeInfo("double");
+        }
         if (RecordFieldType.FLOAT.equals(fieldType)) {
             return TypeInfoFactory.getPrimitiveTypeInfo("float");
         }
@@ -400,6 +416,10 @@ public class NiFiOrcUtils {
             return "BOOLEAN";
         }
         if (RecordFieldType.DOUBLE.equals(dataType)) {
+            return "DOUBLE";
+        }
+        // Map BigDecimal to a Double type - this should be improved to map to Hive Decimal type
+        if (RecordFieldType.DECIMAL.equals(dataType)) {
             return "DOUBLE";
         }
         if (RecordFieldType.FLOAT.equals(dataType)) {
