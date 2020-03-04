@@ -842,7 +842,7 @@ public final class InvokeHTTP extends AbstractProcessor {
                 boolean outputBodyToRequestAttribute = (!isSuccess(statusCode) || putToAttribute) && requestFlowFile != null;
                 boolean outputBodyToResponseContent = (isSuccess(statusCode) && !putToAttribute) || context.getProperty(PROP_OUTPUT_RESPONSE_REGARDLESS).asBoolean();
                 ResponseBody responseBody = responseHttp.body();
-                boolean bodyExists = responseBody != null;
+                boolean bodyExists = responseBody != null ? responseBody.contentLength() > 0 : false;
 
                 InputStream responseBodyStream = null;
                 SoftLimitBoundedByteArrayOutputStream outputStreamToRequestAttribute = null;
