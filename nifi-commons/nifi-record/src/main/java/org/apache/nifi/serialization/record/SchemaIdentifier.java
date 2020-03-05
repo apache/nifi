@@ -48,13 +48,8 @@ public interface SchemaIdentifier {
      */
     Optional<String> getBranch();
 
-    /**
-     * @return the protocol used to get this schema identifier
-     */
-    Integer getProtocol();
 
-
-    SchemaIdentifier EMPTY = new StandardSchemaIdentifier(null, null, null, null, null, -1);
+    SchemaIdentifier EMPTY = new StandardSchemaIdentifier(null, null, null, null, null);
 
     static Builder builder() {
         return new StandardSchemaIdentifier.Builder();
@@ -74,8 +69,6 @@ public interface SchemaIdentifier {
         Builder schemaVersionId(Long schemaVersionId);
 
         Builder branch(String branch);
-
-        Builder protocol(Integer protocol);
 
         SchemaIdentifier build();
 

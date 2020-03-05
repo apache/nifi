@@ -27,20 +27,14 @@ public class StandardSchemaIdentifier implements SchemaIdentifier {
     private final OptionalInt version;
     private final OptionalLong schemaVersionId;
     private final Optional<String> branch;
-    private final int protocol;
 
     StandardSchemaIdentifier(final String name, final Long identifier, final Integer version,
-            final Long schemaVersionId, final String branch, final int protocol) {
+            final Long schemaVersionId, final String branch) {
         this.name = Optional.ofNullable(name);
         this.identifier = identifier == null ? OptionalLong.empty() : OptionalLong.of(identifier);
         this.version = version == null ? OptionalInt.empty() : OptionalInt.of(version);
         this.schemaVersionId = schemaVersionId == null ? OptionalLong.empty() : OptionalLong.of(schemaVersionId);
         this.branch = Optional.ofNullable(branch);
-        this.protocol = protocol;
-
-        if ((this.name == null && this.identifier == null) || this.schemaVersionId == null) {
-            throw new IllegalStateException("Name or Identifier must be provided");
-        }
     }
 
     @Override
@@ -66,11 +60,6 @@ public class StandardSchemaIdentifier implements SchemaIdentifier {
     @Override
     public Optional<String> getBranch() {
         return branch;
-    }
-
-    @Override
-    public Integer getProtocol() {
-        return protocol;
     }
 
     @Override
@@ -104,8 +93,7 @@ public class StandardSchemaIdentifier implements SchemaIdentifier {
                 + "identifier = " + identifier + ", "
                 + "version = " + version + ", "
                 + "schemaVersionId = " + schemaVersionId + ", "
-                + "branch = " + branch + ", "
-                + "protocol = " + protocol + " ]";
+                + "branch = " + branch + " ]";
     }
 
     /**
@@ -118,7 +106,6 @@ public class StandardSchemaIdentifier implements SchemaIdentifier {
         private Long identifier;
         private Integer version;
         private Long schemaVersionId;
-        private Integer protocol;
 
         @Override
         public SchemaIdentifier.Builder name(final String name) {
@@ -151,14 +138,8 @@ public class StandardSchemaIdentifier implements SchemaIdentifier {
         }
 
         @Override
-        public SchemaIdentifier.Builder protocol(final Integer protocol) {
-            this.protocol = protocol;
-            return this;
-        }
-
-        @Override
         public SchemaIdentifier build() {
-            return new StandardSchemaIdentifier(name, identifier, version, schemaVersionId, branch, protocol);
+            return new StandardSchemaIdentifier(name, identifier, version, schemaVersionId, branch);
         }
     }
 }

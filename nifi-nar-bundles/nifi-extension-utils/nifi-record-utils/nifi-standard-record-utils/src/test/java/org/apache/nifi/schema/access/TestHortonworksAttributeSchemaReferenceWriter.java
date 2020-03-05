@@ -31,29 +31,75 @@ import java.util.Map;
 public class TestHortonworksAttributeSchemaReferenceWriter {
 
     @Test
-    public void testValidateWithValidSchema() throws SchemaNotFoundException {
+    public void testValidateWithProtocol1AndValidSchema() throws SchemaNotFoundException {
         final SchemaIdentifier schemaIdentifier = SchemaIdentifier.builder().id(123456L).version(2).build();
         final RecordSchema recordSchema = createRecordSchema(schemaIdentifier);
 
-        final SchemaAccessWriter schemaAccessWriter = new HortonworksAttributeSchemaReferenceWriter();
+        final SchemaAccessWriter schemaAccessWriter = new HortonworksAttributeSchemaReferenceWriter(1);
         schemaAccessWriter.validateSchema(recordSchema);
     }
 
     @Test(expected = SchemaNotFoundException.class)
-    public void testValidateWithInvalidSchema() throws SchemaNotFoundException {
+    public void testValidateWithProtocol1AndMissingSchemaId() throws SchemaNotFoundException {
         final SchemaIdentifier schemaIdentifier = SchemaIdentifier.builder().name("test").build();
         final RecordSchema recordSchema = createRecordSchema(schemaIdentifier);
 
-        final SchemaAccessWriter schemaAccessWriter = new HortonworksAttributeSchemaReferenceWriter();
+        final SchemaAccessWriter schemaAccessWriter = new HortonworksAttributeSchemaReferenceWriter(1);
+        schemaAccessWriter.validateSchema(recordSchema);
+    }
+
+    @Test(expected = SchemaNotFoundException.class)
+    public void testValidateWithProtocol1AndMissingSchemaName() throws SchemaNotFoundException {
+        final SchemaIdentifier schemaIdentifier = SchemaIdentifier.builder().id(123456L).build();
+        final RecordSchema recordSchema = createRecordSchema(schemaIdentifier);
+
+        final SchemaAccessWriter schemaAccessWriter = new HortonworksAttributeSchemaReferenceWriter(1);
         schemaAccessWriter.validateSchema(recordSchema);
     }
 
     @Test
-    public void testGetAttributesWithoutBranch() {
+    public void testValidateWithProtocol2AndValidSchema() throws SchemaNotFoundException {
+        final SchemaIdentifier schemaIdentifier = SchemaIdentifier.builder().schemaVersionId(9999L).build();
+        final RecordSchema recordSchema = createRecordSchema(schemaIdentifier);
+
+        final SchemaAccessWriter schemaAccessWriter = new HortonworksAttributeSchemaReferenceWriter(2);
+        schemaAccessWriter.validateSchema(recordSchema);
+    }
+
+    @Test(expected = SchemaNotFoundException.class)
+    public void testValidateWithProtocol2AndMissingSchemaVersionId() throws SchemaNotFoundException {
+        final SchemaIdentifier schemaIdentifier = SchemaIdentifier.builder().name("test").build();
+        final RecordSchema recordSchema = createRecordSchema(schemaIdentifier);
+
+        final SchemaAccessWriter schemaAccessWriter = new HortonworksAttributeSchemaReferenceWriter(2);
+        schemaAccessWriter.validateSchema(recordSchema);
+    }
+
+    @Test
+    public void testValidateWithProtocol3AndValidSchema() throws SchemaNotFoundException {
+        final SchemaIdentifier schemaIdentifier = SchemaIdentifier.builder().schemaVersionId(9999L).build();
+        final RecordSchema recordSchema = createRecordSchema(schemaIdentifier);
+
+        final SchemaAccessWriter schemaAccessWriter = new HortonworksAttributeSchemaReferenceWriter(3);
+        schemaAccessWriter.validateSchema(recordSchema);
+    }
+
+    @Test(expected = SchemaNotFoundException.class)
+    public void testValidateWithProtocol3AndMissingSchemaVersionId() throws SchemaNotFoundException {
+        final SchemaIdentifier schemaIdentifier = SchemaIdentifier.builder().name("test").build();
+        final RecordSchema recordSchema = createRecordSchema(schemaIdentifier);
+
+        final SchemaAccessWriter schemaAccessWriter = new HortonworksAttributeSchemaReferenceWriter(3);
+        schemaAccessWriter.validateSchema(recordSchema);
+    }
+
+    @Test
+    public void testGetAttributesWithProtocol1() {
+        final Integer protocolVersion = 1;
         final SchemaIdentifier schemaIdentifier = SchemaIdentifier.builder().id(123456L).version(2).build();
         final RecordSchema recordSchema = createRecordSchema(schemaIdentifier);
 
-        final SchemaAccessWriter schemaAccessWriter = new HortonworksAttributeSchemaReferenceWriter();
+        final SchemaAccessWriter schemaAccessWriter = new HortonworksAttributeSchemaReferenceWriter(protocolVersion);
         final Map<String,String> attributes = schemaAccessWriter.getAttributes(recordSchema);
 
         Assert.assertEquals(3, attributes.size());
@@ -64,16 +110,17 @@ public class TestHortonworksAttributeSchemaReferenceWriter {
         Assert.assertEquals(String.valueOf(schemaIdentifier.getVersion().getAsInt()),
                 attributes.get(HortonworksAttributeSchemaReferenceStrategy.SCHEMA_VERSION_ATTRIBUTE));
 
-        Assert.assertEquals(String.valueOf(HortonworksAttributeSchemaReferenceWriter.LATEST_PROTOCOL_VERSION),
+        Assert.assertEquals(String.valueOf(protocolVersion),
                 attributes.get(HortonworksAttributeSchemaReferenceStrategy.SCHEMA_PROTOCOL_VERSION_ATTRIBUTE));
     }
 
     @Test
-    public void testGetAttributesWithBranch() {
+    public void testGetAttributesWithProtocol1AndBranch() {
+        final Integer protocolVersion = 1;
         final SchemaIdentifier schemaIdentifier = SchemaIdentifier.builder().id(123456L).version(2).branch("foo").build();
         final RecordSchema recordSchema = createRecordSchema(schemaIdentifier);
 
-        final SchemaAccessWriter schemaAccessWriter = new HortonworksAttributeSchemaReferenceWriter();
+        final SchemaAccessWriter schemaAccessWriter = new HortonworksAttributeSchemaReferenceWriter(protocolVersion);
         final Map<String,String> attributes = schemaAccessWriter.getAttributes(recordSchema);
 
         Assert.assertEquals(4, attributes.size());
@@ -84,10 +131,52 @@ public class TestHortonworksAttributeSchemaReferenceWriter {
         Assert.assertEquals(String.valueOf(schemaIdentifier.getVersion().getAsInt()),
                 attributes.get(HortonworksAttributeSchemaReferenceStrategy.SCHEMA_VERSION_ATTRIBUTE));
 
-        Assert.assertEquals(String.valueOf(HortonworksAttributeSchemaReferenceWriter.LATEST_PROTOCOL_VERSION),
+        Assert.assertEquals(String.valueOf(protocolVersion),
                 attributes.get(HortonworksAttributeSchemaReferenceStrategy.SCHEMA_PROTOCOL_VERSION_ATTRIBUTE));
 
-        Assert.assertEquals("foo", attributes.get(HortonworksAttributeSchemaReferenceWriter.SCHEMA_BRANCH_ATTRIBUTE));
+        Assert.assertEquals(schemaIdentifier.getBranch().get(),
+                attributes.get(HortonworksAttributeSchemaReferenceWriter.SCHEMA_BRANCH_ATTRIBUTE));
+    }
+
+    @Test
+    public void testGetAttributesWithProtocol2() {
+        final Integer protocolVersion = 2;
+        final SchemaIdentifier schemaIdentifier = SchemaIdentifier.builder().schemaVersionId(9999L).build();
+        final RecordSchema recordSchema = createRecordSchema(schemaIdentifier);
+
+        final SchemaAccessWriter schemaAccessWriter = new HortonworksAttributeSchemaReferenceWriter(protocolVersion);
+        final Map<String,String> attributes = schemaAccessWriter.getAttributes(recordSchema);
+
+        Assert.assertEquals(2, attributes.size());
+
+        Assert.assertEquals(String.valueOf(protocolVersion),
+                attributes.get(HortonworksAttributeSchemaReferenceStrategy.SCHEMA_PROTOCOL_VERSION_ATTRIBUTE));
+
+        Assert.assertEquals(String.valueOf(schemaIdentifier.getSchemaVersionId().getAsLong()),
+                attributes.get(HortonworksAttributeSchemaReferenceStrategy.SCHEMA_VERSION_ID_ATTRIBUTE));
+    }
+
+    @Test
+    public void testGetAttributesWithProtocol3() {
+        final Integer protocolVersion = 3;
+        final SchemaIdentifier schemaIdentifier = SchemaIdentifier.builder().schemaVersionId(9999L).build();
+        final RecordSchema recordSchema = createRecordSchema(schemaIdentifier);
+
+        final SchemaAccessWriter schemaAccessWriter = new HortonworksAttributeSchemaReferenceWriter(protocolVersion);
+        final Map<String,String> attributes = schemaAccessWriter.getAttributes(recordSchema);
+
+        Assert.assertEquals(2, attributes.size());
+
+        Assert.assertEquals(String.valueOf(protocolVersion),
+                attributes.get(HortonworksAttributeSchemaReferenceStrategy.SCHEMA_PROTOCOL_VERSION_ATTRIBUTE));
+
+        Assert.assertEquals(String.valueOf(schemaIdentifier.getSchemaVersionId().getAsLong()),
+                attributes.get(HortonworksAttributeSchemaReferenceStrategy.SCHEMA_VERSION_ID_ATTRIBUTE));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testInvalidProtocolVersion() {
+        new HortonworksAttributeSchemaReferenceWriter(99);
     }
 
     private RecordSchema createRecordSchema(final SchemaIdentifier schemaIdentifier) {
