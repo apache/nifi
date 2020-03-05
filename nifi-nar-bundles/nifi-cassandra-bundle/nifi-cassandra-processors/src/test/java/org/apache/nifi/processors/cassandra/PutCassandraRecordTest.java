@@ -190,32 +190,6 @@ public class PutCassandraRecordTest {
     }
 
     @Test
-    public void testUpdateZeroLengthUpdateKeys() throws InitializationException {
-        setUpStandardTestConfig();
-        testRunner.setProperty(PutCassandraRecord.STATEMENT_TYPE, PutCassandraRecord.UPDATE_TYPE);
-        testRunner.setProperty(PutCassandraRecord.UPDATE_METHOD, PutCassandraRecord.INCR_TYPE);
-        testRunner.setProperty(PutCassandraRecord.UPDATE_KEYS, ",");
-        testRunner.setProperty(PutCassandraRecord.BATCH_STATEMENT_TYPE, PutCassandraRecord.COUNTER_TYPE);
-
-        testRunner.assertValid();
-
-        recordReader.addSchemaField("name", RecordFieldType.STRING);
-        recordReader.addSchemaField("age", RecordFieldType.INT);
-        recordReader.addSchemaField("goals", RecordFieldType.STRING);
-
-        recordReader.addRecord("John Doe", 48, "1");
-        recordReader.addRecord("Jane Doe", 47, "1");
-        recordReader.addRecord("Sally Doe", 47, "1");
-
-        testRunner.enqueue("");
-        testRunner.run();
-
-        testRunner.assertTransferCount(PutCassandraRecord.REL_FAILURE, 1);
-        testRunner.assertTransferCount(PutCassandraRecord.REL_SUCCESS, 0);
-        testRunner.assertTransferCount(PutCassandraRecord.REL_RETRY, 0);
-    }
-
-    @Test
     public void testUpdateSetLoggedBatch() throws InitializationException {
         setUpStandardTestConfig();
         testRunner.setProperty(PutCassandraRecord.STATEMENT_TYPE, PutCassandraRecord.UPDATE_TYPE);
