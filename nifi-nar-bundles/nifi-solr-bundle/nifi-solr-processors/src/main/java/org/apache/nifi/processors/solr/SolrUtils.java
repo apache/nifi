@@ -122,8 +122,9 @@ public class SolrUtils {
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
-    public static final PropertyDescriptor BASIC_USERNAME = new PropertyDescriptor
-            .Builder().name("Username")
+    public static final PropertyDescriptor BASIC_USERNAME = new PropertyDescriptor.Builder()
+            .name("Username")
+            .displayName("Basic Auth Username")
             .description("The username to use when Solr is configured with basic authentication.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -131,8 +132,9 @@ public class SolrUtils {
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
-    public static final PropertyDescriptor BASIC_PASSWORD = new PropertyDescriptor
-            .Builder().name("Password")
+    public static final PropertyDescriptor BASIC_PASSWORD = new PropertyDescriptor.Builder()
+            .name("Password")
+            .displayName("Basic Auth Password")
             .description("The password to use when Solr is configured with basic authentication.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -147,6 +149,26 @@ public class SolrUtils {
             .description("Specifies the Kerberos Credentials Controller Service that should be used for authenticating with Kerberos")
             .identifiesControllerService(KerberosCredentialsService.class)
             .required(false)
+            .build();
+
+    public static final PropertyDescriptor KERBEROS_PRINCIPAL = new PropertyDescriptor.Builder()
+            .name("kerberos-principal")
+            .displayName("Kerberos Principal")
+            .description("The principal to use when specifying the principal and password directly in the processor for authenticating to Solr via Kerberos.")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING))
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
+
+    public static final PropertyDescriptor KERBEROS_PASSWORD = new PropertyDescriptor.Builder()
+            .name("kerberos-password")
+            .displayName("Kerberos Password")
+            .description("The password to use when specifying the principal and password directly in the processor for authenticating to Solr via Kerberos.")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING))
+            .sensitive(true)
             .build();
 
     public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
@@ -213,6 +235,8 @@ public class SolrUtils {
         final Integer maxConnectionsPerHost = context.getProperty(SOLR_MAX_CONNECTIONS_PER_HOST).asInteger();
         final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
         final KerberosCredentialsService kerberosCredentialsService = context.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
+        final String kerberosPrincipal = context.getProperty(KERBEROS_PRINCIPAL).evaluateAttributeExpressions().getValue();
+        final String kerberosPassword = context.getProperty(KERBEROS_PASSWORD).getValue();
 
         final ModifiableSolrParams params = new ModifiableSolrParams();
         params.set(HttpClientUtil.PROP_SO_TIMEOUT, socketTimeout);
@@ -221,7 +245,7 @@ public class SolrUtils {
         params.set(HttpClientUtil.PROP_MAX_CONNECTIONS_PER_HOST, maxConnectionsPerHost);
 
         // has to happen before the client is created below so that correct configurer would be set if needed
-        if (kerberosCredentialsService != null) {
+        if (kerberosCredentialsService != null || (!StringUtils.isBlank(kerberosPrincipal) && !StringUtils.isBlank(kerberosPassword))) {
             HttpClientUtil.setConfigurer(new KerberosHttpClientConfigurer());
         }
 

@@ -70,7 +70,7 @@ public class Argon2SecureHasher implements SecureHasher {
     }
 
     /**
-     * Instantiates an Argon2 secure hasher using the provided cost parameters. A unique
+     * Instantiates an Argon2 secure hasher using the provided cost parameters. A static
      * {@link #DEFAULT_SALT_LENGTH} byte salt will be generated on every hash request.
      *
      * @param hashLength  the output length in bytes ({@code 4 to 2^32 - 1})

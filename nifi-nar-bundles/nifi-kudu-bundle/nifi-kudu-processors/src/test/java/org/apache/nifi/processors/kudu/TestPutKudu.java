@@ -132,6 +132,32 @@ public class TestPutKudu {
     }
 
     @Test
+    public void testCustomValidate() throws InitializationException {
+        createRecordReader(1);
+
+        testRunner.setProperty(PutKudu.KERBEROS_PRINCIPAL, "principal");
+        testRunner.assertNotValid();
+
+        testRunner.removeProperty(PutKudu.KERBEROS_PRINCIPAL);
+        testRunner.setProperty(PutKudu.KERBEROS_PASSWORD, "password");
+        testRunner.assertNotValid();
+
+        testRunner.setProperty(PutKudu.KERBEROS_PRINCIPAL, "principal");
+        testRunner.setProperty(PutKudu.KERBEROS_PASSWORD, "password");
+        testRunner.assertValid();
+
+        final KerberosCredentialsService kerberosCredentialsService = new MockKerberosCredentialsService("unit-test-principal", "unit-test-keytab");
+        testRunner.addControllerService("kerb", kerberosCredentialsService);
+        testRunner.enableControllerService(kerberosCredentialsService);
+        testRunner.setProperty(PutKudu.KERBEROS_CREDENTIALS_SERVICE, "kerb");
+        testRunner.assertNotValid();
+
+        testRunner.removeProperty(PutKudu.KERBEROS_PRINCIPAL);
+        testRunner.removeProperty(PutKudu.KERBEROS_PASSWORD);
+        testRunner.assertValid();
+    }
+
+    @Test
     public void testWriteKuduWithDefaults() throws IOException, InitializationException {
         createRecordReader(100);
 

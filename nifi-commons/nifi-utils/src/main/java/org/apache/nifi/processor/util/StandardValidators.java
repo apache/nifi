@@ -575,7 +575,12 @@ public class StandardValidators {
                 if (input == null) {
                     return new ValidationResult.Builder().subject(subject).input(null).explanation("List must have at least one non-empty element").valid(false).build();
                 }
+
                 final String[] list = input.split(",");
+                if (list.length == 0) {
+                    return new ValidationResult.Builder().subject(subject).input(null).explanation("List must have at least one non-empty element").valid(false).build();
+                }
+
                 for (String item : list) {
                     String itemToValidate = trimEntries ? item.trim() : item;
                     if (!isEmpty(itemToValidate) || !excludeEmptyEntries) {

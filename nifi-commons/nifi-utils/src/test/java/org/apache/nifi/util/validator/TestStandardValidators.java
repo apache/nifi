@@ -184,6 +184,25 @@ public class TestStandardValidators {
         assertFalse(vr.isValid());
         assertEquals(1, mockValidator.getValidateCallCount());
 
+        // An empty list is the same as null, "" or " "
+        vr = val.validate("List", ",", validationContext);
+        assertFalse(vr.isValid());
+        assertEquals(0, mockValidator.getValidateCallCount());
+
+        vr = val.validate("List", " , ", validationContext);
+        assertFalse(vr.isValid());
+        assertEquals(1, mockValidator.getValidateCallCount());
+
+        // will evaluate to no entry
+        vr = val.validate("List", ",,,,", validationContext);
+        assertFalse(vr.isValid());
+        assertEquals(0, mockValidator.getValidateCallCount());
+
+        // will evaluate to an empty element
+        vr = val.validate("List", ",foo", validationContext);
+        assertFalse(vr.isValid());
+        assertEquals(1, mockValidator.getValidateCallCount());
+
         vr = val.validate("List", "1", validationContext);
         assertTrue(vr.isValid());
         assertEquals(1, mockValidator.getValidateCallCount());
