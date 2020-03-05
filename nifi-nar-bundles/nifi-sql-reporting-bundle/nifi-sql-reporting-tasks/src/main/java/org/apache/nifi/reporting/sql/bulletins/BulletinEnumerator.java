@@ -97,6 +97,7 @@ public class BulletinEnumerator implements Enumerator<Object> {
                 bulletin.getCategory(),
                 bulletin.getGroupId(),
                 bulletin.getGroupName(),
+                bulletin.getGroupPath(),
                 bulletin.getLevel(),
                 bulletin.getMessage(),
                 bulletin.getNodeAddress(),
