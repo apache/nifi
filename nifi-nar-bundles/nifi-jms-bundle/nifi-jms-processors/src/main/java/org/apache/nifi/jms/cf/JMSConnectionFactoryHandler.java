@@ -36,23 +36,23 @@ import static org.apache.nifi.jms.cf.JMSConnectionFactoryProperties.JMS_CONNECTI
 import static org.apache.nifi.jms.cf.JMSConnectionFactoryProperties.JMS_SSL_CONTEXT_SERVICE;
 
 /**
- * Delegate class to create a JMS Connection Factory by instantiating the vendor specific javax.jms.ConnectionFactory
+ * Handler class to create a JMS Connection Factory by instantiating the vendor specific javax.jms.ConnectionFactory
  * implementation class and configuring the Connection Factory object directly.
- * The delegate can be used from controller services and processors as well.
+ * The handler can be used from controller services and processors as well.
  */
-public class JMSConnectionFactoryDelegate implements IJMSConnectionFactoryProvider {
+public class JMSConnectionFactoryHandler implements IJMSConnectionFactoryProvider {
 
     private final PropertyContext context;
     private final Set<PropertyDescriptor> propertyDescriptors;
     private final ComponentLog logger;
 
-    public JMSConnectionFactoryDelegate(ConfigurationContext context, ComponentLog logger) {
+    public JMSConnectionFactoryHandler(ConfigurationContext context, ComponentLog logger) {
         this.context = context;
         this.propertyDescriptors = context.getProperties().keySet();
         this.logger = logger;
     }
 
-    public JMSConnectionFactoryDelegate(ProcessContext context, ComponentLog logger) {
+    public JMSConnectionFactoryHandler(ProcessContext context, ComponentLog logger) {
         this.context = context;
         this.propertyDescriptors = context.getProperties().keySet();
         this.logger = logger;

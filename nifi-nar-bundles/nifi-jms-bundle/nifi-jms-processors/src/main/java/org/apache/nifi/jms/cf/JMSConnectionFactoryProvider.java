@@ -52,7 +52,7 @@ import java.util.List;
 @SeeAlso(classNames = {"org.apache.nifi.jms.processors.ConsumeJMS", "org.apache.nifi.jms.processors.PublishJMS"})
 public class JMSConnectionFactoryProvider extends AbstractControllerService implements JMSConnectionFactoryProviderDefinition {
 
-    protected JMSConnectionFactoryDelegate delegate;
+    protected JMSConnectionFactoryHandler delegate;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -66,7 +66,7 @@ public class JMSConnectionFactoryProvider extends AbstractControllerService impl
 
     @OnEnabled
     public void onEnabled(ConfigurationContext context) {
-        delegate = new JMSConnectionFactoryDelegate(context, getLogger());
+        delegate = new JMSConnectionFactoryHandler(context, getLogger());
     }
 
     @OnDisabled

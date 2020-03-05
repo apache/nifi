@@ -40,10 +40,10 @@ import static org.apache.nifi.jms.cf.JndiJmsConnectionFactoryProperties.JNDI_PRI
 import static org.apache.nifi.jms.cf.JndiJmsConnectionFactoryProperties.JNDI_PROVIDER_URL;
 
 /**
- * Delegate class to retrieve a JMS Connection Factory object via JNDI.
- * The delegate can be used from controller services and processors as well.
+ * Handler class to retrieve a JMS Connection Factory object via JNDI.
+ * The handler can be used from controller services and processors as well.
  */
-public class JndiJmsConnectionFactoryDelegate implements IJMSConnectionFactoryProvider {
+public class JndiJmsConnectionFactoryHandler implements IJMSConnectionFactoryProvider {
 
     private final PropertyContext context;
     private final Set<PropertyDescriptor> propertyDescriptors;
@@ -51,13 +51,13 @@ public class JndiJmsConnectionFactoryDelegate implements IJMSConnectionFactoryPr
 
     private volatile ConnectionFactory connectionFactory;
 
-    public JndiJmsConnectionFactoryDelegate(ConfigurationContext context, ComponentLog logger) {
+    public JndiJmsConnectionFactoryHandler(ConfigurationContext context, ComponentLog logger) {
         this.context = context;
         this.propertyDescriptors = context.getProperties().keySet();
         this.logger = logger;
     }
 
-    public JndiJmsConnectionFactoryDelegate(ProcessContext context, ComponentLog logger) {
+    public JndiJmsConnectionFactoryHandler(ProcessContext context, ComponentLog logger) {
         this.context = context;
         this.propertyDescriptors = context.getProperties().keySet();
         this.logger = logger;

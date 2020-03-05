@@ -23,22 +23,22 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Sub-class of {@link JMSConnectionFactoryDelegate} only for testing purpose
+ * Sub-class of {@link JMSConnectionFactoryHandler} only for testing purpose
  */
-public class JMSConnectionFactoryDelegateForTest extends JMSConnectionFactoryDelegate {
+public class JMSConnectionFactoryHandlerForTest extends JMSConnectionFactoryHandler {
 
-    private Map<String, Object> setProperties = new HashMap<>();
+    private Map<String, Object> configuredProperties = new HashMap<>();
 
-    public JMSConnectionFactoryDelegateForTest(ConfigurationContext context, ComponentLog logger) {
+    public JMSConnectionFactoryHandlerForTest(ConfigurationContext context, ComponentLog logger) {
         super(context, logger);
     }
 
     @Override
     void setProperty(String propertyName, Object propertyValue) {
-        setProperties.put(propertyName, propertyValue);
+        configuredProperties.put(propertyName, propertyValue);
     }
 
-    public Map<String, Object> getSetProperties() {
-        return setProperties;
+    public Map<String, Object> getConfiguredProperties() {
+        return configuredProperties;
     }
 }

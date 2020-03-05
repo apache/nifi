@@ -25,11 +25,11 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.jms.cf.IJMSConnectionFactoryProvider;
-import org.apache.nifi.jms.cf.JMSConnectionFactoryDelegate;
+import org.apache.nifi.jms.cf.JMSConnectionFactoryHandler;
 import org.apache.nifi.jms.cf.JMSConnectionFactoryProperties;
 import org.apache.nifi.jms.cf.JMSConnectionFactoryProvider;
 import org.apache.nifi.jms.cf.JMSConnectionFactoryProviderDefinition;
-import org.apache.nifi.jms.cf.JndiJmsConnectionFactoryDelegate;
+import org.apache.nifi.jms.cf.JndiJmsConnectionFactoryHandler;
 import org.apache.nifi.jms.cf.JndiJmsConnectionFactoryProperties;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -222,9 +222,9 @@ public abstract class AbstractJMSProcessor<T extends JMSWorker> extends Abstract
         if (context.getProperty(CF_SERVICE).isSet()) {
             connectionFactoryProvider = context.getProperty(CF_SERVICE).asControllerService(JMSConnectionFactoryProviderDefinition.class);
         } else if (context.getProperty(JndiJmsConnectionFactoryProperties.JNDI_CONNECTION_FACTORY_NAME).isSet()) {
-            connectionFactoryProvider = new JndiJmsConnectionFactoryDelegate(context, getLogger());
+            connectionFactoryProvider = new JndiJmsConnectionFactoryHandler(context, getLogger());
         } else if (context.getProperty(JMSConnectionFactoryProperties.JMS_CONNECTION_FACTORY_IMPL).isSet()) {
-            connectionFactoryProvider = new JMSConnectionFactoryDelegate(context, getLogger());
+            connectionFactoryProvider = new JMSConnectionFactoryHandler(context, getLogger());
         } else {
             throw new ProcessException("No Connection Factory configured.");
         }
@@ -355,40 +355,24 @@ public abstract class AbstractJMSProcessor<T extends JMSWorker> extends Abstract
                         .explanation("cannot set both 'JNDI *' and 'JMS *' properties.")
                         .build());
             } else if (jndiInitialContextFactoryProperty.isSet()) {
-                for (PropertyDescriptor propertyDescriptor : JndiJmsConnectionFactoryProperties.getPropertyDescriptors()) {
-                    if (propertyDescriptor.isRequired()) {
-                        PropertyValue propertyValue = validationContext.getProperty(propertyDescriptor);
-                        if (!propertyValue.isSet()) {
-                            results.add(new ValidationResult.Builder()
-                                    .subject("Connection Factory config")
-                                    .valid(false)
-                                    .explanation(String.format("'%s' must be specified when '%s' has been configured.", propertyDescriptor.getDisplayName(),
-                                            JndiJmsConnectionFactoryProperties.JNDI_INITIAL_CONTEXT_FACTORY.getDisplayName()))
-                                    .build());
-                        }
-                    }
-                }
+                validateLocalConnectionFactoryConfig(JndiJmsConnectionFactoryProperties.getPropertyDescriptors(), JndiJmsConnectionFactoryProperties.JNDI_INITIAL_CONTEXT_FACTORY, results);
             } else if (jmsConnectionFactoryImplProperty.isSet()) {
-                for (PropertyDescriptor propertyDescriptor : JMSConnectionFactoryProperties.getPropertyDescriptors()) {
-                    if (propertyDescriptor.isRequired()) {
-                        PropertyValue propertyValue = validationContext.getProperty(propertyDescriptor);
-                        if (!propertyValue.isSet()) {
-                            results.add(new ValidationResult.Builder()
-                                    .subject("Connection Factory config")
-                                    .valid(false)
-                                    .explanation(String.format("'%s' must be specified when '%s' has been configured.", propertyDescriptor.getDisplayName(),
-                                            JMSConnectionFactoryProperties.JMS_CONNECTION_FACTORY_IMPL.getDisplayName()))
-                                    .build());
-                        }
-                    }
-                }
+                validateLocalConnectionFactoryConfig(JMSConnectionFactoryProperties.getPropertyDescriptors(), JMSConnectionFactoryProperties.JMS_CONNECTION_FACTORY_IMPL, results);
             }
 
             return results;
         }
 
         private boolean hasLocalJndiJmsConnectionFactoryConfig() {
-            for (PropertyDescriptor propertyDescriptor : JndiJmsConnectionFactoryProperties.getPropertyDescriptors()) {
+            return hasLocalConnectionFactoryConfig(JndiJmsConnectionFactoryProperties.getPropertyDescriptors());
+        }
+
+        private boolean hasLocalJMSConnectionFactoryConfig() {
+            return hasLocalConnectionFactoryConfig(JMSConnectionFactoryProperties.getPropertyDescriptors());
+        }
+
+        private boolean hasLocalConnectionFactoryConfig(List<PropertyDescriptor> localConnectionFactoryProperties) {
+            for (PropertyDescriptor propertyDescriptor : localConnectionFactoryProperties) {
                 PropertyValue propertyValue = validationContext.getProperty(propertyDescriptor);
                 if (propertyValue.isSet()) {
                     return true;
@@ -397,14 +381,19 @@ public abstract class AbstractJMSProcessor<T extends JMSWorker> extends Abstract
             return false;
         }
 
-        private boolean hasLocalJMSConnectionFactoryConfig() {
-            for (PropertyDescriptor propertyDescriptor : JMSConnectionFactoryProperties.getPropertyDescriptors()) {
-                PropertyValue propertyValue = validationContext.getProperty(propertyDescriptor);
-                if (propertyValue.isSet()) {
-                    return true;
+        private void validateLocalConnectionFactoryConfig(List<PropertyDescriptor> localConnectionFactoryProperties, PropertyDescriptor indicatorProperty, List<ValidationResult> results) {
+            for (PropertyDescriptor propertyDescriptor : localConnectionFactoryProperties) {
+                if (propertyDescriptor.isRequired()) {
+                    PropertyValue propertyValue = validationContext.getProperty(propertyDescriptor);
+                    if (!propertyValue.isSet()) {
+                        results.add(new ValidationResult.Builder()
+                                .subject("Connection Factory config")
+                                .valid(false)
+                                .explanation(String.format("'%s' must be specified when '%s' has been configured.", propertyDescriptor.getDisplayName(), indicatorProperty.getDisplayName()))
+                                .build());
+                    }
                 }
             }
-            return false;
         }
     }
 }

@@ -17,6 +17,7 @@
 package org.apache.nifi.jms.cf;
 
 import com.google.common.collect.ImmutableMap;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockComponentLog;
@@ -137,8 +138,13 @@ public class JMSConnectionFactoryProviderTest {
 
     @Test(expected = IllegalStateException.class)
     public void validateGetConnectionFactoryFailureIfServiceNotConfigured() {
-        JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
-        cfProvider.delegate = new JMSConnectionFactoryDelegate(new MockConfigurationContext(Collections.emptyMap(), null), new MockComponentLog("cfProvider", cfProvider));
+        JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider() {
+            @Override
+            protected ComponentLog getLogger() {
+                return new MockComponentLog("cfProvider", this);
+            }
+        };
+        cfProvider.onEnabled(new MockConfigurationContext(Collections.emptyMap(), null));
         cfProvider.getConnectionFactory();
     }
 
@@ -309,7 +315,7 @@ public class JMSConnectionFactoryProviderTest {
 
         runner.enableControllerService(cfProvider);
 
-        assertEquals(cfProvider.getDelegate().getSetProperties(), ImmutableMap.of("hostName", HOSTNAME, "port", PORT));
+        assertEquals(cfProvider.getConfiguredProperties(), ImmutableMap.of("hostName", HOSTNAME, "port", PORT));
     }
 
     @Test
@@ -325,7 +331,7 @@ public class JMSConnectionFactoryProviderTest {
 
         runner.enableControllerService(cfProvider);
 
-        assertEquals(cfProvider.getDelegate().getSetProperties(), ImmutableMap.of());
+        assertEquals(cfProvider.getConfiguredProperties(), ImmutableMap.of());
     }
 
     @Test
@@ -341,7 +347,7 @@ public class JMSConnectionFactoryProviderTest {
 
         runner.enableControllerService(cfProvider);
 
-        assertEquals(cfProvider.getDelegate().getSetProperties(), ImmutableMap.of("hostName", "myhost01", "port", "1234"));
+        assertEquals(cfProvider.getConfiguredProperties(), ImmutableMap.of("hostName", "myhost01", "port", "1234"));
     }
 
     @Test
@@ -357,7 +363,7 @@ public class JMSConnectionFactoryProviderTest {
 
         runner.enableControllerService(cfProvider);
 
-        assertEquals(cfProvider.getDelegate().getSetProperties(), ImmutableMap.of("brokerURL", SINGLE_ACTIVEMQ_BROKER));
+        assertEquals(cfProvider.getConfiguredProperties(), ImmutableMap.of("brokerURL", SINGLE_ACTIVEMQ_BROKER));
     }
 
     @Test
@@ -373,7 +379,7 @@ public class JMSConnectionFactoryProviderTest {
 
         runner.enableControllerService(cfProvider);
 
-        assertEquals(cfProvider.getDelegate().getSetProperties(), ImmutableMap.of("brokerURL", MULTIPLE_ACTIVEMQ_BROKERS));
+        assertEquals(cfProvider.getConfiguredProperties(), ImmutableMap.of("brokerURL", MULTIPLE_ACTIVEMQ_BROKERS));
     }
 
     @Test
@@ -389,7 +395,7 @@ public class JMSConnectionFactoryProviderTest {
 
         runner.enableControllerService(cfProvider);
 
-        assertEquals(cfProvider.getDelegate().getSetProperties(), ImmutableMap.of("serverUrl", SINGLE_TIBCO_BROKER));
+        assertEquals(cfProvider.getConfiguredProperties(), ImmutableMap.of("serverUrl", SINGLE_TIBCO_BROKER));
     }
 
     @Test
@@ -405,7 +411,7 @@ public class JMSConnectionFactoryProviderTest {
 
         runner.enableControllerService(cfProvider);
 
-        assertEquals(cfProvider.getDelegate().getSetProperties(), ImmutableMap.of("serverUrl", MULTIPLE_TIBCO_BROKERS));
+        assertEquals(cfProvider.getConfiguredProperties(), ImmutableMap.of("serverUrl", MULTIPLE_TIBCO_BROKERS));
     }
 
     @Test
@@ -421,7 +427,7 @@ public class JMSConnectionFactoryProviderTest {
 
         runner.enableControllerService(cfProvider);
 
-        assertEquals(cfProvider.getDelegate().getSetProperties(), ImmutableMap.of("connectionNameList", SINGLE_IBM_MQ_BROKER));
+        assertEquals(cfProvider.getConfiguredProperties(), ImmutableMap.of("connectionNameList", SINGLE_IBM_MQ_BROKER));
     }
 
     @Test
@@ -437,7 +443,7 @@ public class JMSConnectionFactoryProviderTest {
 
         runner.enableControllerService(cfProvider);
 
-        assertEquals(cfProvider.getDelegate().getSetProperties(), ImmutableMap.of("connectionNameList", MULTIPLE_IBM_MQ_BROKERS));
+        assertEquals(cfProvider.getConfiguredProperties(), ImmutableMap.of("connectionNameList", MULTIPLE_IBM_MQ_BROKERS));
     }
 
     @Test
@@ -453,7 +459,7 @@ public class JMSConnectionFactoryProviderTest {
 
         runner.enableControllerService(cfProvider);
 
-        assertEquals(cfProvider.getDelegate().getSetProperties(), ImmutableMap.of("connectionNameList", MULTIPLE_IBM_MQ_BROKERS));
+        assertEquals(cfProvider.getConfiguredProperties(), ImmutableMap.of("connectionNameList", MULTIPLE_IBM_MQ_BROKERS));
     }
 
     @Test
@@ -469,7 +475,7 @@ public class JMSConnectionFactoryProviderTest {
 
         runner.enableControllerService(cfProvider);
 
-        assertEquals(cfProvider.getDelegate().getSetProperties(), ImmutableMap.of("connectionNameList", MULTIPLE_IBM_MQ_BROKERS));
+        assertEquals(cfProvider.getConfiguredProperties(), ImmutableMap.of("connectionNameList", MULTIPLE_IBM_MQ_BROKERS));
     }
 
     @Test
@@ -485,7 +491,7 @@ public class JMSConnectionFactoryProviderTest {
 
         runner.enableControllerService(cfProvider);
 
-        assertEquals(cfProvider.getDelegate().getSetProperties(), ImmutableMap.of("connectionNameList", HOSTNAME + "(" + PORT + ")"));
+        assertEquals(cfProvider.getConfiguredProperties(), ImmutableMap.of("connectionNameList", HOSTNAME + "(" + PORT + ")"));
     }
 
     @Test
@@ -504,6 +510,6 @@ public class JMSConnectionFactoryProviderTest {
 
         runner.enableControllerService(cfProvider);
 
-        assertEquals(cfProvider.getDelegate().getSetProperties(), ImmutableMap.of("dynamicProperty", "dynamicValue", "hostName", HOSTNAME, "port", PORT));
+        assertEquals(cfProvider.getConfiguredProperties(), ImmutableMap.of("dynamicProperty", "dynamicValue", "hostName", HOSTNAME, "port", PORT));
     }
 }

@@ -24,10 +24,12 @@ import org.apache.nifi.jms.cf.JndiJmsConnectionFactoryProvider;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import javax.jms.Connection;
 import javax.jms.JMSException;
 
 /**
@@ -42,7 +44,6 @@ public class ConnectionFactoryConfigIT {
     private static final String CONTROLLER_SERVICE_ID = "cfProvider";
 
     private static final String BROKER_URL = "vm://test-broker?broker.persistent=false";
-    private static final String QUEUE_NAME = "test-queue";
 
     private static final String PROP_JNDI_INITIAL_CONTEXT_FACTORY = "org.apache.activemq.jndi.ActiveMQInitialContextFactory";
     private static final String PROP_JNDI_PROVIDER_URL = BROKER_URL;
@@ -51,73 +52,80 @@ public class ConnectionFactoryConfigIT {
     private static final String PROP_JMS_CONNECTION_FACTORY_IMPL = "org.apache.activemq.ActiveMQConnectionFactory";
     private static final String PROP_JMS_BROKER_URI = BROKER_URL;
 
+    private static final String TEST_MESSAGE = "test-message";
+
+    private static Connection bootstrapConnection;
+
     private TestRunner publisher;
     private TestRunner consumer;
 
     @BeforeClass
     public static void beforeClass() throws JMSException {
         // start in-VM broker
-        new ActiveMQConnectionFactory(BROKER_URL).createConnection();
+        bootstrapConnection = new ActiveMQConnectionFactory(BROKER_URL).createConnection();
+    }
+
+    @AfterClass
+    public static void afterClass() throws JMSException {
+        // stop in-VM broker
+        bootstrapConnection.close();
     }
 
     @Before
     public void before() {
         publisher = TestRunners.newTestRunner(PublishJMS.class);
-        publisher.setProperty(PublishJMS.DESTINATION, QUEUE_NAME);
-
         consumer = TestRunners.newTestRunner(ConsumeJMS.class);
-        consumer.setProperty(ConsumeJMS.DESTINATION, QUEUE_NAME);
     }
 
     @Test
     public void testJndiJmsConnectionFactoryControllerService() throws InitializationException {
-        String testData = "testJndiJmsConnectionFactoryControllerService";
+        String queueName = "queue-jndi-service";
 
-        configureJndiJmsConnectionFactoryControllerService(publisher);
-        configureJndiJmsConnectionFactoryControllerService(consumer);
+        configureJndiJmsConnectionFactoryControllerService(publisher, queueName);
+        configureJndiJmsConnectionFactoryControllerService(consumer, queueName);
 
-        executeProcessors(testData);
+        executeProcessors();
 
-        assertResult(testData);
+        assertResult();
     }
 
     @Test
     public void testJMSConnectionFactoryControllerService() throws InitializationException {
-        String testData = "testJMSConnectionFactoryControllerService";
+        String queueName = "queue-jms-service";
 
-        configureJMSConnectionFactoryControllerService(publisher);
-        configureJMSConnectionFactoryControllerService(consumer);
+        configureJMSConnectionFactoryControllerService(publisher, queueName);
+        configureJMSConnectionFactoryControllerService(consumer, queueName);
 
-        executeProcessors(testData);
+        executeProcessors();
 
-        assertResult(testData);
+        assertResult();
     }
 
     @Test
     public void testLocalJndiJmsConnectionFactoryConfig() {
-        String testData = "testLocalJndiJmsConnectionFactoryConfig";
+        String queueName = "queue-jndi-local";
 
-        configureLocalJndiJmsConnectionFactory(publisher);
-        configureLocalJndiJmsConnectionFactory(consumer);
+        configureLocalJndiJmsConnectionFactory(publisher, queueName);
+        configureLocalJndiJmsConnectionFactory(consumer, queueName);
 
-        executeProcessors(testData);
+        executeProcessors();
 
-        assertResult(testData);
+        assertResult();
     }
 
     @Test
     public void testLocalJMSConnectionFactoryConfig() {
-        String testData = "testLocalJMSConnectionFactoryConfig";
+        String queueName = "queue-jms-local";
 
-        configureLocalJMSConnectionFactory(publisher);
-        configureLocalJMSConnectionFactory(consumer);
+        configureLocalJMSConnectionFactory(publisher, queueName);
+        configureLocalJMSConnectionFactory(consumer, queueName);
 
-        executeProcessors(testData);
+        executeProcessors();
 
-        assertResult(testData);
+        assertResult();
     }
 
-    private void configureJndiJmsConnectionFactoryControllerService(TestRunner runner) throws InitializationException {
+    private void configureJndiJmsConnectionFactoryControllerService(TestRunner runner, String queueName) throws InitializationException {
         JndiJmsConnectionFactoryProvider cfProvider = new JndiJmsConnectionFactoryProvider();
         runner.addControllerService(CONTROLLER_SERVICE_ID, cfProvider);
         runner.setProperty(cfProvider, JndiJmsConnectionFactoryProperties.JNDI_INITIAL_CONTEXT_FACTORY, PROP_JNDI_INITIAL_CONTEXT_FACTORY);
@@ -125,40 +133,44 @@ public class ConnectionFactoryConfigIT {
         runner.setProperty(cfProvider, JndiJmsConnectionFactoryProperties.JNDI_CONNECTION_FACTORY_NAME, PROP_JNDI_CONNECTION_FACTORY_NAME);
         runner.enableControllerService(cfProvider);
         runner.setProperty(AbstractJMSProcessor.CF_SERVICE, CONTROLLER_SERVICE_ID);
+        runner.setProperty(AbstractJMSProcessor.DESTINATION, queueName);
     }
 
-    private void configureJMSConnectionFactoryControllerService(TestRunner runner) throws InitializationException {
+    private void configureJMSConnectionFactoryControllerService(TestRunner runner, String queueName) throws InitializationException {
         JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
         runner.addControllerService(CONTROLLER_SERVICE_ID, cfProvider);
         runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CONNECTION_FACTORY_IMPL, PROP_JMS_CONNECTION_FACTORY_IMPL);
         runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_BROKER_URI, PROP_JMS_BROKER_URI);
         runner.enableControllerService(cfProvider);
         runner.setProperty(AbstractJMSProcessor.CF_SERVICE, CONTROLLER_SERVICE_ID);
+        runner.setProperty(AbstractJMSProcessor.DESTINATION, queueName);
     }
 
-    private void configureLocalJndiJmsConnectionFactory(TestRunner runner) {
+    private void configureLocalJndiJmsConnectionFactory(TestRunner runner, String queueName) {
         runner.setProperty(JndiJmsConnectionFactoryProperties.JNDI_INITIAL_CONTEXT_FACTORY, PROP_JNDI_INITIAL_CONTEXT_FACTORY);
         runner.setProperty(JndiJmsConnectionFactoryProperties.JNDI_PROVIDER_URL, PROP_JNDI_PROVIDER_URL);
         runner.setProperty(JndiJmsConnectionFactoryProperties.JNDI_CONNECTION_FACTORY_NAME, PROP_JNDI_CONNECTION_FACTORY_NAME);
+        runner.setProperty(AbstractJMSProcessor.DESTINATION, queueName);
     }
 
-    private void configureLocalJMSConnectionFactory(TestRunner runner) {
+    private void configureLocalJMSConnectionFactory(TestRunner runner, String queueName) {
         runner.setProperty(JMSConnectionFactoryProperties.JMS_CONNECTION_FACTORY_IMPL, PROP_JMS_CONNECTION_FACTORY_IMPL);
         runner.setProperty(JMSConnectionFactoryProperties.JMS_BROKER_URI, PROP_JMS_BROKER_URI);
+        runner.setProperty(AbstractJMSProcessor.DESTINATION, queueName);
     }
 
-    private void executeProcessors(String testData) {
-        publisher.enqueue(testData);
+    private void executeProcessors() {
+        publisher.enqueue(TEST_MESSAGE);
         publisher.run();
 
         consumer.run();
     }
 
-    private void assertResult(String testData) {
+    private void assertResult() {
         publisher.assertAllFlowFilesTransferred(PublishJMS.REL_SUCCESS, 1);
-        publisher.getFlowFilesForRelationship(ConsumeJMS.REL_SUCCESS).get(0).assertContentEquals(testData);
+        publisher.getFlowFilesForRelationship(ConsumeJMS.REL_SUCCESS).get(0).assertContentEquals(TEST_MESSAGE);
 
         consumer.assertAllFlowFilesTransferred(ConsumeJMS.REL_SUCCESS, 1);
-        consumer.getFlowFilesForRelationship(ConsumeJMS.REL_SUCCESS).get(0).assertContentEquals(testData);
+        consumer.getFlowFilesForRelationship(ConsumeJMS.REL_SUCCESS).get(0).assertContentEquals(TEST_MESSAGE);
     }
 }
