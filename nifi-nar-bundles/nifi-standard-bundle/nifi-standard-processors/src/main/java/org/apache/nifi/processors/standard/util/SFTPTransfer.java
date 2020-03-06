@@ -631,6 +631,7 @@ public class SFTPTransfer implements FileTransfer {
         try {
             this.homeDir = sftpClient.canonicalize("");
         } catch (IOException e) {
+            this.homeDir = "";
             // For some combination of server configuration and user home directory, getHome() can fail with "2: File not found"
             // Since  homeDir is only used tor SEND provenance event transit uri, this is harmless. Log and continue.
             logger.debug("Failed to retrieve {} home directory due to {}", new Object[]{username, e.getMessage()});
