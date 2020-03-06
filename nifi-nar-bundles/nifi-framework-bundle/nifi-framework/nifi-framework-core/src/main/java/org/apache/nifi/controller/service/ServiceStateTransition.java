@@ -17,8 +17,6 @@
 
 package org.apache.nifi.controller.service;
 
-import org.apache.nifi.controller.ComponentNode;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -31,14 +29,9 @@ public class ServiceStateTransition {
     private final List<CompletableFuture<?>> enabledFutures = new ArrayList<>();
     private final List<CompletableFuture<?>> disabledFutures = new ArrayList<>();
 
-    private final ControllerServiceNode serviceNode;
     private final ReadWriteLock rwLock = new ReentrantReadWriteLock();
     private final Lock writeLock = rwLock.writeLock();
     private final Lock readLock = rwLock.readLock();
-
-    public ServiceStateTransition(final ControllerServiceNode serviceNode) {
-        this.serviceNode = serviceNode;
-    }
 
     public boolean transitionToEnabling(final ControllerServiceState expectedState, final CompletableFuture<?> enabledFuture) {
         writeLock.lock();
@@ -64,19 +57,10 @@ public class ServiceStateTransition {
 
             state = ControllerServiceState.ENABLED;
 
-            validateReferences(serviceNode);
-
             enabledFutures.forEach(future -> future.complete(null));
             return true;
         } finally {
             writeLock.unlock();
-        }
-    }
-
-    private void validateReferences(final ControllerServiceNode service) {
-        final List<ComponentNode> referencingComponents = service.getReferences().findRecursiveReferences(ComponentNode.class);
-        for (final ComponentNode component : referencingComponents) {
-            component.performValidation();
         }
     }
 
