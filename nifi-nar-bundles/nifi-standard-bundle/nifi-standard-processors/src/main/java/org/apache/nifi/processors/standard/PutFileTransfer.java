@@ -39,6 +39,7 @@ import org.apache.nifi.processors.standard.util.FileInfo;
 import org.apache.nifi.processors.standard.util.FileTransfer;
 import org.apache.nifi.processors.standard.util.SFTPTransfer;
 import org.apache.nifi.util.StopWatch;
+import org.apache.nifi.util.StringUtils;
 
 /**
  * Base class for PutFTP & PutSFTP
@@ -102,8 +103,8 @@ public abstract class PutFileTransfer<T extends FileTransfer> extends AbstractPr
             do {
                 final String rootPath = context.getProperty(FileTransfer.REMOTE_PATH).evaluateAttributeExpressions(flowFile).getValue();
                 final String workingDirPath;
-                if (rootPath == null) {
-                    workingDirPath = null;
+                if (StringUtils.isBlank(rootPath)) {
+                    workingDirPath = transfer.getHomeDirectory(flowFile);
                 } else {
                     workingDirPath = transfer.getAbsolutePath(flowFile, rootPath);
                 }
