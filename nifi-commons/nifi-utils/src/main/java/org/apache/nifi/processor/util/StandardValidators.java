@@ -566,7 +566,14 @@ public class StandardValidators {
         };
     }
 
-    public static Validator createListValidator(boolean trimEntries, boolean excludeEmptyEntries, Validator validator) {
+    public static Validator createListValidator(boolean trimEntries, boolean excludeEmptyEntries,
+        Validator elementValidator){
+        return createListValidator(trimEntries,excludeEmptyEntries, elementValidator, false);
+    }
+
+    public static Validator createListValidator(boolean trimEntries, boolean excludeEmptyEntries,
+        Validator validator,
+        boolean ensureElementValidation) {
         return (subject, input, context) -> {
             if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input)) {
                 return new ValidationResult.Builder().subject(subject).input(input).explanation("Expression Language Present").valid(true).build();
@@ -576,7 +583,7 @@ public class StandardValidators {
                     return new ValidationResult.Builder().subject(subject).input(null).explanation("List must have at least one non-empty element").valid(false).build();
                 }
 
-                final String[] list = input.split(",");
+                final String[] list =  ensureElementValidation ? input.split(",",-1) : input.split(",");
                 if (list.length == 0) {
                     return new ValidationResult.Builder().subject(subject).input(null).explanation("List must have at least one non-empty element").valid(false).build();
                 }
