@@ -142,6 +142,8 @@ public class TestInvokeHTTP extends TestInvokeHttpCommon {
         runner.setVariable("proxy.port", String.valueOf(proxyURL.getPort()));
         runner.setVariable("proxy.username", "username");
         runner.setVariable("proxy.password", "password");
+        runner.setVariable("http.connection.timeout", "30 secs");
+        runner.setVariable("http.read.timeout", "30 secs");
 
         runner.setProperty(InvokeHTTP.PROP_URL, "http://nifi.apache.org/"); // just a dummy URL no connection goes out
         runner.setProperty(InvokeHTTP.PROP_PROXY_HOST, "${proxy.host}");
@@ -155,6 +157,9 @@ public class TestInvokeHTTP extends TestInvokeHttpCommon {
         runner.setProperty(InvokeHTTP.PROP_PROXY_PORT, "${proxy.port}");
 
         runner.setProperty(InvokeHTTP.PROP_PROXY_USER, "${proxy.username}");
+
+        runner.setProperty(InvokeHTTP.PROP_CONNECT_TIMEOUT, "${http.connection.timeout}");
+        runner.setProperty(InvokeHTTP.PROP_READ_TIMEOUT, "${http.read.timeout}");
 
         try{
             runner.run();
