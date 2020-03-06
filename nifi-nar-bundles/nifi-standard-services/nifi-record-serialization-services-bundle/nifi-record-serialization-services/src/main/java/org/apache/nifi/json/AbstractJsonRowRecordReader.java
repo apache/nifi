@@ -160,9 +160,9 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
                     } catch (final Exception e) {
                         return textValue;
                     }
+                default:
+                    return textValue;
             }
-
-            return textValue;
         }
 
         if (fieldNode.isArray()) {
