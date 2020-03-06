@@ -78,14 +78,11 @@ public class RunMongoAggregation extends AbstractMongoProcessor {
 
     static final List<Bson> buildAggregationQuery(String query) throws IOException {
         List<Bson> result = new ArrayList<>();
-
         JSONParser jsonParser = new JSONParser();
 
         try {
             JSONArray queryArray = (JSONArray) jsonParser.parse(query);
-
             Iterator<JSONObject> iterator = queryArray.iterator();
-
             while(iterator.hasNext()) {
                 BasicDBObject bson = BasicDBObject.parse(iterator.next().toString());
                 result.add(bson);
