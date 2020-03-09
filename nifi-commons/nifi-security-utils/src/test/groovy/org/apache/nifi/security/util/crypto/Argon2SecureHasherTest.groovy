@@ -28,7 +28,6 @@ import org.junit.runners.JUnit4
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
-import java.lang.reflect.Array
 import java.security.Security
 
 @RunWith(JUnit4.class)
@@ -266,7 +265,7 @@ class Argon2SecureHasherTest extends GroovyTestCase {
 
         // Assert
         results.each { hashLength, isHashLengthValid ->
-            logger.info("For hashLength value ${hashLength}, hashLength is ${isHashLengthValid}")
+            logger.info("For hashLength value ${hashLength}, hashLength is ${isHashLengthValid ? "valid" : "invalid"}")
             assert !isHashLengthValid
         }
     }
@@ -296,13 +295,13 @@ class Argon2SecureHasherTest extends GroovyTestCase {
 
         // Assert
         results.each { memory, isMemorySizeValid ->
-            logger.info("For memory size ${memory}, memory is ${isMemorySizeValid}")
+            logger.info("For memory size ${memory}, memory is ${isMemorySizeValid ? "valid" : "invalid"}")
             assert !isMemorySizeValid
         }
     }
 
     @Test
-    void testShouldVerifyParalellismBoundary() throws Exception {
+    void testShouldVerifyParallelismBoundary() throws Exception {
         // Arrange
         final int parallelism = 4
 
@@ -314,19 +313,19 @@ class Argon2SecureHasherTest extends GroovyTestCase {
     }
 
     @Test
-    void testShouldFailParalellismBoundary() throws Exception {
+    void testShouldFailParallelismBoundary() throws Exception {
         // Arrange
         def parallelisms = [-8, 0, 16777220, 16778000]
 
         // Act
-        def results = parallelisms.collect { paralellism ->
-            def isValid = Argon2SecureHasher.isParallelismValid(paralellism)
-            [paralellism, isValid]
+        def results = parallelisms.collect { parallelism ->
+            def isValid = Argon2SecureHasher.isParallelismValid(parallelism)
+            [parallelism, isValid]
         }
 
         // Assert
-        results.each { paralellism, isParallelismValid ->
-            logger.info("For parallelization factor ${paralellism}, parallelism is ${isParallelismValid}")
+        results.each { parallelism, isParallelismValid ->
+            logger.info("For parallelization factor ${parallelism}, parallelism is ${isParallelismValid ? "valid" : "invalid"}")
             assert !isParallelismValid
         }
     }
@@ -356,7 +355,7 @@ class Argon2SecureHasherTest extends GroovyTestCase {
 
         // Assert
         results.each { iterations, isIterationsValid ->
-            logger.info("For iteration counts ${iterations}, iteration is ${isIterationsValid}")
+            logger.info("For iteration counts ${iterations}, iteration is ${isIterationsValid ? "valid" : "invalid"}")
             assert !isIterationsValid
         }
     }
@@ -364,19 +363,7 @@ class Argon2SecureHasherTest extends GroovyTestCase {
     @Test
     void testShouldVerifySaltLengthBoundary() throws Exception {
         // Arrange
-        final int saltLength = 64
-
-        // Act
-        boolean valid = Argon2SecureHasher.isSaltLengthValid(saltLength)
-
-        // Assert
-        assert valid
-    }
-
-    @Test
-    void testShouldFailSaltLengthBoundary() throws Exception {
-        // Arrange
-        def saltLengths = [-16, 0, 4]
+        def saltLengths = [0, 64]
 
         // Act
         def results = saltLengths.collect { saltLength ->
@@ -386,7 +373,25 @@ class Argon2SecureHasherTest extends GroovyTestCase {
 
         // Assert
         results.each { saltLength, isSaltLengthValid ->
-            logger.info("For salt length ${saltLength}, saltLength is ${isSaltLengthValid}")
+            logger.info("For salt length ${saltLength}, saltLength is ${isSaltLengthValid ? "valid" : "invalid"}")
+            assert isSaltLengthValid
+        }
+    }
+
+    @Test
+    void testShouldFailSaltLengthBoundary() throws Exception {
+        // Arrange
+        def saltLengths = [-16, 4]
+
+        // Act
+        def results = saltLengths.collect { saltLength ->
+            def isValid = Argon2SecureHasher.isSaltLengthValid(saltLength)
+            [saltLength, isValid]
+        }
+
+        // Assert
+        results.each { saltLength, isSaltLengthValid ->
+            logger.info("For salt length ${saltLength}, saltLength is ${isSaltLengthValid ? "valid" : "invalid"}")
             assert !isSaltLengthValid
         }
     }
