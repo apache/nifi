@@ -53,7 +53,7 @@
         <hive11.hadoop.version>2.6.2</hive11.hadoop.version>
         <hive.version>1.2.1</hive.version>
         <hive.hadoop.version>2.6.2</hive.hadoop.version>
-        <hive3.version>3.1.0</hive3.version>
+        <hive3.version>3.1.2</hive3.version>
         <hive3.hadoop.version>3.1.0</hive3.hadoop.version>
     </properties>
 
