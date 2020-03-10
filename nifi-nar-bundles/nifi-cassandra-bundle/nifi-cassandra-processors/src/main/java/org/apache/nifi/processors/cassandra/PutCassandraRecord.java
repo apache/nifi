@@ -45,17 +45,19 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
+import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.apache.nifi.util.StopWatch;
 
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -411,7 +413,7 @@ public class PutCassandraRecord extends AbstractCassandraProcessor {
         return results;
     }
 
-    private Statement generateInsert(String cassandraTable, RecordSchema schema, Map<String, Object> recordContentMap) {
+    protected Statement generateInsert(String cassandraTable, RecordSchema schema, Map<String, Object> recordContentMap) {
         Insert insertQuery;
         if (cassandraTable.contains(".")) {
             String[] keyspaceAndTable = cassandraTable.split("\\.");
@@ -423,17 +425,29 @@ public class PutCassandraRecord extends AbstractCassandraProcessor {
             Object value = recordContentMap.get(fieldName);
 
             if (value != null && value.getClass().isArray()) {
-                Object[] array = (Object[])value;
+                Object[] array = (Object[]) value;
 
-                if (array.length > 0 && array[0] instanceof Byte) {
-                    Object[] temp = (Object[]) value;
-                    byte[] newArray = new byte[temp.length];
-                    for (int x = 0; x < temp.length; x++) {
-                        newArray[x] = (Byte) temp[x];
+                if (array.length > 0) {
+                    if (array[0] instanceof Byte) {
+                        Object[] temp = (Object[]) value;
+                        byte[] newArray = new byte[temp.length];
+                        for (int x = 0; x < temp.length; x++) {
+                            newArray[x] = (Byte) temp[x];
+                        }
+                        value = ByteBuffer.wrap(newArray);
                     }
-                    value = ByteBuffer.wrap(newArray);
                 }
             }
+
+            if (schema.getDataType(fieldName).isPresent()) {
+                DataType fieldDataType = schema.getDataType(fieldName).get();
+                if (fieldDataType.getFieldType() == RecordFieldType.ARRAY) {
+                    if (((ArrayDataType)fieldDataType).getElementType().getFieldType() == RecordFieldType.STRING) {
+                        value = Arrays.stream((Object[])value).toArray(String[]::new);
+                    }
+                }
+            }
+
             insertQuery.value(fieldName, value);
         }
         return insertQuery;
