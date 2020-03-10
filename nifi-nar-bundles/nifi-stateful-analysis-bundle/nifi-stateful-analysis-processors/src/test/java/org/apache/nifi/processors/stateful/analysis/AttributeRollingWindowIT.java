@@ -35,7 +35,7 @@ import static org.apache.nifi.processors.stateful.analysis.AttributeRollingWindo
 import static org.apache.nifi.processors.stateful.analysis.AttributeRollingWindow.ROLLING_WINDOW_VALUE_KEY;
 import static org.junit.Assume.assumeFalse;
 
-public class TestAttributeRollingWindow {
+public class AttributeRollingWindowIT {
 
     @Test
     public void testFailureDueToBadAttribute() throws InterruptedException {

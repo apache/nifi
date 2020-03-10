@@ -177,6 +177,10 @@ jobs:
     name: Windows Build NiFi - JDK 1.8
 
     steps:
+      - name: Setup Git
+        run:  |
+          git config --global core.autocrlf false
+          git config --global core.longpaths true
       - name: Checkout Code
         uses: actions/checkout@v2
       - name: Check Maven Com Cache
@@ -216,5 +220,5 @@ jobs:
           MAVEN_OPTS: -Xmx2g -Dorg.slf4j.simpleLogger.defaultLogLevel=WARN
         run: |
           mvn -version
-          mvn -T 1C install -B -Ddir-only -ntp -ff -DskipTests
+          mvn -T 1C install -B -Ddir-only -ntp -ff
           Remove-Item -path '~\.m2\repository\org\apache\nifi' -recurse -force

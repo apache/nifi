@@ -42,6 +42,7 @@ import org.apache.nifi.provenance.store.StorageResult;
 import org.apache.nifi.util.Tuple;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
@@ -175,6 +176,7 @@ public class TestLuceneEventIndex {
         }
     }
 
+    @Ignore("This test is unreliable in certain build environments")
     @Test(timeout = 60000)
     public void testUnauthorizedEventsGetPlaceholdersForExpandChildren() throws InterruptedException, IOException {
         assumeFalse(isWindowsEnvironment());

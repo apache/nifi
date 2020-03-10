@@ -20,6 +20,7 @@ import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
+import org.apache.commons.lang3.SystemUtils;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaim;
 import org.apache.nifi.controller.repository.claim.StandardContentClaim;
@@ -31,7 +32,9 @@ import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.junit.After;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
@@ -66,7 +69,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeFalse;
 
 public class TestFileSystemRepository {
 
@@ -78,6 +80,11 @@ public class TestFileSystemRepository {
     private StandardResourceClaimManager claimManager = null;
     private final File rootFile = new File("target/content_repository");
     private NiFiProperties nifiProperties;
+
+    @BeforeClass
+    public static void setupClass() {
+        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
+    }
 
     @Before
     public void setup() throws IOException {
@@ -518,7 +525,6 @@ public class TestFileSystemRepository {
 
     @Test
     public void testReadWithContentArchived() throws IOException {
-        assumeFalse(isWindowsEnvironment());//skip if on windows
         final ContentClaim claim = repository.create(true);
         final Path path = getPath(claim);
         Files.deleteIfExists(path);
@@ -544,7 +550,6 @@ public class TestFileSystemRepository {
 
     @Test(expected = ContentNotFoundException.class)
     public void testReadWithNoContentArchived() throws IOException {
-        assumeFalse(isWindowsEnvironment());//skip if on windows
         final ContentClaim claim = repository.create(true);
         final Path path = getPath(claim);
         Files.deleteIfExists(path);
