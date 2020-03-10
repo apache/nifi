@@ -26,6 +26,8 @@ import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import sun.security.ssl.DummyX509KeyManager
+import sun.security.ssl.SunX509KeyManagerImpl
 
 @RunWith(JUnit4.class)
 class OkHttpReplicationClientTest extends GroovyTestCase {
@@ -134,5 +136,76 @@ class OkHttpReplicationClientTest extends GroovyTestCase {
             assert headers.size() == 2
             assert headers."Content-Length" == "123"
         }
+    }
+
+    @Test
+    void testShouldUseKeystorePasswdIfKeypasswdIsBlank() {
+        // Arrange
+        Map flowfileEncryptionProps = [
+                (NiFiProperties.SECURITY_TRUSTSTORE): "./src/test/resources/conf/truststore.jks",
+                (NiFiProperties.SECURITY_TRUSTSTORE_TYPE): "JKS",
+                (NiFiProperties.SECURITY_TRUSTSTORE_PASSWD): "passwordpassword",
+                (NiFiProperties.SECURITY_KEYSTORE): "./src/test/resources/conf/keystore.jks",
+                (NiFiProperties.SECURITY_KEYSTORE_TYPE): "JKS",
+                (NiFiProperties.SECURITY_KEYSTORE_PASSWD): "passwordpassword",
+                (NiFiProperties.SECURITY_KEY_PASSWD): "",
+                (NiFiProperties.WEB_HTTPS_HOST): "localhost",
+                (NiFiProperties.WEB_HTTPS_PORT): "51552",
+        ]
+        NiFiProperties mockNiFiProperties = new StandardNiFiProperties(new Properties(flowfileEncryptionProps))
+
+        // Act
+        OkHttpReplicationClient client = new OkHttpReplicationClient(mockNiFiProperties)
+
+        // Assert
+        assertNotNull(client.okHttpClient.sslSocketFactory)
+        assertEquals(SunX509KeyManagerImpl.class, client.okHttpClient.sslSocketFactory.context.getX509KeyManager().getClass())
+        assertNotNull(client.okHttpClient.sslSocketFactory.context.getX509KeyManager().credentialsMap["nifi-key"])
+    }
+
+    @Test
+    void testShouldUseKeyPasswdIfKeystorePasswdIsBlank() {
+        // Arrange
+        Map flowfileEncryptionProps = [
+                (NiFiProperties.SECURITY_TRUSTSTORE): "./src/test/resources/conf/truststore.jks",
+                (NiFiProperties.SECURITY_TRUSTSTORE_TYPE): "JKS",
+                (NiFiProperties.SECURITY_TRUSTSTORE_PASSWD): "passwordpassword",
+                (NiFiProperties.SECURITY_KEYSTORE): "./src/test/resources/conf/keystore.jks",
+                (NiFiProperties.SECURITY_KEYSTORE_TYPE): "JKS",
+                (NiFiProperties.SECURITY_KEYSTORE_PASSWD): "",
+                (NiFiProperties.SECURITY_KEY_PASSWD): "passwordpassword",
+                (NiFiProperties.WEB_HTTPS_HOST): "localhost",
+                (NiFiProperties.WEB_HTTPS_PORT): "51552",
+        ]
+        NiFiProperties mockNiFiProperties = new StandardNiFiProperties(new Properties(flowfileEncryptionProps))
+
+        // Act
+        OkHttpReplicationClient client = new OkHttpReplicationClient(mockNiFiProperties)
+
+        // Assert
+        assertSame(DummyX509KeyManager.class, client.okHttpClient.sslSocketFactory.context.getX509KeyManager().getClass())
+    }
+
+    @Test
+    void testShouldFailIfKeystorePasswdAndKeyPasswdIsBlank() {
+        // Arrange
+        Map flowfileEncryptionProps = [
+                (NiFiProperties.SECURITY_TRUSTSTORE): "./src/test/resources/conf/truststore.jks",
+                (NiFiProperties.SECURITY_TRUSTSTORE_TYPE): "JKS",
+                (NiFiProperties.SECURITY_TRUSTSTORE_PASSWD): "passwordpassword",
+                (NiFiProperties.SECURITY_KEYSTORE): "./src/test/resources/conf/keystore.jks",
+                (NiFiProperties.SECURITY_KEYSTORE_TYPE): "JKS",
+                (NiFiProperties.SECURITY_KEYSTORE_PASSWD): "",
+                (NiFiProperties.SECURITY_KEY_PASSWD): "",
+                (NiFiProperties.WEB_HTTPS_HOST): "localhost",
+                (NiFiProperties.WEB_HTTPS_PORT): "51552",
+        ]
+        NiFiProperties mockNiFiProperties = new StandardNiFiProperties(new Properties(flowfileEncryptionProps))
+
+        // Act
+        OkHttpReplicationClient client = new OkHttpReplicationClient(mockNiFiProperties)
+
+        // Assert
+        assertEquals(DummyX509KeyManager.class, client.okHttpClient.sslSocketFactory.context.getX509KeyManager().getClass())
     }
 }

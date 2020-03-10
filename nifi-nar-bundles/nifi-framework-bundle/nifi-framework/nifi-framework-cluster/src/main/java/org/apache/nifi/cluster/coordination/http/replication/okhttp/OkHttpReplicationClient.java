@@ -334,11 +334,11 @@ public class OkHttpReplicationClient implements HttpReplicationClient {
         try {
             Tuple<SSLContext, TrustManager[]> sslContextTuple = createTrustSslContextWithTrustManagers(
                     properties.getProperty(NiFiProperties.SECURITY_KEYSTORE),
-                    properties.getProperty(NiFiProperties.SECURITY_KEYSTORE_PASSWD) != null ? properties.getProperty(NiFiProperties.SECURITY_KEYSTORE_PASSWD).toCharArray() : null,
-                    properties.getProperty(NiFiProperties.SECURITY_KEY_PASSWD) != null ? properties.getProperty(NiFiProperties.SECURITY_KEY_PASSWD).toCharArray() : null,
+                    StringUtils.isNotBlank(properties.getProperty(NiFiProperties.SECURITY_KEYSTORE_PASSWD)) ? properties.getProperty(NiFiProperties.SECURITY_KEYSTORE_PASSWD).toCharArray() : null,
+                    StringUtils.isNotBlank(properties.getProperty(NiFiProperties.SECURITY_KEY_PASSWD)) ? properties.getProperty(NiFiProperties.SECURITY_KEY_PASSWD).toCharArray() : null,
                     properties.getProperty(NiFiProperties.SECURITY_KEYSTORE_TYPE),
                     properties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE),
-                    properties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD) != null ? properties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD).toCharArray() : null,
+                    StringUtils.isNotBlank(properties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD)) ? properties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD).toCharArray() : null,
                     properties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_TYPE),
                     WANT,
                     sslContext.getProtocol());
@@ -346,7 +346,11 @@ public class OkHttpReplicationClient implements HttpReplicationClient {
                     .filter(trustManager -> trustManager instanceof X509TrustManager)
                     .map(trustManager -> (X509TrustManager) trustManager).collect(Collectors.toList());
             return new Tuple<>(sslContextTuple.getKey().getSocketFactory(), x509TrustManagers.get(0));
-        } catch (CertificateException | UnrecoverableKeyException | NoSuchAlgorithmException | KeyStoreException | KeyManagementException | IOException e) {
+        } catch(UnrecoverableKeyException e) {
+            logger.debug("Key password may be incorrect or not set. Check your keystore passwords." + e.getMessage());
+            return null;
+        }
+        catch (CertificateException | NoSuchAlgorithmException | KeyStoreException | KeyManagementException | IOException e) {
             return null;
         }
     }
