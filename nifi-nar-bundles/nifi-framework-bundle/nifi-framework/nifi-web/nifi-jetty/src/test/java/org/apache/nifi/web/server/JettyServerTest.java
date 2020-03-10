@@ -23,16 +23,55 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
+import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.Map;
+
+import org.apache.commons.io.FileUtils;
+import org.apache.nifi.bundle.Bundle;
+import org.apache.nifi.nar.ExtensionMapping;
+import org.apache.nifi.nar.NarClassLoaders;
+import org.apache.nifi.nar.NarUnpacker;
+import org.apache.nifi.nar.SystemBundle;
 import org.apache.nifi.security.util.KeystoreType;
 import org.apache.nifi.util.NiFiProperties;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.junit.Test;
 
-public class JettyServerTest {
+public class JettyServerTest{
+
+    static final String UNPACKED_LOCATION = "./target/work";
+    static final String PROPERTIES_FILE = "./src/test/resources/conf/nifi.properties";
+    static final String[] expectedWarOrdering = new String[]{"nifi-standard-content-viewer", "web-alt-cont-view"};
+
+    @Test
+    public void testNarLoaderWhenAllAvailable() throws IOException, ClassNotFoundException {
+        //Delete old target directory
+        FileUtils.deleteDirectory(new File(UNPACKED_LOCATION));
+
+        //Load narClassLoaders with nars required by Nifi to start Jetty
+        NiFiProperties niFiProperties = NiFiProperties.createBasicNiFiProperties(PROPERTIES_FILE, new HashMap<>());
+        Bundle sysBundle = SystemBundle.create(niFiProperties);
+        ExtensionMapping extensionMapping = NarUnpacker.unpackNars(niFiProperties, sysBundle);
+        NarClassLoaders narClassLoaders = new NarClassLoaders();
+        narClassLoaders.init(niFiProperties.getFrameworkWorkingDirectory(), niFiProperties.getExtensionsWorkingDirectory());
+
+        //Instantiate JettyServer with Bundle
+        JettyServer js = new JettyServer(new Server(), niFiProperties);
+        JettyServer.InitialLoadInfo intialLoadInfo = js.assignWarRoles(narClassLoaders.getBundles());
+
+        //Check  the nifi-standard-content-viewer loads first
+        Map<File, Bundle> sortedWars = intialLoadInfo.getPrioritizedAnsillaryWars();
+        int counter = 0;
+        for (File war: sortedWars.keySet()){
+            assert(war.getName().startsWith(expectedWarOrdering[counter++]));
+        }
+    }
+
     @Test
     public void testConfigureSslContextFactoryWithKeystorePasswordAndKeyPassword() {
         // Expect that if we set both passwords, KeyStore password is used for KeyStore, Key password is used for Key Manager
@@ -142,4 +181,5 @@ public class JettyServerTest {
         verify(contextFactory).setTrustStoreType(trustStoreType);
         verify(contextFactory).setTrustStoreProvider(BouncyCastleProvider.PROVIDER_NAME);
     }
+
 }
