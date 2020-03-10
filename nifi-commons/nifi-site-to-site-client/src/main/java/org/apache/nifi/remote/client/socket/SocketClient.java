@@ -23,7 +23,6 @@ import org.apache.nifi.remote.TransactionCompletion;
 import org.apache.nifi.remote.TransferDirection;
 import org.apache.nifi.remote.client.AbstractSiteToSiteClient;
 import org.apache.nifi.remote.client.SiteToSiteClientConfig;
-import org.apache.nifi.remote.exception.NoContentException;
 import org.apache.nifi.remote.protocol.DataPacket;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -126,13 +125,14 @@ public class SocketClient extends AbstractSiteToSiteClient {
         }
 
         final EndpointConnection connectionState = pool.getEndpointConnection(direction, getConfig());
+        if (connectionState == null) {
+            return null;
+        }
 
         final Transaction transaction;
         try {
             transaction = connectionState.getSocketClientProtocol().startTransaction(
                     connectionState.getPeer(), connectionState.getCodec(), direction);
-        } catch (final NoContentException e) {
-            return null;
         } catch (final Throwable t) {
             pool.terminate(connectionState);
             throw new IOException("Unable to create Transaction to communicate with " + connectionState.getPeer(), t);

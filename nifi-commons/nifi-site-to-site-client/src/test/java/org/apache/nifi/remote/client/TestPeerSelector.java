@@ -35,7 +35,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -50,6 +49,8 @@ import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.reducing;
 import static java.util.stream.Collectors.toMap;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
@@ -227,13 +228,10 @@ public class TestPeerSelector {
             throw new IOException("Connection refused. " + peerFetchStatusesFrom + " is not running.");
         }).when(peerStatusProvider).fetchRemotePeerStatuses(any(PeerDescription.class));
 
-
-        ArrayList<PeerStatus> peers;
-
         // 1st attempt. It uses the bootstrap node.
         peerSelector.refreshPeers();
-        peers = peerSelector.getPeerStatuses(TransferDirection.RECEIVE);
-        assert(!peers.isEmpty());
+        PeerStatus peerStatus = peerSelector.getNextPeerStatus(TransferDirection.RECEIVE);
+        assertNotNull(peerStatus);
 
         // Proceed time so that peer selector refresh statuses.
         peerStatuses.remove(bootstrapNodeStatus);
@@ -241,35 +239,34 @@ public class TestPeerSelector {
 
         // 2nd attempt.
         peerSelector.refreshPeers();
-        peers = peerSelector.getPeerStatuses(TransferDirection.RECEIVE);
-        assert(!peers.isEmpty());
-        assertEquals("Node2 should be returned since node 2 is the only available node.", node2, peers.get(0).getPeerDescription());
+        peerStatus = peerSelector.getNextPeerStatus(TransferDirection.RECEIVE);
+        assertNotNull(peerStatus);
+        assertEquals("Node2 should be returned since node 2 is the only available node.", node2, peerStatus.getPeerDescription());
 
         // Proceed time so that peer selector refresh statuses.
         systemTime.offset += TimeUnit.MILLISECONDS.convert(1, TimeUnit.MINUTES) + 1;
 
         // 3rd attempt.
         peerSelector.refreshPeers();
-        peers = peerSelector.getPeerStatuses(TransferDirection.RECEIVE);
-        assert(!peers.isEmpty());
-        assertEquals("Node2 should be returned since node 2 is the only available node.", node2, peers.get(0).getPeerDescription());
+        peerStatus = peerSelector.getNextPeerStatus(TransferDirection.RECEIVE);
+        assertNotNull(peerStatus);
+        assertEquals("Node2 should be returned since node 2 is the only available node.", node2, peerStatus.getPeerDescription());
 
         // Remove node2 to simulate that it goes down. There's no available node at this point.
         peerStatuses.remove(node2Status);
         systemTime.offset += TimeUnit.MILLISECONDS.convert(1, TimeUnit.MINUTES) + 1;
 
         peerSelector.refreshPeers();
-        peers = peerSelector.getPeerStatuses(TransferDirection.RECEIVE);
-        assertTrue("PeerSelector should return an empty list as next peer statuses, since there's no available peer", peers.isEmpty());
+        peerStatus = peerSelector.getNextPeerStatus(TransferDirection.RECEIVE);
+        assertNull("PeerSelector should return null as next peer status, since there's no available peer", peerStatus);
 
         // Add node1 back. PeerSelector should be able to fetch peer statuses because it always tries to fetch at least from the bootstrap node.
         peerStatuses.add(bootstrapNodeStatus);
         systemTime.offset += TimeUnit.MILLISECONDS.convert(1, TimeUnit.MINUTES) + 1;
 
         peerSelector.refreshPeers();
-        peers = peerSelector.getPeerStatuses(TransferDirection.RECEIVE);
-        assert(!peers.isEmpty());
-        assertEquals("Node1 should be returned since node 1 is the only available node.", bootstrapNode, peers.get(0).getPeerDescription());
+        peerStatus = peerSelector.getNextPeerStatus(TransferDirection.RECEIVE);
+        assertEquals("Node1 should be returned since node 1 is the only available node.", bootstrapNode, peerStatus.getPeerDescription());
     }
 
     @Test
