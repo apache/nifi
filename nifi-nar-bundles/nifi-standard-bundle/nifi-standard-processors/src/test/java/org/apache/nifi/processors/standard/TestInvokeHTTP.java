@@ -273,6 +273,7 @@ public class TestInvokeHTTP extends TestInvokeHttpCommon {
         addHandler(new EmptyGzipResponseHandler());
 
         runner.setProperty(InvokeHTTP.PROP_URL, url);
+        runner.setProperty(InvokeHTTP.IGNORE_RESPONSE_CONTENT, "true");
 
         createFlowFiles(runner);
 
