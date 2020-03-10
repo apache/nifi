@@ -216,9 +216,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         this.props = properties;
     }
 
-    private Handler loadInitialWars(final Set<Bundle> bundles) {
-
-        // load WARs
+    protected InitialLoadInfo assignWarRoles(final Set<Bundle> bundles){
         final Map<File, Bundle> warToBundleLookup = findWars(bundles);
 
         // locate each war being deployed
@@ -227,8 +225,9 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         File webErrorWar = null;
         File webDocsWar = null;
         File webContentViewerWar = null;
-        Map<File, Bundle> otherWars = new HashMap<>();
-        for (Map.Entry<File, Bundle> warBundleEntry : warToBundleLookup.entrySet()) {
+        Map<File, Bundle> standardWars = new LinkedHashMap<>();
+        Map<File, Bundle> otherWars = new LinkedHashMap<>();
+        for (Map.Entry<File,Bundle> warBundleEntry : warToBundleLookup.entrySet()) {
             final File war = warBundleEntry.getKey();
             final Bundle warBundle = warBundleEntry.getValue();
 
@@ -242,26 +241,25 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
                 webContentViewerWar = war;
             } else if (war.getName().toLowerCase().startsWith("nifi-web")) {
                 webUiWar = war;
+            } else if (war.getName().toLowerCase().startsWith("nifi-standard-content")) {
+                standardWars.put(war, warBundle);
             } else {
                 otherWars.put(war, warBundle);
             }
         }
 
-        // ensure the required wars were found
-        if (webUiWar == null) {
-            throw new RuntimeException("Unable to load nifi-web WAR");
-        } else if (webApiWar == null) {
-            throw new RuntimeException("Unable to load nifi-web-api WAR");
-        } else if (webDocsWar == null) {
-            throw new RuntimeException("Unable to load nifi-web-docs WAR");
-        } else if (webErrorWar == null) {
-            throw new RuntimeException("Unable to load nifi-web-error WAR");
-        } else if (webContentViewerWar == null) {
-            throw new RuntimeException("Unable to load nifi-web-content-viewer WAR");
-        }
+        standardWars.putAll(otherWars);
+        return new InitialLoadInfo(webUiWar, webApiWar, webErrorWar, webDocsWar, webContentViewerWar, standardWars);
+    }
+
+    private Handler loadInitialWars(final Set<Bundle> bundles) {
+
+        // load WARs
+        final InitialLoadInfo initialLoadInfo = assignWarRoles(bundles);
+
 
         // handlers for each war and init params for the web api
-        final ExtensionUiInfo extensionUiInfo = loadWars(otherWars);
+        final ExtensionUiInfo extensionUiInfo = loadWars(initialLoadInfo.getPrioritizedAnsillaryWars());
         componentUiExtensionWebContexts = new ArrayList<>(extensionUiInfo.getComponentUiExtensionWebContexts());
         contentViewerWebContexts = new ArrayList<>(extensionUiInfo.getContentViewerWebContexts());
         componentUiExtensions = new UiExtensionMapping(extensionUiInfo.getComponentUiExtensionsByType());
@@ -273,18 +271,18 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         final ClassLoader frameworkClassLoader = getClass().getClassLoader();
 
         // load the web ui app
-        final WebAppContext webUiContext = loadWar(webUiWar, "/nifi", frameworkClassLoader);
+        final WebAppContext webUiContext = loadWar(initialLoadInfo.getWebUiWar(), "/nifi", frameworkClassLoader);
         webUiContext.getInitParams().put("oidc-supported", String.valueOf(props.isOidcEnabled()));
         webUiContext.getInitParams().put("knox-supported", String.valueOf(props.isKnoxSsoEnabled()));
         webUiContext.getInitParams().put("allowedContextPaths", props.getAllowedContextPaths());
         webAppContextHandlers.addHandler(webUiContext);
 
         // load the web api app
-        webApiContext = loadWar(webApiWar, "/nifi-api", frameworkClassLoader);
+        webApiContext = loadWar(initialLoadInfo.getWebApiWar(), "/nifi-api", frameworkClassLoader);
         webAppContextHandlers.addHandler(webApiContext);
 
         // load the content viewer app
-        webContentViewerContext = loadWar(webContentViewerWar, "/nifi-content-viewer", frameworkClassLoader);
+        webContentViewerContext = loadWar(initialLoadInfo.getWebContentViewerWar(), "/nifi-content-viewer", frameworkClassLoader);
         webContentViewerContext.getInitParams().putAll(extensionUiInfo.getMimeMappings());
         webAppContextHandlers.addHandler(webContentViewerContext);
 
@@ -292,7 +290,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         final String docsContextPath = "/nifi-docs";
 
         // load the documentation war
-        webDocsContext = loadWar(webDocsWar, docsContextPath, frameworkClassLoader);
+        webDocsContext = loadWar(initialLoadInfo.getWebDocsWar(), docsContextPath, frameworkClassLoader);
 
         // add the servlets which serve the HTML documentation within the documentation web app
         addDocsServlets(webDocsContext);
@@ -967,7 +965,6 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         final HttpConfiguration httpsConfiguration = new HttpConfiguration(httpConfiguration);
         httpsConfiguration.setSecureScheme("https");
         httpsConfiguration.setSecurePort(port);
-        httpsConfiguration.setSendServerVersion(props.shouldSendServerVersion());
         httpsConfiguration.addCustomizer(new SecureRequestCustomizer());
 
         // build the connector
@@ -1325,6 +1322,39 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         public Map<String, List<UiExtension>> getComponentUiExtensionsByType() {
             return componentUiExtensionsByType;
         }
+    }
+
+    /**
+     * Access to wars need to initialize JettyServer
+     */
+    protected static class InitialLoadInfo {
+        private final File webUiWar;
+        private final File webApiWar;
+        private final File webErrorWar;
+        private final File webDocsWar;
+        private final File webContentViewerWar;
+        private final Map<File, Bundle> prioritizedAnsillaryWars;
+
+        public InitialLoadInfo(File webUiWar, File webApiWar, File webErrorWar, File webDocsWar, File webContentViewerWar, Map<File, Bundle> prioritizedAnsillaryWars) {
+            this.webUiWar = webUiWar;
+            this.webApiWar = webApiWar;
+            this.webErrorWar = webErrorWar;
+            this.webDocsWar = webDocsWar;
+            this.webContentViewerWar = webContentViewerWar;
+            this.prioritizedAnsillaryWars = prioritizedAnsillaryWars;
+        }
+
+        public File getWebUiWar() { return webUiWar; }
+
+        public File getWebApiWar() { return webApiWar; }
+
+        public File getWebErrorWar() { return webErrorWar; }
+
+        public File getWebDocsWar() { return webDocsWar; }
+
+        public File getWebContentViewerWar() { return webContentViewerWar; }
+
+        public Map<File, Bundle> getPrioritizedAnsillaryWars() { return prioritizedAnsillaryWars; }
     }
 
     private static class ThreadDumpDiagnosticsFactory implements DiagnosticsFactory {
