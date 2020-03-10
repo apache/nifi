@@ -36,6 +36,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.net.ssl.SSLContext;
+import com.datastax.driver.extras.codecs.arrays.ObjectArrayCodec;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
 import org.apache.commons.lang3.StringUtils;
@@ -223,6 +224,9 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
     public void onScheduled(ProcessContext context) {
         final boolean connectionProviderIsSet = context.getProperty(CONNECTION_PROVIDER_SERVICE).isSet();
 
+        // Register codecs
+        registerAdditionalCodecs();
+
         if (connectionProviderIsSet) {
             CassandraSessionProviderService sessionProvider = context.getProperty(CONNECTION_PROVIDER_SERVICE).asControllerService(CassandraSessionProviderService.class);
             cluster.set(sessionProvider.getCluster());
@@ -292,6 +296,14 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
             cluster.set(newCluster);
             cassandraSession.set(newSession);
         }
+    }
+
+    protected void registerAdditionalCodecs() {
+        // Conversion between a String[] and a list of varchar
+        CodecRegistry.DEFAULT_INSTANCE.register(new ObjectArrayCodec<>(
+                DataType.list(DataType.varchar()),
+                String[].class,
+                TypeCodec.varchar()));
     }
 
     /**
