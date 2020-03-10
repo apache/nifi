@@ -92,6 +92,11 @@
             <artifactId>nifi-distributed-cache-client-service-api</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>com.azure</groupId>
+            <artifactId>azure-storage-file-datalake</artifactId>
+            <version>12.0.0-beta.12</version>
+        </dependency>
     </dependencies>
     <build>
         <plugins>
