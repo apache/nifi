@@ -7,7 +7,7 @@ jobs:
 
     timeout-minutes: 90
     runs-on: ubuntu-latest
-    name: Ubuntu Build NiFi - JDK 1.8 FR
+    name: Ubuntu - JDK 1.8 FR
 
     steps:
     - name: Checkout Code
@@ -63,7 +63,7 @@ jobs:
 
     timeout-minutes: 90
     runs-on: ubuntu-latest
-    name: Ubuntu Build NiFi - JDK 11 EN
+    name: Ubuntu - JDK 11 EN
 
     steps:
       - name: Checkout Code
@@ -119,7 +119,7 @@ jobs:
 
     timeout-minutes: 90
     runs-on: macos-latest
-    name: MacOS Build NiFi - JDK 1.8 JP
+    name: MacOS - JDK 1.8 JP
 
     steps:
       - name: Checkout Code
@@ -174,9 +174,13 @@ jobs:
   windows-build:
 
     runs-on: windows-latest
-    name: Windows Build NiFi - JDK 1.8
+    name: Windows - JDK 1.8
 
     steps:
+      - name: Setup Git
+        run:  |
+          git config --global core.autocrlf false
+          git config --global core.longpaths true
       - name: Checkout Code
         uses: actions/checkout@v2
       - name: Check Maven Com Cache
@@ -216,5 +220,5 @@ jobs:
           MAVEN_OPTS: -Xmx2g -Dorg.slf4j.simpleLogger.defaultLogLevel=WARN
         run: |
           mvn -version
-          mvn -T 1C install -B -Ddir-only -ntp -ff -DskipTests
+          mvn -T 1C install -B -Ddir-only -ntp -ff
           Remove-Item -path '~\.m2\repository\org\apache\nifi' -recurse -force

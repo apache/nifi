@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.standard;
 
+import org.apache.commons.lang3.SystemUtils;
 import org.apache.nifi.processors.standard.util.TestInvokeHttpCommon;
 import org.apache.nifi.web.util.TestServer;
 import org.apache.nifi.ssl.StandardSSLContextService;
@@ -26,6 +27,7 @@ import org.eclipse.jetty.server.handler.AbstractHandler;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -48,6 +50,7 @@ public class TestInvokeHTTP extends TestInvokeHttpCommon {
 
     @BeforeClass
     public static void beforeClass() throws Exception {
+        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
         // useful for verbose logging output
         // don't commit this with this property enabled, or any 'mvn test' will be really verbose
         // System.setProperty("org.slf4j.simpleLogger.log.nifi.processors.standard", "debug");
@@ -62,7 +65,9 @@ public class TestInvokeHTTP extends TestInvokeHttpCommon {
 
     @AfterClass
     public static void afterClass() throws Exception {
-        server.shutdownServer();
+        if(server != null) {
+            server.shutdownServer();
+        }
     }
 
     @Before
