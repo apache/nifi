@@ -2252,8 +2252,9 @@ It has the following properties available:
 |`Truststore Type`||The Type of the Truststore. Either `JKS` or `PKCS12`
 |`Truststore Password`||The password for the Truststore
 |`Keystore Filename`||The fully-qualified filename of the Keystore
-|`Keystore Type`||The password for the Keystore
-|`Keystore Password`||The password for the key. If this is not specified, but the Keystore Filename, Password, and Type are specified, then the Keystore Password will be assumed to be the same as the Key Password.
+|`Keystore Type`||The Type of the Keystore. Either `JKS` or `PKCS12`
+|`Keystore Password`||The password for the Keystore
+|`Key Password`||The password for the key. If this is not specified, but the Keystore Filename, Password, and Type are specified, then the Key Password will be assumed to be the same as the Keystore Password.
 |`SSL Protocol`||The algorithm to use for this SSL context. This can either be `SSL` or `TLS`.
 |====
 
