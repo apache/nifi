@@ -32,6 +32,7 @@ import org.apache.nifi.services.FlowService;
 import org.apache.nifi.util.NiFiProperties;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -135,6 +136,7 @@ public class TestAbstractHeartbeatMonitor {
         assertTrue(requestedToConnect.isEmpty());
     }
 
+    @Ignore("this test is too unstable in terms of timing on different size/types of testing envs")
     @Test
     public void testDisconnectionOfTerminatedNodeDueToLackOfHeartbeat() throws Exception {
         final NodeIdentifier nodeId1 = nodeId;

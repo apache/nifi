@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.hadoop;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.SystemUtils;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.hadoop.KerberosProperties;
 import org.apache.nifi.processor.ProcessContext;
@@ -28,7 +29,9 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.After;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.File;
@@ -51,6 +54,11 @@ public class MoveHDFSTest {
     private static final String INPUT_DIRECTORY = "target/test-data-input";
     private NiFiProperties mockNiFiProperties;
     private KerberosProperties kerberosProperties;
+
+    @BeforeClass
+    public static void setUpSuite() {
+        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
+    }
 
     @Before
     public void setup() {
