@@ -147,13 +147,6 @@ public class NiFiReceiver extends Receiver<NiFiDataPacket> {
                 try {
                     while (!isStopped()) {
                         final Transaction transaction = client.createTransaction(TransferDirection.RECEIVE);
-                        if (transaction == null) {
-                            try {
-                                Thread.sleep(1000L);
-                            } catch (InterruptedException e) {
-                            }
-                            continue;
-                        }
                         DataPacket dataPacket = transaction.receive();
                         if (dataPacket == null) {
                             transaction.confirm();
