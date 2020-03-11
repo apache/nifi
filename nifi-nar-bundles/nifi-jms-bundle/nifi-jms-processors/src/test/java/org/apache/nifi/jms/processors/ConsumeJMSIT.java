@@ -31,6 +31,8 @@ import org.apache.activemq.command.ActiveMQMessage;
 import org.apache.activemq.transport.tcp.TcpTransport;
 import org.apache.activemq.transport.tcp.TcpTransportFactory;
 import org.apache.activemq.wireformat.WireFormat;
+import org.apache.nifi.jms.cf.JMSConnectionFactoryProperties;
+import org.apache.nifi.jms.cf.JMSConnectionFactoryProvider;
 import org.apache.nifi.jms.cf.JMSConnectionFactoryProviderDefinition;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
@@ -407,6 +409,30 @@ public class ConsumeJMSIT {
 
         runner.setProperty(ConsumeJMS.CF_SERVICE, "cfProvider");
         runner.setProperty(ConsumeJMS.DESTINATION, "foo");
+        runner.setProperty(ConsumeJMS.DESTINATION_TYPE, ConsumeJMS.TOPIC);
+
+        try {
+            runner.run();
+            fail("The test was implemented in a way this line should not be reached.");
+        } catch (AssertionError e) {
+        } finally {
+            assertTrue("In case of an exception, the processor should be yielded.", ((MockProcessContext) runner.getProcessContext()).isYieldCalled());
+        }
+    }
+
+    @Test
+    public void whenExceptionIsRaisedDuringConnectionFactoryInitializationTheProcessorShouldBeYielded() throws Exception {
+        TestRunner runner = TestRunners.newTestRunner(ConsumeJMS.class);
+
+        // using (non-JNDI) JMS Connection Factory via controller service
+        JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
+        runner.addControllerService("cfProvider", cfProvider);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CONNECTION_FACTORY_IMPL, "DummyJMSConnectionFactoryClass");
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_BROKER_URI, "DummyBrokerUri");
+        runner.enableControllerService(cfProvider);
+
+        runner.setProperty(ConsumeJMS.CF_SERVICE, "cfProvider");
+        runner.setProperty(ConsumeJMS.DESTINATION, "myTopic");
         runner.setProperty(ConsumeJMS.DESTINATION_TYPE, ConsumeJMS.TOPIC);
 
         try {
