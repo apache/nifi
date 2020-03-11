@@ -22,9 +22,7 @@ import okhttp3.mockwebserver.MockWebServer;
 import org.apache.nifi.bootstrap.NotificationServiceManager;
 import org.apache.nifi.security.util.SslContextFactory;
 import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.internal.util.io.IOUtil;
 import org.slf4j.LoggerFactory;
@@ -48,9 +46,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class TestHttpNotificationServiceSSL extends TestHttpNotificationServiceCommon {
-
-    private static final Logger logger = (Logger) LoggerFactory.getLogger(TestHttpNotificationServiceSSL.class);
-
 
     static final String CONFIGURATION_FILE_TEXT = "\n"+
             "<services>\n"+
@@ -168,10 +163,10 @@ public class TestHttpNotificationServiceSSL extends TestHttpNotificationServiceC
 
     @Test
     public void testStartNotificationSucceedsNoKeystorePasswd() throws ParserConfigurationException, SAXException, IOException {
-        Logger fooLogger = (Logger) LoggerFactory.getLogger(NotificationServiceManager.class);
+        Logger notificationServiceLogger = (Logger) LoggerFactory.getLogger(NotificationServiceManager.class);
         ListAppender<ILoggingEvent> listAppender = new ListAppender<>();
         listAppender.start();
-        fooLogger.addAppender(listAppender);
+        notificationServiceLogger.addAppender(listAppender);
 
         String configFileOutput = CONFIGURATION_FILE_TEXT_NO_KEYSTORE_PASSWORD.replace("${test.server}", String.valueOf(mockWebServer.url("/")));
         IOUtil.writeText(configFileOutput, new File(tempConfigFilePath));
@@ -193,10 +188,10 @@ public class TestHttpNotificationServiceSSL extends TestHttpNotificationServiceC
 
     @Test
     public void testStartNotificationSucceedsNoKeyPasswd() throws ParserConfigurationException, SAXException, IOException {
-        Logger fooLogger = (Logger) LoggerFactory.getLogger(NotificationServiceManager.class);
+        Logger notificationServiceLogger = (Logger) LoggerFactory.getLogger(NotificationServiceManager.class);
         ListAppender<ILoggingEvent> listAppender = new ListAppender<>();
         listAppender.start();
-        fooLogger.addAppender(listAppender);
+        notificationServiceLogger.addAppender(listAppender);
 
         String configFileOutput = CONFIGURATION_FILE_TEXT_NO_KEY_PASSWORD.replace("${test.server}", String.valueOf(mockWebServer.url("/")));
         IOUtil.writeText(configFileOutput, new File(tempConfigFilePath));
@@ -218,10 +213,10 @@ public class TestHttpNotificationServiceSSL extends TestHttpNotificationServiceC
 
     @Test
     public void testStartNotificationFailsBlankKeystorePasswdCorrectKeypasswd() throws ParserConfigurationException, SAXException, IOException {
-        Logger fooLogger = (Logger) LoggerFactory.getLogger(NotificationServiceManager.class);
+        Logger notificationServiceLogger = (Logger) LoggerFactory.getLogger(NotificationServiceManager.class);
         ListAppender<ILoggingEvent> listAppender = new ListAppender<>();
         listAppender.start();
-        fooLogger.addAppender(listAppender);
+        notificationServiceLogger.addAppender(listAppender);
 
         String configFileOutput = CONFIGURATION_FILE_TEXT_BLANK_KEYSTORE_PASSWORD.replace("${test.server}", String.valueOf(mockWebServer.url("/")));
         IOUtil.writeText(configFileOutput, new File(tempConfigFilePath));
@@ -243,10 +238,10 @@ public class TestHttpNotificationServiceSSL extends TestHttpNotificationServiceC
 
     @Test
     public void testStartNotificationFailsCorrectKeystorePasswdBlankKeypasswd() throws ParserConfigurationException, SAXException, IOException {
-        Logger fooLogger = (Logger) LoggerFactory.getLogger(NotificationServiceManager.class);
+        Logger notificationServiceLogger = (Logger) LoggerFactory.getLogger(NotificationServiceManager.class);
         ListAppender<ILoggingEvent> listAppender = new ListAppender<>();
         listAppender.start();
-        fooLogger.addAppender(listAppender);
+        notificationServiceLogger.addAppender(listAppender);
 
         String configFileOutput = CONFIGURATION_FILE_TEXT_BLANK_KEY_PASSWORD.replace("${test.server}", String.valueOf(mockWebServer.url("/")));
         IOUtil.writeText(configFileOutput, new File(tempConfigFilePath));

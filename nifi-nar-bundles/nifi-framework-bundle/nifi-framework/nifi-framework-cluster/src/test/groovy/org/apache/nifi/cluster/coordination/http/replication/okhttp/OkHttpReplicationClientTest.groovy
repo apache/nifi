@@ -164,7 +164,7 @@ class OkHttpReplicationClientTest extends GroovyTestCase {
     }
 
     @Test
-    void testShouldUseKeyPasswdIfKeystorePasswdIsBlank() {
+    void testShouldFailIfKeyPasswdIsSetButKeystorePasswdIsBlank() {
         // Arrange
         Map flowfileEncryptionProps = [
                 (NiFiProperties.SECURITY_TRUSTSTORE): "./src/test/resources/conf/truststore.jks",
@@ -183,11 +183,13 @@ class OkHttpReplicationClientTest extends GroovyTestCase {
         OkHttpReplicationClient client = new OkHttpReplicationClient(mockNiFiProperties)
 
         // Assert
+        // The replication client will fail to initialize if the keystore password is missing, and will use
+        // a default empty DummyX509KeyManager instead. This is considered a failure to start the service.
         assertSame(DummyX509KeyManager.class, client.okHttpClient.sslSocketFactory.context.getX509KeyManager().getClass())
     }
 
     @Test
-    void testShouldFailIfKeystorePasswdAndKeyPasswdIsBlank() {
+    void testShouldFailIfKeyPasswdIsBlankAndKeystorePasswd() {
         // Arrange
         Map flowfileEncryptionProps = [
                 (NiFiProperties.SECURITY_TRUSTSTORE): "./src/test/resources/conf/truststore.jks",
