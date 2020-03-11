@@ -257,10 +257,6 @@ public abstract class NiFiProperties {
     public static final String ANALYTICS_CONNECTION_MODEL_SCORE_NAME = "nifi.analytics.connection.model.score.name";
     public static final String ANALYTICS_CONNECTION_MODEL_SCORE_THRESHOLD = "nifi.analytics.connection.model.score.threshold";
 
-	//External load balancer, static key
-	public static final String IS_TOKEN_STATIC = "nifi.token.key.static";
-	public static final String TOKEN_KEY_CONFIG = "nifi.token.key.config";
-	
     // defaults
     public static final Boolean DEFAULT_AUTO_RESUME_STATE = true;
     public static final String DEFAULT_AUTHORIZER_CONFIGURATION_FILE = "conf/authorizers.xml";
@@ -1717,6 +1713,10 @@ public abstract class NiFiProperties {
         }
         // Other properties to validate...
     }
+	
+	//External load balancer, static key
+	public static final String IS_TOKEN_STATIC = "nifi.token.key.static";
+	public static final String TOKEN_KEY_CONFIG = "nifi.token.key.config";
 	/**
      * This method is used to validate the NiFi properties when the file is loaded
      * for the first time. The objective is to stop NiFi startup in case a property
