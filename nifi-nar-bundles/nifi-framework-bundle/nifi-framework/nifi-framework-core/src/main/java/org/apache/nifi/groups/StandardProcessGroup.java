@@ -75,6 +75,8 @@ import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.parameter.ParameterReference;
+import org.apache.nifi.parameter.ParameterUpdate;
+import org.apache.nifi.parameter.StandardParameterUpdate;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.StandardProcessContext;
 import org.apache.nifi.registry.ComponentVariableRegistry;
@@ -156,6 +158,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -2911,31 +2914,90 @@ public final class StandardProcessGroup implements ProcessGroup {
     @Override
     public void setParameterContext(final ParameterContext parameterContext) {
         verifyCanSetParameterContext(parameterContext);
+
+        // Determine which parameters have changed so that components can be appropriately updated.
+        final Map<String, ParameterUpdate> updatedParameters = mapParameterUpdates(this.parameterContext, parameterContext);
+        LOG.debug("Parameter Context for {} changed from {} to {}. This resulted in {} Parameter Updates ({}). Notifying Processors/Controller Services of the updates.",
+            this, this.parameterContext, parameterContext, updatedParameters.size(), updatedParameters);
+
         this.parameterContext = parameterContext;
 
-        getProcessors().forEach(ProcessorNode::resetValidationState);
-        getControllerServices(false).forEach(ControllerServiceNode::resetValidationState);
+        if (!updatedParameters.isEmpty()) {
+            // Notify components that parameters have been updated
+            onParameterContextUpdated(updatedParameters);
+        }
     }
 
     @Override
-    public void onParameterContextUpdated() {
+    public void onParameterContextUpdated(final Map<String, ParameterUpdate> updatedParameters) {
         readLock.lock();
         try {
-            for (final ProcessorNode processorNode : getProcessors()) {
-                if (processorNode.isReferencingParameter() && processorNode.getScheduledState() != ScheduledState.RUNNING) {
-                    processorNode.resetValidationState();
-                }
-            }
-
-            for (final ControllerServiceNode serviceNode : getControllerServices(false)) {
-                if (serviceNode.isReferencingParameter() && serviceNode.getState() == ControllerServiceState.DISABLING || serviceNode.getState() == ControllerServiceState.DISABLED) {
-                    serviceNode.resetValidationState();
-                }
-            }
+            getProcessors().forEach(proc -> proc.onParametersModified(updatedParameters));
+            getControllerServices(false).forEach(cs -> cs.onParametersModified(updatedParameters));
         } finally {
             readLock.unlock();
         }
     }
+
+    private Map<String, ParameterUpdate> mapParameterUpdates(final ParameterContext previousParameterContext, final ParameterContext updatedParameterContext) {
+        if (previousParameterContext == null && updatedParameterContext == null) {
+            return Collections.emptyMap();
+        }
+        if (updatedParameterContext == null) {
+            return createParameterUpdates(previousParameterContext, (descriptor, value) -> new StandardParameterUpdate(descriptor.getName(), value, null, descriptor.isSensitive()));
+        }
+        if (previousParameterContext == null) {
+            return createParameterUpdates(updatedParameterContext, (descriptor, value) -> new StandardParameterUpdate(descriptor.getName(), null, value, descriptor.isSensitive()));
+        }
+
+        // For each Parameter in the updated parameter context, add a ParameterUpdate to our map
+        final Map<String, ParameterUpdate> updatedParameters = new HashMap<>();
+        for (final Map.Entry<ParameterDescriptor, Parameter> entry : updatedParameterContext.getParameters().entrySet()) {
+            final ParameterDescriptor updatedDescriptor = entry.getKey();
+            final Parameter updatedParameter = entry.getValue();
+
+            final Optional<Parameter> previousParameterOption = previousParameterContext.getParameter(updatedDescriptor);
+            final String previousValue = previousParameterOption.map(Parameter::getValue).orElse(null);
+            final String updatedValue = updatedParameter.getValue();
+
+            if (!Objects.equals(previousValue, updatedValue)) {
+                final ParameterUpdate parameterUpdate = new StandardParameterUpdate(updatedDescriptor.getName(), previousValue, updatedValue, updatedDescriptor.isSensitive());
+                updatedParameters.put(updatedDescriptor.getName(), parameterUpdate);
+            }
+        }
+
+        // For each Parameter that was in the previous parameter context that is not in the updated Paramter Context, add a ParameterUpdate to our map with `null` for the updated value
+        for (final Map.Entry<ParameterDescriptor, Parameter> entry : previousParameterContext.getParameters().entrySet()) {
+            final ParameterDescriptor previousDescriptor = entry.getKey();
+            final Parameter previousParameter = entry.getValue();
+
+            final Optional<Parameter> updatedParameterOption = updatedParameterContext.getParameter(previousDescriptor);
+            if (updatedParameterOption.isPresent()) {
+                // The value exists in both Parameter Contexts. If it was changed, a Parameter Update has already been added to the map, above.
+                continue;
+            }
+
+            final ParameterUpdate parameterUpdate = new StandardParameterUpdate(previousDescriptor.getName(), previousParameter.getValue(), null, previousDescriptor.isSensitive());
+            updatedParameters.put(previousDescriptor.getName(), parameterUpdate);
+        }
+
+        return updatedParameters;
+    }
+
+    private Map<String, ParameterUpdate> createParameterUpdates(final ParameterContext parameterContext, final BiFunction<ParameterDescriptor, String, ParameterUpdate> parameterUpdateMapper) {
+        final Map<String, ParameterUpdate> updatedParameters = new HashMap<>();
+
+        for (final Map.Entry<ParameterDescriptor, Parameter> entry : parameterContext.getParameters().entrySet()) {
+            final ParameterDescriptor parameterDescriptor = entry.getKey();
+            final Parameter parameter = entry.getValue();
+
+            final ParameterUpdate parameterUpdate = parameterUpdateMapper.apply(parameterDescriptor, parameter.getValue());
+            updatedParameters.put(parameterDescriptor.getName(), parameterUpdate);
+        }
+
+        return updatedParameters;
+    }
+
 
     @Override
     public void verifyCanSetParameterContext(final ParameterContext parameterContext) {

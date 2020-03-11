@@ -33,11 +33,25 @@ public interface ParameterLookup {
      */
     boolean isEmpty();
 
+    /**
+     * Indicates the current Version of the Parameter Context. Each time that the Parameter Context is updated, its version is incremented. This allows
+     * other components to know whether or not the values have changed since some other point in time. The version may or may not be persisted across
+     * restarts of the application.
+     *
+     * @return the current version
+     */
+    long getVersion();
+
 
     ParameterLookup EMPTY = new ParameterLookup() {
         @Override
         public Optional<Parameter> getParameter(final String parameterName) {
             return Optional.empty();
+        }
+
+        @Override
+        public long getVersion() {
+            return 0;
         }
 
         @Override
