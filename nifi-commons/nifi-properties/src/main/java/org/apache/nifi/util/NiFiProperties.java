@@ -1717,8 +1717,7 @@ public abstract class NiFiProperties {
         }
         // Other properties to validate...
     }
-	
-    /**
+	/**
      * This method is used to validate the NiFi properties when the file is loaded
      * for the first time. The objective is to stop NiFi startup in case a property
      * is not correctly configured and could cause issues afterwards.
