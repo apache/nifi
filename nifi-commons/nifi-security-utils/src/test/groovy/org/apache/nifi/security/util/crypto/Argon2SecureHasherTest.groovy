@@ -239,4 +239,160 @@ class Argon2SecureHasherTest extends GroovyTestCase {
         assert resultDurations.min() > MIN_DURATION_NANOS
         assert resultDurations.sum() / testIterations > MIN_DURATION_NANOS
     }
+
+    @Test
+    void testShouldVerifyHashLengthBoundary() throws Exception {
+        // Arrange
+        final int hashLength = 128
+
+        // Act
+        boolean valid = Argon2SecureHasher.isHashLengthValid(hashLength)
+
+        // Assert
+        assert valid
+    }
+
+    @Test
+    void testShouldFailHashLengthBoundary() throws Exception {
+        // Arrange
+        def hashLengths = [-8, 0, 1, 2]
+
+        // Act
+        def results = hashLengths.collect { hashLength ->
+            def isValid = Argon2SecureHasher.isHashLengthValid(hashLength)
+            [hashLength, isValid]
+        }
+
+        // Assert
+        results.each { hashLength, isHashLengthValid ->
+            logger.info("For hashLength value ${hashLength}, hashLength is ${isHashLengthValid ? "valid" : "invalid"}")
+            assert !isHashLengthValid
+        }
+    }
+
+    @Test
+    void testShouldVerifyMemorySizeBoundary() throws Exception {
+        // Arrange
+        final int memory = 2048
+
+        // Act
+        boolean valid = Argon2SecureHasher.isMemorySizeValid(memory)
+
+        // Assert
+        assert valid
+    }
+
+    @Test
+    void testShouldFailMemorySizeBoundary() throws Exception {
+        // Arrange
+        def memorySizes = [-12, 0, 1, 6]
+
+        // Act
+        def results = memorySizes.collect { memory ->
+            def isValid = Argon2SecureHasher.isMemorySizeValid(memory)
+            [memory, isValid]
+        }
+
+        // Assert
+        results.each { memory, isMemorySizeValid ->
+            logger.info("For memory size ${memory}, memory is ${isMemorySizeValid ? "valid" : "invalid"}")
+            assert !isMemorySizeValid
+        }
+    }
+
+    @Test
+    void testShouldVerifyParallelismBoundary() throws Exception {
+        // Arrange
+        final int parallelism = 4
+
+        // Act
+        boolean valid = Argon2SecureHasher.isParallelismValid(parallelism)
+
+        // Assert
+        assert valid
+    }
+
+    @Test
+    void testShouldFailParallelismBoundary() throws Exception {
+        // Arrange
+        def parallelisms = [-8, 0, 16777220, 16778000]
+
+        // Act
+        def results = parallelisms.collect { parallelism ->
+            def isValid = Argon2SecureHasher.isParallelismValid(parallelism)
+            [parallelism, isValid]
+        }
+
+        // Assert
+        results.each { parallelism, isParallelismValid ->
+            logger.info("For parallelization factor ${parallelism}, parallelism is ${isParallelismValid ? "valid" : "invalid"}")
+            assert !isParallelismValid
+        }
+    }
+
+    @Test
+    void testShouldVerifyIterationsBoundary() throws Exception {
+        // Arrange
+        final int iterations = 4
+
+        // Act
+        boolean valid = Argon2SecureHasher.isIterationsValid(iterations)
+
+        // Assert
+        assert valid
+    }
+
+    @Test
+    void testShouldFailIterationsBoundary() throws Exception {
+        // Arrange
+        def iterationCounts = [-50, -1, 0]
+
+        // Act
+        def results = iterationCounts.collect { iterations ->
+            def isValid = Argon2SecureHasher.isIterationsValid(iterations)
+            [iterations, isValid]
+        }
+
+        // Assert
+        results.each { iterations, isIterationsValid ->
+            logger.info("For iteration counts ${iterations}, iteration is ${isIterationsValid ? "valid" : "invalid"}")
+            assert !isIterationsValid
+        }
+    }
+
+    @Test
+    void testShouldVerifySaltLengthBoundary() throws Exception {
+        // Arrange
+        def saltLengths = [0, 64]
+
+        // Act
+        def results = saltLengths.collect { saltLength ->
+            def isValid = Argon2SecureHasher.isSaltLengthValid(saltLength)
+            [saltLength, isValid]
+        }
+
+        // Assert
+        results.each { saltLength, isSaltLengthValid ->
+            logger.info("For salt length ${saltLength}, saltLength is ${isSaltLengthValid ? "valid" : "invalid"}")
+            assert isSaltLengthValid
+        }
+    }
+
+    @Test
+    void testShouldFailSaltLengthBoundary() throws Exception {
+        // Arrange
+        def saltLengths = [-16, 4]
+
+        // Act
+        def results = saltLengths.collect { saltLength ->
+            def isValid = Argon2SecureHasher.isSaltLengthValid(saltLength)
+            [saltLength, isValid]
+        }
+
+        // Assert
+        results.each { saltLength, isSaltLengthValid ->
+            logger.info("For salt length ${saltLength}, saltLength is ${isSaltLengthValid ? "valid" : "invalid"}")
+            assert !isSaltLengthValid
+        }
+    }
 }

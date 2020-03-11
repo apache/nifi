@@ -46,17 +46,28 @@ public class Argon2SecureHasher implements SecureHasher {
     private static final int DEFAULT_PARALLELISM = 1;
     private static final int DEFAULT_MEMORY = 1 << 12;
     private static final int DEFAULT_ITERATIONS = 3;
+    private static final int DEFAULT_SALT_LENGTH = 16;
+    private static final int MIN_MEMORY_SIZE_KB = 8;
+    private static final int MIN_PARALLELISM = 1;
+    private static final long MAX_PARALLELISM = Math.round(Math.pow(2, 24)) - 1;
+    private static final int MIN_HASH_LENGTH = 4;
+    private static final int MIN_ITERATIONS = 1;
+    private static final int MIN_SALT_LENGTH = 8;
 
-    private final int hashLength;
-    private final int memory;
+    // Using Integer vs. int to allow for unsigned 32b (values can exceed Integer.MAX_VALUE)
+    private final Integer hashLength;
+    private final Integer memory;
     private final int parallelism;
-    private final int iterations;
-    private final int saltLength;
+    private final Integer iterations;
+    private final Integer saltLength;
 
-    private final boolean usingStaticSalt;
+    private boolean usingStaticSalt;
 
     // A 16 byte salt (nonce) is recommended for password hashing
-    private static final byte[] staticSalt = "NiFi Static Salt".getBytes(StandardCharsets.UTF_8);
+    private static final byte[] STATIC_SALT = "NiFi Static Salt".getBytes(StandardCharsets.UTF_8);
+
+    // Upper boundary for several cost parameters
+    private static final long UPPER_BOUNDARY = Math.round(Math.pow(2, 32)) - 1;
 
     /**
      * Instantiates an Argon2 secure hasher using the default cost parameters
@@ -72,19 +83,21 @@ public class Argon2SecureHasher implements SecureHasher {
     /**
      * Instantiates an Argon2 secure hasher using the provided cost parameters. A static
      * {@link #DEFAULT_SALT_LENGTH} byte salt will be generated on every hash request.
+     * {@link Integer} is used instead of {@code int} for parameters which have a max value of {@code 2^32 - 1} to allow for unsigned integers exceeding {@link Integer#MAX_VALUE}.
      *
      * @param hashLength  the output length in bytes ({@code 4 to 2^32 - 1})
      * @param memory      the integer number of KB used ({@code 8p to 2^32 - 1})
      * @param parallelism degree of parallelism ({@code 1 to 2^24 - 1})
      * @param iterations  number of iterations ({@code 1 to 2^32 - 1})
      */
-    public Argon2SecureHasher(int hashLength, int memory, int parallelism, int iterations) {
+    public Argon2SecureHasher(Integer hashLength, Integer memory, int parallelism, Integer iterations) {
         this(hashLength, memory, parallelism, iterations, 0);
     }
 
     /**
      * Instantiates an Argon2 secure hasher using the provided cost parameters. A unique
      * salt of the specified length will be generated on every hash request.
+     * {@link Integer} is used instead of {@code int} for parameters which have a max value of {@code 2^32 - 1} to allow for unsigned integers exceeding {@link Integer#MAX_VALUE}.
      *
      * @param hashLength  the output length in bytes ({@code 4 to 2^32 - 1})
      * @param memory      the integer number of KB used ({@code 8p to 2^32 - 1})
@@ -92,15 +105,51 @@ public class Argon2SecureHasher implements SecureHasher {
      * @param iterations  number of iterations ({@code 1 to 2^32 - 1})
      * @param saltLength  the salt length in bytes {@code 8 to 2^32 - 1})
      */
-    public Argon2SecureHasher(int hashLength, int memory, int parallelism, int iterations, int saltLength) {
-        // TODO: Implement boundary checking
+    public Argon2SecureHasher(Integer hashLength, Integer memory, int parallelism, Integer iterations, Integer saltLength) {
+
+        validateParameters(hashLength, memory, parallelism, iterations, saltLength);
+
         this.hashLength = hashLength;
         this.memory = memory;
         this.parallelism = parallelism;
         this.iterations = iterations;
 
         this.saltLength = saltLength;
+    }
+
+    /**
+     * Enforces valid Argon2 secure hasher cost parameters are provided.
+     *
+     * @param hashLength  the output length in bytes ({@code 4 to 2^32 - 1})
+     * @param memory      the integer number of KB used ({@code 8p to 2^32 - 1})
+     * @param parallelism degree of parallelism ({@code 1 to 2^24 - 1})
+     * @param iterations  number of iterations ({@code 1 to 2^32 - 1})
+     * @param saltLength  the salt length in bytes {@code 8 to 2^32 - 1})
+     */
+    private void validateParameters(Integer hashLength, Integer memory, int parallelism, Integer iterations, Integer saltLength) {
+
+        if (!isHashLengthValid(hashLength)) {
+            logger.error("The provided hash length {} is outside the boundary of 4 to 2^32 - 1.", hashLength);
+            throw new IllegalArgumentException("Invalid hash length is not within the hashLength boundary.");
+        }
+        if (!isMemorySizeValid(memory)) {
+            logger.error("The provided memory size {} KiB is outside the boundary of 8p to 2^32 - 1.", memory);
+            throw new IllegalArgumentException("Invalid memory size is not within the memory boundary.");
+        }
+        if (!isParallelismValid(parallelism)) {
+            logger.error("The provided parallelization factor {} is outside the boundary of 1 to 2^24 - 1.", parallelism);
+            throw new IllegalArgumentException("Invalid parallelization factor exceeds the parallelism boundary.");
+        }
+        if (!isIterationsValid(iterations)) {
+            logger.error("The iteration count {} is outside the boundary of 1 to 2^32 - 1.", iterations);
+            throw new IllegalArgumentException("Invalid iteration count exceeds the iterations boundary.");
+        }
+
         if (saltLength > 0) {
+            if (!isSaltLengthValid(saltLength)) {
+                logger.error("The salt length {} is outside the boundary of 8 to 2^32 - 1.", saltLength);
+                throw new IllegalArgumentException("Invalid salt length exceeds the saltLength boundary.");
+            }
             this.usingStaticSalt = false;
         } else {
             this.usingStaticSalt = true;
@@ -126,13 +175,82 @@ public class Argon2SecureHasher implements SecureHasher {
      */
     byte[] getSalt() {
         if (isUsingStaticSalt()) {
-            return staticSalt;
+            return STATIC_SALT;
         } else {
             SecureRandom sr = new SecureRandom();
             byte[] salt = new byte[saltLength];
             sr.nextBytes(salt);
             return salt;
         }
+    }
+
+    /**
+     * Returns whether the provided hash length is within boundaries. The lower bound >= 4 and the
+     * upper bound <= 2^32 - 1.
+     * @param hashLength the output length in bytes
+     * @return true if hashLength is within boundaries
+     */
+    public static boolean isHashLengthValid(Integer hashLength) {
+        if (hashLength < DEFAULT_HASH_LENGTH) {
+            logger.warn("The provided hash length {} is below the recommended minimum {}.", hashLength, DEFAULT_HASH_LENGTH);
+        }
+        return hashLength >= MIN_HASH_LENGTH && hashLength <= UPPER_BOUNDARY;
+    }
+
+    /**
+     * Returns whether the provided memory size is within boundaries. The lower bound >= 8 and the
+     * upper bound <= 2^32 - 1.
+     * @param memory the integer number of KiB used
+     * @return true if memory is within boundaries
+     */
+    public static boolean isMemorySizeValid(Integer memory) {
+        if (memory < DEFAULT_MEMORY) {
+            logger.warn("The provided memory size {} KiB is below the recommended minimum {} KiB.", memory, DEFAULT_MEMORY);
+        }
+        return memory >= MIN_MEMORY_SIZE_KB && memory <= UPPER_BOUNDARY;
+    }
+
+    /**
+     * Returns whether the provided parallelization factor is within boundaries. The lower bound >= 1 and the
+     * upper bound <= 2^24 - 1.
+     * @param parallelism degree of parallelism
+     * @return true if parallelism is within boundaries
+     */
+    public static boolean isParallelismValid(int parallelism) {
+        if (parallelism < DEFAULT_PARALLELISM) {
+            logger.warn("The provided parallelization factor {} is below the recommended minimum {}.", parallelism, DEFAULT_PARALLELISM);
+        }
+        return parallelism >= MIN_PARALLELISM && parallelism <= MAX_PARALLELISM;
+    }
+
+    /**
+     * Returns whether the provided iteration count is within boundaries. The lower bound >= 1 and the
+     * upper bound <= 2^32 - 1.
+     * @param iterations number of iterations
+     * @return true if iterations is within boundaries
+     */
+    public static boolean isIterationsValid(Integer iterations) {
+        if (iterations < DEFAULT_ITERATIONS) {
+            logger.warn("The provided iteration count {} is below the recommended minimum {}.", iterations, DEFAULT_ITERATIONS);
+        }
+        return iterations >= MIN_ITERATIONS && iterations <= UPPER_BOUNDARY;
+    }
+
+    /**
+     * Returns whether the provided salt length (saltLength) is within boundaries. The lower bound >= 8 and the
+     * upper bound <= 2^32 - 1.
+     * @param saltLength the salt length in bytes
+     * @return true if saltLength is within boundaries
+     */
+    public static boolean isSaltLengthValid(Integer saltLength) {
+        if (saltLength == 0) {
+            logger.debug("The provided salt length 0 indicates a static salt of {} bytes", DEFAULT_SALT_LENGTH);
+            return true;
+        }
+        if (saltLength < DEFAULT_SALT_LENGTH) {
+            logger.warn("The provided dynamic salt length {} is below the recommended minimum {}", saltLength, DEFAULT_SALT_LENGTH);
+        }
+        return saltLength >= MIN_SALT_LENGTH && saltLength <= UPPER_BOUNDARY;
     }
 
     /**
