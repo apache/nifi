@@ -347,10 +347,9 @@ public class OkHttpReplicationClient implements HttpReplicationClient {
                     .map(trustManager -> (X509TrustManager) trustManager).collect(Collectors.toList());
             return new Tuple<>(sslContextTuple.getKey().getSocketFactory(), x509TrustManagers.get(0));
         } catch(UnrecoverableKeyException e) {
-            logger.debug("Key password may be incorrect or not set. Check your keystore passwords." + e.getMessage());
+            logger.error("Key password may be incorrect or not set. Check your keystore passwords." + e.getMessage());
             return null;
-        }
-        catch (CertificateException | NoSuchAlgorithmException | KeyStoreException | KeyManagementException | IOException e) {
+        } catch (CertificateException | NoSuchAlgorithmException | KeyStoreException | KeyManagementException | IOException e) {
             return null;
         }
     }
