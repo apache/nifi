@@ -91,12 +91,5 @@ public interface ParameterContext extends ParameterLookup, ComponentAuthorizable
      */
     ParameterReferenceManager getParameterReferenceManager();
 
-    /**
-     * Indicates the current Version of the Parameter Context. Each time that the Parameter Context is updated, its version is incremented. This allows
-     * other components to know whether or not the values have changed since some other point in time. The version may or may not be persisted across
-     * restarts of the application.
-     *
-     * @return the current version
-     */
-    long getVersion();
+
 }
