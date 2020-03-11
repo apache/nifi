@@ -237,7 +237,10 @@ public abstract class NiFiProperties {
 
     // expression language properties
     public static final String VARIABLE_REGISTRY_PROPERTIES = "nifi.variable.registry.properties";
-
+	//External load balancer, static key
+	public static final String IS_TOKEN_STATIC = "nifi.token.key.static";
+	public static final String TOKEN_KEY_CONFIG = "nifi.token.key.config";
+	
     // defaults
     public static final Boolean DEFAULT_AUTO_RESUME_STATE = true;
     public static final String DEFAULT_AUTHORIZER_CONFIGURATION_FILE = "conf/authorizers.xml";

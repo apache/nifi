@@ -52,7 +52,12 @@ public class StandardKeyService implements KeyService {
     public Key getKey(int id) {
         Transaction transaction = null;
         Key key = null;
-
+		if(properties.isKeyStatic()){
+			key = new Key();
+			key.setKey(properties.getStaticKey());
+		//   logger.info("Key generated : "+key.getKey());
+			return key;
+		}
         readLock.lock();
         try {
             // start the transaction
@@ -82,7 +87,12 @@ public class StandardKeyService implements KeyService {
     public Key getOrCreateKey(String identity) {
         Transaction transaction = null;
         Key key = null;
-
+		if(properties.isKeyStatic()){
+			key = new Key();
+			key.setKey(properties.getStaticKey());
+		//   logger.info("Key generated : "+key.getKey());
+			return key;
+		}
         writeLock.lock();
         try {
             // start the transaction
