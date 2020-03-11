@@ -1343,17 +1343,29 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
             this.prioritizedAnsillaryWars = prioritizedAnsillaryWars;
         }
 
-        public File getWebUiWar() { return webUiWar; }
+        public File getWebUiWar() {
+            return webUiWar;
+        }
 
-        public File getWebApiWar() { return webApiWar; }
+        public File getWebApiWar() {
+            return webApiWar;
+        }
 
-        public File getWebErrorWar() { return webErrorWar; }
+        public File getWebErrorWar() {
+            return webErrorWar;
+        }
 
-        public File getWebDocsWar() { return webDocsWar; }
+        public File getWebDocsWar() {
+            return webDocsWar;
+        }
 
-        public File getWebContentViewerWar() { return webContentViewerWar; }
+        public File getWebContentViewerWar() {
+            return webContentViewerWar;
+        }
 
-        public Map<File, Bundle> getPrioritizedAnsillaryWars() { return prioritizedAnsillaryWars; }
+        public Map<File, Bundle> getPrioritizedAnsillaryWars() {
+            return prioritizedAnsillaryWars;
+        }
     }
 
     private static class ThreadDumpDiagnosticsFactory implements DiagnosticsFactory {
