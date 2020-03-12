@@ -20,16 +20,20 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.spec.InvalidKeySpecException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -43,6 +47,9 @@ import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.security.util.EncryptionMethod;
+import org.apache.nifi.security.util.KeyDerivationFunction;
+import org.apache.nifi.stream.io.ByteCountingInputStream;
+import org.apache.nifi.stream.io.ByteCountingOutputStream;
 import org.apache.nifi.stream.io.StreamUtils;
 
 public class CipherUtility {
@@ -265,9 +272,9 @@ public class CipherUtility {
             final byte[] buffer = new byte[BUFFER_SIZE];
             int len;
             while ((len = in.read(buffer)) > 0) {
-                final byte[] decryptedBytes = cipher.update(buffer, 0, len);
-                if (decryptedBytes != null) {
-                    out.write(decryptedBytes);
+                final byte[] transformedBytes = cipher.update(buffer, 0, len);
+                if (transformedBytes != null) {
+                    out.write(transformedBytes);
                 }
             }
 
@@ -441,5 +448,113 @@ public class CipherUtility {
      */
     public static String getLoggableRepresentationOfSensitiveValue(String sensitivePropertyValue, SecureHasher secureHasher) {
         return "[MASKED] (" + secureHasher.hashBase64(sensitivePropertyValue) + ")";
+    }
+
+    /**
+     * Returns the current timestamp in a default format. Used by many encryption operations for logging/debugging.
+     *
+     * @return the current timestamp in 'yyyy-MM-dd HH:mm:ss.SSS Z' format
+     */
+    public static String getTimestampString() {
+        Locale currentLocale = Locale.getDefault();
+        String pattern = "yyyy-MM-dd HH:mm:ss.SSS Z";
+        SimpleDateFormat formatter = new SimpleDateFormat(pattern, currentLocale);
+        Date now = new Date();
+        return formatter.format(now);
+    }
+
+    public static ByteCountingInputStream wrapStreamForCounting(InputStream inputStream) {
+        // Wrap the streams for byte counting if necessary
+        ByteCountingInputStream bcis;
+        if (!(inputStream instanceof ByteCountingInputStream)) {
+            bcis = new ByteCountingInputStream(inputStream);
+        } else {
+            bcis = (ByteCountingInputStream) inputStream;
+        }
+
+        return bcis;
+    }
+
+    public static ByteCountingOutputStream wrapStreamForCounting(OutputStream outputStream) {
+        // Wrap the streams for byte counting if necessary
+        ByteCountingOutputStream bcos;
+        if (!(outputStream instanceof ByteCountingOutputStream)) {
+            bcos = new ByteCountingOutputStream(outputStream);
+        } else {
+            bcos = (ByteCountingOutputStream) outputStream;
+        }
+
+        return bcos;
+    }
+
+    /**
+     * Returns the calculated cipher text length given the plaintext length and salt length, if any. If the salt length is > 0, the salt delimiter length ({@code 8}) is included as well.
+     *
+     * @param ptLength   the plaintext length
+     * @param saltLength the salt length
+     * @return the complete cipher text, salt (optional), IV, and delimiter(s) length
+     */
+    public static int calculateCipherTextLength(int ptLength, int saltLength) {
+        int ctBlocks = Double.valueOf(Math.ceil(ptLength / 16.0)).intValue();
+        int ctLength = (ptLength % 16 == 0 ? ctBlocks + 1 : ctBlocks) * 16;
+        // IV length, Salt delimiter length, IV delimiter length
+        return ctLength + saltLength + 16 + (saltLength > 0 ? 8 : 0) + 6;
+    }
+
+    /**
+     * Returns the array index of {@code haystack} if {@code needle} is found within it. This is a sequence scanner.
+     *
+     * @param haystack the search space byte[]
+     * @param needle   the sequence to find
+     * @return the first index of the sequence or -1 if it does not exist
+     */
+    public static int findSequence(byte[] haystack, byte[] needle) {
+        for (int i = 0; i < haystack.length - needle.length; i++) {
+            boolean match = true;
+            for (int j = 0; j < needle.length; j++) {
+                if (haystack[i + j] != needle[j]) {
+                    match = false;
+                    break;
+                }
+            }
+            if (match) {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
+    /**
+     * Returns the raw salt from the provided "full salt" which could be KDF-specific.
+     *
+     * Examples:
+     *
+     * Argon2 -> {@code $argon2id$v=19$m=4096,t=3,p=1$abcdefABCDEF0123456789}
+     * Bcrypt -> {@code $2a$10$abcdefABCDEF0123456789}
+     * Scrypt -> {@code $s0$e0801$abcdefABCDEF0123456789}
+     *
+     * If the KDF does not have a custom encoding for the salt, the provided "full salt" is returned intact.
+     *
+     * @param fullSalt the KDF-formatted salt
+     * @param kdf the KDF used
+     * @return the raw salt
+     */
+    public static byte[] extractRawSalt(byte[] fullSalt, KeyDerivationFunction kdf) {
+        final String saltString = new String(fullSalt, StandardCharsets.UTF_8);
+        switch (kdf) {
+            case ARGON2:
+                return Argon2CipherProvider.isArgon2FormattedSalt(saltString) ? Argon2CipherProvider.extractRawSaltFromArgon2Salt(saltString) : fullSalt;
+            case BCRYPT:
+                return BcryptCipherProvider.isBcryptFormattedSalt(saltString) ? BcryptCipherProvider.extractRawSalt(saltString) : fullSalt;
+            case SCRYPT:
+                return ScryptCipherProvider.isScryptFormattedSalt(saltString) ? ScryptCipherProvider.extractRawSaltFromScryptSalt(saltString) : fullSalt;
+            // case PBKDF2:
+            // case NONE:
+            // case NIFI_LEGACY:
+            // case OPENSSL_EVP_BYTES_TO_KEY:
+            default:
+                return fullSalt;
+        }
     }
 }

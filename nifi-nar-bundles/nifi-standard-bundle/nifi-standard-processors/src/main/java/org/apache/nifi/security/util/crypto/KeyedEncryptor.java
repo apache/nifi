@@ -23,14 +23,19 @@ import java.security.NoSuchAlgorithmException;
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.StreamCallback;
-import org.apache.nifi.processors.standard.EncryptContent.Encryptor;
 import org.apache.nifi.security.util.EncryptionMethod;
 import org.apache.nifi.security.util.KeyDerivationFunction;
+import org.apache.nifi.stream.io.ByteCountingInputStream;
+import org.apache.nifi.stream.io.ByteCountingOutputStream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-public class KeyedEncryptor implements Encryptor {
+public class KeyedEncryptor extends AbstractEncryptor {
+    private static final Logger logger = LoggerFactory.getLogger(KeyedEncryptor.class);
 
     private EncryptionMethod encryptionMethod;
     private SecretKey key;
@@ -124,18 +129,43 @@ public class KeyedEncryptor implements Encryptor {
             // Initialize cipher provider
             KeyedCipherProvider cipherProvider = (KeyedCipherProvider) CipherProviderFactory.getCipherProvider(KeyDerivationFunction.NONE);
 
+            // Wrap the streams for byte counting if necessary
+            ByteCountingInputStream bcis = CipherUtility.wrapStreamForCounting(in);
+            ByteCountingOutputStream bcos = CipherUtility.wrapStreamForCounting(out);
+
             // Generate cipher
+            Cipher cipher;
             try {
-                Cipher cipher;
+                if (!bcis.markSupported()) {
+                    logger.warn("The incoming cipher text stream does not support #mark(); unable to scan for possible salt");
+                } else {
+                    // Skip salt if present (could have been used during encrypt in combination with KDF)
+                    bcis.mark(100);
+                    byte[] first80Bytes = new byte[80];
+                    IOUtils.read(bcis, first80Bytes, 0, first80Bytes.length);
+                    final int saltDelimiterStart = CipherUtility.findSequence(first80Bytes, RandomIVPBECipherProvider.SALT_DELIMITER);
+
+                    // Reset whether salt is detected or not (to skip salt or read IV)
+                    bcis.reset();
+                    if (saltDelimiterStart != -1) {
+                        byte[] saltBytes = new byte[saltDelimiterStart + RandomIVPBECipherProvider.SALT_DELIMITER.length];
+                        IOUtils.readFully(bcis, saltBytes);
+                        logger.info("Detected salt in incoming cipher text; skipped {} bytes", saltBytes.length);
+                    }
+                }
+
                 // The IV could have been set by the constructor, but if not, read from the cipher stream
                 if (iv.length == 0) {
-                    iv = cipherProvider.readIV(in);
+                    iv = cipherProvider.readIV(bcis);
                 }
                 cipher = cipherProvider.getCipher(encryptionMethod, key, iv, false);
-                CipherUtility.processStreams(cipher, in, out);
+                CipherUtility.processStreams(cipher, bcis, bcos);
             } catch (Exception e) {
                 throw new ProcessException(e);
             }
+
+            // Update the attributes in the temporary holder
+            flowfileAttributes.putAll(writeAttributes(encryptionMethod, KeyDerivationFunction.NONE, iv, bcis, bcos, false));
         }
     }
 
@@ -149,14 +179,22 @@ public class KeyedEncryptor implements Encryptor {
             // Initialize cipher provider
             KeyedCipherProvider cipherProvider = (KeyedCipherProvider) CipherProviderFactory.getCipherProvider(KeyDerivationFunction.NONE);
 
+            // Wrap the streams for byte counting if necessary
+            ByteCountingInputStream bcis = CipherUtility.wrapStreamForCounting(in);
+            ByteCountingOutputStream bcos = CipherUtility.wrapStreamForCounting(out);
+
             // Generate cipher
+            Cipher cipher;
             try {
-                Cipher cipher = cipherProvider.getCipher(encryptionMethod, key, iv, true);
-                cipherProvider.writeIV(cipher.getIV(), out);
-                CipherUtility.processStreams(cipher, in, out);
+                cipher = cipherProvider.getCipher(encryptionMethod, key, iv, true);
+                cipherProvider.writeIV(cipher.getIV(), bcos);
+                CipherUtility.processStreams(cipher, bcis, bcos);
             } catch (Exception e) {
                 throw new ProcessException(e);
             }
+
+            // Update the attributes in the temporary holder
+            flowfileAttributes.putAll(writeAttributes(encryptionMethod, KeyDerivationFunction.NONE, cipher.getIV(), bcis, bcos, true));
         }
     }
 }

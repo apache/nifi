@@ -21,6 +21,7 @@ import static org.bouncycastle.openpgp.PGPUtil.getDecoderStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Map;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.StreamCallback;
 import org.apache.nifi.processors.standard.EncryptContent.Encryptor;
@@ -64,6 +65,11 @@ public class OpenPGPPasswordBasedEncryptor implements Encryptor {
     @Override
     public StreamCallback getDecryptionCallback() throws Exception {
         return new OpenPGPDecryptCallback(provider, password);
+    }
+
+    @Override
+    public void updateAttributes(Map<String, String> attributes) throws ProcessException {
+        // TODO: Implement
     }
 
     private static class OpenPGPDecryptCallback implements StreamCallback {

@@ -22,6 +22,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
@@ -32,7 +33,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
-
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
@@ -59,7 +59,7 @@ public class MockFlowFile implements FlowFileRecord {
         this.id = id;
         entryDate = System.currentTimeMillis();
         lastEnqueuedDate = entryDate;
-        attributes.put(CoreAttributes.FILENAME.key(), String.valueOf(System.nanoTime()) + ".mockFlowFile");
+        attributes.put(CoreAttributes.FILENAME.key(), System.nanoTime() + ".mockFlowFile");
         attributes.put(CoreAttributes.PATH.key(), "target");
 
         final String uuid = UUID.randomUUID().toString();
@@ -74,7 +74,7 @@ public class MockFlowFile implements FlowFileRecord {
         final Map<String, String> attributesToCopy = toCopy.getAttributes();
         String filename = attributesToCopy.get(CoreAttributes.FILENAME.key());
         if (filename == null) {
-            filename = String.valueOf(System.nanoTime()) + ".mockFlowFile";
+            filename = System.nanoTime() + ".mockFlowFile";
         }
         attributes.put(CoreAttributes.FILENAME.key(), filename);
 
@@ -141,12 +141,40 @@ public class MockFlowFile implements FlowFileRecord {
         return data.length;
     }
 
-    void setData(final byte[] data) {
+    /**
+     * Sets the value of the internal content for this mock flowfile. Would not exist in standard {@link FlowFile} implementations, but useful for complex test assertions.
+     *
+     * @param data the flowfile content as a byte[]
+     */
+    public void setData(final byte[] data) {
         this.data = data;
     }
 
-    byte[] getData() {
+    /**
+     * Returns the value of the internal content for this mock flowfile. Would not exist in standard {@link FlowFile} implementations, but useful for complex test assertions.
+     *
+     * @return the internal flowfile content as a byte[]
+     */
+    public byte[] getData() {
         return this.data;
+    }
+
+    /**
+     * Returns the value of the internal content for this mock flowfile as a UTF-8 encoded String. Would not exist in standard {@link FlowFile} implementations, but useful for complex test assertions.
+     *
+     * @return the internal flowfile content as a String
+     */
+    public String getContent() {
+        return new String(getData(), StandardCharsets.UTF_8);
+    }
+
+    /**
+     * Returns the value of the internal content for this mock flowfile as an {@link InputStream}. Would not exist in standard {@link FlowFile} implementations, but useful for complex test assertions.
+     *
+     * @return the internal flowfile content as a stream
+     */
+    public InputStream getContentStream() {
+        return new ByteArrayInputStream(getData());
     }
 
     @Override
@@ -194,7 +222,7 @@ public class MockFlowFile implements FlowFileRecord {
 
     public void assertAttributeNotExists(final String attributeName) {
         Assert.assertFalse("Attribute " + attributeName + " should not exist on FlowFile, but exists with value "
-                        + attributes.get(attributeName), attributes.containsKey(attributeName));
+                + attributes.get(attributeName), attributes.containsKey(attributeName));
     }
 
     public void assertAttributeEquals(final String attributeName, final String expectedValue) {
@@ -274,7 +302,7 @@ public class MockFlowFile implements FlowFileRecord {
 
                 if ((fromStream & 0xFF) != (data[i] & 0xFF)) {
                     Assert.fail("FlowFile content differs from input at byte " + bytesRead + " with input having value "
-                        + (fromStream & 0xFF) + " and FlowFile having value " + (data[i] & 0xFF));
+                            + (fromStream & 0xFF) + " and FlowFile having value " + (data[i] & 0xFF));
                 }
 
                 bytesRead++;
@@ -343,7 +371,7 @@ public class MockFlowFile implements FlowFileRecord {
     }
 
     public boolean isContentEqual(String expected) {
-        return isContentEqual(expected, Charset.forName("UTF-8"));
+        return isContentEqual(expected, StandardCharsets.UTF_8);
     }
 
     public boolean isContentEqual(String expected, final Charset charset) {

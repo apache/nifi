@@ -26,9 +26,9 @@ import org.apache.nifi.security.util.EncryptionMethod;
 import org.slf4j.Logger;
 
 public abstract class RandomIVPBECipherProvider implements PBECipherProvider {
-    static final byte[] SALT_DELIMITER = "NiFiSALT".getBytes(StandardCharsets.UTF_8);
+    public static final byte[] SALT_DELIMITER = "NiFiSALT".getBytes(StandardCharsets.UTF_8);
     static final int MAX_SALT_LIMIT = 128;
-    static final byte[] IV_DELIMITER = "NiFiIV".getBytes(StandardCharsets.UTF_8);
+    public static final byte[] IV_DELIMITER = "NiFiIV".getBytes(StandardCharsets.UTF_8);
     // This is 16 bytes for AES but can vary for other ciphers
     static final int MAX_IV_LIMIT = 16;
 

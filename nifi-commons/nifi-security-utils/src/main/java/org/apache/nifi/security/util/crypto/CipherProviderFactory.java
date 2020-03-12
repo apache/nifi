@@ -36,6 +36,7 @@ public class CipherProviderFactory {
         registeredCipherProviders.put(KeyDerivationFunction.PBKDF2, PBKDF2CipherProvider.class);
         registeredCipherProviders.put(KeyDerivationFunction.BCRYPT, BcryptCipherProvider.class);
         registeredCipherProviders.put(KeyDerivationFunction.SCRYPT, ScryptCipherProvider.class);
+        registeredCipherProviders.put(KeyDerivationFunction.ARGON2, Argon2CipherProvider.class);
         registeredCipherProviders.put(KeyDerivationFunction.NONE, AESKeyedCipherProvider.class);
     }
 
@@ -47,11 +48,11 @@ public class CipherProviderFactory {
             try {
                 return clazz.newInstance();
             } catch (Exception e) {
-               logger.error("Error instantiating new {} with default parameters for {}", clazz.getName(), kdf.getName());
+               logger.error("Error instantiating new {} with default parameters for {}", clazz.getName(), kdf.getKdfName());
                 throw new ProcessException("Error instantiating cipher provider");
             }
         }
 
-        throw new IllegalArgumentException("No cipher provider registered for " + kdf.getName());
+        throw new IllegalArgumentException("No cipher provider registered for " + kdf.getKdfName());
     }
 }

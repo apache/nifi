@@ -39,6 +39,16 @@ public interface SecureHasher {
     String hashHex(String input);
 
     /**
+     * Returns a String representation of {@code CHF(input)} in hex-encoded format.
+     *
+     * @param input the input
+     * @param salt  the provided salt
+     *
+     * @return the hex-encoded hash
+     */
+    String hashHex(String input, String salt);
+
+    /**
      * Returns a String representation of {@code CHF(input)} in Base 64-encoded format.
      *
      * @param input the input
@@ -47,10 +57,30 @@ public interface SecureHasher {
     String hashBase64(String input);
 
     /**
+     * Returns a String representation of {@code CHF(input)} in Base 64-encoded format.
+     *
+     * @param input the input
+     * @param salt  the provided salt
+     *
+     * @return the Base 64-encoded hash
+     */
+    String hashBase64(String input, String salt);
+
+    /**
      * Returns a byte[] representation of {@code CHF(input)}.
      *
      * @param input the input
      * @return the hash
      */
     byte[] hashRaw(byte[] input);
+
+    /**
+     * Returns a byte[] representation of {@code CHF(input)}.
+     *
+     * @param input the input
+     * @param salt  the provided salt
+     *
+     * @return the hash
+     */
+    byte[] hashRaw(byte[] input, byte[] salt);
 }
