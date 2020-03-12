@@ -19,6 +19,7 @@ package org.apache.nifi.serialization.record;
 
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.type.ChoiceDataType;
+import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.apache.nifi.serialization.record.util.IllegalTypeConversionException;
 import org.junit.Test;
@@ -447,7 +448,14 @@ public class TestDataTypeUtils {
         Map<Integer, String> map = new HashMap<>();
         map.put(1, "Hello");
         map.put(2, "World");
-        DataTypeUtils.inferDataType(map, RecordFieldType.MAP.getMapDataType(RecordFieldType.STRING.getDataType()));
+
+        RecordDataType expected = (RecordDataType)RecordFieldType.RECORD.getRecordDataType(new SimpleRecordSchema(Arrays.asList(
+                new RecordField("1", RecordFieldType.STRING.getDataType()),
+                new RecordField("2", RecordFieldType.STRING.getDataType())
+        )));
+
+        DataType actual = DataTypeUtils.inferDataType(map, null);
+        assertEquals(expected, actual);
     }
 
     @Test
