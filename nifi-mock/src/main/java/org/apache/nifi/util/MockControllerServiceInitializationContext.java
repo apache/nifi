@@ -16,14 +16,16 @@
  */
 package org.apache.nifi.util;
 
-import java.io.File;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.controller.NodeTypeProvider;
+import org.apache.nifi.kerberos.KerberosContext;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.state.MockStateManager;
+
+import java.io.File;
 
 public class MockControllerServiceInitializationContext extends MockControllerServiceLookup implements ControllerServiceInitializationContext, ControllerServiceLookup, NodeTypeProvider {
 
@@ -32,6 +34,7 @@ public class MockControllerServiceInitializationContext extends MockControllerSe
     private final StateManager stateManager;
     private volatile boolean isClustered;
     private volatile boolean isPrimaryNode;
+    private final KerberosContext kerberosContext;
 
     public MockControllerServiceInitializationContext(final ControllerService controllerService, final String identifier) {
         this(controllerService, identifier, new MockStateManager(controllerService));
@@ -42,9 +45,15 @@ public class MockControllerServiceInitializationContext extends MockControllerSe
     }
 
     public MockControllerServiceInitializationContext(final ControllerService controllerService, final String identifier, final ComponentLog logger, final StateManager stateManager) {
+        this(controllerService, identifier, logger, stateManager, null);
+    }
+
+    public MockControllerServiceInitializationContext(final ControllerService controllerService, final String identifier, final ComponentLog logger, final StateManager stateManager,
+                                                      final KerberosContext kerberosContext) {
         this.identifier = identifier;
         this.logger = logger;
         this.stateManager = stateManager;
+        this.kerberosContext = kerberosContext;
         addControllerService(controllerService, identifier);
     }
 
@@ -80,17 +89,17 @@ public class MockControllerServiceInitializationContext extends MockControllerSe
 
     @Override
     public String getKerberosServicePrincipal() {
-        return null; //this needs to be wired in.
+        return kerberosContext != null ? kerberosContext.getKerberosServicePrincipal() : null;
     }
 
     @Override
     public File getKerberosServiceKeytab() {
-        return null; //this needs to be wired in.
+        return kerberosContext != null ? kerberosContext.getKerberosServiceKeytab() : null;
     }
 
     @Override
     public File getKerberosConfigurationFile() {
-        return null; //this needs to be wired in.
+        return kerberosContext != null ? kerberosContext.getKerberosConfigurationFile() : null;
     }
 
     @Override
