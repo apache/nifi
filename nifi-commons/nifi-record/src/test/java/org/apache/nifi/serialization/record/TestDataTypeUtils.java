@@ -443,6 +443,14 @@ public class TestDataTypeUtils {
     }
 
     @Test
+    public void testInferTypeWithMapNonStringKeys() {
+        Map<Integer, String> map = new HashMap<>();
+        map.put(1, "Hello");
+        map.put(2, "World");
+        DataTypeUtils.inferDataType(map, RecordFieldType.MAP.getMapDataType(RecordFieldType.STRING.getDataType()));
+    }
+
+    @Test
     public void testFindMostSuitableTypeWithBoolean() {
         testFindMostSuitableType(true, RecordFieldType.BOOLEAN.getDataType());
     }

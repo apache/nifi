@@ -474,7 +474,9 @@ public class DataTypeUtils {
 
         // A value of a Map could be either a Record or a Map type. In either case, it must have Strings as keys.
         if (value instanceof Map) {
-            final Map<String, ?> map = (Map<String, ?>) value;
+            Map<?, ?> m = (Map<?, ?>) value;
+            final Map<String, Object> map = new HashMap<>(m.size());
+            m.forEach((k, v) -> map.put(k.toString(), v));
             return inferRecordDataType(map);
 //            // Check if all types are the same.
 //            if (map.isEmpty()) {
