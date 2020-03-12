@@ -27,6 +27,7 @@ import java.security.NoSuchProviderException;
 import java.security.SecureRandom;
 import java.util.Date;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.zip.Deflater;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.StreamCallback;
@@ -83,6 +84,11 @@ public class OpenPGPKeyBasedEncryptor implements Encryptor {
         this.userId = userId;
         this.passphrase = passphrase;
         this.filename = filename;
+    }
+
+    @Override
+    public void updateAttributes(Map<String, String> attributes) throws ProcessException {
+        // TODO: Implement
     }
 
     @Override

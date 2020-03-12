@@ -16,49 +16,47 @@
 # limitations under the License.
 
 require 'openssl'
-require 'base64'
-
-# Run `$ gem install bcrypt` >= 2.1.4
-require 'bcrypt'
 
 def bin_to_hex(s)
   s.each_byte.map { |b| b.to_s(16).rjust(2, '0') }.join
 end
 
-plaintext = "This is a plaintext message."
-puts "Plaintext: #{plaintext}"
+def hex_to_bin(s)
+  s.scan(/../).map { |x| x.hex.chr }.join
+end
+
+# Flowfile content from EncryptContent w/ PBKDF2 (default cost params) + password: thisIsABadPassword
+ciphertext = hex_to_bin("A38A9085A702F5FA28C0485C52AF92E84E69466953414C549CB6114F13990FC197D53E05C73CAC9C4E694669495650F025A192EB62A324CA1CEBACF6D563657BE5DFF0BD601801DDA85FBBB350568D0BBA9A688ADE02A00F59C63527045E65D61D0B21C6451AF55B97C4420911C16511EFD59A714C1CABFCD80AF7FF81EA")
+
+salt = ciphertext[0..15]
+salt_delimiter = ciphertext[16..23]
 
 cipher = OpenSSL::Cipher.new 'AES-128-CBC'
-cipher.encrypt
-iv = cipher.random_iv
+cipher.decrypt
+iv = ciphertext[24..39]
+cipher.iv = iv
+iv_delimiter = ciphertext[40..45]
+
+cipher_bytes = ciphertext[46..-1]
 
 password = 'thisIsABadPassword'
 puts "Password: #{password} #{password.length}"
-work_factor = 10
-puts "Work factor: #{work_factor}"
+iterations = 160_000
+puts "Iterations: #{iterations}"
 key_len = cipher.key_len
 digest = OpenSSL::Digest::SHA512.new
-puts "Digest: #{digest.to_s} #{digest.length}"
 
 puts ""
 
-hash = BCrypt::Password.create(password, :cost => work_factor)
-puts "Hash: #{hash}"
-full_salt = hash.salt
-puts "Full Salt: #{full_salt} #{full_salt.length}"
-
-key = (digest.digest hash[-31..-1])[0..key_len - 1]
-# salt = Base64.decode64(hash.salt[7..-1])
-b64Salt = hash.salt[7..-1]
-
-puts "Salt: #{b64Salt} #{b64Salt.length * 3 / 4}"
+key = OpenSSL::PKCS5.pbkdf2_hmac(password, salt, iterations, key_len, digest)
+puts "Salt: #{bin_to_hex(salt)} #{salt.length}"
 puts "  IV: #{bin_to_hex(iv)} #{iv.length}"
 puts " Key: #{bin_to_hex(key)} #{key.length}"
 cipher.key = key
 
-# Now encrypt the data:
+# Now decrypt the data:
 
-encrypted = cipher.update plaintext
-encrypted << cipher.final
-puts "Cipher text length: #{encrypted.length}"
-puts "Cipher text: #{bin_to_hex(encrypted)}"
+plaintext = cipher.update cipher_bytes
+plaintext << cipher.final
+puts "Plaintext length: #{plaintext.length}"
+puts "Plaintext: #{plaintext}"
