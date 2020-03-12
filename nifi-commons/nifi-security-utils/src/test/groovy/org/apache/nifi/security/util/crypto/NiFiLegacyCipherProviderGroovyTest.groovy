@@ -265,7 +265,7 @@ class NiFiLegacyCipherProviderGroovyTest {
     void testShouldDetermineDependenceOnUnlimitedStrengthCrypto() throws IOException {
         def encryptionMethods = EncryptionMethod.values().findAll { it.algorithm.startsWith("PBE") }
 
-        boolean unlimitedCryptoSupported = PasswordBasedEncryptor.supportsUnlimitedStrength()
+        boolean unlimitedCryptoSupported = CipherUtility.isUnlimitedStrengthCryptoSupported()
         logger.info("This JVM supports unlimited strength crypto: ${unlimitedCryptoSupported}")
 
         def longestSupportedPasswordByEM = [:]
