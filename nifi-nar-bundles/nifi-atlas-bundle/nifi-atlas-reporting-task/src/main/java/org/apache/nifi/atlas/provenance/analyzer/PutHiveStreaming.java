@@ -37,6 +37,9 @@ public class PutHiveStreaming extends AbstractHiveAnalyzer {
 
     @Override
     public DataSetRefs analyze(AnalysisContext context, ProvenanceEventRecord event) {
+        if (event.getTransitUri() == null) {
+            return null;
+        }
 
         final URI uri = parseUri(event.getTransitUri());
         final String clusterName = context.getClusterResolver().fromHostNames(uri.getHost());
@@ -55,6 +58,6 @@ public class PutHiveStreaming extends AbstractHiveAnalyzer {
 
     @Override
     public String targetComponentTypePattern() {
-        return "^PutHiveStreaming$";
+        return "^PutHive(3)?Streaming$";
     }
 }
