@@ -49,7 +49,7 @@ public class Argon2SecureHasher implements SecureHasher {
     private static final int DEFAULT_SALT_LENGTH = 16;
     private static final int MIN_MEMORY_SIZE_KB = 8;
     private static final int MIN_PARALLELISM = 1;
-    private static final long MAX_PARALLELISM = Math.round(Math.pow(2, 24)) - 1;
+    private static final int MAX_PARALLELISM = Double.valueOf(Math.pow(2, 24)).intValue() - 1;
     private static final int MIN_HASH_LENGTH = 4;
     private static final int MIN_ITERATIONS = 1;
     private static final int MIN_SALT_LENGTH = 8;
@@ -67,7 +67,7 @@ public class Argon2SecureHasher implements SecureHasher {
     private static final byte[] STATIC_SALT = "NiFi Static Salt".getBytes(StandardCharsets.UTF_8);
 
     // Upper boundary for several cost parameters
-    private static final long UPPER_BOUNDARY = Math.round(Math.pow(2, 32)) - 1;
+    private static final Integer UPPER_BOUNDARY = Double.valueOf(Math.pow(2, 32)).intValue() - 1;
 
     /**
      * Instantiates an Argon2 secure hasher using the default cost parameters
@@ -106,7 +106,6 @@ public class Argon2SecureHasher implements SecureHasher {
      * @param saltLength  the salt length in bytes {@code 8 to 2^32 - 1})
      */
     public Argon2SecureHasher(Integer hashLength, Integer memory, int parallelism, Integer iterations, Integer saltLength) {
-
         validateParameters(hashLength, memory, parallelism, iterations, saltLength);
 
         this.hashLength = hashLength;
@@ -127,7 +126,6 @@ public class Argon2SecureHasher implements SecureHasher {
      * @param saltLength  the salt length in bytes {@code 8 to 2^32 - 1})
      */
     private void validateParameters(Integer hashLength, Integer memory, int parallelism, Integer iterations, Integer saltLength) {
-
         if (!isHashLengthValid(hashLength)) {
             logger.error("The provided hash length {} is outside the boundary of 4 to 2^32 - 1.", hashLength);
             throw new IllegalArgumentException("Invalid hash length is not within the hashLength boundary.");
@@ -184,6 +182,7 @@ public class Argon2SecureHasher implements SecureHasher {
         }
     }
 
+    // TODO: Refactor public methods to AbstractSecureHasher
     /**
      * Returns whether the provided hash length is within boundaries. The lower bound >= 4 and the
      * upper bound <= 2^32 - 1.

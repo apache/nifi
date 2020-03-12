@@ -25,7 +25,6 @@ import java.util.regex.Pattern;
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
-
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.binary.Hex;
@@ -118,7 +117,7 @@ public class ScryptCipherProvider extends RandomIVPBECipherProvider {
      *
      * @param encryptionMethod the {@link EncryptionMethod}
      * @param password         the secret input
-     * @param salt             the complete salt (e.g. {@code "$2a$10$gUVbkVzp79H8YaCOsCVZNu".getBytes(StandardCharsets.UTF_8)})
+     * @param salt             the complete salt (e.g. {@code "$s0$20101$gUVbkVzp79H8YaCOsCVZNu".getBytes(StandardCharsets.UTF_8)})
      * @param iv               the IV
      * @param keyLength        the desired key length in bits
      * @param encryptMode      true for encrypt, false for decrypt
@@ -175,7 +174,7 @@ public class ScryptCipherProvider extends RandomIVPBECipherProvider {
 
         final String cipherName = CipherUtility.parseCipherFromAlgorithm(algorithm);
         if (!CipherUtility.isValidKeyLength(keyLength, cipherName)) {
-            throw new IllegalArgumentException(String.valueOf(keyLength) + " is not a valid key length for " + cipherName);
+            throw new IllegalArgumentException(keyLength + " is not a valid key length for " + cipherName);
         }
 
         String scryptSalt = formatSaltForScrypt(salt);
