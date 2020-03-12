@@ -16,13 +16,6 @@
  */
 package org.apache.nifi.util;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Path;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Predicate;
-
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationResult;
@@ -37,6 +30,13 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.state.MockStateManager;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Predicate;
 
 public interface TestRunner {
 
@@ -856,6 +856,16 @@ public interface TestRunner {
     boolean removeProperty(PropertyDescriptor descriptor);
 
     /**
+     * Removes the {@link PropertyDescriptor} from the ControllerService,
+     * effectively setting its value to null, or the property's default value, if it has one.
+     *
+     * @param controllerService the controller service to remove the property from
+     * @param descriptor of property to remove
+     * @return <code>true</code> if removed, <code>false</code> if the property was not set
+     */
+    boolean removeProperty(ControllerService controllerService, PropertyDescriptor descriptor);
+
+    /**
      * Removes the property from the {@link ProcessContext},
      * effectively setting its value to null, or the property's default value, if it has one.
      *
@@ -863,6 +873,16 @@ public interface TestRunner {
      * @return <code>true</code> if removed, <code>false</code> if the property was not set
      */
     boolean removeProperty(String property);
+
+    /**
+     * Removes the {@link PropertyDescriptor} from the ControllerService,
+     * effectively setting its value to null, or the property's default value, if it has one.
+     *
+     * @param controllerService the controller service to remove the property from
+     * @param property name of the property to remove
+     * @return <code>true</code> if removed, <code>false</code> if the property was not set
+     */
+    boolean removeProperty(ControllerService controllerService, String property);
 
     /**
      * Clears all set properties from the {@link ProcessContext}.
