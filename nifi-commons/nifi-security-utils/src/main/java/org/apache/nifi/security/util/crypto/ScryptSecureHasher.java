@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.security.util.crypto;
 
+import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.concurrent.TimeUnit;
@@ -232,10 +233,11 @@ public class ScryptSecureHasher implements SecureHasher {
         if (p < DEFAULT_P) {
             logger.warn("The provided parallelization factor {} is below the recommended minimum {}.", p, DEFAULT_P);
         }
-        final int DIVIDEND = (Double.valueOf(Math.pow(2, 32)).intValue() - 1) * 32;
-        final int DIVISOR = 128 * r;
-        final int MAX_P = DIVIDEND / DIVISOR;
-        return p >= MIN_P && p <= MAX_P;
+        long dividend = Double.valueOf((Math.pow(2, 32) - 1) * 32).longValue();
+        int divisor = 128 * r;
+        BigInteger MAX_P = new BigInteger(String.valueOf(dividend)).divide(new BigInteger(String.valueOf(divisor)));
+        logger.debug("Calculated maximum p value as (2^32 - 1) * 32 [{}] / (128 * r) [{}] = {}", dividend, divisor, MAX_P.intValue());
+        return p >= MIN_P && p <= MAX_P.intValue();
     }
 
     /**
@@ -273,14 +275,14 @@ public class ScryptSecureHasher implements SecureHasher {
     /**
      * Returns a String representation of {@code Scrypt(input)} in hex-encoded format.
      *
-     * @param input the input
+     * @param input the non-empty input
      * @return the hex-encoded hash
      */
     @Override
     public String hashHex(String input) {
-        if (input == null) {
-            logger.warn("Attempting to generate an Argon2 hash of null input; using empty input");
-            input = "";
+        if (input == null || input.length() == 0) {
+            logger.warn("Attempting to generate an Scrypt hash of null or empty input; returning 0 length string");
+            return "";
         }
 
         return Hex.toHexString(hash(input.getBytes(StandardCharsets.UTF_8)));
@@ -289,14 +291,14 @@ public class ScryptSecureHasher implements SecureHasher {
     /**
      * Returns a String representation of {@code Scrypt(input)} in Base 64-encoded format.
      *
-     * @param input the input
+     * @param input the non-empty input
      * @return the Base 64-encoded hash
      */
     @Override
     public String hashBase64(String input) {
-        if (input == null) {
-            logger.warn("Attempting to generate an Scrypt hash of null input; using empty input");
-            input = "";
+        if (input == null || input.length() == 0) {
+            logger.warn("Attempting to generate an Scrypt hash of null or empty input; returning 0 length string");
+            return "";
         }
 
         return Base64.toBase64String(hash(input.getBytes(StandardCharsets.UTF_8)));
@@ -326,10 +328,10 @@ public class ScryptSecureHasher implements SecureHasher {
         logger.debug("Creating {} byte Scrypt hash with salt [{}]", dkLength, org.bouncycastle.util.encoders.Hex.toHexString(rawSalt));
 
         final long startNanos = System.nanoTime();
-        byte[] hash = Scrypt.scrypt(input, rawSalt, n, r, p, dkLength);
+        byte[] hash = Scrypt.scrypt(input, rawSalt, n, r, p, dkLength * 8);
         final long generateNanos = System.nanoTime();
 
-        final long totalDurationMillis = TimeUnit.MICROSECONDS.toMillis(generateNanos - startNanos);
+        final long totalDurationMillis = TimeUnit.NANOSECONDS.toMillis(generateNanos - startNanos);
 
         logger.debug("Generated Scrypt hash in {} ms", totalDurationMillis);
 
