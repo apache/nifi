@@ -19,6 +19,7 @@ package org.apache.nifi.serialization.record;
 
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.type.ChoiceDataType;
+import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.apache.nifi.serialization.record.util.IllegalTypeConversionException;
 import org.junit.Test;
@@ -439,6 +440,36 @@ public class TestDataTypeUtils {
         DataType actual = DataTypeUtils.chooseDataType(value, choiceDataType);
 
         // THEN
+        assertEquals(expected, actual);
+    }
+
+    @Test
+    public void testInferTypeWithMapStringKeys() {
+        Map<String, String> map = new HashMap<>();
+        map.put("a", "Hello");
+        map.put("b", "World");
+
+        RecordDataType expected = (RecordDataType)RecordFieldType.RECORD.getRecordDataType(new SimpleRecordSchema(Arrays.asList(
+                new RecordField("a", RecordFieldType.STRING.getDataType()),
+                new RecordField("b", RecordFieldType.STRING.getDataType())
+        )));
+
+        DataType actual = DataTypeUtils.inferDataType(map, null);
+        assertEquals(expected, actual);
+    }
+
+    @Test
+    public void testInferTypeWithMapNonStringKeys() {
+        Map<Integer, String> map = new HashMap<>();
+        map.put(1, "Hello");
+        map.put(2, "World");
+
+        RecordDataType expected = (RecordDataType)RecordFieldType.RECORD.getRecordDataType(new SimpleRecordSchema(Arrays.asList(
+                new RecordField("1", RecordFieldType.STRING.getDataType()),
+                new RecordField("2", RecordFieldType.STRING.getDataType())
+        )));
+
+        DataType actual = DataTypeUtils.inferDataType(map, null);
         assertEquals(expected, actual);
     }
 
