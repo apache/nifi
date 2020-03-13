@@ -1718,16 +1718,18 @@ public abstract class NiFiProperties {
 	public static final String IS_TOKEN_STATIC = "nifi.token.key.static";
 	public static final String TOKEN_KEY_CONFIG = "nifi.token.key.config";
 	/**
-     * This method is used to validate the NiFi properties when the file is loaded
-     * for the first time. The objective is to stop NiFi startup in case a property
-     * is not correctly configured and could cause issues afterwards.
-     */
-    public void validate() {
-        // REMOTE_INPUT_HOST should be a valid hostname
-        String remoteInputHost = getProperty(REMOTE_INPUT_HOST);
-        if (!StringUtils.isBlank(remoteInputHost) && remoteInputHost.split(":").length > 1) { // no scheme/port needed here (http://)
-            throw new IllegalArgumentException(remoteInputHost + " is not a correct value for " + REMOTE_INPUT_HOST + ". It should be a valid hostname without protocol or port.");
-        }
-        // Other properties to validate...
-    }
+	* Returns True if "nifi.token.key.static" is set to true when the key to be used for JWT generation is static and configured in the nifi.properties under the key "nifi.token.key.config"
+	* @return
+	*/
+	public Boolean isKeyStatic() {
+		final String isKeyStatic = getProperty(IS_TOKEN_STATIC, "false");
+		return "true".equalsIgnoreCase(isKeyStatic);
+	}
+	/**
+	* Returns Static key in the nifi.properties under the key "nifi.token.key.config"
+	* @return
+	*/
+	public String getStaticKey() {
+		return getProperty(TOKEN_KEY_CONFIG, "default");
+	}
 }
