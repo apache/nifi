@@ -788,7 +788,7 @@ public class JdbcCommon {
                     } else {
                         final DateTimeFormatter dtFormatter = getDateTimeFormatter(valueFormat);
                         LocalDateTime ldt = LocalDateTime.parse(parameterValue, dtFormatter);
-                        ts = Timestamp.from(ldt.atZone(ZoneId.of("UTC")).toInstant());
+                        ts = Timestamp.from(ldt.atZone(ZoneId.systemDefault()).toInstant());
                     }
 
                     stmt.setTimestamp(parameterIndex, ts);
