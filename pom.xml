@@ -98,7 +98,7 @@
         <surefire.version>2.22.0</surefire.version>
         <!-- The Hadoop version used by nifi-hadoop-libraries-nar and any NARs that depend on it, other NARs that need
             a specific version should override this property, or use a more specific property like abc.hadoop.version -->
-        <hadoop.version>3.2.0</hadoop.version>
+        <hadoop.version>3.2.1</hadoop.version>
     </properties>
 
     <repositories>
