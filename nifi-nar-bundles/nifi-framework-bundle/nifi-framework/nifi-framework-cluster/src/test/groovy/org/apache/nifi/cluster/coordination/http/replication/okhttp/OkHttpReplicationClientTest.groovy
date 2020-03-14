@@ -137,7 +137,7 @@ class OkHttpReplicationClientTest extends GroovyTestCase {
     }
 
     @Test
-    void testShouldUseKeystorePasswdIfKeypasswdIsBlank() {
+    void testShouldUseKeystorePasswordIfKeyPasswordIsBlank() {
         // Arrange
         Map propsMap = [
                 (NiFiProperties.SECURITY_TRUSTSTORE)       : "./src/test/resources/conf/truststore.jks",
@@ -154,15 +154,16 @@ class OkHttpReplicationClientTest extends GroovyTestCase {
 
         // Act
         OkHttpReplicationClient client = new OkHttpReplicationClient(mockNiFiProperties)
+        logger.info("Created secure HTTPS client with TLS configured: ${client.isTLSConfigured()}")
 
         // Assert
-        assertNotNull(client.okHttpClient.sslSocketFactory)
-//        assertEquals(SunX509KeyManagerImpl.class, client.okHttpClient.sslSocketFactory.context.getX509KeyManager().getClass())
-        assertNotNull(client.okHttpClient.sslSocketFactory.context.getX509KeyManager().credentialsMap["nifi-key"])
+        assert client.isTLSConfigured()
+        assert client.okHttpClient.sslSocketFactory
+        assert client.okHttpClient.sslSocketFactory.context.getX509KeyManager().credentialsMap["nifi-key"]
     }
 
     @Test
-    void testShouldFailIfKeyPasswdIsSetButKeystorePasswdIsBlank() {
+    void testShouldFailIfKeyPasswordIsSetButKeystorePasswordIsBlank() {
         // Arrange
         Map propsMap = [
                 (NiFiProperties.SECURITY_TRUSTSTORE)       : "./src/test/resources/conf/truststore.jks",
@@ -179,15 +180,14 @@ class OkHttpReplicationClientTest extends GroovyTestCase {
 
         // Act
         OkHttpReplicationClient client = new OkHttpReplicationClient(mockNiFiProperties)
+        logger.info("Created (invalid) secure HTTPS client with TLS configured: ${client.isTLSConfigured()}")
 
         // Assert
-        // The replication client will fail to initialize if the keystore password is missing, and will use
-        // a default empty DummyX509KeyManager instead. This is considered a failure to start the service.
-//        assertSame(DummyX509KeyManager.class, client.okHttpClient.sslSocketFactory.context.getX509KeyManager().getClass())
+        assert !client.isTLSConfigured()
     }
 
     @Test
-    void testShouldFailIfKeyPasswdIsBlankAndKeystorePasswd() {
+    void testShouldFailIfKeyPasswordIsBlankAndKeystorePassword() {
         // Arrange
         Map propsMap = [
                 (NiFiProperties.SECURITY_TRUSTSTORE)       : "./src/test/resources/conf/truststore.jks",
@@ -204,12 +204,10 @@ class OkHttpReplicationClientTest extends GroovyTestCase {
 
         // Act
         OkHttpReplicationClient client = new OkHttpReplicationClient(mockNiFiProperties)
-        logger.info(client.dump())
-        logger.info("other")
+        logger.info("Created (invalid) secure HTTPS client with TLS configured: ${client.isTLSConfigured()}")
 
         // Assert
-        assert client.okHttpClient.sslSocketFactory.context.getX509KeyManager().size() > 0
-//        assertEquals(DummyX509KeyManager.class, client.okHttpClient.sslSocketFactory.context.getX509KeyManager().getClass())
+        assert !client.isTLSConfigured()
     }
 
     @Test
