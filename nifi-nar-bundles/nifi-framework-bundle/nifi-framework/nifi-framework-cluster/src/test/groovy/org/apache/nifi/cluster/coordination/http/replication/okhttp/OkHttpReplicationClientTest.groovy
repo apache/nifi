@@ -163,27 +163,29 @@ class OkHttpReplicationClientTest extends GroovyTestCase {
     }
 
     @Test
-    void testShouldUseKeystorePasswdIfKeyPasswdIsNull() {
+    void testShouldUseKeystorePasswordIfKeyPasswordIsNull() {
         // Arrange
         Map flowfileEncryptionProps = [
-                (NiFiProperties.SECURITY_TRUSTSTORE): "./src/test/resources/conf/truststore.jks",
-                (NiFiProperties.SECURITY_TRUSTSTORE_TYPE): "JKS",
+                (NiFiProperties.SECURITY_TRUSTSTORE)       : "./src/test/resources/conf/truststore.jks",
+                (NiFiProperties.SECURITY_TRUSTSTORE_TYPE)  : "JKS",
                 (NiFiProperties.SECURITY_TRUSTSTORE_PASSWD): "passwordpassword",
-                (NiFiProperties.SECURITY_KEYSTORE): "./src/test/resources/conf/keystore.jks",
-                (NiFiProperties.SECURITY_KEYSTORE_TYPE): "JKS",
-                (NiFiProperties.SECURITY_KEYSTORE_PASSWD): "passwordpassword",
-                (NiFiProperties.WEB_HTTPS_HOST): "localhost",
-                (NiFiProperties.WEB_HTTPS_PORT): "51552",
+                (NiFiProperties.SECURITY_KEYSTORE)         : "./src/test/resources/conf/keystore.jks",
+                (NiFiProperties.SECURITY_KEYSTORE_TYPE)    : "JKS",
+                (NiFiProperties.SECURITY_KEYSTORE_PASSWD)  : "passwordpassword",
+                (NiFiProperties.WEB_HTTPS_HOST)            : "localhost",
+                (NiFiProperties.WEB_HTTPS_PORT)            : "51552",
         ]
         NiFiProperties mockNiFiProperties = new StandardNiFiProperties(new Properties(flowfileEncryptionProps))
 
         // Act
         OkHttpReplicationClient client = new OkHttpReplicationClient(mockNiFiProperties)
+        logger.info("Created secure HTTPS client with TLS configured: ${client.isTLSConfigured()}")
 
         // Assert
-        assertNotNull(client.okHttpClient.sslSocketFactory)
-        assertEquals(SunX509KeyManagerImpl.class, client.okHttpClient.sslSocketFactory.context.getX509KeyManager().getClass())
-        assertNotNull(client.okHttpClient.sslSocketFactory.context.getX509KeyManager().credentialsMap["nifi-key"])    }
+        assert client.isTLSConfigured()
+        assert client.okHttpClient.sslSocketFactory
+        assert client.okHttpClient.sslSocketFactory.context.getX509KeyManager().credentialsMap["nifi-key"]
+    }
 
     @Test
     void testShouldFailIfKeyPasswordIsSetButKeystorePasswordIsBlank() {
