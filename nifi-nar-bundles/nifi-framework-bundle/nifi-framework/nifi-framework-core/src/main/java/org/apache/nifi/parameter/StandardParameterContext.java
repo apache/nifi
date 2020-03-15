@@ -30,6 +30,7 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -107,33 +108,44 @@ public class StandardParameterContext implements ParameterContext {
             this.version++;
             verifyCanSetParameters(updatedParameters);
 
+            final Map<String, ParameterUpdate> parameterUpdates = new HashMap<>();
             boolean changeAffectingComponents = false;
             for (final Map.Entry<String, Parameter> entry : updatedParameters.entrySet()) {
                 final String parameterName = entry.getKey();
                 final Parameter parameter = entry.getValue();
 
                 if (parameter == null) {
-                    final ParameterDescriptor parameterDescriptor = new ParameterDescriptor.Builder().name(parameterName).build();
-                    parameters.remove(parameterDescriptor);
                     changeAffectingComponents = true;
+
+                    final ParameterDescriptor parameterDescriptor = new ParameterDescriptor.Builder().name(parameterName).build();
+                    final Parameter oldParameter = parameters.remove(parameterDescriptor);
+
+                    parameterUpdates.put(parameterName, new StandardParameterUpdate(parameterName, oldParameter.getValue(), null, parameterDescriptor.isSensitive()));
                 } else {
                     final Parameter updatedParameter = createFullyPopulatedParameter(parameter);
 
                     final Parameter oldParameter = parameters.put(updatedParameter.getDescriptor(), updatedParameter);
                     if (oldParameter == null || !Objects.equals(oldParameter.getValue(), updatedParameter.getValue())) {
                         changeAffectingComponents = true;
+
+                        final String previousValue = oldParameter == null ? null : oldParameter.getValue();
+                        parameterUpdates.put(parameterName, new StandardParameterUpdate(parameterName, previousValue, updatedParameter.getValue(), updatedParameter.getDescriptor().isSensitive()));
                     }
                 }
             }
 
             if (changeAffectingComponents) {
+                logger.debug("Parameter Context {} was updated. {} parameters changed ({}). Notifying all affected components.", this, parameterUpdates.size(), parameterUpdates);
+
                 for (final ProcessGroup processGroup : parameterReferenceManager.getProcessGroupsBound(this)) {
                     try {
-                        processGroup.onParameterContextUpdated();
+                        processGroup.onParameterContextUpdated(parameterUpdates);
                     } catch (final Exception e) {
                         logger.error("Failed to notify {} that Parameter Context was updated", processGroup, e);
                     }
                 }
+            } else {
+                logger.debug("Parameter Context {} was updated. {} parameters changed ({}). No existing components are affected.", this, parameterUpdates.size(), parameterUpdates);
             }
         } finally {
             writeLock.unlock();
@@ -322,6 +334,11 @@ public class StandardParameterContext implements ParameterContext {
                 }
             }
         }
+    }
+
+    @Override
+    public String toString() {
+        return "StandardParameterContext[name=" + name + "]";
     }
 
     @Override

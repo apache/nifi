@@ -186,6 +186,7 @@ public class SiteToSiteBulletinReportingTask extends AbstractSiteToSiteReporting
         addField(builder, "bulletinCategory", bulletin.getCategory(), allowNullValues);
         addField(builder, "bulletinGroupId", bulletin.getGroupId(), allowNullValues);
         addField(builder, "bulletinGroupName", bulletin.getGroupName(), allowNullValues);
+        addField(builder, "bulletinGroupPath", bulletin.getGroupPath(), allowNullValues);
         addField(builder, "bulletinLevel", bulletin.getLevel(), allowNullValues);
         addField(builder, "bulletinMessage", bulletin.getMessage(), allowNullValues);
         addField(builder, "bulletinNodeAddress", bulletin.getNodeAddress(), allowNullValues);

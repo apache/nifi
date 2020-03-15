@@ -117,7 +117,16 @@ public class MockPutKudu extends PutKudu {
     }
 
     @Override
-    protected KerberosUser loginKerberosUser(final String principal, final String keytab) throws LoginException {
+    protected KerberosUser loginKerberosKeytabUser(final String principal, final String keytab) throws LoginException {
+        return createMockKerberosUser(principal);
+    }
+
+    @Override
+    protected KerberosUser loginKerberosPasswordUser(String principal, String password) throws LoginException {
+        return createMockKerberosUser(principal);
+    }
+
+    private KerberosUser createMockKerberosUser(final String principal) {
         return new KerberosUser() {
 
             @Override

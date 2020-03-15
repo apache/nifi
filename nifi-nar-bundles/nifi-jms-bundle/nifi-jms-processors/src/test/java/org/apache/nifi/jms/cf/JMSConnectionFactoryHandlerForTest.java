@@ -14,26 +14,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.remote.exception;
+package org.apache.nifi.jms.cf;
 
-import java.io.IOException;
+import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.logging.ComponentLog;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
- * A NoContentException occurs when the remote peer has no flowfiles to provide
+ * Sub-class of {@link JMSConnectionFactoryHandler} only for testing purpose
  */
-public class NoContentException extends IOException {
+public class JMSConnectionFactoryHandlerForTest extends JMSConnectionFactoryHandler {
 
-    private static final long serialVersionUID = -689032011082690815L;
+    private Map<String, Object> configuredProperties = new HashMap<>();
 
-    public NoContentException(final String message, final Throwable cause) {
-        super(message, cause);
+    public JMSConnectionFactoryHandlerForTest(ConfigurationContext context, ComponentLog logger) {
+        super(context, logger);
     }
 
-    public NoContentException(final String message) {
-        super(message);
+    @Override
+    void setProperty(String propertyName, Object propertyValue) {
+        configuredProperties.put(propertyName, propertyValue);
     }
 
-    public NoContentException(final Throwable cause) {
-        super(cause);
+    public Map<String, Object> getConfiguredProperties() {
+        return configuredProperties;
     }
 }

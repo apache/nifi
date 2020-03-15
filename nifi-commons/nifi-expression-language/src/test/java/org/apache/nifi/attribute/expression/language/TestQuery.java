@@ -2284,5 +2284,10 @@ public class TestQuery {
         public boolean isEmpty() {
             return parameters.isEmpty();
         }
+
+        @Override
+        public long getVersion() {
+            return 0;
+        }
     }
 }

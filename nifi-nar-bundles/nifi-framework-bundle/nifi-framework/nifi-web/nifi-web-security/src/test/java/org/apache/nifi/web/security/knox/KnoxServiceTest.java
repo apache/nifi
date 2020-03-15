@@ -24,8 +24,11 @@ import com.nimbusds.oauth2.sdk.auth.PrivateKeyJWT;
 import com.nimbusds.oauth2.sdk.id.Audience;
 import com.nimbusds.oauth2.sdk.id.ClientID;
 import com.nimbusds.oauth2.sdk.id.JWTID;
+import org.apache.commons.lang3.SystemUtils;
 import org.apache.nifi.web.security.InvalidAuthenticationException;
 import org.junit.Assert;
+import org.junit.Assume;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.security.KeyPair;
@@ -46,6 +49,11 @@ public class KnoxServiceTest {
 
     private static final String AUDIENCE = "https://apache-knox/token";
     private static final String AUDIENCE_2 = "https://apache-knox-2/token";
+
+    @BeforeClass
+    public static void setupClass() {
+        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
+    }
 
     @Test(expected = IllegalStateException.class)
     public void testKnoxSsoNotEnabledGetKnoxUrl() throws Exception {

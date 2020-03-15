@@ -23,7 +23,6 @@ import org.apache.nifi.remote.Transaction;
 import org.apache.nifi.remote.TransferDirection;
 import org.apache.nifi.remote.codec.FlowFileCodec;
 import org.apache.nifi.remote.codec.StandardFlowFileCodec;
-import org.apache.nifi.remote.exception.NoContentException;
 import org.apache.nifi.remote.io.socket.SocketCommunicationsSession;
 import org.apache.nifi.remote.io.socket.SocketInput;
 import org.apache.nifi.remote.io.socket.SocketOutput;
@@ -45,6 +44,7 @@ import static org.apache.nifi.remote.protocol.SiteToSiteTestUtils.createDataPack
 import static org.apache.nifi.remote.protocol.SiteToSiteTestUtils.execReceiveOneFlowFile;
 import static org.apache.nifi.remote.protocol.SiteToSiteTestUtils.execReceiveTwoFlowFiles;
 import static org.apache.nifi.remote.protocol.SiteToSiteTestUtils.execReceiveWithInvalidChecksum;
+import static org.apache.nifi.remote.protocol.SiteToSiteTestUtils.execReceiveZeroFlowFile;
 import static org.apache.nifi.remote.protocol.SiteToSiteTestUtils.execSendButDestinationFull;
 import static org.apache.nifi.remote.protocol.SiteToSiteTestUtils.execSendOneFlowFile;
 import static org.apache.nifi.remote.protocol.SiteToSiteTestUtils.execSendTwoFlowFiles;
@@ -52,7 +52,6 @@ import static org.apache.nifi.remote.protocol.SiteToSiteTestUtils.execSendWithIn
 import static org.apache.nifi.remote.protocol.SiteToSiteTestUtils.execSendZeroFlowFile;
 import static org.apache.nifi.remote.protocol.SiteToSiteTestUtils.readContents;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -93,12 +92,14 @@ public class TestSocketClientTransaction {
         ByteArrayInputStream bis = new ByteArrayInputStream(serverResponseBos.toByteArray());
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
 
-        try {
-            SocketClientTransaction transaction = getClientTransaction(bis, bos, TransferDirection.RECEIVE);
-            fail();
-        } catch (final NoContentException e) {
-            assertEquals("Remote side has no flowfiles to provide", e.getMessage());
-        }
+        SocketClientTransaction transaction = getClientTransaction(bis, bos, TransferDirection.RECEIVE);
+
+        execReceiveZeroFlowFile(transaction);
+
+        // Verify what client has sent.
+        DataInputStream sentByClient = new DataInputStream(new ByteArrayInputStream(bos.toByteArray()));
+        assertEquals(RequestType.RECEIVE_FLOWFILES, RequestType.readRequestType(sentByClient));
+        assertEquals(-1, sentByClient.read());
     }
 
     @Test

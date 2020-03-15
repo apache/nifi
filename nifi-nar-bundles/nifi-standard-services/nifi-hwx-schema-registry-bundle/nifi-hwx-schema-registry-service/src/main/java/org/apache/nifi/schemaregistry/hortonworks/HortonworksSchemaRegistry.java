@@ -31,6 +31,8 @@ import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
@@ -46,6 +48,7 @@ import org.apache.nifi.util.Tuple;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
@@ -117,10 +120,66 @@ public class HortonworksSchemaRegistry extends AbstractControllerService impleme
         .required(false)
         .build();
 
+    static final PropertyDescriptor KERBEROS_PRINCIPAL = new PropertyDescriptor.Builder()
+            .name("kerberos-principal")
+            .displayName("Kerberos Principal")
+            .description("The kerberos principal to authenticate with when not using the kerberos credentials service")
+            .defaultValue(null)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
+
+    static final PropertyDescriptor KERBEROS_PASSWORD = new PropertyDescriptor.Builder()
+            .name("kerberos-password")
+            .displayName("Kerberos Password")
+            .description("The password for the kerberos principal when not using the kerberos credentials service")
+            .defaultValue(null)
+            .required(false)
+            .sensitive(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
+    private volatile boolean usingKerberosWithPassword = false;
     private volatile SchemaRegistryClient schemaRegistryClient;
     private volatile boolean initialized;
     private volatile Map<String, Object> schemaRegistryConfig;
 
+    @Override
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
+        final List<ValidationResult> results = new ArrayList<>();
+
+        final String kerberosPrincipal = validationContext.getProperty(KERBEROS_PRINCIPAL).evaluateAttributeExpressions().getValue();
+        final String kerberosPassword = validationContext.getProperty(KERBEROS_PASSWORD).getValue();
+
+        final KerberosCredentialsService kerberosCredentialsService = validationContext.getProperty(KERBEROS_CREDENTIALS_SERVICE)
+                .asControllerService(KerberosCredentialsService.class);
+
+        if (kerberosCredentialsService != null && !StringUtils.isBlank(kerberosPrincipal) && !StringUtils.isBlank(kerberosPassword)) {
+            results.add(new ValidationResult.Builder()
+                    .subject(KERBEROS_CREDENTIALS_SERVICE.getDisplayName())
+                    .valid(false)
+                    .explanation("kerberos principal/password and kerberos credential service cannot be configured at the same time")
+                    .build());
+        }
+
+        if (!StringUtils.isBlank(kerberosPrincipal) && StringUtils.isBlank(kerberosPassword)) {
+            results.add(new ValidationResult.Builder()
+                    .subject(KERBEROS_PASSWORD.getDisplayName())
+                    .valid(false)
+                    .explanation("kerberos password is required when specifying a kerberos principal")
+                    .build());
+        }
+
+        if (StringUtils.isBlank(kerberosPrincipal) && !StringUtils.isBlank(kerberosPassword)) {
+            results.add(new ValidationResult.Builder()
+                    .subject(KERBEROS_PRINCIPAL.getDisplayName())
+                    .valid(false)
+                    .explanation("kerberos principal is required when specifying a kerberos password")
+                    .build());
+        }
+
+        return results;
+    }
 
     @OnEnabled
     public void enable(final ConfigurationContext context) throws InitializationException {
@@ -146,17 +205,26 @@ public class HortonworksSchemaRegistry extends AbstractControllerService impleme
             schemaRegistryConfig.put(CLIENT_SSL_PROPERTY_PREFIX, sslProperties);
         }
 
+        final String kerberosPrincipal = context.getProperty(KERBEROS_PRINCIPAL).evaluateAttributeExpressions().getValue();
+        final String kerberosPassword = context.getProperty(KERBEROS_PASSWORD).getValue();
+
         final KerberosCredentialsService kerberosCredentialsService = context.getProperty(KERBEROS_CREDENTIALS_SERVICE)
                 .asControllerService(KerberosCredentialsService.class);
+
         if (kerberosCredentialsService != null) {
             final String principal = kerberosCredentialsService.getPrincipal();
             final String keytab = kerberosCredentialsService.getKeytab();
-            final String jaasConfigString = getJaasConfig(principal, keytab);
+            final String jaasConfigString = getKeytabJaasConfig(principal, keytab);
             schemaRegistryConfig.put(SchemaRegistryClient.Configuration.SASL_JAAS_CONFIG.name(), jaasConfigString);
+        } else if (!StringUtils.isBlank(kerberosPrincipal) && !StringUtils.isBlank(kerberosPassword)) {
+            schemaRegistryConfig.put(SchemaRegistryClientWithKerberosPassword.SCHEMA_REGISTRY_CLIENT_KERBEROS_PRINCIPAL, kerberosPrincipal);
+            schemaRegistryConfig.put(SchemaRegistryClientWithKerberosPassword.SCHEMA_REGISTRY_CLIENT_KERBEROS_PASSWORD, kerberosPassword);
+            schemaRegistryConfig.put(SchemaRegistryClientWithKerberosPassword.SCHEMA_REGISTRY_CLIENT_NIFI_COMP_LOGGER, getLogger());
+            usingKerberosWithPassword = true;
         }
     }
 
-    private String getJaasConfig(final String principal, final String keytab) {
+    private String getKeytabJaasConfig(final String principal, final String keytab) {
         return "com.sun.security.auth.module.Krb5LoginModule required "
                 + "useTicketCache=false "
                 + "renewTicket=true "
@@ -205,19 +273,24 @@ public class HortonworksSchemaRegistry extends AbstractControllerService impleme
         properties.add(CACHE_EXPIRATION);
         properties.add(SSL_CONTEXT_SERVICE);
         properties.add(KERBEROS_CREDENTIALS_SERVICE);
+        properties.add(KERBEROS_PRINCIPAL);
+        properties.add(KERBEROS_PASSWORD);
         return properties;
     }
 
 
     protected synchronized SchemaRegistryClient getClient() {
         if (!initialized) {
-            schemaRegistryClient = new SchemaRegistryClient(schemaRegistryConfig);
+            if (usingKerberosWithPassword) {
+                schemaRegistryClient = new SchemaRegistryClientWithKerberosPassword(schemaRegistryConfig);
+            } else {
+                schemaRegistryClient = new SchemaRegistryClient(schemaRegistryConfig);
+            }
             initialized = true;
         }
 
         return schemaRegistryClient;
     }
-
 
     private SchemaVersionInfo getLatestSchemaVersionInfo(final SchemaRegistryClient client, final String schemaName, final String branchName)
             throws org.apache.nifi.schema.access.SchemaNotFoundException {

@@ -14,27 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.remote.exception;
+package org.apache.nifi.parameter;
 
-import java.io.IOException;
+public interface ParameterUpdate {
+    /**
+     * @return the name of the Parameter
+     */
+    String getParameterName();
 
+    /**
+     * @return the previous value of the Parameter, or <code>null</code> if the Parameter is being added or previously had no value
+     */
+    String getPreviousValue();
 
-/**
- * A NoValidPeerException occurs when all the remote peers are penalized or none exists
- */
-public class NoValidPeerException extends IOException {
+    /**
+     * @return the updated value of the Parameter, or <code>null</code> if the Parameter was removed or previously had no value
+     */
+    String getUpdatedValue();
 
-    private static final long serialVersionUID = 8421102798129193880L;
-
-    public NoValidPeerException(final String message, final Throwable cause) {
-        super(message, cause);
-    }
-
-    public NoValidPeerException(final String message) {
-        super(message);
-    }
-
-    public NoValidPeerException(final Throwable cause) {
-        super(cause);
-    }
+    /**
+     * @return <code>true</code> if the Parameter is sensitive, <code>false</code> otherwise.
+     */
+    boolean isSensitive();
 }
