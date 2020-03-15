@@ -183,6 +183,8 @@ TO_LITERAL : 'literal';
 JSON_PATH : 'jsonPath';
 JSON_PATH_DELETE : 'jsonPathDelete';
 REPEAT : 'repeat';
+UUID3 : 'UUID3';
+UUID5 : 'UUID5';
 
 // 2 arg functions
 SUBSTRING	: 'substring';

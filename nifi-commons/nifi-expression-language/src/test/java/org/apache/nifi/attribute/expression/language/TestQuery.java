@@ -89,6 +89,10 @@ public class TestQuery {
         assertInvalid("${attr:indexOf(length())}");
         assertValid("${UUID()}");
         assertInvalid("${UUID():nextInt()}");
+        assertValid("${attr:UUID3('94c09378-43a6-11ea-8bcc-acde48001122')}");
+        assertValid("${attr:UUID5('94c09378-43a6-11ea-8bcc-acde48001122')}");
+        assertInvalid("${UUID3('94c09378-43a6-11ea-8bcc-acde48001122', attr)}");
+        assertInvalid("${UUID5('94c09378-43a6-11ea-8bcc-acde48001122', attr)}");
         assertValid("${nextInt()}");
         assertValid("${now():format('yyyy/MM/dd')}");
         assertInvalid("${attr:times(3)}");
@@ -2135,6 +2139,58 @@ public class TestQuery {
         } catch(AttributeExpressionLanguageException aele) {
             // Do nothing, it is expected
         }
+    }
+
+    @Test
+    public void testUuidsWithNamespace() {
+        // Testing a lot of cases here b/c it's a custom UUID3/5 implementation
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("myattr0", "u5IkOYFFvYioYBJSNI2XNjPaVoRjXYnr");
+        attributes.put("myattr1", "mSDgSKQrY67QCTPatV5qHrZa4oUQ2wEX");
+        attributes.put("myattr2", "u6jH7pF8iAqwjr42i3r5DubdNcgwqEaX");
+        attributes.put("myattr3", "9eDG1KbqvHrtIMSmvH44t0K7fHXs7xtz");
+        attributes.put("myattr4", "QeAUDsMYoHJHLsy1BPPSmQWKhCKvwEpj");
+        attributes.put("myattr5", "U5Cw4b79SW1YiB5Va3DfUMI9y4iJwnVS");
+        attributes.put("myattr6", "Ig51Jl3EtwaKlVo9MnDSDdJSlXMgZ1It");
+        attributes.put("myattr7", "F2iLLLHXgliEpIDwJ4JcqeWBVi70cHS6");
+        attributes.put("myattr8", "1BFShkKLOcjwn1GMsyO4Fmb0iNTVt2Tf");
+        attributes.put("myattr9", "WxiyO8Gzw0jQnBlYeZMcdNTwCWJe5MNg");
+        attributes.put("myattr10", null);
+
+        // Version 3s
+        verifyEquals("${myattr0:UUID3('b9e81de3-7047-4b5e-a822-8fff5b49f808')}", attributes, "7ab88cc4-7748-3214-812a-1bc4500a911a");
+        verifyEquals("${myattr1:UUID3('341857cc-c5f3-4f76-b336-169f81e9dc7a')}", attributes, "d788c2df-95e1-33aa-a548-9be42f222909");
+        verifyEquals("${myattr2:UUID3('27e35966-52c9-48ba-bc91-3894a2f164d8')}", attributes, "e960f7af-5eec-3298-8512-e3933836bd5a");
+        verifyEquals("${myattr3:UUID3('1aef683a-2c0b-4f0e-9287-792361873e8f')}", attributes, "bf1727d8-93d3-3550-9071-78c8686f30c3");
+        verifyEquals("${myattr4:UUID3('5f15efac-e274-42b1-8d0f-15c2c97acb7d')}", attributes, "9e68a780-090d-30a9-903c-22cf7eb5c511");
+        verifyEquals("${myattr5:UUID3('ebd71811-fd78-4929-856b-4cec7a38d666')}", attributes, "a2a4b1b5-d93f-3656-be0d-f1db281060c1");
+        verifyEquals("${myattr6:UUID3('7b1bce89-f12b-4b56-afb8-f9b0a1334926')}", attributes, "8eea2153-d42e-3f63-892c-33ff7f0be389");
+        verifyEquals("${myattr7:UUID3('fe085c56-95e2-4cf8-8612-ba878ed35f0b')}", attributes, "3cd6470f-5432-3599-82ce-1f2b22adcec6");
+        verifyEquals("${myattr8:UUID3('2be146a5-f54e-4ca1-a10d-d219e9fc6c6f')}", attributes, "c3ed8ced-b32f-39da-a7ea-75934f419446");
+        verifyEquals("${myattr9:UUID3('4939d5dd-51c1-4d0e-badd-77fa7c7eebc1')}", attributes, "6507198b-f565-3196-9123-6f946f8c53bc");
+        verifyEmpty("${myattr10:UUID3('4939d5dd-51c1-4d0e-badd-77fa7c7eebc1')}", attributes);
+        verifyEmpty("${myattr11:UUID3('4939d5dd-51c1-4d0e-badd-77fa7c7eebc1')}", attributes);
+        verifyEquals("${myattr9:UUID3(${myattr11})}", attributes, "f2d25da2-cc06-34de-80a3-cf64aff82020");
+
+        // Version 5s
+        verifyEquals("${myattr0:UUID5('245b55a8-397d-4480-a41e-16603c8cf9ad')}", attributes, "74f6dc12-6d84-500c-9583-e9fed79912ea");
+        verifyEquals("${myattr1:UUID5('45089bfa-f5eb-40e3-bc02-4270ccb8ef34')}", attributes, "7b197702-0ed0-5494-9f61-417e26010308");
+        verifyEquals("${myattr2:UUID5('49861367-c791-4d6d-987e-fe994b2ee4b7')}", attributes, "7b38b455-a0d6-53bd-a0fa-d0f3bf4e7399");
+        verifyEquals("${myattr3:UUID5('1142b2d9-e434-4931-b1a5-6dbf363aa9cf')}", attributes, "cd13422e-b030-547b-807b-a868e9282eab");
+        verifyEquals("${myattr4:UUID5('967190d3-b4ba-4ef3-a8e6-3b8bf2d3f1d8')}", attributes, "e4f1ef89-0d25-55cd-bc4b-1904813c3137");
+        verifyEquals("${myattr5:UUID5('2942f01d-82df-40ee-b1fd-476542160b7c')}", attributes, "a0415b30-5ef9-5530-93a2-fd20f4262d68");
+        verifyEquals("${myattr6:UUID5('3a47c04b-7cea-4c95-a379-018e64c701c5')}", attributes, "e1931aad-30e8-5283-8505-394f0d08b181");
+        verifyEquals("${myattr7:UUID5('6f78ce33-4186-46c0-ae05-15f8c78024cf')}", attributes, "a5c80e26-88d6-5de9-9234-66a050f4d940");
+        verifyEquals("${myattr8:UUID5('b85962a8-6614-49f4-8fdd-a984cf35144e')}", attributes, "6e33ce29-d3f0-59ee-a864-c05ec4d4300d");
+        verifyEquals("${myattr9:UUID5('5b6da974-4eca-4c17-bbd2-3b59a1b40bee')}", attributes, "2e2e846c-1cbc-54b2-96f7-5a66d246126f");
+        verifyEmpty("${myattr10:UUID5('4939d5dd-51c1-4d0e-badd-77fa7c7eebc1')}", attributes);
+        verifyEmpty("${myattr11:UUID5('4939d5dd-51c1-4d0e-badd-77fa7c7eebc1')}", attributes);
+        verifyEquals("${myattr9:UUID5(${myattr11})}", attributes, "0231a7bf-7bbe-5a0c-8bbd-9c7bc2e95071");
+
+        // Make sure it works using the UUID() expression for the namespace
+        verifyEquals("${myattr0:UUID3(${UUID()}):length()}", attributes, 36L);
+        verifyEquals("${myattr0:UUID5(${UUID()}):length()}", attributes, 36L);
     }
 
     private void verifyEquals(final String expression, final Map<String, String> attributes, final Object expectedResult) {

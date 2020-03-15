@@ -112,6 +112,8 @@ import org.apache.nifi.attribute.expression.language.evaluation.functions.TrimEv
 import org.apache.nifi.attribute.expression.language.evaluation.functions.UrlDecodeEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.UrlEncodeEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.UuidEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.functions.Uuid3Evaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.functions.Uuid5Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.literals.BooleanLiteralEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.literals.DecimalLiteralEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.literals.StringLiteralEvaluator;
@@ -241,6 +243,8 @@ import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpre
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.URL_DECODE;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.URL_ENCODE;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.UUID;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.UUID3;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.UUID5;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.WHOLE_NUMBER;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.EVALUATE_EL_STRING;
 
@@ -1001,11 +1005,20 @@ public class ExpressionCompiler {
                 Evaluator<?> argKeyEvaluator = argEvaluators.get(2);
                 String keyLocation = "third argument to jsonPathPut";
                 Evaluator<?> keyEvaluator = getJsonPathUpdateEvaluator(argKeyEvaluator, keyLocation);
-
                 return addToken(new JsonPathPutEvaluator(toStringEvaluator(subjectEvaluator),
                         toStringEvaluator(argEvaluators.get(0), "first argument to jsonPathPut"),
                         toStringEvaluator(keyEvaluator, keyLocation),
                         valueEvaluator), "jsonPathPut");
+            }
+            case UUID3: {
+                verifyArgCount(argEvaluators, 1, "UUID3");
+                return addToken(new Uuid3Evaluator(toStringEvaluator(subjectEvaluator),
+                    toStringEvaluator(argEvaluators.get(0), "first argument to UUID3")), "UUID3");
+            }
+            case UUID5: {
+                verifyArgCount(argEvaluators, 1, "UUID5");
+                return addToken(new Uuid5Evaluator(toStringEvaluator(subjectEvaluator),
+                    toStringEvaluator(argEvaluators.get(0), "first argument to UUID5")), "UUID5");
             }
             case IF_ELSE: {
                 verifyArgCount(argEvaluators, 2, "ifElse");
