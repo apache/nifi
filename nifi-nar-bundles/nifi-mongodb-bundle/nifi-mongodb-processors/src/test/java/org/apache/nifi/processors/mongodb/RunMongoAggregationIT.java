@@ -43,7 +43,7 @@ import java.util.Map;
 
 public class RunMongoAggregationIT {
 
-    private static final String MONGO_URI = "mongodb://localhost";
+    private static final String MONGO_URI = "mongodb://192.168.25.83";
     private static final String DB_NAME   = String.format("agg_test-%s", Calendar.getInstance().getTimeInMillis());
     private static final String COLLECTION_NAME = "agg_test_data";
     private static final String AGG_ATTR = "mongo.aggregation.query";
@@ -122,33 +122,6 @@ public class RunMongoAggregationIT {
             Assert.assertNotNull("Missing query attribute", val);
             Assert.assertEquals("Value was wrong", val, queryInput);
         }
-    }
-
-    @Test
-    public void testExtendedJsonSupport() throws Exception {
-        String pattern = "yyyy-MM-dd'T'hh:mm:ss'Z'";
-        SimpleDateFormat simpleDateFormat = new SimpleDateFormat(pattern);
-        final String queryInput = "[\n" +
-            "  {\n" +
-            "    \"$match\": {\n" +
-            "      \"date\": { \"$gte\": { \"$date\": \"2019-01-01T00:00:00Z\" }, \"$lt\": { \"$date\": \"" + simpleDateFormat.format(now.getTime()) + "\" } }\n" +
-            "    }\n" +
-            "  },\n" +
-            "  {\n" +
-            "    \"$group\": {\n" +
-            "      \"_id\": \"$val\",\n" +
-            "      \"doc_count\": {\n" +
-            "        \"$sum\": 1\n" +
-            "      }\n" +
-            "    }\n" +
-            "  }\n" +
-            "]\n";
-
-        runner.setProperty(RunMongoAggregation.QUERY, queryInput);
-        runner.enqueue("test");
-        runner.run(1, true, true);
-
-        runner.assertTransferCount(RunMongoAggregation.REL_RESULTS, mappings.size());
     }
 
     @Test
@@ -262,5 +235,32 @@ public class RunMongoAggregationIT {
         runner.enqueue("{}");
         runner.run();
         runner.assertTransferCount(RunMongoAggregation.REL_RESULTS, 9);
+    }
+
+    @Test
+    public void testExtendedJsonSupport() throws Exception {
+        String pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS";
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat(pattern);
+        final String queryInput = "[\n" +
+            "  {\n" +
+            "    \"$match\": {\n" +
+            "      \"date\": { \"$gte\": { \"$date\": \"2019-01-01T00:00:00Z\" }, \"$lte\": { \"$date\": \"" + simpleDateFormat.format(now.getTime()) + "\" } }\n" +
+            "    }\n" +
+            "  },\n" +
+            "  {\n" +
+            "    \"$group\": {\n" +
+            "      \"_id\": \"$val\",\n" +
+            "      \"doc_count\": {\n" +
+            "        \"$sum\": 1\n" +
+            "      }\n" +
+            "    }\n" +
+            "  }\n" +
+            "]\n";
+
+        runner.setProperty(RunMongoAggregation.QUERY, queryInput);
+        runner.enqueue("test");
+        runner.run(1, true, true);
+
+        runner.assertTransferCount(RunMongoAggregation.REL_RESULTS, mappings.size());
     }
 }
