@@ -42,9 +42,13 @@ public abstract class AbstractScriptedRecordFactory<T> extends AbstractScriptedC
 
         if (scriptNeedsReload.get() || recordFactory.get() == null) {
             if (ScriptingComponentHelper.isFile(scriptingComponentHelper.getScriptPath())) {
-                reloadScriptFile(scriptingComponentHelper.getScriptPath());
+                if (!reloadScriptFile(scriptingComponentHelper.getScriptPath())) {
+                    throw new ProcessException("Error during loading of script");
+                }
             } else {
-                reloadScriptBody(scriptingComponentHelper.getScriptBody());
+                if (!reloadScriptBody(scriptingComponentHelper.getScriptBody())) {
+                    throw new ProcessException("Error during loading of script");
+                }
             }
             scriptNeedsReload.set(false);
         }
