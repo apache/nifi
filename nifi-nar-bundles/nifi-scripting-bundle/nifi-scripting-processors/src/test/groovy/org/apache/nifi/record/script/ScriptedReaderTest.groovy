@@ -37,9 +37,10 @@ import org.junit.runners.JUnit4
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
-import static groovy.util.GroovyTestCase.assertEquals
+import static junit.framework.TestCase.assertEquals
 import static org.junit.Assert.assertNotNull
 import static org.junit.Assert.assertNull
+import static org.junit.Assert.fail
 import static org.mockito.Mockito.mock
 import static org.mockito.Mockito.when
 
@@ -189,7 +190,56 @@ class ScriptedReaderTest {
             assertEquals(record.getAsInt('code'), record.getAsInt('id') * 100)
         }
         assertNull(recordReader.nextRecord())
+    }
 
+    @Test
+    void testRecordReaderGroovyScriptChangeModuleDirectory() {
+
+        def properties = [:] as Map<PropertyDescriptor, String>
+        recordReaderFactory.getSupportedPropertyDescriptors().each {PropertyDescriptor descriptor ->
+            properties.put(descriptor, descriptor.getDefaultValue())
+        }
+
+        // Mock the ConfigurationContext for setup(...)
+        def configurationContext = mock(ConfigurationContext)
+        when(configurationContext.getProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE))
+                .thenReturn(new MockPropertyValue('Groovy'))
+        when(configurationContext.getProperty(ScriptingComponentUtils.SCRIPT_FILE))
+                .thenReturn(new MockPropertyValue('target/test/resources/groovy/test_record_reader_load_module.groovy'))
+        when(configurationContext.getProperty(ScriptingComponentUtils.SCRIPT_BODY))
+                .thenReturn(new MockPropertyValue(null))
+        when(configurationContext.getProperty(ScriptingComponentUtils.MODULES))
+                .thenReturn(new MockPropertyValue(null))
+
+        def logger = mock(ComponentLog)
+        def initContext = mock(ControllerServiceInitializationContext)
+        when(initContext.getIdentifier()).thenReturn(UUID.randomUUID().toString())
+        when(initContext.getLogger()).thenReturn(logger)
+
+        recordReaderFactory.initialize initContext
+        try {
+            recordReaderFactory.onEnabled configurationContext
+            fail('Expected exception in onEnabled when script is loaded with no Module Directory set')
+        } catch(e) {
+            // Do nothing, the exception is expected as the needed class is not in the Module Directory property
+        }
+
+        byte[] contentBytes = 'Flow file content not used'.bytes
+        InputStream inStream = new ByteArrayInputStream(contentBytes)
+
+        def recordReader = recordReaderFactory.createRecordReader(Collections.emptyMap(), inStream, contentBytes.length, logger)
+        // This one is supposed to be null as the factory should fail on initialize
+        assertNull(recordReader)
+
+        when(configurationContext.getProperty(ScriptingComponentUtils.MODULES))
+                .thenReturn(new MockPropertyValue('target/test/resources/jar/test.jar'))
+
+        recordReaderFactory.onPropertyModified(ScriptingComponentUtils.MODULES, '', 'target/test/resources/jar/test.jar')
+
+        recordReaderFactory.initialize initContext
+        recordReaderFactory.onEnabled configurationContext
+        recordReader = recordReaderFactory.createRecordReader(Collections.emptyMap(), inStream, contentBytes.length, logger)
+        assertNotNull(recordReader)
     }
 
     class MockScriptedReader extends ScriptedReader implements AccessibleScriptingComponentHelper {

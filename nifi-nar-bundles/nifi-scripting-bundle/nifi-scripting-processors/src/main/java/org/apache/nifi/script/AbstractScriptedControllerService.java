@@ -103,13 +103,15 @@ public abstract class AbstractScriptedControllerService extends AbstractControll
     @Override
     public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
 
+        validationResults.set(new HashSet<>());
+
         if (ScriptingComponentUtils.SCRIPT_FILE.equals(descriptor)
                 || ScriptingComponentUtils.SCRIPT_BODY.equals(descriptor)
                 || ScriptingComponentUtils.MODULES.equals(descriptor)
                 || scriptingComponentHelper.SCRIPT_ENGINE.equals(descriptor)) {
             scriptNeedsReload.set(true);
             // Need to reset scriptEngine if the value has changed
-            if (scriptingComponentHelper.SCRIPT_ENGINE.equals(descriptor)) {
+            if (scriptingComponentHelper.SCRIPT_ENGINE.equals(descriptor) || ScriptingComponentUtils.MODULES.equals(descriptor)) {
                 scriptEngine = null;
             }
         }
@@ -117,7 +119,21 @@ public abstract class AbstractScriptedControllerService extends AbstractControll
 
     @Override
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
-        return scriptingComponentHelper.customValidate(validationContext);
+
+        Collection<ValidationResult> commonValidationResults = super.customValidate(validationContext);
+        commonValidationResults.addAll(scriptingComponentHelper.customValidate(validationContext));
+
+        if (!commonValidationResults.isEmpty()) {
+            return commonValidationResults;
+        }
+
+        // do not try to build processor/compile/etc until onPropertyModified clear the validation error/s
+        // and don't print anything into log.
+        if (!validationResults.get().isEmpty()) {
+            return validationResults.get();
+        }
+
+        return commonValidationResults;
     }
 
     public void onEnabled(final ConfigurationContext context) {
