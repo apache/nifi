@@ -289,7 +289,7 @@ public enum RecordFieldType {
     /**
      * Returns a data type that represents a DECIMAL value with given precision and scale
      *
-     * @param precision indicates the expected number of digits before the decimal point
+     * @param precision indicates the total number of digits
      * @param scale indicates the expected number of digits after the decimal point
      *
      * @return a DataType that represents a DECIMAL with specified precision and scale, or <code>null</code> if this RecordFieldType

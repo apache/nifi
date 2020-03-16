@@ -26,6 +26,7 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.type.ChoiceDataType;
+import org.apache.nifi.serialization.record.type.DecimalDataType;
 import org.apache.nifi.serialization.record.type.MapDataType;
 import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.slf4j.Logger;
@@ -1279,6 +1280,10 @@ public class DataTypeUtils {
             return BigDecimal.valueOf((Double) value);
         }
 
+        if (value instanceof Number) {
+            return new BigDecimal(value.toString());
+        }
+
         if (value instanceof String) {
             return new BigDecimal((String) value);
         }
@@ -1711,7 +1716,6 @@ public class DataTypeUtils {
             if (thisIntTypeValue > otherIntTypeValue) {
                 return Optional.of(thisDataType);
             }
-
             return Optional.of(otherDataType);
         }
 
@@ -1728,6 +1732,16 @@ public class DataTypeUtils {
                 break;
 
             case DECIMAL:
+                if(otherFieldType == RecordFieldType.DECIMAL) {
+
+                    DecimalDataType thisDecimalType = (DecimalDataType) thisDataType;
+                    DecimalDataType otherDecimalType = (DecimalDataType) otherDataType;
+
+                    int widerScale = Math.max(thisDecimalType.getScale(), otherDecimalType.getScale());
+                    int widerPrecision = widerScale + Math.max(thisDecimalType.getPrecision()-thisDecimalType.getScale(), otherDecimalType.getPrecision()-otherDecimalType.getScale());
+
+                    return Optional.of(RecordFieldType.DECIMAL.getDecimalDataType(widerPrecision, widerScale));
+                }
                 if (otherFieldType == RecordFieldType.FLOAT || otherFieldType == RecordFieldType.DOUBLE) {
                     return Optional.of(thisDataType);
                 }

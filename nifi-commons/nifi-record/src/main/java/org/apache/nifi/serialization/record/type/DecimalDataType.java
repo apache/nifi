@@ -67,6 +67,6 @@ public class DecimalDataType extends DataType {
 
     @Override
     public String toString() {
-        return "DECIMAL" + Integer.toString(precision) + Integer.toString(scale);
+        return "DECIMAL_" + precision + "_" + scale;
     }
 }

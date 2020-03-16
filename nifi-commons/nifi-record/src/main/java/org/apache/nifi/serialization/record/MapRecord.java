@@ -26,6 +26,7 @@ import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.apache.nifi.serialization.record.util.IllegalTypeConversionException;
 
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
 import java.util.ArrayList;
@@ -252,6 +253,11 @@ public class MapRecord implements Record {
     @Override
     public Double getAsDouble(final String fieldName) {
         return DataTypeUtils.toDouble(getValue(fieldName), fieldName);
+    }
+
+    @Override
+    public BigDecimal getAsBigDecimal(final String fieldName) {
+        return DataTypeUtils.toBigDecimal(getValue(fieldName), fieldName);
     }
 
     @Override

@@ -342,7 +342,8 @@ public class PutHBaseRecord extends AbstractPutHBase {
                     retVal = clientService.toBytes(record.getAsBoolean(field));
                     break;
                 case DECIMAL:
-                    // Decimal to be treated as the same as double
+                    retVal = clientService.toBytes(record.getAsBigDecimal(field));
+                    break;
                 case DOUBLE:
                     retVal = clientService.toBytes(record.getAsDouble(field));
                     break;

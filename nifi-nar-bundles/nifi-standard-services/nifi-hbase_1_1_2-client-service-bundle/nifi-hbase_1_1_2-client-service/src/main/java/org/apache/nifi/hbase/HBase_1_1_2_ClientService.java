@@ -74,6 +74,7 @@ import org.slf4j.LoggerFactory;
 import javax.security.auth.login.LoginException;
 import java.io.File;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
@@ -837,6 +838,11 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
 
     @Override
     public byte[] toBytes(double d) {
+        return Bytes.toBytes(d);
+    }
+
+    @Override
+    public byte[] toBytes(BigDecimal d) {
         return Bytes.toBytes(d);
     }
 

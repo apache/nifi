@@ -24,6 +24,8 @@ import org.apache.nifi.hbase.scan.ResultCell;
 import org.apache.nifi.hbase.scan.ResultHandler;
 
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -272,6 +274,15 @@ public class MockHBaseClientService extends AbstractControllerService implements
     @Override
     public byte[] toBytes(final double d) {
         return toBytes(Double.doubleToRawLongBits(d));
+    }
+
+    @Override
+    public byte[] toBytes(final BigDecimal d) {
+        byte[] valueBytes = d.unscaledValue().toByteArray();
+        ByteBuffer b = ByteBuffer.allocate(valueBytes.length + (int) (Integer.SIZE / Byte.SIZE));
+        b.putInt(valueBytes.length);
+        b.put(valueBytes);
+        return b.array();
     }
 
     @Override

@@ -25,6 +25,7 @@ import org.apache.nifi.hbase.scan.Column;
 import org.apache.nifi.hbase.scan.ResultHandler;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.List;
 
@@ -209,6 +210,14 @@ public interface HBaseClientService extends ControllerService {
      * @return the double represented as bytes
      */
     byte[] toBytes(double d);
+
+    /**
+     * Converts the given double to it's byte representation.
+     *
+     * @param d a double
+     * @return the double represented as bytes
+     */
+    byte[] toBytes(BigDecimal d);
 
     /**
      * Converts the given string to it's byte representation.
