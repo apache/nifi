@@ -49,7 +49,7 @@ public class JsonPathEvaluator extends JsonPathBaseEvaluator {
             result = documentContext.read(compiledJsonPath);
         } catch (PathNotFoundException pnf) {
             // it is valid for a path not to be found, keys may not be there
-            // do not span the error log for this, instead we can log debug
+            // do not spam the error log for this, instead we can log debug
             LOGGER.debug("PathNotFoundException for JsonPath " + compiledJsonPath.getPath(), pnf);
             return EMPTY_RESULT;
         } catch (Exception e) {
