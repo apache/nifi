@@ -229,6 +229,12 @@ public abstract class NiFiProperties {
     public static final String ZOOKEEPER_CONNECT_TIMEOUT = "nifi.zookeeper.connect.timeout";
     public static final String ZOOKEEPER_SESSION_TIMEOUT = "nifi.zookeeper.session.timeout";
     public static final String ZOOKEEPER_ROOT_NODE = "nifi.zookeeper.root.node";
+    public static final String ZOOKEEPER_CLIENT_SECURE = "nifi.zookeeper.client.secure";
+    public static final String ZOOKEEPER_CLIENT_CONNECTION_SOCKET = "nifi.zookeeper.client.clientCnxnSocket";
+    public static final String ZOOKEEPER_SSL_KEYSTORE_LOCATION = "nifi.zookeeper.ssl.keyStore.location";
+    public static final String ZOOKEEPER_SSL_KEYSTORE_PASSWORD = "nifi.zookeeper.ssl.keyStore.password";
+    public static final String ZOOKEEPER_SSL_TRUSTSTORE_LOCATION = "nifi.zookeeper.ssl.trustStore.location";
+    public static final String ZOOKEEPER_SSL_TRUSTSTORE_PASSWORD = "nifi.zookeeper.ssl.trustStore.password";
     public static final String ZOOKEEPER_AUTH_TYPE = "nifi.zookeeper.auth.type";
     public static final String ZOOKEEPER_KERBEROS_REMOVE_HOST_FROM_PRINCIPAL = "nifi.zookeeper.kerberos.removeHostFromPrincipal";
     public static final String ZOOKEEPER_KERBEROS_REMOVE_REALM_FROM_PRINCIPAL = "nifi.zookeeper.kerberos.removeRealmFromPrincipal";
@@ -292,6 +298,7 @@ public abstract class NiFiProperties {
     public static final String DEFAULT_ZOOKEEPER_CONNECT_TIMEOUT = "3 secs";
     public static final String DEFAULT_ZOOKEEPER_SESSION_TIMEOUT = "3 secs";
     public static final String DEFAULT_ZOOKEEPER_ROOT_NODE = "/nifi";
+    public static final Boolean DEFAULT_ZOOKEEPER_CLIENT_SECURE = false;
     public static final String DEFAULT_ZOOKEEPER_AUTH_TYPE = "default";
     public static final String DEFAULT_ZOOKEEPER_KERBEROS_REMOVE_HOST_FROM_PRINCIPAL = "true";
     public static final String DEFAULT_ZOOKEEPER_KERBEROS_REMOVE_REALM_FROM_PRINCIPAL = "true";

@@ -17,8 +17,13 @@
 package org.apache.nifi.cluster;
 
 import org.apache.nifi.controller.cluster.ZooKeeperClientConfig;
+import org.apache.nifi.properties.StandardNiFiProperties;
+import org.apache.nifi.util.NiFiProperties;
+
 import static org.junit.Assert.assertEquals;
 import org.junit.Test;
+
+import java.util.Properties;
 
 public class ZooKeeperClientConfigTest {
 
@@ -71,4 +76,37 @@ public class ZooKeeperClientConfigTest {
     public void testMultiValidOneNonsense(){
         ZooKeeperClientConfig.cleanConnectString("   local   :   1234  , local:  1235:wack,local  :1295,local:14952   ");
     }
+
+    @Test
+    public void testValidClientSecureTrue() {
+        final Properties properties = new Properties();
+        properties.setProperty(NiFiProperties.ZOOKEEPER_CONNECT_STRING, "local:1234");
+        properties.setProperty(NiFiProperties.ZOOKEEPER_CLIENT_SECURE, "true");
+        ZooKeeperClientConfig.createConfig(new StandardNiFiProperties(properties));
+    }
+
+    @Test
+    public void testValidClientSecureFalse() {
+        final Properties properties = new Properties();
+        properties.setProperty(NiFiProperties.ZOOKEEPER_CONNECT_STRING, "local:1234");
+        properties.setProperty(NiFiProperties.ZOOKEEPER_CLIENT_SECURE, "false");
+        ZooKeeperClientConfig.createConfig(new StandardNiFiProperties(properties));
+    }
+
+    @Test
+    public void testValidClientSecureEmpty() {
+        final Properties properties = new Properties();
+        properties.setProperty(NiFiProperties.ZOOKEEPER_CONNECT_STRING, "local:1234");
+        properties.setProperty(NiFiProperties.ZOOKEEPER_CLIENT_SECURE, "");
+        ZooKeeperClientConfig.createConfig(new StandardNiFiProperties(properties));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testValidClientSecure() {
+        final Properties properties = new Properties();
+        properties.setProperty(NiFiProperties.ZOOKEEPER_CONNECT_STRING, "local:1234");
+        properties.setProperty(NiFiProperties.ZOOKEEPER_CLIENT_SECURE, "meh");
+        ZooKeeperClientConfig.createConfig(new StandardNiFiProperties(properties));
+    }
+
 }

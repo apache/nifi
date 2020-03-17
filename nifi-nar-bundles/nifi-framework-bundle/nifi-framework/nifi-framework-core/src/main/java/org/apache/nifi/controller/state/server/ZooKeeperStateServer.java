@@ -43,8 +43,8 @@ public class ZooKeeperStateServer extends ZooKeeperServerMain {
 
     private final QuorumPeerConfig quorumPeerConfig;
     private volatile boolean started = false;
-
     private ServerCnxnFactory connectionFactory;
+    private ServerCnxnFactory secureConnectionFactory;
     private FileTxnSnapLog transactionLog;
     private ZooKeeperServer embeddedZkServer;
     private QuorumPeer quorumPeer;
@@ -104,9 +104,25 @@ public class ZooKeeperStateServer extends ZooKeeperServerMain {
             embeddedZkServer.setMinSessionTimeout(config.getMinSessionTimeout());
             embeddedZkServer.setMaxSessionTimeout(config.getMaxSessionTimeout());
 
-            connectionFactory = ServerCnxnFactory.createFactory();
-            connectionFactory.configure(config.getClientPortAddress(), config.getMaxClientCnxns());
-            connectionFactory.startup(embeddedZkServer);
+            if (config.getClientPortAddress() == null && config.getSecureClientPortAddress() == null) {
+                throw new IllegalArgumentException("both clientPort and secureClientPort are not set");
+            }
+
+            if (config.getClientPortAddress() != null) {
+                connectionFactory = ServerCnxnFactory.createFactory();
+                connectionFactory.configure(config.getClientPortAddress(), config.getMaxClientCnxns());
+                connectionFactory.startup(embeddedZkServer);
+            }
+
+            if (config.getSecureClientPortAddress() != null) {
+                secureConnectionFactory = ServerCnxnFactory.createFactory();
+                secureConnectionFactory.configure(
+                    config.getSecureClientPortAddress(),
+                    config.getMaxClientCnxns(),
+                    true
+                );
+                secureConnectionFactory.startup(embeddedZkServer);
+            }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             logger.warn("Embedded ZooKeeper Server interrupted", e);
@@ -123,8 +139,23 @@ public class ZooKeeperStateServer extends ZooKeeperServerMain {
         try {
             transactionLog = new FileTxnSnapLog(quorumPeerConfig.getDataLogDir(), quorumPeerConfig.getDataDir());
 
-            connectionFactory = ServerCnxnFactory.createFactory();
-            connectionFactory.configure(quorumPeerConfig.getClientPortAddress(), quorumPeerConfig.getMaxClientCnxns());
+            if (quorumPeerConfig.getClientPortAddress() == null && quorumPeerConfig.getSecureClientPortAddress() == null) {
+                throw new IllegalArgumentException("both clientPort and secureClientPort are not set");
+            }
+
+            if (quorumPeerConfig.getClientPortAddress() != null) {
+                connectionFactory = ServerCnxnFactory.createFactory();
+                connectionFactory.configure(quorumPeerConfig.getClientPortAddress(), quorumPeerConfig.getMaxClientCnxns());
+            }
+
+            if (quorumPeerConfig.getSecureClientPortAddress() != null) {
+                secureConnectionFactory = ServerCnxnFactory.createFactory();
+                secureConnectionFactory.configure(
+                    quorumPeerConfig.getSecureClientPortAddress(),
+                    quorumPeerConfig.getMaxClientCnxns(),
+                    true
+                );
+            }
 
             quorumPeer = new QuorumPeer();
             quorumPeer.setTxnFactory(new FileTxnSnapLog(quorumPeerConfig.getDataLogDir(), quorumPeerConfig.getDataDir()));
@@ -136,7 +167,15 @@ public class ZooKeeperStateServer extends ZooKeeperServerMain {
             quorumPeer.setInitLimit(quorumPeerConfig.getInitLimit());
             quorumPeer.setSyncLimit(quorumPeerConfig.getSyncLimit());
             quorumPeer.setQuorumVerifier(quorumPeerConfig.getQuorumVerifier(), false);
-            quorumPeer.setCnxnFactory(connectionFactory);
+
+            if (connectionFactory != null) {
+                quorumPeer.setCnxnFactory(connectionFactory);
+            }
+
+            if (secureConnectionFactory != null) {
+                quorumPeer.setCnxnFactory(secureConnectionFactory);
+            }
+
             quorumPeer.setZKDatabase(new ZKDatabase(quorumPeer.getTxnFactory()));
             quorumPeer.setLearnerType(quorumPeerConfig.getPeerType());
             quorumPeer.setSyncEnabled(quorumPeerConfig.getSyncEnabled());
@@ -167,6 +206,10 @@ public class ZooKeeperStateServer extends ZooKeeperServerMain {
                 connectionFactory.shutdown();
             }
 
+            if (secureConnectionFactory != null) {
+                secureConnectionFactory.shutdown();
+            }
+
             if (quorumPeer != null && quorumPeer.isRunning()) {
                 quorumPeer.shutdown();
             }
@@ -184,6 +227,7 @@ public class ZooKeeperStateServer extends ZooKeeperServerMain {
     public static ZooKeeperStateServer create(final NiFiProperties properties) throws IOException, ConfigException {
         final File propsFile = properties.getEmbeddedZooKeeperPropertiesFile();
         if (propsFile == null) {
+            logger.warn("Not creating Embedded ZooKeeper Server because no Properties File specified in nifi.properties");
             return null;
         }
 
