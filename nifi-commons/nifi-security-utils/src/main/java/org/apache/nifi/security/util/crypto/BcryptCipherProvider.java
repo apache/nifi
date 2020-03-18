@@ -163,7 +163,7 @@ public class BcryptCipherProvider extends RandomIVPBECipherProvider {
     }
 
     /**
-     * Returns the full salt in aa {@code byte[]} for this cipher provider (i.e. {@code $2a$10$abcdef...} format).
+     * Returns the full salt in a {@code byte[]} for this cipher provider (i.e. {@code $2a$10$abcdef...} format).
      *
      * @return the full salt as a byte[]
      */
