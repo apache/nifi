@@ -284,9 +284,9 @@
                 <type>jar</type>
             </dependency>
             <dependency>
-                <groupId>de.svenkubiak</groupId>
-                <artifactId>jBCrypt</artifactId>
-                <version>0.4.1</version>
+                <groupId>at.favre.lib</groupId>
+                <artifactId>bcrypt</artifactId>
+                <version>0.9.0</version>
             </dependency>
             <dependency>
                 <groupId>com.google.guava</groupId>

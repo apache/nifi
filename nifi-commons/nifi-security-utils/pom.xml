@@ -68,10 +68,9 @@
             <version>1.12.0-SNAPSHOT</version>
         </dependency>
         <dependency>
-            <groupId>de.svenkubiak</groupId>
-            <artifactId>jBCrypt</artifactId>
-            <version>0.4.1</version>
-            <scope>compile</scope>
+            <groupId>at.favre.lib</groupId>
+            <artifactId>bcrypt</artifactId>
+            <version>0.9.0</version>
         </dependency>
         <!-- Test Dependencies -->
         <dependency>
@@ -100,8 +99,6 @@
                 <configuration>
                     <excludes combine.children="append">
                         <exclude>src/test/resources/xxe_template.xml</exclude>
-                        <!-- This file is copied from https://github.com/jeremyh/jBCrypt
-because the binary is compiled for Java 8 and we must support Java 7 -->
                     </excludes>
                 </configuration>
             </plugin>
