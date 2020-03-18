@@ -64,7 +64,7 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
             return;
         }
         final long startNanos = System.nanoTime();
-
+    try {
         final String fileSystem = context.getProperty(FILESYSTEM).evaluateAttributeExpressions(flowFile).getValue();
         final String directory = context.getProperty(DIRECTORY).evaluateAttributeExpressions(flowFile).getValue();
         final String fileName = context.getProperty(FILE).evaluateAttributeExpressions(flowFile).getValue();
@@ -112,5 +112,10 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
         session.transfer(flowFile, REL_SUCCESS);
         final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
         session.getProvenanceReporter().send(flowFile, fileClient.getFileUrl().toString(), transferMillis);
+        } catch (IllegalArgumentException e) {
+        getLogger().error("Failed to create file. Reasons: " + e.getMessage());
+        flowFile = session.penalize(flowFile);
+        session.transfer(flowFile, REL_FAILURE);
+    }
 }
 }
