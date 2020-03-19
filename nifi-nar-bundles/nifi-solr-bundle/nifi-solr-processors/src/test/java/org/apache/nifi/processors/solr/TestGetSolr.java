@@ -355,7 +355,7 @@ public class TestGetSolr {
         runner.assertAllFlowFilesTransferred(GetSolr.REL_SUCCESS, 1);
         runner.assertAllFlowFilesContainAttribute(CoreAttributes.MIME_TYPE.key());
 
-        String expectedXml = "<docs><doc boost=\"1.0\"><field name=\"id\">doc1</field></doc></docs>";
+        String expectedXml = "<docs><doc><field name=\"id\">doc1</field></doc></docs>";
         assertThat(expectedXml, CompareMatcher.isIdenticalTo(new String(runner.getContentAsByteArray(runner.getFlowFilesForRelationship(GetSolr.REL_SUCCESS).get(0)))));
     }
 
