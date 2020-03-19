@@ -18,14 +18,7 @@ package org.apache.nifi.processors.solr;
 
 import java.lang.invoke.MethodHandles;
 import java.security.Principal;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Locale;
 import java.util.Optional;
-import java.util.Set;
-
-import javax.security.auth.login.AppConfigurationEntry;
-import javax.security.auth.login.Configuration;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpEntityEnclosingRequest;
