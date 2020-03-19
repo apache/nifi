@@ -30,6 +30,7 @@ import java.util.HashMap;
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processors.elasticsearch.AbstractElasticsearchHttpProcessor.ElasticsearchVersion;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -95,6 +96,28 @@ public class TestPutElasticsearchHttp {
         runner.setProperty(PutElasticsearchHttp.BATCH_SIZE, "1");
         runner.setProperty(PutElasticsearchHttp.ID_ATTRIBUTE, "doc_id");
         runner.setProperty(PutElasticsearchHttp.INDEX_OP, "create");
+
+        runner.enqueue(docExample, new HashMap<String, String>() {{
+            put("doc_id", "28039652140");
+        }});
+        runner.run(1, true, true);
+
+        runner.assertAllFlowFilesTransferred(PutElasticsearchHttp.REL_SUCCESS, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(PutElasticsearchHttp.REL_SUCCESS).get(0);
+        assertNotNull(out);
+        out.assertAttributeEquals("doc_id", "28039652140");
+    }
+
+    @Test
+    public void testPutElasticSearchOnTriggerIndex_withoutType() throws IOException {
+        runner = TestRunners.newTestRunner(new PutElasticsearchTestProcessor(false)); // no failures
+        runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
+        runner.setProperty(PutElasticsearchHttp.ES_VERSION, ElasticsearchVersion.ES_7.name());
+
+        runner.setProperty(PutElasticsearchHttp.INDEX, "doc");
+        runner.setProperty(PutElasticsearchHttp.TYPE, "");
+        runner.setProperty(PutElasticsearchHttp.BATCH_SIZE, "1");
+        runner.setProperty(PutElasticsearchHttp.ID_ATTRIBUTE, "doc_id");
 
         runner.enqueue(docExample, new HashMap<String, String>() {{
             put("doc_id", "28039652140");
@@ -201,8 +224,8 @@ public class TestPutElasticsearchHttp {
         runner = TestRunners.newTestRunner(new PutElasticsearchTestProcessor(false)); // no failures
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
 
-        runner.setProperty(PutElasticsearchHttp.INDEX, "doc");
         runner.assertNotValid();
+        runner.setProperty(PutElasticsearchHttp.INDEX, "doc");
         runner.setProperty(PutElasticsearchHttp.TYPE, "status");
         runner.setProperty(PutElasticsearchHttp.BATCH_SIZE, "1");
         runner.assertValid();
@@ -315,9 +338,21 @@ public class TestPutElasticsearchHttp {
         runner = TestRunners.newTestRunner(new PutElasticsearchTestProcessor(false)); // no failures
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
 
-        runner.setProperty(PutElasticsearchHttp.INDEX, "doc");
         runner.assertNotValid();
+        runner.setProperty(PutElasticsearchHttp.INDEX, "doc");
+        runner.setProperty(PutElasticsearchHttp.ES_VERSION, ElasticsearchVersion.ES_LESS_THAN_7.name());
+        runner.setProperty(PutElasticsearchHttp.TYPE, "");
+        runner.assertNotValid(); // Not valid because type is required prior to 7.0
+        runner.setProperty(PutElasticsearchHttp.TYPE, " ");
+        runner.assertNotValid(); // Not valid because type is required prior to 7.0
+        runner.removeProperty(PutElasticsearchHttp.TYPE);
+        runner.assertNotValid(); // Not valid because type is required prior to 7.0
         runner.setProperty(PutElasticsearchHttp.TYPE, "status");
+        runner.assertValid();
+        runner.setProperty(PutElasticsearchHttp.ES_VERSION, ElasticsearchVersion.ES_7.name());
+        runner.assertNotValid(); // Not valid because type must be _doc or empty for 7.0+
+        runner.setProperty(PutElasticsearchHttp.TYPE, "_doc");
+        runner.assertValid();
         runner.setProperty(PutElasticsearchHttp.BATCH_SIZE, "1");
         runner.assertValid();
         runner.setProperty(PutElasticsearchHttp.INDEX_OP, "index");

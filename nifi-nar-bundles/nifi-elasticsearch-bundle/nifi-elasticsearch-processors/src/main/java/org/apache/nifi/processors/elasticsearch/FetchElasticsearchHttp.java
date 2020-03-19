@@ -40,6 +40,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.elasticsearch.AbstractElasticsearchHttpProcessor.ElasticsearchVersion;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -120,11 +121,11 @@ public class FetchElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
     public static final PropertyDescriptor TYPE = new PropertyDescriptor.Builder()
             .name("fetch-es-type")
             .displayName("Type")
-            .description("The (optional) type of this document, used by Elasticsearch for indexing and searching. If the property is empty, "
-                    + "the first document matching the identifier across all types will be retrieved.")
-            .required(false)
+            .description("The type of this document (if empty, the first document matching the identifier across all types will be retrieved).  "
+                    + "This must be empty (check 'Set empty string') or '_doc' for Elasticsearch 7.0+.")
+            .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .addValidator(new ElasticsearchTypeValidator(false))
             .build();
 
     public static final PropertyDescriptor FIELDS = new PropertyDescriptor.Builder()
@@ -149,6 +150,7 @@ public class FetchElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
         relationships = Collections.unmodifiableSet(_rels);
 
         final List<PropertyDescriptor> descriptors = new ArrayList<>(COMMON_PROPERTY_DESCRIPTORS);
+        descriptors.add(ES_VERSION);
         descriptors.add(DOC_ID);
         descriptors.add(INDEX);
         descriptors.add(TYPE);
@@ -199,6 +201,8 @@ public class FetchElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
         final String fields = context.getProperty(FIELDS).isSet()
                 ? context.getProperty(FIELDS).evaluateAttributeExpressions(flowFile).getValue()
                 : null;
+        final ElasticsearchVersion esVersion = ElasticsearchVersion.valueOf(context.getProperty(ES_VERSION)
+                .getValue());
 
         // Authentication
         final String username = context.getProperty(USERNAME).evaluateAttributeExpressions(flowFile).getValue();
@@ -214,7 +218,7 @@ public class FetchElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
 
             // read the url property from the context
             final String urlstr = StringUtils.trimToEmpty(context.getProperty(ES_URL).evaluateAttributeExpressions().getValue());
-            final URL url = buildRequestURL(urlstr, docId, index, docType, fields, context);
+            final URL url = buildRequestURL(urlstr, docId, index, docType, fields, context, esVersion);
             final long startNanos = System.nanoTime();
 
             getResponse = sendRequestToElasticsearch(okHttpClient, url, username, password, "GET", null);
@@ -306,7 +310,7 @@ public class FetchElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
         }
     }
 
-    private URL buildRequestURL(String baseUrl, String docId, String index, String type, String fields, ProcessContext context) throws MalformedURLException {
+    private URL buildRequestURL(String baseUrl, String docId, String index, String type, String fields, ProcessContext context, ElasticsearchVersion esVersion) throws MalformedURLException {
         if (StringUtils.isEmpty(baseUrl)) {
             throw new MalformedURLException("Base URL cannot be null");
         }
@@ -316,7 +320,8 @@ public class FetchElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
         builder.addPathSegment(docId);
         if (!StringUtils.isEmpty(fields)) {
             String trimmedFields = Stream.of(fields.split(",")).map(String::trim).collect(Collectors.joining(","));
-            builder.addQueryParameter(FIELD_INCLUDE_QUERY_PARAM, trimmedFields);
+            final String fieldIncludeParameter = getFieldIncludeParameter(esVersion);
+            builder.addQueryParameter(fieldIncludeParameter, trimmedFields);
         }
 
         // Find the user-added properties and set them as query parameters on the URL
