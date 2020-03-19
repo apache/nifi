@@ -179,6 +179,11 @@ public class ConfigMainTest {
     }
 
     @Test
+    public void testTransformRoundTrip13TemplateEncoding() throws IOException, JAXBException, SchemaLoaderException {
+        transformRoundTrip("MINIFI-521_1.3_TemplateEncoding");
+    }
+
+    @Test
     public void testTransformRoundTripDecompression() throws IOException, JAXBException, SchemaLoaderException {
         transformRoundTrip("DecompressionCircularFlow");
     }

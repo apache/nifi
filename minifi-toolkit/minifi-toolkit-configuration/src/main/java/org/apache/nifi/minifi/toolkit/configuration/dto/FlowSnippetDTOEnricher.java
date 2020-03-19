@@ -65,13 +65,16 @@ public class FlowSnippetDTOEnricher {
              */
             if (encodingVersion != null) {
                 switch (encodingVersion) {
-                    case "1.2":
+                    // Perform a no-op for the first two versions of templates
+                    case "1.0":
+                    case "1.1":
+                        break;
+                    // Starting in 1.2, the way in which RPGs are mapped has changed
+                    default:
                         // Map all port DTOs to their respective targetIds
                         rpgIdToTargetIdMap.putAll(
                                 Stream.concat(rpgInputPortDtos.stream(), rpgOutputPortDtos.stream())
                                         .collect(Collectors.toMap(RemoteProcessGroupPortDTO::getId, RemoteProcessGroupPortDTO::getTargetId)));
-                        break;
-                    default:
                         break;
                 }
             }
