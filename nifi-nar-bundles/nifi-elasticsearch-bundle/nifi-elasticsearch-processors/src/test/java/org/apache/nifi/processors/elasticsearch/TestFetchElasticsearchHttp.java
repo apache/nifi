@@ -30,6 +30,7 @@ import java.util.HashMap;
 
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processors.elasticsearch.AbstractElasticsearchHttpProcessor.ElasticsearchVersion;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -73,10 +74,18 @@ public class TestFetchElasticsearchHttp {
 
         runner.setProperty(FetchElasticsearchHttp.INDEX, "doc");
         runner.assertNotValid();
-        runner.setProperty(FetchElasticsearchHttp.TYPE, "status");
-        runner.assertNotValid();
         runner.setProperty(FetchElasticsearchHttp.DOC_ID, "${doc_id}");
+        runner.setProperty(FetchElasticsearchHttp.TYPE, "");
         runner.assertValid();
+        runner.setProperty(FetchElasticsearchHttp.ES_VERSION, ElasticsearchVersion.ES_LESS_THAN_7.name());
+        runner.setProperty(FetchElasticsearchHttp.TYPE, "");
+        runner.assertValid(); // Valid because type is not required prior to 7.0
+        runner.setProperty(FetchElasticsearchHttp.TYPE, "status");
+        runner.assertValid();
+        runner.setProperty(FetchElasticsearchHttp.ES_VERSION, ElasticsearchVersion.ES_7.name());
+        runner.assertNotValid(); // Not valid because type must be _doc or empty for 7.0+
+        runner.setProperty(FetchElasticsearchHttp.TYPE, "_doc");
+        runner.assertValid(); // Valid because type is not required prior to 7.0
         runner.setProperty(AbstractElasticsearchHttpProcessor.CONNECT_TIMEOUT, "${connect.timeout}");
         runner.assertValid();
 
@@ -126,6 +135,7 @@ public class TestFetchElasticsearchHttp {
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, ES_URL);
 
         runner.setProperty(FetchElasticsearchHttp.INDEX, "doc");
+        runner.setProperty(FetchElasticsearchHttp.TYPE, "");
         runner.assertNotValid();
         runner.setProperty(FetchElasticsearchHttp.DOC_ID, "${doc_id}");
         runner.assertValid();
@@ -174,6 +184,7 @@ public class TestFetchElasticsearchHttp {
         runner = TestRunners.newTestRunner(new FetchElasticsearchHttpTestProcessor(false)); // simulate doc not found
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
         runner.setProperty(FetchElasticsearchHttp.INDEX, "doc");
+        runner.setProperty(FetchElasticsearchHttp.TYPE, "");
         runner.setProperty(FetchElasticsearchHttp.DOC_ID, "${doc_id}");
 
         runner.setIncomingConnection(true);
@@ -273,6 +284,7 @@ public class TestFetchElasticsearchHttp {
         runner.setProperty(FetchElasticsearchHttp.PROP_SSL_CONTEXT_SERVICE, "ssl-context");
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
         runner.setProperty(FetchElasticsearchHttp.INDEX, "doc");
+        runner.setProperty(FetchElasticsearchHttp.TYPE, "");
         runner.setProperty(FetchElasticsearchHttp.DOC_ID, "${doc_id}");
 
         // Allow time for the controller service to fully initialize
