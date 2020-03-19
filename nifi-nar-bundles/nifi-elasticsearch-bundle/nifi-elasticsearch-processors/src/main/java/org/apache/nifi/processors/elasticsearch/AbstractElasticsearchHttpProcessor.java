@@ -16,19 +16,25 @@
  */
 package org.apache.nifi.processors.elasticsearch;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import okhttp3.Authenticator;
-import okhttp3.Credentials;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.RequestBody;
-import okhttp3.Response;
-import okhttp3.Route;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.Proxy;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+
+import javax.net.ssl.SSLContext;
+
 import org.apache.commons.text.StringEscapeUtils;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
@@ -39,27 +45,27 @@ import org.apache.nifi.proxy.ProxySpec;
 import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.StringUtils;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import okhttp3.Authenticator;
+import okhttp3.Credentials;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
+import okhttp3.Route;
+
 import org.apache.nifi.util.Tuple;
 
-import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.Proxy;
-import java.net.URL;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 /**
@@ -67,7 +73,13 @@ import java.util.stream.Collectors;
  */
 public abstract class AbstractElasticsearchHttpProcessor extends AbstractElasticsearchProcessor {
 
+    static enum ElasticsearchVersion {
+        ES_7,
+        ES_LESS_THAN_7
+    }
+
     static final String FIELD_INCLUDE_QUERY_PARAM = "_source_include";
+    static final String FIELD_INCLUDE_QUERY_PARAM_ES7 = "_source_includes";
     static final String QUERY_QUERY_PARAM = "q";
     static final String SORT_QUERY_PARAM = "sort";
     static final String SIZE_QUERY_PARAM = "size";
@@ -138,6 +150,18 @@ public abstract class AbstractElasticsearchHttpProcessor extends AbstractElastic
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
+    public static final PropertyDescriptor ES_VERSION = new PropertyDescriptor.Builder()
+            .name("elasticsearch-http-version")
+            .displayName("Elasticsearch Version")
+            .description("The major version of elasticsearch (this affects some HTTP query parameters and the way responses are parsed).")
+            .required(true)
+            .allowableValues(
+                    new AllowableValue(ElasticsearchVersion.ES_LESS_THAN_7.name(), "< 7.0", "Any version of Elasticsearch less than 7.0"),
+                    new AllowableValue(ElasticsearchVersion.ES_7.name(), "7.x", "Elasticsearch version 7.x"))
+            .defaultValue(ElasticsearchVersion.ES_LESS_THAN_7.name())
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
     private final AtomicReference<OkHttpClient> okHttpClientAtomicReference = new AtomicReference<>();
 
     @Override
@@ -159,6 +183,7 @@ public abstract class AbstractElasticsearchHttpProcessor extends AbstractElastic
     static {
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(ES_URL);
+        properties.add(ES_VERSION);
         properties.add(PROP_SSL_CONTEXT_SERVICE);
         properties.add(CHARSET);
         properties.add(USERNAME);
@@ -316,9 +341,12 @@ public abstract class AbstractElasticsearchHttpProcessor extends AbstractElastic
         if (indexOp.equalsIgnoreCase("index")) {
             sb.append("{\"index\": { \"_index\": \"");
             sb.append(StringEscapeUtils.escapeJson(index));
-            sb.append("\", \"_type\": \"");
-            sb.append(StringEscapeUtils.escapeJson(docType));
             sb.append("\"");
+            if (!(StringUtils.isEmpty(docType) | docType == null)){
+                sb.append(", \"_type\": \"");
+                sb.append(StringEscapeUtils.escapeJson(docType));
+                sb.append("\"");
+            }
             if (!StringUtils.isEmpty(id)) {
                 sb.append(", \"_id\": \"");
                 sb.append(StringEscapeUtils.escapeJson(id));
@@ -330,11 +358,15 @@ public abstract class AbstractElasticsearchHttpProcessor extends AbstractElastic
         } else if (indexOp.equalsIgnoreCase("upsert") || indexOp.equalsIgnoreCase("update")) {
             sb.append("{\"update\": { \"_index\": \"");
             sb.append(StringEscapeUtils.escapeJson(index));
-            sb.append("\", \"_type\": \"");
-            sb.append(StringEscapeUtils.escapeJson(docType));
-            sb.append("\", \"_id\": \"");
+            sb.append("\"");
+            if (!(StringUtils.isEmpty(docType) | docType == null)){
+                sb.append(", \"_type\": \"");
+                sb.append(StringEscapeUtils.escapeJson(docType));
+                sb.append("\"");
+            }
+            sb.append(", \"_id\": \"");
             sb.append(StringEscapeUtils.escapeJson(id));
-            sb.append("\" }\n");
+            sb.append("\" } }\n");
             sb.append("{\"doc\": ");
             sb.append(jsonString);
             sb.append(", \"doc_as_upsert\": ");
@@ -343,11 +375,48 @@ public abstract class AbstractElasticsearchHttpProcessor extends AbstractElastic
         } else if (indexOp.equalsIgnoreCase("delete")) {
             sb.append("{\"delete\": { \"_index\": \"");
             sb.append(StringEscapeUtils.escapeJson(index));
-            sb.append("\", \"_type\": \"");
-            sb.append(StringEscapeUtils.escapeJson(docType));
-            sb.append("\", \"_id\": \"");
+            sb.append("\"");
+            if (!(StringUtils.isEmpty(docType) | docType == null)){
+                sb.append(", \"_type\": \"");
+                sb.append(StringEscapeUtils.escapeJson(docType));
+                sb.append("\"");
+            }
+            sb.append(", \"_id\": \"");
             sb.append(StringEscapeUtils.escapeJson(id));
-            sb.append("\" }\n");
+            sb.append("\" }}\n");
+        }
+    }
+
+    protected String getFieldIncludeParameter(ElasticsearchVersion esVersion) {
+        return esVersion.equals(ElasticsearchVersion.ES_LESS_THAN_7)
+                ? FIELD_INCLUDE_QUERY_PARAM : FIELD_INCLUDE_QUERY_PARAM_ES7;
+    }
+
+    static class ElasticsearchTypeValidator implements Validator {
+        private boolean pre7TypeRequired;
+
+        /**
+         * Creates a validator for an ES type
+         * @param pre7TypeRequired If true, 'type' will be required for ES
+         * before version 7.0.
+         */
+        public ElasticsearchTypeValidator(boolean pre7TypeRequired) {
+            this.pre7TypeRequired = pre7TypeRequired;
+        }
+
+        @Override
+        public ValidationResult validate(String subject, String input, ValidationContext context) {
+            ElasticsearchVersion esVersion = ElasticsearchVersion.valueOf(context
+                    .getProperty(ES_VERSION).getValue());
+            if (esVersion == ElasticsearchVersion.ES_7) {
+                return new ValidationResult.Builder().valid(org.apache.commons.lang3.StringUtils.isBlank(input) || "_doc".equals(input))
+                        .explanation("Elasticsearch no longer supports 'type' as of version 7.0.  Please use '_doc' or leave blank.")
+                        .build();
+            } else {
+                return new ValidationResult.Builder().valid(!pre7TypeRequired || org.apache.commons.lang3.StringUtils.isNotBlank(input))
+                        .explanation("Elasticsearch prior to version 7.0 requires a 'type' to be set.")
+                        .build();
+            }
         }
     }
 }
