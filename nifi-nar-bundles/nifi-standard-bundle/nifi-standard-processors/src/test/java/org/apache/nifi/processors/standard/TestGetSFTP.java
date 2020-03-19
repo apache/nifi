@@ -97,6 +97,35 @@ public class TestGetSFTP {
     }
 
     @Test
+    public void testGetSFTPShouldNotThrowIOExceptionIfUserHomeDirNotExixts() throws IOException {
+        emptyTestDirectory();
+
+        String userHome = System.getProperty("user.home");
+        try {
+            // Set 'user.home' system property value to not_existdir
+            System.setProperty("user.home", "/not_existdir");
+            touchFile(sshTestServer.getVirtualFileSystemPath() + "testFile1.txt");
+            touchFile(sshTestServer.getVirtualFileSystemPath() + "testFile2.txt");
+
+            getSFTPRunner.run();
+
+            getSFTPRunner.assertTransferCount(GetSFTP.REL_SUCCESS, 2);
+
+            // Verify files deleted
+            for (int i = 1; i < 3; i++) {
+                Path file1 = Paths.get(sshTestServer.getVirtualFileSystemPath() + "/testFile" + i + ".txt");
+                Assert.assertTrue("File not deleted.", !file1.toAbsolutePath().toFile().exists());
+            }
+
+            getSFTPRunner.clearTransferState();
+
+        } finally {
+            // set back the original value for 'user.home' system property
+            System.setProperty("user.home", userHome);
+        }
+    }
+
+    @Test
     public void testGetSFTPIgnoreDottedFiles() throws IOException {
         emptyTestDirectory();
 

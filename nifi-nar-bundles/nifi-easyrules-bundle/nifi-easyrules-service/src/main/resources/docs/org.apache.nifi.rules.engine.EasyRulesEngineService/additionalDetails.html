@@ -21,8 +21,9 @@
 </head>
 <body>
 <h2>General</h2>
-<p>The Easy Rules Engine Service supports execution of a centralized set of rules (stored as files or provided within the service configuration) against a provided set of data called facts.  Facts sent to the service are processed against
-    the rules engine to determine what, if any, actions should be executed based on the conditions defined within the rules. The list of actions are returned to the caller to handle as needed.
+<p>The Easy Rules Engine Service supports execution of a centralized set of rules (stored as files or provided within the service configuration) against a provided set of data called facts.  It supports both the RulesEngineProvider
+    and RulesEngineService interfaces, allowing callers to send facts to the service to process against a centralized rules engine, or allowing them to retrieve an instance of a rules engine to process facts locally.
+    Upon execution, the rules engine will determine what rules have been met and return a list of actions that should be executed based on the conditions defined within the rules.
 </p>
 <p>
     Rules can be implemented in any of the following formats:

@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.util;
 
+import org.apache.nifi.kerberos.KerberosContext;
 import org.apache.nifi.processor.Processor;
 
 public class TestRunners {
@@ -28,6 +29,16 @@ public class TestRunners {
      */
     public static TestRunner newTestRunner(final Processor processor) {
         return newTestRunner(processor,processor.getClass().getName());
+    }
+
+    /**
+     * Returns a {@code TestRunner} for the given {@code Processor} which uses the given {@code KerberosContext}.
+     * @param processor the {@code Processor} under test
+     * @param kerberosContext the {@code KerberosContext} used during the test
+     * @return
+     */
+    public static TestRunner newTestRunner(final Processor processor, KerberosContext kerberosContext) {
+        return newTestRunner(processor,processor.getClass().getName(), kerberosContext);
     }
 
     /**
@@ -50,6 +61,17 @@ public class TestRunners {
      */
     public static TestRunner newTestRunner(final Processor processor, String name) {
         return new StandardProcessorTestRunner(processor, name);
+    }
+
+    /**
+     * Returns a {@code TestRunner} for the given {@code Processor} and {@code KerberosContext}.
+     * @param processor the {@code Processor} under test
+     * @param name the name to give the {@code Processor}
+     * @param kerberosContext the {@code KerberosContext} used during the test
+     * @return a {@code TestRunner}
+     */
+    public static TestRunner newTestRunner(final Processor processor, String name, KerberosContext kerberosContext) {
+        return new StandardProcessorTestRunner(processor, name, kerberosContext);
     }
 
     /**

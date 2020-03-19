@@ -179,7 +179,12 @@ public class PutAzureEventHub extends AbstractProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-        populateSenderQueue(context);
+        try {
+            populateSenderQueue(context);
+        } catch (ProcessException e) {
+            context.yield();
+            throw e;
+        }
 
         final StopWatch stopWatch = new StopWatch(true);
 
@@ -343,7 +348,7 @@ public class PutAzureEventHub extends AbstractProcessor {
             EventHubClientImpl.USER_AGENT = "ApacheNiFi-azureeventhub/2.3.2";
             return EventHubClient.createSync(getConnectionString(namespace, eventHubName, policyName, policyKey), executor);
         } catch (IOException | EventHubException | IllegalConnectionStringFormatException e) {
-            getLogger().error("Failed to create EventHubClient due to {}", e);
+            getLogger().error("Failed to create EventHubClient due to {}", new Object[]{e.getMessage()}, e);
             throw new ProcessException(e);
         }
     }

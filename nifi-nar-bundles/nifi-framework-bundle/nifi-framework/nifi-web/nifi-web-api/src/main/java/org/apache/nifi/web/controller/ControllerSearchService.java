@@ -31,6 +31,7 @@ import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ScheduledState;
+import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.groups.ProcessGroup;
@@ -74,8 +75,8 @@ public class ControllerSearchService {
      * Searches term in the controller beginning from a given process group.
      *
      * @param results Search results
-     * @param search The search term
-     * @param group The init process group
+     * @param search  The search term
+     * @param group   The init process group
      */
     public void search(final SearchResultsDTO results, final String search, final ProcessGroup group) {
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
@@ -158,6 +159,18 @@ public class ControllerSearchService {
                     match.setParentGroup(buildResultGroup(group, user));
                     match.setVersionedGroup(buildVersionedGroup(group, user));
                     results.getFunnelResults().add(match);
+                }
+            }
+        }
+
+        for (final Label label : group.getLabels()) {
+            if (label.isAuthorized(authorizer, RequestAction.READ, user)) {
+                final ComponentSearchResultDTO match = search(search, label);
+                if (match != null) {
+                    match.setGroupId(group.getIdentifier());
+                    match.setParentGroup(buildResultGroup(group, user));
+                    match.setVersionedGroup(buildVersionedGroup(group, user));
+                    results.getLabelResults().add(match);
                 }
             }
         }
@@ -507,6 +520,22 @@ public class ControllerSearchService {
         final ComponentSearchResultDTO dto = new ComponentSearchResultDTO();
         dto.setId(funnel.getIdentifier());
         dto.setName(funnel.getName());
+        dto.setMatches(matches);
+        return dto;
+    }
+
+    private ComponentSearchResultDTO search(final String searchStr, final Label label) {
+        final List<String> matches = new ArrayList<>();
+        addIfAppropriate(searchStr, label.getIdentifier(), "Id", matches);
+        addIfAppropriate(searchStr, label.getValue(), "Value", matches);
+
+        if (matches.isEmpty()) {
+            return null;
+        }
+
+        final ComponentSearchResultDTO dto = new ComponentSearchResultDTO();
+        dto.setId(label.getIdentifier());
+        dto.setName(label.getValue());
         dto.setMatches(matches);
         return dto;
     }

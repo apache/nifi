@@ -36,6 +36,7 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.ProcessGroupCounts;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.parameter.ParameterContext;
+import org.apache.nifi.parameter.ParameterUpdate;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.registry.flow.VersionControlInformation;
@@ -350,6 +351,11 @@ public class MockProcessGroup implements ProcessGroup {
 
     @Override
     public Funnel findFunnel(final String id) {
+        return null;
+    }
+
+    @Override
+    public Set<String> getAncestorServiceIds() {
         return null;
     }
 
@@ -705,7 +711,7 @@ public class MockProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public void onParameterContextUpdated() {
+    public void onParameterContextUpdated(final Map<String, ParameterUpdate> updatedParameters) {
     }
 
     @Override

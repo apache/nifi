@@ -42,8 +42,10 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxySpec;
+import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.StringUtils;
+import org.apache.nifi.util.Tuple;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -150,7 +152,8 @@ public abstract class AbstractElasticsearchHttpProcessor extends AbstractElastic
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
-    private final AtomicReference<OkHttpClient> okHttpClientAtomicReference = new AtomicReference<>();
+    private final AtomicReference<
+    ttpClient> okHttpClientAtomicReference = new AtomicReference<>();
 
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(String propertyDescriptorName) {
@@ -236,7 +239,25 @@ public abstract class AbstractElasticsearchHttpProcessor extends AbstractElastic
 
         // check if the ssl context is set and add the factory if so
         if (sslContext != null) {
-            okHttpClient.sslSocketFactory(sslContext.getSocketFactory());
+            try {
+                Tuple<SSLContext, TrustManager[]> sslContextTuple = SslContextFactory.createTrustSslContextWithTrustManagers(
+                        sslService.getKeyStoreFile(),
+                        sslService.getKeyStorePassword() != null ? sslService.getKeyStorePassword().toCharArray() : null,
+                        sslService.getKeyPassword() != null ? sslService.getKeyPassword().toCharArray() : null,
+                        sslService.getKeyStoreType(),
+                        sslService.getTrustStoreFile(),
+                        sslService.getTrustStorePassword() != null ? sslService.getTrustStorePassword().toCharArray() : null,
+                        sslService.getTrustStoreType(),
+                        SslContextFactory.ClientAuth.WANT,
+                        sslService.getSslAlgorithm()
+                );
+                List<X509TrustManager> x509TrustManagers = Arrays.stream(sslContextTuple.getValue())
+                        .filter(trustManager -> trustManager instanceof X509TrustManager)
+                        .map(trustManager -> (X509TrustManager) trustManager).collect(Collectors.toList());
+                okHttpClient.sslSocketFactory(sslContextTuple.getKey().getSocketFactory(), x509TrustManagers.get(0));
+            } catch (CertificateException | UnrecoverableKeyException | NoSuchAlgorithmException | KeyStoreException | KeyManagementException | IOException e) {
+                throw new ProcessException(e);
+            }
         }
 
         okHttpClientAtomicReference.set(okHttpClient.build());

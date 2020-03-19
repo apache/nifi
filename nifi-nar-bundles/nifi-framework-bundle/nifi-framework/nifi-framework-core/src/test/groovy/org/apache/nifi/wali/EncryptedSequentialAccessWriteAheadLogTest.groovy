@@ -18,6 +18,7 @@
 package org.apache.nifi.wali
 
 import ch.qos.logback.classic.Level
+import org.apache.commons.lang3.SystemUtils
 import org.apache.nifi.controller.queue.FlowFileQueue
 import org.apache.nifi.controller.repository.EncryptedSchemaRepositoryRecordSerde
 import org.apache.nifi.controller.repository.RepositoryRecord
@@ -32,6 +33,7 @@ import org.apache.nifi.security.kms.CryptoUtils
 import org.apache.nifi.security.repository.config.FlowFileRepositoryEncryptionConfiguration
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.junit.After
+import org.junit.Assume
 import org.junit.Before
 import org.junit.BeforeClass
 import org.junit.Rule
@@ -88,6 +90,7 @@ class EncryptedSequentialAccessWriteAheadLogTest extends GroovyTestCase {
 
     @BeforeClass
     static void setUpOnce() throws Exception {
+        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS)
         Security.addProvider(new BouncyCastleProvider())
 
         logger.metaClass.methodMissing = { String name, args ->

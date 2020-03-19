@@ -13,12 +13,12 @@
     <parent>
         <groupId>org.apache</groupId>
         <artifactId>apache</artifactId>
-        <version>21</version>
+        <version>23</version>
         <relativePath />
     </parent>
     <groupId>org.apache.nifi</groupId>
     <artifactId>nifi</artifactId>
-    <version>1.11.0-SNAPSHOT</version>
+    <version>1.12.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <description>Apache NiFi is an easy to use, powerful, and reliable system to process and distribute data.</description>
     <modules>
@@ -70,9 +70,6 @@
             <archive>https://mail-archives.apache.org/mod_mbox/nifi-commits</archive>
         </mailingList>
     </mailingLists>
-    <prerequisites>
-        <maven>${maven.min-version}</maven>
-    </prerequisites>
     <scm>
         <connection>scm:git:git://git.apache.org/nifi.git</connection>
         <developerConnection>scm:git:https://git-wip-us.apache.org/repos/asf/nifi.git</developerConnection>
@@ -87,21 +84,21 @@
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
         <maven.min-version>3.1.1</maven.min-version>
-        <maven.surefire.arguments/>
+        <maven.surefire.arguments />
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <inceptionYear>2014</inceptionYear>
-        <org.slf4j.version>1.7.26</org.slf4j.version>
+        <org.slf4j.version>1.7.30</org.slf4j.version>
         <ranger.version>2.0.0</ranger.version>
         <jetty.version>9.4.19.v20190610</jetty.version>
         <jackson.version>2.9.10</jackson.version>
-        <jackson-databind.version>2.9.10.1</jackson-databind.version>
+        <jackson-databind.version>2.9.10.3</jackson-databind.version>
         <nifi.registry.version>0.5.0</nifi.registry.version>
         <nifi.groovy.version>2.5.4</nifi.groovy.version>
         <surefire.version>2.22.0</surefire.version>
         <!-- The Hadoop version used by nifi-hadoop-libraries-nar and any NARs that depend on it, other NARs that need
             a specific version should override this property, or use a more specific property like abc.hadoop.version -->
-        <hadoop.version>3.2.0</hadoop.version>
+        <hadoop.version>3.2.1</hadoop.version>
     </properties>
 
     <repositories>
@@ -142,6 +139,33 @@
     </repositories>
 
     <pluginRepositories>
+        <pluginRepository>
+            <id>gcs-maven-central-mirror</id>
+            <!--
+              Google Mirror of Maven Central, placed first so that it's used instead of flaky Maven Central.
+              See https://storage-download.googleapis.com/maven-central/index.html
+            -->
+            <name>GCS Maven Central mirror</name>
+            <url>https://maven-central.storage-download.googleapis.com/repos/central/data/</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </pluginRepository>
+        <pluginRepository>
+            <id>central</id>
+            <name>Central Repository</name>
+            <url>https://repo.maven.apache.org/maven2</url>
+            <layout>default</layout>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+            <releases>
+                <updatePolicy>never</updatePolicy>
+            </releases>
+        </pluginRepository>
         <pluginRepository>
             <id>bintray</id>
             <name>Groovy Bintray</name>
@@ -234,7 +258,7 @@
             <dependency>
                 <groupId>junit</groupId>
                 <artifactId>junit</artifactId>
-                <version>4.12</version>
+                <version>4.13</version>
             </dependency>
             <dependency>
                 <groupId>org.mockito</groupId>
@@ -482,12 +506,12 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-checkstyle-plugin</artifactId>
-                    <version>3.0.0</version>
+                    <version>3.1.0</version>
                     <dependencies>
                         <dependency>
                             <groupId>com.puppycrawl.tools</groupId>
                             <artifactId>checkstyle</artifactId>
-                            <version>8.21</version>
+                            <version>8.29</version>
                         </dependency>
                     </dependencies>
                 </plugin>
@@ -581,76 +605,71 @@
                         <module name="Checker">
                             <property name="charset" value="UTF-8" />
                             <property name="severity" value="warning" />
-                            <property name="cacheFile" value="target/checkstyleCache" />
                             <!-- Checks for whitespace -->
                             <!-- See http://checkstyle.sf.net/config_whitespace.html -->
                             <module name="FileTabCharacter">
-                                <property name="eachLine" value="true"/>
+                                <property name="eachLine" value="true" />
+                            </module>
+                            <module name="LineLength">
+                                <!-- needs extra, because Eclipse formatter
+                                    ignores the ending left brace -->
+                                <property name="max" value="200" />
+                                <property name="ignorePattern" value="^package.*|^import.*|a href|href|http://|https://|ftp://" />
                             </module>
                             <module name="TreeWalker">
                                 <module name="RegexpSinglelineJava">
-                                    <property name="format" value="\s+$"/>
-                                    <property name="message" value="Line has trailing whitespace."/>
+                                    <property name="format" value="\s+$" />
+                                    <property name="message" value="Line has trailing whitespace." />
                                 </module>
                                 <module name="RegexpSinglelineJava">
-                                    <property name="format" value="[@]see\s+[{][@]link"/>
-                                    <property name="message" value="Javadoc @see does not need @link: pick one or the other."/>
+                                    <property name="format" value="[@]see\s+[{][@]link" />
+                                    <property name="message" value="Javadoc @see does not need @link: pick one or the other." />
                                 </module>
-                                <module name="OuterTypeFilename"/>
-                                <module name="LineLength">
-                                    <!-- needs extra, because Eclipse formatter
-                                        ignores the ending left brace -->
-                                    <property name="max" value="200"/>
-                                    <property name="ignorePattern" value="^package.*|^import.*|a href|href|http://|https://|ftp://"/>
-                                </module>
-                                <module name="AvoidStarImport"/>
+                                <module name="OuterTypeFilename" />
+                                <module name="AvoidStarImport" />
                                 <module name="UnusedImports">
-                                    <property name="processJavadoc" value="true"/>
+                                    <property name="processJavadoc" value="true" />
                                 </module>
-                                <module name="NoLineWrap"/>
-                                <module name="LeftCurly"/>
-                                <module name="RightCurly"/>
+                                <module name="NoLineWrap" />
+                                <module name="LeftCurly" />
+                                <module name="RightCurly" />
                                 <module name="RightCurly">
-                                    <property name="option" value="alone_or_singleline"/>
-                                    <property name="tokens" value="CLASS_DEF, METHOD_DEF, CTOR_DEF, LITERAL_FOR, LITERAL_WHILE, STATIC_INIT"/>
+                                    <property name="option" value="alone_or_singleline" />
+                                    <property name="tokens" value="CLASS_DEF, METHOD_DEF, CTOR_DEF, LITERAL_FOR, LITERAL_WHILE, STATIC_INIT" />
                                 </module>
                                 <module name="SeparatorWrap">
-                                    <property name="tokens" value="DOT"/>
-                                    <property name="option" value="nl"/>
+                                    <property name="tokens" value="DOT" />
+                                    <property name="option" value="nl" />
                                 </module>
                                 <module name="SeparatorWrap">
-                                    <property name="tokens" value="COMMA"/>
-                                    <property name="option" value="EOL"/>
+                                    <property name="tokens" value="COMMA" />
+                                    <property name="option" value="EOL" />
                                 </module>
                                 <module name="PackageName">
-                                    <property name="format" value="^[a-z]+(\.[a-z][a-zA-Z0-9]*)*$"/>
+                                    <property name="format" value="^[a-z]+(\.[a-z][a-zA-Z0-9]*)*$" />
                                 </module>
                                 <module name="MethodTypeParameterName">
-                                    <property name="format" value="(^[A-Z][0-9]?)$|([A-Z][a-zA-Z0-9]*[T]$)"/>
+                                    <property name="format" value="(^[A-Z][0-9]?)$|([A-Z][a-zA-Z0-9]*[T]$)" />
                                 </module>
-                                <module name="MethodParamPad"/>
+                                <module name="MethodParamPad" />
                                 <module name="OperatorWrap">
-                                    <property name="option" value="NL"/>
-                                    <property name="tokens" value="BAND, BOR, BSR, BXOR, DIV, EQUAL, GE, GT, LAND, LE, LITERAL_INSTANCEOF, LOR, LT, MINUS, MOD, NOT_EQUAL, QUESTION, SL, SR, STAR "/>
+                                    <property name="option" value="NL" />
+                                    <property name="tokens" value="BAND, BOR, BSR, BXOR, DIV, EQUAL, GE, GT, LAND, LE, LITERAL_INSTANCEOF, LOR, LT, MINUS, MOD, NOT_EQUAL, QUESTION, SL, SR, STAR " />
                                 </module>
                                 <module name="AnnotationLocation">
-                                    <property name="tokens" value="CLASS_DEF, INTERFACE_DEF, ENUM_DEF, METHOD_DEF, CTOR_DEF"/>
+                                    <property name="tokens" value="CLASS_DEF, INTERFACE_DEF, ENUM_DEF, METHOD_DEF, CTOR_DEF" />
                                 </module>
                                 <module name="AnnotationLocation">
-                                    <property name="tokens" value="VARIABLE_DEF"/>
-                                    <property name="allowSamelineMultipleAnnotations" value="true"/>
+                                    <property name="tokens" value="VARIABLE_DEF" />
+                                    <property name="allowSamelineMultipleAnnotations" value="true" />
                                 </module>
-                                <module name="NonEmptyAtclauseDescription"/>
+                                <module name="NonEmptyAtclauseDescription" />
                                 <module name="JavadocMethod">
-                                    <property name="allowUndeclaredRTE" value="true"/>
-                                    <property name="allowMissingJavadoc" value="true"/>
-                                    <property name="allowMissingParamTags" value="true"/>
-                                    <property name="allowMissingThrowsTags" value="true"/>
-                                    <property name="allowMissingReturnTag" value="true"/>
-                                    <property name="allowedAnnotations" value="Override,Test,BeforeClass,AfterClass,Before,After"/>
-                                    <property name="allowThrowsTagsForSubclasses" value="true"/>
+                                    <property name="allowMissingParamTags" value="true" />
+                                    <property name="allowMissingReturnTag" value="true" />
+                                    <property name="allowedAnnotations" value="Override,Test,BeforeClass,AfterClass,Before,After" />
                                 </module>
-                                <module name="SingleLineJavadoc"/>
+                                <module name="SingleLineJavadoc" />
                             </module>
                         </module>
                     </checkstyleRules>
@@ -669,7 +688,7 @@
                         <exclude>nbactions.xml</exclude> <!-- courtesy excludes for netbeans users -->
                         <exclude>DEPENDENCIES</exclude> <!-- auto generated file by apache's maven config while building sources.zip -->
                         <exclude>.github/PULL_REQUEST_TEMPLATE.md</exclude> <!-- PR Template for GitHub that does not have a mechanism of including comments -->
-                        <exclude>.travis-output-filters</exclude> <!-- grep patterns to exclude from travis output -->
+                        <exclude>.github/workflows/ci-workflow.yml</exclude>
                     </excludes>
                 </configuration>
             </plugin>

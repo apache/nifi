@@ -62,7 +62,6 @@ public abstract class TestInvokeHttpCommon {
 
     public TestRunner runner;
 
-
     public void addHandler(Handler handler) {
         server.addHandler(handler);
     }

@@ -200,6 +200,14 @@
                                 });
                             }
 
+                            // show all labels
+                            if (!nfCommon.isEmpty(searchResults.labelResults)) {
+                                ul.append('<li class="search-header"><div class="search-result-icon icon icon-label"></div>Labels</li>');
+                                $.each(searchResults.labelResults, function (i, labelMatch) {
+                                    nfSearchAutocomplete._renderItem(ul, $.extend({}, labelMatch, { type: 'label' }));
+                                });
+                            }
+
                             // show all parameter contexts and parameters
                             if (!nfCommon.isEmpty(searchResults.parameterContextResults)) {
                                 ul.append('<li class="search-header"><div class="search-result-icon icon"></div>Parameter Contexts</li>');

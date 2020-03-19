@@ -16,12 +16,15 @@
  */
 package org.apache.nifi.processors.standard;
 
+import org.apache.commons.lang3.SystemUtils;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.After;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.File;
@@ -44,6 +47,11 @@ public class TestPutFile {
 
     public static final String TARGET_DIRECTORY = "target/put-file";
     private File targetDir;
+
+    @BeforeClass
+    public static void setUpSuite() {
+        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
+    }
 
     @Before
     public void prepDestDirectory() throws IOException {
@@ -80,6 +88,40 @@ public class TestPutFile {
         runner.run();
         runner.assertAllFlowFilesTransferred(FetchFile.REL_SUCCESS, 1);
         Path targetPath = Paths.get(TARGET_DIRECTORY + "/new-folder/targetFile.txt");
+        byte[] content = Files.readAllBytes(targetPath);
+        assertEquals("Hello world!!", new String(content));
+    }
+
+    @Test
+    public void testCreateRelativeDirectory() throws IOException {
+        final TestRunner runner = TestRunners.newTestRunner(new PutFile());
+        String newDir = TARGET_DIRECTORY + "/new-folder";
+        runner.setProperty(PutFile.DIRECTORY, newDir);
+        runner.setProperty(PutFile.CONFLICT_RESOLUTION, PutFile.REPLACE_RESOLUTION);
+
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put(CoreAttributes.FILENAME.key(), "targetFile.txt");
+        runner.enqueue("Hello world!!".getBytes(), attributes);
+        runner.run();
+        runner.assertAllFlowFilesTransferred(FetchFile.REL_SUCCESS, 1);
+        Path targetPath = Paths.get(newDir + "/targetFile.txt");
+        byte[] content = Files.readAllBytes(targetPath);
+        assertEquals("Hello world!!", new String(content));
+    }
+
+    @Test(expected = AssertionError.class)
+    public void testCreateEmptyStringDirectory() throws IOException {
+        final TestRunner runner = TestRunners.newTestRunner(new PutFile());
+        String newDir = "";
+        runner.setProperty(PutFile.DIRECTORY, newDir);
+        runner.setProperty(PutFile.CONFLICT_RESOLUTION, PutFile.REPLACE_RESOLUTION);
+
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put(CoreAttributes.FILENAME.key(), "targetFile.txt");
+        runner.enqueue("Hello world!!".getBytes(), attributes);
+        runner.run();
+        runner.assertAllFlowFilesTransferred(FetchFile.REL_SUCCESS, 1);
+        Path targetPath = Paths.get(newDir + "/targetFile.txt");
         byte[] content = Files.readAllBytes(targetPath);
         assertEquals("Hello world!!", new String(content));
     }

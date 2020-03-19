@@ -37,7 +37,6 @@ import org.apache.nifi.controller.queue.RemoteQueuePartitionDiagnostics;
 import org.apache.nifi.controller.queue.StandardQueueDiagnostics;
 import org.apache.nifi.controller.queue.SwappablePriorityQueue;
 import org.apache.nifi.controller.queue.clustered.client.async.AsyncLoadBalanceClientRegistry;
-import org.apache.nifi.controller.queue.clustered.partition.AvailableSeekingPartitioner;
 import org.apache.nifi.controller.queue.clustered.partition.CorrelationAttributePartitioner;
 import org.apache.nifi.controller.queue.clustered.partition.FirstNodePartitioner;
 import org.apache.nifi.controller.queue.clustered.partition.FlowFilePartitioner;
@@ -145,19 +144,29 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
         sortedNodeIdentifiers.sort(Comparator.comparing(NodeIdentifier::getApiAddress));
 
         if (sortedNodeIdentifiers.isEmpty()) {
+            // No Node Identifiers are known yet. Just create the partitions using the local partition.
             queuePartitions = new QueuePartition[] { localPartition };
         } else {
-            queuePartitions = new QueuePartition[sortedNodeIdentifiers.size()];
+            // The node identifiers are known. Create the partitions using the local partition and 1 Remote Partition for each node
+            // that is not the local node identifier. If the Local Node Identifier is not yet known, that's okay. When it becomes known,
+            // the queuePartitions array will be recreated with the appropriate partitions.
+            final List<QueuePartition> partitionList = new ArrayList<>();
 
-            for (int i = 0; i < sortedNodeIdentifiers.size(); i++) {
-                final NodeIdentifier nodeId = sortedNodeIdentifiers.get(i);
-                if (nodeId.equals(clusterCoordinator.getLocalNodeIdentifier())) {
-                    queuePartitions[i] = localPartition;
+            final NodeIdentifier localNodeId = clusterCoordinator.getLocalNodeIdentifier();
+            for (final NodeIdentifier nodeId : sortedNodeIdentifiers) {
+                if (nodeId.equals(localNodeId)) {
+                    partitionList.add(localPartition);
                 } else {
-                    queuePartitions[i] = createRemotePartition(nodeId);
+                    partitionList.add(createRemotePartition(nodeId));
                 }
             }
 
+            // Ensure that our list of queue partitions always contains the local partition.
+            if (!partitionList.contains(localPartition)) {
+                partitionList.add(localPartition);
+            }
+
+            queuePartitions = partitionList.toArray(new QueuePartition[0]);
         }
 
         partitioner = new LocalPartitionPartitioner();
@@ -206,7 +215,7 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
                 partitioner = new CorrelationAttributePartitioner(partitioningAttribute);
                 break;
             case ROUND_ROBIN:
-                partitioner = new AvailableSeekingPartitioner(new RoundRobinPartitioner(), this::isFull);
+                partitioner = new RoundRobinPartitioner();
                 break;
             case SINGLE_NODE:
                 partitioner = new FirstNodePartitioner();
@@ -507,17 +516,6 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
     @Override
     public boolean isEmpty() {
         return size().getObjectCount() == 0;
-    }
-
-    @Override
-    public boolean isFull() {
-        for (QueuePartition queuePartition : queuePartitions) {
-            if (!isFull(queuePartition.size())) {
-                return false;
-            }
-        }
-
-        return true;
     }
 
     @Override

@@ -194,7 +194,6 @@ public abstract class TestWriteAvroResult {
             assertEquals(millisSinceMidnight * 1000L, avroRecord.get("timeMicros"));
             assertEquals(timeLong, avroRecord.get("timestampMillis"));
             assertEquals(timeLong * 1000L, avroRecord.get("timestampMicros"));
-            assertEquals(17260, avroRecord.get("date"));
             // Double value will be converted into logical decimal if Avro schema is defined as logical decimal.
             final Schema decimalSchema = schema.getField("decimal").schema();
             final LogicalType logicalType = decimalSchema.getLogicalType() != null

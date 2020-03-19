@@ -17,7 +17,6 @@
 package org.apache.nifi.stateless.core;
 
 import org.apache.nifi.events.EventReporter;
-import org.apache.nifi.remote.exception.NoValidPeerException;
 import org.apache.nifi.stateless.bootstrap.InMemoryFlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.DataUnit;
@@ -115,8 +114,8 @@ public class StatelessRemoteOutputPort extends AbstractStatelessComponent {
         try {
             final Transaction transaction = client.createTransaction(TransferDirection.RECEIVE);
             if (transaction == null) {
-                getLogger().debug("No flowfiles to receive");
-                return true;
+                getLogger().error("Unable to create a transaction for Remote Process Group {} to pull from port {}", new Object[]{url, name});
+                return false;
             }
 
             final Queue<StatelessFlowFile> destinationQueue = new LinkedList<>();
@@ -140,9 +139,6 @@ public class StatelessRemoteOutputPort extends AbstractStatelessComponent {
 
             transaction.confirm();
             transaction.complete();
-        } catch (final NoValidPeerException e) {
-            getLogger().error("Unable to create a transaction for Remote Process Group {} to pull from port {}", new Object[]{url, name});
-            return false;
         } catch (final Exception e) {
             getLogger().error("Failed to receive FlowFile via site-to-site", e);
             return false;

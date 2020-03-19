@@ -242,8 +242,15 @@ public class JerseyConnectionClient extends AbstractJerseyClient implements Conn
         });
     }
 
+
     @Override
     public FlowFileEntity getFlowFile(final String connectionId, final String flowFileUuid) throws NiFiClientException, IOException {
+        return getFlowFile(connectionId, flowFileUuid, null);
+    }
+
+
+    @Override
+    public FlowFileEntity getFlowFile(final String connectionId, final String flowFileUuid, final String nodeId) throws NiFiClientException, IOException {
         if (connectionId == null) {
             throw new IllegalArgumentException("Connection ID cannot be null");
         }
@@ -252,10 +259,14 @@ public class JerseyConnectionClient extends AbstractJerseyClient implements Conn
         }
 
         return executeAction("Error retrieving FlowFile", () -> {
-            final WebTarget target = flowFileQueueTarget
+            WebTarget target = flowFileQueueTarget
                 .path("flowfiles/{uuid}")
                 .resolveTemplate("id", connectionId)
                 .resolveTemplate("uuid", flowFileUuid);
+
+            if (nodeId != null) {
+                target = target.queryParam("clusterNodeId", nodeId);
+            }
 
             return getRequestBuilder(target).get(FlowFileEntity.class);
         });

@@ -47,14 +47,14 @@ public final class AuthorizerFactory {
     }
 
     /**
-     * Checks if another tenant (user or group) exists with the same identity.
+     * Checks if another user exists with the same identity.
      *
-     * @param userGroupProvider the userGroupProvider to use to lookup the tenant
-     * @param identifier identity of the tenant
-     * @param identity identity of the tenant
-     * @return true if another tenant exists with the same identity, false otherwise
+     * @param userGroupProvider the userGroupProvider to use to lookup the user
+     * @param identifier identity of the user
+     * @param identity identity of the user
+     * @return true if another user exists with the same identity, false otherwise
      */
-    private static boolean tenantExists(final UserGroupProvider userGroupProvider, final String identifier, final String identity) {
+    private static boolean userExists(final UserGroupProvider userGroupProvider, final String identifier, final String identity) {
         for (User user : userGroupProvider.getUsers()) {
             if (!user.getIdentifier().equals(identifier)
                     && user.getIdentity().equals(identity)) {
@@ -62,6 +62,18 @@ public final class AuthorizerFactory {
             }
         }
 
+        return false;
+    }
+
+    /**
+     * Checks if another group exists with the same identity.
+     *
+     * @param userGroupProvider the userGroupProvider to use to lookup the group
+     * @param identifier identity of the group
+     * @param identity identity of the group
+     * @return true if another group exists with the same identity, false otherwise
+     */
+    private static boolean groupExists(final UserGroupProvider userGroupProvider, final String identifier, final String identity) {
         for (Group group : userGroupProvider.getGroups()) {
             if (!group.getIdentifier().equals(identifier)
                     && group.getName().equals(identity)) {
@@ -209,7 +221,7 @@ public final class AuthorizerFactory {
 
                                         @Override
                                         public User addUser(User user) throws AuthorizationAccessException {
-                                            if (tenantExists(baseConfigurableUserGroupProvider, user.getIdentifier(), user.getIdentity())) {
+                                            if (userExists(baseConfigurableUserGroupProvider, user.getIdentifier(), user.getIdentity())) {
                                                 throw new IllegalStateException(String.format("User/user group already exists with the identity '%s'.", user.getIdentity()));
                                             }
                                             return baseConfigurableUserGroupProvider.addUser(user);
@@ -222,7 +234,7 @@ public final class AuthorizerFactory {
 
                                         @Override
                                         public User updateUser(User user) throws AuthorizationAccessException {
-                                            if (tenantExists(baseConfigurableUserGroupProvider, user.getIdentifier(), user.getIdentity())) {
+                                            if (userExists(baseConfigurableUserGroupProvider, user.getIdentifier(), user.getIdentity())) {
                                                 throw new IllegalStateException(String.format("User/user group already exists with the identity '%s'.", user.getIdentity()));
                                             }
                                             if (!baseConfigurableUserGroupProvider.isConfigurable(user)) {
@@ -241,7 +253,7 @@ public final class AuthorizerFactory {
 
                                         @Override
                                         public Group addGroup(Group group) throws AuthorizationAccessException {
-                                            if (tenantExists(baseConfigurableUserGroupProvider, group.getIdentifier(), group.getName())) {
+                                            if (groupExists(baseConfigurableUserGroupProvider, group.getIdentifier(), group.getName())) {
                                                 throw new IllegalStateException(String.format("User/user group already exists with the identity '%s'.", group.getName()));
                                             }
                                             if (!allGroupUsersExist(baseConfigurableUserGroupProvider, group)) {
@@ -257,7 +269,7 @@ public final class AuthorizerFactory {
 
                                         @Override
                                         public Group updateGroup(Group group) throws AuthorizationAccessException {
-                                            if (tenantExists(baseConfigurableUserGroupProvider, group.getIdentifier(), group.getName())) {
+                                            if (groupExists(baseConfigurableUserGroupProvider, group.getIdentifier(), group.getName())) {
                                                 throw new IllegalStateException(String.format("User/user group already exists with the identity '%s'.", group.getName()));
                                             }
                                             if (!allGroupUsersExist(baseConfigurableUserGroupProvider, group)) {
@@ -378,14 +390,14 @@ public final class AuthorizerFactory {
 
                     // ensure that only one group exists per identity
                     for (User user : userGroupProvider.getUsers()) {
-                        if (tenantExists(userGroupProvider, user.getIdentifier(), user.getIdentity())) {
+                        if (userExists(userGroupProvider, user.getIdentifier(), user.getIdentity())) {
                             throw new AuthorizerCreationException(String.format("Found multiple users/user groups with identity '%s'.", user.getIdentity()));
                         }
                     }
 
                     // ensure that only one group exists per identity
                     for (Group group : userGroupProvider.getGroups()) {
-                        if (tenantExists(userGroupProvider, group.getIdentifier(), group.getName())) {
+                        if (groupExists(userGroupProvider, group.getIdentifier(), group.getName())) {
                             throw new AuthorizerCreationException(String.format("Found multiple users/user groups with name '%s'.", group.getName()));
                         }
                     }

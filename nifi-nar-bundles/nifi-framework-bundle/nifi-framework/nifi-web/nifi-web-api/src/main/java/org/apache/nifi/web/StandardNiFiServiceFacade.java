@@ -4399,7 +4399,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     @Override
     public VersionedFlowSnapshot getCurrentFlowSnapshotByGroupId(final String processGroupId) {
         final ProcessGroup processGroup = processGroupDAO.getProcessGroup(processGroupId);
-        final VersionControlInformation versionControlInfo = processGroup.getVersionControlInformation();
 
         // Create a complete (include descendant flows) VersionedProcessGroup snapshot of the flow as it is
         // currently without any registry related fields populated, even if the flow is currently versioned.
@@ -4481,6 +4480,23 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
+    public boolean isAnyProcessGroupUnderVersionControl(final String groupId) {
+        return isProcessGroupUnderVersionControl(processGroupDAO.getProcessGroup(groupId));
+    }
+
+    private boolean isProcessGroupUnderVersionControl(final ProcessGroup processGroup) {
+        if (processGroup.getVersionControlInformation() != null) {
+            return true;
+        }
+        final Set<ProcessGroup> childGroups = processGroup.getProcessGroups();
+        if (childGroups != null) {
+            return childGroups.stream()
+                    .anyMatch(childGroup -> isProcessGroupUnderVersionControl(childGroup));
+        }
+        return false;
+    }
+
+    @Override
     public VersionControlInformationEntity getVersionControlInformation(final String groupId) {
         final ProcessGroup processGroup = processGroupDAO.getProcessGroup(groupId);
         final VersionControlInformation versionControlInfo = processGroup.getVersionControlInformation();
@@ -4534,7 +4550,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final ComparableDataFlow localFlow = new StandardComparableDataFlow("Local Flow", localGroup);
         final ComparableDataFlow registryFlow = new StandardComparableDataFlow("Versioned Flow", registryGroup);
 
-        final Set<String> ancestorServiceIds = getAncestorGroupServiceIds(processGroup);
+        final Set<String> ancestorServiceIds = processGroup.getAncestorServiceIds();
         final FlowComparator flowComparator = new StandardFlowComparator(registryFlow, localFlow, ancestorServiceIds, new ConciseEvolvingDifferenceDescriptor());
         final FlowComparison flowComparison = flowComparator.compare();
 
@@ -4543,31 +4559,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final FlowComparisonEntity entity = new FlowComparisonEntity();
         entity.setComponentDifferences(differenceDtos);
         return entity;
-    }
-
-    private Set<String> getAncestorGroupServiceIds(final ProcessGroup group) {
-        final Set<String> ancestorServiceIds;
-        ProcessGroup parentGroup = group.getParent();
-
-        if (parentGroup == null) {
-            ancestorServiceIds = Collections.emptySet();
-        } else {
-            ancestorServiceIds = parentGroup.getControllerServices(true).stream()
-                .map(cs -> {
-                    // We want to map the Controller Service to its Versioned Component ID, if it has one.
-                    // If it does not have one, we want to generate it in the same way that our Flow Mapper does
-                    // because this allows us to find the Controller Service when doing a Flow Diff.
-                    final Optional<String> versionedId = cs.getVersionedComponentId();
-                    if (versionedId.isPresent()) {
-                        return versionedId.get();
-                    }
-
-                    return UUID.nameUUIDFromBytes(cs.getIdentifier().getBytes(StandardCharsets.UTF_8)).toString();
-                })
-                .collect(Collectors.toSet());
-        }
-
-        return ancestorServiceIds;
     }
 
     @Override
@@ -4660,17 +4651,17 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public Set<AffectedComponentEntity> getComponentsAffectedByVersionChange(final String processGroupId, final VersionedFlowSnapshot updatedSnapshot) {
+    public Set<AffectedComponentEntity> getComponentsAffectedByFlowUpdate(final String processGroupId, final VersionedFlowSnapshot updatedSnapshot) {
         final ProcessGroup group = processGroupDAO.getProcessGroup(processGroupId);
 
         final NiFiRegistryFlowMapper mapper = makeNiFiRegistryFlowMapper(controllerFacade.getExtensionManager());
         final VersionedProcessGroup localContents = mapper.mapProcessGroup(group, controllerFacade.getControllerServiceProvider(), flowRegistryClient, true);
 
-        final ComparableDataFlow localFlow = new StandardComparableDataFlow("Local Flow", localContents);
-        final ComparableDataFlow proposedFlow = new StandardComparableDataFlow("Versioned Flow", updatedSnapshot.getFlowContents());
+        final ComparableDataFlow localFlow = new StandardComparableDataFlow("Current Flow", localContents);
+        final ComparableDataFlow proposedFlow = new StandardComparableDataFlow("New Flow", updatedSnapshot.getFlowContents());
 
-        final Set<String> ancestorGroupServiceIds = getAncestorGroupServiceIds(group);
-        final FlowComparator flowComparator = new StandardFlowComparator(localFlow, proposedFlow, ancestorGroupServiceIds, new StaticDifferenceDescriptor());
+        final Set<String> ancestorServiceIds = group.getAncestorServiceIds();
+        final FlowComparator flowComparator = new StandardFlowComparator(localFlow, proposedFlow, ancestorServiceIds, new StaticDifferenceDescriptor());
         final FlowComparison comparison = flowComparator.compare();
 
         final FlowManager flowManager = controllerFacade.getFlowManager();
@@ -4847,7 +4838,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             if (versionedIdOption.isPresent()) {
                 versionedId = versionedIdOption.get();
             } else {
-                versionedId = UUID.nameUUIDFromBytes(connectable.getIdentifier().getBytes(StandardCharsets.UTF_8)).toString();
+                versionedId = NiFiRegistryFlowMapper.generateVersionedComponentId(connectable.getIdentifier());
             }
 
             final List<Connectable> byVersionedId = destination.computeIfAbsent(versionedId, key -> new ArrayList<>());
@@ -5027,7 +5018,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     @Override
     public ProcessGroupEntity updateProcessGroupContents(final Revision revision, final String groupId, final VersionControlInformationDTO versionControlInfo,
                                                          final VersionedFlowSnapshot proposedFlowSnapshot, final String componentIdSeed, final boolean verifyNotModified,
-                                                         final boolean updateSettings, final boolean updateDescendantVersionedFlows, final Supplier<String> idGenerator) {
+                                                         final boolean updateSettings, final boolean updateDescendantVersionedFlows) {
 
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
 

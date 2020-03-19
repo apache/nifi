@@ -16,17 +16,6 @@
  */
 package org.apache.nifi.jms.cf;
 
-import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map.Entry;
-import java.util.stream.Collectors;
-
-import javax.jms.ConnectionFactory;
-import javax.net.ssl.SSLContext;
-
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
@@ -34,17 +23,12 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.components.Validator;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
-import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.ssl.SSLContextService;
-import org.apache.nifi.ssl.SSLContextService.ClientAuth;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import javax.jms.ConnectionFactory;
+import java.util.List;
 
 /**
  * Provides a factory service that creates and initializes
@@ -52,14 +36,14 @@ import org.slf4j.LoggerFactory;
  * <p>
  * It accomplishes it by adjusting current classpath by adding to it the
  * additional resources (i.e., JMS client libraries) provided by the user via
- * {@link #CLIENT_LIB_DIR_PATH}, allowing it then to create an instance of the
+ * {@link JMSConnectionFactoryProperties#JMS_CLIENT_LIBRARIES}, allowing it then to create an instance of the
  * target {@link ConnectionFactory} based on the provided
- * {@link #CONNECTION_FACTORY_IMPL} which can be than access via
+ * {@link JMSConnectionFactoryProperties#JMS_CONNECTION_FACTORY_IMPL} which can be than access via
  * {@link #getConnectionFactory()} method.
  */
 @Tags({"jms", "messaging", "integration", "queue", "topic", "publish", "subscribe"})
 @CapabilityDescription("Provides a generic service to create vendor specific javax.jms.ConnectionFactory implementations. "
-        + "ConnectionFactory can be served once this service is configured successfully")
+        + "The Connection Factory can be served once this service is configured successfully.")
 @DynamicProperty(name = "The name of a Connection Factory configuration property.", value = "The value of a given Connection Factory configuration property.",
         description = "The properties that are set following Java Beans convention where a property name is derived from the 'set*' method of the vendor "
                 + "specific ConnectionFactory's implementation. For example, 'com.ibm.mq.jms.MQConnectionFactory.setChannel(String)' would imply 'channel' "
@@ -68,289 +52,36 @@ import org.slf4j.LoggerFactory;
 @SeeAlso(classNames = {"org.apache.nifi.jms.processors.ConsumeJMS", "org.apache.nifi.jms.processors.PublishJMS"})
 public class JMSConnectionFactoryProvider extends AbstractControllerService implements JMSConnectionFactoryProviderDefinition {
 
-    private final Logger logger = LoggerFactory.getLogger(JMSConnectionFactoryProvider.class);
-
-    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS;
-
-    private volatile boolean configured;
-
-    private volatile ConnectionFactory connectionFactory;
-
-    private static final String BROKER = "broker";
-    private static final String CF_IMPL = "cf";
-    private static final String CF_LIB = "cflib";
-
-    public static final PropertyDescriptor CONNECTION_FACTORY_IMPL = new PropertyDescriptor.Builder()
-            .name(CF_IMPL)
-            .displayName("MQ ConnectionFactory Implementation")
-            .description("A fully qualified name of the JMS ConnectionFactory implementation "
-                    + "class (i.e., org.apache.activemq.ActiveMQConnectionFactory)")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .build();
-    public static final PropertyDescriptor CLIENT_LIB_DIR_PATH = new PropertyDescriptor.Builder()
-            .name(CF_LIB)
-            .displayName("MQ Client Libraries path (i.e. /usr/jms/lib)")
-            .description("Path to the directory with additional resources (i.e., JARs, configuration files etc.) to be added "
-                    + "to the classpath. Such resources typically represent target MQ client libraries for the "
-                    + "ConnectionFactory implementation. Required if target is not ActiveMQ.")
-            .addValidator(StandardValidators.createListValidator(true, true, StandardValidators.createURLorFileValidator()))
-            .required(false)
-            .dynamicallyModifiesClasspath(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .build();
-
-    // ConnectionFactory specific properties
-    public static final PropertyDescriptor BROKER_URI = new PropertyDescriptor.Builder()
-            .name(BROKER)
-            .displayName("Broker URI")
-            .description("URI pointing to the network location of the JMS Message broker. Example for ActiveMQ: "
-                    + "'tcp://myhost:61616'. Examples for IBM MQ: 'myhost(1414)' and 'myhost01(1414),myhost02(1414)'")
-            .addValidator(new NonEmptyBrokerURIValidator())
-            .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .build();
-
-    public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
-            .name("SSL Context Service")
-            .description("The SSL Context Service used to provide client certificate information for TLS/SSL connections.")
-            .required(false)
-            .identifiesControllerService(SSLContextService.class)
-            .build();
-
-    static {
-        PROPERTY_DESCRIPTORS = Collections.unmodifiableList(Arrays.asList(CONNECTION_FACTORY_IMPL, CLIENT_LIB_DIR_PATH, BROKER_URI, SSL_CONTEXT_SERVICE));
-    }
+    protected volatile JMSConnectionFactoryHandler delegate;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTY_DESCRIPTORS;
+        return JMSConnectionFactoryProperties.getPropertyDescriptors();
     }
 
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
-        return new PropertyDescriptor.Builder()
-                .description("Specifies the value for '" + propertyDescriptorName
-                        + "' property to be set on the provided ConnectionFactory implementation.")
-                .name(propertyDescriptorName)
-                .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-                .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-                .dynamic(true)
-                .build();
+        return JMSConnectionFactoryProperties.getDynamicPropertyDescriptor(propertyDescriptorName);
+    }
+
+    @OnEnabled
+    public void onEnabled(ConfigurationContext context) {
+        delegate = new JMSConnectionFactoryHandler(context, getLogger());
+    }
+
+    @OnDisabled
+    public void onDisabled() {
+        delegate = null;
+    }
+
+    @Override
+    public ConnectionFactory getConnectionFactory() {
+        return delegate.getConnectionFactory();
     }
 
     @Override
     public void resetConnectionFactory(ConnectionFactory cachedFactory) {
-        if (cachedFactory == connectionFactory) {
-            getLogger().debug("Resetting connection factory");
-            connectionFactory = null;
-        }
+        delegate.resetConnectionFactory(cachedFactory);
     }
 
-    /**
-     * @return new instance of {@link ConnectionFactory}
-     */
-    @Override
-    public ConnectionFactory getConnectionFactory() {
-        if (this.configured) {
-            return this.connectionFactory;
-        }
-        throw new IllegalStateException("ConnectionFactory can not be obtained unless "
-                + "this ControllerService is configured. See onConfigure(ConfigurationContext) method.");
-    }
-
-    @OnEnabled
-    public void enable(ConfigurationContext context) {
-        try {
-            if (!this.configured) {
-                if (logger.isInfoEnabled()) {
-                    logger.info("Configuring " + this.getClass().getSimpleName() + " for '"
-                            + context.getProperty(CONNECTION_FACTORY_IMPL).evaluateAttributeExpressions().getValue() + "' to be connected to '"
-                            + context.getProperty(BROKER_URI).evaluateAttributeExpressions().getValue() + "'");
-                }
-
-                this.createConnectionFactoryInstance(context);
-                this.setConnectionFactoryProperties(context);
-            }
-            this.configured = true;
-        } catch (Exception e) {
-            logger.error("Failed to configure " + this.getClass().getSimpleName(), e);
-            this.configured = false;
-            throw new IllegalStateException(e);
-        }
-    }
-
-    @OnDisabled
-    public void disable() {
-        this.connectionFactory = null;
-        this.configured = false;
-    }
-
-    /**
-     * This operation follows standard bean convention by matching property name
-     * to its corresponding 'setter' method. Once the method was located it is
-     * invoked to set the corresponding property to a value provided by during
-     * service configuration. For example, 'channel' property will correspond to
-     * 'setChannel(..) method and 'queueManager' property will correspond to
-     * setQueueManager(..) method with a single argument. The bean convention is also
-     * explained in user manual for this component with links pointing to
-     * documentation of various ConnectionFactories.
-     * <p>
-     * There are also few adjustments to accommodate well known brokers. For
-     * example ActiveMQ ConnectionFactory accepts address of the Message Broker
-     * in a form of URL while IBMs in the form of host/port pair(s).
-     * <p>
-     * This method will use the value retrieved from the 'BROKER_URI' static
-     * property as is. An exception to this if ConnectionFactory implementation
-     * is coming from IBM MQ and connecting to a stand-alone queue manager. In
-     * this case the Broker URI is expected to be entered as a colon separated
-     * host/port pair, which then is split on ':' and the resulting pair will be
-     * used to execute setHostName(..) and setPort(..) methods on the provided
-     * ConnectionFactory.
-     * <p>
-     * This method may need to be maintained and adjusted to accommodate other
-     * implementation of ConnectionFactory, but only for URL/Host/Port issue.
-     * All other properties are set as dynamic properties where user essentially
-     * provides both property name and value.
-     *
-     * @see <a href="http://activemq.apache.org/maven/apidocs/org/apache/activemq/ActiveMQConnectionFactory.html#setBrokerURL-java.lang.String-">setBrokerURL(String brokerURL)</a>
-     * @see <a href="https://docs.tibco.com/pub/enterprise_message_service/8.1.0/doc/html/tib_ems_api_reference/api/javadoc/com/tibco/tibjms/TibjmsConnectionFactory.html#setServerUrl(java.lang.String)">setServerUrl(String serverUrl)</a>
-     * @see <a href="https://www.ibm.com/support/knowledgecenter/en/SSFKSJ_7.1.0/com.ibm.mq.javadoc.doc/WMQJMSClasses/com/ibm/mq/jms/MQConnectionFactory.html#setHostName_java.lang.String_">setHostName(String hostname)</a>
-     * @see <a href="https://www.ibm.com/support/knowledgecenter/en/SSFKSJ_7.1.0/com.ibm.mq.javadoc.doc/WMQJMSClasses/com/ibm/mq/jms/MQConnectionFactory.html#setPort_int_">setPort(int port)</a>
-     * @see <a href="https://www.ibm.com/support/knowledgecenter/en/SSFKSJ_7.1.0/com.ibm.mq.javadoc.doc/WMQJMSClasses/com/ibm/mq/jms/MQConnectionFactory.html#setConnectionNameList_java.lang.String_">setConnectionNameList(String hosts)</a>
-     * @see #setProperty(String propertyName, Object propertyValue)
-     */
-    void setConnectionFactoryProperties(ConfigurationContext context) {
-        if (context.getProperty(BROKER_URI).isSet()) {
-            String brokerValue = context.getProperty(BROKER_URI).evaluateAttributeExpressions().getValue();
-            String connectionFactoryValue = context.getProperty(CONNECTION_FACTORY_IMPL).evaluateAttributeExpressions().getValue();
-            if (connectionFactoryValue.startsWith("org.apache.activemq")) {
-                this.setProperty("brokerURL", brokerValue);
-            } else if (connectionFactoryValue.startsWith("com.tibco.tibjms")) {
-                this.setProperty("serverUrl", brokerValue);
-            } else {
-                String[] brokerList = brokerValue.split(",");
-                if (connectionFactoryValue.startsWith("com.ibm.mq.jms")) {
-                    List<String> ibmConList = new ArrayList<String>();
-                    for (String broker : brokerList) {
-                        String[] hostPort = broker.split(":");
-                        if (hostPort.length == 2) {
-                            ibmConList.add(hostPort[0]+"("+hostPort[1]+")");
-                        } else {
-                            ibmConList.add(broker);
-                        }
-                    }
-                    this.setProperty("connectionNameList", String.join(",", ibmConList));
-                } else {
-                    // Try to parse broker URI as colon separated host/port pair. Use first pair if multiple given.
-                    String[] hostPort = brokerList[0].split(":");
-                    if (hostPort.length == 2) {
-                        // If broker URI indeed was colon separated host/port pair
-                        this.setProperty("hostName", hostPort[0]);
-                        this.setProperty("port", hostPort[1]);
-                    }
-                }
-            }
-        }
-
-        SSLContextService sc = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
-        if (sc != null) {
-            SSLContext ssl = sc.createSSLContext(ClientAuth.NONE);
-            this.setProperty("sSLSocketFactory", ssl.getSocketFactory());
-        }
-
-        List<Entry<PropertyDescriptor, String>> dynamicProperties = context.getProperties().entrySet().stream()
-                .filter(entry -> entry.getKey().isDynamic())
-                .collect(Collectors.toList());
-
-        for (Entry<PropertyDescriptor, String> entry : dynamicProperties) {
-            PropertyDescriptor descriptor = entry.getKey();
-            String propertyName = descriptor.getName();
-            String propertyValue = context.getProperty(descriptor).evaluateAttributeExpressions().getValue();
-            this.setProperty(propertyName, propertyValue);
-        }
-    }
-
-    /**
-     * Sets corresponding {@link ConnectionFactory}'s property to a
-     * 'propertyValue' by invoking a 'setter' method that corresponds to
-     * 'propertyName'. For example, 'channel' property will correspond to
-     * 'setChannel(..) method and 'queueManager' property will correspond to
-     * setQueueManager(..) method with a single argument.
-     * <p>
-     * NOTE: There is a limited type conversion to accommodate property value
-     * types since all NiFi configuration properties comes as String. It is
-     * accomplished by checking the argument type of the method and executing
-     * its corresponding conversion to target primitive (e.g., value 'true' will
-     * go thru Boolean.parseBoolean(propertyValue) if method argument is of type
-     * boolean). None-primitive values are not supported at the moment and will
-     * result in {@link IllegalArgumentException}. It is OK though since based
-     * on analysis of several ConnectionFactory implementation the all seem to
-     * follow bean convention and all their properties using Java primitives as
-     * arguments.
-     */
-    void setProperty(String propertyName, Object propertyValue) {
-        String methodName = this.toMethodName(propertyName);
-        Method[] methods = Utils.findMethods(methodName, this.connectionFactory.getClass());
-        if (methods != null && methods.length > 0) {
-            try {
-                for (Method method : methods) {
-                    Class<?> returnType = method.getParameterTypes()[0];
-                    if (String.class.isAssignableFrom(returnType)) {
-                        method.invoke(this.connectionFactory, propertyValue);
-                        return;
-                    } else if (int.class.isAssignableFrom(returnType)) {
-                        method.invoke(this.connectionFactory, Integer.parseInt((String) propertyValue));
-                        return;
-                    } else if (long.class.isAssignableFrom(returnType)) {
-                        method.invoke(this.connectionFactory, Long.parseLong((String) propertyValue));
-                        return;
-                    } else if (boolean.class.isAssignableFrom(returnType)) {
-                        method.invoke(this.connectionFactory, Boolean.parseBoolean((String) propertyValue));
-                        return;
-                    }
-                }
-                methods[0].invoke(this.connectionFactory, propertyValue);
-            } catch (Exception e) {
-                throw new IllegalStateException("Failed to set property " + propertyName, e);
-            }
-        } else if (propertyName.equals("hostName")) {
-            this.setProperty("host", propertyValue); // try 'host' as another common convention.
-        }
-    }
-
-    /**
-     * Creates an instance of the {@link ConnectionFactory} from the provided
-     * 'CONNECTION_FACTORY_IMPL'.
-     */
-    private void createConnectionFactoryInstance(ConfigurationContext context) {
-        String connectionFactoryImplName = context.getProperty(CONNECTION_FACTORY_IMPL).evaluateAttributeExpressions().getValue();
-        this.connectionFactory = Utils.newDefaultInstance(connectionFactoryImplName);
-    }
-
-    /**
-     * Will convert propertyName to a method name following bean convention. For
-     * example, 'channel' property will correspond to 'setChannel method and
-     * 'queueManager' property will correspond to setQueueManager method name
-     */
-    private String toMethodName(String propertyName) {
-        char c[] = propertyName.toCharArray();
-        c[0] = Character.toUpperCase(c[0]);
-        return "set" + new String(c);
-    }
-
-    /**
-     * {@link Validator} that ensures that brokerURI's length > 0 after EL
-     * evaluation
-     */
-    static class NonEmptyBrokerURIValidator implements Validator {
-        @Override
-        public ValidationResult validate(String subject, String input, ValidationContext context) {
-            if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input)) {
-                return new ValidationResult.Builder().subject(subject).input(input).explanation("Expression Language Present").valid(true).build();
-            }
-            return StandardValidators.NON_EMPTY_VALIDATOR.validate(subject, input, context);
-        }
-    }
 }

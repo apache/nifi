@@ -139,7 +139,6 @@ public abstract class AbstractAzureLogAnalyticsReportingTask extends AbstractRep
         request.addHeader("Authorization", createAuthorization);
         request.addHeader("x-ms-date", nowRfc1123);
         request.setEntity(new StringEntity(rawJson));
-        request.setEntity(new StringEntity(rawJson));
         try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
             postRequest(httpClient, request);
         }

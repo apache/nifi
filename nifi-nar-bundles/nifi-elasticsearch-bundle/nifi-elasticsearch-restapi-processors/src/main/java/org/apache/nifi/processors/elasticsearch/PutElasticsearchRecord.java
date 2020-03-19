@@ -224,8 +224,6 @@ public class PutElasticsearchRecord extends AbstractProcessor implements Elastic
                     badRecords.add(bad);
                 }
             }
-
-            session.transfer(input, REL_SUCCESS);
         } catch (ElasticsearchError ese) {
             String msg = String.format("Encountered a server-side problem with Elasticsearch. %s",
                     ese.isElastic() ? "Moving to retry." : "Moving to failure");
@@ -234,11 +232,14 @@ public class PutElasticsearchRecord extends AbstractProcessor implements Elastic
             session.penalize(input);
             session.transfer(input, rel);
             removeBadRecordFlowFiles(badRecords, session);
+            return;
         } catch (Exception ex) {
             getLogger().error("Could not index documents.", ex);
             session.transfer(input, REL_FAILURE);
             removeBadRecordFlowFiles(badRecords, session);
+            return;
         }
+        session.transfer(input, REL_SUCCESS);
     }
 
     private void removeBadRecordFlowFiles(List<FlowFile> bad, ProcessSession session) {

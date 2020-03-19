@@ -62,6 +62,7 @@ public class AzureLogAnalyticsReportingTask extends AbstractAzureLogAnalyticsRep
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> properties = new ArrayList<>();
+        properties.add(SEND_JVM_METRICS);
         properties.add(LOG_ANALYTICS_WORKSPACE_ID);
         properties.add(LOG_ANALYTICS_CUSTOM_LOG_NAME);
         properties.add(LOG_ANALYTICS_WORKSPACE_KEY);
