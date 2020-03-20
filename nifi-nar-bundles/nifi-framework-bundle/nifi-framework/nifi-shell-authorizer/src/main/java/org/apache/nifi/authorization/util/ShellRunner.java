@@ -33,13 +33,18 @@ public class ShellRunner {
 
     static String SHELL = "sh";
     static String OPTS = "-c";
-    static Integer TIMEOUT = 60;
 
-    public static List<String> runShell(String command) throws IOException {
+    private final long timeoutSeconds;
+
+    public ShellRunner(final long timeoutSeconds) {
+        this.timeoutSeconds = timeoutSeconds;
+    }
+
+    public List<String> runShell(String command) throws IOException {
         return runShell(command, "<unknown>");
     }
 
-    public static List<String> runShell(String command, String description) throws IOException {
+    public List<String> runShell(String command, String description) throws IOException {
         final ProcessBuilder builder = new ProcessBuilder(SHELL, OPTS, command);
         final List<String> builderCommand = builder.command();
 
@@ -48,7 +53,7 @@ public class ShellRunner {
 
         boolean completed;
         try {
-            completed = proc.waitFor(TIMEOUT, TimeUnit.SECONDS);
+            completed = proc.waitFor(timeoutSeconds, TimeUnit.SECONDS);
         } catch (InterruptedException irexc) {
             throw new IOException(irexc.getMessage(), irexc.getCause());
         }
