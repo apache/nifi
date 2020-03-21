@@ -17,14 +17,10 @@
 package org.apache.nifi.security.util.crypto;
 
 import at.favre.lib.crypto.bcrypt.BCrypt;
-import org.bouncycastle.util.encoders.Base64;
+import java.util.concurrent.TimeUnit;
 import org.bouncycastle.util.encoders.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.nio.charset.StandardCharsets;
-import java.security.SecureRandom;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Provides an implementation of {@code Bcrypt} for secure password hashing.
@@ -38,7 +34,7 @@ import java.util.concurrent.TimeUnit;
  * <p>
  * The resulting output is referred to as a <em>hash</em> to be consistent with {@link SecureHasher} terminology.
  */
-public class BcryptSecureHasher implements SecureHasher {
+public class BcryptSecureHasher extends AbstractSecureHasher {
     private static final Logger logger = LoggerFactory.getLogger(BcryptSecureHasher.class);
 
     /**
@@ -52,14 +48,6 @@ public class BcryptSecureHasher implements SecureHasher {
     private static final int MIN_SALT_LENGTH = 16;
 
     private final int cost;
-    private final int saltLength;
-
-    // TODO: Move to AbstractSecureHasher
-    private boolean usingStaticSalt;
-
-    // TODO: Move to AbstractSecureHasher
-    // A 16 byte salt (nonce) is recommended for password hashing
-    private static final byte[] STATIC_SALT = "NiFi Static Salt".getBytes(StandardCharsets.UTF_8);
 
     /**
      * Instantiates a Bcrypt secure hasher using the default cost parameter
@@ -83,7 +71,7 @@ public class BcryptSecureHasher implements SecureHasher {
      * Instantiates an Bcrypt secure hasher using the provided cost parameters. A unique
      * salt of the specified length will be generated on every hash request.
      *
-     * @param cost the (log) number of key expansion rounds [4..31]
+     * @param cost       the (log) number of key expansion rounds [4..31]
      * @param saltLength the salt length in bytes {@code >= 8})
      */
     public BcryptSecureHasher(int cost, int saltLength) {
@@ -95,7 +83,7 @@ public class BcryptSecureHasher implements SecureHasher {
     /**
      * Enforces valid Scrypt secure hasher cost parameters are provided.
      *
-     * @param cost the (log) number of key expansion rounds [4..31]
+     * @param cost       the (log) number of key expansion rounds [4..31]
      * @param saltLength the salt length in bytes {@code >= 16})
      */
     private void validateParameters(Integer cost, Integer saltLength) {
@@ -104,43 +92,7 @@ public class BcryptSecureHasher implements SecureHasher {
             throw new IllegalArgumentException("Invalid cost is not within the cost factor boundary.");
         }
 
-        if (saltLength > 0) {
-            if (!isSaltLengthValid(saltLength)) {
-                logger.error("The provided saltLength {} B is below the minimum {}.", cost, DEFAULT_SALT_LENGTH);
-                throw new IllegalArgumentException("Invalid saltLength is not within the salt length boundary.");
-            }
-            this.usingStaticSalt = false;
-        } else {
-            this.usingStaticSalt = true;
-            logger.debug("Configured to use static salt");
-        }
-    }
-
-    /**
-     * Returns {@code true} if this instance is configured to use a static salt.
-     *
-     * @return true if all hashes will be generated using a static salt
-     */
-    public boolean isUsingStaticSalt() {
-        return usingStaticSalt;
-    }
-
-    /**
-     * Returns a salt to use. If using a static salt (see {@link #isUsingStaticSalt()}),
-     * this return value will be identical across every invocation. If using a dynamic salt,
-     * it will be {@link #saltLength} bytes of a securely-generated random value.
-     *
-     * @return the salt value
-     */
-    byte[] getSalt() {
-        if (isUsingStaticSalt()) {
-            return STATIC_SALT;
-        } else {
-            SecureRandom sr = new SecureRandom();
-            byte[] salt = new byte[saltLength];
-            sr.nextBytes(salt);
-            return salt;
-        }
+        initializeSalt(saltLength);
     }
 
     /**
@@ -158,64 +110,53 @@ public class BcryptSecureHasher implements SecureHasher {
     }
 
     /**
-     * Returns true if the provided salt length meets the minimum boundary. The lower bound >= 16.
+     * Returns the algorithm-specific default salt length in bytes.
      *
-     * @param saltLength the salt length in bytes
-     * @return true if salt length is at least the minimum boundary
+     * @return the default salt length
      */
-    private static boolean isSaltLengthValid(Integer saltLength) {
-        if (saltLength == 0) {
-            logger.debug("The provided salt length 0 indicates a static salt of {} bytes", DEFAULT_SALT_LENGTH);
-            return true;
-        }
-        if (saltLength < MIN_SALT_LENGTH) {
-            logger.warn("The provided salt length {} B is below the recommended minimum {}.", saltLength, MIN_SALT_LENGTH);
-        }
-        return saltLength >= MIN_SALT_LENGTH;
+    @Override
+    int getDefaultSaltLength() {
+        return DEFAULT_SALT_LENGTH;
     }
 
     /**
-     * Returns a String representation of {@code Bcrypt(input)} in hex-encoded format.
+     * Returns the algorithm-specific minimum salt length in bytes.
      *
-     * @param input the non-empty input
-     * @return the hex-encoded hash
+     * @return the min salt length
      */
     @Override
-    public String hashHex(String input) {
-        if (input == null || input.length() == 0) {
-            logger.warn("Attempting to generate a Bcrypt hash of null or empty input; returning 0 length string");
-            return "";
-        }
-
-        return Hex.toHexString(hash(input.getBytes(StandardCharsets.UTF_8)));
+    int getMinSaltLength() {
+        return MIN_SALT_LENGTH;
     }
 
     /**
-     * Returns a String representation of {@code Bcrypt(input)} in Base 64-encoded format. This is
-     * <strong>standard MIME {@link Base64} encoding</strong>, not the Bcrypt-specific Radix 64 encoding.
+     * Returns the algorithm-specific maximum salt length in bytes.
      *
-     * @param input the non-empty input
-     * @return the Base 64-encoded hash
+     * @return the max salt length
      */
     @Override
-    public String hashBase64(String input) {
-        if (input == null || input.length() == 0) {
-            logger.warn("Attempting to generate a Bcrypt hash of null or empty input; returning 0 length string");
-            return "";
-        }
-
-        return Base64.toBase64String(hash(input.getBytes(StandardCharsets.UTF_8)));
+    int getMaxSaltLength() {
+        return Integer.MAX_VALUE;
     }
 
     /**
-     * Returns a byte[] representation of {@code Bcrypt(input)}.
+     * Returns the algorithm-specific name for logging and messages.
      *
-     * @param input the input
-     * @return the hash
+     * @return the algorithm name
      */
     @Override
-    public byte[] hashRaw(byte[] input) {
-        return hash(input);
+    String getAlgorithmName() {
+        return "Bcrypt";
+    }
+
+    /**
+     * Returns {@code true} if the algorithm can accept empty (non-{@code null}) inputs.
+     *
+     * @return the true if {@code ""} is allowable input
+     */
+    @Override
+    boolean acceptsEmptyInput() {
+        return false;
     }
 
     /**
@@ -224,7 +165,7 @@ public class BcryptSecureHasher implements SecureHasher {
      * @param input the raw bytes to hash (can be length 0)
      * @return the generated hash
      */
-    private byte[] hash(byte[] input) {
+    byte[] hash(byte[] input) {
         // Contains only the raw salt
         byte[] rawSalt = getSalt();
 

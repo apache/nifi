@@ -87,12 +87,13 @@ public class ScryptCipherProvider extends RandomIVPBECipherProvider {
     /**
      * Returns whether the provided parallelization factor (p value) is within boundaries. The lower bound > 0 and the
      * upper bound is calculated based on the provided block size (r value).
+     *
      * @param r the block size in bytes
      * @param p the parallelization factor
      * @return true if p is within boundaries
      */
     public static boolean isPValid(int r, int p) {
-        if (!isRValid(r)){
+        if (!isRValid(r)) {
             logger.warn("The provided block size {} must be greater than 0", r);
             throw new IllegalArgumentException("Invalid r value; must be greater than 0");
         }
@@ -103,6 +104,7 @@ public class ScryptCipherProvider extends RandomIVPBECipherProvider {
 
     /**
      * Returns whether the provided block size (r value) is a positive integer or not.
+     *
      * @param r the block size in bytes
      * @return true if r is a positive integer
      */
@@ -182,6 +184,10 @@ public class ScryptCipherProvider extends RandomIVPBECipherProvider {
         byte[] rawSalt = new byte[Scrypt.getDefaultSaltLength()];
 
         parseSalt(scryptSalt, rawSalt, params);
+
+        // TODO: Add hash method to SecureHasher interface which accepts arbitrary salt or create new constructor which accepts it and update getSalt()
+        ScryptSecureHasher scryptSecureHasher = new ScryptSecureHasher(params.get(0), params.get(1), params.get(2), keyLength);
+        String hashBase64 = scryptSecureHasher.hashBase64(password);
 
         String hash = Scrypt.scrypt(password, rawSalt, params.get(0), params.get(1), params.get(2), keyLength);
 

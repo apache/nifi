@@ -30,8 +30,8 @@ import org.slf4j.LoggerFactory
 import java.security.Security
 
 @RunWith(JUnit4.class)
-class BcryptSecureHasherTest extends GroovyTestCase {
-    private static final Logger logger = LoggerFactory.getLogger(BcryptSecureHasher)
+class PBKDF2SecureHasherTest extends GroovyTestCase {
+    private static final Logger logger = LoggerFactory.getLogger(PBKDF2SecureHasherTest)
 
     @BeforeClass
     static void setupOnce() throws Exception {
@@ -50,28 +50,25 @@ class BcryptSecureHasherTest extends GroovyTestCase {
     void tearDown() throws Exception {
     }
 
-    private static byte[] decodeHex(String hex) {
-        Hex.decode(hex?.replaceAll("[^0-9a-fA-F]", ""))
-    }
-
     @Test
     void testShouldBeDeterministicWithStaticSalt() {
         // Arrange
-        int cost = 4
-        logger.info("Generating Bcrypt hash for cost factor: ${cost}")
+        int cost = 10_000
+        int dkLength = 32
+        logger.info("Generating PBKDF2 hash for iterations: ${cost}, desired key length: ${dkLength} bytes (${dkLength * 8} bits)")
 
         int testIterations = 10
         byte[] inputBytes = "This is a sensitive value".bytes
 
-        final String EXPECTED_HASH_HEX = "24326124303424526b6a4559512f526245447959554b6553304471622e596b4c5331655a2e6c61586550484c69464d783937564c566d47354250454f"
+        final String EXPECTED_HASH_HEX = "2c47a6d801b71e087f94792079c40880aea29013bfffd0ab94b1bc112ea52511"
 
-        BcryptSecureHasher bcryptSH = new BcryptSecureHasher(cost)
+        PBKDF2SecureHasher pbkdf2SecureHasher = new PBKDF2SecureHasher(cost, dkLength)
 
         def results = []
 
         // Act
         testIterations.times { int i ->
-            byte[] hash = bcryptSH.hashRaw(inputBytes)
+            byte[] hash = pbkdf2SecureHasher.hashRaw(inputBytes)
             String hashHex = Hex.encode(hash)
             logger.info("Generated hash: ${hashHex}")
             results << hashHex
@@ -84,22 +81,24 @@ class BcryptSecureHasherTest extends GroovyTestCase {
     @Test
     void testShouldBeDifferentWithRandomSalt() {
         // Arrange
-        int cost = 4
+        String prf = "SHA512"
+        int cost = 10_000
         int saltLength = 16
-        logger.info("Generating Bcrypt hash for cost factor: ${cost}, salt length: ${saltLength}")
+        int dkLength = 32
+        logger.info("Generating PBKDF2 hash for prf: ${prf}, iterations: ${cost}, salt length: ${saltLength} bytes, desired key length: ${dkLength} bytes (${dkLength * 8} bits)")
 
         int testIterations = 10
         byte[] inputBytes = "This is a sensitive value".bytes
 
-        final String EXPECTED_HASH_HEX = "24326124303424546d6c47615342546447463061574d6755324673642e38675a347a6149356d6b4d50594c542e344e68337962455a4678384b676a75"
+        final String EXPECTED_HASH_HEX = "2c47a6d801b71e087f94792079c40880aea29013bfffd0ab94b1bc112ea52511"
 
-        BcryptSecureHasher bcryptSH = new BcryptSecureHasher(cost, saltLength)
+        PBKDF2SecureHasher pbkdf2SecureHasher = new PBKDF2SecureHasher(prf, cost, saltLength, dkLength)
 
         def results = []
 
         // Act
         testIterations.times { int i ->
-            byte[] hash = bcryptSH.hashRaw(inputBytes)
+            byte[] hash = pbkdf2SecureHasher.hashRaw(inputBytes)
             String hashHex = Hex.encode(hash)
             logger.info("Generated hash: ${hashHex}")
             results << hashHex
@@ -115,12 +114,12 @@ class BcryptSecureHasherTest extends GroovyTestCase {
         // Arrange
         String input = "This is a sensitive value"
 
-        final String EXPECTED_HASH_HEX = "24326124313224526b6a4559512f526245447959554b6553304471622e5852696135344d4e356c5a44515243575874516c4c696d476669635a776871"
+        final String EXPECTED_HASH_HEX = "8f67110e87d225366e2d79ad251d2cf48f8cb15845800452e0e2cff09f95ef1c"
 
-        BcryptSecureHasher bcryptSH = new BcryptSecureHasher()
+        PBKDF2SecureHasher pbkdf2SecureHasher = new PBKDF2SecureHasher()
 
         // Act
-        String hashHex = bcryptSH.hashHex(input)
+        String hashHex = pbkdf2SecureHasher.hashHex(input)
         logger.info("Generated hash: ${hashHex}")
 
         // Assert
@@ -132,12 +131,12 @@ class BcryptSecureHasherTest extends GroovyTestCase {
         // Arrange
         String input = "This is a sensitive value"
 
-        final String EXPECTED_HASH_BASE64 = "JDJhJDEyJFJrakVZUS9SYkVEeVlVS2VTMERxYi5YUmlhNTRNTjVsWkRRUkNXWHRRbExpbUdmaWNad2hx"
+        final String EXPECTED_HASH_BASE64 = "j2cRDofSJTZuLXmtJR0s9I+MsVhFgARS4OLP8J+V7xw="
 
-        BcryptSecureHasher bcryptSH = new BcryptSecureHasher()
+        PBKDF2SecureHasher pbkdf2SecureHasher = new PBKDF2SecureHasher()
 
         // Act
-        String hashB64 = bcryptSH.hashBase64(input)
+        String hashB64 = pbkdf2SecureHasher.hashBase64(input)
         logger.info("Generated hash: ${hashB64}")
 
         // Assert
@@ -149,21 +148,21 @@ class BcryptSecureHasherTest extends GroovyTestCase {
         // Arrange
         List<String> inputs = [null, ""]
 
-        final String EXPECTED_HASH_HEX = ""
-        final String EXPECTED_HASH_BASE64 = ""
+        final String EXPECTED_HASH_HEX = "7f2d8d8c7aaa45471f6c05a8edfe0a3f75fe01478cc965c5dce664e2ac6f5d0a"
+        final String EXPECTED_HASH_BASE64 = "fy2NjHqqRUcfbAWo7f4KP3X+AUeMyWXF3OZk4qxvXQo="
 
-        BcryptSecureHasher bcryptSH = new BcryptSecureHasher()
+        PBKDF2SecureHasher pbkdf2SecureHasher = new PBKDF2SecureHasher()
 
         def hexResults = []
         def B64Results = []
 
         // Act
         inputs.each { String input ->
-            String hashHex = bcryptSH.hashHex(input)
+            String hashHex = pbkdf2SecureHasher.hashHex(input)
             logger.info("Generated hex-encoded hash: ${hashHex}")
             hexResults << hashHex
 
-            String hashB64 = bcryptSH.hashBase64(input)
+            String hashB64 = pbkdf2SecureHasher.hashBase64(input)
             logger.info("Generated B64-encoded hash: ${hashB64}")
             B64Results << hashB64
         }
@@ -183,7 +182,7 @@ class BcryptSecureHasherTest extends GroovyTestCase {
         int testIterations = 100
         byte[] inputBytes = "This is a sensitive value".bytes
 
-        BcryptSecureHasher bcryptSH = new BcryptSecureHasher()
+        PBKDF2SecureHasher pbkdf2SecureHasher = new PBKDF2SecureHasher()
 
         def results = []
         def resultDurations = []
@@ -191,7 +190,7 @@ class BcryptSecureHasherTest extends GroovyTestCase {
         // Act
         testIterations.times { int i ->
             long startNanos = System.nanoTime()
-            byte[] hash = bcryptSH.hashRaw(inputBytes)
+            byte[] hash = pbkdf2SecureHasher.hashRaw(inputBytes)
             long endNanos = System.nanoTime()
             long durationNanos = endNanos - startNanos
 
@@ -209,69 +208,116 @@ class BcryptSecureHasherTest extends GroovyTestCase {
     }
 
     @Test
-    void testShouldVerifyCostBoundary() throws Exception {
+    void testShouldVerifyIterationCountBoundary() throws Exception {
         // Arrange
-        final int cost = 14
+        def validIterationCounts = [1, 1000, 1_000_000]
 
         // Act
-        boolean valid = BcryptSecureHasher.isCostValid(cost)
-
-        // Assert
-        assert valid
-    }
-
-    @Test
-    void testShouldFailCostBoundary() throws Exception {
-        // Arrange
-        def costFactors = [-8, 0, 40]
-
-        // Act
-        def results = costFactors.collect { costFactor ->
-            def isValid = BcryptSecureHasher.isCostValid(costFactor)
-            [costFactor, isValid]
+        def results = validIterationCounts.collect { int i ->
+            boolean valid = PBKDF2SecureHasher.isIterationCountValid(i)
+            logger.info("Iteration count ${i} is valid: ${valid}")
+            valid
         }
 
         // Assert
-        results.each { costFactor, isCostValid ->
-            logger.info("For cost factor ${costFactor}, cost is ${isCostValid ? "valid" : "invalid"}")
-            assert !isCostValid
+        assert results.every()
+    }
+
+    @Test
+    void testShouldFailIterationCountBoundary() throws Exception {
+        // Arrange
+        def invalidIterationCounts = [-1, 0, Integer.MAX_VALUE + 1]
+
+        // Act
+        def results = invalidIterationCounts.collect { i ->
+            boolean valid = PBKDF2SecureHasher.isIterationCountValid(i)
+            logger.info("Iteration count ${i} is valid: ${valid}")
+            valid
+        }
+
+        // Assert
+        results.each { valid ->
+            assert !valid
+        }
+    }
+
+    @Test
+    void testShouldVerifyDKLengthBoundary() throws Exception {
+        // Arrange
+        def validHLengths = [32, 64]
+
+        // 1 and MAX_VALUE are the length boundaries, inclusive
+        def validDKLengths = [1, 1000, 1_000_000, Integer.MAX_VALUE]
+
+        // Act
+        def results = validHLengths.collectEntries { int hLen ->
+            def dkResults = validDKLengths.collect { int dkLength ->
+                boolean valid = PBKDF2SecureHasher.isDKLengthValid(hLen, dkLength)
+                logger.info("Derived key length ${dkLength} bytes (${dkLength * 8} bits) with hLen ${hLen} bytes (${hLen * 8} bits) is valid: ${valid}")
+                valid
+            }
+            [hLen, dkResults]
+        }
+
+        // Assert
+        results.each { int hLen, def dkResults ->
+            assert dkResults.every()
+        }
+    }
+
+    @Test
+    void testShouldFailDKLengthBoundary() throws Exception {
+        // Arrange
+        def validHLengths = [32, 64]
+
+        // MAX_VALUE + 1 will become MIN_VALUE because of signed integer math
+        def invalidDKLengths = [-1, 0, Integer.MAX_VALUE + 1, new Integer(Integer.MAX_VALUE * 2 - 1)]
+
+        // Act
+        def results = validHLengths.collectEntries { int hLen ->
+            def dkResults = invalidDKLengths.collect { int dkLength ->
+                boolean valid = PBKDF2SecureHasher.isDKLengthValid(hLen, dkLength)
+                logger.info("Derived key length ${dkLength} bytes (${dkLength * 8} bits) with hLen ${hLen} bytes (${hLen * 8} bits) is valid: ${valid}")
+                valid
+            }
+            [hLen, dkResults]
+        }
+
+        // Assert
+        results.each { int hLen, def dkResults ->
+            assert dkResults.every { boolean valid -> !valid }
         }
     }
 
     @Test
     void testShouldVerifySaltLengthBoundary() throws Exception {
         // Arrange
-        def saltLengths = [0, 16]
+        def saltLengths = [0, 16, 64]
 
         // Act
         def results = saltLengths.collect { saltLength ->
-            def isValid = new BcryptSecureHasher().isSaltLengthValid(saltLength)
-            [saltLength, isValid]
+            def isValid = new PBKDF2SecureHasher().isSaltLengthValid(saltLength)
+            logger.info("Salt length ${saltLength} bytes is valid: ${isValid}")
+            isValid
         }
 
         // Assert
-        results.each { saltLength, isSaltLengthValid ->
-            assert { it == isSaltLengthValid }
-        }
+        assert results.every()
     }
 
     @Test
     void testShouldFailSaltLengthBoundary() throws Exception {
         // Arrange
-        def saltLengths = [-8, 1]
+        def saltLengths = [-8, 1, Integer.MAX_VALUE + 1]
 
         // Act
         def results = saltLengths.collect { saltLength ->
-            def isValid = new BcryptSecureHasher().isSaltLengthValid(saltLength)
-            [saltLength, isValid]
+            def isValid = new PBKDF2SecureHasher().isSaltLengthValid(saltLength)
+            logger.info("Salt length ${saltLength} bytes is valid: ${isValid}")
+            isValid
         }
 
         // Assert
-        results.each { saltLength, isSaltLengthValid ->
-            logger.info("For Salt Length value ${saltLength}, saltLength is ${isSaltLengthValid ? "valid" : "invalid"}")
-            assert !isSaltLengthValid
-        }
+        results.each { assert !it }
     }
-
 }
-

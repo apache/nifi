@@ -368,7 +368,7 @@ class Argon2SecureHasherTest extends GroovyTestCase {
 
         // Act
         def results = saltLengths.collect { saltLength ->
-            def isValid = Argon2SecureHasher.isSaltLengthValid(saltLength)
+            def isValid = new Argon2SecureHasher().isSaltLengthValid(saltLength)
             [saltLength, isValid]
         }
 
@@ -386,7 +386,7 @@ class Argon2SecureHasherTest extends GroovyTestCase {
 
         // Act
         def results = saltLengths.collect { saltLength ->
-            def isValid = Argon2SecureHasher.isSaltLengthValid(saltLength)
+            def isValid = new Argon2SecureHasher().isSaltLengthValid(saltLength)
             [saltLength, isValid]
         }
 
