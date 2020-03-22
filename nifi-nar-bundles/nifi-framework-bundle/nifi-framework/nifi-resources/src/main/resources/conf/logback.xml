@@ -124,6 +124,11 @@
     <logger name="net.schmizz.sshj" level="WARN" />
     <logger name="com.hierynomus.sshj" level="WARN" />
 
+    <!-- These log messages would normally go to the USER_FILE log, but they belong in the APP_FILE -->
+    <logger name="org.apache.nifi.web.security.requests" level="INFO" additivity="false">
+        <appender-ref ref="APP_FILE"/>
+    </logger>
+
     <!--
         Logger for capturing user events. We do not want to propagate these
         log events to the root logger. These messages are only sent to the
