@@ -420,6 +420,8 @@ public class DBCPServiceTest {
         server.shutdown();
         server.start();
 
+        Thread.sleep(2500L); //allow time to pass for the server to startup.
+
         // Note!! We should not get something like:
         // org.h2.jdbc.JdbcSQLException: Connection is broken: "session closed" [90067-192]
         // Pool should remove invalid connections and create new valid connections.
