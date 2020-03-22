@@ -261,4 +261,23 @@ public class NiFiPropertiesTest {
         // Expect RuntimeException thrown
         assertEquals(Integer.parseInt(portValue), clusterProtocolAddress.getPort());
     }
+
+    @Test
+    public void testShouldHaveReasonableMaxContentLengthValues() {
+        // Arrange with default values:
+        NiFiProperties properties = NiFiProperties.createBasicNiFiProperties(null, new HashMap<String, String>() {{
+        }});
+
+        // Assert defaults match expectations:
+        assertEquals(properties.getWebMaxContentSize(), "20 MB");
+
+        // Re-arrange with specific values:
+        final String size = "size value";
+        properties = NiFiProperties.createBasicNiFiProperties(null, new HashMap<String, String>() {{
+            put(NiFiProperties.WEB_MAX_CONTENT_SIZE, size);
+        }});
+
+        // Assert specific values are used:
+        assertEquals(properties.getWebMaxContentSize(),  size);
+    }
 }

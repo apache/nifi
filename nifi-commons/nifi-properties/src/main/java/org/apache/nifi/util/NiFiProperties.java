@@ -193,6 +193,8 @@ public abstract class NiFiProperties {
     public static final String WEB_MAX_HEADER_SIZE = "nifi.web.max.header.size";
     public static final String WEB_PROXY_CONTEXT_PATH = "nifi.web.proxy.context.path";
     public static final String WEB_PROXY_HOST = "nifi.web.proxy.host";
+    public static final String WEB_MAX_CONTENT_SIZE = "nifi.web.max.content.size";
+    public static final String WEB_MAX_REQUESTS_PER_SECOND = "nifi.web.max.requests.per.second";
 
     // ui properties
     public static final String UI_BANNER_TEXT = "nifi.ui.banner.text";
@@ -266,6 +268,8 @@ public abstract class NiFiProperties {
     public static final int DEFAULT_WEB_THREADS = 200;
     public static final String DEFAULT_WEB_MAX_HEADER_SIZE = "16 KB";
     public static final String DEFAULT_WEB_WORKING_DIR = "./work/jetty";
+    public static final String DEFAULT_WEB_MAX_CONTENT_SIZE = "20 MB";
+    public static final String DEFAULT_WEB_MAX_REQUESTS_PER_SECOND = "30000";
     public static final String DEFAULT_NAR_WORKING_DIR = "./work/nar";
     public static final String DEFAULT_COMPONENT_DOCS_DIRECTORY = "./work/docs/components";
     public static final String DEFAULT_NAR_LIBRARY_DIR = "./lib";
@@ -641,6 +645,14 @@ public abstract class NiFiProperties {
 
     public String getWebMaxHeaderSize() {
         return getProperty(WEB_MAX_HEADER_SIZE, DEFAULT_WEB_MAX_HEADER_SIZE);
+    }
+
+    public String getWebMaxContentSize() {
+        return getProperty(WEB_MAX_CONTENT_SIZE, DEFAULT_WEB_MAX_CONTENT_SIZE);
+    }
+
+    public String getMaxWebRequestsPerSecond() {
+        return getProperty(WEB_MAX_REQUESTS_PER_SECOND, DEFAULT_WEB_MAX_REQUESTS_PER_SECOND);
     }
 
     public int getWebThreads() {

@@ -51,6 +51,7 @@ import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.ContentAccess;
 import org.apache.nifi.web.NiFiWebConfigurationContext;
 import org.apache.nifi.web.UiExtensionType;
+import org.apache.nifi.web.security.requests.ContentLengthFilter;
 import org.apache.nifi.web.security.headers.ContentSecurityPolicyFilter;
 import org.apache.nifi.web.security.headers.StrictTransportSecurityFilter;
 import org.apache.nifi.web.security.headers.XFrameOptionsFilter;
@@ -73,6 +74,7 @@ import org.eclipse.jetty.server.handler.gzip.GzipHandler;
 import org.eclipse.jetty.servlet.DefaultServlet;
 import org.eclipse.jetty.servlet.FilterHolder;
 import org.eclipse.jetty.servlet.ServletHolder;
+import org.eclipse.jetty.servlets.DoSFilter;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
 import org.eclipse.jetty.webapp.Configuration;
@@ -595,6 +597,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
             filters.add(StrictTransportSecurityFilter.class);
         }
         filters.forEach( (filter) -> addFilters(filter, ALL_PATHS, webappContext));
+        addFiltersWithProps(ALL_PATHS, webappContext);
 
         try {
             // configure the class loader - webappClassLoader -> jetty nar -> web app's nar -> ...
@@ -655,6 +658,46 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         }
     }
 
+    /**
+     * Adds configurable filters to the given context.  Currently, this implementation adds `DosFilter` and `ContentLengthFilter` filters.
+     * @param path path spec for filters
+     * @param webappContext context to which filters will be added
+     */
+    private void addFiltersWithProps(String path, WebAppContext webappContext) {
+        int defaultMaxRequestsPerSecond = Integer.parseInt(NiFiProperties.DEFAULT_WEB_MAX_REQUESTS_PER_SECOND);
+        int configuredMaxRequestsPerSecond = 0;
+        try {
+            configuredMaxRequestsPerSecond = Integer.parseInt(props.getMaxWebRequestsPerSecond());
+        } catch (final NumberFormatException e) {
+            logger.warn("Exception parsing property " + NiFiProperties.WEB_MAX_REQUESTS_PER_SECOND + "; using default value: " + defaultMaxRequestsPerSecond);
+        }
+
+        int maxRequestsPerSecond = configuredMaxRequestsPerSecond > 0 ? configuredMaxRequestsPerSecond : defaultMaxRequestsPerSecond;
+        FilterHolder holder = new FilterHolder(DoSFilter.class);
+        holder.setInitParameters(new HashMap<String, String>(){{
+            put("maxRequestsPerSec", String.valueOf(maxRequestsPerSecond));
+        }});
+        holder.setName(DoSFilter.class.getSimpleName());
+        logger.debug("Adding DoSFilter to context at path: " + path + " with max req/sec: " + configuredMaxRequestsPerSecond);
+        webappContext.addFilter(holder, path, EnumSet.allOf(DispatcherType.class));
+
+        int defaultMaxRequestSize = DataUnit.parseDataSize(NiFiProperties.DEFAULT_WEB_MAX_CONTENT_SIZE, DataUnit.B).intValue();
+        int configuredMaxRequestSize = 0;
+        try {
+            configuredMaxRequestSize = DataUnit.parseDataSize(props.getWebMaxContentSize(), DataUnit.B).intValue();
+        } catch (final IllegalArgumentException e) {
+            logger.warn("Exception parsing property " + NiFiProperties.WEB_MAX_CONTENT_SIZE + "; using default value: " + defaultMaxRequestSize);
+        }
+
+        int maxRequestSize = configuredMaxRequestSize > 0 ? configuredMaxRequestSize : defaultMaxRequestSize;
+        holder = new FilterHolder(ContentLengthFilter.class);
+        holder.setInitParameters(new HashMap<String, String>() {{
+            put("maxContentLength", String.valueOf(maxRequestSize));
+        }});
+        holder.setName(FilterHolder.class.getSimpleName());
+        logger.debug("Adding ContentLengthFilter to context at path: " + path + " with max request size: " + maxRequestSize + "B");
+        webappContext.addFilter(holder, path, EnumSet.allOf(DispatcherType.class));
+    }
 
     /**
      * Returns a File object for the directory containing NIFI documentation.
