@@ -67,7 +67,7 @@ public class ShellUserGroupProvider implements UserGroupProvider {
     private Pattern excludeUsers;
     private Pattern excludeGroups;
     private boolean legacyIdentifierMode;
-    private long timeoutSeconds;
+    private int timeoutSeconds;
 
     // Our scheduler has one thread for users, one for groups:
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
@@ -247,10 +247,11 @@ public class ShellUserGroupProvider implements UserGroupProvider {
      */
     @Override
     public void onConfigured(AuthorizerConfigurationContext configurationContext) throws AuthorizerCreationException {
+        logger.info("Configuring ShellUserGroupProvider");
+
         fixedDelay = getDelayProperty(configurationContext, REFRESH_DELAY_PROPERTY, "5 mins");
         timeoutSeconds = getTimeoutProperty(configurationContext, COMMAND_TIMEOUT_PROPERTY, DEFAULT_COMMAND_TIMEOUT);
         shellRunner = new ShellRunner(timeoutSeconds);
-
         logger.debug("Configured ShellRunner with command timeout of '{}' seconds", new Object[]{timeoutSeconds});
 
         // Our next init step is to select the command set based on the operating system name:
@@ -293,6 +294,7 @@ public class ShellUserGroupProvider implements UserGroupProvider {
             }
         }, fixedDelay, fixedDelay, TimeUnit.MILLISECONDS);
 
+        logger.info("Completed configuration of ShellUserGroupProvider");
     }
 
     private static ShellCommandsProvider getCommandsProviderFromName(String osName) {
@@ -349,7 +351,7 @@ public class ShellUserGroupProvider implements UserGroupProvider {
         return syncInterval;
     }
 
-    private long getTimeoutProperty(AuthorizerConfigurationContext authContext, String propertyName, String defaultValue) {
+    private int getTimeoutProperty(AuthorizerConfigurationContext authContext, String propertyName, String defaultValue) {
         final PropertyValue timeoutProperty = authContext.getProperty(propertyName);
 
         final String propertyValue;
@@ -366,7 +368,7 @@ public class ShellUserGroupProvider implements UserGroupProvider {
             throw new AuthorizerCreationException(String.format("The %s '%s' is not a valid time interval.", propertyName, propertyValue));
         }
 
-        return timeoutValue;
+        return Math.toIntExact(timeoutValue);
     }
 
     /**
@@ -378,7 +380,13 @@ public class ShellUserGroupProvider implements UserGroupProvider {
     public void preDestruction() throws AuthorizerDestructionException {
         try {
             scheduler.shutdownNow();
-        } catch (final Exception ignored) {
+        } catch (final Exception e) {
+            logger.warn("Error shutting down refresh scheduler: " + e.getMessage(), e);
+        }
+        try {
+            shellRunner.shutdown();
+        } catch (final Exception e) {
+            logger.warn("Error shutting down ShellRunner: " + e.getMessage(), e);
         }
     }
 
@@ -460,6 +468,8 @@ public class ShellUserGroupProvider implements UserGroupProvider {
      * other methods for record parse, extract, and object construction.
      */
     private void refreshUsersAndGroups() {
+        final long startTime = System.currentTimeMillis();
+
         Map<String, User> uidToUser = new HashMap<>();
         Map<String, User> usernameToUser = new HashMap<>();
         Map<String, User> gidToUser = new HashMap<>();
@@ -510,6 +520,9 @@ public class ShellUserGroupProvider implements UserGroupProvider {
                 sortedGroups.forEach(g -> logger.trace("=== " + g.toString()));
             }
         }
+
+        final long endTime = System.currentTimeMillis();
+        logger.info("Refreshed users and groups, took {} seconds", (endTime - startTime) / 1000);
     }
 
     /**
