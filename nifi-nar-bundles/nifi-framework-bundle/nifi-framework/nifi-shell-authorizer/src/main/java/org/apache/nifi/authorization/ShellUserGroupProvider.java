@@ -72,10 +72,6 @@ public class ShellUserGroupProvider implements UserGroupProvider {
     // Our scheduler has one thread for users, one for groups:
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
 
-    // Our shell timeout, in seconds:
-    @SuppressWarnings("FieldCanBeLocal")
-    private final Integer shellTimeout = 10;
-
     // Commands selected during initialization:
     private ShellCommandsProvider selectedShellCommands;
 
