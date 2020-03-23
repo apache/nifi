@@ -16,11 +16,12 @@
  */
 package org.apache.nifi.security.util.crypto;
 
-import java.math.BigInteger;
-import java.util.concurrent.TimeUnit;
 import org.apache.nifi.security.util.crypto.scrypt.Scrypt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.math.BigInteger;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Provides an implementation of {@code Scrypt} for secure password hashing.
@@ -145,7 +146,22 @@ public class ScryptSecureHasher extends AbstractSecureHasher {
         // Contains only the raw salt
         byte[] rawSalt = getSalt();
 
+        return hash(input, rawSalt);
+    }
+
+    /**
+     * Internal method to hash the raw bytes.
+     *
+     * @param input the raw bytes to hash (can be length 0)
+     * @param rawSalt the raw bytes to salt
+     * @return the generated hash
+     */
+    byte[] hash(byte[] input, byte[] rawSalt) {
         logger.debug("Creating {} byte Scrypt hash with salt [{}]", dkLength, org.bouncycastle.util.encoders.Hex.toHexString(rawSalt));
+
+        if (!isSaltLengthValid(rawSalt.length)) {
+            throw new IllegalArgumentException("The salt length (" + rawSalt.length + " bytes) is invalid");
+        }
 
         final long startNanos = System.nanoTime();
         byte[] hash = Scrypt.scrypt(input, rawSalt, n, r, p, dkLength * 8);
@@ -214,9 +230,6 @@ public class ScryptSecureHasher extends AbstractSecureHasher {
      * @return true if dkLength is within boundaries
      */
     protected static boolean isDKLengthValid(Integer dkLength) {
-        if (dkLength < DEFAULT_DK_LENGTH) {
-            logger.warn("The provided hash (derived key) length {} is below the recommended minimum {}.", dkLength, DEFAULT_DK_LENGTH);
-        }
         return dkLength >= MIN_DK_LENGTH && dkLength <= UPPER_BOUNDARY;
     }
 

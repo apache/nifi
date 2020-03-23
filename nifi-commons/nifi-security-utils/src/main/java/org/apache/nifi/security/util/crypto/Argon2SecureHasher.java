@@ -16,12 +16,13 @@
  */
 package org.apache.nifi.security.util.crypto;
 
-import java.util.concurrent.TimeUnit;
 import org.bouncycastle.crypto.generators.Argon2BytesGenerator;
 import org.bouncycastle.crypto.params.Argon2Parameters;
 import org.bouncycastle.util.encoders.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.concurrent.TimeUnit;
 
 /**
  * Provides an implementation of {@code Argon2} for secure password hashing. This class is
@@ -161,9 +162,6 @@ public class Argon2SecureHasher extends AbstractSecureHasher {
      * @return true if hashLength is within boundaries
      */
     public static boolean isHashLengthValid(Integer hashLength) {
-        if (hashLength < DEFAULT_HASH_LENGTH) {
-            logger.warn("The provided hash length {} is below the recommended minimum {}.", hashLength, DEFAULT_HASH_LENGTH);
-        }
         return hashLength >= MIN_HASH_LENGTH && hashLength <= UPPER_BOUNDARY;
     }
 
@@ -242,15 +240,33 @@ public class Argon2SecureHasher extends AbstractSecureHasher {
      * @param input the raw bytes to hash (can be length 0)
      * @return the generated hash
      */
-     byte[] hash(byte[] input) {
-        byte[] salt = getSalt();
-        byte[] hash = new byte[hashLength];
-        logger.debug("Creating {} byte Argon2 hash with salt [{}]", hashLength, Hex.toHexString(salt));
+    byte[] hash(byte[] input) {
+        // Contains only the raw salt
+        byte[] rawSalt = getSalt();
+
+        return hash(input, rawSalt);
+    }
+
+    /**
+     * Internal method to hash the raw bytes.
+     *
+     * @param input the raw bytes to hash (can be length 0)
+     * @param rawSalt the raw bytes to salt
+     * @return the generated hash
+     */
+     byte[] hash(byte[] input, byte[] rawSalt) {
+         logger.debug("Creating {} byte Argon2 hash with salt [{}]", hashLength, Hex.toHexString(rawSalt));
+
+         if (!isSaltLengthValid(rawSalt.length)) {
+             throw new IllegalArgumentException("The salt length (" + rawSalt.length + " bytes) is invalid");
+         }
+
+         byte[] hash = new byte[hashLength];
 
         final long startNanos = System.nanoTime();
 
         Argon2Parameters params = new Argon2Parameters.Builder(Argon2Parameters.ARGON2_id)
-                .withSalt(salt)
+                .withSalt(rawSalt)
                 .withParallelism(parallelism)
                 .withMemoryAsKB(memory)
                 .withIterations(iterations)

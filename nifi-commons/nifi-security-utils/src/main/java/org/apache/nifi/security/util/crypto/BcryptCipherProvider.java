@@ -16,11 +16,11 @@
  */
 package org.apache.nifi.security.util.crypto;
 
-import at.favre.lib.crypto.bcrypt.BCrypt;
 import at.favre.lib.crypto.bcrypt.Radix64Encoder;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.security.util.EncryptionMethod;
+import org.apache.nifi.security.util.crypto.scrypt.Scrypt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,6 +45,7 @@ public class BcryptCipherProvider extends RandomIVPBECipherProvider {
     private static final int DEFAULT_SALT_LENGTH = 16;
 
     private static final Pattern BCRYPT_SALT_FORMAT = Pattern.compile("^\\$\\d\\w\\$\\d{2}\\$[\\w\\/\\.]{22}");
+    private static final String BCRYPT_SALT_FORMAT_MSG = "The salt must be of the format $2a$10$gUVbkVzp79H8YaCOsCVZNu. To generate a salt, use BcryptCipherProvider#generateSalt()";
 
     /**
      * Instantiates a Bcrypt cipher provider with the default work factor 12 (2^12 key expansion rounds).
@@ -133,32 +134,74 @@ public class BcryptCipherProvider extends RandomIVPBECipherProvider {
             throw new IllegalArgumentException(keyLength + " is not a valid key length for " + cipherName);
         }
 
-        byte[] rawSalt = extractRawSalt(salt);
-        String hash = new String(BCrypt.withDefaults().hash(workFactor, rawSalt, password.getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8);
-
-        /* The SHA-512 hash is required in order to derive a key longer than 184 bits (the resulting size of the Bcrypt hash) and ensuring the avalanche effect causes higher key entropy (if all
-        derived keys follow a consistent pattern, it weakens the strength of the encryption) */
-        MessageDigest digest = MessageDigest.getInstance("SHA-512", provider);
-        byte[] dk = digest.digest(hash.getBytes(StandardCharsets.UTF_8));
-        dk = Arrays.copyOf(dk, keyLength / 8);
-        SecretKey tempKey = new SecretKeySpec(dk, algorithm);
-
-        KeyedCipherProvider keyedCipherProvider = new AESKeyedCipherProvider();
-        return keyedCipherProvider.getCipher(encryptionMethod, tempKey, iv, encryptMode);
-    }
-
-    private static String formatSaltForBcrypt(byte[] salt) {
-        if (salt == null || salt.length == 0) {
-            throw new IllegalArgumentException("The salt cannot be empty. To generate a salt, use BcryptCipherProvider#generateSalt()");
+        String saltString = new String(salt, StandardCharsets.UTF_8);
+        byte[] rawSalt = new byte[Scrypt.getDefaultSaltLength()];
+        int workFactor = 0;
+        if (isBcryptFormattedSalt(saltString)) {
+            // parseSalt will extract workFactor from salt
+            workFactor = parseSalt(saltString, rawSalt);
+        } else {
+           throw new IllegalArgumentException(BCRYPT_SALT_FORMAT_MSG);
         }
 
-        String rawSalt = new String(salt, StandardCharsets.UTF_8);
-        Matcher matcher = BCRYPT_SALT_FORMAT.matcher(rawSalt);
+        try {
+            /* The SHA-512 hash is required in order to derive a key longer than 184 bits (the resulting size of the Bcrypt hash) and ensuring the avalanche effect causes higher key entropy (if all
+        derived keys follow a consistent pattern, it weakens the strength of the encryption) */
+            MessageDigest digest = MessageDigest.getInstance("SHA-512", provider);
+            BcryptSecureHasher bcryptSecureHasher = new BcryptSecureHasher(workFactor);
+            byte[] hashBytes = bcryptSecureHasher.hashRaw(password.getBytes(StandardCharsets.UTF_8), rawSalt);
+            byte[] derivedKeyBytes = digest.digest(hashBytes);
+            derivedKeyBytes = Arrays.copyOf(derivedKeyBytes, keyLength / 8);
+            SecretKey tempKey = new SecretKeySpec(derivedKeyBytes, algorithm);
 
-        if (matcher.find()) {
-            return rawSalt;
+            KeyedCipherProvider keyedCipherProvider = new AESKeyedCipherProvider();
+            return keyedCipherProvider.getCipher(encryptionMethod, tempKey, iv, encryptMode);
+        } catch (IllegalArgumentException e) {
+            if (e.getMessage().contains("salt must be exactly")) {
+                throw new IllegalArgumentException(BCRYPT_SALT_FORMAT_MSG, e);
+            } else if (e.getMessage().contains("The salt length")) {
+                throw new IllegalArgumentException("The raw salt must be greater than or equal to 16 bytes", e);
+            } else {
+                logger.error("Encountered an error generating the Bcrypt hash", e);
+                throw e;
+            }
+        }
+    }
+
+    private boolean isBcryptFormattedSalt(String salt) {
+        if (salt == null || salt.length() == 0) {
+            throw new IllegalArgumentException("The salt cannot be empty. To generate a salt, use BcryptCipherProvider#generateSalt()");
+        }
+        Matcher matcher = BCRYPT_SALT_FORMAT.matcher(salt);
+        return matcher.find();
+    }
+
+    private int parseSalt(String bcryptSalt, byte[] rawSalt) {
+        if (StringUtils.isEmpty(bcryptSalt)) {
+            throw new IllegalArgumentException("Cannot parse empty salt");
+        }
+
+        /** Salt format is $2a$10$saltB64 */
+        byte[] salt = extractRawSalt(bcryptSalt);
+        if (rawSalt.length < salt.length) {
+            byte[] tempBytes = new byte[salt.length];
+            System.arraycopy(rawSalt, 0, tempBytes, 0, rawSalt.length);
+            rawSalt = tempBytes;
+        }
+        // Copy salt from full bcryptSalt into rawSalt byte[]
+        System.arraycopy(salt, 0, rawSalt, 0, salt.length);
+
+        // Parse the workfactor and return
+        final String[] saltComponents = bcryptSalt.split("\\$");
+        return Integer.parseInt(saltComponents[2]);
+    }
+
+    private String formatSaltForBcrypt(byte[] salt) {
+        String saltString = new String(salt, StandardCharsets.UTF_8);
+        if (isBcryptFormattedSalt(saltString)) {
+            return saltString;
         } else {
-            throw new IllegalArgumentException("The salt must be of the format $2a$10$gUVbkVzp79H8YaCOsCVZNu. To generate a salt, use BcryptCipherProvider#generateSalt()");
+            throw new IllegalArgumentException(BCRYPT_SALT_FORMAT_MSG);
         }
     }
 
@@ -185,31 +228,14 @@ public class BcryptCipherProvider extends RandomIVPBECipherProvider {
      * @param fullSalt the Bcrypt salt sequence as bytes
      * @return the raw salt (16 bytes) without Radix 64 encoding
      */
-    public static byte[] extractRawSalt(byte[] fullSalt) {
-        try {
-            String formattedSalt = formatSaltForBcrypt(fullSalt);
-            String rawSalt = formattedSalt.substring(formattedSalt.lastIndexOf("$") + 1);
-            if (rawSalt.length() != 22) {
-                throw new IllegalArgumentException("The formatted salt did not contain a raw salt");
-            }
-            return new Radix64Encoder.Default().decode(rawSalt.getBytes(StandardCharsets.UTF_8));
-        } catch (IllegalArgumentException e) {
-            logger.warn("Unable to extract a raw salt from bcrypt salt {}", new String(fullSalt, StandardCharsets.UTF_8));
-            throw e;
-        }
-    }
-
-    /**
-     * Returns the raw salt as a {@code byte[]} extracted from the Bcrypt formatted salt String.
-     *
-     * @param fullSalt the Bcrypt salt sequence
-     * @return the raw salt (16 bytes)
-     */
     public static byte[] extractRawSalt(String fullSalt) {
-        if (fullSalt == null) {
-            return new byte[0];
+        final String[] saltComponents = fullSalt.split("\\$");
+        if (saltComponents.length < 4) {
+            throw new IllegalArgumentException("Could not parse salt");
         }
-        return extractRawSalt(fullSalt.getBytes(StandardCharsets.UTF_8));
+
+        // Bcrypt uses a custom Radix64 encoding alphabet that is not compatible with default Base64
+        return new Radix64Encoder.Default().decode(saltComponents[3].getBytes(StandardCharsets.UTF_8));
     }
 
     @Override

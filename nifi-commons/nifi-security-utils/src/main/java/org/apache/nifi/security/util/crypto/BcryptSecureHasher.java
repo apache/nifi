@@ -17,10 +17,11 @@
 package org.apache.nifi.security.util.crypto;
 
 import at.favre.lib.crypto.bcrypt.BCrypt;
-import java.util.concurrent.TimeUnit;
 import org.bouncycastle.util.encoders.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.concurrent.TimeUnit;
 
 /**
  * Provides an implementation of {@code Bcrypt} for secure password hashing.
@@ -169,7 +170,22 @@ public class BcryptSecureHasher extends AbstractSecureHasher {
         // Contains only the raw salt
         byte[] rawSalt = getSalt();
 
+        return hash(input, rawSalt);
+    }
+
+    /**
+     * Internal method to hash the raw bytes.
+     *
+     * @param input the raw bytes to hash (can be length 0)
+     * @param rawSalt the raw bytes to salt
+     * @return the generated hash
+     */
+    byte[] hash(byte[] input, byte[] rawSalt) {
         logger.debug("Creating Bcrypt hash with salt [{}] ({} bytes)", Hex.toHexString(rawSalt), rawSalt.length);
+
+        if (!isSaltLengthValid(rawSalt.length)) {
+            throw new IllegalArgumentException("The salt length (" + rawSalt.length + " bytes) is invalid");
+        }
 
         final long startNanos = System.nanoTime();
         byte[] hash = BCrypt.withDefaults().hash(cost, rawSalt, input);

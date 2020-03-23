@@ -18,15 +18,13 @@ package org.apache.nifi.security.util.crypto
 
 import org.apache.kerby.util.Hex
 import org.bouncycastle.jce.provider.BouncyCastleProvider
-import org.junit.After
-import org.junit.Before
-import org.junit.BeforeClass
-import org.junit.Test
+import org.junit.*
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
+import java.nio.charset.StandardCharsets
 import java.security.Security
 
 @RunWith(JUnit4.class)
@@ -116,6 +114,106 @@ class ScryptSecureHasherTest extends GroovyTestCase {
     }
 
     @Test
+    void testShouldHandleArbitrarySalt() {
+        // Arrange
+        int n = 1024
+        int r = 8
+        int p = 2
+        int dkLength = 32
+        logger.info("Generating Scrypt hash for iterations: ${n}, mem: ${r} B, parallelism: ${p}, desired key length: ${dkLength}")
+
+        def input = "This is a sensitive value"
+        byte[] inputBytes = input.bytes
+
+        final String EXPECTED_HASH_HEX = "a67fd2f4b3aa577b8ecdb682e60b4451a84611dcbbc534bce17616056ef8965d"
+        final String EXPECTED_HASH_BASE64 = "pn/S9LOqV3uOzbaC5gtEUahGEdy7xTS84XYWBW74ll0"
+        final byte[] EXPECTED_HASH_BYTES = Hex.decode(EXPECTED_HASH_HEX)
+
+        // Static salt instance
+        ScryptSecureHasher staticSaltHasher = new ScryptSecureHasher(n, r, p, dkLength)
+        ScryptSecureHasher arbitrarySaltHasher = new ScryptSecureHasher(n, r, p, dkLength, 16)
+
+        final byte[] STATIC_SALT = AbstractSecureHasher.STATIC_SALT
+        final String DIFFERENT_STATIC_SALT = "Diff Static Salt"
+
+        // Act
+        byte[] staticSaltHash = staticSaltHasher.hashRaw(inputBytes)
+        byte[] arbitrarySaltHash = arbitrarySaltHasher.hashRaw(inputBytes, STATIC_SALT)
+        byte[] differentArbitrarySaltHash = arbitrarySaltHasher.hashRaw(inputBytes, DIFFERENT_STATIC_SALT.getBytes(StandardCharsets.UTF_8))
+        byte[] differentSaltHash = arbitrarySaltHasher.hashRaw(inputBytes)
+
+        String staticSaltHashHex = staticSaltHasher.hashHex(input)
+        String arbitrarySaltHashHex = arbitrarySaltHasher.hashHex(input, new String(STATIC_SALT, StandardCharsets.UTF_8))
+        String differentArbitrarySaltHashHex = arbitrarySaltHasher.hashHex(input, DIFFERENT_STATIC_SALT)
+        String differentSaltHashHex = arbitrarySaltHasher.hashHex(input)
+
+        String staticSaltHashBase64 = staticSaltHasher.hashBase64(input)
+        String arbitrarySaltHashBase64 = arbitrarySaltHasher.hashBase64(input, new String(STATIC_SALT, StandardCharsets.UTF_8))
+        String differentArbitrarySaltHashBase64 = arbitrarySaltHasher.hashBase64(input, DIFFERENT_STATIC_SALT)
+        String differentSaltHashBase64 = arbitrarySaltHasher.hashBase64(input)
+
+        // Assert
+        assert staticSaltHash == EXPECTED_HASH_BYTES
+        assert arbitrarySaltHash == EXPECTED_HASH_BYTES
+        assert differentArbitrarySaltHash != EXPECTED_HASH_BYTES
+        assert differentSaltHash != EXPECTED_HASH_BYTES
+
+        assert staticSaltHashHex == EXPECTED_HASH_HEX
+        assert arbitrarySaltHashHex == EXPECTED_HASH_HEX
+        assert differentArbitrarySaltHashHex != EXPECTED_HASH_HEX
+        assert differentSaltHashHex != EXPECTED_HASH_HEX
+
+        assert staticSaltHashBase64 == EXPECTED_HASH_BASE64
+        assert arbitrarySaltHashBase64 == EXPECTED_HASH_BASE64
+        assert differentArbitrarySaltHashBase64 != EXPECTED_HASH_BASE64
+        assert differentSaltHashBase64 != EXPECTED_HASH_BASE64
+    }
+
+    @Test
+    void testShouldValidateArbitrarySalt() {
+        // Arrange
+        int n = 1024
+        int r = 8
+        int p = 2
+        int dkLength = 32
+        logger.info("Generating Scrypt hash for iterations: ${n}, mem: ${r} B, parallelism: ${p}, desired key length: ${dkLength}")
+
+        def input = "This is a sensitive value"
+        byte[] inputBytes = input.bytes
+
+        final String EXPECTED_HASH_HEX = "a67fd2f4b3aa577b8ecdb682e60b4451a84611dcbbc534bce17616056ef8965d"
+        final String EXPECTED_HASH_BASE64 = "pn/S9LOqV3uOzbaC5gtEUahGEdy7xTS84XYWBW74ll0="
+        final byte[] EXPECTED_HASH_BYTES = Hex.decode(EXPECTED_HASH_HEX)
+
+        // Static salt instance
+        ScryptSecureHasher secureHasher = new ScryptSecureHasher(n, r, p, dkLength, 16)
+        final byte[] STATIC_SALT = "bad_sal".bytes
+
+        // Act
+        def initializationMsg = shouldFail(IllegalArgumentException) {
+            ScryptSecureHasher invalidSaltLengthHasher = new ScryptSecureHasher(n, r, p, dkLength, 7)
+        }
+        logger.expected(initializationMsg)
+
+        def arbitrarySaltRawMsg = shouldFail {
+            byte[] arbitrarySaltHash = secureHasher.hashRaw(inputBytes, STATIC_SALT)
+        }
+
+        def arbitrarySaltHexMsg = shouldFail {
+            String arbitrarySaltHashHex = secureHasher.hashHex(input, new String(STATIC_SALT, StandardCharsets.UTF_8))
+        }
+
+        def arbitrarySaltB64Msg = shouldFail {
+            String arbitrarySaltHashBase64 = secureHasher.hashBase64(input, new String(STATIC_SALT, StandardCharsets.UTF_8))
+        }
+
+        def results = [arbitrarySaltRawMsg, arbitrarySaltHexMsg, arbitrarySaltB64Msg]
+
+        // Assert
+        assert results.every { it =~ /The salt length \(7 bytes\) is invalid/ }
+    }
+
+    @Test
     void testShouldFormatHex() {
         // Arrange
         String input = "This is a sensitive value"
@@ -137,7 +235,7 @@ class ScryptSecureHasherTest extends GroovyTestCase {
         // Arrange
         String input = "This is a sensitive value"
 
-        final String EXPECTED_HASH_BASE64 = "apyCeBX+BxivXjNoEfx43XGcjZUF4BUoMjm5vx0k7nE="
+        final String EXPECTED_HASH_BASE64 = "apyCeBX+BxivXjNoEfx43XGcjZUF4BUoMjm5vx0k7nE"
 
         SecureHasher scryptSH = new ScryptSecureHasher()
 
@@ -182,6 +280,7 @@ class ScryptSecureHasherTest extends GroovyTestCase {
      * This test can have the minimum time threshold updated to determine if the performance
      * is still sufficient compared to the existing threat model.
      */
+    @Ignore("Long running test")
     @Test
     void testDefaultCostParamsShouldBeSufficient() {
         // Arrange

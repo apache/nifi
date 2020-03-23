@@ -16,12 +16,12 @@
  */
 package org.apache.nifi.security.util.crypto;
 
-import java.nio.charset.StandardCharsets;
-import java.security.SecureRandom;
-import org.bouncycastle.util.encoders.Base64;
 import org.bouncycastle.util.encoders.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
 
 public abstract class AbstractSecureHasher implements SecureHasher {
     private static final Logger logger = LoggerFactory.getLogger(AbstractSecureHasher.class);
@@ -149,8 +149,26 @@ public abstract class AbstractSecureHasher implements SecureHasher {
         } catch (IllegalArgumentException e) {
             return "";
         }
-
         return Hex.toHexString(hash(input.getBytes(StandardCharsets.UTF_8)));
+    }
+
+    /**
+     * Returns a String representation of the hash in hex-encoded format.
+     *
+     * @param input the non-empty input
+     * @param salt  the provided salt
+     *
+     * @return the hex-encoded hash
+     */
+    @Override
+    public String hashHex(String input, String salt) {
+        try {
+            input = validateInput(input);
+        } catch (IllegalArgumentException e) {
+            return "";
+        }
+
+        return Hex.toHexString(hash(input.getBytes(StandardCharsets.UTF_8), salt.getBytes(StandardCharsets.UTF_8)));
     }
 
     /**
@@ -167,7 +185,26 @@ public abstract class AbstractSecureHasher implements SecureHasher {
             return "";
         }
 
-        return Base64.toBase64String(hash(input.getBytes(StandardCharsets.UTF_8)));
+        return CipherUtility.encodeBase64NoPadding(hash(input.getBytes(StandardCharsets.UTF_8)));
+    }
+
+    /**
+     * Returns a String representation of the hash in Base 64-encoded format.
+     *
+     * @param input the non-empty input
+     * @param salt  the provided salt
+     *
+     * @return the Base 64-encoded hash
+     */
+    @Override
+    public String hashBase64(String input, String salt) {
+        try {
+            input = validateInput(input);
+        } catch (IllegalArgumentException e) {
+            return "";
+        }
+
+        return CipherUtility.encodeBase64NoPadding(hash(input.getBytes(StandardCharsets.UTF_8), salt.getBytes(StandardCharsets.UTF_8)));
     }
 
     /**
@@ -176,9 +213,21 @@ public abstract class AbstractSecureHasher implements SecureHasher {
      * @param input the input
      * @return the hash
      */
-    @Override
     public byte[] hashRaw(byte[] input) {
         return hash(input);
+    }
+
+    /**
+     * Returns a byte[] representation of {@code SecureHasher.hash(input)}.
+     *
+     * @param input the input
+     * @param salt  the provided salt
+     *
+     * @return the hash
+     */
+    @Override
+    public byte[] hashRaw(byte[] input, byte[] salt) {
+        return hash(input, salt);
     }
 
     /**
@@ -204,10 +253,20 @@ public abstract class AbstractSecureHasher implements SecureHasher {
     }
 
     /**
-     * Returns the algorithm-specific calculated hash for the input.
+     * Returns the algorithm-specific calculated hash for the input and generates or retrieves the salt according to
+     * the configured salt length.
      *
      * @param input the input in raw bytes
      * @return the hash in raw bytes
      */
     abstract byte[] hash(byte[] input);
+
+    /**
+     * Returns the algorithm-specific calculated hash for the input and salt.
+     *
+     * @param input the input in raw bytes
+     * @param salt  the provided salt
+     * @return the hash in raw bytes
+     */
+    abstract byte[] hash(byte[] input, byte[] salt);
 }

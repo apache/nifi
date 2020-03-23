@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.security.util.crypto;
 
-import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.StringUtils;
 import org.bouncycastle.crypto.Digest;
 import org.bouncycastle.crypto.digests.MD5Digest;
@@ -29,6 +28,8 @@ import org.bouncycastle.crypto.params.KeyParameter;
 import org.bouncycastle.util.encoders.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.concurrent.TimeUnit;
 
 /**
  * Provides an implementation of {@code PBKDF2} for secure password hashing.
@@ -199,9 +200,6 @@ public class PBKDF2SecureHasher extends AbstractSecureHasher {
      * @return true if dkLength is within boundaries
      */
     public static boolean isDKLengthValid(int hLen, Integer dkLength) {
-        if (dkLength < DEFAULT_DK_LENGTH) {
-            logger.warn("The provided output length (dkLength) {} bytes is below the recommended minimum {}.", dkLength, DEFAULT_DK_LENGTH);
-        }
         final int MAX_DK_LENGTH = getMaxDKLength(hLen);
         logger.debug("The max dkLength is {} bytes for hLen {} bytes.", MAX_DK_LENGTH, hLen);
 
@@ -231,7 +229,22 @@ public class PBKDF2SecureHasher extends AbstractSecureHasher {
         // Contains only the raw salt
         byte[] rawSalt = getSalt();
 
+        return hash(input, rawSalt);
+    }
+
+    /**
+     * Internal method to hash the raw bytes.
+     *
+     * @param input the raw bytes to hash (can be length 0)
+     * @param rawSalt the raw bytes to salt
+     * @return the generated hash
+     */
+    byte[] hash(byte[] input, byte[] rawSalt) {
         logger.debug("Creating PBKDF2 hash with salt [{}] ({} bytes)", Hex.toHexString(rawSalt), rawSalt.length);
+
+        if (!isSaltLengthValid(rawSalt.length)) {
+            throw new IllegalArgumentException("The salt length (" + rawSalt.length + " bytes) is invalid");
+        }
 
         final long startNanos = System.nanoTime();
         PKCS5S2ParametersGenerator gen = new PKCS5S2ParametersGenerator(this.prf);

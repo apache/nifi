@@ -16,11 +16,6 @@
  */
 package org.apache.nifi.security.util.crypto;
 
-import java.nio.charset.StandardCharsets;
-import java.security.SecureRandom;
-import javax.crypto.Cipher;
-import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.security.util.EncryptionMethod;
@@ -30,10 +25,14 @@ import org.bouncycastle.crypto.digests.SHA1Digest;
 import org.bouncycastle.crypto.digests.SHA256Digest;
 import org.bouncycastle.crypto.digests.SHA384Digest;
 import org.bouncycastle.crypto.digests.SHA512Digest;
-import org.bouncycastle.crypto.generators.PKCS5S2ParametersGenerator;
-import org.bouncycastle.crypto.params.KeyParameter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.crypto.Cipher;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
+import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
 
 public class PBKDF2CipherProvider extends RandomIVPBECipherProvider {
     private static final Logger logger = LoggerFactory.getLogger(PBKDF2CipherProvider.class);
@@ -142,10 +141,10 @@ public class PBKDF2CipherProvider extends RandomIVPBECipherProvider {
             throw new IllegalArgumentException("The salt must be at least " + DEFAULT_SALT_LENGTH + " bytes. To generate a salt, use PBKDF2CipherProvider#generateSalt()");
         }
 
-        PKCS5S2ParametersGenerator gen = new PKCS5S2ParametersGenerator(this.prf);
-        gen.init(password.getBytes(StandardCharsets.UTF_8), salt, getIterationCount());
-        byte[] dk = ((KeyParameter) gen.generateDerivedParameters(keyLength)).getKey();
-        SecretKey tempKey = new SecretKeySpec(dk, algorithm);
+        // Hasher expects keyLength in bytes; instance field is in bits
+        PBKDF2SecureHasher pbkdf2SecureHasher = new PBKDF2SecureHasher(getPRFName(), getIterationCount(), salt.length, keyLength / 8);
+        byte[] hashBytes = pbkdf2SecureHasher.hashRaw(password.getBytes(StandardCharsets.UTF_8), salt);
+        SecretKey tempKey = new SecretKeySpec(hashBytes, algorithm);
 
         KeyedCipherProvider keyedCipherProvider = new AESKeyedCipherProvider();
         return keyedCipherProvider.getCipher(encryptionMethod, tempKey, iv, encryptMode);

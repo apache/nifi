@@ -16,15 +16,6 @@
  */
 package org.apache.nifi.security.util.crypto;
 
-import java.nio.charset.StandardCharsets;
-import java.security.SecureRandom;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import javax.crypto.Cipher;
-import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.binary.Hex;
@@ -34,6 +25,16 @@ import org.apache.nifi.security.util.EncryptionMethod;
 import org.apache.nifi.security.util.crypto.scrypt.Scrypt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.crypto.Cipher;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
+import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class ScryptCipherProvider extends RandomIVPBECipherProvider {
     private static final Logger logger = LoggerFactory.getLogger(ScryptCipherProvider.class);
@@ -179,29 +180,57 @@ public class ScryptCipherProvider extends RandomIVPBECipherProvider {
             throw new IllegalArgumentException(keyLength + " is not a valid key length for " + cipherName);
         }
 
-        String scryptSalt = formatSaltForScrypt(salt);
-        List<Integer> params = new ArrayList<>(3);
-        byte[] rawSalt = new byte[Scrypt.getDefaultSaltLength()];
-
-        parseSalt(scryptSalt, rawSalt, params);
-
-        // TODO: Add hash method to SecureHasher interface which accepts arbitrary salt or create new constructor which accepts it and update getSalt()
-        ScryptSecureHasher scryptSecureHasher = new ScryptSecureHasher(params.get(0), params.get(1), params.get(2), keyLength);
-        String hashBase64 = scryptSecureHasher.hashBase64(password);
-
-        String hash = Scrypt.scrypt(password, rawSalt, params.get(0), params.get(1), params.get(2), keyLength);
-
-        // Split out the derived key from the hash and form a key object
-        final String[] hashComponents = hash.split("\\$");
-        final int HASH_INDEX = 4;
-        if (hashComponents.length < HASH_INDEX) {
-            throw new ProcessException("There was an error generating a scrypt hash -- the resulting hash was not properly formatted");
+        /** 1. Parse the incoming salt $s0$20101$ABCDEF... into rawSalt, N, r, p
+         *  2. Generate the hash (derived key) from Scrypt using password, rawSalt, N, r, p, dkLen
+         *  3. Pass derived key into cipher
+         */
+        String saltString = new String(salt, StandardCharsets.UTF_8);
+        byte[] rawSalt = new byte[getDefaultSaltLength()];
+        int n, r, p;
+        if (isScryptFormattedSalt(saltString)) {
+            List<Integer> params = new ArrayList<>(3);
+            parseSalt(saltString, rawSalt, params);
+            n = params.get(0);
+            r = params.get(1);
+            p = params.get(2);
+        } else {
+            rawSalt = salt;
+            n = getN();
+            r = getR();
+            p = getP();
         }
-        byte[] keyBytes = Base64.decodeBase64(hashComponents[HASH_INDEX]);
-        SecretKey tempKey = new SecretKeySpec(keyBytes, algorithm);
 
-        KeyedCipherProvider keyedCipherProvider = new AESKeyedCipherProvider();
-        return keyedCipherProvider.getCipher(encryptionMethod, tempKey, iv, encryptMode);
+        ScryptSecureHasher scryptSecureHasher = new ScryptSecureHasher(n, r, p, keyLength / 8);
+        try {
+            byte[] keyBytes = scryptSecureHasher.hashRaw(password.getBytes(StandardCharsets.UTF_8), rawSalt);
+            SecretKey tempKey = new SecretKeySpec(keyBytes, algorithm);
+
+            KeyedCipherProvider keyedCipherProvider = new AESKeyedCipherProvider();
+            return keyedCipherProvider.getCipher(encryptionMethod, tempKey, iv, encryptMode);
+        } catch (IllegalArgumentException e) {
+            if (e.getMessage().contains("The salt length")) {
+                throw new IllegalArgumentException("The raw salt must be greater than or equal to 8 bytes", e);
+            } else {
+                logger.error("Encountered an error generating the Scrypt hash", e);
+                throw e;
+            }
+        }
+    }
+
+    private byte[] extractRawSaltFromScryptSalt(String scryptSalt) {
+        final String[] saltComponents = scryptSalt.split("\\$");
+        if (saltComponents.length < 4) {
+            throw new IllegalArgumentException("Could not parse salt");
+        }
+        return Base64.decodeBase64(saltComponents[3]);
+    }
+
+    private boolean isScryptFormattedSalt(String salt) {
+        if (salt == null || salt.length() == 0) {
+            throw new IllegalArgumentException("The salt cannot be empty. To generate a salt, use ScryptCipherProvider#generateSalt()");
+        }
+        Matcher matcher = SCRYPT_SALT_FORMAT.matcher(salt);
+        return matcher.find();
     }
 
     private void parseSalt(String scryptSalt, byte[] rawSalt, List<Integer> params) {
@@ -211,11 +240,7 @@ public class ScryptCipherProvider extends RandomIVPBECipherProvider {
 
         /** Salt format is $s0$params$saltB64 where params is encoded according to
          *  {@link Scrypt#parseParameters(String)}*/
-        final String[] saltComponents = scryptSalt.split("\\$");
-        if (saltComponents.length < 4) {
-            throw new IllegalArgumentException("Could not parse salt");
-        }
-        byte[] salt = Base64.decodeBase64(saltComponents[3]);
+        byte[] salt = extractRawSaltFromScryptSalt(scryptSalt);
         if (rawSalt.length < salt.length) {
             byte[] tempBytes = new byte[salt.length];
             System.arraycopy(rawSalt, 0, tempBytes, 0, rawSalt.length);
@@ -226,30 +251,29 @@ public class ScryptCipherProvider extends RandomIVPBECipherProvider {
         if (params == null) {
             params = new ArrayList<>(3);
         }
+        final String[] saltComponents = scryptSalt.split("\\$");
         params.addAll(Scrypt.parseParameters(saltComponents[2]));
     }
 
     /**
-     * Formats the salt into a string which Scrypt can understand containing the N, r, p values along with the salt value. If the provided salt contains all values, the response will be unchanged.
-     * If it only contains the raw salt value, the resulting return value will also include the current instance version, N, r, and p.
+     * Formats the salt into a string which Scrypt can understand containing the N, r, p values along with the salt
+     * value. If the provided salt contains all values, the response will be unchanged.
+     * If it only contains the raw salt value, the resulting return value will also include the current instance
+     * version, N, r, and p.
+     * <p>
+     * The salt is expected to be in the format {@code new String(saltBytes, StandardCharsets.UTF_8) => "$s0$e0801$ABCDEF...."}.
      *
      * @param salt the provided salt
      * @return the properly-formatted and complete salt
      */
     private String formatSaltForScrypt(byte[] salt) {
-        if (salt == null || salt.length == 0) {
-            throw new IllegalArgumentException("The salt cannot be empty. To generate a salt, use ScryptCipherProvider#generateSalt()");
-        }
-
         String saltString = new String(salt, StandardCharsets.UTF_8);
-        Matcher matcher = SCRYPT_SALT_FORMAT.matcher(saltString);
-
-        if (matcher.find()) {
+        if (isScryptFormattedSalt(saltString)) {
             return saltString;
         } else {
             if (saltString.startsWith("$")) {
                 logger.warn("Salt starts with $ but is not valid scrypt salt");
-                matcher = MCRYPT_SALT_FORMAT.matcher(saltString);
+                Matcher matcher = MCRYPT_SALT_FORMAT.matcher(saltString);
                 if (matcher.find()) {
                     logger.warn("The salt appears to be of the modified mcrypt format. Use ScryptCipherProvider#translateSalt(mcryptSalt) to form a valid salt");
                     return translateSalt(saltString);
@@ -287,7 +311,7 @@ public class ScryptCipherProvider extends RandomIVPBECipherProvider {
 
         String[] components = mcryptSalt.split("\\$");
         try {
-            return Scrypt.formatSalt(Hex.decodeHex(components[4].toCharArray()), Integer.valueOf(components[1]), Integer.valueOf(components[2]), Integer.valueOf(components[3]));
+            return Scrypt.formatSalt(Hex.decodeHex(components[4].toCharArray()), Integer.parseInt(components[1]), Integer.parseInt(components[2]), Integer.parseInt(components[3]));
         } catch (DecoderException e) {
             final String msg = "Mcrypt salt was not properly hex-encoded";
             logger.warn(msg);

@@ -19,12 +19,7 @@ package org.apache.nifi.security.util.crypto
 import org.apache.commons.codec.binary.Hex
 import org.apache.nifi.security.util.EncryptionMethod
 import org.bouncycastle.jce.provider.BouncyCastleProvider
-import org.junit.After
-import org.junit.Assume
-import org.junit.Before
-import org.junit.BeforeClass
-import org.junit.Ignore
-import org.junit.Test
+import org.junit.*
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
 import org.slf4j.Logger
@@ -331,6 +326,39 @@ class PBKDF2CipherProviderGroovyTest {
 
         // Assert
         assert PLAINTEXT.equals(recovered)
+    }
+
+    @Test
+    void testGetCipherShouldHandleDifferentPRFs() throws Exception {
+        // Arrange
+        RandomIVPBECipherProvider sha256CP = new PBKDF2CipherProvider("SHA-256", TEST_ITERATION_COUNT)
+        RandomIVPBECipherProvider sha512CP = new PBKDF2CipherProvider("SHA-512", TEST_ITERATION_COUNT)
+
+        final String PLAINTEXT = "This is a plaintext message."
+        final String PASSWORD = "thisIsABadPassword"
+        final byte[] SALT = [0x11] * 16
+        final byte[] IV = [0x22] * 16
+
+        EncryptionMethod encryptionMethod = EncryptionMethod.AES_CBC
+        logger.info("Using algorithm: ${encryptionMethod.getAlgorithm()}")
+
+        // Act
+        Cipher sha256Cipher = sha256CP.getCipher(encryptionMethod, PASSWORD, SALT, IV, DEFAULT_KEY_LENGTH, true)
+        byte[] sha256CipherBytes = sha256Cipher.doFinal(PLAINTEXT.bytes)
+
+        Cipher sha512Cipher = sha512CP.getCipher(encryptionMethod, PASSWORD, SALT, IV, DEFAULT_KEY_LENGTH, true)
+        byte[] sha512CipherBytes = sha512Cipher.doFinal(PLAINTEXT.bytes)
+
+        // Assert
+        assert sha512CipherBytes != sha256CipherBytes
+
+        Cipher sha256DecryptCipher = sha256CP.getCipher(encryptionMethod, PASSWORD, SALT, IV, DEFAULT_KEY_LENGTH, false)
+        byte[] sha256RecoveredBytes = sha256DecryptCipher.doFinal(sha256CipherBytes)
+        assert sha256RecoveredBytes == PLAINTEXT.bytes
+
+        Cipher sha512DecryptCipher = sha512CP.getCipher(encryptionMethod, PASSWORD, SALT, IV, DEFAULT_KEY_LENGTH, false)
+        byte[] sha512RecoveredBytes = sha512DecryptCipher.doFinal(sha512CipherBytes)
+        assert sha512RecoveredBytes == PLAINTEXT.bytes
     }
 
     @Test
