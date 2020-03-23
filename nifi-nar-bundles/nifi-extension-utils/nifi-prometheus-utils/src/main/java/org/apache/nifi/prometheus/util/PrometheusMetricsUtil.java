@@ -15,13 +15,16 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.reporting.prometheus.api;
+package org.apache.nifi.prometheus.util;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import io.prometheus.client.Counter;
 import io.prometheus.client.SimpleCollector;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -34,11 +37,11 @@ import io.prometheus.client.CollectorRegistry;
 import io.prometheus.client.Gauge;
 import org.apache.nifi.controller.status.RemoteProcessGroupStatus;
 import org.apache.nifi.controller.status.TransmissionStatus;
+import org.apache.nifi.controller.status.analytics.StatusAnalytics;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.metrics.jvm.JvmMetrics;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.ssl.RestrictedSSLContextService;
 
 public class PrometheusMetricsUtil {
 
@@ -51,6 +54,10 @@ public class PrometheusMetricsUtil {
 
     private static final CollectorRegistry NIFI_REGISTRY = new CollectorRegistry();
     private static final CollectorRegistry JVM_REGISTRY = new CollectorRegistry();
+    private static final CollectorRegistry CONNECTION_ANALYTICS_REGISTRY = new CollectorRegistry();
+    private static final CollectorRegistry BULLETIN_REGISTRY = new CollectorRegistry();
+
+    public static final Collection<CollectorRegistry> ALL_REGISTRIES = Arrays.asList(NIFI_REGISTRY, CONNECTION_ANALYTICS_REGISTRY, BULLETIN_REGISTRY, JVM_REGISTRY);
 
     // Common properties/values
     public static final AllowableValue CLIENT_NONE = new AllowableValue("No Authentication", "No Authentication",
@@ -79,15 +86,6 @@ public class PrometheusMetricsUtil {
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .defaultValue("${hostname(true)}")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .build();
-
-    public static final PropertyDescriptor SSL_CONTEXT = new PropertyDescriptor.Builder()
-            .name("prometheus-reporting-task-ssl-context")
-            .displayName("SSL Context Service")
-            .description("The SSL Context Service to use in order to secure the server. If specified, the server will"
-                    + "accept only HTTPS requests; otherwise, the server will accept only HTTP requests")
-            .required(false)
-            .identifiesControllerService(RestrictedSSLContextService.class)
             .build();
 
     public static final PropertyDescriptor CLIENT_AUTH = new PropertyDescriptor.Builder()
@@ -134,6 +132,16 @@ public class PrometheusMetricsUtil {
     private static final Gauge AMOUNT_BYTES_READ = Gauge.build()
             .name("nifi_amount_bytes_read")
             .help("Total number of bytes read by the component")
+            .labelNames("instance", "component_type", "component_name", "component_id", "parent_id")
+            .register(NIFI_REGISTRY);
+
+    private static final Counter TOTAL_BYTES_READ = Counter.build().name("nifi_total_bytes_read")
+            .help("Total number of bytes read by the component")
+            .labelNames("instance", "component_type", "component_name", "component_id", "parent_id")
+            .register(NIFI_REGISTRY);
+
+    private static final Counter TOTAL_BYTES_WRITTEN = Counter.build().name("nifi_total_bytes_written")
+            .help("Total number of bytes written by the component")
             .labelNames("instance", "component_type", "component_name", "component_id", "parent_id")
             .register(NIFI_REGISTRY);
 
@@ -267,6 +275,42 @@ public class PrometheusMetricsUtil {
                     "source_id", "source_name", "destination_id", "destination_name")
             .register(NIFI_REGISTRY);
 
+    // Connection status analytics metrics
+    private static final Gauge TIME_TO_BYTES_BACKPRESSURE_PREDICTION = Gauge.build()
+            .name("nifi_time_to_bytes_backpressure_prediction")
+            .help("Predicted time (in milliseconds) until backpressure will be applied on the connection due to bytes in the queue")
+            .labelNames("instance", "component_type", "component_name", "component_id", "parent_id",
+                    "source_id", "source_name", "destination_id", "destination_name")
+            .register(CONNECTION_ANALYTICS_REGISTRY);
+
+    private static final Gauge TIME_TO_COUNT_BACKPRESSURE_PREDICTION = Gauge.build()
+            .name("nifi_time_to_count_backpressure_prediction")
+            .help("Predicted time (in milliseconds) until backpressure will be applied on the connection due to number of objects in the queue")
+            .labelNames("instance", "component_type", "component_name", "component_id", "parent_id",
+                    "source_id", "source_name", "destination_id", "destination_name")
+            .register(CONNECTION_ANALYTICS_REGISTRY);
+
+    private static final Gauge BYTES_AT_NEXT_INTERVAL_PREDICTION = Gauge.build()
+            .name("nifi_bytes_at_next_interval_prediction")
+            .help("Predicted number of bytes in the queue at the next configured interval")
+            .labelNames("instance", "component_type", "component_name", "component_id", "parent_id",
+                    "source_id", "source_name", "destination_id", "destination_name")
+            .register(CONNECTION_ANALYTICS_REGISTRY);
+
+    private static final Gauge COUNT_AT_NEXT_INTERVAL_PREDICTION = Gauge.build()
+            .name("nifi_count_at_next_interval_prediction")
+            .help("Predicted number of objects in the queue at the next configured interval")
+            .labelNames("instance", "component_type", "component_name", "component_id", "parent_id",
+                    "source_id", "source_name", "destination_id", "destination_name")
+            .register(CONNECTION_ANALYTICS_REGISTRY);
+
+    private static final Gauge BULLETIN = Gauge.build()
+            .name("nifi_bulletin")
+            .help("Bulletin reported by the NiFi instance")
+            .labelNames("instance", "component_type", "component_id", "parent_id",
+                    "node_address", "category", "source_name", "source_id", "level")
+            .register(BULLETIN_REGISTRY);
+
     ///////////////////////////////////////////////////////////////
     // JVM Metrics
     ///////////////////////////////////////////////////////////////
@@ -350,6 +394,8 @@ public class PrometheusMetricsUtil {
         AMOUNT_BYTES_SENT.labels(instanceId, componentType, componentName, componentId, parentPGId).set(status.getBytesSent());
         AMOUNT_BYTES_READ.labels(instanceId, componentType, componentName, componentId, parentPGId).set(status.getBytesRead());
         AMOUNT_BYTES_WRITTEN.labels(instanceId, componentType, componentName, componentId, parentPGId).set(status.getBytesWritten());
+        TOTAL_BYTES_READ.labels(instanceId, componentType, componentName, componentId, parentPGId).inc(status.getBytesRead());
+        TOTAL_BYTES_WRITTEN.labels(instanceId, componentType, componentName, componentId, parentPGId).inc(status.getBytesWritten());
         AMOUNT_BYTES_RECEIVED.labels(instanceId, componentType, componentName, componentId, parentPGId).set(status.getBytesReceived());
         AMOUNT_BYTES_TRANSFERRED.labels(instanceId, componentType, componentName, componentId, parentPGId).set(status.getBytesTransferred());
 
@@ -399,6 +445,8 @@ public class PrometheusMetricsUtil {
                 AMOUNT_BYTES_SENT.labels(instanceId, procComponentType, procComponentName, procComponentId, parentPGId).set(processorStatus.getBytesSent());
                 AMOUNT_BYTES_READ.labels(instanceId, procComponentType, procComponentName, procComponentId, parentPGId).set(processorStatus.getBytesRead());
                 AMOUNT_BYTES_WRITTEN.labels(instanceId, procComponentType, procComponentName, procComponentId, parentPGId).set(processorStatus.getBytesWritten());
+                TOTAL_BYTES_READ.labels(instanceId, procComponentType, procComponentName, procComponentId, parentId).inc(status.getBytesRead());
+                TOTAL_BYTES_WRITTEN.labels(instanceId, procComponentType, procComponentName, procComponentId, parentId).inc(status.getBytesWritten());
                 AMOUNT_BYTES_RECEIVED.labels(instanceId, procComponentType, procComponentName, procComponentId, parentPGId).set(processorStatus.getBytesReceived());
 
                 SIZE_CONTENT_OUTPUT_TOTAL.labels(instanceId, procComponentType, procComponentName, procComponentId, parentPGId, "", "", "", "")
@@ -463,6 +511,8 @@ public class PrometheusMetricsUtil {
                 AMOUNT_BYTES_SENT.labels(instanceId, portComponentType, portComponentName, portComponentId, parentId).set(portStatus.getBytesSent());
                 AMOUNT_BYTES_READ.labels(instanceId, portComponentType, portComponentName, portComponentId, parentId).set(portStatus.getInputBytes());
                 AMOUNT_BYTES_WRITTEN.labels(instanceId, portComponentType, portComponentName, portComponentId, parentId).set(portStatus.getOutputBytes());
+                TOTAL_BYTES_READ.labels(instanceId, portComponentType, portComponentName, portComponentId, parentId).inc(status.getBytesRead());
+                TOTAL_BYTES_WRITTEN.labels(instanceId, portComponentType, portComponentName, portComponentId, parentId).inc(status.getBytesWritten());
                 AMOUNT_BYTES_RECEIVED.labels(instanceId, portComponentType, portComponentName, portComponentId, parentId).set(portStatus.getBytesReceived());
 
                 AMOUNT_ITEMS_OUTPUT.labels(instanceId, portComponentType, portComponentName, portComponentId, parentId, "", "", "", "")
@@ -487,6 +537,8 @@ public class PrometheusMetricsUtil {
                 AMOUNT_BYTES_SENT.labels(instanceId, portComponentType, portComponentName, portComponentId, parentId).set(portStatus.getBytesSent());
                 AMOUNT_BYTES_READ.labels(instanceId, portComponentType, portComponentName, portComponentId, parentId).set(portStatus.getInputBytes());
                 AMOUNT_BYTES_WRITTEN.labels(instanceId, portComponentType, portComponentName, portComponentId, parentId).set(portStatus.getOutputBytes());
+                TOTAL_BYTES_READ.labels(instanceId, portComponentType, portComponentName, portComponentId, parentId).inc(status.getBytesRead());
+                TOTAL_BYTES_WRITTEN.labels(instanceId, portComponentType, portComponentName, portComponentId, parentId).inc(status.getBytesWritten());
                 AMOUNT_BYTES_RECEIVED.labels(instanceId, portComponentType, portComponentName, portComponentId, parentId).set(portStatus.getBytesReceived());
 
                 AMOUNT_ITEMS_OUTPUT.labels(instanceId, portComponentType, portComponentName, portComponentId, parentId, "", "", "", "")
@@ -552,4 +604,27 @@ public class PrometheusMetricsUtil {
         return JVM_REGISTRY;
     }
 
+    public static CollectorRegistry createConnectionStatusAnalyticsMetrics(StatusAnalytics statusAnalytics, String instanceId, String connComponentType, String connComponentName,
+                                                                           String connComponentId, String parentId, String sourceId, String sourceName, String destinationId, String destinationName) {
+        if(statusAnalytics != null) {
+            Map<String, Long> predictions = statusAnalytics.getPredictions();
+            TIME_TO_BYTES_BACKPRESSURE_PREDICTION.labels(instanceId, connComponentType, connComponentName, connComponentId, parentId, sourceId, sourceName, destinationId, destinationName)
+                    .set(predictions.get("timeToBytesBackpressureMillis"));
+            TIME_TO_COUNT_BACKPRESSURE_PREDICTION.labels(instanceId, connComponentType, connComponentName, connComponentId, parentId, sourceId, sourceName, destinationId, destinationName)
+                    .set(predictions.get("timeToCountBackpressureMillis"));
+            BYTES_AT_NEXT_INTERVAL_PREDICTION.labels(instanceId, connComponentType, connComponentName, connComponentId, parentId, sourceId, sourceName, destinationId, destinationName)
+                    .set(predictions.get("nextIntervalBytes"));
+            COUNT_AT_NEXT_INTERVAL_PREDICTION.labels(instanceId, connComponentType, connComponentName, connComponentId, parentId, sourceId, sourceName, destinationId, destinationName)
+                    .set(predictions.get("nextIntervalCount"));
+        }
+
+        return CONNECTION_ANALYTICS_REGISTRY;
+    }
+
+    public static CollectorRegistry createBulletinMetrics(String instanceId, String componentType, String componentId, String parentId, String nodeAddress,
+                                                          String category, String sourceName, String sourceId, String level) {
+
+        BULLETIN.labels(instanceId, componentType, componentId, parentId, nodeAddress, category, sourceName, sourceId, level).set(1);
+        return BULLETIN_REGISTRY;
+    }
 }

@@ -30,7 +30,7 @@ import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.reporting.prometheus.api.PrometheusMetricsUtil;
+import org.apache.nifi.prometheus.util.PrometheusMetricsUtil;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.ListRecordSet;
@@ -128,7 +128,7 @@ public class TestPrometheusRecordSink {
 
         final PropertyValue pValue = mock(StandardPropertyValue.class);
         when(context.getProperty(PrometheusMetricsUtil.METRICS_ENDPOINT_PORT)).thenReturn(new MockPropertyValue(portString));
-        when(context.getProperty(PrometheusMetricsUtil.SSL_CONTEXT)).thenReturn(pValue);
+        when(context.getProperty(PrometheusRecordSink.SSL_CONTEXT)).thenReturn(pValue);
         when(pValue.asControllerService(SSLContextService.class)).thenReturn(null);
 
         final ControllerServiceInitializationContext initContext = new MockControllerServiceInitializationContext(task, UUID.randomUUID().toString(), logger, stateManager);
