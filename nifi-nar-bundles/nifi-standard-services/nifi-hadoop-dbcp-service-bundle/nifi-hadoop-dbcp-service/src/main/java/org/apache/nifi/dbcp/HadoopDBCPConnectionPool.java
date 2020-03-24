@@ -68,7 +68,7 @@ import java.util.concurrent.atomic.AtomicReference;
 @RequiresInstanceClassLoading
 @Tags({ "dbcp", "jdbc", "database", "connection", "pooling", "store", "hadoop" })
 @CapabilityDescription("Provides a Database Connection Pooling Service for Hadoop related JDBC services. This service requires that " +
-        "the Database Driver Locations contains some version of a hadoop-commons JAR, or a shaded JAR that shades hadoop-commons.")
+        "the Database Driver Location(s) contains some version of a hadoop-common JAR, or a shaded JAR that shades hadoop-common.")
 @DynamicProperty(name = "The name of a Hadoop configuration property.", value = "The value of the given Hadoop configuration property.",
         description = "These properties will be set on the Hadoop configuration after loading any provided configuration files.",
         expressionLanguageScope = ExpressionLanguageScope.VARIABLE_REGISTRY)
@@ -132,7 +132,7 @@ public class HadoopDBCPConnectionPool extends AbstractControllerService implemen
 
     public static final PropertyDescriptor DB_USER = new PropertyDescriptor.Builder()
             .name("Database User")
-            .description("Database user name")
+            .description("The user for the database")
             .defaultValue(null)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
