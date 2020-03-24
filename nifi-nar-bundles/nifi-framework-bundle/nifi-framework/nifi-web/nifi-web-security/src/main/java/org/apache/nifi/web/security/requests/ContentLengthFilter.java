@@ -42,7 +42,7 @@ public class ContentLengthFilter implements Filter {
 
     public void init() {
         maxContentLength = MAX_LENGTH_DEFAULT;
-        logger.debug("Filter initialized without configuration and set max content length: " + maxContentLength + "B");
+        logger.debug("Filter initialized without configuration and set max content length: " + maxContentLength + " B");
     }
 
 
@@ -54,7 +54,7 @@ public class ContentLengthFilter implements Filter {
             throw new ServletException("Invalid max request length.");
         }
         maxContentLength = length;
-        logger.debug("Filter initialized and set max content length: " + maxContentLength + "B");
+        logger.debug("Filter initialized and set max content length: " + maxContentLength + " B");
     }
 
     @Override
@@ -79,10 +79,10 @@ public class ContentLengthFilter implements Filter {
             httpResponse.setContentType("text/plain");
             httpResponse.getOutputStream().write("Payload Too large".getBytes());
             httpResponse.setStatus(HttpServletResponse.SC_REQUEST_ENTITY_TOO_LARGE);
-            logger.warn("Content length check rejected request with content-length {} greater than maximum {}B", contentLength, maxContentLength);
+            logger.warn("Content length check rejected request with content-length {} greater than maximum {} B", contentLength, maxContentLength);
         } else {
             // If or when the request is read, this limits the read to our max:
-            logger.debug("Content length check allowed request with content-length {} less than maximum {}B", contentLength, maxContentLength);
+            logger.debug("Content length check allowed request with content-length {} less than maximum {} B", contentLength, maxContentLength);
             chain.doFilter(new LimitedContentLengthRequest(httpRequest, maxContentLength), response);
         }
     }
