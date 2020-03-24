@@ -68,15 +68,15 @@ public class ShellRunner {
         final List<String> lines = new ArrayList<>();
         executor.submit(() -> {
             try {
-                int lineCount = 0;
                 try (final Reader stdin = new InputStreamReader(proc.getInputStream());
                      final BufferedReader reader = new BufferedReader(stdin)) {
                     logger.trace("Reading process input stream...");
 
                     String line;
+                    int lineCount = 0;
                     while ((line = reader.readLine()) != null) {
                         if (logger.isTraceEnabled()) {
-                            logger.trace((lineCount++) + " - " + line);
+                            logger.trace((++lineCount) + " - " + line);
                         }
                         lines.add(line.trim());
                     }
