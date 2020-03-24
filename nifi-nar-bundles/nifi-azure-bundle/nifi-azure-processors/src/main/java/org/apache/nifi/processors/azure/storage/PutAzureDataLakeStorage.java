@@ -40,18 +40,18 @@ import com.microsoft.azure.datalake.store.oauth2.ClientCredsTokenProvider;
 @SeeAlso({ ListAzureBlobStorage.class, FetchAzureBlobStorage.class, DeleteAzureBlobStorage.class })
 @CapabilityDescription("Puts content into an Azure data lake storage")
 @InputRequirement(Requirement.INPUT_REQUIRED)
-@WritesAttributes({ @WritesAttribute(attribute = "azure.datalake.fqdn", description = "Fully qualified domain name of the Azure Data Lake Storage account"),
-        @WritesAttribute(attribute = "azure.datalake.file", description = "File name with extension copied in Azure Data Lake Storage "),
-        @WritesAttribute(attribute = "azure.datalake.file.path", description = "Folder path in Data Lake Storage where file is copied")})
+@WritesAttributes({
+		@WritesAttribute(attribute = "azure.datalake.fqdn", description = "Fully qualified domain name of the Azure Data Lake Storage account"),
+		@WritesAttribute(attribute = "azure.datalake.file", description = "File name with extension copied in Azure Data Lake Storage "),
+		@WritesAttribute(attribute = "azure.datalake.file.path", description = "Folder path in Data Lake Storage where file is copied") })
 public class PutAzureDataLakeStorage extends AbstractProcessor {
 
 	private static AccessTokenProvider provider = null;
 	private static ADLStoreClient client = null;
-	
+
 	final static String AZURE_DATALAEK_FQDN = "azure.datalake.fqdn";
-    final static String AZURE_DATALAEK_FILE = "azure.datalake.file";
-    final static String AZURE_DATALAEK_FILE_PATH = "azure.datalake.file.path";
-    
+	final static String AZURE_DATALAEK_FILE = "azure.datalake.file";
+	final static String AZURE_DATALAEK_FILE_PATH = "azure.datalake.file.path";
 
 	public static final PropertyDescriptor CLIENT_ID = new PropertyDescriptor.Builder().name("clientid")
 			.displayName("Client Id")
@@ -127,7 +127,6 @@ public class PutAzureDataLakeStorage extends AbstractProcessor {
 		return descriptors;
 	}
 
-	
 	@Override
 	public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
 
@@ -135,45 +134,47 @@ public class PutAzureDataLakeStorage extends AbstractProcessor {
 		if (flowFile == null) {
 			return;
 		}
-		
+
 		try {
-			
+
 			final String clientId = context.getProperty(CLIENT_ID).evaluateAttributeExpressions(flowFile).getValue();
-			final String clientSecret = context.getProperty(CLIENT_SECRET).evaluateAttributeExpressions(flowFile).getValue();
-			final String authEndPoint = context.getProperty(AUTH_ENDPOINT).evaluateAttributeExpressions(flowFile).getValue();
-			final String accountFQDN = context.getProperty(ACCOUNT_FQDN).evaluateAttributeExpressions(flowFile).getValue();
+			final String clientSecret = context.getProperty(CLIENT_SECRET).evaluateAttributeExpressions(flowFile)
+					.getValue();
+			final String authEndPoint = context.getProperty(AUTH_ENDPOINT).evaluateAttributeExpressions(flowFile)
+					.getValue();
+			final String accountFQDN = context.getProperty(ACCOUNT_FQDN).evaluateAttributeExpressions(flowFile)
+					.getValue();
 			final String fileName = context.getProperty(FILE_NAME).evaluateAttributeExpressions(flowFile).getValue();
-			final String folderPath = context.getProperty(FOLDER_PATH).evaluateAttributeExpressions(flowFile).getValue();
-			
+			final String folderPath = context.getProperty(FOLDER_PATH).evaluateAttributeExpressions(flowFile)
+					.getValue();
+
 			final Map<String, String> attributes = new HashMap<>();
-			attributes.put(AZURE_DATALAEK_FILE,fileName);
-			attributes.put(AZURE_DATALAEK_FILE_PATH,folderPath);
-			attributes.put(AZURE_DATALAEK_FQDN,accountFQDN);
+			attributes.put(AZURE_DATALAEK_FILE, fileName);
+			attributes.put(AZURE_DATALAEK_FILE_PATH, folderPath);
+			attributes.put(AZURE_DATALAEK_FQDN, accountFQDN);
 			flowFile = session.putAllAttributes(flowFile, attributes);
-			
+
 			final byte[] buffer = new byte[(int) flowFile.getSize()];
-	        session.read(flowFile, in -> StreamUtils.fillBuffer(in, buffer));
-	        
-	        if(provider == null) {
-	        	 provider = new ClientCredsTokenProvider(authEndPoint, clientId, clientSecret);
-	 	         client = ADLStoreClient.createClient(accountFQDN, provider);
-	        }
-	       
-			OutputStream stream = client.createFile(folderPath+File.separator+fileName, IfExists.OVERWRITE  );
-	        PrintStream out = new PrintStream(stream);
-	        out.write(buffer);
-	        out.flush();
-	        out.close();
-	        session.transfer(flowFile, REL_SUCCESS);
-		}catch(IOException e){
+			session.read(flowFile, in -> StreamUtils.fillBuffer(in, buffer));
+
+			if (provider == null) {
+				provider = new ClientCredsTokenProvider(authEndPoint, clientId, clientSecret);
+				client = ADLStoreClient.createClient(accountFQDN, provider);
+			}
+
+			OutputStream stream = client.createFile(folderPath + File.separator + fileName, IfExists.OVERWRITE);
+			PrintStream out = new PrintStream(stream);
+			out.write(buffer);
+			out.flush();
+			out.close();
+			session.transfer(flowFile, REL_SUCCESS);
+		} catch (IOException e) {
 			getLogger().error("Failed to put file on Data Lake Storage");
 			flowFile = session.penalize(flowFile);
 			session.transfer(flowFile, REL_FAILURE);
 			return;
 		}
-		
 
-		
 	}
 
 }
