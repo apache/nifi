@@ -22,6 +22,7 @@ import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
 
+import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetAddress;
@@ -53,7 +54,8 @@ public class StandardSocketChannelRecordReader implements SocketChannelRecordRea
             throw new IllegalStateException("Cannot create RecordReader because already created");
         }
 
-        final InputStream in = socketChannel.socket().getInputStream();
+        final InputStream socketIn = socketChannel.socket().getInputStream();
+        final InputStream in = new BufferedInputStream(socketIn);
         recordReader = readerFactory.createRecordReader(Collections.emptyMap(), in, -1, logger);
         return recordReader;
     }
