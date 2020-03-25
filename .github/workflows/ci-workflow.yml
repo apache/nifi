@@ -71,7 +71,6 @@ jobs:
       run: |
         mvn -version
         mvn -T 0.8C package -B -Pcontrib-check,include-grpc -Ddir-only -ntp -ff -pl -nifi-assembly,-nifi-toolkit/nifi-toolkit-assembly
-        rm -rf ~/.m2/repository/org/apache/nifi
 
   ubuntu-build-en:
 
@@ -141,7 +140,6 @@ jobs:
         run: |
           mvn -version
           mvn -T 0.8C package -B -Pcontrib-check,include-grpc -Ddir-only -ntp -ff -pl -nifi-assembly,-nifi-toolkit/nifi-toolkit-assembly
-          rm -rf ~/.m2/repository/org/apache/nifi
 
   osx-build-jp:
 
@@ -211,7 +209,6 @@ jobs:
         run: |
           mvn -version
           mvn -T 0.8C package -B -Pcontrib-check,include-grpc -Ddir-only -ntp -ff -pl -nifi-assembly,-nifi-toolkit/nifi-toolkit-assembly
-          rm -rf ~/.m2/repository/org/apache/nifi
 
   windows-build:
 
@@ -277,4 +274,3 @@ jobs:
         run: |
           mvn -version
           mvn -T 0.8C package -B -Ddir-only -ntp -ff -pl -nifi-assembly
-          Remove-Item -path '~\.m2\repository\org\apache\nifi' -recurse -force
