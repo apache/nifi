@@ -5297,7 +5297,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public void getFlowMetrics() {
+    public void generateFlowMetrics() {
 
         String instanceId = controllerFacade.getInstanceId();
         ProcessGroupStatus rootPGStatus = controllerFacade.getProcessGroupStatus("root");
@@ -5307,18 +5307,23 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         // Get Connection Status Analytics (predictions, e.g.)
         Set<Connection> connections = controllerFacade.getFlowManager().findAllConnections();
-        for(Connection c : connections) {
-            PrometheusMetricsUtil.createConnectionStatusAnalyticsMetrics(controllerFacade.getConnectionStatusAnalytics(c.getIdentifier()),
-                    instanceId,
-                    "Connection",
-                    c.getName(),
-                    c.getIdentifier(),
-                    c.getProcessGroup().getIdentifier(),
-                    c.getSource().getName(),
-                    c.getSource().getIdentifier(),
-                    c.getDestination().getName(),
-                    c.getDestination().getIdentifier()
-                    );
+        for (Connection c : connections) {
+            // If a ResourceNotFoundException is thrown, analytics hasn't been enabled
+            try {
+                PrometheusMetricsUtil.createConnectionStatusAnalyticsMetrics(controllerFacade.getConnectionStatusAnalytics(c.getIdentifier()),
+                        instanceId,
+                        "Connection",
+                        c.getName(),
+                        c.getIdentifier(),
+                        c.getProcessGroup().getIdentifier(),
+                        c.getSource().getName(),
+                        c.getSource().getIdentifier(),
+                        c.getDestination().getName(),
+                        c.getDestination().getIdentifier()
+                );
+            } catch (ResourceNotFoundException rnfe) {
+                break;
+            }
         }
 
         // Create a query to get all bulletins

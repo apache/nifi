@@ -317,7 +317,7 @@ public interface NiFiServiceFacade {
     /**
      * Gets the metrics for the flow.
      */
-    void getFlowMetrics();
+    void generateFlowMetrics();
 
     /**
      * Updates the configuration for this controller.

@@ -425,7 +425,7 @@ public class FlowResource extends ApplicationResource {
 
         if ("prometheus".equalsIgnoreCase(producer)) {
             // get this process group flow
-            serviceFacade.getFlowMetrics();
+            serviceFacade.generateFlowMetrics();
             // generate a streaming response
             final StreamingOutput response = output -> {
                 Writer writer = new BufferedWriter(new OutputStreamWriter(output));
