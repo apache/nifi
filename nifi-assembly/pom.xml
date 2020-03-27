@@ -283,7 +283,7 @@ language governing permissions and limitations under the License. -->
             <version>1.12.0-SNAPSHOT</version>
             <type>nar</type>
         </dependency>
-	<dependency>
+        <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mongodb-client-service-api-nar</artifactId>
             <version>1.12.0-SNAPSHOT</version>
@@ -909,8 +909,8 @@ language governing permissions and limitations under the License. -->
                     <type>nar</type>
                 </dependency>
             </dependencies>
-    	</profile>
-	<profile>
+        </profile>
+        <profile>
             <id>include-accumulo</id>
             <!-- This profile handles the inclusion of nifi-accumulo artifacts. -->
             <activation>
@@ -922,16 +922,43 @@ language governing permissions and limitations under the License. -->
                     <artifactId>nifi-accumulo-nar</artifactId>
                     <version>1.12.0-SNAPSHOT</version>
                     <type>nar</type>
-	    	</dependency>
-		<dependency>
+                </dependency>
+                <dependency>
                     <groupId>org.apache.nifi</groupId>
                     <artifactId>nifi-accumulo-services-api-nar</artifactId>
                     <version>1.12.0-SNAPSHOT</version>
                     <type>nar</type>
-		</dependency>
-		<dependency>
+                </dependency>
+                <dependency>
                     <groupId>org.apache.nifi</groupId>
                     <artifactId>nifi-accumulo-services-nar</artifactId>
+                    <version>1.12.0-SNAPSHOT</version>
+                    <type>nar</type>
+                </dependency>
+            </dependencies>
+        </profile>
+        <profile>
+            <id>include-pgp</id>
+            <!-- This profile handles the inclusion of nifi-pgp artifacts. -->
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>org.apache.nifi</groupId>
+                    <artifactId>nifi-pgp-nar</artifactId>
+                    <version>1.12.0-SNAPSHOT</version>
+                    <type>nar</type>
+                </dependency>
+                <dependency>
+                    <groupId>org.apache.nifi</groupId>
+                    <artifactId>nifi-pgp-services-api-nar</artifactId>
+                    <version>1.12.0-SNAPSHOT</version>
+                    <type>nar</type>
+                </dependency>
+                <dependency>
+                    <groupId>org.apache.nifi</groupId>
+                    <artifactId>nifi-pgp-services-nar</artifactId>
                     <version>1.12.0-SNAPSHOT</version>
                     <type>nar</type>
                 </dependency>
