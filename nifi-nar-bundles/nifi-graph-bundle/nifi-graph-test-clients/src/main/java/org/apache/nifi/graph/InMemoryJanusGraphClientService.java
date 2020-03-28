@@ -86,4 +86,15 @@ public class InMemoryJanusGraphClientService extends AbstractControllerService i
     public String getTransitUrl() {
         return "janusgraph:memory://localhost";
     }
+
+    /**
+     * Getter for accessing the generated JanusGraph object once the client service is activated in a test.
+     * The purpose of this is to allow testers to get access to the graph so they can do things like run traversals
+     * on it.
+     *
+     * @return Tinkerpop Graph object representing the in memory graph database.
+     */
+    public Graph getGraph() {
+        return graph;
+    }
 }
