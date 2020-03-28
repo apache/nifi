@@ -20,6 +20,7 @@ package org.apache.nifi.processor.util.list;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.distributed.cache.client.Deserializer;
@@ -28,6 +29,7 @@ import org.apache.nifi.distributed.cache.client.Serializer;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.SimpleRecordSchema;
@@ -52,11 +54,11 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Comparator;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -206,6 +208,58 @@ public class TestAbstractListProcessor {
         runner.clearTransferState();
         runner.run();
         runner.assertAllFlowFilesTransferred(AbstractListProcessor.REL_SUCCESS, 0);
+    }
+
+    @Test
+    public void testNoTrackingEntityStrategy() throws IOException {
+
+        // Firstly, choose Timestamp Strategy lists 2 entities and set state.
+        // After that choose No Tracking Strategy to test if this strategy remove the state.
+        ProcessSession session = runner.getProcessSessionFactory().createSession();
+        ProcessContext context = runner.getProcessContext();
+
+        runner.setProperty(AbstractListProcessor.LISTING_STRATEGY, AbstractListProcessor.BY_TIMESTAMPS);
+
+        // two entities listed
+        proc.addEntity("one","firstFile",1585344381476L);
+        proc.addEntity("two","secondFile",1585344381475L);
+
+        runner.run();
+        assertEquals(2, runner.getFlowFilesForRelationship(AbstractListProcessor.REL_SUCCESS).size());
+        assertEquals(2, proc.entities.size());
+
+        final MockStateManager stateManager = runner.getStateManager();
+        final Map<String, String> expectedState = new HashMap<>();
+        final Map<String, String> realState = new HashMap<>();
+
+        realState.put(AbstractListProcessor.LATEST_LISTED_ENTRY_TIMESTAMP_KEY, String.valueOf(proc.entities.get("firstFile").getTimestamp()));
+        realState.put(AbstractListProcessor.LAST_PROCESSED_LATEST_ENTRY_TIMESTAMP_KEY, String.valueOf(proc.entities.get("secondFile").getTimestamp()));
+        realState.put(AbstractListProcessor.IDENTIFIER_PREFIX + ".0", proc.entities.get("firstFile").getIdentifier());
+        realState.put(AbstractListProcessor.IDENTIFIER_PREFIX + ".1", proc.entities.get("secondFile").getIdentifier());
+
+        stateManager.setState(realState, Scope.CLUSTER);
+
+        // Ensure timestamp and identifies are migrated
+        expectedState.put(AbstractListProcessor.LATEST_LISTED_ENTRY_TIMESTAMP_KEY, String.valueOf(proc.entities.get("firstFile").getTimestamp()));
+        expectedState.put(AbstractListProcessor.LAST_PROCESSED_LATEST_ENTRY_TIMESTAMP_KEY, String.valueOf(proc.entities.get("secondFile").getTimestamp()));
+        expectedState.put(AbstractListProcessor.IDENTIFIER_PREFIX + ".0", proc.entities.get("firstFile").getIdentifier());
+        expectedState.put(AbstractListProcessor.IDENTIFIER_PREFIX + ".1", proc.entities.get("secondFile").getIdentifier());
+
+        runner.getStateManager().assertStateEquals(expectedState, Scope.CLUSTER);
+
+        // Change listing strategy
+        runner.setProperty(AbstractListProcessor.LISTING_STRATEGY, AbstractListProcessor.NO_TRACKING);
+
+        // Clear any listed entities after choose No Tracking Strategy
+        proc.entities.clear();
+
+        // Add new entity
+        proc.addEntity("one","firstFile",1585344381476L);
+        proc.listByNoTracking(context, session);
+
+        // Test if state cleared or not
+        runner.getStateManager().assertStateNotEquals(expectedState, Scope.CLUSTER);
+        assertEquals(1, proc.entities.size());
     }
 
     @Test
@@ -486,6 +540,19 @@ public class TestAbstractListProcessor {
             fields.add(new RecordField("timestamp", RecordFieldType.TIMESTAMP.getDataType()));
             fields.add(new RecordField("size", RecordFieldType.LONG.getDataType()));
             return new SimpleRecordSchema(fields);
+        }
+
+        private void persist(final long latestListedEntryTimestampThisCycleMillis,
+                             final long lastProcessedLatestEntryTimestampMillis,
+                             final List<String> processedIdentifiesWithLatestTimestamp,
+                             final StateManager stateManager, final Scope scope) throws IOException {
+            final Map<String, String> updatedState = new HashMap<>(processedIdentifiesWithLatestTimestamp.size() + 2);
+            updatedState.put(LATEST_LISTED_ENTRY_TIMESTAMP_KEY, String.valueOf(latestListedEntryTimestampThisCycleMillis));
+            updatedState.put(LAST_PROCESSED_LATEST_ENTRY_TIMESTAMP_KEY, String.valueOf(lastProcessedLatestEntryTimestampMillis));
+            for (int i = 0; i < processedIdentifiesWithLatestTimestamp.size(); i++) {
+                updatedState.put(IDENTIFIER_PREFIX + "." + i, processedIdentifiesWithLatestTimestamp.get(i));
+            }
+            stateManager.setState(updatedState, scope);
         }
     }
 }
