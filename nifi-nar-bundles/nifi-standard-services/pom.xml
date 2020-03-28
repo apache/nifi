@@ -13,7 +13,8 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.apache.nifi</groupId>
@@ -23,6 +24,8 @@
     <artifactId>nifi-standard-services</artifactId>
     <packaging>pom</packaging>
     <modules>
+        <module>nifi-oauth2-provider-api</module>
+        <module>nifi-oauth2-provider-bundle</module>
         <module>nifi-distributed-cache-client-service-api</module>
         <module>nifi-distributed-cache-services-bundle</module>
         <module>nifi-load-distribution-service-api</module>
@@ -37,7 +40,7 @@
         <module>nifi-dbcp-service-bundle</module>
         <module>nifi-hbase-client-service-api</module>
         <module>nifi-hbase_1_1_2-client-service-bundle</module>
-	<module>nifi-hbase_2-client-service-bundle</module>
+        <module>nifi-hbase_2-client-service-bundle</module>
         <module>nifi-schema-registry-service-api</module>
         <module>nifi-record-serialization-service-api</module>
         <module>nifi-record-serialization-services-bundle</module>
