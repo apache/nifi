@@ -85,10 +85,27 @@ public final class AzureStorageUtils {
             .sensitive(true)
             .build();
 
+    public static final PropertyDescriptor STORAGE_SUFFIX = new PropertyDescriptor.Builder()
+            .name("storage-endpoint-suffix")
+            .displayName("Storage Endpoint Suffix")
+            .description(
+                    "Storage accounts in public Azure always use a common FQDN suffix " +
+                    "the preferred way is to configure them through a controller service specified in the Storage Credentials property. " +
+                    "The controller service can provide a common/shared configuration for multiple/all Azure processors. Furthermore, the credentials " +
+                    "can also be looked up dynamically with the 'Lookup' version of the service.")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .required(false)
+            .sensitive(false)
+            .defaultValue("core.windows.net")
+            .build();
+
     public static final PropertyDescriptor CONTAINER = new PropertyDescriptor.Builder()
             .name("container-name")
             .displayName("Container Name")
-            .description("Name of the Azure storage container. In case of PutAzureBlobStorage processor, container will be created if it does not exist.")
+            .description("Name of the Azure storage container (blob.core.windows.net) but in certain circumstances it will be necessary " +
+                    "to customize this endpoint with a different suffix. Examples of when this is needed: Private Links, Azure Stack, " +
+                    "non-public Azure regions")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(true)
@@ -131,7 +148,11 @@ public final class AzureStorageUtils {
      */
     public static CloudBlobClient createCloudBlobClient(ProcessContext context, ComponentLog logger, FlowFile flowFile) throws URISyntaxException {
         final AzureStorageCredentialsDetails storageCredentialsDetails = getStorageCredentialsDetails(context, flowFile);
-        final CloudStorageAccount cloudStorageAccount = new CloudStorageAccount(storageCredentialsDetails.getStorageCredentials(), true, null, storageCredentialsDetails.getStorageAccountName());
+        final CloudStorageAccount cloudStorageAccount = new CloudStorageAccount(
+            storageCredentialsDetails.getStorageCredentials(),
+            true,
+            storageCredentialsDetails.getStorageSuffix(),
+            storageCredentialsDetails.getStorageAccountName());
         final CloudBlobClient cloudBlobClient = cloudStorageAccount.createCloudBlobClient();
 
         return cloudBlobClient;
@@ -151,6 +172,7 @@ public final class AzureStorageUtils {
 
     public static AzureStorageCredentialsDetails createStorageCredentialsDetails(PropertyContext context, Map<String, String> attributes) {
         final String accountName = context.getProperty(ACCOUNT_NAME).evaluateAttributeExpressions(attributes).getValue();
+        final String storageSuffix = context.getProperty(STORAGE_SUFFIX).evaluateAttributeExpressions(attributes).getValue();
         final String accountKey = context.getProperty(ACCOUNT_KEY).evaluateAttributeExpressions(attributes).getValue();
         final String sasToken = context.getProperty(PROP_SAS_TOKEN).evaluateAttributeExpressions(attributes).getValue();
 
@@ -168,7 +190,7 @@ public final class AzureStorageUtils {
             throw new IllegalArgumentException(String.format("Either '%s' or '%s' must be defined.", ACCOUNT_KEY.getDisplayName(), PROP_SAS_TOKEN.getDisplayName()));
         }
 
-        return new AzureStorageCredentialsDetails(accountName, storageCredentials);
+        return new AzureStorageCredentialsDetails(accountName, storageSuffix, storageCredentials);
     }
 
     public static Collection<ValidationResult> validateCredentialProperties(ValidationContext validationContext) {

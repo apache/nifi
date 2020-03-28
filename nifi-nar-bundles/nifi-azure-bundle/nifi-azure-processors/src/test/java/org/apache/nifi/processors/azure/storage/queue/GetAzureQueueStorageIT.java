@@ -39,6 +39,7 @@ public class GetAzureQueueStorageIT extends AbstractAzureQueueStorageIT {
         cloudQueue.addMessage(new CloudQueueMessage("Dummy Message 1"), 604800, 0, null, null);
         cloudQueue.addMessage(new CloudQueueMessage("Dummy Message 2"), 604800, 0, null, null);
         cloudQueue.addMessage(new CloudQueueMessage("Dummy Message 3"), 604800, 0, null, null);
+
     }
 
     @Test

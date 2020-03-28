@@ -59,6 +59,7 @@ public abstract class AbstractAzureBlobProcessor extends AbstractProcessor {
                     AzureStorageUtils.STORAGE_CREDENTIALS_SERVICE,
                     AzureStorageUtils.ACCOUNT_NAME,
                     AzureStorageUtils.ACCOUNT_KEY,
+                    AzureStorageUtils.STORAGE_SUFFIX,
                     AzureStorageUtils.PROP_SAS_TOKEN,
                     BLOB,
                     AzureStorageUtils.PROXY_CONFIGURATION_SERVICE));
