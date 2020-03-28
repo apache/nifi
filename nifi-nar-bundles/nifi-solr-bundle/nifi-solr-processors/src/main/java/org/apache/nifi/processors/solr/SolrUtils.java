@@ -271,6 +271,14 @@ public class SolrUtils {
         if (SOLR_TYPE_STANDARD.getValue().equals(context.getProperty(SOLR_TYPE).getValue())) {
             return new HttpSolrClient.Builder(solrLocation).withHttpClient(httpClient).build();
         } else {
+            // CloudSolrClient.Builder now requires a List of ZK addresses and znode for solr as separate parameters
+            final String zk[] = solrLocation.split("/");
+            final List zkList = Arrays.asList(zk[0].split(","));
+            String zkRoot = "/";
+            if (zk.length > 1 && ! zk[1].isEmpty()) {
+                zkRoot += zk[1];
+            }
+
             final String collection = context.getProperty(COLLECTION).evaluateAttributeExpressions().getValue();
             final Integer zkClientTimeout = context.getProperty(ZK_CLIENT_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
             final Integer zkConnectionTimeout = context.getProperty(ZK_CONNECTION_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();

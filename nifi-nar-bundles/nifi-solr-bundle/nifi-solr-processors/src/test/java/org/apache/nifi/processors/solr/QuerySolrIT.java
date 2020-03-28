@@ -31,7 +31,6 @@ import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.impl.CloudSolrClient;
 import org.apache.solr.client.solrj.impl.ZkClientClusterStateProvider;
-import org.apache.solr.client.solrj.impl.CloudSolrClient;
 import org.apache.solr.client.solrj.request.CollectionAdminRequest;
 import org.apache.solr.common.SolrInputDocument;
 import org.junit.AfterClass;
@@ -84,7 +83,7 @@ public class QuerySolrIT {
     public static void setup() throws IOException, SolrServerException {
         CloudSolrClient solrClient = createSolrClient();
         Path currentDir = Paths.get(ZK_CONFIG_PATH);
-        ZkClientClusterStateProvider stateProvider = new ZkClientClusterStateProvider(SOLR_LOCATION);;
+        ZkClientClusterStateProvider stateProvider = new ZkClientClusterStateProvider(SOLR_LOCATION);
         stateProvider.uploadConfig(currentDir, ZK_CONFIG_NAME);
         solrClient.setDefaultCollection(SOLR_COLLECTION);
 

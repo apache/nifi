@@ -24,31 +24,56 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.util.Collections;
-import java.util.EnumSet;
 import java.util.Map;
-import java.util.OptionalInt;
-import java.util.OptionalLong;
 import java.util.Set;
 
 public class HortonworksEncodedSchemaReferenceWriter implements SchemaAccessWriter {
-    private static final Set<SchemaField> requiredSchemaFields = EnumSet.of(SchemaField.SCHEMA_IDENTIFIER, SchemaField.SCHEMA_VERSION);
-    private static final int LATEST_PROTOCOL_VERSION = 1;
+
+    private final int protocolVersion;
+
+    public HortonworksEncodedSchemaReferenceWriter(final int protocolVersion) {
+        this.protocolVersion = protocolVersion;
+
+        if (this.protocolVersion < HortonworksProtocolVersions.MIN_VERSION || this.protocolVersion > HortonworksProtocolVersions.MAX_VERSION) {
+            throw new IllegalArgumentException("Unknown Protocol Version '" + this.protocolVersion + "'. Protocol Version must be a value between "
+                    + HortonworksProtocolVersions.MIN_VERSION + " and " + HortonworksProtocolVersions.MAX_VERSION + ".");
+        }
+    }
 
     @Override
     public void writeHeader(final RecordSchema schema, final OutputStream out) throws IOException {
         final SchemaIdentifier identifier = schema.getIdentifier();
-        final Long id = identifier.getIdentifier().getAsLong();
-        final Integer version = identifier.getVersion().getAsInt();
 
-        // This decoding follows the pattern that is provided for serializing data by the Hortonworks Schema Registry serializer
-        // as it is provided at:
-        // https://github.com/hortonworks/registry/blob/master/schema-registry/serdes/src/main/java/com/hortonworks/registries/schemaregistry/serdes/avro/AvroSnapshotSerializer.java
-        final ByteBuffer bb = ByteBuffer.allocate(13);
-        bb.put((byte) LATEST_PROTOCOL_VERSION);
-        bb.putLong(id);
-        bb.putInt(version);
-
-        out.write(bb.array());
+        // This encoding follows the pattern that is provided for serializing data by the Hortonworks Schema Registry serializer
+        // See: https://registry-project.readthedocs.io/en/latest/serdes.html#
+        switch(protocolVersion) {
+            case 1:
+                final Long id = identifier.getIdentifier().getAsLong();
+                final Integer version = identifier.getVersion().getAsInt();
+                final ByteBuffer bbv1 = ByteBuffer.allocate(13);
+                bbv1.put((byte) 1);
+                bbv1.putLong(id);
+                bbv1.putInt(version);
+                out.write(bbv1.array());
+                return;
+            case 2:
+                final Long sviV2 = identifier.getSchemaVersionId().getAsLong();
+                final ByteBuffer bbv2 = ByteBuffer.allocate(9);
+                bbv2.put((byte) 2);
+                bbv2.putLong(sviV2);
+                out.write(bbv2.array());
+                return;
+            case 3:
+                final Long sviV3 = identifier.getSchemaVersionId().getAsLong();
+                final ByteBuffer bbv3 = ByteBuffer.allocate(5);
+                bbv3.put((byte) 3);
+                bbv3.putInt(sviV3.intValue());
+                out.write(bbv3.array());
+                return;
+            default:
+                // Can't reach this point
+                throw new IllegalStateException("Unknown Protocol Version: " + this.protocolVersion);
+        }
     }
 
     @Override
@@ -59,20 +84,34 @@ public class HortonworksEncodedSchemaReferenceWriter implements SchemaAccessWrit
     @Override
     public void validateSchema(RecordSchema schema) throws SchemaNotFoundException {
         final SchemaIdentifier identifier = schema.getIdentifier();
-        final OptionalLong identifierOption = identifier.getIdentifier();
-        if (!identifierOption.isPresent()) {
-            throw new SchemaNotFoundException("Cannot write Encoded Schema Reference because the Schema Identifier is not known");
-        }
 
-        final OptionalInt versionOption = identifier.getVersion();
-        if (!versionOption.isPresent()) {
-            throw new SchemaNotFoundException("Cannot write Encoded Schema Reference because the Schema Version is not known");
+        switch (protocolVersion) {
+            case 1:
+                if (!identifier.getIdentifier().isPresent()) {
+                    throw new SchemaNotFoundException("Cannot write Encoded Schema Reference because the Schema Identifier " +
+                            "is not known and is required for Protocol Version " + protocolVersion);
+                }
+                if (!identifier.getVersion().isPresent()) {
+                    throw new SchemaNotFoundException("Cannot write Encoded Schema Reference because the Schema Version " +
+                            "is not known and is required for Protocol Version " + protocolVersion);
+                }
+                break;
+            case 2:
+            case 3:
+                if (!identifier.getSchemaVersionId().isPresent()) {
+                    throw new SchemaNotFoundException("Cannot write Encoded Schema Reference because the Schema Version Identifier " +
+                            "is not known and is required for Protocol Version " + protocolVersion);
+                }
+                break;
+            default:
+                // Can't reach this point
+                throw new SchemaNotFoundException("Unknown Protocol Version: " + protocolVersion);
         }
     }
 
     @Override
     public Set<SchemaField> getRequiredSchemaFields() {
-        return requiredSchemaFields;
+        return HortonworksProtocolVersions.getRequiredSchemaFields(protocolVersion);
     }
 
 }
