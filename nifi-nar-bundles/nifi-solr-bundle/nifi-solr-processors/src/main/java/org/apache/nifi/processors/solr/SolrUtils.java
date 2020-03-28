@@ -246,14 +246,6 @@ public class SolrUtils {
         params.set(HttpClientUtil.PROP_MAX_CONNECTIONS, maxConnections);
         params.set(HttpClientUtil.PROP_MAX_CONNECTIONS_PER_HOST, maxConnectionsPerHost);
 
-        // CloudSolrClient.Builder now requires a List of ZK addresses and znode for solr as separate parameters
-        String zk[] = solrLocation.split("/");
-        final List zkList = Arrays.asList(zk[0].split(","));
-        String zkRoot = "/";
-        if (zk.length > 1 && ! zk[1].isEmpty()) {
-            zkRoot += zk[1];
-        }
-
         // has to happen before the client is created below so that correct configurer would be set if needed
         if (kerberosCredentialsService != null || (!StringUtils.isBlank(kerberosPrincipal) && !StringUtils.isBlank(kerberosPassword))) {
             HttpClientUtil.setHttpClientBuilder(new KerberosHttpClientBuilder().getHttpClientBuilder(Optional.empty()));
