@@ -198,12 +198,17 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
                     " However additional DistributedMapCache controller service is required and more JVM heap memory is used." +
                     " See the description of 'Entity Tracking Time Window' property for further details on how it works.");
 
-    public static final PropertyDescriptor LISTING_STRATEGY = new Builder()
+    public static final AllowableValue NO_TRACKING = new AllowableValue("none", "No Tracking",
+            "This strategy lists an entity without any tracking. The same entity will be listed each time" +
+                    " on executing this processor. It is recommended to change the default run schedule value." +
+                    " Any property that related to the persisting state will be disregarded.");
+
+    public static final PropertyDescriptor LISTING_STRATEGY = new PropertyDescriptor.Builder()
         .name("listing-strategy")
         .displayName("Listing Strategy")
         .description("Specify how to determine new/updated entities. See each strategy descriptions for detail.")
         .required(true)
-        .allowableValues(BY_TIMESTAMPS, BY_ENTITIES)
+        .allowableValues(BY_TIMESTAMPS, BY_ENTITIES, NO_TRACKING)
         .defaultValue(BY_TIMESTAMPS.getValue())
         .build();
 
@@ -232,7 +237,6 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
     private volatile boolean resetState = false;
     private volatile boolean resetEntityTrackingState = false;
     private volatile List<String> latestIdentifiersProcessed = new ArrayList<>();
-
     private volatile ListedEntityTracker<T> listedEntityTracker;
 
     /*
@@ -442,8 +446,59 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
         } else if (BY_ENTITIES.equals(listingStrategy)) {
             listByTrackingEntities(context, session);
 
+        } else if (NO_TRACKING.equals(listingStrategy)) {
+            listByNoTracking(context, session);
+
         } else {
             throw new ProcessException("Unknown listing strategy: " + listingStrategy);
+        }
+    }
+
+    public void listByNoTracking(final ProcessContext context, final ProcessSession session) {
+        final List<T> entityList;
+
+        try {
+            // Remove any previous state from the state manager before use a No Tracking Strategy.
+            context.getStateManager().clear(getStateScope(context));
+
+        } catch (final IOException re) {
+            getLogger().error("Failed to remove previous state from the State Manager.", new Object[]{re.getMessage()}, re);
+            context.yield();
+            return;
+        }
+
+        try {
+            // minTimestamp = 0L by default on this strategy to ignore any future
+            // comparision in lastModifiedMap to the same entity.
+            entityList = performListing(context, 0L);
+        } catch (final IOException pe) {
+            getLogger().error("Failed to perform listing on remote host due to {}", new Object[]{pe.getMessage()}, pe);
+            context.yield();
+            return;
+        }
+
+        if (entityList == null || entityList.isEmpty()) {
+            context.yield();
+            return;
+        }
+
+        final TreeMap<Long, List<T>> orderedEntries = new TreeMap<>();
+        for (final T entity : entityList) {
+            List<T> entitiesForTimestamp = orderedEntries.computeIfAbsent(entity.getTimestamp(), k -> new ArrayList<T>());
+            entitiesForTimestamp.add(entity);
+        }
+
+        if (orderedEntries.size() > 0) {
+            for (Map.Entry<Long, List<T>> timestampEntities : orderedEntries.entrySet()) {
+                List<T> entities = timestampEntities.getValue();
+                for (T entity : entities) {
+                    // Create the FlowFile for this path.
+                    final Map<String, String> attributes = createAttributes(entity, context);
+                    FlowFile flowFile = session.create();
+                    flowFile = session.putAllAttributes(flowFile, attributes);
+                    session.transfer(flowFile, REL_SUCCESS);
+                }
+            }
         }
     }
 
