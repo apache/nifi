@@ -26,6 +26,7 @@
     <packaging>pom</packaging>
 
     <modules>
+        <module>nifi-graph-test-clients</module>
         <module>nifi-graph-client-service-api</module>
         <module>nifi-graph-client-service-api-nar</module>
         <module>nifi-graph-processors</module>
