@@ -16,8 +16,16 @@
  */
 package org.apache.nifi.processors.azure.storage.queue;
 
+import java.net.URISyntaxException;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+
 import com.microsoft.azure.storage.CloudStorageAccount;
 import com.microsoft.azure.storage.queue.CloudQueueClient;
+
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
@@ -29,13 +37,6 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 import org.apache.nifi.services.azure.storage.AzureStorageCredentialsDetails;
-
-import java.net.URISyntaxException;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
 
 public abstract class AbstractAzureQueueStorage extends AbstractProcessor {
 
@@ -67,7 +68,13 @@ public abstract class AbstractAzureQueueStorage extends AbstractProcessor {
 
     protected final CloudQueueClient createCloudQueueClient(final ProcessContext context, final FlowFile flowFile) throws URISyntaxException {
         final AzureStorageCredentialsDetails storageCredentialsDetails = AzureStorageUtils.getStorageCredentialsDetails(context, flowFile);
-        final CloudStorageAccount cloudStorageAccount = new CloudStorageAccount(storageCredentialsDetails.getStorageCredentials(), true, null, storageCredentialsDetails.getStorageAccountName());
+        final CloudStorageAccount cloudStorageAccount =
+            new CloudStorageAccount(
+                storageCredentialsDetails.getStorageCredentials(),
+                true,
+                storageCredentialsDetails.getStorageSuffix(),
+                storageCredentialsDetails.getStorageAccountName()
+            );
         final CloudQueueClient cloudQueueClient = cloudStorageAccount.createCloudQueueClient();
 
         return cloudQueueClient;

@@ -16,6 +16,16 @@
  */
 package org.apache.nifi.processors.azure.storage;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import com.microsoft.azure.storage.OperationContext;
 import com.microsoft.azure.storage.StorageUri;
 import com.microsoft.azure.storage.blob.BlobListingDetails;
@@ -25,6 +35,7 @@ import com.microsoft.azure.storage.blob.CloudBlobClient;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
 import com.microsoft.azure.storage.blob.ListBlobItem;
+
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -49,16 +60,6 @@ import org.apache.nifi.processor.util.list.ListedEntityTracker;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 import org.apache.nifi.processors.azure.storage.utils.BlobInfo;
 import org.apache.nifi.processors.azure.storage.utils.BlobInfo.Builder;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 @PrimaryNodeOnly
 @TriggerSerially
@@ -100,6 +101,7 @@ public class ListAzureBlobStorage extends AbstractListProcessor<BlobInfo> {
             AzureStorageUtils.ACCOUNT_NAME,
             AzureStorageUtils.ACCOUNT_KEY,
             AzureStorageUtils.PROP_SAS_TOKEN,
+            AzureStorageUtils.ENDPOINT_SUFFIX,
             PROP_PREFIX,
             AzureStorageUtils.PROXY_CONFIGURATION_SERVICE,
             ListedEntityTracker.TRACKING_STATE_CACHE,
