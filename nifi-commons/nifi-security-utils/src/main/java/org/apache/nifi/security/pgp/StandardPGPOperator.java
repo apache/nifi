@@ -14,23 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.pgp.controllerservices;
+package org.apache.nifi.security.pgp;
 
-import org.apache.nifi.annotation.behavior.Restricted;
-import org.apache.nifi.annotation.behavior.Restriction;
-import org.apache.nifi.annotation.documentation.CapabilityDescription;
-import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.commons.codec.DecoderException;
+import org.apache.commons.codec.binary.Hex;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.RequiredPermission;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.context.PropertyContext;
-import org.apache.nifi.controller.AbstractControllerService;
-import org.apache.nifi.controller.ControllerServiceInitializationContext;
-import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.reporting.InitializationException;
 import org.bouncycastle.bcpg.ArmoredOutputStream;
+import org.bouncycastle.bcpg.HashAlgorithmTags;
 import org.bouncycastle.bcpg.PublicKeyAlgorithmTags;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.openpgp.PGPCompressedData;
@@ -53,6 +47,7 @@ import org.bouncycastle.openpgp.PGPSecretKeyRingCollection;
 import org.bouncycastle.openpgp.PGPSignature;
 import org.bouncycastle.openpgp.PGPSignatureGenerator;
 import org.bouncycastle.openpgp.PGPSignatureList;
+import org.bouncycastle.openpgp.PGPUtil;
 import org.bouncycastle.openpgp.jcajce.JcaPGPObjectFactory;
 import org.bouncycastle.openpgp.jcajce.JcaPGPPublicKeyRingCollection;
 import org.bouncycastle.openpgp.operator.KeyFingerPrintCalculator;
@@ -72,6 +67,8 @@ import org.bouncycastle.openpgp.operator.jcajce.JcePGPDataEncryptorBuilder;
 import org.bouncycastle.openpgp.operator.jcajce.JcePublicKeyDataDecryptorFactoryBuilder;
 import org.bouncycastle.openpgp.operator.jcajce.JcePublicKeyKeyEncryptionMethodGenerator;
 import org.bouncycastle.util.io.Streams;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -82,55 +79,28 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.security.Security;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.zip.Deflater;
 
 
-/**
- * This class defines an implementation of {@link PGPService} suitable for use with the PGP processors in this package.
- *
- * In addition to basic Controller Service functionality this class exposes high-level, stream-based cryptographic operations
- * to clients.  These operations are encrypt, decrypt, sign, and verify.
- *
- * This implementation also provides the options builder methods.  These methods build the various options instances that
- * correspond to the cryptographic operations.  These option instances allow the controller service to combine the properties
- * of the processors with the properties of the controller, and then use that combination to parameterize the given operation.
- * Note that this also keeps the keys and passphrases out of processor code completely.
- *
- * This class also has a set of private methods for reading key material from disk or input streams.  These methods are
- * not exposed to the processor clients (but are only package-private at the moment).  Note that the key handling methods
- * support caching.
- *
- * The net effect of combining these behaviors is to reduce the significant coupling to the BC/PGP libraries to just
- * this class.  This was done intentionally to make maintenance and auditing easier.
- *
- */
-@CapabilityDescription("Defines cryptographic key material and cryptographic operations for PGP processors.")
-@Tags({"pgp", "gpg", "encryption", "credentials", "provider"})
-@Restricted(
-        restrictions = {
-                @Restriction(
-                        requiredPermission = RequiredPermission.ACCESS_ENCRYPTION_KEY,
-                        explanation = "Provides operator the ability to access and use encryption keys assuming all permissions that NiFi has.")
-        }
-)
-public class PGPControllerService extends AbstractControllerService implements PGPService {
-    final static String CONTROLLER_NAME = "PGP Controller Service";
-
-    // Uncertain if these could ever collide, so err on the side of caution can keep them distinct:
-    private final static Map<Integer, PGPPublicKeys> publicKeyCache = new HashMap<>();
-    private final static Map<Integer, PGPSecretKeys> secretKeyCache = new HashMap<>();
-
+public class StandardPGPOperator implements PGPOperator {
     static {
         Security.addProvider(new BouncyCastleProvider());
     }
+
+    private static final Logger logger = LoggerFactory.getLogger(StandardPGPOperator.class);
+    public static final String DEFAULT_SIGNATURE_ATTRIBUTE = "content-signature";
+
+    public static final PropertyDescriptor PGP_KEY_SERVICE = new PropertyDescriptor.Builder()
+            .name("pgp-key-service")
+            .displayName("PGP Key Material Service")
+            .description("PGP key material service for using cryptographic keys and passphrases.")
+            .required(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
 
     public static final PropertyDescriptor PUBLIC_KEYRING_FILE = new PropertyDescriptor.Builder()
             .name("public-keyring-file")
@@ -191,45 +161,238 @@ public class PGPControllerService extends AbstractControllerService implements P
             .sensitive(true)
             .build();
 
+    public static final PropertyDescriptor ENCRYPT_ALGORITHM = new PropertyDescriptor.Builder()
+            .name("encrypt-algorithm")
+            .displayName("Encryption Cipher Algorithm")
+            .description("The cipher algorithm used when encrypting data.")
+            .allowableValues(getCipherAllowableValues())
+            .defaultValue(getCipherDefaultValue())
+            .build();
 
-    @Override
-    protected void init(ControllerServiceInitializationContext config) throws InitializationException {
-        publicKeyCache.clear();
-        secretKeyCache.clear();
-        super.init(config);
+    public static final PropertyDescriptor ENCRYPT_ENCODING = new PropertyDescriptor.Builder()
+            .name("encrypt-encoding")
+            .displayName("Encryption Data Encoding")
+            .description("The data encoding method used when writing encrypting data.")
+            .allowableValues(
+                    new AllowableValue("0", "Raw (bytes with no encoding)"),
+                    new AllowableValue("1", "PGP Armor (encoded text)"))
+            .defaultValue("0")
+            .build();
+
+    public static final PropertyDescriptor SIGNATURE_HASH_ALGORITHM = new PropertyDescriptor.Builder()
+            .name("signature-hash-algorithm")
+            .displayName("Signature Hash Function")
+            .description("The hash function used when signing data.")
+            .allowableValues(getSignatureHashAllowableValues())
+            .defaultValue(getSignatureHashDefaultValue())
+            .build();
+
+    public static final PropertyDescriptor SIGNATURE_ATTRIBUTE = new PropertyDescriptor.Builder()
+            .name("signature-attribute")
+            .displayName("Signature Attribute")
+            .description("The name of the FlowFile Attribute for the signature to write during Sign operations and to read during Verify operations.")
+            .defaultValue(DEFAULT_SIGNATURE_ATTRIBUTE)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
+    protected final KeyCache<PGPPublicKeys> publicKeyCache = new KeyCache<>(); // Operator instances have a public key cache
+    protected final KeyCache<PGPSecretKeys> secretKeyCache = new KeyCache<>(); // and a private key cache
+
+
+    public static String getSignatureHashDefaultValue() {
+        return String.valueOf(PGPUtil.SHA256);
     }
 
-    @Override
-    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(PUBLIC_KEYRING_FILE);
-        properties.add(PUBLIC_KEYRING_TEXT);
-        properties.add(PUBLIC_KEY_USER_ID);
-        properties.add(SECRET_KEYRING_FILE);
-        properties.add(SECRET_KEYRING_TEXT);
-        properties.add(SECRET_KEY_USER_ID);
-        properties.add(PRIVATE_KEY_PASSPHRASE);
-        properties.add(PBE_PASSPHRASE);
-        return properties;
+
+    // Values match integer values in org.bouncycastle.bcpg.HashAlgorithmTags
+    static AllowableValue[] getSignatureHashAllowableValues() {
+        return new AllowableValue[]{
+                new AllowableValue("1", "MD5"),
+                new AllowableValue("2", "SHA1"),
+                new AllowableValue("6", "TIGER 192"),
+                new AllowableValue("8", "SHA 256"),
+                new AllowableValue("9", "SHA 384"),
+                new AllowableValue("10", "SHA 512"),
+        };
+    }
+
+    // Values match integer values in org.bouncycastle.bcpg.SymmetricKeyAlgorithmTags
+    static AllowableValue[] getCipherAllowableValues() {
+        return new AllowableValue[]{
+                // 0 - NULL not supported
+                new AllowableValue("1", "IDEA"),
+                new AllowableValue("2", "TRIPLE DES"),
+                new AllowableValue("3", "CAST5"),
+                new AllowableValue("4", "BLOWFISH"),
+                new AllowableValue("6", "DES"),
+                // 6 - SAFER not supported
+                new AllowableValue("7", "AES 128"),
+                new AllowableValue("8", "AES 192"),
+                new AllowableValue("9", "AES 256"),
+                new AllowableValue("10", "TWOFISH"),
+                new AllowableValue("11", "CAMELLIA 128"),
+                new AllowableValue("12", "CAMELLIA 192"),
+                new AllowableValue("13", "CAMELLIA 256")};
+    }
+
+    public static String getCipherDefaultValue() {
+        return String.valueOf(PGPEncryptedData.AES_128);
+    }
+
+    public char[] getPBEPassphrase(PropertyContext context) {
+        if (context.getProperty(PBE_PASSPHRASE).isSet()) {
+            return context.getProperty(PBE_PASSPHRASE).getValue().toCharArray();
+        }
+        return null;
+    }
+
+    public InputStream getSignature(PropertyContext context, FlowFile flowFile) throws PGPException {
+        if (!context.getProperty(SIGNATURE_ATTRIBUTE).isSet()) {
+            throw new PGPException("Signature attribute not set.");
+        }
+
+        final String signature = flowFile.getAttribute(context.getProperty(SIGNATURE_ATTRIBUTE).getValue());
+        try {
+            return new ByteArrayInputStream(Hex.decodeHex(signature));
+        } catch (final DecoderException e) {
+            throw new PGPException("Unable to decode signature.", e);
+        }
     }
 
 
-    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
-        if (validateForEncrypt(validationContext).isEmpty()) return Collections.emptySet();
+    /**
+     * Creates map of public keys from the input stream.
+     *
+     * @param input public key or key ring stream
+     * @param hash value to use as cache key
+     * @return public keys
+     */
+    PGPPublicKeys readPublicKeys(InputStream input, Integer hash) {
+         if (hash != null && publicKeyCache.containsKey(hash)) {
+            return publicKeyCache.get(hash);
+        }
 
-        if (validateForDecrypt(validationContext).isEmpty()) return Collections.emptySet();
+        final PGPPublicKeys keys = new PGPPublicKeys();
+        JcaPGPPublicKeyRingCollection rings;
 
-        if (validateForSign(validationContext).isEmpty()) return Collections.emptySet();
+        try {
+            InputStream decoderStream = PGPUtil.getDecoderStream(input);
+            rings = new JcaPGPPublicKeyRingCollection(decoderStream);
+            input.close();
+        } catch (final IOException | PGPException ignored) {
+            return null;
+        }
 
-        if (validateForVerify(validationContext).isEmpty()) return Collections.emptySet();
+        for (final PGPPublicKeyRing ring : rings) {
+            for (final PGPPublicKey key : ring) {
+                for (final Iterator<String> it = key.getUserIDs(); it.hasNext(); ) {
+                    keys.put(it.next(), key);
+                }
+            }
+        }
 
-        final List<ValidationResult> problems = new ArrayList<>();
-        problems.add(new ValidationResult.Builder()
-                .subject(CONTROLLER_NAME)
-                .valid(false)
-                .explanation("Controller not configured for any operation.")
-                .build());
-        return problems;
+        if (hash != null && keys.size() > 0) publicKeyCache.putMiss(hash, keys);
+        return keys;
+    }
+
+    /**
+     * Creates a list of public keys from the input stream.  When called with a lone {@link InputStream}, this method
+     * will not cache the resulting keys.
+     *
+     * @param input public key or key ring stream
+     * @return public keys
+     */
+    public PGPPublicKeys readPublicKeys(InputStream input) {
+        return readPublicKeys(input, null);
+    }
+
+    /**
+     * Creates a list of public keys from the given String.
+     *
+     * @param source public key text
+     * @return pubic keys
+     */
+    public PGPPublicKeys readPublicKeys(String source) {
+        return readPublicKeys(new ByteArrayInputStream(source.getBytes(StandardCharsets.UTF_8)), source.hashCode());
+    }
+
+    /**
+     * Creates a list of public keys from the given {@link File}.
+     *
+     * @param source public key File
+     * @return public keys
+     */
+    public PGPPublicKeys readPublicKeys(File source) throws FileNotFoundException {
+        return readPublicKeys(new FileInputStream(source), source.getAbsoluteFile().hashCode());
+    }
+
+    /**
+     * Creates a list of secret keys from the input stream.
+     *
+     * @param input secret key or key ring stream
+     * @return secret keys
+     */
+    PGPSecretKeys readSecretKeys(InputStream input, Integer hash) {
+        if (hash != null && secretKeyCache.containsKey(hash)) {
+            return secretKeyCache.get(hash);
+        }
+
+        final PGPSecretKeys keys = new PGPSecretKeys();
+        final KeyFingerPrintCalculator calc = new BcKeyFingerprintCalculator();
+        PGPSecretKeyRingCollection rings;
+
+        try {
+            rings = new PGPSecretKeyRingCollection(PGPUtil.getDecoderStream(input), calc);
+            input.close();
+        } catch (final IOException | PGPException ignored) {
+            return null;
+        }
+
+        for (final PGPSecretKeyRing ring : rings) {
+            for (final PGPSecretKey secretKey : ring) {
+                for (final Iterator<String> it = secretKey.getUserIDs(); it.hasNext(); ) {
+                    final String userID = it.next();
+                    keys.put(userID, secretKey);
+                }
+            }
+        }
+
+        if (hash != null && keys.size() > 0) secretKeyCache.putMiss(hash, keys);
+        return keys;
+    }
+
+    /**
+     * Creates a list of secret keys from the input stream.  When called with a lone {@link InputStream}, this method
+     * does not cache the resulting keys.
+     *
+     * @param input secret key or key ring stream
+     * @return secret keys
+     */
+    public PGPSecretKeys readSecretKeys(InputStream input) {
+        return readSecretKeys(input, null);
+    }
+
+    /**
+     * Creates a list of secret keys from the input stream.  The hash code of the source string is used as the cache
+     * key for the resulting secret key ring.
+     *
+     * @param source secret key text
+     * @return secret keys
+     */
+
+    public PGPSecretKeys readSecretKeys(String source) {
+        return readSecretKeys(new ByteArrayInputStream(source.getBytes(StandardCharsets.UTF_8)), source.hashCode());
+    }
+
+    /**
+     * Creates a list of secret keys from the input stream.  The hash code of the filename is used as the cache key for
+     * the resulting secret key ring.
+     *
+     * @param source secret key File
+     * @return secret keys
+     */
+    public PGPSecretKeys readSecretKeys(File source) throws FileNotFoundException {
+        return readSecretKeys(new FileInputStream(source), source.getAbsolutePath().hashCode());
     }
 
 
@@ -242,9 +405,9 @@ public class PGPControllerService extends AbstractControllerService implements P
      */
     public void encrypt(InputStream input, OutputStream output, EncryptOptions options) throws IOException, PGPException {
         final int bufferSize = 65536;
-        PGPEncryptedDataGenerator generator = options.getDataGenerator();
-        boolean armor = options.getArmor();
-        OutputStream out = armor ? new ArmoredOutputStream(output) : output;
+        final PGPEncryptedDataGenerator generator = options.getDataGenerator();
+        final boolean armor = options.getArmor();
+        final OutputStream out = armor ? new ArmoredOutputStream(output) : output;
 
         try (OutputStream encryptedOutput = generator.open(out, new byte[bufferSize])) {
             try (OutputStream compressedOutput = new PGPCompressedDataGenerator(PGPCompressedData.ZIP, Deflater.BEST_SPEED)
@@ -260,7 +423,6 @@ public class PGPControllerService extends AbstractControllerService implements P
         }
     }
 
-
     /**
      * Read from an encrypted {@link InputStream} and write a decrypted representation to an {@link OutputStream}.
      *
@@ -269,7 +431,7 @@ public class PGPControllerService extends AbstractControllerService implements P
      * @param options used to configure decryption operation
      */
     public void decrypt(InputStream input, OutputStream output, DecryptOptions options) throws IOException {
-        try (InputStream decodedInput = org.bouncycastle.openpgp.PGPUtil.getDecoderStream(input)) {
+        try (InputStream decodedInput = PGPUtil.getDecoderStream(input)) {
             PGPObjectFactory inputFactory = new PGPObjectFactory(decodedInput, new BcKeyFingerprintCalculator());
             Object head = inputFactory.nextObject();
 
@@ -328,7 +490,6 @@ public class PGPControllerService extends AbstractControllerService implements P
         }
     }
 
-
     /**
      * Read from an {@link InputStream} to generate a signature written to an {@link OutputStream}.
      *
@@ -347,7 +508,6 @@ public class PGPControllerService extends AbstractControllerService implements P
         generator.generate().encode(signature);
     }
 
-
     /**
      * Read from an {@link InputStream} to verify its signature.
      *
@@ -357,7 +517,7 @@ public class PGPControllerService extends AbstractControllerService implements P
      * @return true if the signature matches
      */
     public boolean verify(InputStream input, InputStream signature, VerifyOptions options) throws IOException, PGPException {
-        JcaPGPObjectFactory signatureFactory = new JcaPGPObjectFactory(org.bouncycastle.openpgp.PGPUtil.getDecoderStream(signature));
+        JcaPGPObjectFactory signatureFactory = new JcaPGPObjectFactory(PGPUtil.getDecoderStream(signature));
         PGPSignatureList signatures;
 
         Object head = signatureFactory.nextObject();
@@ -377,24 +537,24 @@ public class PGPControllerService extends AbstractControllerService implements P
         return innerSignature.verify();
     }
 
-
     /**
      * Generate an {@link EncryptOptions} instance for an encrypt operation.
      *
-     * @param algorithm encryption algorithm identifier, see {@link org.bouncycastle.bcpg.SymmetricKeyAlgorithmTags}
-     * @param armor if true, encrypted data will be PGP-encoded ascii; if false, encrypted data will not be encoded ("raw")
      * @return encrypt options
      */
     @Override
-    public EncryptOptions optionsForEncrypt(int algorithm, boolean armor) {
+    public EncryptOptions optionsForEncrypt(PropertyContext context) {
+        final int algorithm = context.getProperty(ENCRYPT_ALGORITHM).asInteger();
+        final boolean armor = context.getProperty(ENCRYPT_ENCODING).getValue().equals("1");
+
         PGPEncryptedDataGenerator generator = new PGPEncryptedDataGenerator(new JcePGPDataEncryptorBuilder(algorithm)
                 .setWithIntegrityPacket(true)
                 .setProvider("BC"));
-        char[] passphrase = getPBEPassPhrase(getConfigurationContext());
+        char[] passphrase = getPBEPassphrase(context);
         if (passphrase != null && passphrase.length != 0) {
             generator.addMethod(new JcePBEKeyEncryptionMethodGenerator(passphrase).setProvider("BC"));
         } else {
-            generator.addMethod(new JcePublicKeyKeyEncryptionMethodGenerator(getPublicKey(getConfigurationContext())).setProvider("BC"));
+            generator.addMethod(new JcePublicKeyKeyEncryptionMethodGenerator(getPublicKey(context)).setProvider("BC"));
         }
 
         return new EncryptOptions() {
@@ -410,14 +570,14 @@ public class PGPControllerService extends AbstractControllerService implements P
         };
     }
 
-
     /**
      * Generate a {@link DecryptOptions} instance for a decrypt operation.
      *
      * @return decrypt options
+     * @param context work in progress change this
      */
     @Override
-    public DecryptOptions optionsForDecrypt() {
+    public DecryptOptions optionsForDecrypt(PropertyContext context) {
         PGPDigestCalculatorProvider calc = null;
         try {
             calc = new JcaPGPDigestCalculatorProviderBuilder().setProvider("BC").build();
@@ -425,26 +585,26 @@ public class PGPControllerService extends AbstractControllerService implements P
             calc = new BcPGPDigestCalculatorProvider();
         }
 
-        char[] passphrase = getPBEPassPhrase(getConfigurationContext());
+        char[] passphrase = getPBEPassphrase(context);
         if (passphrase != null && passphrase.length != 0) {
             PBEDataDecryptorFactory factory = new JcePBEDataDecryptorFactoryBuilder(calc).setProvider("BC").build(passphrase);
             return packet -> ((PGPPBEEncryptedData) packet).getDataStream(factory);
         } else {
-            PublicKeyDataDecryptorFactory factory = new JcePublicKeyDataDecryptorFactoryBuilder().setProvider("BC").build(getPrivateKey(getConfigurationContext()));
+            PublicKeyDataDecryptorFactory factory = new JcePublicKeyDataDecryptorFactoryBuilder().setProvider("BC").build(getPrivateKey(context));
             return packet -> ((PGPPublicKeyEncryptedData) packet).getDataStream(factory);
         }
     }
 
-
     /**
      * Generate a {@link SignOptions} instance for a sign operation.
      *
-     * @param algorithm signature algorithm identifier, see {@link org.bouncycastle.bcpg.HashAlgorithmTags}
+     * @param context signature algorithm identifier, see {@link HashAlgorithmTags}
      * @return sign options
      */
     @Override
-    public SignOptions optionsForSign(int algorithm) {
-        PGPPrivateKey privateKey = getPrivateKey(getConfigurationContext());
+    public SignOptions optionsForSign(PropertyContext context) {
+        int algorithm = context.getProperty(SIGNATURE_HASH_ALGORITHM).asInteger();
+        PGPPrivateKey privateKey = getPrivateKey(context);
 
         return new SignOptions() {
             @Override
@@ -459,15 +619,15 @@ public class PGPControllerService extends AbstractControllerService implements P
         };
     }
 
-
     /**
      * Generate a {@link VerifyOptions} instance for a verify operation.
      *
      * @return verify options
+     * @param context work in progress change this
      */
     @Override
-    public VerifyOptions optionsForVerify() {
-        PGPPublicKey publicKey = getPublicKey(getConfigurationContext());
+    public VerifyOptions optionsForVerify(PropertyContext context) {
+        PGPPublicKey publicKey = getPublicKey(context);
         return new VerifyOptions() {
             @Override
             public PGPPublicKey getPublicKey() {
@@ -477,116 +637,15 @@ public class PGPControllerService extends AbstractControllerService implements P
     }
 
 
-    /**
-     * This method validates a {@link PropertyContext} for encryption.
-     *
-     * @param context {@link PropertyContext} describing encryption keys
-     * @return validation results, which may be empty if given context is valid
-     */
-    private Collection<ValidationResult> validateForEncrypt(PropertyContext context) {
-        PGPPublicKey key = getPublicKey(context);
-        if (key != null && key.isEncryptionKey()) {
-            return Collections.emptySet();
-        }
-
-        char[] passphrase = getPBEPassPhrase(context);
-        if (passphrase != null) {
-            return Collections.emptySet();
-        }
-
-        final List<ValidationResult> problems = new ArrayList<>();
-        problems.add(new ValidationResult.Builder()
-                .subject(CONTROLLER_NAME)
-                .valid(false)
-                .explanation("Controller requires a public key or PBE passphrase for Encrypt operations.")
-                .build());
-        return problems;
-    }
-
-
-    /**
-     * This method validates a {@link PropertyContext} for decryption.
-     *
-     * @param context {@link PropertyContext} describing decryption keys
-     * @return validation results, which may be empty if given context is valid
-     */
-    private Collection<ValidationResult> validateForDecrypt(PropertyContext context) {
-        PGPPrivateKey key = getPrivateKey(context);
-        if (key != null) {
-            return Collections.emptySet();
-        }
-
-        char[] passphrase = getPBEPassPhrase(context);
-        if (passphrase != null) {
-            return Collections.emptySet();
-        }
-
-        final List<ValidationResult> problems = new ArrayList<>();
-        problems.add(new ValidationResult.Builder()
-                .subject(CONTROLLER_NAME)
-                .valid(false)
-                .explanation("Controller requires a secret key or PBE passphrase for Decrypt operations.")
-                .build());
-        return problems;
-    }
-
-
-    /**
-     * This method validates a {@link PropertyContext} for signing.
-     *
-     * @param context describing signing keys
-     * @return validation results, which may be empty if given context is valid
-     */
-    private Collection<ValidationResult> validateForSign(PropertyContext context) {
-        PGPPrivateKey key = getPrivateKey(context);
-        if (key != null) {
-            return Collections.emptySet();
-        }
-
-        final List<ValidationResult> problems = new ArrayList<>();
-        problems.add(new ValidationResult.Builder()
-                .subject(CONTROLLER_NAME)
-                .valid(false)
-                .explanation("Controller requires a secret key for Sign operations.")
-                .build());
-        return problems;
-    }
-
-
-    /**
-     * This method validates a {@link PropertyContext} for verifying.
-     *
-     * @param context describing verify keys
-     * @return validation results, which may be empty if given context is valid
-     */
-    private Collection<ValidationResult> validateForVerify(PropertyContext context) {
-        PGPPublicKey key = getPublicKey(context);
-        if (key != null && key.isEncryptionKey()) {
-            return Collections.emptySet();
-        }
-
-        final List<ValidationResult> problems = new ArrayList<>();
-        problems.add(new ValidationResult.Builder()
-                .subject(CONTROLLER_NAME)
-                .valid(false)
-                .explanation("Controller requires a public key for Verify operations.")
-                .build());
-        return problems;
-    }
-
-
-    private PGPPublicKey getPublicKey(PropertyContext context) {
+    public PGPPublicKey getPublicKey(PropertyContext context) {
         PGPPublicKeys keys = null;
-        final ComponentLog logger = this.getLogger();
 
         if (context.getProperty(PUBLIC_KEYRING_TEXT).isSet()) {
-            final String keyText = context.getProperty(PUBLIC_KEYRING_TEXT).getValue();
-            keys = readPublicKeys(keyText);
+            keys = readPublicKeys(context.getProperty(PUBLIC_KEYRING_TEXT).getValue());
 
         } else if (context.getProperty(PUBLIC_KEYRING_FILE).isSet()) {
-            final String keyFile = context.getProperty(PUBLIC_KEYRING_FILE).getValue();
             try {
-                keys = readPublicKeys(new File(keyFile));
+                keys = readPublicKeys(new File(context.getProperty(PUBLIC_KEYRING_FILE).getValue()));
             } catch (final FileNotFoundException e) {
                 logger.debug("Public key ring file not found: " + e);
                 return null;
@@ -600,34 +659,27 @@ public class PGPControllerService extends AbstractControllerService implements P
 
         if (context.getProperty(PUBLIC_KEY_USER_ID).isSet()) {
             return keys.getPublicKey(context.getProperty(PUBLIC_KEY_USER_ID).getValue());
+        } else if (keys.size() == 1) {
+            return keys.values().iterator().next();
+        } else {
+            logger.debug("Unable to find public key from context.");
+            return null;
         }
-
-        for (PGPPublicKey key : keys.values()) {
-            if (key.isEncryptionKey())
-                return key;
-        }
-
-        logger.debug("Unable to find public key from context.");
-        return null;
     }
 
 
-    private PGPPrivateKey getPrivateKey(PropertyContext context) {
+    public PGPPrivateKey getPrivateKey(PropertyContext context) {
         String secretKeyUserId = null;
-        char[] privateKeyPassPhrase = null;
         PGPSecretKeys keys = null;
         PBESecretKeyDecryptor decryptor = null;
-        final ComponentLog logger = this.getLogger();
 
         if (context.getProperty(SECRET_KEY_USER_ID).isSet()) {
             secretKeyUserId = context.getProperty(SECRET_KEY_USER_ID).getValue();
         }
 
         if (context.getProperty(PRIVATE_KEY_PASSPHRASE).isSet()) {
-            privateKeyPassPhrase = context.getProperty(PRIVATE_KEY_PASSPHRASE).getValue().toCharArray();
-
             try {
-                decryptor = new JcePBESecretKeyDecryptorBuilder().setProvider("BC").build(privateKeyPassPhrase);
+                decryptor = new JcePBESecretKeyDecryptorBuilder().setProvider("BC").build(context.getProperty(PRIVATE_KEY_PASSPHRASE).getValue().toCharArray());
             } catch (final PGPException e) {
                 logger.debug("Unable to build PBE decryptor: " + e);
                 return null;
@@ -653,6 +705,7 @@ public class PGPControllerService extends AbstractControllerService implements P
             return null;
         }
 
+        // Return the specific key when it's given:
         if (secretKeyUserId != null) {
             try {
                 return keys.getSecretKey(secretKeyUserId).extractPrivateKey(decryptor);
@@ -662,215 +715,108 @@ public class PGPControllerService extends AbstractControllerService implements P
             }
         }
 
-        for (PGPSecretKey key : keys.values()) {
-            if (!key.isPrivateKeyEmpty()) {
-                try {
-                    return key.extractPrivateKey(decryptor);
-                } catch (final Exception e) {
-                    logger.debug("Unable to extract private key: " + e);
-                }
+        // Because PGP keys are often transmitted as a keyring of one key, we handle that case specifically:
+        if (keys.size() == 1) {
+            try {
+                return keys.values().iterator().next().extractPrivateKey(decryptor);
+            } catch (final PGPException e) {
+                logger.debug("Unable to extract private key from secret keyring (of one key): " + e);
+                return null;
             }
         }
 
+        // More than one key and no user id given:
         logger.debug("Unable to find private key from context.");
         return null;
     }
 
+    public void clearCache() {
+        this.publicKeyCache.clear();
+        this.secretKeyCache.clear();
+    }
 
-    private char[] getPBEPassPhrase(PropertyContext context) {
-        if (context.getProperty(PBE_PASSPHRASE).isSet()) {
-            return context.getProperty(PBE_PASSPHRASE).getValue().toCharArray();
-        }
-        return null;
+    public boolean isContextForEncryptValid(PropertyContext context) {
+        PGPPublicKey key = getPublicKey(context);
+        return (key != null && key.isEncryptionKey()) || (getPBEPassphrase(context) != null);
+    }
+
+    public boolean isContextForDecryptValid(PropertyContext context) {
+        return (getPrivateKey(context) != null) || (getPBEPassphrase(context) != null);
+    }
+
+    public boolean isContextForSignValid(PropertyContext context) {
+        return getPrivateKey(context) != null;
+    }
+
+    public boolean isContextForVerifyValid(PropertyContext context) {
+        final PGPPublicKey key = getPublicKey(context);
+        return key != null && key.isEncryptionKey();
     }
 
 
-    public static class PGPPublicKeys extends HashMap<String, PGPPublicKey> {
-        /**
-         * Returns public key matching the given key id or null.
-         *
-         * @param keyID public key id to match
-         * @return public key matching given key ID or null
-         */
-        public PGPPublicKey getPublicKey(long keyID) {
-            for (PGPPublicKey key : this.values()) {
-                if (key.getKeyID() == keyID) {
-                    return key;
-                }
+    public boolean isContextForEncrypt(PropertyContext context) {
+        return context.getProperty(PBE_PASSPHRASE).isSet()
+                || context.getProperty(PUBLIC_KEYRING_TEXT).isSet()
+                || context.getProperty(PUBLIC_KEYRING_FILE).isSet();
+    }
+
+
+    public boolean isContextForDecrypt(PropertyContext context) {
+        return context.getProperty(PBE_PASSPHRASE).isSet()
+                || context.getProperty(SECRET_KEYRING_TEXT).isSet()
+                || context.getProperty(SECRET_KEYRING_FILE).isSet();
+    }
+
+
+    public boolean isContextForSign(PropertyContext context) {
+        return context.getProperty(SECRET_KEYRING_TEXT).isSet()
+                || context.getProperty(SECRET_KEYRING_FILE).isSet();
+    }
+
+
+    public boolean isContextForVerify(PropertyContext context) {
+        return context.getProperty(PUBLIC_KEYRING_TEXT).isSet()
+                || context.getProperty(PUBLIC_KEYRING_FILE).isSet();
+    }
+
+
+    protected class KeyCache<T> {
+        private final Map<Integer, T> cache = new HashMap<>();
+        private int hit = 0;
+        private int miss = 0;
+
+        T get(Integer id) {
+            T key = cache.get(id);
+            if (key != null) {
+                hit++;
+            } else {
+                miss++;
             }
-            return null;
+            return key;
         }
 
-        /**
-         * Returns public key matching the given user id or null.
-         *
-         * @param userID public key user id to match
-         * @return public key matching given user ID or null
-         */
-        public PGPPublicKey getPublicKey(String userID) {
-            return this.get(userID);
-        }
-    }
-
-    public static class PGPSecretKeys extends HashMap<String, PGPSecretKey> {
-        /**
-         * Returns secret key matching the given key id or null.
-         *
-         * @param keyID secret key id to match
-         * @return secret key matching given key ID or null
-         */
-        public PGPSecretKey getSecretKey(long keyID) {
-            for (PGPSecretKey key : this.values()) {
-                if (key.getKeyID() == keyID) {
-                    return key;
-                }
-            }
-            return null;
+        boolean containsKey(Integer id) {
+            return cache.containsKey(id);
         }
 
-        /**
-         * Returns secret key matching the given user id or null.
-         *
-         * @param userID secret key user id to match
-         * @return secret key matching given user ID or null
-         */
-        public PGPSecretKey getSecretKey(String userID) {
-            return this.get(userID);
-        }
-    }
-
-
-    /**
-     * Creates a list of public keys from the input stream.
-     *
-     * @param input public key or key ring stream
-     * @param hash value to use as cache key
-     * @return public keys
-     */
-    static PGPPublicKeys readPublicKeys(InputStream input, Integer hash) {
-        if (hash != null && publicKeyCache.containsKey(hash)) {
-            return publicKeyCache.get(hash);
+        void putMiss(Integer id, T keys) {
+            miss++;
+            cache.put(id, keys);
         }
 
-        PGPPublicKeys keys = new PGPPublicKeys();
-        JcaPGPPublicKeyRingCollection rings;
-
-        try {
-            rings = new JcaPGPPublicKeyRingCollection(org.bouncycastle.openpgp.PGPUtil.getDecoderStream(input));
-        } catch (final IOException | PGPException ignored) {
-            return null;
+        int hits() {
+            return hit;
         }
 
-        for (PGPPublicKeyRing ring : rings) {
-            for (PGPPublicKey key : ring) {
-                for (Iterator<String> it = key.getUserIDs(); it.hasNext(); ) {
-                    final String userID = it.next();
-                    keys.put(userID, key);
-                }
-            }
+        int misses() {
+            return miss;
         }
 
-        if (hash != null && keys.size() > 0) publicKeyCache.put(hash, keys);
-        return keys;
-    }
-
-    /**
-     * Creates a list of public keys from the input stream.  When called with a lone {@link InputStream}, this method
-     * will not cache the resulting keys.
-     *
-     * @param input public key or key ring stream
-     * @return public keys
-     */
-    public static PGPPublicKeys readPublicKeys(InputStream input) {
-        return readPublicKeys(input, null);
-    }
-
-    /**
-     * Creates a list of public keys from the given String.
-     *
-     * @param source public key text
-     * @return pubic keys
-     */
-    static PGPPublicKeys readPublicKeys(String source) {
-        return readPublicKeys(new ByteArrayInputStream(source.getBytes(StandardCharsets.UTF_8)), source.hashCode());
-    }
-
-    /**
-     * Creates a list of public keys from the given {@link File}.
-     *
-     * @param source public key File
-     * @return public keys
-     */
-    static PGPPublicKeys readPublicKeys(File source) throws FileNotFoundException {
-        return readPublicKeys(new FileInputStream(source), source.getAbsoluteFile().hashCode());
-    }
-
-
-    /**
-     * Creates a list of secret keys from the input stream.
-     *
-     * @param input secret key or key ring stream
-     * @return secret keys
-     */
-    static PGPSecretKeys readSecretKeys(InputStream input, Integer hash) {
-        if (hash != null && secretKeyCache.containsKey(hash)) {
-            return secretKeyCache.get(hash);
+        public void clear() {
+            this.cache.clear();
+            this.hit = 0;
+            this.miss = 0;
         }
-
-        PGPSecretKeys keys = new PGPSecretKeys();
-        KeyFingerPrintCalculator calc = new BcKeyFingerprintCalculator();
-        PGPSecretKeyRingCollection rings;
-
-        try {
-            rings = new PGPSecretKeyRingCollection(org.bouncycastle.openpgp.PGPUtil.getDecoderStream(input), calc);
-        } catch (final IOException | PGPException ignored) {
-            return null;
-        }
-
-        for (PGPSecretKeyRing ring : rings) {
-            for (PGPSecretKey secretKey : ring) {
-                for (Iterator<String> it = secretKey.getUserIDs(); it.hasNext(); ) {
-                    final String userID = it.next();
-                    keys.put(userID, secretKey);
-                }
-            }
-        }
-        if (hash != null && keys.size() > 0) secretKeyCache.put(hash, keys);
-        return keys;
-    }
-
-    /**
-     * Creates a list of secret keys from the input stream.  When called with a lone {@link InputStream}, this method
-     * will not cache the resulting keys.
-     *
-     * @param input secret key or key ring stream
-     * @return secret keys
-     */
-    public static PGPSecretKeys readSecretKeys(InputStream input) {
-        return readSecretKeys(input, null);
-    }
-
-
-    /**
-     * Creates a list of secret keys from the input stream.
-     *
-     * @param source secret key text
-     * @return secret keys
-     */
-
-    static PGPSecretKeys readSecretKeys(String source) {
-        return readSecretKeys(new ByteArrayInputStream(source.getBytes(StandardCharsets.UTF_8)), source.hashCode());
-    }
-
-
-    /**
-     * Creates a list of secret keys from the input stream.
-     *
-     * @param source secret key File
-     * @return secret keys
-     */
-    static PGPSecretKeys readSecretKeys(File source) throws FileNotFoundException {
-        return readSecretKeys(new FileInputStream(source), source.getAbsolutePath().hashCode());
     }
 
 
@@ -887,7 +833,6 @@ public class PGPControllerService extends AbstractControllerService implements P
         }
         input.close();
     }
-
 
     /**
      * Read an {@link InputStream} whilst updating a {@link PGPSignatureGenerator}.

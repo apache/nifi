@@ -89,6 +89,11 @@
             <artifactId>commons-configuration2</artifactId>
             <version>2.6</version>
         </dependency>
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcpg-jdk15on</artifactId>
+            <version>1.64</version>
+        </dependency>
     </dependencies>
 
     <build>

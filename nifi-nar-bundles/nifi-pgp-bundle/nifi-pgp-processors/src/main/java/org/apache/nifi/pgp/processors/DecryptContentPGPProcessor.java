@@ -21,21 +21,18 @@ import org.apache.nifi.annotation.behavior.SystemResource;
 import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.pgp.controllerservices.PGPService;
+import org.apache.nifi.security.pgp.PGPKeyMaterialService;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.util.StopWatch;
 
-import java.util.Collections;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 /**
  * The DecryptContentPGPProcessor processor attempts to decrypt flow file contents when triggered.  The processor uses a
- * {@link PGPControllerService} to provide decryption operations.
+ * {@link PGPKeyMaterialService} to provide decryption operations.
  *
  * The PGP libraries do all of the lifting for decrypt operations, including content detection.  This is is why there
  * is no need to select an algorithm or encoding.
@@ -47,9 +44,6 @@ import java.util.concurrent.TimeUnit;
 @SystemResourceConsideration(resource = SystemResource.CPU)
 
 public class DecryptContentPGPProcessor extends AbstractPGPProcessor {
-    public static final PropertyDescriptor PGP_KEY_SERVICE =
-            AbstractPGPProcessor.buildControllerServiceProperty("PGP Key Material Controller Service that provides the private key or passphrase for decryption.");
-
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
         final FlowFile flowFile = session.get();
@@ -57,14 +51,10 @@ public class DecryptContentPGPProcessor extends AbstractPGPProcessor {
             return;
         }
 
-        final PGPService service = context.getProperty(PGP_KEY_SERVICE).asControllerService(PGPService.class);
         final StopWatch stopWatch = new StopWatch(true);
-
         try {
-            final FlowFile finalFlow = session.write(flowFile, (in, out) -> {
-                service.decrypt(in, out, service.optionsForDecrypt());
-            });
-            long elapsed = stopWatch.getElapsed(TimeUnit.MILLISECONDS);
+            final FlowFile finalFlow = getPGPKeyMaterialService(context).decrypt(flowFile, context, session);
+            final long elapsed = stopWatch.getElapsed(TimeUnit.MILLISECONDS);
             getLogger().debug("Called to decrypt flow {} completed in {}ms", new Object[]{flowFile, elapsed});
             session.getProvenanceReporter().modifyContent(finalFlow, elapsed);
             session.transfer(finalFlow, REL_SUCCESS);
@@ -72,10 +62,5 @@ public class DecryptContentPGPProcessor extends AbstractPGPProcessor {
             getLogger().debug("Exception in decrypt flow {} ", new Object[]{flowFile});
             session.transfer(flowFile, REL_FAILURE);
         }
-    }
-
-    @Override
-    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return Collections.unmodifiableList(Collections.singletonList(PGP_KEY_SERVICE));
     }
 }

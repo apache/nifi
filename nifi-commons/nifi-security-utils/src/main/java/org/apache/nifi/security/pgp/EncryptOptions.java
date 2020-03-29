@@ -14,19 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.pgp.controllerservices;
+package org.apache.nifi.security.pgp;
 
-import org.bouncycastle.openpgp.PGPPublicKey;
-
+import org.bouncycastle.openpgp.PGPEncryptedDataGenerator;
 
 /**
- * An interface for verify operations, with public key implementation supplied by the controller service
+ * An interface for encrypt operations, with private key and PBE implementations supplied by the controller service
  * implementation.
  *
  */
-interface VerifyOptions {
+interface EncryptOptions {
     /**
-     * This method returns the public key needed by the verify operation.
+     * Controls usage of output encoding.
+     *
+     * @return true if output should be PGP encoded ascii.
      */
-    PGPPublicKey getPublicKey();
+    boolean getArmor();
+
+    /**
+     * Allows the encryption algorithm to abstract away the data generation strategy.
+     *
+     * @return {@link PGPEncryptedDataGenerator} instance suitable for immediate use
+     */
+    PGPEncryptedDataGenerator getDataGenerator();
 }

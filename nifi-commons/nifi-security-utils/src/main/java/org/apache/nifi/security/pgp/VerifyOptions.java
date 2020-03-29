@@ -14,12 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.pgp.controllerservices;
+package org.apache.nifi.security.pgp;
 
-import org.bouncycastle.openpgp.PGPPrivateKey;
+import org.bouncycastle.openpgp.PGPPublicKey;
 
-// An interface for sign stream options.
-interface SignOptions {
-    int getHashAlgorithm();
-    PGPPrivateKey getPrivateKey();
+
+/**
+ * An interface for verify operations, with public key implementation supplied by the controller service
+ * implementation.
+ *
+ */
+interface VerifyOptions {
+    /**
+     * This method returns the public key needed by the verify operation.
+     */
+    PGPPublicKey getPublicKey();
 }
