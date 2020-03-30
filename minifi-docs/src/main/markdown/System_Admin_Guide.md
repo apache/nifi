@@ -23,7 +23,62 @@
 
 This documentation is for MiNiFi ${project.version}.
 
-# Automatic Warm-Redeploy
+## Table of Contents
+
+- [Automatic Warm-Redeploy](#automatic-warm-redeploy)
+  * [FileChangeIngestor](#filechangeingestor)
+  * [RestChangeIngestor](#restchangeingestor)
+  * [PullHttpChangeIngestor](#pullhttpchangeingestor)
+- [Status Reporting and Querying](#status-reporting-and-querying)
+  * [FlowStatus Script Query](#flowstatus-script-query)
+  * [Periodic Status Reporters](#periodic-status-reporters)
+    + [StatusLogger](#statuslogger)
+  * [FlowStatus Query Options](#flowstatus-query-options)
+    + [Processors](#processors)
+    + [Connections](#connections)
+    + [Remote Process Groups](#remote-process-groups)
+    + [Controller Services](#controller-services)
+    + [Provenance Reporting](#provenance-reporting)
+    + [Instance](#instance)
+    + [System Diagnostics](#system-diagnostics)
+    + [Example Query](#example-query)
+- [Config File](#config-file)
+  * [Versioning](#versioning)
+    + [Version 1 -> Version 2 Changes](#version-1-version-2-changes)
+    + [Version 2 -> Version 3 Changes](#version-2-version-3-changes)
+  * [Flow Controller](#flow-controller)
+  * [Core Properties](#core-properties)
+  * [FlowFile Repository](#flowfile-repository)
+      - [Swap Subsection](#swap-subsection)
+  * [Content Repository](#content-repository)
+  * [Provenance Repository](#provenance-repository)
+  * [Component Status Repository](#component-status-repository)
+  * [Security Properties](#security-properties)
+      - [Sensitive Properties Subsection](#sensitive-properties-subsection)
+  * [Processors](#processors-2)
+      - [Processor Properties](#processor-properties)
+  * [Controller Services](#controller-services-2)
+      - [Controller Service Properties](#controller-service-properties)
+  * [Process Groups](#process-groups)
+  * [Input Ports](#input-ports)
+  * [Output Ports](#output-ports)
+  * [Funnels](#funnels)
+  * [Connections](#connections-2)
+  * [Remote Process Groups](#remote-process-groups-2)
+      - [Input/Output Ports Subsection](#input-output-ports-subsection)
+  * [Provenance Reporting](#provenance-reporting-2)
+  * [NiFi Properties Overrides](#nifi-properties-overrides)
+    + [Example NiFi Properties Overrides](#example-nifi-properties-overrides)
+- [Security Configuration](#security-configuration)
+  * [Security Properties in bootstrap.conf](#security-properties-in-bootstrapconf)
+  * [Sensitive Property Configuration in bootstrap.conf](#sensitive-property-configuration-in-bootstrapconf)
+- [Running as a Windows Service](#running-as-a-windows-service)
+- [Flow Overriding with bootstrap.conf](#flow-overriding-with-bootstrapconf)
+- [Example Config File](#example-config-file)
+- [Recommended Antivirus Exclusions](#recommended-antivirus-exclusions)
+    + [MiNiFi Java](#minifi-java)
+
+# <a id="automatic-warm-redeploy" href="#automatic-warm-redeploy">Automatic Warm-Redeploy</a>
 
 When many MiNiFi agents running on the edge, it may not be possible to manually stop, edit the *config.yml* and then restart every one every time their configuration needs to change. The Config Change Coordinator and its Ingestors were designed to automatically redeploy in response to a configuration update.
 
@@ -49,7 +104,7 @@ nifi.minifi.notifier.ingestors=org.apache.nifi.minifi.bootstrap.configuration.in
 
 Ingestor specific configuration is also necessary and done in the bootstrap.conf as well. Specifics for each are detailed below.
 
-## FileChangeIngestor
+## <a id="filechangeingestor" href="#filechangeingestor">FileChangeIngestor</a>
 
 class name: `org.apache.nifi.minifi.bootstrap.configuration.ingestors.FileChangeIngestor`
 
@@ -65,7 +120,7 @@ Option | Description
 `nifi.minifi.notifier.ingestors.file.polling.period.seconds` | How frequently the file specified by `nifi.minifi.notifier.file.config.path` should be evaluated for changes. If not set then a default polling period of 15 seconds will be used.
 `nifi.minifi.notifier.ingestors.file.differentiator` | Which differentiator to use. If not set then it uses the WholeConfigDifferentiator as a default.
 
-## RestChangeIngestor
+## <a id="restchangeingestor" href="#restchangeingestor">RestChangeIngestor</a>
 
 class name: `org.apache.nifi.minifi.bootstrap.configuration.ingestors.RestChangeIngestor`
 
@@ -94,7 +149,7 @@ Option | Description
 `nifi.minifi.notifier.ingestors.receive.http.need.client.auth` | If using HTTPS, this specifies whether or not to require client authentication.
 `nifi.minifi.notifier.ingestors.receive.http.differentiator` | Which differentiator to use. If not set then it uses the `WholeConfigDifferentiator` as a default.
 
-## PullHttpChangeIngestor
+## <a id="pullhttpchangeingestor" href="#pullhttpchangeingestor">PullHttpChangeIngestor</a>
 
 class name: `org.apache.nifi.minifi.bootstrap.configuration.ingestors.PullHttpChangeIngestor`
 
@@ -124,12 +179,11 @@ Option | Description
 `nifi.minifi.notifier.ingestors.pull.http.keystore.type` | If using HTTPS, this specifies the type of the keystore.
 `nifi.minifi.notifier.ingestors.pull.http.differentiator` | Which differentiator to use. If not set then it uses the `WholeConfigDifferentiator` as a default.
 
-
-# Status Reporting and Querying
+# <a id="status-reporting-and-querying" href="#status-reporting-and-querying">Status Reporting and Querying</a>
 
 In NiFi there is a lot of information, such as stats and bulletins, that is only available to view through the UI. MiNiFi provides access to this information through a query mechanism. You can query FlowStatus either using the `minifi.sh` script or by configuring one of the Periodic Status Reporters. The API for the query is the same for the reporters and the "flowStatus" script option. The API is outlined in the "FlowStatus Query Options" section below.
 
-## FlowStatus Script Query
+## <a id="flowstatus-script-query" href="#flowstatus-script-query">FlowStatus Script Query</a>
 
 From the `minifi.sh` script, you can manually query to get the current status of your dataflow. The following is an example of a `minifi.sh` query you might run to view health, stats, and bulletins for the TailFile processor. This query returns information to your command-line.
 
@@ -148,7 +202,7 @@ would translate to Windows environments as,
 flowstatus-minifi.bat processor:TailFile:health,stats,bulletins
 ```
 
-## Periodic Status Reporters
+## <a id="periodic-status-reporters" href="#periodic-status-reporters">Periodic Status Reporters</a>
 
 You can set up Periodic Status Reporters to periodically report the status of your dataflow. The query executes at configurable intervals and the results are reported using the configured implementation. Configure the Reporters in the *bootstrap.conf* file, using the `nifi.minifi.status.reporter.components` key followed by the full path name of the desired Reporter implementation to run. Use a comma separated list to define more than one Reporter implementation. For example:
 
@@ -156,8 +210,7 @@ You can set up Periodic Status Reporters to periodically report the status of yo
 nifi.minifi.status.reporter.components=org.apache.nifi.minifi.bootstrap.status.reporters.StatusLogger
 ```
 
-
-### StatusLogger
+### <a id="statuslogger" href="#statuslogger">StatusLogger</a>
 
 class name: `org.apache.nifi.minifi.bootstrap.status.reporters.StatusLogger`
 
@@ -206,13 +259,13 @@ Example `logback.xml` configuration to output the status to its own rolling log 
 </logger>
 ```
 
-## FlowStatus Query Options
+### <a id="flowstatus-query-options" href="#flowstatus-query-options">FlowStatus Query Options</a>
 
 This section outlines each option to query the MiNiFi instance for the FlowStatus.
 
 **Note:** In Windows environments, all `minifi.sh flowStatus` invocations should be replaced with `flowstatus-minifi.bat`.  See [FlowStatus Script Query](#flowstatus-script-query) for an illustration.
 
-### Processors
+### <a id="processors" href="#processors">Processors</a>
 
 To query the processors, use the `processor` flag and specify the processor (by ID, name or "all") followed by one of the processor options. The processor options are below.
 
@@ -226,7 +279,7 @@ An example query to get the health, bulletins and stats of the "TailFile" proces
 ```
 minifi.sh flowStatus processor:TailFile:health,stats,bulletins
 ```
-### Connections
+### <a id="connections" href="#connections">Connections</a>
 
 To query the connections, use the `connection` flag and specify the connection (by ID, name or "all") followed by one of the connection options. The connection options are below.
 
@@ -240,7 +293,7 @@ An example query to get the health and stats of the "TailToS2S" connection is be
 minifi.sh flowStatus connection:TailToS2S:health,stats
 ```
 
-### Remote Process Groups
+### <a id="remote-process-groups" href="#remote-process-groups">Remote Process Groups</a>
 
 To query the remote process groups (RPGs), use the `remoteprocessgroup` flag and specify the RPG (by ID, name or "all") followed by one of the remote process group options. The remote process group options are below.
 
@@ -258,7 +311,7 @@ An example query to get the health, bulletins, input ports and stats of all the 
 minifi.sh flowStatus remoteprocessgroup:all:health,bulletins,inputports,stats
 ```
 
-### Controller Services
+### <a id="controller-services" href="#controller-services">Controller Services</a>
 
 To query the controller services, use the `controllerservices` flag followed by one of the controller service options. The controller service options are below.
 
@@ -273,7 +326,7 @@ An example query to get the health and bulletins of all the controller services 
 minifi.sh flowStatus controllerservices:health,bulletins
 ```
 
-### Provenance Reporting
+### <a id="provenance-reporting" href="#provenance-reporting">Provenance Reporting</a>
 
 To query the status of the provenance reporting, use the `provenancereporting` flag followed by one of the provenance reporting  options. The provenance reporting options are below.
 
@@ -288,7 +341,7 @@ An example query to get the health and bulletins of the provenance reporting is 
 minifi.sh flowStatus provenancereporting:health,bulletins
 ```
 
-### Instance
+### <a id="instance" href="#instance">Instance</a>
 
 To query the status of the MiNiFi instance, use the `instance` flag followed by one of the instance options. The instance options are below.
 
@@ -304,7 +357,7 @@ An example query to get the health, stats and bulletins of the instance is below
 minifi.sh flowStatus instance:health,stats,bulletins
 ```
 
-### System Diagnostics
+### <a id="system-diagnostics" href="#system-diagnostics">System Diagnostics</a>
 
 To query the system diagnostics, use the `systemdiagnostics` flag followed by one of the system diagnostics options. The system diagnostics options are below.
 
@@ -322,7 +375,7 @@ An example query to get the heap, processor stats, content repository usage, Flo
 minifi.sh flowStatus systemdiagnostics:heap,processorstats,contentrepositoryusage,flowfilerepositoryusage,garbagecollection
 ```
 
-### Example
+### <a id="example-query" href="#example-query">Example Query</a>
 
 This is an example of a simple query to get the health of all the processors and its results from a simple flow:
 
@@ -337,10 +390,7 @@ Bootstrap Config File: /Users/user/projects/nifi-minifi/minifi-assembly/target/m
 {"controllerServiceStatusList":null,"processorStatusList":[{"name":"Connection Diagnostics","processorHealth":{"runStatus":"Running","hasBulletins":false,"validationErrorList":[]},"processorStats":null,"bulletinList":null},{"name":"UpdateAttribute","processorHealth":{"runStatus":"Running","hasBulletins":false,"validationErrorList":[]},"processorStats":null,"bulletinList":null},{"name":"Processor Diagnostics","processorHealth":{"runStatus":"Running","hasBulletins":false,"validationErrorList":[]},"processorStats":null,"bulletinList":null},{"name":"System Diagnostics","processorHealth":{"runStatus":"Running","hasBulletins":false,"validationErrorList":[]},"processorStats":null,"bulletinList":null},{"name":"GenerateFlowFile","processorHealth":{"runStatus":"Running","hasBulletins":false,"validationErrorList":[]},"processorStats":null,"bulletinList":null}],"connectionStatusList":null,"remoteProcessGroupStatusList":null,"instanceStatus":null,"systemDiagnosticsStatus":null,"reportingTaskStatusList":null,"errorsGeneratingReport":[]}
 ```
 
-# Periodic Status Reporters
-
-
-# Config File
+# <a id="config-file" href="#config-file">Config File</a>
 
 The *config.yml* in the `conf` directory is the main configuration file for controlling how MiNiFi runs. This section provides an overview of the properties in this file. The file is a YAML file and follows the YAML format laid out [here](https://www.yaml.org/).
 
@@ -348,27 +398,28 @@ Alternatively, the MiNiFi Toolkit Converter can aid in creating a *config.yml* f
 
 **Note:** Values for periods of time and data sizes must include the unit of measure, for example "10 sec" or "10 MB", not simply "10".
 
-## Versioning
+## <a id="versioning" href="#versioning">Versioning</a>
 
 The "MiNiFi Config Version" property is used to indicate to the configuration parser which version of the config file it is looking at.  If the property is empty or missing, version 1 is assumed.
 
 The MiNiFi Toolkit Converter is capable of parsing previous versions (possibly subject to a future deprecation policy) and writing out the current version.  It can also validate that a given config file
 parses and upconverts to the current version without issue.
 
-### Version 1 -> Version 2 changes
+### <a id="version-1-version-2-changes" href="#version-1-version-2-changes">Version 1 -> Version 2 Changes</a>
 
 1. Use ids instead of names for processors, connections.
 2. Allow multiple source relationships for connections.
 3. Added support for process groups, and internal input ports an output ports.
 4. Change Id Key for RPGs from "Remote Processing Groups" to the proper "Remote Process Groups" (not "ing").
 
-### Version 2 -> Version 3 changes
+### <a id="version-2-version-3-changes" href="#version-2-version-3-changes">Version 2 -> Version 3 Changes</a>
+
 1. Added support for Controller Services.
 2. Added support for Site-To-Site over proxy.
 3. Added support for overriding *nifi.properties* values
 4. Added support for Output Ports to Remote Process Groups
 
-## Flow Controller
+## <a id="flow-controller" href="#flow-controller">Flow Controller</a>
 
 The first section of *config.yml* is for naming and commenting on the file.
 
@@ -378,7 +429,7 @@ The first section of *config.yml* is for naming and commenting on the file.
 `name`                  | The name of the file.
 `comment`               | A comment describing the usage of this config file.
 
-## Core Properties
+## <a id="core-properties" href="#core-properties">Core Properties</a>
 
 The "Core Properties" section applies to the core framework as a whole.
 
@@ -390,7 +441,7 @@ The "Core Properties" section applies to the core framework as a whole.
 `bored yield duration`                     | When a component has no work to do (i.e., is "bored"), this is the amount of time it will wait before checking to see if it has new data to work on. This way, it does not use up CPU resources by checking for new work too often. When setting this property, be aware that it could add extra latency for components that do not constantly have work to do, as once they go into this "bored" state, they will wait this amount of time before checking for more work. The default value is `10 millis`.
 `max concurrent threads`                   | The maximum number of threads any processor can have running at one time.
 
-## FlowFile Repository
+## <a id="flowfile-repository" href="#flowfile-repository">FlowFile Repository</a>
 
 The FlowFile repository keeps track of the attributes and current state of each FlowFile in the system. By default, this repository is installed in the same root installation directory as all the other repositories; however, it is advisable to configure it on a separate drive if available.
 
@@ -400,7 +451,7 @@ The FlowFile repository keeps track of the attributes and current state of each 
 `checkpoint interval`  | The FlowFile Repository checkpoint interval. The default value is `2 mins`.
 `always sync`          | If set to _true_, any change to the repository will be synchronized to the disk, meaning that NiFi will ask the operating system not to cache the information. This is very expensive and can significantly reduce NiFi performance. However, if it is _false_, there could be the potential for data loss if either there is a sudden power loss or the operating system crashes. The default value is `false`.
 
-#### Swap Subsection
+#### <a id="swap-subsection" href="#swap-subsection">Swap Subsection</a>
 
 A part of the "FlowFile Repository" section there is a "Swap" subsection.
 
@@ -414,7 +465,7 @@ NiFi keeps FlowFile information in memory (the JVM) but during surges of incomin
 `out period`  | The swap out period. The default value is `5 sec`.
 `out threads` | The number of threads to use for swapping out. The default value is `4`.
 
-## Content Repository
+## <a id="content-repository" href="#content-repository">Content Repository</a>
 
 The Content Repository holds the content for all the FlowFiles in the system. By default, it is installed in the same root installation directory as all the other repositories; however, administrators will likely want to configure it on a separate drive if available. If nothing else, it is best if the Content Repository is not on the same drive as the FlowFile Repository. In dataflows that handle a large amount of data, the Content Repository could fill up a disk and the FlowFile Repository, if also on that disk, could become corrupt. To avoid this situation, configure these repositories on different drives.
 
@@ -424,14 +475,14 @@ The Content Repository holds the content for all the FlowFiles in the system. By
 `content claim max flow files`      | The maximum number of FlowFiles to assign to one content claim. The default value is `100`.
 `always sync`                       | If set to _true_, any change to the repository will be synchronized to the disk, meaning that NiFi will ask the operating system not to cache the information. This is very expensive and can significantly reduce NiFi performance. However, if it is _false_, there could be the potential for data loss if either there is a sudden power loss or the operating system crashes. The default value is `false`.
 
-## Provenance Repository
+## <a id="provenance-repository" href="#provenance-repository">Provenance Repository</a>
 
 *Property*                         | *Description*
 ---------------------------------  | -------------
 `provenance rollover time`         | The amount of time to wait before rolling over the latest data provenance information so that it is available to be accessed by components. The default value is `1 min`.
 `implementation`                   | The implementation of `ProvenanceRepository` to use. The default value is `org.apache.nifi.provenance.MiNiFiPersistentProvenanceRepository`.
 
-## Component Status Repository
+## <a id="component-status-repository" href="#component-status-repository">Component Status Repository</a>
 
 The Component Status Repository contains the information for the Component Status History tool in the User Interface. These properties govern how that tool works.
 
@@ -442,7 +493,7 @@ The `buffer size` and `snapshot frequency` work together to determine the amount
 `buffer size`        | Specifies the buffer size for the Component Status Repository. The default value is `1440`.
 `snapshot frequency` | This value indicates how often to present a snapshot of the components' status history. The default value is `1 min`.
 
-## Security Properties
+## <a id="security-properties" href="#security-properties">Security Properties</a>
 
 These properties pertain to various security features in NiFi. Many of these properties are covered in more detail in the "Security Configuration" section of this Administrator's Guide.
 
@@ -459,7 +510,7 @@ These properties pertain to various security features in NiFi. Many of these pro
 
 **Note:** A StandardSSLContextService will be made automatically with the ID "SSL-Context-Service" if `ssl protocol` is configured.
 
-#### Sensitive Properties Subsection
+#### <a id="sensitive-properties-subsection" href="#sensitive-properties-subsection">Sensitive Properties Subsection</a>
 
 Some properties for processors are marked as _sensitive_ and should be encrypted. These following properties will be used to encrypt the properties while in use by MiNiFi. This will currently **not** be used to encrypt properties in the config file.
 
@@ -469,7 +520,7 @@ Some properties for processors are marked as _sensitive_ and should be encrypted
 `algorithm`  | The algorithm used to encrypt sensitive properties. The default value is `PBEWITHMD5AND256BITAES-CBC-OPENSSL`.
 `provider`   | The sensitive property provider. The default value is `BC`.
 
-## Processors
+## <a id="processors-2" href="#processors-2">Processors</a>
 
 The current implementation of MiNiFi supports multiple processors. The "Processors" subsection is a list of these processors. Each processor must specify these properties. They are the basic configuration general to all processor implementations. Make sure that all relationships for a processor are accounted for in the auto-terminated relationship list or are used in a connection.
 
@@ -487,7 +538,7 @@ The current implementation of MiNiFi supports multiple processors. The "Processo
 `auto-terminated relationships list`  | A YAML list of the relationships to auto-terminate for the processor.
 `annotation data`                     | Some processors make use of "Annotation Data" in order to do more complex configuration, such as the Advanced portion of UpdateAttribute. This data will be unique to each implementing processor and more than likely will not be written out manually.
 
-#### Processor Properties
+### <a id="processor-properties" href="#processor-properties">Processor Properties</a>
 
 Within the "Processor Configuration" section, there is the "Properties" subsection. The keys and values in this section are the property names and values for the processor. For example the TailFile processor would have a section like this:
 
@@ -497,8 +548,7 @@ Within the "Processor Configuration" section, there is the "Properties" subsecti
         State File: ./conf/state/tail-file
         Initial Start Position: Beginning of File
 
-
-### Controller Services
+## <a id="controller-services-2" href="#controller-services-2">Controller Services</a>
 
 The current implementation of MiNiFi supports Controller Services. The "Controller Services" subsection is a list of these services. Each Controller Service must specify the following properties. They are the basic configuration general to all Controller Service implementations.
 
@@ -511,7 +561,7 @@ The current implementation of MiNiFi supports Controller Services. The "Controll
 **Note:** If the "Security Properties" is configured with an "ssl protocol" then a StandardSSLContextService will be made automatically with the ID "SSL-Context-Service".
 
 
-#### Controller Service Properties
+### <a id="controller-service-properties" href="#controller-service-properties">Controller Service Properties</a>
 
 Within the "Controller Service Configuration" section, there is the "Properties" subsection. The keys and values in this section are the property names and values for the service. For example, the StandardSSLContextService would have a section like this:
 
@@ -526,7 +576,7 @@ Within the "Controller Service Configuration" section, there is the "Properties"
       key-password: keyPassword
 
 
-## Process Groups
+## <a id="process-groups" href="#process-groups">Process Groups</a>
 
 Process groups can be nested from the top level.  They can contain other process groups as well and can be used to logically group related operations.
 
@@ -542,7 +592,7 @@ Process groups can be nested from the top level.  They can contain other process
 `Funnels`                             | The funnels contained in this Process Group. (Defined below)
 `Process Groups`                      | The child Process Groups contained in this Process Group.
 
-## Input Ports
+## <a id="input-ports" href="#input-ports">Input Ports</a>
 
 These ports provide input to the Process Group they reside on. (Currently only for internal Input ports.)
 
@@ -551,7 +601,7 @@ These ports provide input to the Process Group they reside on. (Currently only f
 `name`                | The name of what this input port will do.
 `id`                  | The id of this input port.  This needs to be set to a unique filesystem-friendly value (regex: [A-Za-z0-9_-]+)
 
-## Output Ports
+## <a id="output-ports" href="#output-ports">Output Ports</a>
 
 These ports provide output from the Process Group they reside on. (Currently only for internal Output ports.)
 
@@ -560,7 +610,7 @@ These ports provide output from the Process Group they reside on. (Currently onl
 `name`                | The name of what this output port will do.
 `id`                  | The id of this output port.  This needs to be set to a unique filesystem-friendly value (regex: [A-Za-z0-9_-]+)
 
-## Funnels
+## <a id="funnels" href="#funnels">Funnels</a>
 
 Funnels can be used to combine outputs from multiple processors into a single connection for ease of design.
 
@@ -568,7 +618,7 @@ Funnels can be used to combine outputs from multiple processors into a single co
 --------------------     | -------------
 `id`                     | The id of this funnel.  This needs to be set to a unique filesystem-friendly value (regex: [A-Za-z0-9_-]+)
 
-## Connections
+## <a id="connections-2" href="#connections-2">Connections</a>
 
 There can be multiple connections in this version of MiNiFi. The "Connections" subsection is a list of connections. Each connection must specify these properties.
 
@@ -584,7 +634,7 @@ There can be multiple connections in this version of MiNiFi. The "Connections" s
 `flowfile expiration`      | Indicates how long FlowFiles are allowed to exist in the connection before be expired (automatically removed from the flow).
 `queue prioritizer class`  | This configuration option specifies the fully qualified java class path of a queue prioritizer to use. If no special prioritizer is desired then it should be left blank. An example value of this property is: `org.apache.nifi.prioritizer.NewestFlowFileFirstPrioritizer`
 
-## Remote Process Groups
+## <a id="remote-process-groups-2" href="#remote-process-groups-2">Remote Process Groups</a>
 
 MiNiFi can be used to send data using the Site to Site protocol (via a Remote Process Group) or a Processor. These properties configure the Remote Process Groups that use Site-To-Site to send data to a core instance.  The proxy settings are for HTTP Site-To-Site.
 
@@ -604,7 +654,7 @@ MiNiFi can be used to send data using the Site to Site protocol (via a Remote Pr
 `Output Ports`       | The Output Ports for this Remote Process Group (See below)
 
 
-#### Input/Output Ports Subsection
+#### <a id="input-output-ports-subsection" href="#input-output-ports-subsection">Input/Output Ports Subsection</a>
 
 When connecting via Site to Site, MiNiFi needs to know which input or output port to communicate to of the core NiFi instance. These properties designate and configure communication with that port.
 
@@ -616,7 +666,7 @@ When connecting via Site to Site, MiNiFi needs to know which input or output por
 `max concurrent tasks` | The number of tasks that this port should be scheduled for at maximum.
 `use compression`      | Whether or not compression should be used when communicating with the port. This is a boolean value of either `true` or `false`
 
-## Provenance Reporting
+## <a id="provenance-reporting-2" href="#provenance-reporting-2">Provenance Reporting</a>
 
 MiNiFi is currently designed only to report provenance data using the Site to Site protocol.
 
@@ -639,11 +689,11 @@ Provenance Reporting can be configured in two ways via:
 `nifi.minifi.provenance.reporting.batch.size`             | `batch size`          | Specifies how many records to send in a single batch, at most. This should be significantly above the expected amount of records generated between scheduling. If it is not, then there is the potential for the Provenance reporting to lag behind event generation and never catch up.
 `nifi.minifi.provenance.reporting.communications.timeout` | `timeout`             | How long MiNiFi should wait before timing out the connection.
 
-## NiFi Properties Overrides
+## <a id="nifi-properties-overrides" href="#nifi-properties-overrides">NiFi Properties Overrides</a>
 
 This is a yaml map that contains values to be put into *nifi.properties*.  This will supercede any hardcoded or other schema values that are substituted into *nifi.properties* file.
 
-### Example NiFi Properties Overrides
+### <a id="example-nifi-properties-overrides" href="#example-nifi-properties-overrides">Example NiFi Properties Overrides</a>
 
 ```yaml
 NiFi Properties Overrides:
@@ -652,7 +702,8 @@ NiFi Properties Overrides:
   nifi.database.directory: ./database_repository_override
 ```
 
-# Security Configuration
+# <a id="security-configuration" href="#security-configuration">Security Configuration</a>
+
 Currently, it is possible to specify keystore and truststore information to allow mutual TLS communication across the Site to Site protocol as well as provisioning an SSL Context for components in the config.yml
 
 Security can be configured in two ways for instances via:
@@ -660,7 +711,7 @@ Security can be configured in two ways for instances via:
 * **config.yml**:  These properties are specified as outlined in the 'Security Properties' and 'Sensitive Properties' in the config.yml sections above.  These allow the specification of security properties to be versioned with the flow and consumed via Change Ingestors.
 * **bootstrap.conf**:   This is an alternative means of configuration that takes precedence over the config.yml configuration and is a way of separating security concerns from the processing flow.  The following properties should be defined:
 
-## Security Properties in bootstrap.conf
+## <a id="security-properties-in-bootstrapconf" href="#security-properties-in-bootstrapconf">Security Properties in bootstrap.conf</a>
 
 *bootstrap.conf Property*               | *config.yml Property* | *Description*
 --------------------------------------- | --------------------- | -------------------------------------------------------------------------------------------
@@ -673,7 +724,7 @@ Security can be configured in two ways for instances via:
 `nifi.minifi.security.truststorePasswd` | `truststore password` | The truststore password. It is blank by default.
 `nifi.minifi.security.ssl.protocol`     | `ssl protocol`        | The protocol to use when communicating via https. Necessary to transfer provenance securely.
 
-## Sensitive Property Configuration in bootstrap.conf
+## <a id="sensitive-property-configuration-in-bootstrapconf" href="#sensitive-property-configuration-in-bootstrapconf">Sensitive Property Configuration in bootstrap.conf</a>
 
 *bootstrap.conf Property*               | *config.yml Property* | *Description*
 --------------------------------------- | --------------------- | -------------------------------------------------------------------------------------------
@@ -681,8 +732,7 @@ Security can be configured in two ways for instances via:
 `nifi.minifi.sensitive.props.algorithm` | `algorithm`           | The algorithm used to encrypt sensitive properties. The default value is `PBEWITHMD5AND256BITAES-CBC-OPENSSL`.
 `nifi.minifi.sensitive.props.provider`  | `provider`            | The sensitive property provider. The default value is `BC`.
 
-
-# Running as a Windows Service
+# <a id="running-as-a-windows-service" href="#running-as-a-windows-service">Running as a Windows Service</a>
 
 MiNiFi can run as a Windows service. To do so, you must modify the _conf/bootstrap.conf_ to set absolute paths for some properties. The properties are:
 
@@ -694,7 +744,7 @@ You can now install the MiNiFi service by running the `install-service.bat` scri
 
 The *minifi.exe* in MiNiFi `bin` directory is used to run MiNiFi Windows service. The bundled one is for 64 bit architecture and requires 64 bit JRE. If you have to use 32 bit JRE for some reason, you need to replace the *minifi.exe* file with the one for 32 bit to make MiNiFi service runs successfully. To do so, go to [Commons Daemon project download page](https://commons.apache.org/proper/commons-daemon/download_daemon.cgi), download the binary (e.g. _commons-daemon-1.1.0-bin.zip_), extract it and replace *bin/minifi.exe* by copying `commons-daemon-x.x.x-bin/prunsrv.exe` into MiNiFi `bin` directory as *minifi.exe* to overwrite the 64 bit exe with the 32 bit one.
 
-# Flow overriding with bootstrap.conf
+# <a id="flow-overriding-with-bootstrapconf" href="#flow-overriding-with-bootstrapconf">Flow Overriding with bootstrap.conf</a>
 
  The following options can be set to override flow properties in the config.yml
 
@@ -702,7 +752,7 @@ The *minifi.exe* in MiNiFi `bin` directory is used to run MiNiFi Windows service
  ----------------------------------|--------------------
  `nifi.minifi.flow.use.parent.ssl` | When set to true, all processors will reference the MiNiFi parent SSL controller service defined in the security properties, instead of custom controller services.
 
-# Example Config File
+# <a id="example-config-file" href="#example-config-file">Example Config File</a>
 
 Below are two example config YAML files. The first tails the *minifi-app.log* and sends the tailed log and provenance data back to a secure instance of NiFi. The second uses a series of processors to tail the app log, routes off only lines that contain "WriteAheadFlowFileRepository" and puts it as a file in the "./" directory.
 
@@ -959,12 +1009,11 @@ Provenance Reporting:
     timeout: 30 secs
     batch size: 1000
 ```
-
-# Recommended Antivirus Exclusions
+# <a id="recommended-antivirus-exclusions" href="#recommended-antivirus-exclusions">Recommended Antivirus Exclusions</a>
 
 Antivirus software can take a long time to scan directories and the files within them. Additionally, if the antivirus software locks files or directories during a scan, those resources are unavailable to MiNiFi processes, causing latency or unavailability of these resources in a MiNiFi instance. To prevent these performance and reliability issues from occurring, it is highly recommended to configure your antivirus software to skip scans on the following MiNiFi directories:
 
-### MiNiFi Java:
+### <a id="minifi-java" href="#minifi-java">MiNiFi Java</a>
 
   - content_repository
   - flowfile_repository
