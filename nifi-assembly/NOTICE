@@ -1823,7 +1823,7 @@ The following binary components are provided under the Apache Software License v
       Copyright 2008-2018 The Apache Software Foundation
 
   (ASLv2) sshj
-    The following NOTICE information applie:
+    The following NOTICE information applies:
 
       sshj - SSHv2 library for Java
       Copyright 2010-2012 sshj contributors
@@ -1834,6 +1834,7 @@ The following binary components are provided under the Apache Software License v
       - Apache MINA SSHD
       - Apache Commons-Net
 
+<<<<<<< HEAD
   (ASLv2) Nimbus Language Tags
       The following NOTICE information applies:
         Nimbus Language Tags
@@ -1923,6 +1924,14 @@ The following binary components are provided under the Apache Software License v
     The following NOTICE information applies:
        Reactive Streams Netty Driver
        Copyright 2020, Project Reactor
+
+  (ALSv2) smbj
+    The following NOTICE information applies:
+      Copyright (C)2016 - SMBJ Contributors
+
+  (ASLv2) asn-one
+    The following NOTICE information applies:
+      Copyright 2016 Jeroen van Erp <jeroen@hierynomus.com>
 
 ************************
 Common Development and Distribution License 1.1

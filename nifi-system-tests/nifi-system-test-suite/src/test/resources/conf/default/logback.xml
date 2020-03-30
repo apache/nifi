@@ -124,6 +124,9 @@
     <logger name="net.schmizz.sshj" level="WARN" />
     <logger name="com.hierynomus.sshj" level="WARN" />
 
+    <!-- Suppress non-error messages from SMBJ which was emitting large amounts of INFO logs by default -->
+    <logger name="com.hierynomus.smbj" level="WARN" />
+
     <!--
         Logger for capturing user events. We do not want to propagate these
         log events to the root logger. These messages are only sent to the
