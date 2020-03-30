@@ -20,10 +20,13 @@
 package org.apache.nifi.processors.solr;
 
 import com.google.gson.stream.JsonReader;
+import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.json.JsonRecordSetWriter;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.schema.access.SchemaAccessUtils;
+import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -36,8 +39,10 @@ import org.apache.solr.common.SolrInputDocument;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.mockito.Mockito;
 import org.xmlunit.matchers.CompareMatcher;
 
+import javax.net.ssl.SSLContext;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -45,16 +50,18 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.TimeZone;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
 
 public class QuerySolrIT {
     /*
@@ -117,7 +124,7 @@ public class QuerySolrIT {
         CloudSolrClient solrClient = null;
 
         try {
-            solrClient = new CloudSolrClient.Builder().withZkHost(SOLR_LOCATION).build();
+            solrClient = new CloudSolrClient.Builder(Collections.singletonList(SOLR_LOCATION), Optional.empty()).build();
             solrClient.setDefaultCollection(SOLR_COLLECTION);
         } catch (Exception e) {
             e.printStackTrace();
@@ -141,7 +148,7 @@ public class QuerySolrIT {
 
         TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(SolrUtils.SOLR_TYPE, SolrUtils.SOLR_TYPE_CLOUD.getValue());
-        runner.setProperty(SolrUtils.SOLR_LOCATION, "localhost:2181");
+        runner.setProperty(SolrUtils.SOLR_LOCATION, SOLR_LOCATION);
         runner.setProperty(SolrUtils.COLLECTION, SOLR_COLLECTION);
 
         return runner;
@@ -627,6 +634,24 @@ public class QuerySolrIT {
         assertEquals(controlScore, 45);
     }
 
+    @Test
+    public void testSslContextService() throws IOException, InitializationException {
+        final QuerySolr proc = Mockito.mock(QuerySolr.class);
+        TestRunner runner = TestRunners.newTestRunner(proc);
+        runner.setProperty(SolrUtils.SOLR_TYPE, SolrUtils.SOLR_TYPE_CLOUD.getValue());
+        runner.setProperty(SolrUtils.SOLR_LOCATION, SOLR_LOCATION);
+        runner.setProperty(SolrUtils.COLLECTION, SOLR_COLLECTION);
+
+        final SSLContextService sslContextService = new MockSSLContextService();
+        runner.addControllerService("ssl-context", sslContextService);
+        runner.enableControllerService(sslContextService);
+
+        runner.setProperty(SolrUtils.SSL_CONTEXT_SERVICE, "ssl-context");
+        proc.onScheduled(runner.getProcessContext());
+        Mockito.verify(proc, Mockito.times(1)).createSolrClient(Mockito.any(ProcessContext.class), Mockito.eq((String)SOLR_LOCATION));
+
+    }
+
     // Override createSolrClient and return the passed in SolrClient
     private class TestableProcessor extends QuerySolr {
         private SolrClient solrClient;
@@ -637,6 +662,67 @@ public class QuerySolrIT {
         @Override
         protected SolrClient createSolrClient(ProcessContext context, String solrLocation) {
             return solrClient;
+        }
+    }
+
+    /**
+     * Mock implementation so we don't need to have a real keystore/truststore available for testing.
+     */
+    private class MockSSLContextService extends AbstractControllerService implements SSLContextService {
+
+        @Override
+        public SSLContext createSSLContext(ClientAuth clientAuth) throws ProcessException {
+            return null;
+        }
+
+        @Override
+        public String getTrustStoreFile() {
+            return null;
+        }
+
+        @Override
+        public String getTrustStoreType() {
+            return null;
+        }
+
+        @Override
+        public String getTrustStorePassword() {
+            return null;
+        }
+
+        @Override
+        public boolean isTrustStoreConfigured() {
+            return false;
+        }
+
+        @Override
+        public String getKeyStoreFile() {
+            return null;
+        }
+
+        @Override
+        public String getKeyStoreType() {
+            return null;
+        }
+
+        @Override
+        public String getKeyStorePassword() {
+            return null;
+        }
+
+        @Override
+        public String getKeyPassword() {
+            return null;
+        }
+
+        @Override
+        public boolean isKeyStoreConfigured() {
+            return false;
+        }
+
+        @Override
+        public String getSslAlgorithm() {
+            return null;
         }
     }
 }

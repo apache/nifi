@@ -21,8 +21,11 @@ package org.apache.nifi.processors.solr;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.HttpClient;
-import org.apache.http.conn.scheme.Scheme;
-import org.apache.http.conn.ssl.SSLSocketFactory;
+import org.apache.http.config.Registry;
+import org.apache.http.config.RegistryBuilder;
+import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
+import org.apache.http.conn.socket.ConnectionSocketFactory;
+import org.apache.http.conn.socket.PlainConnectionSocketFactory;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.context.PropertyContext;
@@ -240,25 +243,32 @@ public class SolrUtils {
         final String kerberosPrincipal = context.getProperty(KERBEROS_PRINCIPAL).evaluateAttributeExpressions().getValue();
         final String kerberosPassword = context.getProperty(KERBEROS_PASSWORD).getValue();
 
+        // has to happen before the client is created below so that correct configurer would be set if needed
+        if (kerberosCredentialsService != null || (!StringUtils.isBlank(kerberosPrincipal) && !StringUtils.isBlank(kerberosPassword))) {
+            HttpClientUtil.setHttpClientBuilder(new KerberosHttpClientBuilder().getHttpClientBuilder(Optional.empty()));
+        }
+
+        if (sslContextService != null) {
+            final SSLContext sslContext = sslContextService.createSSLContext(SSLContextService.ClientAuth.REQUIRED);
+            final SSLConnectionSocketFactory sslSocketFactory = new SSLConnectionSocketFactory(sslContext);
+            HttpClientUtil.setSchemaRegistryProvider(new HttpClientUtil.SchemaRegistryProvider() {
+                @Override
+                public Registry<ConnectionSocketFactory> getSchemaRegistry() {
+                    RegistryBuilder<ConnectionSocketFactory> builder = RegistryBuilder.create();
+                    builder.register("http", PlainConnectionSocketFactory.getSocketFactory());
+                    builder.register("https", sslSocketFactory);
+                    return builder.build();
+                }
+            });
+        }
+
         final ModifiableSolrParams params = new ModifiableSolrParams();
         params.set(HttpClientUtil.PROP_SO_TIMEOUT, socketTimeout);
         params.set(HttpClientUtil.PROP_CONNECTION_TIMEOUT, connectionTimeout);
         params.set(HttpClientUtil.PROP_MAX_CONNECTIONS, maxConnections);
         params.set(HttpClientUtil.PROP_MAX_CONNECTIONS_PER_HOST, maxConnectionsPerHost);
 
-        // has to happen before the client is created below so that correct configurer would be set if needed
-        if (kerberosCredentialsService != null || (!StringUtils.isBlank(kerberosPrincipal) && !StringUtils.isBlank(kerberosPassword))) {
-            HttpClientUtil.setHttpClientBuilder(new KerberosHttpClientBuilder().getHttpClientBuilder(Optional.empty()));
-        }
-
         final HttpClient httpClient = HttpClientUtil.createClient(params);
-
-        if (sslContextService != null) {
-            final SSLContext sslContext = sslContextService.createSSLContext(SSLContextService.ClientAuth.REQUIRED);
-            final SSLSocketFactory sslSocketFactory = new SSLSocketFactory(sslContext);
-            final Scheme httpsScheme = new Scheme("https", 443, sslSocketFactory);
-            httpClient.getConnectionManager().getSchemeRegistry().register(httpsScheme);
-        }
 
         if (SOLR_TYPE_STANDARD.getValue().equals(context.getProperty(SOLR_TYPE).getValue())) {
             return new HttpSolrClient.Builder(solrLocation).withHttpClient(httpClient).build();
