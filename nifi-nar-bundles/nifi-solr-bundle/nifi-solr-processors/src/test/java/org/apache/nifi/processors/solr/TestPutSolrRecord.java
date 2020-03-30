@@ -36,7 +36,7 @@ import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrRequest;
 import org.apache.solr.client.solrj.SolrServerException;
-import org.apache.solr.client.solrj.impl.HttpSolrClient;
+import org.apache.solr.client.solrj.impl.BaseHttpSolrClient;
 import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.common.SolrDocument;
 import org.apache.solr.common.SolrException;
@@ -440,7 +440,7 @@ public class TestPutSolrRecord {
 
     @Test
     public void testRemoteSolrExceptionShouldRouteToFailure() throws IOException, SolrServerException, InitializationException {
-        final Throwable throwable = new HttpSolrClient.RemoteSolrException(
+        final Throwable throwable = new BaseHttpSolrClient.RemoteSolrException(
                 "host", 401, "error", new NumberFormatException());
         final ExceptionThrowingProcessor proc = new ExceptionThrowingProcessor(throwable);
 
