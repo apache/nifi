@@ -64,14 +64,8 @@ import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
-import okhttp3.Cache;
-import okhttp3.Credentials;
-import okhttp3.MediaType;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.RequestBody;
-import okhttp3.Response;
-import okhttp3.ResponseBody;
+
+import okhttp3.*;
 import okio.BufferedSink;
 import org.apache.commons.io.input.TeeInputStream;
 import org.apache.commons.lang3.StringUtils;
@@ -107,6 +101,7 @@ import org.apache.nifi.proxy.ProxySpec;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.ssl.SSLContextService.ClientAuth;
 import org.apache.nifi.stream.io.StreamUtils;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 
@@ -182,7 +177,7 @@ public final class InvokeHTTP extends AbstractProcessor {
             .name("Connection Timeout")
             .description("Max wait time for connection to remote service.")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .defaultValue("5 secs")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
@@ -485,6 +480,9 @@ public final class InvokeHTTP extends AbstractProcessor {
 
     private final AtomicReference<OkHttpClient> okHttpClientAtomicReference = new AtomicReference<>();
 
+    private static int timeout = 15;
+    private static TimeUnit timeoutTimeUnit = TimeUnit.SECONDS;
+
     protected void init(ProcessorInitializationContext context) {
         excludedHeaders.put("Trusted Hostname", "HTTP request header '{}' excluded. " +
                              "Update processor to use the SSLContextService instead. " +
@@ -625,8 +623,17 @@ public final class InvokeHTTP extends AbstractProcessor {
         }
 
         // Set timeouts
-        okHttpClientBuilder.connectTimeout((context.getProperty(PROP_CONNECT_TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS).intValue()), TimeUnit.MILLISECONDS);
-        okHttpClientBuilder.readTimeout(context.getProperty(PROP_READ_TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS).intValue(), TimeUnit.MILLISECONDS);
+        okHttpClientBuilder.connectTimeout(context.getProperty(PROP_CONNECT_TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS).intValue(), TimeUnit.MILLISECONDS);
+
+        //if timeout parameter is a expression value, client should has a interceptor to change timeout for every single request.
+        if (context.getProperty(PROP_READ_TIMEOUT).isExpressionLanguagePresent()) {
+            okHttpClientBuilder.readTimeout(timeout, timeoutTimeUnit);
+            //to change timeout every single request
+            okHttpClientBuilder.addInterceptor(new TimeoutInterceptor());
+        }
+        else
+            okHttpClientBuilder.readTimeout(context.getProperty(PROP_READ_TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS).intValue(), TimeUnit.MILLISECONDS);
+
 
         // Set whether to follow redirects
         okHttpClientBuilder.followRedirects(context.getProperty(PROP_FOLLOW_REDIRECTS).asBoolean());
@@ -779,6 +786,11 @@ public final class InvokeHTTP extends AbstractProcessor {
 
         FlowFile responseFlowFile = null;
         try {
+
+            if (context.getProperty(PROP_READ_TIMEOUT).isExpressionLanguagePresent())
+                setTimeout(context.getProperty(PROP_READ_TIMEOUT).evaluateAttributeExpressions(requestFlowFile).asTimePeriod(TimeUnit.MILLISECONDS).intValue(), TimeUnit.MILLISECONDS);
+
+
             // read the url property from the context
             final String urlstr = trimToEmpty(context.getProperty(PROP_URL).evaluateAttributeExpressions(requestFlowFile).getValue());
             final URL url = new URL(urlstr);
@@ -1240,6 +1252,28 @@ public final class InvokeHTTP extends AbstractProcessor {
                 return true;
             }
             return delegate.verify(hostname, session);
+        }
+    }
+
+    private void setTimeout(int timeout, TimeUnit timeoutTimeUnit){
+        InvokeHTTP.timeout = timeout;
+        InvokeHTTP.timeoutTimeUnit = timeoutTimeUnit;
+    }
+
+    /**
+     * This interceptor to change connection timeout value for every single request
+     *
+     *  okHttpClient Interceptor:
+     *
+     *  Ref: https://square.github.io/okhttp/interceptors/
+     */
+
+    class TimeoutInterceptor implements Interceptor {
+        @NonNull
+        @Override
+        public Response intercept(@NonNull Chain chain) throws IOException {
+            Chain chainWithNewTimeout = chain.withReadTimeout(timeout, timeoutTimeUnit);
+            return chainWithNewTimeout.proceed(chain.request());
         }
     }
 }
