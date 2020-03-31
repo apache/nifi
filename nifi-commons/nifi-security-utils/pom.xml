@@ -92,7 +92,7 @@
         <dependency>
             <groupId>org.bouncycastle</groupId>
             <artifactId>bcpg-jdk15on</artifactId>
-            <version>1.64</version>
+            <version>1.61</version>
         </dependency>
     </dependencies>
 
@@ -104,6 +104,8 @@
                 <configuration>
                     <excludes combine.children="append">
                         <exclude>src/test/resources/xxe_template.xml</exclude>
+                        <exclude>src/test/resources/pgp/public-key.asc</exclude>
+                        <exclude>src/test/resources/pgp/secret-key.asc</exclude>
                     </excludes>
                 </configuration>
             </plugin>

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.security.pgp;
+package org.apache.nifi.pgp.controllerservices;
 
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.controller.ControllerService;

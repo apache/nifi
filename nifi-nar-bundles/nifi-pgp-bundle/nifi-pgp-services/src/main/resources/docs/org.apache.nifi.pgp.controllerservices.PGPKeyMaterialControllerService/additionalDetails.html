@@ -23,21 +23,21 @@
     <body>
     <h2>Description</h2>
     <p>
-        Controller Service that maintains PGP Key Materials.
+        Controller Service that maintains PGP Key Material.
     </p>
 
     <p>
         The controller service supports the following operations via the four related PGP processors:
     </p>
     <ul>
-        <li>FlowFile content encryption via <code>EncryptPGP</code></li>
-        <li>Content decryption via <code>DecryptPGP</code></li>
-        <li>Digital signing of content via <code>SignPGP</code></li>
-        <li>Digital signature verification via <code>VerifyPGP</code></li>
+        <li>FlowFile content encryption via <code>EncryptContentPGP</code></li>
+        <li>Content decryption via <code>DecryptContentPGP</code></li>
+        <li>Digital signing of content via <code>SignContentAttributePGP</code></li>
+        <li>Digital signature verification via <code>VerifyContentAgttributePGP</code></li>
     </ul>
 
     <p>
-        Each of these operations requires a specific Controller Service configuration: 
+        Each of these operations requires a specific Controller Service configuration:
     </p>
     <ul>
         <li>Encrypt requires either Public Key Text, Public Key File, or a PBE passphrase</li>

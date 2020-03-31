@@ -18,7 +18,6 @@ package org.apache.nifi.security.pgp;
 
 import org.junit.Assert;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.ByteArrayOutputStream;
@@ -27,7 +26,7 @@ import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.util.Random;
 
-@Ignore
+
 public class StandardPGPOperatorTest {
     private static Random random = new Random();
     private static String publicKey;

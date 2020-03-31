@@ -28,7 +28,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.security.pgp.StandardPGPOperator;
-import org.apache.nifi.security.pgp.PGPKeyMaterialService;
+import org.apache.nifi.pgp.controllerservices.PGPKeyMaterialService;
 import org.apache.nifi.util.StopWatch;
 import java.util.Arrays;
 import java.util.Collections;
@@ -38,7 +38,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * The EncryptContentPGPProcessor processor attempts to encrypt flow file contents when triggered.  The processor uses a
+ * The EncryptContentPGP processor attempts to encrypt flow file contents when triggered.  The processor uses a
  * {@link PGPKeyMaterialService} to provide encryption operations.
  *
  * This processor exposes the encryption algorithm selection to the user, and also exposes a property that controls
@@ -51,7 +51,7 @@ import java.util.stream.Stream;
 @CapabilityDescription("Encrypts a FlowFile using a PGP key.")
 @SystemResourceConsideration(resource = SystemResource.CPU)
 
-public class EncryptContentPGPProcessor extends AbstractPGPProcessor {
+public class EncryptContentPGP extends AbstractPGPProcessor {
     private final List<PropertyDescriptor> properties = Stream.concat(
             super.getSupportedPropertyDescriptors().stream(),
             Collections.unmodifiableList(Arrays.asList(StandardPGPOperator.ENCRYPT_ALGORITHM, StandardPGPOperator.ENCRYPT_ENCODING)).stream()

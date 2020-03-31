@@ -32,7 +32,6 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.security.pgp.PGPKeyMaterialService;
 import org.apache.nifi.security.pgp.PGPOperator;
 import org.apache.nifi.security.pgp.StandardPGPOperator;
 import org.bouncycastle.openpgp.PGPException;
@@ -57,7 +56,7 @@ import java.util.Map;
         }
 )
 
-public class PGPKeyMaterialControllerService extends AbstractControllerService implements PGPKeyMaterialService {
+public class PGPKeyMaterialControllerService extends AbstractControllerService implements PGPKeyMaterialControllerServiceLocalInterface {
     private static final String CONTROLLER_NAME = "PGP Key Material Controller Service";
     private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
             StandardPGPOperator.PUBLIC_KEYRING_FILE,
@@ -100,9 +99,7 @@ public class PGPKeyMaterialControllerService extends AbstractControllerService i
                         .valid(false)
                         .explanation("Controller requires a valid Public Key or PBE passphrase for Encrypt operations.")
                         .build());
-        }
-
-        if (operator.isContextForDecrypt(context)) {
+        } else if (operator.isContextForDecrypt(context)) {
             configured = true;
 
             if (!operator.isContextForDecryptValid(context))
@@ -111,9 +108,7 @@ public class PGPKeyMaterialControllerService extends AbstractControllerService i
                         .valid(false)
                         .explanation("Controller requires a valid Secret Key or PBE passphrase for Decrypt operations.")
                         .build());
-        }
-
-        if (operator.isContextForSign(context)) {
+        } else if (operator.isContextForSign(context)) {
             configured = true;
 
             if (!operator.isContextForSignValid(context))
@@ -122,9 +117,7 @@ public class PGPKeyMaterialControllerService extends AbstractControllerService i
                         .valid(false)
                         .explanation("Controller requires a valid Secret Key for Sign operations.")
                         .build());
-        }
-
-        if (operator.isContextForVerify(context)) {
+        } else if (operator.isContextForVerify(context)) {
             configured = true;
 
             if (!operator.isContextForVerifyValid(context))

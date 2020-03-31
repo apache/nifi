@@ -34,7 +34,10 @@ import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -49,19 +52,29 @@ import java.util.Map;
  * we cannot accurately test a decrypt operation without first using an encrypt operation, nor can we test a verify
  * operation without first invoking a corresponding sign operation.
  *
- * This implementation re-uses the {@link PGPKeyMaterialControllerService} (test) class for keys and key material.
- *
  */
-@Ignore
+
 public class PGPProcessorsTest {
     public static final String PBE_PASSPHRASE = "password";
+    private static String publicKey;
+    private static String secretKey;
+
     TestRunner runner;
     PGPKeyMaterialControllerService service;
     byte[] plainBytes;
 
+
+
     @BeforeClass
     public static void setupServiceControllerTestClass() throws IOException {
-        // PGPKeyMaterialControllerServiceTest.setupKeyAndKeyRings();
+        publicKey = keyResource("/pgp/public-key.asc");
+        secretKey = keyResource("/pgp/secret-key.asc");
+
+        Assert.assertNotNull(publicKey);
+        Assert.assertNotNull(secretKey);
+
+        Assert.assertTrue(publicKey.length() > 500);
+        Assert.assertTrue(secretKey.length() > 1000);
     }
 
     @Before
@@ -83,83 +96,83 @@ public class PGPProcessorsTest {
 
     @Test
     public void combinedProcessorsReferenceTest() throws InitializationException {
-        // Configure an EncryptContentPGPProcessor processor with a PGP key service that has our public key:
-        buildTestRunner(new EncryptContentPGPProcessor());
+        // Configure an EncryptContentPGP processor with a PGP key service that has our public key:
+        buildTestRunner(new EncryptContentPGP());
         runner.setProperty(StandardPGPOperator.ENCRYPT_ALGORITHM, StandardPGPOperator.getCipherDefaultValue());
         buildPGPService(new HashMap<String, String>() {{
-            //put(StandardPGPOperator.PUBLIC_KEYRING_TEXT.getName(), PGPKeyMaterialControllerServiceTest.publicKey.getKeyText());
+            put(StandardPGPOperator.PUBLIC_KEYRING_TEXT.getName(), publicKey);
         }});
         runner.assertValid(service);
         runner.enableControllerService(service);
 
-        // This shows the EncryptContentPGPProcessor processor encrypts data and routes it correctly:
+        // This shows the EncryptContentPGP processor encrypts data and routes it correctly:
         runner.enqueue(plainBytes);
         runner.clearTransferState();
         runner.run();
-        runner.assertAllFlowFilesTransferred(EncryptContentPGPProcessor.REL_SUCCESS, 1);
-        List<MockFlowFile> flows = runner.getFlowFilesForRelationship(EncryptContentPGPProcessor.REL_SUCCESS);
+        runner.assertAllFlowFilesTransferred(EncryptContentPGP.REL_SUCCESS, 1);
+        List<MockFlowFile> flows = runner.getFlowFilesForRelationship(EncryptContentPGP.REL_SUCCESS);
         byte[] cipherBytes = flows.get(0).toByteArray();
         Assert.assertNotEquals(Hex.encodeHex(cipherBytes), Hex.encodeHex(plainBytes));
 
-        // Configure a DecryptContentPGPProcessor processor with a PGP key service that has our secret key and password:
-        buildTestRunner(new DecryptContentPGPProcessor());
+        // Configure a DecryptContentPGP processor with a PGP key service that has our secret key and password:
+        buildTestRunner(new DecryptContentPGP());
         buildPGPService(new HashMap<String, String>() {{
-            //put(StandardPGPOperator.SECRET_KEYRING_TEXT.getName(), PGPKeyMaterialControllerServiceTest.secretKey.getKeyText());
-            //put(StandardPGPOperator.PRIVATE_KEY_PASSPHRASE.getName(), PGPKeyMaterialControllerServiceTest.secretKey.getPrivateKeyPassword());
+            put(StandardPGPOperator.SECRET_KEYRING_TEXT.getName(), secretKey);
+            put(StandardPGPOperator.PRIVATE_KEY_PASSPHRASE.getName(), "password");
         }});
         runner.assertValid(service);
         runner.enableControllerService(service);
 
-        // This shows the DecryptContentPGPProcessor processor decrypts data and routes it correctly:
+        // This shows the DecryptContentPGP processor decrypts data and routes it correctly:
         runner.enqueue(cipherBytes);
         runner.clearTransferState();
         runner.run();
-        runner.assertAllFlowFilesTransferred(DecryptContentPGPProcessor.REL_SUCCESS, 1);
-        flows = runner.getFlowFilesForRelationship(DecryptContentPGPProcessor.REL_SUCCESS);
+        runner.assertAllFlowFilesTransferred(DecryptContentPGP.REL_SUCCESS, 1);
+        flows = runner.getFlowFilesForRelationship(DecryptContentPGP.REL_SUCCESS);
         Assert.assertArrayEquals(plainBytes, flows.get(0).toByteArray());
 
-        // Configure a SignContentAttributePGPProcessor processor with a PGP key service that has our secret key and password:
-        buildTestRunner(new SignContentAttributePGPProcessor());
+        // Configure a SignContentAttributePGP processor with a PGP key service that has our secret key and password:
+        buildTestRunner(new SignContentAttributePGP());
         runner.setProperty(StandardPGPOperator.SIGNATURE_HASH_ALGORITHM, StandardPGPOperator.getSignatureHashDefaultValue());
         buildPGPService(new HashMap<String, String>() {{
-            //put(StandardPGPOperator.SECRET_KEYRING_TEXT.getName(), PGPKeyMaterialControllerServiceTest.secretKey.getKeyText());
-            //put(StandardPGPOperator.PRIVATE_KEY_PASSPHRASE.getName(), PGPKeyMaterialControllerServiceTest.secretKey.getPrivateKeyPassword());
+            put(StandardPGPOperator.SECRET_KEYRING_TEXT.getName(), secretKey);
+            put(StandardPGPOperator.PRIVATE_KEY_PASSPHRASE.getName(), "password");
         }});
         runner.assertValid(service);
         runner.enableControllerService(service);
 
-        // This shows the SignContentAttributePGPProcessor processor signs the flow and routes it correctly:
+        // This shows the SignContentAttributePGP processor signs the flow and routes it correctly:
         runner.enqueue(plainBytes);
         runner.clearTransferState();
         runner.run();
-        runner.assertAllFlowFilesTransferred(SignContentAttributePGPProcessor.REL_SUCCESS, 1);
-        flows = runner.getFlowFilesForRelationship(SignContentAttributePGPProcessor.REL_SUCCESS);
+        runner.assertAllFlowFilesTransferred(SignContentAttributePGP.REL_SUCCESS, 1);
+        flows = runner.getFlowFilesForRelationship(SignContentAttributePGP.REL_SUCCESS);
         Assert.assertEquals(1, flows.size());
         MockFlowFile flow = flows.get(0);
         String sigValue = flow.getAttribute(StandardPGPOperator.DEFAULT_SIGNATURE_ATTRIBUTE);
         Assert.assertNotNull(sigValue);
         Assert.assertNotEquals("", sigValue);
 
-        // Configure a VerifyContentAttributePGPProcessor processor with a PGP key service that has our public key:
-        buildTestRunner(new VerifyContentAttributePGPProcessor());
+        // Configure a VerifyContentAttributePGP processor with a PGP key service that has our public key:
+        buildTestRunner(new VerifyContentAttributePGP());
         buildPGPService(new HashMap<String, String>() {{
-            //put(StandardPGPOperator.PUBLIC_KEYRING_TEXT.getName(), PGPKeyMaterialControllerServiceTest.publicKey.getKeyText());
+            put(StandardPGPOperator.PUBLIC_KEYRING_TEXT.getName(), publicKey);
         }});
         runner.assertValid(service);
         runner.enableControllerService(service);
 
-        // This shows the VerifyContentAttributePGPProcessor processor verifies the signature and routes it correctly:
+        // This shows the VerifyContentAttributePGP processor verifies the signature and routes it correctly:
         runner.enqueue(flow);
         runner.clearTransferState();
         runner.run();
-        runner.assertAllFlowFilesTransferred(VerifyContentAttributePGPProcessor.REL_SUCCESS, 1);
+        runner.assertAllFlowFilesTransferred(VerifyContentAttributePGP.REL_SUCCESS, 1);
     }
 
 
     @Test
     public void combinedEncryptAndDecryptPbeReferenceTest() throws InitializationException {
-        // Configure an EncryptContentPGPProcessor processor with a PGP key service that has our PBE passphrase:
-        buildTestRunner(new EncryptContentPGPProcessor());
+        // Configure an EncryptContentPGP processor with a PGP key service that has our PBE passphrase:
+        buildTestRunner(new EncryptContentPGP());
         runner.setProperty(StandardPGPOperator.ENCRYPT_ALGORITHM, StandardPGPOperator.getCipherDefaultValue());
         buildPGPService(new HashMap<String, String>() {{
             put(StandardPGPOperator.PBE_PASSPHRASE.getName(), PBE_PASSPHRASE);
@@ -167,29 +180,29 @@ public class PGPProcessorsTest {
         runner.assertValid(service);
         runner.enableControllerService(service);
 
-        // This shows the EncryptContentPGPProcessor processor encrypts data and routes it correctly:
+        // This shows the EncryptContentPGP processor encrypts data and routes it correctly:
         runner.enqueue(plainBytes);
         runner.clearTransferState();
         runner.run();
-        runner.assertAllFlowFilesTransferred(EncryptContentPGPProcessor.REL_SUCCESS, 1);
-        List<MockFlowFile> flows = runner.getFlowFilesForRelationship(EncryptContentPGPProcessor.REL_SUCCESS);
+        runner.assertAllFlowFilesTransferred(EncryptContentPGP.REL_SUCCESS, 1);
+        List<MockFlowFile> flows = runner.getFlowFilesForRelationship(EncryptContentPGP.REL_SUCCESS);
         byte[] cipherBytes = flows.get(0).toByteArray();
         Assert.assertNotEquals(Hex.encodeHex(cipherBytes), Hex.encodeHex(plainBytes));
 
-        // Configure a DecryptContentPGPProcessor processor with a PGP key service that has our PBE passphrase:
-        buildTestRunner(new DecryptContentPGPProcessor());
+        // Configure a DecryptContentPGP processor with a PGP key service that has our PBE passphrase:
+        buildTestRunner(new DecryptContentPGP());
         buildPGPService(new HashMap<String, String>() {{
             put(StandardPGPOperator.PBE_PASSPHRASE.getName(), PBE_PASSPHRASE);
         }});
         runner.assertValid(service);
         runner.enableControllerService(service);
 
-        // This shows the DecryptContentPGPProcessor processor decrypts data and routes it correctly:
+        // This shows the DecryptContentPGP processor decrypts data and routes it correctly:
         runner.enqueue(cipherBytes);
         runner.clearTransferState();
         runner.run();
-        runner.assertAllFlowFilesTransferred(DecryptContentPGPProcessor.REL_SUCCESS, 1);
-        flows = runner.getFlowFilesForRelationship(DecryptContentPGPProcessor.REL_SUCCESS);
+        runner.assertAllFlowFilesTransferred(DecryptContentPGP.REL_SUCCESS, 1);
+        flows = runner.getFlowFilesForRelationship(DecryptContentPGP.REL_SUCCESS);
         Assert.assertArrayEquals(flows.get(0).toByteArray(), plainBytes);
     }
 
@@ -228,7 +241,7 @@ public class PGPProcessorsTest {
 
         );
 
-        buildTestRunner(new EncryptContentPGPProcessor());
+        buildTestRunner(new EncryptContentPGP());
         buildPGPService(new HashMap<String, String>() {{
             put(StandardPGPOperator.PBE_PASSPHRASE.getName(), PBE_PASSPHRASE);
         }});
@@ -236,9 +249,9 @@ public class PGPProcessorsTest {
         runner.enableControllerService(service);
 
         ProcessorBenchmark.run(
-                "EncryptContentPGPProcessor/PBE",
+                "EncryptContentPGP/PBE",
                 runner,
-                EncryptContentPGPProcessor.REL_SUCCESS,
+                EncryptContentPGP.REL_SUCCESS,
 
                 () -> {
                     Map<String, Map<PropertyDescriptor, String>> configs = new HashMap<>();
@@ -265,7 +278,7 @@ public class PGPProcessorsTest {
 
     @Test
     public void encryptProcessorTest() throws InitializationException {
-        buildTestRunner(new EncryptContentPGPProcessor());
+        buildTestRunner(new EncryptContentPGP());
         buildPGPService(new HashMap<String, String>() {{
         }});
         runner.assertNotValid(service);
@@ -274,7 +287,7 @@ public class PGPProcessorsTest {
 
     @Test
     public void decryptProcessorTest() throws InitializationException {
-        buildTestRunner(new DecryptContentPGPProcessor());
+        buildTestRunner(new DecryptContentPGP());
         buildPGPService(new HashMap<String, String>() {{
         }});
         runner.assertNotValid(service);
@@ -283,7 +296,7 @@ public class PGPProcessorsTest {
 
     @Test
     public void signProcessorTest() throws InitializationException {
-        buildTestRunner(new SignContentAttributePGPProcessor());
+        buildTestRunner(new SignContentAttributePGP());
         buildPGPService(new HashMap<String, String>() {{
         }});
         runner.assertNotValid(service);
@@ -292,9 +305,22 @@ public class PGPProcessorsTest {
 
     @Test
     public void verifyProcessorTest() throws InitializationException {
-        buildTestRunner(new VerifyContentAttributePGPProcessor());
+        buildTestRunner(new VerifyContentAttributePGP());
         buildPGPService(new HashMap<String, String>() {{
         }});
         runner.assertNotValid(service);
+    }
+
+    private static String keyResource(String name) throws IOException {
+        final InputStream resource = PGPProcessorsTest.class.getResourceAsStream(name);
+        final ByteArrayOutputStream output = new ByteArrayOutputStream();
+        int i;
+
+        while ((i = resource.read()) >= 0) {
+            output.write(i);
+        }
+        resource.close();
+
+        return new String(output.toByteArray(), Charset.defaultCharset());
     }
 }

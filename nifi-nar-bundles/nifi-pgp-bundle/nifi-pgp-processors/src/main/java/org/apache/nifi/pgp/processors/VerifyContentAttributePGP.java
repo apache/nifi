@@ -21,29 +21,39 @@ import org.apache.nifi.annotation.behavior.SystemResource;
 import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.security.pgp.PGPKeyMaterialService;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.pgp.controllerservices.PGPKeyMaterialService;
+import org.apache.nifi.security.pgp.StandardPGPOperator;
 import org.apache.nifi.util.StopWatch;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 
 /**
- * The DecryptContentPGPProcessor processor attempts to decrypt flow file contents when triggered.  The processor uses a
- * {@link PGPKeyMaterialService} to provide decryption operations.
- *
- * The PGP libraries do all of the lifting for decrypt operations, including content detection.  This is is why there
- * is no need to select an algorithm or encoding.
- *
+ * The VerifyContentAttributePGP processor attempts to verify a flow file signature when triggered.  The processor uses a
+ * {@link PGPKeyMaterialService} to provide verification keys.
  */
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
-@Tags({"decryption", "OpenPGP", "PGP", "GPG"})
-@CapabilityDescription("Decrypts a FlowFile using a PGP key.")
+@Tags({"verify", "OpenPGP", "PGP", "GPG"})
+@CapabilityDescription("Verifies a FlowFile using a PGP key.")
 @SystemResourceConsideration(resource = SystemResource.CPU)
 
-public class DecryptContentPGPProcessor extends AbstractPGPProcessor {
+public class VerifyContentAttributePGP extends AbstractPGPProcessor {
+    private final List<PropertyDescriptor> properties = Stream.concat(
+            super.getSupportedPropertyDescriptors().stream(),
+            Collections.unmodifiableList(Arrays.asList(StandardPGPOperator.SIGNATURE_ATTRIBUTE)).stream()
+    ).collect(Collectors.toList());
+
+
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
         final FlowFile flowFile = session.get();
@@ -53,14 +63,21 @@ public class DecryptContentPGPProcessor extends AbstractPGPProcessor {
 
         final StopWatch stopWatch = new StopWatch(true);
         try {
-            final FlowFile finalFlow = getPGPKeyMaterialService(context).decrypt(flowFile, context, session);
+            if (!getPGPKeyMaterialService(context).verify(flowFile, context, session)) {
+                throw new ProcessException("Unable to verify flow.");
+            }
             final long elapsed = stopWatch.getElapsed(TimeUnit.MILLISECONDS);
-            getLogger().debug("Called to decrypt flow {} completed in {}ms", new Object[]{flowFile, elapsed});
-            session.getProvenanceReporter().modifyContent(finalFlow, elapsed);
-            session.transfer(finalFlow, REL_SUCCESS);
+            getLogger().debug("Called to verify flow {} completed in {}ms", new Object[]{flowFile, elapsed});
+            session.getProvenanceReporter().modifyAttributes(flowFile, elapsed);
+            session.transfer(flowFile, REL_SUCCESS);
         } catch (final ProcessException e) {
-            getLogger().debug("Exception in decrypt flow {} ", new Object[]{flowFile});
+            getLogger().debug("Exception in verify flow {} ", new Object[]{flowFile});
             session.transfer(flowFile, REL_FAILURE);
         }
+    }
+
+    @Override
+    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+        return properties;
     }
 }

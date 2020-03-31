@@ -20,7 +20,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.security.pgp.PGPKeyMaterialService;
+import org.apache.nifi.pgp.controllerservices.PGPKeyMaterialService;
 import org.apache.nifi.security.pgp.StandardPGPOperator;
 
 import java.util.Arrays;

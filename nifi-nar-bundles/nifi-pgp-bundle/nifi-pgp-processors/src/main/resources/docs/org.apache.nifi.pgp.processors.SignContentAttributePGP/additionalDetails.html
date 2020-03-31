@@ -16,16 +16,16 @@
     -->
     <head>
         <meta charset="utf-8"/>
-        <title>EncryptPGP</title>
+        <title>SignContentAttributePGP</title>
         <link rel="stylesheet" href="../../../../../css/component-usage.css" type="text/css"/>
     </head>
 
     <body>
         <!-- Processor Documentation ================================================== -->
         <p>
-            This processor is used to decrypt the encrypted contents of a FlowFile.  The processor does not need
-            additional configuration because it detects the encryption algorithm and encoding technique from the
-            encrypted data.
+            This processor is used to add a digital signature to of a FlowFile.  The <code>Signature Hash Function</code>
+            indicates which hash algorithm to use.  The <code>Signature Attribute</code> names the FlowFile attribute for
+            the resulting signature.
         </p>
     </body>
 </html>

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.pgp.controller;
+package org.apache.nifi.pgp.controllerservices;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.annotation.documentation.Tags;

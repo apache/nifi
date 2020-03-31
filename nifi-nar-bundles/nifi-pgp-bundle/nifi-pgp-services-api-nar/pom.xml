@@ -26,21 +26,14 @@
     <version>1.12.0-SNAPSHOT</version>
     <packaging>nar</packaging>
     <properties>
-        <maven.javadoc.skip>false</maven.javadoc.skip>
+        <maven.javadoc.skip>true</maven.javadoc.skip>
         <source.skip>true</source.skip>
     </properties>
-
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-api</artifactId>
             <version>1.12.0-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-standard-services-api-nar</artifactId>
-            <version>1.12.0-SNAPSHOT</version>
-            <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>

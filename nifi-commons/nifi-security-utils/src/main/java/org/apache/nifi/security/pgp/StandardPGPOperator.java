@@ -22,6 +22,7 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.pgp.controllerservices.PGPKeyMaterialService;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.bouncycastle.bcpg.ArmoredOutputStream;
 import org.bouncycastle.bcpg.HashAlgorithmTags;
@@ -100,6 +101,7 @@ public class StandardPGPOperator implements PGPOperator {
             .description("PGP key material service for using cryptographic keys and passphrases.")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .identifiesControllerService(PGPKeyMaterialService.class)
             .build();
 
     public static final PropertyDescriptor PUBLIC_KEYRING_FILE = new PropertyDescriptor.Builder()
