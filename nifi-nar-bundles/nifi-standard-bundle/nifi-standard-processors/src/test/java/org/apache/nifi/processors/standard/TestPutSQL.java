@@ -33,6 +33,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Time;
+import java.sql.Timestamp;
 import java.sql.Types;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -434,16 +435,22 @@ public class TestPutSQL {
         runner.enableControllerService(service);
         runner.setProperty(PutSQL.CONNECTION_POOL, "dbcp");
 
-        final String dateStr = "2002-02-02T12:02:02+00:00";
-        final long dateInt = 1012651322000L;
+        final String dateStr1 = "2002-02-02T12:02:02";
+        final String dateStrTimestamp1 = "2002-02-02 12:02:02";
+        final long dateInt1 = Timestamp.valueOf(dateStrTimestamp1).getTime();
+
+        final String dateStr2 = "2002-02-02T12:02:02.123456789";
+        final String dateStrTimestamp2 = "2002-02-02 12:02:02.123456789";
+        final long dateInt2 = Timestamp.valueOf(dateStrTimestamp2).getTime();
+        final long nanoInt2 = 123456789L;
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("sql.args.1.type", String.valueOf(Types.TIMESTAMP));
-        attributes.put("sql.args.1.value", dateStr);
-        attributes.put("sql.args.1.format", "ISO_OFFSET_DATE_TIME");
+        attributes.put("sql.args.1.value", dateStr1);
+        attributes.put("sql.args.1.format", "ISO_LOCAL_DATE_TIME");
         attributes.put("sql.args.2.type", String.valueOf(Types.TIMESTAMP));
-        attributes.put("sql.args.2.value", dateStr);
-        attributes.put("sql.args.2.format", "yyyy-MM-dd'T'HH:mm:ssXXX");
+        attributes.put("sql.args.2.value", dateStr2);
+        attributes.put("sql.args.2.format", "yyyy-MM-dd'T'HH:mm:ss.SSSSSSSSS");
 
         runner.enqueue("INSERT INTO TIMESTAMPTEST2 (ID, ts1, ts2) VALUES (1, ?, ?)".getBytes(), attributes);
         runner.run();
@@ -455,8 +462,9 @@ public class TestPutSQL {
                 final ResultSet rs = stmt.executeQuery("SELECT * FROM TIMESTAMPTEST2");
                 assertTrue(rs.next());
                 assertEquals(1, rs.getInt(1));
-                assertEquals(dateInt, rs.getTimestamp(2).getTime());
-                assertEquals(dateInt, rs.getTimestamp(3).getTime());
+                assertEquals(dateInt1, rs.getTimestamp(2).getTime());
+                assertEquals(dateInt2, rs.getTimestamp(3).getTime());
+                assertEquals(nanoInt2, rs.getTimestamp(3).getNanos());
                 assertFalse(rs.next());
             }
         }
@@ -477,10 +485,8 @@ public class TestPutSQL {
 
         final String dateStr = "2002-03-04";
         final String timeStr = "02:03:04";
-
         final String timeFormatString = "HH:mm:ss";
         final String dateFormatString ="yyyy-MM-dd";
-
 
         final DateTimeFormatter timeFormatter= DateTimeFormatter.ISO_LOCAL_TIME;
         LocalTime parsedTime = LocalTime.parse(timeStr, timeFormatter);

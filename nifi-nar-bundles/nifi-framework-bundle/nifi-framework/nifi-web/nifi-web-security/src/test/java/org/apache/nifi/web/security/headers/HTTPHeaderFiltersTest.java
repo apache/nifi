@@ -32,7 +32,7 @@ import static org.junit.Assert.assertEquals;
 public class HTTPHeaderFiltersTest {
 
     @Test
-    public void testCSPHeaderApplied() throws ServletException, IOException {
+    public void testCSPHeaderApplied() throws ServletException, IOException, Exception {
         // Arrange
 
         FilterHolder originFilter = new FilterHolder(new ContentSecurityPolicyFilter());
@@ -43,6 +43,8 @@ public class HTTPHeaderFiltersTest {
         FilterChain mockFilterChain = Mockito.mock(FilterChain.class);
 
         // Action
+        originFilter.start();
+        originFilter.initialize();
         originFilter.getFilter().doFilter(mockRequest, mockResponse, mockFilterChain);
 
         // Verify
@@ -50,7 +52,7 @@ public class HTTPHeaderFiltersTest {
     }
 
     @Test
-    public void testCSPHeaderAppliedOnlyOnce() throws ServletException, IOException {
+    public void testCSPHeaderAppliedOnlyOnce() throws ServletException, IOException, Exception {
         // Arrange
 
         FilterHolder originFilter = new FilterHolder(new ContentSecurityPolicyFilter());
@@ -61,6 +63,8 @@ public class HTTPHeaderFiltersTest {
         FilterChain mockFilterChain = Mockito.mock(FilterChain.class);
 
         // Action
+        originFilter.start();
+        originFilter.initialize();
         originFilter.getFilter().doFilter(mockRequest, mockResponse, mockFilterChain);
         originFilter.getFilter().doFilter(mockRequest, mockResponse, mockFilterChain);
 
@@ -70,7 +74,7 @@ public class HTTPHeaderFiltersTest {
 
 
     @Test
-    public void testXFrameOptionsHeaderApplied() throws ServletException, IOException {
+    public void testXFrameOptionsHeaderApplied() throws ServletException, IOException, Exception {
         // Arrange
 
         FilterHolder xfoFilter = new FilterHolder(new XFrameOptionsFilter());
@@ -81,6 +85,8 @@ public class HTTPHeaderFiltersTest {
         FilterChain mockFilterChain = Mockito.mock(FilterChain.class);
 
         // Action
+        xfoFilter.start();
+        xfoFilter.initialize();
         xfoFilter.getFilter().doFilter(mockRequest, mockResponse, mockFilterChain);
 
         // Verify
@@ -88,7 +94,7 @@ public class HTTPHeaderFiltersTest {
     }
 
     @Test
-    public void testHSTSHeaderApplied() throws ServletException, IOException {
+    public void testHSTSHeaderApplied() throws ServletException, IOException, Exception {
         // Arrange
 
         FilterHolder hstsFilter = new FilterHolder(new StrictTransportSecurityFilter());
@@ -99,6 +105,8 @@ public class HTTPHeaderFiltersTest {
         FilterChain mockFilterChain = Mockito.mock(FilterChain.class);
 
         // Action
+        hstsFilter.start();
+        hstsFilter.initialize();
         hstsFilter.getFilter().doFilter(mockRequest, mockResponse, mockFilterChain);
 
         // Verify
@@ -106,7 +114,7 @@ public class HTTPHeaderFiltersTest {
     }
 
     @Test
-    public void testXSSProtectionHeaderApplied() throws ServletException, IOException {
+    public void testXSSProtectionHeaderApplied() throws ServletException, IOException, Exception {
         // Arrange
 
         FilterHolder xssFilter = new FilterHolder(new XSSProtectionFilter());
@@ -117,6 +125,8 @@ public class HTTPHeaderFiltersTest {
         FilterChain mockFilterChain = Mockito.mock(FilterChain.class);
 
         // Action
+        xssFilter.start();
+        xssFilter.initialize();
         xssFilter.getFilter().doFilter(mockRequest, mockResponse, mockFilterChain);
 
         // Verify

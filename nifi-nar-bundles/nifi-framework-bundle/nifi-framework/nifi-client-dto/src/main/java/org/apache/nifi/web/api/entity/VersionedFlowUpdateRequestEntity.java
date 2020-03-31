@@ -18,27 +18,18 @@
 package org.apache.nifi.web.api.entity;
 
 import io.swagger.annotations.ApiModelProperty;
-import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.dto.VersionedFlowUpdateRequestDTO;
 
 import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement(name = "versionedFlowUpdateRequestEntity")
-public class VersionedFlowUpdateRequestEntity extends Entity {
-    private VersionedFlowUpdateRequestDTO request;
-    private RevisionDTO processGroupRevision;
+public class VersionedFlowUpdateRequestEntity extends FlowUpdateRequestEntity<VersionedFlowUpdateRequestDTO> {
 
-    @ApiModelProperty("The revision for the Process Group that owns this variable registry.")
-    public RevisionDTO getProcessGroupRevision() {
-        return processGroupRevision;
-    }
-
-    public void setProcessGroupRevision(RevisionDTO revision) {
-        this.processGroupRevision = revision;
-    }
-
-    @ApiModelProperty("The Versioned Flow Update Request")
+    @ApiModelProperty("The Flow Update Request")
     public VersionedFlowUpdateRequestDTO getRequest() {
+        if (request == null) {
+            request = new VersionedFlowUpdateRequestDTO();
+        }
         return request;
     }
 

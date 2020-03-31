@@ -84,6 +84,8 @@ public class ShellUserGroupProviderIT {
     private ShellUserGroupProvider localProvider;
     private UserGroupProviderInitializationContext initContext;
 
+    private static ShellRunner shellRunner;
+
     @ClassRule
     static public TemporaryFolder tempFolder = new TemporaryFolder();
 
@@ -95,10 +97,11 @@ public class ShellUserGroupProviderIT {
         sshPrivKeyFile = tempFolder.getRoot().getAbsolutePath() + "/id_rsa";
         sshPubKeyFile = sshPrivKeyFile + ".pub";
 
+        shellRunner = new ShellRunner(60);
         try {
             // NB: this command is a bit perplexing: it works without prompt from the shell, but hangs
             // here without the pipe from `yes`:
-            ShellRunner.runShell("yes | ssh-keygen -C '' -N '' -t rsa -f " + sshPrivKeyFile);
+            shellRunner.runShell("yes | ssh-keygen -C '' -N '' -t rsa -f " + sshPrivKeyFile);
         } catch (final IOException ioexc) {
             systemCheckFailed = true;
             logger.error("setupOnce() exception: " + ioexc + "; tests cannot run on this system.");

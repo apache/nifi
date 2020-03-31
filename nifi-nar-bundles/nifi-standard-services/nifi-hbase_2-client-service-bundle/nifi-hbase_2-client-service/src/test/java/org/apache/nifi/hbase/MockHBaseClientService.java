@@ -50,11 +50,17 @@ public class MockHBaseClientService extends HBase_2_ClientService {
     private String family;
     private Map<String, Result> results = new HashMap<>();
     private KerberosProperties kerberosProperties;
+    private boolean allowExplicitKeytab;
 
     public MockHBaseClientService(final Table table, final String family, final KerberosProperties kerberosProperties) {
+        this(table, family, kerberosProperties, false);
+    }
+
+    public MockHBaseClientService(final Table table, final String family, final KerberosProperties kerberosProperties, boolean allowExplicitKeytab) {
         this.table = table;
         this.family = family;
         this.kerberosProperties = kerberosProperties;
+        this.allowExplicitKeytab = allowExplicitKeytab;
     }
 
     @Override
@@ -169,4 +175,8 @@ public class MockHBaseClientService extends HBase_2_ClientService {
         return connection;
     }
 
+    @Override
+    boolean isAllowExplicitKeytab() {
+        return allowExplicitKeytab;
+    }
 }

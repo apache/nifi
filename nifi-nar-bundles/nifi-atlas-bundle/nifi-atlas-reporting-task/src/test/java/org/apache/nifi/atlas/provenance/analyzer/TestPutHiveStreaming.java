@@ -38,8 +38,16 @@ import static org.mockito.Mockito.when;
 public class TestPutHiveStreaming {
 
     @Test
-    public void testTableLineage() {
-        final String processorName = "PutHiveStreaming";
+    public void testTableLineageHive1() {
+        testTableLineage("PutHiveStreaming");
+    }
+
+    @Test
+    public void testTableLineageHive3() {
+        testTableLineage("PutHive3Streaming");
+    }
+
+    private void testTableLineage(String processorName) {
         final String transitUri = "thrift://0.example.com:9083";
         final ProvenanceEventRecord record = Mockito.mock(ProvenanceEventRecord.class);
         when(record.getComponentType()).thenReturn(processorName);

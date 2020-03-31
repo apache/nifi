@@ -42,7 +42,11 @@ public class AbstractSchemaAccessStrategyTest {
         fields.add(new RecordField("lastName", RecordFieldType.STRING.getDataType()));
 
         final SchemaIdentifier schemaIdentifier = SchemaIdentifier.builder()
-                .name("person").branch("master").version(1).id(1L).build();
+                .name("person")
+                .branch("master")
+                .version(1)
+                .id(1L)
+                .build();
 
         this.recordSchema = new SimpleRecordSchema(fields, schemaIdentifier);
     }

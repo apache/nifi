@@ -31,6 +31,7 @@ public abstract class AbstractAzureBlobStorageIT extends AbstractAzureStorageIT 
 
     protected static final String TEST_CONTAINER_NAME_PREFIX = "nifi-test-container";
     protected static final String TEST_BLOB_NAME = "nifi-test-blob";
+    protected static final String TEST_FILE_NAME = "nifi-test-file";
 
     protected CloudBlobContainer container;
 

@@ -18,16 +18,13 @@
 package org.apache.nifi.web.api.entity;
 
 import io.swagger.annotations.ApiModelProperty;
-import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
 
 import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement(name = "versionControlInformationEntity")
-public class VersionControlInformationEntity extends Entity {
+public class VersionControlInformationEntity extends ProcessGroupDescriptorEntity {
     private VersionControlInformationDTO versionControlInformation;
-    private RevisionDTO processGroupRevision;
-    private Boolean disconnectedNodeAcknowledged;
 
     @ApiModelProperty("The Version Control information")
     public VersionControlInformationDTO getVersionControlInformation() {
@@ -36,25 +33,5 @@ public class VersionControlInformationEntity extends Entity {
 
     public void setVersionControlInformation(VersionControlInformationDTO versionControlDto) {
         this.versionControlInformation = versionControlDto;
-    }
-
-    @ApiModelProperty("The Revision for the Process Group")
-    public RevisionDTO getProcessGroupRevision() {
-        return processGroupRevision;
-    }
-
-    public void setProcessGroupRevision(RevisionDTO revision) {
-        this.processGroupRevision = revision;
-    }
-
-    @ApiModelProperty(
-            value = "Acknowledges that this node is disconnected to allow for mutable requests to proceed."
-    )
-    public Boolean isDisconnectedNodeAcknowledged() {
-        return disconnectedNodeAcknowledged;
-    }
-
-    public void setDisconnectedNodeAcknowledged(Boolean disconnectedNodeAcknowledged) {
-        this.disconnectedNodeAcknowledged = disconnectedNodeAcknowledged;
     }
 }

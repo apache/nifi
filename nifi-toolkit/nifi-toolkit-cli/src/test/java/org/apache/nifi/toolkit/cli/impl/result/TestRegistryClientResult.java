@@ -16,13 +16,16 @@
  */
 package org.apache.nifi.toolkit.cli.impl.result;
 
+import org.apache.commons.lang3.SystemUtils;
 import org.apache.nifi.toolkit.cli.api.ResultType;
 import org.apache.nifi.toolkit.cli.impl.result.nifi.RegistryClientsResult;
 import org.apache.nifi.web.api.dto.RegistryDTO;
 import org.apache.nifi.web.api.entity.RegistryClientEntity;
 import org.apache.nifi.web.api.entity.RegistryClientsEntity;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.ByteArrayOutputStream;
@@ -37,6 +40,11 @@ public class TestRegistryClientResult {
 
     private ByteArrayOutputStream outputStream;
     private PrintStream printStream;
+
+    @BeforeClass
+    public static void setupCompleter() {
+        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
+    }
 
     @Before
     public void setup() {

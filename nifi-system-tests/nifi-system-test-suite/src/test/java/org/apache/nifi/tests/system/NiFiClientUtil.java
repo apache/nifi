@@ -691,8 +691,11 @@ public class NiFiClientUtil {
 
         final FlowFileSummaryDTO flowFileSummary = flowFileSummaries.get(flowFileIndex);
         final String uuid = flowFileSummary.getUuid();
+        final String nodeId = flowFileSummary.getClusterNodeId();
 
-        return nifiClient.getConnectionClient().getFlowFile(connectionId, uuid);
+        final FlowFileEntity flowFileEntity = nifiClient.getConnectionClient().getFlowFile(connectionId, uuid, nodeId);
+        flowFileEntity.getFlowFile().setClusterNodeId(nodeId);
+        return flowFileEntity;
     }
 
     public VariableRegistryUpdateRequestEntity updateVariableRegistry(final ProcessGroupEntity processGroup, final Map<String, String> variables) throws NiFiClientException, IOException {

@@ -111,7 +111,7 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
         this.serviceProvider = serviceProvider;
         this.active = new AtomicBoolean();
         setControllerServiceAndProxy(implementation, proxiedControllerService, invocationHandler);
-        stateTransition = new ServiceStateTransition(this);
+        stateTransition = new ServiceStateTransition();
     }
 
     @Override
@@ -436,6 +436,7 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
                         synchronized (active) {
                             shouldEnable = active.get() && stateTransition.enable(); // Transitioning the state to ENABLED will complete our future.
                         }
+                        validateReferences();
 
                         if (!shouldEnable) {
                             LOG.info("Disabling service {} after it has been enabled due to disable action being initiated.", service);
@@ -474,6 +475,12 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
         return future;
     }
 
+    private void validateReferences() {
+        final List<ComponentNode> referencingComponents = getReferences().findRecursiveReferences(ComponentNode.class);
+        for (final ComponentNode component : referencingComponents) {
+            component.performValidation();
+        }
+    }
 
     /**
      * Will atomically disable this service by invoking its @OnDisabled operation.

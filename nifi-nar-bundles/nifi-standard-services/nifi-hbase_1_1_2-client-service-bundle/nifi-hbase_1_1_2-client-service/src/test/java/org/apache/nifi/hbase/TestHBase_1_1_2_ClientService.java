@@ -141,7 +141,7 @@ public class TestHBase_1_1_2_ClientService {
         runner.removeControllerService(service);
 
         // Kerberos - principal with non-set keytab and only hbase-site-security - valid because we need core-site-security to turn on security
-        service = new MockHBaseClientService(table, COL_FAM, kerberosPropsWithFile);
+        service = new MockHBaseClientService(table, COL_FAM, kerberosPropsWithFile, true);
         runner.addControllerService("hbaseClientService", service);
         runner.setProperty(service, HBase_1_1_2_ClientService.HADOOP_CONF_FILES, "src/test/resources/hbase-site-security.xml");
         runner.setProperty(service, kerberosPropsWithFile.getKerberosPrincipal(), "test@REALM");

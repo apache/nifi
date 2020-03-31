@@ -48,9 +48,9 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.TimeZone;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
 
 public class TestQuerySolr {
     static final String DEFAULT_SOLR_CORE = "testCollection";
@@ -406,7 +406,7 @@ public class TestQuerySolr {
         runner.run();
         runner.assertTransferCount(QuerySolr.RESULTS, 1);
 
-        String expectedXml = "<docs><doc boost=\"1.0\"><field name=\"id\">doc2</field></doc><doc boost=\"1.0\"><field name=\"id\">doc1</field></doc></docs>";
+        String expectedXml = "<docs><doc><field name=\"id\">doc2</field></doc><doc><field name=\"id\">doc1</field></doc></docs>";
         assertThat(expectedXml, CompareMatcher.isIdenticalTo(new String(runner.getContentAsByteArray(runner.getFlowFilesForRelationship(QuerySolr.RESULTS).get(0)))));
 
         solrClient.close();
@@ -425,7 +425,7 @@ public class TestQuerySolr {
         runner.run();
         runner.assertTransferCount(QuerySolr.RESULTS, 1);
 
-        String expectedXml = "<docs><doc boost=\"1.0\"><field name=\"id\">doc2</field></doc><doc boost=\"1.0\"><field name=\"id\">doc3</field></doc></docs>";
+        String expectedXml = "<docs><doc><field name=\"id\">doc2</field></doc><doc><field name=\"id\">doc3</field></doc></docs>";
         assertThat(expectedXml, CompareMatcher.isIdenticalTo(new String(runner.getContentAsByteArray(runner.getFlowFilesForRelationship(QuerySolr.RESULTS).get(0)))));
 
         solrClient.close();
@@ -447,7 +447,7 @@ public class TestQuerySolr {
         runner.run();
         runner.assertTransferCount(QuerySolr.RESULTS, 1);
 
-        String expectedXml = "<docs><doc boost=\"1.0\"><field name=\"id\">doc2</field></doc><doc boost=\"1.0\"><field name=\"id\">doc3</field></doc></docs>";
+        String expectedXml = "<docs><doc><field name=\"id\">doc2</field></doc><doc><field name=\"id\">doc3</field></doc></docs>";
         assertThat(expectedXml, CompareMatcher.isIdenticalTo(new String(runner.getContentAsByteArray(runner.getFlowFilesForRelationship(QuerySolr.RESULTS).get(0)))));
 
         solrClient.close();
@@ -471,7 +471,7 @@ public class TestQuerySolr {
         flowFile.assertAttributeExists(QuerySolr.ATTRIBUTE_SOLR_STATUS);
         flowFile.assertAttributeExists(QuerySolr.ATTRIBUTE_QUERY_TIME);
 
-        String expectedXml = "<docs><doc boost=\"1.0\"><field name=\"id\">doc1</field></doc><doc boost=\"1.0\"><field name=\"id\">doc0</field></doc></docs>";
+        String expectedXml = "<docs><doc><field name=\"id\">doc1</field></doc><doc><field name=\"id\">doc0</field></doc></docs>";
         assertThat(expectedXml, CompareMatcher.isIdenticalTo(new String(runner.getContentAsByteArray(flowFile))));
 
         solrClient.close();
@@ -492,7 +492,7 @@ public class TestQuerySolr {
         runner.assertTransferCount(QuerySolr.RESULTS, 1);
         runner.assertTransferCount(QuerySolr.ORIGINAL, 1);
 
-        String expectedXml = "<docs><doc boost=\"1.0\"><field name=\"id\">doc0</field></doc></docs>";
+        String expectedXml = "<docs><doc><field name=\"id\">doc0</field></doc></docs>";
         assertThat(expectedXml, CompareMatcher.isIdenticalTo(new String(runner.getContentAsByteArray(runner.getFlowFilesForRelationship(QuerySolr.RESULTS).get(0)))));
         assertEquals(content, new String(runner.getContentAsByteArray(runner.getFlowFilesForRelationship(QuerySolr.ORIGINAL).get(0))));
 
@@ -526,9 +526,9 @@ public class TestQuerySolr {
             startParam += 2;
 
             StringBuffer expectedXml = new StringBuffer()
-                    .append("<docs><doc boost=\"1.0\"><field name=\"id\">doc")
+                    .append("<docs><doc><field name=\"id\">doc")
                     .append(documentCounter++)
-                    .append("</field></doc><doc boost=\"1.0\"><field name=\"id\">doc")
+                    .append("</field></doc><doc><field name=\"id\">doc")
                     .append(documentCounter++)
                     .append("</field></doc></docs>");
             assertThat(expectedXml.toString(), CompareMatcher.isIdenticalTo(new String(runner.getContentAsByteArray(flowFile))));

@@ -17,7 +17,7 @@
 
 package org.apache.nifi.controller.repository
 
-
+import org.apache.commons.lang3.SystemUtils
 import org.apache.nifi.controller.repository.claim.ResourceClaimManager
 import org.apache.nifi.controller.repository.claim.StandardResourceClaimManager
 import org.apache.nifi.properties.StandardNiFiProperties
@@ -25,6 +25,7 @@ import org.apache.nifi.security.kms.EncryptionException
 import org.apache.nifi.util.NiFiProperties
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.junit.After
+import org.junit.Assume
 import org.junit.Before
 import org.junit.BeforeClass
 import org.junit.Rule
@@ -56,6 +57,7 @@ class EncryptedRepositoryRecordSerdeFactoryTest extends GroovyTestCase {
 
     @BeforeClass
     static void setUpOnce() throws Exception {
+        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS)
         Security.addProvider(new BouncyCastleProvider())
 
         logger.metaClass.methodMissing = { String name, args ->

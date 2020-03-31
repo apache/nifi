@@ -63,6 +63,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -327,8 +328,6 @@ public class PutCassandraQL extends AbstractCassandraProcessor {
                     if (mainType.equals(DataType.ascii())
                             || mainType.equals(DataType.text())
                             || mainType.equals(DataType.varchar())
-                            || mainType.equals(DataType.timeuuid())
-                            || mainType.equals(DataType.uuid())
                             || mainType.equals(DataType.inet())
                             || mainType.equals(DataType.varint())) {
                         // These are strings, so just use the paramValue
@@ -355,6 +354,9 @@ public class PutCassandraQL extends AbstractCassandraProcessor {
 
                     } else if (mainType.equals(DataType.timestamp())) {
                         statement.setTimestamp(paramIndex, (Date) typeCodec.parse(paramValue));
+                    } else if (mainType.equals(DataType.timeuuid())
+                            || mainType.equals(DataType.uuid())) {
+                        statement.setUUID(paramIndex, (UUID) typeCodec.parse(paramValue));
                     }
                     return;
                 } else {

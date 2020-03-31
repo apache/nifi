@@ -17,6 +17,7 @@
 
 package org.apache.nifi.json;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.record.NullSuppression;
 import org.apache.nifi.schema.access.SchemaNameAsAttribute;
@@ -111,10 +112,10 @@ public class TestWriteJsonResult {
             writer.write(rs);
         }
 
-        final String output = baos.toString();
+        final String output = baos.toString("UTF-8");
 
         final String expected = new String(Files.readAllBytes(Paths.get("src/test/resources/json/output/dataTypes.json")));
-        assertEquals(expected, output);
+        assertEquals(StringUtils.deleteWhitespace(expected), StringUtils.deleteWhitespace(output));
     }
 
 

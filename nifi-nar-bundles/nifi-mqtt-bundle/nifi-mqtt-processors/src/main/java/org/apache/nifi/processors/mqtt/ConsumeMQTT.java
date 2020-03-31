@@ -90,6 +90,13 @@ public class ConsumeMQTT extends AbstractMQTTProcessor  implements MqttCallback 
     public final static String IS_DUPLICATE_ATTRIBUTE_KEY =  "mqtt.isDuplicate";
     public final static String IS_RETAINED_ATTRIBUTE_KEY =  "mqtt.isRetained";
 
+    public static final PropertyDescriptor PROP_GROUPID = new PropertyDescriptor.Builder()
+            .name("Group ID")
+            .description("MQTT consumer group ID to use. If group ID not set, client will connect as individual consumer.")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
     public static final PropertyDescriptor PROP_TOPIC_FILTER = new PropertyDescriptor.Builder()
             .name("Topic Filter")
             .description("The MQTT topic filter to designate the topics to subscribe to.")
@@ -121,6 +128,7 @@ public class ConsumeMQTT extends AbstractMQTTProcessor  implements MqttCallback 
     private volatile long maxQueueSize;
 
     private volatile int qos;
+    private volatile String topicPrefix = "";
     private volatile String topicFilter;
     private final AtomicBoolean scheduled = new AtomicBoolean(false);
 
@@ -136,6 +144,7 @@ public class ConsumeMQTT extends AbstractMQTTProcessor  implements MqttCallback 
 
     static{
         final List<PropertyDescriptor> innerDescriptorsList = getAbstractPropertyDescriptors();
+        innerDescriptorsList.add(PROP_GROUPID);
         innerDescriptorsList.add(PROP_TOPIC_FILTER);
         innerDescriptorsList.add(PROP_QOS);
         innerDescriptorsList.add(PROP_MAX_QUEUE_SIZE);
@@ -184,6 +193,12 @@ public class ConsumeMQTT extends AbstractMQTTProcessor  implements MqttCallback 
                     .build());
         }
 
+        final boolean clientIDSet = context.getProperty(PROP_CLIENTID).isSet();
+        final boolean groupIDSet = context.getProperty(PROP_GROUPID).isSet();
+        if (clientIDSet && groupIDSet) {
+            results.add(new ValidationResult.Builder().subject("Client ID and Group ID").valid(false).explanation("if client ID is not unique, multiple nodes cannot join the consumer group").build());
+        }
+
         return results;
     }
 
@@ -208,6 +223,11 @@ public class ConsumeMQTT extends AbstractMQTTProcessor  implements MqttCallback 
         qos = context.getProperty(PROP_QOS).asInteger();
         maxQueueSize = context.getProperty(PROP_MAX_QUEUE_SIZE).asLong();
         topicFilter = context.getProperty(PROP_TOPIC_FILTER).getValue();
+
+        if (context.getProperty(PROP_GROUPID).isSet()) {
+            topicPrefix = "$share/" + context.getProperty(PROP_GROUPID).getValue() + "/";
+        }
+
         scheduled.set(true);
     }
 
@@ -266,7 +286,7 @@ public class ConsumeMQTT extends AbstractMQTTProcessor  implements MqttCallback 
             if (!mqttClient.isConnected()) {
                 logger.debug("Connecting client");
                 mqttClient.connect(connOpts);
-                mqttClient.subscribe(topicFilter, qos);
+                mqttClient.subscribe(topicPrefix + topicFilter, qos);
             }
         } catch (MqttException e) {
             logger.error("Connection to {} lost (or was never connected) and connection failed. Yielding processor", new Object[]{broker}, e);

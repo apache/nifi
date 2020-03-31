@@ -19,10 +19,11 @@ Apache NiFi Team <dev@nifi.apache.org>
 :homepage: http://nifi.apache.org
 :linkattrs:
 
+[[system_requirements]]
 == System Requirements
 Apache NiFi can run on something as simple as a laptop, but it can also be clustered across many enterprise-class servers. Therefore, the amount of hardware and memory needed will depend on the size and nature of the dataflow involved. The data is stored on disk while NiFi is processing it. So NiFi needs to have sufficient disk space allocated for its various repositories, particularly the content repository, flowfile repository, and provenance repository (see the <<system_properties>> section for more information about these repositories). NiFi has the following minimum system requirements:
 
-* Requires Java 8 or newer
+* Requires Java 8 or Java 11
 * Supported Operating Systems:
 ** Linux
 ** Unix
@@ -34,7 +35,7 @@ Apache NiFi can run on something as simple as a laptop, but it can also be clust
 ** Google Chrome:  Current & (Current - 1)
 ** Safari:  Current & (Current - 1)
 
-**Note** Under sustained and extremely high throughput the CodeCache settings may need to be tuned to avoid sudden performance loss.  See the <<bootstrap_properties>> section for more information.
+NOTE: Under sustained and extremely high throughput the CodeCache settings may need to be tuned to avoid sudden performance loss.  See the <<bootstrap_properties>> section for more information.
 
 == How to install and start NiFi
 
@@ -43,11 +44,11 @@ Apache NiFi can run on something as simple as a laptop, but it can also be clust
 ** Make any desired edits in files found under `<installdir>/conf`
 *** At a minimum, we recommend editing the _nifi.properties_ file and entering a password for the `nifi.sensitive.props.key` (see <<system_properties>> below)
 ** From the `<installdir>/bin` directory, execute the following commands by typing `./nifi.sh <command>`:
-*** start: starts NiFi in the background
-*** stop: stops NiFi that is running in the background
-*** status: provides the current status of NiFi
-*** run: runs NiFi in the foreground and waits for a Ctrl-C to initiate shutdown of NiFi
-*** install: installs NiFi as a service that can then be controlled via
+*** `start`: starts NiFi in the background
+*** `stop`: stops NiFi that is running in the background
+*** `status`: provides the current status of NiFi
+*** `run`: runs NiFi in the foreground and waits for a Ctrl-C to initiate shutdown of NiFi
+*** `install`: installs NiFi as a service that can then be controlled via
 **** `service nifi start`
 **** `service nifi stop`
 **** `service nifi status`
@@ -1103,7 +1104,7 @@ Global access policies govern the following system level authorizations:
 |Policy |Privilege |Global Menu Selection |Resource Descriptor
 
 |view the UI
-|Allow users to view the UI
+|Allows users to view the UI
 |N/A
 |`/flow`
 
@@ -2251,8 +2252,9 @@ It has the following properties available:
 |`Truststore Type`||The Type of the Truststore. Either `JKS` or `PKCS12`
 |`Truststore Password`||The password for the Truststore
 |`Keystore Filename`||The fully-qualified filename of the Keystore
-|`Keystore Type`||The password for the Keystore
-|`Keystore Password`||The password for the key. If this is not specified, but the Keystore Filename, Password, and Type are specified, then the Keystore Password will be assumed to be the same as the Key Password.
+|`Keystore Type`||The Type of the Keystore. Either `JKS` or `PKCS12`
+|`Keystore Password`||The password for the Keystore
+|`Key Password`||The password for the key. If this is not specified, but the Keystore Filename, Password, and Type are specified, then the Key Password will be assumed to be the same as the Keystore Password.
 |`SSL Protocol`||The algorithm to use for this SSL context. This can either be `SSL` or `TLS`.
 |====
 
@@ -3246,6 +3248,8 @@ For example, when running in a Docker container or behind a proxy (e.g. localhos
 host[:port] that NiFi is bound to.
 |`nifi.web.proxy.context.path`|A comma separated list of allowed HTTP X-ProxyContextPath, X-Forwarded-Context, or X-Forwarded-Prefix header values to consider. By default, this value is
 blank meaning all requests containing a proxy context path are rejected. Configuring this property would allow requests where the proxy path is contained in this listing.
+|`nifi.web.max.content.size`|The maximum size for PUT and POST requests.  The default value is `20 MB`.
+|`nifi.web.max.requests.per.second`|The maximum number of requests from a connection per second. Requests in excess of this are first delayed, then throttled.
 |====
 
 [[security_properties]]

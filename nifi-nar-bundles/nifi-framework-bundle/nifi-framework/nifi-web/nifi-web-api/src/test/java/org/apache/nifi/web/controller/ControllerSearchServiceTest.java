@@ -19,10 +19,15 @@ package org.apache.nifi.web.controller;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.user.NiFiUser;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.StandardProcessorNode;
 import org.apache.nifi.controller.flow.FlowManager;
+import org.apache.nifi.controller.label.Label;
+import org.apache.nifi.controller.service.ControllerServiceNode;
+import org.apache.nifi.controller.service.StandardControllerServiceNode;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
@@ -49,6 +54,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -403,6 +409,129 @@ public class ControllerSearchServiceTest {
         assertEquals(0, searchResultsDTO.getParameterResults().size());
     }
 
+    @Test
+    public void testSearchLabels() {
+        // root level PG
+        final ProcessGroup rootProcessGroup = setupMockedProcessGroup("root", null, true, variableRegistry, null);
+
+        // setup labels
+        setupMockedLabels(rootProcessGroup);
+
+        // perform search for foo
+        service.search(searchResultsDTO, "FOO", rootProcessGroup);
+
+        assertTrue(searchResultsDTO.getLabelResults().size() == 1);
+        assertTrue(searchResultsDTO.getLabelResults().get(0).getId().equals("foo"));
+        assertTrue(searchResultsDTO.getLabelResults().get(0).getName().equals("Value for label foo"));
+    }
+
+    @Test
+    public void testSearchControllerServices() {
+        final ProcessGroup rootProcessGroup = setupMockedProcessGroup("root", null, true, variableRegistry, null);
+
+        final String controllerServiceName = "controllerServiceName";
+        final String controllerServiceId = controllerServiceName + "Id";
+
+        final Map<PropertyDescriptor, String> props = new HashMap<>();
+        final PropertyDescriptor prop1 = new PropertyDescriptor.Builder()
+            .name("prop1-name")
+            .displayName("prop1-displayname")
+            .description("prop1 description")
+            .defaultValue("prop1-default")
+            .build();
+            final PropertyDescriptor prop2 = new PropertyDescriptor.Builder()
+            .name("prop2-name")
+            .displayName("prop2-displayname")
+            .description("prop2 description")
+            .defaultValue("prop2-default")
+            .build();
+        props.put(prop1, "prop1-value");
+        props.put(prop2, null);
+
+        setupMockedControllerService(controllerServiceName, rootProcessGroup, true, props);
+
+        // search for name
+        service.search(searchResultsDTO, "controllerserv", rootProcessGroup);
+
+        assertEquals(1, searchResultsDTO.getControllerServiceNodeResults().size());
+        assertEquals(controllerServiceId, searchResultsDTO.getControllerServiceNodeResults().get(0).getId());
+        assertEquals(controllerServiceName, searchResultsDTO.getControllerServiceNodeResults().get(0).getName());
+
+        // search for comments
+        searchResultsDTO = new SearchResultsDTO();
+        service.search(searchResultsDTO, "foo comment", rootProcessGroup);
+
+        assertEquals(1, searchResultsDTO.getControllerServiceNodeResults().size());
+        assertEquals(controllerServiceId, searchResultsDTO.getControllerServiceNodeResults().get(0).getId());
+        assertEquals(controllerServiceName, searchResultsDTO.getControllerServiceNodeResults().get(0).getName());
+
+        // search for properties
+        searchResultsDTO = new SearchResultsDTO();
+        service.search(searchResultsDTO, "prop1-name", rootProcessGroup);
+
+        assertEquals(1, searchResultsDTO.getControllerServiceNodeResults().size());
+        assertEquals(controllerServiceId, searchResultsDTO.getControllerServiceNodeResults().get(0).getId());
+        assertEquals(controllerServiceName, searchResultsDTO.getControllerServiceNodeResults().get(0).getName());
+
+        // by default
+        searchResultsDTO = new SearchResultsDTO();
+        service.search(searchResultsDTO, "prop2-def", rootProcessGroup);
+
+        assertEquals(1, searchResultsDTO.getControllerServiceNodeResults().size());
+        assertEquals(controllerServiceId, searchResultsDTO.getControllerServiceNodeResults().get(0).getId());
+        assertEquals(controllerServiceName, searchResultsDTO.getControllerServiceNodeResults().get(0).getName());
+
+        // by description
+        searchResultsDTO = new SearchResultsDTO();
+        service.search(searchResultsDTO, "desc", rootProcessGroup);
+
+        // "desc" would typically match both props, but it's for the same controller service.
+        assertEquals(1, searchResultsDTO.getControllerServiceNodeResults().size());
+        assertEquals(controllerServiceId, searchResultsDTO.getControllerServiceNodeResults().get(0).getId());
+        assertEquals(controllerServiceName, searchResultsDTO.getControllerServiceNodeResults().get(0).getName());
+
+        // by specified value
+        searchResultsDTO = new SearchResultsDTO();
+        service.search(searchResultsDTO, "prop1-value", rootProcessGroup);
+
+        assertEquals(1, searchResultsDTO.getControllerServiceNodeResults().size());
+        assertEquals(controllerServiceId, searchResultsDTO.getControllerServiceNodeResults().get(0).getId());
+        assertEquals(controllerServiceName, searchResultsDTO.getControllerServiceNodeResults().get(0).getName());
+
+        // search finding no match
+        searchResultsDTO = new SearchResultsDTO();
+        service.search(searchResultsDTO, "ZZZZZZZZZYYYYYY", rootProcessGroup);
+
+        assertEquals(0, searchResultsDTO.getControllerServiceNodeResults().size());
+    }
+
+    /**
+     * Mocks Labels including isAuthorized() and their identifier and value
+     *
+     * @param containingProcessGroup The process group
+     */
+    private static void setupMockedLabels(final ProcessGroup containingProcessGroup) {
+        final Label label1 = mock(Label.class);
+        Mockito.doReturn(true).when(label1).isAuthorized(AdditionalMatchers.or(any(Authorizer.class), isNull()), eq(RequestAction.READ),
+                AdditionalMatchers.or(any(NiFiUser.class), isNull()));
+        Mockito.doReturn("foo").when(label1).getIdentifier();
+        Mockito.doReturn("Value for label foo").when(label1).getValue();
+
+        final Label label2 = mock(Label.class);
+        Mockito.doReturn(false).when(label2).isAuthorized(AdditionalMatchers.or(any(Authorizer.class), isNull()), eq(RequestAction.READ),
+                AdditionalMatchers.or(any(NiFiUser.class), isNull()));
+        Mockito.doReturn("bar").when(label2).getIdentifier();
+        Mockito.doReturn("Value for label bar, but FOO is in here too").when(label2).getValue();
+
+        // assign labels to the PG
+        Mockito.doReturn(new HashSet<Label>() {
+            {
+                add(label1);
+                add(label2);
+            }
+        }).when(containingProcessGroup).getLabels();
+    }
+
     /**
      * Sets up a mock Parameter Context including isAuthorized()
      * @param name                     name of the parameter context
@@ -466,6 +595,32 @@ public class ControllerSearchServiceTest {
                 add(processorNode1);
             }
         }).when(containingProcessGroup).getProcessors();
+    }
+
+    private static void setupMockedControllerService(final String controllerServiceName, final ProcessGroup containingProcessGroup, boolean authorizedToRead,
+        Map<PropertyDescriptor, String> properties) {
+        final String controllerServiceId = controllerServiceName + "Id";
+        final ControllerService controllerService = mock(ControllerService.class);
+
+        final ControllerServiceNode controllerServiceNode1 = mock(StandardControllerServiceNode.class);
+        Mockito.doReturn(authorizedToRead).when(controllerServiceNode1)
+                .isAuthorized(AdditionalMatchers.or(any(Authorizer.class), isNull()), eq(RequestAction.READ), AdditionalMatchers.or(any(NiFiUser.class), isNull()));
+        Mockito.doReturn(controllerService).when(controllerServiceNode1).getControllerServiceImplementation();
+        // set controller service node attributes
+        Mockito.doReturn(controllerServiceId).when(controllerServiceNode1).getIdentifier();
+        Mockito.doReturn(controllerServiceName).when(controllerServiceNode1).getName();
+        Mockito.doReturn(Optional.ofNullable(null)).when(controllerServiceNode1).getVersionedComponentId();
+        Mockito.doReturn("foo comments").when(controllerServiceNode1).getComments();
+
+        //set properties
+        Mockito.doReturn(properties).when(controllerServiceNode1).getRawPropertyValues();
+
+        // assign controller service node to its PG
+        Mockito.doReturn(new HashSet<ControllerServiceNode>() {
+            {
+                add(controllerServiceNode1);
+            }
+        }).when(containingProcessGroup).getControllerServices(anyBoolean());
     }
 
     /**
