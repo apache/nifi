@@ -632,7 +632,7 @@ public final class InvokeHTTP extends AbstractProcessor {
             okHttpClientBuilder.addInterceptor(new TimeoutInterceptor());
         }
         else
-            okHttpClientBuilder.readTimeout(context.getProperty(PROP_READ_TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS).intValue(), TimeUnit.MILLISECONDS);
+            okHttpClientBuilder.readTimeout(context.getProperty(PROP_READ_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue(), TimeUnit.MILLISECONDS);
 
 
         // Set whether to follow redirects
