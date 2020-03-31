@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.azure.storage;
 
+import com.microsoft.azure.storage.blob.CloudBlob;
 import com.microsoft.azure.storage.blob.ListBlobItem;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.util.MockFlowFile;
@@ -24,6 +25,7 @@ import org.junit.Test;
 
 import java.util.List;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public class ITPutAzureBlobStorage extends AbstractAzureBlobStorageIT {
@@ -48,6 +50,16 @@ public class ITPutAzureBlobStorage extends AbstractAzureBlobStorageIT {
     }
 
     @Test
+    public void testPutBlobUsermetadata() throws Exception {
+        runner.setProperty("hello", "world");
+        runner.assertValid();
+        runner.enqueue("0123456789".getBytes());
+        runner.run();
+
+        assertResultUserMetadata();
+    }
+
+    @Test
     public void testPutBlobUsingCredentialsService() throws Exception {
         configureCredentialsService();
 
@@ -56,6 +68,23 @@ public class ITPutAzureBlobStorage extends AbstractAzureBlobStorageIT {
         runner.run();
 
         assertResult();
+    }
+
+    private void assertResultUserMetadata() throws Exception {
+        runner.assertAllFlowFilesTransferred(PutAzureBlobStorage.REL_SUCCESS, 1);
+        List<MockFlowFile> flowFilesForRelationship = runner.getFlowFilesForRelationship(PutAzureBlobStorage.REL_SUCCESS);
+        for (MockFlowFile flowFile : flowFilesForRelationship) {
+            flowFile.assertContentEquals("0123456789".getBytes());
+            flowFile.assertAttributeEquals("azure.length", "10");
+            flowFile.assertAttributeEquals("azure.usermetadata", "hello=world");
+        }
+
+        Iterable<ListBlobItem> blobs = container.listBlobs(TEST_BLOB_NAME);
+        assertTrue(blobs.iterator().hasNext());
+        ListBlobItem blob = blobs.iterator().next();
+        assertTrue(blob instanceof CloudBlob);
+        ((CloudBlob) blob).downloadAttributes();
+        assertEquals("world", ((CloudBlob)blob).getMetadata().getOrDefault("hello", null));
     }
 
     private void assertResult() throws Exception {
