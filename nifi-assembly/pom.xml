@@ -946,12 +946,6 @@ language governing permissions and limitations under the License. -->
             <dependencies>
                 <dependency>
                     <groupId>org.apache.nifi</groupId>
-                    <artifactId>nifi-pgp-nar</artifactId>
-                    <version>1.12.0-SNAPSHOT</version>
-                    <type>nar</type>
-                </dependency>
-                <dependency>
-                    <groupId>org.apache.nifi</groupId>
                     <artifactId>nifi-pgp-services-api-nar</artifactId>
                     <version>1.12.0-SNAPSHOT</version>
                     <type>nar</type>
@@ -959,6 +953,12 @@ language governing permissions and limitations under the License. -->
                 <dependency>
                     <groupId>org.apache.nifi</groupId>
                     <artifactId>nifi-pgp-services-nar</artifactId>
+                    <version>1.12.0-SNAPSHOT</version>
+                    <type>nar</type>
+                </dependency>
+                <dependency>
+                    <groupId>org.apache.nifi</groupId>
+                    <artifactId>nifi-pgp-nar</artifactId>
                     <version>1.12.0-SNAPSHOT</version>
                     <type>nar</type>
                 </dependency>

@@ -27,6 +27,6 @@
         <module>nifi-pgp-services-api-nar</module>
         <module>nifi-pgp-services</module>
         <module>nifi-pgp-processors</module>
-
+        <module>nifi-pgp-nar</module>
     </modules>
 </project>
