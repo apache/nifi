@@ -17,7 +17,6 @@
 package org.apache.nifi.processors.azure.storage;
 
 import java.io.BufferedInputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
@@ -39,7 +38,7 @@ import com.azure.storage.file.datalake.DataLakeFileClient;
 import com.azure.storage.file.datalake.DataLakeFileSystemClient;
 import com.azure.storage.file.datalake.DataLakeServiceClient;
 import org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor;
-import com.azure.storage.file.datalake.implementation.models.StorageErrorException;
+
 
 @Tags({"azure", "microsoft", "cloud", "storage", "adlsgen2", "datalake"})
 @CapabilityDescription("Puts content into an Azure Data Lake Storage Gen 2")
@@ -87,7 +86,7 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
             session.transfer(flowFile, REL_SUCCESS);
             final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
             session.getProvenanceReporter().send(flowFile, fileClient.getFileUrl(), transferMillis);
-        } catch (IOException | StorageErrorException | IllegalArgumentException e) {
+        } catch (Exception e) {
             getLogger().error("Failed to create file, due to {}", e);
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);

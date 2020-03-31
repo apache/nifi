@@ -19,6 +19,7 @@ package org.apache.nifi.processors.azure;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.Relationship;
@@ -70,7 +71,7 @@ public abstract class AbstractAzureDataLakeStorageProcessor extends AbstractProc
             .required(false)
             .sensitive(true).build();
 
-    public static final PropertyDescriptor PROP_SAS_TOKEN = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor SAS_TOKEN = new PropertyDescriptor.Builder()
             .name("storage-sas-token").displayName("SAS Token")
             .description("Shared Access Signature token, including the leading '?'. Specify either SAS Token (recommended) or Account Key. " +
                     "There are certain risks in allowing the SAS token to be stored as a flowfile " +
@@ -95,7 +96,7 @@ public abstract class AbstractAzureDataLakeStorageProcessor extends AbstractProc
     public static final PropertyDescriptor DIRECTORY = new PropertyDescriptor.Builder()
             .name("directory-name").displayName("Directory Name")
             .description("Name of the Azure Storage Directory. It will be created if not already existing")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .addValidator(Validator.VALID)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(true)
             .build();
@@ -118,7 +119,7 @@ public abstract class AbstractAzureDataLakeStorageProcessor extends AbstractProc
 
     private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(
             Arrays.asList(AbstractAzureDataLakeStorageProcessor.ACCOUNT_NAME, AbstractAzureDataLakeStorageProcessor.ACCOUNT_KEY,
-                    AbstractAzureDataLakeStorageProcessor.PROP_SAS_TOKEN, AbstractAzureDataLakeStorageProcessor.FILESYSTEM,
+                    AbstractAzureDataLakeStorageProcessor.SAS_TOKEN, AbstractAzureDataLakeStorageProcessor.FILESYSTEM,
                     AbstractAzureDataLakeStorageProcessor.DIRECTORY, AbstractAzureDataLakeStorageProcessor.FILE));
 
     private static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(
@@ -135,13 +136,13 @@ public abstract class AbstractAzureDataLakeStorageProcessor extends AbstractProc
         final List<ValidationResult> results = new ArrayList<>();
         final String accountName = validationContext.getProperty(ACCOUNT_NAME).getValue();
         final String accountKey = validationContext.getProperty(ACCOUNT_KEY).getValue();
-        final String sasToken = validationContext.getProperty(PROP_SAS_TOKEN).getValue();
+        final String sasToken = validationContext.getProperty(SAS_TOKEN).getValue();
 
         if (StringUtils.isNotBlank(accountName)
                 && ((StringUtils.isNotBlank(accountKey) && StringUtils.isNotBlank(sasToken)) || (StringUtils.isBlank(accountKey) && StringUtils.isBlank(sasToken)))) {
             results.add(new ValidationResult.Builder().subject("Azure Storage Credentials").valid(false)
                     .explanation("either " + ACCOUNT_NAME.getDisplayName() + " with " + ACCOUNT_KEY.getDisplayName() +
-                            " or " + ACCOUNT_NAME.getDisplayName() + " with " + PROP_SAS_TOKEN.getDisplayName() +
+                            " or " + ACCOUNT_NAME.getDisplayName() + " with " + SAS_TOKEN.getDisplayName() +
                             " must be specified, not both")
                     .build());
         }
@@ -152,7 +153,7 @@ public abstract class AbstractAzureDataLakeStorageProcessor extends AbstractProc
         final Map<String, String> attributes = flowFile != null ? flowFile.getAttributes() : Collections.emptyMap();
         final String accountName = context.getProperty(ACCOUNT_NAME).evaluateAttributeExpressions(attributes).getValue();
         final String accountKey = context.getProperty(ACCOUNT_KEY).evaluateAttributeExpressions(attributes).getValue();
-        final String sasToken = context.getProperty(PROP_SAS_TOKEN).evaluateAttributeExpressions(attributes).getValue();
+        final String sasToken = context.getProperty(SAS_TOKEN).evaluateAttributeExpressions(attributes).getValue();
         final String endpoint = String.format("https://%s.dfs.core.windows.net", accountName);
         DataLakeServiceClient storageClient;
         if (StringUtils.isNotBlank(accountKey)) {
@@ -165,7 +166,7 @@ public abstract class AbstractAzureDataLakeStorageProcessor extends AbstractProc
                     .buildClient();
         } else {
             throw new IllegalArgumentException(String.format("Either '%s' or '%s' must be defined.",
-                    ACCOUNT_KEY.getDisplayName(), PROP_SAS_TOKEN.getDisplayName()));
+                    ACCOUNT_KEY.getDisplayName(), SAS_TOKEN.getDisplayName()));
         }
         return storageClient;
     }
