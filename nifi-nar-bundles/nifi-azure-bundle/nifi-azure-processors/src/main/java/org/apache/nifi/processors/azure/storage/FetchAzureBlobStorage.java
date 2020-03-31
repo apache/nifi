@@ -21,6 +21,9 @@ import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -32,6 +35,8 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -49,9 +54,37 @@ import com.microsoft.azure.storage.blob.CloudBlobContainer;
 @SeeAlso({ ListAzureBlobStorage.class, PutAzureBlobStorage.class, DeleteAzureBlobStorage.class })
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @WritesAttributes({
-    @WritesAttribute(attribute = "azure.length", description = "The length of the blob fetched")
+    @WritesAttribute(attribute = "azure.length", description = "The length of the blob fetched"),
+    @WritesAttribute(attribute = "azure.user.metadata.___", description = "If 'Write User Metadata' is set to 'True', the user defined metadata associated to the Blob object that is being listed " +
+        "will be written as part of the flowfile attributes")
 })
 public class FetchAzureBlobStorage extends AbstractAzureBlobProcessor {
+
+    protected static final PropertyDescriptor WRITE_USER_METADATA = new PropertyDescriptor.Builder()
+        .name("write-user-metadata")
+        .displayName("Write User Metadata")
+        .description("If set to 'True', the user defined metadata associated with the Blob object will be written as FlowFile attributes")
+        .required(true)
+        .allowableValues(new AllowableValue("true", "True"), new AllowableValue("false", "False"))
+        .defaultValue("false")
+        .build();
+
+    private Map<String, String> writeUserMetadata(HashMap<String, String> userMetadata) {
+        final Map<String, String> metadata = new HashMap<>();
+        if (userMetadata != null) {
+            for (Map.Entry<String, String> e : userMetadata.entrySet()) {
+                metadata.put("azure.user.metadata." + e.getKey(), e.getValue());
+            }
+        }
+        return metadata;
+    }
+
+    @Override
+    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+        List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
+        properties.add(WRITE_USER_METADATA);
+        return Collections.unmodifiableList(properties);
+    }
 
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
@@ -80,6 +113,10 @@ public class FetchAzureBlobStorage extends AbstractAzureBlobProcessor {
             // distribution of download over threads, investigate
             flowFile = session.write(flowFile, os -> {
                 try {
+                    if (context.getProperty(WRITE_USER_METADATA).asBoolean()) {
+                        blob.downloadAttributes();
+                        attributes.putAll(writeUserMetadata(blob.getMetadata()));
+                    }
                     blob.download(os, null, null, operationContext);
                 } catch (StorageException e) {
                     storedException.set(e);

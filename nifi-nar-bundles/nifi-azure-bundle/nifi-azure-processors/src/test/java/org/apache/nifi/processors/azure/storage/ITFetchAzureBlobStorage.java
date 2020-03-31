@@ -48,6 +48,16 @@ public class ITFetchAzureBlobStorage extends AbstractAzureBlobStorageIT {
     }
 
     @Test
+    public void testFetchBlobUserMetadata() throws Exception {
+        runner.setProperty(FetchAzureBlobStorage.WRITE_USER_METADATA, "true");
+        runner.assertValid();
+        runner.enqueue(new byte[0]);
+        runner.run();
+
+        assertResultUserMetadata();
+    }
+
+    @Test
     public void testFetchBlobUsingCredentialService() throws Exception {
         configureCredentialsService();
 
@@ -58,12 +68,23 @@ public class ITFetchAzureBlobStorage extends AbstractAzureBlobStorageIT {
         assertResult();
     }
 
+    private void assertResultUserMetadata() throws Exception {
+        runner.assertAllFlowFilesTransferred(AbstractAzureBlobProcessor.REL_SUCCESS, 1);
+        List<MockFlowFile> flowFilesForRelationship = runner.getFlowFilesForRelationship(FetchAzureBlobStorage.REL_SUCCESS);
+        for (MockFlowFile flowFile : flowFilesForRelationship) {
+            flowFile.assertContentEquals("0123456789".getBytes());
+            flowFile.assertAttributeEquals("azure.length", "10");
+            flowFile.assertAttributeEquals("azure.user.metadata.nifi_usermetadata", "blafasel");
+        }
+    }
+
     private void assertResult() throws Exception {
         runner.assertAllFlowFilesTransferred(AbstractAzureBlobProcessor.REL_SUCCESS, 1);
         List<MockFlowFile> flowFilesForRelationship = runner.getFlowFilesForRelationship(FetchAzureBlobStorage.REL_SUCCESS);
         for (MockFlowFile flowFile : flowFilesForRelationship) {
             flowFile.assertContentEquals("0123456789".getBytes());
             flowFile.assertAttributeEquals("azure.length", "10");
+            flowFile.assertAttributeNotExists("azure.user.metadata.nifi_usermetadata");
         }
     }
 }
