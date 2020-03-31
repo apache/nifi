@@ -36,6 +36,7 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
@@ -77,7 +78,9 @@ import java.util.Map;
         @WritesAttribute(attribute = "azure.timestamp", description = "The timestamp in Azure for the blob"),
         @WritesAttribute(attribute = "mime.type", description = "MimeType of the content"),
         @WritesAttribute(attribute = "lang", description = "Language code for the content"),
-        @WritesAttribute(attribute = "azure.blobtype", description = "This is the type of blob and can be either page or block type") })
+        @WritesAttribute(attribute = "azure.blobtype", description = "This is the type of blob and can be either page or block type"),
+        @WritesAttribute(attribute = "azure.user.metadata.___", description = "If 'Write User Metadata' is set to 'True', the user defined metadata associated to the Blob object that is being listed " +
+    "will be written as part of the flowfile attributes")})
 @Stateful(scopes = { Scope.CLUSTER }, description = "After performing a listing of blobs, the timestamp of the newest blob is stored. " +
         "This allows the Processor to list only blobs that have been added or modified after this date the next time that the Processor is run.  State is " +
         "stored across the cluster so that this Processor can be run on Primary Node only and if a new Primary Node is selected, the new node can pick up " +
@@ -93,6 +96,15 @@ public class ListAzureBlobStorage extends AbstractListProcessor<BlobInfo> {
             .required(false)
             .build();
 
+    protected static final PropertyDescriptor WRITE_USER_METADATA = new PropertyDescriptor.Builder()
+        .name("write-user-metadata")
+        .displayName("Write User Metadata")
+        .description("If set to 'True', the user defined metadata associated with the Blob object will be written as FlowFile attributes")
+        .required(true)
+        .allowableValues(new AllowableValue("true", "True"), new AllowableValue("false", "False"))
+        .defaultValue("false")
+        .build();
+
     private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
             LISTING_STRATEGY,
             AzureStorageUtils.CONTAINER,
@@ -101,11 +113,23 @@ public class ListAzureBlobStorage extends AbstractListProcessor<BlobInfo> {
             AzureStorageUtils.ACCOUNT_KEY,
             AzureStorageUtils.PROP_SAS_TOKEN,
             PROP_PREFIX,
+            WRITE_USER_METADATA,
             AzureStorageUtils.PROXY_CONFIGURATION_SERVICE,
             ListedEntityTracker.TRACKING_STATE_CACHE,
             ListedEntityTracker.TRACKING_TIME_WINDOW,
             ListedEntityTracker.INITIAL_LISTING_TARGET
             ));
+
+    private Map<String, String> writeUserMetadata(BlobInfo blobInfo) {
+        Map<String, String> userMetadata = blobInfo.getMetadata();
+        final Map<String, String> metadata = new HashMap<>();
+        if (userMetadata != null) {
+            for (Map.Entry<String, String> e : userMetadata.entrySet()) {
+                metadata.put("azure.user.metadata." + e.getKey(), e.getValue());
+            }
+        }
+        return metadata;
+    }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -132,6 +156,9 @@ public class ListAzureBlobStorage extends AbstractListProcessor<BlobInfo> {
         attributes.put("azure.timestamp", String.valueOf(entity.getTimestamp()));
         attributes.put("mime.type", entity.getContentType());
         attributes.put("lang", entity.getContentLanguage());
+        if (context.getProperty(WRITE_USER_METADATA).asBoolean()) {
+            attributes.putAll(writeUserMetadata(entity));
+        }
 
         return attributes;
     }
@@ -192,7 +219,8 @@ public class ListAzureBlobStorage extends AbstractListProcessor<BlobInfo> {
                                               .contentLanguage(properties.getContentLanguage())
                                               .etag(properties.getEtag())
                                               .lastModifiedTime(properties.getLastModified().getTime())
-                                              .length(properties.getLength());
+                                              .length(properties.getLength())
+                                              .metadata(cloudBlob.getMetadata());
 
                     if (uri.getSecondaryUri() != null) {
                         builder.secondaryUri(uri.getSecondaryUri().toString());

@@ -25,6 +25,7 @@ import org.junit.Before;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.util.HashMap;
 import java.util.UUID;
 
 public abstract class AbstractAzureBlobStorageIT extends AbstractAzureStorageIT {
@@ -54,6 +55,9 @@ public abstract class AbstractAzureBlobStorageIT extends AbstractAzureStorageIT 
         CloudBlob blob = container.getBlockBlobReference(TEST_BLOB_NAME);
         byte[] buf = "0123456789".getBytes();
         InputStream in = new ByteArrayInputStream(buf);
+        HashMap<String, String> metadata = new HashMap<>();
+        metadata.put("nifi_usermetadata", "blafasel");
+        blob.setMetadata(metadata);
         blob.upload(in, 10);
     }
 }

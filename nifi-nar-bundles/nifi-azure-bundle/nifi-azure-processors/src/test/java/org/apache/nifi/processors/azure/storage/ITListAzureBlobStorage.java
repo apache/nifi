@@ -46,6 +46,15 @@ public class ITListAzureBlobStorage extends AbstractAzureBlobStorageIT {
     }
 
     @Test
+    public void testListBlobsUserMetadata() {
+        runner.setProperty(ListAzureBlobStorage.WRITE_USER_METADATA, "true");
+        runner.assertValid();
+        runner.run(1);
+
+        assertResultUserMetadata();
+    }
+
+    @Test
     public void testListBlobsUsingCredentialService() throws Exception {
         configureCredentialsService();
 
@@ -54,6 +63,18 @@ public class ITListAzureBlobStorage extends AbstractAzureBlobStorageIT {
 
         assertResult();
     }
+
+    private void assertResultUserMetadata() {
+        runner.assertTransferCount(ListAzureBlobStorage.REL_SUCCESS, 1);
+        runner.assertAllFlowFilesTransferred(ListAzureBlobStorage.REL_SUCCESS, 1);
+
+        for (MockFlowFile entry : runner.getFlowFilesForRelationship(ListAzureBlobStorage.REL_SUCCESS)) {
+            entry.assertAttributeEquals("azure.length", "10");
+            entry.assertAttributeEquals("mime.type", "application/octet-stream");
+            entry.assertAttributeEquals("azure.user.metadata.nifi_usermetadata", "blafasel");
+        }
+    }
+
 
     private void assertResult() {
         runner.assertTransferCount(ListAzureBlobStorage.REL_SUCCESS, 1);

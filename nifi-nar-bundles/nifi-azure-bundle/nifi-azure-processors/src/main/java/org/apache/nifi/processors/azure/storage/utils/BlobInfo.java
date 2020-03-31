@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.azure.storage.utils;
 
 import java.io.Serializable;
+import java.util.Map;
 
 import org.apache.nifi.processor.util.list.ListableEntity;
 
@@ -33,6 +34,7 @@ public class BlobInfo implements Comparable<BlobInfo>, Serializable, ListableEnt
     private final String blobType;
     private final String blobName;
     private final String containerName;
+    private final Map<String, String> metadata;
 
     public static long getSerialversionuid() {
         return serialVersionUID;
@@ -78,6 +80,10 @@ public class BlobInfo implements Comparable<BlobInfo>, Serializable, ListableEnt
         return blobType;
     }
 
+    public Map<String, String> getMetadata() {
+        return metadata;
+    }
+
     public static final class Builder {
         private String primaryUri;
         private String secondaryUri;
@@ -89,6 +95,7 @@ public class BlobInfo implements Comparable<BlobInfo>, Serializable, ListableEnt
         private String blobType;
         private String containerName;
         private String blobName;
+        private Map<String, String> metadata;
 
         public Builder primaryUri(String primaryUri) {
             this.primaryUri = primaryUri;
@@ -137,6 +144,11 @@ public class BlobInfo implements Comparable<BlobInfo>, Serializable, ListableEnt
 
         public Builder blobName(String blobName) {
             this.blobName = blobName;
+            return this;
+        }
+
+        public Builder metadata(Map<String, String> metadata) {
+            this.metadata = metadata;
             return this;
         }
 
@@ -192,6 +204,7 @@ public class BlobInfo implements Comparable<BlobInfo>, Serializable, ListableEnt
         this.length = builder.length;
         this.blobType = builder.blobType;
         this.blobName = builder.blobName;
+        this.metadata = builder.metadata;
     }
 
     @Override
