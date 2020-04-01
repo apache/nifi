@@ -26,5 +26,14 @@
             <strong>Note:</strong> This processor supports OpenPGP algorithms that are compatible with third party programs.
             However, it currently cannot add a digital signature to an encrypted FlowFile.
         </p>
+
+        <h4>PGP Processors</h4>
+        <p>
+            <strong>Note:</strong>
+            The PGP operations in this processor will be removed in a future release of NiFi.
+            Users with PGP or OpenPGP keys and keychains are encouraged to migrate to the PGP-specific processors:
+            EncryptContentPGP, DecryptContentPGP, SignContentAttributePGP, and VerifyContentAttributePGP.
+            These processors are easier to use and configure, and offer better performance for many use cases.
+        </p>
     </body>
 </html>

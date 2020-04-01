@@ -65,6 +65,14 @@ import org.apache.nifi.util.StopWatch;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.openpgp.PGPEncryptedData;
 
+/**
+ * The PGP functionality in this processor will be removed in a future release of NiFi.  The new PGP-specific processors
+ * are smaller and simpler, and therefore easier to audit and maintain.  Developing those processors separately provided
+ * a clean path to fixing several bugs and adding new features without breaking backwards compatibility with this processor.
+ *
+ *
+ * This comment block should be removed when the PGP functionality below is removed.
+ */
 @EventDriven
 @SideEffectFree
 @SupportsBatching
