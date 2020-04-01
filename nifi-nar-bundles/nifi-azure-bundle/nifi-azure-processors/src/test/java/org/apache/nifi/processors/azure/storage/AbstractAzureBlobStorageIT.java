@@ -33,12 +33,15 @@ public abstract class AbstractAzureBlobStorageIT extends AbstractAzureStorageIT 
     protected static final String TEST_CONTAINER_NAME_PREFIX = "nifi-test-container";
     protected static final String TEST_BLOB_NAME = "nifi-test-blob";
     protected static final String TEST_FILE_NAME = "nifi-test-file";
+    protected static final String TEST_USER_METADATA_KEY = "nifi_usermetadata";
+    protected static final String TEST_USER_METADATA_VALUE = "blafasel";
 
+    protected String containerName;
     protected CloudBlobContainer container;
 
     @Before
     public void setUpAzureBlobStorageIT() throws Exception {
-        String containerName = String.format("%s-%s", TEST_CONTAINER_NAME_PREFIX, UUID.randomUUID());
+        containerName = String.format("%s-%s", TEST_CONTAINER_NAME_PREFIX, UUID.randomUUID());
         CloudBlobClient blobClient = getStorageAccount().createCloudBlobClient();
         container = blobClient.getContainerReference(containerName);
         container.createIfNotExists();
@@ -56,7 +59,7 @@ public abstract class AbstractAzureBlobStorageIT extends AbstractAzureStorageIT 
         byte[] buf = "0123456789".getBytes();
         InputStream in = new ByteArrayInputStream(buf);
         HashMap<String, String> metadata = new HashMap<>();
-        metadata.put("nifi_usermetadata", "blafasel");
+        metadata.put(TEST_USER_METADATA_KEY, TEST_USER_METADATA_VALUE);
         blob.setMetadata(metadata);
         blob.upload(in, 10);
     }
