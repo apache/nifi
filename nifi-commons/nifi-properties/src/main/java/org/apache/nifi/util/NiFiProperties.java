@@ -647,8 +647,15 @@ public abstract class NiFiProperties {
         return getProperty(WEB_MAX_HEADER_SIZE, DEFAULT_WEB_MAX_HEADER_SIZE);
     }
 
+    /**
+     * Returns the {@code nifi.web.max.content.size} value from {@code nifi.properties}.
+     * Does not provide a default value because the presence of any value here enables the
+     * {@code ContentLengthFilter}.
+     *
+     * @return the specified max content-length in bytes for an incoming HTTP request
+     */
     public String getWebMaxContentSize() {
-        return getProperty(WEB_MAX_CONTENT_SIZE, DEFAULT_WEB_MAX_CONTENT_SIZE);
+        return getProperty(WEB_MAX_CONTENT_SIZE);
     }
 
     public String getMaxWebRequestsPerSecond() {
@@ -1670,12 +1677,12 @@ public abstract class NiFiProperties {
         if (nfPropertiesFilePath != null) {
             final File propertiesFile = new File(nfPropertiesFilePath.trim());
             if (!propertiesFile.exists()) {
-                throw new RuntimeException("Properties file doesn't exist \'"
-                        + propertiesFile.getAbsolutePath() + "\'");
+                throw new RuntimeException("Properties file doesn't exist '"
+                        + propertiesFile.getAbsolutePath() + "'");
             }
             if (!propertiesFile.canRead()) {
-                throw new RuntimeException("Properties file exists but cannot be read \'"
-                        + propertiesFile.getAbsolutePath() + "\'");
+                throw new RuntimeException("Properties file exists but cannot be read '"
+                        + propertiesFile.getAbsolutePath() + "'");
             }
             InputStream inStream = null;
             try {
