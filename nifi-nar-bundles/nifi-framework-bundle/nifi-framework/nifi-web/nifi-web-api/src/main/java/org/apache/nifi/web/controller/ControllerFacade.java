@@ -78,7 +78,6 @@ import org.apache.nifi.provenance.search.QuerySubmission;
 import org.apache.nifi.provenance.search.SearchTerm;
 import org.apache.nifi.provenance.search.SearchTerms;
 import org.apache.nifi.provenance.search.SearchableField;
-import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.registry.flow.VersionedProcessGroup;
 import org.apache.nifi.remote.PublicPort;
 import org.apache.nifi.remote.RemoteGroupPort;
@@ -109,6 +108,8 @@ import org.apache.nifi.web.api.dto.search.SearchResultsDTO;
 import org.apache.nifi.web.api.dto.status.ControllerStatusDTO;
 import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
+import org.apache.nifi.web.search.query.SearchQuery;
+import org.apache.nifi.web.search.query.SearchQueryParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -147,7 +148,7 @@ public class ControllerFacade implements Authorizable {
     // properties
     private NiFiProperties properties;
     private DtoFactory dtoFactory;
-    private VariableRegistry variableRegistry;
+    private SearchQueryParser searchQueryParser;
     private ControllerSearchService controllerSearchService;
 
     private ProcessGroup getRootGroup() {
@@ -1614,15 +1615,22 @@ public class ControllerFacade implements Authorizable {
     /**
      * Searches this controller for the specified term.
      *
-     * @param search search
+     * @param searchLiteral search string specified by the user
+     * @param activeGroupId the identifier of the currently visited group
      * @return result
      */
-    public SearchResultsDTO search(final String search) {
+    public SearchResultsDTO search(final String searchLiteral, final String activeGroupId) {
         final ProcessGroup rootGroup = getRootGroup();
+        final ProcessGroup activeGroup = (activeGroupId == null)
+                ? rootGroup
+                : flowController.getFlowManager().getGroup(activeGroupId);
         final SearchResultsDTO results = new SearchResultsDTO();
+        final SearchQuery searchQuery = searchQueryParser.parse(searchLiteral, NiFiUserUtils.getNiFiUser(), rootGroup, activeGroup);
 
-        controllerSearchService.search(results, search, rootGroup);
-        controllerSearchService.searchParameters(results, search);
+        if (!StringUtils.isEmpty(searchQuery.getTerm())) {
+            controllerSearchService.search(searchQuery, results);
+            controllerSearchService.searchParameters(searchQuery, results);
+        }
 
         return results;
     }
@@ -1630,7 +1638,6 @@ public class ControllerFacade implements Authorizable {
     public void verifyComponentTypes(VersionedProcessGroup versionedFlow) {
         flowController.verifyComponentTypesInSnippet(versionedFlow);
     }
-
 
     public ProcessorDiagnosticsDTO getProcessorDiagnostics(final ProcessorNode processor, final ProcessorStatus processorStatus, final BulletinRepository bulletinRepository,
             final Function<String, ControllerServiceEntity> serviceEntityFactory) {
@@ -1640,28 +1647,29 @@ public class ControllerFacade implements Authorizable {
     /*
      * setters
      */
+
     public void setFlowController(FlowController flowController) {
         this.flowController = flowController;
-    }
-
-    public void setProperties(NiFiProperties properties) {
-        this.properties = properties;
-    }
-
-    public void setAuthorizer(Authorizer authorizer) {
-        this.authorizer = authorizer;
     }
 
     public void setFlowService(FlowService flowService) {
         this.flowService = flowService;
     }
 
+    public void setAuthorizer(Authorizer authorizer) {
+        this.authorizer = authorizer;
+    }
+
+    public void setProperties(NiFiProperties properties) {
+        this.properties = properties;
+    }
+
     public void setDtoFactory(DtoFactory dtoFactory) {
         this.dtoFactory = dtoFactory;
     }
 
-    public void setVariableRegistry(VariableRegistry variableRegistry) {
-        this.variableRegistry = variableRegistry;
+    public void setSearchQueryParser(SearchQueryParser searchQueryParser) {
+        this.searchQueryParser = searchQueryParser;
     }
 
     public void setControllerSearchService(ControllerSearchService controllerSearchService) {

@@ -161,8 +161,7 @@ The Operate Palette sits to the left-hand side of the screen. It consists of but
 used by DFMs to manage the flow, as well as by administrators who manage user access
 and configure system properties, such as how many system resources should be provided to the application.
 
-On the right side of the canvas is Search, and the Global Menu. You can use Search to easily find components on the
-canvas and to search by component name, type, identifier, configuration properties, and their values. The Global Menu
+On the right side of the canvas is Search, and the Global Menu. For more information on search refer to <<search>>. The Global Menu
 contains options that allow you to manipulate existing components on the canvas:
 
 image::global-menu.png[NiFi Global Menu]
@@ -1652,6 +1651,106 @@ and select "Align horizontally" to achieve these results:
 
 image:align-horizontally-after.png["Align Horizontally Example Before"]
 
+[[search]]
+== Search Components in DataFlow
+
+NiFi UI provides searching functionality in order to help easily find components on the canvas. You can use search to find components by name, type, identifier, configuration properties, and their values. Search also makes it possible to refine and narrow the search result based on certain conditions using Filters and Keywords.
+
+[caption="Example 1: "]
+.The result will contain components that match for "processor1".
+=====================================================================
+processor1
+=====================================================================
+
+=== Filters
+
+Filters can be added to the search box as key-value pairs where the keys are predefined and check certain conditions based on the given value. The syntax is "key:value".
+
+[caption="Example 2: "]
+.The search will be executed under Process Groups (directly or via contained Process Groups) containing the string "myGroup" in their name or id. The result will contain components that match for "processor1".
+=====================================================================
+group:myGroup processor1
+=====================================================================
+
+Filters can be used together with other search terms and multiple filters can be used. The only constraint is that the search must start with the filters. Unknown filters or known filters with unknown values are ignored. If the same filter key appears multiple times, the first will be used. The order of different filters has no effect on the result.
+
+[caption="Example 3: "]
+.Search will be restricted to the currently active process group (and process groups within that). The result will contain components that match for "import" but property matches will be excluded.
+=====================================================================
+scope:here properties:exclude import
+=====================================================================
+
+The supported filters are the following:
+
+*scope*: This filter narrows the scope of the search based on the user's currently active Process Group. The only valid value is "here". The usage of this filter looks like "scope:here". Any other value is considered as invalid, thus the filter will be ignored during search.
+
+*group*: This filter narrows the scope of the search based on the provided Process Group name or id. Search will be restricted to groups (and their components - including subgroups and their components) the names or ids of which match the filter value. If no group matches the filter, the result list will be empty.
+
+*properties*: With this, users can prevent property matches to appear in the search result. Valid values are: "no", "none", "false", "exclude" and "0".
+
+=== Keywords
+
+Users can use pre-defined (case-insensitive) keywords in the search box that will check certain conditions.
+
+[caption="Example 4: "]
+."disabled" will be treated both as keyword and regular search term. The result will contain disabled Ports and Processors as all other components that match for "disabled" in any way.
+=====================================================================
+disabled
+=====================================================================
+
+Keywords can be used with filters (see below) but not with other search terms (otherwise they won't be treated as keywords) and only one keyword can be used at a time. Note however that keywords will also be treated as general search terms at the same time.
+
+[caption="Example 5: "]
+.Search will be restricted to the currently selected process group (and its sub process groups). "invalid" here (as it is alone after the filter) will be treated both as a keyword and a regular search term. The result will contain invalid Processors and Ports as well as all other components that match for "invalid" in any way.
+=====================================================================
+scope:here invalid
+=====================================================================
+
+The supported keywords are the following:
+
+- *Scheduled state*
+
+** *disabled*: Adds disabled Ports and Processors to the result list.
+
+** *invalid*: Adds Ports and Processors to the result list where the component is invalid.
+
+** *running*: Adds running Ports and Processors to the result list.
+
+** *stopped*: Adds stopped Ports and Processors to the result list.
+
+** *validating*: Adds Processors to the result list that are validating at the time.
+
+- *Scheduling strategy*
+
+** *event*: Adds Processors to the result list where the Scheduling Strategy is "Event Driven".
+
+** *timer*: Adds Processors to the result list where the Scheduling Strategy is "Timer Driven".
+
+- *Execution*
+
+** *primary:* Adds Processors to the result list that are set to run on the primary node only (whether if the Processor is currently running or not).
+
+- *Back pressure*
+
+** *back pressure*: Adds Connections to the result list that are applying back pressure at the time.
+
+** *pressure*: See "back pressure".
+
+- *Expiration*
+
+** *expiration*: Adds Connections to the result list that contain expired Flow Files.
+
+** *expires*: See "expiration".
+
+- *Transmission*
+
+** *not transmitting*: Adds Remote Process Groups to the result list that are not transmitting data at the time.
+
+** *transmitting*: Adds Remote Process Groups to the result list that are transmitting data at the time.
+
+** *transmission disabled*: See "not transmitting".
+
+** *transmitting enabled*: See "transmitting".
 
 [[monitoring]]
 == Monitoring of DataFlow

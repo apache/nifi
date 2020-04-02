@@ -884,11 +884,14 @@ public class FlowResource extends ApplicationResource {
                     @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
             }
     )
-    public Response searchFlow(@QueryParam("q") @DefaultValue(StringUtils.EMPTY) String value) throws InterruptedException {
+    public Response searchFlow(
+            @QueryParam("q") @DefaultValue(StringUtils.EMPTY) String value,
+            @QueryParam("a") @DefaultValue(StringUtils.EMPTY) String activeGroupId
+    ) throws InterruptedException {
         authorizeFlow();
 
         // query the controller
-        final SearchResultsDTO results = serviceFacade.searchController(value);
+        final SearchResultsDTO results = serviceFacade.searchController(value, activeGroupId);
 
         // create the entity
         final SearchResultsEntity entity = new SearchResultsEntity();

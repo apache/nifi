@@ -16,677 +16,170 @@
  */
 package org.apache.nifi.web.controller;
 
-import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
+import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.user.NiFiUser;
-import org.apache.nifi.authorization.user.NiFiUserUtils;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.validation.ValidationStatus;
-import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
-import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.label.Label;
-import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.service.ControllerServiceNode;
-import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
-import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
-import org.apache.nifi.parameter.ParameterContextManager;
-import org.apache.nifi.processor.DataUnit;
-import org.apache.nifi.processor.Processor;
-import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.registry.ComponentVariableRegistry;
-import org.apache.nifi.registry.VariableDescriptor;
-import org.apache.nifi.registry.VariableRegistry;
-import org.apache.nifi.remote.PublicPort;
-import org.apache.nifi.scheduling.ExecutionNode;
-import org.apache.nifi.scheduling.SchedulingStrategy;
-import org.apache.nifi.search.SearchContext;
-import org.apache.nifi.search.SearchResult;
-import org.apache.nifi.search.Searchable;
 import org.apache.nifi.web.api.dto.search.ComponentSearchResultDTO;
-import org.apache.nifi.web.api.dto.search.SearchResultGroupDTO;
 import org.apache.nifi.web.api.dto.search.SearchResultsDTO;
+import org.apache.nifi.web.search.ComponentMatcher;
+import org.apache.nifi.web.search.query.SearchQuery;
+import org.apache.nifi.web.search.resultenrichment.ComponentSearchResultEnricher;
+import org.apache.nifi.web.search.resultenrichment.ComponentSearchResultEnricherFactory;
 
-import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
+import java.util.Optional;
 
 /**
  * NiFi web controller's helper service that implements component search.
  */
 public class ControllerSearchService {
+    private final static String FILTER_NAME_GROUP = "group";
+    private final static String FILTER_NAME_SCOPE = "scope";
+    private final static String FILTER_SCOPE_VALUE_HERE = "here";
+
     private FlowController flowController;
     private Authorizer authorizer;
-    private VariableRegistry variableRegistry;
+    private ComponentSearchResultEnricherFactory resultEnricherFactory;
+
+    private ComponentMatcher<ProcessorNode> matcherForProcessor;
+    private ComponentMatcher<ProcessGroup> matcherForProcessGroup;
+    private ComponentMatcher<Connection> matcherForConnection;
+    private ComponentMatcher<RemoteProcessGroup> matcherForRemoteProcessGroup;
+    private ComponentMatcher<Port> matcherForPort;
+    private ComponentMatcher<Funnel> matcherForFunnel;
+    private ComponentMatcher<ParameterContext> matcherForParameterContext;
+    private ComponentMatcher<Parameter> matcherForParameter;
+    private ComponentMatcher<Label> matcherForLabel;
+    private ComponentMatcher<ControllerServiceNode> matcherForControllerServiceNode;
 
     /**
-     * Searches term in the controller beginning from a given process group.
+     * Searches all parameter contexts and parameters.
      *
+     * @param searchQuery Details of the search
      * @param results Search results
-     * @param search  The search term
-     * @param group   The init process group
      */
-    public void search(final SearchResultsDTO results, final String search, final ProcessGroup group) {
-        final NiFiUser user = NiFiUserUtils.getNiFiUser();
-
-        if (group.isAuthorized(authorizer, RequestAction.READ, user)) {
-            final ComponentSearchResultDTO groupMatch = search(search, group);
-            if (groupMatch != null) {
-                // get the parent group, not the current one
-                groupMatch.setParentGroup(buildResultGroup(group.getParent(), user));
-                groupMatch.setVersionedGroup(buildVersionedGroup(group.getParent(), user));
-                results.getProcessGroupResults().add(groupMatch);
-            }
-        }
-
-        for (final ProcessorNode procNode : group.getProcessors()) {
-            if (procNode.isAuthorized(authorizer, RequestAction.READ, user)) {
-                final ComponentSearchResultDTO match = search(search, procNode);
-                if (match != null) {
-                    match.setGroupId(group.getIdentifier());
-                    match.setParentGroup(buildResultGroup(group, user));
-                    match.setVersionedGroup(buildVersionedGroup(group, user));
-                    results.getProcessorResults().add(match);
-                }
-            }
-        }
-
-        for (final Connection connection : group.getConnections()) {
-            if (connection.isAuthorized(authorizer, RequestAction.READ, user)) {
-                final ComponentSearchResultDTO match = search(search, connection);
-                if (match != null) {
-                    match.setGroupId(group.getIdentifier());
-                    match.setParentGroup(buildResultGroup(group, user));
-                    match.setVersionedGroup(buildVersionedGroup(group, user));
-                    results.getConnectionResults().add(match);
-                }
-            }
-        }
-
-        for (final RemoteProcessGroup remoteGroup : group.getRemoteProcessGroups()) {
-            if (remoteGroup.isAuthorized(authorizer, RequestAction.READ, user)) {
-                final ComponentSearchResultDTO match = search(search, remoteGroup);
-                if (match != null) {
-                    match.setGroupId(group.getIdentifier());
-                    match.setParentGroup(buildResultGroup(group, user));
-                    match.setVersionedGroup(buildVersionedGroup(group, user));
-                    results.getRemoteProcessGroupResults().add(match);
-                }
-            }
-        }
-
-        for (final Port port : group.getInputPorts()) {
-            if (port.isAuthorized(authorizer, RequestAction.READ, user)) {
-                final ComponentSearchResultDTO match = search(search, port);
-                if (match != null) {
-                    match.setGroupId(group.getIdentifier());
-                    match.setParentGroup(buildResultGroup(group, user));
-                    match.setVersionedGroup(buildVersionedGroup(group, user));
-                    results.getInputPortResults().add(match);
-                }
-            }
-        }
-
-        for (final Port port : group.getOutputPorts()) {
-            if (port.isAuthorized(authorizer, RequestAction.READ, user)) {
-                final ComponentSearchResultDTO match = search(search, port);
-                if (match != null) {
-                    match.setGroupId(group.getIdentifier());
-                    match.setParentGroup(buildResultGroup(group, user));
-                    match.setVersionedGroup(buildVersionedGroup(group, user));
-                    results.getOutputPortResults().add(match);
-                }
-            }
-        }
-
-        for (final Funnel funnel : group.getFunnels()) {
-            if (funnel.isAuthorized(authorizer, RequestAction.READ, user)) {
-                final ComponentSearchResultDTO match = search(search, funnel);
-                if (match != null) {
-                    match.setGroupId(group.getIdentifier());
-                    match.setParentGroup(buildResultGroup(group, user));
-                    match.setVersionedGroup(buildVersionedGroup(group, user));
-                    results.getFunnelResults().add(match);
-                }
-            }
-        }
-
-        for (final Label label : group.getLabels()) {
-            if (label.isAuthorized(authorizer, RequestAction.READ, user)) {
-                final ComponentSearchResultDTO match = search(search, label);
-                if (match != null) {
-                    match.setGroupId(group.getIdentifier());
-                    match.setParentGroup(buildResultGroup(group, user));
-                    match.setVersionedGroup(buildVersionedGroup(group, user));
-                    results.getLabelResults().add(match);
-                }
-            }
-        }
-
-        for (final ControllerServiceNode controllerServiceNode : group.getControllerServices(false)) {
-            if (controllerServiceNode.isAuthorized(authorizer, RequestAction.READ, user)) {
-                final ComponentSearchResultDTO match = search(search, controllerServiceNode);
-                if (match != null) {
-                    match.setGroupId(group.getIdentifier());
-                    match.setParentGroup(buildResultGroup(group, user));
-                    match.setVersionedGroup(buildVersionedGroup(group, user));
-                    results.getControllerServiceNodeResults().add(match);
-                }
-            }
-        }
-
-        for (final ProcessGroup processGroup : group.getProcessGroups()) {
-            search(results, search, processGroup);
+    public void search(final SearchQuery searchQuery, final SearchResultsDTO results) {
+        if (searchQuery.hasFilter(FILTER_NAME_SCOPE) && FILTER_SCOPE_VALUE_HERE.equals(searchQuery.getFilter(FILTER_NAME_SCOPE))) {
+            searchInProcessGroup(results, searchQuery, searchQuery.getActiveGroup());
+        } else {
+            searchInProcessGroup(results, searchQuery, searchQuery.getRootGroup());
         }
     }
 
-    /**
-     * Searches controller service for the given search term
-     *
-     * @param search                the search term
-     * @param controllerServiceNode a group controller service node
-     */
-    private ComponentSearchResultDTO search(final String search, final ControllerServiceNode controllerServiceNode) {
-        final List<String> matches = new ArrayList<>();
-        addIfAppropriate(search, controllerServiceNode.getIdentifier(), "Id", matches);
-        addIfAppropriate(search, controllerServiceNode.getVersionedComponentId().orElse(null), "Version Control ID", matches);
-        addIfAppropriate(search, controllerServiceNode.getName(), "Name", matches);
-        addIfAppropriate(search, controllerServiceNode.getComments(), "Comments", matches);
+    private void searchInProcessGroup(final SearchResultsDTO results, final SearchQuery searchQuery, final ProcessGroup scope) {
+        final NiFiUser user = searchQuery.getUser();
+        final ComponentSearchResultEnricher resultEnricher = resultEnricherFactory.getComponentResultEnricher(scope, user);
+        final ComponentSearchResultEnricher groupResultEnricher = resultEnricherFactory.getProcessGroupResultEnricher(scope, user);
 
-        // search property values
-        controllerServiceNode.getRawPropertyValues().forEach((property, propertyValue) -> {
-            addIfAppropriate(search, property.getName(), "Property Name", matches);
-            addIfAppropriate(search, property.getDescription(), "Property Description", matches);
-
-            // never include sensitive properties in search results
-            if (property.isSensitive()) {
-                return;
+        if (appliesToGroupFilter(searchQuery, scope)) {
+            if (scope.getParent() != null) {
+                searchComponentType(Collections.singletonList(scope), user, searchQuery, matcherForProcessGroup, groupResultEnricher, results.getProcessGroupResults());
             }
 
-            if (propertyValue != null) {
-                addIfAppropriate(search, propertyValue, "Property Value", matches);
-            } else {
-                addIfAppropriate(search, property.getDefaultValue(), "Property Value", matches);
-            }
-        });
-
-        if (matches.isEmpty()) {
-            return null;
+            searchComponentType(scope.getProcessors(), user, searchQuery, matcherForProcessor, resultEnricher, results.getProcessorResults());
+            searchComponentType(scope.getConnections(), user, searchQuery, matcherForConnection, resultEnricher, results.getConnectionResults());
+            searchComponentType(scope.getRemoteProcessGroups(), user, searchQuery, matcherForRemoteProcessGroup, resultEnricher, results.getRemoteProcessGroupResults());
+            searchComponentType(scope.getInputPorts(), user, searchQuery, matcherForPort, resultEnricher, results.getInputPortResults());
+            searchComponentType(scope.getOutputPorts(), user, searchQuery, matcherForPort, resultEnricher, results.getOutputPortResults());
+            searchComponentType(scope.getFunnels(), user, searchQuery, matcherForFunnel, resultEnricher, results.getFunnelResults());
+            searchComponentType(scope.getLabels(), user, searchQuery, matcherForLabel, resultEnricher, results.getLabelResults());
+            searchComponentType(scope.getControllerServices(false), user, searchQuery, matcherForControllerServiceNode, resultEnricher, results.getControllerServiceNodeResults());
         }
 
-        final ComponentSearchResultDTO dto = new ComponentSearchResultDTO();
-        dto.setId(controllerServiceNode.getIdentifier());
-        dto.setName(controllerServiceNode.getName());
-        dto.setMatches(matches);
-        return dto;
+        scope.getProcessGroups().forEach(processGroup -> searchInProcessGroup(results, searchQuery, processGroup));
+    }
+
+    private boolean appliesToGroupFilter(final SearchQuery searchQuery, final ProcessGroup scope) {
+        return !searchQuery.hasFilter(FILTER_NAME_GROUP) || eligibleForGroupFilter(scope, searchQuery.getFilter(FILTER_NAME_GROUP));
     }
 
     /**
-     * Searches all parameter contexts and parameters
+     * Check is the group is eligible for the filter value. It might be eligible based on name or id.
      *
+     * @param scope The subject process group.
+     * @param filterValue The value to match against.
+     *
+     * @return True in case the scope process group or any parent is matching. A group is matching when it's name or it's id contains the filter value.
+     */
+    private boolean eligibleForGroupFilter(final ProcessGroup scope, final String filterValue) {
+        final List<ProcessGroup> lineage = getLineage(scope);
+
+        for (final ProcessGroup group : lineage) {
+            if (StringUtils.containsIgnoreCase(group.getName(), filterValue) || StringUtils.containsIgnoreCase(group.getIdentifier(), filterValue)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private List<ProcessGroup> getLineage(final ProcessGroup group) {
+        final LinkedList<ProcessGroup> result = new LinkedList<>();
+        ProcessGroup current = group;
+
+        while (current != null) {
+            result.addLast(current);
+            current = current.getParent();
+        }
+
+        return result;
+    }
+
+    private <T extends Authorizable> void searchComponentType(
+               final Collection<T> components,
+               final NiFiUser user,
+               final SearchQuery searchQuery,
+               final ComponentMatcher<T> matcher,
+               final ComponentSearchResultEnricher resultEnricher,
+               final List<ComponentSearchResultDTO> resultAccumulator) {
+        components.stream()
+                .filter(component -> component.isAuthorized(authorizer, RequestAction.READ, user))
+                .map(component -> matcher.match(component, searchQuery))
+                .filter(Optional::isPresent)
+                .map(result -> resultEnricher.enrich(result.get()))
+                .forEach(result -> resultAccumulator.add(result));
+    }
+
+    /**
+     * Searches all parameter contexts and parameters.
+     *
+     * @param searchQuery Details of the search
      * @param results Search results
-     * @param search  The search term
      */
-    public void searchParameters(final SearchResultsDTO results, final String search) {
-        final NiFiUser user = NiFiUserUtils.getNiFiUser();
-        ParameterContextManager parameterContextManager = flowController.getFlowManager().getParameterContextManager();
-
-        final Set<ParameterContext> parameterContexts = parameterContextManager.getParameterContexts();
-        for (final ParameterContext parameterContext : parameterContexts) {
-            if (parameterContext.isAuthorized(authorizer, RequestAction.READ, user)) {
-                ComponentSearchResultDTO parameterContextMatch = search(search, parameterContext);
-                if (parameterContextMatch != null) {
-                    results.getParameterContextResults().add(parameterContextMatch);
-                }
-
-                // search each parameter within the context as well
-                for (Parameter parameter : parameterContext.getParameters().values()) {
-                    ComponentSearchResultDTO parameterMatch = search(search, parameter);
-                    if (parameterMatch != null) {
-                        final SearchResultGroupDTO paramContextGroup = new SearchResultGroupDTO();
-                        paramContextGroup.setId(parameterContext.getIdentifier());
-                        paramContextGroup.setName(parameterContext.getName());
-                        parameterMatch.setParentGroup(paramContextGroup);
-
-                        results.getParameterResults().add(parameterMatch);
-                    }
-                }
-            }
-        }
-    }
-
-    private ComponentSearchResultDTO search(final String searchStr, final Port port) {
-        final List<String> matches = new ArrayList<>();
-
-        addIfAppropriate(searchStr, port.getIdentifier(), "Id", matches);
-        addIfAppropriate(searchStr, port.getVersionedComponentId().orElse(null), "Version Control ID", matches);
-        addIfAppropriate(searchStr, port.getName(), "Name", matches);
-        addIfAppropriate(searchStr, port.getComments(), "Comments", matches);
-
-        // consider scheduled state
-        if (ScheduledState.DISABLED.equals(port.getScheduledState())) {
-            if (StringUtils.containsIgnoreCase("disabled", searchStr)) {
-                matches.add("Run status: Disabled");
-            }
-        } else {
-            if (StringUtils.containsIgnoreCase("invalid", searchStr) && !port.isValid()) {
-                matches.add("Run status: Invalid");
-            } else if (ScheduledState.RUNNING.equals(port.getScheduledState()) && StringUtils.containsIgnoreCase("running", searchStr)) {
-                matches.add("Run status: Running");
-            } else if (ScheduledState.STOPPED.equals(port.getScheduledState()) && StringUtils.containsIgnoreCase("stopped", searchStr)) {
-                matches.add("Run status: Stopped");
-            }
-        }
-
-        if (port instanceof PublicPort) {
-            final PublicPort publicPort = (PublicPort) port;
-
-            // user access controls
-            for (final String userAccessControl : publicPort.getUserAccessControl()) {
-                addIfAppropriate(searchStr, userAccessControl, "User access control", matches);
-            }
-
-            // group access controls
-            for (final String groupAccessControl : publicPort.getGroupAccessControl()) {
-                addIfAppropriate(searchStr, groupAccessControl, "Group access control", matches);
-            }
-        }
-
-        if (matches.isEmpty()) {
-            return null;
-        }
-
-        final ComponentSearchResultDTO dto = new ComponentSearchResultDTO();
-        dto.setId(port.getIdentifier());
-        dto.setName(port.getName());
-        dto.setMatches(matches);
-        return dto;
-    }
-
-    private ComponentSearchResultDTO search(final String searchStr, final ProcessorNode procNode) {
-        final List<String> matches = new ArrayList<>();
-        final Processor processor = procNode.getProcessor();
-
-        addIfAppropriate(searchStr, procNode.getIdentifier(), "Id", matches);
-        addIfAppropriate(searchStr, procNode.getVersionedComponentId().orElse(null), "Version Control ID", matches);
-        addIfAppropriate(searchStr, procNode.getName(), "Name", matches);
-        addIfAppropriate(searchStr, procNode.getComments(), "Comments", matches);
-
-        // consider scheduling strategy
-        if (SchedulingStrategy.EVENT_DRIVEN.equals(procNode.getSchedulingStrategy()) && StringUtils.containsIgnoreCase("event", searchStr)) {
-            matches.add("Scheduling strategy: Event driven");
-        } else if (SchedulingStrategy.TIMER_DRIVEN.equals(procNode.getSchedulingStrategy()) && StringUtils.containsIgnoreCase("timer", searchStr)) {
-            matches.add("Scheduling strategy: Timer driven");
-        } else if (SchedulingStrategy.PRIMARY_NODE_ONLY.equals(procNode.getSchedulingStrategy()) && StringUtils.containsIgnoreCase("primary", searchStr)) {
-            // PRIMARY_NODE_ONLY has been deprecated as a SchedulingStrategy and replaced by PRIMARY as an ExecutionNode.
-            matches.add("Scheduling strategy: On primary node");
-        }
-
-        // consider execution node
-        if (ExecutionNode.PRIMARY.equals(procNode.getExecutionNode()) && StringUtils.containsIgnoreCase("primary", searchStr)) {
-            matches.add("Execution node: primary");
-        }
-
-        // consider scheduled state
-        if (ScheduledState.DISABLED.equals(procNode.getScheduledState())) {
-            if (StringUtils.containsIgnoreCase("disabled", searchStr)) {
-                matches.add("Run status: Disabled");
-            }
-        } else {
-            if (StringUtils.containsIgnoreCase("invalid", searchStr) && procNode.getValidationStatus() == ValidationStatus.INVALID) {
-                matches.add("Run status: Invalid");
-            } else if (StringUtils.containsIgnoreCase("validating", searchStr) && procNode.getValidationStatus() == ValidationStatus.VALIDATING) {
-                matches.add("Run status: Validating");
-            } else if (ScheduledState.RUNNING.equals(procNode.getScheduledState()) && StringUtils.containsIgnoreCase("running", searchStr)) {
-                matches.add("Run status: Running");
-            } else if (ScheduledState.STOPPED.equals(procNode.getScheduledState()) && StringUtils.containsIgnoreCase("stopped", searchStr)) {
-                matches.add("Run status: Stopped");
-            }
-        }
-
-        for (final Relationship relationship : procNode.getRelationships()) {
-            addIfAppropriate(searchStr, relationship.getName(), "Relationship", matches);
-        }
-
-        // Add both the actual class name and the component type. This allows us to search for 'Ghost'
-        // to search for components that could not be instantiated.
-        addIfAppropriate(searchStr, processor.getClass().getSimpleName(), "Type", matches);
-        addIfAppropriate(searchStr, procNode.getComponentType(), "Type", matches);
-
-        for (final Map.Entry<PropertyDescriptor, String> entry : procNode.getRawPropertyValues().entrySet()) {
-            final PropertyDescriptor descriptor = entry.getKey();
-
-            addIfAppropriate(searchStr, descriptor.getName(), "Property name", matches);
-            addIfAppropriate(searchStr, descriptor.getDescription(), "Property description", matches);
-
-            // never include sensitive properties values in search results
-            if (descriptor.isSensitive()) {
-                continue;
-            }
-
-            String value = entry.getValue();
-
-            // if unset consider default value
-            if (value == null) {
-                value = descriptor.getDefaultValue();
-            }
-
-            // evaluate if the value matches the search criteria
-            if (StringUtils.containsIgnoreCase(value, searchStr)) {
-                matches.add("Property value: " + descriptor.getName() + " - " + value);
-            }
-        }
-
-        // consider searching the processor directly
-        if (processor instanceof Searchable) {
-            final Searchable searchable = (Searchable) processor;
-
-            final SearchContext context = new StandardSearchContext(searchStr, procNode, flowController.getControllerServiceProvider(), variableRegistry);
-
-            // search the processor using the appropriate thread context classloader
-            try (final NarCloseable x = NarCloseable.withComponentNarLoader(flowController.getExtensionManager(), processor.getClass(), processor.getIdentifier())) {
-                final Collection<SearchResult> searchResults = searchable.search(context);
-                if (CollectionUtils.isNotEmpty(searchResults)) {
-                    for (final SearchResult searchResult : searchResults) {
-                        matches.add(searchResult.getLabel() + ": " + searchResult.getMatch());
-                    }
-                }
-            } catch (final Throwable t) {
-                // log this as error
-            }
-        }
-
-        if (matches.isEmpty()) {
-            return null;
-        }
-
-        final ComponentSearchResultDTO result = new ComponentSearchResultDTO();
-        result.setId(procNode.getIdentifier());
-        result.setMatches(matches);
-        result.setName(procNode.getName());
-        return result;
-    }
-
-    private ComponentSearchResultDTO search(final String searchStr, final ProcessGroup group) {
-        final List<String> matches = new ArrayList<>();
-        final ProcessGroup parent = group.getParent();
-        if (parent == null) {
-            return null;
-        }
-
-        addIfAppropriate(searchStr, group.getIdentifier(), "Id", matches);
-        addIfAppropriate(searchStr, group.getVersionedComponentId().orElse(null), "Version Control ID", matches);
-        addIfAppropriate(searchStr, group.getName(), "Name", matches);
-        addIfAppropriate(searchStr, group.getComments(), "Comments", matches);
-
-        final ComponentVariableRegistry varRegistry = group.getVariableRegistry();
-        if (varRegistry != null) {
-            final Map<VariableDescriptor, String> variableMap = varRegistry.getVariableMap();
-            for (final Map.Entry<VariableDescriptor, String> entry : variableMap.entrySet()) {
-                addIfAppropriate(searchStr, entry.getKey().getName(), "Variable Name", matches);
-                addIfAppropriate(searchStr, entry.getValue(), "Variable Value", matches);
-            }
-        }
-
-        if (matches.isEmpty()) {
-            return null;
-        }
-
-        final ComponentSearchResultDTO result = new ComponentSearchResultDTO();
-        result.setId(group.getIdentifier());
-        result.setName(group.getName());
-        result.setGroupId(parent.getIdentifier());
-        result.setMatches(matches);
-        return result;
-    }
-
-    private ComponentSearchResultDTO search(final String searchStr, final Connection connection) {
-        final List<String> matches = new ArrayList<>();
-
-        // search id and name
-        addIfAppropriate(searchStr, connection.getIdentifier(), "Id", matches);
-        addIfAppropriate(searchStr, connection.getVersionedComponentId().orElse(null), "Version Control ID", matches);
-        addIfAppropriate(searchStr, connection.getName(), "Name", matches);
-
-        // search relationships
-        for (final Relationship relationship : connection.getRelationships()) {
-            addIfAppropriate(searchStr, relationship.getName(), "Relationship", matches);
-        }
-
-        // search prioritizers
-        final FlowFileQueue queue = connection.getFlowFileQueue();
-        for (final FlowFilePrioritizer comparator : queue.getPriorities()) {
-            addIfAppropriate(searchStr, comparator.getClass().getName(), "Prioritizer", matches);
-        }
-
-        // search expiration
-        if (StringUtils.containsIgnoreCase("expires", searchStr) || StringUtils.containsIgnoreCase("expiration", searchStr)) {
-            final int expirationMillis = connection.getFlowFileQueue().getFlowFileExpiration(TimeUnit.MILLISECONDS);
-            if (expirationMillis > 0) {
-                matches.add("FlowFile expiration: " + connection.getFlowFileQueue().getFlowFileExpiration());
-            }
-        }
-
-        // search back pressure
-        if (StringUtils.containsIgnoreCase("back pressure", searchStr) || StringUtils.containsIgnoreCase("pressure", searchStr)) {
-            final String backPressureDataSize = connection.getFlowFileQueue().getBackPressureDataSizeThreshold();
-            final Double backPressureBytes = DataUnit.parseDataSize(backPressureDataSize, DataUnit.B);
-            if (backPressureBytes > 0) {
-                matches.add("Back pressure data size: " + backPressureDataSize);
-            }
-
-            final long backPressureCount = connection.getFlowFileQueue().getBackPressureObjectThreshold();
-            if (backPressureCount > 0) {
-                matches.add("Back pressure count: " + backPressureCount);
-            }
-        }
-
-        // search the source
-        final Connectable source = connection.getSource();
-        addIfAppropriate(searchStr, source.getIdentifier(), "Source id", matches);
-        addIfAppropriate(searchStr, source.getName(), "Source name", matches);
-        addIfAppropriate(searchStr, source.getComments(), "Source comments", matches);
-
-        // search the destination
-        final Connectable destination = connection.getDestination();
-        addIfAppropriate(searchStr, destination.getIdentifier(), "Destination id", matches);
-        addIfAppropriate(searchStr, destination.getName(), "Destination name", matches);
-        addIfAppropriate(searchStr, destination.getComments(), "Destination comments", matches);
-
-        if (matches.isEmpty()) {
-            return null;
-        }
-
-        final ComponentSearchResultDTO result = new ComponentSearchResultDTO();
-        result.setId(connection.getIdentifier());
-
-        // determine the name of the search match
-        if (StringUtils.isNotBlank(connection.getName())) {
-            result.setName(connection.getName());
-        } else if (!connection.getRelationships().isEmpty()) {
-            final List<String> relationships = new ArrayList<>(connection.getRelationships().size());
-            for (final Relationship relationship : connection.getRelationships()) {
-                if (StringUtils.isNotBlank(relationship.getName())) {
-                    relationships.add(relationship.getName());
-                }
-            }
-            if (!relationships.isEmpty()) {
-                result.setName(StringUtils.join(relationships, ", "));
-            }
-        }
-
-        // ensure a name is added
-        if (result.getName() == null) {
-            result.setName("From source " + connection.getSource().getName());
-        }
-
-        result.setMatches(matches);
-        return result;
-    }
-
-    private ComponentSearchResultDTO search(final String searchStr, final RemoteProcessGroup group) {
-        final List<String> matches = new ArrayList<>();
-        addIfAppropriate(searchStr, group.getIdentifier(), "Id", matches);
-        addIfAppropriate(searchStr, group.getVersionedComponentId().orElse(null), "Version Control ID", matches);
-        addIfAppropriate(searchStr, group.getName(), "Name", matches);
-        addIfAppropriate(searchStr, group.getComments(), "Comments", matches);
-        addIfAppropriate(searchStr, group.getTargetUris(), "URLs", matches);
-
-        // consider the transmission status
-        if ((StringUtils.containsIgnoreCase("transmitting", searchStr) || StringUtils.containsIgnoreCase("transmission enabled", searchStr)) && group.isTransmitting()) {
-            matches.add("Transmission: On");
-        } else if ((StringUtils.containsIgnoreCase("not transmitting", searchStr) || StringUtils.containsIgnoreCase("transmission disabled", searchStr)) && !group.isTransmitting()) {
-            matches.add("Transmission: Off");
-        }
-
-        if (matches.isEmpty()) {
-            return null;
-        }
-
-        final ComponentSearchResultDTO result = new ComponentSearchResultDTO();
-        result.setId(group.getIdentifier());
-        result.setName(group.getName());
-        result.setMatches(matches);
-        return result;
-    }
-
-    private ComponentSearchResultDTO search(final String searchStr, final Funnel funnel) {
-        final List<String> matches = new ArrayList<>();
-        addIfAppropriate(searchStr, funnel.getIdentifier(), "Id", matches);
-        addIfAppropriate(searchStr, funnel.getVersionedComponentId().orElse(null), "Version Control ID", matches);
-
-        if (matches.isEmpty()) {
-            return null;
-        }
-
-        final ComponentSearchResultDTO dto = new ComponentSearchResultDTO();
-        dto.setId(funnel.getIdentifier());
-        dto.setName(funnel.getName());
-        dto.setMatches(matches);
-        return dto;
-    }
-
-    private ComponentSearchResultDTO search(final String searchStr, final Label label) {
-        final List<String> matches = new ArrayList<>();
-        addIfAppropriate(searchStr, label.getIdentifier(), "Id", matches);
-        addIfAppropriate(searchStr, label.getValue(), "Value", matches);
-
-        if (matches.isEmpty()) {
-            return null;
-        }
-
-        final ComponentSearchResultDTO dto = new ComponentSearchResultDTO();
-        dto.setId(label.getIdentifier());
-        dto.setName(label.getValue());
-        dto.setMatches(matches);
-        return dto;
-    }
-
-    private ComponentSearchResultDTO search(final String searchString, final ParameterContext parameterContext) {
-        final List<String> matches = new ArrayList<>();
-        addIfAppropriate(searchString, parameterContext.getIdentifier(), "Id", matches);
-        addIfAppropriate(searchString, parameterContext.getName(), "Name", matches);
-        addIfAppropriate(searchString, parameterContext.getDescription(), "Description", matches);
-
-        if (matches.isEmpty()) {
-            return null;
-        }
-
-        final ComponentSearchResultDTO dto = new ComponentSearchResultDTO();
-        dto.setId(parameterContext.getIdentifier());
-        dto.setName(parameterContext.getName());
-        dto.setMatches(matches);
-        return dto;
-    }
-
-    private ComponentSearchResultDTO search(final String searchString, final Parameter parameter) {
-        final List<String> matches = new ArrayList<>();
-        addIfAppropriate(searchString, parameter.getDescriptor().getName(), "Name", matches);
-        addIfAppropriate(searchString, parameter.getDescriptor().getDescription(), "Description", matches);
-        if (!parameter.getDescriptor().isSensitive()) {
-            addIfAppropriate(searchString, parameter.getValue(), "Value", matches);
-        }
-
-        if (matches.isEmpty()) {
-            return null;
-        }
-
-        final ComponentSearchResultDTO dto = new ComponentSearchResultDTO();
-        dto.setId(parameter.getDescriptor().getName());
-        dto.setName(parameter.getDescriptor().getName());
-        dto.setMatches(matches);
-        return dto;
-    }
-
-    /**
-     * Builds the nearest versioned parent result group for a given user.
-     *
-     * @param group The containing group
-     * @param user The current NiFi user
-     * @return Versioned parent group
-     */
-    private SearchResultGroupDTO buildVersionedGroup(final ProcessGroup group, final NiFiUser user) {
-        if (group == null) {
-            return null;
-        }
-
-        ProcessGroup tmpParent = group.getParent();
-        ProcessGroup tmpGroup = group;
-
-        // search for a versioned group by traversing the group tree up to the root
-        while (!tmpGroup.isRootGroup()) {
-            if (tmpGroup.getVersionControlInformation() != null) {
-                return buildResultGroup(tmpGroup, user);
-            }
-
-            tmpGroup = tmpParent;
-            tmpParent = tmpGroup.getParent();
-        }
-
-        // traversed all the way to the root
-        return null;
-    }
-
-    /**
-     * Builds result group for a given user.
-     *
-     * @param group The containing group
-     * @param user The current NiFi user
-     * @return Result group
-     */
-    private SearchResultGroupDTO buildResultGroup(final ProcessGroup group, final NiFiUser user) {
-        if (group == null) {
-            return null;
-        }
-
-        final SearchResultGroupDTO resultGroup = new SearchResultGroupDTO();
-        resultGroup.setId(group.getIdentifier());
-
-        // keep the group name confidential
-        if (group.isAuthorized(authorizer, RequestAction.READ, user)) {
-            resultGroup.setName(group.getName());
-        }
-
-        return resultGroup;
-    }
-
-    private void addIfAppropriate(final String searchStr, final String value, final String label, final List<String> matches) {
-        if (StringUtils.containsIgnoreCase(value, searchStr)) {
-            matches.add(label + ": " + value);
-        }
+    public void searchParameters(final SearchQuery searchQuery, final SearchResultsDTO results) {
+        flowController.getFlowManager()
+                .getParameterContextManager()
+                .getParameterContexts()
+                .stream()
+                .filter(component -> component.isAuthorized(authorizer, RequestAction.READ, searchQuery.getUser()))
+                .forEach(parameterContext -> {
+                    final ComponentSearchResultEnricher resultEnricher = resultEnricherFactory.getParameterResultEnricher(parameterContext);
+
+                    matcherForParameterContext.match(parameterContext, searchQuery)
+                            .ifPresent(match -> results.getParameterContextResults().add(match));
+
+                    parameterContext.getParameters().values().stream()
+                            .map(component -> matcherForParameter.match(component, searchQuery))
+                            .filter(Optional::isPresent)
+                            .map(result -> resultEnricher.enrich(result.get()))
+                            .forEach(result -> results.getParameterResults().add(result));
+                });
     }
 
     public void setFlowController(FlowController flowController) {
@@ -697,7 +190,47 @@ public class ControllerSearchService {
         this.authorizer = authorizer;
     }
 
-    public void setVariableRegistry(VariableRegistry variableRegistry) {
-        this.variableRegistry = variableRegistry;
+    public void setResultEnricherFactory(ComponentSearchResultEnricherFactory resultEnricherFactory) {
+        this.resultEnricherFactory = resultEnricherFactory;
+    }
+
+    public void setMatcherForProcessor(ComponentMatcher<ProcessorNode> matcherForProcessor) {
+        this.matcherForProcessor = matcherForProcessor;
+    }
+
+    public void setMatcherForProcessGroup(ComponentMatcher<ProcessGroup> matcherForProcessGroup) {
+        this.matcherForProcessGroup = matcherForProcessGroup;
+    }
+
+    public void setMatcherForConnection(ComponentMatcher<Connection> matcherForConnection) {
+        this.matcherForConnection = matcherForConnection;
+    }
+
+    public void setMatcherForRemoteProcessGroup(ComponentMatcher<RemoteProcessGroup> matcherForRemoteProcessGroup) {
+        this.matcherForRemoteProcessGroup = matcherForRemoteProcessGroup;
+    }
+
+    public void setMatcherForPort(ComponentMatcher<Port> matcherForPort) {
+        this.matcherForPort = matcherForPort;
+    }
+
+    public void setMatcherForFunnel(ComponentMatcher<Funnel> matcherForFunnel) {
+        this.matcherForFunnel = matcherForFunnel;
+    }
+
+    public void setMatcherForParameterContext(ComponentMatcher<ParameterContext> matcherForParameterContext) {
+        this.matcherForParameterContext = matcherForParameterContext;
+    }
+
+    public void setMatcherForParameter(ComponentMatcher<Parameter> matcherForParameter) {
+        this.matcherForParameter = matcherForParameter;
+    }
+
+    public void setMatcherForLabel(ComponentMatcher<Label> matcherForLabel) {
+        this.matcherForLabel = matcherForLabel;
+    }
+
+    public void setMatcherForControllerServiceNode(ComponentMatcher<ControllerServiceNode> matcherForControllerServiceNode) {
+        this.matcherForControllerServiceNode = matcherForControllerServiceNode;
     }
 }
