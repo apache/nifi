@@ -91,6 +91,15 @@ public class ContentLengthFilter implements Filter {
     }
 
     /**
+     * Returns the currently configured max content length in bytes.
+     *
+     * @return the max content length
+     */
+    public int getMaxContentLength() {
+        return maxContentLength;
+    }
+
+    /**
      * Formats a value like {@code 1048576} to {@code 1 MB} for easier human consumption.
      *
      * @param byteSize the size in bytes

@@ -16,12 +16,11 @@
  */
 package org.apache.nifi.web.server
 
-
 import org.apache.log4j.AppenderSkeleton
 import org.apache.log4j.spi.LoggingEvent
 import org.apache.nifi.bundle.Bundle
 import org.apache.nifi.bundle.BundleCoordinate
-import org.apache.nifi.bundle.BundleDetails
+import org.apache.nifi.processor.DataUnit
 import org.apache.nifi.properties.StandardNiFiProperties
 import org.apache.nifi.util.NiFiProperties
 import org.bouncycastle.jce.provider.BouncyCastleProvider
@@ -30,6 +29,7 @@ import org.eclipse.jetty.server.HttpConfiguration
 import org.eclipse.jetty.server.Server
 import org.eclipse.jetty.server.ServerConnector
 import org.eclipse.jetty.servlet.FilterHolder
+import org.eclipse.jetty.webapp.WebAppContext
 import org.junit.After
 import org.junit.AfterClass
 import org.junit.Before
@@ -45,6 +45,7 @@ import org.junit.runners.JUnit4
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
+import javax.servlet.DispatcherType
 import java.security.Security
 
 @RunWith(JUnit4.class)
@@ -249,127 +250,80 @@ class JettyServerGroovyTest extends GroovyTestCase {
     }
 
     @Test
-    void testShouldNotEnableContentLengthFilterIfWebMaxContentSizeEmpty() {
+    void testShouldEnableContentLengthFilterIfWebMaxContentSizeSet() {
         // Arrange
         Map defaultProps = [
-                (NiFiProperties.WEB_HTTP_HOST)        : "localhost",
-                (NiFiProperties.WEB_MAX_CONTENT_SIZE) : NiFiProperties.DEFAULT_WEB_THREADS,
-                (NiFiProperties.NAR_LIBRARY_DIRECTORY): TEST_LIB_PATH,
-                (NiFiProperties.NAR_WORKING_DIRECTORY): "./target/work/nar"
+                (NiFiProperties.WEB_HTTP_PORT)       : "8080",
+                (NiFiProperties.WEB_HTTP_HOST)       : "localhost",
+                (NiFiProperties.WEB_MAX_CONTENT_SIZE): "1 MB",
         ]
         NiFiProperties mockProps = new StandardNiFiProperties(new Properties(defaultProps))
 
-        // Generate the empty WAR files in the proper location
-        prepareWars(REQUIRED_WARS, mockProps.getNarLibraryDirectories().first().toAbsolutePath().toString())
+        List<FilterHolder> filters = []
+        def mockWebContext = [
+                addFilter: { FilterHolder fh, String path, EnumSet<DispatcherType> d ->
+                    logger.mock("Called addFilter(${fh.name}, ${path}, ${d})")
+                    filters.add(fh)
+                    fh
+                }] as WebAppContext
 
-        // Form the bundles
-        Set<Bundle> narBundles = prepareWARBundles(mockProps)
-        logger.info("Prepared ${narBundles.size()} required bundles: ${narBundles*.bundleDetails*.coordinate}")
-
-
-        def log = TestAppender.getLogLines()
-
-        // Act
-        JettyServer jettyServer = new JettyServer(mockProps, narBundles)
-
-        // Attempt to override WAR loading
-//        JettyServer jettyServer = new JettyServer(mockProps, [] as Set<Bundle>) {
-//            public JettyServer(NiFiProperties props, Set<Bundle> narBundles) {
-//                logger.mock("Overriding normal JettyServer constructor")
-//            }
-//
-//            private Handler loadInitialWars(final Set<Bundle> bundles) {
-//                logger.mock("Overriding normal loadInitialWars() method")
-//
-//                ServletContextHandler context = new ServletContextHandler()
-//                ServletHolder defaultServlet = new ServletHolder("default", DefaultServlet.class)
-////                defaultServlet.setInitParameter("resourceBase",System.getProperty("user.dir"));
-////                defaultServlet.setInitParameter("dirAllowed","true");
-//                context.addServlet(defaultServlet, "/")
-//                context
-//            }
-//        }
-
-        // Attempt to bypass WAR loading
-//        Server internalServer = new Server()
-//        JettyServer jettyServer = new JettyServer(internalServer, mockProps)
+        JettyServer jettyServer = new JettyServer(new Server(), mockProps)
         logger.info("Created JettyServer: ${jettyServer.dump()}")
 
+        String path = "/mock"
+
+        final int MAX_CONTENT_LENGTH_BYTES = DataUnit.parseDataSize(defaultProps[NiFiProperties.WEB_MAX_CONTENT_SIZE], DataUnit.B).intValue()
+
+        // Act
+        jettyServer.addContentLengthFilters(path, mockWebContext, mockProps)
+
         // Assert
-        def filters = jettyServer.webApiContext.getServletHandler().getFilters() as List<FilterHolder>
-        logger.info("Web API Context has ${filters.size()} filters: ${filters*.displayName.join(", ")}".toString())
-        assert filters*.displayName.contains("ContentLengthFilter")
+        assert filters.size() == 2
+        def filterNames = filters*.name
+        logger.info("Web API Context has ${filters.size()} filters: ${filterNames.join(", ")}".toString())
+        assert filterNames.contains("DoSFilter")
+        assert filterNames.contains("ContentLengthFilter")
 
-        // TODO: Check for log errors (TBA)
-        assert !log.isEmpty()
-        assert log.first() =~ "Both the HTTP and HTTPS connectors are configured in nifi.properties. Only one of these connectors should be configured. See the NiFi Admin Guide for more details"
+        FilterHolder clfHolder = filters.find { it.name == "ContentLengthFilter" }
+        String maxContentLength = clfHolder.getInitParameter("maxContentLength")
+        assert maxContentLength == MAX_CONTENT_LENGTH_BYTES as String
+
+        // Filter is not instantiated just by adding it
+//        ContentLengthFilter clf = filters?.find { it.className == "ContentLengthFilter" }?.filter as ContentLengthFilter
+//        assert clf.getMaxContentLength() == MAX_CONTENT_LENGTH_BYTES
     }
 
-    private static void prepareWars(List<String> wars = REQUIRED_WARS, String extensionsPath = "target/lib") {
-        // Create the directory
-        def extensionsDir = new File(extensionsPath)
-        extensionsDir.mkdirs()
+    @Test
+    void testShouldNotEnableContentLengthFilterIfWebMaxContentSizeEmpty() {
+        // Arrange
+        Map defaultProps = [
+                (NiFiProperties.WEB_HTTP_PORT): "8080",
+                (NiFiProperties.WEB_HTTP_HOST): "localhost",
+        ]
+        NiFiProperties mockProps = new StandardNiFiProperties(new Properties(defaultProps))
 
-        // For each required WAR
-        wars.each { String warName ->
-            // Mock WAR file
-            def mockWarFile = new File(extensionsPath, warName)
-            boolean createdFile = mockWarFile.createNewFile()
-            if (!createdFile) {
-                fail("Could not create ${mockWarFile.path}")
-            } else {
-                logger.info("Created empty WAR file at ${mockWarFile.path}")
-            }
-        }
-    }
+        List<FilterHolder> filters = []
+        def mockWebContext = [
+                addFilter: { FilterHolder fh, String path, EnumSet<DispatcherType> d ->
+                    logger.mock("Called addFilter(${fh.name}, ${path}, ${d})")
+                    filters.add(fh)
+                    fh
+                }] as WebAppContext
 
-    private static Bundle buildBundle(String warName, File workingDirectory, ClassLoader classLoader = ClassLoader.getSystemClassLoader()) {
-        BundleCoordinate coordinate = new BundleCoordinate("org.apache.nifi.test", warName, VERSION)
-        BundleDetails bundleDetails = new BundleDetails.Builder()
-                .coordinate(coordinate)
-//                .dependencyCoordinate(DEPENDENCY_COORDINATE)
-                .workingDir(workingDirectory)
-                .buildBranch(BRANCH)
-                .buildJdk(JDK)
-                .buildRevision(REVISION)
-                .buildTag(TAG)
-                .buildTimestamp(TIMESTAMP)
-                .builtBy(USER)
-                .build()
-        new Bundle(bundleDetails, classLoader)
-    }
+        JettyServer jettyServer = new JettyServer(new Server(), mockProps)
+        logger.info("Created JettyServer: ${jettyServer.dump()}")
 
-    /**
-     * Returns a collection of {@link Bundle} objects required to start the NiFi {@link JettyServer}. Replicates the behavior of {@code new NiFi()}.
-     *
-     * @param mockProps the NiFi properties referencing a test resource directory containing stubbed WARs
-     * @return the parsed Bundles
-     */
-    private static Set<Bundle> prepareWARBundles(StandardNiFiProperties mockProps) {
-        logger.info("Setting up stubbed WAR bundles")
-        logger.info("Current working directory: ${new File(".").absolutePath}")
-        File fwd = mockProps.getFrameworkWorkingDirectory()
-        logger.info("Framework working directory: ${fwd.absolutePath}")
+        String path = "/mock"
 
-        Set<Bundle> bundles = REQUIRED_WARS.collect { String warName ->
-            def bundle = buildBundle(warName, fwd)
-            logger.info("WAR: ${warName.padLeft(30, " ")} - built bundle: ${bundle}")
-            bundle
-        }
+        // Act
+        jettyServer.addContentLengthFilters(path, mockWebContext, mockProps)
 
-        bundles
-
-//        def rootClassLoader = ClassLoader.getSystemClassLoader()
-//        def systemBundle = SystemBundle.create(mockProps, rootClassLoader)
-//        def extensionMapping = NarUnpacker.unpackNars(mockProps, systemBundle)
-//        def narClassLoaders = NarClassLoadersHolder.getInstance()
-//        narClassLoaders.init(rootClassLoader, mockProps.getFrameworkWorkingDirectory(), mockProps.getExtensionsWorkingDirectory())
-//        def frameworkClassLoader = narClassLoaders.getFrameworkBundle().getClassLoader()
-//        def narBundles = narClassLoaders.getBundles()
-//
-//        Bundle mockWebApiBundle = new Bundle()
-//        Set<Bundle> mockBundles = []
-//        narBundles
+        // Assert
+        assert filters.size() == 1
+        def filterNames = filters*.name
+        logger.info("Web API Context has ${filters.size()} filters: ${filterNames.join(", ")}".toString())
+        assert filterNames.contains("DoSFilter")
+        assert !filterNames.contains("ContentLengthFilter")
     }
 }
 
