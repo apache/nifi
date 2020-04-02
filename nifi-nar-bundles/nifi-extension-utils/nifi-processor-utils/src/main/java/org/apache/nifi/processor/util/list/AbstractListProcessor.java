@@ -193,8 +193,9 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
                     " See the description of 'Entity Tracking Time Window' property for further details on how it works.");
 
     public static final AllowableValue NO_TRACKING = new AllowableValue("none", "No Tracking",
-            "This strategy lists an entity without any tracking. Any property that related to persist state" +
-                    " will be disregarded.");
+            "This strategy lists an entity without any tracking. The same entity will be listed each time" +
+                    " on executing this processor. It is recommended to change the default run schedule value." +
+                    " Any property that related to the persisting state will be disregarded.");
 
     public static final PropertyDescriptor LISTING_STRATEGY = new PropertyDescriptor.Builder()
         .name("listing-strategy")
