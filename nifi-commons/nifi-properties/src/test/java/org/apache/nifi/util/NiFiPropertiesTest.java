@@ -17,8 +17,9 @@
 package org.apache.nifi.util;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -269,7 +270,7 @@ public class NiFiPropertiesTest {
         }});
 
         // Assert defaults match expectations:
-        assertEquals(properties.getWebMaxContentSize(), "20 MB");
+        assertNull(properties.getWebMaxContentSize());
 
         // Re-arrange with specific values:
         final String size = "size value";

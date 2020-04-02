@@ -16,45 +16,7 @@
  */
 package org.apache.nifi.remote;
 
-import org.apache.commons.lang3.builder.ToStringBuilder;
-import org.apache.commons.lang3.builder.ToStringStyle;
-import org.apache.nifi.authorization.AuthorizationResult;
-import org.apache.nifi.authorization.AuthorizationResult.Result;
-import org.apache.nifi.authorization.Authorizer;
-import org.apache.nifi.authorization.RequestAction;
-import org.apache.nifi.authorization.resource.Authorizable;
-import org.apache.nifi.authorization.resource.DataTransferAuthorizable;
-import org.apache.nifi.authorization.user.NiFiUser;
-import org.apache.nifi.authorization.user.StandardNiFiUser.Builder;
-import org.apache.nifi.authorization.util.IdentityMapping;
-import org.apache.nifi.authorization.util.IdentityMappingUtil;
-import org.apache.nifi.authorization.util.UserGroupUtil;
-import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.connectable.ConnectableType;
-import org.apache.nifi.controller.AbstractPort;
-import org.apache.nifi.controller.ProcessScheduler;
-import org.apache.nifi.controller.ScheduledState;
-import org.apache.nifi.events.BulletinFactory;
-import org.apache.nifi.events.EventReporter;
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.ProcessSessionFactory;
-import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.remote.codec.FlowFileCodec;
-import org.apache.nifi.remote.exception.BadRequestException;
-import org.apache.nifi.remote.exception.NotAuthorizedException;
-import org.apache.nifi.remote.exception.ProtocolException;
-import org.apache.nifi.remote.exception.RequestExpiredException;
-import org.apache.nifi.remote.exception.TransmissionDisabledException;
-import org.apache.nifi.remote.protocol.CommunicationsSession;
-import org.apache.nifi.remote.protocol.ServerProtocol;
-import org.apache.nifi.reporting.BulletinRepository;
-import org.apache.nifi.reporting.ComponentType;
-import org.apache.nifi.reporting.Severity;
-import org.apache.nifi.scheduling.SchedulingStrategy;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
 import java.net.SocketTimeoutException;
@@ -71,8 +33,48 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-
-import static java.util.Objects.requireNonNull;
+import org.apache.commons.lang3.builder.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringStyle;
+import org.apache.nifi.authorization.AuthorizationResult;
+import org.apache.nifi.authorization.AuthorizationResult.Result;
+import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.RequestAction;
+import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.authorization.resource.DataTransferAuthorizable;
+import org.apache.nifi.authorization.user.NiFiUser;
+import org.apache.nifi.authorization.user.StandardNiFiUser.Builder;
+import org.apache.nifi.authorization.util.IdentityMapping;
+import org.apache.nifi.authorization.util.IdentityMappingUtil;
+import org.apache.nifi.authorization.util.UserGroupUtil;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.connectable.ConnectableType;
+import org.apache.nifi.connectable.Connection;
+import org.apache.nifi.controller.AbstractPort;
+import org.apache.nifi.controller.ProcessScheduler;
+import org.apache.nifi.controller.ScheduledState;
+import org.apache.nifi.events.BulletinFactory;
+import org.apache.nifi.events.EventReporter;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.ProcessSessionFactory;
+import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.exception.FlowFileAccessException;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.remote.codec.FlowFileCodec;
+import org.apache.nifi.remote.exception.BadRequestException;
+import org.apache.nifi.remote.exception.NotAuthorizedException;
+import org.apache.nifi.remote.exception.ProtocolException;
+import org.apache.nifi.remote.exception.RequestExpiredException;
+import org.apache.nifi.remote.exception.TransmissionDisabledException;
+import org.apache.nifi.remote.protocol.CommunicationsSession;
+import org.apache.nifi.remote.protocol.ServerProtocol;
+import org.apache.nifi.reporting.BulletinRepository;
+import org.apache.nifi.reporting.ComponentType;
+import org.apache.nifi.reporting.Severity;
+import org.apache.nifi.scheduling.SchedulingStrategy;
+import org.apache.nifi.util.NiFiProperties;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class StandardPublicPort extends AbstractPort implements PublicPort {
 
@@ -262,9 +264,20 @@ public class StandardPublicPort extends AbstractPort implements PublicPort {
         return receiveRequest.getProtocol().receiveFlowFiles(receiveRequest.getPeer(), context, session, codec);
     }
 
+    /**
+     * Returns {@code true} if the port is not a <em>local</em> input port (remote input ports are
+     * handled by {@link StandardRemoteGroupPort}), or if the local input port has at least one
+     * available connection.
+     *
+     * @return true if this port is valid
+     */
     @Override
     public boolean isValid() {
-        return getConnectableType() == ConnectableType.INPUT_PORT ? !getConnections(Relationship.ANONYMOUS).isEmpty() : true;
+        if (getConnectableType() == ConnectableType.INPUT_PORT) {
+            Set<Connection> availableConnections = getConnections(Relationship.ANONYMOUS);
+            return !availableConnections.isEmpty();
+        }
+        return true;
     }
 
     @Override
@@ -561,6 +574,16 @@ public class StandardPublicPort extends AbstractPort implements PublicPort {
             throw e;
         } catch (final ProtocolException e) {
             throw new BadRequestException(e);
+        } catch (final IOException | FlowFileAccessException e) {
+            // The content length filter might be blocking the transmission
+            final String REQUEST_TOO_LONG_MSG = "Request input stream longer than";
+            if (e.getMessage() != null && e.getMessage().contains(REQUEST_TOO_LONG_MSG)) {
+                logger.error("The content length filter (configured with {}) is blocking the site-to-site connection: {}", NiFiProperties.WEB_MAX_CONTENT_SIZE, e.getMessage());
+                // Perhaps BRE causes the sender to back off?
+                throw new BadRequestException(e);
+            } else {
+                throw new ProcessException(e);
+            }
         } catch (final Exception e) {
             throw new ProcessException(e);
         }

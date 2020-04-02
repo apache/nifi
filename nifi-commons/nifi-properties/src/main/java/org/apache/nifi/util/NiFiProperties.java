@@ -653,8 +653,15 @@ public abstract class NiFiProperties {
         return getProperty(WEB_MAX_HEADER_SIZE, DEFAULT_WEB_MAX_HEADER_SIZE);
     }
 
+    /**
+     * Returns the {@code nifi.web.max.content.size} value from {@code nifi.properties}.
+     * Does not provide a default value because the presence of any value here enables the
+     * {@code ContentLengthFilter}.
+     *
+     * @return the specified max content-length and units for an incoming HTTP request
+     */
     public String getWebMaxContentSize() {
-        return getProperty(WEB_MAX_CONTENT_SIZE, DEFAULT_WEB_MAX_CONTENT_SIZE);
+        return getProperty(WEB_MAX_CONTENT_SIZE);
     }
 
     public String getMaxWebRequestsPerSecond() {
