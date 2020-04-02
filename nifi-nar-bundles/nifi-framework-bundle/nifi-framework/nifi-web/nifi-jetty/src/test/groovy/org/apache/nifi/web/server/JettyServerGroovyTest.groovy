@@ -19,6 +19,7 @@ package org.apache.nifi.web.server
 import org.apache.log4j.AppenderSkeleton
 import org.apache.log4j.spi.LoggingEvent
 import org.apache.nifi.bundle.Bundle
+import org.apache.nifi.processor.DataUnit
 import org.apache.nifi.properties.StandardNiFiProperties
 import org.apache.nifi.security.util.CertificateUtils
 import org.apache.nifi.security.util.TlsConfiguration
@@ -29,7 +30,9 @@ import org.eclipse.jetty.server.HttpConfiguration
 import org.eclipse.jetty.server.Server
 import org.eclipse.jetty.server.ServerConnector
 import org.eclipse.jetty.server.SslConnectionFactory
+import org.eclipse.jetty.servlet.FilterHolder
 import org.eclipse.jetty.util.ssl.SslContextFactory
+import org.eclipse.jetty.webapp.WebAppContext
 import org.junit.After
 import org.junit.AfterClass
 import org.junit.Assume
@@ -48,6 +51,7 @@ import org.slf4j.LoggerFactory
 
 import javax.net.ssl.SSLSocket
 import javax.net.ssl.SSLSocketFactory
+import javax.servlet.DispatcherType
 import java.nio.charset.StandardCharsets
 import java.security.Security
 
@@ -387,6 +391,83 @@ class JettyServerGroovyTest extends GroovyTestCase {
         assert sslContextFactory._includeProtocols.containsAll(EXPECTED_INCLUDED_PROTOCOLS ?: Collections.emptySet())
         assert (sslContextFactory._excludeProtocols as List<String>).containsAll(LEGACY_TLS_PROTOCOLS)
         assert sslContextFactory._selectedProtocols == EXPECTED_SELECTED_PROTOCOLS as String[]
+    }
+
+    @Test
+    void testShouldEnableContentLengthFilterIfWebMaxContentSizeSet() {
+        // Arrange
+        Map defaultProps = [
+                (NiFiProperties.WEB_HTTP_PORT)       : "8080",
+                (NiFiProperties.WEB_HTTP_HOST)       : "localhost",
+                (NiFiProperties.WEB_MAX_CONTENT_SIZE): "1 MB",
+        ]
+        NiFiProperties mockProps = new StandardNiFiProperties(new Properties(defaultProps))
+
+        List<FilterHolder> filters = []
+        def mockWebContext = [
+                addFilter: { FilterHolder fh, String path, EnumSet<DispatcherType> d ->
+                    logger.mock("Called addFilter(${fh.name}, ${path}, ${d})")
+                    filters.add(fh)
+                    fh
+                }] as WebAppContext
+
+        JettyServer jettyServer = new JettyServer(new Server(), mockProps)
+        logger.info("Created JettyServer: ${jettyServer.dump()}")
+
+        String path = "/mock"
+
+        final int MAX_CONTENT_LENGTH_BYTES = DataUnit.parseDataSize(defaultProps[NiFiProperties.WEB_MAX_CONTENT_SIZE], DataUnit.B).intValue()
+
+        // Act
+        jettyServer.addDenialOfServiceFilters(path, mockWebContext, mockProps)
+
+        // Assert
+        assert filters.size() == 2
+        def filterNames = filters*.name
+        logger.info("Web API Context has ${filters.size()} filters: ${filterNames.join(", ")}".toString())
+        assert filterNames.contains("DoSFilter")
+        assert filterNames.contains("ContentLengthFilter")
+
+        FilterHolder clfHolder = filters.find { it.name == "ContentLengthFilter" }
+        String maxContentLength = clfHolder.getInitParameter("maxContentLength")
+        assert maxContentLength == MAX_CONTENT_LENGTH_BYTES as String
+
+        // Filter is not instantiated just by adding it
+//        ContentLengthFilter clf = filters?.find { it.className == "ContentLengthFilter" }?.filter as ContentLengthFilter
+//        assert clf.getMaxContentLength() == MAX_CONTENT_LENGTH_BYTES
+    }
+
+    @Test
+    void testShouldNotEnableContentLengthFilterIfWebMaxContentSizeEmpty() {
+        // Arrange
+        Map defaultProps = [
+                (NiFiProperties.WEB_HTTP_PORT): "8080",
+                (NiFiProperties.WEB_HTTP_HOST): "localhost",
+        ]
+        NiFiProperties mockProps = new StandardNiFiProperties(new Properties(defaultProps))
+
+        List<FilterHolder> filters = []
+        def mockWebContext = [
+                addFilter: { FilterHolder fh, String path, EnumSet<DispatcherType> d ->
+                    logger.mock("Called addFilter(${fh.name}, ${path}, ${d})")
+                    filters.add(fh)
+                    fh
+                }] as WebAppContext
+
+        JettyServer jettyServer = new JettyServer(new Server(), mockProps)
+        logger.info("Created JettyServer: ${jettyServer.dump()}")
+
+        String path = "/mock"
+
+        // Act
+        jettyServer.addDenialOfServiceFilters(path, mockWebContext, mockProps)
+
+        // Assert
+        assert filters.size() == 1
+        def filterNames = filters*.name
+        logger.info("Web API Context has ${filters.size()} filters: ${filterNames.join(", ")}".toString())
+        assert filterNames.contains("DoSFilter")
+        assert !filterNames.contains("ContentLengthFilter")
     }
 }
 
