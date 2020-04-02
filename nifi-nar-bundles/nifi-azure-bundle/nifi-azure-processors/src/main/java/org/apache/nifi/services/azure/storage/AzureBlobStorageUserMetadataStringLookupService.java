@@ -104,8 +104,8 @@ public class AzureBlobStorageUserMetadataStringLookupService extends AbstractCon
   }
 
   @Override
-  public Optional<String> lookup(Map<String, Object> coordinates) {
-    return Optional.empty();
+  public Optional<String> lookup(Map<String, Object> coordinates) throws LookupFailureException {
+    return lookup(coordinates, Collections.emptyMap());
   }
 
   @Override
