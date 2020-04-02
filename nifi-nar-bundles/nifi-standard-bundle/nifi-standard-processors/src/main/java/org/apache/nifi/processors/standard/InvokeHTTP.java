@@ -66,14 +66,8 @@ import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
-import okhttp3.Cache;
-import okhttp3.Credentials;
-import okhttp3.MediaType;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.RequestBody;
-import okhttp3.Response;
-import okhttp3.ResponseBody;
+
+import okhttp3.*;
 import okio.BufferedSink;
 import org.apache.commons.io.input.TeeInputStream;
 import org.apache.commons.lang3.StringUtils;
@@ -111,6 +105,7 @@ import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.ssl.SSLContextService.ClientAuth;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.Tuple;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 
@@ -120,20 +115,20 @@ import org.joda.time.format.DateTimeFormatter;
 @CapabilityDescription("An HTTP client processor which can interact with a configurable HTTP Endpoint. The destination URL and HTTP Method are configurable."
     + " FlowFile attributes are converted to HTTP headers and the FlowFile contents are included as the body of the request (if the HTTP Method is PUT, POST or PATCH).")
 @WritesAttributes({
-    @WritesAttribute(attribute = "invokehttp.status.code", description = "The status code that is returned"),
-    @WritesAttribute(attribute = "invokehttp.status.message", description = "The status message that is returned"),
-    @WritesAttribute(attribute = "invokehttp.response.body", description = "In the instance where the status code received is not a success (2xx) "
-        + "then the response body will be put to the 'invokehttp.response.body' attribute of the request FlowFile."),
-    @WritesAttribute(attribute = "invokehttp.request.url", description = "The request URL"),
-    @WritesAttribute(attribute = "invokehttp.tx.id", description = "The transaction ID that is returned after reading the response"),
-    @WritesAttribute(attribute = "invokehttp.remote.dn", description = "The DN of the remote server"),
-    @WritesAttribute(attribute = "invokehttp.java.exception.class", description = "The Java exception class raised when the processor fails"),
-    @WritesAttribute(attribute = "invokehttp.java.exception.message", description = "The Java exception message raised when the processor fails"),
-    @WritesAttribute(attribute = "user-defined", description = "If the 'Put Response Body In Attribute' property is set then whatever it is set to "
-        + "will become the attribute key and the value would be the body of the HTTP response.")})
+        @WritesAttribute(attribute = "invokehttp.status.code", description = "The status code that is returned"),
+        @WritesAttribute(attribute = "invokehttp.status.message", description = "The status message that is returned"),
+        @WritesAttribute(attribute = "invokehttp.response.body", description = "In the instance where the status code received is not a success (2xx) "
+                + "then the response body will be put to the 'invokehttp.response.body' attribute of the request FlowFile."),
+        @WritesAttribute(attribute = "invokehttp.request.url", description = "The request URL"),
+        @WritesAttribute(attribute = "invokehttp.tx.id", description = "The transaction ID that is returned after reading the response"),
+        @WritesAttribute(attribute = "invokehttp.remote.dn", description = "The DN of the remote server"),
+        @WritesAttribute(attribute = "invokehttp.java.exception.class", description = "The Java exception class raised when the processor fails"),
+        @WritesAttribute(attribute = "invokehttp.java.exception.message", description = "The Java exception message raised when the processor fails"),
+        @WritesAttribute(attribute = "user-defined", description = "If the 'Put Response Body In Attribute' property is set then whatever it is set to "
+                + "will become the attribute key and the value would be the body of the HTTP response.")})
 @DynamicProperty(name = "Header Name", value = "Attribute Expression Language", expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
-                    description = "Send request header with a key matching the Dynamic Property Key and a value created by evaluating "
-                            + "the Attribute Expression Language set in the value of the Dynamic Property.")
+        description = "Send request header with a key matching the Dynamic Property Key and a value created by evaluating "
+                + "the Attribute Expression Language set in the value of the Dynamic Property.")
 public final class InvokeHTTP extends AbstractProcessor {
     // flowfile attribute keys returned after reading the response
     public final static String STATUS_CODE = "invokehttp.status.code";
@@ -167,7 +162,7 @@ public final class InvokeHTTP extends AbstractProcessor {
     public static final PropertyDescriptor PROP_METHOD = new PropertyDescriptor.Builder()
             .name("HTTP Method")
             .description("HTTP request method (GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS). Arbitrary methods are also supported. "
-                + "Methods other than POST, PUT and PATCH will be sent without a message body.")
+                    + "Methods other than POST, PUT and PATCH will be sent without a message body.")
             .required(true)
             .defaultValue("GET")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -187,6 +182,7 @@ public final class InvokeHTTP extends AbstractProcessor {
             .description("Max wait time for connection to remote service.")
             .required(true)
             .defaultValue("5 secs")
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
 
@@ -195,6 +191,7 @@ public final class InvokeHTTP extends AbstractProcessor {
             .description("Max wait time for response from remote service.")
             .required(true)
             .defaultValue("15 secs")
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
 
@@ -497,11 +494,13 @@ public final class InvokeHTTP extends AbstractProcessor {
 
     private final AtomicReference<OkHttpClient> okHttpClientAtomicReference = new AtomicReference<>();
 
+    private static int timeout;
+
     @Override
     protected void init(ProcessorInitializationContext context) {
         excludedHeaders.put("Trusted Hostname", "HTTP request header '{}' excluded. " +
-                             "Update processor to use the SSLContextService instead. " +
-                             "See the Access Policies section in the System Administrator's Guide.");
+                "Update processor to use the SSLContextService instead. " +
+                "See the Access Policies section in the System Administrator's Guide.");
 
     }
 
@@ -638,8 +637,12 @@ public final class InvokeHTTP extends AbstractProcessor {
         }
 
         // Set timeouts
-        okHttpClientBuilder.connectTimeout((context.getProperty(PROP_CONNECT_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue()), TimeUnit.MILLISECONDS);
-        okHttpClientBuilder.readTimeout(context.getProperty(PROP_READ_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue(), TimeUnit.MILLISECONDS);
+        okHttpClientBuilder.connectTimeout((context.getProperty(PROP_CONNECT_TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS).intValue()), TimeUnit.MILLISECONDS);
+
+        if (context.getProperty(PROP_READ_TIMEOUT).isExpressionLanguagePresent())
+            okHttpClientBuilder.addInterceptor(new TimeoutInterceptor());
+        else
+            okHttpClientBuilder.readTimeout(context.getProperty(PROP_READ_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue(), TimeUnit.MILLISECONDS);
 
         // Set whether to follow redirects
         okHttpClientBuilder.followRedirects(context.getProperty(PROP_FOLLOW_REDIRECTS).asBoolean());
@@ -650,20 +653,20 @@ public final class InvokeHTTP extends AbstractProcessor {
         // check if the ssl context is set and add the factory if so
         if (sslContext != null) {
             Tuple<SSLContext, TrustManager[]> sslContextTuple =SslContextFactory.createTrustSslContextWithTrustManagers(
-                        sslService.getKeyStoreFile(),
-                        sslService.getKeyStorePassword() != null ? sslService.getKeyStorePassword().toCharArray() : null,
-                        sslService.getKeyPassword() != null ? sslService.getKeyPassword().toCharArray() : null,
-                        sslService.getKeyStoreType(),
-                        sslService.getTrustStoreFile(),
-                        sslService.getTrustStorePassword() != null ? sslService.getTrustStorePassword().toCharArray() : null,
-                        sslService.getTrustStoreType(),
-                        SslContextFactory.ClientAuth.NONE,
-                        sslService.getSslAlgorithm());
+                    sslService.getKeyStoreFile(),
+                    sslService.getKeyStorePassword() != null ? sslService.getKeyStorePassword().toCharArray() : null,
+                    sslService.getKeyPassword() != null ? sslService.getKeyPassword().toCharArray() : null,
+                    sslService.getKeyStoreType(),
+                    sslService.getTrustStoreFile(),
+                    sslService.getTrustStorePassword() != null ? sslService.getTrustStorePassword().toCharArray() : null,
+                    sslService.getTrustStoreType(),
+                    SslContextFactory.ClientAuth.NONE,
+                    sslService.getSslAlgorithm());
             List<X509TrustManager> x509TrustManagers = Arrays.stream(sslContextTuple.getValue())
                     .filter(trustManager -> trustManager instanceof X509TrustManager)
                     .map(trustManager -> (X509TrustManager) trustManager).collect(Collectors.toList());
             okHttpClientBuilder.sslSocketFactory(sslContextTuple.getKey().getSocketFactory(), x509TrustManagers.get(0));
-            }
+        }
 
         setAuthenticator(okHttpClientBuilder, context);
 
@@ -788,6 +791,9 @@ public final class InvokeHTTP extends AbstractProcessor {
             }
         }
 
+        if (context.getProperty(PROP_READ_TIMEOUT).isExpressionLanguagePresent())
+            timeout = context.getProperty(PROP_READ_TIMEOUT).evaluateAttributeExpressions(requestFlowFile).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
+
         // Setting some initial variables
         final int maxAttributeSize = context.getProperty(PROP_PUT_ATTRIBUTE_MAX_LENGTH).asInteger();
         final ComponentLog logger = getLogger();
@@ -891,7 +897,7 @@ public final class InvokeHTTP extends AbstractProcessor {
                         if (bodyExists) {
                             // write content type attribute to response flowfile if it is available
                             if (responseBody.contentType() != null) {
-                                 responseFlowFile = session.putAttribute(responseFlowFile, CoreAttributes.MIME_TYPE.key(), responseBody.contentType().toString());
+                                responseFlowFile = session.putAttribute(responseFlowFile, CoreAttributes.MIME_TYPE.key(), responseBody.contentType().toString());
                             }
                             if (teeInputStream != null) {
                                 responseFlowFile = session.importFrom(teeInputStream, responseFlowFile);
@@ -1204,22 +1210,22 @@ public final class InvokeHTTP extends AbstractProcessor {
         // create a new hashmap to store the values from the connection
         Map<String, String> map = new HashMap<>();
         responseHttp.headers().names().forEach( (key) -> {
-                if (key == null) {
-                    return;
-                }
+            if (key == null) {
+                return;
+            }
 
-                List<String> values = responseHttp.headers().values(key);
+            List<String> values = responseHttp.headers().values(key);
 
-                // we ignore any headers with no actual values (rare)
-                if (values == null || values.isEmpty()) {
-                    return;
-                }
+            // we ignore any headers with no actual values (rare)
+            if (values == null || values.isEmpty()) {
+                return;
+            }
 
-                // create a comma separated string from the values, this is stored in the map
-                String value = csv(values);
+            // create a comma separated string from the values, this is stored in the map
+            String value = csv(values);
 
-                // put the csv into the map
-                map.put(key, value);
+            // put the csv into the map
+            map.put(key, value);
         });
 
         if (responseHttp.request().isHttps()) {
@@ -1266,6 +1272,15 @@ public final class InvokeHTTP extends AbstractProcessor {
                 return true;
             }
             return delegate.verify(hostname, session);
+        }
+    }
+
+    class TimeoutInterceptor implements Interceptor {
+        @NonNull
+        @Override
+        public Response intercept(@NonNull Chain chain) throws IOException {
+            Chain chainWithNewTimeout = chain.withReadTimeout(timeout, TimeUnit.MILLISECONDS);
+            return chainWithNewTimeout.proceed(chain.request());
         }
     }
 }
