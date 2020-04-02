@@ -3106,8 +3106,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     // -----------------------------------------
 
     @Override
-    public SearchResultsDTO searchController(final String query) {
-        return controllerFacade.search(query);
+    public SearchResultsDTO searchController(final String query, final String activeGroupId) {
+        return controllerFacade.search(query, activeGroupId);
     }
 
     @Override

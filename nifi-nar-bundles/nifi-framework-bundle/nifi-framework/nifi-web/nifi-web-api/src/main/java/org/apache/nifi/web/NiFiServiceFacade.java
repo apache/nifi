@@ -197,9 +197,10 @@ public interface NiFiServiceFacade {
      * Searches the controller for the specified query string.
      *
      * @param query query
+     * @param activeGroupId the id of the group currently selected in the editor
      * @return results
      */
-    SearchResultsDTO searchController(String query);
+    SearchResultsDTO searchController(String query, String activeGroupId);
 
     /**
      * Submits a provenance request.

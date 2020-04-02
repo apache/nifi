@@ -291,7 +291,8 @@
                             $.ajax({
                                 type: 'GET',
                                 data: {
-                                    q: request.term
+                                    q: request.term,
+                                    a: nfCanvasUtils.getGroupId()
                                 },
                                 dataType: 'json',
                                 url: config.urls.search

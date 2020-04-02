@@ -19,648 +19,619 @@ package org.apache.nifi.web.controller;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.user.NiFiUser;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.connectable.Connection;
+import org.apache.nifi.connectable.Funnel;
+import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
-import org.apache.nifi.controller.StandardProcessorNode;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.label.Label;
-import org.apache.nifi.controller.service.ControllerServiceNode;
-import org.apache.nifi.controller.service.StandardControllerServiceNode;
 import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterContextManager;
 import org.apache.nifi.parameter.ParameterDescriptor;
-import org.apache.nifi.processor.Processor;
-import org.apache.nifi.registry.VariableRegistry;
-import org.apache.nifi.registry.flow.StandardVersionControlInformation;
-import org.apache.nifi.registry.flow.VersionControlInformation;
-import org.apache.nifi.registry.variable.MutableVariableRegistry;
+import org.apache.nifi.web.api.dto.search.ComponentSearchResultDTO;
 import org.apache.nifi.web.api.dto.search.SearchResultsDTO;
+import org.apache.nifi.web.search.ComponentMatcher;
+import org.apache.nifi.web.search.query.SearchQuery;
+import org.apache.nifi.web.search.resultenrichment.ComponentSearchResultEnricher;
+import org.apache.nifi.web.search.resultenrichment.ComponentSearchResultEnricherFactory;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.AdditionalMatchers;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.junit.MockitoJUnitRunner;
 
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.assertEquals;
-import static org.mockito.ArgumentMatchers.isNull;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.mock;
+@RunWith(MockitoJUnitRunner.class)
+public class ControllerSearchServiceTest  {
 
-public class ControllerSearchServiceTest {
-    private MutableVariableRegistry variableRegistry;
-    private ControllerSearchService service;
-    private SearchResultsDTO searchResultsDTO;
+    public static final String PROCESS_GROUP_SECOND_LEVEL_A = "secondLevelA";
+    public static final String PROCESS_GROUP_SECOND_LEVEL_B_1 = "secondLevelB1";
+    public static final String PROCESS_GROUP_SECOND_LEVEL_B_2 = "secondLevelB2";
+    public static final String PROCESS_GROUP_FIRST_LEVEL_A = "firstLevelA";
+    public static final String PROCESS_GROUP_FIRST_LEVEL_B = "firstLevelB";
+    public static final String PROCESS_GROUP_ROOT = "root";
+
+    @Mock
+    private SearchQuery searchQuery;
+
+    @Mock
+    private NiFiUser user;
+
+    @Mock
+    private Authorizer authorizer;
+
+    @Mock
+    private ComponentSearchResultEnricherFactory resultEnricherFactory;
+
+    @Mock
+    private ComponentSearchResultEnricher resultEnricher;
+
+    @Mock
     private FlowController flowController;
+
+    @Mock
+    private FlowManager flowManager;
+
+    @Mock
     private ParameterContextManager parameterContextManager;
+
+    @Mock
+    private ComponentMatcher<ProcessorNode> matcherForProcessor;
+
+    @Mock
+    private ComponentMatcher<ProcessGroup> matcherForProcessGroup;
+
+    @Mock
+    private ComponentMatcher<Connection> matcherForConnection;
+
+    @Mock
+    private ComponentMatcher<RemoteProcessGroup> matcherForRemoteProcessGroup;
+
+    @Mock
+    private ComponentMatcher<Port> matcherForPort;
+
+    @Mock
+    private ComponentMatcher<Funnel> matcherForFunnel;
+
+    @Mock
+    private ComponentMatcher<ParameterContext> matcherForParameterContext;
+
+    @Mock
+    private ComponentMatcher<Parameter> matcherForParameter;
+
+    @Mock
+    private ComponentMatcher<Label> matcherForLabel;
+
+    private HashMap<String, ProcessGroup> processGroups;
+
+    private ControllerSearchService testSubject;
+
+    private SearchResultsDTO results;
 
     @Before
     public void setUp() {
-        variableRegistry = mock(MutableVariableRegistry.class);
-        service = new ControllerSearchService();
-        searchResultsDTO = new SearchResultsDTO();
-        flowController = mock(FlowController.class);
+        Mockito.when(resultEnricherFactory.getComponentResultEnricher(Mockito.any(ProcessGroup.class), Mockito.any(NiFiUser.class))).thenReturn(resultEnricher);
+        Mockito.when(resultEnricherFactory.getProcessGroupResultEnricher(Mockito.any(ProcessGroup.class), Mockito.any(NiFiUser.class))).thenReturn(resultEnricher);
+        Mockito.when(resultEnricherFactory.getParameterResultEnricher(Mockito.any(ParameterContext.class))).thenReturn(resultEnricher);
+        Mockito.when(resultEnricher.enrich(Mockito.any(ComponentSearchResultDTO.class))).thenAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
 
-        FlowManager mockFlowManager = mock(FlowManager.class);
-        parameterContextManager = mock(ParameterContextManager.class);
+        Mockito.when(matcherForProcessor.match(Mockito.any(ProcessorNode.class), Mockito.any(SearchQuery.class))).thenReturn(Optional.of(new ComponentSearchResultDTO()));
+        Mockito.when(matcherForProcessGroup.match(Mockito.any(ProcessGroup.class), Mockito.any(SearchQuery.class))).thenReturn(Optional.of(new ComponentSearchResultDTO()));
+        Mockito.when(matcherForConnection.match(Mockito.any(Connection.class), Mockito.any(SearchQuery.class))).thenReturn(Optional.of(new ComponentSearchResultDTO()));
+        Mockito.when(matcherForRemoteProcessGroup.match(Mockito.any(RemoteProcessGroup.class), Mockito.any(SearchQuery.class))).thenReturn(Optional.of(new ComponentSearchResultDTO()));
+        Mockito.when(matcherForPort.match(Mockito.any(Port.class), Mockito.any(SearchQuery.class))).thenReturn(Optional.of(new ComponentSearchResultDTO()));
+        Mockito.when(matcherForFunnel.match(Mockito.any(Funnel.class), Mockito.any(SearchQuery.class))).thenReturn(Optional.of(new ComponentSearchResultDTO()));
+        Mockito.when(matcherForParameterContext.match(Mockito.any(ParameterContext.class), Mockito.any(SearchQuery.class))).thenReturn(Optional.of(new ComponentSearchResultDTO()));
+        Mockito.when(matcherForParameter.match(Mockito.any(Parameter.class), Mockito.any(SearchQuery.class))).thenReturn(Optional.of(new ComponentSearchResultDTO()));
+        Mockito.when(matcherForLabel.match(Mockito.any(Label.class), Mockito.any(SearchQuery.class))).thenReturn(Optional.of(new ComponentSearchResultDTO()));
 
-        doReturn(mockFlowManager).when(flowController).getFlowManager();
-        doReturn(parameterContextManager).when(mockFlowManager).getParameterContextManager();
-        service.setFlowController(flowController);
+        results = new SearchResultsDTO();
+        testSubject = givenTestSubject();
+        processGroups = new HashMap<>();
     }
 
     @Test
-    public void testSearchInRootLevelAllAuthorizedNoVersionControl() {
-        // root level PG
-        final ProcessGroup rootProcessGroup = setupMockedProcessGroup("root", null, true, variableRegistry, null);
+    public void testSearchChecksEveryComponentType() {
+        // given
+        givenSingleProcessGroupIsSetUp();
+        givenSearchQueryIsSetUp();
+        givenNoFilters();
 
-        // first level PGs
-        final ProcessGroup firstLevelAProcessGroup = setupMockedProcessGroup("firstLevelA", rootProcessGroup, true, variableRegistry, null);
-        final ProcessGroup firstLevelBProcessGroup = setupMockedProcessGroup("firstLevelB", rootProcessGroup, true, variableRegistry, null);
+        // when
+        testSubject.search(searchQuery, results);
 
-        // second level PGs
-        final ProcessGroup secondLevelAProcessGroup = setupMockedProcessGroup("secondLevelA", firstLevelAProcessGroup, true, variableRegistry, null);
-        final ProcessGroup secondLevelBProcessGroup = setupMockedProcessGroup("secondLevelB", firstLevelBProcessGroup, true, variableRegistry, null);
-        // third level PGs
-        final ProcessGroup thirdLevelAProcessGroup = setupMockedProcessGroup("thirdLevelA", secondLevelAProcessGroup, true, variableRegistry, null);
-        final ProcessGroup thirdLevelBProcessGroup = setupMockedProcessGroup("thirdLevelB", secondLevelAProcessGroup, true, variableRegistry, null);
-
-        // link PGs together
-        Mockito.doReturn(new HashSet<ProcessGroup>() {
-            {
-                add(firstLevelAProcessGroup);
-                add(firstLevelBProcessGroup);
-            }
-        }).when(rootProcessGroup).getProcessGroups();
-
-        Mockito.doReturn(new HashSet<ProcessGroup>() {
-            {
-                add(secondLevelAProcessGroup);
-            }
-        }).when(firstLevelAProcessGroup).getProcessGroups();
-        Mockito.doReturn(new HashSet<ProcessGroup>() {
-            {
-                add(secondLevelBProcessGroup);
-            }
-        }).when(firstLevelBProcessGroup).getProcessGroups();
-
-        Mockito.doReturn(new HashSet<ProcessGroup>() {
-            {
-                add(thirdLevelAProcessGroup);
-                add(thirdLevelBProcessGroup);
-            }
-        }).when(secondLevelAProcessGroup).getProcessGroups();
-
-        // setup processor
-        setupMockedProcessor("foobar", rootProcessGroup, true, variableRegistry);
-
-        // perform search
-        service.search(searchResultsDTO, "foo", rootProcessGroup);
-
-        assertTrue(searchResultsDTO.getProcessorResults().size() == 1);
-        assertTrue(searchResultsDTO.getProcessorResults().get(0).getId().equals("foobarId"));
-        assertTrue(searchResultsDTO.getProcessorResults().get(0).getParentGroup().getId().equals("rootId"));
-        assertTrue(searchResultsDTO.getProcessorResults().get(0).getParentGroup().getName().equals("root"));
-        assertTrue(searchResultsDTO.getProcessorResults().get(0).getVersionedGroup() == null);
+        // then
+        thenAllComponentTypeIsChecked();
+        thenAllComponentResultsAreCollected();
     }
 
     @Test
-    public void testSearchInThirdLevelAllAuthorizedNoVersionControl() {
-        // root level PG
-        final ProcessGroup rootProcessGroup = setupMockedProcessGroup("root", null, true, variableRegistry, null);
+    public void testSearchChecksChildrenGroupsToo() {
+        // given
+        givenProcessGroupsAreSetUp();
+        givenSearchQueryIsSetUp();
+        givenNoFilters();
 
-        // first level PGs
-        final ProcessGroup firstLevelAProcessGroup = setupMockedProcessGroup("firstLevelA", rootProcessGroup, true, variableRegistry, null);
-        final ProcessGroup firstLevelBProcessGroup = setupMockedProcessGroup("firstLevelB", rootProcessGroup, true, variableRegistry, null);
+        // when
+        testSubject.search(searchQuery, results);
 
-        // second level PGs
-        final ProcessGroup secondLevelAProcessGroup = setupMockedProcessGroup("secondLevelA", firstLevelAProcessGroup, true, variableRegistry, null);
-        final ProcessGroup secondLevelBProcessGroup = setupMockedProcessGroup("secondLevelB", firstLevelBProcessGroup, true, variableRegistry, null);
-        // third level PGs
-        final ProcessGroup thirdLevelAProcessGroup = setupMockedProcessGroup("thirdLevelA", secondLevelAProcessGroup, true, variableRegistry, null);
-        final ProcessGroup thirdLevelBProcessGroup = setupMockedProcessGroup("thirdLevelB", secondLevelAProcessGroup, true, variableRegistry, null);
-
-        // link PGs together
-        Mockito.doReturn(new HashSet<ProcessGroup>() {
-            {
-                add(firstLevelAProcessGroup);
-                add(firstLevelBProcessGroup);
-            }
-        }).when(rootProcessGroup).getProcessGroups();
-
-        Mockito.doReturn(new HashSet<ProcessGroup>() {
-            {
-                add(secondLevelAProcessGroup);
-            }
-        }).when(firstLevelAProcessGroup).getProcessGroups();
-
-        Mockito.doReturn(new HashSet<ProcessGroup>() {
-            {
-                add(secondLevelBProcessGroup);
-            }
-        }).when(firstLevelBProcessGroup).getProcessGroups();
-
-        Mockito.doReturn(new HashSet<ProcessGroup>() {
-            {
-                add(thirdLevelAProcessGroup);
-                add(thirdLevelBProcessGroup);
-            }
-        }).when(secondLevelAProcessGroup).getProcessGroups();
-
-        // setup processor
-        setupMockedProcessor("foobar", thirdLevelAProcessGroup, true, variableRegistry);
-
-        // perform search
-        service.search(searchResultsDTO, "foo", rootProcessGroup);
-
-        assertTrue(searchResultsDTO.getProcessorResults().size() == 1);
-        assertTrue(searchResultsDTO.getProcessorResults().get(0).getId().equals("foobarId"));
-        assertTrue(searchResultsDTO.getProcessorResults().get(0).getParentGroup().getId().equals("thirdLevelAId"));
-        assertTrue(searchResultsDTO.getProcessorResults().get(0).getParentGroup().getName().equals("thirdLevelA"));
-        assertTrue(searchResultsDTO.getProcessorResults().get(0).getVersionedGroup() == null);
+        // then
+        thenFollowingGroupsAreSearched(Arrays.asList(
+                PROCESS_GROUP_FIRST_LEVEL_A,
+                PROCESS_GROUP_SECOND_LEVEL_A,
+                PROCESS_GROUP_FIRST_LEVEL_B,
+                PROCESS_GROUP_SECOND_LEVEL_B_1,
+                PROCESS_GROUP_SECOND_LEVEL_B_2));
+        thenContentOfTheFollowingGroupsAreSearched(processGroups.keySet());
     }
 
     @Test
-    public void testSearchInThirdLevelParentNotAuthorizedNoVersionControl() {
-        // root level PG
-        final ProcessGroup rootProcessGroup = setupMockedProcessGroup("root", null, true, variableRegistry, null);
+    public void testSearchWhenGroupIsNotAuthorized() {
+        // given
+        givenProcessGroupsAreSetUp();
+        givenSearchQueryIsSetUp();
+        givenNoFilters();
+        givenProcessGroupIsNotAutorized(PROCESS_GROUP_FIRST_LEVEL_B);
 
-        // first level PGs
-        final ProcessGroup firstLevelAProcessGroup = setupMockedProcessGroup("firstLevelA", rootProcessGroup, true, variableRegistry, null);
-        final ProcessGroup firstLevelBProcessGroup = setupMockedProcessGroup("firstLevelB", rootProcessGroup, true, variableRegistry, null);
-
-        // second level PGs
-        final ProcessGroup secondLevelAProcessGroup = setupMockedProcessGroup("secondLevelA", firstLevelAProcessGroup, true, variableRegistry, null);
-        final ProcessGroup secondLevelBProcessGroup = setupMockedProcessGroup("secondLevelB", firstLevelBProcessGroup, true, variableRegistry, null);
-        // third level PGs - not authorized
-        final ProcessGroup thirdLevelAProcessGroup = setupMockedProcessGroup("thirdLevelA", secondLevelAProcessGroup, false, variableRegistry, null);
-        final ProcessGroup thirdLevelBProcessGroup = setupMockedProcessGroup("thirdLevelB", secondLevelAProcessGroup, false, variableRegistry, null);
-
-        // link PGs together
-        Mockito.doReturn(new HashSet<ProcessGroup>() {
-            {
-                add(firstLevelAProcessGroup);
-                add(firstLevelBProcessGroup);
-            }
-        }).when(rootProcessGroup).getProcessGroups();
-
-        Mockito.doReturn(new HashSet<ProcessGroup>() {
-            {
-                add(secondLevelAProcessGroup);
-            }
-        }).when(firstLevelAProcessGroup).getProcessGroups();
-
-        Mockito.doReturn(new HashSet<ProcessGroup>() {
-            {
-                add(secondLevelBProcessGroup);
-            }
-        }).when(firstLevelBProcessGroup).getProcessGroups();
-
-        Mockito.doReturn(new HashSet<ProcessGroup>() {
-            {
-                add(thirdLevelAProcessGroup);
-                add(thirdLevelBProcessGroup);
-            }
-        }).when(secondLevelAProcessGroup).getProcessGroups();
-
-        // setup processor
-        setupMockedProcessor("foobar", thirdLevelAProcessGroup, true, variableRegistry);
-
-        // perform search
-        service.search(searchResultsDTO, "foo", rootProcessGroup);
-
-        assertTrue(searchResultsDTO.getProcessorResults().size() == 1);
-        assertTrue(searchResultsDTO.getProcessorResults().get(0).getId().equals("foobarId"));
-        assertTrue(searchResultsDTO.getProcessorResults().get(0).getParentGroup().getId().equals("thirdLevelAId"));
-        assertTrue(searchResultsDTO.getProcessorResults().get(0).getParentGroup().getName() == null);
-        assertTrue(searchResultsDTO.getProcessorResults().get(0).getVersionedGroup() == null);
+        // when
+        testSubject.search(searchQuery, results);
+        // The authorization is not transitive, children groups might be good candidates.
+        thenFollowingGroupsAreSearched(Arrays.asList(
+                PROCESS_GROUP_FIRST_LEVEL_A,
+                PROCESS_GROUP_SECOND_LEVEL_A,
+                PROCESS_GROUP_SECOND_LEVEL_B_1,
+                PROCESS_GROUP_SECOND_LEVEL_B_2));
+        thenContentOfTheFollowingGroupsAreSearched(Arrays.asList(
+                PROCESS_GROUP_ROOT,
+                PROCESS_GROUP_FIRST_LEVEL_A,
+                PROCESS_GROUP_SECOND_LEVEL_A,
+                PROCESS_GROUP_FIRST_LEVEL_B,
+                PROCESS_GROUP_SECOND_LEVEL_B_1,
+                PROCESS_GROUP_SECOND_LEVEL_B_2));
     }
 
     @Test
-    public void testSearchInThirdLevelParentNotAuthorizedWithVersionControl() {
-        // root level PG
-        final ProcessGroup rootProcessGroup = setupMockedProcessGroup("root", null, true, variableRegistry, null);
+    public void testSearchWhenProcessNodeIsNotAuthorized() {
+        // given
+        givenSingleProcessGroupIsSetUp();
+        givenSearchQueryIsSetUp();
+        givenProcessorIsNotAuthorized();
+        givenNoFilters();
 
-        // first level PGs
-        final VersionControlInformation versionControlInformation = setupVC();
-        final ProcessGroup firstLevelAProcessGroup = setupMockedProcessGroup("firstLevelA", rootProcessGroup, true, variableRegistry, versionControlInformation);
-        final ProcessGroup firstLevelBProcessGroup = setupMockedProcessGroup("firstLevelB", rootProcessGroup, true, variableRegistry, null);
+        // when
+        testSubject.search(searchQuery, results);
 
-        // second level PGs
-        final ProcessGroup secondLevelAProcessGroup = setupMockedProcessGroup("secondLevelA", firstLevelAProcessGroup, true, variableRegistry, null);
-        final ProcessGroup secondLevelBProcessGroup = setupMockedProcessGroup("secondLevelB", firstLevelBProcessGroup, true, variableRegistry, null);
-        // third level PGs - not authorized
-        final ProcessGroup thirdLevelAProcessGroup = setupMockedProcessGroup("thirdLevelA", secondLevelAProcessGroup, false, variableRegistry, null);
-        final ProcessGroup thirdLevelBProcessGroup = setupMockedProcessGroup("thirdLevelB", secondLevelAProcessGroup, false, variableRegistry, null);
-
-        // link PGs together
-        Mockito.doReturn(new HashSet<ProcessGroup>() {
-            {
-                add(firstLevelAProcessGroup);
-                add(firstLevelBProcessGroup);
-            }
-        }).when(rootProcessGroup).getProcessGroups();
-
-        Mockito.doReturn(new HashSet<ProcessGroup>() {
-            {
-                add(secondLevelAProcessGroup);
-            }
-        }).when(firstLevelAProcessGroup).getProcessGroups();
-
-        Mockito.doReturn(new HashSet<ProcessGroup>() {
-            {
-                add(secondLevelBProcessGroup);
-            }
-        }).when(firstLevelBProcessGroup).getProcessGroups();
-
-        Mockito.doReturn(new HashSet<ProcessGroup>() {
-            {
-                add(thirdLevelAProcessGroup);
-                add(thirdLevelBProcessGroup);
-            }
-        }).when(secondLevelAProcessGroup).getProcessGroups();
-
-        // setup processor
-        setupMockedProcessor("foobar", thirdLevelAProcessGroup, true, variableRegistry);
-
-        // perform search
-        service.search(searchResultsDTO, "foo", rootProcessGroup);
-
-        assertTrue(searchResultsDTO.getProcessorResults().size() == 1);
-        assertTrue(searchResultsDTO.getProcessorResults().get(0).getId().equals("foobarId"));
-        assertTrue(searchResultsDTO.getProcessorResults().get(0).getParentGroup().getId().equals("thirdLevelAId"));
-        assertTrue(searchResultsDTO.getProcessorResults().get(0).getParentGroup().getName() == null);
-        assertTrue(searchResultsDTO.getProcessorResults().get(0).getVersionedGroup() != null);
-        assertTrue(searchResultsDTO.getProcessorResults().get(0).getVersionedGroup().getId().equals("firstLevelAId"));
-        assertTrue(searchResultsDTO.getProcessorResults().get(0).getVersionedGroup().getName().equals("firstLevelA"));
+        // then
+        thenProcessorMatcherIsNotCalled();
     }
 
     @Test
-    public void testSearchInThirdLevelParentNotAuthorizedWithVersionControlInTheGroup() {
-        // root level PG
-        final ProcessGroup rootProcessGroup = setupMockedProcessGroup("root", null, true, variableRegistry, null);
+    public void testSearchWithHereFilterShowsActualGroupAndSubgroupsOnly() {
+        // given
+        givenProcessGroupsAreSetUp();
+        givenSearchQueryIsSetUp(processGroups.get(PROCESS_GROUP_FIRST_LEVEL_A));
+        givenScopeFilterIsSet();
 
-        // first level PGs
-        final ProcessGroup firstLevelAProcessGroup = setupMockedProcessGroup("firstLevelA", rootProcessGroup, true, variableRegistry, null);
-        final ProcessGroup firstLevelBProcessGroup = setupMockedProcessGroup("firstLevelB", rootProcessGroup, true, variableRegistry, null);
+        // when
+        testSubject.search(searchQuery, results);
 
-        // second level PGs
-        final ProcessGroup secondLevelAProcessGroup = setupMockedProcessGroup("secondLevelA", firstLevelAProcessGroup, true, variableRegistry, null);
-        final ProcessGroup secondLevelBProcessGroup = setupMockedProcessGroup("secondLevelB", firstLevelBProcessGroup, true, variableRegistry, null);
-        // third level PGs - not authorized
-        final VersionControlInformation versionControlInformation = setupVC();
-        final ProcessGroup thirdLevelAProcessGroup = setupMockedProcessGroup("thirdLevelA", secondLevelAProcessGroup, false, variableRegistry, versionControlInformation);
-        final ProcessGroup thirdLevelBProcessGroup = setupMockedProcessGroup("thirdLevelB", secondLevelAProcessGroup, false, variableRegistry, null);
+        // then
+        thenFollowingGroupsAreSearched(Arrays.asList(
+                PROCESS_GROUP_FIRST_LEVEL_A,
+                PROCESS_GROUP_SECOND_LEVEL_A));
+    }
 
-        // link PGs together
-        Mockito.doReturn(new HashSet<ProcessGroup>() {
-            {
-                add(firstLevelAProcessGroup);
-                add(firstLevelBProcessGroup);
-            }
-        }).when(rootProcessGroup).getProcessGroups();
+    @Test
+    public void testSearchWithHereFilterAndInRoot() {
+        // given
+        givenProcessGroupsAreSetUp();
+        givenSearchQueryIsSetUp();
+        givenScopeFilterIsSet();
 
-        Mockito.doReturn(new HashSet<ProcessGroup>() {
-            {
-                add(secondLevelAProcessGroup);
-            }
-        }).when(firstLevelAProcessGroup).getProcessGroups();
+        // when
+        testSubject.search(searchQuery, results);
 
-        Mockito.doReturn(new HashSet<ProcessGroup>() {
-            {
-                add(secondLevelBProcessGroup);
-            }
-        }).when(firstLevelBProcessGroup).getProcessGroups();
+        // then
+        thenFollowingGroupsAreSearched(Arrays.asList(
+                PROCESS_GROUP_FIRST_LEVEL_A,
+                PROCESS_GROUP_SECOND_LEVEL_A,
+                PROCESS_GROUP_FIRST_LEVEL_B,
+                PROCESS_GROUP_SECOND_LEVEL_B_1,
+                PROCESS_GROUP_SECOND_LEVEL_B_2));
+        thenContentOfTheFollowingGroupsAreSearched(processGroups.keySet());
+    }
 
-        Mockito.doReturn(new HashSet<ProcessGroup>() {
-            {
-                add(thirdLevelAProcessGroup);
-                add(thirdLevelBProcessGroup);
-            }
-        }).when(secondLevelAProcessGroup).getProcessGroups();
 
-        // setup processor
-        setupMockedProcessor("foobar", thirdLevelAProcessGroup, true, variableRegistry);
+    @Test
+    public void testSearchWithGroupFilterShowsPointedGroupAndSubgroupsOnly() {
+        // given
+        givenProcessGroupsAreSetUp();
+        givenSearchQueryIsSetUp();
+        givenGroupFilterIsSet(PROCESS_GROUP_FIRST_LEVEL_B + "Name");
 
-        // perform search
-        service.search(searchResultsDTO, "foo", rootProcessGroup);
+        // when
+        testSubject.search(searchQuery, results);
 
-        assertTrue(searchResultsDTO.getProcessorResults().size() == 1);
-        assertTrue(searchResultsDTO.getProcessorResults().get(0).getId().equals("foobarId"));
-        assertTrue(searchResultsDTO.getProcessorResults().get(0).getParentGroup().getId().equals("thirdLevelAId"));
-        assertTrue(searchResultsDTO.getProcessorResults().get(0).getParentGroup().getName() == null);
-        assertTrue(searchResultsDTO.getProcessorResults().get(0).getVersionedGroup() != null);
-        assertTrue(searchResultsDTO.getProcessorResults().get(0).getVersionedGroup().getId().equals("thirdLevelAId"));
-        assertTrue(searchResultsDTO.getProcessorResults().get(0).getVersionedGroup().getName() == null);
+        // then
+        thenFollowingGroupsAreSearched(Arrays.asList( //
+                PROCESS_GROUP_FIRST_LEVEL_B, //
+                PROCESS_GROUP_SECOND_LEVEL_B_1, //
+                PROCESS_GROUP_SECOND_LEVEL_B_2));
+    }
+
+    @Test
+    public void testSearchGroupWithLowerCase() {
+        // given
+        givenProcessGroupsAreSetUp();
+        givenSearchQueryIsSetUp();
+        givenGroupFilterIsSet((PROCESS_GROUP_FIRST_LEVEL_B + "Name").toLowerCase());
+
+        // when
+        testSubject.search(searchQuery, results);
+
+        // then
+        thenFollowingGroupsAreSearched(Arrays.asList( //
+                PROCESS_GROUP_FIRST_LEVEL_B, //
+                PROCESS_GROUP_SECOND_LEVEL_B_1, //
+                PROCESS_GROUP_SECOND_LEVEL_B_2));
+    }
+
+    @Test
+    public void testSearchGroupWithPartialMatch() {
+        // given
+        givenProcessGroupsAreSetUp();
+        givenSearchQueryIsSetUp();
+        givenGroupFilterIsSet((PROCESS_GROUP_FIRST_LEVEL_B + "Na"));
+
+        // when
+        testSubject.search(searchQuery, results);
+
+        // then
+        thenFollowingGroupsAreSearched(Arrays.asList( //
+                PROCESS_GROUP_FIRST_LEVEL_B, //
+                PROCESS_GROUP_SECOND_LEVEL_B_1, //
+                PROCESS_GROUP_SECOND_LEVEL_B_2));
+    }
+
+    @Test
+    public void testSearchGroupBasedOnIdentifier() {
+        // given
+        givenProcessGroupsAreSetUp();
+        givenSearchQueryIsSetUp();
+        givenGroupFilterIsSet((PROCESS_GROUP_FIRST_LEVEL_B + "Id"));
+
+        // when
+        testSubject.search(searchQuery, results);
+
+        // then
+        thenFollowingGroupsAreSearched(Arrays.asList( //
+                PROCESS_GROUP_FIRST_LEVEL_B, //
+                PROCESS_GROUP_SECOND_LEVEL_B_1, //
+                PROCESS_GROUP_SECOND_LEVEL_B_2));
+    }
+
+    @Test
+    public void testSearchWithGroupWhenRoot() {
+        // given
+        givenProcessGroupsAreSetUp();
+        givenSearchQueryIsSetUp();
+        givenGroupFilterIsSet(PROCESS_GROUP_ROOT + "Name");
+
+        // when
+        testSubject.search(searchQuery, results);
+
+        // then
+        thenFollowingGroupsAreSearched(Arrays.asList(
+                PROCESS_GROUP_FIRST_LEVEL_A,
+                PROCESS_GROUP_SECOND_LEVEL_A,
+                PROCESS_GROUP_FIRST_LEVEL_B,
+                PROCESS_GROUP_SECOND_LEVEL_B_1,
+                PROCESS_GROUP_SECOND_LEVEL_B_2));
+        thenContentOfTheFollowingGroupsAreSearched(processGroups.keySet());
+    }
+
+    @Test
+    public void testSearchWithGroupWhenValueIsNonExisting() {
+        // given
+        givenProcessGroupsAreSetUp();
+        givenSearchQueryIsSetUp();
+        givenGroupFilterIsSet("Unknown");
+
+        // when
+        testSubject.search(searchQuery, results);
+
+        // then
+        thenFollowingGroupsAreSearched(Arrays.asList());
+    }
+
+    @Test
+    public void testWhenBothFiltersPresentAndScopeIsMoreRestricting() {
+        // given
+        givenProcessGroupsAreSetUp();
+        givenSearchQueryIsSetUp(processGroups.get(PROCESS_GROUP_SECOND_LEVEL_B_1));
+        givenScopeFilterIsSet();
+        givenGroupFilterIsSet(PROCESS_GROUP_FIRST_LEVEL_B + "Name");
+
+        // when
+        testSubject.search(searchQuery, results);
+
+        // then
+        thenFollowingGroupsAreSearched(Arrays.asList(PROCESS_GROUP_SECOND_LEVEL_B_1));
+    }
+
+    @Test
+    public void testWhenBothFiltersPresentAndGroupIsMoreRestricting() {
+        // given
+        givenProcessGroupsAreSetUp();
+        givenSearchQueryIsSetUp(processGroups.get(PROCESS_GROUP_FIRST_LEVEL_B));
+        givenScopeFilterIsSet();
+        givenGroupFilterIsSet(PROCESS_GROUP_SECOND_LEVEL_B_1 + "Name");
+
+        // when
+        testSubject.search(searchQuery, results);
+
+        // then
+        thenFollowingGroupsAreSearched(Arrays.asList(PROCESS_GROUP_SECOND_LEVEL_B_1));
+    }
+
+    @Test
+    public void testWhenBothFiltersPresentTheyAreNotOverlapping() {
+        // given
+        givenProcessGroupsAreSetUp();
+        givenSearchQueryIsSetUp(processGroups.get(PROCESS_GROUP_FIRST_LEVEL_B));
+        givenScopeFilterIsSet();
+        givenGroupFilterIsSet(PROCESS_GROUP_FIRST_LEVEL_A + "Name");
+
+        // when
+        testSubject.search(searchQuery, results);
+
+        // then
+        thenFollowingGroupsAreSearched(Arrays.asList());
     }
 
     @Test
     public void testSearchParameterContext() {
-        final ParameterContext paramContext1 = setupMockedParameterContext("foo", "description for parameter context foo", 1, "foo_param", true);
-        final ParameterContext paramContext2 = setupMockedParameterContext("bar", "description for parameter context bar", 2, "bar_param", true);
-        final Set<ParameterContext> mockedParameterContexts = new HashSet<ParameterContext>();
-        mockedParameterContexts.add(paramContext1);
-        mockedParameterContexts.add(paramContext2);
+        // given
+        givenSingleProcessGroupIsSetUp();
+        givenSearchQueryIsSetUp();
+        givenParameterSearchIsSetUp(true);
 
-        Mockito.doReturn(mockedParameterContexts).when(parameterContextManager).getParameterContexts();
+        // when
+        testSubject.searchParameters(searchQuery, results);
 
-        service.searchParameters(searchResultsDTO, "foo");
-
-        assertEquals(1, searchResultsDTO.getParameterContextResults().size());
-        assertEquals("fooId", searchResultsDTO.getParameterContextResults().get(0).getId());
-        assertEquals("foo", searchResultsDTO.getParameterContextResults().get(0).getName());
-        // should have a match for the name, id, description
-        assertEquals(3, searchResultsDTO.getParameterContextResults().get(0).getMatches().size());
-
-        assertEquals(1, searchResultsDTO.getParameterResults().size());
-
-        assertEquals("fooId", searchResultsDTO.getParameterResults().get(0).getParentGroup().getId());
-        assertEquals("foo_param_0", searchResultsDTO.getParameterResults().get(0).getName());
-        // and the parameter name, parameter description, and the parameter value
-        assertEquals(3, searchResultsDTO.getParameterResults().get(0).getMatches().size());
+        // then
+        thenParameterComponentTypesAreChecked();
+        thenAllParameterComponentResultsAreCollected();
     }
 
     @Test
-    public void testSearchParameterContextNotAuthorized() {
-        final ParameterContext paramContext1 = setupMockedParameterContext("foo", "description for parameter context foo", 1, "foo_param", false);
-        final ParameterContext paramContext2 = setupMockedParameterContext("bar", "description for parameter context bar", 2, "bar_param", true);
-        final Set<ParameterContext> mockedParameterContexts = new HashSet<ParameterContext>();
-        mockedParameterContexts.add(paramContext1);
-        mockedParameterContexts.add(paramContext2);
+    public void testSearchParameterContextWhenNotAuthorized() {
+        // given
+        givenSingleProcessGroupIsSetUp();
+        givenSearchQueryIsSetUp();
+        givenParameterSearchIsSetUp(false);
 
-        Mockito.doReturn(mockedParameterContexts).when(parameterContextManager).getParameterContexts();
+        // when
+        testSubject.searchParameters(searchQuery, results);
 
-        service.searchParameters(searchResultsDTO, "foo");
-
-        // the matching parameter context is not readable by the user, so there should not be any results
-        assertEquals(0, searchResultsDTO.getParameterContextResults().size());
-        assertEquals(0, searchResultsDTO.getParameterResults().size());
+        // then
+        thenParameterSpecificComponentTypesAreNotChecked();
     }
 
-    @Test
-    public void testSearchLabels() {
-        // root level PG
-        final ProcessGroup rootProcessGroup = setupMockedProcessGroup("root", null, true, variableRegistry, null);
-
-        // setup labels
-        setupMockedLabels(rootProcessGroup);
-
-        // perform search for foo
-        service.search(searchResultsDTO, "FOO", rootProcessGroup);
-
-        assertTrue(searchResultsDTO.getLabelResults().size() == 1);
-        assertTrue(searchResultsDTO.getLabelResults().get(0).getId().equals("foo"));
-        assertTrue(searchResultsDTO.getLabelResults().get(0).getName().equals("Value for label foo"));
+    private ControllerSearchService givenTestSubject() {
+        final ControllerSearchService result = new ControllerSearchService();
+        result.setAuthorizer(authorizer);
+        result.setFlowController(flowController);
+        result.setMatcherForProcessor(matcherForProcessor);
+        result.setMatcherForProcessGroup(matcherForProcessGroup);
+        result.setMatcherForConnection(matcherForConnection);
+        result.setMatcherForRemoteProcessGroup(matcherForRemoteProcessGroup);
+        result.setMatcherForPort(matcherForPort);
+        result.setMatcherForFunnel(matcherForFunnel);
+        result.setMatcherForParameterContext(matcherForParameterContext);
+        result.setMatcherForParameter(matcherForParameter);
+        result.setMatcherForLabel(matcherForLabel);
+        result.setResultEnricherFactory(resultEnricherFactory);
+        return result;
     }
 
-    @Test
-    public void testSearchControllerServices() {
-        final ProcessGroup rootProcessGroup = setupMockedProcessGroup("root", null, true, variableRegistry, null);
+    private void givenSingleProcessGroupIsSetUp() {
+        final ProcessGroup root = givenProcessGroup(PROCESS_GROUP_ROOT, true, Collections.emptySet(), Collections.emptySet());
 
-        final String controllerServiceName = "controllerServiceName";
-        final String controllerServiceId = controllerServiceName + "Id";
+        final ProcessorNode processorNode = Mockito.mock(ProcessorNode.class);
+        Mockito.when(processorNode.isAuthorized(authorizer, RequestAction.READ, user)).thenReturn(true);
+        Mockito.when(root.getProcessors()).thenReturn(Collections.singletonList(processorNode));
 
-        final Map<PropertyDescriptor, String> props = new HashMap<>();
-        final PropertyDescriptor prop1 = new PropertyDescriptor.Builder()
-            .name("prop1-name")
-            .displayName("prop1-displayname")
-            .description("prop1 description")
-            .defaultValue("prop1-default")
-            .build();
-            final PropertyDescriptor prop2 = new PropertyDescriptor.Builder()
-            .name("prop2-name")
-            .displayName("prop2-displayname")
-            .description("prop2 description")
-            .defaultValue("prop2-default")
-            .build();
-        props.put(prop1, "prop1-value");
-        props.put(prop2, null);
+        final Connection connection = Mockito.mock(Connection.class);
+        Mockito.when(connection.isAuthorized(authorizer, RequestAction.READ, user)).thenReturn(true);
+        Mockito.when(root.getConnections()).thenReturn(new HashSet<>(Arrays.asList(connection)));
 
-        setupMockedControllerService(controllerServiceName, rootProcessGroup, true, props);
+        final RemoteProcessGroup remoteProcessGroup = Mockito.mock(RemoteProcessGroup.class);
+        Mockito.when(remoteProcessGroup.isAuthorized(authorizer, RequestAction.READ, user)).thenReturn(true);
+        Mockito.when(root.getRemoteProcessGroups()).thenReturn(new HashSet<>(Arrays.asList(remoteProcessGroup)));
 
-        // search for name
-        service.search(searchResultsDTO, "controllerserv", rootProcessGroup);
+        final Port port = Mockito.mock(Port.class);
+        Mockito.when(port.isAuthorized(authorizer, RequestAction.READ, user)).thenReturn(true);
+        Mockito.when(root.getInputPorts()).thenReturn(new HashSet<>(Arrays.asList(port)));
+        Mockito.when(root.getOutputPorts()).thenReturn(new HashSet<>(Arrays.asList(port)));
 
-        assertEquals(1, searchResultsDTO.getControllerServiceNodeResults().size());
-        assertEquals(controllerServiceId, searchResultsDTO.getControllerServiceNodeResults().get(0).getId());
-        assertEquals(controllerServiceName, searchResultsDTO.getControllerServiceNodeResults().get(0).getName());
+        final Funnel funnel = Mockito.mock(Funnel.class);
+        Mockito.when(funnel.isAuthorized(authorizer, RequestAction.READ, user)).thenReturn(true);
+        Mockito.when(root.getFunnels()).thenReturn(new HashSet<>(Arrays.asList(funnel)));
 
-        // search for comments
-        searchResultsDTO = new SearchResultsDTO();
-        service.search(searchResultsDTO, "foo comment", rootProcessGroup);
-
-        assertEquals(1, searchResultsDTO.getControllerServiceNodeResults().size());
-        assertEquals(controllerServiceId, searchResultsDTO.getControllerServiceNodeResults().get(0).getId());
-        assertEquals(controllerServiceName, searchResultsDTO.getControllerServiceNodeResults().get(0).getName());
-
-        // search for properties
-        searchResultsDTO = new SearchResultsDTO();
-        service.search(searchResultsDTO, "prop1-name", rootProcessGroup);
-
-        assertEquals(1, searchResultsDTO.getControllerServiceNodeResults().size());
-        assertEquals(controllerServiceId, searchResultsDTO.getControllerServiceNodeResults().get(0).getId());
-        assertEquals(controllerServiceName, searchResultsDTO.getControllerServiceNodeResults().get(0).getName());
-
-        // by default
-        searchResultsDTO = new SearchResultsDTO();
-        service.search(searchResultsDTO, "prop2-def", rootProcessGroup);
-
-        assertEquals(1, searchResultsDTO.getControllerServiceNodeResults().size());
-        assertEquals(controllerServiceId, searchResultsDTO.getControllerServiceNodeResults().get(0).getId());
-        assertEquals(controllerServiceName, searchResultsDTO.getControllerServiceNodeResults().get(0).getName());
-
-        // by description
-        searchResultsDTO = new SearchResultsDTO();
-        service.search(searchResultsDTO, "desc", rootProcessGroup);
-
-        // "desc" would typically match both props, but it's for the same controller service.
-        assertEquals(1, searchResultsDTO.getControllerServiceNodeResults().size());
-        assertEquals(controllerServiceId, searchResultsDTO.getControllerServiceNodeResults().get(0).getId());
-        assertEquals(controllerServiceName, searchResultsDTO.getControllerServiceNodeResults().get(0).getName());
-
-        // by specified value
-        searchResultsDTO = new SearchResultsDTO();
-        service.search(searchResultsDTO, "prop1-value", rootProcessGroup);
-
-        assertEquals(1, searchResultsDTO.getControllerServiceNodeResults().size());
-        assertEquals(controllerServiceId, searchResultsDTO.getControllerServiceNodeResults().get(0).getId());
-        assertEquals(controllerServiceName, searchResultsDTO.getControllerServiceNodeResults().get(0).getName());
-
-        // search finding no match
-        searchResultsDTO = new SearchResultsDTO();
-        service.search(searchResultsDTO, "ZZZZZZZZZYYYYYY", rootProcessGroup);
-
-        assertEquals(0, searchResultsDTO.getControllerServiceNodeResults().size());
+        final Label label = Mockito.mock(Label.class);
+        Mockito.when(label.isAuthorized(authorizer, RequestAction.READ, user)).thenReturn(true);
+        Mockito.when(root.getLabels()).thenReturn(new HashSet<>(Arrays.asList(label)));
     }
 
-    /**
-     * Mocks Labels including isAuthorized() and their identifier and value
-     *
-     * @param containingProcessGroup The process group
-     */
-    private static void setupMockedLabels(final ProcessGroup containingProcessGroup) {
-        final Label label1 = mock(Label.class);
-        Mockito.doReturn(true).when(label1).isAuthorized(AdditionalMatchers.or(any(Authorizer.class), isNull()), eq(RequestAction.READ),
-                AdditionalMatchers.or(any(NiFiUser.class), isNull()));
-        Mockito.doReturn("foo").when(label1).getIdentifier();
-        Mockito.doReturn("Value for label foo").when(label1).getValue();
+    private void givenProcessGroupsAreSetUp() {
+        final ProcessGroup secondLevelAProcessGroup = givenProcessGroup(PROCESS_GROUP_SECOND_LEVEL_A, true, Collections.emptySet(), Collections.emptySet());
+        final ProcessGroup secondLevelB1ProcessGroup = givenProcessGroup(PROCESS_GROUP_SECOND_LEVEL_B_1, true, Collections.emptySet(), Collections.emptySet());
+        final ProcessGroup secondLevelB2ProcessGroup = givenProcessGroup(PROCESS_GROUP_SECOND_LEVEL_B_2, true, Collections.emptySet(), Collections.emptySet());
 
-        final Label label2 = mock(Label.class);
-        Mockito.doReturn(false).when(label2).isAuthorized(AdditionalMatchers.or(any(Authorizer.class), isNull()), eq(RequestAction.READ),
-                AdditionalMatchers.or(any(NiFiUser.class), isNull()));
-        Mockito.doReturn("bar").when(label2).getIdentifier();
-        Mockito.doReturn("Value for label bar, but FOO is in here too").when(label2).getValue();
+        final ProcessGroup firstLevelAProcessGroup = givenProcessGroup(PROCESS_GROUP_FIRST_LEVEL_A, //
+                true, Collections.emptySet(), Collections.singleton(secondLevelAProcessGroup));
+        final ProcessGroup firstLevelBProcessGroup = givenProcessGroup(PROCESS_GROUP_FIRST_LEVEL_B, //
+                true, Collections.emptySet(), new HashSet<>(Arrays.asList(secondLevelB1ProcessGroup, secondLevelB2ProcessGroup)));
 
-        // assign labels to the PG
-        Mockito.doReturn(new HashSet<Label>() {
-            {
-                add(label1);
-                add(label2);
-            }
-        }).when(containingProcessGroup).getLabels();
+        final ProcessGroup root =  givenProcessGroup(PROCESS_GROUP_ROOT, //
+                true, Collections.emptySet(), new HashSet<>(Arrays.asList(firstLevelAProcessGroup, firstLevelBProcessGroup)));
     }
 
-    /**
-     * Sets up a mock Parameter Context including isAuthorized()
-     * @param name                     name of the parameter context
-     * @param description              description of the parameter context
-     * @param numberOfParams           number of parameters to include as part of this context
-     * @param parameterNamePrefix      a prefix for the parameter names
-     * @param authorizedToRead         whether or not the user can read the parameter context
-     * @return ParameterContext
-     */
-    private ParameterContext setupMockedParameterContext(String name, String description, int numberOfParams, String parameterNamePrefix, boolean authorizedToRead) {
-        final ParameterContext parameterContext = mock(ParameterContext.class);
-        Mockito.doReturn(name + "Id").when(parameterContext).getIdentifier();
-        Mockito.doReturn(name).when(parameterContext).getName();
-        Mockito.doReturn(description).when(parameterContext).getDescription();
+    private void givenSearchQueryIsSetUp() {
+        givenSearchQueryIsSetUp(processGroups.get(PROCESS_GROUP_ROOT));
+    }
 
-        Mockito.doReturn(authorizedToRead).when(parameterContext).isAuthorized(AdditionalMatchers.or(any(Authorizer.class), isNull()), eq(RequestAction.READ),
-                AdditionalMatchers.or(any(NiFiUser.class), isNull()));
+    private void givenSearchQueryIsSetUp(final ProcessGroup activeProcessGroup) {
+        Mockito.when(searchQuery.getUser()).thenReturn(user);
+        Mockito.when(searchQuery.getRootGroup()).thenReturn(processGroups.get(PROCESS_GROUP_ROOT));
+        Mockito.when(searchQuery.getActiveGroup()).thenReturn(activeProcessGroup);
+    }
 
-        Map<ParameterDescriptor, Parameter> parameters = new HashMap<>();
-        for (int i = 0; i < numberOfParams; i++) {
-            final ParameterDescriptor descriptor = new ParameterDescriptor.Builder()
-                    .name(parameterNamePrefix + "_" + i)
-                    .description("Description for " + parameterNamePrefix + "_" + i)
-                    .sensitive(false)
-                    .build();
+    private ProcessGroup givenProcessGroup( //
+            final String identifier, //
+            final boolean isAuthorized, //
+            final Set<ProcessorNode> processors, //
+            final Set<ProcessGroup> children) {
+        final ProcessGroup result = Mockito.mock(ProcessGroup.class);
+        final Funnel funnel = Mockito.mock(Funnel.class); // This is for testing if group content was searched
+        Mockito.when(funnel.isAuthorized(authorizer, RequestAction.READ, user)).thenReturn(isAuthorized);
 
-            final Parameter param = new Parameter(descriptor, parameterNamePrefix + "_" + i + " value");
-            parameters.put(descriptor, param);
+        Mockito.when(result.getName()).thenReturn(identifier + "Name");
+        Mockito.when(result.getIdentifier()).thenReturn(identifier + "Id");
+        Mockito.when(result.isAuthorized(authorizer, RequestAction.READ, user)).thenReturn(isAuthorized);
+
+        Mockito.when(result.getProcessGroups()).thenReturn(children);
+        Mockito.when(result.getProcessors()).thenReturn(processors);
+        Mockito.when(result.getConnections()).thenReturn(Collections.emptySet());
+        Mockito.when(result.getRemoteProcessGroups()).thenReturn(Collections.emptySet());
+        Mockito.when(result.getInputPorts()).thenReturn(Collections.emptySet());
+        Mockito.when(result.getOutputPorts()).thenReturn(Collections.emptySet());
+        Mockito.when(result.getFunnels()).thenReturn(Collections.singleton(funnel));
+        Mockito.when(result.getLabels()).thenReturn(Collections.emptySet());
+
+        children.forEach(child -> Mockito.when(child.getParent()).thenReturn(result));
+        processGroups.put(identifier, result);
+
+        return result;
+    }
+
+    private void givenProcessGroupIsNotAutorized(final String processGroupName) {
+        Mockito.when(processGroups.get(processGroupName).isAuthorized(authorizer, RequestAction.READ, user)).thenReturn(false);
+    }
+
+    private void givenNoFilters() {
+        Mockito.when(searchQuery.hasFilter(Mockito.anyString())).thenReturn(false);
+    }
+
+    private void givenScopeFilterIsSet() {
+        Mockito.when(searchQuery.hasFilter("scope")).thenReturn(true);
+        Mockito.when(searchQuery.getFilter("scope")).thenReturn("here");
+    }
+
+    private void givenGroupFilterIsSet(final String group) {
+        Mockito.when(searchQuery.hasFilter("group")).thenReturn(true);
+        Mockito.when(searchQuery.getFilter("group")).thenReturn(group);
+    }
+
+    private void givenProcessorIsNotAuthorized() {
+        final ProcessorNode processor = processGroups.get(PROCESS_GROUP_ROOT).getProcessors().iterator().next();
+        Mockito.when(processor.isAuthorized(authorizer, RequestAction.READ, user)).thenReturn(false);
+    }
+
+    private void givenParameterSearchIsSetUp(boolean isAuthorized) {
+        final ParameterContext parameterContext = Mockito.mock(ParameterContext.class);
+        final Parameter parameter = Mockito.mock(Parameter.class);
+        final ParameterDescriptor descriptor = Mockito.mock(ParameterDescriptor.class);
+        final Map<ParameterDescriptor, Parameter> parameters = new HashMap<>();
+        parameters.put(descriptor, parameter);
+        Mockito.when(flowController.getFlowManager()).thenReturn(flowManager);
+        Mockito.when(flowManager.getParameterContextManager()).thenReturn(parameterContextManager);
+        Mockito.when(parameterContextManager.getParameterContexts()).thenReturn(new HashSet<>(Arrays.asList(parameterContext)));
+        Mockito.when(parameterContext.getParameters()).thenReturn(parameters);
+        Mockito.when(parameterContext.isAuthorized(authorizer, RequestAction.READ, user)).thenReturn(isAuthorized);
+    }
+
+    private void thenProcessorMatcherIsNotCalled() {
+        final ProcessorNode processor = processGroups.get(PROCESS_GROUP_ROOT).getProcessors().iterator().next();
+        Mockito.verify(matcherForProcessor, Mockito.never()).match(processor, searchQuery);
+    }
+
+    private void thenAllComponentTypeIsChecked() {
+        Mockito.verify(matcherForProcessor, Mockito.times(1)).match(Mockito.any(ProcessorNode.class), Mockito.any(SearchQuery.class));
+        Mockito.verify(matcherForConnection, Mockito.times(1)).match(Mockito.any(Connection.class), Mockito.any(SearchQuery.class));
+        Mockito.verify(matcherForRemoteProcessGroup, Mockito.times(1)).match(Mockito.any(RemoteProcessGroup.class), Mockito.any(SearchQuery.class));
+        // Port needs to be used multiple times as input and output ports are handled separately
+        Mockito.verify(matcherForPort, Mockito.times(2)).match(Mockito.any(Port.class), Mockito.any(SearchQuery.class));
+        Mockito.verify(matcherForFunnel, Mockito.times(1)).match(Mockito.any(Funnel.class), Mockito.any(SearchQuery.class));
+        Mockito.verify(matcherForLabel, Mockito.times(1)).match(Mockito.any(Label.class), Mockito.any(SearchQuery.class));
+    }
+
+    private void thenAllComponentResultsAreCollected() {
+        Assert.assertEquals(1, results.getProcessorResults().size());
+        Assert.assertEquals(1, results.getConnectionResults().size());
+        Assert.assertEquals(1, results.getRemoteProcessGroupResults().size());
+        Assert.assertEquals(1, results.getInputPortResults().size());
+        Assert.assertEquals(1, results.getOutputPortResults().size());
+        Assert.assertEquals(1, results.getFunnelResults().size());
+        Assert.assertEquals(1, results.getLabelResults().size());
+        Assert.assertTrue(results.getParameterContextResults().isEmpty());
+        Assert.assertTrue(results.getParameterResults().isEmpty());
+    }
+
+    private void thenParameterComponentTypesAreChecked() {
+        Mockito.verify(matcherForParameterContext, Mockito.times(1)).match(Mockito.any(ParameterContext.class), Mockito.any(SearchQuery.class));
+        Mockito.verify(matcherForParameter, Mockito.times(1)).match(Mockito.any(Parameter.class), Mockito.any(SearchQuery.class));
+    }
+
+    private void thenAllParameterComponentResultsAreCollected() {
+        Assert.assertTrue(results.getProcessGroupResults().isEmpty());
+        Assert.assertTrue(results.getProcessorResults().isEmpty());
+        Assert.assertTrue(results.getConnectionResults().isEmpty());
+        Assert.assertTrue(results.getRemoteProcessGroupResults().isEmpty());
+        Assert.assertTrue(results.getInputPortResults().isEmpty());
+        Assert.assertTrue(results.getOutputPortResults().isEmpty());
+        Assert.assertTrue(results.getFunnelResults().isEmpty());
+        Assert.assertTrue(results.getLabelResults().isEmpty());
+        Assert.assertEquals(1, results.getParameterContextResults().size());
+        Assert.assertEquals(1, results.getParameterResults().size());
+    }
+
+    private void thenParameterSpecificComponentTypesAreNotChecked() {
+        Mockito.verify(matcherForParameterContext, Mockito.never()).match(Mockito.any(ParameterContext.class), Mockito.any(SearchQuery.class));
+        Mockito.verify(matcherForParameter, Mockito.never()).match(Mockito.any(Parameter.class), Mockito.any(SearchQuery.class));
+    }
+
+    private void thenFollowingGroupsAreSearched(final Collection<String> searchedProcessGroups) {
+        for (final String processGroup : searchedProcessGroups) {
+            Mockito.verify(matcherForProcessGroup, Mockito.times(1)).match(processGroups.get(processGroup), searchQuery);
         }
 
-        Mockito.doReturn(parameters).when(parameterContext).getParameters();
-
-        return parameterContext;
+        Mockito.verifyNoMoreInteractions(matcherForProcessGroup);
     }
 
-    /**
-     * Mocks Processor including isAuthorized() and its name & id.
-     *
-     * @param processorName          Desired processor name
-     * @param containingProcessGroup The process group
-     * @param authorizedToRead       Can the processor data be read?
-     * @param variableRegistry       The variable registry
-     */
-    private static void setupMockedProcessor(final String processorName, final ProcessGroup containingProcessGroup, boolean authorizedToRead, final MutableVariableRegistry variableRegistry) {
-        final String processorId = processorName + "Id";
-        final Processor processor1 = mock(Processor.class);
+    private void thenContentOfTheFollowingGroupsAreSearched(final Collection<String> searchedProcessGroupIds) {
+        for (final String processGroupId : searchedProcessGroupIds) {
+            // Checking on funnels is arbitrary, any given component we expect to be searched would be a good candidate
+            final ProcessGroup processGroup = processGroups.get(processGroupId);
+            final Funnel funnel = processGroup.getFunnels().iterator().next();
+            Mockito.verify(matcherForFunnel, Mockito.times(1)).match(funnel, searchQuery);
+        }
 
-        final ProcessorNode processorNode1 = mock(StandardProcessorNode.class);
-        Mockito.doReturn(authorizedToRead).when(processorNode1).isAuthorized(AdditionalMatchers.or(any(Authorizer.class), isNull()), eq(RequestAction.READ),
-                AdditionalMatchers.or(any(NiFiUser.class), isNull()));
-        Mockito.doReturn(variableRegistry).when(processorNode1).getVariableRegistry();
-        Mockito.doReturn(processor1).when(processorNode1).getProcessor();
-        // set processor node's attributes
-        Mockito.doReturn(processorId).when(processorNode1).getIdentifier();
-        Mockito.doReturn(Optional.ofNullable(null)).when(processorNode1).getVersionedComponentId(); // not actually searching based on versioned component id
-        Mockito.doReturn(processorName).when(processorNode1).getName();
-
-        // assign processor node to its PG
-        Mockito.doReturn(new HashSet<ProcessorNode>() {
-            {
-                add(processorNode1);
-            }
-        }).when(containingProcessGroup).getProcessors();
-    }
-
-    private static void setupMockedControllerService(final String controllerServiceName, final ProcessGroup containingProcessGroup, boolean authorizedToRead,
-        Map<PropertyDescriptor, String> properties) {
-        final String controllerServiceId = controllerServiceName + "Id";
-        final ControllerService controllerService = mock(ControllerService.class);
-
-        final ControllerServiceNode controllerServiceNode1 = mock(StandardControllerServiceNode.class);
-        Mockito.doReturn(authorizedToRead).when(controllerServiceNode1)
-                .isAuthorized(AdditionalMatchers.or(any(Authorizer.class), isNull()), eq(RequestAction.READ), AdditionalMatchers.or(any(NiFiUser.class), isNull()));
-        Mockito.doReturn(controllerService).when(controllerServiceNode1).getControllerServiceImplementation();
-        // set controller service node attributes
-        Mockito.doReturn(controllerServiceId).when(controllerServiceNode1).getIdentifier();
-        Mockito.doReturn(controllerServiceName).when(controllerServiceNode1).getName();
-        Mockito.doReturn(Optional.ofNullable(null)).when(controllerServiceNode1).getVersionedComponentId();
-        Mockito.doReturn("foo comments").when(controllerServiceNode1).getComments();
-
-        //set properties
-        Mockito.doReturn(properties).when(controllerServiceNode1).getRawPropertyValues();
-
-        // assign controller service node to its PG
-        Mockito.doReturn(new HashSet<ControllerServiceNode>() {
-            {
-                add(controllerServiceNode1);
-            }
-        }).when(containingProcessGroup).getControllerServices(anyBoolean());
-    }
-
-    /**
-     * Mocks ProcessGroup due to isAuthorized(). The final class StandardProcessGroup can't be used.
-     *
-     * @param processGroupName Desired process group name
-     * @param parent           The parent process group
-     * @param authorizedToRead Can the process group data be read?
-     * @param variableRegistry The variable registry
-     * @param versionControlInformation The version control information
-     * @return Mocked process group
-     */
-    private static ProcessGroup setupMockedProcessGroup(final String processGroupName, final ProcessGroup parent, boolean authorizedToRead, final VariableRegistry variableRegistry,
-                                                        final VersionControlInformation versionControlInformation) {
-        final String processGroupId = processGroupName + "Id";
-        final ProcessGroup processGroup = mock(ProcessGroup.class);
-
-        Mockito.doReturn(processGroupId).when(processGroup).getIdentifier();
-        Mockito.doReturn(Optional.ofNullable(null)).when(processGroup).getVersionedComponentId(); // not actually searching based on versioned component id
-        Mockito.doReturn(processGroupName).when(processGroup).getName();
-        Mockito.doReturn(parent).when(processGroup).getParent();
-        Mockito.doReturn(versionControlInformation).when(processGroup).getVersionControlInformation();
-        Mockito.doReturn(variableRegistry).when(processGroup).getVariableRegistry();
-        Mockito.doReturn(parent == null).when(processGroup).isRootGroup();
-        // override process group's access rights
-        Mockito.doReturn(authorizedToRead).when(processGroup).isAuthorized(AdditionalMatchers.or(any(Authorizer.class), isNull()), eq(RequestAction.READ),
-                AdditionalMatchers.or(any(NiFiUser.class), isNull()));
-
-        return processGroup;
-    }
-
-    /**
-     * Creates a version control information using dummy attributes.
-     *
-     * @return Dummy version control information
-     */
-    private static VersionControlInformation setupVC() {
-        final StandardVersionControlInformation.Builder builder = new StandardVersionControlInformation.Builder();
-        builder.registryId("regId").bucketId("bucId").flowId("flowId").version(1);
-
-        return builder.build();
+        Mockito.verifyNoMoreInteractions(matcherForFunnel);
     }
 }

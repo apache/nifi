@@ -75,6 +75,141 @@
         <property name="dtoFactory" ref="dtoFactory" />
     </bean>
 
+    <!-- search functionality -->
+    <bean id="searchQueryParser" class="org.apache.nifi.web.search.query.RegexSearchQueryParser" />
+    <bean id="resultEnricherFactory" class="org.apache.nifi.web.search.resultenrichment.ComponentSearchResultEnricherFactory">
+        <property name="authorizer" ref="authorizer" />
+    </bean>
+
+    <bean id="basicMatcher" class="org.apache.nifi.web.search.attributematchers.BasicMatcher" />
+    <bean id="extendedMatcher" class="org.apache.nifi.web.search.attributematchers.ExtendedMatcher" />
+    <bean id="schedulingMatcher" class="org.apache.nifi.web.search.attributematchers.SchedulingMatcher" />
+    <bean id="executionMatcher" class="org.apache.nifi.web.search.attributematchers.ExecutionMatcher" />
+    <bean id="scheduledStateMatcher" class="org.apache.nifi.web.search.attributematchers.ScheduledStateMatcher" />
+    <bean id="relationshipMatcher" class="org.apache.nifi.web.search.attributematchers.RelationshipMatcher" />
+    <bean id="connectionRelationshipMatcher" class="org.apache.nifi.web.search.attributematchers.ConnectionRelationshipMatcher" />
+    <bean id="processorMetadataMatcher" class="org.apache.nifi.web.search.attributematchers.ProcessorMetadataMatcher" />
+    <bean id="propertyMatcher" class="org.apache.nifi.web.search.attributematchers.PropertyMatcher" />
+    <bean id="searchableMatcher" class="org.apache.nifi.web.search.attributematchers.SearchableMatcher">
+        <property name="flowController" ref="flowController" />
+        <property name="variableRegistry" ref="variableRegistry" />
+    </bean>
+    <bean id="processGroupMatcher" class="org.apache.nifi.web.search.attributematchers.ProcessGroupMatcher" />
+    <bean id="variableRegistryMatcher" class="org.apache.nifi.web.search.attributematchers.VariableRegistryMatcher" />
+    <bean id="connectionMatcher" class="org.apache.nifi.web.search.attributematchers.ConnectionMatcher" />
+    <bean id="prioritiesMatcher" class="org.apache.nifi.web.search.attributematchers.PrioritiesMatcher" />
+    <bean id="expirationMatcher" class="org.apache.nifi.web.search.attributematchers.ExpirationMatcher" />
+    <bean id="backPressureMatcher" class="org.apache.nifi.web.search.attributematchers.BackPressureMatcher" />
+    <bean id="connectivityMatcher" class="org.apache.nifi.web.search.attributematchers.ConnectivityMatcher" />
+    <bean id="remoteProcessGroupMatcher" class="org.apache.nifi.web.search.attributematchers.RemoteProcessGroupMatcher" />
+    <bean id="targetUriMatcher" class="org.apache.nifi.web.search.attributematchers.TargetUriMatcher" />
+    <bean id="transmissionStatusMatcher" class="org.apache.nifi.web.search.attributematchers.TransmissionStatusMatcher" />
+    <bean id="portScheduledStateMatcher" class="org.apache.nifi.web.search.attributematchers.PortScheduledStateMatcher" />
+    <bean id="publicPortMatcher" class="org.apache.nifi.web.search.attributematchers.PublicPortMatcher" />
+    <bean id="parameterContextMatcher" class="org.apache.nifi.web.search.attributematchers.ParameterContextMatcher" />
+    <bean id="parameterMatcher" class="org.apache.nifi.web.search.attributematchers.ParameterMatcher" />
+    <bean id="labelMatcher" class="org.apache.nifi.web.search.attributematchers.LabelMatcher" />
+    <bean id="controllerServiceNodeMatcher" class="org.apache.nifi.web.search.attributematchers.ControllerServiceNodeMatcher" />
+
+    <bean id="componentMatcherFactory" class="org.apache.nifi.web.search.ComponentMatcherFactory" />
+
+    <bean id="matcherForProcessor" factory-bean="componentMatcherFactory" factory-method="getInstanceForConnectable">
+        <constructor-arg>
+            <util:list>
+                <ref bean="extendedMatcher" />
+                <ref bean="schedulingMatcher" />
+                <ref bean="executionMatcher" />
+                <ref bean="scheduledStateMatcher" />
+                <ref bean="relationshipMatcher" />
+                <ref bean="processorMetadataMatcher" />
+                <ref bean="propertyMatcher" />
+                <ref bean="searchableMatcher" />
+            </util:list>
+        </constructor-arg>
+    </bean>
+
+    <bean id="matcherForProcessGroup" factory-bean="componentMatcherFactory" factory-method="getInstanceForProcessGroup">
+        <constructor-arg>
+            <util:list>
+                <ref bean="processGroupMatcher" />
+                <ref bean="variableRegistryMatcher" />
+            </util:list>
+        </constructor-arg>
+    </bean>
+
+    <bean id="matcherForConnection" factory-bean="componentMatcherFactory" factory-method="getInstanceForConnection">
+        <constructor-arg>
+            <util:list>
+                <ref bean="connectionMatcher" />
+                <ref bean="connectionRelationshipMatcher" />
+                <ref bean="prioritiesMatcher" />
+                <ref bean="expirationMatcher" />
+                <ref bean="backPressureMatcher" />
+                <ref bean="connectivityMatcher" />
+            </util:list>
+        </constructor-arg>
+    </bean>
+
+    <bean id="matcherForRemoteProcessGroup" factory-bean="componentMatcherFactory" factory-method="getInstanceForRemoteProcessGroup">
+        <constructor-arg>
+            <util:list>
+                <ref bean="remoteProcessGroupMatcher" />
+                <ref bean="targetUriMatcher" />
+                <ref bean="transmissionStatusMatcher" />
+            </util:list>
+        </constructor-arg>
+    </bean>
+
+    <bean id="matcherForPort" factory-bean="componentMatcherFactory" factory-method="getInstanceForConnectable">
+        <constructor-arg>
+            <util:list>
+                <ref bean="extendedMatcher" />
+                <ref bean="portScheduledStateMatcher" />
+                <ref bean="publicPortMatcher" />
+            </util:list>
+        </constructor-arg>
+    </bean>
+
+    <bean id="matcherForFunnel" factory-bean="componentMatcherFactory" factory-method="getInstanceForConnectable">
+        <constructor-arg>
+            <util:list>
+                <ref bean="basicMatcher" />
+            </util:list>
+        </constructor-arg>
+    </bean>
+
+    <bean id="matcherForParameterContext" factory-bean="componentMatcherFactory" factory-method="getInstanceForParameterContext">
+        <constructor-arg>
+            <util:list>
+                <ref bean="parameterContextMatcher" />
+            </util:list>
+        </constructor-arg>
+    </bean>
+
+    <bean id="matcherForParameter" factory-bean="componentMatcherFactory" factory-method="getInstanceForParameter">
+        <constructor-arg>
+            <util:list>
+                <ref bean="parameterMatcher" />
+            </util:list>
+        </constructor-arg>
+    </bean>
+
+    <bean id="matcherForLabel" factory-bean="componentMatcherFactory" factory-method="getInstanceForLabel">
+        <constructor-arg>
+            <util:list>
+                <ref bean="labelMatcher" />
+            </util:list>
+        </constructor-arg>
+    </bean>
+
+    <bean id="matcherForControllerServiceNode" factory-bean="componentMatcherFactory" factory-method="getInstanceForControllerServiceNode">
+        <constructor-arg>
+            <util:list>
+                <ref bean="controllerServiceNodeMatcher" />
+                <ref bean="propertyMatcher" />
+            </util:list>
+        </constructor-arg>
+    </bean>
 
     <!-- nifi component dao initialization -->
     <bean id="processGroupDAO" class="org.apache.nifi.web.dao.impl.StandardProcessGroupDAO">
@@ -138,17 +273,28 @@
         <property name="flowController" ref="flowController" />
     </bean>
     <bean id="controllerSearchService" class="org.apache.nifi.web.controller.ControllerSearchService">
-        <property name="flowController" ref="flowController"/>
-        <property name="authorizer" ref="authorizer"/>
-        <property name="variableRegistry" ref="variableRegistry"/>
+        <property name="flowController" ref="flowController" />
+        <property name="authorizer" ref="authorizer" />
+        <property name="resultEnricherFactory" ref="resultEnricherFactory" />
+
+        <property name="matcherForProcessor" ref="matcherForProcessor" />
+        <property name="matcherForProcessGroup" ref="matcherForProcessGroup" />
+        <property name="matcherForConnection" ref="matcherForConnection" />
+        <property name="matcherForRemoteProcessGroup" ref="matcherForRemoteProcessGroup" />
+        <property name="matcherForPort" ref="matcherForPort" />
+        <property name="matcherForFunnel" ref="matcherForFunnel" />
+        <property name="matcherForParameterContext" ref="matcherForParameterContext" />
+        <property name="matcherForParameter" ref="matcherForParameter" />
+        <property name="matcherForLabel" ref="matcherForLabel" />
+        <property name="matcherForControllerServiceNode" ref="matcherForControllerServiceNode" />
     </bean>
     <bean id="controllerFacade" class="org.apache.nifi.web.controller.ControllerFacade">
-        <property name="properties" ref="nifiProperties"/>
         <property name="flowController" ref="flowController"/>
         <property name="flowService" ref="flowService"/>
         <property name="authorizer" ref="authorizer"/>
+        <property name="properties" ref="nifiProperties"/>
         <property name="dtoFactory" ref="dtoFactory"/>
-        <property name="variableRegistry" ref="variableRegistry"/>
+        <property name="searchQueryParser" ref="searchQueryParser"/>
         <property name="controllerSearchService" ref="controllerSearchService"/>
     </bean>
     <bean id="authorizableLookup" class="org.apache.nifi.authorization.StandardAuthorizableLookup">
