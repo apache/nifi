@@ -991,4 +991,20 @@ class StandardNiFiPropertiesGroovyTest extends GroovyTestCase {
         assert niFiProperties.size() == 1
         assert niFiProperties.getPropertyKeys() == ["key"] as Set
     }
+
+
+    @Test
+    void testWebMaxContentSizeShouldDefaultToEmpty() {
+        // Arrange
+        Properties rawProps = new Properties(["nifi.web.max.content.size": ""])
+        NiFiProperties props = new StandardNiFiProperties(rawProps)
+        logger.info("Created a NiFiProperties instance with empty web max content size property")
+
+        // Act
+        String webMaxContentSize = props.getWebMaxContentSize()
+        logger.info("Read from NiFiProperties instance: ${webMaxContentSize}")
+
+        // Assert
+        assert webMaxContentSize == ""
+    }
 }
