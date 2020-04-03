@@ -441,7 +441,6 @@ public class FlowResource extends ApplicationResource {
             String generatedFilename = "flowMetrics_" + System.currentTimeMillis();
             return generateOkResponse(response)
                     .type(MediaType.TEXT_PLAIN_TYPE)
-                    .header("Content-Disposition", String.format("attachment; filename=\"%s\"", generatedFilename))
                     .build();
         } else {
             throw new ResourceNotFoundException("The specified producer is missing or invalid.");
