@@ -438,7 +438,6 @@ public class FlowResource extends ApplicationResource {
                 writer.close();
             };
 
-            String generatedFilename = "flowMetrics_" + System.currentTimeMillis();
             return generateOkResponse(response)
                     .type(MediaType.TEXT_PLAIN_TYPE)
                     .build();
