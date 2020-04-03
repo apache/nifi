@@ -640,14 +640,35 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
         }
 
         // build the fully qualified table name
+
         final StringBuilder tableNameBuilder = new StringBuilder();
         if (catalog != null) {
-            tableNameBuilder.append(catalog).append(".");
+            if (settings.quoteTableName) {
+                tableNameBuilder.append(tableSchema.getQuotedIdentifierString())
+                        .append(catalog)
+                        .append(tableSchema.getQuotedIdentifierString());
+            } else {
+                tableNameBuilder.append(catalog);
+            }
+            tableNameBuilder.append(".");
         }
         if (schemaName != null) {
-            tableNameBuilder.append(schemaName).append(".");
+            if (settings.quoteTableName) {
+                tableNameBuilder.append(tableSchema.getQuotedIdentifierString())
+                        .append(schemaName)
+                        .append(tableSchema.getQuotedIdentifierString());
+            } else {
+                tableNameBuilder.append(schemaName);
+            }
+            tableNameBuilder.append(".");
         }
-        tableNameBuilder.append(tableName);
+        if (settings.quoteTableName) {
+            tableNameBuilder.append(tableSchema.getQuotedIdentifierString())
+                    .append(tableName)
+                    .append(tableSchema.getQuotedIdentifierString());
+        } else {
+            tableNameBuilder.append(tableName);
+        }
         final String fqTableName = tableNameBuilder.toString();
 
         if (recordSchema == null) {
@@ -782,13 +803,7 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
 
         final StringBuilder sqlBuilder = new StringBuilder();
         sqlBuilder.append("INSERT INTO ");
-        if (settings.quoteTableName) {
-            sqlBuilder.append(tableSchema.getQuotedIdentifierString())
-                    .append(tableName)
-                    .append(tableSchema.getQuotedIdentifierString());
-        } else {
-            sqlBuilder.append(tableName);
-        }
+        sqlBuilder.append(tableName);
         sqlBuilder.append(" (");
 
         // iterate over all of the fields in the record, building the SQL statement by adding the column names
@@ -855,13 +870,7 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
 
         final StringBuilder sqlBuilder = new StringBuilder();
         sqlBuilder.append("UPDATE ");
-        if (settings.quoteTableName) {
-            sqlBuilder.append(tableSchema.getQuotedIdentifierString())
-                    .append(tableName)
-                    .append(tableSchema.getQuotedIdentifierString());
-        } else {
-            sqlBuilder.append(tableName);
-        }
+        sqlBuilder.append(tableName);
 
         // Create a Set of all normalized Update Key names, and ensure that there is a field in the record
         // for each of the Update Key fields.
@@ -980,13 +989,7 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
 
         final StringBuilder sqlBuilder = new StringBuilder();
         sqlBuilder.append("DELETE FROM ");
-        if (settings.quoteTableName) {
-            sqlBuilder.append(tableSchema.getQuotedIdentifierString())
-                    .append(tableName)
-                    .append(tableSchema.getQuotedIdentifierString());
-        } else {
-            sqlBuilder.append(tableName);
-        }
+        sqlBuilder.append(tableName);
 
         // iterate over all of the fields in the record, building the SQL statement by adding the column names
         List<String> fieldNames = recordSchema.getFieldNames();
