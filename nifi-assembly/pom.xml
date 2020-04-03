@@ -192,6 +192,12 @@ language governing permissions and limitations under the License. -->
             <artifactId>nifi-hadoop-nar</artifactId>
             <version>1.12.0-SNAPSHOT</version>
             <type>nar</type>
+    	</dependency>
+	<dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-hdfs-repository-nar</artifactId>
+            <version>1.12.0-SNAPSHOT</version>
+            <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>

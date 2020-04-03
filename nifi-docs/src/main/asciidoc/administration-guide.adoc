@@ -2743,6 +2743,64 @@ nifi.content.repository.encryption.key.id=Key1
 nifi.content.repository.encryption.key=0123456789ABCDEFFEDCBA98765432100123456789ABCDEFFEDCBA9876543210
 ....
 
+
+=== HDFS Content Repository Properties
+
+This content repository uses the Hadoop FileSystem API to store FlowFile content. Because of this, it can be used to store content on the local disk and/or in one or more distinct HDFS clusters. It also has four different operating modes which are described below in the `nifi.content.repository.hdfs.operating.mode` property.
+
+All of the properties defined above (see <<file-system-content-repository-properties,File System Content Repository Properties>>) still apply. Only HDFS-specific properties are listed here. 
+
+The equivalent default local content repository directory would be specified with:
+`nifi.content.repository.directory.default=file:content_repository`
+
+An HDFS content repository directory would be specified with:
+`nifi.content.repository.directory.default=hdfs://localhost:9000/content_repository`
+
+Example Minimal Configuration:
+`nifi.content.repository.implementation=org.apache.nifi.hdfs.repository.HdfsContentRepository`
+`nifi.content.repository.hdfs.core.site=./conf/core-site.xml`
+
+|====
+|*Property*|*Description*
+|`nifi.content.repository.implementation`|Value should be: `org.apache.nifi.hdfs.repository.HdfsContentRepository`
+|`nifi.content.repository.hdfs.core.site`|The default Hadoop `core-site.xml` file to configure file systems with. +
+
+	*NOTE:* This isn't actually required as long as each location specifies its own core.site.xml, however each directory is required to have a `core-site.xml` defined either with this property, or as described below.
+
+	For example:
+	Assume the following two locations: +
+	`nifi.content.repository.directory.default1=uri://path/to/dir1` +
+	`nifi.content.repository.directory.default2=uri://path/to/dir2` +
+
+	Then the following two properties may also be provided: +
+	`nifi.content.repository.hdfs.core.site.default1=/path/to/core-site-1.xml` +
+	`nifi.content.repository.hdfs.core.site.default2=/path/to/core-site-2.xml`
+|`nifi.content.repository.hdfs.primary`|A comma separated list of location names to treat as the primary storage group for the `CapacityFallback` and `FailureFallback` operating modes. +
+
+Example: +
+`nifi.content.repository.hdfs.primary=disk1,disk2,disk3`
+|`nifi.content.repository.hdfs.archive`|A comma separated list of location names to store archived content in. See the `Archive` operating mode above. +
+
+Example: +
+`nifi.content.repository.hdfs.archive=archive1,archive2,archive3`
+|`nifi.content.repository.hdfs.operating.mode`|A comma separated list of operating modes that governs the behavior of the content repository. Default is `Normal`. +
+
+	The recognized modes and their behaviors are as follows: +
+
+	`Normal`: No special fallback handling is made during failure. Each configured location is written to as normal until they are full. Once all locations are full, writes will block until space becomes available. Note: This is default operating mode if one isn't specified in the `nifi.properties` file. +
+
+	`CapacityFallback`: The locations in the 'primary' group are filled first and the rest are only filled once all locations in the primary group are full. Once space becomes available again for at least a minute, the primary group will become active again. This mode cannot be used with the `FailureFallback` mode. The 'primary' group is specified with the following property where each location id is comma separated: `nifi.content.repository.hdfs.primary` +
+
+	`FailureFallback`: The configured locations 'primary' group are filled as normal until they are full. Once they are full, writes will block until space becomes available. If a write failure occurs within all primary locations, the remaining non-primary locations are written to until a configured time period has elapsed. This mode cannot be used with the `CapacityFallback` mode. +
+
+	`Archive`:  All locations are written to and filled as described in the other modes. As files are moved to the archive, they are copied to the locations in the 'archive' group and then deleted. This can be combined with any of the other three modes. If this is the only mode specified, `Normal` is also assumed. The 'archive' group is specified with the  `nifi.content.repository.hdfs.archive` property where each location id is comma separated.
+|`nifi.content.repository.hdfs.full.percentage`|The percentage ('##%') of a location's capacity that must be occupied before treating the location as 'full'. Note: Once a location is full, all writes will stop for that location. If all locations are full and there is no fallback, claim creation will stop until space becomes available. The default is `95%`.
+|`nifi.content.repository.hdfs.failure.timeout`|The amount of time to wait when a failure occurs for a location before attempting to use that location again for writing. Example value: `1 minute`
+|`nifi.content.repository.hdfs.wait.active.containers.timeout`|The amount of time to wait for an active location to be available before giving up and throwing an exception. Defaults to indefinite. Example value: `5 minutes`
+|`nifi.content.repository.hdfs.sections.per.container`|The number of subdirectories per location. Defaults to `1024`. This is primarily used to avoid too many content claim files within a single directory.
+|====
+
+
 === Volatile Content Repository Properties
 
 |====
@@ -2750,6 +2808,7 @@ nifi.content.repository.encryption.key=0123456789ABCDEFFEDCBA9876543210012345678
 |`nifi.volatile.content.repository.max.size`|The Content Repository maximum size in memory. The default value is `100 MB`.
 |`nifi.volatile.content.repository.block.size`|The Content Repository block size. The default value is `32 KB`.
 |====
+
 
 === Provenance Repository
 
