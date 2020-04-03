@@ -315,6 +315,11 @@ public interface NiFiServiceFacade {
     FlowConfigurationEntity getFlowConfiguration();
 
     /**
+     * Gets the metrics for the flow.
+     */
+    void generateFlowMetrics();
+
+    /**
      * Updates the configuration for this controller.
      *
      * @param revision Revision to compare with current base revision

@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.web.api;
 
+import io.prometheus.client.CollectorRegistry;
+import io.prometheus.client.exporter.common.TextFormat;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
@@ -43,6 +45,7 @@ import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.nar.NarClassLoadersHolder;
+import org.apache.nifi.prometheus.util.PrometheusMetricsUtil;
 import org.apache.nifi.registry.client.NiFiRegistryException;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.IllegalClusterResourceRequestException;
@@ -129,6 +132,10 @@ import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.StreamingOutput;
+import java.io.BufferedWriter;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
 import java.text.Collator;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -379,6 +386,64 @@ public class FlowResource extends ApplicationResource {
         final ProcessGroupFlowEntity entity = serviceFacade.getProcessGroupFlow(groupId);
         populateRemainingFlowContent(entity.getProcessGroupFlow());
         return generateOkResponse(entity).build();
+    }
+
+    /**
+     * Retrieves the metrics of the entire flow.
+     *
+     * @return A flowMetricsEntity.
+     * @throws InterruptedException if interrupted
+     */
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.WILDCARD)
+    @Path("metrics/{producer}")
+    @ApiOperation(
+            value = "Gets all metrics for the flow from a particular node",
+            response = StreamingOutput.class,
+            authorizations = {
+                    @Authorization(value = "Read - /flow")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response getFlowMetrics(
+            @ApiParam(
+                    value = "The producer for flow file metrics. Each producer may have its own output format.",
+                    required = true
+            )
+            @PathParam("producer") final String producer) throws InterruptedException {
+
+        authorizeFlow();
+
+        if ("prometheus".equalsIgnoreCase(producer)) {
+            // get this process group flow
+            serviceFacade.generateFlowMetrics();
+            // generate a streaming response
+            final StreamingOutput response = output -> {
+                Writer writer = new BufferedWriter(new OutputStreamWriter(output));
+                for (CollectorRegistry collectorRegistry : PrometheusMetricsUtil.ALL_REGISTRIES) {
+                    TextFormat.write004(writer, collectorRegistry.metricFamilySamples());
+                    // flush the response
+                    output.flush();
+                }
+                writer.flush();
+                writer.close();
+            };
+
+            return generateOkResponse(response)
+                    .type(MediaType.TEXT_PLAIN_TYPE)
+                    .build();
+        } else {
+            throw new ResourceNotFoundException("The specified producer is missing or invalid.");
+        }
     }
 
     // -------------------

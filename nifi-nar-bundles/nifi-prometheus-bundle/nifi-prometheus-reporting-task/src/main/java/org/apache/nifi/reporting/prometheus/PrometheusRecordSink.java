@@ -28,7 +28,7 @@ import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.record.sink.RecordSinkService;
 import org.apache.nifi.reporting.ReportingContext;
-import org.apache.nifi.reporting.prometheus.api.PrometheusMetricsUtil;
+import org.apache.nifi.prometheus.util.PrometheusMetricsUtil;
 import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.Record;
@@ -36,6 +36,7 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.RecordSet;
+import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
 import org.eclipse.jetty.server.Server;
 
@@ -62,13 +63,22 @@ public class PrometheusRecordSink extends AbstractControllerService implements R
     private volatile Map<String, Gauge> gauges;
     private static final CollectorRegistry RECORD_REGISTRY = new CollectorRegistry();
 
+    public static final PropertyDescriptor SSL_CONTEXT = new PropertyDescriptor.Builder()
+            .name("prometheus-reporting-task-ssl-context")
+            .displayName("SSL Context Service")
+            .description("The SSL Context Service to use in order to secure the server. If specified, the server will"
+                    + "accept only HTTPS requests; otherwise, the server will accept only HTTP requests")
+            .required(false)
+            .identifiesControllerService(RestrictedSSLContextService.class)
+            .build();
+
     private static final List<PropertyDescriptor> properties;
 
     static {
         List<PropertyDescriptor> props = new ArrayList<>();
         props.add(PrometheusMetricsUtil.METRICS_ENDPOINT_PORT);
         props.add(PrometheusMetricsUtil.INSTANCE_ID);
-        props.add(PrometheusMetricsUtil.SSL_CONTEXT);
+        props.add(SSL_CONTEXT);
         props.add(PrometheusMetricsUtil.CLIENT_AUTH);
         properties = Collections.unmodifiableList(props);
     }
@@ -81,7 +91,7 @@ public class PrometheusRecordSink extends AbstractControllerService implements R
     @OnEnabled
     public void onScheduled(final ConfigurationContext context) {
         RECORD_REGISTRY.clear();
-        SSLContextService sslContextService = context.getProperty(PrometheusMetricsUtil.SSL_CONTEXT).asControllerService(SSLContextService.class);
+        SSLContextService sslContextService = context.getProperty(SSL_CONTEXT).asControllerService(SSLContextService.class);
         final String metricsEndpointPort = context.getProperty(PrometheusMetricsUtil.METRICS_ENDPOINT_PORT).getValue();
 
         try {

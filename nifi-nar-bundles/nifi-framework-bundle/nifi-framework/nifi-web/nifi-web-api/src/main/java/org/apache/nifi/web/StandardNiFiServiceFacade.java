@@ -94,12 +94,14 @@ import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.history.History;
 import org.apache.nifi.history.HistoryQuery;
 import org.apache.nifi.history.PreviousValue;
+import org.apache.nifi.metrics.jvm.JmxJvmMetrics;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.parameter.ParameterReferenceManager;
 import org.apache.nifi.parameter.StandardParameterContext;
+import org.apache.nifi.prometheus.util.PrometheusMetricsUtil;
 import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.registry.authorization.Permissions;
 import org.apache.nifi.registry.bucket.Bucket;
@@ -5292,6 +5294,56 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         final ProcessorStatusDTO processorStatusDto = dtoFactory.createProcessorStatusDto(controllerFacade.getProcessorStatus(processor.getIdentifier()));
         return entityFactory.createProcessorDiagnosticsEntity(dto, revisionDto, permissionsDto, processorStatusDto, bulletins);
+    }
+
+    @Override
+    public void generateFlowMetrics() {
+
+        String instanceId = controllerFacade.getInstanceId();
+        ProcessGroupStatus rootPGStatus = controllerFacade.getProcessGroupStatus("root");
+        PrometheusMetricsUtil.createNifiMetrics(rootPGStatus, instanceId, "", "RootProcessGroup",
+                PrometheusMetricsUtil.METRICS_STRATEGY_COMPONENTS.getValue());
+        PrometheusMetricsUtil.createJvmMetrics(JmxJvmMetrics.getInstance(), instanceId);
+
+        // Get Connection Status Analytics (predictions, e.g.)
+        Set<Connection> connections = controllerFacade.getFlowManager().findAllConnections();
+        for (Connection c : connections) {
+            // If a ResourceNotFoundException is thrown, analytics hasn't been enabled
+            try {
+                PrometheusMetricsUtil.createConnectionStatusAnalyticsMetrics(controllerFacade.getConnectionStatusAnalytics(c.getIdentifier()),
+                        instanceId,
+                        "Connection",
+                        c.getName(),
+                        c.getIdentifier(),
+                        c.getProcessGroup().getIdentifier(),
+                        c.getSource().getName(),
+                        c.getSource().getIdentifier(),
+                        c.getDestination().getName(),
+                        c.getDestination().getIdentifier()
+                );
+            } catch (ResourceNotFoundException rnfe) {
+                break;
+            }
+        }
+
+        // Create a query to get all bulletins
+        final BulletinQueryDTO query = new BulletinQueryDTO();
+        BulletinBoardDTO bulletinBoardDTO = getBulletinBoard(query);
+        for(BulletinEntity bulletinEntity : bulletinBoardDTO.getBulletins()) {
+            BulletinDTO bulletin = bulletinEntity.getBulletin();
+            if(bulletin != null) {
+                PrometheusMetricsUtil.createBulletinMetrics(instanceId,
+                        "Bulletin",
+                        String.valueOf(bulletin.getId()),
+                        bulletin.getGroupId() == null ? "" : bulletin.getGroupId(),
+                        bulletin.getNodeAddress() == null ? "" : bulletin.getNodeAddress(),
+                        bulletin.getCategory(),
+                        bulletin.getSourceName(),
+                        bulletin.getSourceId(),
+                        bulletin.getLevel()
+                );
+            }
+        }
     }
 
     @Override
