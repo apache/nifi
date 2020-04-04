@@ -16,6 +16,23 @@
  */
 package org.apache.nifi.remote;
 
+import static java.util.Objects.requireNonNull;
+
+import java.io.IOException;
+import java.net.SocketTimeoutException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 import org.apache.nifi.authorization.AuthorizationResult;
@@ -53,26 +70,9 @@ import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.reporting.ComponentType;
 import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.scheduling.SchedulingStrategy;
+import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.net.SocketTimeoutException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
-
-import static java.util.Objects.requireNonNull;
 
 public class StandardPublicPort extends AbstractPort implements PublicPort {
 
@@ -264,7 +264,7 @@ public class StandardPublicPort extends AbstractPort implements PublicPort {
 
     @Override
     public boolean isValid() {
-        return getConnectableType() == ConnectableType.INPUT_PORT ? !getConnections(Relationship.ANONYMOUS).isEmpty() : true;
+        return getConnectableType() != ConnectableType.INPUT_PORT || !getConnections(Relationship.ANONYMOUS).isEmpty();
     }
 
     @Override
@@ -541,6 +541,15 @@ public class StandardPublicPort extends AbstractPort implements PublicPort {
             throw e;
         } catch (final ProtocolException e) {
             throw new BadRequestException(e);
+        } catch (final IOException e) {
+            // The content length filter might be blocking the transmission
+            final String REQUEST_TOO_LONG_MSG = "Request input stream longer than";
+            if (e.getMessage() != null && e.getMessage().startsWith(REQUEST_TOO_LONG_MSG)) {
+                logger.error("The content length filter (configured with {}) is blocking the site-to-site connection: {}", NiFiProperties.WEB_MAX_CONTENT_SIZE, e.getMessage());
+                return -1;
+            } else {
+                throw new ProcessException(e);
+            }
         } catch (final Exception e) {
             throw new ProcessException(e);
         }
