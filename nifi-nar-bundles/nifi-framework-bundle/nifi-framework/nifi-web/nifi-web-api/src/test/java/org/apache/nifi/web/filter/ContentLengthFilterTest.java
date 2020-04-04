@@ -134,6 +134,36 @@ public class ContentLengthFilterTest {
     }
 
     @Test
+    public void testFilterShouldAllowSiteToSiteTransfer() throws Exception {
+        // Arrange
+        configureAndStartServer(new HttpServlet() {
+            @Override
+            public void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+                ServletInputStream input = req.getInputStream();
+                while (!input.isFinished()) {
+                    input.read();
+                }
+                resp.setStatus(HttpServletResponse.SC_OK);
+            }
+        }, -1);
+
+        int largeClaim = 2000;
+
+        String largePayload = StringUtils.repeat("1", largeClaim + 200);
+
+        final String SITE_TO_SITE_POST_REQUEST = "POST /data-transfer/input-ports HTTP/1.1\r\nContent-Length: %d\r\nHost: h\r\n\r\n%s";
+
+        // Act
+        final String siteToSiteRequest = String.format(SITE_TO_SITE_POST_REQUEST, largeClaim, largePayload);
+        logger.info("Request: " + siteToSiteRequest);
+        String response = localConnector.getResponse(siteToSiteRequest);
+        logger.info("Received response: " + response);
+
+        // Assert
+        Assert.assertTrue(StringUtils.containsIgnoreCase(response, "200 OK"));
+    }
+
+    @Test
     public void testJettyMaxFormSize() throws Exception {
         // This shows that the jetty server option for 'maxFormContentSize' is insufficient for our needs because it
         // catches requests like this:
