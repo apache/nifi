@@ -349,8 +349,6 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
             case Types.BIT:
             case Types.BOOLEAN:
                 return RecordFieldType.BOOLEAN;
-            case Types.CHAR:
-                return RecordFieldType.CHAR;
             case Types.DATE:
                 return RecordFieldType.DATE;
             case Types.DECIMAL:
@@ -366,6 +364,7 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
                 return RecordFieldType.SHORT;
             case Types.TINYINT:
                 return RecordFieldType.BYTE;
+            case Types.CHAR:
             case Types.LONGNVARCHAR:
             case Types.LONGVARCHAR:
             case Types.NCHAR:
