@@ -87,11 +87,12 @@ case ${AUTH} in
 esac
 
 # Continuously provide logs so that 'docker logs' can    produce them
-tail -F "${NIFI_HOME}/logs/nifi-app.log" &
 "${NIFI_HOME}/bin/nifi.sh" run &
 nifi_pid="$!"
+tail -F --pid=${nifi_pid} "${NIFI_HOME}/logs/nifi-app.log" &
 
-trap "echo Received trapped signal, beginning shutdown...;" KILL TERM HUP INT EXIT;
+trap 'echo Received trapped signal, beginning shutdown...;./bin/nifi.sh stop;exit 0;' TERM HUP INT;
+trap ":" EXIT
 
 echo NiFi running with PID ${nifi_pid}.
 wait ${nifi_pid}
