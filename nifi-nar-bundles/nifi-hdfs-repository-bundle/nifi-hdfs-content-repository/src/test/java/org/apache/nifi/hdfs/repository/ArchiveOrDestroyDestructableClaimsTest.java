@@ -33,8 +33,11 @@ import static org.mockito.Mockito.when;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.commons.lang3.SystemUtils;
 import org.apache.nifi.controller.repository.claim.ResourceClaim;
 import org.apache.nifi.util.NiFiProperties;
+import org.junit.Assume;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class ArchiveOrDestroyDestructableClaimsTest {
@@ -44,6 +47,11 @@ public class ArchiveOrDestroyDestructableClaimsTest {
     // One is verifying the archive method is called, the
     // other is verifying the remove method is called
     //
+
+    @BeforeClass
+    public static void setUpSuite() {
+        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
+    }
 
     @Test
     public void archiveTest() throws Exception {

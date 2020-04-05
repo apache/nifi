@@ -26,8 +26,8 @@ import static org.apache.nifi.hdfs.repository.PropertiesBuilder.props;
 import static org.apache.nifi.util.NiFiProperties.REPOSITORY_CONTENT_PREFIX;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
@@ -38,14 +38,22 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Iterator;
 
+import org.apache.commons.lang3.SystemUtils;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FsStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.nifi.util.NiFiProperties;
+import org.junit.Assume;
+import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
 public class ContainerHealthMonitorTest {
+
+    @BeforeClass
+    public static void setUpSuite() {
+        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
+    }
 
     @Test
     public void isGroupHealthyTest() {

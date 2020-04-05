@@ -18,8 +18,12 @@ package org.apache.nifi.hdfs.repository;
 
 import static org.apache.nifi.hdfs.repository.HdfsContentRepository.ARCHIVE_DIR_NAME;
 import static org.apache.nifi.hdfs.repository.HdfsContentRepository.CORE_SITE_DEFAULT_PROPERTY;
-import static org.apache.nifi.util.NiFiProperties.REPOSITORY_CONTENT_PREFIX;
+import static org.apache.nifi.hdfs.repository.PropertiesBuilder.SECTIONS_PER_CONTAINER;
+import static org.apache.nifi.hdfs.repository.PropertiesBuilder.config;
+import static org.apache.nifi.hdfs.repository.PropertiesBuilder.prop;
+import static org.apache.nifi.hdfs.repository.PropertiesBuilder.props;
 import static org.apache.nifi.util.NiFiProperties.CONTENT_ARCHIVE_MAX_USAGE_PERCENTAGE;
+import static org.apache.nifi.util.NiFiProperties.REPOSITORY_CONTENT_PREFIX;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
@@ -37,16 +41,19 @@ import java.util.Map;
 import java.util.TreeSet;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.SystemUtils;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.apache.nifi.util.NiFiProperties;
+import org.junit.Assume;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
-import static org.apache.nifi.hdfs.repository.PropertiesBuilder.SECTIONS_PER_CONTAINER;
-import static org.apache.nifi.hdfs.repository.PropertiesBuilder.config;
-import static org.apache.nifi.hdfs.repository.PropertiesBuilder.prop;
-import static org.apache.nifi.hdfs.repository.PropertiesBuilder.props;
-
 public class ContainerGroupTest {
+
+    @BeforeClass
+    public static void setUpSuite() {
+        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
+    }
 
     @Test
     public void noCoreSiteTest() {

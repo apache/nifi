@@ -31,12 +31,20 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 
+import org.apache.commons.lang3.SystemUtils;
 import org.apache.nifi.controller.repository.claim.ResourceClaim;
 import org.apache.nifi.controller.repository.claim.StandardContentClaim;
 import org.apache.nifi.stream.io.ByteCountingOutputStream;
+import org.junit.Assume;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class ClaimOutputStreamTest {
+
+    @BeforeClass
+    public static void setUpSuite() {
+        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
+    }
 
     @Test
     public void normalTest() throws IOException {

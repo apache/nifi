@@ -23,12 +23,20 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 
+import org.apache.commons.lang3.SystemUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.junit.Assume;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class ContainerTest {
+
+    @BeforeClass
+    public static void setUpSuite() {
+        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
+    }
 
     @Test
     public void initialStateTest() throws IOException {

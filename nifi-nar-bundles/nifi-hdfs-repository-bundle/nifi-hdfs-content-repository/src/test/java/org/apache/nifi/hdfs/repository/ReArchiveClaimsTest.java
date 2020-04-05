@@ -32,12 +32,20 @@ import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.SystemUtils;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.nifi.util.NiFiProperties;
+import org.junit.Assume;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class ReArchiveClaimsTest {
+
+    @BeforeClass
+    public static void setUpSuite() {
+        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
+    }
 
     @Before
     public void setup() {

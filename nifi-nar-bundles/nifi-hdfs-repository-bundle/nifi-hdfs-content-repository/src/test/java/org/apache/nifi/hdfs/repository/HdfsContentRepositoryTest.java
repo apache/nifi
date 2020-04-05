@@ -65,6 +65,7 @@ import com.nimbusds.jose.util.StandardCharset;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.SystemUtils;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
@@ -72,7 +73,9 @@ import org.apache.nifi.controller.repository.claim.StandardContentClaim;
 import org.apache.nifi.controller.repository.claim.StandardResourceClaim;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.NiFiProperties;
+import org.junit.Assume;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -80,6 +83,11 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 public class HdfsContentRepositoryTest {
+
+    @BeforeClass
+    public static void setUpSuite() {
+        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
+    }
 
     NiFiProperties basic = props(prop(REPOSITORY_CONTENT_PREFIX + "disk1", "target/test-repo1"),
             prop(REPOSITORY_CONTENT_PREFIX + "disk2", "target/test-repo2"),
@@ -128,9 +136,11 @@ public class HdfsContentRepositoryTest {
                     throw new RuntimeException("Failed to delete previous file: " + file);
                 }
             }
-            for (File file : new File(section, ARCHIVE_DIR_NAME).listFiles()) {
-                if (!file.delete()) {
-                    throw new RuntimeException("Failed to delete previous file: " + file);
+            if (new File(section, ARCHIVE_DIR_NAME).isDirectory()) {
+                for (File file : new File(section, ARCHIVE_DIR_NAME).listFiles()) {
+                    if (!file.delete()) {
+                        throw new RuntimeException("Failed to delete previous file: " + file);
+                    }
                 }
             }
         }

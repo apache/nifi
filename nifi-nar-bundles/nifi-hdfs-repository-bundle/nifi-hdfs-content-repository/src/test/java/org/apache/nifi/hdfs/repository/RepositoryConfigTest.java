@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.hdfs.repository;
 
-import static org.apache.nifi.hdfs.repository.HdfsContentRepository.OPERATING_MODE_PROPERTY;
 import static org.apache.nifi.hdfs.repository.HdfsContentRepository.FAILURE_TIMEOUT_PROPERTY;
 import static org.apache.nifi.hdfs.repository.HdfsContentRepository.FULL_PERCENTAGE_PROPERTY;
+import static org.apache.nifi.hdfs.repository.HdfsContentRepository.OPERATING_MODE_PROPERTY;
 import static org.apache.nifi.hdfs.repository.PropertiesBuilder.config;
 import static org.apache.nifi.hdfs.repository.PropertiesBuilder.prop;
 import static org.apache.nifi.hdfs.repository.PropertiesBuilder.props;
@@ -32,10 +32,18 @@ import static org.junit.Assert.fail;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.apache.commons.lang3.SystemUtils;
 import org.apache.nifi.util.NiFiProperties;
+import org.junit.Assume;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class RepositoryConfigTest {
+
+    @BeforeClass
+    public static void setUpSuite() {
+        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
+    }
 
     @Test
     public void defaultsTest() {
