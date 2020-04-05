@@ -81,20 +81,20 @@ import org.mockito.stubbing.Answer;
 
 public class HdfsContentRepositoryTest {
 
-    NiFiProperties basic = props(prop(REPOSITORY_CONTENT_PREFIX + "disk1", "file:target/test-repo1"),
-            prop(REPOSITORY_CONTENT_PREFIX + "disk2", "file:target/test-repo2"),
+    NiFiProperties basic = props(prop(REPOSITORY_CONTENT_PREFIX + "disk1", "target/test-repo1"),
+            prop(REPOSITORY_CONTENT_PREFIX + "disk2", "target/test-repo2"),
             prop(CORE_SITE_DEFAULT_PROPERTY, "src/test/resources/empty-core-site.xml"),
             prop(CONTENT_ARCHIVE_MAX_USAGE_PERCENTAGE, "99%"),
             prop(CONTENT_ARCHIVE_ENABLED, "true"));
 
-    NiFiProperties archiveProps = props(prop(REPOSITORY_CONTENT_PREFIX + "disk1", "file:target/test-repo1"),
-            prop(REPOSITORY_CONTENT_PREFIX + "disk2", "file:target/test-repo2"),
+    NiFiProperties archiveProps = props(prop(REPOSITORY_CONTENT_PREFIX + "disk1", "target/test-repo1"),
+            prop(REPOSITORY_CONTENT_PREFIX + "disk2", "target/test-repo2"),
             prop(CORE_SITE_DEFAULT_PROPERTY, "src/test/resources/empty-core-site.xml"),
             prop(OPERATING_MODE_PROPERTY, "Archive"), prop(ARCHIVE_GROUP_PROPERTY, "disk2"),
             prop(CONTENT_ARCHIVE_ENABLED, "true"));
 
-    NiFiProperties fallback = props(prop(REPOSITORY_CONTENT_PREFIX + "disk1", "file:target/test-repo1"),
-            prop(REPOSITORY_CONTENT_PREFIX + "disk2", "file:target/test-repo2"), prop(PRIMARY_GROUP_PROPERTY, "disk1"),
+    NiFiProperties fallback = props(prop(REPOSITORY_CONTENT_PREFIX + "disk1", "target/test-repo1"),
+            prop(REPOSITORY_CONTENT_PREFIX + "disk2", "target/test-repo2"), prop(PRIMARY_GROUP_PROPERTY, "disk1"),
             prop(OPERATING_MODE_PROPERTY, "FailureFallback"), prop(FAILURE_TIMEOUT_PROPERTY, "15 seconds"),
             prop(CORE_SITE_DEFAULT_PROPERTY, "src/test/resources/empty-core-site.xml"));
 

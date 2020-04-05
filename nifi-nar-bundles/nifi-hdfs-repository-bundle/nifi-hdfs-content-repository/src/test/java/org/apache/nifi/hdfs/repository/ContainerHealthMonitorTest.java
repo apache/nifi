@@ -51,8 +51,8 @@ public class ContainerHealthMonitorTest {
     public void isGroupHealthyTest() {
 
         NiFiProperties props = props(
-            prop(REPOSITORY_CONTENT_PREFIX + "disk1", "file:target/test-repo1"),
-            prop(REPOSITORY_CONTENT_PREFIX + "disk2", "file:target/test-repo2"),
+            prop(REPOSITORY_CONTENT_PREFIX + "disk1", "target/test-repo1"),
+            prop(REPOSITORY_CONTENT_PREFIX + "disk2", "target/test-repo2"),
             prop(CORE_SITE_DEFAULT_PROPERTY, "src/test/resources/empty-core-site.xml"),
             prop(FAILURE_TIMEOUT_PROPERTY, "1 minute")
         );
@@ -87,11 +87,11 @@ public class ContainerHealthMonitorTest {
     }
 
     @Test
-    public void isGroupHealthyRecoveryTest() {
+    public void isGroupHealthyRecoveryTest() throws IOException {
 
         NiFiProperties props = props(
-            prop(REPOSITORY_CONTENT_PREFIX + "disk1", "file:target/test-repo1"),
-            prop(REPOSITORY_CONTENT_PREFIX + "disk2", "file:target/test-repo2"),
+            prop(REPOSITORY_CONTENT_PREFIX + "disk1", "target/test-repo1"),
+            prop(REPOSITORY_CONTENT_PREFIX + "disk2", "target/test-repo2"),
             prop(CORE_SITE_DEFAULT_PROPERTY, "src/test/resources/empty-core-site.xml"),
             prop(FAILURE_TIMEOUT_PROPERTY, "1 minute")
         );
@@ -104,7 +104,11 @@ public class ContainerHealthMonitorTest {
             @Override
             public Iterator<Container> iterator() {
                 if (indexOneContainer == null) {
-                    indexOneContainer = new TimeAdjustingFailureContainer(atModIndex(1));
+                    try {
+                        indexOneContainer = new TimeAdjustingFailureContainer(atModIndex(1));
+                    } catch (IOException ex) {
+                        throw new RuntimeException(ex);
+                    }
                 }
                 return Arrays.asList(atModIndex(0), indexOneContainer).iterator();
             }
@@ -137,8 +141,8 @@ public class ContainerHealthMonitorTest {
     public void checkDiskHealthTest() throws IOException {
 
         NiFiProperties props = props(
-            prop(REPOSITORY_CONTENT_PREFIX + "disk1", "file:target/test-repo1"),
-            prop(REPOSITORY_CONTENT_PREFIX + "disk2", "file:target/test-repo2"),
+            prop(REPOSITORY_CONTENT_PREFIX + "disk1", "target/test-repo1"),
+            prop(REPOSITORY_CONTENT_PREFIX + "disk2", "target/test-repo2"),
             prop(CORE_SITE_DEFAULT_PROPERTY, "src/test/resources/empty-core-site.xml"),
             prop(FULL_PERCENTAGE_PROPERTY, "99%")
         );
@@ -425,8 +429,8 @@ public class ContainerHealthMonitorTest {
         private final Container delegate;
         private long useLastFailureTime = 0;
 
-        public TimeAdjustingFailureContainer(Container delegate) {
-            super(null, new Path("file:/this/path/doesnt/exist"), null, 0, 0, true);
+        public TimeAdjustingFailureContainer(Container delegate) throws IOException {
+            super("test-adjust", new Path("file:/this/path/doesnt/exist"), null, 0, 0, true);
             this.delegate = delegate;
         }
 

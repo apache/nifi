@@ -62,8 +62,8 @@ public class ArchiveOrDestroyDestructableClaimsTest {
         when(repo.remove(any(ResourceClaim.class))).thenReturn(true);
 
         NiFiProperties props = props(
-            prop(REPOSITORY_CONTENT_PREFIX + "disk1", "file:target/test-repo1"),
-            prop(REPOSITORY_CONTENT_PREFIX + "disk2", "file:target/test-repo2"),
+            prop(REPOSITORY_CONTENT_PREFIX + "disk1", "target/test-repo1"),
+            prop(REPOSITORY_CONTENT_PREFIX + "disk2", "target/test-repo2"),
             prop(CORE_SITE_DEFAULT_PROPERTY, "src/test/resources/empty-core-site.xml")
         );
 

@@ -44,6 +44,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FsStatus;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
@@ -124,7 +125,7 @@ public class ContainerGroup implements Iterable<Container> {
                 path = new Path(pathStr);
             }
 
-            if (pathStr.startsWith("file:")) {
+            if (pathStr.startsWith("file:") || fs instanceof RawLocalFileSystem) {
                 config.setInt(DFSConfigKeys.DFS_REPLICATION_KEY, 1);
             }
 
@@ -148,6 +149,10 @@ public class ContainerGroup implements Iterable<Container> {
                         "Could not get file system status for content repository container with name: " + name, ex);
             }
 
+            if (!path.isAbsolute()) {
+                path = new Path(fs.getWorkingDirectory(), path);
+            }
+
             int replication = config.getInt(DFSConfigKeys.DFS_REPLICATION_KEY, 1);
             long capacity = status.getCapacity() / replication;
             if (capacity == 0) {
@@ -158,7 +163,13 @@ public class ContainerGroup implements Iterable<Container> {
             long fullThreshold = (long) (repoConfig.getFullPercentage() * capacity);
             boolean pauseOnFailure = repoConfig.getFailureTimeoutMs() > 0;
 
-            Container container = new Container(name, path, config, maxArchiveBytes, fullThreshold, pauseOnFailure);
+            Container container;
+            try {
+                container = new Container(name, path, config, maxArchiveBytes, fullThreshold, pauseOnFailure);
+            } catch (IOException ex) {
+                throw new RuntimeException(
+                        "Could not create file system for content repository container with name: " + name, ex);
+            }
 
             createDirectoryStructure(repoConfig, name, fs, path);
 

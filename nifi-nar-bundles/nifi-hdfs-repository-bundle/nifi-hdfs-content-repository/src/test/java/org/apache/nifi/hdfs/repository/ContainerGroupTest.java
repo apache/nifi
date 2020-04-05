@@ -51,12 +51,12 @@ public class ContainerGroupTest {
     @Test
     public void noCoreSiteTest() {
         NiFiProperties props = props(
-            prop(REPOSITORY_CONTENT_PREFIX + "disk1", "file:///tmp/test-repo")
+            prop(REPOSITORY_CONTENT_PREFIX + "disk1", "/tmp/test-repo")
         );
 
         try {
             new ContainerGroup(props, config(props), null, null);
-            fail("Expected container group creation to fail due to lack of core-site.xml");
+            fail("Expected container group creation to fail due to lack of core-site.xml in properties");
         } catch (RuntimeException ex) {
             assertTrue(ex.getMessage(), ex.getMessage().contains("No core.site.xml defined"));
         }
@@ -65,8 +65,8 @@ public class ContainerGroupTest {
     @Test
     public void noContainersTest() {
         NiFiProperties props = props(
-            prop(REPOSITORY_CONTENT_PREFIX + "disk1", "file:target/test-repo1"),
-            prop(REPOSITORY_CONTENT_PREFIX + "disk2", "file:target/test-repo2"),
+            prop(REPOSITORY_CONTENT_PREFIX + "disk1", "target/test-repo1"),
+            prop(REPOSITORY_CONTENT_PREFIX + "disk2", "target/test-repo2"),
             prop(CORE_SITE_DEFAULT_PROPERTY, "src/test/resources/empty-core-site.xml")
         );
 
@@ -95,8 +95,8 @@ public class ContainerGroupTest {
     @Test
     public void missingContainersFromGroupTest() {
         NiFiProperties props = props(
-            prop(REPOSITORY_CONTENT_PREFIX + "disk1", "file:target/test-repo1"),
-            prop(REPOSITORY_CONTENT_PREFIX + "disk2", "file:target/test-repo2"),
+            prop(REPOSITORY_CONTENT_PREFIX + "disk1", "target/test-repo1"),
+            prop(REPOSITORY_CONTENT_PREFIX + "disk2", "target/test-repo2"),
             prop(CORE_SITE_DEFAULT_PROPERTY, "src/test/resources/empty-core-site.xml")
         );
 
@@ -111,8 +111,8 @@ public class ContainerGroupTest {
     @Test
     public void noContainersExclusionTest() {
         NiFiProperties props = props(
-            prop(REPOSITORY_CONTENT_PREFIX + "disk1", "file:target/test-repo1"),
-            prop(REPOSITORY_CONTENT_PREFIX + "disk2", "file:target/test-repo2"),
+            prop(REPOSITORY_CONTENT_PREFIX + "disk1", "target/test-repo1"),
+            prop(REPOSITORY_CONTENT_PREFIX + "disk2", "target/test-repo2"),
             prop(CORE_SITE_DEFAULT_PROPERTY, "src/test/resources/empty-core-site.xml")
         );
 
@@ -127,8 +127,8 @@ public class ContainerGroupTest {
     @Test
     public void specificIdsTest() {
         NiFiProperties props = props(
-            prop(REPOSITORY_CONTENT_PREFIX + "disk1", "file:target/test-repo1"),
-            prop(REPOSITORY_CONTENT_PREFIX + "disk2", "file:target/test-repo2"),
+            prop(REPOSITORY_CONTENT_PREFIX + "disk1", "target/test-repo1"),
+            prop(REPOSITORY_CONTENT_PREFIX + "disk2", "target/test-repo2"),
             prop(CORE_SITE_DEFAULT_PROPERTY, "src/test/resources/empty-core-site.xml")
         );
 
@@ -142,8 +142,8 @@ public class ContainerGroupTest {
     @Test
     public void excludeIdsTest() {
         NiFiProperties props = props(
-            prop(REPOSITORY_CONTENT_PREFIX + "disk1", "file:target/test-repo1"),
-            prop(REPOSITORY_CONTENT_PREFIX + "disk2", "file:target/test-repo2"),
+            prop(REPOSITORY_CONTENT_PREFIX + "disk1", "target/test-repo1"),
+            prop(REPOSITORY_CONTENT_PREFIX + "disk2", "target/test-repo2"),
             prop(CORE_SITE_DEFAULT_PROPERTY, "src/test/resources/empty-core-site.xml")
         );
 
@@ -157,8 +157,8 @@ public class ContainerGroupTest {
     @Test
     public void containerCreationFailureTest() {
         NiFiProperties props = props(
-            prop(REPOSITORY_CONTENT_PREFIX + "disk1", "file:target/test-repo1"),
-            prop(REPOSITORY_CONTENT_PREFIX + "disk2", "file:/this/path/cant/exist"),
+            prop(REPOSITORY_CONTENT_PREFIX + "disk1", "target/test-repo1"),
+            prop(REPOSITORY_CONTENT_PREFIX + "disk2", "/this/path/cant/exist"),
             prop(CORE_SITE_DEFAULT_PROPERTY, "src/test/resources/empty-core-site.xml")
         );
 
@@ -174,10 +174,10 @@ public class ContainerGroupTest {
     @Test
     public void generalTest() throws IOException {
 
-        String workPath = "file:" + new File(".").getCanonicalPath();
+        String workPath = new File(".").getCanonicalPath();
 
         NiFiProperties props = props(
-            prop(REPOSITORY_CONTENT_PREFIX + "disk1", "file:target/test-repo1"),
+            prop(REPOSITORY_CONTENT_PREFIX + "disk1", "target/test-repo1"),
             prop(REPOSITORY_CONTENT_PREFIX + "disk2", workPath + "/target/test-repo2"),
             prop(CONTENT_ARCHIVE_MAX_USAGE_PERCENTAGE, "50%"),
             prop(CORE_SITE_DEFAULT_PROPERTY, "src/test/resources/empty-core-site.xml")
@@ -208,7 +208,7 @@ public class ContainerGroupTest {
 
         Container disk1 = group.get("disk1");
         assertEquals("disk1", disk1.getName());
-        assertEquals(workPath + "/target/test-repo1", disk1.getPath().toString());
+        assertEquals("file:" + workPath + "/target/test-repo1", disk1.getPath().toString());
         assertTrue(disk1.isActive());
 
         Container disk2 = group.get("disk2");
@@ -231,10 +231,10 @@ public class ContainerGroupTest {
         FileUtils.deleteDirectory(new File("target/test-repo1"));
         FileUtils.deleteDirectory(new File("target/test-repo2"));
 
-        String workPath = "file:" + new File(".").getCanonicalPath();
+        String workPath = new File(".").getCanonicalPath();
 
         NiFiProperties props = props(
-            prop(REPOSITORY_CONTENT_PREFIX + "disk1", "file:target/test-repo1"),
+            prop(REPOSITORY_CONTENT_PREFIX + "disk1", "target/test-repo1"),
             prop(REPOSITORY_CONTENT_PREFIX + "disk2", workPath + "/target/test-repo2"),
             prop(CORE_SITE_DEFAULT_PROPERTY, "src/test/resources/empty-core-site.xml")
         );
@@ -267,7 +267,7 @@ public class ContainerGroupTest {
     @Test
     public void specificCoreSiteTest() {
         NiFiProperties props = props(
-            prop(REPOSITORY_CONTENT_PREFIX + "disk1", "file:target/test-repo1"),
+            prop(REPOSITORY_CONTENT_PREFIX + "disk1", "target/test-repo1"),
             prop(REPOSITORY_CONTENT_PREFIX + "disk2", "target/test-repo2"),
             prop(CORE_SITE_DEFAULT_PROPERTY + ".disk1", "src/test/resources/empty-core-site.xml"),
             prop(CORE_SITE_DEFAULT_PROPERTY + ".disk2", "src/test/resources/repl2-core-site.xml")
@@ -292,8 +292,8 @@ public class ContainerGroupTest {
     @Test
     public void noActiveContainersTest() {
         NiFiProperties props = props(
-            prop(REPOSITORY_CONTENT_PREFIX + "disk1", "file:target/test-repo1"),
-            prop(REPOSITORY_CONTENT_PREFIX + "disk2", "file:target/test-repo2"),
+            prop(REPOSITORY_CONTENT_PREFIX + "disk1", "target/test-repo1"),
+            prop(REPOSITORY_CONTENT_PREFIX + "disk2", "target/test-repo2"),
             prop(CORE_SITE_DEFAULT_PROPERTY, "src/test/resources/empty-core-site.xml")
         );
 

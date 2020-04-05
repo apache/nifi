@@ -25,6 +25,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.nifi.controller.repository.claim.ResourceClaim;
 
 public class Container {
@@ -42,14 +43,15 @@ public class Container {
     private volatile boolean full = false;
     private volatile boolean active = true;
 
-    public Container(String name, Path path, Configuration config, long minUsableSpaceForArchive, long fullThreshold, boolean pauseOnFailure) {
+    public Container(String name, Path path, Configuration config, long minUsableSpaceForArchive, long fullThreshold, boolean pauseOnFailure)
+            throws IOException {
         this.name = name;
         this.path = path;
         this.config = config;
         this.minUsableSpaceForArchive = minUsableSpaceForArchive;
         this.fullThreshold = fullThreshold;
         this.failureDisabled = !pauseOnFailure;
-        this.disableChecksums = path.toString().startsWith("file:");
+        this.disableChecksums = path.toString().startsWith("file:") || getFileSystem() instanceof RawLocalFileSystem;
     }
 
     public synchronized void setFull(boolean full) {

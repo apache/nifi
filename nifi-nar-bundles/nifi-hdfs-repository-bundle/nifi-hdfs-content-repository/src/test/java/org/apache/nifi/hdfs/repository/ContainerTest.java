@@ -47,7 +47,7 @@ public class ContainerTest {
     }
 
     @Test
-    public void fullDiskTest() {
+    public void fullDiskTest() throws IOException {
         Container container = new Container("test", new Path("src/test/resources"), new Configuration(), 1024, 1024 * 1024, true);
 
         container.setFull(true);
@@ -75,7 +75,7 @@ public class ContainerTest {
     }
 
     @Test
-    public void failureTest() throws InterruptedException {
+    public void failureTest() throws InterruptedException, IOException {
         Container container = new Container("test", new Path("src/test/resources"), new Configuration(), 1024, 1024 * 1024, true);
 
         long start = System.currentTimeMillis();
@@ -120,7 +120,7 @@ public class ContainerTest {
     }
 
     @Test
-    public void failuresDisabledTest() {
+    public void failuresDisabledTest() throws IOException {
         Container container = new Container("test", new Path("src/test/resources"), new Configuration(), 1024, 1024 * 1024, false);
 
         container.failureOcurred();
@@ -131,7 +131,7 @@ public class ContainerTest {
     }
 
     @Test
-    public void fullThenFailureTest() {
+    public void fullThenFailureTest() throws IOException {
         Container container = new Container("test", new Path("src/test/resources"), new Configuration(), 1024, 1024 * 1024, true);
 
         container.setFull(true);
@@ -155,7 +155,7 @@ public class ContainerTest {
     }
 
     @Test
-    public void failureThenFullTest() {
+    public void failureThenFullTest() throws IOException {
         Container container = new Container("test", new Path("src/test/resources"), new Configuration(), 1024, 1024 * 1024, true);
 
         container.setFull(true);

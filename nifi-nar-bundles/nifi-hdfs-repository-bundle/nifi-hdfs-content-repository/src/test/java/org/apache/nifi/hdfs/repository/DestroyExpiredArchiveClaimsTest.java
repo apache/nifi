@@ -57,7 +57,7 @@ public class DestroyExpiredArchiveClaimsTest {
     public void ageOffOnlyTest() throws IOException {
 
         NiFiProperties props = props(
-            prop(REPOSITORY_CONTENT_PREFIX + "disk1", "file:target/destroy-archive-test/disk1"),
+            prop(REPOSITORY_CONTENT_PREFIX + "disk1", "target/destroy-archive-test/disk1"),
             prop(CORE_SITE_DEFAULT_PROPERTY, "src/test/resources/empty-core-site.xml"),
             prop(CONTENT_ARCHIVE_MAX_USAGE_PERCENTAGE, "99%")
         );
@@ -91,7 +91,7 @@ public class DestroyExpiredArchiveClaimsTest {
     @Test
     public void oversizedTest() throws IOException {
         NiFiProperties props = props(
-            prop(REPOSITORY_CONTENT_PREFIX + "disk1", "file:target/destroy-archive-test/disk1"),
+            prop(REPOSITORY_CONTENT_PREFIX + "disk1", "target/destroy-archive-test/disk1"),
             prop(CORE_SITE_DEFAULT_PROPERTY, "src/test/resources/empty-core-site.xml"),
             prop(CONTENT_ARCHIVE_MAX_USAGE_PERCENTAGE, "50%")
         );
@@ -131,7 +131,7 @@ public class DestroyExpiredArchiveClaimsTest {
     public void noDeletionTest() throws IOException {
 
         NiFiProperties props = props(
-            prop(REPOSITORY_CONTENT_PREFIX + "disk1", "file:target/destroy-archive-test/disk1"),
+            prop(REPOSITORY_CONTENT_PREFIX + "disk1", "target/destroy-archive-test/disk1"),
             prop(CORE_SITE_DEFAULT_PROPERTY, "src/test/resources/empty-core-site.xml"),
             prop(CONTENT_ARCHIVE_MAX_USAGE_PERCENTAGE, "99%")
         );

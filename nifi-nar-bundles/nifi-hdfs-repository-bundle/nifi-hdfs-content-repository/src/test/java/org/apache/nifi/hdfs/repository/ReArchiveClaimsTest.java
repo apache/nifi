@@ -49,8 +49,8 @@ public class ReArchiveClaimsTest {
     public void normalTest() throws IOException {
 
         NiFiProperties props = props(
-            prop(REPOSITORY_CONTENT_PREFIX + "disk1", "file:target/rearchive-test/primary"),
-            prop(REPOSITORY_CONTENT_PREFIX + "disk2", "file:target/rearchive-test/archive"),
+            prop(REPOSITORY_CONTENT_PREFIX + "disk1", "target/rearchive-test/primary"),
+            prop(REPOSITORY_CONTENT_PREFIX + "disk2", "target/rearchive-test/archive"),
             prop(CORE_SITE_DEFAULT_PROPERTY, "src/test/resources/empty-core-site.xml")
         );
 
@@ -81,8 +81,8 @@ public class ReArchiveClaimsTest {
     public void failureTest() throws IOException {
 
         NiFiProperties props = props(
-            prop(REPOSITORY_CONTENT_PREFIX + "disk1", "file:target/rearchive-test/primary"),
-            prop(REPOSITORY_CONTENT_PREFIX + "disk2", "file:target/rearchive-test/archive"),
+            prop(REPOSITORY_CONTENT_PREFIX + "disk1", "target/rearchive-test/primary"),
+            prop(REPOSITORY_CONTENT_PREFIX + "disk2", "target/rearchive-test/archive"),
             prop(CORE_SITE_DEFAULT_PROPERTY, "src/test/resources/empty-core-site.xml")
         );
 
@@ -91,12 +91,16 @@ public class ReArchiveClaimsTest {
         ContainerGroup archive = new ContainerGroup(props, config(props), Collections.singleton("disk2"), null) {
             @Override
             public Container atModIndex(long index) {
-                return new Container(null, null, null, index, index, false) {
-                    @Override
-                    public FileSystem getFileSystem() throws IOException {
-                        throw new IOException("Error thrown for testing purposes!");
-                    }
-                };
+                try {
+                    return new Container(null, null, null, index, index, false) {
+                        @Override
+                        public FileSystem getFileSystem() throws IOException {
+                            throw new IOException("Error thrown for testing purposes!");
+                        }
+                    };
+                } catch (IOException ex)  {
+                    throw new RuntimeException(ex);
+                }
             }
         };
 
