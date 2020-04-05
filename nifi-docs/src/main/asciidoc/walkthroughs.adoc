@@ -111,6 +111,7 @@ NOTE: This section assumes no enterprise IT department to provide signed certifi
 Apache NiFi provides a toolkit (a collection of command-line tools for system administration). One of these is the TLS Toolkit, which provides a self-signed link:https://en.wikipedia.org/wiki/Certificate_authority[Certificate Authority (CA)^] and can easily issue and sign certificates in the format expected by NiFi. The toolkit can be run by a user or scripted to perform automated certificate generation. For more information, see <<toolkit-guide.adoc#tls_toolkit,NiFi Toolkit Guide: TLS Toolkit>>.
 
 The end result will consist of a self-signed NiFi CA (the root), a keystore and truststore containing the necessary certificates for the NiFi instance to operate, and a client certificate for a human user to access NiFi.
+
 image::nifi-tls-toolkit-standalone-cert-diagram.png["NiFi TLS Toolkit Standalone Certificate Diagram"]
 
 . Start in the directory where the NiFi toolkit was downloaded and unarchived. For this section, the directory `/etc/nifi-toolkit-1.11.4` will be used. This directory will be referred to as the "NiFi Toolkit home directory" and can be set explicitly (this is not done automatically by NiFi Toolkit nor is it required).
@@ -124,7 +125,7 @@ image::nifi-toolkit-home-dir-listing.png["NiFi Toolkit Home directory contents"]
 +
 [source]
 ----
-  nifi-toolkit-1.11.4 % ./bin/tls-toolkit.sh standalone -n "localhost"
+nifi-toolkit-1.11.4 % ./bin/tls-toolkit.sh standalone -n "localhost"
 2020/04/04 19:13:29 INFO [main] org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandaloneCommandLine: No nifiPropertiesFile specified, using embedded one.
 2020/04/04 19:13:29 INFO [main] org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone: Running standalone certificate generation with output directory ../nifi-toolkit-1.11.4
 2020/04/04 19:13:30 INFO [main] org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone: Generated new CA certificate ../nifi-toolkit-1.11.4/nifi-cert.pem and key ../nifi-toolkit-1.11.4/nifi-key.key
@@ -139,7 +140,7 @@ image::nifi-toolkit-home-dir-listing.png["NiFi Toolkit Home directory contents"]
 --
 [source]
 ----
-  nifi-toolkit-1.11.4 % diff ../nifi-1.11.4/conf/nifi.properties localhost/nifi.properties
+nifi-toolkit-1.11.4 % diff ../nifi-1.11.4/conf/nifi.properties localhost/nifi.properties
 135,137c135,137
 < nifi.remote.input.host=
 < nifi.remote.input.secure=false
@@ -195,7 +196,7 @@ The `nifi.remote` section configures <<user-guide.adoc#site-to-site,Site to Site
 +
 [source]
 ----
-  nifi-toolkit-1.11.4 % ./bin/tls-toolkit.sh standalone -C "CN=my_username, OU=NiFi"
+nifi-toolkit-1.11.4 % ./bin/tls-toolkit.sh standalone -C "CN=my_username, OU=NiFi"
 2020/04/04 19:38:30 INFO [main] org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandaloneCommandLine: No nifiPropertiesFile specified, using embedded one.
 2020/04/04 19:38:30 INFO [main] org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone: Running standalone certificate generation with output directory ../nifi-toolkit-1.11.4
 2020/04/04 19:38:30 INFO [main] org.apache.nifi.toolkit.tls.util.TlsHelper: Verifying the certificate signature for CN=localhost,OU=NIFI
@@ -255,10 +256,26 @@ image::nifi-running-tls-client-certificate.png["NiFi running with user logged in
 
 * While it is recommended to configure NiFi with security immediately, some admins have already run NiFi with other configuration modifications before securing it. The TLS Toolkit provides an option to consume an existing `nifi.properties` file and make the security changes to it rather than using a default template. Use `-f /etc/nifi-1.11.4/conf/nifi.properties` or `--nifiPropertiesFile /etc/nifi-1.11.4/conf/nifi.properties` if this file already exists. For more toolkit options, see <<toolkit-guide.adoc#tls_operation_modes,NiFi Toolkit Guide: TLS Toolkit Operation Modes>>.
 * To generate a certificate for a hostname other than `localhost`, use the `-n somehost.com` argument. To run on the local machine, DNS settings must allow for this. Either modify the `/etc/hosts` file or use a tool like link:https://en.wikipedia.org/wiki/Dnsmasq[dnsmasq^] to set up custom DNS routing. This is beyond the scope of this document.
+* The browser will warn about an insecure connection because it does not trust the self-signed CA certificate. To explicitly mark this certificate as trusted, follow the instructions for the relevant OS and browser combination. For example, using macOS Catalina and Google Chrome:
++
+--
+. Open the NiFi CA cert in the Keychain Access app. Double-click on `nifi-cert.pem` or run the following command:
+* `open /etc/nifi-toolkit-1.11.4/nifi-cert.pem` -- Opens the certificate in Keychain Access
+* Right-click the `localhost` certificate and select *Get Info*
 
+image::keychain-access-certificate-listing.png["Keychain Access listing certificates"]
 
+* Expand the *Trust* section in the dialog
+* Change *Secure Sockets Layer (SSL)* to *Always Trust*
 
-* Get browser to trust NiFi self-signed cert
+image::keychain-access-trust-certificate.png["Trusting the CA certificate for TLS/SSL"]
+
+* Close the dialog
+* Restart the browser
+* Navigate to `https://localhost:9443/nifi`
+
+image::nifi-trusted-server-certificate.png["Browser showing trusted NiFi server certificate"]
+--
 
 // TODO: Write
 === Build NiFi from source
