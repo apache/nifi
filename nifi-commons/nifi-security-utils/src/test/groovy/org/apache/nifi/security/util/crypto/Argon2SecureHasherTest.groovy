@@ -18,11 +18,7 @@ package org.apache.nifi.security.util.crypto
 
 import org.apache.kerby.util.Hex
 import org.bouncycastle.jce.provider.BouncyCastleProvider
-import org.junit.After
-import org.junit.Before
-import org.junit.BeforeClass
-import org.junit.Ignore
-import org.junit.Test
+import org.junit.*
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
 import org.slf4j.Logger
@@ -209,10 +205,11 @@ class Argon2SecureHasherTest extends GroovyTestCase {
      * This test can have the minimum time threshold updated to determine if the performance
      * is still sufficient compared to the existing threat model.
      */
+    @Ignore("Long running test")
     @Test
     void testDefaultCostParamsShouldBeSufficient() {
         // Arrange
-        int testIterations = 10
+        int testIterations = 10_000
         byte[] inputBytes = "This is a sensitive value".bytes
 
         Argon2SecureHasher a2sh = new Argon2SecureHasher()
