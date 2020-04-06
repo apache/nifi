@@ -57,17 +57,120 @@ image::verify-release-gpg-and-checksums.png["Verifying the GPG signature and che
   * `tar -xvzf nifi-toolkit-1.11.4-bin.tar.gz` -- Uncompresses the `gzip` file and extracts the `tar` archive contents to `nifi-toolkit-1.11.4/`
 . Optionally, move the folders to a more appropriate location.
 
+== Building NiFi From Source
+
+|=======================================================================================================================
+|Description        | Instructions on downloading the Apache NiFi source code and building the application locally
+|Purpose            | To make the application (with potential code modifications) available to run on the specified machine (e.g. a local development environment)
+|Starting Point     | Machine running modern OS
+|Expected Outcome   | Latest version of Apache NiFi available to run on host with no configuration
+|Estimated Duration | 5 - 35 minutes + download time
+|=======================================================================================================================
+
+NOTE: This guide assumes Mac OS X / macOS 10.11.0+ but should work for any modern operating system. *nix commands are used by default, but Windows equivalents are provided where available.
+
+. Go to the link:http://nifi.apache.org/download.html[Apache NiFi Downloads] page.
+. Download the latest version of NiFi source code via the compressed files. For example, if the latest version is 1.11.4:
+* `nifi-1.11.4-source-release.zip` [53 MB]
+. If you are directed to a mirror page, click the first link on the page to download the respective archive file.
+. Note that the `nifi-1.11.4-bin.tar.gz` and the `nifi-toolkit-1.11.4-bin.tar.gz` compressed files are downloaded to your `Downloads` folder.
+. Download the GPG signature and checksums for the file. They are found on the initial download page next to the archive file.
+* `gpg --verify -v nifi-1.11.4-source-release.zip.asc` -- Verifies the GPG signature provided on the archive by the Release Manager (RM). See link:https://nifi.apache.org/gpg.html#verifying-a-release-signature[NiFi GPG Guide: Verifying a Release Signature] for further details
+* `shasum -a 256 nifi-1.11.4-source-release.zip` -- Calculates a SHA-256 checksum over the downloaded artifact. This should be compared with the contents of `nifi-1.11.4-source-release.zip.sha256` for equality
+* `shasum -a 512 nifi-1.11.4-source-release.zip` -- Calculates a SHA-512 checksum over the downloaded artifact. This should be compared with the contents of `nifi-1.11.4-source-release.zip.sha512` for equality
+. Extract the files from the `zip` file. This can be done by double-clicking on the file in the Finder or running the following command in the terminal.
+* `unzip nifi-1.11.4-source-release.zip` -- Uncompresses the `zip` file and extracts the archive contents to `nifi-1.11.4/`
+. Optionally, move the folder to a more appropriate location.
++
+[source]
+----
+nifi-1.11.4/ % ls -alGh
+total 328
+drwxr-xr-x  25 alopresto  staff   800B Apr  6 15:48 ./
+drwxr-xr-x   8 alopresto  staff   256B Apr  4 18:01 ../
+drwxr-xr-x   4 alopresto  staff   128B Jan 22 15:10 .github/
+-rw-r--r--   1 alopresto  staff   254B Jan 22 15:10 DEPENDENCIES
+-rw-r--r--   1 alopresto  staff    66K Jan 22 15:10 KEYS
+-rw-r--r--   1 alopresto  staff    21K Jan 22 15:10 LICENSE
+-rw-r--r--   1 alopresto  staff   7.1K Jan 22 15:10 NOTICE
+-rw-r--r--   1 alopresto  staff   9.1K Jan 22 15:10 README.md
+-rw-r--r--   1 alopresto  staff   3.3K Jan 22 15:10 SECURITY.md
+drwxr-xr-x   5 alopresto  staff   160B Apr  6 15:44 nifi-api/
+drwxr-xr-x   8 alopresto  staff   256B Apr  6 15:50 nifi-assembly/
+drwxr-xr-x   5 alopresto  staff   160B Apr  6 15:45 nifi-bootstrap/
+drwxr-xr-x  23 alopresto  staff   736B Apr  6 15:44 nifi-commons/
+drwxr-xr-x   9 alopresto  staff   288B Apr  6 15:44 nifi-docker/
+drwxr-xr-x   7 alopresto  staff   224B Apr  6 15:44 nifi-docs/
+drwxr-xr-x   8 alopresto  staff   256B Apr  6 15:44 nifi-external/
+drwxr-xr-x   5 alopresto  staff   160B Apr  6 15:44 nifi-framework-api/
+drwxr-xr-x   6 alopresto  staff   192B Apr  6 15:44 nifi-maven-archetypes/
+drwxr-xr-x   5 alopresto  staff   160B Apr  6 15:45 nifi-mock/
+drwxr-xr-x  82 alopresto  staff   2.6K Apr  6 15:44 nifi-nar-bundles/
+drwxr-xr-x   7 alopresto  staff   224B Apr  6 15:44 nifi-system-tests/
+drwxr-xr-x  14 alopresto  staff   448B Apr  6 15:44 nifi-toolkit/
+-rw-r--r--   1 alopresto  staff    44K Jan 22 15:10 pom.xml
+----
+. Build the NiFi source using link:https://maven.apache.org/[Apache Maven] from the source root directory (`nifi-1.11.4/`) using one of the following commands. For more information, see the link:https://cwiki.apache.org/confluence/display/NIFI/Contributor+Guide[NiFi Contributor Guide]. Estimated build times for each command on a modern professional laptop are listed below; allow additional time for dependency library downloads on first build.
+* `mvn clean install -Pinclude-grpc` -- Builds the application (expected time ~30 minutes)
+* `mvn clean install -T2.0C` -- Builds the application with multiple parallel threads (expected time ~15 minutes)
+* `mvn clean install -T2.0C -DskipTests` -- Builds the application with multiple parallel threads and unit tests disabled (expected time ~6 minutes)
++
+[source]
+----
+nifi-1.11.4/ % mvn clean install -T2.0C -DskipTests
+...
+------------------------------------------------------------------------
+Reactor Summary for nifi 1.11.4:
+
+nifi ............................................... SUCCESS [  0.834 s]
+nifi-api ........................................... SUCCESS [  8.799 s]
+nifi-framework-api ................................. SUCCESS [ 12.020 s]
+nifi-commons ....................................... SUCCESS [  0.253 s]
+nifi-utils ......................................... SUCCESS [ 16.029 s]
+nifi-properties .................................... SUCCESS [  6.863 s]
+nifi-security-utils ................................ SUCCESS [ 14.682 s]
+nifi-nar-bundles ................................... SUCCESS [  0.279 s]
+nifi-framework-bundle .............................. SUCCESS [  0.358 s]
+nifi-framework ..................................... SUCCESS [  1.538 s]
+nifi-properties-loader ............................. SUCCESS [ 14.153 s]
+...
+nifi-system-test-suite ............................. SUCCESS [  3.999 s]
+------------------------------------------------------------------------
+BUILD SUCCESS
+------------------------------------------------------------------------
+Total time:  06:17 min (Wall Clock)
+Finished at: 2020-04-06T15:50:35-07:00
+------------------------------------------------------------------------
+----
+. The resulting application is available in the build directory (for 1.11.14: `nifi-assembly/target/nifi-1.11.4-bin/nifi-1.11.4`).
+* `cd nifi-assembly/target/nifi-1.11.4-bin/nifi-1.11.4` -- Changes directory to the application root directory
++
+[source]
+----
+nifi-1.11.4/nifi-assembly/target/nifi-1.11.4-bin/nifi-1.11.4/ % ls -alGh
+drwxr-xr-x   10 alopresto  staff   320B Apr  6 15:50 ./
+drwxr-xr-x    3 alopresto  staff    96B Apr  6 15:50 ../
+-rw-r--r--    1 alopresto  staff   157K Jan 22 07:10 LICENSE
+-rw-r--r--    1 alopresto  staff    85K Jan 22 07:10 NOTICE
+-rw-r--r--    1 alopresto  staff   4.7K Jan 22 07:10 README
+drwxr-xr-x    8 alopresto  staff   256B Apr  6 15:50 bin/
+drwxr-xr-x   10 alopresto  staff   320B Apr  6 15:50 conf/
+drwxr-xr-x    3 alopresto  staff    96B Apr  6 15:50 docs/
+drwxr-xr-x    2 alopresto  staff    64B Jan 22 07:10 extensions/
+drwxr-xr-x  116 alopresto  staff   3.6K Apr  6 15:50 lib/
+----
+
 == Starting NiFi
 
 |=======================================================================================================================
 |Description        | Instructions on running the Apache NiFi application
 |Purpose            | To configure and run the application on the local machine
-|Starting Point     | <<installing-apache-nifi>>
+|Starting Point     | <<installing_apache_nifi>> or <<building_nifi_from_source>>
 |Expected Outcome   | Latest version of Apache NiFi running on host with minimal configuration
 |Estimated Duration | 1 minute
 |=======================================================================================================================
 
-. Start in the directory where NiFi was downloaded and unarchived. For this section, the directory `/etc/nifi-1.11.4` will be used. This directory will be referred to as the "NiFi home directory" and can be set explicitly (this is not done automatically by NiFi nor is it required).
+. Start in the directory where NiFi was downloaded and unarchived or built. For this section, the directory `/etc/nifi-1.11.4` will be used. This directory will be referred to as the "NiFi home directory" and can be set explicitly (this is not done automatically by NiFi nor is it required).
 * `export NIFI_HOME="/etc/nifi-1.11.4/"` -- Sets an environment variable (`$NIFI_HOME`) which references the installation directory (optional)
 * `cd /etc/nifi-1.11.4` -- Changes the terminal to the NiFi home directory
 * `ls -alGh` -- Lists the contents of the directory (optional)
@@ -116,7 +219,7 @@ NOTE: This section assumes no enterprise IT department to provide signed certifi
 |=======================================================================================================================
 |Description        | Instructions on enabling link://https://en.wikipedia.org/wiki/Transport_Layer_Security[Transport Layer Security (TLS)^] for the Apache NiFi application using the TLS Toolkit
 |Purpose            | Securing NiFi with TLS protects data in motion and is required to enable authentication & authorization
-|Starting Point     | <<starting-nifi>>
+|Starting Point     | <<starting_nifi>>
 |Expected Outcome   | Latest version of Apache NiFi running on host over TLS with client certificate authentication and authorization enabled and a single configured user
 |Estimated Duration | 10 minutes
 |=======================================================================================================================
@@ -221,7 +324,9 @@ nifi-toolkit-1.11.4 % ./bin/tls-toolkit.sh standalone -C "CN=my_username, OU=NiF
 2020/04/04 19:38:31 INFO [main] org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone: Successfully generated client certificate ../nifi-toolkit-1.11.4/CN=my_username_OU=NiFi.p12
 2020/04/04 19:38:31 INFO [main] org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone: tls-toolkit standalone completed successfully
 ----
+
 [[load_client_certificate_to_browser]]
+[start=6]
 . Load the client certificate into the web browser. Some browsers (e.g. Mozilla Firefox) maintain their own internal keychain separate from the operating system's (OS). Others (e.g. Apple Safari, Google Chrome) rely on the OS keychain. On most modern OS, double-clicking the PKCS12 keystore (`CN=my_username_OU=NiFi.p12`) will open it with the default handler and load it into the OS keychain. The randomly-generated password is available in `CN=my_username_OU=NiFi.password`.
 . Populate the *Initial Admin Identity* in NiFi. This is the identity that will be allowed to access the NiFi instance and configure user and group access via the UI or API.
 * `$EDITOR /etc/nifi-1.11.4/conf/authorizers.xml` -- Opens the `authorizers.xml` file in the text editor.
@@ -266,7 +371,7 @@ The application running. Note the user's DN in the top-right corner
 image::nifi-running-tls-client-certificate.png["NiFi running with user logged in by client certificate]
 --
 
-=== Additional Notes
+==== Additional Notes
 
 * While it is recommended to configure NiFi with security immediately, some admins have already run NiFi with other configuration modifications before securing it. The TLS Toolkit provides an option to consume an existing `nifi.properties` file and make the security changes to it rather than using a default template. Use `-f /etc/nifi-1.11.4/conf/nifi.properties` or `--nifiPropertiesFile /etc/nifi-1.11.4/conf/nifi.properties` if this file already exists. For more toolkit options, see <<toolkit-guide.adoc#tls_operation_modes,NiFi Toolkit Guide: TLS Toolkit Operation Modes>>.
 * To generate a certificate for a hostname other than `localhost`, use the `-n somehost.com` argument. To run on the local machine, DNS settings must allow for this. Either modify the `/etc/hosts` file or use a tool like link:https://en.wikipedia.org/wiki/Dnsmasq[dnsmasq^] to set up custom DNS routing. This is beyond the scope of this document.
@@ -298,7 +403,7 @@ NOTE: This section assumes an enterprise IT department or other mechanism to pro
 |=======================================================================================================================
 |Description        | Instructions on enabling link://https://en.wikipedia.org/wiki/Transport_Layer_Security[Transport Layer Security (TLS)^] for the Apache NiFi application using provided certificates
 |Purpose            | Securing NiFi with TLS protects data in motion and is required to enable authentication & authorization
-|Starting Point     | <<starting-nifi>>
+|Starting Point     | <<starting_nifi>>
 |Expected Outcome   | Latest version of Apache NiFi running on host over TLS with client certificate authentication and authorization enabled and a single configured user
 |Estimated Duration | 10 minutes
 |=======================================================================================================================
@@ -690,7 +795,6 @@ Certificate was added to keystore
 ** `nifi.remote.input.secure=false` -> `nifi.remote.input.secure=true`
 ** `nifi.remote.input.socket.port=` -> `nifi.remote.input.socket.port=10443`
 ** `nifi.web.http.port=8080` -> `nifi.web.http.port=`
-** `nifi.web.http.host=localhost` -> `nifi.web.http.host=`
 ** `nifi.web.https.host=` -> `nifi.web.https.host=secure.nifi`
 ** `nifi.web.https.port=` -> `nifi.web.https.port=9443`
 ** `nifi.security.keystore=` -> `nifi.security.keystore=./conf/keystore.jks`
@@ -704,19 +808,17 @@ Certificate was added to keystore
 
 From this point, the instructions are identical to those using the TLS Toolkit, starting at <<load_client_certificate_to_browser,Loading the client certificate in the browser>>.
 
-// TODO: Write
-==== Toolkit with external CA as intermediate
+==== Securing NiFi with TLS Toolkit and Provided Intermediate CA
+
+Occasionally, an IT department will provide an intermediate CA certificate which is signed by a trusted certificate and can be used to generate server and client certificates on-demand by the NiFi admin without further intervention by the IT department. The TLS toolkit provides a mechanism to use the intermediate certificate to sign generated certificates.
+
 The end result will consist of a self-signed external CA (the root), an intermediate CA used to sign NiFi certificates, a keystore and truststore containing the necessary certificates for the NiFi instance to operate, and a client certificate for a human user to access NiFi.
 
+// TODO: Write
+CAUTION: Develop section
 
 // TODO: Write
-=== Build NiFi from source
-. Install git, Maven, Java
-. Clone repo from GitHub
-. Build with Maven
-
-// TODO: Write
-=== Create and Secure a NiFi Cluster with the TLS Toolkit
+==== Create and Secure a NiFi Cluster with the TLS Toolkit
 Complete the following steps to secure your NiFi cluster:
 [%hardbreaks]
 Step 1. Create the NiFi client certificates using the TLS Toolkit.
