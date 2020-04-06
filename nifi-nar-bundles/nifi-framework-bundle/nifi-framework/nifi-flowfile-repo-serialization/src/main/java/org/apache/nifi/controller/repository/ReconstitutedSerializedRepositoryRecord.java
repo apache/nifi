@@ -17,6 +17,7 @@
 package org.apache.nifi.controller.repository;
 
 import org.apache.nifi.controller.repository.claim.ContentClaim;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 
 public class ReconstitutedSerializedRepositoryRecord implements SerializedRepositoryRecord {
     private final String queueIdentifier;
@@ -69,6 +70,12 @@ public class ReconstitutedSerializedRepositoryRecord implements SerializedReposi
     @Override
     public String getSwapLocation() {
         return swapLocation;
+    }
+
+    @Override
+    public String toString() {
+        return "ReconstitutedSerializedRepositoryRecord[recordType=" + type + ", queueId=" + queueIdentifier + ", flowFileUuid=" + flowFile.getAttribute(CoreAttributes.UUID.key())
+            + ", attributesChanged=" + isAttributesChanged() + "]";
     }
 
     public static class Builder {

@@ -18,6 +18,7 @@ package org.apache.nifi.controller.repository;
 
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 
 public class LiveSerializedRepositoryRecord implements SerializedRepositoryRecord {
     private final RepositoryRecord record;
@@ -67,4 +68,12 @@ public class LiveSerializedRepositoryRecord implements SerializedRepositoryRecor
     public boolean isAttributesChanged() {
         return record.isAttributesChanged();
     }
+
+    @Override
+    public String toString() {
+        return "LiveSerializedRepositoryRecord[recordType=" + record.getType() + ", queueId=" + (record.getDestination() == null ? null : record.getDestination().getIdentifier())
+            + ", flowFileUuid=" + record.getCurrent().getAttribute(CoreAttributes.UUID.key()) + ", attributesChanged=" + isAttributesChanged() + "]";
+    }
+
+
 }
