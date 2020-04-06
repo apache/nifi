@@ -30,11 +30,14 @@ import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TimeZone;
 
 import org.apache.nifi.serialization.SimpleRecordSchema;
@@ -46,9 +49,19 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.validation.SchemaValidationResult;
 import org.apache.nifi.serialization.record.validation.ValidationError;
+import org.apache.nifi.serialization.record.validation.ValidationErrorType;
 import org.junit.Test;
 
 public class TestStandardSchemaValidator {
+    private static final Set<RecordFieldType> NUMERIC_TYPES = new HashSet<>(Arrays.asList(
+            RecordFieldType.BYTE,
+            RecordFieldType.SHORT,
+            RecordFieldType.INT,
+            RecordFieldType.LONG,
+            RecordFieldType.BIGINT,
+            RecordFieldType.FLOAT,
+            RecordFieldType.DOUBLE
+    ));
 
     @Test
     public void testValidateCorrectSimpleTypesStrictValidation() throws ParseException {
@@ -64,6 +77,12 @@ public class TestStandardSchemaValidator {
                 fields.add(new RecordField(fieldType.name().toLowerCase(), fieldType.getMapDataType(RecordFieldType.INT.getDataType())));
             } else {
                 fields.add(new RecordField(fieldType.name().toLowerCase(), fieldType.getDataType()));
+            }
+
+            if (NUMERIC_TYPES.contains(fieldType)) {
+                for (final RecordFieldType narrowType : fieldType.getNarrowDataTypes()) {
+                    fields.add(new RecordField(narrowType.name().toLowerCase() + "_as_" + fieldType.name().toLowerCase(), fieldType.getDataType()));
+                }
             }
         }
 
@@ -103,6 +122,22 @@ public class TestStandardSchemaValidator {
         valueMap.put("map", intMap);
         valueMap.put("mapRecord", mapRecord);
 
+        valueMap.put("byte_as_short", (byte) 8);
+
+        valueMap.put("short_as_int", (short) 8);
+        valueMap.put("byte_as_int", (byte) 8);
+
+        valueMap.put("int_as_long", 9);
+        valueMap.put("short_as_long", (short) 8);
+        valueMap.put("byte_as_long", (byte) 1);
+
+        valueMap.put("byte_as_bigint", (byte) 8);
+        valueMap.put("short_as_bigint", (short) 8);
+        valueMap.put("int_as_bigint", 8);
+        valueMap.put("long_as_bigint", 8L);
+
+        valueMap.put("float_as_double", 8.0F);
+
         final Record record = new MapRecord(schema, valueMap);
 
         final SchemaValidationContext validationContext = new SchemaValidationContext(schema, false, true);
@@ -114,6 +149,55 @@ public class TestStandardSchemaValidator {
         assertTrue(result.getValidationErrors().isEmpty());
     }
 
+    @Test
+    public void testIntegerIsNotFittingForDouble() throws ParseException {
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("test", RecordFieldType.DOUBLE.getDataType()));
+
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+        final Map<String, Object> valueMap = new LinkedHashMap<>();
+        valueMap.put("test", 12345);
+
+        final Record record = new MapRecord(schema, valueMap);
+        final SchemaValidationContext validationContext = new SchemaValidationContext(schema, false, true);
+        final StandardSchemaValidator validator = new StandardSchemaValidator(validationContext);
+
+        final SchemaValidationResult result = validator.validate(record);
+
+        assertFalse(result.isValid());
+
+        final Collection<ValidationError> validationErrors = result.getValidationErrors();
+        assertEquals(1, validationErrors.size());
+
+        final ValidationError validationError = validationErrors.iterator().next();
+        assertEquals("/test", validationError.getFieldName().get());
+        assertEquals(ValidationErrorType.INVALID_FIELD, validationError.getType());
+    }
+
+    @Test
+    public void testStringDoesNotAllowNarrowTypes() throws ParseException {
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("test", RecordFieldType.STRING.getDataType()));
+
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+        final Map<String, Object> valueMap = new LinkedHashMap<>();
+        valueMap.put("test", 12345);
+
+        final Record record = new MapRecord(schema, valueMap);
+        final SchemaValidationContext validationContext = new SchemaValidationContext(schema, false, true);
+        final StandardSchemaValidator validator = new StandardSchemaValidator(validationContext);
+
+        final SchemaValidationResult result = validator.validate(record);
+
+        assertFalse(result.isValid());
+
+        final Collection<ValidationError> validationErrors = result.getValidationErrors();
+        assertEquals(1, validationErrors.size());
+
+        final ValidationError validationError = validationErrors.iterator().next();
+        assertEquals("/test", validationError.getFieldName().get());
+        assertEquals(ValidationErrorType.INVALID_FIELD, validationError.getType());
+    }
 
     @Test
     public void testValidateWrongButCoerceableType() throws ParseException {

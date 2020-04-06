@@ -364,4 +364,8 @@ public enum RecordFieldType {
     public static RecordFieldType of(final String typeString) {
       return SIMPLE_NAME_MAP.get(typeString);
     }
+
+    public Set<RecordFieldType> getNarrowDataTypes() {
+        return Collections.unmodifiableSet(narrowDataTypes);
+    }
 }
