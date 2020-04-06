@@ -873,7 +873,8 @@ In some enterprise scenarios, a security/IT team may provide a signing certifica
   * If the `-o` argument is not provided, the default working directory (`.`) must contain `nifi-cert.pem` and `nifi-key.key`
   ** e.g. `$ cd ./hardcoded/ && ../toolkit/bin/tls-toolkit.sh standalone -n 'node5.nifi.apache.org' -P thisIsABadPassword -S thisIsABadPassword -O`
 
-```
+[source]
+----
 # Example directory structure *before* commands above are run
 
 🔓 0s @ 18:07:58 $ tree -L 2
@@ -894,13 +895,14 @@ In some enterprise scenarios, a security/IT team may provide a signing certifica
     ├── conf
     ├── docs
     └── lib
-```
+----
 
 The `nifi-cert.pem` and `nifi-key.key` files should be ASCII-armored (Base64-encoded ASCII) files containing the CA public certificate and private key respectively. Here are sample files of each to show the expected format:
 
 ==== nifi-cert.pem
 
-```
+[source]
+----
 # The first command shows the actual content of the encoded file, and the second parses it and shows the internal values
 
 .../certs $ more nifi-cert.pem
@@ -988,11 +990,12 @@ Certificate:
          e2:03:f0:af:68:c5:c1:12:88:3e:c4:f0:30:d5:28:18:7e:e0:
          b3:e2:b9:4c:dc:17:51:6b:9e:33:df:ea:0e:95:cf:31:6f:37:
          7b:c3:c4:37
-```
+----
 
 ==== nifi-key.key
 
-```
+[source]
+----
 # The first command shows the actual content of the encoded file, and the second parses it and shows the internal values
 
 .../certs $ more nifi-key.key
@@ -1114,7 +1117,7 @@ coefficient:
     02:8c:5a:75:d2:f1:97:1f:4a:db:15:7f:7a:03:15:
     f7:d7:61:1a:82:69:67:ae:86:93:26:83:d4:f0:75:
     7a:00:bb:07:e9:13:91:82:9b
-```
+----
 
 [[tls_external-signed_ca]]
 ==== Signing with Externally-signed CA Certificates
