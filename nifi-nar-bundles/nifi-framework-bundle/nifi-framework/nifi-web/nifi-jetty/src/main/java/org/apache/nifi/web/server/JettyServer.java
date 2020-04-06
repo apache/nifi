@@ -760,6 +760,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         final int headerSize = DataUnit.parseDataSize(props.getWebMaxHeaderSize(), DataUnit.B).intValue();
         httpConfiguration.setRequestHeaderSize(headerSize);
         httpConfiguration.setResponseHeaderSize(headerSize);
+        httpConfiguration.setSendServerVersion(props.shouldSendServerVersion());
 
         // Check if both HTTP and HTTPS connectors are configured and fail if both are configured
         if (bothHttpAndHttpsConnectorsConfigured(props)) {
