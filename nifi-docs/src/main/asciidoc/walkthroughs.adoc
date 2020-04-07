@@ -165,7 +165,7 @@ drwxr-xr-x  116 alopresto  staff   3.6K Apr  6 15:50 lib/
 |=======================================================================================================================
 |Description        | Instructions on running the Apache NiFi application
 |Purpose            | To configure and run the application on the local machine
-|Starting Point     | <<installing_apache_nifi>> or <<building_nifi_from_source>>
+|Starting Point     | <<installing_apache_nifi,Installing Apache NiFi>> or <<building_nifi_from_source,Building NiFi from Source>>
 |Expected Outcome   | Latest version of Apache NiFi running on host with minimal configuration
 |Estimated Duration | 1 minute
 |=======================================================================================================================
@@ -817,8 +817,59 @@ The end result will consist of a self-signed external CA (the root), an intermed
 // TODO: Write
 CAUTION: Develop section
 
+== Deploying a NiFi Cluster
+
+Apache NiFi can run in either _standalone_ or _clustered_ mode. A standalone node is often sufficient for dataflow operations, but in a production or high-volume environment, a cluster is more performant and resilient. For more information, see <<administration-guide.adoc#clustering,NiFi Administrator's Guide: Clustering>>.
+
+=== Creating a NiFi Cluster
+
 // TODO: Write
-==== Create and Secure a NiFi Cluster with the TLS Toolkit
+CAUTION: Needs a diagram
+
+CAUTION: Develop section
+
+. Copy the NiFi run directory 3x
+. Configure the settings
+. Start each node
+
+// TODO: Write
+=== Creating and Securing a NiFi Cluster with the TLS Toolkit
+
+NOTE: This section assumes no enterprise IT department to provide signed certificates. For a scenario with provided certificates, see <<securing_nifi_with_provided_certificates,Securing NiFi with Provided Certificates>>.
+
+|=======================================================================================================================
+|Description        | Instructions on configuring and securing a 3 node cluster
+|Purpose            | A NiFi cluster can perform flow operations in parallel and provide resiliency if nodes are unavailable.
+|Starting Point     | <<installing_apache_nifi,Installing Apache NiFi>> or <<building_nifi_from_source,Building NiFi from Source>>
+|Expected Outcome   | 3 nodes of latest version of Apache NiFi in secured cluster running on local machine
+|Helpful Reading    | <<securing_nifi_with_tls_toolkit,Securing NiFi with TLS Toolkit>>, <<creating_a_nifi_cluster,Creating a NiFi Cluster>>
+|Estimated Duration | 15 minutes
+|=======================================================================================================================
+
+Similar to a standalone instance, a NiFi cluster must have TLS configured to enable authentication and authorization mechanisms. However, the cluster communication protocol used by NiFi and the framework authentication and authorization must also be configured to allow nodes to communicate.
+
+For this guide, the three nodes will be referred to as `node1`, `node2`, and `node3`. Each will have a `$NIFI_HOME` environment variable which points to the respective "NiFi home directory".
+
+Prerequisites:
+
+* DNS configuration for three hosts using the addresses `node1.nifi`, `node2.nifi`, `node3.nifi`
+** This can be all side-by-side on the same physical host, using virtual machines, or using independent physical machines
+* Ports open to allow the nodes to communicate
+** If these machines are subject to a firewall, ensure that the following ports are open:
+*** `2181`, `2888`, `3888` -- ZooKeeper ports
+*** `6342` -- Load-balancing port
+*** `9443` -- HTTPS port for NiFi UI/API
+*** `10443` -- Site to site port
+*** `11443` -- Cluster communications port
+** If all the nodes will run on the same machine, the port scheme will end in the respective node identifier to avoid conflicts (e.g. HTTPS port `9441` for `node1`, `9442` for `node2`, `9443` for `node3`). Ensure that the following ports are open:
+*** `2181` - `2183` -- ZooKeeper ports
+*** `2881` - `2883` -- ZooKeeper ports
+*** `3881` - `3883` -- ZooKeeper ports
+*** `6341` - `6343` -- Load-balancing port
+*** `9441` - `9443` -- HTTPS port for NiFi UI/API
+*** `10441` - `10443` -- Site to site port
+*** `11441` - `11443` -- Cluster communications port
+
 Complete the following steps to secure your NiFi cluster:
 [%hardbreaks]
 Step 1. Create the NiFi client certificates using the TLS Toolkit.
@@ -830,135 +881,162 @@ Step 6. Update the `authorizers.xml` file.
 Step 7. Delete the `authorizations.xml` and `users.xml` files.
 Step 8. Restart the NiFi cluster.
 
-=== Step 1. Create the NiFi Client Certificates
-. Navigate to the `nifi-toolkit-1.11.1/bin` folder.
-. Enter:
-----
-./tls-toolkit.sh standalone -n 'nifi[<1-n>].<org name>.com' -C 'CN=<name of NiFi client certificate>, O=<org>' -c 'CA.<org>.com' -O -o /<path to secure folder for the certificates>
-----
-For a description of flag options, click link:http://nifi.apache.org/docs/nifi-docs/html/toolkit-guide.html#usage-8[here].
-
-
-.Example:
-----
-./tls-toolkit.sh standalone -n 'nifi[1-3].xyz.com' -C 'CN=nifi-admin-client-cert, O=XYZ LLC' -c 'CA.xyz.com' -O -o ~/NiFi/Certificates/security_certificates_cluster
-----
-The following image shows the structure for the new security_certificates_cluster directory:
+. Create the NiFi Client Certificates. When using the `standalone` mode of the TLS Toolkit, it is important that *all certificates are generated from the same instance, using the same generated NiFi CA certificate to sign each*. The certificates can be generated by a single command, or individually. For more information on toolkit flag options, see link:http://nifi.apache.org/docs/nifi-docs/html/toolkit-guide.html#usage-8[NiFi Toolkit Guide: TLS Toolkit Usage].
+.. Navigate to the `nifi-toolkit-1.11.4/` directory.
+* `cd /etc/nifi-toolkit-1.11.4/` -- Changes to the toolkit directory
+.. Generate the certificates. Running these commands first generates the NiFi CA public certificate and private key if not present, then generates the server certificates, followed by the client certificate necessary for the *Initial Admin Identity*. An alternative command performing all the steps sequentially is also provided.
+* `./bin/tls-toolkit.sh standalone -n 'node1.nifi' -c 'ca.nifi'` -- Generates the NiFi CA (`ca.nifi`) certificate and key if not present and generates and signs `node1` certificate, placing the `keystore.jks`, `truststore.jks`, and populated `nifi.properties` in a subdirectory called `node1.nifi`
 +
-image::tls-certificate-folder.png["Security Certificate Directories"]
+--
+_Note the creation of the CA certificate and key_
+[source]
+----
+% ./bin/tls-toolkit.sh standalone -n 'node1.nifi' -c 'ca.nifi'
+2020/04/06 18:12:07 INFO [main] org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandaloneCommandLine: No nifiPropertiesFile specified, using embedded one.
+2020/04/06 18:12:07 INFO [main] org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone: Running standalone certificate generation with output directory ../nifi-toolkit-1.11.4
+2020/04/06 18:12:08 INFO [main] org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone: Generated new CA certificate ../nifi-toolkit-1.11.4/nifi-cert.pem and key ../nifi-toolkit-1.11.4/nifi-key.key
+2020/04/06 18:12:08 INFO [main] org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone: Writing new ssl configuration to ../nifi-toolkit-1.11.4/node1.nifi
+2020/04/06 18:12:08 INFO [main] org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone: Successfully generated TLS configuration for node1.nifi 1 in ../nifi-toolkit-1.11.4/node1.nifi
+2020/04/06 18:12:08 INFO [main] org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone: No clientCertDn specified, not generating any client certificates.
+2020/04/06 18:12:08 INFO [main] org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone: tls-toolkit standalone completed successfully
+% ls -alGh node1.nifi
+total 48
+drwx------   5 alopresto  staff   160B Apr  6 18:12 .
+drwxr-xr-x  11 alopresto  staff   352B Apr  6 18:12 ..
+-rw-------   1 alopresto  staff   3.0K Apr  6 18:12 keystore.jks
+-rw-------   1 alopresto  staff    12K Apr  6 18:12 nifi.properties
+-rw-------   1 alopresto  staff   895B Apr  6 18:12 truststore.jks
+----
+--
+* `./bin/tls-toolkit.sh standalone -n 'node2.nifi'` -- Generates and signs `node2` certificate with the same CA
++
+--
+_Note the existing CA certificate being used_
+[source]
+----
+% ./bin/tls-toolkit.sh standalone -n 'node2.nifi'
+2020/04/06 18:13:13 INFO [main] org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandaloneCommandLine: No nifiPropertiesFile specified, using embedded one.
+2020/04/06 18:13:14 INFO [main] org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone: Running standalone certificate generation with output directory ../nifi-toolkit-1.11.4
+2020/04/06 18:13:14 INFO [main] org.apache.nifi.toolkit.tls.util.TlsHelper: Verifying the certificate signature for CN=ca.nifi,OU=NIFI
+2020/04/06 18:13:14 INFO [main] org.apache.nifi.toolkit.tls.util.TlsHelper: Attempting to verify certificate CN=ca.nifi,OU=NIFI signature with CN=ca.nifi,OU=NIFI
+2020/04/06 18:13:14 INFO [main] org.apache.nifi.toolkit.tls.util.TlsHelper: Certificate was signed by CN=ca.nifi,OU=NIFI
+2020/04/06 18:13:14 INFO [main] org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone: Using existing CA certificate ../nifi-toolkit-1.11.4/nifi-cert.pem and key ../nifi-toolkit-1.11.4/nifi-key.key
+2020/04/06 18:13:14 INFO [main] org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone: Writing new ssl configuration to ../nifi-toolkit-1.11.4/node2.nifi
+2020/04/06 18:13:14 INFO [main] org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone: Successfully generated TLS configuration for node2.nifi 1 in ../nifi-toolkit-1.11.4/node2.nifi
+2020/04/06 18:13:14 INFO [main] org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone: No clientCertDn specified, not generating any client certificates.
+2020/04/06 18:13:14 INFO [main] org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone: tls-toolkit standalone completed successfully
+----
+--
+* `./bin/tls-toolkit.sh standalone -n 'node3.nifi'` -- Generates and signs `node3` certificate with the same CA
++
+[source]
+----
+% ./bin/tls-toolkit.sh standalone -n 'node3.nifi'
+2020/04/06 18:53:07 INFO [main] org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandaloneCommandLine: No nifiPropertiesFile specified, using embedded one.
+2020/04/06 18:53:08 INFO [main] org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone: Running standalone certificate generation with output directory ../nifi-toolkit-1.11.4
+2020/04/06 18:53:08 INFO [main] org.apache.nifi.toolkit.tls.util.TlsHelper: Verifying the certificate signature for CN=ca.nifi,OU=NIFI
+2020/04/06 18:53:08 INFO [main] org.apache.nifi.toolkit.tls.util.TlsHelper: Attempting to verify certificate CN=ca.nifi,OU=NIFI signature with CN=ca.nifi,OU=NIFI
+2020/04/06 18:53:08 INFO [main] org.apache.nifi.toolkit.tls.util.TlsHelper: Certificate was signed by CN=ca.nifi,OU=NIFI
+2020/04/06 18:53:08 INFO [main] org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone: Using existing CA certificate ../nifi-toolkit-1.11.4/nifi-cert.pem and key ../nifi-toolkit-1.11.4/nifi-key.key
+2020/04/06 18:53:08 INFO [main] org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone: Writing new ssl configuration to ../nifi-toolkit-1.11.4/node3.nifi
+2020/04/06 18:53:08 INFO [main] org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone: Successfully generated TLS configuration for node3.nifi 1 in ../nifi-toolkit-1.11.4/node3.nifi
+2020/04/06 18:53:08 INFO [main] org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone: No clientCertDn specified, not generating any client certificates.
+2020/04/06 18:53:08 INFO [main] org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone: tls-toolkit standalone completed successfully
+----
+* `./bin/tls-toolkit.sh standalone -C 'CN=my_username'` -- Generates and signs `my_username` client certificate with the same CA
++
+[source]
+----
+% ./bin/tls-toolkit.sh standalone -C 'CN=my_username'
+2020/04/06 18:53:19 INFO [main] org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandaloneCommandLine: No nifiPropertiesFile specified, using embedded one.
+2020/04/06 18:53:20 INFO [main] org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone: Running standalone certificate generation with output directory ../nifi-toolkit-1.11.4
+2020/04/06 18:53:20 INFO [main] org.apache.nifi.toolkit.tls.util.TlsHelper: Verifying the certificate signature for CN=ca.nifi,OU=NIFI
+2020/04/06 18:53:20 INFO [main] org.apache.nifi.toolkit.tls.util.TlsHelper: Attempting to verify certificate CN=ca.nifi,OU=NIFI signature with CN=ca.nifi,OU=NIFI
+2020/04/06 18:53:20 INFO [main] org.apache.nifi.toolkit.tls.util.TlsHelper: Certificate was signed by CN=ca.nifi,OU=NIFI
+2020/04/06 18:53:20 INFO [main] org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone: Using existing CA certificate ../nifi-toolkit-1.11.4/nifi-cert.pem and key ../nifi-toolkit-1.11.4/nifi-key.key
+2020/04/06 18:53:20 INFO [main] org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone: No hostnames specified, not generating any host certificates or configuration.
+2020/04/06 18:53:20 INFO [main] org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone: Generating new client certificate ../nifi-toolkit-1.11.4/CN=my_username.p12
+2020/04/06 18:53:20 INFO [main] org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone: Successfully generated client certificate ../nifi-toolkit-1.11.4/CN=my_username.p12
+2020/04/06 18:53:20 INFO [main] org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone: tls-toolkit standalone completed successfully
+----
++
+--
+The resulting directory will contain 7 new entries:
 
-[start=3]
-. Create a new `nifi` folder in an appropriate location. In this example, we created the `nifi` folder in the `root` directory.
-.. Enter: `sudo mkdir /nifi`
-.. Enter your password.
-. Copy the NiFi installation folder (i.e. `nifi-1.11.1`) to a new folder for *each* node in the `nifi` folder that you created in the previous step.
-.. Enter: `sudo cp -R <path to installation folder> <path to the new nifi folder>``
+** `CN=my_username.p12` -- The client certificate in a PKCS12 keystore
+** `CN=my_username.password` -- The corresponding file containing the randomly-generated password. Use `-b` or `--clientCertPassword` when generating to specify a password
+** `nifi-cert.pem` -- The CA certificate in PEM format
+** `nifi-key.key` -- The corresponding CA private key in PEM format
+** `node1.nifi/` -- The directory containing `node1` keystore and related files
+** `node2.nifi/` -- The directory containing `node2` keystore and related files
+** `node3.nifi/` -- The directory containing `node3` keystore and related files
+--
+Optional command to execute all steps together using the toolkit pattern syntax:
+* `./bin/tls-toolkit.sh -n 'node[1-3].nifi' -C 'CN=my_username' -c 'ca.nifi'` -- Performs all steps listed above simultaneously
+. Create a new `nifi_cluster` folder in an appropriate location. In this example, where all three nodes will run on the same machine, the `/etc/nifi_cluster` directory is used. All further instructions occur from this directory.
+* `mkdir /etc/nifi_cluster` -- Creates the working directory
+* `cd /etc/nifi_cluster` -- Change to the created directory
+. Copy the NiFi installation folder (i.e. `nifi-1.11.4`) to a new folder for *each* node in the `nifi_cluster` folder created in the previous step.
+* `mkdir node1.nifi && cp -R /etc/nifi-1.11.4 node1.nifi` -- Creates the `node1` directory and copies the NiFi application into it
+* `mkdir node2.nifi && cp -R /etc/nifi-1.11.4 node2.nifi` -- Creates the `node2` directory and copies the NiFi application into it
+* `mkdir node3.nifi && cp -R /etc/nifi-1.11.4 node3.nifi` -- Creates the `node3` directory and copies the NiFi application into it
+. Copy the generated `keystore.jks`, `truststore.jks`, and `nifi.properties` to the `conf/` directory of *each* node.
+* `cp -R /etc/nifi-toolkit-1.11.4/node1.nifi/* node1.nifi/conf/.` -- Copies the `node1` files
+* `cp -R /etc/nifi-toolkit-1.11.4/node2.nifi/* node2.nifi/conf/.` -- Copies the `node2` files
+* `cp -R /etc/nifi-toolkit-1.11.4/node3.nifi/* node3.nifi/conf/.` -- Copies the `node3` files
+. Modify the `nifi.properties` file for each node to set the appropriate ports and enable the embedded link:https://zookeeper.apache.org/[ZooKeeper^] server. *If the nodes are being deployed to separate physical or virtual machines (such that each is treated as an independent host for networking), modifying the ports is not required, but enabling the embedded ZooKeeper servers is*. If the nodes are being deployed on the same machine such that the ports cannot conflict, all parts of this step are required. This port selection convention follows the pattern defined at the top of this section, where the last digit corresponds to the node identifier. For more information on ZooKeeper configuration for NiFi, see <<administration-guide.adoc#embedded_zookeeper,NiFi Administrator's Guide: Embedded ZooKeeper>>.
++
+NOTE: The `nifi.cluster.load.balance.host=` entry must be manually populated here because it was added after the TLS Toolkit was last updated. The toolkit correctly populates the hostname in all other necessary properties.
 
-.Example:
-----
-sudo cp -R /Users/spius/Documents/NiFi/nifi-1.11.1 /nifi/cluster/nifi1.xyz.com
-sudo cp -R /Users/spius/Documents/NiFi/nifi-1.11.1 /nifi/cluster/nifi2.xyz.com
-sudo cp -R /Users/spius/Documents/NiFi/nifi-1.11.1 /nifi/cluster/nifi3.xyz.com
-----
-[start=5]
-. Copy the security certificates to the `conf` folder of *each* node.
-.. Navigate to the `NiFi/Certificates/security_certificates_cluster/nifi<n>.xyz.com` folder.
-.. Enter: `sudo cp -R * /nifi/cluster/nifi<n>.xyz.com/conf`
-
-=== Step 2. Update the nifi.properties File
-. Change the https port number in *each* node’s `nifi.properties` file.
-.. Navigate to the `conf` file in the first node: `cd /nifi/cluster/nifi<n>.xyz.com/conf`
-.. Enter: `sudo vim nifi.properties`
-.. Enter your password.
-.. Inside the file, type `/port` and locate the line: `nifi.web.https.port=`
-.. Type `i` to edit the file.
-.. Change the existing port number to `9441`.
-.. Press `ESC:wq` to save and quit.
-. Repeat the previous step for the other nodes and change the port number incrementally. For example, use 9442 for the 2nd node and 9443 for the 3rd node.
-. Start NiFi in *each* node.
-.. Navigate to the `bin` file in the first node: `cd /nifi/cluster/nifi<n>.xyz.com/bin`
-.. Enter: `sudo ./nifi.sh start`
-.. To check status, enter: `sudo ./nifi.sh status`
-.. Repeat this step for the other nodes.
-. Update the first node’s `nifi-properties` file.
-.. Navigate to the `conf` file for the first node: `cd /nifi/cluster/nifi1.xyz.com/conf`
-.. Enter: `sudo vim nifi.properties`
-.. Enter your password.
-.. Scroll to the #STATE MANAGEMENT# section.
-.. Type `i` to edit the file.
-.. Locate the following line and change the value to `true`:
-----
-# Specifies whether or not this instance of NiFi should run an embedded ZooKeeper server
-nifi.state.management.embedded.zookeeper.start=true
-----
-[start=g]
-.. Locate the following line and change the value to `true`:
-----
-# cluster node properties (only configure for cluster nodes) #
-nifi.cluster.is.node=true
-----
-[start=h]
-.. Locate the following line and set the value to `nifi1.xyz.com:2181`
-----
-# zookeeper properties, used for cluster management #
-nifi.zookeeper.connect.string=nifi1.xyz.com:2181
-----
-[start=i]
-.. Press `ESC:wq` to save and quit.
-
-. Update the `nifi-properties` file for the other nodes making sure that the following line is set to node 1.
-----
-nifi.zookeeper.connect.string=nifi1.xyz.com:2181
-----
-
-=== Step 3. Update the zookeeper.properties File
-Update the `zookeeper.properties` file of the first node.
-
-. Navigate to the first node’s `conf` directory: `cd /nifi/cluster/nifi1.xyz.com/conf`
-. Open the `zookeeper.properties` file: `sudo vim zookeeper.properties`
-. Search for the following line: `server.1`
-. Type `i` to edit.
-. Set the value to `nifi1.xyz.com:2888:3888;2181`
-
-.Example
-----
-server.1=nifi1.xyz.com:2888:3888;2181
-----
-[start=6]
-. Press `ESC:wq` to save and quit.
-
-=== Step 4. Create the myid File
-Create the `myid` file for the first node.
-
-. Navigate to the first node’s `conf` directory: `cd /nifi/cluster/nifi1.xyz.com/conf`
-. Run the following commands to create the directory:
-----
-sudo mkdir state
-sudo mkdir state/zookeeper
-----
-[start=3]
-. Navigate to the zookeeper directory: `cd state/zookeeper`
-. To create the file, enter: `sudo touch myid`
-. Enter the password.
-. Edit the file. Enter: `sudo vim myid`
-* The blank file opens.
-. Type `i` to edit.
-. Type `1`.
-. Press `ESC:wq` to save and quit.
-
-=== Step 5. Update the state-management.xml File
-Update the `state-management.xml` file for *each* node.
-
-. From a text editor, open the `state-management.xml` file for the first node from `nifi/cluster/nifi1.xyz.com/conf`
-. Locate the ``<cluster-provider>`` section.
-. Locate the line ``<property name="Connect String"></property>``
-. Add the Zookeeper host name and client port `nifi1.example.com:2181` to the property.
-----
-<property name="Connect String">nifi1.xyz.com:2181</property>
-----
-[start=5]
-. Save and close the file.
-. Repeat the update for the `state-management.xml` file in the other nodes.
+* `$EDITOR node1.nifi/conf/nifi.properties` -- Opens the `nifi.properties` file in a text editor
+* Update the following lines:
+** `nifi.state.management.embedded.zookeeper.start=false` -> `nifi.state.management.embedded.zookeeper.start=true`
+** `nifi.remote.input.socket.port=10443` -> `nifi.remote.input.socket.port=10441`
+** `nifi.web.https.port=9443` -> `nifi.web.https.port=9441`
+** `nifi.cluster.is.node=false` -> `nifi.cluster.is.node=true`
+** `nifi.cluster.node.protocol.port=11443` -> `nifi.cluster.node.protocol.port=11441`
+** `nifi.cluster.load.balance.host=` -> `nifi.cluster.load.balance.host=node1.nifi`
+** `nifi.cluster.load.balance.port=6342` -> `nifi.cluster.load.balance.port=6341`
+** `nifi.zookeeper.connect.string=` -> `nifi.zookeeper.connect.string=node1.nifi:2181,node2.nifi:2182,node3.nifi:2183`
+* `$EDITOR node2.nifi/conf/nifi.properties` -- Opens the `nifi.properties` file in a text editor. _Note that the `nifi.cluster.load.balance.port=6342` does not need to change for `node2` and is included for completeness_
+* Update the following lines:
+** `nifi.state.management.embedded.zookeeper.start=false` -> `nifi.state.management.embedded.zookeeper.start=true`
+** `nifi.remote.input.socket.port=10443` -> `nifi.remote.input.socket.port=10442`
+** `nifi.web.https.port=9443` -> `nifi.web.https.port=9442`
+** `nifi.cluster.is.node=false` -> `nifi.cluster.is.node=true`
+** `nifi.cluster.node.protocol.port=11443` -> `nifi.cluster.node.protocol.port=11442`
+** `nifi.cluster.load.balance.host=` -> `nifi.cluster.load.balance.host=node2.nifi`
+** `nifi.cluster.load.balance.port=6342` -> `nifi.cluster.load.balance.port=6342`
+** `nifi.zookeeper.connect.string=` -> `nifi.zookeeper.connect.string=node1.nifi:2181,node2.nifi:2182,node3.nifi:2183`
+* `$EDITOR node3.nifi/conf/nifi.properties` -- Opens the `nifi.properties` file in a text editor. _Note that some of the ports do not need to change for `node3` and are included for completeness_
+* Update the following lines:
+** `nifi.state.management.embedded.zookeeper.start=false` -> `nifi.state.management.embedded.zookeeper.start=true`
+** `nifi.remote.input.socket.port=10443` -> `nifi.remote.input.socket.port=10443`
+** `nifi.web.https.port=9443` -> `nifi.web.https.port=9443`
+** `nifi.cluster.is.node=false` -> `nifi.cluster.is.node=true`
+** `nifi.cluster.node.protocol.port=11443` -> `nifi.cluster.node.protocol.port=11443`
+** `nifi.cluster.load.balance.host=` -> `nifi.cluster.load.balance.host=node3.nifi`
+** `nifi.cluster.load.balance.port=6342` -> `nifi.cluster.load.balance.port=6343`
+** `nifi.zookeeper.connect.string=` -> `nifi.zookeeper.connect.string=node1.nifi:2181,node2.nifi:2182,node3.nifi:2183`
+. Update the `zookeeper.properties` file on each node. This file contains the addresses of each embedded ZooKeeper server in the cluster. The `zookeeper.properties` file can be identical on each embedded ZooKeeper server (assuming no other changes were made), so the modified file will be copied to the other nodes.
+* `$EDITOR node1.nifi/conf/zookeeper.properties` -- Opens the `zookeeper.properties` file in a text editor
+* Update the following lines:
+** `server.1=` -> `server.1=node1.nifi:2881:3881;2181`
+** Add the line `server.2=node2.nifi:2882:3882;2182`
+** Add the line `server.3=node3.nifi:2883:3883;2183`
+* `cp node1.nifi/conf/zookeeper.properties node2.nifi/conf/zookeeper.properties node3.nifi/conf/zookeeper.properties` -- Copies the modified `zookeeper.properties` file from `node1` to `node2` and `node3`
+. Create the `myid` file on each node to identify the embedded ZooKeeper server.
+* `mkdir -p node1.nifi/conf/state/zookeeper` -- Creates the ZooKeeper directory on `node1`
+* `echo 1 >> node1.nifi/conf/state/zookeeper/myid` -- Creates the `myid` file with the `node1` identifier
+* `mkdir -p node2.nifi/conf/state/zookeeper` -- Creates the ZooKeeper directory on `node2`
+* `echo 2 >> node2.nifi/conf/state/zookeeper/myid` -- Creates the `myid` file with the `node2` identifier
+* `mkdir -p node3.nifi/conf/state/zookeeper` -- Creates the ZooKeeper directory on `node3`
+* `echo 3 >> node3.nifi/conf/state/zookeeper/myid` -- Creates the `myid` file with the `node3` identifier
+. Update the `state-management.xml` file on each node to allow ZooKeeper connections. The `state-management.xml` file can be identical on each node (assuming no other changes were made), so the modified file will be copied to the other nodes.
+* `$EDITOR node1.nifi/conf/state-management.xml` -- Opens the `state-management.xml` file in a text editor
+* Update the following line:
+** `<property name="Connect String"></property>` -> `<property name="Connect String">node1.nifi:2181,node2.nifi:2182,node3.nifi:2183</property>`
+* `cp node1.nifi/conf/state-management.xml node2.nifi/conf/state-management.xml node3.nifi/conf/state-management.xml` -- Copies the modified `state-management.xml` file from `node1` to `node2` and `node3`
 
 === Step 6. Update the authorizers.xml File
 Update the `authorizers.xml` for *each* node.
