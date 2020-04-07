@@ -563,7 +563,7 @@ public class HandleHttpRequest extends AbstractProcessor {
         while ((container = getNextContainer()) != null) {
             try {
                 HttpServletResponse response = container.getResponse();
-                response.sendError(HttpServletResponse.SC_CONFLICT, "Server shutting down");
+                response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE, "Server shutting down");
                 container.getContext().complete();
             } catch (final IOException e) {
                 getLogger().warn("Failed to send HTTP response to {} due to {}",

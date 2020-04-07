@@ -531,6 +531,7 @@ public class ITestHandleHttpRequest {
         assertEquals(0, nrOfPendingRequests);
         assertEquals(responses.size(), nrOfRequests-1);
         for (Response response : responses) {
+            assertEquals(HttpServletResponse.SC_SERVICE_UNAVAILABLE, response.code());
             assertTrue("Unexpected HTTP response for rejected requests", new String(response.body().bytes()).contains("Server shutting down"));
         }
     }
