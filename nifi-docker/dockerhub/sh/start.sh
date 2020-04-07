@@ -83,7 +83,7 @@ esac
 nifi_pid="$!"
 tail -F --pid=${nifi_pid} "${NIFI_HOME}/logs/nifi-app.log" &
 
-trap 'echo Received trapped signal, beginning shutdown...;./bin/nifi.sh stop;exit 0;' KILL TERM HUP INT;
+trap 'echo Received trapped signal, beginning shutdown...;./bin/nifi.sh stop;exit 0;' TERM HUP INT;
 trap ":" EXIT
 
 echo NiFi running with PID ${nifi_pid}.
