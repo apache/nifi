@@ -153,7 +153,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
 
     private final NiFiProperties nifiProperties;
 
-    private static final String CONNECTION_EXCEPTION_MSG_PREFIX = "Failed to connect node to cluster because ";
+    private static final String CONNECTION_EXCEPTION_MSG_PREFIX = "Failed to connect node to cluster";
     private static final Logger logger = LoggerFactory.getLogger(StandardFlowService.class);
 
     public static StandardFlowService createStandaloneInstance(
@@ -1004,13 +1004,13 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
 
             controller.startHeartbeating();
         } catch (final UninheritableFlowException ufe) {
-            throw new UninheritableFlowException(CONNECTION_EXCEPTION_MSG_PREFIX + "local flow is different than cluster flow.", ufe);
+            throw new UninheritableFlowException(CONNECTION_EXCEPTION_MSG_PREFIX, ufe);
         } catch (final MissingBundleException mbe) {
-            throw new MissingBundleException(CONNECTION_EXCEPTION_MSG_PREFIX + "cluster flow contains bundles that do not exist on the current node", mbe);
+            throw new MissingBundleException(CONNECTION_EXCEPTION_MSG_PREFIX + " because cluster flow contains bundles that do not exist on the current node", mbe);
         } catch (final FlowSerializationException fse) {
-            throw new ConnectionException(CONNECTION_EXCEPTION_MSG_PREFIX + "local or cluster flow is malformed.", fse);
+            throw new ConnectionException(CONNECTION_EXCEPTION_MSG_PREFIX + " because local or cluster flow is malformed.", fse);
         } catch (final FlowSynchronizationException fse) {
-            throw new FlowSynchronizationException(CONNECTION_EXCEPTION_MSG_PREFIX + "local flow controller partially updated. "
+            throw new FlowSynchronizationException(CONNECTION_EXCEPTION_MSG_PREFIX + " because local flow controller partially updated. "
                     + "Administrator should disconnect node and review flow for corruption.", fse);
         } catch (final Exception ex) {
             throw new ConnectionException("Failed to connect node to cluster due to: " + ex, ex);

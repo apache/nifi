@@ -34,6 +34,7 @@ import org.apache.nifi.connectable.Position;
 import org.apache.nifi.connectable.Size;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.inheritance.AuthorizerCheck;
+import org.apache.nifi.controller.inheritance.BundleCompatibilityCheck;
 import org.apache.nifi.controller.inheritance.ConnectionMissingCheck;
 import org.apache.nifi.controller.inheritance.FlowFingerprintCheck;
 import org.apache.nifi.controller.inheritance.FlowInheritability;
@@ -159,7 +160,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
 
     @Override
     public void sync(final FlowController controller, final DataFlow proposedFlow, final StringEncryptor encryptor, final FlowService flowService)
-            throws FlowSerializationException, UninheritableFlowException, FlowSynchronizationException, MissingBundleException {
+            throws FlowSerializationException, UninheritableFlowException, FlowSynchronizationException {
 
         final FlowManager flowManager = controller.getFlowManager();
         final ProcessGroup root = flowManager.getRootGroup();
@@ -188,7 +189,14 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
         boolean backupAndPurge = false;
         if (existingFlowEmpty) {
             logger.debug("Checking bundle compatibility");
-            checkBundleCompatibility(configuration);
+
+            final BundleCompatibilityCheck bundleCompatibilityCheck = new BundleCompatibilityCheck();
+            final FlowInheritability bundleInheritability = bundleCompatibilityCheck.checkInheritability(existingDataFlow, proposedFlow, controller);
+            if (!bundleInheritability.isInheritable()) {
+                throw new UninheritableFlowException("Proposed flow could not be inherited because it references one or more Bundles that are not available in this NiFi instance: "
+                    + bundleInheritability.getExplanation());
+            }
+
             logger.debug("Bundle Compatibility check passed");
         } else {
             logger.debug("Checking flow inheritability");
@@ -231,15 +239,21 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
         logger.debug("Checking authorizer inheritability");
         final FlowInheritabilityCheck authorizerCheck = new AuthorizerCheck();
         final FlowInheritability authorizerInheritability = authorizerCheck.checkInheritability(existingDataFlow, proposedFlow, controller);
+        final Authorizer authorizer = controller.getAuthorizer();
 
         if (existingFlowEmpty) {
             logger.debug("Existing flow is empty so will not check Authorizer inheritability. Authorizers will be forcibly inherited if necessary.");
         } else {
-            if (!authorizerInheritability.isInheritable() && authorizerInheritability.getExplanation() != null) {
-                throw new UninheritableFlowException("Proposed Authorizer is not inheritable by the flow controller because of Authorizer differences: " + authorizerInheritability.getExplanation());
-            }
+            if (!controller.isInitialized() && authorizer instanceof ManagedAuthorizer) {
+                logger.debug("Authorizations are not inheritable, but Authorizer is a Managed Authorizer and the Controller has not yet been initialized, so it can be forcibly inherited.");
+            } else {
+                if (!authorizerInheritability.isInheritable() && authorizerInheritability.getExplanation() != null) {
+                    throw new UninheritableFlowException("Proposed Authorizer is not inheritable by the Flow Controller because NiFi has already started the dataflow " +
+                        "and Authorizer has differences: " + authorizerInheritability.getExplanation());
+                }
 
-            logger.debug("Authorizer inheritability check passed");
+                logger.debug("Authorizer inheritability check passed");
+            }
         }
 
         // attempt to sync controller with proposed flow
@@ -268,9 +282,6 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
             }
 
             inheritSnippets(controller, proposedFlow);
-
-            // Get the managed authorizer and existing auth fingerprint, if applicable.
-            final Authorizer authorizer = controller.getAuthorizer();
 
             // if auths are inheritable and we have a policy based authorizer, then inherit
             if (authorizer instanceof ManagedAuthorizer) {
@@ -507,46 +518,6 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
         // now that controller services are loaded and enabled we can apply the scheduled state to each reporting task
         for (Map.Entry<ReportingTaskNode, ReportingTaskDTO> entry : reportingTaskNodesToDTOs.entrySet()) {
             applyReportingTaskScheduleState(controller, entry.getValue(), entry.getKey(), flowAlreadySynchronized, existingFlowEmpty);
-        }
-    }
-
-    private void checkBundleCompatibility(final Document configuration) {
-        if (configuration == null) {
-            return;
-        }
-
-        final NodeList bundleNodes = configuration.getElementsByTagName("bundle");
-        for (int i = 0; i < bundleNodes.getLength(); i++) {
-            final Node bundleNode = bundleNodes.item(i);
-            if (bundleNode instanceof Element) {
-                final Element bundleElement = (Element) bundleNode;
-
-                final Node componentNode = bundleElement.getParentNode();
-                if (componentNode instanceof Element) {
-                    final Element componentElement = (Element) componentNode;
-                    if (!withinTemplate(componentElement)) {
-                        final String componentType = DomUtils.getChildText(componentElement, "class");
-                        try {
-                            BundleUtils.getBundle(extensionManager, componentType, FlowFromDOMFactory.getBundle(bundleElement));
-                        } catch (IllegalStateException e) {
-                            throw new MissingBundleException(e.getMessage(), e);
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    private boolean withinTemplate(final Element element) {
-        if ("template".equals(element.getTagName())) {
-            return true;
-        } else {
-            final Node parentNode = element.getParentNode();
-            if (parentNode instanceof Element) {
-                return withinTemplate((Element) parentNode);
-            } else {
-                return false;
-            }
         }
     }
 
