@@ -152,9 +152,9 @@ public abstract class AbstractPolicyBasedAuthorizer implements ManagedAuthorizer
      */
     public abstract Group getGroup(String identifier) throws AuthorizationAccessException;
 
-    public abstract void purgePoliciesUsersAndGroups();
+    protected abstract void purgePoliciesUsersAndGroups();
 
-    public abstract void backupPoliciesUsersAndGroups();
+    protected abstract void backupPoliciesUsersAndGroups();
 
     /**
      * The group represented by the provided instance will be updated based on the provided instance.

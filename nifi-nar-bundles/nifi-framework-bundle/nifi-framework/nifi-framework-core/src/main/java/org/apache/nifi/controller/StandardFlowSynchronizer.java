@@ -215,7 +215,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
                     logger.debug("Proposed flow contains all connections that currently have data queued. Will backup existing flow and replace, provided all other checks pass");
                 } else {
                     throw new UninheritableFlowException("Proposed flow is not inheritable by the flow controller and cannot completely replace the current flow due to: "
-                        + inheritability.getExplanation());
+                        + connectionMissingInheritability.getExplanation());
                 }
             }
         }

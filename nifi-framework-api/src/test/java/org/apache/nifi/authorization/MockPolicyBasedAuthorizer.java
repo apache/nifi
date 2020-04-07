@@ -61,12 +61,12 @@ public class MockPolicyBasedAuthorizer extends AbstractPolicyBasedAuthorizer {
     }
 
     @Override
-    public void purgePoliciesUsersAndGroups() {
+    protected void purgePoliciesUsersAndGroups() {
 
     }
 
     @Override
-    public void backupPoliciesUsersAndGroups() {
+    protected void backupPoliciesUsersAndGroups() {
 
     }
 

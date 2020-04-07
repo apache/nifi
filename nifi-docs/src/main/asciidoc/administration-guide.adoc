@@ -1704,7 +1704,8 @@ For more information, see the <<toolkit-guide.adoc#nifi_CLI,NiFi CLI>> section i
 === Flow Election
 When a cluster first starts up, NiFi must determine which of the nodes have the
 "correct" version of the flow. This is done by voting on the flows that each of the nodes has. When a node
-attempts to connect to a cluster, it provides a copy of its local flow and its users, groups, and policies (user permissions), to the Cluster Coordinator. If no flow
+attempts to connect to a cluster, it provides a copy of its local flow and (if the policy provider allows for configuration via NiFi)
+its users, groups, and policies, to the Cluster Coordinator. If no flow
 has yet been elected the "correct" flow, the node's flow is compared to each of the other Nodes' flows. If another
 Node's flow matches this one, a vote is cast for this flow. If no other Node has reported the same flow yet, this
 flow will be added to the pool of possibly elected flows with one vote. After
@@ -1713,7 +1714,8 @@ some number of Nodes have cast votes (configured by setting the `nifi.cluster.fl
 a flow is elected to be the "correct" copy of the flow.
 
 Any node whose dataflow, users, groups, and policies conflict the with those elected will backup any conflicting resources and replace the local
-resources with those from the cluster. The backup will be written to the same directory as the existing file (e.g., $NIFI_HOME/conf) and bear the same
+resources with those from the cluster. How the backup is performed depends on the configured Access Policy Provider and User Group Provider.
+For file-based access policy providers, the backup will be written to the same directory as the existing file (e.g., $NIFI_HOME/conf) and bear the same
 name but with a suffix of "." and a timestamp. For example, if the flow itself conflicts with the cluster's flow at 12:05:03 on January 1, 2020,
 the node's `flow.xml.gz` file will be copied to `flow.xml.gz.2020-01-01-12-05-03` and the cluster's flow will then be written to `flow.xml.gz`.
 Similarly, this will happen for the `users.xml` and `authorizations.xml` file. This is done so that the flow can be manually reverted if necessary
