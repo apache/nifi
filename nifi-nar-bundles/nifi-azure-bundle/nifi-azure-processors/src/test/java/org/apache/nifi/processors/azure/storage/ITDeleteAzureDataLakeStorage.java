@@ -23,35 +23,35 @@ import org.junit.Test;
 
 import java.util.List;
 
-public class ITPutAzureDataLakeStorage extends AbstractAzureBlobStorageIT {
+public class ITDeleteAzureDataLakeStorage extends AbstractAzureBlobStorageIT {
 
     @Override
     protected Class<? extends Processor> getProcessorClass() {
-        return PutAzureDataLakeStorage.class;
+        return DeleteAzureDataLakeStorage.class;
     }
 
     @Before
     public void setUp() {
-        runner.setProperty(PutAzureDataLakeStorage.FILE, TEST_FILE_NAME);
+        runner.setProperty(DeleteAzureDataLakeStorage.FILE, TEST_FILE_NAME);
     }
 
     @Test
-    public void testPutFile() throws Exception {
+    public void testDeleteFile() throws Exception {
         runner.assertValid();
-        runner.enqueue("0123456789".getBytes());
-        runner.run();
+        runner.enqueue(new byte[0]);
+        runner.run(1);
 
         assertResult();
     }
 
 
     private void assertResult() throws Exception {
-        runner.assertAllFlowFilesTransferred(PutAzureDataLakeStorage.REL_SUCCESS, 1);
-        List<MockFlowFile> flowFilesForRelationship = runner.getFlowFilesForRelationship(PutAzureDataLakeStorage.REL_SUCCESS);
+        runner.assertAllFlowFilesTransferred(DeleteAzureDataLakeStorage.REL_SUCCESS, 1);
+        List<MockFlowFile> flowFilesForRelationship = runner.getFlowFilesForRelationship(DeleteAzureDataLakeStorage.REL_SUCCESS);
         for (MockFlowFile flowFile : flowFilesForRelationship) {
             flowFile.assertContentEquals("0123456789".getBytes());
             flowFile.assertAttributeEquals("azure.length", "10");
-        }
 
+        }
     }
 }

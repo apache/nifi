@@ -95,7 +95,7 @@ public abstract class AbstractAzureDataLakeStorageProcessor extends AbstractProc
 
     public static final PropertyDescriptor DIRECTORY = new PropertyDescriptor.Builder()
             .name("directory-name").displayName("Directory Name")
-            .description("Name of the Azure Storage Directory. It will be created if not already existing")
+            .description("Name of the Azure Storage Directory. In case of the PutAzureDatalakeStorage processor, it will be created if not already existing.")
             .addValidator(Validator.VALID)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(true)
