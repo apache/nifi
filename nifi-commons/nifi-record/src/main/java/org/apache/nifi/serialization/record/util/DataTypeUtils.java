@@ -50,6 +50,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -99,6 +100,34 @@ public class DataTypeUtils {
     private static final Supplier<DateFormat> DEFAULT_DATE_FORMAT = () -> getDateFormat(RecordFieldType.DATE.getDefaultFormat());
     private static final Supplier<DateFormat> DEFAULT_TIME_FORMAT = () -> getDateFormat(RecordFieldType.TIME.getDefaultFormat());
     private static final Supplier<DateFormat> DEFAULT_TIMESTAMP_FORMAT = () -> getDateFormat(RecordFieldType.TIMESTAMP.getDefaultFormat());
+
+    private static final int FLOAT_SIGNIFICAND_PRECISION = 24; // As specified in IEEE 754 binary32
+    private static final int DOUBLE_SIGNIFICAND_PRECISION = 53; // As specified in IEEE 754 binary64
+
+    private static final Long MAX_GUARANTEED_PRECISE_WHOLE_IN_FLOAT = Double.valueOf(Math.pow(2, FLOAT_SIGNIFICAND_PRECISION)).longValue();
+    private static final Long MIN_GUARANTEED_PRECISE_WHOLE_IN_FLOAT = -MAX_GUARANTEED_PRECISE_WHOLE_IN_FLOAT;
+    private static final Long MAX_GUARANTEED_PRECISE_WHOLE_IN_DOUBLE = Double.valueOf(Math.pow(2, DOUBLE_SIGNIFICAND_PRECISION)).longValue();
+    private static final Long MIN_GUARANTEED_PRECISE_WHOLE_IN_DOUBLE = -MAX_GUARANTEED_PRECISE_WHOLE_IN_DOUBLE;
+
+    private static final BigInteger MAX_FLOAT_VALUE_IN_BIGINT = BigInteger.valueOf(MAX_GUARANTEED_PRECISE_WHOLE_IN_FLOAT);
+    private static final BigInteger MIN_FLOAT_VALUE_IN_BIGINT = BigInteger.valueOf(MIN_GUARANTEED_PRECISE_WHOLE_IN_FLOAT);
+    private static final BigInteger MAX_DOUBLE_VALUE_IN_BIGINT = BigInteger.valueOf(MAX_GUARANTEED_PRECISE_WHOLE_IN_DOUBLE);
+    private static final BigInteger MIN_DOUBLE_VALUE_IN_BIGINT = BigInteger.valueOf(MIN_GUARANTEED_PRECISE_WHOLE_IN_DOUBLE);
+
+    private static final double MAX_FLOAT_VALUE_IN_DOUBLE = Float.valueOf(Float.MAX_VALUE).doubleValue();
+    private static final double MIN_FLOAT_VALUE_IN_DOUBLE = -MAX_FLOAT_VALUE_IN_DOUBLE;
+
+    private static final Map<RecordFieldType, Predicate<Object>> NUMERIC_VALIDATORS = new EnumMap<>(RecordFieldType.class);
+
+    static {
+        NUMERIC_VALIDATORS.put(RecordFieldType.BIGINT, value -> value instanceof BigInteger);
+        NUMERIC_VALIDATORS.put(RecordFieldType.LONG, value -> value instanceof Long);
+        NUMERIC_VALIDATORS.put(RecordFieldType.INT, value -> value instanceof Integer);
+        NUMERIC_VALIDATORS.put(RecordFieldType.BYTE, value -> value instanceof Byte);
+        NUMERIC_VALIDATORS.put(RecordFieldType.SHORT, value -> value instanceof Short);
+        NUMERIC_VALIDATORS.put(RecordFieldType.DOUBLE, value -> value instanceof Double);
+        NUMERIC_VALIDATORS.put(RecordFieldType.FLOAT, value -> value instanceof Float);
+    }
 
     public static Object convertType(final Object value, final DataType dataType, final String fieldName) {
         return convertType(value, dataType, fieldName, StandardCharsets.UTF_8);
@@ -1784,5 +1813,134 @@ public class DataTypeUtils {
         } else {
             return Charset.forName(charsetName);
         }
+    }
+
+    /**
+     * Returns true if the given value is an integer value and fits into a float variable without precision loss. This is
+     * decided based on the numerical value of the input and the significant bytes used in the float.
+     *
+     * @param value The value to check.
+     *
+     * @return True in case of the value meets the conditions, false otherwise.
+     */
+    public static boolean isIntegerFitsToFloat(final Object value) {
+        if (!(value instanceof Integer)) {
+            return false;
+        }
+
+        final int intValue = (Integer) value;
+        return MIN_GUARANTEED_PRECISE_WHOLE_IN_FLOAT <= intValue && intValue <= MAX_GUARANTEED_PRECISE_WHOLE_IN_FLOAT;
+    }
+
+    /**
+     * Returns true if the given value is a long value and fits into a float variable without precision loss. This is
+     * decided based on the numerical value of the input and the significant bytes used in the float.
+     *
+     * @param value The value to check.
+     *
+     * @return True in case of the value meets the conditions, false otherwise.
+     */
+    public static boolean isLongFitsToFloat(final Object value) {
+        if (!(value instanceof Long)) {
+            return false;
+        }
+
+        final long longValue = (Long) value;
+        return MIN_GUARANTEED_PRECISE_WHOLE_IN_FLOAT <= longValue && longValue <= MAX_GUARANTEED_PRECISE_WHOLE_IN_FLOAT;
+    }
+
+    /**
+     * Returns true if the given value is a long value and fits into a double variable without precision loss. This is
+     * decided based on the numerical value of the input and the significant bytes used in the double.
+     *
+     * @param value The value to check.
+     *
+     * @return True in case of the value meets the conditions, false otherwise.
+     */
+    public static boolean isLongFitsToDouble(final Object value) {
+        if (!(value instanceof Long)) {
+            return false;
+        }
+
+        final long longValue = (Long) value;
+        return MIN_GUARANTEED_PRECISE_WHOLE_IN_DOUBLE <= longValue && longValue <= MAX_GUARANTEED_PRECISE_WHOLE_IN_DOUBLE;
+    }
+
+    /**
+     * Returns true if the given value is a BigInteger value and fits into a float variable without precision loss. This is
+     * decided based on the numerical value of the input and the significant bytes used in the float.
+     *
+     * @param value The value to check.
+     *
+     * @return True in case of the value meets the conditions, false otherwise.
+     */
+    public static boolean isBigIntFitsToFloat(final Object value) {
+        if (!(value instanceof BigInteger)) {
+            return false;
+        }
+
+        final BigInteger bigIntValue = (BigInteger) value;
+        return bigIntValue.compareTo(MIN_FLOAT_VALUE_IN_BIGINT) >= 0 && bigIntValue.compareTo(MAX_FLOAT_VALUE_IN_BIGINT) <= 0;
+    }
+
+    /**
+     * Returns true if the given value is a BigInteger value and fits into a double variable without precision loss. This is
+     * decided based on the numerical value of the input and the significant bytes used in the double.
+     *
+     * @param value The value to check.
+     *
+     * @return True in case of the value meets the conditions, false otherwise.
+     */
+    public static boolean isBigIntFitsToDouble(final Object value) {
+        if (!(value instanceof BigInteger)) {
+            return false;
+        }
+
+        final BigInteger bigIntValue = (BigInteger) value;
+        return bigIntValue.compareTo(MIN_DOUBLE_VALUE_IN_BIGINT) >= 0 && bigIntValue.compareTo(MAX_DOUBLE_VALUE_IN_BIGINT) <= 0;
+    }
+
+    /**
+     * Returns true in case the incoming value is a double which is within the range of float variable type.
+     *
+     * <p>
+     * Note: the method only considers the covered range but not precision. The reason for this is that at this point the
+     * double representation might already slightly differs from the original text value.
+     * </p>
+     *
+     * @param value The value to check.
+     *
+     * @return True in case of the double value fits to float data type.
+     */
+    public static boolean isDoubleWithinFloatInterval(final Object value) {
+
+        if (!(value instanceof Double)) {
+            return false;
+        }
+
+        final Double doubleValue = (Double) value;
+        return MIN_FLOAT_VALUE_IN_DOUBLE <= doubleValue && doubleValue <= MAX_FLOAT_VALUE_IN_DOUBLE;
+    }
+
+    /**
+     * Checks if an incoming value satisfies the requirements of a given (numeric) type or any of it's narrow data type.
+     *
+     * @param value Incoming value.
+     * @param fieldType The expected field type.
+     *
+     * @return Returns true if the incoming value satisfies the data type of any of it's narrow data types. Otherwise returns false. Only numeric data types are supported.
+     */
+    public static boolean isFittingNumberType(final Object value, final RecordFieldType fieldType) {
+        if (NUMERIC_VALIDATORS.get(fieldType).test(value)) {
+            return true;
+        }
+
+        for (final RecordFieldType recordFieldType : fieldType.getNarrowDataTypes()) {
+            if (NUMERIC_VALIDATORS.get(recordFieldType).test(value)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
