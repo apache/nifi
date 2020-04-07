@@ -209,10 +209,11 @@ class Argon2SecureHasherTest extends GroovyTestCase {
      * This test can have the minimum time threshold updated to determine if the performance
      * is still sufficient compared to the existing threat model.
      */
+    @Ignore("Long running test")
     @Test
     void testDefaultCostParamsShouldBeSufficient() {
         // Arrange
-        int testIterations = 10
+        int testIterations = 10_000
         byte[] inputBytes = "This is a sensitive value".bytes
 
         Argon2SecureHasher a2sh = new Argon2SecureHasher()
