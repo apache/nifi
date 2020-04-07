@@ -18,7 +18,11 @@ package org.apache.nifi.security.util.crypto
 
 import org.apache.kerby.util.Hex
 import org.bouncycastle.jce.provider.BouncyCastleProvider
-import org.junit.*
+import org.junit.After
+import org.junit.Before
+import org.junit.BeforeClass
+import org.junit.Ignore
+import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
 import org.slf4j.Logger
