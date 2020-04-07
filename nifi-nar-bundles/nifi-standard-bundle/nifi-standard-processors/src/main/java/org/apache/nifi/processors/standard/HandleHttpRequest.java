@@ -466,7 +466,7 @@ public class HandleHttpRequest extends AbstractProcessor {
                     getLogger().warn("Request from {} cannot be processed, processor is being shut down; responding with SERVICE_UNAVAILABLE",
                         new Object[]{request.getRemoteAddr()});
 
-                    response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE, "Processor has been shut down");
+                    response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE, "Processor is shutting down");
                     return;
                 }
 
@@ -562,8 +562,11 @@ public class HandleHttpRequest extends AbstractProcessor {
         HttpRequestContainer container;
         while ((container = getNextContainer()) != null) {
             try {
+                getLogger().warn("Rejecting request from {} during cleanup after processor shutdown; responding with SERVICE_UNAVAILABLE",
+                    new Object[]{container.getRequest().getRemoteAddr()});
+
                 HttpServletResponse response = container.getResponse();
-                response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE, "Server shutting down");
+                response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE, "Processor is shutting down");
                 container.getContext().complete();
             } catch (final IOException e) {
                 getLogger().warn("Failed to send HTTP response to {} due to {}",
