@@ -52,14 +52,11 @@ public class DeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageProc
         }
 
         final long startNanos = System.nanoTime();
-        final String accountName = context.getProperty(ACCOUNT_NAME).evaluateAttributeExpressions(flowFile).getValue();
-        final String accountKey = context.getProperty(ACCOUNT_KEY).evaluateAttributeExpressions(flowFile).getValue();
-        final String sasToken = context.getProperty(SAS_TOKEN).evaluateAttributeExpressions(flowFile).getValue();
-        final String fileSystem = context.getProperty(FILESYSTEM).evaluateAttributeExpressions(flowFile).getValue();
-        final String directory = context.getProperty(DIRECTORY).evaluateAttributeExpressions(flowFile).getValue();
-        final String fileName = context.getProperty(FILE).evaluateAttributeExpressions(flowFile).getValue();
-        final DataLakeServiceClient storageClient = getStorageClient(context, flowFile);
         try {
+            final String fileSystem = context.getProperty(FILESYSTEM).evaluateAttributeExpressions(flowFile).getValue();
+            final String directory = context.getProperty(DIRECTORY).evaluateAttributeExpressions(flowFile).getValue();
+            final String fileName = context.getProperty(FILE).evaluateAttributeExpressions(flowFile).getValue();
+            final DataLakeServiceClient storageClient = getStorageClient(context, flowFile);
             final DataLakeFileSystemClient dataLakeFileSystemClient = storageClient.getFileSystemClient(fileSystem);
             final DataLakeDirectoryClient directoryClient = dataLakeFileSystemClient.getDirectoryClient(directory);
 
@@ -70,7 +67,7 @@ public class DeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageProc
             final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
             session.getProvenanceReporter().send(flowFile, fileClient.getFileUrl(), transferMillis);
         } catch (Exception e) {
-            getLogger().error("Failed to delete the specified file {} from Azure Data Lake Storage.", e);
+            getLogger().error("Failed to delete the specified file from Azure Data Lake Storage,  due to {}", e);
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
         }
