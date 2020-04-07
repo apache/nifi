@@ -18,7 +18,9 @@
 package org.apache.nifi.schema.validation;
 
 import java.math.BigInteger;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Predicate;
 
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.Record;
@@ -36,6 +38,18 @@ import org.apache.nifi.serialization.record.validation.ValidationError;
 import org.apache.nifi.serialization.record.validation.ValidationErrorType;
 
 public class StandardSchemaValidator implements RecordSchemaValidator {
+    private static final Map<RecordFieldType, Predicate<Object>> NUMERIC_VALIDATORS = new HashMap();
+
+    static {
+        NUMERIC_VALIDATORS.put(RecordFieldType.BIGINT, value -> value instanceof BigInteger);
+        NUMERIC_VALIDATORS.put(RecordFieldType.LONG, value -> value instanceof Long);
+        NUMERIC_VALIDATORS.put(RecordFieldType.INT, value -> value instanceof Integer);
+        NUMERIC_VALIDATORS.put(RecordFieldType.BYTE, value -> value instanceof Byte);
+        NUMERIC_VALIDATORS.put(RecordFieldType.SHORT, value -> value instanceof Short);
+        NUMERIC_VALIDATORS.put(RecordFieldType.DOUBLE, value -> value instanceof Double);
+        NUMERIC_VALIDATORS.put(RecordFieldType.FLOAT, value -> value instanceof Float);
+    }
+
     private final SchemaValidationContext validationContext;
 
     public StandardSchemaValidator(final SchemaValidationContext validationContext) {
@@ -233,39 +247,55 @@ public class StandardSchemaValidator implements RecordSchemaValidator {
                 }
 
                 return false;
-            case BIGINT:
-                return value instanceof BigInteger;
             case BOOLEAN:
                 return value instanceof Boolean;
-            case BYTE:
-                return value instanceof Byte;
             case CHAR:
                 return value instanceof Character;
             case DATE:
                 return value instanceof java.sql.Date;
-            case DOUBLE:
-                return value instanceof Double;
-            case FLOAT:
-                // Some readers do not provide float vs. double.
-                // We should consider if it makes sense to allow either a Float or a Double here or have
-                // a Reader indicate whether or not it supports higher precision, etc.
-                // Same goes for Short/Integer
-                return value instanceof Float;
-            case INT:
-                return value instanceof Integer;
-            case LONG:
-                return value instanceof Long;
-            case SHORT:
-                return value instanceof Short;
             case STRING:
                 return value instanceof String;
             case TIME:
                 return value instanceof java.sql.Time;
             case TIMESTAMP:
                 return value instanceof java.sql.Timestamp;
+
+            // Numeric data types
+            case BIGINT:
+            case LONG:
+            case INT:
+            case SHORT:
+            case BYTE:
+            case DOUBLE:
+                return isFittingNumberType(value, dataType.getFieldType());
+            case FLOAT:
+                // Some readers do not provide float vs. double.
+                // We should consider if it makes sense to allow either a Float or a Double here or have
+                // a Reader indicate whether or not it supports higher precision, etc.
+                // Same goes for Short/Integer
+                return isFittingNumberType(value, dataType.getFieldType()) || isDoubleWithinFloatInterval(value);
         }
 
         return false;
+    }
+
+    /**
+     * Checks if an incoming value satisfies the requirements of a given (numeric) type or any of it's narrow data type.
+     *
+     * @param value Incoming value.
+     * @param fieldType The expected field type.
+     *
+     * @return Returns true if the incoming value satisfies the data type of any of it's narrow data types. Otherwise returns false. Only numeric data types are supported.
+     */
+    private boolean isFittingNumberType(final Object value, final RecordFieldType fieldType) {
+        return NUMERIC_VALIDATORS.containsKey(fieldType)
+            && (NUMERIC_VALIDATORS.get(fieldType).test(value)
+                || fieldType.getNarrowDataTypes().stream().map(type -> NUMERIC_VALIDATORS.get(type)).anyMatch(validator -> validator.test(value))
+        );
+    }
+
+    private boolean isDoubleWithinFloatInterval(final Object value) {
+        return value instanceof Double && Float.valueOf(((Double) value).floatValue()).doubleValue() == ((Double) value).doubleValue();
     }
 
     private String concat(final String fieldPrefix, final RecordField field) {
