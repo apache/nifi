@@ -16,11 +16,14 @@
  */
 package org.apache.nifi.processors.standard
 
+import org.apache.commons.codec.binary.Hex
 import org.apache.nifi.components.ValidationResult
 import org.apache.nifi.security.util.EncryptionMethod
 import org.apache.nifi.security.util.KeyDerivationFunction
+import org.apache.nifi.security.util.crypto.Argon2CipherProvider
 import org.apache.nifi.security.util.crypto.CipherUtility
 import org.apache.nifi.security.util.crypto.PasswordBasedEncryptor
+import org.apache.nifi.security.util.crypto.RandomIVPBECipherProvider
 import org.apache.nifi.util.MockFlowFile
 import org.apache.nifi.util.MockProcessContext
 import org.apache.nifi.util.TestRunner
@@ -37,6 +40,7 @@ import org.junit.runners.JUnit4
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
+import java.nio.charset.StandardCharsets
 import java.nio.file.Paths
 import java.security.Security
 
@@ -68,7 +72,7 @@ class TestEncryptContentGroovy {
     void testShouldValidateMaxKeySizeForAlgorithmsOnUnlimitedStrengthJVM() throws IOException {
         // Arrange
         Assume.assumeTrue("Test is being skipped due to this JVM lacking JCE Unlimited Strength Jurisdiction Policy file.",
-                PasswordBasedEncryptor.supportsUnlimitedStrength())
+                CipherUtility.isUnlimitedStrengthCryptoSupported())
 
         final TestRunner runner = TestRunners.newTestRunner(EncryptContent.class)
         Collection<ValidationResult> results
@@ -106,7 +110,7 @@ class TestEncryptContentGroovy {
     void testShouldValidateMaxKeySizeForAlgorithmsOnLimitedStrengthJVM() throws IOException {
         // Arrange
         Assume.assumeTrue("Test is being skipped because this JVM supports unlimited strength crypto.",
-                !PasswordBasedEncryptor.supportsUnlimitedStrength())
+                !CipherUtility.isUnlimitedStrengthCryptoSupported())
 
         final TestRunner runner = TestRunners.newTestRunner(EncryptContent.class)
         Collection<ValidationResult> results
@@ -199,12 +203,14 @@ class TestEncryptContentGroovy {
             logger.info("Trying encryption method ${encryptionMethod.name()}")
             runner.setProperty(EncryptContent.ENCRYPTION_ALGORITHM, encryptionMethod.name())
 
+            // Scenario 1: Legacy KDF + keyed cipher -> validation error
             final def INVALID_KDFS = [KeyDerivationFunction.NIFI_LEGACY, KeyDerivationFunction.OPENSSL_EVP_BYTES_TO_KEY]
             INVALID_KDFS.each { KeyDerivationFunction invalidKDF ->
                 logger.info("Trying KDF ${invalidKDF.name()}")
 
                 runner.setProperty(EncryptContent.KEY_DERIVATION_FUNCTION, invalidKDF.name())
                 runner.setProperty(EncryptContent.RAW_KEY_HEX, VALID_KEY_HEX)
+                runner.removeProperty(EncryptContent.PASSWORD)
 
                 runner.enqueue(new byte[0])
                 pc = (MockProcessContext) runner.getProcessContext()
@@ -213,22 +219,41 @@ class TestEncryptContentGroovy {
                 results = pc.validate()
 
                 // Assert
-                Assert.assertEquals(1, results.size())
                 logger.expected(results)
+                assert results.size() == 1
                 ValidationResult keyLengthInvalidVR = results.first()
 
-                String expectedResult = "'key-derivation-function' is invalid because Key Derivation Function is required to be NONE, BCRYPT, SCRYPT, PBKDF2 when using " +
+                String expectedResult = "'key-derivation-function' is invalid because Key Derivation Function is required to be BCRYPT, SCRYPT, PBKDF2, ARGON2, NONE when using " +
                         "algorithm ${encryptionMethod.algorithm}"
                 String message = "'" + keyLengthInvalidVR.toString() + "' contains '" + expectedResult + "'"
-                Assert.assertTrue(message, keyLengthInvalidVR.toString().contains(expectedResult))
+                assert keyLengthInvalidVR.toString().contains(expectedResult)
             }
 
-            final
-            def VALID_KDFS = [KeyDerivationFunction.NONE, KeyDerivationFunction.BCRYPT, KeyDerivationFunction.SCRYPT, KeyDerivationFunction.PBKDF2]
+            // Scenario 2: No KDF + keyed cipher + raw-key-hex -> valid
+            def none = KeyDerivationFunction.NONE
+            logger.info("Trying KDF ${none.name()}")
+
+            runner.setProperty(EncryptContent.KEY_DERIVATION_FUNCTION, none.name())
+            runner.setProperty(EncryptContent.RAW_KEY_HEX, VALID_KEY_HEX)
+            runner.removeProperty(EncryptContent.PASSWORD)
+
+            runner.enqueue(new byte[0])
+            pc = (MockProcessContext) runner.getProcessContext()
+
+            // Act
+            results = pc.validate()
+
+            // Assert
+            assert results.isEmpty()
+
+            // Scenario 3: Strong KDF + keyed cipher + password -> valid
+            final def VALID_KDFS = [KeyDerivationFunction.BCRYPT, KeyDerivationFunction.SCRYPT, KeyDerivationFunction.PBKDF2, KeyDerivationFunction.ARGON2]
             VALID_KDFS.each { KeyDerivationFunction validKDF ->
                 logger.info("Trying KDF ${validKDF.name()}")
 
                 runner.setProperty(EncryptContent.KEY_DERIVATION_FUNCTION, validKDF.name())
+                runner.setProperty(EncryptContent.PASSWORD, "thisIsABadPassword")
+                runner.removeProperty(EncryptContent.RAW_KEY_HEX)
 
                 runner.enqueue(new byte[0])
                 pc = (MockProcessContext) runner.getProcessContext()
@@ -237,7 +262,103 @@ class TestEncryptContentGroovy {
                 results = pc.validate()
 
                 // Assert
-                Assert.assertEquals(0, results.size())
+                assert results.isEmpty()
+            }
+        }
+    }
+
+    @Test
+    void testKDFShouldDefaultToNone() {
+        // Arrange
+        final TestRunner runner = TestRunners.newTestRunner(EncryptContent.class)
+        Collection<ValidationResult> results
+        MockProcessContext pc
+
+        runner.enqueue(new byte[0])
+        pc = (MockProcessContext) runner.getProcessContext()
+
+        // Act
+        String defaultKDF = pc.getProperty("key-derivation-function").getValue()
+
+        // Assert
+        assert defaultKDF == KeyDerivationFunction.NONE.name()
+    }
+
+    @Test
+    void testEMShouldDefaultToAES_GCM() {
+        // Arrange
+        final TestRunner runner = TestRunners.newTestRunner(EncryptContent.class)
+        Collection<ValidationResult> results
+        MockProcessContext pc
+
+        runner.enqueue(new byte[0])
+        pc = (MockProcessContext) runner.getProcessContext()
+
+        // Act
+        String defaultEM = pc.getProperty("Encryption Algorithm").getValue()
+
+        // Assert
+        assert defaultEM == EncryptionMethod.AES_GCM.name()
+    }
+
+    @Test
+    void testShouldValidateKeyMaterialSourceWhenKeyedCipherSelected() {
+        // Arrange
+        final TestRunner runner = TestRunners.newTestRunner(EncryptContent.class)
+        Collection<ValidationResult> results
+        MockProcessContext pc
+
+        def keyedEncryptionMethods = EncryptionMethod.values().findAll { it.isKeyedCipher() }
+        logger.info("Testing keyed encryption methods: ${keyedEncryptionMethods*.name()}")
+
+        final int VALID_KEY_LENGTH = 128
+        final String VALID_KEY_HEX = "ab" * (VALID_KEY_LENGTH / 8)
+        logger.info("Using key ${VALID_KEY_HEX} (${VALID_KEY_HEX.length() * 4} bits)")
+
+        final String VALID_PASSWORD = "thisIsABadPassword"
+        logger.info("Using password ${VALID_PASSWORD} (${VALID_PASSWORD.length()} bytes)")
+
+        runner.setProperty(EncryptContent.MODE, EncryptContent.ENCRYPT_MODE)
+        KeyDerivationFunction none = KeyDerivationFunction.NONE
+        final def VALID_KDFS = KeyDerivationFunction.values().findAll { it.isStrongKDF() }
+
+        // Scenario 1 - RKH w/ KDF NONE & em in [CBC, CTR, GCM] (no password)
+        keyedEncryptionMethods.each { EncryptionMethod kem ->
+            logger.info("Trying encryption method ${kem.name()} with KDF ${none.name()}")
+            runner.setProperty(EncryptContent.ENCRYPTION_ALGORITHM, kem.name())
+            runner.setProperty(EncryptContent.KEY_DERIVATION_FUNCTION, none.name())
+
+            logger.info("Setting raw key hex: ${VALID_KEY_HEX}")
+            runner.setProperty(EncryptContent.RAW_KEY_HEX, VALID_KEY_HEX)
+            runner.removeProperty(EncryptContent.PASSWORD)
+
+            runner.enqueue(new byte[0])
+            pc = (MockProcessContext) runner.getProcessContext()
+
+            // Act
+            results = pc.validate()
+
+            // Assert
+            assert results.isEmpty()
+
+            // Scenario 2 - PW w/ KDF in [BCRYPT, SCRYPT, PBKDF2, ARGON2] & em in [CBC, CTR, GCM] (no RKH)
+            VALID_KDFS.each { KeyDerivationFunction kdf ->
+                logger.info("Trying encryption method ${kem.name()} with KDF ${kdf.name()}")
+                runner.setProperty(EncryptContent.ENCRYPTION_ALGORITHM, kem.name())
+                runner.setProperty(EncryptContent.KEY_DERIVATION_FUNCTION, kdf.name())
+
+                logger.info("Setting password: ${VALID_PASSWORD}")
+                runner.removeProperty(EncryptContent.RAW_KEY_HEX)
+                runner.setProperty(EncryptContent.PASSWORD, VALID_PASSWORD)
+
+                runner.enqueue(new byte[0])
+                pc = (MockProcessContext) runner.getProcessContext()
+
+                // Act
+                results = pc.validate()
+
+                // Assert
+                assert results.isEmpty()
             }
         }
     }
@@ -251,7 +372,7 @@ class TestEncryptContentGroovy {
         final String PASSWORD = "short"
 
         def encryptionMethods = EncryptionMethod.values().findAll { it.algorithm.startsWith("PBE") }
-        if (!PasswordBasedEncryptor.supportsUnlimitedStrength()) {
+        if (!CipherUtility.isUnlimitedStrengthCryptoSupported()) {
             // Remove all unlimited strength algorithms
             encryptionMethods.removeAll { it.unlimitedStrength }
         }
@@ -264,8 +385,7 @@ class TestEncryptContentGroovy {
             logger.info("Trying encryption method ${encryptionMethod.name()}")
             runner.setProperty(EncryptContent.ENCRYPTION_ALGORITHM, encryptionMethod.name())
 
-            final
-            def INVALID_KDFS = [KeyDerivationFunction.NONE, KeyDerivationFunction.BCRYPT, KeyDerivationFunction.SCRYPT, KeyDerivationFunction.PBKDF2]
+            final def INVALID_KDFS = [KeyDerivationFunction.NONE, KeyDerivationFunction.BCRYPT, KeyDerivationFunction.SCRYPT, KeyDerivationFunction.PBKDF2, KeyDerivationFunction.ARGON2]
             INVALID_KDFS.each { KeyDerivationFunction invalidKDF ->
                 logger.info("Trying KDF ${invalidKDF.name()}")
 
@@ -345,7 +465,7 @@ class TestEncryptContentGroovy {
     @Test
     void testShouldCheckMaximumLengthOfPasswordOnLimitedStrengthCryptoJVM() throws IOException {
         // Arrange
-        Assume.assumeTrue("Only run on systems with limited strength crypto", !PasswordBasedEncryptor.supportsUnlimitedStrength())
+        Assume.assumeTrue("Only run on systems with limited strength crypto", !CipherUtility.isUnlimitedStrengthCryptoSupported())
 
         final TestRunner testRunner = TestRunners.newTestRunner(new EncryptContent())
         testRunner.setProperty(EncryptContent.KEY_DERIVATION_FUNCTION, KeyDerivationFunction.NIFI_LEGACY.name())
@@ -400,7 +520,7 @@ class TestEncryptContentGroovy {
 
         def encryptionMethods = EncryptionMethod.values().findAll { it.algorithm.startsWith("PBE") }
 
-        boolean limitedStrengthCrypto = !PasswordBasedEncryptor.supportsUnlimitedStrength()
+        boolean limitedStrengthCrypto = !CipherUtility.isUnlimitedStrengthCryptoSupported()
         boolean allowWeakCrypto = false
         testRunner.setProperty(EncryptContent.ALLOW_WEAK_CRYPTO, WEAK_CRYPTO_NOT_ALLOWED)
 
@@ -450,7 +570,7 @@ class TestEncryptContentGroovy {
 
         def encryptionMethods = EncryptionMethod.values().findAll { it.algorithm.startsWith("PBE") }
 
-        boolean limitedStrengthCrypto = !PasswordBasedEncryptor.supportsUnlimitedStrength()
+        boolean limitedStrengthCrypto = !CipherUtility.isUnlimitedStrengthCryptoSupported()
         boolean allowWeakCrypto = true
         testRunner.setProperty(EncryptContent.ALLOW_WEAK_CRYPTO, WEAK_CRYPTO_ALLOWED)
 
@@ -515,5 +635,45 @@ class TestEncryptContentGroovy {
 
         // Assert
         Assert.assertEquals(results.toString(), 0, results.size())
+    }
+
+    @Test
+    void testArgon2ShouldIncludeFullSalt() throws IOException {
+        // Arrange
+        final TestRunner testRunner = TestRunners.newTestRunner(new EncryptContent())
+        testRunner.setProperty(EncryptContent.PASSWORD, "thisIsABadPassword")
+        testRunner.setProperty(EncryptContent.KEY_DERIVATION_FUNCTION, KeyDerivationFunction.ARGON2.name())
+
+        EncryptionMethod encryptionMethod = EncryptionMethod.AES_CBC
+
+        logger.info("Attempting {}", encryptionMethod.name())
+        testRunner.setProperty(EncryptContent.ENCRYPTION_ALGORITHM, encryptionMethod.name())
+        testRunner.setProperty(EncryptContent.MODE, EncryptContent.ENCRYPT_MODE)
+
+        // Act
+        testRunner.enqueue(Paths.get("src/test/resources/hello.txt"))
+        testRunner.clearTransferState()
+        testRunner.run()
+
+        // Assert
+        testRunner.assertAllFlowFilesTransferred(EncryptContent.REL_SUCCESS, 1)
+
+        MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(EncryptContent.REL_SUCCESS).get(0)
+        testRunner.assertQueueEmpty()
+
+        def flowFileContent = flowFile.getContent()
+        logger.info("Flowfile content (${flowFile.getData().length}): ${Hex.encodeHexString(flowFile.getData())}")
+
+        def fullSalt = flowFileContent.substring(0, flowFileContent.indexOf(new String(RandomIVPBECipherProvider.SALT_DELIMITER, StandardCharsets.UTF_8)))
+        logger.info("Full salt (${fullSalt.size()}): ${fullSalt}")
+
+        boolean isValidFormattedSalt = Argon2CipherProvider.isArgon2FormattedSalt(fullSalt)
+        logger.info("Salt is Argon2 format: ${isValidFormattedSalt}")
+        assert isValidFormattedSalt
+
+        def FULL_SALT_LENGTH_RANGE = (49..57)
+        boolean fullSaltIsValidLength = FULL_SALT_LENGTH_RANGE.contains(fullSalt.bytes.length)
+        logger.info("Salt length (${fullSalt.length()}) in valid range (${FULL_SALT_LENGTH_RANGE})")
+        assert fullSaltIsValidLength
     }
 }

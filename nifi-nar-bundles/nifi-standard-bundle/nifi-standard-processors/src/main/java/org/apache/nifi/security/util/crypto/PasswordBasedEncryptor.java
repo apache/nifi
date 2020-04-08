@@ -39,18 +39,6 @@ public class PasswordBasedEncryptor implements Encryptor {
     private static final int DEFAULT_MAX_ALLOWED_KEY_LENGTH = 128;
     private static final int MINIMUM_SAFE_PASSWORD_LENGTH = 10;
 
-    private static boolean isUnlimitedStrengthCryptographyEnabled;
-
-    // Evaluate an unlimited strength algorithm to determine if we support the capability we have on the system
-    static {
-        try {
-            isUnlimitedStrengthCryptographyEnabled = (Cipher.getMaxAllowedKeyLength("AES") > DEFAULT_MAX_ALLOWED_KEY_LENGTH);
-        } catch (NoSuchAlgorithmException e) {
-            // if there are issues with this, we default back to the value established
-            isUnlimitedStrengthCryptographyEnabled = false;
-        }
-    }
-
     public PasswordBasedEncryptor(final EncryptionMethod encryptionMethod, final char[] password, KeyDerivationFunction kdf) {
         super();
         try {
@@ -91,10 +79,6 @@ public class PasswordBasedEncryptor implements Encryptor {
      */
     public static int getMinimumSafePasswordLength() {
         return MINIMUM_SAFE_PASSWORD_LENGTH;
-    }
-
-    public static boolean supportsUnlimitedStrength() {
-        return isUnlimitedStrengthCryptographyEnabled;
     }
 
     @Override

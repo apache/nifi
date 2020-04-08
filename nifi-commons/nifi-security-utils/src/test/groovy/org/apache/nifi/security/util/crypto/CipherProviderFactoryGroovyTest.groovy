@@ -40,7 +40,8 @@ class CipherProviderFactoryGroovyTest extends GroovyTestCase {
             (KeyDerivationFunction.NONE)                    : AESKeyedCipherProvider.class,
             (KeyDerivationFunction.OPENSSL_EVP_BYTES_TO_KEY): OpenSSLPKCS5CipherProvider.class,
             (KeyDerivationFunction.PBKDF2)                  : PBKDF2CipherProvider.class,
-            (KeyDerivationFunction.SCRYPT)                  : ScryptCipherProvider.class
+            (KeyDerivationFunction.SCRYPT)                  : ScryptCipherProvider.class,
+            (KeyDerivationFunction.ARGON2)                  : Argon2CipherProvider.class
     ]
 
     @BeforeClass
@@ -66,9 +67,9 @@ class CipherProviderFactoryGroovyTest extends GroovyTestCase {
 
         // Act
         KeyDerivationFunction.values().each { KeyDerivationFunction kdf ->
-            logger.info("Expected: ${kdf.name} -> ${EXPECTED_CIPHER_PROVIDERS.get(kdf).simpleName}")
+            logger.info("Expected: ${kdf.kdfName} -> ${EXPECTED_CIPHER_PROVIDERS.get(kdf).simpleName}")
             CipherProvider cp = CipherProviderFactory.getCipherProvider(kdf)
-            logger.info("Resolved: ${kdf.name} -> ${cp.class.simpleName}")
+            logger.info("Resolved: ${kdf.kdfName} -> ${cp.class.simpleName}")
 
             // Assert
             assert cp.class == (EXPECTED_CIPHER_PROVIDERS.get(kdf))
@@ -82,16 +83,16 @@ class CipherProviderFactoryGroovyTest extends GroovyTestCase {
 
         // Can't mock this; see http://stackoverflow.com/questions/5323505/mocking-java-enum-to-add-a-value-to-test-fail-case
         KeyDerivationFunction invalidKDF = [name: "Unregistered", description: "Not a registered KDF"] as KeyDerivationFunction
-        logger.info("Expected: ${invalidKDF.name} -> error")
+        logger.info("Expected: ${invalidKDF.kdfName} -> error")
 
         // Act
         def msg = shouldFail(IllegalArgumentException) {
             CipherProvider cp = CipherProviderFactory.getCipherProvider(invalidKDF)
-            logger.info("Resolved: ${invalidKDF.name} -> ${cp.class.simpleName}")
+            logger.info("Resolved: ${invalidKDF.kdfName} -> ${cp.class.simpleName}")
         }
         logger.expected(msg)
 
         // Assert
-        assert msg =~ "No cipher provider registered for ${invalidKDF.name}"
+        assert msg =~ "No cipher provider registered for ${invalidKDF.kdfName}"
     }
 }

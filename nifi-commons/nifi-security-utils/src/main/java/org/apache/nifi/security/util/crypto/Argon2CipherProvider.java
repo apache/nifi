@@ -16,16 +16,6 @@
  */
 package org.apache.nifi.security.util.crypto;
 
-import org.apache.commons.codec.binary.Base64;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.security.util.EncryptionMethod;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.crypto.Cipher;
-import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.ArrayList;
@@ -35,6 +25,15 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import javax.crypto.Cipher;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
+import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.security.util.EncryptionMethod;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Argon2CipherProvider extends RandomIVPBECipherProvider {
     private static final Logger logger = LoggerFactory.getLogger(Argon2CipherProvider.class);
@@ -74,7 +73,7 @@ public class Argon2CipherProvider extends RandomIVPBECipherProvider {
         this.parallelism = parallelism;
         this.iterations = iterations;
         if (memory < DEFAULT_MEMORY) {
-            logger.warn("The provided memory size {} is below the minimum {}}", memory, DEFAULT_MEMORY);
+            logger.warn("The provided memory size {} is below the minimum {}", memory, DEFAULT_MEMORY);
         }
         if (parallelism < DEFAULT_PARALLELISM) {
             logger.warn("The provided parallelization factor {} is below the minimum {}", parallelism, DEFAULT_PARALLELISM);
@@ -195,7 +194,7 @@ public class Argon2CipherProvider extends RandomIVPBECipherProvider {
         return Base64.decodeBase64(saltComponents[saltComponents.length - 1]);
     }
 
-    private boolean isArgon2FormattedSalt(String salt) {
+    public static boolean isArgon2FormattedSalt(String salt) {
         if (salt == null || salt.length() == 0) {
             throw new IllegalArgumentException("The salt cannot be empty. To generate a salt, use Argon2CipherProvider#generateSalt()");
         }
@@ -236,9 +235,18 @@ public class Argon2CipherProvider extends RandomIVPBECipherProvider {
 
     @Override
     public byte[] generateSalt() {
-        byte[] salt = new byte[DEFAULT_SALT_LENGTH];
-        new SecureRandom().nextBytes(salt);
-        return salt;
+        byte[] rawSalt = new byte[DEFAULT_SALT_LENGTH];
+        new SecureRandom().nextBytes(rawSalt);
+
+        // TODO: Handle 2i and 2d implementations
+        // Form the "full salt" containing the embedded algorithm, version, cost params, and raw salt
+       StringBuilder sb = new StringBuilder("$argon2id$");
+       sb.append("v=19").append("$");
+       sb.append("m=").append(getMemory()).append(",");
+       sb.append("t=").append(getIterations()).append(",");
+       sb.append("p=").append(getParallelism()).append("$");
+       sb.append(CipherUtility.encodeBase64NoPadding(rawSalt));
+       return sb.toString().getBytes(StandardCharsets.UTF_8);
     }
 
     @Override

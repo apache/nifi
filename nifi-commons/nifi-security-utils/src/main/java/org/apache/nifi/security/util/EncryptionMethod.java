@@ -26,6 +26,7 @@ import org.apache.commons.lang3.builder.ToStringStyle;
  */
 public enum EncryptionMethod {
 
+    // TODO: Reorder so keyed ciphers are first moving forward (default PD value, sorting, etc.)
     MD5_128AES("PBEWITHMD5AND128BITAES-CBC-OPENSSL", "BC", false, false),
     MD5_192AES("PBEWITHMD5AND192BITAES-CBC-OPENSSL", "BC", true, false),
     MD5_256AES("PBEWITHMD5AND256BITAES-CBC-OPENSSL", "BC", true, false),

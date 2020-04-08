@@ -17,22 +17,20 @@
 package org.apache.nifi.security.util.crypto;
 
 import at.favre.lib.crypto.bcrypt.Radix64Encoder;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.security.util.EncryptionMethod;
-import org.apache.nifi.security.util.crypto.scrypt.Scrypt;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.crypto.Cipher;
-import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import javax.crypto.Cipher;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.security.util.EncryptionMethod;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class BcryptCipherProvider extends RandomIVPBECipherProvider {
     private static final Logger logger = LoggerFactory.getLogger(BcryptCipherProvider.class);
@@ -135,7 +133,7 @@ public class BcryptCipherProvider extends RandomIVPBECipherProvider {
         }
 
         String saltString = new String(salt, StandardCharsets.UTF_8);
-        byte[] rawSalt = new byte[Scrypt.getDefaultSaltLength()];
+        byte[] rawSalt = new byte[DEFAULT_SALT_LENGTH];
         int workFactor = 0;
         if (isBcryptFormattedSalt(saltString)) {
             // parseSalt will extract workFactor from salt
@@ -150,6 +148,7 @@ public class BcryptCipherProvider extends RandomIVPBECipherProvider {
             MessageDigest digest = MessageDigest.getInstance("SHA-512", provider);
             BcryptSecureHasher bcryptSecureHasher = new BcryptSecureHasher(workFactor);
             byte[] hashBytes = bcryptSecureHasher.hashRaw(password.getBytes(StandardCharsets.UTF_8), rawSalt);
+            // TODO: Need to only digest "hash" (last 31 bytes)
             byte[] derivedKeyBytes = digest.digest(hashBytes);
             derivedKeyBytes = Arrays.copyOf(derivedKeyBytes, keyLength / 8);
             SecretKey tempKey = new SecretKeySpec(derivedKeyBytes, algorithm);

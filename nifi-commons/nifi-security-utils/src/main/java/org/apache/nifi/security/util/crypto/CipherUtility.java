@@ -265,9 +265,9 @@ public class CipherUtility {
             final byte[] buffer = new byte[BUFFER_SIZE];
             int len;
             while ((len = in.read(buffer)) > 0) {
-                final byte[] decryptedBytes = cipher.update(buffer, 0, len);
-                if (decryptedBytes != null) {
-                    out.write(decryptedBytes);
+                final byte[] transformedBytes = cipher.update(buffer, 0, len);
+                if (transformedBytes != null) {
+                    out.write(transformedBytes);
                 }
             }
 

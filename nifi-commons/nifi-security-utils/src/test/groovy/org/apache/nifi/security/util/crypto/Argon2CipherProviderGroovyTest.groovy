@@ -20,7 +20,11 @@ import org.apache.commons.codec.binary.Base64
 import org.apache.commons.codec.binary.Hex
 import org.apache.nifi.security.util.EncryptionMethod
 import org.bouncycastle.jce.provider.BouncyCastleProvider
-import org.junit.*
+import org.junit.After
+import org.junit.Assume
+import org.junit.Before
+import org.junit.BeforeClass
+import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
 import org.slf4j.Logger
@@ -29,6 +33,7 @@ import org.slf4j.LoggerFactory
 import javax.crypto.Cipher
 import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
+import java.nio.charset.StandardCharsets
 import java.security.Security
 
 import static groovy.test.GroovyAssert.shouldFail
@@ -44,6 +49,7 @@ class Argon2CipherProviderGroovyTest extends GroovyTestCase {
     private static ArrayList<Integer> AES_KEY_LENGTHS
 
     RandomIVPBECipherProvider cipherProvider
+    private final IntRange FULL_SALT_LENGTH_RANGE= (49..53)
 
     @BeforeClass
     static void setUpOnce() throws Exception {
@@ -331,13 +337,29 @@ class Argon2CipherProviderGroovyTest extends GroovyTestCase {
     void testGenerateSaltShouldProvideValidSalt() throws Exception {
         // Arrange
         RandomIVPBECipherProvider cipherProvider = new Argon2CipherProvider()
+
         // Act
-        byte[] salt = cipherProvider.generateSalt()
-        logger.info("Checking salt ${Hex.encodeHexString(salt)}")
+        byte[] saltBytes = cipherProvider.generateSalt()
+        logger.info("Generated salt ${Hex.encodeHexString(saltBytes)}")
+
+        String fullSalt = new String(saltBytes, StandardCharsets.UTF_8)
+        logger.info("Generated salt (${saltBytes.length}): ${fullSalt}".toString())
+
+        def rawSaltB64 = (fullSalt =~ /\$([\w\+\/]+)\$?$/)[0][1]
+        logger.info("Extracted B64 raw salt (${rawSaltB64.size()}): ${rawSaltB64}".toString())
+
+        byte[] rawSaltBytes = Base64.decodeBase64(rawSaltB64)
 
         // Assert
-        assert salt.length == 16
-        assert salt != [(0x00 as byte) * 16]
+        boolean isValidFormattedSalt = cipherProvider.isArgon2FormattedSalt(fullSalt)
+        logger.info("Salt is Argon2 format: ${isValidFormattedSalt}")
+        assert isValidFormattedSalt
+
+        boolean fullSaltIsValidLength = FULL_SALT_LENGTH_RANGE.contains(saltBytes.length)
+        logger.info("Salt length (${fullSalt.length()}) in valid range (${FULL_SALT_LENGTH_RANGE})")
+        assert fullSaltIsValidLength
+
+        assert rawSaltBytes != [(0x00 as byte) * 16]
     }
 
     @Test

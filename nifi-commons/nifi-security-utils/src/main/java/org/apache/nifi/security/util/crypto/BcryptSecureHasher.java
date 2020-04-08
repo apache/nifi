@@ -17,11 +17,13 @@
 package org.apache.nifi.security.util.crypto;
 
 import at.favre.lib.crypto.bcrypt.BCrypt;
+import at.favre.lib.crypto.bcrypt.Radix64Encoder;
+import java.nio.charset.StandardCharsets;
+import java.util.concurrent.TimeUnit;
+import org.apache.commons.codec.binary.Base64;
 import org.bouncycastle.util.encoders.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.concurrent.TimeUnit;
 
 /**
  * Provides an implementation of {@code Bcrypt} for secure password hashing.
@@ -108,6 +110,14 @@ public class BcryptSecureHasher extends AbstractSecureHasher {
             logger.warn("The provided cost factor {} is below the recommended minimum {}.", cost, DEFAULT_COST);
         }
         return cost >= MIN_COST && cost <= MAX_COST;
+    }
+
+    public static String convertBcryptRadix64ToMimeBase64(String radix64) {
+        return CipherUtility.encodeBase64NoPadding(new Radix64Encoder.Default().decode(radix64.getBytes(StandardCharsets.UTF_8)));
+    }
+
+    public static String convertMimeBase64ToBcryptRadix64(String base64) {
+        return new String(new Radix64Encoder.Default().encode(Base64.decodeBase64(base64)), StandardCharsets.UTF_8);
     }
 
     /**

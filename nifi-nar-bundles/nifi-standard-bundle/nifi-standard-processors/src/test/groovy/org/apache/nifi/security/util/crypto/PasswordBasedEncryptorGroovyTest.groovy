@@ -82,7 +82,7 @@ class PasswordBasedEncryptorGroovyTest {
             OutputStream cipherStream = new ByteArrayOutputStream()
             OutputStream recoveredStream = new ByteArrayOutputStream()
 
-            logger.info("Using ${kdf.name} and ${encryptionMethod.name()}")
+            logger.info("Using ${kdf.kdfName} and ${encryptionMethod.name()}")
             PasswordBasedEncryptor encryptor = new PasswordBasedEncryptor(encryptionMethod, shortPassword.toCharArray(), kdf)
 
             StreamCallback encryptionCallback = encryptor.getEncryptionCallback()
@@ -106,10 +106,63 @@ class PasswordBasedEncryptorGroovyTest {
         }
     }
 
+    /**
+     * This test was added after observing an encryption which appended a single {@code 0x10} byte after the cipher text was written. All other bytes in the flowfile content were correct. The corresponding {@code DecryptContent} processor could not decrypt the content and manual decryption required truncating the final byte.
+     * @throws Exception
+     */
+    @Test
+    void testBcryptKDFShouldNotAddOutputBytes() throws Exception {
+        // Arrange
+        final String PLAINTEXT = "This is a plaintext message." * 4
+        logger.info("Plaintext: {}", PLAINTEXT)
+
+        int saltLength = 29
+        int saltDelimiterLength = 8
+        int ivLength = 16
+        int ivDelimiterLength = 6
+        int plaintextBlockCount = (int) Math.ceil(PLAINTEXT.length() / 16.0)
+        int cipherByteLength = (PLAINTEXT.length() % 16 == 0 ? plaintextBlockCount + 1 : plaintextBlockCount) * 16
+        int EXPECTED_CIPHER_BYTE_COUNT = saltLength + saltDelimiterLength + ivLength + ivDelimiterLength + cipherByteLength
+        logger.info("Expected total cipher byte count: ${EXPECTED_CIPHER_BYTE_COUNT}")
+
+        InputStream plainStream = new ByteArrayInputStream(PLAINTEXT.getBytes("UTF-8"))
+
+        String shortPassword = "short"
+
+        EncryptionMethod encryptionMethod = EncryptionMethod.AES_CBC
+        KeyDerivationFunction kdf = KeyDerivationFunction.BCRYPT
+
+        // Act
+        OutputStream cipherStream = new ByteArrayOutputStream()
+        OutputStream recoveredStream = new ByteArrayOutputStream()
+
+        logger.info("Using ${kdf.kdfName} and ${encryptionMethod.name()}")
+        PasswordBasedEncryptor encryptor = new PasswordBasedEncryptor(encryptionMethod, shortPassword.toCharArray(), kdf)
+
+        StreamCallback encryptionCallback = encryptor.getEncryptionCallback()
+        StreamCallback decryptionCallback = encryptor.getDecryptionCallback()
+
+        encryptionCallback.process(plainStream, cipherStream)
+
+        final byte[] cipherBytes = ((ByteArrayOutputStream) cipherStream).toByteArray()
+        logger.info("Encrypted (${cipherBytes.length}): ${Hex.encodeHexString(cipherBytes)}")
+        assert cipherBytes.length == EXPECTED_CIPHER_BYTE_COUNT
+
+        InputStream cipherInputStream = new ByteArrayInputStream(cipherBytes)
+        decryptionCallback.process(cipherInputStream, recoveredStream)
+
+        // Assert
+        byte[] recoveredBytes = ((ByteArrayOutputStream) recoveredStream).toByteArray()
+        logger.info("Recovered (${recoveredBytes.length}): ${Hex.encodeHexString(recoveredBytes)}")
+        String recovered = new String(recoveredBytes, "UTF-8")
+        logger.info("Recovered: {}\n\n", recovered)
+        assert PLAINTEXT.equals(recovered)
+    }
+
     @Test
     void testShouldDecryptLegacyOpenSSLSaltedCipherText() throws Exception {
         // Arrange
-        Assume.assumeTrue("Skipping test because unlimited strength crypto policy not installed", PasswordBasedEncryptor.supportsUnlimitedStrength())
+        Assume.assumeTrue("Skipping test because unlimited strength crypto policy not installed", CipherUtility.isUnlimitedStrengthCryptoSupported())
 
         final String PLAINTEXT = new File("${TEST_RESOURCES_PREFIX}/plain.txt").text
         logger.info("Plaintext: {}", PLAINTEXT)
@@ -138,7 +191,7 @@ class PasswordBasedEncryptorGroovyTest {
     @Test
     void testShouldDecryptLegacyOpenSSLUnsaltedCipherText() throws Exception {
         // Arrange
-        Assume.assumeTrue("Skipping test because unlimited strength crypto policy not installed", PasswordBasedEncryptor.supportsUnlimitedStrength())
+        Assume.assumeTrue("Skipping test because unlimited strength crypto policy not installed", CipherUtility.isUnlimitedStrengthCryptoSupported())
 
         final String PLAINTEXT = new File("${TEST_RESOURCES_PREFIX}/plain.txt").text
         logger.info("Plaintext: {}", PLAINTEXT)

@@ -16,9 +16,14 @@
  */
 package org.apache.nifi.security.util.crypto
 
+import at.favre.lib.crypto.bcrypt.Radix64Encoder
 import org.apache.kerby.util.Hex
 import org.bouncycastle.jce.provider.BouncyCastleProvider
-import org.junit.*
+import org.junit.After
+import org.junit.Before
+import org.junit.BeforeClass
+import org.junit.Ignore
+import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
 import org.slf4j.Logger
@@ -363,5 +368,26 @@ class BcryptSecureHasherTest extends GroovyTestCase {
         }
     }
 
+    @Test
+    void testShouldConvertRadix64ToBase64() {
+        // Arrange
+        final String INPUT_RADIX_64 = "mm7MiKjvXVYCujVUlKRKiu"
+        final byte[] EXPECTED_BYTES = new Radix64Encoder.Default().decode(INPUT_RADIX_64.bytes)
+        logger.info("Plain bytes: ${Hex.encode(EXPECTED_BYTES)}")
+
+        // Uses standard Base64 library but removes padding chars
+        final String EXPECTED_MIME_B64 = Base64.encoder.encodeToString(EXPECTED_BYTES).replaceAll(/=/, '')
+
+        // Act
+        String convertedBase64 = BcryptSecureHasher.convertBcryptRadix64ToMimeBase64(INPUT_RADIX_64)
+        logger.info("Converted (R64) ${INPUT_RADIX_64} to (B64) ${convertedBase64}")
+
+        String convertedRadix64 = BcryptSecureHasher.convertMimeBase64ToBcryptRadix64(convertedBase64)
+        logger.info("Converted (B64) ${convertedBase64} to (R64) ${convertedRadix64}")
+
+        // Assert
+        assert convertedBase64 == EXPECTED_MIME_B64
+        assert convertedRadix64 == INPUT_RADIX_64
+    }
 }
 
