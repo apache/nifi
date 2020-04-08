@@ -109,9 +109,9 @@
         <nifi.provenance.repository.encryption.key.id />
         <nifi.provenance.repository.encryption.key />
         <nifi.provenance.repository.directory.default>./provenance_repository</nifi.provenance.repository.directory.default>
-        <nifi.provenance.repository.max.storage.time>24 hours</nifi.provenance.repository.max.storage.time>
-        <nifi.provenance.repository.max.storage.size>1 GB</nifi.provenance.repository.max.storage.size>
-        <nifi.provenance.repository.rollover.time>30 secs</nifi.provenance.repository.rollover.time>
+        <nifi.provenance.repository.max.storage.time>30 days</nifi.provenance.repository.max.storage.time>
+        <nifi.provenance.repository.max.storage.size>10 GB</nifi.provenance.repository.max.storage.size>
+        <nifi.provenance.repository.rollover.time>10 mins</nifi.provenance.repository.rollover.time>
         <nifi.provenance.repository.rollover.size>100 MB</nifi.provenance.repository.rollover.size>
         <nifi.provenance.repository.query.threads>2</nifi.provenance.repository.query.threads>
         <nifi.provenance.repository.index.threads>2</nifi.provenance.repository.index.threads>
