@@ -53,7 +53,7 @@ public class TestPutHiveStreaming {
         when(record.getComponentType()).thenReturn(processorName);
         when(record.getTransitUri()).thenReturn(transitUri);
         when(record.getEventType()).thenReturn(ProvenanceEventType.SEND);
-        when(record.getAttribute(ATTR_OUTPUT_TABLES)).thenReturn("databaseA.tableA");
+        when(record.getAttribute(ATTR_OUTPUT_TABLES)).thenReturn("database_A.table_A");
 
         final ClusterResolvers clusterResolvers = Mockito.mock(ClusterResolvers.class);
         when(clusterResolvers.fromHostNames(matches(".+\\.example\\.com"))).thenReturn("cluster1");
@@ -69,7 +69,7 @@ public class TestPutHiveStreaming {
         assertEquals(1, refs.getOutputs().size());
         Referenceable ref = refs.getOutputs().iterator().next();
         assertEquals("hive_table", ref.getTypeName());
-        assertEquals("tableA", ref.get(ATTR_NAME));
-        assertEquals("databaseA.tableA@cluster1", ref.get(ATTR_QUALIFIED_NAME));
+        assertEquals("table_a", ref.get(ATTR_NAME));
+        assertEquals("database_a.table_a@cluster1", ref.get(ATTR_QUALIFIED_NAME));
     }
 }
