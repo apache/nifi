@@ -94,8 +94,8 @@ public class Hive2JDBC extends AbstractHiveAnalyzer {
 
         if (inputTables.isEmpty() && outputTables.isEmpty()) {
             // If input/output tables are unknown, create database level lineage.
-            return getDatabaseRef(event.getComponentId(), event.getEventType(),
-                    clusterName, connectedDatabaseName);
+            // Handle case insensitivity of database and table names in Hive: send names uniformly in lower case
+            return getDatabaseRef(event.getComponentId(), event.getEventType(), clusterName, connectedDatabaseName.toLowerCase());
         }
 
         final DataSetRefs refs = new DataSetRefs(event.getComponentId());

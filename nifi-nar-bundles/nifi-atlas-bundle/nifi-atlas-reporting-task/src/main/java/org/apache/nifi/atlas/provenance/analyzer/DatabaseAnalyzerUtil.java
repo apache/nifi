@@ -52,7 +52,8 @@ public class DatabaseAnalyzerUtil {
         }
         final String databaseName = tableNameSplit.length == 2 ? tableNameSplit[0] : connectedDatabaseName;
         final String tableName = tableNameSplit.length == 2 ? tableNameSplit[1] : tableNameSplit[0];
-        return new Tuple<>(databaseName, tableName);
+        // Handle case insensitivity of database and table names in Hive: send names uniformly in lower case
+        return new Tuple<>(databaseName.toLowerCase(), tableName.toLowerCase());
     }
 
     public static String toTableNameStr(Tuple<String, String> tableName) {
