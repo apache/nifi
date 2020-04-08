@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.reporting.sql.connectionstatuspredictions;
+package org.apache.nifi.reporting.sql.provenance;
 
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;
@@ -33,43 +33,52 @@ import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.schema.TranslatableTable;
 import org.apache.calcite.schema.impl.AbstractTable;
 import org.apache.calcite.util.Pair;
+import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.reporting.ReportingContext;
+import org.apache.nifi.provenance.ProvenanceEventRepository;
 
 import java.lang.reflect.Type;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 
-public class ConnectionStatusPredictionsTable extends AbstractTable implements QueryableTable, TranslatableTable {
+public class ProvenanceTable extends AbstractTable implements QueryableTable, TranslatableTable {
 
     private final ComponentLog logger;
 
     private RelDataType relDataType = null;
 
-    private volatile ReportingContext context;
+    private volatile ProvenanceEventRepository provenanceEventRepository;
+    private volatile ProcessGroupStatus rootGroupStatus;
+    private volatile boolean isClustered;
+    private volatile String clusterNodeIdentifier;
     private volatile int maxRecordsRead;
 
-    private final Set<ConnectionStatusPredictionsEnumerator> enumerators = new HashSet<>();
+    private final Set<ProvenanceEnumerator> enumerators = new HashSet<>();
 
     /**
-     * Creates a Connection Status table.
+     * Creates a Provenance events table.
      */
-    public ConnectionStatusPredictionsTable(final ReportingContext context, final ComponentLog logger) {
-        this.context = context;
+    public ProvenanceTable(final ProvenanceEventRepository provenanceEventRepository, final ProcessGroupStatus rootGroupStatus,
+                           final boolean isClustered, final String clusterNodeIdentifier, final ComponentLog logger) {
+        this.provenanceEventRepository = provenanceEventRepository;
+        this.rootGroupStatus = rootGroupStatus;
+        this.isClustered = isClustered;
+        this.clusterNodeIdentifier = clusterNodeIdentifier;
         this.logger = logger;
     }
 
     @Override
     public String toString() {
-        return "ConnectionStatusPredictionsTable";
+        return "ProvenanceTable";
     }
 
     public void close() {
         synchronized (enumerators) {
-            for (final ConnectionStatusPredictionsEnumerator enumerator : enumerators) {
+            for (final ProvenanceEnumerator enumerator : enumerators) {
                 enumerator.close();
             }
         }
@@ -84,9 +93,8 @@ public class ConnectionStatusPredictionsTable extends AbstractTable implements Q
     public Enumerable<Object> project(final int[] fields) {
         return new AbstractEnumerable<Object>() {
             @Override
-            @SuppressWarnings({"unchecked", "rawtypes"})
             public Enumerator<Object> enumerator() {
-                final ConnectionStatusPredictionsEnumerator connectionStatusPredictionsEnumerator = new ConnectionStatusPredictionsEnumerator(context, logger, fields) {
+                final ProvenanceEnumerator provenanceEnumerator = new ProvenanceEnumerator(provenanceEventRepository, rootGroupStatus, isClustered, clusterNodeIdentifier, logger, fields) {
                     @Override
                     protected void onFinish() {
                         final int recordCount = getRecordsRead();
@@ -105,10 +113,10 @@ public class ConnectionStatusPredictionsTable extends AbstractTable implements Q
                 };
 
                 synchronized (enumerators) {
-                    enumerators.add(connectionStatusPredictionsEnumerator);
+                    enumerators.add(provenanceEnumerator);
                 }
 
-                return connectionStatusPredictionsEnumerator;
+                return provenanceEnumerator;
             }
         };
     }
@@ -118,7 +126,6 @@ public class ConnectionStatusPredictionsTable extends AbstractTable implements Q
     }
 
     @Override
-    @SuppressWarnings("rawtypes")
     public Expression getExpression(final SchemaPlus schema, final String tableName, final Class clazz) {
         return Schemas.tableExpression(schema, getElementType(), tableName, clazz);
     }
@@ -142,7 +149,7 @@ public class ConnectionStatusPredictionsTable extends AbstractTable implements Q
             fields[i] = i;
         }
 
-        return new ConnectionStatusPredictionsTableScan(context.getCluster(), relOptTable, this, fields);
+        return new ProvenanceTableScan(context.getCluster(), relOptTable, this, fields);
     }
 
     @Override
@@ -150,26 +157,59 @@ public class ConnectionStatusPredictionsTable extends AbstractTable implements Q
         if (relDataType != null) {
             return relDataType;
         }
+
         final List<String> names = Arrays.asList(
-                "connectionId",
-                "predictedQueuedBytes",
-                "predictedQueuedCount",
-                "predictedPercentBytes",
-                "predictedPercentCount",
-                "predictedTimeToBytesBackpressureMillis",
-                "predictedTimeToCountBackpressureMillis",
-                "predictionIntervalMillis"
+                "eventId",
+                "eventType",
+                "timestampMillis",
+                "durationMillis",
+                "lineageStart",
+                "details",
+                "componentId",
+                "componentName",
+                "componentType",
+                "processGroupId",
+                "processGroupName",
+                "entityId",
+                "entityType",
+                "entitySize",
+                "previousEntitySize",
+                "updatedAttributes",
+                "previousAttributes",
+                "contentPath",
+                "previousContentPath",
+                "parentIds",
+                "childIds",
+                "transitUri",
+                "remoteIdentifier",
+                "alternateIdentifier"
         );
-        final List<RelDataType> types = Arrays.asList(
-                typeFactory.createJavaType(String.class),
-                typeFactory.createJavaType(long.class),
-                typeFactory.createJavaType(int.class),
-                typeFactory.createJavaType(int.class),
-                typeFactory.createJavaType(int.class),
-                typeFactory.createJavaType(long.class),
-                typeFactory.createJavaType(long.class),
-                typeFactory.createJavaType(long.class)
-        );
+
+        final List<RelDataType> types = new ArrayList<>();
+        types.add(typeFactory.createJavaType(long.class));
+        types.add(typeFactory.createJavaType(String.class));
+        types.add(typeFactory.createJavaType(long.class));
+        types.add(typeFactory.createJavaType(long.class));
+        types.add(typeFactory.createJavaType(long.class));
+        types.add(typeFactory.createJavaType(String.class));
+        types.add(typeFactory.createJavaType(String.class));
+        types.add(typeFactory.createJavaType(String.class));
+        types.add(typeFactory.createJavaType(String.class));
+        types.add(typeFactory.createJavaType(String.class));
+        types.add(typeFactory.createJavaType(String.class));
+        types.add(typeFactory.createJavaType(String.class));
+        types.add(typeFactory.createJavaType(String.class));
+        types.add(typeFactory.createJavaType(long.class));
+        types.add(typeFactory.createJavaType(long.class));
+        types.add(typeFactory.createMapType(typeFactory.createJavaType(String.class), typeFactory.createJavaType(String.class)));
+        types.add(typeFactory.createMapType(typeFactory.createJavaType(String.class), typeFactory.createJavaType(String.class)));
+        types.add(typeFactory.createJavaType(String.class));
+        types.add(typeFactory.createJavaType(String.class));
+        types.add(typeFactory.createArrayType(typeFactory.createJavaType(String.class), -1));
+        types.add(typeFactory.createArrayType(typeFactory.createJavaType(String.class), -1));
+        types.add(typeFactory.createJavaType(String.class));
+        types.add(typeFactory.createJavaType(String.class));
+        types.add(typeFactory.createJavaType(String.class));
 
         relDataType = typeFactory.createStructType(Pair.zip(names, types));
         return relDataType;

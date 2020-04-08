@@ -22,7 +22,6 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.metrics.jvm.JmxJvmMetrics;
 import org.apache.nifi.metrics.jvm.JvmMetrics;
 import org.apache.nifi.processor.DataUnit;
-import org.apache.nifi.reporting.ReportingContext;
 
 import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
@@ -33,7 +32,6 @@ import static java.lang.Thread.State.TERMINATED;
 import static java.lang.Thread.State.TIMED_WAITING;
 
 public class JvmMetricsEnumerator implements Enumerator<Object> {
-    private final ReportingContext context;
     private final ComponentLog logger;
     private final int[] fields;
 
@@ -41,8 +39,7 @@ public class JvmMetricsEnumerator implements Enumerator<Object> {
     private Object currentRow;
     private boolean fetchMetrics = true;
 
-    public JvmMetricsEnumerator(final ReportingContext context, final ComponentLog logger, final int[] fields) {
-        this.context = context;
+    public JvmMetricsEnumerator(final ComponentLog logger, final int[] fields) {
         this.logger = logger;
         this.fields = fields;
         reset();

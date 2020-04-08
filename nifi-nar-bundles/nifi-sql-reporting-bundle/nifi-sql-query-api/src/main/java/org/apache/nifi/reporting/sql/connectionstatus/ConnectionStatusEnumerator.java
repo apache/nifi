@@ -14,28 +14,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.reporting.sql.connectionstatuspredictions;
+
+package org.apache.nifi.reporting.sql.connectionstatus;
 
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.nifi.controller.status.ConnectionStatus;
-import org.apache.nifi.controller.status.analytics.ConnectionStatusPredictions;
+import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.reporting.sql.util.ConnectionStatusRecursiveIterator;
 
+import java.util.function.Supplier;
 
-public class ConnectionStatusPredictionsEnumerator implements Enumerator<Object> {
-    private final ReportingContext context;
+
+public class ConnectionStatusEnumerator implements Enumerator<Object> {
     private final ComponentLog logger;
     private final int[] fields;
 
+    private Supplier<ProcessGroupStatus> rootGroupStatusSupplier;
     private ConnectionStatusRecursiveIterator connectionStatusIterator;
     private Object currentRow;
     private int recordsRead = 0;
 
-    public ConnectionStatusPredictionsEnumerator(final ReportingContext context, final ComponentLog logger, final int[] fields) {
-        this.context = context;
-        this.connectionStatusIterator = new ConnectionStatusRecursiveIterator(context);
+    public ConnectionStatusEnumerator(final Supplier<ProcessGroupStatus> rootGroupStatusSupplier, final ComponentLog logger, final int[] fields) {
+        this.rootGroupStatusSupplier = rootGroupStatusSupplier;
+        this.connectionStatusIterator = new ConnectionStatusRecursiveIterator(rootGroupStatusSupplier.get());
         this.logger = logger;
         this.fields = fields;
         reset();
@@ -77,25 +79,32 @@ public class ConnectionStatusPredictionsEnumerator implements Enumerator<Object>
     }
 
     private Object filterColumns(final ConnectionStatus status) {
-        if (status == null || status.getPredictions() == null) {
-            return null;
-        }
-
-        final ConnectionStatusPredictions predictions = status.getPredictions();
-
-        if (predictions == null) {
+        if (status == null) {
             return null;
         }
 
         final Object[] row = new Object[]{
                 status.getId(),
-                predictions.getNextPredictedQueuedBytes(),
-                predictions.getNextPredictedQueuedCount(),
-                predictions.getPredictedPercentBytes(),
-                predictions.getPredictedPercentCount(),
-                predictions.getPredictedTimeToBytesBackpressureMillis(),
-                predictions.getPredictedTimeToCountBackpressureMillis(),
-                predictions.getPredictionIntervalMillis()
+                status.getGroupId(),
+                status.getName(),
+                status.getSourceId(),
+                status.getSourceName(),
+                status.getDestinationId(),
+                status.getDestinationName(),
+                status.getBackPressureDataSizeThreshold(),
+                status.getBackPressureBytesThreshold(),
+                status.getBackPressureObjectThreshold(),
+                // isBackPressureEnabled
+                ((status.getBackPressureObjectThreshold() > 0 && status.getBackPressureObjectThreshold() <= status.getQueuedCount())
+                        || (status.getBackPressureBytesThreshold() > 0 && status.getBackPressureBytesThreshold() <= status.getQueuedBytes())),
+                status.getInputCount(),
+                status.getInputBytes(),
+                status.getQueuedCount(),
+                status.getQueuedBytes(),
+                status.getOutputCount(),
+                status.getOutputBytes(),
+                status.getMaxQueuedCount(),
+                status.getMaxQueuedBytes()
         };
 
         // If we want no fields just return null
@@ -124,7 +133,7 @@ public class ConnectionStatusPredictionsEnumerator implements Enumerator<Object>
     public void reset() {
         // Clear the root PG status object so it is fetched fresh on the first record
         connectionStatusIterator = null;
-        this.connectionStatusIterator = new ConnectionStatusRecursiveIterator(context);
+        this.connectionStatusIterator = new ConnectionStatusRecursiveIterator(rootGroupStatusSupplier.get());
     }
 
     @Override

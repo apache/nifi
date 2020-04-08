@@ -18,21 +18,20 @@ package org.apache.nifi.reporting.sql.util;
 
 import org.apache.nifi.controller.status.ConnectionStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
-import org.apache.nifi.reporting.ReportingContext;
 
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.LinkedList;
 
 public class ConnectionStatusRecursiveIterator implements Iterator<ConnectionStatus> {
-    private final ReportingContext context;
 
+    private ProcessGroupStatus rootGroupStatus;
     private Deque<Iterator<ProcessGroupStatus>> iteratorBreadcrumb;
     private Iterator<ConnectionStatus> connectionStatusIterator;
     private ConnectionStatus currentRow;
 
-    public ConnectionStatusRecursiveIterator(final ReportingContext context) {
-        this.context = context;
+    public ConnectionStatusRecursiveIterator(final ProcessGroupStatus rootGroupStatus) {
+        this.rootGroupStatus = rootGroupStatus;
         iteratorBreadcrumb = new LinkedList<>();
     }
 
@@ -40,9 +39,8 @@ public class ConnectionStatusRecursiveIterator implements Iterator<ConnectionSta
     public boolean hasNext() {
         if (iteratorBreadcrumb.isEmpty()) {
             // Start the breadcrumb trail to follow recursively into process groups looking for connections
-            ProcessGroupStatus rootStatus = context.getEventAccess().getControllerStatus();
-            iteratorBreadcrumb.push(rootStatus.getProcessGroupStatus().iterator());
-            connectionStatusIterator = rootStatus.getConnectionStatus().iterator();
+            iteratorBreadcrumb.push(rootGroupStatus.getProcessGroupStatus().iterator());
+            connectionStatusIterator = rootGroupStatus.getConnectionStatus().iterator();
         }
 
         currentRow = getNextConnectionStatus();

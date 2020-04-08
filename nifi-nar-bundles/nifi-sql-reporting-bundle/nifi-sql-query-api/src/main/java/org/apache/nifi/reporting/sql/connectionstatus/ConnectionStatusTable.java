@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.reporting.sql.processgroupstatus;
+package org.apache.nifi.reporting.sql.connectionstatus;
 
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;
@@ -33,43 +33,44 @@ import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.schema.TranslatableTable;
 import org.apache.calcite.schema.impl.AbstractTable;
 import org.apache.calcite.util.Pair;
+import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.reporting.ReportingContext;
 
 import java.lang.reflect.Type;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Supplier;
 
 
-public class ProcessGroupStatusTable extends AbstractTable implements QueryableTable, TranslatableTable {
+public class ConnectionStatusTable extends AbstractTable implements QueryableTable, TranslatableTable {
 
     private final ComponentLog logger;
 
     private RelDataType relDataType = null;
 
-    private volatile ReportingContext context;
+    private volatile Supplier<ProcessGroupStatus> rootGroupStatusSupplier;
     private volatile int maxRecordsRead;
 
-    private final Set<ProcessGroupStatusEnumerator> enumerators = new HashSet<>();
+    private final Set<ConnectionStatusEnumerator> enumerators = new HashSet<>();
 
     /**
-     * Creates a ProcessGroup Status table.
+     * Creates a Connection Status table.
      */
-    public ProcessGroupStatusTable(final ReportingContext context, final ComponentLog logger) {
-        this.context = context;
+    public ConnectionStatusTable(final Supplier<ProcessGroupStatus> rootGroupStatusSupplier, final ComponentLog logger) {
+        this.rootGroupStatusSupplier = rootGroupStatusSupplier;
         this.logger = logger;
     }
 
     @Override
     public String toString() {
-        return "ProcessGroupStatusTable";
+        return "ConnectionStatusTable";
     }
 
     public void close() {
         synchronized (enumerators) {
-            for (final ProcessGroupStatusEnumerator enumerator : enumerators) {
+            for (final ConnectionStatusEnumerator enumerator : enumerators) {
                 enumerator.close();
             }
         }
@@ -86,7 +87,7 @@ public class ProcessGroupStatusTable extends AbstractTable implements QueryableT
             @Override
             @SuppressWarnings({"unchecked", "rawtypes"})
             public Enumerator<Object> enumerator() {
-                final ProcessGroupStatusEnumerator processGroupStatusEnumerator = new ProcessGroupStatusEnumerator(context, logger, fields) {
+                final ConnectionStatusEnumerator connectionStatusEnumerator = new ConnectionStatusEnumerator(rootGroupStatusSupplier, logger, fields) {
                     @Override
                     protected void onFinish() {
                         final int recordCount = getRecordsRead();
@@ -105,10 +106,10 @@ public class ProcessGroupStatusTable extends AbstractTable implements QueryableT
                 };
 
                 synchronized (enumerators) {
-                    enumerators.add(processGroupStatusEnumerator);
+                    enumerators.add(connectionStatusEnumerator);
                 }
 
-                return processGroupStatusEnumerator;
+                return connectionStatusEnumerator;
             }
         };
     }
@@ -142,7 +143,7 @@ public class ProcessGroupStatusTable extends AbstractTable implements QueryableT
             fields[i] = i;
         }
 
-        return new ProcessGroupStatusTableScan(context.getCluster(), relOptTable, this, fields);
+        return new ConnectionStatusTableScan(context.getCluster(), relOptTable, this, fields);
     }
 
     @Override
@@ -155,45 +156,43 @@ public class ProcessGroupStatusTable extends AbstractTable implements QueryableT
                 "id",
                 "groupId",
                 "name",
-                "bytesRead",
-                "bytesWritten",
-                "bytesReceived",
-                "bytesSent",
-                "bytesTransferred",
-                "flowFilesReceived",
-                "flowFilesSent",
-                "flowFilesTransferred",
-                "inputContentSize",
+                "sourceId",
+                "sourceName",
+                "destinationId",
+                "destinationName",
+                "backPressureDataSizeThreshold",
+                "backPressureBytesThreshold",
+                "backPressureObjectThreshold",
+                "isBackPressureEnabled",
                 "inputCount",
-                "outputContentSize",
-                "outputCount",
-                "queuedContentSize",
-                "activeThreadCount",
-                "terminatedThreadCount",
+                "inputBytes",
                 "queuedCount",
-                "versionedFlowState"
+                "queuedBytes",
+                "outputCount",
+                "outputBytes",
+                "maxQueuedCount",
+                "maxQueuedBytes"
         );
         final List<RelDataType> types = Arrays.asList(
                 typeFactory.createJavaType(String.class),
                 typeFactory.createJavaType(String.class),
                 typeFactory.createJavaType(String.class),
+                typeFactory.createJavaType(String.class),
+                typeFactory.createJavaType(String.class),
+                typeFactory.createJavaType(String.class),
+                typeFactory.createJavaType(String.class),
+                typeFactory.createJavaType(String.class),
                 typeFactory.createJavaType(long.class),
                 typeFactory.createJavaType(long.class),
-                typeFactory.createJavaType(long.class),
-                typeFactory.createJavaType(long.class),
-                typeFactory.createJavaType(long.class),
-                typeFactory.createJavaType(int.class),
-                typeFactory.createJavaType(int.class),
-                typeFactory.createJavaType(int.class),
-                typeFactory.createJavaType(long.class),
-                typeFactory.createJavaType(int.class),
-                typeFactory.createJavaType(long.class),
+                typeFactory.createJavaType(boolean.class),
                 typeFactory.createJavaType(int.class),
                 typeFactory.createJavaType(long.class),
                 typeFactory.createJavaType(int.class),
+                typeFactory.createJavaType(long.class),
                 typeFactory.createJavaType(int.class),
+                typeFactory.createJavaType(long.class),
                 typeFactory.createJavaType(int.class),
-                typeFactory.createJavaType(String.class)
+                typeFactory.createJavaType(long.class)
         );
 
         relDataType = typeFactory.createStructType(Pair.zip(names, types));

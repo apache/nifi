@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.reporting.sql.bulletins;
+package org.apache.nifi.reporting.sql.processorstatus;
 
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;
@@ -33,44 +33,44 @@ import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.schema.TranslatableTable;
 import org.apache.calcite.schema.impl.AbstractTable;
 import org.apache.calcite.util.Pair;
+import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.reporting.ReportingContext;
 
 import java.lang.reflect.Type;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Supplier;
 
 
-public class BulletinTable extends AbstractTable implements QueryableTable, TranslatableTable {
+public class ProcessorStatusTable extends AbstractTable implements QueryableTable, TranslatableTable {
 
     private final ComponentLog logger;
 
     private RelDataType relDataType = null;
 
-    private volatile ReportingContext context;
+    private volatile Supplier<ProcessGroupStatus> rootGroupStatusSupplier;
     private volatile int maxRecordsRead;
 
-    private final Set<BulletinEnumerator> enumerators = new HashSet<>();
+    private final Set<ProcessorStatusEnumerator> enumerators = new HashSet<>();
 
     /**
-     * Creates a Connection Status table.
+     * Creates a Processor Status table.
      */
-    public BulletinTable(final ReportingContext context, final ComponentLog logger) {
-        this.context = context;
+    public ProcessorStatusTable(final Supplier<ProcessGroupStatus> rootGroupStatusSupplier, final ComponentLog logger) {
+        this.rootGroupStatusSupplier = rootGroupStatusSupplier;
         this.logger = logger;
     }
 
     @Override
     public String toString() {
-        return "BulletinTable";
+        return "ProcessorStatusTable";
     }
 
     public void close() {
         synchronized (enumerators) {
-            for (final BulletinEnumerator enumerator : enumerators) {
+            for (final ProcessorStatusEnumerator enumerator : enumerators) {
                 enumerator.close();
             }
         }
@@ -85,9 +85,9 @@ public class BulletinTable extends AbstractTable implements QueryableTable, Tran
     public Enumerable<Object> project(final int[] fields) {
         return new AbstractEnumerable<Object>() {
             @Override
-            @SuppressWarnings({"unchecked", "rawtypes"})
+            @SuppressWarnings({"rawtypes"})
             public Enumerator<Object> enumerator() {
-                final BulletinEnumerator bulletinEnumerator = new BulletinEnumerator(context, logger, fields) {
+                final ProcessorStatusEnumerator processorStatusEnumerator = new ProcessorStatusEnumerator(rootGroupStatusSupplier, logger, fields) {
                     @Override
                     protected void onFinish() {
                         final int recordCount = getRecordsRead();
@@ -106,10 +106,10 @@ public class BulletinTable extends AbstractTable implements QueryableTable, Tran
                 };
 
                 synchronized (enumerators) {
-                    enumerators.add(bulletinEnumerator);
+                    enumerators.add(processorStatusEnumerator);
                 }
 
-                return bulletinEnumerator;
+                return processorStatusEnumerator;
             }
         };
     }
@@ -143,7 +143,7 @@ public class BulletinTable extends AbstractTable implements QueryableTable, Tran
             fields[i] = i;
         }
 
-        return new BulletinTableScan(context.getCluster(), relOptTable, this, fields);
+        return new ProcessorStatusTableScan(context.getCluster(), relOptTable, this, fields);
     }
 
     @Override
@@ -153,34 +153,52 @@ public class BulletinTable extends AbstractTable implements QueryableTable, Tran
         }
 
         final List<String> names = Arrays.asList(
-                "bulletinId",
-                "bulletinCategory",
-                "bulletinGroupId",
-                "bulletinGroupName",
-                "bulletinGroupPath",
-                "bulletinLevel",
-                "bulletinMessage",
-                "bulletinNodeAddress",
-                "bulletinNodeId",
-                "bulletinSourceId",
-                "bulletinSourceName",
-                "bulletinSourceType",
-                "bulletinTimestamp"
+                "id",
+                "groupId",
+                "name",
+                "processorType",
+                "averageLineageDuration",
+                "bytesRead",
+                "bytesWritten",
+                "bytesReceived",
+                "bytesSent",
+                "flowFilesRemoved",
+                "flowFilesReceived",
+                "flowFilesSent",
+                "inputCount",
+                "inputBytes",
+                "outputCount",
+                "outputBytes",
+                "activeThreadCount",
+                "terminatedThreadCount",
+                "invocations",
+                "processingNanos",
+                "runStatus",
+                "executionNode"
         );
         final List<RelDataType> types = Arrays.asList(
+                typeFactory.createJavaType(String.class),
+                typeFactory.createJavaType(String.class),
+                typeFactory.createJavaType(String.class),
+                typeFactory.createJavaType(String.class),
+                typeFactory.createJavaType(long.class),
+                typeFactory.createJavaType(long.class),
+                typeFactory.createJavaType(long.class),
+                typeFactory.createJavaType(long.class),
+                typeFactory.createJavaType(long.class),
+                typeFactory.createJavaType(int.class),
+                typeFactory.createJavaType(int.class),
+                typeFactory.createJavaType(int.class),
+                typeFactory.createJavaType(int.class),
+                typeFactory.createJavaType(long.class),
+                typeFactory.createJavaType(int.class),
+                typeFactory.createJavaType(long.class),
+                typeFactory.createJavaType(int.class),
+                typeFactory.createJavaType(int.class),
+                typeFactory.createJavaType(int.class),
                 typeFactory.createJavaType(long.class),
                 typeFactory.createJavaType(String.class),
-                typeFactory.createJavaType(String.class),
-                typeFactory.createJavaType(String.class),
-                typeFactory.createJavaType(String.class),
-                typeFactory.createJavaType(String.class),
-                typeFactory.createJavaType(String.class),
-                typeFactory.createJavaType(String.class),
-                typeFactory.createJavaType(String.class),
-                typeFactory.createJavaType(String.class),
-                typeFactory.createJavaType(String.class),
-                typeFactory.createJavaType(String.class),
-                typeFactory.createJavaType(Date.class)
+                typeFactory.createJavaType(String.class)
         );
 
         relDataType = typeFactory.createStructType(Pair.zip(names, types));

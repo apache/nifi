@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.reporting.sql.processorstatus;
+package org.apache.nifi.reporting.sql.bulletins;
 
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;
@@ -34,42 +34,47 @@ import org.apache.calcite.schema.TranslatableTable;
 import org.apache.calcite.schema.impl.AbstractTable;
 import org.apache.calcite.util.Pair;
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.reporting.ReportingContext;
+import org.apache.nifi.reporting.BulletinRepository;
 
 import java.lang.reflect.Type;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 
-public class ProcessorStatusTable extends AbstractTable implements QueryableTable, TranslatableTable {
+public class BulletinTable extends AbstractTable implements QueryableTable, TranslatableTable {
 
     private final ComponentLog logger;
+    private boolean isClustered;
+    private String clusterNodeIdentifier;
+    private BulletinRepository bulletinRepository;
 
     private RelDataType relDataType = null;
 
-    private volatile ReportingContext context;
     private volatile int maxRecordsRead;
 
-    private final Set<ProcessorStatusEnumerator> enumerators = new HashSet<>();
+    private final Set<BulletinEnumerator> enumerators = new HashSet<>();
 
     /**
-     * Creates a Processor Status table.
+     * Creates a Connection Status table.
      */
-    public ProcessorStatusTable(final ReportingContext context, final ComponentLog logger) {
-        this.context = context;
+    public BulletinTable(final boolean isClustered, final String clusterNodeIdentifier, final BulletinRepository bulletinRepository, final ComponentLog logger) {
+        this.isClustered = isClustered;
+        this.clusterNodeIdentifier = clusterNodeIdentifier;
+        this.bulletinRepository = bulletinRepository;
         this.logger = logger;
     }
 
     @Override
     public String toString() {
-        return "ProcessorStatusTable";
+        return "BulletinTable";
     }
 
     public void close() {
         synchronized (enumerators) {
-            for (final ProcessorStatusEnumerator enumerator : enumerators) {
+            for (final BulletinEnumerator enumerator : enumerators) {
                 enumerator.close();
             }
         }
@@ -84,9 +89,9 @@ public class ProcessorStatusTable extends AbstractTable implements QueryableTabl
     public Enumerable<Object> project(final int[] fields) {
         return new AbstractEnumerable<Object>() {
             @Override
-            @SuppressWarnings({"rawtypes"})
+            @SuppressWarnings({"unchecked", "rawtypes"})
             public Enumerator<Object> enumerator() {
-                final ProcessorStatusEnumerator processorStatusEnumerator = new ProcessorStatusEnumerator(context, logger, fields) {
+                final BulletinEnumerator bulletinEnumerator = new BulletinEnumerator(isClustered, clusterNodeIdentifier, bulletinRepository, logger, fields) {
                     @Override
                     protected void onFinish() {
                         final int recordCount = getRecordsRead();
@@ -105,10 +110,10 @@ public class ProcessorStatusTable extends AbstractTable implements QueryableTabl
                 };
 
                 synchronized (enumerators) {
-                    enumerators.add(processorStatusEnumerator);
+                    enumerators.add(bulletinEnumerator);
                 }
 
-                return processorStatusEnumerator;
+                return bulletinEnumerator;
             }
         };
     }
@@ -142,7 +147,7 @@ public class ProcessorStatusTable extends AbstractTable implements QueryableTabl
             fields[i] = i;
         }
 
-        return new ProcessorStatusTableScan(context.getCluster(), relOptTable, this, fields);
+        return new BulletinTableScan(context.getCluster(), relOptTable, this, fields);
     }
 
     @Override
@@ -152,52 +157,34 @@ public class ProcessorStatusTable extends AbstractTable implements QueryableTabl
         }
 
         final List<String> names = Arrays.asList(
-                "id",
-                "groupId",
-                "name",
-                "processorType",
-                "averageLineageDuration",
-                "bytesRead",
-                "bytesWritten",
-                "bytesReceived",
-                "bytesSent",
-                "flowFilesRemoved",
-                "flowFilesReceived",
-                "flowFilesSent",
-                "inputCount",
-                "inputBytes",
-                "outputCount",
-                "outputBytes",
-                "activeThreadCount",
-                "terminatedThreadCount",
-                "invocations",
-                "processingNanos",
-                "runStatus",
-                "executionNode"
+                "bulletinId",
+                "bulletinCategory",
+                "bulletinGroupId",
+                "bulletinGroupName",
+                "bulletinGroupPath",
+                "bulletinLevel",
+                "bulletinMessage",
+                "bulletinNodeAddress",
+                "bulletinNodeId",
+                "bulletinSourceId",
+                "bulletinSourceName",
+                "bulletinSourceType",
+                "bulletinTimestamp"
         );
         final List<RelDataType> types = Arrays.asList(
+                typeFactory.createJavaType(long.class),
+                typeFactory.createJavaType(String.class),
                 typeFactory.createJavaType(String.class),
                 typeFactory.createJavaType(String.class),
                 typeFactory.createJavaType(String.class),
                 typeFactory.createJavaType(String.class),
-                typeFactory.createJavaType(long.class),
-                typeFactory.createJavaType(long.class),
-                typeFactory.createJavaType(long.class),
-                typeFactory.createJavaType(long.class),
-                typeFactory.createJavaType(long.class),
-                typeFactory.createJavaType(int.class),
-                typeFactory.createJavaType(int.class),
-                typeFactory.createJavaType(int.class),
-                typeFactory.createJavaType(int.class),
-                typeFactory.createJavaType(long.class),
-                typeFactory.createJavaType(int.class),
-                typeFactory.createJavaType(long.class),
-                typeFactory.createJavaType(int.class),
-                typeFactory.createJavaType(int.class),
-                typeFactory.createJavaType(int.class),
-                typeFactory.createJavaType(long.class),
                 typeFactory.createJavaType(String.class),
-                typeFactory.createJavaType(String.class)
+                typeFactory.createJavaType(String.class),
+                typeFactory.createJavaType(String.class),
+                typeFactory.createJavaType(String.class),
+                typeFactory.createJavaType(String.class),
+                typeFactory.createJavaType(String.class),
+                typeFactory.createJavaType(Date.class)
         );
 
         relDataType = typeFactory.createStructType(Pair.zip(names, types));

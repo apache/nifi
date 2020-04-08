@@ -15,31 +15,29 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.reporting.sql.processorstatus;
+package org.apache.nifi.reporting.sql.processgroupstatus;
 
 import org.apache.calcite.linq4j.Enumerator;
-import org.apache.nifi.controller.status.ProcessorStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.reporting.ReportingContext;
+import org.apache.nifi.util.Tuple;
 
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.LinkedList;
-import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
-public class ProcessorStatusEnumerator implements Enumerator<Object> {
-    private final ReportingContext context;
+public class ProcessGroupStatusEnumerator implements Enumerator<Object> {
+    private Supplier<ProcessGroupStatus> rootGroupStatusSupplier;
     private final ComponentLog logger;
     private final int[] fields;
 
-    private Deque<Iterator<ProcessGroupStatus>> iteratorBreadcrumb;
-    private Iterator<ProcessorStatus> processorStatusIterator;
+    private Deque<Tuple<Iterator<ProcessGroupStatus>, String>> iteratorBreadcrumb;
     private Object currentRow;
     private int recordsRead = 0;
 
-    public ProcessorStatusEnumerator(final ReportingContext context, final ComponentLog logger, final int[] fields) {
-        this.context = context;
+    public ProcessGroupStatusEnumerator(final Supplier<ProcessGroupStatus> rootGroupStatusSupplier, final ComponentLog logger, final int[] fields) {
+        this.rootGroupStatusSupplier = rootGroupStatusSupplier;
         this.logger = logger;
         this.fields = fields;
         reset();
@@ -53,15 +51,16 @@ public class ProcessorStatusEnumerator implements Enumerator<Object> {
     @Override
     public boolean moveNext() {
         currentRow = null;
+        final Tuple<ProcessGroupStatus, String> processGroupStatus;
         if (iteratorBreadcrumb.isEmpty()) {
             // Start the breadcrumb trail to follow recursively into process groups looking for connections
-            ProcessGroupStatus rootStatus = context.getEventAccess().getControllerStatus();
-            iteratorBreadcrumb.push(rootStatus.getProcessGroupStatus().iterator());
-            processorStatusIterator = rootStatus.getProcessorStatus().iterator();
+            ProcessGroupStatus rootStatus = rootGroupStatusSupplier.get();
+            iteratorBreadcrumb.push(new Tuple<>(rootStatus.getProcessGroupStatus().iterator(), rootStatus.getId()));
+            processGroupStatus = new Tuple<>(rootStatus, null);
+        }else {
+            processGroupStatus = getNextProcessGroupStatus();
         }
-
-        final ProcessorStatus connectionStatus = getNextProcessorStatus();
-        if (connectionStatus == null) {
+        if (processGroupStatus == null) {
             // If we are out of data, close the InputStream. We do this because
             // Calcite does not necessarily call our close() method.
             close();
@@ -74,7 +73,7 @@ public class ProcessorStatusEnumerator implements Enumerator<Object> {
             return false;
         }
 
-        currentRow = filterColumns(connectionStatus);
+        currentRow = filterColumns(processGroupStatus.getKey(), processGroupStatus.getValue());
 
         recordsRead++;
         return true;
@@ -87,34 +86,32 @@ public class ProcessorStatusEnumerator implements Enumerator<Object> {
     protected void onFinish() {
     }
 
-    private Object filterColumns(final ProcessorStatus status) {
+    private Object filterColumns(final ProcessGroupStatus status, final String parentId) {
         if (status == null) {
             return null;
         }
 
         final Object[] row = new Object[]{
                 status.getId(),
-                status.getGroupId(),
+                parentId,
                 status.getName(),
-                status.getType(),
-                status.getAverageLineageDuration(TimeUnit.MILLISECONDS),
                 status.getBytesRead(),
                 status.getBytesWritten(),
                 status.getBytesReceived(),
                 status.getBytesSent(),
-                status.getFlowFilesRemoved(),
+                status.getBytesTransferred(),
                 status.getFlowFilesReceived(),
                 status.getFlowFilesSent(),
+                status.getFlowFilesTransferred(),
+                status.getInputContentSize(),
                 status.getInputCount(),
-                status.getInputBytes(),
+                status.getOutputContentSize(),
                 status.getOutputCount(),
-                status.getOutputBytes(),
+                status.getQueuedContentSize(),
                 status.getActiveThreadCount(),
                 status.getTerminatedThreadCount(),
-                status.getInvocations(),
-                status.getProcessingNanos(),
-                status.getRunStatus().name(),
-                status.getExecutionNode() == null ? null : status.getExecutionNode().name()
+                status.getQueuedCount(),
+                status.getVersionedFlowState() == null ? null : status.getVersionedFlowState().name()
         };
 
         // If we want no fields just return null
@@ -142,7 +139,6 @@ public class ProcessorStatusEnumerator implements Enumerator<Object> {
     @Override
     public void reset() {
         // Clear the root PG status object so it is fetched fresh on the first record
-        processorStatusIterator = null;
         iteratorBreadcrumb = new LinkedList<>();
     }
 
@@ -150,26 +146,22 @@ public class ProcessorStatusEnumerator implements Enumerator<Object> {
     public void close() {
     }
 
-    private ProcessorStatus getNextProcessorStatus() {
-        if (processorStatusIterator != null && processorStatusIterator.hasNext()) {
-            return processorStatusIterator.next();
-        }
-        // No more connections in this PG, so move to the next
-        processorStatusIterator = null;
-        Iterator<ProcessGroupStatus> i = iteratorBreadcrumb.peek();
-        if (i == null) {
+    private Tuple<ProcessGroupStatus, String> getNextProcessGroupStatus() {
+        Tuple<Iterator<ProcessGroupStatus>, String> top = iteratorBreadcrumb.peek();
+        if (top == null) {
             return null;
         }
+        Iterator<ProcessGroupStatus> i = top.getKey();
+        String parentId = top.getValue();
 
         if (i.hasNext()) {
             ProcessGroupStatus nextPG = i.next();
-            iteratorBreadcrumb.push(nextPG.getProcessGroupStatus().iterator());
-            processorStatusIterator = nextPG.getProcessorStatus().iterator();
-            return getNextProcessorStatus();
+            iteratorBreadcrumb.push(new Tuple<>(nextPG.getProcessGroupStatus().iterator(), nextPG.getId()));
+            return new Tuple<>(nextPG, parentId);
         } else {
             // No more child PGs, remove it from the breadcrumb trail and try again
-            iteratorBreadcrumb.pop();
-            return getNextProcessorStatus();
+            Tuple<Iterator<ProcessGroupStatus>, String> pop = iteratorBreadcrumb.pop();
+            return getNextProcessGroupStatus();
         }
     }
 }

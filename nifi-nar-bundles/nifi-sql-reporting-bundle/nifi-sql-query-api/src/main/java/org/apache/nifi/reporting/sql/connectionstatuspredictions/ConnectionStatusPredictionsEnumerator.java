@@ -14,32 +14,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-package org.apache.nifi.reporting.sql.bulletins;
+package org.apache.nifi.reporting.sql.connectionstatuspredictions;
 
 import org.apache.calcite.linq4j.Enumerator;
+import org.apache.nifi.controller.status.ConnectionStatus;
+import org.apache.nifi.controller.status.ProcessGroupStatus;
+import org.apache.nifi.controller.status.analytics.ConnectionStatusPredictions;
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.reporting.Bulletin;
-import org.apache.nifi.reporting.BulletinQuery;
-import org.apache.nifi.reporting.BulletinRepository;
-import org.apache.nifi.reporting.ComponentType;
-import org.apache.nifi.reporting.ReportingContext;
+import org.apache.nifi.reporting.sql.util.ConnectionStatusRecursiveIterator;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
+import java.util.function.Supplier;
 
-public class BulletinEnumerator implements Enumerator<Object> {
-    private final ReportingContext context;
+
+public class ConnectionStatusPredictionsEnumerator implements Enumerator<Object> {
     private final ComponentLog logger;
     private final int[] fields;
 
-    private Iterator<Bulletin> bulletinIterator;
+    private Supplier<ProcessGroupStatus> rootGroupStatusSupplier;
+    private ConnectionStatusRecursiveIterator connectionStatusIterator;
     private Object currentRow;
     private int recordsRead = 0;
 
-    public BulletinEnumerator(final ReportingContext context, final ComponentLog logger, final int[] fields) {
-        this.context = context;
+    public ConnectionStatusPredictionsEnumerator(final Supplier<ProcessGroupStatus> rootGroupStatusSupplier, final ComponentLog logger, final int[] fields) {
+        this.rootGroupStatusSupplier = rootGroupStatusSupplier;
+        this.connectionStatusIterator = new ConnectionStatusRecursiveIterator(rootGroupStatusSupplier.get());
         this.logger = logger;
         this.fields = fields;
         reset();
@@ -53,8 +51,8 @@ public class BulletinEnumerator implements Enumerator<Object> {
     @Override
     public boolean moveNext() {
         currentRow = null;
-
-        if (!bulletinIterator.hasNext()) {
+        final ConnectionStatus connectionStatus = connectionStatusIterator.next();
+        if (connectionStatus == null) {
             // If we are out of data, close the InputStream. We do this because
             // Calcite does not necessarily call our close() method.
             close();
@@ -67,8 +65,7 @@ public class BulletinEnumerator implements Enumerator<Object> {
             return false;
         }
 
-        final Bulletin bulletin = bulletinIterator.next();
-        currentRow = filterColumns(bulletin);
+        currentRow = filterColumns(connectionStatus);
 
         recordsRead++;
         return true;
@@ -81,31 +78,26 @@ public class BulletinEnumerator implements Enumerator<Object> {
     protected void onFinish() {
     }
 
-    private Object filterColumns(final Bulletin bulletin) {
-        if (bulletin == null) {
+    private Object filterColumns(final ConnectionStatus status) {
+        if (status == null || status.getPredictions() == null) {
             return null;
         }
 
-        final boolean isClustered = context.isClustered();
-        String nodeId = context.getClusterNodeIdentifier();
-        if (nodeId == null && isClustered) {
-            nodeId = "unknown";
+        final ConnectionStatusPredictions predictions = status.getPredictions();
+
+        if (predictions == null) {
+            return null;
         }
 
         final Object[] row = new Object[]{
-                bulletin.getId(),
-                bulletin.getCategory(),
-                bulletin.getGroupId(),
-                bulletin.getGroupName(),
-                bulletin.getGroupPath(),
-                bulletin.getLevel(),
-                bulletin.getMessage(),
-                bulletin.getNodeAddress(),
-                nodeId,
-                bulletin.getSourceId(),
-                bulletin.getSourceName(),
-                bulletin.getSourceType().name(),
-                bulletin.getTimestamp()
+                status.getId(),
+                predictions.getNextPredictedQueuedBytes(),
+                predictions.getNextPredictedQueuedCount(),
+                predictions.getPredictedPercentBytes(),
+                predictions.getPredictedPercentCount(),
+                predictions.getPredictedTimeToBytesBackpressureMillis(),
+                predictions.getPredictedTimeToCountBackpressureMillis(),
+                predictions.getPredictionIntervalMillis()
         };
 
         // If we want no fields just return null
@@ -132,16 +124,9 @@ public class BulletinEnumerator implements Enumerator<Object> {
 
     @Override
     public void reset() {
-        BulletinRepository bulletinRepo = context.getBulletinRepository();
-        List<Bulletin> fullBulletinList = new ArrayList<>(bulletinRepo.findBulletinsForController());
-        fullBulletinList.addAll(bulletinRepo.findBulletins((new BulletinQuery.Builder()).sourceType(ComponentType.PROCESSOR).build()));
-        fullBulletinList.addAll(bulletinRepo.findBulletins((new BulletinQuery.Builder()).sourceType(ComponentType.INPUT_PORT).build()));
-        fullBulletinList.addAll(bulletinRepo.findBulletins((new BulletinQuery.Builder()).sourceType(ComponentType.OUTPUT_PORT).build()));
-        fullBulletinList.addAll(bulletinRepo.findBulletins((new BulletinQuery.Builder()).sourceType(ComponentType.REMOTE_PROCESS_GROUP).build()));
-        fullBulletinList.addAll(bulletinRepo.findBulletins((new BulletinQuery.Builder()).sourceType(ComponentType.REPORTING_TASK).build()));
-        fullBulletinList.addAll(bulletinRepo.findBulletins((new BulletinQuery.Builder()).sourceType(ComponentType.CONTROLLER_SERVICE).build()));
-
-        bulletinIterator = fullBulletinList.iterator();
+        // Clear the root PG status object so it is fetched fresh on the first record
+        connectionStatusIterator = null;
+        this.connectionStatusIterator = new ConnectionStatusRecursiveIterator(rootGroupStatusSupplier.get());
     }
 
     @Override

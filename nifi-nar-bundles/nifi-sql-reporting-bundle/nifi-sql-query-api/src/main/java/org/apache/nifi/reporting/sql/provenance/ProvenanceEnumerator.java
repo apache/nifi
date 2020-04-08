@@ -22,8 +22,6 @@ import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventRepository;
-import org.apache.nifi.reporting.EventAccess;
-import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.reporting.util.provenance.ComponentMapHolder;
 
 import java.io.IOException;
@@ -44,16 +42,15 @@ public class ProvenanceEnumerator implements Enumerator<Object> {
     private long currentId = 0;
     private int currentIndex = 0; // Index into the current fetch
 
-    public ProvenanceEnumerator(final ReportingContext context, final ComponentLog logger, final int[] fields) {
+    public ProvenanceEnumerator(final ProvenanceEventRepository provenanceEventRepository, final ProcessGroupStatus rootGroupStatus,
+                                final boolean isClustered, final String nodeIdentifier,
+                                final ComponentLog logger, final int[] fields) {
         this.logger = logger;
         this.fields = fields;
-        final EventAccess eventAccess = context.getEventAccess();
-        this.provenanceEventRepository = eventAccess.getProvenanceRepository();
-        final ProcessGroupStatus procGroupStatus = eventAccess.getControllerStatus();
-        this.componentMapHolder = ComponentMapHolder.createComponentMap(procGroupStatus);
+        this.provenanceEventRepository = provenanceEventRepository;
+        this.componentMapHolder = ComponentMapHolder.createComponentMap(rootGroupStatus);
 
-        final boolean isClustered = context.isClustered();
-        nodeIdentifier = context.getClusterNodeIdentifier();
+        this.nodeIdentifier = nodeIdentifier;
         if (nodeIdentifier == null && isClustered) {
             logger.warn("This instance of NiFi is configured for clustering, but the Cluster Node Identifier is not yet available. "
                     + "The contentPath and previousContentPath fields will be null for all rows in this query");

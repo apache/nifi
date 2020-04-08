@@ -24,6 +24,7 @@ import org.apache.calcite.config.Lex;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.nifi.avro.AvroTypeUtil;
+import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.reporting.ReportingContext;
@@ -148,23 +149,29 @@ public class MetricsSqlQueryService implements MetricsQueryService {
         final CalciteConnection connection = createConnection();
         final SchemaPlus rootSchema = createRootSchema(connection);
 
-        final ConnectionStatusTable connectionStatusTable = new ConnectionStatusTable(context, getLogger());
+        final Supplier<ProcessGroupStatus> rootGroupStatusSupplier = new RootGroupStatusSupplier(context);
+
+        final ConnectionStatusTable connectionStatusTable = new ConnectionStatusTable(rootGroupStatusSupplier, getLogger());
         rootSchema.add("CONNECTION_STATUS", connectionStatusTable);
         if (context.isAnalyticsEnabled()) {
-            final ConnectionStatusPredictionsTable connectionStatusPredictionsTable = new ConnectionStatusPredictionsTable(context, getLogger());
+            final ConnectionStatusPredictionsTable connectionStatusPredictionsTable = new ConnectionStatusPredictionsTable(rootGroupStatusSupplier, getLogger());
             rootSchema.add("CONNECTION_STATUS_PREDICTIONS", connectionStatusPredictionsTable);
         } else {
             getLogger().debug("Analytics is not enabled, CONNECTION_STATUS_PREDICTIONS table is not available for querying");
         }
-        final ProcessorStatusTable processorStatusTable = new ProcessorStatusTable(context, getLogger());
+
+        final ProcessorStatusTable processorStatusTable = new ProcessorStatusTable(rootGroupStatusSupplier, getLogger());
         rootSchema.add("PROCESSOR_STATUS", processorStatusTable);
-        final ProcessGroupStatusTable processGroupStatusTable = new ProcessGroupStatusTable(context, getLogger());
+        final ProcessGroupStatusTable processGroupStatusTable = new ProcessGroupStatusTable(rootGroupStatusSupplier, getLogger());
         rootSchema.add("PROCESS_GROUP_STATUS", processGroupStatusTable);
-        final JvmMetricsTable jvmMetricsTable = new JvmMetricsTable(context, getLogger());
+        final JvmMetricsTable jvmMetricsTable = new JvmMetricsTable(getLogger());
         rootSchema.add("JVM_METRICS", jvmMetricsTable);
-        final BulletinTable bulletinTable = new BulletinTable(context, getLogger());
+        final BulletinTable bulletinTable = new BulletinTable(context.isClustered(), context.getClusterNodeIdentifier(), context.getBulletinRepository(), getLogger());
         rootSchema.add("BULLETINS", bulletinTable);
-        final ProvenanceTable provenanceTable = new ProvenanceTable(context, getLogger());
+        final ProvenanceTable provenanceTable = new ProvenanceTable(context.getEventAccess().getProvenanceRepository(),
+                rootGroupStatusSupplier.get(),
+                context.isClustered(), context.getClusterNodeIdentifier(),
+                getLogger());
         rootSchema.add("PROVENANCE", provenanceTable);
 
         rootSchema.setCacheEnabled(false);
@@ -220,7 +227,7 @@ public class MetricsSqlQueryService implements MetricsQueryService {
         clearQueue(queue);
     }
 
-    private class PreparedStatementException extends RuntimeException {
+    private static class PreparedStatementException extends RuntimeException {
 
         public PreparedStatementException() {
             super();
@@ -240,6 +247,21 @@ public class MetricsSqlQueryService implements MetricsQueryService {
 
         public PreparedStatementException(String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
             super(message, cause, enableSuppression, writableStackTrace);
+        }
+    }
+
+    private static class RootGroupStatusSupplier implements Supplier<ProcessGroupStatus> {
+
+        private volatile ReportingContext context;
+
+        RootGroupStatusSupplier(ReportingContext context) {
+            this.context = context;
+
+        }
+
+        @Override
+        public ProcessGroupStatus get() {
+            return context.getEventAccess().getControllerStatus();
         }
     }
 }

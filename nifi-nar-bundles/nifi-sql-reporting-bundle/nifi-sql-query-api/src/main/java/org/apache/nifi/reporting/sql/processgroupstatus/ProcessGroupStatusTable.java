@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.reporting.sql.metrics;
+package org.apache.nifi.reporting.sql.processgroupstatus;
 
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;
@@ -33,53 +33,44 @@ import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.schema.TranslatableTable;
 import org.apache.calcite.schema.impl.AbstractTable;
 import org.apache.calcite.util.Pair;
+import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.metrics.jvm.JmxJvmMetrics;
-import org.apache.nifi.metrics.jvm.JvmMetrics;
-import org.apache.nifi.reporting.ReportingContext;
-import org.apache.nifi.reporting.util.metrics.MetricNames;
-import org.apache.nifi.reporting.util.metrics.MetricsService;
 
 import java.lang.reflect.Type;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import java.util.function.Supplier;
 
 
-public class JvmMetricsTable extends AbstractTable implements QueryableTable, TranslatableTable {
+public class ProcessGroupStatusTable extends AbstractTable implements QueryableTable, TranslatableTable {
 
     private final ComponentLog logger;
 
     private RelDataType relDataType = null;
 
-    private volatile ReportingContext context;
+    private volatile Supplier<ProcessGroupStatus> rootGroupStatusSupplier;
     private volatile int maxRecordsRead;
-    private volatile MetricsService metricsService = new MetricsService();
-    private volatile JvmMetrics virtualMachineMetrics;
 
-    private final Set<JvmMetricsEnumerator> enumerators = new HashSet<>();
+    private final Set<ProcessGroupStatusEnumerator> enumerators = new HashSet<>();
 
     /**
-     * Creates a JVM Metrics table.
+     * Creates a ProcessGroup Status table.
      */
-    public JvmMetricsTable(final ReportingContext context, final ComponentLog logger) {
-        this.context = context;
+    public ProcessGroupStatusTable(final Supplier<ProcessGroupStatus> rootGroupStatusSupplier, final ComponentLog logger) {
+        this.rootGroupStatusSupplier = rootGroupStatusSupplier;
         this.logger = logger;
-        virtualMachineMetrics = JmxJvmMetrics.getInstance();
     }
 
     @Override
     public String toString() {
-        return "JvmMetricsTable";
+        return "ProcessGroupStatusTable";
     }
 
     public void close() {
         synchronized (enumerators) {
-            for (final JvmMetricsEnumerator enumerator : enumerators) {
+            for (final ProcessGroupStatusEnumerator enumerator : enumerators) {
                 enumerator.close();
             }
         }
@@ -96,7 +87,7 @@ public class JvmMetricsTable extends AbstractTable implements QueryableTable, Tr
             @Override
             @SuppressWarnings({"unchecked", "rawtypes"})
             public Enumerator<Object> enumerator() {
-                final JvmMetricsEnumerator jvmMetricsEnumerator = new JvmMetricsEnumerator(context, logger, fields) {
+                final ProcessGroupStatusEnumerator processGroupStatusEnumerator = new ProcessGroupStatusEnumerator(rootGroupStatusSupplier, logger, fields) {
                     @Override
                     protected void onFinish() {
                         final int recordCount = getRecordsRead();
@@ -115,10 +106,10 @@ public class JvmMetricsTable extends AbstractTable implements QueryableTable, Tr
                 };
 
                 synchronized (enumerators) {
-                    enumerators.add(jvmMetricsEnumerator);
+                    enumerators.add(processGroupStatusEnumerator);
                 }
 
-                return jvmMetricsEnumerator;
+                return processGroupStatusEnumerator;
             }
         };
     }
@@ -152,7 +143,7 @@ public class JvmMetricsTable extends AbstractTable implements QueryableTable, Tr
             fields[i] = i;
         }
 
-        return new JvmMetricsTableScan(context.getCluster(), relOptTable, this, fields);
+        return new ProcessGroupStatusTableScan(context.getCluster(), relOptTable, this, fields);
     }
 
     @Override
@@ -161,41 +152,50 @@ public class JvmMetricsTable extends AbstractTable implements QueryableTable, Tr
             return relDataType;
         }
 
-        final List<String> names = Stream.of(
-                MetricNames.JVM_DAEMON_THREAD_COUNT,
-                MetricNames.JVM_THREAD_COUNT,
-                MetricNames.JVM_THREAD_STATES_BLOCKED,
-                MetricNames.JVM_THREAD_STATES_RUNNABLE,
-                MetricNames.JVM_THREAD_STATES_TERMINATED,
-                MetricNames.JVM_THREAD_STATES_TIMED_WAITING,
-                MetricNames.JVM_UPTIME,
-                MetricNames.JVM_HEAP_USED,
-                MetricNames.JVM_HEAP_USAGE,
-                MetricNames.JVM_NON_HEAP_USAGE,
-                MetricNames.JVM_FILE_DESCRIPTOR_USAGE
-        ).map((name) -> name.replace(".", "_").replace("-","_")).collect(Collectors.toList());
-        final List<RelDataType> types = new ArrayList<>();
-        types.add(typeFactory.createJavaType(int.class));
-        types.add(typeFactory.createJavaType(int.class));
-        types.add(typeFactory.createJavaType(int.class));
-        types.add(typeFactory.createJavaType(int.class));
-        types.add(typeFactory.createJavaType(int.class));
-        types.add(typeFactory.createJavaType(int.class));
-        types.add(typeFactory.createJavaType(long.class));
-        types.add(typeFactory.createJavaType(double.class));
-        types.add(typeFactory.createJavaType(double.class));
-        types.add(typeFactory.createJavaType(double.class));
-        types.add(typeFactory.createJavaType(double.class));
-
-        // Add fields for the garbage collectors
-        metricsService.getMetrics(virtualMachineMetrics);
-        for (Map.Entry<String, JvmMetrics.GarbageCollectorStats> entry : virtualMachineMetrics.garbageCollectors().entrySet()) {
-            final String gcName = entry.getKey().replace(" ", "").replace("-","_");
-            names.add((MetricNames.JVM_GC_RUNS + "_" + gcName).replace(".", "_"));
-            names.add((MetricNames.JVM_GC_TIME + "_" + gcName).replace(".", "_"));
-            types.add(typeFactory.createJavaType(long.class));
-            types.add(typeFactory.createJavaType(long.class));
-        }
+        final List<String> names = Arrays.asList(
+                "id",
+                "groupId",
+                "name",
+                "bytesRead",
+                "bytesWritten",
+                "bytesReceived",
+                "bytesSent",
+                "bytesTransferred",
+                "flowFilesReceived",
+                "flowFilesSent",
+                "flowFilesTransferred",
+                "inputContentSize",
+                "inputCount",
+                "outputContentSize",
+                "outputCount",
+                "queuedContentSize",
+                "activeThreadCount",
+                "terminatedThreadCount",
+                "queuedCount",
+                "versionedFlowState"
+        );
+        final List<RelDataType> types = Arrays.asList(
+                typeFactory.createJavaType(String.class),
+                typeFactory.createJavaType(String.class),
+                typeFactory.createJavaType(String.class),
+                typeFactory.createJavaType(long.class),
+                typeFactory.createJavaType(long.class),
+                typeFactory.createJavaType(long.class),
+                typeFactory.createJavaType(long.class),
+                typeFactory.createJavaType(long.class),
+                typeFactory.createJavaType(int.class),
+                typeFactory.createJavaType(int.class),
+                typeFactory.createJavaType(int.class),
+                typeFactory.createJavaType(long.class),
+                typeFactory.createJavaType(int.class),
+                typeFactory.createJavaType(long.class),
+                typeFactory.createJavaType(int.class),
+                typeFactory.createJavaType(long.class),
+                typeFactory.createJavaType(int.class),
+                typeFactory.createJavaType(int.class),
+                typeFactory.createJavaType(int.class),
+                typeFactory.createJavaType(String.class)
+        );
 
         relDataType = typeFactory.createStructType(Pair.zip(names, types));
         return relDataType;

@@ -36,6 +36,11 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-sql-query-api</artifactId>
+            <version>1.12.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-reporting-utils</artifactId>
             <version>1.12.0-SNAPSHOT</version>
         </dependency>

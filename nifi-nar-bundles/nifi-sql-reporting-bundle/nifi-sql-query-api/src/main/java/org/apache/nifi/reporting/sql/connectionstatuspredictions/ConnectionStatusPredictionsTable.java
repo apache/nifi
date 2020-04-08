@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.reporting.sql.provenance;
+package org.apache.nifi.reporting.sql.connectionstatuspredictions;
 
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;
@@ -33,44 +33,44 @@ import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.schema.TranslatableTable;
 import org.apache.calcite.schema.impl.AbstractTable;
 import org.apache.calcite.util.Pair;
+import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.reporting.ReportingContext;
 
 import java.lang.reflect.Type;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Supplier;
 
 
-public class ProvenanceTable extends AbstractTable implements QueryableTable, TranslatableTable {
+public class ConnectionStatusPredictionsTable extends AbstractTable implements QueryableTable, TranslatableTable {
 
     private final ComponentLog logger;
 
     private RelDataType relDataType = null;
 
-    private volatile ReportingContext context;
+    private volatile Supplier<ProcessGroupStatus> rootGroupStatusSupplier;
     private volatile int maxRecordsRead;
 
-    private final Set<ProvenanceEnumerator> enumerators = new HashSet<>();
+    private final Set<ConnectionStatusPredictionsEnumerator> enumerators = new HashSet<>();
 
     /**
-     * Creates a Provenance events table.
+     * Creates a Connection Status table.
      */
-    public ProvenanceTable(final ReportingContext context, final ComponentLog logger) {
-        this.context = context;
+    public ConnectionStatusPredictionsTable(final Supplier<ProcessGroupStatus> rootGroupStatusSupplier, final ComponentLog logger) {
+        this.rootGroupStatusSupplier = rootGroupStatusSupplier;
         this.logger = logger;
     }
 
     @Override
     public String toString() {
-        return "ProvenanceTable";
+        return "ConnectionStatusPredictionsTable";
     }
 
     public void close() {
         synchronized (enumerators) {
-            for (final ProvenanceEnumerator enumerator : enumerators) {
+            for (final ConnectionStatusPredictionsEnumerator enumerator : enumerators) {
                 enumerator.close();
             }
         }
@@ -85,8 +85,9 @@ public class ProvenanceTable extends AbstractTable implements QueryableTable, Tr
     public Enumerable<Object> project(final int[] fields) {
         return new AbstractEnumerable<Object>() {
             @Override
+            @SuppressWarnings({"unchecked", "rawtypes"})
             public Enumerator<Object> enumerator() {
-                final ProvenanceEnumerator provenanceEnumerator = new ProvenanceEnumerator(context, logger, fields) {
+                final ConnectionStatusPredictionsEnumerator connectionStatusPredictionsEnumerator = new ConnectionStatusPredictionsEnumerator(rootGroupStatusSupplier, logger, fields) {
                     @Override
                     protected void onFinish() {
                         final int recordCount = getRecordsRead();
@@ -105,10 +106,10 @@ public class ProvenanceTable extends AbstractTable implements QueryableTable, Tr
                 };
 
                 synchronized (enumerators) {
-                    enumerators.add(provenanceEnumerator);
+                    enumerators.add(connectionStatusPredictionsEnumerator);
                 }
 
-                return provenanceEnumerator;
+                return connectionStatusPredictionsEnumerator;
             }
         };
     }
@@ -118,6 +119,7 @@ public class ProvenanceTable extends AbstractTable implements QueryableTable, Tr
     }
 
     @Override
+    @SuppressWarnings("rawtypes")
     public Expression getExpression(final SchemaPlus schema, final String tableName, final Class clazz) {
         return Schemas.tableExpression(schema, getElementType(), tableName, clazz);
     }
@@ -141,7 +143,7 @@ public class ProvenanceTable extends AbstractTable implements QueryableTable, Tr
             fields[i] = i;
         }
 
-        return new ProvenanceTableScan(context.getCluster(), relOptTable, this, fields);
+        return new ConnectionStatusPredictionsTableScan(context.getCluster(), relOptTable, this, fields);
     }
 
     @Override
@@ -149,59 +151,26 @@ public class ProvenanceTable extends AbstractTable implements QueryableTable, Tr
         if (relDataType != null) {
             return relDataType;
         }
-
         final List<String> names = Arrays.asList(
-                "eventId",
-                "eventType",
-                "timestampMillis",
-                "durationMillis",
-                "lineageStart",
-                "details",
-                "componentId",
-                "componentName",
-                "componentType",
-                "processGroupId",
-                "processGroupName",
-                "entityId",
-                "entityType",
-                "entitySize",
-                "previousEntitySize",
-                "updatedAttributes",
-                "previousAttributes",
-                "contentPath",
-                "previousContentPath",
-                "parentIds",
-                "childIds",
-                "transitUri",
-                "remoteIdentifier",
-                "alternateIdentifier"
+                "connectionId",
+                "predictedQueuedBytes",
+                "predictedQueuedCount",
+                "predictedPercentBytes",
+                "predictedPercentCount",
+                "predictedTimeToBytesBackpressureMillis",
+                "predictedTimeToCountBackpressureMillis",
+                "predictionIntervalMillis"
         );
-
-        final List<RelDataType> types = new ArrayList<>();
-        types.add(typeFactory.createJavaType(long.class));
-        types.add(typeFactory.createJavaType(String.class));
-        types.add(typeFactory.createJavaType(long.class));
-        types.add(typeFactory.createJavaType(long.class));
-        types.add(typeFactory.createJavaType(long.class));
-        types.add(typeFactory.createJavaType(String.class));
-        types.add(typeFactory.createJavaType(String.class));
-        types.add(typeFactory.createJavaType(String.class));
-        types.add(typeFactory.createJavaType(String.class));
-        types.add(typeFactory.createJavaType(String.class));
-        types.add(typeFactory.createJavaType(String.class));
-        types.add(typeFactory.createJavaType(String.class));
-        types.add(typeFactory.createJavaType(String.class));
-        types.add(typeFactory.createJavaType(long.class));
-        types.add(typeFactory.createJavaType(long.class));
-        types.add(typeFactory.createMapType(typeFactory.createJavaType(String.class), typeFactory.createJavaType(String.class)));
-        types.add(typeFactory.createMapType(typeFactory.createJavaType(String.class), typeFactory.createJavaType(String.class)));
-        types.add(typeFactory.createJavaType(String.class));
-        types.add(typeFactory.createJavaType(String.class));
-        types.add(typeFactory.createArrayType(typeFactory.createJavaType(String.class), -1));
-        types.add(typeFactory.createArrayType(typeFactory.createJavaType(String.class), -1));
-        types.add(typeFactory.createJavaType(String.class));
-        types.add(typeFactory.createJavaType(String.class));
-        types.add(typeFactory.createJavaType(String.class));
+        final List<RelDataType> types = Arrays.asList(
+                typeFactory.createJavaType(String.class),
+                typeFactory.createJavaType(long.class),
+                typeFactory.createJavaType(int.class),
+                typeFactory.createJavaType(int.class),
+                typeFactory.createJavaType(int.class),
+                typeFactory.createJavaType(long.class),
+                typeFactory.createJavaType(long.class),
+                typeFactory.createJavaType(long.class)
+        );
 
         relDataType = typeFactory.createStructType(Pair.zip(names, types));
         return relDataType;

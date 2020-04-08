@@ -22,6 +22,7 @@
     <artifactId>nifi-sql-reporting-bundle</artifactId>
     <packaging>pom</packaging>
     <modules>
+        <module>nifi-sql-query-api</module>
         <module>nifi-sql-reporting-tasks</module>
         <module>nifi-sql-reporting-nar</module>
     </modules>
