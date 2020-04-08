@@ -165,7 +165,7 @@ drwxr-xr-x  116 alopresto  staff   3.6K Apr  6 15:50 lib/
 |=======================================================================================================================
 |Description        | Instructions on running the Apache NiFi application
 |Purpose            | To configure and run the application on the local machine
-|Starting Point     | <<installing_apache_nifi,Installing Apache NiFi>> or <<building_nifi_from_source,Building NiFi from Source>>
+|Starting Point     | <<installing-apache-nifi,Installing Apache NiFi>> or <<building-nifi-from-source,Building NiFi from Source>>
 |Expected Outcome   | Latest version of Apache NiFi running on host with minimal configuration
 |Estimated Duration | 1 minute
 |=======================================================================================================================
@@ -194,7 +194,8 @@ Many web applications run on `:8080` by default, so this port may already be occ
 * `./bin/nifi.sh stop` -- Stops the specified instance
 . Open the main configuration file for NiFi (`nifi.properties`). Any text editor is sufficient for this (Sublime Text, Atom, vi, nano, etc.)
 * `$EDITOR conf/nifi.properties` -- Opens the `nifi.properties` file for editing
-. Replace the `nifi.web.http.port=8080` line (*line 145* as of `1.11.4`) with `nifi.web.http.port=7777` (or another other open port value)
+. Change `nifi.web.http.port=8080` -> `nifi.web.http.port=7777` -- Sets the HTTP port to a new value. This is line 145 as of 1.11.4
++
 NOTE: Setting a port between 1 - 1024 requires `root` access on *nix systems
 . Save and close the file.
 . Start NiFi again
@@ -214,12 +215,12 @@ NiFi intentionally does not allow any authentication or authorization features o
 
 === Securing NiFi with TLS Toolkit
 
-NOTE: This section assumes no enterprise IT department to provide signed certificates. For a scenario with provided certificates, see <<securing_nifi_with_provided_certificates,Securing NiFi with Provided Certificates>>.
+NOTE: This section assumes no enterprise IT department to provide signed certificates. For a scenario with provided certificates, see <<securing-nifi-with-provided-certificates,Securing NiFi with Provided Certificates>>.
 
 |=======================================================================================================================
 |Description        | Instructions on enabling link://https://en.wikipedia.org/wiki/Transport_Layer_Security[Transport Layer Security (TLS)^] for the Apache NiFi application using the TLS Toolkit
 |Purpose            | Securing NiFi with TLS protects data in motion and is required to enable authentication & authorization
-|Starting Point     | <<starting_nifi>>
+|Starting Point     | <<starting-nifi>>
 |Expected Outcome   | Latest version of Apache NiFi running on host over TLS with client certificate authentication and authorization enabled and a single configured user
 |Estimated Duration | 10 minutes
 |=======================================================================================================================
@@ -398,12 +399,12 @@ image::nifi-trusted-server-certificate.png["Browser showing trusted NiFi server 
 
 === Securing NiFi with Provided Certificates
 
-NOTE: This section assumes an enterprise IT department or other mechanism to provide signed certificates. For a scenario with self-signed certificates, see <<securing_nifi_with_tls_toolkit,Securing NiFi with TLS Toolkit>>.
+NOTE: This section assumes an enterprise IT department or other mechanism to provide signed certificates. For a scenario with self-signed certificates, see <<securing-nifi-with-tls-toolkit,Securing NiFi with TLS Toolkit>>.
 
 |=======================================================================================================================
 |Description        | Instructions on enabling link://https://en.wikipedia.org/wiki/Transport_Layer_Security[Transport Layer Security (TLS)^] for the Apache NiFi application using provided certificates
 |Purpose            | Securing NiFi with TLS protects data in motion and is required to enable authentication & authorization
-|Starting Point     | <<starting_nifi>>
+|Starting Point     | <<starting-nifi>>
 |Expected Outcome   | Latest version of Apache NiFi running on host over TLS with client certificate authentication and authorization enabled and a single configured user
 |Estimated Duration | 10 minutes
 |=======================================================================================================================
@@ -806,7 +807,7 @@ Certificate was added to keystore
 . Generate the client certificate keystore from the client certificate and key.
 `openssl pkcs12 -export -out CN=my_username.p12 -inkey client.key -in client.pem` -- Creates the PKCS12 keystore containing the client certificate and private key. This command prompts for an *export password* twice
 
-From this point, the instructions are identical to those using the TLS Toolkit, starting at <<load_client_certificate_to_browser,Loading the client certificate in the browser>>.
+From this point, the instructions are identical to those using the TLS Toolkit, starting at <<load-client-certificate-to-browser,Loading the client certificate in the browser>>.
 
 ==== Securing NiFi with TLS Toolkit and Provided Intermediate CA
 
@@ -835,14 +836,14 @@ CAUTION: Develop section
 // TODO: Write
 === Creating and Securing a NiFi Cluster with the TLS Toolkit
 
-NOTE: This section assumes no enterprise IT department to provide signed certificates. For a scenario with provided certificates, see <<securing_nifi_with_provided_certificates,Securing NiFi with Provided Certificates>>.
+NOTE: This section assumes no enterprise IT department to provide signed certificates. For a scenario with provided certificates, see <<securing-nifi-with-provided-certificates,Securing NiFi with Provided Certificates>>.
 
 |=======================================================================================================================
 |Description        | Instructions on configuring and securing a 3 node cluster
 |Purpose            | A NiFi cluster can perform flow operations in parallel and provide resiliency if nodes are unavailable.
-|Starting Point     | <<installing_apache_nifi,Installing Apache NiFi>> or <<building_nifi_from_source,Building NiFi from Source>>
+|Starting Point     | <<installing-apache-nifi,Installing Apache NiFi>> or <<building-nifi-from-source,Building NiFi from Source>>
 |Expected Outcome   | 3 nodes of latest version of Apache NiFi in secured cluster running on local machine
-|Helpful Reading    | <<securing_nifi_with_tls_toolkit,Securing NiFi with TLS Toolkit>>, <<creating_a_nifi_cluster,Creating a NiFi Cluster>>
+|Helpful Reading    | <<securing-nifi-with-tls-toolkit,Securing NiFi with TLS Toolkit>>, <<creating-a-nifi-cluster,Creating a NiFi Cluster>>
 |Estimated Duration | 15 minutes
 |=======================================================================================================================
 
@@ -870,18 +871,11 @@ Prerequisites:
 *** `10441` - `10443` -- Site to site port
 *** `11441` - `11443` -- Cluster communications port
 
-Complete the following steps to secure your NiFi cluster:
-[%hardbreaks]
-Step 1. Create the NiFi client certificates using the TLS Toolkit.
-Step 2. Update the `nifi.properties` file.
-Step 3. Update the `zookeeper.properties` file.
-Step 4. Create the `myid` file.
-Step 5. Update the `state-management.xml` file.
-Step 6. Update the `authorizers.xml` file.
-Step 7. Delete the `authorizations.xml` and `users.xml` files.
-Step 8. Restart the NiFi cluster.
+The end result will consist of a self-signed external CA (the root), a keystore and truststore containing the necessary certificates for each NiFi node to operate, and a client certificate for a human user to access NiFi.
 
-. Create the NiFi Client Certificates. When using the `standalone` mode of the TLS Toolkit, it is important that *all certificates are generated from the same instance, using the same generated NiFi CA certificate to sign each*. The certificates can be generated by a single command, or individually. For more information on toolkit flag options, see link:http://nifi.apache.org/docs/nifi-docs/html/toolkit-guide.html#usage-8[NiFi Toolkit Guide: TLS Toolkit Usage].
+image::nifi-cluster-tls-toolkit-certificate-diagram.png["NiFi Cluster with TLS Toolkit Certificates Diagram"]
+
+. Create the NiFi Client Certificates. When using the `standalone` mode of the TLS Toolkit, it is important that *all certificates are generated from the same instance, using the same generated NiFi CA certificate to sign each*. The certificates can be generated by a single command, or individually. By default, the Distinguished Name (DN) will be `CN=<provided_hostname>, OU=NIFI`. For more information on toolkit flag options, see link:http://nifi.apache.org/docs/nifi-docs/html/toolkit-guide.html#usage-8[NiFi Toolkit Guide: TLS Toolkit Usage].
 .. Navigate to the `nifi-toolkit-1.11.4/` directory.
 * `cd /etc/nifi-toolkit-1.11.4/` -- Changes to the toolkit directory
 .. Generate the certificates. Running these commands first generates the NiFi CA public certificate and private key if not present, then generates the server certificates, followed by the client certificate necessary for the *Initial Admin Identity*. An alternative command performing all the steps sequentially is also provided.
@@ -1024,59 +1018,80 @@ NOTE: The `nifi.cluster.load.balance.host=` entry must be manually populated her
 ** `server.1=` -> `server.1=node1.nifi:2881:3881;2181`
 ** Add the line `server.2=node2.nifi:2882:3882;2182`
 ** Add the line `server.3=node3.nifi:2883:3883;2183`
-* `cp node1.nifi/conf/zookeeper.properties node2.nifi/conf/zookeeper.properties node3.nifi/conf/zookeeper.properties` -- Copies the modified `zookeeper.properties` file from `node1` to `node2` and `node3`
+* `cp node1.nifi/conf/zookeeper.properties node2.nifi/conf/zookeeper.properties` -- Copies the modified `zookeeper.properties` file from `node1` to `node2`
+* `cp node1.nifi/conf/zookeeper.properties node3.nifi/conf/zookeeper.properties` -- Copies the modified `zookeeper.properties` file from `node1` to `node3`
 . Create the `myid` file on each node to identify the embedded ZooKeeper server.
-* `mkdir -p node1.nifi/conf/state/zookeeper` -- Creates the ZooKeeper directory on `node1`
-* `echo 1 >> node1.nifi/conf/state/zookeeper/myid` -- Creates the `myid` file with the `node1` identifier
-* `mkdir -p node2.nifi/conf/state/zookeeper` -- Creates the ZooKeeper directory on `node2`
-* `echo 2 >> node2.nifi/conf/state/zookeeper/myid` -- Creates the `myid` file with the `node2` identifier
-* `mkdir -p node3.nifi/conf/state/zookeeper` -- Creates the ZooKeeper directory on `node3`
-* `echo 3 >> node3.nifi/conf/state/zookeeper/myid` -- Creates the `myid` file with the `node3` identifier
+* `mkdir -p node1.nifi/state/zookeeper` -- Creates the ZooKeeper directory on `node1`
+* `echo 1 >> node1.nifi/state/zookeeper/myid` -- Creates the `myid` file with the `node1` identifier
+* `mkdir -p node2.nifi/state/zookeeper` -- Creates the ZooKeeper directory on `node2`
+* `echo 2 >> node2.nifi/state/zookeeper/myid` -- Creates the `myid` file with the `node2` identifier
+* `mkdir -p node3.nifi/state/zookeeper` -- Creates the ZooKeeper directory on `node3`
+* `echo 3 >> node3.nifi/state/zookeeper/myid` -- Creates the `myid` file with the `node3` identifier
 . Update the `state-management.xml` file on each node to allow ZooKeeper connections. The `state-management.xml` file can be identical on each node (assuming no other changes were made), so the modified file will be copied to the other nodes.
 * `$EDITOR node1.nifi/conf/state-management.xml` -- Opens the `state-management.xml` file in a text editor
 * Update the following line:
 ** `<property name="Connect String"></property>` -> `<property name="Connect String">node1.nifi:2181,node2.nifi:2182,node3.nifi:2183</property>`
-* `cp node1.nifi/conf/state-management.xml node2.nifi/conf/state-management.xml node3.nifi/conf/state-management.xml` -- Copies the modified `state-management.xml` file from `node1` to `node2` and `node3`
-
-=== Step 6. Update the authorizers.xml File
-Update the `authorizers.xml` for *each* node.
-
-. From a text editor, open the `authorizers.xml` file for the first node from `nifi/cluster/nifi1.xyz.com/conf`
-. Locate the ``<userGroupProvider>`` section.
-. Locate the line ``<property name="Initial User Identity 1">CN=nifi-admin-client-cert, O=Example LLC</property>``
-. Add the following new lines to specify the Initial User Identity for *each* node:
-----
-<property name="Initial User Identity 2">CN=nifi1.xyz.com, OU=NIFI</property>
-<property name="Initial User Identity 3">CN=nifi2.xyz.com, OU=NIFI</property>
-<property name="Initial User Identity 4">CN=nifi3.xyz.com, OU=NIFI</property>
-----
+* `cp node1.nifi/conf/state-management.xml node2.nifi/conf/state-management.xml` -- Copies the modified `state-management.xml` file from `node1` to `node2`
+* `cp node1.nifi/conf/state-management.xml node3.nifi/conf/state-management.xml` -- Copies the modified `state-management.xml` file from `node1` to `node3`
+. Update the `authorizers.xml` file. This file contains the *Initial Node Identities* and *Initial User Identities*. The *users* consist of all human users _and_ all nodes in the cluster. The `authorizers.xml` file can be identical on each node (assuming no other changes were made), so the modified file will be copied to the other nodes.
+* `$EDITOR node1.nifi/conf/authorizers.xml` -- Opens the `authorizers.xml` file in a text editor
+* Update the following lines:
+** In the `<userGroupProvider>` section, `<property name="Initial User Identity 1"></property>` -> `<property name="Initial User Identity 1">CN=my_username</property>` -- Adds an initial user with the DN generated in the client certificate. This is line 52 as of 1.11.4
+** In the `<userGroupProvider>` section, add the line `<property name="Initial User Identity 2">CN=node1.nifi, OU=NIFI</property>` -- Adds an initial user for `node1`
+** In the `<userGroupProvider>` section, add the line `<property name="Initial User Identity 3">CN=node2.nifi, OU=NIFI</property>` -- Adds an initial user for `node2`
+** In the `<userGroupProvider>` section, add the line `<property name="Initial User Identity 4">CN=node3.nifi, OU=NIFI</property>` -- Adds an initial user for `node3`
 +
-image::tls-authorizers-file-userGroupProvider.png[userGroupProvider section in the authorizers file]
-[start=5]
-. Locate the ``<accessPolicyProvider>`` section.
-. Locate the line ``<property name="Node Identity 1"></property>``
-. Add the CN and OU to the property: ``<property name="Node Identity 1">CN=nifi1.xyz.com, OU=NIFI</property>``
-. Add the following lines to specify the node identity for the remaining nodes:
-----
-<property name="Node Identity 2">CN=nifi2.xyz.com, OU=NIFI</property>
-<property name="Node Identity 3">CN=nifi3.xyz.com, OU=NIFI</property>
-----
+image::authorizers-xml-initial-user-identities.png["authorizers.xml with Initial User Identities"]
+** In the `<accessPolicyProvider>` section, `<property name="Initial Admin Identity"></property>` -> `<property name="Initial Admin Identity">CN=my_username</property>` -- Adds an initial admin with the DN generated in the client certificate. This is line 280 as of 1.11.4
+** In the `<accessPolicyProvider>` section, `<property name="Node Identity 1"></property>` -> `<property name="Node Identity 1">CN=node1.nifi, OU=NIFI</property>` -- Adds an initial node with the DN generated in the `node1` certificate. This is line 282 as of 1.11.4
+** In the `<accessPolicyProvider>` section, add the line `<property name="Node Identity 2">CN=node2.nifi, OU=NIFI</property>`
+** In the `<accessPolicyProvider>` section, add the line `<property name="Node Identity 3">CN=node3.nifi, OU=NIFI</property>`
 +
-image::tls-authorizers-file-accessPolicyProvider.png[accessPolicyProvider section in the authorizers file]
+image::authorizers-xml-initial-node-identities.png["authorizers.xml with Initial Node Identities"]
+* `cp node1.nifi/conf/authorizers.xml node2.nifi/conf/authorizers.xml` -- Copies the modified `authorizers.xml` file from `node1` to `node2`
+* `cp node1.nifi/conf/authorizers.xml node3.nifi/conf/authorizers.xml` -- Copies the modified `authorizers.xml` file from `node1` to `node3`
+. By default, NiFI waits for nodes to join for 5 minutes before the cluster is available. Because the number of nodes is known, this delay can be modified on each node to start up much faster. (Optional)
+* `$EDITOR node1.nifi/conf/nifi.properties` -- Opens the `nifi.properties` file in a text editor
+* Update the following lines:
+** `nifi.cluster.flow.election.max.wait.time=5 mins` -> `nifi.cluster.flow.election.max.wait.time=1 min` -- Changes the flow election wait time to 1 min, speeding up cluster availability. This is line 226 as of 1.11.4 
+** `nifi.cluster.flow.election.max.candidates=` -> `nifi.cluster.flow.election.max.candidates=3` -- Changes the flow election to occur when 3 nodes are present, speeding up cluster availability. This is line 227 as of 1.11.4 
+* `$EDITOR node2.nifi/conf/nifi.properties` -- Opens the `nifi.properties` file in a text editor
+* Update the following lines:
+** `nifi.cluster.flow.election.max.wait.time=5 mins` -> `nifi.cluster.flow.election.max.wait.time=1 min` -- Changes the flow election wait time to 1 min, speeding up cluster availability. This is line 226 as of 1.11.4 
+** `nifi.cluster.flow.election.max.candidates=` -> `nifi.cluster.flow.election.max.candidates=3` -- Changes the flow election to occur when 3 nodes are present, speeding up cluster availability. This is line 227 as of 1.11.4 
+* `$EDITOR node3.nifi/conf/nifi.properties` -- Opens the `nifi.properties` file in a text editor
+* Update the following lines:
+** `nifi.cluster.flow.election.max.wait.time=5 mins` -> `nifi.cluster.flow.election.max.wait.time=1 min` -- Changes the flow election wait time to 1 min, speeding up cluster availability. This is line 226 as of 1.11.4 
+** `nifi.cluster.flow.election.max.candidates=` -> `nifi.cluster.flow.election.max.candidates=3` -- Changes the flow election to occur when 3 nodes are present, speeding up cluster availability. This is line 227 as of 1.11.4 
+. Start the NiFi cluster. Once all three nodes have started and joined the cluster, the flow is agreed upon and a cluster coordinator is elected, the UI is available on any of the three nodes. 
+* `./node1.nifi/bin/nifi.sh start` -- Starts `node1`
+* `./node2.nifi/bin/nifi.sh start` -- Starts `node2`
+* `./node3.nifi/bin/nifi.sh start` -- Starts `node3`
+. Wait approximately 30 seconds and open the web browser to `https://node3.nifi:9443/nifi`. The cluster should be available. Note that the Initial Admin Identity has no permissions on the root process group. This is an artifact of legacy design decisions where the root process group ID is not known at initial start time. 
++
+--
+_The running cluster_
 
-=== Step 7. Delete the authorizations.xml and users.xml Files
-Delete the `authorizations.xml` and `users.xml` files from *each* node.
+image::nifi-secure-cluster-no-permissions.png["NiFi secure cluster running with no Initial Admin Identity permissions"]
 
-. Navigate to the first node: `nifi/cluster/nifi1.xyz.com/conf`
-. Enter: `sudo rm authorizations.xml`
-. Enter: `sudo rm users.xml`
-. Navigate to *each* of the other nodes and delete the same files.
-NOTE: You must delete the `authorizations.xml` and `users.xml` files after you update the `authorizers.xml` file.
+_The cluster status from the global menu at the top right_
 
-=== Step 8. Restart the NiFi Cluster
-Restart the NiFi cluster on all nodes simultaneously.
+image::nifi-secure-cluster-status.png["NiFi secure cluster status pane"]
+--
+. To update the Initial Admin Identity's permissions for the root process group, stop each node in the cluster and remove the `authorizations.xml` and `users.xml` file from each node. These files will be regenerated when the node starts again and be populated with the correct permissions. 
+* `./node1.nifi/bin/nifi.sh stop` -- Stops `node1`
+* `rm node1.nifi/conf/authorizations.xml node1.nifi/conf/users.xml` -- Removes the `authorizations.xml` and `users.xml` for `node1`
+* `./node2.nifi/bin/nifi.sh stop` -- Stops `node2`
+* `rm node2.nifi/conf/authorizations.xml node2.nifi/conf/users.xml` -- Removes the `authorizations.xml` and `users.xml` for `node2`
+* `./node3.nifi/bin/nifi.sh stop` -- Stops `node3`
+* `rm node3.nifi/conf/authorizations.xml node3.nifi/conf/users.xml` -- Removes the `authorizations.xml` and `users.xml` for `node3`
+. Start the nodes again. 
+* `./node1.nifi/bin/nifi.sh start` -- Starts `node1`
+* `./node2.nifi/bin/nifi.sh start` -- Starts `node2`
+* `./node3.nifi/bin/nifi.sh start` -- Starts `node3`
++
+--
+_The running cluster with permissions_
 
-. From the `nifi/cluster` prompt, enter:
-----
-sudo nifi1.xyz.com/bin/nifi.sh restart; sudo nifi2.xyz.com/bin/nifi.sh restart; sudo nifi3.xyz.com/bin/nifi.sh restart
-----
+image::nifi-secure-cluster-permissions.png["NiFi secure cluster running with Initial Admin Identity permissions"]
+--
