@@ -175,18 +175,20 @@ public class WriteAheadStorePartition implements EventStorePartition {
         }
 
         // Claim a Record Writer Lease so that we have a writer to persist the events to
-        boolean claimed = false;
         RecordWriterLease lease = null;
-        while (!claimed) {
+        while (true) {
             lease = getLease();
-            claimed = lease.tryClaim();
-
-            if (claimed) {
+            if (lease.tryClaim()) {
                 break;
             }
 
-            if (lease.shouldRoll()) {
-                tryRollover(lease);
+            final RolloverState rolloverState = lease.getRolloverState();
+            if (rolloverState.isRollover()) {
+                final boolean success = tryRollover(lease);
+
+                if (success) {
+                    logger.info("Successfully rolled over Event Writer for {} due to {}", this, rolloverState);
+                }
             }
         }
 
@@ -202,10 +204,11 @@ public class WriteAheadStorePartition implements EventStorePartition {
 
         // Roll over the writer if necessary
         Integer eventsRolledOver = null;
-        final boolean shouldRoll = lease.shouldRoll();
+        final RolloverState rolloverState = lease.getRolloverState();
         try {
-            if (shouldRoll && tryRollover(lease)) {
+            if (rolloverState.isRollover() && tryRollover(lease)) {
                 eventsRolledOver = writer.getRecordsWritten();
+                logger.info("Successfully rolled over Event Writer for {} after writing {} events due to {}", this, eventsRolledOver, rolloverState);
             }
         } catch (final IOException ioe) {
             logger.error("Updated {} but failed to rollover to a new Event File", this, ioe);
@@ -258,7 +261,7 @@ public class WriteAheadStorePartition implements EventStorePartition {
         final RecordWriter updatedWriter = recordWriterFactory.createWriter(updatedEventFile, idGenerator, false, true);
         updatedWriter.writeHeader(nextEventId);
 
-        final RecordWriterLease updatedLease = new RecordWriterLease(updatedWriter, config.getMaxEventFileCapacity(), config.getMaxEventFileCount());
+        final RecordWriterLease updatedLease = new RecordWriterLease(updatedWriter, config.getMaxEventFileCapacity(), config.getMaxEventFileCount(), config.getMaxEventFileLife(TimeUnit.MILLISECONDS));
         final boolean updated = eventWriterLeaseRef.compareAndSet(lease, updatedLease);
 
         if (!updated) {
@@ -319,7 +322,7 @@ public class WriteAheadStorePartition implements EventStorePartition {
             // Update max event id to be equal to be the greater of the current value or the
             // max value just written.
             final long maxIdWritten = maxId;
-            this.maxEventId.getAndUpdate(cur -> maxIdWritten > cur ? maxIdWritten : cur);
+            this.maxEventId.getAndUpdate(cur -> Math.max(maxIdWritten, cur));
 
             if (config.isAlwaysSync()) {
                 writer.sync();
@@ -542,7 +545,7 @@ public class WriteAheadStorePartition implements EventStorePartition {
         final long eventsToReindex = maxEventId - minEventIdToReindex;
 
         logger.info("The last Provenance Event indexed for partition {} is {}, but the last event written to partition has ID {}. "
-            + "Re-indexing up to the last {} events to ensure that the Event Index is accurate and up-to-date",
+            + "Re-indexing up to the last {} events for {} to ensure that the Event Index is accurate and up-to-date",
             partitionName, minEventIdToReindex, maxEventId, eventsToReindex, partitionDirectory);
 
         // Find the first event file that we care about.
