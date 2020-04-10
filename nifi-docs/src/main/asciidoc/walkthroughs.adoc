@@ -20,16 +20,18 @@ Apache NiFi Team <dev@nifi.apache.org>
 :linkattrs:
 
 == Purpose
-This document is intended to provide a canonical source of prescriptive instruction sets for common administrator and user tasks using Apache NiFi. It is intended to complement the <<overview.adoc,NiFi Overview>>, <<administrator-guide.adoc,NiFi System Administrator's Guide>>, and <<user-guide.adoc,NiFi User's Guide>>. Those documents provide extensive reference information about various features and configuration values, but they do not provide information on _how_ to accomplish tasks.
+The intent of this document is to provide a canonical source of prescriptive instruction sets for common administrator and user tasks using Apache NiFi. It is intended to complement the link:overview.html[NiFi Overview^], link:administration-guide.html[NiFi System Administrator's Guide^], and link:user-guide.html[NiFi User's Guide^]. Those documents provide extensive reference information about various features and configuration values, but they do not provide information on _how_ to accomplish tasks.
 
-This document is _not_ intended to be a comprehensive repository of all possible admin or user activities, but rather a collection of well-documented reference activities which can be followed directly or adapted to custom scenarios. This document requires continued updates as application or ecosystem behavior changes, and corrections and improvements where the content is unclear to the community. To contribute to this document, please link:https://issues.apache.org/jira/secure/CreateIssue!default.jspa[open a Jira] (see link:https://cwiki.apache.org/confluence/display/NIFI/Contributor+Guide#ContributorGuide-WheretoStart?[further instructions in the Contributor Guide]) and link:https://github.com/apache/nifi/pulls[submit a pull request (PR)].
+This document is _not_ intended to be a comprehensive repository of all possible admin or user activities, but rather a collection of well-documented reference activities which can be followed directly or adapted to custom scenarios. This document requires continued updates as application or ecosystem behavior changes, and corrections and improvements where the content is unclear to the community. To contribute to this document, please link:https://issues.apache.org/jira/secure/CreateIssue!default.jspa[open a Jira^] (see link:https://cwiki.apache.org/confluence/display/NIFI/Contributor+Guide#ContributorGuide-WheretoStart?[further instructions in the Contributor Guide^]) and link:https://github.com/apache/nifi/pulls[submit a pull request (PR)^].
 
-This document is provided with no warranty. All steps have been evaluated for correctness to the extent possible by the Apache NiFi community, but no responsibility is assumed for negative impacts on any computer system where these commands are executed.
+NOTE: This document is provided with no warranty. All steps have been evaluated for correctness to the extent possible by the Apache NiFi community, but no responsibility is assumed for negative impacts on any computer system where these commands are executed.
 
 == Installing Apache NiFi
 
+Apache NiFi is an easy to use, powerful, and reliable system to process and distribute data. It supports powerful and scalable directed graphs of data routing, transformation, and system mediation logic. In addition to NiFi, there is the NiFi Toolkit, a collection of command-line tools which help perform administrative tasks such as interacting with remote services, generating TLS certificates, managing nodes in a cluster, and encrypting sensitive configuration values.  
+
 |=======================================================================================================================
-|Description        | Instructions on downloading the Apache NiFi application
+|Description        | Instructions on downloading the Apache NiFi application and Toolkit
 |Purpose            | To make the application available to run on the specified machine (e.g. a local development environment)
 |Starting Point     | Machine running modern OS
 |Expected Outcome   | Latest version of Apache NiFi available to run on host with no configuration
@@ -38,7 +40,7 @@ This document is provided with no warranty. All steps have been evaluated for co
 
 NOTE: The following instructions are for installing a single node of NiFi. This guide assumes Mac OS X / macOS 10.11.0+ but should work for any modern operating system. *nix commands are used by default, but Windows equivalents are provided where available.
 
-. Go to the link:http://nifi.apache.org/download.html[Apache NiFi Downloads] page.
+. Go to the link:http://nifi.apache.org/download.html[Apache NiFi Downloads^] page.
 . Download the latest version of NiFi via the compressed binary files. For example, if the latest version is 1.11.4:
 * `nifi-1.11.4-bin.tar.gz` [1.2 GB]
 * `nifi-toolkit-1.11.4-bin.tar.gz` [42 MB]
@@ -47,7 +49,7 @@ NOTE: The following instructions are for installing a single node of NiFi. This 
 image::install-download-link.png["Download site"]
 . Note that the `nifi-1.11.4-bin.tar.gz` and the `nifi-toolkit-1.11.4-bin.tar.gz` compressed files are downloaded to your `Downloads` folder.
 . Download the GPG signature and checksums for those files. They are found on the initial download page next to each binary file.
-* `gpg --verify -v nifi-1.11.4-bin.tar.gz.asc` -- Verifies the GPG signature provided on the binary by the Release Manager (RM). See link:https://nifi.apache.org/gpg.html#verifying-a-release-signature[NiFi GPG Guide: Verifying a Release Signature] for further details
+* `gpg --verify -v nifi-1.11.4-bin.tar.gz.asc` -- Verifies the GPG signature provided on the binary by the Release Manager (RM). See link:https://nifi.apache.org/gpg.html#verifying-a-release-signature[NiFi GPG Guide: Verifying a Release Signature^] for further details
 * `shasum -a 256 nifi-1.11.4-bin.tar.gz` -- Calculates a SHA-256 checksum over the downloaded artifact. This should be compared with the contents of `nifi-1.11.4-bin.tar.gz.sha256` for equality
 * `shasum -a 512 nifi-1.11.4-bin.tar.gz` -- Calculates a SHA-512 checksum over the downloaded artifact. This should be compared with the contents of `nifi-1.11.4-bin.tar.gz.sha512` for equality
 +
@@ -64,18 +66,18 @@ image::verify-release-gpg-and-checksums.png["Verifying the GPG signature and che
 |Purpose            | To make the application (with potential code modifications) available to run on the specified machine (e.g. a local development environment)
 |Starting Point     | Machine running modern OS
 |Expected Outcome   | Latest version of Apache NiFi available to run on host with no configuration
-|Estimated Duration | 5 - 35 minutes + download time
+|Estimated Duration | 10 - 35 minutes + download time
 |=======================================================================================================================
 
 NOTE: This guide assumes Mac OS X / macOS 10.11.0+ but should work for any modern operating system. *nix commands are used by default, but Windows equivalents are provided where available.
 
-. Go to the link:http://nifi.apache.org/download.html[Apache NiFi Downloads] page.
+. Go to the link:http://nifi.apache.org/download.html[Apache NiFi Downloads^] page.
 . Download the latest version of NiFi source code via the compressed files. For example, if the latest version is 1.11.4:
 * `nifi-1.11.4-source-release.zip` [53 MB]
 . If you are directed to a mirror page, click the first link on the page to download the respective archive file.
-. Note that the `nifi-1.11.4-bin.tar.gz` and the `nifi-toolkit-1.11.4-bin.tar.gz` compressed files are downloaded to your `Downloads` folder.
+. Note that the `nifi-1.11.4-source-release.zip` compressed file is downloaded to your `Downloads` folder.
 . Download the GPG signature and checksums for the file. They are found on the initial download page next to the archive file.
-* `gpg --verify -v nifi-1.11.4-source-release.zip.asc` -- Verifies the GPG signature provided on the archive by the Release Manager (RM). See link:https://nifi.apache.org/gpg.html#verifying-a-release-signature[NiFi GPG Guide: Verifying a Release Signature] for further details
+* `gpg --verify -v nifi-1.11.4-source-release.zip.asc` -- Verifies the GPG signature provided on the archive by the Release Manager (RM). See link:https://nifi.apache.org/gpg.html#verifying-a-release-signature[NiFi GPG Guide: Verifying a Release Signature^] for further details
 * `shasum -a 256 nifi-1.11.4-source-release.zip` -- Calculates a SHA-256 checksum over the downloaded artifact. This should be compared with the contents of `nifi-1.11.4-source-release.zip.sha256` for equality
 * `shasum -a 512 nifi-1.11.4-source-release.zip` -- Calculates a SHA-512 checksum over the downloaded artifact. This should be compared with the contents of `nifi-1.11.4-source-release.zip.sha512` for equality
 . Extract the files from the `zip` file. This can be done by double-clicking on the file in the Finder or running the following command in the terminal.
@@ -110,7 +112,7 @@ drwxr-xr-x   7 alopresto  staff   224B Apr  6 15:44 nifi-system-tests/
 drwxr-xr-x  14 alopresto  staff   448B Apr  6 15:44 nifi-toolkit/
 -rw-r--r--   1 alopresto  staff    44K Jan 22 15:10 pom.xml
 ----
-. Build the NiFi source using link:https://maven.apache.org/[Apache Maven] from the source root directory (`nifi-1.11.4/`) using one of the following commands. For more information, see the link:https://cwiki.apache.org/confluence/display/NIFI/Contributor+Guide[NiFi Contributor Guide]. Estimated build times for each command on a modern professional laptop are listed below; allow additional time for dependency library downloads on first build.
+. Build the NiFi source using link:https://maven.apache.org/[Apache Maven^] from the source root directory (`nifi-1.11.4/`) using one of the following commands. For more information, see the link:https://cwiki.apache.org/confluence/display/NIFI/Contributor+Guide[NiFi Contributor Guide^]. Estimated build times for each command on a modern professional laptop are listed below; allow additional time for dependency library downloads on first build.
 * `mvn clean install -Pinclude-grpc` -- Builds the application (expected time ~30 minutes)
 * `mvn clean install -T2.0C` -- Builds the application with multiple parallel threads (expected time ~15 minutes)
 * `mvn clean install -T2.0C -DskipTests` -- Builds the application with multiple parallel threads and unit tests disabled (expected time ~6 minutes)
@@ -176,12 +178,12 @@ drwxr-xr-x  116 alopresto  staff   3.6K Apr  6 15:50 lib/
 * `ls -alGh` -- Lists the contents of the directory (optional)
 +
 image::nifi-home-dir-listing.png["NiFi Home directory contents"]
-. At this point, NiFi can be started with default configuration values (available at `http://localhost:8080/nifi`).
+. At this point, NiFi can be started with default configuration values (available at link:http://localhost:8080/nifi[`http://localhost:8080/nifi`^]).
 * `./bin/nifi.sh start` -- Starts NiFi
 * `tail -f logs/nifi-app.log` -- Tails the application log which will indicate when the application has started
 +
 image::nifi-app-log-ui-available.png["NiFi application log listing available URLS"]
-. Navigate to the URL in a web browser (link:http://localhost:8080 or any listed in the `nifi-app.log` output).
+. Navigate to the URL in a web browser (link:http://localhost:8080/nifi[`http://localhost:8080/nifi`^] or any listed in the `nifi-app.log` output).
 +
 image::nifi-application-running-browser.png["NiFi application running in browser"]
 
@@ -194,38 +196,38 @@ Many web applications run on `:8080` by default, so this port may already be occ
 * `./bin/nifi.sh stop` -- Stops the specified instance
 . Open the main configuration file for NiFi (`nifi.properties`). Any text editor is sufficient for this (Sublime Text, Atom, vi, nano, etc.)
 * `$EDITOR conf/nifi.properties` -- Opens the `nifi.properties` file for editing
-. Change `nifi.web.http.port=8080` -> `nifi.web.http.port=7777` -- Sets the HTTP port to a new value. This is line 145 as of 1.11.4
+. Change `nifi.web.http.port=8080` -> `nifi.web.http.port=7777` -- Sets the HTTP port to a new value
 +
 NOTE: Setting a port between 1 - 1024 requires `root` access on *nix systems
 . Save and close the file.
 . Start NiFi again
 * `./bin/nifi.sh start` -- Starts NiFi
 * `tail -f logs/nifi-app.log` -- Tails the application log
-. Open a web browser to the new address (`http://localhost:7777/nifi`)
+. Open a web browser to the new address (link:http://localhost:7777/nifi[`http://localhost:7777/nifi`^])
 
 == Securing NiFi with TLS
 
-Apache NiFi requires link://https://en.wikipedia.org/wiki/Transport_Layer_Security[Transport Layer Security (TLS)^] configuration for multiple reasons.
+Apache NiFi requires link:https://en.wikipedia.org/wiki/Transport_Layer_Security[Transport Layer Security (TLS)^] configuration for multiple reasons.
 
 . To encrypt communication between clients and server (this provides confidentialty and integrity over transmitted data)
 . To prevent malicious users from intercepting data or impersonating the server
 . To enable any authentication & authorization mechanisms
 
-NiFi intentionally does not allow any authentication or authorization features over plaintext HTTP. Without the confidentiality and integrity provided by TLS and the user & group access controls, any malicious entity can intercept and modify NiFi API requests, corrupt and steal data, and otherwise interfere with the NiFi instance. Because of NiFi's robust feature set, this can even lead to complete control over the host running NiFi. For more information, see <<administration-guide.adoc#security_configuration,Administrator's Guide: Security Configuration>>.
+NiFi intentionally does not allow any authentication or authorization features over plaintext HTTP. Without the confidentiality and integrity provided by TLS and the user & group access controls, any malicious entity can intercept and modify NiFi API requests, corrupt and steal data, and otherwise interfere with the NiFi instance. Because of NiFi's robust feature set, this can even lead to complete control over the host running NiFi. For more information, see link:administration-guide.html#security_configuration[Administrator's Guide: Security Configuration^].
 
 === Securing NiFi with TLS Toolkit
 
 NOTE: This section assumes no enterprise IT department to provide signed certificates. For a scenario with provided certificates, see <<securing-nifi-with-provided-certificates,Securing NiFi with Provided Certificates>>.
 
 |=======================================================================================================================
-|Description        | Instructions on enabling link://https://en.wikipedia.org/wiki/Transport_Layer_Security[Transport Layer Security (TLS)^] for the Apache NiFi application using the TLS Toolkit
+|Description        | Instructions on enabling link:https://en.wikipedia.org/wiki/Transport_Layer_Security[Transport Layer Security (TLS)^] for the Apache NiFi application using the TLS Toolkit
 |Purpose            | Securing NiFi with TLS protects data in motion and is required to enable authentication & authorization
 |Starting Point     | <<starting-nifi>>
 |Expected Outcome   | Latest version of Apache NiFi running on host over TLS with client certificate authentication and authorization enabled and a single configured user
 |Estimated Duration | 10 minutes
 |=======================================================================================================================
 
-Apache NiFi provides a toolkit (a collection of command-line tools for system administration). One of these is the TLS Toolkit, which provides a self-signed link:https://en.wikipedia.org/wiki/Certificate_authority[Certificate Authority (CA)^] and can easily issue and sign certificates in the format expected by NiFi. The toolkit can be run by a user or scripted to perform automated certificate generation. For more information, see <<toolkit-guide.adoc#tls_toolkit,NiFi Toolkit Guide: TLS Toolkit>>.
+Apache NiFi provides a toolkit (a collection of command-line tools for system administration). One of these is the TLS Toolkit, which provides a self-signed link:https://en.wikipedia.org/wiki/Certificate_authority[Certificate Authority (CA)^] and can easily issue and sign certificates in the format expected by NiFi. The toolkit can be run by a user or scripted to perform automated certificate generation. For more information, see link:toolkit-guide.html#tls_toolkit[NiFi Toolkit Guide: TLS Toolkit^].
 
 The end result will consist of a self-signed NiFi CA (the root), a keystore and truststore containing the necessary certificates for the NiFi instance to operate, and a client certificate for a human user to access NiFi.
 
@@ -304,7 +306,7 @@ nifi-toolkit-1.11.4 % diff ../nifi-1.11.4/conf/nifi.properties localhost/nifi.pr
 > nifi.cluster.node.protocol.port=11443
 ----
 
-The `nifi.remote` section configures <<user-guide.adoc#site-to-site,Site to Site>> connections. The `nifi.web` section disables the plaintext HTTP connector and enables an HTTPS connector at `localhost:9443` (the default HTTPS port for NiFi). The `nifi.security` section populates the paths to the keystore and truststore and randomly-generated passwords for each. The `nifi.cluster` section configures the <<administration-guide.adoc#clustering,cluster communication protocol>> (not used in a standalone instance).
+The `nifi.remote` section configures link:user-guide.html#site-to-site[Site to Site^] connections. The `nifi.web` section disables the plaintext HTTP connector and enables an HTTPS connector at `localhost:9443` (the default HTTPS port for NiFi). The `nifi.security` section populates the paths to the keystore and truststore and randomly-generated passwords for each. The `nifi.cluster` section configures the link:administration-guide.html#clustering[cluster communication protocol^] (not used in a standalone instance).
 --
 . Copy the contents of the `localhost` directory to the `conf/` directory in the location of the NiFi installation. **This command will overwrite any existing `nifi.properties` file or keystore/truststore present in the destination.**
 * `cp -rv ./localhost/* /etc/nifi-1.11.4/conf/.` -- Copies the generated files into the NiFi instance
@@ -356,7 +358,7 @@ Note that there are now log entries about the keystore and truststore being load
 2020-04-04 19:52:01,219 INFO [main] org.apache.nifi.NiFi Controller initialization took 16457023826 nanoseconds (16 seconds).
 ----
 --
-. Open the web browser to `https://localhost:9443/nifi`. The browser will present a warning that the site you are attempting to visit is insecure because the NiFi certificate is not signed by a trusted CA. Make an exception and acknowledge the risk (all communications are still encrypted even if the browser does not recognize the certificate). The browser may prompt to select the client certificate you wish to present to NiFi. Choose the entry for `CN=my_username` generated by the toolkit.
+. Open the web browser to link:https://localhost:9443/nifi[`https://localhost:9443/nifi`^]. The browser will present a warning that the site you are attempting to visit is insecure because the NiFi certificate is not signed by a trusted CA. Make an exception and acknowledge the risk (all communications are still encrypted even if the browser does not recognize the certificate). The browser may prompt to select the client certificate you wish to present to NiFi. Choose the entry for `CN=my_username` generated by the toolkit.
 +
 --
 The browser warning of an insecure server certificate
@@ -374,7 +376,7 @@ image::nifi-running-tls-client-certificate.png["NiFi running with user logged in
 
 ==== Additional Notes
 
-* While it is recommended to configure NiFi with security immediately, some admins have already run NiFi with other configuration modifications before securing it. The TLS Toolkit provides an option to consume an existing `nifi.properties` file and make the security changes to it rather than using a default template. Use `-f /etc/nifi-1.11.4/conf/nifi.properties` or `--nifiPropertiesFile /etc/nifi-1.11.4/conf/nifi.properties` if this file already exists. For more toolkit options, see <<toolkit-guide.adoc#tls_operation_modes,NiFi Toolkit Guide: TLS Toolkit Operation Modes>>.
+* While it is recommended to configure NiFi with security immediately, some admins have already run NiFi with other configuration modifications before securing it. The TLS Toolkit provides an option to consume an existing `nifi.properties` file and make the security changes to it rather than using a default template. Use `-f /etc/nifi-1.11.4/conf/nifi.properties` or `--nifiPropertiesFile /etc/nifi-1.11.4/conf/nifi.properties` if this file already exists. For more toolkit options, see link:toolkit-guide.html#tls_operation_modes[NiFi Toolkit Guide: TLS Toolkit Operation Modes^].
 * To generate a certificate for a hostname other than `localhost`, use the `-n somehost.com` argument. To run on the local machine, DNS settings must allow for this. Either modify the `/etc/hosts` file or use a tool like link:https://en.wikipedia.org/wiki/Dnsmasq[dnsmasq^] to set up custom DNS routing. This is beyond the scope of this document.
 * The browser will warn about an insecure connection because it does not trust the self-signed CA certificate. To explicitly mark this certificate as trusted, follow the instructions for the relevant OS and browser combination. For example, using macOS Catalina and Google Chrome:
 +
@@ -392,7 +394,7 @@ image::keychain-access-trust-certificate.png["Trusting the CA certificate for TL
 
 * Close the dialog
 * Restart the browser
-* Navigate to `https://localhost:9443/nifi`
+* Navigate to link:https://localhost:9443/nifi[`https://localhost:9443/nifi`^]
 
 image::nifi-trusted-server-certificate.png["Browser showing trusted NiFi server certificate"]
 --
@@ -402,7 +404,7 @@ image::nifi-trusted-server-certificate.png["Browser showing trusted NiFi server 
 NOTE: This section assumes an enterprise IT department or other mechanism to provide signed certificates. For a scenario with self-signed certificates, see <<securing-nifi-with-tls-toolkit,Securing NiFi with TLS Toolkit>>.
 
 |=======================================================================================================================
-|Description        | Instructions on enabling link://https://en.wikipedia.org/wiki/Transport_Layer_Security[Transport Layer Security (TLS)^] for the Apache NiFi application using provided certificates
+|Description        | Instructions on enabling link:https://en.wikipedia.org/wiki/Transport_Layer_Security[Transport Layer Security (TLS)^] for the Apache NiFi application using provided certificates
 |Purpose            | Securing NiFi with TLS protects data in motion and is required to enable authentication & authorization
 |Starting Point     | <<starting-nifi>>
 |Expected Outcome   | Latest version of Apache NiFi running on host over TLS with client certificate authentication and authorization enabled and a single configured user
@@ -539,7 +541,7 @@ The prerequisites for the scenario (issued by the IT department):
 * The matching private key in PEM format (`client.key`)
 * The CA certificate in PEM format (`cacert.pem`)
 
-NOTE: For more information on converting certificates between various forms, see <<toolkit-guide.adoc#additional_certificate_commands,Toolkit Guide: Additional Certificate Commands>>.
+NOTE: For more information on converting certificates between various forms, see link:toolkit-guide.html#additional_certificate_commands[Toolkit Guide: Additional Certificate Commands^].
 
 The end result will consist of a self-signed external CA (the root), a keystore and truststore containing the necessary certificates for the NiFi instance to operate, and a client certificate for a human user to access NiFi.
 
@@ -820,7 +822,7 @@ CAUTION: Develop section
 
 == Deploying a NiFi Cluster
 
-Apache NiFi can run in either _standalone_ or _clustered_ mode. A standalone node is often sufficient for dataflow operations, but in a production or high-volume environment, a cluster is more performant and resilient. For more information, see <<administration-guide.adoc#clustering,NiFi Administrator's Guide: Clustering>>.
+Apache NiFi can run in either _standalone_ or _clustered_ mode. A standalone node is often sufficient for dataflow operations, but in a production or high-volume environment, a cluster is more performant and resilient. For more information, see link:administration-guide.html#clustering[NiFi Administrator's Guide: Clustering^].
 
 === Creating a NiFi Cluster
 
@@ -875,7 +877,7 @@ The end result will consist of a self-signed external CA (the root), a keystore 
 
 image::nifi-cluster-tls-toolkit-certificate-diagram.png["NiFi Cluster with TLS Toolkit Certificates Diagram"]
 
-. Create the NiFi Client Certificates. When using the `standalone` mode of the TLS Toolkit, it is important that *all certificates are generated from the same instance, using the same generated NiFi CA certificate to sign each*. The certificates can be generated by a single command, or individually. By default, the Distinguished Name (DN) will be `CN=<provided_hostname>, OU=NIFI`. For more information on toolkit flag options, see link:http://nifi.apache.org/docs/nifi-docs/html/toolkit-guide.html#usage-8[NiFi Toolkit Guide: TLS Toolkit Usage].
+. Create the NiFi Client Certificates. When using the `standalone` mode of the TLS Toolkit, it is important that *all certificates are generated from the same instance, using the same generated NiFi CA certificate to sign each*. The certificates can be generated by a single command, or individually. By default, the Distinguished Name (DN) will be `CN=<provided_hostname>, OU=NIFI`. For more information on toolkit flag options, see link:toolkit-guide.html#usage-8[NiFi Toolkit Guide: TLS Toolkit Usage^].
 .. Navigate to the `nifi-toolkit-1.11.4/` directory.
 * `cd /etc/nifi-toolkit-1.11.4/` -- Changes to the toolkit directory
 .. Generate the certificates. Running these commands first generates the NiFi CA public certificate and private key if not present, then generates the server certificates, followed by the client certificate necessary for the *Initial Admin Identity*. An alternative command performing all the steps sequentially is also provided.
@@ -978,7 +980,7 @@ Optional command to execute all steps together using the toolkit pattern syntax:
 * `cp -R /etc/nifi-toolkit-1.11.4/node1.nifi/* node1.nifi/conf/.` -- Copies the `node1` files
 * `cp -R /etc/nifi-toolkit-1.11.4/node2.nifi/* node2.nifi/conf/.` -- Copies the `node2` files
 * `cp -R /etc/nifi-toolkit-1.11.4/node3.nifi/* node3.nifi/conf/.` -- Copies the `node3` files
-. Modify the `nifi.properties` file for each node to set the appropriate ports and enable the embedded link:https://zookeeper.apache.org/[ZooKeeper^] server. *If the nodes are being deployed to separate physical or virtual machines (such that each is treated as an independent host for networking), modifying the ports is not required, but enabling the embedded ZooKeeper servers is*. If the nodes are being deployed on the same machine such that the ports cannot conflict, all parts of this step are required. This port selection convention follows the pattern defined at the top of this section, where the last digit corresponds to the node identifier. For more information on ZooKeeper configuration for NiFi, see <<administration-guide.adoc#embedded_zookeeper,NiFi Administrator's Guide: Embedded ZooKeeper>>.
+. Modify the `nifi.properties` file for each node to set the appropriate ports and enable the embedded link:https://zookeeper.apache.org/[ZooKeeper^] server. *If the nodes are being deployed to separate physical or virtual machines (such that each is treated as an independent host for networking), modifying the ports is not required, but enabling the embedded ZooKeeper servers is*. If the nodes are being deployed on the same machine such that the ports cannot conflict, all parts of this step are required. This port selection convention follows the pattern defined at the top of this section, where the last digit corresponds to the node identifier. For more information on ZooKeeper configuration for NiFi, see link:administration-guide.html#embedded_zookeeper[NiFi Administrator's Guide: Embedded ZooKeeper^].
 +
 NOTE: The `nifi.cluster.load.balance.host=` entry must be manually populated here because it was added after the TLS Toolkit was last updated. The toolkit correctly populates the hostname in all other necessary properties.
 
@@ -1050,7 +1052,7 @@ image::authorizers-xml-initial-user-identities.png["authorizers.xml with Initial
 image::authorizers-xml-initial-node-identities.png["authorizers.xml with Initial Node Identities"]
 * `cp node1.nifi/conf/authorizers.xml node2.nifi/conf/authorizers.xml` -- Copies the modified `authorizers.xml` file from `node1` to `node2`
 * `cp node1.nifi/conf/authorizers.xml node3.nifi/conf/authorizers.xml` -- Copies the modified `authorizers.xml` file from `node1` to `node3`
-. By default, NiFI waits for nodes to join for 5 minutes before the cluster is available. Because the number of nodes is known, this delay can be modified on each node to start up much faster. (Optional)
+. By default, NiFi waits for nodes to join for 5 minutes before the cluster is available. Because the number of nodes is known, this delay can be modified on each node to start up much faster. (Optional)
 * `$EDITOR node1.nifi/conf/nifi.properties` -- Opens the `nifi.properties` file in a text editor
 * Update the following lines:
 ** `nifi.cluster.flow.election.max.wait.time=5 mins` -> `nifi.cluster.flow.election.max.wait.time=1 min` -- Changes the flow election wait time to 1 min, speeding up cluster availability. This is line 226 as of 1.11.4 
