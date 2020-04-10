@@ -77,6 +77,11 @@ public class NiFiTestAuthorizer implements Authorizer {
             return AuthorizationResult.resourceNotFound();
         }
 
+        // allow the anonymous user
+        if (request.isAnonymous()) {
+            return AuthorizationResult.approved();
+        }
+
         // allow the token user
         if (TOKEN_USER.equals(request.getIdentity())) {
             return AuthorizationResult.approved();
