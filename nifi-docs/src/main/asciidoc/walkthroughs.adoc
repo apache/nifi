@@ -333,8 +333,8 @@ nifi-toolkit-1.11.4 % ./bin/tls-toolkit.sh standalone -C "CN=my_username, OU=NiF
 . Load the client certificate into the web browser. Some browsers (e.g. Mozilla Firefox) maintain their own internal keychain separate from the operating system's (OS). Others (e.g. Apple Safari, Google Chrome) rely on the OS keychain. On most modern OS, double-clicking the PKCS12 keystore (`CN=my_username_OU=NiFi.p12`) will open it with the default handler and load it into the OS keychain. The randomly-generated password is available in `CN=my_username_OU=NiFi.password`.
 . Populate the *Initial Admin Identity* in NiFi. This is the identity that will be allowed to access the NiFi instance and configure user and group access via the UI or API.
 * `$EDITOR /etc/nifi-1.11.4/conf/authorizers.xml` -- Opens the `authorizers.xml` file in the text editor.
-* Replace `<property name="Initial User Identity 1"></property>` in the `userGroupProvider` section with `<property name="Initial User Identity 1">CN=my_username, OU=NiFi</property>` containing the full Distinguished Name (DN) as provided to the TLS Toolkit in the previous step. (In 1.11.4 this is line 52)
-* Replace `<property name="Initial Admin Identity"></property>` in the `accessPolicyProvider` section with `<property name="Initial Admin Identity">CN=my_username, OU=NiFi</property>` containing the full Distinguished Name (DN) as provided to the TLS Toolkit in the previous step. (In 1.11.4 this is line 280)
+* Replace `<property name="Initial User Identity 1"></property>` in the `userGroupProvider` section with `<property name="Initial User Identity 1">CN=my_username, OU=NiFi</property>` containing the full Distinguished Name (DN) as provided to the TLS Toolkit in the previous step
+* Replace `<property name="Initial Admin Identity"></property>` in the `accessPolicyProvider` section with `<property name="Initial Admin Identity">CN=my_username, OU=NiFi</property>` containing the full Distinguished Name (DN) as provided to the TLS Toolkit in the previous step
 +
 WARNING: This is a frequent problem area when configuring security for NiFi. The DN must match *exactly* to be authenticated. Check capitalization and whitespace especially.
 . Start NiFi with the new configuration.
@@ -1038,14 +1038,14 @@ NOTE: The `nifi.cluster.load.balance.host=` entry must be manually populated her
 . Update the `authorizers.xml` file. This file contains the *Initial Node Identities* and *Initial User Identities*. The *users* consist of all human users _and_ all nodes in the cluster. The `authorizers.xml` file can be identical on each node (assuming no other changes were made), so the modified file will be copied to the other nodes.
 * `$EDITOR node1.nifi/conf/authorizers.xml` -- Opens the `authorizers.xml` file in a text editor
 * Update the following lines:
-** In the `<userGroupProvider>` section, `<property name="Initial User Identity 1"></property>` -> `<property name="Initial User Identity 1">CN=my_username</property>` -- Adds an initial user with the DN generated in the client certificate. This is line 52 as of 1.11.4
+** In the `<userGroupProvider>` section, `<property name="Initial User Identity 1"></property>` -> `<property name="Initial User Identity 1">CN=my_username</property>` -- Adds an initial user with the DN generated in the client certificate
 ** In the `<userGroupProvider>` section, add the line `<property name="Initial User Identity 2">CN=node1.nifi, OU=NIFI</property>` -- Adds an initial user for `node1`
 ** In the `<userGroupProvider>` section, add the line `<property name="Initial User Identity 3">CN=node2.nifi, OU=NIFI</property>` -- Adds an initial user for `node2`
 ** In the `<userGroupProvider>` section, add the line `<property name="Initial User Identity 4">CN=node3.nifi, OU=NIFI</property>` -- Adds an initial user for `node3`
 +
 image::authorizers-xml-initial-user-identities.png["authorizers.xml with Initial User Identities"]
-** In the `<accessPolicyProvider>` section, `<property name="Initial Admin Identity"></property>` -> `<property name="Initial Admin Identity">CN=my_username</property>` -- Adds an initial admin with the DN generated in the client certificate. This is line 280 as of 1.11.4
-** In the `<accessPolicyProvider>` section, `<property name="Node Identity 1"></property>` -> `<property name="Node Identity 1">CN=node1.nifi, OU=NIFI</property>` -- Adds an initial node with the DN generated in the `node1` certificate. This is line 282 as of 1.11.4
+** In the `<accessPolicyProvider>` section, `<property name="Initial Admin Identity"></property>` -> `<property name="Initial Admin Identity">CN=my_username</property>` -- Adds an initial admin with the DN generated in the client certificate
+** In the `<accessPolicyProvider>` section, `<property name="Node Identity 1"></property>` -> `<property name="Node Identity 1">CN=node1.nifi, OU=NIFI</property>` -- Adds an initial node with the DN generated in the `node1` certificate
 ** In the `<accessPolicyProvider>` section, add the line `<property name="Node Identity 2">CN=node2.nifi, OU=NIFI</property>`
 ** In the `<accessPolicyProvider>` section, add the line `<property name="Node Identity 3">CN=node3.nifi, OU=NIFI</property>`
 +
@@ -1055,16 +1055,16 @@ image::authorizers-xml-initial-node-identities.png["authorizers.xml with Initial
 . By default, NiFi waits for nodes to join for 5 minutes before the cluster is available. Because the number of nodes is known, this delay can be modified on each node to start up much faster. (Optional)
 * `$EDITOR node1.nifi/conf/nifi.properties` -- Opens the `nifi.properties` file in a text editor
 * Update the following lines:
-** `nifi.cluster.flow.election.max.wait.time=5 mins` -> `nifi.cluster.flow.election.max.wait.time=1 min` -- Changes the flow election wait time to 1 min, speeding up cluster availability. This is line 226 as of 1.11.4 
-** `nifi.cluster.flow.election.max.candidates=` -> `nifi.cluster.flow.election.max.candidates=3` -- Changes the flow election to occur when 3 nodes are present, speeding up cluster availability. This is line 227 as of 1.11.4 
+** `nifi.cluster.flow.election.max.wait.time=5 mins` -> `nifi.cluster.flow.election.max.wait.time=1 min` -- Changes the flow election wait time to 1 min, speeding up cluster availability
+** `nifi.cluster.flow.election.max.candidates=` -> `nifi.cluster.flow.election.max.candidates=3` -- Changes the flow election to occur when 3 nodes are present, speeding up cluster availability
 * `$EDITOR node2.nifi/conf/nifi.properties` -- Opens the `nifi.properties` file in a text editor
 * Update the following lines:
-** `nifi.cluster.flow.election.max.wait.time=5 mins` -> `nifi.cluster.flow.election.max.wait.time=1 min` -- Changes the flow election wait time to 1 min, speeding up cluster availability. This is line 226 as of 1.11.4 
-** `nifi.cluster.flow.election.max.candidates=` -> `nifi.cluster.flow.election.max.candidates=3` -- Changes the flow election to occur when 3 nodes are present, speeding up cluster availability. This is line 227 as of 1.11.4 
+** `nifi.cluster.flow.election.max.wait.time=5 mins` -> `nifi.cluster.flow.election.max.wait.time=1 min` -- Changes the flow election wait time to 1 min, speeding up cluster availability
+** `nifi.cluster.flow.election.max.candidates=` -> `nifi.cluster.flow.election.max.candidates=3` -- Changes the flow election to occur when 3 nodes are present, speeding up cluster availability
 * `$EDITOR node3.nifi/conf/nifi.properties` -- Opens the `nifi.properties` file in a text editor
 * Update the following lines:
-** `nifi.cluster.flow.election.max.wait.time=5 mins` -> `nifi.cluster.flow.election.max.wait.time=1 min` -- Changes the flow election wait time to 1 min, speeding up cluster availability. This is line 226 as of 1.11.4 
-** `nifi.cluster.flow.election.max.candidates=` -> `nifi.cluster.flow.election.max.candidates=3` -- Changes the flow election to occur when 3 nodes are present, speeding up cluster availability. This is line 227 as of 1.11.4 
+** `nifi.cluster.flow.election.max.wait.time=5 mins` -> `nifi.cluster.flow.election.max.wait.time=1 min` -- Changes the flow election wait time to 1 min, speeding up cluster availability
+** `nifi.cluster.flow.election.max.candidates=` -> `nifi.cluster.flow.election.max.candidates=3` -- Changes the flow election to occur when 3 nodes are present, speeding up cluster availability
 . Start the NiFi cluster. Once all three nodes have started and joined the cluster, the flow is agreed upon and a cluster coordinator is elected, the UI is available on any of the three nodes. 
 * `./node1.nifi/bin/nifi.sh start` -- Starts `node1`
 * `./node2.nifi/bin/nifi.sh start` -- Starts `node2`
