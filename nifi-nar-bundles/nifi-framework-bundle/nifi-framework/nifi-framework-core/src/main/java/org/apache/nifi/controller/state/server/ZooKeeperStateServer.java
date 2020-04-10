@@ -36,6 +36,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.InetSocketAddress;
 import java.util.Properties;
 
 public class ZooKeeperStateServer extends ZooKeeperServerMain {
@@ -104,8 +105,16 @@ public class ZooKeeperStateServer extends ZooKeeperServerMain {
             embeddedZkServer.setMinSessionTimeout(config.getMinSessionTimeout());
             embeddedZkServer.setMaxSessionTimeout(config.getMaxSessionTimeout());
 
+            final InetSocketAddress port = config.getClientPortAddress();
+            final InetSocketAddress secPort = config.getSecureClientPortAddress();
             connectionFactory = ServerCnxnFactory.createFactory();
-            connectionFactory.configure(config.getClientPortAddress(), config.getMaxClientCnxns());
+            if (secPort != null) {
+                logger.info("Configuring secure connections for embedded server on port: " + secPort);
+                connectionFactory.configure(secPort, config.getMaxClientCnxns(), true);
+            } else {
+                logger.info("Configuring insecure connections for embedded server on port: " + port);
+                connectionFactory.configure(port, config.getMaxClientCnxns(), false);
+            }
             connectionFactory.startup(embeddedZkServer);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -123,8 +132,16 @@ public class ZooKeeperStateServer extends ZooKeeperServerMain {
         try {
             transactionLog = new FileTxnSnapLog(quorumPeerConfig.getDataLogDir(), quorumPeerConfig.getDataDir());
 
+            final InetSocketAddress port = quorumPeerConfig.getClientPortAddress();
+            final InetSocketAddress secPort = quorumPeerConfig.getSecureClientPortAddress();
             connectionFactory = ServerCnxnFactory.createFactory();
-            connectionFactory.configure(quorumPeerConfig.getClientPortAddress(), quorumPeerConfig.getMaxClientCnxns());
+            if (secPort != null) {
+                logger.info("Configuring secure connections for distributed server on port: " + secPort);
+                connectionFactory.configure(secPort, quorumPeerConfig.getMaxClientCnxns(), true);
+            } else {
+                logger.info("Configuring insecure connections for distributed server on port: " + port);
+                connectionFactory.configure(port, quorumPeerConfig.getMaxClientCnxns(), false);
+            }
 
             quorumPeer = new QuorumPeer();
             quorumPeer.setTxnFactory(new FileTxnSnapLog(quorumPeerConfig.getDataLogDir(), quorumPeerConfig.getDataDir()));

@@ -97,9 +97,15 @@ The following table lists the default ports used by an <<embedded_zookeeper>> an
 
 [options="header,footer"]
 |==================================================================================================================================================
-| Function                                         | Property       | Default Value
+| Function                                         | Property          | Default Value
 |Zookeeper Client Port (Deprecated: client port is no longer specified on a separate line as of NiFi 1.10.x)                             | `clientPort`   | `2181`
-|Zookeeper Server Quorum and Leader Election Ports | `server.1`     | _none_
+|Zookeeper Server Quorum and Leader Election Ports | `server.1`              | _none_
+|Zookeeper Secure Client Port                      | secureClientPort        | _none_, defacto port is 2281
+|Zookeeper Server Secure Connection Class          | serverCnxnFactory       | _none_, use _org.apache.zookeeper.server.NettyServerCnxnFactory_ for TLS
+|Zookeeper SSL Key Store Path                      | ssl.keyStore.location   | _none_
+|Zookeeper SSL Key Store Password                  | ssl.keyStore.password   | _none_
+|Zookeeper SSL Trust Store Path                    | ssl.trustStore.location | _none_
+|Zookeeper SSL Trust Store Password                | ssl.trustStore.password | _none_
 |==================================================================================================================================================
 
 NOTE: Commented examples for the Zookeeper server ports are included in the _zookeeper.properties_ file in the form `server.N=nifi-nodeN-hostname:2888:3888;2181`.
