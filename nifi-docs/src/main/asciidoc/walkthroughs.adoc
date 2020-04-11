@@ -328,7 +328,8 @@ nifi-toolkit-1.11.4 % ./bin/tls-toolkit.sh standalone -C "CN=my_username, OU=NiF
 2020/04/04 19:38:31 INFO [main] org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone: tls-toolkit standalone completed successfully
 ----
 
-[[load_client_certificate_to_browser]]
+[[load-client-certificate-to-browser]]
+
 [start=6]
 . Load the client certificate into the web browser. Some browsers (e.g. Mozilla Firefox) maintain their own internal keychain separate from the operating system's (OS). Others (e.g. Apple Safari, Google Chrome) rely on the OS keychain. On most modern OS, double-clicking the PKCS12 keystore (`CN=my_username_OU=NiFi.p12`) will open it with the default handler and load it into the OS keychain. The randomly-generated password is available in `CN=my_username_OU=NiFi.password`.
 . Populate the *Initial Admin Identity* in NiFi. This is the identity that will be allowed to access the NiFi instance and configure user and group access via the UI or API.
@@ -723,7 +724,7 @@ KeyIdentifier [
 *******************************************
 ----
 --
-. Convert the PKCS12 keystore for the NiFi instance into the Java KeyStore file (`keystore.jks`) necessary. PKCS12 keystores are usable by NiFi, but JKS format is handled more robustly and causes fewer edge cases. JKS keystores cannot be formed directly from PEM files, so the PKCS12 keystore serves as an intermediate form.
+. Convert the PKCS12 keystore for the NiFi instance into the Java KeyStore file (`keystore.jks`). PKCS12 keystores are usable by NiFi, but JKS format is handled more robustly and causes fewer edge cases. JKS keystores cannot be formed directly from PEM files, so the PKCS12 keystore serves as an intermediate form.
 * `keytool -importkeystore -srckeystore nifi.p12 -srcstoretype pkcs12 -srcalias nifi-key -destkeystore keystore.jks
        -deststoretype jks -destalias nifi-key` -- Converts the PKCS12 keystore to a JKS keystore. This command will prompt for a new keystore password twice, then prompt for the password set on the PKCS12 keystore from the previous step
 . Convert the CA certificate into the NiFi truststore (`truststore.jks`) to allow trusted incoming connections.
@@ -790,7 +791,7 @@ Trust this certificate? [no]:  yes
 Certificate was added to keystore
 ----
 --
-. Optionally move the `keystore.jks` and `truststore.jks` files into the `conf/` directory. This step is not required, but helps with organization.
+. Optionally, move the `keystore.jks` and `truststore.jks` files into the `conf/` directory. This step is not required, but helps with organization.
 . Configure the `nifi.properties` file with the necessary values. This includes setting the hostname, ports, and keystore and truststore paths and passwords.
 * `$EDITOR conf/nifi.properties` -- Opens the `nifi.properties` file in a text editor
 * Update the following lines:
@@ -807,7 +808,7 @@ Certificate was added to keystore
 ** `nifi.security.truststoreType=` -> `nifi.security.truststoreType=jks`
 ** `nifi.security.truststorePasswd=` -> `nifi.security.truststorePasswd=passwordpassword`
 . Generate the client certificate keystore from the client certificate and key.
-`openssl pkcs12 -export -out CN=my_username.p12 -inkey client.key -in client.pem` -- Creates the PKCS12 keystore containing the client certificate and private key. This command prompts for an *export password* twice
+* `openssl pkcs12 -export -out CN=my_username.p12 -inkey client.key -in client.pem` -- Creates the PKCS12 keystore containing the client certificate and private key. This command prompts for an *export password* twice
 
 From this point, the instructions are identical to those using the TLS Toolkit, starting at <<load-client-certificate-to-browser,Loading the client certificate in the browser>>.
 
@@ -826,6 +827,15 @@ Apache NiFi can run in either _standalone_ or _clustered_ mode. A standalone nod
 
 === Creating a NiFi Cluster
 
+|=======================================================================================================================
+|Description        | Instructions on configuring a 3 node unsecured cluster
+|Purpose            | A NiFi cluster can perform flow operations in parallel and provide resiliency if nodes are unavailable.
+|Starting Point     | <<installing-apache-nifi,Installing Apache NiFi>> or <<building-nifi-from-source,Building NiFi from Source>>
+|Expected Outcome   | 3 nodes of latest version of Apache NiFi in an unsecured cluster running on local machine
+|Helpful Reading    | <<starting-nifi,Starting NiFi>>
+|Estimated Duration | 10 minutes
+|=======================================================================================================================
+
 // TODO: Write
 CAUTION: Needs a diagram
 
@@ -835,7 +845,6 @@ CAUTION: Develop section
 . Configure the settings
 . Start each node
 
-// TODO: Write
 === Creating and Securing a NiFi Cluster with the TLS Toolkit
 
 NOTE: This section assumes no enterprise IT department to provide signed certificates. For a scenario with provided certificates, see <<securing-nifi-with-provided-certificates,Securing NiFi with Provided Certificates>>.
@@ -865,13 +874,13 @@ Prerequisites:
 *** `10443` -- Site to site port
 *** `11443` -- Cluster communications port
 ** If all the nodes will run on the same machine, the port scheme will end in the respective node identifier to avoid conflicts (e.g. HTTPS port `9441` for `node1`, `9442` for `node2`, `9443` for `node3`). Ensure that the following ports are open:
-*** `2181` - `2183` -- ZooKeeper ports
-*** `2881` - `2883` -- ZooKeeper ports
-*** `3881` - `3883` -- ZooKeeper ports
-*** `6341` - `6343` -- Load-balancing port
-*** `9441` - `9443` -- HTTPS port for NiFi UI/API
-*** `10441` - `10443` -- Site to site port
-*** `11441` - `11443` -- Cluster communications port
+*** `2181, 2182, 2183` -- ZooKeeper ports (client port)
+*** `2881, 2882, 2883` -- ZooKeeper ports (node connection port)
+*** `3881, 3882, 3883` -- ZooKeeper ports (leader election port)
+*** `6341, 6342, 6343` -- Load-balancing port
+*** `9441, 9442, 9443` -- HTTPS port for NiFi UI/API
+*** `10441, 10442, 10443` -- Site to site port
+*** `11441, 11442, 11443` -- Cluster communications port
 
 The end result will consist of a self-signed external CA (the root), a keystore and truststore containing the necessary certificates for each NiFi node to operate, and a client certificate for a human user to access NiFi.
 
@@ -1069,7 +1078,7 @@ image::authorizers-xml-initial-node-identities.png["authorizers.xml with Initial
 * `./node1.nifi/bin/nifi.sh start` -- Starts `node1`
 * `./node2.nifi/bin/nifi.sh start` -- Starts `node2`
 * `./node3.nifi/bin/nifi.sh start` -- Starts `node3`
-. Wait approximately 30 seconds and open the web browser to `https://node3.nifi:9443/nifi`. The cluster should be available. Note that the Initial Admin Identity has no permissions on the root process group. This is an artifact of legacy design decisions where the root process group ID is not known at initial start time. 
+. Wait approximately 30 seconds and open the web browser to link:https://node3.nifi:9443/nifi[`https://node3.nifi:9443/nifi`^]. The cluster should be available. _Note that the Initial Admin Identity has no permissions on the root process group. This is an artifact of legacy design decisions where the root process group ID is not known at initial start time._ 
 +
 --
 _The running cluster_
