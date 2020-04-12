@@ -57,6 +57,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.exception.FlowFileAccessException;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.remote.codec.FlowFileCodec;
 import org.apache.nifi.remote.exception.BadRequestException;
@@ -541,12 +542,13 @@ public class StandardPublicPort extends AbstractPort implements PublicPort {
             throw e;
         } catch (final ProtocolException e) {
             throw new BadRequestException(e);
-        } catch (final IOException e) {
+        } catch (final IOException | FlowFileAccessException e) {
             // The content length filter might be blocking the transmission
             final String REQUEST_TOO_LONG_MSG = "Request input stream longer than";
-            if (e.getMessage() != null && e.getMessage().startsWith(REQUEST_TOO_LONG_MSG)) {
+            if (e.getMessage() != null && e.getMessage().contains(REQUEST_TOO_LONG_MSG)) {
                 logger.error("The content length filter (configured with {}) is blocking the site-to-site connection: {}", NiFiProperties.WEB_MAX_CONTENT_SIZE, e.getMessage());
-                return -1;
+                // Perhaps BRE causes the sender to back off?
+                throw new BadRequestException(e);
             } else {
                 throw new ProcessException(e);
             }
