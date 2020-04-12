@@ -718,7 +718,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
                 logger.debug("Parsed max content length as {} bytes", configuredMaxRequestSize);
                 return configuredMaxRequestSize;
             } else {
-                logger.warn("Can't parse valid max content length from {}", webMaxContentSize);
+                logger.info("Can't parse valid max content length from {}", webMaxContentSize);
             }
         } catch (final IllegalArgumentException e) {
             logger.warn("Exception parsing property {}; disabling content length filter", NiFiProperties.WEB_MAX_CONTENT_SIZE);

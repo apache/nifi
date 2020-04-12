@@ -19,7 +19,6 @@ package org.apache.nifi.web.server
 import org.apache.log4j.AppenderSkeleton
 import org.apache.log4j.spi.LoggingEvent
 import org.apache.nifi.bundle.Bundle
-import org.apache.nifi.bundle.BundleCoordinate
 import org.apache.nifi.processor.DataUnit
 import org.apache.nifi.properties.StandardNiFiProperties
 import org.apache.nifi.util.NiFiProperties
@@ -61,23 +60,6 @@ class JettyServerGroovyTest extends GroovyTestCase {
     @Rule
     public final SystemErrRule systemErrRule = new SystemErrRule().enableLog()
 
-    private static final String TEST_LIB_PATH = "./target/lib"
-
-    private static final List<String> REQUIRED_WARS = ["nifi-web-api",
-                                                       "nifi-web-error",
-                                                       "nifi-web-docs",
-                                                       "nifi-web-content-viewer",
-                                                       "nifi-web"]
-
-    private static final String VERSION = "1.12.0-SNAPSHOT"
-    private static final BundleCoordinate DEPENDENCY_COORDINATE = new BundleCoordinate("org.apache.nifi.test", "parent", VERSION)
-    private static final String BRANCH = "branch_test"
-    private static final String JDK = "11.0.6"
-    private static final String REVISION = "revision_test"
-    private static final String TAG = "tag_test"
-    private static final String TIMESTAMP = new Date().toString()
-    private static final String USER = "user_test"
-
     @BeforeClass
     static void setUpOnce() throws Exception {
         Security.addProvider(new BouncyCastleProvider())
@@ -102,9 +84,6 @@ class JettyServerGroovyTest extends GroovyTestCase {
     @After
     void tearDown() throws Exception {
         TestAppender.reset()
-
-        // Clean up target/lib
-        new File(TEST_LIB_PATH).deleteDir()
     }
 
     @Test

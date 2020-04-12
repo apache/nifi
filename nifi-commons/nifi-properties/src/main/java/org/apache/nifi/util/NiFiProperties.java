@@ -652,7 +652,7 @@ public abstract class NiFiProperties {
      * Does not provide a default value because the presence of any value here enables the
      * {@code ContentLengthFilter}.
      *
-     * @return the specified max content-length in bytes for an incoming HTTP request
+     * @return the specified max content-length and units for an incoming HTTP request
      */
     public String getWebMaxContentSize() {
         return getProperty(WEB_MAX_CONTENT_SIZE);
