@@ -2361,12 +2361,25 @@
                     return aPercentUseDataSize - bPercentUseDataSize;
                 }
             } else if (sortDetails.columnId === 'backpressurePrediction') {
-                // if the connection is at backpressure currently, "now" displays and not the estimate. Should account for that when sorting.
-                var aMaxCurrentUsage = Math.max(_.get(a, 'percentUseBytes', 0), _.get(a, 'percentUseCount', 0));
-                var bMaxCurrentUsage = Math.max(_.get(b, 'percentUseBytes', 0), _.get(b, 'percentUseCount', 0));
+                const aMaxCurrentUsage = Math.max(_.get(a, 'percentUseBytes', 0), _.get(a, 'percentUseCount', 0));
+                const bMaxCurrentUsage = Math.max(_.get(b, 'percentUseBytes', 0), _.get(b, 'percentUseCount', 0));
 
-                var aMinTime = Math.min(_.get(a, 'predictions.predictedMillisUntilBytesBackpressure', Number.MAX_VALUE), _.get(a, 'predictions.predictedMillisUntilCountBackpressure', Number.MAX_VALUE));
-                var bMinTime = Math.min(_.get(b, 'predictions.predictedMillisUntilBytesBackpressure', Number.MAX_VALUE), _.get(b, 'predictions.predictedMillisUntilCountBackpressure', Number.MAX_VALUE));
+                const defaultValueForNotApplicable = sortDetails.sortAsc ? Number.MAX_SAFE_INTEGER : Number.MIN_SAFE_INTEGER;
+
+                // null should be treated as a max value in terms of sort: ALWAYS sort last
+                let aBytesPrediction = _.get(a, 'predictions.predictedMillisUntilBytesBackpressure', defaultValueForNotApplicable);
+                let aCountPrediction = _.get(a, 'predictions.predictedMillisUntilCountBackpressure', defaultValueForNotApplicable);
+                let bBytesPrediction = _.get(b, 'predictions.predictedMillisUntilBytesBackpressure', defaultValueForNotApplicable);
+                let bCountPrediction = _.get(b, 'predictions.predictedMillisUntilCountBackpressure', defaultValueForNotApplicable);
+
+                // if they came in as -1, treat them like nulls since it means the same thing
+                aBytesPrediction = aBytesPrediction === -1 ? defaultValueForNotApplicable : aBytesPrediction;
+                aCountPrediction = aCountPrediction === -1 ? defaultValueForNotApplicable : aCountPrediction;
+                bBytesPrediction = bBytesPrediction === -1 ? defaultValueForNotApplicable : bBytesPrediction;
+                bCountPrediction = bCountPrediction === -1 ? defaultValueForNotApplicable : bCountPrediction;
+
+                let aMinTime = Math.min(aBytesPrediction, aCountPrediction);
+                let bMinTime = Math.min(bBytesPrediction, bCountPrediction);
 
                 if (aMaxCurrentUsage >= 100) {
                     aMinTime = 0;
@@ -2376,6 +2389,7 @@
                 }
 
                 return aMinTime - bMinTime;
+
             } else if (sortDetails.columnId === 'sent' || sortDetails.columnId === 'received' || sortDetails.columnId === 'input' || sortDetails.columnId === 'output' || sortDetails.columnId === 'transferred') {
                 var aSplit = a[sortDetails.columnId].split(/\(([^)]+)\)/);
                 var bSplit = b[sortDetails.columnId].split(/\(([^)]+)\)/);
