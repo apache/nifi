@@ -18,6 +18,8 @@ package org.apache.nifi.graph;
 
 
 import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -43,6 +45,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+@CapabilityDescription("A client service that provides a scriptable interface to open a remote connection/travseral " +
+        "against a Gremlin Server and execute operations against it.")
+@Tags({ "graph", "database", "gremlin", "tinkerpop" })
 public class GremlinBytecodeClientService extends AbstractTinkerpopClientService implements GraphClientService {
 
     private static final List<PropertyDescriptor> NEW_DESCRIPTORS;
