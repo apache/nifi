@@ -40,6 +40,7 @@ import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
 
@@ -83,7 +84,7 @@ public class TestZooKeeperStateServer {
         if (zkServer != null) zkServer.shutdown();
 
         if (tempDir != null) {
-            final List<Path> files = List.of(
+            final List<Path> files = Arrays.asList(
                 dataDir.resolve("version-2/snapshot.0"),
                 dataDir.resolve("version-2/log.1"),
                 dataDir.resolve("version-2"),

@@ -51,6 +51,7 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
 
@@ -129,7 +130,7 @@ public class TestSecureZooKeeperStateServer {
         if (zkServer != null) zkServer.shutdown();
 
         if (tempDir != null) {
-            final List<Path> files = List.of(
+            final List<Path> files = Arrays.asList(
                 dataDir.resolve("version-2/snapshot.0"),
                 dataDir.resolve("version-2/log.1"),
                 dataDir.resolve("version-2"),
