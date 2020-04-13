@@ -151,7 +151,7 @@ public class ContentLengthFilterTest {
 
         String largePayload = StringUtils.repeat("1", largeClaim + 200);
 
-        final String SITE_TO_SITE_POST_REQUEST = "POST /data-transfer/input-ports HTTP/1.1\r\nContent-Length: %d\r\nHost: h\r\n\r\n%s";
+        final String SITE_TO_SITE_POST_REQUEST = "POST /nifi-api/data-transfer/input-ports HTTP/1.1\r\nContent-Length: %d\r\nHost: h\r\n\r\n%s";
 
         // Act
         final String siteToSiteRequest = String.format(SITE_TO_SITE_POST_REQUEST, largeClaim, largePayload);

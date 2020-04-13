@@ -42,7 +42,7 @@ public class ContentLengthFilter implements Filter {
     public final static int MAX_LENGTH_DEFAULT = 10_000_000;
     private int maxContentLength;
 
-    private static final List<String> BYPASS_URI_PREFIXES = Arrays.asList("/data-transfer", "/site-to-site");
+    private static final List<String> BYPASS_URI_PREFIXES = Arrays.asList("/nifi-api/data-transfer", "/nifi-api/site-to-site");
 
     public void init() {
         maxContentLength = MAX_LENGTH_DEFAULT;
