@@ -58,7 +58,7 @@ public class OneWaySslAccessControlHelper {
         File nifiPropertiesFile = new File(nifiPropertiesPath);
         System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, nifiPropertiesFile.getAbsolutePath());
 
-        NiFiProperties props = NiFiProperties.createBasicNiFiProperties(null, null);
+        NiFiProperties props = NiFiProperties.createBasicNiFiProperties(nifiPropertiesPath, null);
         flowXmlPath = props.getProperty(NiFiProperties.FLOW_CONFIGURATION_FILE);
 
         // delete the database directory to avoid issues with re-registration in testRequestAccessUsingToken

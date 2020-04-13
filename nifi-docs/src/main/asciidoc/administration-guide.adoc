@@ -235,6 +235,13 @@ A user cannot anonymously authenticate with a secured instance of NiFi unless `n
 If this is the case, NiFi must also be configured with an Authorizer that supports authorizing an anonymous user. Currently, NiFi does not ship
 with any Authorizers that support this. There is a feature request here to help support it (link:https://issues.apache.org/jira/browse/NIFI-2730[NIFI-2730^]).
 
+There are three scenarios to consider when setting `nifi.security.allow.anonymous.authentication`. When the user is directly calling an endpoint
+with no attempted authentication then `nifi.security.allow.anonymous.authentication` will control whether the request is authenticated or rejected.
+The other two scenarios are when the request is proxied. This could either be proxied by a NiFi node (e.g. a node in the NiFi cluster) or by a separate
+proxy that is proxying a request for an anonymous user. In these proxy scenarios `nifi.security.allow.anonymous.authentication` will control whether the
+request is authenticated or rejected. In all three of these scenarios if the request is authenticated it will subsequently be subjected to normal
+authorization based on the requested resource.
+
 NOTE: NiFi does not perform user authentication over HTTP. Using HTTP, all users will be granted all roles.
 
 [[ldap_login_identity_provider]]

@@ -28,6 +28,7 @@ import org.apache.nifi.nar.NarUnpacker;
 import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
 import org.apache.nifi.nar.SystemBundle;
 import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.util.StringUtils;
 
 import javax.ws.rs.core.Response;
 import java.io.File;
@@ -52,6 +53,7 @@ public class AccessControlHelper {
     private NiFiTestUser noneUser;
     private NiFiTestUser privilegedUser;
     private NiFiTestUser executeCodeUser;
+    private NiFiTestUser anonymousUser;
 
     private static final String CONTEXT_PATH = "/nifi-api";
 
@@ -67,7 +69,8 @@ public class AccessControlHelper {
         // configure the location of the nifi properties
         File nifiPropertiesFile = new File(nifiPropertiesPath);
         System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, nifiPropertiesFile.getAbsolutePath());
-        NiFiProperties props = NiFiProperties.createBasicNiFiProperties(null, null);
+
+        NiFiProperties props = NiFiProperties.createBasicNiFiProperties(nifiPropertiesPath, null);
         flowXmlPath = props.getProperty(NiFiProperties.FLOW_CONFIGURATION_FILE);
 
         final File libTargetDir = new File("target/test-classes/access-control/lib");
@@ -103,6 +106,7 @@ public class AccessControlHelper {
         noneUser = new NiFiTestUser(server.getClient(), NiFiTestAuthorizer.NONE_USER_DN);
         privilegedUser = new NiFiTestUser(server.getClient(), NiFiTestAuthorizer.PRIVILEGED_USER_DN);
         executeCodeUser = new NiFiTestUser(server.getClient(), NiFiTestAuthorizer.EXECUTED_CODE_USER_DN);
+        anonymousUser = new NiFiTestUser(server.getClient(), StringUtils.EMPTY);
 
         // populate the initial data flow
         NiFiWebApiTest.populateFlow(server.getClient(), baseUrl, readWriteUser, READ_WRITE_CLIENT_ID);
@@ -130,6 +134,10 @@ public class AccessControlHelper {
 
     public NiFiTestUser getExecuteCodeUser() {
         return executeCodeUser;
+    }
+
+    public NiFiTestUser getAnonymousUser() {
+        return anonymousUser;
     }
 
     public void testGenericGetUri(final String uri) throws Exception {

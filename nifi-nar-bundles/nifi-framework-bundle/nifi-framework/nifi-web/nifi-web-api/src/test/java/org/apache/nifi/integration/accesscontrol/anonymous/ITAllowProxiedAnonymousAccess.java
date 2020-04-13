@@ -14,11 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.integration.accesscontrol;
+package org.apache.nifi.integration.accesscontrol.anonymous;
 
-import org.apache.nifi.integration.util.SourceTestProcessor;
+import org.apache.nifi.integration.accesscontrol.AccessControlHelper;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
-import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -28,17 +27,15 @@ import org.junit.Test;
 import javax.ws.rs.core.Response;
 
 /**
- * Integration test for preventing anonymous access.
+ * Integration test for allowing proxied anonymous access.
  */
-public class ITPreventAnonymousAccess {
+public class ITAllowProxiedAnonymousAccess extends AbstractAnonymousUserTest {
 
-    private static OneWaySslAccessControlHelper helper;
-
-    private static final String CLIENT_ID = "anonymous-client-id";
+    private static AccessControlHelper helper;
 
     @BeforeClass
     public static void setup() throws Exception {
-        helper = new OneWaySslAccessControlHelper();
+        helper = new AccessControlHelper("src/test/resources/access-control/nifi-anonymous-allowed.properties");
     }
 
     /**
@@ -47,29 +44,19 @@ public class ITPreventAnonymousAccess {
      * @throws Exception ex
      */
     @Test
-    public void testCreateProcessorUsingToken() throws Exception {
-        String url = helper.getBaseUrl() + "/process-groups/root/processors";
+    public void testProxiedAnonymousAccess() throws Exception {
+        final Response response = super.testCreateProcessor(helper.getBaseUrl(), helper.getAnonymousUser());
 
-        // create the processor
-        ProcessorDTO processor = new ProcessorDTO();
-        processor.setName("Copy");
-        processor.setType(SourceTestProcessor.class.getName());
+        // ensure the request is successful
+        Assert.assertEquals(201, response.getStatus());
 
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(CLIENT_ID);
-        revision.setVersion(0l);
+        // get the entity body
+        final ProcessorEntity entity = response.readEntity(ProcessorEntity.class);
 
-        // create the entity body
-        ProcessorEntity entity = new ProcessorEntity();
-        entity.setRevision(revision);
-        entity.setComponent(processor);
-
-        // perform the request
-        Response response = helper.getUser().testPost(url, entity);
-
-        // ensure the request is rejected
-        Assert.assertEquals(401, response.getStatus());
+        // verify creation
+        final ProcessorDTO processor = entity.getComponent();
+        Assert.assertEquals("Copy", processor.getName());
+        Assert.assertEquals("org.apache.nifi.integration.util.SourceTestProcessor", processor.getType());
     }
 
     @AfterClass
