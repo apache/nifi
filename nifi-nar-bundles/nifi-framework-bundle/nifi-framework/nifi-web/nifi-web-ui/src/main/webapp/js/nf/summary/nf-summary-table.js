@@ -2361,16 +2361,16 @@
                     return aPercentUseDataSize - bPercentUseDataSize;
                 }
             } else if (sortDetails.columnId === 'backpressurePrediction') {
-                const aMaxCurrentUsage = Math.max(_.get(a, 'percentUseBytes', 0), _.get(a, 'percentUseCount', 0));
-                const bMaxCurrentUsage = Math.max(_.get(b, 'percentUseBytes', 0), _.get(b, 'percentUseCount', 0));
+                var aMaxCurrentUsage = Math.max(_.get(a, 'percentUseBytes', 0), _.get(a, 'percentUseCount', 0));
+                var bMaxCurrentUsage = Math.max(_.get(b, 'percentUseBytes', 0), _.get(b, 'percentUseCount', 0));
 
-                const defaultValueForNotApplicable = sortDetails.sortAsc ? Number.MAX_SAFE_INTEGER : Number.MIN_SAFE_INTEGER;
+                var defaultValueForNotApplicable = sortDetails.sortAsc ? Number.MAX_SAFE_INTEGER : Number.MIN_SAFE_INTEGER;
 
                 // null should be treated as a max value in terms of sort: ALWAYS sort last
-                let aBytesPrediction = _.get(a, 'predictions.predictedMillisUntilBytesBackpressure', defaultValueForNotApplicable);
-                let aCountPrediction = _.get(a, 'predictions.predictedMillisUntilCountBackpressure', defaultValueForNotApplicable);
-                let bBytesPrediction = _.get(b, 'predictions.predictedMillisUntilBytesBackpressure', defaultValueForNotApplicable);
-                let bCountPrediction = _.get(b, 'predictions.predictedMillisUntilCountBackpressure', defaultValueForNotApplicable);
+                var aBytesPrediction = _.get(a, 'predictions.predictedMillisUntilBytesBackpressure', defaultValueForNotApplicable);
+                var aCountPrediction = _.get(a, 'predictions.predictedMillisUntilCountBackpressure', defaultValueForNotApplicable);
+                var bBytesPrediction = _.get(b, 'predictions.predictedMillisUntilBytesBackpressure', defaultValueForNotApplicable);
+                var bCountPrediction = _.get(b, 'predictions.predictedMillisUntilCountBackpressure', defaultValueForNotApplicable);
 
                 // if they came in as -1, treat them like nulls since it means the same thing
                 aBytesPrediction = aBytesPrediction === -1 ? defaultValueForNotApplicable : aBytesPrediction;
@@ -2378,8 +2378,8 @@
                 bBytesPrediction = bBytesPrediction === -1 ? defaultValueForNotApplicable : bBytesPrediction;
                 bCountPrediction = bCountPrediction === -1 ? defaultValueForNotApplicable : bCountPrediction;
 
-                let aMinTime = Math.min(aBytesPrediction, aCountPrediction);
-                let bMinTime = Math.min(bBytesPrediction, bCountPrediction);
+                var aMinTime = Math.min(aBytesPrediction, aCountPrediction);
+                var bMinTime = Math.min(bBytesPrediction, bCountPrediction);
 
                 if (aMaxCurrentUsage >= 100) {
                     aMinTime = 0;
