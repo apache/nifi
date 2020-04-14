@@ -124,18 +124,18 @@ public class RecordBin {
 
             logger.debug("Migrating id={} to {}", new Object[] {flowFile.getId(), this});
 
+            if (recordWriter == null) {
+                final OutputStream rawOut = session.write(merged);
+                logger.debug("Created OutputStream using session {} for {}", new Object[] {session, this});
+
+                this.out = new ByteCountingOutputStream(rawOut);
+
+                recordWriter = writerFactory.createWriter(logger, recordReader.getSchema(), out, flowFile);
+                recordWriter.beginRecordSet();
+            }
+
             Record record;
             while ((record = recordReader.nextRecord()) != null) {
-                if (recordWriter == null) {
-                    final OutputStream rawOut = session.write(merged);
-                    logger.debug("Created OutputStream using session {} for {}", new Object[] {session, this});
-
-                    this.out = new ByteCountingOutputStream(rawOut);
-
-                    recordWriter = writerFactory.createWriter(logger, record.getSchema(), out, flowFile);
-                    recordWriter.beginRecordSet();
-                }
-
                 recordWriter.write(record);
                 recordCount++;
             }
