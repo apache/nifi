@@ -173,7 +173,7 @@ public class ZooKeeperStateServer extends ZooKeeperServerMain {
             }
 
             if (secureConnectionFactory != null) {
-                quorumPeer.setCnxnFactory(secureConnectionFactory);
+                quorumPeer.setSecureCnxnFactory(secureConnectionFactory);
             }
 
             quorumPeer.setZKDatabase(new ZKDatabase(quorumPeer.getTxnFactory()));
