@@ -2301,6 +2301,29 @@
 
     var sortState = {};
 
+    var getMinTimeToBackPressure = function (connection) {
+        var maxCurrentUsage = Math.max(_.get(connection, 'percentUseBytes', 0), _.get(connection, 'percentUseCount', 0));
+
+        if (maxCurrentUsage >= 100) {
+            // currently experiencing back pressure
+            return 0;
+        }
+
+        var bytesPrediction = _.get(connection, 'predictions.predictedMillisUntilBytesBackpressure', -1);
+        var countPrediction = _.get(connection, 'predictions.predictedMillisUntilCountBackpressure', -1);
+
+        if (bytesPrediction < 0) {
+            // bytes prediction is unknown. return the count prediction if known, otherwise use the max
+            return countPrediction < 0 ? Number.MAX_VALUE : countPrediction;
+        } else if (countPrediction < 0) {
+            // count prediction is unknown but we know bytes prediction is known, return that
+            return bytesPrediction;
+        }
+
+        // if we get here, both predictions are known. return the minimum of the two
+        return Math.min(bytesPrediction, countPrediction);
+    }
+
     /**
      * Sorts the specified data using the specified sort details.
      *
@@ -2361,35 +2384,10 @@
                     return aPercentUseDataSize - bPercentUseDataSize;
                 }
             } else if (sortDetails.columnId === 'backpressurePrediction') {
-                var aMaxCurrentUsage = Math.max(_.get(a, 'percentUseBytes', 0), _.get(a, 'percentUseCount', 0));
-                var bMaxCurrentUsage = Math.max(_.get(b, 'percentUseBytes', 0), _.get(b, 'percentUseCount', 0));
-
-                var defaultValueForNotApplicable = sortDetails.sortAsc ? Number.MAX_SAFE_INTEGER : Number.MIN_SAFE_INTEGER;
-
-                // null should be treated as a max value in terms of sort: ALWAYS sort last
-                var aBytesPrediction = _.get(a, 'predictions.predictedMillisUntilBytesBackpressure', defaultValueForNotApplicable);
-                var aCountPrediction = _.get(a, 'predictions.predictedMillisUntilCountBackpressure', defaultValueForNotApplicable);
-                var bBytesPrediction = _.get(b, 'predictions.predictedMillisUntilBytesBackpressure', defaultValueForNotApplicable);
-                var bCountPrediction = _.get(b, 'predictions.predictedMillisUntilCountBackpressure', defaultValueForNotApplicable);
-
-                // if they came in as -1, treat them like nulls since it means the same thing
-                aBytesPrediction = aBytesPrediction === -1 ? defaultValueForNotApplicable : aBytesPrediction;
-                aCountPrediction = aCountPrediction === -1 ? defaultValueForNotApplicable : aCountPrediction;
-                bBytesPrediction = bBytesPrediction === -1 ? defaultValueForNotApplicable : bBytesPrediction;
-                bCountPrediction = bCountPrediction === -1 ? defaultValueForNotApplicable : bCountPrediction;
-
-                var aMinTime = Math.min(aBytesPrediction, aCountPrediction);
-                var bMinTime = Math.min(bBytesPrediction, bCountPrediction);
-
-                if (aMaxCurrentUsage >= 100) {
-                    aMinTime = 0;
-                }
-                if (bMaxCurrentUsage >= 100) {
-                    bMinTime = 0;
-                }
+                var aMinTime = getMinTimeToBackPressure(a);
+                var bMinTime = getMinTimeToBackPressure(b);
 
                 return aMinTime - bMinTime;
-
             } else if (sortDetails.columnId === 'sent' || sortDetails.columnId === 'received' || sortDetails.columnId === 'input' || sortDetails.columnId === 'output' || sortDetails.columnId === 'transferred') {
                 var aSplit = a[sortDetails.columnId].split(/\(([^)]+)\)/);
                 var bSplit = b[sortDetails.columnId].split(/\(([^)]+)\)/);
