@@ -498,6 +498,37 @@ public class TestListFile {
         subdir.setReadable(true);
     }
 
+    @Test
+    public void testListingNeedsSufficientPrivilegesAndFittingFilter() throws Exception {
+        final File file = new File(TESTDIR + "/file.txt");
+        assertTrue(file.createNewFile());
+        runner.setProperty(ListFile.DIRECTORY, testDir.getAbsolutePath());
+
+        // Run with privileges but without fitting filter
+        runner.setProperty(ListFile.FILE_FILTER, "willBeFilteredOut");
+        assertTrue(file.setLastModified(getTestModifiedTime()));
+        runNext();
+
+        final List<MockFlowFile> successFiles1 = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
+        assertEquals(0, successFiles1.size());
+
+        // Run with privileges and with fitting filter
+        runner.setProperty(ListFile.FILE_FILTER, "file.*");
+        assertTrue(file.setLastModified(getTestModifiedTime()));
+        runNext();
+
+        final List<MockFlowFile> successFiles2 = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
+        assertEquals(1, successFiles2.size());
+
+        // Run without privileges and with fitting filter
+        assertTrue(file.setReadable(false));
+        assertTrue(file.setLastModified(getTestModifiedTime()));
+        runNext();
+
+        final List<MockFlowFile> successFiles3 = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
+        assertEquals(0, successFiles3.size());
+    }
+
 
     @Test
     public void testFilterFilePattern() throws Exception {
