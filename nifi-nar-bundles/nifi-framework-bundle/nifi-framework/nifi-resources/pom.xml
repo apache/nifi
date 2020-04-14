@@ -146,6 +146,7 @@
         <nifi.web.proxy.host />
         <nifi.web.max.content.size>20 MB</nifi.web.max.content.size>
         <nifi.web.max.requests.per.second>30000</nifi.web.max.requests.per.second>
+        <nifi.web.should.send.server.version>true</nifi.web.should.send.server.version>
         <!-- nifi.properties: security properties -->
         <nifi.security.keystore />
         <nifi.security.keystoreType />
