@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.processors.azure.storage;
 
+import java.util.concurrent.TimeUnit;
+
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -28,17 +30,16 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor;
 
 import com.azure.storage.file.datalake.DataLakeDirectoryClient;
-import com.azure.storage.file.datalake.DataLakeFileClient;
 import com.azure.storage.file.datalake.DataLakeFileSystemClient;
 import com.azure.storage.file.datalake.DataLakeServiceClient;
+import com.azure.storage.file.datalake.DataLakeFileClient;
 
-import java.util.concurrent.TimeUnit;
 
 @Tags({"azure", "microsoft", "cloud", "storage", "adlsgen2", "datalake"})
-@SeeAlso({PutAzureDataLakeStorage.class, FetchAzureDataLakeStorage.class})
-@CapabilityDescription("Deletes the provided file from Azure Data Lake Storage")
+@SeeAlso({PutAzureDataLakeStorage.class, DeleteAzureDataLakeStorage.class})
+@CapabilityDescription("Fetch the provided file from Azure Data Lake Storage")
 @InputRequirement(Requirement.INPUT_REQUIRED)
-public class DeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcessor {
+public class FetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcessor {
 
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
@@ -49,6 +50,7 @@ public class DeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageProc
         }
 
         final long startNanos = System.nanoTime();
+
         try {
             final String fileSystem = context.getProperty(FILESYSTEM).evaluateAttributeExpressions(flowFile).getValue();
             final String directory = context.getProperty(DIRECTORY).evaluateAttributeExpressions(flowFile).getValue();
@@ -56,15 +58,16 @@ public class DeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageProc
             final DataLakeServiceClient storageClient = getStorageClient(context, flowFile);
             final DataLakeFileSystemClient dataLakeFileSystemClient = storageClient.getFileSystemClient(fileSystem);
             final DataLakeDirectoryClient directoryClient = dataLakeFileSystemClient.getDirectoryClient(directory);
-
             final DataLakeFileClient fileClient = directoryClient.getFileClient(fileName);
-            fileClient.delete();
+
+            flowFile = session.write(flowFile, os -> fileClient.read(os));
+            session.getProvenanceReporter().modifyContent(flowFile);
             session.transfer(flowFile, REL_SUCCESS);
 
             final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
             session.getProvenanceReporter().send(flowFile, fileClient.getFileUrl(), transferMillis);
         } catch (Exception e) {
-            getLogger().error("Failed to delete the specified file from Azure Data Lake Storage,  due to {}", e);
+            getLogger().error("Failure to fetch file from Azure Data Lake Storage, due to {}", e);
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
         }
