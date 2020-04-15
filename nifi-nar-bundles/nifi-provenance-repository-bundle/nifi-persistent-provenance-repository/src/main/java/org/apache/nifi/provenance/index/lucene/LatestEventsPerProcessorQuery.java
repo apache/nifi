@@ -74,4 +74,9 @@ public class LatestEventsPerProcessorQuery implements CachedQuery {
         return Optional.of(eventIds);
     }
 
+    @Override
+    public String toString() {
+        return "Latest Events Per Processor";
+    }
+
 }

@@ -18,6 +18,8 @@ package org.apache.nifi.tests.system;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.util.HashMap;
+import java.util.Map;
 
 public class InstanceConfiguration {
     private final File bootstrapConfigFile;
@@ -25,6 +27,7 @@ public class InstanceConfiguration {
     private final File flowXmlGz;
     private final File stateDirectory;
     private final boolean autoStart;
+    private final Map<String, String> nifiPropertiesOverrides;
 
     private InstanceConfiguration(Builder builder) {
         this.bootstrapConfigFile = builder.bootstrapConfigFile;
@@ -32,6 +35,7 @@ public class InstanceConfiguration {
         this.flowXmlGz = builder.flowXmlGz;
         this.stateDirectory = builder.stateDirectory;
         this.autoStart = builder.autoStart;
+        this.nifiPropertiesOverrides = builder.nifiPropertiesOverrides;
     }
 
     public File getBootstrapConfigFile() {
@@ -54,12 +58,26 @@ public class InstanceConfiguration {
         return autoStart;
     }
 
+    public Map<String, String> getNifiPropertiesOverrides() {
+        return nifiPropertiesOverrides;
+    }
+
     public static class Builder {
         private File bootstrapConfigFile;
         private File instanceDirectory;
         private File flowXmlGz;
         private File stateDirectory;
         private boolean autoStart = true;
+        private final Map<String, String> nifiPropertiesOverrides = new HashMap<>();
+
+        public Builder overrideNifiProperties(final Map<String, String> overrides) {
+            nifiPropertiesOverrides.clear();
+            if (overrides != null) {
+                nifiPropertiesOverrides.putAll(overrides);
+            }
+
+            return this;
+        }
 
         public Builder bootstrapConfig(final File configFile) {
             if (!configFile.exists()) {

@@ -126,6 +126,7 @@ public abstract class NiFiProperties {
     public static final String PROVENANCE_MAX_STORAGE_SIZE = "nifi.provenance.repository.max.storage.size";
     public static final String PROVENANCE_ROLLOVER_TIME = "nifi.provenance.repository.rollover.time";
     public static final String PROVENANCE_ROLLOVER_SIZE = "nifi.provenance.repository.rollover.size";
+    public static final String PROVENANCE_ROLLOVER_EVENT_COUNT = "nifi.provenance.repository.rollover.events";
     public static final String PROVENANCE_QUERY_THREAD_POOL_SIZE = "nifi.provenance.repository.query.threads";
     public static final String PROVENANCE_INDEX_THREAD_POOL_SIZE = "nifi.provenance.repository.index.threads";
     public static final String PROVENANCE_COMPRESS_ON_ROLLOVER = "nifi.provenance.repository.compress.on.rollover";

@@ -175,7 +175,7 @@ public class WriteAheadStorePartition implements EventStorePartition {
         }
 
         // Claim a Record Writer Lease so that we have a writer to persist the events to
-        RecordWriterLease lease = null;
+        RecordWriterLease lease;
         while (true) {
             lease = getLease();
             if (lease.tryClaim()) {
@@ -185,7 +185,6 @@ public class WriteAheadStorePartition implements EventStorePartition {
             final RolloverState rolloverState = lease.getRolloverState();
             if (rolloverState.isRollover()) {
                 final boolean success = tryRollover(lease);
-
                 if (success) {
                     logger.info("Successfully rolled over Event Writer for {} due to {}", this, rolloverState);
                 }
@@ -476,9 +475,16 @@ public class WriteAheadStorePartition implements EventStorePartition {
     public void purgeOldEvents(final long olderThan, final TimeUnit unit) {
         final long timeCutoff = System.currentTimeMillis() - unit.toMillis(olderThan);
 
-        getEventFilesFromDisk().filter(file -> file.lastModified() < timeCutoff)
+        final List<File> removed = getEventFilesFromDisk().filter(file -> file.lastModified() < timeCutoff)
             .sorted(DirectoryUtils.SMALLEST_ID_FIRST)
-            .forEach(this::delete);
+            .filter(this::delete)
+            .collect(Collectors.toList());
+
+        if (removed.isEmpty()) {
+            logger.debug("No Provenance Event files that exceed time-based threshold of {} {}", olderThan, unit);
+        } else {
+            logger.info("Purged {} Provenance Event files from Provenance Repository because the events were older than {} {}: {}", removed.size(), olderThan, unit, removed);
+        }
     }
 
     private File getActiveEventFile() {
@@ -489,20 +495,27 @@ public class WriteAheadStorePartition implements EventStorePartition {
     @Override
     public long purgeOldestEvents() {
         final List<File> eventFiles = getEventFilesFromDisk().sorted(DirectoryUtils.SMALLEST_ID_FIRST).collect(Collectors.toList());
-        if (eventFiles.isEmpty()) {
+        if (eventFiles.size() < 2) {
+            // If there are no Event Files, there's nothing to do. If there is exactly 1 Event File, it means that the only Event File
+            // that exists is the Active Event File, which we are writing to, so we don't want to remove it either.
             return 0L;
         }
 
         final File currentFile = getActiveEventFile();
+        if (currentFile == null) {
+            logger.debug("There is currently no Active Event File for {}. Will not purge oldest events until the Active Event File has been established.", this);
+            return 0L;
+        }
+
         for (final File eventFile : eventFiles) {
             if (eventFile.equals(currentFile)) {
-                continue;
+                break;
             }
 
             final long fileSize = eventFile.length();
 
             if (delete(eventFile)) {
-                logger.debug("{} Deleted {} event file ({}) due to storage limits", this, eventFile, FormatUtils.formatDataSize(fileSize));
+                logger.info("{} Deleted {} event file ({}) due to storage limits", this, eventFile, FormatUtils.formatDataSize(fileSize));
                 return fileSize;
             } else {
                 logger.warn("{} Failed to delete oldest event file {}. This file should be cleaned up manually.", this, eventFile);

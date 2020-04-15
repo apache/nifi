@@ -33,6 +33,8 @@ import org.junit.rules.Timeout;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Collections;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
@@ -98,11 +100,19 @@ public abstract class NiFiSystemIT {
             if (isDestroyFlowAfterEachTest()) {
                 destroyFlow();
             }
+
+            if (isDestroyEnvironmentAfterEachTest()) {
+                cleanup();
+            }
         } finally {
             if (nifiClient != null) {
                 nifiClient.close();
             }
         }
+    }
+
+    protected boolean isDestroyEnvironmentAfterEachTest() {
+        return false;
     }
 
     protected void destroyFlow() throws NiFiClientException, IOException {
@@ -229,7 +239,12 @@ public abstract class NiFiSystemIT {
             new InstanceConfiguration.Builder()
                 .bootstrapConfig("src/test/resources/conf/default/bootstrap.conf")
                 .instanceDirectory("target/standalone-instance")
+                .overrideNifiProperties(getNifiPropertiesOverrides())
                 .build());
+    }
+
+    protected Map<String, String> getNifiPropertiesOverrides() {
+        return Collections.emptyMap();
     }
 
     protected boolean isDestroyFlowAfterEachTest() {
@@ -237,8 +252,12 @@ public abstract class NiFiSystemIT {
     }
 
     protected void waitFor(final BooleanSupplier condition) throws InterruptedException {
+        waitFor(condition, 10L);
+    }
+
+    protected void waitFor(final BooleanSupplier condition, final long delayMillis) throws InterruptedException {
         while (!condition.getAsBoolean()) {
-            Thread.sleep(10L);
+            Thread.sleep(delayMillis);
         }
     }
 

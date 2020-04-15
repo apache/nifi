@@ -19,6 +19,8 @@ package org.apache.nifi.provenance.index.lucene;
 
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.search.Query;
+import org.apache.lucene.search.Sort;
+import org.apache.lucene.search.SortField;
 import org.apache.lucene.search.TopDocs;
 import org.apache.nifi.provenance.ProgressiveResult;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
@@ -105,7 +107,7 @@ public class QueryTask implements Runnable {
 
         try {
             final long borrowMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - borrowStart);
-            logger.debug("Borrowing index searcher for {} took {} ms", indexDir, borrowMillis);
+            logger.trace("Borrowing index searcher for {} took {} ms", indexDir, borrowMillis);
             final long startNanos = System.nanoTime();
 
             // If max number of results are retrieved, do not bother querying lucene
@@ -124,7 +126,11 @@ public class QueryTask implements Runnable {
             final IndexReader indexReader = searcher.getIndexSearcher().getIndexReader();
             final TopDocs topDocs;
             try {
-                topDocs = searcher.getIndexSearcher().search(query, maxResults);
+
+                // Sort based on document id, descending. This gives us most recent events first.
+                final Sort sort = new Sort(new SortField(null, SortField.Type.DOC, true));
+
+                topDocs = searcher.getIndexSearcher().search(query, maxResults, sort);
             } catch (final Exception e) {
                 logger.error("Failed to query Lucene for index " + indexDir, e);
                 queryResult.setError("Failed to query Lucene for index " + indexDir + " due to " + e);
@@ -189,7 +195,7 @@ public class QueryTask implements Runnable {
 
         final long endConvert = System.nanoTime();
         final long ms = TimeUnit.NANOSECONDS.toMillis(endConvert - start);
-        logger.debug("Converting documents took {} ms", ms);
+        logger.trace("Converting documents took {} ms", ms);
 
         List<ProvenanceEventRecord> events;
         try {

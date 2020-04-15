@@ -20,6 +20,7 @@ import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
 import org.apache.nifi.controller.queue.LoadBalanceCompression;
 import org.apache.nifi.controller.queue.LoadBalanceStrategy;
 import org.apache.nifi.controller.queue.QueueSize;
+import org.apache.nifi.provenance.search.SearchableField;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ConnectionClient;
@@ -47,6 +48,8 @@ import org.apache.nifi.web.api.dto.VariableDTO;
 import org.apache.nifi.web.api.dto.VariableRegistryDTO;
 import org.apache.nifi.web.api.dto.flow.FlowDTO;
 import org.apache.nifi.web.api.dto.flow.ProcessGroupFlowDTO;
+import org.apache.nifi.web.api.dto.provenance.ProvenanceDTO;
+import org.apache.nifi.web.api.dto.provenance.ProvenanceRequestDTO;
 import org.apache.nifi.web.api.dto.status.ConnectionStatusSnapshotDTO;
 import org.apache.nifi.web.api.entity.ActivateControllerServicesEntity;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
@@ -67,6 +70,7 @@ import org.apache.nifi.web.api.entity.PortEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
+import org.apache.nifi.web.api.entity.ProvenanceEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ScheduleComponentsEntity;
 import org.apache.nifi.web.api.entity.VariableEntity;
@@ -80,6 +84,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -772,4 +777,45 @@ public class NiFiClientUtil {
         final ProcessGroupEntity childGroup = nifiClient.getProcessGroupClient().createProcessGroup(parentGroupId, childGroupEntity);
         return childGroup;
     }
+
+    public ProvenanceEntity queryProvenance(final Map<SearchableField, String> searchTerms, final Long startTime, final Long endTime) throws NiFiClientException, IOException {
+        final Map<String, String> searchTermsAsStrings = searchTerms.entrySet().stream()
+            .collect(Collectors.toMap(entry -> entry.getKey().getSearchableFieldName(), Map.Entry::getValue));
+
+        final ProvenanceRequestDTO requestDto = new ProvenanceRequestDTO();
+        requestDto.setSearchTerms(searchTermsAsStrings);
+        requestDto.setSummarize(false);
+        requestDto.setStartDate(startTime == null ? null : new Date(startTime));
+        requestDto.setEndDate(endTime == null ? null : new Date(endTime));
+        requestDto.setMaxResults(1000);
+
+        final ProvenanceDTO dto = new ProvenanceDTO();
+        dto.setRequest(requestDto);
+        dto.setSubmissionTime(new Date());
+
+        final ProvenanceEntity entity = new ProvenanceEntity();
+        entity.setProvenance(dto);
+
+        ProvenanceEntity responseEntity = nifiClient.getProvenanceClient().submitProvenanceQuery(entity);
+
+        try {
+            responseEntity = waitForComplete(responseEntity);
+        } catch (final InterruptedException ie) {
+            Assert.fail("Interrupted while waiting for Provenance Query to complete");
+        }
+
+        nifiClient.getProvenanceClient().deleteProvenanceQuery(responseEntity.getProvenance().getId());
+        return responseEntity;
+    }
+
+    public ProvenanceEntity waitForComplete(final ProvenanceEntity entity) throws InterruptedException, NiFiClientException, IOException {
+        ProvenanceEntity current = entity;
+        while (current.getProvenance().isFinished() != Boolean.TRUE) {
+            Thread.sleep(100L);
+            current = nifiClient.getProvenanceClient().getProvenanceQuery(entity.getProvenance().getId());
+        }
+
+        return current;
+    }
+
 }
