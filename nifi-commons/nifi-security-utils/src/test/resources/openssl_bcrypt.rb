@@ -38,7 +38,7 @@ work_factor = 10
 puts "Work factor: #{work_factor}"
 key_len = cipher.key_len
 digest = OpenSSL::Digest::SHA512.new
-puts "Digest: #{digest.digest} #{digest.length}"
+puts "Digest: #{digest.to_s} #{digest.length}"
 
 puts ""
 
@@ -47,7 +47,7 @@ puts "Hash: #{hash}"
 full_salt = hash.salt
 puts "Full Salt: #{full_salt} #{full_salt.length}"
 
-key = (digest.digest hash)[0..key_len - 1]
+key = (digest.digest hash[-31..-1])[0..key_len - 1]
 # salt = Base64.decode64(hash.salt[7..-1])
 b64Salt = hash.salt[7..-1]
 

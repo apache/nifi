@@ -30,7 +30,7 @@ def hex_to_bin(s)
 end
 
 # Flowfile content from EncryptContent w/ Bcrypt (default cost params) + password: thisIsABadPassword
-ciphertext = hex_to_bin("243261243132246D6D374D694B6A7658565943756A56556C4B524B69754E69466953414C547CBF02AB79CFC352E02BFC9114E3D82C4E6946694956C349433E5DB906CA59FB9578265668EB8BE542701394316092FD1598C2A72E54283EAD9FE2D68F8F55D00B571E5AD94557DB4126FB5CD39ABEBF93DAFBF6773A29BF71603DA09AC9B313A6A75ABD592210")
+ciphertext = hex_to_bin("24326124313224674449584f316a54774a774130386d714a76396545754e69466953414c54ef67ce4babc8016c055828a3065806034e69466949567231eac94e4c841508a82d2a5c98e3501b096774e98fc0039db89250f52fbb01")
 
 salt = ciphertext[0..28]
 salt_delimiter = ciphertext[29..36]
@@ -41,7 +41,7 @@ iv = ciphertext[37..52]
 cipher.iv = iv
 iv_delimiter = ciphertext[53..59]
 
-cipher_bytes = ciphertext[59..-2]
+cipher_bytes = ciphertext[59..-1]
 puts "Cipher bytes: #{bin_to_hex(cipher_bytes)} #{cipher_bytes.length}"
 
 password = 'thisIsABadPassword'
@@ -79,8 +79,8 @@ puts "Raw salt B64: #{raw_salt_base64}"
 raw_salt_bytes = Base64.decode64(raw_salt_base64)
 puts "Raw salt: #{bin_to_hex(raw_salt_bytes)}"
 
-
-key = (digest.digest hash_radix64)[0..key_len - 1]
+# Only use the hash part of the full output as input to the key stretching digest
+key = (digest.digest hash_radix64[-31..-1])[0..key_len - 1]
 puts "Salt: #{bin_to_hex(raw_salt_bytes)} #{raw_salt_bytes.length}"
 puts "  IV: #{bin_to_hex(iv)} #{iv.length}"
 puts " Key: #{bin_to_hex(key)} #{key.length}"

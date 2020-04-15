@@ -21,7 +21,12 @@ import org.apache.commons.codec.binary.Hex
 import org.apache.nifi.security.util.EncryptionMethod
 import org.apache.nifi.security.util.crypto.scrypt.Scrypt
 import org.bouncycastle.jce.provider.BouncyCastleProvider
-import org.junit.*
+import org.junit.After
+import org.junit.Assume
+import org.junit.Before
+import org.junit.BeforeClass
+import org.junit.Ignore
+import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
 import org.slf4j.Logger
@@ -512,8 +517,8 @@ class ScryptCipherProviderGroovyTest {
     @Test
     void testShouldVerifyPBoundary() throws Exception {
         // Arrange
-        final int r = 8;
-        final int p = 1;
+        final int r = 8
+        final int p = 1
 
         // Act
         boolean valid = ScryptCipherProvider.isPValid(r, p)
@@ -545,7 +550,7 @@ class ScryptCipherProviderGroovyTest {
     @Test
     void testShouldVerifyRValue() throws Exception {
         // Arrange
-        final int r = 8;
+        final int r = 8
 
         // Act
         boolean valid = ScryptCipherProvider.isRValid(r)
@@ -557,7 +562,7 @@ class ScryptCipherProviderGroovyTest {
     @Test
     void testShouldFailRValue() throws Exception {
         // Arrange
-        final int r = 0;
+        final int r = 0
 
         // Act
         boolean valid = ScryptCipherProvider.isRValid(r)
@@ -569,9 +574,9 @@ class ScryptCipherProviderGroovyTest {
     @Test
     void testShouldValidateScryptCipherProviderPBoundary() throws Exception {
         // Arrange
-        final int n = 64;
-        final int r = 8;
-        final int p = 1;
+        final int n = 64
+        final int r = 8
+        final int p = 1
 
         // Act
         ScryptCipherProvider testCipherProvider = new ScryptCipherProvider(n, r, p)
@@ -583,9 +588,9 @@ class ScryptCipherProviderGroovyTest {
     @Test
     void testShouldCatchInvalidP() throws Exception {
         // Arrange
-        final int n = 64;
-        final int r = 8;
-        final int p = 0;
+        final int n = 64
+        final int r = 8
+        final int p = 0
 
         // Act
         def msg = shouldFail(IllegalArgumentException) {
@@ -600,9 +605,9 @@ class ScryptCipherProviderGroovyTest {
     @Test
     void testShouldCatchInvalidR() throws Exception {
         // Arrange
-        final int n = 64;
-        final int r = 0;
-        final int p = 0;
+        final int n = 64
+        final int r = 0
+        final int p = 0
 
         // Act
         def msg = shouldFail(IllegalArgumentException) {
@@ -612,6 +617,19 @@ class ScryptCipherProviderGroovyTest {
 
         // Assert
         assert msg =~ "Invalid r value; must be greater than 0"
+    }
+
+    @Test
+    void testShouldAcceptFormattedSaltWithPlus() throws Exception {
+        // Arrange
+        final String FULL_SALT_WITH_PLUS = "\$s0\$e0801\$smJD8vwWI3+uQCHYz2yg0+"
+
+        // Act
+        boolean isScryptSalt = ScryptCipherProvider.isScryptFormattedSalt(FULL_SALT_WITH_PLUS)
+        logger.info("Is Scrypt salt: ${isScryptSalt}")
+
+        // Assert
+        assert isScryptSalt
     }
 
     @Ignore("This test can be run on a specific machine to evaluate if the default parameters are sufficient")

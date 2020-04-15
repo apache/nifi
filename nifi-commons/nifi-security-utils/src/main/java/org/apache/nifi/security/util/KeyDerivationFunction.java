@@ -52,6 +52,10 @@ public enum KeyDerivationFunction {
         return (kdfName.equals(BCRYPT.kdfName) || kdfName.equals(SCRYPT.kdfName) || kdfName.equals(PBKDF2.kdfName) || kdfName.equals(ARGON2.kdfName));
     }
 
+    public boolean hasFormattedSalt() {
+        return kdfName.equals(BCRYPT.kdfName) || kdfName.equals(SCRYPT.kdfName) || kdfName.equals(ARGON2.kdfName);
+    }
+
     @Override
     public String toString() {
         final ToStringBuilder builder = new ToStringBuilder(this);

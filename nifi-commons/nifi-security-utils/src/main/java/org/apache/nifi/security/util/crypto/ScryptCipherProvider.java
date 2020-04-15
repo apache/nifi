@@ -16,6 +16,15 @@
  */
 package org.apache.nifi.security.util.crypto;
 
+import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import javax.crypto.Cipher;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.binary.Hex;
@@ -25,16 +34,6 @@ import org.apache.nifi.security.util.EncryptionMethod;
 import org.apache.nifi.security.util.crypto.scrypt.Scrypt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.crypto.Cipher;
-import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
-import java.nio.charset.StandardCharsets;
-import java.security.SecureRandom;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class ScryptCipherProvider extends RandomIVPBECipherProvider {
     private static final Logger logger = LoggerFactory.getLogger(ScryptCipherProvider.class);
@@ -49,7 +48,7 @@ public class ScryptCipherProvider extends RandomIVPBECipherProvider {
     private static final int DEFAULT_R = 8;
     private static final int DEFAULT_P = 1;
 
-    private static final Pattern SCRYPT_SALT_FORMAT = Pattern.compile("^\\$s0\\$[a-f0-9]{5,16}\\$[\\w\\/\\.]{12,44}");
+    private static final Pattern SCRYPT_SALT_FORMAT = Pattern.compile("^\\$s0\\$[a-f0-9]{5,16}\\$[\\w\\/\\+]{12,44}");
     private static final Pattern MCRYPT_SALT_FORMAT = Pattern.compile("^\\$\\d+\\$\\d+\\$\\d+\\$[a-f0-9]{16,64}");
 
     /**
@@ -217,7 +216,13 @@ public class ScryptCipherProvider extends RandomIVPBECipherProvider {
         }
     }
 
-    private byte[] extractRawSaltFromScryptSalt(String scryptSalt) {
+    /**
+     * Returns the raw salt contained in the provided Scrypt salt string.
+     *
+     * @param scryptSalt the full Scrypt salt
+     * @return the raw salt decoded from Base64
+     */
+    public static byte[] extractRawSaltFromScryptSalt(String scryptSalt) {
         final String[] saltComponents = scryptSalt.split("\\$");
         if (saltComponents.length < 4) {
             throw new IllegalArgumentException("Could not parse salt");
@@ -225,7 +230,13 @@ public class ScryptCipherProvider extends RandomIVPBECipherProvider {
         return Base64.decodeBase64(saltComponents[3]);
     }
 
-    private boolean isScryptFormattedSalt(String salt) {
+    /**
+     * Returns {@code true} if the salt string is a valid Scrypt salt string ({@code $s0$e0801$abcdefghi..{22}}).
+     *
+     * @param salt the salt string to evaluate
+     * @return true if valid Scrypt salt
+     */
+    public static boolean isScryptFormattedSalt(String salt) {
         if (salt == null || salt.length() == 0) {
             throw new IllegalArgumentException("The salt cannot be empty. To generate a salt, use ScryptCipherProvider#generateSalt()");
         }
@@ -259,14 +270,37 @@ public class ScryptCipherProvider extends RandomIVPBECipherProvider {
      * Formats the salt into a string which Scrypt can understand containing the N, r, p values along with the salt
      * value. If the provided salt contains all values, the response will be unchanged.
      * If it only contains the raw salt value, the resulting return value will also include the current instance
-     * version, N, r, and p.
+     * version, and provided N, r, and p.
      * <p>
      * The salt is expected to be in the format {@code new String(saltBytes, StandardCharsets.UTF_8) => "$s0$e0801$ABCDEF...."}.
      *
      * @param salt the provided salt
      * @return the properly-formatted and complete salt
      */
-    private String formatSaltForScrypt(byte[] salt) {
+    public String formatSaltForScrypt(byte[] salt) {
+        String saltString = new String(salt, StandardCharsets.UTF_8);
+        if (isScryptFormattedSalt(saltString)) {
+            return saltString;
+        } else {
+            // The provided salt is not complete, so get the current instance cost parameters
+            return formatSaltForScrypt(salt, getN(), getR(), getP());
+        }
+    }
+
+    /**
+     * Formats the salt into a string which Scrypt can understand containing the N, r, p values along with the salt
+     * value. If the provided salt contains all values, the response will be unchanged.
+     * If it only contains the raw salt value, the resulting return value will also include the  provided N, r, and p.
+     * <p>
+     * The salt is expected to be in the format {@code new String(saltBytes, StandardCharsets.UTF_8) => "$s0$e0801$ABCDEF...."}.
+     *
+     * @param salt the provided salt
+     * @param n    the N param
+     * @param r    the r param
+     * @param p    the p param
+     * @return the properly-formatted and complete salt
+     */
+    public static String formatSaltForScrypt(byte[] salt, int n, int r, int p) {
         String saltString = new String(salt, StandardCharsets.UTF_8);
         if (isScryptFormattedSalt(saltString)) {
             return saltString;
@@ -298,7 +332,7 @@ public class ScryptCipherProvider extends RandomIVPBECipherProvider {
      * @param mcryptSalt the mcrypt-formatted salt string
      * @return the formatted salt to use with Java Scrypt
      */
-    public String translateSalt(String mcryptSalt) {
+    public static String translateSalt(String mcryptSalt) {
         if (StringUtils.isEmpty(mcryptSalt)) {
             throw new IllegalArgumentException("Cannot translate empty salt");
         }

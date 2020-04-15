@@ -168,7 +168,7 @@ public class Argon2CipherProvider extends RandomIVPBECipherProvider {
             parallelism = getParallelism();
         }
 
-        Argon2SecureHasher argon2SecureHasher = new Argon2SecureHasher(keyLength /8 , memory, parallelism, iterations);
+        Argon2SecureHasher argon2SecureHasher = new Argon2SecureHasher(keyLength / 8, memory, parallelism, iterations);
         try {
             byte[] keyBytes = argon2SecureHasher.hashRaw(password.getBytes(StandardCharsets.UTF_8), rawSalt);
             SecretKey tempKey = new SecretKeySpec(keyBytes, algorithm);
@@ -185,7 +185,13 @@ public class Argon2CipherProvider extends RandomIVPBECipherProvider {
         }
     }
 
-    private byte[] extractRawSaltFromArgon2Salt(String argon2Salt) {
+    /**
+     * Returns the raw salt contained in the provided Argon2 salt string.
+     *
+     * @param argon2Salt the full Argon2 salt
+     * @return the raw salt decoded from Base64
+     */
+    public static byte[] extractRawSaltFromArgon2Salt(String argon2Salt) {
         final String[] saltComponents = argon2Salt.split("\\$");
         // saltComponents = [(optional empty before leading $), argon2id, v=19, m=1024,t=3,p=1, ftvICs8WpASuN3FnRIDcRA]
         if (saltComponents.length < 4) {
@@ -194,6 +200,12 @@ public class Argon2CipherProvider extends RandomIVPBECipherProvider {
         return Base64.decodeBase64(saltComponents[saltComponents.length - 1]);
     }
 
+    /**
+     * Returns {@code true} if the salt string is a valid Argon2 salt string ({@code $argon2id$v=19$m=4096,t=3,p=1$abcdefghi..{22}}).
+     *
+     * @param salt the salt string to evaluate
+     * @return true if valid Argon2 salt
+     */
     public static boolean isArgon2FormattedSalt(String salt) {
         if (salt == null || salt.length() == 0) {
             throw new IllegalArgumentException("The salt cannot be empty. To generate a salt, use Argon2CipherProvider#generateSalt()");
@@ -240,13 +252,28 @@ public class Argon2CipherProvider extends RandomIVPBECipherProvider {
 
         // TODO: Handle 2i and 2d implementations
         // Form the "full salt" containing the embedded algorithm, version, cost params, and raw salt
-       StringBuilder sb = new StringBuilder("$argon2id$");
-       sb.append("v=19").append("$");
-       sb.append("m=").append(getMemory()).append(",");
-       sb.append("t=").append(getIterations()).append(",");
-       sb.append("p=").append(getParallelism()).append("$");
-       sb.append(CipherUtility.encodeBase64NoPadding(rawSalt));
-       return sb.toString().getBytes(StandardCharsets.UTF_8);
+        return formSalt(rawSalt, getMemory(), getIterations(), getParallelism()).getBytes(StandardCharsets.UTF_8);
+    }
+
+    /**
+     * Returns the formatted Argon2 salt string given the provided parameters.
+     * <p>
+     * {@code $argon2id$v=19$m=4096,t=3,p=1$abcdefABCDEF0123456789}
+     *
+     * @param rawSalt     the salt bytes
+     * @param memory      the memory cost
+     * @param iterations  the iterations
+     * @param parallelism the parallelism factor
+     * @return the formatted salt string
+     */
+    public static String formSalt(byte[] rawSalt, int memory, int iterations, int parallelism) {
+        StringBuilder sb = new StringBuilder("$argon2id$");
+        sb.append("v=19").append("$");
+        sb.append("m=").append(memory).append(",");
+        sb.append("t=").append(iterations).append(",");
+        sb.append("p=").append(parallelism).append("$");
+        sb.append(CipherUtility.encodeBase64NoPadding(rawSalt));
+        return sb.toString();
     }
 
     @Override

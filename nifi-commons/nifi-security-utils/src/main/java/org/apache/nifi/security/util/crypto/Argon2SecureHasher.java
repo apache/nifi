@@ -16,13 +16,12 @@
  */
 package org.apache.nifi.security.util.crypto;
 
+import java.util.concurrent.TimeUnit;
 import org.bouncycastle.crypto.generators.Argon2BytesGenerator;
 import org.bouncycastle.crypto.params.Argon2Parameters;
 import org.bouncycastle.util.encoders.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.concurrent.TimeUnit;
 
 /**
  * Provides an implementation of {@code Argon2} for secure password hashing. This class is
@@ -67,6 +66,18 @@ public class Argon2SecureHasher extends AbstractSecureHasher {
      */
     public Argon2SecureHasher() {
         this(DEFAULT_HASH_LENGTH, DEFAULT_MEMORY, DEFAULT_PARALLELISM, DEFAULT_ITERATIONS, 0);
+    }
+
+    /**
+     * Instantiates an Argon2 secure hasher using the provided hash length and default cost parameters
+     * ({@code memory = }{@link #DEFAULT_MEMORY},
+     * {@code parallelism = }{@link #DEFAULT_PARALLELISM},
+     * {@code iterations = }{@link #DEFAULT_ITERATIONS}). A static salt is also used.
+     *
+     * @param hashLength the desired hash output length in bytes
+     */
+    public Argon2SecureHasher(Integer hashLength) {
+        this(hashLength, DEFAULT_MEMORY, DEFAULT_PARALLELISM, DEFAULT_ITERATIONS, 0);
     }
 
     /**

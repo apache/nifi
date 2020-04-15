@@ -23,8 +23,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -81,6 +83,19 @@ public class EncryptContent extends AbstractProcessor {
 
     private static final String WEAK_CRYPTO_ALLOWED_NAME = "allowed";
     private static final String WEAK_CRYPTO_NOT_ALLOWED_NAME = "not-allowed";
+
+    public static final String IV_ATTR = "encryptcontent.iv";
+    public static final String IV_LEN_ATTR = "encryptcontent.iv_length";
+    public static final String SALT_ATTR = "encryptcontent.salt";
+    public static final String SALT_LEN_ATTR = "encryptcontent.salt_length";
+    public static final String KDF_SALT_ATTR = "encryptcontent.kdf_salt";
+    public static final String KDF_SALT_LEN_ATTR = "encryptcontent.kdf_salt_length";
+    public static final String PT_LEN_ATTR = "encryptcontent.plaintext_length";
+    public static final String CT_LEN_ATTR = "encryptcontent.cipher_text_length";
+    public static final String TS_ATTR = "encryptcontent.timestamp";
+    public static final String ACTION_ATTR = "encryptcontent.action";
+    public static final String ALGORITHM_ATTR = "encryptcontent.algorithm";
+    public static final String KDF_ATTR = "encryptcontent.kdf";
 
     public static final PropertyDescriptor MODE = new PropertyDescriptor.Builder()
             .name("Mode")
@@ -577,6 +592,12 @@ public class EncryptContent extends AbstractProcessor {
         try {
             final StopWatch stopWatch = new StopWatch(true);
             flowFile = session.write(flowFile, callback);
+
+            // Update the flowfile attributes
+            Map<String, String> clonedAttributes = new HashMap<>(flowFile.getAttributes());
+            encryptor.updateAttributes(clonedAttributes);
+            flowFile = session.putAllAttributes(flowFile, clonedAttributes);
+
             logger.info("successfully {}crypted {}", new Object[]{encrypt ? "en" : "de", flowFile});
             session.getProvenanceReporter().modifyContent(flowFile, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
             session.transfer(flowFile, REL_SUCCESS);
@@ -622,6 +643,8 @@ public class EncryptContent extends AbstractProcessor {
         StreamCallback getEncryptionCallback() throws Exception;
 
         StreamCallback getDecryptionCallback() throws Exception;
+
+        void updateAttributes(Map<String, String> attributes);
     }
 
 }
