@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.azure.storage;
 
-import java.io.ByteArrayOutputStream;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -61,11 +60,7 @@ public class FetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageProce
             final DataLakeDirectoryClient directoryClient = dataLakeFileSystemClient.getDirectoryClient(directory);
             final DataLakeFileClient fileClient = directoryClient.getFileClient(fileName);
 
-            int dataSize = (int) fileClient.getProperties().getFileSize();
-            ByteArrayOutputStream outputStream = new ByteArrayOutputStream(dataSize);
-            fileClient.read(outputStream);
-            outputStream.close();
-            flowFile = session.write(flowFile, oS -> oS.write(outputStream.toByteArray()));
+            flowFile = session.write(flowFile, os -> fileClient.read(os));
             session.getProvenanceReporter().modifyContent(flowFile);
             session.transfer(flowFile, REL_SUCCESS);
 
