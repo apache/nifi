@@ -133,6 +133,24 @@ public class SpawnedStandaloneNiFiInstanceFactory implements NiFiInstanceFactory
                 final File destinationFlowXmlGz = new File(destinationConf, "flow.xml.gz");
                 Files.copy(flowXmlGz.toPath(), destinationFlowXmlGz.toPath());
             }
+
+            // Write out any Property overrides
+            final Map<String, String> nifiPropertiesOverrides = instanceConfiguration.getNifiPropertiesOverrides();
+            if (nifiPropertiesOverrides != null && !nifiPropertiesOverrides.isEmpty()) {
+                final File destinationNifiProperties = new File(destinationConf, "nifi.properties");
+                final File sourceNifiProperties = new File(bootstrapConfigFile.getParentFile(), "nifi.properties");
+
+                final Properties nifiProperties = new Properties();
+                try (final InputStream fis = new FileInputStream(sourceNifiProperties)) {
+                    nifiProperties.load(fis);
+                }
+
+                nifiPropertiesOverrides.forEach(nifiProperties::setProperty);
+
+                try (final OutputStream fos = new FileOutputStream(destinationNifiProperties)) {
+                    nifiProperties.store(fos, null);
+                }
+            }
         }
 
         private void copyContents(final File dir, final File destinationDir) throws IOException {

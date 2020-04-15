@@ -35,6 +35,7 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.ParamContextClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.PoliciesClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ProcessGroupClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ProcessorClient;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.ProvenanceClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.RemoteProcessGroupClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ReportingTasksClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.TemplatesClient;
@@ -390,6 +391,23 @@ public class JerseyNiFiClient implements NiFiClient {
     public OutputPortClient getOutputPortClientForToken(final String token) {
         final Map<String, String> headers = getHeadersWithToken(token);
         return new JerseyOutputPortClient(baseTarget, headers);
+    }
+
+    @Override
+    public ProvenanceClient getProvenanceClient() {
+        return new JerseyProvenanceClient(baseTarget);
+    }
+
+    @Override
+    public ProvenanceClient getProvenanceClientForProxiedEntities(final String... proxiedEntity) {
+        final Map<String, String> headers = getHeaders(proxiedEntity);
+        return new JerseyProvenanceClient(baseTarget, headers);
+    }
+
+    @Override
+    public ProvenanceClient getProvenanceClientForToken(final String token) {
+        final Map<String, String> headers = getHeadersWithToken(token);
+        return new JerseyProvenanceClient(baseTarget, headers);
     }
 
     @Override

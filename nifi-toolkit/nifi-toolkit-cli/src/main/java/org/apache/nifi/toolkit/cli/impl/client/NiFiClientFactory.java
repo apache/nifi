@@ -33,6 +33,7 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.ParamContextClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.PoliciesClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ProcessGroupClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ProcessorClient;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.ProvenanceClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.RemoteProcessGroupClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ReportingTasksClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.TemplatesClient;
@@ -370,6 +371,21 @@ public class NiFiClientFactory implements ClientFactory<NiFiClient> {
         @Override
         public OutputPortClient getOutputPortClientForToken(final String token) {
             return wrappedClient.getOutputPortClientForToken(proxiedEntity);
+        }
+
+        @Override
+        public ProvenanceClient getProvenanceClient() {
+            return wrappedClient.getProvenanceClient();
+        }
+
+        @Override
+        public ProvenanceClient getProvenanceClientForProxiedEntities(final String... proxiedEntity) {
+            return wrappedClient.getProvenanceClientForProxiedEntities(proxiedEntity);
+        }
+
+        @Override
+        public ProvenanceClient getProvenanceClientForToken(final String token) {
+            return wrappedClient.getProvenanceClientForToken(token);
         }
 
         @Override

@@ -52,4 +52,8 @@ public class LatestEventsQuery implements CachedQuery {
         }
     }
 
+    @Override
+    public String toString() {
+        return "Most Recent Events Query";
+    }
 }
