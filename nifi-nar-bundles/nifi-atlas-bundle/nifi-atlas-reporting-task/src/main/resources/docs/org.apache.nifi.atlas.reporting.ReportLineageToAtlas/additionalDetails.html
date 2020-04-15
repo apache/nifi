@@ -27,7 +27,7 @@
         <ul>
             <li><a href="#how-it-works">Information reported to Atlas</a></li>
             <li><a href="#nifi-atlas-types">NiFi Atlas Types</a></li>
-            <li><a href="#cluster-name">Cluster Name Resolution</a></li>
+            <li><a href="#namespaces">Namespaces (Formerly Cluster Name Resolution)</a></li>
             <li><a href="#nifi-flow-structure">NiFi flow structure</a>
                 <ul>
                     <li><a href="#path-separation">Path Separation Logic</a></li>
@@ -58,7 +58,7 @@
         <p>Technically each information is sent using different protocol, Atlas REST API v2, and Notification via a Kafka topic as shown in above image.</p>
 
 
-        <p>As both information types use the same <a href="#nifi-atlas-types">NiFi Atlas Types</a> and <a href="#cluster-name">Cluster Name Resolution</a> concepts, it is recommended to start reading those sections first.</p>
+        <p>As both information types use the same <a href="#nifi-atlas-types">NiFi Atlas Types</a> and <a href="#namespaces">Namespaces</a> concepts, it is recommended to start reading those sections first.</p>
 
         <h3 id="nifi-atlas-types">NiFi Atlas Types</h3>
 
@@ -121,40 +121,41 @@
             </ul>
         </ul>
 
-        <h3 id="cluster-name">Cluster Name Resolution</h3>
+        <h3 id="namespaces">Namespaces</h3>
 
         <p>An entity in Atlas can be identified by its GUID for any existing objects, or type name and unique attribute can be used if GUID is not known. Qualified name is commonly used as the unique attribute.</p>
-        <p>Since one Atlas instance can be used to manage multiple environments, i.e clusters, Atlas has to manage objects in different clusters those may have the same name. For example, a Hive table 'request_logs' in a 'cluster-A' and 'cluster-B'. In such case, cluster name embedded in qualified names are crucial.</p>
+        <p>One Atlas instance can be used to manage multiple environments and objects in different environments may have the same name. For example, a Hive table 'request_logs' in two different clusters, 'cluster-A' and 'cluster-B'. For this reason the qualified names contain a so-called metadata namespace.</p>
+        <p>It's common practice to provide the cluster name as the namespace, but it can be any arbitrary string.</p>
 
-        <p>For these requirements, a qualified name has 'componentId@clusterName' format. E.g. A Hive table qualified name would be dbName.tableName@clusterName (default.request_logs@cluster-A).</p>
+        <p>With this, a qualified name has 'componentId@namespace' format. E.g. A Hive table qualified name would be dbName.tableName@namespace (default.request_logs@cluster-A).</p>
 
-        <p>From this NiFi reporting task standpoint, a cluster name is need to be resolved at following situations:
+        <p>From this NiFi reporting task standpoint, a namespace is needed to be resolved at following situations:
             <ul>
-                <li>To register NiFi component entities. Which cluster name should be used to represent the current NiFi cluster?</li>
-                <li>To create lineages from NiFi component to other DataSets. Which cluster does the DataSet resides?</li>
+                <li>To register NiFi component entities. Which namespace should be used to represent the current NiFi environment?</li>
+                <li>To create lineages from NiFi component to other DataSets. Which environment does the DataSet resides in?</li>
             </ul>
         </p>
 
-        <p>To answer such questions, ReportLineageToAtlas reporting task provides a way to define mappings from ip address or hostname to a cluster name.
-        The mapping can be defined by Dynamic Properties with a name in 'hostnamePattern.ClusterName' format, having its value as a set of Regular Expression Patterns to match ip addresses or host names to a particular cluster name.</p>
+        <p>To answer such questions, ReportLineageToAtlas reporting task provides a way to define mappings from ip address or hostname to a namespace.
+        The mapping can be defined by Dynamic Properties with a name in 'hostnamePattern.namespace' format, having its value as a set of Regular Expression Patterns to match ip addresses or host names to a particular cluster name.</p>
 
-        <p>As an example, following mapping definition would resolve cluster name 'cluster-A' for ip address such as '192.168.30.123' or hostname 'namenode1.a.example.com', and 'cluster-B' for '192.168.40.223' or 'nifi3.b.example.com'.</p>
+        <p>As an example, following mapping definition would resolve namespace 'namespace-A' for ip address such as '192.168.30.123' or hostname 'namenode1.a.example.com', and 'namespace-B' for '192.168.40.223' or 'nifi3.b.example.com'.</p>
 
         <pre>
-# Dynamic Property Name for cluster-A
-hostnamePattern.cluster-A
+# Dynamic Property Name for namespace-A
+hostnamePattern.namespace-A
 # Value can have multiple Regular Expression patterns separated by new line
 192\.168\.30\.\d+
 [^\.]+\.a\.example\.com
 
-# Dynamic Property Name for cluster-B
-hostnamePattern.cluster-B
+# Dynamic Property Name for namespace-B
+hostnamePattern.namespace-B
 # Values
 192\.168\.40\.\d+
 [^\.]+\.b\.example\.com
         </pre>
 
-        <p>If any cluster name mapping does not match, then a name defined at 'Atlas Default Cluster Name' is used.</p>
+        <p>If no namespace mapping matches, then a name defined at 'Atlas Default Metadata Namespace' is used.</p>
 
 
         <h3 id="nifi-flow-structure">NiFi flow structure</h3>
@@ -275,7 +276,7 @@ Processor 3</pre>
             </ul>
         </p>
 
-        <p>'clusterName' in 'qualifiedName' attribute is resolved by mapping ip-address or hostname available at NiFi Provenance event 'transitUri' to a cluster name. See <a href="cluster-name">Cluster Name Resolution</a> for detail.</p>
+        <p>'namespace' in 'qualifiedName' attribute is resolved by mapping ip-address or hostname available at NiFi Provenance event 'transitUri' to a cluster name. See <a href="namespaces">Namespaces</a> for detail.</p>
 
         <p>For 'typeName' and 'qualifiedName', different analysis rules are needed for different DataSet. ReportLineageToAtlas provides an extension point called 'NiFiProvenanceEventAnalyzer' to implement such analysis logic for particular DataSets.</p>
 
