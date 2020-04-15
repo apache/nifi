@@ -21,7 +21,7 @@ import org.apache.nifi.atlas.provenance.AnalysisContext;
 import org.apache.nifi.atlas.provenance.DataSetRefs;
 import org.apache.nifi.atlas.provenance.NiFiProvenanceEventAnalyzer;
 import org.apache.nifi.atlas.provenance.NiFiProvenanceEventAnalyzerFactory;
-import org.apache.nifi.atlas.resolver.ClusterResolvers;
+import org.apache.nifi.atlas.resolver.NamespaceResolvers;
 import org.apache.nifi.controller.status.ConnectionStatus;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
@@ -50,15 +50,15 @@ public class TestUnknownDataSet {
         when(record.getComponentId()).thenReturn(processorId);
         when(record.getEventType()).thenReturn(ProvenanceEventType.CREATE);
 
-        final ClusterResolvers clusterResolvers = Mockito.mock(ClusterResolvers.class);
-        when(clusterResolvers.fromHostNames(matches(".+\\.example\\.com"))).thenReturn("cluster1");
+        final NamespaceResolvers namespaceResolvers = Mockito.mock(NamespaceResolvers.class);
+        when(namespaceResolvers.fromHostNames(matches(".+\\.example\\.com"))).thenReturn("namespace1");
 
         final List<ConnectionStatus> connections = new ArrayList<>();
 
         final AnalysisContext context = Mockito.mock(AnalysisContext.class);
-        when(context.getClusterResolver()).thenReturn(clusterResolvers);
+        when(context.getNamespaceResolver()).thenReturn(namespaceResolvers);
         when(context.findConnectionTo(processorId)).thenReturn(connections);
-        when(context.getNiFiClusterName()).thenReturn("nifi-cluster");
+        when(context.getNiFiNamespace()).thenReturn("test_namespace");
 
         final NiFiProvenanceEventAnalyzer analyzer = NiFiProvenanceEventAnalyzerFactory.getAnalyzer(processorName, null, record.getEventType());
         assertNotNull(analyzer);
@@ -69,7 +69,7 @@ public class TestUnknownDataSet {
         Referenceable ref = refs.getInputs().iterator().next();
         assertEquals("nifi_data", ref.getTypeName());
         assertEquals("GenerateFlowFile", ref.get(ATTR_NAME));
-        assertEquals("processor-1234@nifi-cluster", ref.get(ATTR_QUALIFIED_NAME));
+        assertEquals("processor-1234@test_namespace", ref.get(ATTR_QUALIFIED_NAME));
     }
 
     @Test
@@ -81,15 +81,15 @@ public class TestUnknownDataSet {
         when(record.getComponentId()).thenReturn(processorId);
         when(record.getEventType()).thenReturn(ProvenanceEventType.CREATE);
 
-        final ClusterResolvers clusterResolvers = Mockito.mock(ClusterResolvers.class);
-        when(clusterResolvers.fromHostNames(matches(".+\\.example\\.com"))).thenReturn("cluster1");
+        final NamespaceResolvers namespaceResolvers = Mockito.mock(NamespaceResolvers.class);
+        when(namespaceResolvers.fromHostNames(matches(".+\\.example\\.com"))).thenReturn("namespace1");
 
         final List<ConnectionStatus> connections = new ArrayList<>();
         // The content of connection is not important, just create an empty status.
         connections.add(new ConnectionStatus());
 
         final AnalysisContext context = Mockito.mock(AnalysisContext.class);
-        when(context.getClusterResolver()).thenReturn(clusterResolvers);
+        when(context.getNamespaceResolver()).thenReturn(namespaceResolvers);
         when(context.findConnectionTo(processorId)).thenReturn(connections);
 
         final NiFiProvenanceEventAnalyzer analyzer = NiFiProvenanceEventAnalyzerFactory.getAnalyzer(processorName, null, record.getEventType());

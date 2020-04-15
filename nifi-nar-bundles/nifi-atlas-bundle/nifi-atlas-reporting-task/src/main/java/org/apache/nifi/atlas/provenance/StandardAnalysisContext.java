@@ -17,7 +17,7 @@
 package org.apache.nifi.atlas.provenance;
 
 import org.apache.nifi.atlas.NiFiFlow;
-import org.apache.nifi.atlas.resolver.ClusterResolver;
+import org.apache.nifi.atlas.resolver.NamespaceResolver;
 import org.apache.nifi.controller.status.ConnectionStatus;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceRepository;
@@ -34,13 +34,13 @@ public class StandardAnalysisContext implements AnalysisContext {
 
     private final Logger logger = LoggerFactory.getLogger(StandardAnalysisContext.class);
     private final NiFiFlow nifiFlow;
-    private final ClusterResolver clusterResolver;
+    private final NamespaceResolver namespaceResolver;
     private final ProvenanceRepository provenanceRepository;
 
-    public StandardAnalysisContext(NiFiFlow nifiFlow, ClusterResolver clusterResolver,
+    public StandardAnalysisContext(NiFiFlow nifiFlow, NamespaceResolver namespaceResolver,
                                    ProvenanceRepository provenanceRepository) {
         this.nifiFlow = nifiFlow;
-        this.clusterResolver = clusterResolver;
+        this.namespaceResolver = namespaceResolver;
         this.provenanceRepository = provenanceRepository;
     }
 
@@ -55,13 +55,13 @@ public class StandardAnalysisContext implements AnalysisContext {
     }
 
     @Override
-    public String getNiFiClusterName() {
-        return nifiFlow.getClusterName();
+    public String getNiFiNamespace() {
+        return nifiFlow.getNamespace();
     }
 
     @Override
-    public ClusterResolver getClusterResolver() {
-        return clusterResolver;
+    public NamespaceResolver getNamespaceResolver() {
+        return namespaceResolver;
     }
 
     private ComputeLineageResult getLineageResult(long eventId, ComputeLineageSubmission submission) {

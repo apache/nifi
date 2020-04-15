@@ -25,7 +25,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 
-public interface ClusterResolver {
+public interface NamespaceResolver {
 
     default Collection<ValidationResult> validate(final ValidationContext validationContext) {
         return Collections.emptySet();
@@ -40,18 +40,18 @@ public interface ClusterResolver {
     void configure(PropertyContext context);
 
     /**
-     * Resolve a cluster name from a list of host names or an ip addresses.
-     * @param hostNames hostname or ip address
-     * @return resolved cluster name or null
+     * Resolve a namespace from a list of host names or IP addresses.
+     * @param hostNames host names or IP addresses
+     * @return resolved namespace or null
      */
     default String fromHostNames(String ... hostNames) {
         return null;
     }
 
     /**
-     * Resolve a cluster name from hints, such as Zookeeper Quorum, client port and znode path
-     * @param hints Contains variables to resolve a cluster name
-     * @return resolved cluster name or null
+     * Resolve a namespace from hints, such as Zookeeper Quorum, client port and znode path
+     * @param hints Contains variables to resolve a namespace
+     * @return resolved namespace or null
      */
     default String fromHints(Map<String, String> hints) {
         return null;

@@ -34,12 +34,12 @@ import java.util.function.BiConsumer;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-public class RegexClusterResolver implements ClusterResolver {
+public class RegexNamespaceResolver implements NamespaceResolver {
 
     public static final String PATTERN_PROPERTY_PREFIX = "hostnamePattern.";
     public static final String PATTERN_PROPERTY_PREFIX_DESC = "White space delimited (including new line) Regular Expressions" +
-            " to resolve a 'Cluster Name' from a hostname or IP address of a transit URI of NiFi provenance record.";
-    private Map<String, Set<Pattern>> clusterNamePatterns;
+            " to resolve a namespace from a hostname or IP address of a transit URI of NiFi provenance record.";
+    private Map<String, Set<Pattern>> namespacePatterns;
 
     @Override
     public PropertyDescriptor getSupportedDynamicPropertyDescriptor(String propertyDescriptorName) {
@@ -60,7 +60,7 @@ public class RegexClusterResolver implements ClusterResolver {
     public Collection<ValidationResult> validate(ValidationContext validationContext) {
         final List<ValidationResult> validationResults = new ArrayList<>();
         consumeConfigurations(validationContext.getAllProperties(),
-                (clusterNamePatterns, patterns) -> {},
+                (namespacePatterns, patterns) -> {},
                 (entry, e) -> {
                     final ValidationResult result = new ValidationResult.Builder()
                             .subject(entry.getKey())
@@ -76,9 +76,9 @@ public class RegexClusterResolver implements ClusterResolver {
     @Override
     public void configure(PropertyContext context) {
 
-        clusterNamePatterns = new HashMap<>();
+        namespacePatterns = new HashMap<>();
         consumeConfigurations(context.getAllProperties(),
-                (clusterName, patterns) -> clusterNamePatterns.put(clusterName, patterns),
+                (namespace, patterns) -> namespacePatterns.put(namespace, patterns),
                 null);
 
     }
@@ -89,15 +89,15 @@ public class RegexClusterResolver implements ClusterResolver {
         allProperties.entrySet().stream()
                 .filter(entry -> entry.getKey().startsWith(PATTERN_PROPERTY_PREFIX))
                 .forEach(entry -> {
-                    final String clusterName;
+                    final String namespace;
                     final Set<Pattern> patterns;
                     try {
-                        clusterName = entry.getKey().substring(PATTERN_PROPERTY_PREFIX.length());
+                        namespace = entry.getKey().substring(PATTERN_PROPERTY_PREFIX.length());
                         final String[] regexsArray = entry.getValue().split("\\s");
                         final List<String> regexs = Arrays.stream(regexsArray)
                                 .map(String::trim).filter(s -> !s.isEmpty()).collect(Collectors.toList());
-                        patterns = parseClusterNamePatterns(clusterName, regexs);
-                        consumer.accept(clusterName, patterns);
+                        patterns = parseNamespacePatterns(namespace, regexs);
+                        consumer.accept(namespace, patterns);
                     } catch (RuntimeException e) {
                         if (errorHandler != null) {
                             errorHandler.accept(entry, e);
@@ -108,14 +108,14 @@ public class RegexClusterResolver implements ClusterResolver {
                 });
     }
 
-    private Set<Pattern> parseClusterNamePatterns(final String clusterName, List<String> regexs) {
-        if (clusterName == null || clusterName.isEmpty()) {
-            throw new IllegalArgumentException("Empty cluster name is not allowed.");
+    private Set<Pattern> parseNamespacePatterns(final String namespace, List<String> regexs) {
+        if (namespace == null || namespace.isEmpty()) {
+            throw new IllegalArgumentException("Empty namespace is not allowed.");
         }
 
         if (regexs.size() == 0) {
             throw new IllegalArgumentException(
-                    String.format("At least one cluster name pattern is required, [%s].", clusterName));
+                    String.format("At least one namespace pattern is required, [%s].", namespace));
         }
 
         return regexs.stream().map(Pattern::compile).collect(Collectors.toSet());
@@ -123,7 +123,7 @@ public class RegexClusterResolver implements ClusterResolver {
 
     @Override
     public String fromHostNames(String ... hostNames) {
-        for (Map.Entry<String, Set<Pattern>> entry : clusterNamePatterns.entrySet()) {
+        for (Map.Entry<String, Set<Pattern>> entry : namespacePatterns.entrySet()) {
             for (Pattern pattern : entry.getValue()) {
                 for (String hostname : hostNames) {
                     if (pattern.matcher(hostname).matches()) {

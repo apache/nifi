@@ -26,7 +26,7 @@ import java.util.List;
 
 /**
  * Analyze a CREATE event and create 'nifi_data' when there is no specific Analyzer implementation found.
- * <li>qualifiedName=NiFiComponentId@clusterName (example: processor GUID@cl1)
+ * <li>qualifiedName=NiFiComponentId@namespace (example: processor GUID@ns1)
  * <li>name=NiFiComponentType (example: GenerateFlowFile)
  */
 public class Create extends UnknownInput {

@@ -39,13 +39,13 @@ import static org.apache.nifi.atlas.provenance.analyzer.DatabaseAnalyzerUtil.par
  * <ul>
  * <li>If a Provenance event has 'query.input.tables' or 'query.output.tables' attributes then 'hive_table' DataSet reference is created:
  * <ul>
- * <li>qualifiedName=tableName@clusterName (example: myTable@cl1)
+ * <li>qualifiedName=tableName@namespace (example: myTable@ns1)
  * <li>name=tableName (example: myTable)
  * </ul>
  * </li>
  * <li>If not, 'hive_database' DataSet reference is created from transit URI:
  * <ul>
- * <li>qualifiedName=dbName@clusterName (example: default@cl1)
+ * <li>qualifiedName=dbName@namespace (example: default@ns1)
  * <li>dbName (example: default)
  * </ul>
  * </li>
@@ -76,7 +76,7 @@ public class Hive2JDBC extends AbstractHiveAnalyzer {
             return null;
         }
 
-        final String clusterName = context.getClusterResolver().fromHostNames(splitHostNames(uriMatcher.group(1)));
+        final String namespace = context.getNamespaceResolver().fromHostNames(splitHostNames(uriMatcher.group(1)));
         String connectedDatabaseName = null;
         if (uriMatcher.groupCount() > 1) {
             // Try to find connected database name from connection parameters.
@@ -95,26 +95,26 @@ public class Hive2JDBC extends AbstractHiveAnalyzer {
         if (inputTables.isEmpty() && outputTables.isEmpty()) {
             // If input/output tables are unknown, create database level lineage.
             // Handle case insensitivity of database and table names in Hive: send names uniformly in lower case
-            return getDatabaseRef(event.getComponentId(), event.getEventType(), clusterName, connectedDatabaseName.toLowerCase());
+            return getDatabaseRef(event.getComponentId(), event.getEventType(), namespace, connectedDatabaseName.toLowerCase());
         }
 
         final DataSetRefs refs = new DataSetRefs(event.getComponentId());
-        addRefs(refs, true, clusterName, inputTables);
-        addRefs(refs, false, clusterName, outputTables);
+        addRefs(refs, true, namespace, inputTables);
+        addRefs(refs, false, namespace, outputTables);
         return refs;
     }
 
     private DataSetRefs getDatabaseRef(String componentId, ProvenanceEventType eventType,
-                                       String clusterName, String databaseName) {
-        final Referenceable ref = createDatabaseRef(clusterName, databaseName);
+                                       String namespace, String databaseName) {
+        final Referenceable ref = createDatabaseRef(namespace, databaseName);
 
         return singleDataSetRef(componentId, eventType, ref);
     }
 
-    private void addRefs(DataSetRefs refs, boolean isInput, String clusterName,
+    private void addRefs(DataSetRefs refs, boolean isInput, String namespace,
                                        Set<Tuple<String, String>> tableNames) {
         tableNames.forEach(tableName -> {
-            final Referenceable ref = createTableRef(clusterName, tableName);
+            final Referenceable ref = createTableRef(namespace, tableName);
             if (isInput) {
                 refs.addInput(ref);
             } else {
