@@ -107,7 +107,7 @@ public abstract class AbstractAzureDataLakeStorageProcessor extends AbstractProc
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(true)
-            .defaultValue("nifi.${uuid}")
+            .defaultValue("${azure.filename}")
             .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success").description(
