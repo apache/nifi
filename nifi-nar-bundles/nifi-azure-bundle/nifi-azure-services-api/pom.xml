@@ -28,6 +28,11 @@
             <groupId>com.microsoft.azure</groupId>
             <artifactId>azure-storage</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.azure</groupId>
+            <artifactId>azure-cosmos</artifactId>
+            <version>4.0.1-beta.1</version>
+        </dependency>
         <!-- overriding jackson-core in azure-storage -->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
