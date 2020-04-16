@@ -21,6 +21,7 @@ import microsoft.exchange.webservices.data.core.ExchangeService;
 import microsoft.exchange.webservices.data.core.PropertySet;
 import microsoft.exchange.webservices.data.core.enumeration.misc.ExchangeVersion;
 import microsoft.exchange.webservices.data.core.enumeration.property.BodyType;
+import microsoft.exchange.webservices.data.core.enumeration.property.BasePropertySet;
 import microsoft.exchange.webservices.data.core.enumeration.property.WellKnownFolderName;
 import microsoft.exchange.webservices.data.core.enumeration.search.FolderTraversal;
 import microsoft.exchange.webservices.data.core.enumeration.search.LogicalOperator;
@@ -36,6 +37,7 @@ import microsoft.exchange.webservices.data.core.service.schema.ItemSchema;
 import microsoft.exchange.webservices.data.credential.ExchangeCredentials;
 import microsoft.exchange.webservices.data.credential.WebCredentials;
 import microsoft.exchange.webservices.data.property.complex.FileAttachment;
+import microsoft.exchange.webservices.data.property.complex.ItemAttachment;
 import microsoft.exchange.webservices.data.search.FindFoldersResults;
 import microsoft.exchange.webservices.data.search.FindItemsResults;
 import microsoft.exchange.webservices.data.search.FolderView;
@@ -451,13 +453,25 @@ public class ConsumeEWS extends AbstractProcessor {
         if(ewsMessage.getHasAttachments()){
             ewsMessage.getAttachments().forEach(x->{
                 try {
-                    FileAttachment file = (FileAttachment)x;
-                    file.load();
+                    if(x instanceof FileAttachment) {
+                        FileAttachment file = (FileAttachment) x;
+                        file.load();
 
-                    String type = file.getContentType() == null ? "text/plain" : file.getContentType();
-                    ByteArrayDataSource bds = new ByteArrayDataSource(file.getContent(), type);
+                        String type = file.getContentType() == null ? "text/plain" : file.getContentType();
+                        ByteArrayDataSource bds = new ByteArrayDataSource(file.getContent(), type);
 
-                    mm.attach(bds,file.getName(), "", EmailAttachment.ATTACHMENT);
+                        mm.attach(bds, file.getName(), "", EmailAttachment.ATTACHMENT);
+                    } else { // x instanceof ItemAttachment
+                        ItemAttachment eml = (ItemAttachment) x;
+                        PropertySet oPropSetForBodyText = new PropertySet(BasePropertySet.FirstClassProperties);
+                        oPropSetForBodyText.add(ItemSchema.MimeContent);
+                        eml.load(oPropSetForBodyText);
+
+                        Item it = eml.getItem();
+                        ByteArrayDataSource bds = new ByteArrayDataSource(it.getMimeContent().getContent(), "text/plain");
+
+                        mm.attach(bds, eml.getName(), "", EmailAttachment.ATTACHMENT);
+                    }
                 } catch (MessagingException e) {
                     e.printStackTrace();
                 } catch (Exception e) {
