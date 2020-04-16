@@ -200,7 +200,7 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
             .description("Namespace for Atlas entities reported by this ReportingTask." +
                     " If not specified, 'atlas.metadata.namespace' or 'atlas.cluster.name' (the former having priority) in Atlas Configuration File is used." +
                     " Multiple mappings can be configured by user defined properties." +
-                    " See additional detail for more.")
+                    " See 'Additional Details...' for more.")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
@@ -218,9 +218,9 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
             .defaultValue("false")
             .build();
 
-    static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor KAFKA_SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
             .name("ssl-context-service")
-            .displayName("SSL Context Service")
+            .displayName("Kafka SSL Context Service")
             .description("Specifies the SSL Context Service to use for communicating with Atlas and Kafka.")
             .required(false)
             .identifiesControllerService(SSLContextService.class)
@@ -253,9 +253,9 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
             .defaultValue(SEC_PLAINTEXT.getValue())
             .build();
 
-    public static final PropertyDescriptor NIFI_KERBEROS_PRINCIPAL = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor KERBEROS_PRINCIPAL = new PropertyDescriptor.Builder()
             .name("nifi-kerberos-principal")
-            .displayName("NiFi Kerberos Principal")
+            .displayName("Kerberos Principal")
             .description("The Kerberos principal for this NiFi instance to access Atlas API and Kafka brokers." +
                     " If not set, it is expected to set a JAAS configuration file in the JVM properties defined in the bootstrap.conf file." +
                     " This principal will be set into 'sasl.jaas.config' Kafka's property.")
@@ -263,9 +263,9 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
-    public static final PropertyDescriptor NIFI_KERBEROS_KEYTAB = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor KERBEROS_KEYTAB = new PropertyDescriptor.Builder()
             .name("nifi-kerberos-keytab")
-            .displayName("NiFi Kerberos Keytab")
+            .displayName("Kerberos Keytab")
             .description("The Kerberos keytab for this NiFi instance to access Atlas API and Kafka brokers." +
                     " If not set, it is expected to set a JAAS configuration file in the JVM properties defined in the bootstrap.conf file." +
                     " This principal will be set into 'sasl.jaas.config' Kafka's property.")
@@ -302,9 +302,9 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
             "Create separate 'nifi_flow_path' Atlas Processes for each distinct input and output DataSet combinations" +
                     " by looking at the complete route for a given FlowFile. See also 'Additional Details.");
 
-    static final PropertyDescriptor NIFI_LINEAGE_STRATEGY = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor LINEAGE_STRATEGY = new PropertyDescriptor.Builder()
             .name("nifi-lineage-strategy")
-            .displayName("NiFi Lineage Strategy")
+            .displayName("Lineage Strategy")
             .description("Specifies granularity on how NiFi data flow should be reported to Atlas." +
                     " NOTE: It is strongly recommended to keep using the same strategy once this reporting task started to keep Atlas data clean." +
                     " Switching strategies will not delete Atlas entities created by the old strategy." +
@@ -341,31 +341,31 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
         final List<PropertyDescriptor> properties = new ArrayList<>();
         // Basic atlas config
         properties.add(ATLAS_URLS);
-        properties.add(ATLAS_DEFAULT_CLUSTER_NAME);
         properties.add(ATLAS_CONF_DIR);
         properties.add(ATLAS_CONF_CREATE);
+        properties.add(ATLAS_DEFAULT_CLUSTER_NAME);
+
+        // General config used by the processor
+        properties.add(LINEAGE_STRATEGY);
+        properties.add(PROVENANCE_START_POSITION);
+        properties.add(PROVENANCE_BATCH_SIZE);
+        properties.add(ATLAS_NIFI_URL);
+        properties.add(ATLAS_AUTHN_METHOD);
+        properties.add(ATLAS_USER);
+        properties.add(ATLAS_PASSWORD);
 
         // Following properties are required if ATLAS_CONF_CREATE is enabled.
         // Otherwise should be left blank.
         // Will be used by the atlas client by reading the values from the atlas config file
-        properties.add(ATLAS_CONNECT_TIMEOUT);
-        properties.add(ATLAS_READ_TIMEOUT);
-        properties.add(SSL_CONTEXT_SERVICE);
         properties.add(KERBEROS_CREDENTIALS_SERVICE);
-        properties.add(NIFI_KERBEROS_PRINCIPAL);
-        properties.add(NIFI_KERBEROS_KEYTAB);
-        properties.add(KAFKA_KERBEROS_SERVICE_NAME);
+        properties.add(KERBEROS_PRINCIPAL);
+        properties.add(KERBEROS_KEYTAB);
         properties.add(KAFKA_BOOTSTRAP_SERVERS);
         properties.add(KAFKA_SECURITY_PROTOCOL);
-
-        // General config used by the processor
-        properties.add(NIFI_LINEAGE_STRATEGY);
-        properties.add(PROVENANCE_START_POSITION);
-        properties.add(PROVENANCE_BATCH_SIZE);
-        properties.add(ATLAS_AUTHN_METHOD);
-        properties.add(ATLAS_USER);
-        properties.add(ATLAS_PASSWORD);
-        properties.add(ATLAS_NIFI_URL);
+        properties.add(KAFKA_KERBEROS_SERVICE_NAME);
+        properties.add(KAFKA_SSL_CONTEXT_SERVICE);
+        properties.add(ATLAS_CONNECT_TIMEOUT);
+        properties.add(ATLAS_READ_TIMEOUT);
 
         return properties;
     }
@@ -385,9 +385,9 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
     protected Collection<ValidationResult> customValidate(ValidationContext context) {
         final Collection<ValidationResult> results = new ArrayList<>();
 
-        final boolean isSSLContextServiceSet = context.getProperty(SSL_CONTEXT_SERVICE).isSet();
+        final boolean isSSLContextServiceSet = context.getProperty(KAFKA_SSL_CONTEXT_SERVICE).isSet();
         final ValidationResult.Builder invalidSSLService = new ValidationResult.Builder()
-                .subject(SSL_CONTEXT_SERVICE.getDisplayName()).valid(false);
+                .subject(KAFKA_SSL_CONTEXT_SERVICE.getDisplayName()).valid(false);
 
         String atlasUrls = context.getProperty(ATLAS_URLS).evaluateAttributeExpressions().getValue();
         if (!StringUtils.isEmpty(atlasUrls)) {
@@ -396,12 +396,8 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
                 .forEach(input -> {
                     final ValidationResult.Builder builder = new ValidationResult.Builder().subject(ATLAS_URLS.getDisplayName()).input(input);
                     try {
-                        final URL url = new URL(input);
-                        if ("https".equalsIgnoreCase(url.getProtocol()) && !isSSLContextServiceSet) {
-                            results.add(invalidSSLService.explanation("required by HTTPS Atlas access").build());
-                        } else {
-                            results.add(builder.explanation("Valid URI").valid(true).build());
-                        }
+                        new URL(input);
+                        results.add(builder.explanation("Valid URI").valid(true).build());
                     } catch (Exception e) {
                         results.add(builder.explanation("Contains invalid URI: " + e).valid(false).build());
                     }
@@ -437,8 +433,8 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
             results.add(invalidSSLService.explanation("required by SSL Kafka connection").build());
         }
 
-        final String explicitPrincipal = context.getProperty(NIFI_KERBEROS_PRINCIPAL).evaluateAttributeExpressions().getValue();
-        final String explicitKeytab = context.getProperty(NIFI_KERBEROS_KEYTAB).evaluateAttributeExpressions().getValue();
+        final String explicitPrincipal = context.getProperty(KERBEROS_PRINCIPAL).evaluateAttributeExpressions().getValue();
+        final String explicitKeytab = context.getProperty(KERBEROS_KEYTAB).evaluateAttributeExpressions().getValue();
 
         final KerberosCredentialsService credentialsService = context.getProperty(ReportLineageToAtlas.KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
 
@@ -482,7 +478,7 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
     private void initLineageStrategy(ConfigurationContext context) throws IOException {
         nifiAtlasHook = new NiFiAtlasHook();
 
-        final String strategy = context.getProperty(NIFI_LINEAGE_STRATEGY).getValue();
+        final String strategy = context.getProperty(LINEAGE_STRATEGY).getValue();
         if (LINEAGE_STRATEGY_SIMPLE_PATH.equals(strategy)) {
             lineageStrategy = new SimpleFlowPathLineage();
         } else if (LINEAGE_STRATEGY_COMPLETE_PATH.equals(strategy)) {
@@ -536,9 +532,7 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
             }
         }
 
-        List<String> urls = new ArrayList<>();
-        parseAtlasUrls(context.getProperty(ATLAS_URLS), urls::add);
-        checkAtlasUrls(urls, context);
+        List<String> urls = parseAtlasUrls(context.getProperty(ATLAS_URLS));
         final boolean isAtlasApiSecure = urls.stream().anyMatch(url -> url.toLowerCase().startsWith("https"));
 
         setValue(
@@ -600,27 +594,41 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
         }
     }
 
-    private void parseAtlasUrls(final PropertyValue atlasUrlsProp, final Consumer<String> urlStrConsumer) {
+    private List<String> parseAtlasUrls(final PropertyValue atlasUrlsProp) {
+        List<String> atlasUrls = new ArrayList<>();
+
         setValue(
             value -> Arrays.stream(value.split(ATLAS_URL_DELIMITER))
                 .map(String::trim)
-                .forEach(urlStrConsumer),
-            () -> {},
+                .forEach(urlString -> {
+                        try {
+                            new URL(urlString);
+                        } catch (Exception e) {
+                            throw new ProcessException(e);
+                        }
+                        atlasUrls.add(urlString);
+                    }
+                ),
+            () -> {
+                throw new ProcessException("No Atlas URL has been specified! Set either the '" + ATLAS_URLS.getDisplayName() + "' " +
+                    "property on the processor or the 'atlas.rest.address' property in the atlas configuration file.");
+            },
             atlasUrlsProp,
             atlasProperties.getProperty(ATLAS_PROPERTY_REST_ADDRESS)
         );
+
+        return atlasUrls;
     }
 
     private void setValue(Consumer<String> setter, Runnable emptyHandler, PropertyValue elPropertyValue, String... properties) {
-        String value = StringSelector
-                .of(elPropertyValue.evaluateAttributeExpressions().getValue())
-                .or(properties)
-                .toString();
+        StringSelector valueSelector = StringSelector
+            .of(elPropertyValue.evaluateAttributeExpressions().getValue())
+            .or(properties);
 
-        if (value == null || value.isEmpty()) {
-            emptyHandler.run();
+        if (valueSelector.found()) {
+            setter.accept(valueSelector.toString());
         } else {
-            setter.accept(value);
+            emptyHandler.run();
         }
     }
 
@@ -629,21 +637,6 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
             throw new ProcessException("No Atlas URL has been specified! Set either the '" + ATLAS_URLS.getDisplayName() + "' " +
                 "property on the processor or the 'atlas.rest.address' porperty in the atlas configuration file.");
         }
-
-        final boolean isSSLContextServiceSet = context.getProperty(SSL_CONTEXT_SERVICE).isSet();
-
-        urlStrings.forEach(urlString -> {
-            try {
-                final URL url = new URL(urlString);
-                if ("https".equalsIgnoreCase(url.getProtocol()) && !isSSLContextServiceSet) {
-                    throw new ProcessException(SSL_CONTEXT_SERVICE.getDisplayName() + " required for https access (" + urlString + ")");
-                }
-            } catch (ProcessException e) {
-                throw e;
-            } catch (Exception e) {
-                throw new ProcessException(e);
-            }
-        });
     }
 
     /**
@@ -651,8 +644,7 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
      * create Atlas client instance at every onTrigger execution.
      */
     protected NiFiAtlasClient createNiFiAtlasClient(ReportingContext context) {
-        List<String> urls = new ArrayList<>();
-        parseAtlasUrls(context.getProperty(ATLAS_URLS), urls::add);
+        List<String> urls = parseAtlasUrls(context.getProperty(ATLAS_URLS));
         try {
             return new NiFiAtlasClient(atlasAuthN.createClient(urls.toArray(new String[]{})));
         } catch (final NullPointerException e) {
@@ -825,7 +817,7 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
         mapToPopulate.put(ATLAS_KAFKA_PREFIX + "security.protocol", kafkaSecurityProtocol);
 
         // Translate SSLContext Service configuration into Kafka properties
-        final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
+        final SSLContextService sslContextService = context.getProperty(KAFKA_SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
         if (sslContextService != null && sslContextService.isKeyStoreConfigured()) {
             mapToPopulate.put(ATLAS_KAFKA_PREFIX + SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, sslContextService.getKeyStoreFile());
             mapToPopulate.put(ATLAS_KAFKA_PREFIX + SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, sslContextService.getKeyStorePassword());
@@ -857,8 +849,8 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
     private void setKafkaJaasConfig(Map<Object, Object> mapToPopulate, PropertyContext context) {
         String keytab;
         String principal;
-        final String explicitPrincipal = context.getProperty(NIFI_KERBEROS_PRINCIPAL).evaluateAttributeExpressions().getValue();
-        final String explicitKeytab = context.getProperty(NIFI_KERBEROS_KEYTAB).evaluateAttributeExpressions().getValue();
+        final String explicitPrincipal = context.getProperty(KERBEROS_PRINCIPAL).evaluateAttributeExpressions().getValue();
+        final String explicitKeytab = context.getProperty(KERBEROS_KEYTAB).evaluateAttributeExpressions().getValue();
 
         final KerberosCredentialsService credentialsService = context.getProperty(ReportLineageToAtlas.KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
 

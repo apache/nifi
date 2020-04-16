@@ -27,7 +27,7 @@
         <ul>
             <li><a href="#how-it-works">Information reported to Atlas</a></li>
             <li><a href="#nifi-atlas-types">NiFi Atlas Types</a></li>
-            <li><a href="#namespaces">Namespaces (Formerly Cluster Name Resolution)</a></li>
+            <li><a href="#namespaces">Namespaces (formerly Cluster Name Resolution)</a></li>
             <li><a href="#nifi-flow-structure">NiFi flow structure</a>
                 <ul>
                     <li><a href="#path-separation">Path Separation Logic</a></li>
@@ -136,10 +136,10 @@
             </ul>
         </p>
 
-        <p>To answer such questions, ReportLineageToAtlas reporting task provides a way to define mappings from ip address or hostname to a namespace.
-        The mapping can be defined by Dynamic Properties with a name in 'hostnamePattern.namespace' format, having its value as a set of Regular Expression Patterns to match ip addresses or host names to a particular cluster name.</p>
+        <p>To answer such questions, ReportLineageToAtlas reporting task provides a way to define mappings from IP address or hostname to a namespace.
+        The mapping can be defined by Dynamic Properties with a name in 'hostnamePattern.namespace' format, having its value as a set of Regular Expression Patterns to match IP addresses or host names to a particular namespace.</p>
 
-        <p>As an example, following mapping definition would resolve namespace 'namespace-A' for ip address such as '192.168.30.123' or hostname 'namenode1.a.example.com', and 'namespace-B' for '192.168.40.223' or 'nifi3.b.example.com'.</p>
+        <p>As an example, following mapping definition would resolve namespace 'namespace-A' for IP address such as '192.168.30.123' or hostname 'namenode1.a.example.com', and 'namespace-B' for '192.168.40.223' or 'nifi3.b.example.com'.</p>
 
         <pre>
 # Dynamic Property Name for namespace-A

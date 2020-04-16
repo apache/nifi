@@ -144,7 +144,7 @@ public class TestReportLineageToAtlas {
         Properties atlasConf = new Properties();
 
         Consumer<Exception> assertion = e -> assertEquals(
-            "No Atlas URL has been specified! Set either the 'Atlas URLs' property on the processor or the 'atlas.rest.address' porperty in the atlas configuration file.",
+            "No Atlas URL has been specified! Set either the 'Atlas URLs' property on the processor or the 'atlas.rest.address' property in the atlas configuration file.",
             e.getMessage()
         );
 
@@ -164,25 +164,6 @@ public class TestReportLineageToAtlas {
         Consumer<Exception> assertion = e -> assertTrue(
             "Expected " + MalformedURLException.class.getSimpleName() + " for " + atlasUrls + ", got " + e,
             e.getCause() instanceof MalformedURLException
-        );
-
-        // WHEN
-        // THEN
-        validateAtlasUrlsFromConfig(atlasConf, assertion);
-    }
-
-    @Test
-    public void validateSecureAtlasUrlsWithoutSSLContextFromConfig() throws Exception {
-        // GIVEN
-        String atlasUrls = "http://atlasUrl,https://atlasUrl";
-
-        Properties atlasConf = new Properties();
-        atlasConf.setProperty("atlas.rest.address", atlasUrls);
-        atlasConf.setProperty(AtlasHook.ATLAS_NOTIFICATION_ASYNCHRONOUS, "false");
-
-        Consumer<Exception> assertion = e -> assertEquals(
-            "SSL Context Service required for https access (https://atlasUrl)",
-            e.getMessage()
         );
 
         // WHEN
