@@ -68,6 +68,7 @@ class GremlinBytecodeClientServiceIT {
                 def trav = g.addV("it_test_node")
                 2.upto(250) {
                     trav.addV("it_test_node").property("uuid", UUID.randomUUID().toString())
+                        .property("msg", param)
                 }
                 trav.next()
             }
