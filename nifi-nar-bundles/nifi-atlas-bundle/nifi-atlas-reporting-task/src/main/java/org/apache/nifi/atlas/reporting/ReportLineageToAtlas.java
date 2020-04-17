@@ -105,7 +105,7 @@ import static org.apache.nifi.reporting.util.provenance.ProvenanceEventConsumer.
         " in addition to NiFi provenance events providing detailed event level lineage." +
         " See 'Additional Details' for further description and limitations.")
 @Stateful(scopes = Scope.LOCAL, description = "Stores the Reporting Task's last event Id so that on restart the task knows where it left off.")
-@DynamicProperty(name = "hostnamePattern.<ClusterName>", value = "hostname Regex patterns",
+@DynamicProperty(name = "hostnamePattern.<namespace>", value = "hostname Regex patterns",
                  description = RegexClusterResolver.PATTERN_PROPERTY_PREFIX_DESC, expressionLanguageScope = ExpressionLanguageScope.VARIABLE_REGISTRY)
 // In order for each reporting task instance to have its own static objects such as KafkaNotification.
 @RequiresInstanceClassLoading
@@ -221,7 +221,7 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
     static final PropertyDescriptor KAFKA_SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
             .name("ssl-context-service")
             .displayName("Kafka SSL Context Service")
-            .description("Specifies the SSL Context Service to use for communicating with Atlas and Kafka.")
+            .description("Specifies the SSL Context Service to use for communicating with Kafka.")
             .required(false)
             .identifiesControllerService(SSLContextService.class)
             .build();
@@ -620,9 +620,9 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
         return atlasUrls;
     }
 
-    private void setValue(Consumer<String> setter, Runnable emptyHandler, PropertyValue elPropertyValue, String... properties) {
+    private void setValue(Consumer<String> setter, Runnable emptyHandler, PropertyValue elEnabledPropertyValue, String... properties) {
         StringSelector valueSelector = StringSelector
-            .of(elPropertyValue.evaluateAttributeExpressions().getValue())
+            .of(elEnabledPropertyValue.evaluateAttributeExpressions().getValue())
             .or(properties);
 
         if (valueSelector.found()) {
