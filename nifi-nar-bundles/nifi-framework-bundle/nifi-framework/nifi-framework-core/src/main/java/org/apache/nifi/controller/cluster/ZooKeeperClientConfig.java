@@ -16,17 +16,17 @@
  */
 package org.apache.nifi.controller.cluster;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-import java.util.regex.Pattern;
 import org.apache.commons.lang3.StringUtils;
-
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.zookeeper.common.PathUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
 
 public class ZooKeeperClientConfig {
 
@@ -217,7 +217,7 @@ public class ZooKeeperClientConfig {
      * @param defaultPropertyName The backup property to get from NiFi properties if the preferred property is not present.
      * @return Returns the property in order of preference.
      */
-    private static String getPreferredProperty(final NiFiProperties properties, final String preferredPropertyName, final String defaultPropertyName) {
+    public static String getPreferredProperty(final NiFiProperties properties, final String preferredPropertyName, final String defaultPropertyName) {
         String retrievedProperty = properties.getProperty(preferredPropertyName);
 
         if(StringUtils.isBlank(retrievedProperty)) {
