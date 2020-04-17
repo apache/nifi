@@ -1760,9 +1760,9 @@ For each Node, the minimum properties to configure are as follows:
    thread pool will never have fewer than this number of threads. It will grow as needed up to the maximum value set by the `nifi.cluster.node.protocol.max.threads`
    property.
 ** `nifi.cluster.node.protocol.max.threads` - The maximum number of threads that should be used to communicate with other nodes in the cluster. This property
-	defaults to `50`. A thread pool is used for replication requests to all nodes, and the thread pool will have a "core" size that is configured by the
-	`nifi.cluster.node.protocol.threads` property. However, if necessary, the thread pool will increase the number of active threads to the limit
-	set by this property.
+        defaults to `50`. A thread pool is used for replication requests to all nodes, and the thread pool will have a "core" size that is configured by the
+        `nifi.cluster.node.protocol.threads` property. However, if necessary, the thread pool will increase the number of active threads to the limit
+        set by this property.
 ** `nifi.zookeeper.connect.string` - The Connect String that is needed to connect to Apache ZooKeeper. This is a comma-separated list
    of hostname:port pairs. For example, `localhost:2181,localhost:2182,localhost:2183`. This should contain a list of all ZooKeeper
    instances in the ZooKeeper quorum.
@@ -1933,10 +1933,9 @@ providing support for SSL connections in version 3.5.0.
 
 
 [[securing_zookeeper]]
-=== Securing ZooKeeper
+=== Securing ZooKeeper with Kerberos
 When NiFi communicates with ZooKeeper, all communications, by default, are non-secure, and anyone who logs into ZooKeeper is able to view and manipulate all
-of the NiFi state that is stored in ZooKeeper. To prevent this, we can use Kerberos to manage the authentication. At this time, ZooKeeper does not provide
-support for encryption via SSL. Support for SSL in ZooKeeper is being actively developed and is expected to be available in the 3.5.x release version.
+of the NiFi state that is stored in ZooKeeper. To prevent this, we can use Kerberos to manage the authentication.
 
 In order to secure the communications, we need to ensure that both the client and the server support the same configuration. Instructions for configuring the
 NiFi ZooKeeper client and embedded ZooKeeper server to use Kerberos are provided below.
@@ -2128,6 +2127,36 @@ java.arg.16=-Dsun.security.krb5.debug=true
 
 This will cause the debug output to be written to the NiFi Bootstrap log file. By default, this is located at _$NIFI_HOME/logs/nifi-bootstrap.log_.
 This output can be rather verbose but provides extremely valuable information for troubleshooting Kerberos failures.
+
+[[zk_tls]]
+=== Securing ZooKeeper with HTTPS
+By default, when configured for HTTPS communication (that is, valid values for `nifi.web.https.port` and related properties), NiFi will configure
+the embedded ZooKeeper server for secure communication. This automatic configuration copies the following properties:
+
+|====
+|*Source NiFi Property*|*Target ZooKeeper Property*|*Description*
+|`nifi.security.keystore`         |`ssl.keyStore.location`   | Key Store Path
+|`nifi.security.keystorePasswd`   |`ssl.keyStore.password`   | Key Store Password
+|`nifi.security.truststore`       |`ssl.trustStore.location` | Trust Store Path
+|`nifi.security.truststorePasswd` |`ssl.trustStore.password` | Trust Store Password
+|====
+
+NOTE: During the automatic configuration, NiFi will raise an exception and refuse to start if the ZooKeeper configuration contains some of these
+properties but not all.  Specify either all TLS properties or none.
+
+As an alternative to the automatic configuration, TLS communications can be enabled via system properties or in the configuration file specified by the
+`nifi.state.management.embedded.zookeeper.properties` property in _nifi.properties_. At minimum, the ZooKeeper configuration should contain a
+keystore location, keystore password, truststore location, and truststore password.  For example:
+
+[source]
+ssl.keyStore.location=/var/run/keystore.jks
+ssl.keyStore.password=example do not use
+ssl.trustStore.location=/var/run/truststore.jks
+ssl.trustStore.password=example do not use
+
+For more information on the properties used to configure ZooKeeper, see the
+link:https://zookeeper.apache.org/doc/current/zookeeperAdmin.html[ZooKeeper Admin Guide^].
+
 
 [[zookeeper_migrator]]
 === ZooKeeper Migrator
