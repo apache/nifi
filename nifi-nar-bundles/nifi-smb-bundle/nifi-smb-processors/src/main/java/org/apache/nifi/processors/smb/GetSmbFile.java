@@ -41,6 +41,9 @@ import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
@@ -53,7 +56,7 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 
 import java.io.InputStream;
-
+import java.net.URI;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.List;
@@ -62,6 +65,7 @@ import java.util.HashSet;
 import java.util.Collections;
 import java.util.ListIterator;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.EnumSet;
 import java.util.ArrayList;
 import java.util.Locale;
@@ -77,7 +81,8 @@ import java.util.regex.Pattern;
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
 @Tags({"samba, smb, cifs, files, get"})
 @CapabilityDescription("Reads file from a samba network location to FlowFiles. " +
-    "Use this processor instead of a cifs mounts if share access control is important.")
+    "Use this processor instead of a cifs mounts if share access control is important. " +
+    "Configure the Hostname, Share and Directory accordingly: \\\\[Hostname]\\[Share]\\[path\\to\\Directory]")
 @SeeAlso({PutSmbFile.class})
 @WritesAttributes({
         @WritesAttribute(attribute = "filename", description = "The filename is set to the name of the file on the network share"),
@@ -96,7 +101,6 @@ public class GetSmbFile extends AbstractProcessor {
     public static final String SHARE_ACCESS_READDELETE = "read, delete";
     public static final String SHARE_ACCESS_READWRITEDELETE = "read, write, delete";
 
-
     public static final PropertyDescriptor HOSTNAME = new PropertyDescriptor.Builder()
             .name("Hostname")
             .description("The network host to which files should be written.")
@@ -105,36 +109,38 @@ public class GetSmbFile extends AbstractProcessor {
             .build();
     public static final PropertyDescriptor SHARE = new PropertyDescriptor.Builder()
             .name("Share")
-            .description("The network share to which files should be written.")
+            .description("The network share to which files should be written. This is the \"first folder\"" +
+                "after the hostname: \\\\hostname\\[share]\\dir1\\dir2")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     public static final PropertyDescriptor DIRECTORY = new PropertyDescriptor.Builder()
             .name("Directory")
-            .description("The network folder to which files should be written. You may use expression language.")
-            .required(true)
+            .description("The network folder to which files should be written. This is the remaining relative " +
+            "path after the share: \\\\hostname\\share\\[dir1\\dir2].")
+            .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
     public static final PropertyDescriptor DOMAIN = new PropertyDescriptor.Builder()
             .name("Domain")
-            .description("The domain use for authentication")
+            .description("The domain used for authentication. Optional, in most cases username and password is sufficient.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     public static final PropertyDescriptor USERNAME = new PropertyDescriptor.Builder()
             .name("Username")
-            .description("The username use for authentication")
+            .description("The username used for authentication. If no username is set then anonymous authentication is attempted.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     public static final PropertyDescriptor PASSWORD = new PropertyDescriptor.Builder()
             .name("Password")
-            .description("The password use for authentication")
+            .description("The password used for authentication. Required if Username is set.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .sensitive(true)
             .build();
-
     public static final PropertyDescriptor SHARE_ACCESS = new PropertyDescriptor.Builder()
             .name("Share Access Strategy")
             .description("Indicates which shared access are granted on the file during the read. " +
@@ -233,7 +239,6 @@ public class GetSmbFile extends AbstractProcessor {
         descriptors.add(USERNAME);
         descriptors.add(PASSWORD);
         descriptors.add(SHARE_ACCESS);
-        descriptors.add(DIRECTORY);
         descriptors.add(FILE_FILTER);
         descriptors.add(PATH_FILTER);
         descriptors.add(BATCH_SIZE);
@@ -283,6 +288,15 @@ public class GetSmbFile extends AbstractProcessor {
         }
     }
 
+    @Override
+    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+        Collection<ValidationResult> set = new ArrayList<>();
+        if (validationContext.getProperty(USERNAME).isSet() && !validationContext.getProperty(PASSWORD).isSet()) {
+            set.add(new ValidationResult.Builder().explanation("Password must be set if username is supplied.").build());
+        }
+        return set;
+    }
+
     private void initSmbClient() {
         initSmbClient(new SMBClient());
     }
@@ -328,7 +342,12 @@ public class GetSmbFile extends AbstractProcessor {
             if (filename.equals(".") || filename.equals("..")) {
                 continue;
             }
-            final String fullPath = directory + "\\" + filename;
+            String fullPath;
+            if (directory.isEmpty()) {
+                fullPath = filename;
+            } else {
+                fullPath = directory + "\\" + filename;
+            }
             final long fileAttributes = child.getFileAttributes();
             if ((fileAttributes & FileAttributes.FILE_ATTRIBUTE_DIRECTORY.getValue()) != 0) {
                 if (recurseSubdirectories) {
@@ -352,13 +371,10 @@ public class GetSmbFile extends AbstractProcessor {
 
         final String domain = context.getProperty(DOMAIN).getValue();
         final String username = context.getProperty(USERNAME).getValue();
-        String password = context.getProperty(PASSWORD).getValue();
+        final String password = context.getProperty(PASSWORD).getValue();
 
         AuthenticationContext ac = null;
-        if (username != null) {
-            if (password == null) {
-                password = "";
-            }
+        if (username != null && password != null) {
             ac = new AuthenticationContext(
                 username,
                 password.toCharArray(),
@@ -371,7 +387,10 @@ public class GetSmbFile extends AbstractProcessor {
         try (Connection connection = smbClient.connect(hostname);
             Session smbSession = connection.authenticate(ac);
             DiskShare share = (DiskShare) smbSession.connectShare(shareName)) {
-                final String directory = context.getProperty(DIRECTORY).getValue();
+                String directory = context.getProperty(DIRECTORY).evaluateAttributeExpressions().getValue();
+                if (directory == null) {
+                    directory = "";
+                }
                 final boolean keepingSourceFile = context.getProperty(KEEP_SOURCE_FILE).asBoolean();
                 final String filter = context.getProperty(FILE_FILTER).getValue();
 
@@ -429,6 +448,7 @@ public class GetSmbFile extends AbstractProcessor {
                         final String[] fileSplits = file.split("\\\\");
                         final String filename = fileSplits[fileSplits.length - 1];
                         final String filePath = String.join("\\", Arrays.copyOf(fileSplits, fileSplits.length-1));
+                        final URI uri = new URI("smb", hostname, "/" + file.replace('\\', '/'), null);
 
                         flowFile = session.create();
                         final long importStart = System.nanoTime();
@@ -457,7 +477,7 @@ public class GetSmbFile extends AbstractProcessor {
                             flowFile = session.putAttribute(flowFile, FILE_LAST_MODIFY_TIME_ATTRIBUTE, dateFormatter.format(fileBasicInfo.getLastWriteTime().toDate()));
                             flowFile = session.putAttribute(flowFile, HOSTNAME.getName(), hostname);
                             flowFile = session.putAttribute(flowFile, SHARE.getName(), shareName);
-                            session.getProvenanceReporter().receive(flowFile, file, importMillis);
+                            session.getProvenanceReporter().receive(flowFile, uri.toString(), importMillis);
 
                             session.transfer(flowFile, REL_SUCCESS);
                             logger.info("added {} to flow", new Object[]{flowFile});
