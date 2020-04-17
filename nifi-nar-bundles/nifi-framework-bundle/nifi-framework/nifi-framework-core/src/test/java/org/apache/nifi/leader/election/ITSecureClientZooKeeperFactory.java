@@ -96,7 +96,7 @@ public class ITSecureClientZooKeeperFactory {
         createTrustStore(serverCert, "zookeeper", TEST_PASSWORD, clientTrustStore, KEYSTORE_TYPE);
         createTrustStore(clientCert, "client", TEST_PASSWORD, serverTrustStore, KEYSTORE_TYPE);
 
-        clientProperties = createClientProperties(
+        clientProperties = createSecureClientProperties(
             clientPort,
             clientKeyStore,
             KEYSTORE_TYPE,
@@ -204,9 +204,9 @@ public class ITSecureClientZooKeeperFactory {
         return secureConnectionFactory;
     }
 
-    public static NiFiProperties createClientProperties(final int clientPort,
-        final Path keyStore, final String keyStoreType, final String keyStorePassword,
-        final Path trustStore, final String trustStoreType, final String trustStorePassword) {
+    public static NiFiProperties createSecureClientProperties(final int clientPort,
+                                                              final Path keyStore, final String keyStoreType, final String keyStorePassword,
+                                                              final Path trustStore, final String trustStoreType, final String trustStorePassword) {
 
         final Properties properties = new Properties();
         properties.setProperty(NiFiProperties.ZOOKEEPER_CONNECT_STRING, String.format("localhost:%d", clientPort));

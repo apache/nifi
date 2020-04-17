@@ -274,6 +274,8 @@
                         <exclude>src/test/resources/old-swap-file.swap</exclude>
                         <exclude>src/test/resources/xxe_template.xml</exclude>
                         <exclude>src/test/resources/swap/444-old-swap-file.swap</exclude>
+                        <exclude>src/test/resources/ZooKeeperStateServerConfigurationsTest/keystore.jks</exclude>
+                        <exclude>src/test/resources/ZooKeeperStateServerConfigurationsTest/truststore.jks</exclude>
                     </excludes>
                 </configuration>
             </plugin>
