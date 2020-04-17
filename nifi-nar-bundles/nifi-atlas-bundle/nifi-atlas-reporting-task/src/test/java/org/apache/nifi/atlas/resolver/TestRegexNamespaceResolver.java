@@ -30,7 +30,7 @@ import java.util.Map;
 
 import static org.mockito.Mockito.when;
 
-public class TestRegexClusterResolver {
+public class TestRegexNamespaceResolver {
 
     private PropertyContext context;
     private ValidationContext validationContext;
@@ -45,7 +45,7 @@ public class TestRegexClusterResolver {
     @Test
     public void testEmptySettings() {
         setupMock(Collections.EMPTY_MAP);
-        final RegexClusterResolver resolver = new RegexClusterResolver();
+        final RegexNamespaceResolver resolver = new RegexNamespaceResolver();
 
         // It should be valid
         final Collection<ValidationResult> validationResults = resolver.validate(validationContext);
@@ -56,16 +56,16 @@ public class TestRegexClusterResolver {
     }
 
     @Test
-    public void testInvalidClusterName() {
+    public void testInvalidNamespace() {
         final Map<String, String> properties = new HashMap<>();
-        properties.put(RegexClusterResolver.PATTERN_PROPERTY_PREFIX, ".*\\.example.com");
+        properties.put(RegexNamespaceResolver.PATTERN_PROPERTY_PREFIX, ".*\\.example.com");
         setupMock(properties);
-        final RegexClusterResolver resolver = new RegexClusterResolver();
+        final RegexNamespaceResolver resolver = new RegexNamespaceResolver();
 
         final Collection<ValidationResult> validationResults = resolver.validate(validationContext);
         Assert.assertEquals(1, validationResults.size());
         final ValidationResult validationResult = validationResults.iterator().next();
-        Assert.assertEquals(RegexClusterResolver.PATTERN_PROPERTY_PREFIX, validationResult.getSubject());
+        Assert.assertEquals(RegexNamespaceResolver.PATTERN_PROPERTY_PREFIX, validationResult.getSubject());
 
         try {
             resolver.configure(context);
@@ -77,10 +77,10 @@ public class TestRegexClusterResolver {
     @Test
     public void testEmptyPattern() {
         final Map<String, String> properties = new HashMap<>();
-        final String propertyName = RegexClusterResolver.PATTERN_PROPERTY_PREFIX + "Cluster1";
+        final String propertyName = RegexNamespaceResolver.PATTERN_PROPERTY_PREFIX + "Namespace1";
         properties.put(propertyName, "");
         setupMock(properties);
-        final RegexClusterResolver resolver = new RegexClusterResolver();
+        final RegexNamespaceResolver resolver = new RegexNamespaceResolver();
 
         final Collection<ValidationResult> validationResults = resolver.validate(validationContext);
         Assert.assertEquals(1, validationResults.size());
@@ -97,61 +97,64 @@ public class TestRegexClusterResolver {
     @Test
     public void testSinglePattern() {
         final Map<String, String> properties = new HashMap<>();
-        final String propertyName = RegexClusterResolver.PATTERN_PROPERTY_PREFIX + "Cluster1";
+        final String propertyName = RegexNamespaceResolver.PATTERN_PROPERTY_PREFIX + "Namespace1";
         properties.put(propertyName, "^.*\\.example.com$");
         setupMock(properties);
-        final RegexClusterResolver resolver = new RegexClusterResolver();
+        final RegexNamespaceResolver resolver = new RegexNamespaceResolver();
 
         final Collection<ValidationResult> validationResults = resolver.validate(validationContext);
         Assert.assertEquals(0, validationResults.size());
 
         resolver.configure(context);
 
-        Assert.assertEquals("Cluster1", resolver.fromHostNames("host1.example.com"));
+        Assert.assertEquals("Namespace1", resolver.fromHostNames("host1.example.com"));
     }
 
     @Test
     public void testMultiplePatterns() {
         final Map<String, String> properties = new HashMap<>();
-        final String propertyName = RegexClusterResolver.PATTERN_PROPERTY_PREFIX + "Cluster1";
+        final String propertyName = RegexNamespaceResolver.PATTERN_PROPERTY_PREFIX + "Namespace1";
         // Hostname or local ip address, delimited with a whitespace
         properties.put(propertyName, "^.*\\.example.com$\n^192.168.1.[\\d]+$");
         setupMock(properties);
-        final RegexClusterResolver resolver = new RegexClusterResolver();
+        final RegexNamespaceResolver resolver = new RegexNamespaceResolver();
 
         final Collection<ValidationResult> validationResults = resolver.validate(validationContext);
         Assert.assertEquals(0, validationResults.size());
 
         resolver.configure(context);
 
-        Assert.assertEquals("Cluster1", resolver.fromHostNames("host1.example.com"));
-        Assert.assertEquals("Cluster1", resolver.fromHostNames("192.168.1.10"));
-        Assert.assertEquals("Cluster1", resolver.fromHostNames("192.168.1.22"));
+        Assert.assertEquals("Namespace1", resolver.fromHostNames("host1.example.com"));
+        Assert.assertEquals("Namespace1", resolver.fromHostNames("192.168.1.10"));
+        Assert.assertEquals("Namespace1", resolver.fromHostNames("192.168.1.22"));
         Assert.assertNull(resolver.fromHostNames("192.168.2.30"));
     }
 
     @Test
-    public void testMultipleClusters() {
+    public void testMultipleNamespaces() {
+        String namespace1 = "Namepsace1";
+        String namespace2 = "Namespace2";
+
         final Map<String, String> properties = new HashMap<>();
-        final String c1PropertyName = RegexClusterResolver.PATTERN_PROPERTY_PREFIX + "Cluster1";
-        final String c2PropertyName = RegexClusterResolver.PATTERN_PROPERTY_PREFIX + "Cluster2";
+        final String namespace1PropertyName = RegexNamespaceResolver.PATTERN_PROPERTY_PREFIX + namespace1;
+        final String namepsace2PropertyName = RegexNamespaceResolver.PATTERN_PROPERTY_PREFIX + namespace2;
         // Hostname or local ip address
-        properties.put(c1PropertyName, "^.*\\.c1\\.example.com$ ^192.168.1.[\\d]+$");
-        properties.put(c2PropertyName, "^.*\\.c2\\.example.com$ ^192.168.2.[\\d]+$");
+        properties.put(namespace1PropertyName, "^.*\\.c1\\.example.com$ ^192.168.1.[\\d]+$");
+        properties.put(namepsace2PropertyName, "^.*\\.c2\\.example.com$ ^192.168.2.[\\d]+$");
         setupMock(properties);
-        final RegexClusterResolver resolver = new RegexClusterResolver();
+        final RegexNamespaceResolver resolver = new RegexNamespaceResolver();
 
         final Collection<ValidationResult> validationResults = resolver.validate(validationContext);
         Assert.assertEquals(0, validationResults.size());
 
         resolver.configure(context);
 
-        Assert.assertEquals("Cluster1", resolver.fromHostNames("host1.c1.example.com"));
-        Assert.assertEquals("Cluster1", resolver.fromHostNames("192.168.1.10"));
-        Assert.assertEquals("Cluster1", resolver.fromHostNames("192.168.1.22"));
-        Assert.assertEquals("Cluster2", resolver.fromHostNames("host2.c2.example.com"));
-        Assert.assertEquals("Cluster2", resolver.fromHostNames("192.168.2.10"));
-        Assert.assertEquals("Cluster2", resolver.fromHostNames("192.168.2.22"));
+        Assert.assertEquals(namespace1, resolver.fromHostNames("host1.c1.example.com"));
+        Assert.assertEquals(namespace1, resolver.fromHostNames("192.168.1.10"));
+        Assert.assertEquals(namespace1, resolver.fromHostNames("192.168.1.22"));
+        Assert.assertEquals(namespace2, resolver.fromHostNames("host2.c2.example.com"));
+        Assert.assertEquals(namespace2, resolver.fromHostNames("192.168.2.10"));
+        Assert.assertEquals(namespace2, resolver.fromHostNames("192.168.2.22"));
         Assert.assertNull(resolver.fromHostNames("192.168.3.30"));
     }
 

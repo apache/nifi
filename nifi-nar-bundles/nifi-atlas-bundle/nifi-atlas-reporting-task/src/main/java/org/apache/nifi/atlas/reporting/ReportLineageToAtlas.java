@@ -42,7 +42,7 @@ import org.apache.nifi.atlas.provenance.lineage.LineageStrategy;
 import org.apache.nifi.atlas.provenance.lineage.SimpleFlowPathLineage;
 import org.apache.nifi.atlas.resolver.ClusterResolver;
 import org.apache.nifi.atlas.resolver.ClusterResolvers;
-import org.apache.nifi.atlas.resolver.RegexClusterResolver;
+import org.apache.nifi.atlas.resolver.RegexNamespaceResolver;
 import org.apache.nifi.atlas.security.AtlasAuthN;
 import org.apache.nifi.atlas.security.Basic;
 import org.apache.nifi.atlas.security.Kerberos;
@@ -106,7 +106,7 @@ import static org.apache.nifi.reporting.util.provenance.ProvenanceEventConsumer.
         " See 'Additional Details' for further description and limitations.")
 @Stateful(scopes = Scope.LOCAL, description = "Stores the Reporting Task's last event Id so that on restart the task knows where it left off.")
 @DynamicProperty(name = "hostnamePattern.<namespace>", value = "hostname Regex patterns",
-                 description = RegexClusterResolver.PATTERN_PROPERTY_PREFIX_DESC, expressionLanguageScope = ExpressionLanguageScope.VARIABLE_REGISTRY)
+                 description = RegexNamespaceResolver.PATTERN_PROPERTY_PREFIX_DESC, expressionLanguageScope = ExpressionLanguageScope.VARIABLE_REGISTRY)
 // In order for each reporting task instance to have its own static objects such as KafkaNotification.
 @RequiresInstanceClassLoading
 public class ReportLineageToAtlas extends AbstractReportingTask {
