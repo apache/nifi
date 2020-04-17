@@ -1540,6 +1540,12 @@ public abstract class NiFiProperties {
             && getProperty(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE_PASSWD) != null;
     }
 
+    public boolean isTlsConfigurationPresent() {
+        return StringUtils.isNotBlank(getProperty(NiFiProperties.SECURITY_KEYSTORE))
+            && getProperty(NiFiProperties.SECURITY_KEYSTORE_PASSWD) != null
+            && StringUtils.isNotBlank(getProperty(NiFiProperties.SECURITY_TRUSTSTORE));
+    }
+
     public int size() {
         return getPropertyKeys().size();
     }
