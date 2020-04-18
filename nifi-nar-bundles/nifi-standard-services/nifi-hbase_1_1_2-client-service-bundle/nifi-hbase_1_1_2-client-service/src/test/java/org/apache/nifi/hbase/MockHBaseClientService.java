@@ -26,6 +26,7 @@ import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.hadoop.KerberosProperties;
 import org.apache.nifi.hbase.put.PutColumn;
+import org.apache.nifi.hbase.put.PutFlowFile;
 import org.apache.nifi.hbase.scan.Column;
 import org.mockito.Mockito;
 
@@ -125,6 +126,35 @@ public class MockHBaseClientService extends HBase_1_1_2_ClientService {
 
         table.put(put);
         addResult(new String(rowId), map, 1);
+    }
+
+    @Override
+    public void put(final String tableName, final Collection<PutFlowFile> puts) throws IOException {
+        final Map<String, List<PutColumn>> sorted = new HashMap<>();
+        final List<Put> newPuts = new ArrayList<>();
+
+        for (final PutFlowFile putFlowFile : puts) {
+            Map<String, String> map = new HashMap<String, String>();
+            final String rowKeyString = new String(putFlowFile.getRow(), StandardCharsets.UTF_8);
+            List<PutColumn> columns = sorted.get(rowKeyString);
+            if (columns == null) {
+                columns = new ArrayList<>();
+                sorted.put(rowKeyString, columns);
+            }
+
+            columns.addAll(putFlowFile.getColumns());
+            for (PutColumn column : putFlowFile.getColumns()) {
+                map.put(new String(column.getColumnQualifier()), new String(column.getBuffer()));
+            }
+
+            addResult(new String(putFlowFile.getRow()), map, 1);
+        }
+
+        for (final Map.Entry<String, List<PutColumn>> entry : sorted.entrySet()) {
+            newPuts.addAll(buildPuts(entry.getKey().getBytes(StandardCharsets.UTF_8), entry.getValue()));
+        }
+
+        table.put(newPuts);
     }
 
     @Override

@@ -49,8 +49,10 @@ import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -242,6 +244,20 @@ public class ITRedisDistributedMapCacheClientService {
 
                 Assert.assertTrue(cacheClient.removeByPattern("test-redis-processor-*") >= numToDelete);
                 Assert.assertFalse(cacheClient.containsKey(key, stringSerializer));
+
+                Map<String, String> bulk = new HashMap<>();
+                bulk.put("bulk-1", "testing1");
+                bulk.put("bulk-2", "testing2");
+                bulk.put("bulk-3", "testing3");
+                bulk.put("bulk-4", "testing4");
+                bulk.put("bulk-5", "testing5");
+
+                cacheClient.putAll(bulk, stringSerializer, stringSerializer);
+                Assert.assertTrue(cacheClient.containsKey("bulk-1", stringSerializer));
+                Assert.assertTrue(cacheClient.containsKey("bulk-2", stringSerializer));
+                Assert.assertTrue(cacheClient.containsKey("bulk-3", stringSerializer));
+                Assert.assertTrue(cacheClient.containsKey("bulk-4", stringSerializer));
+                Assert.assertTrue(cacheClient.containsKey("bulk-5", stringSerializer));
 
                 session.transfer(flowFile, REL_SUCCESS);
             } catch (final Exception e) {

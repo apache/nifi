@@ -30,6 +30,7 @@ import org.apache.nifi.distributed.cache.client.Deserializer;
 import org.apache.nifi.distributed.cache.client.Serializer;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.hbase.put.PutColumn;
+import org.apache.nifi.hbase.put.PutFlowFile;
 import org.apache.nifi.hbase.scan.Column;
 import org.apache.nifi.hbase.scan.ResultCell;
 import org.apache.nifi.hbase.scan.ResultHandler;
@@ -43,6 +44,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import static org.apache.nifi.hbase.VisibilityLabelUtils.AUTHORIZATIONS;
 
@@ -170,6 +172,21 @@ public class HBase_1_1_2_ClientMapCacheService extends AbstractControllerService
         putColumns.add(putColumn);
 
         hBaseClientService.put(hBaseCacheTableName, rowIdBytes, putColumns);
+    }
+
+    @Override
+    public <K, V> void putAll(Map<K, V> keysAndValues, Serializer<K> keySerializer, Serializer<V> valueSerializer) throws IOException {
+        List<PutFlowFile> puts = new ArrayList<>();
+        for (Map.Entry<K, V> entry : keysAndValues.entrySet()) {
+            List<PutColumn> putColumns = new ArrayList<PutColumn>(1);
+            final byte[] rowIdBytes = serialize(entry.getKey(), keySerializer);
+            final byte[] valueBytes = serialize(entry.getValue(), valueSerializer);
+
+            final PutColumn putColumn = new PutColumn(hBaseColumnFamilyBytes, hBaseColumnQualifierBytes, valueBytes, defaultVisibilityExpression);
+            putColumns.add(putColumn);
+            puts.add(new PutFlowFile(hBaseCacheTableName, rowIdBytes, putColumns, null));
+        }
+        hBaseClientService.put(hBaseCacheTableName, puts);
     }
 
     @Override
