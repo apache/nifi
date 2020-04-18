@@ -16,14 +16,14 @@
  */
 package org.apache.nifi.distributed.cache.client;
 
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.controller.ControllerService;
+
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-
-import org.apache.nifi.annotation.documentation.CapabilityDescription;
-import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.controller.ControllerService;
 
 /**
  * This interface defines an API that can be used for interacting with a
@@ -104,6 +104,23 @@ public interface DistributedMapCacheClient extends ControllerService {
      * @throws NullPointerException if the key or either serializer is null
      */
     <K, V> void put(K key, V value, Serializer<K> keySerializer, Serializer<V> valueSerializer) throws IOException;
+
+    /**
+     * Performs a bulk put operation. This should be used when needed to send a large batch of updates to a cache
+     * in a single update operation.
+     *
+     * @param keysAndValues   A java.util.Map that contains an association between keys and values to be bulk inserted into the cache.
+     * @param keySerializer   The Serializer that will be used to serialize the key into bytes
+     * @param valueSerializer The Serializer that will be used to serialize the value into bytes
+     * @param <K>             The key type
+     * @param <V>             The value type
+     * @throws IOException if unable to communicate with the remote instance
+     */
+    default <K, V> void putAll(Map<K, V> keysAndValues, Serializer<K> keySerializer, Serializer<V> valueSerializer) throws IOException {
+        for (Map.Entry<K, V> entry : keysAndValues.entrySet()) {
+            put(entry.getKey(), entry.getValue(), keySerializer, valueSerializer);
+        }
+    }
 
     /**
      * Returns the value in the cache for the given key, if one exists;

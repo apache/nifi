@@ -419,7 +419,7 @@ public class HBase_2_ClientService extends AbstractControllerService implements 
         }
     }
 
-    private List<Put> buildPuts(byte[] rowKey, List<PutColumn> columns) {
+    protected List<Put> buildPuts(byte[] rowKey, List<PutColumn> columns) {
         List<Put> retVal = new ArrayList<>();
 
         try {
