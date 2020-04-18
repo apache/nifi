@@ -46,7 +46,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 @Tags({ "redis", "distributed", "cache", "map" })
@@ -190,6 +192,26 @@ public class RedisDistributedMapCacheClientService extends AbstractControllerSer
         withConnection(redisConnection -> {
             final Tuple<byte[],byte[]> kv = serialize(key, value, keySerializer, valueSerializer);
             redisConnection.set(kv.getKey(), kv.getValue(), Expiration.seconds(ttl), SetOption.upsert());
+            return null;
+        });
+    }
+
+    @Override
+    public <K, V> void putAll(Map<K, V> keysAndValues, Serializer<K> keySerializer, Serializer<V> valueSerializer) throws IOException {
+        withConnection(redisConnection -> {
+            Map<byte[], byte[]> values = new HashMap<>();
+            for (Map.Entry<K, V> entry : keysAndValues.entrySet()) {
+                final Tuple<byte[],byte[]> kv = serialize(entry.getKey(), entry.getValue(), keySerializer, valueSerializer);
+                values.put(kv.getKey(), kv.getValue());
+            }
+
+            if (getLogger().isDebugEnabled()) {
+                getLogger().debug(String.format("Queued up %d tuples to mset on Redis connection.", values.size()));
+            }
+
+            if (!values.isEmpty()) {
+                redisConnection.mSet(values);
+            }
             return null;
         });
     }
