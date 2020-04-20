@@ -128,7 +128,7 @@ public class StatelessControllerServiceLookup implements ControllerServiceLookup
     public void enableControllerServices(final VariableRegistry variableRegistry) {
         for (final StatelessControllerServiceConfiguration config : controllerServiceMap.values()) {
             final ControllerService service = config.getService();
-            final Collection<ValidationResult> validationResults = validate(service, config.getName(), variableRegistry);
+            final Collection<ValidationResult> validationResults = validate(config, variableRegistry);
             if (!validationResults.isEmpty()) {
                 throw new RuntimeException("Failed to enable Controller Service {id=" + service.getIdentifier() + ", name=" + config.getName() + ", type=" + service.getClass() + "} because " +
                     "validation failed: " + validationResults);
@@ -142,12 +142,15 @@ public class StatelessControllerServiceLookup implements ControllerServiceLookup
         }
     }
 
-    public Collection<ValidationResult> validate(final ControllerService service, final String serviceName, final VariableRegistry variableRegistry) {
-        final StateManager stateManager = controllerServiceStateManagers.get(service.getIdentifier());
-        final SLF4JComponentLog logger = controllerServiceLoggers.get(service.getIdentifier());
-        final StatelessProcessContext processContext = new StatelessProcessContext(service, this, serviceName, logger, stateManager, variableRegistry, parameterContext);
+    public Collection<ValidationResult> validate(final StatelessControllerServiceConfiguration configuration, final VariableRegistry variableRegistry) {
+        final StateManager stateManager = controllerServiceStateManagers.get(configuration.getService().getIdentifier());
+        final SLF4JComponentLog logger = controllerServiceLoggers.get(configuration.getService().getIdentifier());
+        final StatelessProcessContext processContext = new StatelessProcessContext(configuration.getService(), this, configuration.getName(), logger, stateManager, variableRegistry, parameterContext);
+        for(PropertyDescriptor propertyDescriptor : configuration.getProperties().keySet()) {
+            processContext.setProperty(propertyDescriptor, configuration.getProperty(propertyDescriptor));
+        }
         final StatelessValidationContext validationContext = new StatelessValidationContext(processContext, this, stateManager, variableRegistry, parameterContext);
-        return service.validate(validationContext);
+        return configuration.getService().validate(validationContext);
     }
 
     private void enableControllerService(final ControllerService service, final VariableRegistry registry) throws InvocationTargetException, IllegalAccessException {
