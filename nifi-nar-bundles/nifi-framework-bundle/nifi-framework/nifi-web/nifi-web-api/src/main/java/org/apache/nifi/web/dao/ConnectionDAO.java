@@ -101,9 +101,10 @@ public interface ConnectionDAO {
      *
      * @param id connection id
      * @param listingRequestId listing request id
+     * @param maxRedsults the maximum number of flowfile summary objects to return
      * @return The listing request status
      */
-    ListFlowFileStatus createFlowFileListingRequest(String id, String listingRequestId);
+    ListFlowFileStatus createFlowFileListingRequest(String id, String listingRequestId, int maxResults);
 
     /**
      * Verifies the listing can be processed.

@@ -767,9 +767,10 @@ public interface NiFiServiceFacade {
      *
      * @param connectionId The ID of the connection
      * @param listingRequestId The ID of the listing request
+     * @param maxResults The maximum number of flowfile summary objects to return
      * @return The ListingRequest
      */
-    ListingRequestDTO createFlowFileListingRequest(String connectionId, String listingRequestId);
+    ListingRequestDTO createFlowFileListingRequest(String connectionId, String listingRequestId, int maxResults);
 
     /**
      * Gets a new flow file listing request.

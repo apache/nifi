@@ -351,14 +351,14 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
     }
 
     @Override
-    public ListFlowFileStatus createFlowFileListingRequest(String id, String listingRequestId) {
+    public ListFlowFileStatus createFlowFileListingRequest(String id, String listingRequestId, int maxResults) {
         final Connection connection = locateConnection(id);
         final FlowFileQueue queue = connection.getFlowFileQueue();
 
         // ensure we can list
         verifyList(queue);
 
-        return queue.listFlowFiles(listingRequestId, 100);
+        return queue.listFlowFiles(listingRequestId, maxResults);
     }
 
     @Override

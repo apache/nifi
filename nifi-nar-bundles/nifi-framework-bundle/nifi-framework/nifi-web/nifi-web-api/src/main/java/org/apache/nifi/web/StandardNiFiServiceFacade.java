@@ -80,6 +80,7 @@ import org.apache.nifi.controller.Template;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.leader.election.LeaderElectionManager;
+import org.apache.nifi.controller.queue.ListFlowFileStatus;
 import org.apache.nifi.controller.repository.claim.ContentDirection;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceReference;
@@ -2004,9 +2005,10 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public ListingRequestDTO createFlowFileListingRequest(final String connectionId, final String listingRequestId) {
+    public ListingRequestDTO createFlowFileListingRequest(final String connectionId, final String listingRequestId, final int maxResults) {
         final Connection connection = connectionDAO.getConnection(connectionId);
-        final ListingRequestDTO listRequest = dtoFactory.createListingRequestDTO(connectionDAO.createFlowFileListingRequest(connectionId, listingRequestId));
+        final ListFlowFileStatus listFlowFileStatus = connectionDAO.createFlowFileListingRequest(connectionId, listingRequestId, maxResults);
+        final ListingRequestDTO listRequest = dtoFactory.createListingRequestDTO(listFlowFileStatus);
 
         // include whether the source and destination are running
         if (connection.getSource() != null) {
@@ -5034,7 +5036,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             @Override
             public RevisionUpdate<ProcessGroupDTO> update() {
                 // update the Process Group
-                final ProcessGroup updatedProcessGroup = processGroupDAO.updateProcessGroupFlow(groupId, proposedFlowSnapshot, versionControlInfo, componentIdSeed, verifyNotModified, updateSettings,
+                processGroupDAO.updateProcessGroupFlow(groupId, proposedFlowSnapshot, versionControlInfo, componentIdSeed, verifyNotModified, updateSettings,
                     updateDescendantVersionedFlows);
 
                 // update the revisions
