@@ -365,12 +365,17 @@
      * Performs a listing on the specified connection.
      *
      * @param connection the connection
+     * @param maxResults the maximum number of results to display, defaults to 100
      */
-    var performListing = function (connection) {
+    var performListing = function (connection, maxResults) {
         var MAX_DELAY = 4;
         var cancelled = false;
         var listingRequest = null;
         var listingRequestTimer = null;
+
+        if (typeof(maxResults)==='undefined') {
+          maxResults = 100;
+        }
 
         return $.Deferred(function (deferred) {
             // updates the progress bar
@@ -518,7 +523,7 @@
             // issue the request to list the flow files
             $.ajax({
                 type: 'POST',
-                url: '../nifi-api/flowfile-queues/' + connection.id + '/listing-requests',
+                url: '../nifi-api/flowfile-queues/' + connection.id + '/listing-requests?max=' + maxResults,
                 dataType: 'json',
                 contentType: 'application/json'
             }).done(function (response) {
@@ -651,6 +656,12 @@
             $('#queue-listing-refresh-button').click(function () {
                 var connection = $('#queue-listing-table').data('connection');
                 performListing(connection);
+            });
+
+            $('#queue-listing-view-all').click(function(evt) {
+              evt.preventDefault();
+              var connection = $('#queue-listing-table').data('connection');
+              performListing(connection, 100000); // max limit of 100,000 flowfiles for sanity
             });
 
             var queueListingOptions = {

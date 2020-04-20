@@ -30,6 +30,7 @@
     <div id="queue-listing-refresh-container">
         <button id="queue-listing-refresh-button" class="refresh-button pointer fa fa-refresh" title="Refresh"></button>
         <div id="queue-listing-last-refreshed-container" class="last-refreshed-container">
+            <span>&nbsp;&nbsp;&nbsp; <a href="#" id="queue-listing-view-all">View All</a> &nbsp;&nbsp;&nbsp;</span>
             Last updated:&nbsp;<span id="queue-listing-last-refreshed"></span>
         </div>
         <div id="queue-listing-loading-container" class="loading-container"></div>
