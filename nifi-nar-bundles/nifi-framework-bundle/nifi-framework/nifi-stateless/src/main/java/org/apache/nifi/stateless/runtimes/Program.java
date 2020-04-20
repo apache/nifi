@@ -127,9 +127,9 @@ public class Program {
             System.exit(1);
             return;
         }
+
         JsonObject jsonObject = new JsonParser().parse(json).getAsJsonObject();
-        System.out.println("Running from json:");
-        System.out.println(jsonObject.toString());
+        System.out.println("Running from json: " + jsonObject.toString());
         final RunnableFlow flow = StatelessFlow.createAndEnqueueFromJSON(jsonObject, systemClassLoader, narWorkingDirectory);
 
         // Run Flow

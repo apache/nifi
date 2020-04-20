@@ -319,6 +319,7 @@ public class StatelessFlow implements RunnableFlow {
 
 
 
+    @Override
     public boolean run(final Queue<InMemoryFlowFile> output) {
         while (!this.stopRequested) {
             for (final StatelessComponent pw : roots) {
@@ -332,6 +333,7 @@ public class StatelessFlow implements RunnableFlow {
         return true;
     }
 
+    @Override
     public boolean runOnce(Queue<InMemoryFlowFile> output) {
         for (final StatelessComponent pw : roots) {
             final boolean successful = pw.runRecursive(output);
@@ -382,8 +384,6 @@ public class StatelessFlow implements RunnableFlow {
         if (args == null) {
             throw new IllegalArgumentException("Flow arguments can not be null");
         }
-
-        System.out.println("Running flow from json: " + args.toString());
 
         if (!args.has(REGISTRY) || !args.has(BUCKETID) || !args.has(FLOWID)) {
             throw new IllegalArgumentException("The following parameters must be provided: " + REGISTRY + ", " + BUCKETID + ", " + FLOWID);
