@@ -178,13 +178,13 @@ public class NiFiAtlasClient {
     /**
      * Fetch existing NiFiFlow entity from Atlas.
      * @param rootProcessGroupId The id of a NiFi flow root process group.
-     * @param clusterName The cluster name of a flow.
+     * @param namespace The namespace of a flow.
      * @return A NiFiFlow instance filled with retrieved data from Atlas. Status objects are left blank, e.g. ProcessorStatus.
      * @throws AtlasServiceException Thrown if requesting to Atlas API failed, including when the flow is not found.
      */
-    public NiFiFlow fetchNiFiFlow(String rootProcessGroupId, String clusterName) throws AtlasServiceException {
+    public NiFiFlow fetchNiFiFlow(String rootProcessGroupId, String namespace) throws AtlasServiceException {
 
-        final String qualifiedName = AtlasUtils.toQualifiedName(clusterName, rootProcessGroupId);
+        final String qualifiedName = AtlasUtils.toQualifiedName(namespace, rootProcessGroupId);
         final AtlasObjectId flowId = new AtlasObjectId(TYPE_NIFI_FLOW, ATTR_QUALIFIED_NAME, qualifiedName);
         final AtlasEntity.AtlasEntityWithExtInfo nifiFlowExt = searchEntityDef(flowId);
 
@@ -198,7 +198,7 @@ public class NiFiAtlasClient {
         final NiFiFlow nifiFlow = new NiFiFlow(rootProcessGroupId);
         nifiFlow.setExEntity(nifiFlowEntity);
         nifiFlow.setFlowName(toStr(attributes.get(ATTR_NAME)));
-        nifiFlow.setClusterName(clusterName);
+        nifiFlow.setNamespace(namespace);
         nifiFlow.setUrl(toStr(attributes.get(ATTR_URL)));
         nifiFlow.setDescription(toStr(attributes.get(ATTR_DESCRIPTION)));
 

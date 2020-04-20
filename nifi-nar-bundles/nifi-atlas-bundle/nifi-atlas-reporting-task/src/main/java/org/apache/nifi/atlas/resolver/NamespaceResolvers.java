@@ -26,19 +26,19 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 
-public class ClusterResolvers implements ClusterResolver {
-    private final Set<ClusterResolver> resolvers;
+public class NamespaceResolvers implements NamespaceResolver {
+    private final Set<NamespaceResolver> resolvers;
 
-    private final String defaultClusterName;
+    private final String defaultNamespace;
 
-    public ClusterResolvers(Set<ClusterResolver> resolvers, String defaultClusterName) {
+    public NamespaceResolvers(Set<NamespaceResolver> resolvers, String defaultNamespace) {
         this.resolvers = resolvers;
-        this.defaultClusterName = defaultClusterName;
+        this.defaultNamespace = defaultNamespace;
     }
 
     @Override
     public PropertyDescriptor getSupportedDynamicPropertyDescriptor(String propertyDescriptorName) {
-        for (ClusterResolver resolver : resolvers) {
+        for (NamespaceResolver resolver : resolvers) {
             final PropertyDescriptor descriptor = resolver.getSupportedDynamicPropertyDescriptor(propertyDescriptorName);
             if (descriptor != null) {
                 return descriptor;
@@ -50,7 +50,7 @@ public class ClusterResolvers implements ClusterResolver {
     @Override
     public Collection<ValidationResult> validate(ValidationContext validationContext) {
         Collection<ValidationResult> results = new ArrayList<>();
-        for (ClusterResolver resolver : resolvers) {
+        for (NamespaceResolver resolver : resolvers) {
             results.addAll(resolver.validate(validationContext));
         }
         return results;
@@ -58,30 +58,30 @@ public class ClusterResolvers implements ClusterResolver {
 
     @Override
     public void configure(PropertyContext context) {
-        for (ClusterResolver resolver : resolvers) {
+        for (NamespaceResolver resolver : resolvers) {
             resolver.configure(context);
         }
     }
 
     @Override
     public String fromHostNames(String ... hostNames) {
-        for (ClusterResolver resolver : resolvers) {
-            final String clusterName = resolver.fromHostNames(hostNames);
-            if (clusterName != null && !clusterName.isEmpty()) {
-                return clusterName;
+        for (NamespaceResolver resolver : resolvers) {
+            final String namespace = resolver.fromHostNames(hostNames);
+            if (namespace != null && !namespace.isEmpty()) {
+                return namespace;
             }
         }
-        return defaultClusterName;
+        return defaultNamespace;
     }
 
     @Override
     public String fromHints(Map<String, String> hints) {
-        for (ClusterResolver resolver : resolvers) {
-            final String clusterName = resolver.fromHints(hints);
-            if (clusterName != null && !clusterName.isEmpty()) {
-                return clusterName;
+        for (NamespaceResolver resolver : resolvers) {
+            final String namespace = resolver.fromHints(hints);
+            if (namespace != null && !namespace.isEmpty()) {
+                return namespace;
             }
         }
-        return defaultClusterName;
+        return defaultNamespace;
     }
 }

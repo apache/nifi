@@ -33,7 +33,7 @@ public abstract class UnknownDataSet extends AbstractNiFiProvenanceEventAnalyzer
     protected Referenceable createDataSetRef(AnalysisContext context, ProvenanceEventRecord event) {
         final Referenceable ref = new Referenceable(TYPE);
         ref.set(ATTR_NAME, event.getComponentType());
-        ref.set(ATTR_QUALIFIED_NAME, toQualifiedName(context.getNiFiClusterName(), event.getComponentId()));
+        ref.set(ATTR_QUALIFIED_NAME, toQualifiedName(context.getNiFiNamespace(), event.getComponentId()));
         ref.set(ATTR_DESCRIPTION, event.getEventType() + " was performed by " + event.getComponentType());
         return ref;
     }

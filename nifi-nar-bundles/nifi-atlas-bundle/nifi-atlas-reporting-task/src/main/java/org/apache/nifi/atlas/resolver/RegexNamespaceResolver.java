@@ -34,7 +34,7 @@ import java.util.function.BiConsumer;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-public class RegexNamespaceResolver implements ClusterResolver {
+public class RegexNamespaceResolver implements NamespaceResolver {
 
     public static final String PATTERN_PROPERTY_PREFIX = "hostnamePattern.";
     public static final String PATTERN_PROPERTY_PREFIX_DESC = "White space delimited (including new line) Regular Expressions" +

@@ -40,8 +40,8 @@ import org.apache.nifi.atlas.provenance.StandardAnalysisContext;
 import org.apache.nifi.atlas.provenance.lineage.CompleteFlowPathLineage;
 import org.apache.nifi.atlas.provenance.lineage.LineageStrategy;
 import org.apache.nifi.atlas.provenance.lineage.SimpleFlowPathLineage;
-import org.apache.nifi.atlas.resolver.ClusterResolver;
-import org.apache.nifi.atlas.resolver.ClusterResolvers;
+import org.apache.nifi.atlas.resolver.NamespaceResolver;
+import org.apache.nifi.atlas.resolver.NamespaceResolvers;
 import org.apache.nifi.atlas.resolver.RegexNamespaceResolver;
 import org.apache.nifi.atlas.security.AtlasAuthN;
 import org.apache.nifi.atlas.security.Basic;
@@ -325,14 +325,14 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
     private static final String ATLAS_KAFKA_PREFIX = "atlas.kafka.";
     private static final String ATLAS_PROPERTY_KAFKA_BOOTSTRAP_SERVERS = ATLAS_KAFKA_PREFIX + "bootstrap.servers";
     private static final String ATLAS_PROPERTY_KAFKA_CLIENT_ID = ATLAS_KAFKA_PREFIX + ProducerConfig.CLIENT_ID_CONFIG;
-    private final ServiceLoader<ClusterResolver> clusterResolverLoader = ServiceLoader.load(ClusterResolver.class);
+    private final ServiceLoader<NamespaceResolver> namespaceResolverLoader = ServiceLoader.load(NamespaceResolver.class);
     private volatile AtlasAuthN atlasAuthN;
     private volatile Properties atlasProperties;
     private volatile boolean isTypeDefCreated = false;
     private volatile String defaultMetadataNamespace;
 
     private volatile ProvenanceEventConsumer consumer;
-    private volatile ClusterResolvers clusterResolvers;
+    private volatile NamespaceResolvers namespaceResolvers;
     private volatile NiFiAtlasHook nifiAtlasHook;
     private volatile LineageStrategy lineageStrategy;
 
@@ -372,7 +372,7 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
 
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(String propertyDescriptorName) {
-        for (ClusterResolver resolver : clusterResolverLoader) {
+        for (NamespaceResolver resolver : namespaceResolverLoader) {
             final PropertyDescriptor propertyDescriptor = resolver.getSupportedDynamicPropertyDescriptor(propertyDescriptorName);
             if(propertyDescriptor != null) {
                 return propertyDescriptor;
@@ -409,7 +409,7 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
         results.addAll(atlasAuthN.validate(context));
 
 
-        clusterResolverLoader.forEach(resolver -> results.addAll(resolver.validate(context)));
+        namespaceResolverLoader.forEach(resolver -> results.addAll(resolver.validate(context)));
 
         if (context.getProperty(ATLAS_CONF_CREATE).asBoolean()) {
 
@@ -472,7 +472,7 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
         // initAtlasClient has to be done first as it loads AtlasProperty.
         initAtlasProperties(context);
         initLineageStrategy(context);
-        initClusterResolvers(context);
+        initNamespaceResolvers(context);
     }
 
     private void initLineageStrategy(ConfigurationContext context) throws IOException {
@@ -489,13 +489,13 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
         initProvenanceConsumer(context);
     }
 
-    private void initClusterResolvers(ConfigurationContext context) {
-        final Set<ClusterResolver> loadedClusterResolvers = new LinkedHashSet<>();
-        clusterResolverLoader.forEach(resolver -> {
+    private void initNamespaceResolvers(ConfigurationContext context) {
+        final Set<NamespaceResolver> loadedNamespaceResolvers = new LinkedHashSet<>();
+        namespaceResolverLoader.forEach(resolver -> {
             resolver.configure(context);
-            loadedClusterResolvers.add(resolver);
+            loadedNamespaceResolvers.add(resolver);
         });
-        clusterResolvers = new ClusterResolvers(Collections.unmodifiableSet(loadedClusterResolvers), defaultMetadataNamespace);
+        namespaceResolvers = new NamespaceResolvers(Collections.unmodifiableSet(loadedNamespaceResolvers), defaultMetadataNamespace);
     }
 
 
@@ -756,10 +756,10 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
         final String nifiUrl = context.getProperty(ATLAS_NIFI_URL).evaluateAttributeExpressions().getValue();
 
 
-        final String clusterName;
+        final String namespace;
         try {
             final String nifiHostName = new URL(nifiUrl).getHost();
-            clusterName = clusterResolvers.fromHostNames(nifiHostName);
+            namespace = namespaceResolvers.fromHostNames(nifiHostName);
         } catch (MalformedURLException e) {
             throw new IllegalArgumentException("Failed to parse NiFi URL, " + e.getMessage(), e);
         }
@@ -767,10 +767,10 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
         NiFiFlow existingNiFiFlow = null;
         try {
             // Retrieve Existing NiFiFlow from Atlas.
-            existingNiFiFlow = atlasClient.fetchNiFiFlow(rootProcessGroup.getId(), clusterName);
+            existingNiFiFlow = atlasClient.fetchNiFiFlow(rootProcessGroup.getId(), namespace);
         } catch (AtlasServiceException e) {
             if (ClientResponse.Status.NOT_FOUND.equals(e.getStatus())){
-                getLogger().debug("Existing flow was not found for {}@{}", new Object[]{rootProcessGroup.getId(), clusterName});
+                getLogger().debug("Existing flow was not found for {}@{}", new Object[]{rootProcessGroup.getId(), namespace});
             } else {
                 throw new RuntimeException("Failed to fetch existing NiFI flow. " + e, e);
             }
@@ -779,7 +779,7 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
         final NiFiFlow nifiFlow = existingNiFiFlow != null ? existingNiFiFlow : new NiFiFlow(rootProcessGroup.getId());
         nifiFlow.setFlowName(flowName);
         nifiFlow.setUrl(nifiUrl);
-        nifiFlow.setClusterName(clusterName);
+        nifiFlow.setNamespace(namespace);
 
         final NiFiFlowAnalyzer flowAnalyzer = new NiFiFlowAnalyzer();
 
@@ -791,7 +791,7 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
 
     private void consumeNiFiProvenanceEvents(ReportingContext context, NiFiFlow nifiFlow) {
         final EventAccess eventAccess = context.getEventAccess();
-        final AnalysisContext analysisContext = new StandardAnalysisContext(nifiFlow, clusterResolvers,
+        final AnalysisContext analysisContext = new StandardAnalysisContext(nifiFlow, namespaceResolvers,
                 // FIXME: This class cast shouldn't be necessary to query lineage. Possible refactor target in next major update.
                 (ProvenanceRepository)eventAccess.getProvenanceRepository());
         consumer.consumeEvents(context, (componentMapHolder, events) -> {
