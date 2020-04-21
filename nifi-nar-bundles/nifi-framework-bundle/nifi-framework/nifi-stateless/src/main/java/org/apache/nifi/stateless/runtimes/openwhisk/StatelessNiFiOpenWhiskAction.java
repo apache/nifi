@@ -21,10 +21,6 @@ import com.google.gson.JsonParser;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
-import org.apache.nifi.stateless.bootstrap.InMemoryFlowFile;
-import org.apache.nifi.stateless.bootstrap.RunnableFlow;
-import org.apache.nifi.stateless.core.StatelessFlow;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -39,6 +35,10 @@ import java.util.LinkedList;
 import java.util.Map;
 import java.util.Queue;
 import java.util.stream.Collectors;
+import org.apache.nifi.stateless.bootstrap.InMemoryFlowFile;
+import org.apache.nifi.stateless.bootstrap.RunnableFlow;
+import org.apache.nifi.stateless.core.StatelessFlow;
+import org.apache.nifi.stateless.core.security.StatelessSecurityUtility;
 
 public class StatelessNiFiOpenWhiskAction {
 
@@ -53,6 +53,7 @@ public class StatelessNiFiOpenWhiskAction {
         this.systemClassLoader = systemClassLoader;
         this.narWorkingDirectory = narWorkingDirectory;
 
+        // TODO: This runs a plaintext HTTP server
         this.server = HttpServer.create(new InetSocketAddress(port), -1);
 
         this.server.createContext("/init", new InitHandler());
@@ -156,18 +157,17 @@ public class StatelessNiFiOpenWhiskAction {
                 Queue<InMemoryFlowFile> output = new LinkedList<>();
                 boolean successful;
                 if (flow == null) {
-                    System.out.println(inputObject.toString());
+                    System.out.println(StatelessSecurityUtility.formatJson(inputObject));
 
                     final JsonObject config = new JsonParser().parse(inputObject.get("code").getAsJsonPrimitive().getAsString()).getAsJsonObject();
                     RunnableFlow tempFlow = StatelessFlow.createAndEnqueueFromJSON(config, systemClassLoader, narWorkingDirectory);
                     successful = tempFlow.runOnce(output);
                 } else {
-                    System.out.println("Input:");
-                    inputObject.entrySet().forEach(item -> System.out.println(item.getKey()+":"+item.getValue().getAsString()));
+                    System.out.println("Input: " + StatelessSecurityUtility.formatJson(inputObject));
 
                     Map<String,String> Attributes = inputObject.entrySet()
                             .stream()
-                            .collect(Collectors.toMap(item -> item.getKey(), item -> item.getValue().getAsString()));
+                            .collect(Collectors.toMap(Map.Entry::getKey, item -> item.getValue().getAsString()));
                     ((StatelessFlow)flow).enqueueFlowFile(new byte[0],Attributes);
                     successful = flow.runOnce(output);
                 }
@@ -185,6 +185,7 @@ public class StatelessNiFiOpenWhiskAction {
                 PrintWriter pw = new PrintWriter(sw);
                 e.printStackTrace(pw);
                 String sStackTrace = sw.toString();
+                // TODO: This leaks the stacktrace in the HTTP response
                 writeResponse(t, 500, "An error has occurred (see logs for details): " + e.getMessage()+"\n"+sStackTrace);
             } finally {
                 writeLogMarkers();

@@ -16,8 +16,7 @@
  */
 package org.apache.nifi.stateless.runtimes
 
-import com.google.gson.JsonObject
-import com.google.gson.JsonParser
+
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.junit.After
 import org.junit.Before
@@ -70,41 +69,6 @@ class ProgramTest extends GroovyTestCase {
     }
 
     @Test
-    void testShouldDetectSensitiveStrings() {
-        // Arrange
-        def sensitiveStrings = [
-                '"sensitive": "true"',
-                '"sensitive":"true"'.toUpperCase(),
-                '"sensitive"\t:\t"true"',
-                '"sensitive"\n:\n\n"true"',
-                '{"parameter_name": {"sensitive": "true", "value": "password"} }',
-                '"password": ',
-                "token",
-                '"access": "some_key_value"',
-                '"secret": "my_secret"'.toUpperCase()
-        ]
-        def safeStrings = [
-                "regular_json",
-                '"sensitive": "false"'
-        ]
-
-        // Act
-        def sensitiveResults = sensitiveStrings.collectEntries {
-            [it, Program.isSensitive(it)]
-        }
-        logger.info("Sensitive results: ${sensitiveResults}")
-
-        def safeResults = safeStrings.collectEntries {
-            [it, Program.isSensitive(it)]
-        }
-        logger.info("Safe results: ${safeResults}")
-
-        // Assert
-        assert sensitiveResults.every { it.value }
-        assert safeResults.every { !it.value }
-    }
-
-    @Test
     void testShouldFormatArgs() {
         // Arrange
         final String[] ARGS = ["RunFromRegistry", "Once", "--json", JSON_ARGS] as String[]
@@ -133,19 +97,5 @@ class ProgramTest extends GroovyTestCase {
         assert !(output =~ "password")
 
         Program.isVerbose = true
-    }
-
-    @Test
-    void testShouldFormatJson() {
-        // Arrange
-        final JsonObject JSON = new JsonParser().parse(JSON_ARGS.replaceAll("\n", "")).getAsJsonObject()
-
-        // Act
-        String output = Program.formatJson(JSON)
-        logger.info("Masked output: ${output}")
-
-        // Assert
-        assert output =~ MASKED_REGEX
-        assert !(output =~ "password")
     }
 }

@@ -169,4 +169,54 @@ class StatelessSecurityUtilityTest extends GroovyTestCase {
         // Assert
         assert json.getAsJsonObject("parameters").getAsJsonObject("DB_PASS").getAsJsonPrimitive("value").getAsString() == "password"
     }
+
+    @Test
+    void testShouldDetectSensitiveStrings() {
+        // Arrange
+        def sensitiveStrings = [
+                '"sensitive": "true"',
+                '"sensitive":"true"'.toUpperCase(),
+                '"sensitive"\t:\t"true"',
+                '"sensitive"\n:\n\n"true"',
+                '{"parameter_name": {"sensitive": "true", "value": "password"} }',
+                '"password": ',
+                "token",
+                '"access": "some_key_value"',
+                '"secret": "my_secret"'.toUpperCase()
+        ]
+        def safeStrings = [
+                "regular_json",
+                '"sensitive": "false"'
+        ]
+
+        // Act
+        def sensitiveResults = sensitiveStrings.collectEntries {
+            [it, StatelessSecurityUtility.isSensitive(it)]
+        }
+        logger.info("Sensitive results: ${sensitiveResults}")
+
+        def safeResults = safeStrings.collectEntries {
+            [it, StatelessSecurityUtility.isSensitive(it)]
+        }
+        logger.info("Safe results: ${safeResults}")
+
+        // Assert
+        assert sensitiveResults.every { it.value }
+        assert safeResults.every { !it.value }
+    }
+
+
+    @Test
+    void testShouldFormatJson() {
+        // Arrange
+        final JsonObject JSON = new JsonParser().parse(JSON_ARGS.replaceAll("\n", "")).getAsJsonObject()
+
+        // Act
+        String output = StatelessSecurityUtility.formatJson(JSON)
+        logger.info("Masked output: ${output}")
+
+        // Assert
+        assert output =~ MASKED_REGEX
+        assert !(output =~ "password")
+    }
 }
