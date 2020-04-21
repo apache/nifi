@@ -2149,9 +2149,9 @@ As an alternative to the automatic configuration, TLS communications can be enab
 keystore location, keystore password, truststore location, and truststore password.  For example:
 
 [source]
-ssl.keyStore.location=/var/run/keystore.jks
+ssl.keyStore.location=/example/location/keystore.jks
 ssl.keyStore.password=example do not use
-ssl.trustStore.location=/var/run/truststore.jks
+ssl.trustStore.location=/example/location/truststore.jks
 ssl.trustStore.password=example do not use
 
 For more information on the properties used to configure ZooKeeper, see the

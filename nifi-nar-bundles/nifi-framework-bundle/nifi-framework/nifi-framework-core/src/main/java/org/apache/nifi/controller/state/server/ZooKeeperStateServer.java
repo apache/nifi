@@ -111,7 +111,7 @@ public class ZooKeeperStateServer extends ZooKeeperServerMain {
                     try {
                         Thread.sleep(50L);
                     } catch (final InterruptedException ie) {
-                        Thread.currentThread().interrupt();;
+                        Thread.currentThread().interrupt();
                     }
                 }
             }
@@ -224,7 +224,7 @@ public class ZooKeeperStateServer extends ZooKeeperServerMain {
         peerConfig.parseProperties(zkProperties);
 
         // If this is an insecure NiFi or if the ZooKeeper is distributed, no changes are needed:
-        if (!niFiProperties.isHTTPSConfigured() || peerConfig.isDistributed()) {
+        if (!niFiProperties.isHTTPSConfigured()) {
             logger.info("NiFi properties not mapped to ZooKeeper properties because NiFi is insecure or ZooKeeper is distributed or both.");
             return peerConfig;
         }
