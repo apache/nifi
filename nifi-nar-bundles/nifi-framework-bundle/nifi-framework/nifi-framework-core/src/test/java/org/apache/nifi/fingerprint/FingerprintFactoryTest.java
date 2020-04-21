@@ -268,7 +268,7 @@ public class FingerprintFactoryTest {
         when(component.getVersionedComponentId()).thenReturn(Optional.empty());
 
         // Assert fingerprints with expected one.
-        final String hashedProxyPassword = new Argon2SecureHasher().hashHex(proxyPassword);
+        final String hashedProxyPassword = "[MASKED] (" + new Argon2SecureHasher().hashBase64(proxyPassword) + ")";
         final String expected = "id" +
                 "NO_VALUE" +
                 "http://node1:8080/nifi, http://node2:8080/nifi" +
