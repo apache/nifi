@@ -18,8 +18,10 @@
 package org.apache.nifi.processors.kudu;
 
 import org.apache.kudu.ColumnSchema;
+import org.apache.kudu.ColumnTypeAttributes;
 import org.apache.kudu.Schema;
 import org.apache.kudu.Type;
+import org.apache.kudu.client.AlterTableOptions;
 import org.apache.kudu.client.AsyncKuduClient;
 import org.apache.kudu.client.Delete;
 import org.apache.kudu.client.Insert;
@@ -53,6 +55,8 @@ import org.apache.nifi.security.krb.KerberosPasswordUser;
 import org.apache.nifi.security.krb.KerberosUser;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordFieldType;
+import org.apache.nifi.serialization.record.type.DecimalDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.apache.nifi.util.StringUtils;
 
@@ -369,7 +373,7 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
     /**
      * Converts a NiFi DataType to it's equivalent Kudu Type.
      */
-    protected Type toKuduType(DataType nifiType) {
+    private Type toKuduType(DataType nifiType) {
         switch (nifiType.getFieldType()) {
             case BOOLEAN:
                 return Type.BOOL;
@@ -385,6 +389,8 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
                 return Type.FLOAT;
             case DOUBLE:
                 return Type.DOUBLE;
+            case DECIMAL:
+                return Type.DECIMAL;
             case TIMESTAMP:
                 return Type.UNIXTIME_MICROS;
             case CHAR:
@@ -393,6 +399,36 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
             default:
                 throw new IllegalArgumentException(String.format("unsupported type %s", nifiType));
         }
+    }
+
+    private ColumnTypeAttributes getKuduTypeAttributes(final DataType nifiType) {
+        if (nifiType.getFieldType().equals(RecordFieldType.DECIMAL)) {
+            final DecimalDataType decimalDataType = (DecimalDataType) nifiType;
+            return new ColumnTypeAttributes.ColumnTypeAttributesBuilder().precision(decimalDataType.getPrecision()).scale(decimalDataType.getScale()).build();
+        } else {
+            return null;
+        }
+    }
+
+    /**
+     * Based on NiFi field declaration, generates an alter statement to extend table with new column. Note: simply calling
+     * {@link AlterTableOptions#addNullableColumn(String, Type)} is not sufficient as it does not cover BigDecimal scale and precision handling.
+     *
+     * @param columnName Name of the new table column.
+     * @param nifiType Type of the field.
+     *
+     * @return Alter table statement to extend table with the new field.
+     */
+    protected AlterTableOptions getAddNullableColumnStatement(final String columnName, final DataType nifiType) {
+        final AlterTableOptions alterTable = new AlterTableOptions();
+
+        alterTable.addColumn(new ColumnSchema.ColumnSchemaBuilder(columnName, toKuduType(nifiType))
+                .nullable(true)
+                .defaultValue(null)
+                .typeAttributes(getKuduTypeAttributes(nifiType))
+                .build());
+
+        return alterTable;
     }
 
     private int getColumnIndex(Schema columns, String colName) {

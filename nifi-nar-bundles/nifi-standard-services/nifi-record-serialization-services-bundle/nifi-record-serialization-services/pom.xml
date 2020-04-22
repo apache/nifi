@@ -133,6 +133,7 @@
                 <configuration>
                     <excludes combine.children="append">
                         <exclude>src/test/resources/avro/datatypes.avsc</exclude>
+                        <exclude>src/test/resources/avro/decimals.avsc</exclude>
                         <exclude>src/test/resources/avro/logical-types.avsc</exclude>
                         <exclude>src/test/resources/avro/logical-types-nullable.avsc</exclude>
                         <exclude>src/test/resources/avro/multiple-types.avsc</exclude>

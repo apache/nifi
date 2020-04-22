@@ -24,9 +24,11 @@ import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.apache.nifi.serialization.record.util.IllegalTypeConversionException;
 import org.junit.Test;
 
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -36,6 +38,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.DoubleAdder;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -263,6 +266,113 @@ public class TestDataTypeUtils {
         assertNotNull(b);
         assertTrue(b instanceof Byte[]);
         assertEquals("Conversion from byte[] to String failed at char 0", (Object) "Hello".getBytes(StandardCharsets.UTF_16)[0], ((Byte[]) b)[0]);
+    }
+
+    @Test
+    public void testConvertToBigDecimalWhenInputIsValid() {
+        // given
+        final BigDecimal expectedValue = BigDecimal.valueOf(12L);
+
+        // when & then
+        whenExpectingValidBigDecimalConversion(expectedValue, BigDecimal.valueOf(12L));
+        whenExpectingValidBigDecimalConversion(expectedValue, (byte) 12);
+        whenExpectingValidBigDecimalConversion(expectedValue, (short) 12);
+        whenExpectingValidBigDecimalConversion(expectedValue, 12);
+        whenExpectingValidBigDecimalConversion(expectedValue, 12L);
+        whenExpectingValidBigDecimalConversion(expectedValue, BigInteger.valueOf(12L));
+        whenExpectingValidBigDecimalConversion(expectedValue, 12F);
+        whenExpectingValidBigDecimalConversion(expectedValue, 12.000F);
+        whenExpectingValidBigDecimalConversion(expectedValue, 12D);
+        whenExpectingValidBigDecimalConversion(expectedValue, 12.000D);
+        whenExpectingValidBigDecimalConversion(expectedValue, "12");
+        whenExpectingValidBigDecimalConversion(expectedValue, "12.000");
+    }
+
+    @Test
+    public void testConvertToBigDecimalWhenNullInput() {
+        assertNull(DataTypeUtils.convertType(null, RecordFieldType.DECIMAL.getDecimalDataType(30, 10), null, StandardCharsets.UTF_8));
+    }
+
+    @Test(expected = IllegalTypeConversionException.class)
+    public void testConvertToBigDecimalWhenInputStringIsInvalid() {
+        DataTypeUtils.convertType("test", RecordFieldType.DECIMAL.getDecimalDataType(30, 10), null, StandardCharsets.UTF_8);
+    }
+
+    @Test(expected = IllegalTypeConversionException.class)
+    public void testConvertToBigDecimalWhenUnsupportedType() {
+        DataTypeUtils.convertType(new ArrayList<Double>(), RecordFieldType.DECIMAL.getDecimalDataType(30, 10), null, StandardCharsets.UTF_8);
+    }
+
+    @Test(expected = IllegalTypeConversionException.class)
+    public void testConvertToBigDecimalWhenUnsupportedNumberType() {
+        DataTypeUtils.convertType(new DoubleAdder(), RecordFieldType.DECIMAL.getDecimalDataType(30, 10), null, StandardCharsets.UTF_8);
+    }
+
+    @Test
+    public void testCompatibleDataTypeBigDecimal() {
+        // given
+        final DataType dataType = RecordFieldType.DECIMAL.getDecimalDataType(30, 10);
+
+        // when & then
+        assertTrue(DataTypeUtils.isCompatibleDataType(new BigDecimal("1.2345678901234567890"), dataType));
+        assertTrue(DataTypeUtils.isCompatibleDataType(new BigInteger("12345678901234567890"), dataType));
+        assertTrue(DataTypeUtils.isCompatibleDataType(1234567890123456789L, dataType));
+        assertTrue(DataTypeUtils.isCompatibleDataType(1, dataType));
+        assertTrue(DataTypeUtils.isCompatibleDataType((byte) 1, dataType));
+        assertTrue(DataTypeUtils.isCompatibleDataType((short) 1, dataType));
+        assertTrue(DataTypeUtils.isCompatibleDataType("1.2345678901234567890", dataType));
+        assertTrue(DataTypeUtils.isCompatibleDataType(3.1F, dataType));
+        assertTrue(DataTypeUtils.isCompatibleDataType(3.0D, dataType));
+        assertFalse(DataTypeUtils.isCompatibleDataType("1234567XYZ", dataType));
+        assertFalse(DataTypeUtils.isCompatibleDataType(new Long[]{1L, 2L}, dataType));
+    }
+
+    @Test
+    public void testInferDataTypeWithBigDecimal() {
+        assertEquals(RecordFieldType.DECIMAL.getDecimalDataType(3, 1), DataTypeUtils.inferDataType(BigDecimal.valueOf(12.3D), null));
+    }
+
+    @Test
+    public void testIsBigDecimalTypeCompatible() {
+        assertTrue(DataTypeUtils.isDecimalTypeCompatible((byte) 13));
+        assertTrue(DataTypeUtils.isDecimalTypeCompatible((short) 13));
+        assertTrue(DataTypeUtils.isDecimalTypeCompatible(12));
+        assertTrue(DataTypeUtils.isDecimalTypeCompatible(12L));
+        assertTrue(DataTypeUtils.isDecimalTypeCompatible(BigInteger.valueOf(12L)));
+        assertTrue(DataTypeUtils.isDecimalTypeCompatible(12.123F));
+        assertTrue(DataTypeUtils.isDecimalTypeCompatible(12.123D));
+        assertTrue(DataTypeUtils.isDecimalTypeCompatible(BigDecimal.valueOf(12.123D)));
+        assertTrue(DataTypeUtils.isDecimalTypeCompatible("123"));
+
+        assertFalse(DataTypeUtils.isDecimalTypeCompatible(null));
+        assertFalse(DataTypeUtils.isDecimalTypeCompatible("test"));
+        assertFalse(DataTypeUtils.isDecimalTypeCompatible(new ArrayList<>()));
+        // Decimal handling does not support NaN and Infinity as the underlying BigDecimal is unable to parse
+        assertFalse(DataTypeUtils.isDecimalTypeCompatible("NaN"));
+        assertFalse(DataTypeUtils.isDecimalTypeCompatible("Infinity"));
+    }
+
+    @Test
+    public void testGetSQLTypeValueWithBigDecimal() {
+        assertEquals(Types.NUMERIC, DataTypeUtils.getSQLTypeValue(RecordFieldType.DECIMAL.getDecimalDataType(30, 10)));
+    }
+
+    @Test
+    public void testChooseDataTypeWhenExpectedIsBigDecimal() {
+        // GIVEN
+        final List<DataType> dataTypes = Arrays.asList(
+                RecordFieldType.FLOAT.getDataType(),
+                RecordFieldType.DOUBLE.getDataType(),
+                RecordFieldType.DECIMAL.getDecimalDataType(2, 1),
+                RecordFieldType.DECIMAL.getDecimalDataType(20, 10)
+        );
+
+        final Object value = new BigDecimal("1.2");
+        final DataType expected = RecordFieldType.DECIMAL.getDecimalDataType(2, 1);
+
+        // WHEN
+        // THEN
+        testChooseDataTypeAlsoReverseTypes(value, dataTypes, expected);
     }
 
     @Test
@@ -504,6 +614,11 @@ public class TestDataTypeUtils {
     }
 
     @Test
+    public void testFindMostSuitableTypeWithBigDecimal() {
+        testFindMostSuitableType(BigDecimal.valueOf(123.456D), RecordFieldType.DECIMAL.getDecimalDataType(6, 3));
+    }
+
+    @Test
     public void testFindMostSuitableTypeWithFloat() {
         testFindMostSuitableType(12.3F, RecordFieldType.FLOAT.getDataType());
     }
@@ -578,6 +693,27 @@ public class TestDataTypeUtils {
             // THEN
             assertEquals(Optional.ofNullable(expected), actual);
         });
+    }
+
+    private void whenExpectingValidBigDecimalConversion(final BigDecimal expectedValue, final Object incomingValue) {
+        // Checking indirect conversion
+        final String failureMessage = "Conversion from " + incomingValue.getClass().getSimpleName() + " to " + expectedValue.getClass().getSimpleName() + " failed, when ";
+        final BigDecimal indirectResult = whenExpectingValidConversion(expectedValue, incomingValue, RecordFieldType.DECIMAL.getDecimalDataType(30, 10));
+        // In some cases, direct equality check comes with false negative as the changing representation brings in
+        // insignificant changes what might break the comparison. For example 12F will be represented as "12.0"
+        assertEquals(failureMessage + "indirect", 0, expectedValue.compareTo(indirectResult));
+
+        // Checking direct conversion
+        final BigDecimal directResult = DataTypeUtils.toBigDecimal(incomingValue, "field");
+        assertEquals(failureMessage + "direct", 0, expectedValue.compareTo(directResult));
+
+    }
+
+    private <T> T whenExpectingValidConversion(final T expectedValue, final Object incomingValue, final DataType dataType) {
+        final Object result = DataTypeUtils.convertType(incomingValue, dataType, null, StandardCharsets.UTF_8);
+        assertNotNull(result);
+        assertTrue(expectedValue.getClass().isInstance(result));
+        return (T) result;
     }
 
     @Test

@@ -25,9 +25,9 @@ import org.apache.kudu.client.Insert;
 import org.apache.kudu.client.KuduException;
 import org.apache.kudu.client.KuduSession;
 import org.apache.kudu.client.OperationResponse;
+import org.apache.kudu.client.PartialRow;
 import org.apache.kudu.client.RowError;
 import org.apache.kudu.client.RowErrorsAndOverflowStatus;
-import org.apache.kudu.client.PartialRow;
 import org.apache.kudu.client.SessionConfiguration.FlushMode;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.flowfile.FlowFile;
@@ -60,6 +60,7 @@ import org.mockito.stubbing.OngoingStubbing;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -85,7 +86,7 @@ public class TestPutKudu {
     public static final String DEFAULT_TABLE_NAME = "Nifi-Kudu-Table";
     public static final String DEFAULT_MASTERS = "testLocalHost:7051";
     public static final String SKIP_HEAD_LINE = "false";
-    public static final String TABLE_SCHEMA = "id,stringVal,num32Val,doubleVal";
+    public static final String TABLE_SCHEMA = "id,stringVal,num32Val,doubleVal,decimalVal";
 
     private TestRunner testRunner;
 
@@ -122,9 +123,10 @@ public class TestPutKudu {
         readerFactory.addSchemaField("stringVal", RecordFieldType.STRING);
         readerFactory.addSchemaField("num32Val", RecordFieldType.INT);
         readerFactory.addSchemaField("doubleVal", RecordFieldType.DOUBLE);
+        readerFactory.addSchemaField(new RecordField("decimalVal", RecordFieldType.DECIMAL.getDecimalDataType(6, 3)));
 
         for (int i=0; i < numOfRecord; i++) {
-            readerFactory.addRecord(i, "val_" + i, 1000 + i, 100.88 + i);
+            readerFactory.addRecord(i, "val_" + i, 1000 + i, 100.88 + i, new BigDecimal(111.111D).add(BigDecimal.valueOf(i)));
         }
 
         testRunner.addControllerService("mock-reader-factory", readerFactory);
@@ -260,6 +262,26 @@ public class TestPutKudu {
     }
 
     @Test
+    public void testAddingMissingFieldsWhenHandleSchemaDriftIsAllowed() throws InitializationException, IOException {
+        // given
+        processor.setTableSchema(new Schema(Arrays.asList()));
+        createRecordReader(5);
+        final String filename = "testAddingMissingFieldsWhenHandleSchemaDriftIsAllowed-" + System.currentTimeMillis();
+
+        final Map<String,String> flowFileAttributes = new HashMap<>();
+        flowFileAttributes.put(CoreAttributes.FILENAME.key(), filename);
+
+        testRunner.setProperty(PutKudu.HANDLE_SCHEMA_DRIFT, "true");
+        testRunner.enqueue("trigger", flowFileAttributes);
+
+        // when
+        testRunner.run();
+
+        // then
+        testRunner.assertAllFlowFilesTransferred(PutKudu.REL_SUCCESS, 1);
+    }
+
+    @Test
     public void testMalformedRecordExceptionFromReaderShouldRouteToFailure() throws InitializationException, IOException, MalformedRecordException, SchemaNotFoundException {
         createRecordReader(10);
 
@@ -288,7 +310,7 @@ public class TestPutKudu {
     public void testReadAsStringAndWriteAsInt() throws InitializationException, IOException {
         createRecordReader(0);
         // add the favorite color as a string
-        readerFactory.addRecord(1, "name0", "0", "89.89");
+        readerFactory.addRecord(1, "name0", "0", "89.89", "111.111");
 
         final String filename = "testReadAsStringAndWriteAsInt-" + System.currentTimeMillis();
 

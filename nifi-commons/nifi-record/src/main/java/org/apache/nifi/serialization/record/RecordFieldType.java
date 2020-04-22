@@ -19,6 +19,7 @@ package org.apache.nifi.serialization.record;
 
 import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.type.ChoiceDataType;
+import org.apache.nifi.serialization.record.type.DecimalDataType;
 import org.apache.nifi.serialization.record.type.MapDataType;
 import org.apache.nifi.serialization.record.type.RecordDataType;
 
@@ -73,6 +74,11 @@ public enum RecordFieldType {
     DOUBLE("double", FLOAT),
 
     /**
+     * A decimal field type. Fields of this type use a {@code java.math.BigDecimal} value.
+     */
+    DECIMAL("decimal", FLOAT, DOUBLE),
+
+    /**
      * A timestamp field type. Fields of this type use a {@code java.sql.Timestamp} value.
      */
     TIMESTAMP("timestamp", "yyyy-MM-dd HH:mm:ss"),
@@ -95,7 +101,7 @@ public enum RecordFieldType {
     /**
      * A String field type. Fields of this type use a {@code java.lang.String} value.
      */
-    STRING("string", BOOLEAN, BYTE, CHAR, SHORT, INT, BIGINT, LONG, FLOAT, DOUBLE, DATE, TIME, TIMESTAMP),
+    STRING("string", BOOLEAN, BYTE, CHAR, SHORT, INT, BIGINT, LONG, FLOAT, DOUBLE, DECIMAL, DATE, TIME, TIMESTAMP),
 
     /**
      * <p>
@@ -346,6 +352,17 @@ public enum RecordFieldType {
         }
 
         return new MapDataType(valueDataType);
+    }
+
+    /**
+     * Returns a Data Type that represents a decimal type with the given precision and scale.
+     *
+     * @param precision the precision of the decimal
+     * @param scale the scale of the decimal
+     * @return a DataType that represents a decimal with added information about it's precision and scale.
+     */
+    public DataType getDecimalDataType(final int precision, final int scale) {
+        return new DecimalDataType(precision, scale);
     }
 
     /**

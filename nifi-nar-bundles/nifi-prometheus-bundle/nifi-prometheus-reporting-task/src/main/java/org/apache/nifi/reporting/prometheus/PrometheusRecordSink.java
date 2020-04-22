@@ -207,6 +207,7 @@ public class PrometheusRecordSink extends AbstractControllerService implements R
                 || RecordFieldType.BIGINT.equals(dataType)
                 || RecordFieldType.FLOAT.equals(dataType)
                 || RecordFieldType.DOUBLE.equals(dataType)
+                || RecordFieldType.DECIMAL.equals(dataType)
                 || RecordFieldType.BOOLEAN.equals(dataType);
 
     }

@@ -32,11 +32,10 @@ import org.apache.nifi.serialization.record.validation.SchemaValidationResult;
 import org.apache.nifi.serialization.record.validation.ValidationError;
 import org.apache.nifi.serialization.record.validation.ValidationErrorType;
 
+import java.math.BigInteger;
 import java.util.Map;
 
 public class StandardSchemaValidator implements RecordSchemaValidator {
-
-
     private final SchemaValidationContext validationContext;
 
     public StandardSchemaValidator(final SchemaValidationContext validationContext) {
@@ -273,6 +272,13 @@ public class StandardSchemaValidator implements RecordSchemaValidator {
                         || DataTypeUtils.isIntegerFitsToFloat(value)
                         || DataTypeUtils.isLongFitsToFloat(value)
                         || DataTypeUtils.isBigIntFitsToFloat(value);
+            case DECIMAL:
+                return DataTypeUtils.isFittingNumberType(value, dataType.getFieldType())
+                        || value instanceof Byte
+                        || value instanceof Short
+                        || value instanceof Integer
+                        || value instanceof Long
+                        || value instanceof BigInteger;
         }
 
         return false;

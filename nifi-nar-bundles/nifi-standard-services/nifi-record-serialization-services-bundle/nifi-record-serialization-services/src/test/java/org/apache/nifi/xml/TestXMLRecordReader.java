@@ -33,6 +33,7 @@ import java.io.ByteArrayInputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -398,6 +399,22 @@ public class TestXMLRecordReader {
 
         assertEquals(Integer.class, reader.nextRecord(true, false).getValue("ID").getClass());
         assertEquals(String.class, reader.nextRecord(false, false).getValue("ID").getClass());
+    }
+
+    @Test
+    public void testSimpleRecordWithAttribute6() throws IOException, MalformedRecordException {
+        // given
+        final InputStream is = new FileInputStream("src/test/resources/xml/people2.xml");
+        final List<RecordField> fields = getSimpleRecordFields();
+        fields.add(new RecordField("ID", RecordFieldType.DECIMAL.getDecimalDataType(38, 10)));
+        final XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(fields), true,
+                null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
+
+        // when
+        final Record record = reader.nextRecord(true, false);
+
+        // then
+        assertEquals(BigDecimal.class, record.getValue("ID").getClass());
     }
 
     @Test

@@ -17,6 +17,7 @@
 
 package org.apache.nifi.processors.kudu;
 
+import org.apache.kudu.Schema;
 import org.apache.kudu.client.KuduClient;
 import org.apache.kudu.client.KuduSession;
 import org.apache.kudu.client.KuduTable;
@@ -37,6 +38,7 @@ import java.security.PrivilegedExceptionAction;
 import java.util.Arrays;
 import java.util.List;
 import java.util.LinkedList;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -46,6 +48,9 @@ public class MockPutKudu extends PutKudu {
 
     private KuduSession session;
     private LinkedList<Insert> insertQueue;
+
+    // Atomic reference is used as the set and use of the schema are in different thread
+    private AtomicReference<Schema> tableSchema = new AtomicReference<>();
 
     private boolean loggedIn = false;
     private boolean loggedOut = false;
@@ -102,7 +107,9 @@ public class MockPutKudu extends PutKudu {
         final KuduClient client = mock(KuduClient.class);
 
         try {
-            when(client.openTable(anyString())).thenReturn(mock(KuduTable.class));
+            final KuduTable kuduTable = mock(KuduTable.class);
+            when(client.openTable(anyString())).thenReturn(kuduTable);
+            when(kuduTable.getSchema()).thenReturn(tableSchema.get());
         } catch (final Exception e) {
             throw new AssertionError(e);
         }
@@ -173,7 +180,11 @@ public class MockPutKudu extends PutKudu {
     }
 
     @Override
-    protected KuduSession createKuduSession(KuduClient client) {
+    protected KuduSession createKuduSession(final KuduClient client) {
         return session;
+    }
+
+    void setTableSchema(final Schema tableSchema) {
+        this.tableSchema.set(tableSchema);
     }
 }

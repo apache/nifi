@@ -29,8 +29,8 @@ import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.prometheus.util.PrometheusMetricsUtil;
+import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.ListRecordSet;
@@ -47,6 +47,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.Arrays;
@@ -71,17 +72,20 @@ public class TestPrometheusRecordSink {
 
         List<RecordField> recordFields = Arrays.asList(
                 new RecordField("field1", RecordFieldType.INT.getDataType()),
-                new RecordField("field2", RecordFieldType.STRING.getDataType())
+                new RecordField("field2", RecordFieldType.DECIMAL.getDecimalDataType(30, 10)),
+                new RecordField("field3", RecordFieldType.STRING.getDataType())
         );
         RecordSchema recordSchema = new SimpleRecordSchema(recordFields);
 
         Map<String, Object> row1 = new HashMap<>();
         row1.put("field1", 15);
-        row1.put("field2", "Hello");
+        row1.put("field2", BigDecimal.valueOf(12.34567D));
+        row1.put("field3", "Hello");
 
         Map<String, Object> row2 = new HashMap<>();
         row2.put("field1", 6);
-        row2.put("field2", "World!");
+        row2.put("field2", BigDecimal.valueOf(0.1234567890123456789D));
+        row2.put("field3", "World!");
 
         RecordSet recordSet = new ListRecordSet(recordSchema, Arrays.asList(
                 new MapRecord(recordSchema, row1),
@@ -95,8 +99,10 @@ public class TestPrometheusRecordSink {
         assertEquals(2, writeResult.getRecordCount());
         assertEquals("Hello", writeResult.getAttributes().get("a"));
 
+
         final String content = getMetrics();
-        assertTrue(content.contains("field1{field2=\"Hello\",} 15.0\nfield1{field2=\"World!\",} 6.0\n"));
+        assertTrue(content.contains("field1{field3=\"Hello\",} 15.0\nfield1{field3=\"World!\",} 6.0\n"));
+        assertTrue(content.contains("field2{field3=\"Hello\",} 12.34567\nfield2{field3=\"World!\",} 0.12345678901234568\n"));
 
         try {
             sink.onStopped();
