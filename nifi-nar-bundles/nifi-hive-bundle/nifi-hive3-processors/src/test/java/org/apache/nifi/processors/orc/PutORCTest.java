@@ -28,6 +28,7 @@ import org.apache.hadoop.hive.ql.io.orc.Reader;
 import org.apache.hadoop.hive.ql.io.orc.RecordReader;
 import org.apache.hadoop.hive.serde2.io.DateWritableV2;
 import org.apache.hadoop.hive.serde2.io.DoubleWritable;
+import org.apache.hadoop.hive.serde2.io.HiveDecimalWritable;
 import org.apache.hadoop.hive.serde2.io.TimestampWritableV2;
 import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
@@ -66,6 +67,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.sql.Date;
 import java.sql.Timestamp;
@@ -75,7 +77,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.temporal.ChronoField;
-import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -222,16 +223,14 @@ public class PutORCTest {
     public void testWriteORCWithAvroLogicalTypes() throws IOException, InitializationException {
         final String avroSchema = IOUtils.toString(new FileInputStream("src/test/resources/user_logical_types.avsc"), StandardCharsets.UTF_8);
         schema = new Schema.Parser().parse(avroSchema);
-        Calendar now = Calendar.getInstance();
         LocalTime nowTime = LocalTime.now();
         LocalDateTime nowDateTime = LocalDateTime.now();
-        LocalDate epoch = LocalDate.ofEpochDay(0);
         LocalDate nowDate = LocalDate.now();
 
         final int timeMillis = nowTime.get(ChronoField.MILLI_OF_DAY);
         final Timestamp timestampMillis = Timestamp.valueOf(nowDateTime);
         final Date dt = Date.valueOf(nowDate);
-        final double dec = 1234.56;
+        final BigDecimal dec = BigDecimal.valueOf(1234.56D);
 
         configure(proc, 10, (numUsers, readerFactory) -> {
             for (int i = 0; i < numUsers; i++) {
@@ -265,7 +264,7 @@ public class PutORCTest {
         mockFlowFile.assertAttributeEquals(PutORC.RECORD_COUNT_ATTR, "10");
         // DDL will be created with field names normalized (lowercased, e.g.) for Hive by default
         mockFlowFile.assertAttributeEquals(PutORC.HIVE_DDL_ATTRIBUTE,
-                "CREATE EXTERNAL TABLE IF NOT EXISTS `myTable` (`id` INT, `timemillis` INT, `timestampmillis` TIMESTAMP, `dt` DATE, `dec` DOUBLE) STORED AS ORC");
+                "CREATE EXTERNAL TABLE IF NOT EXISTS `myTable` (`id` INT, `timemillis` INT, `timestampmillis` TIMESTAMP, `dt` DATE, `dec` DECIMAL) STORED AS ORC");
 
         // verify we generated a provenance event
         final List<ProvenanceEventRecord> provEvents = testRunner.getProvenanceEvents();
@@ -285,7 +284,7 @@ public class PutORCTest {
                     final DateFormat noTimeOfDayDateFormat = new SimpleDateFormat("yyyy-MM-dd");
                     noTimeOfDayDateFormat.setTimeZone(TimeZone.getTimeZone("gmt"));
                     assertEquals(noTimeOfDayDateFormat.format(dt), ((DateWritableV2) x.get(3)).get().toString());
-                    assertEquals(dec, ((DoubleWritable) x.get(4)).get(), Double.MIN_VALUE);
+                    assertEquals(dec.doubleValue(), ((HiveDecimalWritable) x.get(4)).doubleValue(), Double.MIN_VALUE);
                     return null;
                 }
         );
@@ -483,7 +482,7 @@ public class PutORCTest {
         RecordReader recordReader = reader.rows();
 
         TypeInfo typeInfo =
-                TypeInfoUtils.getTypeInfoFromTypeString("struct<name:string,favorite_number:int,favorite_color:string,scale:double>");
+                TypeInfoUtils.getTypeInfoFromTypeString("struct<name:string,favorite_number:int,favorite_color:string,scale:decimal>");
         StructObjectInspector inspector = (StructObjectInspector)
                 OrcStruct.createObjectInspector(typeInfo);
 

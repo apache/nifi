@@ -19,7 +19,9 @@ package org.apache.hadoop.hive.ql.io.orc;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hive.common.type.HiveDecimal;
 import org.apache.hadoop.hive.serde2.io.DateWritableV2;
+import org.apache.hadoop.hive.serde2.io.HiveDecimalWritable;
 import org.apache.hadoop.hive.serde2.io.TimestampWritableV2;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorFactory;
@@ -52,6 +54,7 @@ import org.apache.orc.OrcConf;
 import org.apache.orc.impl.MemoryManagerImpl;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.sql.Date;
 import java.sql.Timestamp;
@@ -103,6 +106,9 @@ public class NiFiOrcUtils {
             }
             if (o instanceof Double) {
                 return new DoubleWritable((double) o);
+            }
+            if (o instanceof BigDecimal) {
+                return new HiveDecimalWritable(HiveDecimal.create((BigDecimal) o));
             }
             if (o instanceof String) {
                 return new Text(o.toString());
@@ -286,6 +292,11 @@ public class NiFiOrcUtils {
                 || RecordFieldType.STRING.equals(fieldType)) {
             return getPrimitiveOrcTypeFromPrimitiveFieldType(dataType);
         }
+
+        if (RecordFieldType.BIGDECIMAL.equals(fieldType)) {
+            // 38 is the maximum allowed precision and 19 digit is needed to represent long values
+            return TypeInfoFactory.getDecimalTypeInfo(38, 19);
+        }
         if (RecordFieldType.DATE.equals(fieldType)) {
             return TypeInfoFactory.dateTypeInfo;
         }
@@ -406,6 +417,9 @@ public class NiFiOrcUtils {
         }
         if (RecordFieldType.FLOAT.equals(dataType)) {
             return "FLOAT";
+        }
+        if (RecordFieldType.BIGDECIMAL.equals(dataType)) {
+            return "DECIMAL";
         }
         if (RecordFieldType.STRING.equals(dataType)) {
             return "STRING";

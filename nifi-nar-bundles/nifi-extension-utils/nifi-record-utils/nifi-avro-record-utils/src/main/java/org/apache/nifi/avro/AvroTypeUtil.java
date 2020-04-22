@@ -341,9 +341,7 @@ public class AvroTypeUtil {
                 case LOGICAL_TYPE_TIMESTAMP_MICROS:
                     return RecordFieldType.TIMESTAMP.getDataType();
                 case LOGICAL_TYPE_DECIMAL:
-                    // We convert Decimal to Double.
-                    // Alternatively we could convert it to String, but numeric type is generally more preferable by users.
-                    return RecordFieldType.DOUBLE.getDataType();
+                    return RecordFieldType.BIGDECIMAL.getDataType();
             }
         }
 

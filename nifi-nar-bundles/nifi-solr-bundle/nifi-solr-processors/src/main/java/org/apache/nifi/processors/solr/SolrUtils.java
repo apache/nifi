@@ -404,7 +404,7 @@ public class SolrUtils {
                 continue;
             }else {
                 final DataType dataType = schema.getDataType(field.getFieldName()).get();
-                writeValue(inputDocument, value, fieldName, dataType,fieldsToIndex);
+                writeValue(inputDocument, value, fieldName, dataType, fieldsToIndex);
             }
         }
     }
@@ -462,6 +462,8 @@ public class SolrUtils {
                     addFieldToSolrDocument(inputDocument,fieldName, coercedValue,fieldsToIndex);
                 }
                 break;
+            case BIGDECIMAL:
+                addFieldToSolrDocument(inputDocument, fieldName, coercedValue, fieldsToIndex);
             case BOOLEAN:
                 final String stringValue = coercedValue.toString();
                 if ("true".equalsIgnoreCase(stringValue)) {

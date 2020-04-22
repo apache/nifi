@@ -421,9 +421,9 @@ public class TestAvroTypeUtil {
         final Schema avroSchema = Schema.createRecord(Collections.singletonList(field));
 
         // Create an example Avro record with the amount field of type fixed and a logical type of decimal
-        final BigDecimal expectedDecimalValue = new BigDecimal("1234567890.12345678");
+        final BigDecimal expectedBigDecimal = new BigDecimal("1234567890.12345678");
         final GenericRecord genericRecord = new GenericData.Record(avroSchema);
-        genericRecord.put("amount", new Conversions.DecimalConversion().toFixed(expectedDecimalValue, fieldSchema, decimalType));
+        genericRecord.put("amount", new Conversions.DecimalConversion().toFixed(expectedBigDecimal, fieldSchema, decimalType));
 
         // Convert the Avro schema to a Record schema
         final RecordSchema recordSchema = AvroTypeUtil.createSchema(avroSchema);
@@ -435,10 +435,10 @@ public class TestAvroTypeUtil {
 
         final Object resultObject = convertedMap.get("amount");
         assertNotNull(resultObject);
-        assertTrue(resultObject instanceof Double);
+        assertTrue(resultObject instanceof BigDecimal);
 
-        final Double resultDouble = (Double) resultObject;
-        assertEquals(Double.valueOf(expectedDecimalValue.doubleValue()), resultDouble);
+        final BigDecimal resultBigDecimal = (BigDecimal) resultObject;
+        assertEquals(expectedBigDecimal, resultBigDecimal);
     }
 
     @Test

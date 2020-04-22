@@ -34,6 +34,7 @@ import org.slf4j.LoggerFactory;
 import java.io.InputStream;
 import java.io.Reader;
 import java.lang.reflect.Array;
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -127,6 +128,7 @@ public class DataTypeUtils {
         NUMERIC_VALIDATORS.put(RecordFieldType.SHORT, value -> value instanceof Short);
         NUMERIC_VALIDATORS.put(RecordFieldType.DOUBLE, value -> value instanceof Double);
         NUMERIC_VALIDATORS.put(RecordFieldType.FLOAT, value -> value instanceof Float);
+        NUMERIC_VALIDATORS.put(RecordFieldType.BIGDECIMAL, value -> value instanceof BigDecimal);
     }
 
     public static Object convertType(final Object value, final DataType dataType, final String fieldName) {
@@ -174,6 +176,8 @@ public class DataTypeUtils {
                 return toCharacter(value, fieldName);
             case DATE:
                 return toDate(value, dateFormat, fieldName);
+            case BIGDECIMAL:
+                return toBigDecimal(value, fieldName);
             case DOUBLE:
                 return toDouble(value, fieldName);
             case FLOAT:
@@ -228,6 +232,8 @@ public class DataTypeUtils {
                 return isCharacterTypeCompatible(value);
             case DATE:
                 return isDateTypeCompatible(value, dataType.getFormat());
+            case BIGDECIMAL:
+                return isBigDecimalTypeCompatible(value);
             case DOUBLE:
                 return isDoubleTypeCompatible(value);
             case FLOAT:
@@ -482,6 +488,9 @@ public class DataTypeUtils {
             }
             if (value instanceof BigInteger) {
                 return RecordFieldType.BIGINT.getDataType();
+            }
+            if (value instanceof BigDecimal) {
+                return RecordFieldType.BIGDECIMAL.getDataType();
             }
         }
 
@@ -1232,6 +1241,10 @@ public class DataTypeUtils {
         return isNumberTypeCompatible(value, DataTypeUtils::isIntegral);
     }
 
+    public static boolean isBigDecimalTypeCompatible(final Object value) {
+        return isNumberTypeCompatible(value, DataTypeUtils::isFloatingPoint);
+    }
+
     public static Boolean toBoolean(final Object value, final String fieldName) {
         if (value == null) {
             return null;
@@ -1264,6 +1277,46 @@ public class DataTypeUtils {
             return string.equalsIgnoreCase("true") || string.equalsIgnoreCase("false");
         }
         return false;
+    }
+
+    public static BigDecimal toBigDecimal(final Object value, final String fieldName) {
+        if (value == null) {
+            return null;
+        }
+
+        if (value instanceof BigDecimal) {
+            return (BigDecimal) value;
+        }
+
+        if (value instanceof Number) {
+            final Number number = (Number) value;
+
+            if (number instanceof Byte
+                    || number instanceof Short
+                    || number instanceof Integer
+                    || number instanceof Long) {
+                return BigDecimal.valueOf(number.longValue());
+            }
+
+            if (number instanceof BigInteger) {
+                return new BigDecimal((BigInteger) number);
+            }
+
+            if (number instanceof Float || number instanceof Double) {
+                return BigDecimal.valueOf(number.doubleValue());
+            }
+        }
+
+        if (value instanceof String) {
+            try {
+                return new BigDecimal((String) value);
+            } catch (NumberFormatException nfe) {
+                throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to BigDecimal for field " + fieldName
+                        + ", value is not a valid representation of BigDecimal", nfe);
+            }
+        }
+
+        throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to BigDecimal for field " + fieldName);
     }
 
     public static Double toDouble(final Object value, final String fieldName) {
@@ -1759,6 +1812,8 @@ public class DataTypeUtils {
                 return Types.DOUBLE;
             case FLOAT:
                 return Types.FLOAT;
+            case BIGDECIMAL:
+                return Types.NUMERIC;
             case INT:
                 return Types.INTEGER;
             case SHORT:

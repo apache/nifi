@@ -73,6 +73,11 @@ public enum RecordFieldType {
     DOUBLE("double", FLOAT),
 
     /**
+     * A big decimal field type. Fields of this type use a {@code java.math.BigDecimal} value.
+     */
+    BIGDECIMAL("bigdecimal", FLOAT, DOUBLE),
+
+    /**
      * A timestamp field type. Fields of this type use a {@code java.sql.Timestamp} value.
      */
     TIMESTAMP("timestamp", "yyyy-MM-dd HH:mm:ss"),
@@ -95,7 +100,7 @@ public enum RecordFieldType {
     /**
      * A String field type. Fields of this type use a {@code java.lang.String} value.
      */
-    STRING("string", BOOLEAN, BYTE, CHAR, SHORT, INT, BIGINT, LONG, FLOAT, DOUBLE, DATE, TIME, TIMESTAMP),
+    STRING("string", BOOLEAN, BYTE, CHAR, SHORT, INT, BIGINT, LONG, FLOAT, DOUBLE, BIGDECIMAL, DATE, TIME, TIMESTAMP),
 
     /**
      * <p>
