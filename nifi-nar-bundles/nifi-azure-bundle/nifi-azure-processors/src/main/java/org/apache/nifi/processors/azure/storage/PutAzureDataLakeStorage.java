@@ -16,12 +16,11 @@
  */
 package org.apache.nifi.processors.azure.storage;
 
-import java.io.BufferedInputStream;
-import java.io.InputStream;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-
+import com.azure.storage.file.datalake.DataLakeDirectoryClient;
+import com.azure.storage.file.datalake.DataLakeFileClient;
+import com.azure.storage.file.datalake.DataLakeFileSystemClient;
+import com.azure.storage.file.datalake.DataLakeServiceClient;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -33,13 +32,13 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
-
-import com.azure.storage.file.datalake.DataLakeDirectoryClient;
-import com.azure.storage.file.datalake.DataLakeFileClient;
-import com.azure.storage.file.datalake.DataLakeFileSystemClient;
-import com.azure.storage.file.datalake.DataLakeServiceClient;
 import org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor;
 
+import java.io.BufferedInputStream;
+import java.io.InputStream;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 @Tags({"azure", "microsoft", "cloud", "storage", "adlsgen2", "datalake"})
 @SeeAlso({DeleteAzureDataLakeStorage.class, FetchAzureDataLakeStorage.class})
@@ -50,7 +49,6 @@ import org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor;
         @WritesAttribute(attribute = "azure.primaryUri", description = "Primary location for file content"),
         @WritesAttribute(attribute = "azure.length", description = "Length of the file")})
 @InputRequirement(Requirement.INPUT_REQUIRED)
-
 public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcessor {
 
     @Override
@@ -59,23 +57,35 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
         if (flowFile == null) {
             return;
         }
+
         final long startNanos = System.nanoTime();
         try {
             final String fileSystem = context.getProperty(FILESYSTEM).evaluateAttributeExpressions(flowFile).getValue();
             final String directory = context.getProperty(DIRECTORY).evaluateAttributeExpressions(flowFile).getValue();
             final String fileName = context.getProperty(FILE).evaluateAttributeExpressions(flowFile).getValue();
+
+            if (StringUtils.isBlank(fileSystem)) {
+                throw new ProcessException(FILESYSTEM.getDisplayName() + " property evaluated to empty string. " +
+                        FILESYSTEM.getDisplayName() + " must be specified as a non-empty string.");
+            }
+            if (StringUtils.isBlank(fileName)) {
+                throw new ProcessException(FILE.getDisplayName() + " property evaluated to empty string. " +
+                        FILE.getDisplayName() + " must be specified as a non-empty string.");
+            }
+
             final DataLakeServiceClient storageClient = getStorageClient(context, flowFile);
-            final DataLakeFileSystemClient dataLakeFileSystemClient = storageClient.getFileSystemClient(fileSystem);
-            final DataLakeDirectoryClient directoryClient = dataLakeFileSystemClient.getDirectoryClient(directory);
+            final DataLakeFileSystemClient fileSystemClient = storageClient.getFileSystemClient(fileSystem);
+            final DataLakeDirectoryClient directoryClient = fileSystemClient.getDirectoryClient(directory);
             final DataLakeFileClient fileClient = directoryClient.createFile(fileName);
+
             final long length = flowFile.getSize();
             if (length > 0) {
                 try (final InputStream rawIn = session.read(flowFile); final BufferedInputStream in = new BufferedInputStream(rawIn)) {
                     fileClient.append(in, 0, length);
-
                 }
             }
             fileClient.flush(length);
+
             final Map<String, String> attributes = new HashMap<>();
             attributes.put("azure.filesystem", fileSystem);
             attributes.put("azure.directory", directory);
@@ -83,7 +93,6 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
             attributes.put("azure.primaryUri", fileClient.getFileUrl());
             attributes.put("azure.length", String.valueOf(length));
             flowFile = session.putAllAttributes(flowFile, attributes);
-
 
             session.transfer(flowFile, REL_SUCCESS);
             final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
