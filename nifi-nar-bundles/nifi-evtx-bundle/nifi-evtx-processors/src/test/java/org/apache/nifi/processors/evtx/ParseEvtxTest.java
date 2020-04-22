@@ -20,9 +20,7 @@ package org.apache.nifi.processors.evtx;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.eq;
-import static org.mockito.Mockito.isA;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -144,7 +142,6 @@ public class ParseEvtxTest {
         when(flowFile.getAttribute(CoreAttributes.FILENAME.key())).thenReturn(basename);
 
         assertEquals(basename, parseEvtx.getBasename(flowFile, componentLog));
-        verify(componentLog).warn(anyString(), isA(Object[].class));
     }
 
     @Test
