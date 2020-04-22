@@ -52,6 +52,8 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.regex.Pattern;
+import static org.apache.commons.lang3.StringUtils.trimToEmpty;
 
 
 
@@ -113,6 +115,32 @@ public class ConfluentSchemaRegistry extends AbstractControllerService implement
         .required(true)
         .build();
 
+    static final PropertyDescriptor PROP_BASIC_AUTH_USERNAME = new PropertyDescriptor.Builder()
+        .name("Basic Authentication Username")
+        .displayName("Basic Authentication Username")
+        .description("The username to be used by the client to authenticate against the Remote URL.  Cannot include control characters (0-31), ':', or DEL (127).")
+        .required(false)
+        .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("^[\\x20-\\x39\\x3b-\\x7e\\x80-\\xff]+$")))
+        .build();
+
+    static final PropertyDescriptor PROP_BASIC_AUTH_PASSWORD = new PropertyDescriptor.Builder()
+        .name("Basic Authentication Password")
+        .displayName("Basic Authentication Password")
+        .description("The password to be used by the client to authenticate against the Remote URL.")
+        .required(false)
+        .sensitive(true)
+        .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("^[\\x20-\\x7e\\x80-\\xff]+$")))
+        .build();
+
+    static final PropertyDescriptor PROP_AUTH_TYPE = new PropertyDescriptor.Builder()
+        .name("Authentication Type")
+        .displayName("Authentication Type")
+        .description("'Basic Authentication Username' and 'Basic Authentication Password' are used if Digest Authentication is used"
+                + "for authentication.")
+        .required(false)
+        .allowableValues("DIGEST", "BASIC")
+        .build();
+
     private volatile SchemaRegistryClient client;
 
 
@@ -124,12 +152,20 @@ public class ConfluentSchemaRegistry extends AbstractControllerService implement
         properties.add(TIMEOUT);
         properties.add(CACHE_SIZE);
         properties.add(CACHE_EXPIRATION);
+        properties.add(PROP_AUTH_TYPE);
+        properties.add(PROP_BASIC_AUTH_USERNAME);
+        properties.add(PROP_BASIC_AUTH_PASSWORD);
         return properties;
     }
 
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) {
         final List<String> baseUrls = getBaseURLs(context);
+
+        final String authUser = trimToEmpty(context.getProperty(PROP_BASIC_AUTH_USERNAME).getValue());
+        final String authPass = trimToEmpty(context.getProperty(PROP_BASIC_AUTH_PASSWORD).getValue());
+        final String authType = context.getProperty(PROP_AUTH_TYPE).getValue();
+
         final int timeoutMillis = context.getProperty(TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
 
         final SSLContext sslContext;
@@ -140,7 +176,7 @@ public class ConfluentSchemaRegistry extends AbstractControllerService implement
             sslContext = sslContextService.createSSLContext(ClientAuth.REQUIRED);
         }
 
-        final SchemaRegistryClient restClient = new RestSchemaRegistryClient(baseUrls, timeoutMillis, sslContext, getLogger());
+        final SchemaRegistryClient restClient = new RestSchemaRegistryClient(baseUrls, authType, authUser, authPass, timeoutMillis, sslContext, getLogger());
 
         final int cacheSize = context.getProperty(CACHE_SIZE).asInteger();
         final long cacheExpiration = context.getProperty(CACHE_EXPIRATION).asTimePeriod(TimeUnit.NANOSECONDS).longValue();

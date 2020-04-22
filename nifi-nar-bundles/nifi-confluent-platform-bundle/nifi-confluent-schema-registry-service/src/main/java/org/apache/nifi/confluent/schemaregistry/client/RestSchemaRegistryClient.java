@@ -30,6 +30,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 
 import org.glassfish.jersey.client.ClientConfig;
 import org.glassfish.jersey.client.ClientProperties;
+import org.glassfish.jersey.client.authentication.HttpAuthenticationFeature;
 
 import javax.net.ssl.SSLContext;
 import javax.ws.rs.client.Client;
@@ -68,13 +69,22 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
     private static final String SCHEMA_REGISTRY_CONTENT_TYPE = "application/vnd.schemaregistry.v1+json";
 
 
-    public RestSchemaRegistryClient(final List<String> baseUrls, final int timeoutMillis, final SSLContext sslContext, final ComponentLog logger) {
+    public RestSchemaRegistryClient(final List<String> baseUrls, final String authType, final String authUser, final String authPass, final int timeoutMillis, final SSLContext sslContext, final ComponentLog logger) {
         this.baseUrls = new ArrayList<>(baseUrls);
 
         final ClientConfig clientConfig = new ClientConfig();
         clientConfig.property(ClientProperties.CONNECT_TIMEOUT, timeoutMillis);
         clientConfig.property(ClientProperties.READ_TIMEOUT, timeoutMillis);
         client = WebUtils.createClient(clientConfig, sslContext);
+
+        if (!authUser.isEmpty() && !authType.isEmpty()) {
+            if (authType.equals("DIGEST")) {
+                client.register(HttpAuthenticationFeature.digest(authUser, authPass));
+            }
+            else if(authType.equals("BASIC")) {
+                client.register(HttpAuthenticationFeature.basic(authUser, authPass));
+            }
+        }
 
         this.logger = logger;
     }
