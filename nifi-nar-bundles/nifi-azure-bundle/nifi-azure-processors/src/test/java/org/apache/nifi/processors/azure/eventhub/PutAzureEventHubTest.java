@@ -89,6 +89,15 @@ public class PutAzureEventHubTest {
         testRunner.assertValid();
     }
     @Test
+    public void testProcessorConfigValidityWithManagedIdentityFlag() {
+        testRunner.setProperty(PutAzureEventHub.EVENT_HUB_NAME,eventHubName);
+        testRunner.assertNotValid();
+        testRunner.setProperty(PutAzureEventHub.NAMESPACE,namespaceName);
+        testRunner.assertNotValid();
+        testRunner.setProperty(PutAzureEventHub.USE_MANAGED_IDENTITY,"true");
+        testRunner.assertValid();
+    }
+    @Test
     public void verifyRelationships(){
         assert(2 == processor.getRelationships().size());
     }
