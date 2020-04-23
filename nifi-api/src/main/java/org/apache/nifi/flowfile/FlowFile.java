@@ -108,7 +108,8 @@ public interface FlowFile extends Comparable<FlowFile> {
      */
     Map<String, String> getAttributes();
 
-    class KeyValidator {
+    // All classes defined in an interface are public static, but keeping the definition to be explicit
+    public static class KeyValidator {
 
         public static String validateKey(final String key) {
             // We used to validate the key by disallowing a handful of keywords, but this requirement no longer exists.
