@@ -570,21 +570,21 @@ class BcryptCipherProviderGroovyTest {
         for (EncryptionMethod em : strongKDFEncryptionMethods) {
             logger.info("Using algorithm: ${em.getAlgorithm()}")
 
-            // Initialize a cipher for encryption
-            Cipher cipher = cipherProvider.getCipher(em, PASSWORD, SALT, DEFAULT_KEY_LENGTH, true)
+            // Initialize a cipher for encryption using the legacy key derivation process
+            Cipher cipher = cipherProvider.getInitializedCipher(em, PASSWORD, SALT, new byte[0], DEFAULT_KEY_LENGTH, true, true)
             byte[] iv = cipher.getIV()
             logger.info("IV: ${Hex.encodeHexString(iv)}")
 
             byte[] cipherBytes = cipher.doFinal(plaintext.getBytes("UTF-8"))
             logger.info("Cipher text: ${Hex.encodeHexString(cipherBytes)} ${cipherBytes.length}")
 
-            cipher = cipherProvider.getCipher(em, PASSWORD, SALT, iv, DEFAULT_KEY_LENGTH, false)
+            cipher = cipherProvider.getLegacyDecryptCipher(em, PASSWORD, SALT, iv, DEFAULT_KEY_LENGTH)
             byte[] recoveredBytes = cipher.doFinal(cipherBytes)
             String recovered = new String(recoveredBytes, "UTF-8")
             logger.info("Recovered: ${recovered}")
 
             // Assert
-            assert plaintext.equals(recovered)
+            assert plaintext == recovered
         }
     }
 
