@@ -38,9 +38,9 @@ import org.slf4j.LoggerFactory;
 public class Argon2CipherProvider extends RandomIVPBECipherProvider {
     private static final Logger logger = LoggerFactory.getLogger(Argon2CipherProvider.class);
 
-    private static final int DEFAULT_PARALLELISM = 1;
-    private static final int DEFAULT_MEMORY = 1 << 12;
-    private static final int DEFAULT_ITERATIONS = 3;
+    private static final int DEFAULT_PARALLELISM = Argon2SecureHasher.DEFAULT_PARALLELISM;
+    private static final int DEFAULT_MEMORY = Argon2SecureHasher.DEFAULT_MEMORY;
+    private static final int DEFAULT_ITERATIONS = Argon2SecureHasher.DEFAULT_ITERATIONS;
     private static final int DEFAULT_SALT_LENGTH = 16;
 
     // Using Integer vs. int to allow for unsigned 32b (values can exceed Integer.MAX_VALUE)
@@ -64,7 +64,7 @@ public class Argon2CipherProvider extends RandomIVPBECipherProvider {
     /**
      * Instantiates an Argon2 cipher provider using the provided cost parameters.
      *
-     * @param memory      the integer number of KB used ({@code 8p to 2^32 - 1})
+     * @param memory      the integer number of KiB used ({@code 8p to 2^32 - 1})
      * @param parallelism degree of parallelism ({@code 1 to 2^24 - 1})
      * @param iterations  number of iterations ({@code 1 to 2^32 - 1})
      */
@@ -73,13 +73,13 @@ public class Argon2CipherProvider extends RandomIVPBECipherProvider {
         this.parallelism = parallelism;
         this.iterations = iterations;
         if (memory < DEFAULT_MEMORY) {
-            logger.warn("The provided memory size {} is below the minimum {}", memory, DEFAULT_MEMORY);
+            logger.warn("The provided memory size {} KiB is below the recommended minimum {} KiB", memory, DEFAULT_MEMORY);
         }
         if (parallelism < DEFAULT_PARALLELISM) {
-            logger.warn("The provided parallelization factor {} is below the minimum {}", parallelism, DEFAULT_PARALLELISM);
+            logger.warn("The provided parallelization factor {} is below the recommended minimum {}", parallelism, DEFAULT_PARALLELISM);
         }
         if (iterations < DEFAULT_ITERATIONS) {
-            logger.warn("The provided iterations count {} is below the minimum {}", iterations, DEFAULT_ITERATIONS);
+            logger.warn("The provided iterations count {} is below the recommended minimum {}", iterations, DEFAULT_ITERATIONS);
         }
     }
 
@@ -261,7 +261,7 @@ public class Argon2CipherProvider extends RandomIVPBECipherProvider {
      * {@code $argon2id$v=19$m=4096,t=3,p=1$abcdefABCDEF0123456789}
      *
      * @param rawSalt     the salt bytes
-     * @param memory      the memory cost
+     * @param memory      the memory cost in KiB
      * @param iterations  the iterations
      * @param parallelism the parallelism factor
      * @return the formatted salt string

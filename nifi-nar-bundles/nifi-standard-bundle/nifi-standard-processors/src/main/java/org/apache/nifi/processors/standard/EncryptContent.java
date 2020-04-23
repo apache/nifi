@@ -76,7 +76,8 @@ import org.bouncycastle.openpgp.PGPEncryptedData;
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"encryption", "decryption", "password", "JCE", "OpenPGP", "PGP", "GPG", "KDF", "Argon2", "Bcrypt", "Scrypt", "PBKDF2", "salt", "iv"})
-@CapabilityDescription("Encrypts or Decrypts a FlowFile using either symmetric encryption with a raw key or password and randomly generated salt, or asymmetric encryption using a public and secret key.")
+@CapabilityDescription("Encrypts or Decrypts a FlowFile using either symmetric encryption with a raw key or password " +
+        "and randomly generated salt, or asymmetric encryption using a public and secret key.")
 @SystemResourceConsideration(resource = SystemResource.CPU)
 @WritesAttributes({
         @WritesAttribute(attribute = "encryptcontent.action", description = "\"encrypted\" or \"decrypted\" depending on the processor action"),
@@ -88,7 +89,8 @@ import org.bouncycastle.openpgp.PGPEncryptedData;
         @WritesAttribute(attribute = "encryptcontent.kdf", description = "The Key Derivation Function used if Password-Based Encryption was enabled. See Admin Guide - Key Derivation Functions"),
         @WritesAttribute(attribute = "encryptcontent.kdf_salt", description = "The KDF-specific salt including algorithm and cost parameters (if present). See Admin Guide - Key Derivation Functions"),
         @WritesAttribute(attribute = "encryptcontent.kdf_salt_length", description = "The KDF salt length in bytes"),
-        @WritesAttribute(attribute = "encryptcontent.pbkdf2_iterations", description = "The number of iterations used in PBKDF2 KDF (if present). PBKDF2 does not encode the cost parameter in a custom salt"),
+        @WritesAttribute(attribute = "encryptcontent.pbkdf2_iterations", description = "The number of iterations used in " +
+                "PBKDF2 KDF (if present). PBKDF2 does not encode the cost parameter in a custom salt"),
         @WritesAttribute(attribute = "encryptcontent.plaintext_length", description = "The plaintext length in bytes. " +
                 "Determined from incoming content in encrypt mode; outgoing content in decrypt mode"),
         @WritesAttribute(attribute = "encryptcontent.salt", description = "The raw salt in hex encoding (if present)"),

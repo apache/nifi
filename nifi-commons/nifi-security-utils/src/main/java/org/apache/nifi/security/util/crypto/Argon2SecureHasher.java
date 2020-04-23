@@ -40,9 +40,9 @@ public class Argon2SecureHasher extends AbstractSecureHasher {
     private static final Logger logger = LoggerFactory.getLogger(Argon2SecureHasher.class);
 
     private static final int DEFAULT_HASH_LENGTH = 32;
-    private static final int DEFAULT_PARALLELISM = 1;
-    private static final int DEFAULT_MEMORY = 1 << 12;
-    private static final int DEFAULT_ITERATIONS = 3;
+    public static final int DEFAULT_PARALLELISM = 8;
+    public static final int DEFAULT_MEMORY = 1 << 16;
+    public static final int DEFAULT_ITERATIONS = 5;
     private static final int DEFAULT_SALT_LENGTH = 16;
     private static final int MIN_MEMORY_SIZE_KB = 8;
     private static final int MIN_PARALLELISM = 1;
@@ -86,7 +86,7 @@ public class Argon2SecureHasher extends AbstractSecureHasher {
      * {@link Integer} is used instead of {@code int} for parameters which have a max value of {@code 2^32 - 1} to allow for unsigned integers exceeding {@link Integer#MAX_VALUE}.
      *
      * @param hashLength  the output length in bytes ({@code 4 to 2^32 - 1})
-     * @param memory      the integer number of KB used ({@code 8p to 2^32 - 1})
+     * @param memory      the integer number of KiB used ({@code 8p to 2^32 - 1})
      * @param parallelism degree of parallelism ({@code 1 to 2^24 - 1})
      * @param iterations  number of iterations ({@code 1 to 2^32 - 1})
      */
@@ -100,7 +100,7 @@ public class Argon2SecureHasher extends AbstractSecureHasher {
      * {@link Integer} is used instead of {@code int} for parameters which have a max value of {@code 2^32 - 1} to allow for unsigned integers exceeding {@link Integer#MAX_VALUE}.
      *
      * @param hashLength  the output length in bytes ({@code 4 to 2^32 - 1})
-     * @param memory      the integer number of KB used ({@code 8p to 2^32 - 1})
+     * @param memory      the integer number of KiB used ({@code 8p to 2^32 - 1})
      * @param parallelism degree of parallelism ({@code 1 to 2^24 - 1})
      * @param iterations  number of iterations ({@code 1 to 2^32 - 1})
      * @param saltLength  the salt length in bytes {@code 8 to 2^32 - 1})
@@ -120,7 +120,7 @@ public class Argon2SecureHasher extends AbstractSecureHasher {
      * Enforces valid Argon2 secure hasher cost parameters are provided.
      *
      * @param hashLength  the output length in bytes ({@code 4 to 2^32 - 1})
-     * @param memory      the integer number of KB used ({@code 8p to 2^32 - 1})
+     * @param memory      the integer number of KiB used ({@code 8p to 2^32 - 1})
      * @param parallelism degree of parallelism ({@code 1 to 2^24 - 1})
      * @param iterations  number of iterations ({@code 1 to 2^32 - 1})
      * @param saltLength  the salt length in bytes {@code 8 to 2^32 - 1})

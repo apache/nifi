@@ -123,7 +123,7 @@ public class PasswordBasedEncryptor extends AbstractEncryptor {
 
         private static final boolean DECRYPT = false;
 
-        // Limit retry mechanism to 10 MB; more than that is wasteful
+        // Limit retry mechanism to 10 MiB; more than that is wasteful
         private static final int RETRY_LIMIT_LENGTH = 10 * 1024 * 1024;
 
         public DecryptCallback() {
@@ -191,7 +191,7 @@ public class PasswordBasedEncryptor extends AbstractEncryptor {
         /**
          * Handles the {@code Bcrypt} decryption separately, as the Bcrypt key derivation process changed during NiFi 1.12.0
          * and some cipher texts encrypted with a legacy key may need to be decrypted. This method attempts to decrypt normally,
-         * and if certain conditions are met (the cipher text is under 10 MB and the failure was specifically due to the wrong
+         * and if certain conditions are met (the cipher text is under 10 MiB and the failure was specifically due to the wrong
          * key), the legacy key derivation is used to make a second attempt.
          *
          * @param bcryptCipherProvider the cipher provider

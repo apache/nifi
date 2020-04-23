@@ -247,7 +247,7 @@ class Argon2SecureHasherTest extends GroovyTestCase {
 
         final String EXPECTED_HASH_HEX = "0c2920c52f28e0a2c77d006ec6138c8dc59580881468b85541cf886abdebcf18"
 
-        Argon2SecureHasher a2sh = new Argon2SecureHasher()
+        Argon2SecureHasher a2sh = new Argon2SecureHasher(32, 4096, 1, 3)
 
         // Act
         String hashHex = a2sh.hashHex(input)
@@ -264,7 +264,7 @@ class Argon2SecureHasherTest extends GroovyTestCase {
 
         final String EXPECTED_HASH_B64 = "DCkgxS8o4KLHfQBuxhOMjcWVgIgUaLhVQc+Iar3rzxg"
 
-        Argon2SecureHasher a2sh = new Argon2SecureHasher()
+        Argon2SecureHasher a2sh = new Argon2SecureHasher(32, 4096, 1, 3)
 
         // Act
         String hashB64 = a2sh.hashBase64(input)
@@ -282,7 +282,7 @@ class Argon2SecureHasherTest extends GroovyTestCase {
         final String EXPECTED_HASH_HEX = "8e5625a66b94ed9d31c1496d7f9ff49249cf05d6753b50ba0e2bf2a1108973dd"
         final String EXPECTED_HASH_B64 = "jlYlpmuU7Z0xwUltf5/0kknPBdZ1O1C6DivyoRCJc90"
 
-        Argon2SecureHasher a2sh = new Argon2SecureHasher()
+        Argon2SecureHasher a2sh = new Argon2SecureHasher(32, 4096, 1, 3)
 
         def hexResults = []
         def b64Results = []
