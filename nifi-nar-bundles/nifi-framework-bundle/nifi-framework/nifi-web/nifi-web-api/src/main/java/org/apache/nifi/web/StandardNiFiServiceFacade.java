@@ -17,6 +17,7 @@
 package org.apache.nifi.web;
 
 import com.google.common.collect.Sets;
+import io.prometheus.client.CollectorRegistry;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.nifi.action.Action;
 import org.apache.nifi.action.Component;
@@ -101,6 +102,10 @@ import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.parameter.ParameterReferenceManager;
 import org.apache.nifi.parameter.StandardParameterContext;
+import org.apache.nifi.prometheus.util.BulletinMetricsHolder;
+import org.apache.nifi.prometheus.util.ConnectionAnalyticsMetricsHolder;
+import org.apache.nifi.prometheus.util.JvmMetricsHolder;
+import org.apache.nifi.prometheus.util.NiFiMetricsHolder;
 import org.apache.nifi.prometheus.util.PrometheusMetricsUtil;
 import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.registry.authorization.Permissions;
@@ -392,6 +397,20 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     private Authorizer authorizer;
 
     private AuthorizableLookup authorizableLookup;
+
+    // Prometheus Metrics objects
+    private NiFiMetricsHolder nifiMetricsHolder = new NiFiMetricsHolder();
+    private JvmMetricsHolder jvmMetricsHolder = new JvmMetricsHolder();
+    private ConnectionAnalyticsMetricsHolder connectionAnalyticsMetricsHolder = new ConnectionAnalyticsMetricsHolder();
+    private BulletinMetricsHolder bulletinMetricsHolder = new BulletinMetricsHolder();
+
+    public final Collection<CollectorRegistry> ALL_REGISTRIES = Arrays.asList(
+            nifiMetricsHolder.getRegistry(),
+            jvmMetricsHolder.getRegistry(),
+            connectionAnalyticsMetricsHolder.getRegistry(),
+            bulletinMetricsHolder.getRegistry()
+    );
+
 
     // -----------------------------------------
     // Synchronization methods
@@ -5297,20 +5316,20 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public void generateFlowMetrics() {
+    public Collection<CollectorRegistry> generateFlowMetrics() {
 
         String instanceId = controllerFacade.getInstanceId();
         ProcessGroupStatus rootPGStatus = controllerFacade.getProcessGroupStatus("root");
-        PrometheusMetricsUtil.createNifiMetrics(rootPGStatus, instanceId, "", "RootProcessGroup",
+        PrometheusMetricsUtil.createNifiMetrics(nifiMetricsHolder, rootPGStatus, instanceId, "", "RootProcessGroup",
                 PrometheusMetricsUtil.METRICS_STRATEGY_COMPONENTS.getValue());
-        PrometheusMetricsUtil.createJvmMetrics(JmxJvmMetrics.getInstance(), instanceId);
+        PrometheusMetricsUtil.createJvmMetrics(jvmMetricsHolder, JmxJvmMetrics.getInstance(), instanceId);
 
         // Get Connection Status Analytics (predictions, e.g.)
         Set<Connection> connections = controllerFacade.getFlowManager().findAllConnections();
         for (Connection c : connections) {
             // If a ResourceNotFoundException is thrown, analytics hasn't been enabled
             try {
-                PrometheusMetricsUtil.createConnectionStatusAnalyticsMetrics(controllerFacade.getConnectionStatusAnalytics(c.getIdentifier()),
+                PrometheusMetricsUtil.createConnectionStatusAnalyticsMetrics(connectionAnalyticsMetricsHolder, controllerFacade.getConnectionStatusAnalytics(c.getIdentifier()),
                         instanceId,
                         "Connection",
                         c.getName(),
@@ -5332,7 +5351,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         for(BulletinEntity bulletinEntity : bulletinBoardDTO.getBulletins()) {
             BulletinDTO bulletin = bulletinEntity.getBulletin();
             if(bulletin != null) {
-                PrometheusMetricsUtil.createBulletinMetrics(instanceId,
+                PrometheusMetricsUtil.createBulletinMetrics(bulletinMetricsHolder, instanceId,
                         "Bulletin",
                         String.valueOf(bulletin.getId()),
                         bulletin.getGroupId() == null ? "" : bulletin.getGroupId(),
@@ -5344,6 +5363,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 );
             }
         }
+        return ALL_REGISTRIES;
     }
 
     @Override
