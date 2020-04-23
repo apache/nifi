@@ -18,7 +18,11 @@ package org.apache.nifi.security.util.crypto
 
 import org.apache.kerby.util.Hex
 import org.bouncycastle.jce.provider.BouncyCastleProvider
-import org.junit.*
+import org.junit.After
+import org.junit.Before
+import org.junit.BeforeClass
+import org.junit.Ignore
+import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
 import org.slf4j.Logger
@@ -307,10 +311,10 @@ class Argon2SecureHasherTest extends GroovyTestCase {
     @Test
     void testDefaultCostParamsShouldBeSufficient() {
         // Arrange
-        int testIterations = 10_000
+        int testIterations = 100 //_000
         byte[] inputBytes = "This is a sensitive value".bytes
 
-        Argon2SecureHasher a2sh = new Argon2SecureHasher()
+        Argon2SecureHasher a2sh = new Argon2SecureHasher(16, 2**16, 8, 5)
 
         def results = []
         def resultDurations = []
@@ -329,8 +333,11 @@ class Argon2SecureHasherTest extends GroovyTestCase {
             resultDurations << durationNanos
         }
 
+        def milliDurations = [resultDurations.min(), resultDurations.max(), resultDurations.sum()/resultDurations.size()].collect { it / 1_000_000 }
+        logger.info("Min/Max/Avg durations in ms: ${milliDurations}")
+
         // Assert
-        final long MIN_DURATION_NANOS = 5_000_000 // 5 ms
+        final long MIN_DURATION_NANOS = 500_000_000 // 500 ms
         assert resultDurations.min() > MIN_DURATION_NANOS
         assert resultDurations.sum() / testIterations > MIN_DURATION_NANOS
     }

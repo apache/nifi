@@ -453,7 +453,7 @@ class Argon2CipherProviderGroovyTest extends GroovyTestCase {
     }
 
     @Test
-    void testScryptShouldNotAcceptInvalidPassword() {
+    void testArgon2ShouldNotAcceptInvalidPassword() {
         // Arrange
         String badPassword = ""
         byte[] salt = [0x01 as byte] * 16
@@ -533,5 +533,4 @@ class Argon2CipherProviderGroovyTest extends GroovyTestCase {
         // Assert
         assert rawSalt == EXPECTED_RAW_SALT
     }
-
 }

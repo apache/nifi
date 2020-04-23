@@ -1384,12 +1384,14 @@ Here are the KDFs currently supported by NiFi (primarily in the `EncryptContent`
 * Bcrypt
 ** This KDF was added in v0.5.0.
 ** link:https://en.wikipedia.org/wiki/Bcrypt[Bcrypt^] is an adaptive function based on the link:https://en.wikipedia.org/wiki/Blowfish_(cipher)[Blowfish^] cipher. This KDF is strongly recommended as it automatically incorporates a random 16 byte salt, configurable cost parameter (or "work factor"), and is hardened against brute-force attacks using link:https://en.wikipedia.org/wiki/General-purpose_computing_on_graphics_processing_units[GPGPU^] (which share memory between cores) by requiring access to "large" blocks of memory during the key derivation. It is less resistant to link:https://en.wikipedia.org/wiki/Field-programmable_gate_array[FPGA^] brute-force attacks where the gate arrays have access to individual embedded RAM blocks.
-** Because the length of a Bcrypt-derived key is always 184 bits, the complete output is then fed to a `SHA-512` digest and truncated to the desired key length. This provides the benefit of the avalanche effect on the formatted input.
+** Because the length of a Bcrypt-derived key is always 184 bits, the hash output (not including the algorithm, work factor, or salt) is then fed to a `SHA-512` digest and truncated to the desired key length. This provides the benefit of the avalanche effect on the formatted input. This key stretching mechanism was introduced in Apache NiFi 1.12.0.
+NOTE: Prior to this, the _complete output_ (algorithm, work factor, salt, and hash output for a total of 480 bits) was provided to the SHA-512 digest function. NiFi can transparently handle decrypting data (under 10 MB) encrypted using a key derived via this legacy process.
 ** The recommended minimum work factor is 12 (2^12^ key derivation rounds) (as of 2/1/2016 on commodity hardware) and should be increased to the threshold at which legitimate systems will encounter detrimental delays (see schedule below or use `BcryptCipherProviderGroovyTest#testDefaultConstructorShouldProvideStrongWorkFactor()` to calculate safe minimums).
 ** The salt format is `$2a$10$ABCDEFGHIJKLMNOPQRSTUV`. The salt is delimited by `$` and the three sections are as follows:
 *** `2a` - the version of the format. An extensive explanation can be found link:http://blog.ircmaxell.com/2012/12/seven-ways-to-screw-up-bcrypt.html[here^]. NiFi currently uses `2a` for all salts generated internally.
 *** `10` - the work factor. This is actually the log~2~ value, so the total iteration count would be 2^10^ in this case.
-*** `ABCDEFGHIJKLMNOPQRSTUV` - the 22 character, Base64-encoded, unpadded, raw salt value. This decodes to a 16 byte salt used in the key derivation.
+*** `ABCDEFGHIJKLMNOPQRSTUV` - the 22 character, Radix64-encoded, unpadded, raw salt value. This decodes to a 16 byte salt used in the key derivation.
+NOTE: The Bcrypt Radix64 encoding is *not* compatible with standard MIME Base64 encoding.
 * Scrypt
 ** This KDF was added in v0.5.0.
 ** link:https://en.wikipedia.org/wiki/Scrypt[Scrypt^] is an adaptive function designed in response to `bcrypt`. This KDF is recommended as it requires relatively large amounts of memory for each derivation, making it resistant to hardware brute-force attacks.
@@ -1404,10 +1406,19 @@ Here are the KDFs currently supported by NiFi (primarily in the `EncryptContent`
 ** link:https://en.wikipedia.org/wiki/PBKDF2[Password-Based Key Derivation Function 2^] is an adaptive derivation function which uses an internal pseudorandom function (PRF) and iterates it many times over a password and salt (at least 16 bytes).
 ** The PRF is recommended to be `HMAC/SHA-256` or `HMAC/SHA-512`. The use of an HMAC cryptographic hash function mitigates a length extension attack.
 ** The recommended minimum number of iterations is 160,000 (as of 2/1/2016 on commodity hardware). This number should be doubled every two years (see schedule below or use `PBKDF2CipherProviderGroovyTest#testDefaultConstructorShouldProvideStrongIterationCount()` to calculate safe minimums).
-** This KDF is not memory-hard (can be parallelized massively with commodity hardware) but is still recommended as sufficient by http://csrc.nist.gov/publications/nistpubs/800-132/nist-sp800-132.pdf[NIST SP 800-132 (PDF)] and many cryptographers (when used with a proper iteration count and HMAC cryptographic hash function).
+** This KDF is not memory-hard (can be parallelized massively with commodity hardware) but is still recommended as sufficient by http://csrc.nist.gov/publications/nistpubs/800-132/nist-sp800-132.pdf[NIST SP 800-132 (PDF)^] and many cryptographers (when used with a proper iteration count and HMAC cryptographic hash function).
 * None
 ** This KDF was added in v0.5.0.
 ** This KDF performs no operation on the input and is a marker to indicate the raw key is provided to the cipher. The key must be provided in hexadecimal encoding and be of a valid length for the associated cipher/algorithm.
+* Argon2
+** This KDF was added in v1.12.0.
+** link:https://en.wikipedia.org/wiki/Argon2[Argon2^] is a key derivation function which won the Password Hashing Competition in 2015. This KDF is recommended as it offers a variety of modes which can be tailored to prevention of GPU attacks, prevention of side-channel attacks, or a combination of both. It allows for a variable output key length.
+** The recommended minimum cost is `memory`=2^16^ (65,536), `iterations`=5, `parallelism`=8 (as of 4/22/2020 on commodity hardware). The link:https://password-hashing.net/argon2-specs.pdf[Argon2 specification paper (PDF)^] Section 9 describes an algorithm used to determine recommended parameters. These parameters should be increased to the threshold at which legitimate systems will encounter detrimental delays (see schedule below or use `Argon2SecureHasherTest#testDefaultCostParamsShouldBeSufficient()` to calculate safe minimums).
+** The salt format is `$argon2id$v=19$m=65536,t=5,p=8$ABCDEFGHIJKLMNOPQRSTUV`. The salt is delimited by `$` and the four sections are as follows:
+*** `argon2id` - the "type" of algorithm (`2i`, `2d`, `2id`). NiFi currently uses `argon2id` for all salts generated internally.
+*** `v=19` - the version of the algorithm in decimal (`0d19` = `0x13`). NiFi currently uses `0d19` for all salts generated internally.
+*** `m=65536,t=5,p=8` - the cost parameters. This contains the memory, iterations, and parallelism in order.
+*** `ABCDEFGHIJKLMNOPQRSTUV` - the 12-44 character, Base64-encoded, unpadded, raw salt value. This decodes to a 8-32 byte salt used in the key derivation.
 
 ==== Additional Resources
 

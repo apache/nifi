@@ -40,6 +40,8 @@ import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.SystemResource;
 import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
@@ -73,9 +75,26 @@ import org.bouncycastle.openpgp.PGPEncryptedData;
 @SideEffectFree
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)
-@Tags({"encryption", "decryption", "password", "JCE", "OpenPGP", "PGP", "GPG"})
-@CapabilityDescription("Encrypts or Decrypts a FlowFile using either symmetric encryption with a password and randomly generated salt, or asymmetric encryption using a public and secret key.")
+@Tags({"encryption", "decryption", "password", "JCE", "OpenPGP", "PGP", "GPG", "KDF", "Argon2", "Bcrypt", "Scrypt", "PBKDF2", "salt", "iv"})
+@CapabilityDescription("Encrypts or Decrypts a FlowFile using either symmetric encryption with a raw key or password and randomly generated salt, or asymmetric encryption using a public and secret key.")
 @SystemResourceConsideration(resource = SystemResource.CPU)
+@WritesAttributes({
+        @WritesAttribute(attribute = "encryptcontent.action", description = "\"encrypted\" or \"decrypted\" depending on the processor action"),
+        @WritesAttribute(attribute = "encryptcontent.algorithm", description = "The algorithm used for the cryptographic operation"),
+        @WritesAttribute(attribute = "encryptcontent.cipher_text_length", description = "The cipher text length in bytes (including IV, salt, and delimiters if present). " +
+                "Determined from incoming content in decrypt mode; outgoing content in encrypt mode"),
+        @WritesAttribute(attribute = "encryptcontent.iv", description = "The Initialization Vector in hex encoding (if present)"),
+        @WritesAttribute(attribute = "encryptcontent.iv_length", description = "The IV length in bytes"),
+        @WritesAttribute(attribute = "encryptcontent.kdf", description = "The Key Derivation Function used if Password-Based Encryption was enabled. See Admin Guide - Key Derivation Functions"),
+        @WritesAttribute(attribute = "encryptcontent.kdf_salt", description = "The KDF-specific salt including algorithm and cost parameters (if present). See Admin Guide - Key Derivation Functions"),
+        @WritesAttribute(attribute = "encryptcontent.kdf_salt_length", description = "The KDF salt length in bytes"),
+        @WritesAttribute(attribute = "encryptcontent.pbkdf2_iterations", description = "The number of iterations used in PBKDF2 KDF (if present). PBKDF2 does not encode the cost parameter in a custom salt"),
+        @WritesAttribute(attribute = "encryptcontent.plaintext_length", description = "The plaintext length in bytes. " +
+                "Determined from incoming content in encrypt mode; outgoing content in decrypt mode"),
+        @WritesAttribute(attribute = "encryptcontent.salt", description = "The raw salt in hex encoding (if present)"),
+        @WritesAttribute(attribute = "encryptcontent.salt_length", description = "The raw salt length in bytes"),
+        @WritesAttribute(attribute = "encryptcontent.timestamp", description = "The timestamp at which the cryptographic operation occurred in 'yyyy-MM-dd HH:mm:ss.SSS Z' format"),
+               })
 public class EncryptContent extends AbstractProcessor {
 
     public static final String ENCRYPT_MODE = "Encrypt";
