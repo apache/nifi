@@ -2144,9 +2144,10 @@ the embedded ZooKeeper server for secure communication. This automatic configura
 NOTE: During the automatic configuration, NiFi will raise an exception and refuse to start if the ZooKeeper configuration contains some of these
 properties but not all.  Specify either all TLS properties or none.
 
-As an alternative to the automatic configuration, TLS communications can be enabled via system properties or in the configuration file specified by the
-`nifi.state.management.embedded.zookeeper.properties` property in _nifi.properties_. At minimum, the ZooKeeper configuration should contain a
-keystore location, keystore password, truststore location, and truststore password.  For example:
+For NiFi versions 1.11.3 thru 1.12.0, ZooKeeper client and quorum TLS can be enabled via system properties and the configuration file specified by
+`nifi.state.management.embedded.zookeeper.properties` property in _nifi.properties_.  This remains an alternative to the automatic configuration
+but is not recommended.  At minimum, the ZooKeeper configuration should contain a keystore location, keystore password, truststore location, and
+truststore password.  For example:
 
 [source]
 ssl.keyStore.location=/example/location/keystore.jks

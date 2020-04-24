@@ -18,6 +18,7 @@
 package org.apache.nifi.controller.state.server;
 
 import org.apache.nifi.util.NiFiProperties;
+import org.apache.zookeeper.client.ConnectStringParser;
 import org.apache.zookeeper.server.DatadirCleanupManager;
 import org.apache.zookeeper.server.ServerCnxnFactory;
 import org.apache.zookeeper.server.ServerConfig;
@@ -223,9 +224,9 @@ public class ZooKeeperStateServer extends ZooKeeperServerMain {
         QuorumPeerConfig peerConfig = new QuorumPeerConfig();
         peerConfig.parseProperties(zkProperties);
 
-        // If this is an insecure NiFi or if the ZooKeeper is distributed, no changes are needed:
+        // If this is an insecure NiFi no changes are needed:
         if (!niFiProperties.isHTTPSConfigured()) {
-            logger.info("NiFi properties not mapped to ZooKeeper properties because NiFi is insecure or ZooKeeper is distributed or both.");
+            logger.info("NiFi properties not mapped to ZooKeeper properties because NiFi is insecure.");
             return peerConfig;
         }
 
@@ -236,20 +237,44 @@ public class ZooKeeperStateServer extends ZooKeeperServerMain {
             zkProperties.remove("clientPortAddress");
             logger.warn("Invalid configuration detected: secure NiFi with embedded ZooKeeper configured for unsecured HTTP connections.");
             logger.warn("Removed HTTP port from embedded ZooKeeper configuration to deactivate insecure HTTP connections.");
+        } else {
+            logger.info("Embedded ZooKeeper not configured for unsecured HTTP connections.");
         }
 
         // Disallow partial TLS configurations for ZK, it's either all or nothing to avoid inconsistent setups, see NIFI-7203:
         final Set<String> zkPropKeys = ZOOKEEPER_TO_NIFI_PROPERTIES.keySet();
         final int zkConfiguredPropCount = zkPropKeys.stream().mapToInt(key -> zkProperties.containsKey(key) ? 1 : 0).sum();
         if (zkConfiguredPropCount != 0 && zkConfiguredPropCount != zkPropKeys.size()) {
-            throw new ConfigException("Embedded ZooKeeper configuration incomplete.  Either all TLS properties must be set or none must be set to avoid inconsistent or partial configurations.");
+            throw new ConfigException("Embedded ZooKeeper configuration incomplete; either all TLS properties must be set or none must be set to avoid inconsistent or partial configurations.");
         }
 
-        // The secure port/address was not checked above, so add one now if missing:
-        if (peerConfig.getSecureClientPortAddress() == null) {
-            final String port = String.valueOf(SocketUtils.findAvailableTcpPort(MIN_AVAILABLE_PORT));
-            zkProperties.setProperty("secureClientPort", port);
-            logger.info("Secure client port or address was not set in ZooKeeper configuration, found and set available port {}", port);
+        // Set HTTPS client port:
+        final InetSocketAddress secureClientAddress = peerConfig.getSecureClientPortAddress();
+        final String connectString = niFiProperties.getProperty(NiFiProperties.ZOOKEEPER_CONNECT_STRING);
+
+        if (secureClientAddress == null && connectString == null) {
+            final int secureClientPort = SocketUtils.findAvailableTcpPort(MIN_AVAILABLE_PORT);
+            zkProperties.setProperty("secureClientPort", String.valueOf(secureClientPort));
+            logger.info("Secure client port was not set, found and set available port {}", secureClientPort);
+
+        } else if (secureClientAddress != null && connectString == null) {
+            final int secureClientPort = secureClientAddress.getPort();
+            zkProperties.setProperty("secureClientPort", String.valueOf(secureClientPort));
+            logger.info("Secure client port set from ZooKeeper configuration, set port {}", secureClientPort);
+
+        } else if (secureClientAddress == null) {
+            final InetSocketAddress selectedServerAddress = getInetSocketAddress(connectString, "ZK not configured with secure port and NiFi ZK client connection string not usable.");
+            final int port = selectedServerAddress.getPort();
+            zkProperties.setProperty("secureClientPort", String.valueOf(port));
+            logger.info("Secure client port set from NiFi ZK connection string, set port {}", port);
+
+        } else {
+            final InetSocketAddress selectedServerAddress = getInetSocketAddress(connectString, "ZK configured with secure port but NiFi ZK client connection string not usable.");
+            if (secureClientAddress.getPort() != selectedServerAddress.getPort()) {
+                logger.warn("Potential mismatch between NiFi ZK client connection string and embedded ZK server secure port.");
+            } else {
+                logger.info("Matched ZK client connection string {} with embedded ZK server secure port: {}", connectString, secureClientAddress);
+            }
         }
 
         // If the ZK server connection factory isn't specified, set it to the one recommended for TLS:
@@ -275,5 +300,10 @@ public class ZooKeeperStateServer extends ZooKeeperServerMain {
         peerConfig = new QuorumPeerConfig();
         peerConfig.parseProperties(zkProperties);
         return peerConfig;
+    }
+
+    private static InetSocketAddress getInetSocketAddress(String connectString, String message) throws ConfigException {
+        final ConnectStringParser parser = new ConnectStringParser(connectString);
+        return parser.getServerAddresses().stream().findFirst().orElseThrow(() -> new ConfigException(message));
     }
 }
