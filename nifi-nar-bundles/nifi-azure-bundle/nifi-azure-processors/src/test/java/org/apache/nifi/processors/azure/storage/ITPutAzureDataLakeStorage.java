@@ -18,6 +18,7 @@ package org.apache.nifi.processors.azure.storage;
 
 import com.azure.storage.file.datalake.DataLakeDirectoryClient;
 import com.azure.storage.file.datalake.DataLakeFileClient;
+import com.google.common.net.UrlEscapers;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.util.MockFlowFile;
@@ -69,9 +70,6 @@ public class ITPutAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
         assertSuccess(DIRECTORY, FILE_NAME, FILE_DATA);
     }
 
-    @Ignore
-    // DataLakeFileClient.getFileUrl() returns "dir1%2Fdir2%2Fdir3%2Fdir4" for "dir1/dir2/dir3/dir4"
-    // seems to be a bug in the Azure lib
     @Test
     public void testPutFileToDeepDirectory() throws Exception {
         String baseDirectory = "dir1/dir2";
@@ -239,9 +237,8 @@ public class ITPutAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
         flowFile.assertAttributeEquals("azure.directory", directory);
         flowFile.assertAttributeEquals("azure.filename", fileName);
 
-        // escape only spaces (' ') and leave slashes ('/') as they are
-        String urlEscapedDirectory = directory.replaceAll(" ", "%20");
-        String urlEscapedFileName = fileName.replaceAll(" ", "%20");
+        String urlEscapedDirectory = UrlEscapers.urlPathSegmentEscaper().escape(directory);
+        String urlEscapedFileName = UrlEscapers.urlPathSegmentEscaper().escape(fileName);
         String primaryUri = StringUtils.isNotEmpty(directory)
                 ? String.format("https://%s.dfs.core.windows.net/%s/%s/%s", getAccountName(), fileSystemName, urlEscapedDirectory, urlEscapedFileName)
                 : String.format("https://%s.dfs.core.windows.net/%s/%s", getAccountName(), fileSystemName, urlEscapedFileName);
