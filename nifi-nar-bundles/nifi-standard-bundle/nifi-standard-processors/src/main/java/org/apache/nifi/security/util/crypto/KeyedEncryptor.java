@@ -148,7 +148,8 @@ public class KeyedEncryptor extends AbstractEncryptor {
                     // Reset whether salt is detected or not (to skip salt or read IV)
                     bcis.reset();
                     if (saltDelimiterStart != -1) {
-                        byte[] saltBytes = bcis.readNBytes(saltDelimiterStart + RandomIVPBECipherProvider.SALT_DELIMITER.length);
+                        byte[] saltBytes = new byte[saltDelimiterStart + RandomIVPBECipherProvider.SALT_DELIMITER.length];
+                        IOUtils.readFully(bcis, saltBytes);
                         logger.info("Detected salt in incoming cipher text; skipped {} bytes", saltBytes.length);
                     }
                 }
