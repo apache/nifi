@@ -1629,8 +1629,8 @@ It just depends on the resources available and how the Administrator decides to 
 
 *Heartbeats*: The nodes communicate their health and status to the currently elected Cluster Coordinator via "heartbeats",
 which let the Coordinator know they are still connected to the cluster and working properly. By default, the nodes emit
-heartbeats every 5 seconds, and if the Cluster Coordinator does not receive a heartbeat from a node within 40 seconds, it
-disconnects the node due to "lack of heartbeat". The 5-second setting is configurable in the _nifi.properties_ file (see
+heartbeats every 5 seconds, and if the Cluster Coordinator does not receive a heartbeat from a node within 40 seconds (= 5 seconds * 8), it
+disconnects the node due to "lack of heartbeat". The 5-second and 8 times settings are configurable in the _nifi.properties_ file (see
 the <<cluster_common_properties>> section for more information). The reason that the Cluster Coordinator
 disconnects the node is because the Coordinator needs to ensure that every node in the cluster is in sync, and if a node
 is not heard from regularly, the Coordinator cannot be sure it is still in sync with the rest of the cluster. If, after
@@ -3334,6 +3334,7 @@ When setting up a NiFi cluster, these properties should be configured the same w
 |====
 |*Property*|*Description*
 |`nifi.cluster.protocol.heartbeat.interval`|The interval at which nodes should emit heartbeats to the Cluster Coordinator. The default value is `5 sec`.
+|`nifi.cluster.protocol.heartbeat.missable.max`|Maximum number of heartbeats a Cluster Coordinator can miss for a node in the cluster before the Cluster Coordinator updates the node status to Disconnected. The default value is `8`.
 |`nifi.cluster.protocol.is.secure`|This indicates whether cluster communications are secure. The default value is `false`.
 |====
 
