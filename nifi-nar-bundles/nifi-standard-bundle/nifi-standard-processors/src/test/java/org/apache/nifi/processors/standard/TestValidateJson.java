@@ -68,6 +68,7 @@ public class TestValidateJson {
         String schema = "{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"type\":\"object\",\"properties\":{\"FieldOne\":{\"type\":\"string\",\"pattern\":\"unmatched\"},\"FieldTwo\":{\"type\":\"integer\"},\"FieldThree\":{\"type\":\"array\",\"items\":[{\"type\":\"object\",\"properties\":{\"arrayField\":{\"type\":\"string\"}},\"required\":[\"arrayField\"]}]}},\"required\":[\"FieldOne\",\"FieldTwo\",\"FieldThree\"]}";
 
         testRunner.setProperty(ValidateJson.SCHEMA_TEXT, schema);
+        testRunner.setProperty(ValidateJson.SCHEMA_VERSION, ValidateJson.SCHEMA_VERSION_7);
 
         testRunner.enqueue(testingJson);
         testRunner.run(1);
@@ -90,6 +91,7 @@ public class TestValidateJson {
         String schema = "{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"type\":\"object\",\"properties\":{\"FieldOne\":{\"type\":\"string\",\"pattern\":\"[a-z]*Value\"},\"FieldTwo\":{\"type\":\"integer\"},\"FieldThree\":{\"type\":\"array\",\"items\":[{\"type\":\"object\",\"properties\":{\"arrayField\":{\"type\":\"string\"}},\"required\":[\"arrayField\"]}]}},\"required\":[\"FieldOne\",\"FieldTwo\",\"FieldThree\",\"FieldFour\"]}";
         
         testRunner.setProperty(ValidateJson.SCHEMA_TEXT, schema);
+        testRunner.setProperty(ValidateJson.SCHEMA_VERSION, ValidateJson.SCHEMA_VERSION_7);
 
         testRunner.enqueue(testingJson);
         testRunner.run(1);
@@ -112,6 +114,7 @@ public class TestValidateJson {
         String schema = "{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"type\":\"object\",\"properties\":{\"FieldOne\":{\"type\":\"string\",\"pattern\":\"[a-z]*Value\"},\"FieldTwo\":{\"type\":\"integer\"},\"FieldThree\":{\"type\":\"array\",\"items\":[{\"type\":\"object\",\"properties\":{\"arrayField\":{\"type\":\"string\"}},\"required\":[\"arrayField\"]}]}},\"required\":[\"FieldOne\",\"FieldTwo\",\"FieldThree\",\"FieldFour\"]}";
 
         testRunner.setProperty(ValidateJson.SCHEMA_TEXT, schema);
+        testRunner.setProperty(ValidateJson.SCHEMA_VERSION, ValidateJson.SCHEMA_VERSION_7);
 
         testRunner.enqueue("This isn't JSON!");
         testRunner.run(1);
