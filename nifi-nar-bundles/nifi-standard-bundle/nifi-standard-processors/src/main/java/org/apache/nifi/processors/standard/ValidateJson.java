@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import org.apache.commons.io.IOUtils;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
@@ -31,6 +30,7 @@ import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -39,6 +39,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -151,62 +152,64 @@ public class ValidateJson extends AbstractProcessor {
             return;
         }
 
-        AtomicReference<String> flowFileContent = new AtomicReference<>(null);
+        final AtomicReference<Exception> exceptions = new AtomicReference<>();
+        final AtomicReference<Set<ValidationMessage>> validationErrors = new AtomicReference<Set<ValidationMessage>>(null);
 
-        // Read FlowFile contents into a String
-        session.read(flowFile, in -> {
-            flowFileContent.set(IOUtils.toString(in));
+        session.read(flowFile, new InputStreamCallback()  {
+
+            @Override
+            public void process(InputStream in) {
+                try {
+                    // Set JSON schema version to use from processor property
+                    VersionFlag schemaVersion = VersionFlag.V201909;
+                    if (context.getProperty(SCHEMA_VERSION).getValue() == SCHEMA_VERSION_4.getValue()) {
+                        schemaVersion = VersionFlag.V4;
+                    }
+                    if (context.getProperty(SCHEMA_VERSION).getValue() == SCHEMA_VERSION_6.getValue()) {
+                        schemaVersion = VersionFlag.V6;
+                    }
+                    if (context.getProperty(SCHEMA_VERSION).getValue() == SCHEMA_VERSION_7.getValue()) {
+                        schemaVersion = VersionFlag.V7;
+                    }
+                    if (context.getProperty(SCHEMA_VERSION).getValue() == SCHEMA_VERSION_V201909.getValue()) {
+                        schemaVersion = VersionFlag.V201909;
+                    }
+        
+                    // Read in flowFile inputstream, and validate against schema
+                    ObjectMapper mapper = new ObjectMapper();
+                    JsonNode node = mapper.readTree(in);
+                    String schemaText = context.getProperty(SCHEMA_TEXT).evaluateAttributeExpressions().getValue();
+                    JsonSchemaFactory factory = JsonSchemaFactory.getInstance(schemaVersion);
+                    JsonSchema schema = factory.getSchema(schemaText);
+                    validationErrors.set(schema.validate(node));
+                
+                } catch (JsonParseException jpe) {
+                    exceptions.set(jpe);
+                } catch (IOException ioe) {
+                    exceptions.set(ioe);
+                }
+            }
         });
 
-        try {
-            // Convert FlowFile String to JsonNode
-            ObjectMapper mapper = new ObjectMapper();
-            JsonNode node = mapper.readTree(flowFileContent.get());
-            
-            // Get Schema Version from processor property
-            VersionFlag schemaVersion = VersionFlag.V201909;
-            if (context.getProperty(SCHEMA_VERSION).getValue() == SCHEMA_VERSION_4.getValue()) {
-                schemaVersion = VersionFlag.V4;
-            }
-            if (context.getProperty(SCHEMA_VERSION).getValue() == SCHEMA_VERSION_6.getValue()) {
-                schemaVersion = VersionFlag.V6;
-            }
-            if (context.getProperty(SCHEMA_VERSION).getValue() == SCHEMA_VERSION_7.getValue()) {
-                schemaVersion = VersionFlag.V7;
-            }
-            if (context.getProperty(SCHEMA_VERSION).getValue() == SCHEMA_VERSION_V201909.getValue()) {
-                schemaVersion = VersionFlag.V201909;
-            }
+        // Failed to read flowFile - either IOException, or JsonParseException
+        if (exceptions.get() != null) {
+            this.getLogger().info("Failed to process {} due to {}; routing to 'failure'", new Object[]{flowFile, exceptions.get().getLocalizedMessage()});
+            session.getProvenanceReporter().route(flowFile, REL_FAILURE);
+            session.transfer(flowFile, REL_FAILURE);
 
-            // Get Schema text from processor property and load it
-            String schemaText = context.getProperty(SCHEMA_TEXT).evaluateAttributeExpressions().getValue();
-            JsonSchemaFactory factory = JsonSchemaFactory.getInstance(schemaVersion);
-            JsonSchema schema = factory.getSchema(schemaText);
-
-            // Validate flowfile against schema
-            Set<ValidationMessage> schemaErrors = schema.validate(node);
-            if (schemaErrors.size() > 0) {
-                // Schema check failed
-                flowFile = session.putAttribute(flowFile, ERROR_ATTRIBUTE_KEY, schemaErrors.toString());
-                this.getLogger().info("Failed to validate {} against schema; routing to 'invalid'", new Object[]{flowFile});
-                session.getProvenanceReporter().route(flowFile, REL_INVALID);
-                session.transfer(flowFile, REL_INVALID);
-            } else {
-                // Schema check passed
-                this.getLogger().debug("Successfully validated {} against schema; routing to 'valid'", new Object[]{flowFile});
-                session.getProvenanceReporter().route(flowFile, REL_VALID);
-                session.transfer(flowFile, REL_VALID);
-            }
-                      
+        // Schema checks failed
+        } else if (validationErrors.get().size() > 0) {
+            flowFile = session.putAttribute(flowFile, ERROR_ATTRIBUTE_KEY, validationErrors.get().toString());
+            this.getLogger().info("Failed to validate {} against schema; routing to 'invalid'", new Object[]{flowFile});
+            session.getProvenanceReporter().route(flowFile, REL_INVALID);
+            session.transfer(flowFile, REL_INVALID);
         
-        } catch (JsonParseException jpe) {
-            this.getLogger().info("Failed to parse {} into a JSON object; routing to 'failure'", new Object[]{flowFile, jpe.getLocalizedMessage()});
-            session.getProvenanceReporter().route(flowFile, REL_FAILURE);
-            session.transfer(flowFile, REL_FAILURE);
-        } catch (IOException ioe) {
-            this.getLogger().info("Failed to read flowFile {}; routing to 'failure'", new Object[]{flowFile, ioe.getLocalizedMessage()});
-            session.getProvenanceReporter().route(flowFile, REL_FAILURE);
-            session.transfer(flowFile, REL_FAILURE);
+        // Schema check passed
+        } else {
+            this.getLogger().debug("Successfully validated {} against schema; routing to 'valid'", new Object[]{flowFile});
+            session.getProvenanceReporter().route(flowFile, REL_VALID);
+            session.transfer(flowFile, REL_VALID);
         }
+                      
     }
 }
