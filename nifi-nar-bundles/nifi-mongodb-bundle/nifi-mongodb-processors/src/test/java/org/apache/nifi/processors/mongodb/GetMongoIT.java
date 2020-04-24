@@ -20,6 +20,7 @@ package org.apache.nifi.processors.mongodb;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Lists;
+import com.mongodb.BasicDBObject;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 import com.mongodb.client.MongoCollection;
@@ -43,6 +44,8 @@ import org.junit.Test;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Collection;
+import java.util.ArrayList;
+
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -61,9 +64,9 @@ public class GetMongoIT {
     static {
         CAL = Calendar.getInstance();
         DOCUMENTS = Lists.newArrayList(
-            new Document("_id", "doc_1").append("a", 1).append("b", 2).append("c", 3),
-            new Document("_id", "doc_2").append("a", 1).append("b", 2).append("c", 4).append("date_field", CAL.getTime()),
-            new Document("_id", "doc_3").append("a", 1).append("b", 3)
+                new Document("_id", "doc_1").append("a", 1).append("b", 2).append("c", 3),
+                new Document("_id", "doc_2").append("a", 1).append("b", 2).append("c", 4).append("date_field", CAL.getTime()),
+                new Document("_id", "doc_3").append("a", 1).append("b", 3)
         );
     }
 
@@ -492,7 +495,7 @@ public class GetMongoIT {
         for (int x = 0; x < collections.length; x++) {
             MongoDatabase db = mongoClient.getDatabase(dbs[x]);
             db.getCollection(collections[x])
-                .insertOne(new Document().append("msg", "Hello, World"));
+                    .insertOne(new Document().append("msg", "Hello, World"));
 
             Map<String, String> attrs = new HashMap<>();
             attrs.put("db", dbs[x]);
@@ -668,4 +671,53 @@ public class GetMongoIT {
         MockFlowFile flowFile = flowFiles.get(0);
         Assert.assertEquals(0, flowFile.getSize());
     }
+
+
+    @Test
+    public void testReadUserPaswd() throws Exception {
+        final String username = "myuser";
+        final String password = "password";
+        mongoClient = new MongoClient(new MongoClientURI(MONGO_URI));
+        final MongoDatabase db = mongoClient.getDatabase(DB_NAME);
+        final BasicDBObject createUserCommand = new BasicDBObject("createUser", username).append("pwd", password).append("roles",
+                java.util.Collections.singletonList(new BasicDBObject("role", "dbOwner").append("db", DB_NAME)));
+
+        BasicDBObject getUsersInfoCommand = new BasicDBObject("usersInfo", new BasicDBObject("user", username).append("db", DB_NAME));
+        Document result = db.runCommand(getUsersInfoCommand);
+        BasicDBObject dropUserCommand = new BasicDBObject("dropUser", username);
+
+        ArrayList users = (ArrayList) result.get("users");
+        if (!users.isEmpty()) {
+            db.runCommand(dropUserCommand);
+            System.out.println("dropping user");
+        }
+        db.runCommand(createUserCommand);
+
+        //setting new property
+        runner.removeProperty(AbstractMongoProcessor.URI);
+        runner.setVariable("uri", "mongodb://localhost:27017/?authSource="+DB_NAME);
+        runner.setProperty(AbstractMongoProcessor.URI, "${uri}");
+        runner.setProperty(GetMongo.PASSWORD,password);
+        runner.setProperty(GetMongo.USER_NAME,username);
+
+        runner.setVariable("query", "{\"_id\": \"doc_2\"}");
+        runner.setProperty(GetMongo.QUERY, "${query}");
+        runner.setProperty(GetMongo.JSON_TYPE, GetMongo.JSON_STANDARD);
+        runner.run();
+        runner.assertAllFlowFilesTransferred(GetMongo.REL_SUCCESS, 1);
+
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetMongo.REL_SUCCESS);
+        byte[] raw = runner.getContentAsByteArray(flowFiles.get(0));
+        ObjectMapper mapper = new ObjectMapper();
+        Map<String, Object> parsed = mapper.readValue(raw, Map.class);
+        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
+
+        // Drop the user which was created
+        db.runCommand(dropUserCommand);
+
+        Assert.assertTrue(parsed.get("date_field").getClass() == String.class);
+        Assert.assertTrue(((String)parsed.get("date_field")).startsWith(format.format(CAL.getTime())));
+
+    }
+
 }

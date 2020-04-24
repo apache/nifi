@@ -20,9 +20,12 @@ package org.apache.nifi.processors.mongodb;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
+import com.mongodb.MongoClient;
+import com.mongodb.MongoClientURI;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -36,14 +39,18 @@ import org.apache.nifi.components.Validator;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.mongodb.MongoDBClientService;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.security.util.SslContextFactory;
+import org.apache.nifi.ssl.SSLContextService;
 import org.bson.Document;
 import org.bson.json.JsonWriterSettings;
 
+import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -57,20 +64,20 @@ import java.util.Set;
 @InputRequirement(Requirement.INPUT_ALLOWED)
 @CapabilityDescription("Creates FlowFiles from documents in MongoDB loaded by a user-specified query.")
 @WritesAttributes({
-    @WritesAttribute(attribute = GetMongo.DB_NAME, description = "The database where the results came from."),
-    @WritesAttribute(attribute = GetMongo.COL_NAME, description = "The collection where the results came from.")
+        @WritesAttribute(attribute = GetMongo.DB_NAME, description = "The database where the results came from."),
+        @WritesAttribute(attribute = GetMongo.COL_NAME, description = "The collection where the results came from.")
 })
 public class GetMongo extends AbstractMongoQueryProcessor {
     public static final PropertyDescriptor SEND_EMPTY_RESULTS = new PropertyDescriptor.Builder()
-        .name("get-mongo-send-empty")
-        .displayName("Send Empty Result")
-        .description("If a query executes successfully, but returns no results, send an empty JSON document " +
-                "signifying no result.")
-        .allowableValues("true", "false")
-        .defaultValue("false")
-        .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
-        .required(false)
-        .build();
+            .name("get-mongo-send-empty")
+            .displayName("Send Empty Result")
+            .description("If a query executes successfully, but returns no results, send an empty JSON document " +
+                    "signifying no result.")
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .required(false)
+            .build();
 
     static final AllowableValue YES_PP = new AllowableValue("true", "True");
     static final AllowableValue NO_PP  = new AllowableValue("false", "False");
@@ -84,6 +91,22 @@ public class GetMongo extends AbstractMongoQueryProcessor {
             .defaultValue(YES_PP.getValue())
             .allowableValues(YES_PP, NO_PP)
             .addValidator(Validator.VALID)
+            .build();
+    static final PropertyDescriptor USER_NAME = new PropertyDescriptor.Builder()
+            .name("User Name")
+            .displayName("username")
+            .description("User for mongodb authentication")
+            .required(false)
+            .addValidator(Validator.VALID)
+            .sensitive(false)
+            .build();
+
+    static final PropertyDescriptor PASSWORD = new PropertyDescriptor.Builder()
+            .name("Password")
+            .description("The Password for the user")
+            .required(false)
+            .addValidator(Validator.VALID)
+            .sensitive(true)
             .build();
 
     private final static Set<Relationship> relationships;
@@ -107,6 +130,8 @@ public class GetMongo extends AbstractMongoQueryProcessor {
         _propertyDescriptors.add(SSL_CONTEXT_SERVICE);
         _propertyDescriptors.add(CLIENT_AUTH);
         _propertyDescriptors.add(SEND_EMPTY_RESULTS);
+        _propertyDescriptors.add(USER_NAME);
+        _propertyDescriptors.add(PASSWORD);
         propertyDescriptors = Collections.unmodifiableList(_propertyDescriptors);
 
         final Set<Relationship> _relationships = new HashSet<>();
@@ -253,7 +278,14 @@ public class GetMongo extends AbstractMongoQueryProcessor {
                     });
 
                     outgoingFlowFile = session.putAllAttributes(outgoingFlowFile, attributes);
-                    session.getProvenanceReporter().receive(outgoingFlowFile, getURI(context));
+                    String uriPass="";
+                    if (context.getProperty(USER_NAME).getValue() != null) {
+                        uriPass = "mongodb://" + context.getProperty(USER_NAME).getValue() + ":" + context.getProperty(PASSWORD).getValue() + "@" + getURI(context).substring(10);
+
+                    } else {
+                        uriPass = getURI(context);
+                    }
+                    session.getProvenanceReporter().receive(outgoingFlowFile, uriPass);
                     session.transfer(outgoingFlowFile, REL_SUCCESS);
                     sent++;
                 }
@@ -271,4 +303,59 @@ public class GetMongo extends AbstractMongoQueryProcessor {
         }
 
     }
+
+    @OnScheduled
+    public void createClient(ProcessContext context) throws IOException {
+        if (context.getProperty(CLIENT_SERVICE).isSet()) {
+            clientService = context.getProperty(CLIENT_SERVICE).asControllerService(MongoDBClientService.class);
+            return;
+        }
+
+        if (mongoClient != null) {
+            closeClient();
+        }
+
+        getLogger().info("Creating MongoClient");
+
+        // Set up the client for secure (SSL/TLS communications) if configured to do so
+        final SSLContextService sslService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
+        final String rawClientAuth = context.getProperty(CLIENT_AUTH).getValue();
+        final SSLContext sslContext;
+
+        if (sslService != null) {
+            final SSLContextService.ClientAuth clientAuth;
+            if (StringUtils.isBlank(rawClientAuth)) {
+                clientAuth = SSLContextService.ClientAuth.REQUIRED;
+            } else {
+                try {
+                    clientAuth = SSLContextService.ClientAuth.valueOf(rawClientAuth);
+                } catch (final IllegalArgumentException iae) {
+                    throw new IllegalStateException(String.format("Unrecognized client auth '%s'. Possible values are [%s]",
+                            rawClientAuth, StringUtils.join(SslContextFactory.ClientAuth.values(), ", ")));
+                }
+            }
+            sslContext = sslService.createSSLContext(clientAuth);
+        } else {
+            sslContext = null;
+        }
+
+        try {
+            String uriPass = "";
+            if (sslContext == null) {
+                if (context.getProperty(USER_NAME).getValue() != null) {
+                    uriPass = "mongodb://" + context.getProperty(USER_NAME).getValue() + ":" + context.getProperty(PASSWORD).getValue() + "@" + getURI(context).substring(10);
+
+                } else {
+                    uriPass = getURI(context);
+                }
+                mongoClient = new MongoClient(new MongoClientURI(uriPass));
+            } else {
+                mongoClient = new MongoClient(new MongoClientURI(getURI(context), getClientOptions(sslContext)));
+            }
+        } catch (Exception e) {
+            getLogger().error("Failed to schedule {} due to {}", new Object[] { this.getClass().getName(), e }, e);
+            throw e;
+        }
+    }
+
 }

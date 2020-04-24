@@ -228,7 +228,7 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
     protected MongoDBClientService clientService;
 
     @OnScheduled
-    public final void createClient(ProcessContext context) throws IOException {
+    public void createClient(ProcessContext context) throws IOException {
         if (context.getProperty(CLIENT_SERVICE).isSet()) {
             clientService = context.getProperty(CLIENT_SERVICE).asControllerService(MongoDBClientService.class);
             return;
