@@ -57,6 +57,7 @@ import javax.annotation.Nullable;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLSession;
 import okhttp3.Cache;
+import okhttp3.ConnectionPool;
 import okhttp3.Credentials;
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
@@ -200,6 +201,24 @@ public class InvokeHTTP extends AbstractProcessor {
             .required(true)
             .defaultValue("15 secs")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor PROP_IDLE_TIMEOUT = new PropertyDescriptor.Builder()
+            .name("idle-timeout")
+            .displayName("Idle Timeout")
+            .description("Max idle time before closing connection to the remote service.")
+            .required(true)
+            .defaultValue("5 mins")
+            .addValidator(StandardValidators.createTimePeriodValidator(1, TimeUnit.MILLISECONDS, Integer.MAX_VALUE, TimeUnit.SECONDS))
+            .build();
+
+    public static final PropertyDescriptor PROP_MAX_IDLE_CONNECTIONS = new PropertyDescriptor.Builder()
+            .name("max-idle-connections")
+            .displayName("Max Idle Connections")
+            .description("Max number of idle connections to keep open.")
+            .required(true)
+            .defaultValue("5")
+            .addValidator(StandardValidators.INTEGER_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor PROP_DATE_HEADER = new PropertyDescriptor.Builder()
@@ -466,6 +485,8 @@ public class InvokeHTTP extends AbstractProcessor {
             PROP_SSL_CONTEXT_SERVICE,
             PROP_CONNECT_TIMEOUT,
             PROP_READ_TIMEOUT,
+            PROP_IDLE_TIMEOUT,
+            PROP_MAX_IDLE_CONNECTIONS,
             PROP_DATE_HEADER,
             PROP_FOLLOW_REDIRECTS,
             PROP_ATTRIBUTES_TO_SEND,
@@ -726,6 +747,14 @@ public class InvokeHTTP extends AbstractProcessor {
         // Set timeouts
         okHttpClientBuilder.connectTimeout((context.getProperty(PROP_CONNECT_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue()), TimeUnit.MILLISECONDS);
         okHttpClientBuilder.readTimeout(context.getProperty(PROP_READ_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue(), TimeUnit.MILLISECONDS);
+
+        // Set connectionpool limits
+        okHttpClientBuilder.connectionPool(
+                new ConnectionPool(
+                        context.getProperty(PROP_MAX_IDLE_CONNECTIONS).asInteger(),
+                        context.getProperty(PROP_IDLE_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue(), TimeUnit.MILLISECONDS
+                )
+        );
 
         // Set whether to follow redirects
         okHttpClientBuilder.followRedirects(context.getProperty(PROP_FOLLOW_REDIRECTS).asBoolean());
