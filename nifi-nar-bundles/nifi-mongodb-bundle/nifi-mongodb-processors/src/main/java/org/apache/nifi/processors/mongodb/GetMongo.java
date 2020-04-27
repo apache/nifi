@@ -278,7 +278,7 @@ public class GetMongo extends AbstractMongoQueryProcessor {
                     });
 
                     outgoingFlowFile = session.putAllAttributes(outgoingFlowFile, attributes);
-                    String uriPass="";
+                    String uriPass = "";
                     if (context.getProperty(USER_NAME).getValue() != null) {
                         uriPass = "mongodb://" + context.getProperty(USER_NAME).getValue() + ":" + context.getProperty(PASSWORD).getValue() + "@" + getURI(context).substring(10);
                     } else {

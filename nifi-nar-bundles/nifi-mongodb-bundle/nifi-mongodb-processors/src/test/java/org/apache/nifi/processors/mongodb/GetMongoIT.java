@@ -716,7 +716,5 @@ public class GetMongoIT {
 
         Assert.assertTrue(parsed.get("date_field").getClass() == String.class);
         Assert.assertTrue(((String) parsed.get("date_field")).startsWith(format.format(CAL.getTime())));
-
     }
-
 }
