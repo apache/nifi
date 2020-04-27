@@ -672,7 +672,6 @@ public class GetMongoIT {
         Assert.assertEquals(0, flowFile.getSize());
     }
 
-
     @Test
     public void testReadUserPaswd() throws Exception {
         final String username = "myuser";
