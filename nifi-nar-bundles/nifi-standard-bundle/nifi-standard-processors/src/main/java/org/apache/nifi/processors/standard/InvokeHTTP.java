@@ -1063,7 +1063,7 @@ public final class InvokeHTTP extends AbstractProcessor {
             String evalContentType = context.getProperty(PROP_CONTENT_TYPE)
                 .evaluateAttributeExpressions(requestFlowFile).getValue();
             final String contentType = StringUtils.isBlank(evalContentType) ? DEFAULT_CONTENT_TYPE : evalContentType;
-            HashMap<String,PropertyDescriptor> propertyDescriptors = new HashMap<>();
+            Map<String,PropertyDescriptor> propertyDescriptors = new HashMap<>();
             for (final Map.Entry<PropertyDescriptor, String> entry : context.getProperties().entrySet()) {
                 Matcher matcher = DYNAMIC_FORM_PARAMETER_NAME.matcher(entry.getKey().getName());
                 if (matcher.matches()) {
