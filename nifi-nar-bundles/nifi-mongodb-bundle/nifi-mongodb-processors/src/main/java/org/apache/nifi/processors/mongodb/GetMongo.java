@@ -72,7 +72,7 @@ public class GetMongo extends AbstractMongoQueryProcessor {
         .name("get-mongo-send-empty")
         .displayName("Send Empty Result")
         .description("If a query executes successfully, but returns no results, send an empty JSON document " +
-            "signifying no result.")
+                "signifying no result.")
         .allowableValues("true", "false")
         .defaultValue("false")
         .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
