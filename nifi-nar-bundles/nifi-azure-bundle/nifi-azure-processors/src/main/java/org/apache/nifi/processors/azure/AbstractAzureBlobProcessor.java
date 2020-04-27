@@ -41,6 +41,7 @@ public abstract class AbstractAzureBlobProcessor extends AbstractProcessor {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(true)
+            .defaultValue("${azure.blobname}")
             .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
