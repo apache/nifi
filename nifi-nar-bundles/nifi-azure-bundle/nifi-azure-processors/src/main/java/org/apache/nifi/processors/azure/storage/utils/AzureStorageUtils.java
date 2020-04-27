@@ -88,7 +88,7 @@ public final class AzureStorageUtils {
     public static final PropertyDescriptor CONTAINER = new PropertyDescriptor.Builder()
             .name("container-name")
             .displayName("Container Name")
-            .description("Name of the Azure storage container")
+            .description("Name of the Azure storage container. In case of PutAzureBlobStorage processor, container will be created if it does not exist.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(true)

@@ -75,6 +75,7 @@ public class PutAzureBlobStorage extends AbstractAzureBlobProcessor {
         try {
             CloudBlobClient blobClient = AzureStorageUtils.createCloudBlobClient(context, getLogger(), flowFile);
             CloudBlobContainer container = blobClient.getContainerReference(containerName);
+            container.createIfNotExists();
 
             CloudBlob blob = container.getBlockBlobReference(blobPath);
 
