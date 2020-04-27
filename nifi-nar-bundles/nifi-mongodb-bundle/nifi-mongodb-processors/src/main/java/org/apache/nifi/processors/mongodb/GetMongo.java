@@ -64,20 +64,20 @@ import java.util.Set;
 @InputRequirement(Requirement.INPUT_ALLOWED)
 @CapabilityDescription("Creates FlowFiles from documents in MongoDB loaded by a user-specified query.")
 @WritesAttributes({
-        @WritesAttribute(attribute = GetMongo.DB_NAME, description = "The database where the results came from."),
-        @WritesAttribute(attribute = GetMongo.COL_NAME, description = "The collection where the results came from.")
+    @WritesAttribute(attribute = GetMongo.DB_NAME, description = "The database where the results came from."),
+    @WritesAttribute(attribute = GetMongo.COL_NAME, description = "The collection where the results came from.")
 })
 public class GetMongo extends AbstractMongoQueryProcessor {
     public static final PropertyDescriptor SEND_EMPTY_RESULTS = new PropertyDescriptor.Builder()
-            .name("get-mongo-send-empty")
-            .displayName("Send Empty Result")
-            .description("If a query executes successfully, but returns no results, send an empty JSON document " +
-                    "signifying no result.")
-            .allowableValues("true", "false")
-            .defaultValue("false")
-            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
-            .required(false)
-            .build();
+        .name("get-mongo-send-empty")
+        .displayName("Send Empty Result")
+        .description("If a query executes successfully, but returns no results, send an empty JSON document " +
+            "signifying no result.")
+        .allowableValues("true", "false")
+        .defaultValue("false")
+        .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+        .required(false)
+        .build();
 
     static final AllowableValue YES_PP = new AllowableValue("true", "True");
     static final AllowableValue NO_PP  = new AllowableValue("false", "False");
@@ -281,7 +281,6 @@ public class GetMongo extends AbstractMongoQueryProcessor {
                     String uriPass="";
                     if (context.getProperty(USER_NAME).getValue() != null) {
                         uriPass = "mongodb://" + context.getProperty(USER_NAME).getValue() + ":" + context.getProperty(PASSWORD).getValue() + "@" + getURI(context).substring(10);
-
                     } else {
                         uriPass = getURI(context);
                     }

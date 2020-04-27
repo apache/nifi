@@ -64,9 +64,9 @@ public class GetMongoIT {
     static {
         CAL = Calendar.getInstance();
         DOCUMENTS = Lists.newArrayList(
-                new Document("_id", "doc_1").append("a", 1).append("b", 2).append("c", 3),
-                new Document("_id", "doc_2").append("a", 1).append("b", 2).append("c", 4).append("date_field", CAL.getTime()),
-                new Document("_id", "doc_3").append("a", 1).append("b", 3)
+            new Document("_id", "doc_1").append("a", 1).append("b", 2).append("c", 3),
+            new Document("_id", "doc_2").append("a", 1).append("b", 2).append("c", 4).append("date_field", CAL.getTime()),
+            new Document("_id", "doc_3").append("a", 1).append("b", 3)
         );
     }
 
@@ -495,7 +495,7 @@ public class GetMongoIT {
         for (int x = 0; x < collections.length; x++) {
             MongoDatabase db = mongoClient.getDatabase(dbs[x]);
             db.getCollection(collections[x])
-                    .insertOne(new Document().append("msg", "Hello, World"));
+                .insertOne(new Document().append("msg", "Hello, World"));
 
             Map<String, String> attrs = new HashMap<>();
             attrs.put("db", dbs[x]);
@@ -689,16 +689,15 @@ public class GetMongoIT {
         ArrayList users = (ArrayList) result.get("users");
         if (!users.isEmpty()) {
             db.runCommand(dropUserCommand);
-            System.out.println("dropping user");
         }
         db.runCommand(createUserCommand);
 
         //setting new property
         runner.removeProperty(AbstractMongoProcessor.URI);
-        runner.setVariable("uri", "mongodb://localhost:27017/?authSource="+DB_NAME);
+        runner.setVariable("uri", "mongodb://localhost:27017/?authSource=" + DB_NAME);
         runner.setProperty(AbstractMongoProcessor.URI, "${uri}");
-        runner.setProperty(GetMongo.PASSWORD,password);
-        runner.setProperty(GetMongo.USER_NAME,username);
+        runner.setProperty(GetMongo.PASSWORD, password);
+        runner.setProperty(GetMongo.USER_NAME, username);
 
         runner.setVariable("query", "{\"_id\": \"doc_2\"}");
         runner.setProperty(GetMongo.QUERY, "${query}");
@@ -716,7 +715,7 @@ public class GetMongoIT {
         db.runCommand(dropUserCommand);
 
         Assert.assertTrue(parsed.get("date_field").getClass() == String.class);
-        Assert.assertTrue(((String)parsed.get("date_field")).startsWith(format.format(CAL.getTime())));
+        Assert.assertTrue(((String) parsed.get("date_field")).startsWith(format.format(CAL.getTime())));
 
     }
 
