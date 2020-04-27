@@ -18,7 +18,6 @@ package org.apache.nifi.processors.standard;
 
 import static org.apache.commons.lang3.StringUtils.trimToEmpty;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -1109,8 +1108,6 @@ public final class InvokeHTTP extends AbstractProcessor {
                     }
                 }
                 if (contentKey != null) {
-                    ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-                    session.exportTo(requestFlowFile, byteArrayOutputStream);
                     builder.addFormDataPart(contentKey, contentFileName, requestBody);
                 }
                 return builder.build();
