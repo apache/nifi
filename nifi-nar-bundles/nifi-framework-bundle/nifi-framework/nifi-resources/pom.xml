@@ -202,6 +202,11 @@
         <nifi.zookeeper.connect.timeout>10 secs</nifi.zookeeper.connect.timeout>
         <nifi.zookeeper.session.timeout>10 secs</nifi.zookeeper.session.timeout>
         <nifi.zookeeper.root.node>/nifi</nifi.zookeeper.root.node>
+        <nifi.zookeeper.client.secure>false</nifi.zookeeper.client.secure>
+        <nifi.zookeeper.ssl.keyStore.location />
+        <nifi.zookeeper.ssl.keyStore.password />
+        <nifi.zookeeper.ssl.trustStore.location />
+        <nifi.zookeeper.ssl.trustStore.password />
         <nifi.zookeeper.auth.type />
         <nifi.zookeeper.kerberos.removeHostFromPrincipal />
         <nifi.zookeeper.kerberos.removeRealmFromPrincipal />
