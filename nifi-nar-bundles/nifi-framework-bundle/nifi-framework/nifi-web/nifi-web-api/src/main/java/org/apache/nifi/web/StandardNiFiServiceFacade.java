@@ -102,10 +102,10 @@ import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.parameter.ParameterReferenceManager;
 import org.apache.nifi.parameter.StandardParameterContext;
-import org.apache.nifi.prometheus.util.BulletinMetricsHolder;
-import org.apache.nifi.prometheus.util.ConnectionAnalyticsMetricsHolder;
-import org.apache.nifi.prometheus.util.JvmMetricsHolder;
-import org.apache.nifi.prometheus.util.NiFiMetricsHolder;
+import org.apache.nifi.prometheus.util.BulletinMetricsRegistry;
+import org.apache.nifi.prometheus.util.ConnectionAnalyticsMetricsRegistry;
+import org.apache.nifi.prometheus.util.JvmMetricsRegistry;
+import org.apache.nifi.prometheus.util.NiFiMetricsRegistry;
 import org.apache.nifi.prometheus.util.PrometheusMetricsUtil;
 import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.registry.authorization.Permissions;
@@ -399,16 +399,16 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     private AuthorizableLookup authorizableLookup;
 
     // Prometheus Metrics objects
-    private NiFiMetricsHolder nifiMetricsHolder = new NiFiMetricsHolder();
-    private JvmMetricsHolder jvmMetricsHolder = new JvmMetricsHolder();
-    private ConnectionAnalyticsMetricsHolder connectionAnalyticsMetricsHolder = new ConnectionAnalyticsMetricsHolder();
-    private BulletinMetricsHolder bulletinMetricsHolder = new BulletinMetricsHolder();
+    private NiFiMetricsRegistry nifiMetricsRegistry = new NiFiMetricsRegistry();
+    private JvmMetricsRegistry jvmMetricsRegistry = new JvmMetricsRegistry();
+    private ConnectionAnalyticsMetricsRegistry connectionAnalyticsMetricsRegistry = new ConnectionAnalyticsMetricsRegistry();
+    private BulletinMetricsRegistry bulletinMetricsRegistry = new BulletinMetricsRegistry();
 
     public final Collection<CollectorRegistry> ALL_REGISTRIES = Arrays.asList(
-            nifiMetricsHolder.getRegistry(),
-            jvmMetricsHolder.getRegistry(),
-            connectionAnalyticsMetricsHolder.getRegistry(),
-            bulletinMetricsHolder.getRegistry()
+            nifiMetricsRegistry.getRegistry(),
+            jvmMetricsRegistry.getRegistry(),
+            connectionAnalyticsMetricsRegistry.getRegistry(),
+            bulletinMetricsRegistry.getRegistry()
     );
 
 
@@ -5320,16 +5320,16 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         String instanceId = controllerFacade.getInstanceId();
         ProcessGroupStatus rootPGStatus = controllerFacade.getProcessGroupStatus("root");
-        PrometheusMetricsUtil.createNifiMetrics(nifiMetricsHolder, rootPGStatus, instanceId, "", "RootProcessGroup",
+        PrometheusMetricsUtil.createNifiMetrics(nifiMetricsRegistry, rootPGStatus, instanceId, "", "RootProcessGroup",
                 PrometheusMetricsUtil.METRICS_STRATEGY_COMPONENTS.getValue());
-        PrometheusMetricsUtil.createJvmMetrics(jvmMetricsHolder, JmxJvmMetrics.getInstance(), instanceId);
+        PrometheusMetricsUtil.createJvmMetrics(jvmMetricsRegistry, JmxJvmMetrics.getInstance(), instanceId);
 
         // Get Connection Status Analytics (predictions, e.g.)
         Set<Connection> connections = controllerFacade.getFlowManager().findAllConnections();
         for (Connection c : connections) {
             // If a ResourceNotFoundException is thrown, analytics hasn't been enabled
             try {
-                PrometheusMetricsUtil.createConnectionStatusAnalyticsMetrics(connectionAnalyticsMetricsHolder, controllerFacade.getConnectionStatusAnalytics(c.getIdentifier()),
+                PrometheusMetricsUtil.createConnectionStatusAnalyticsMetrics(connectionAnalyticsMetricsRegistry, controllerFacade.getConnectionStatusAnalytics(c.getIdentifier()),
                         instanceId,
                         "Connection",
                         c.getName(),
@@ -5351,7 +5351,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         for(BulletinEntity bulletinEntity : bulletinBoardDTO.getBulletins()) {
             BulletinDTO bulletin = bulletinEntity.getBulletin();
             if(bulletin != null) {
-                PrometheusMetricsUtil.createBulletinMetrics(bulletinMetricsHolder, instanceId,
+                PrometheusMetricsUtil.createBulletinMetrics(bulletinMetricsRegistry, instanceId,
                         "Bulletin",
                         String.valueOf(bulletin.getId()),
                         bulletin.getGroupId() == null ? "" : bulletin.getGroupId(),

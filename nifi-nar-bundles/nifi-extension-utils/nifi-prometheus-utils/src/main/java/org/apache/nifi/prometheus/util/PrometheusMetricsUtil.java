@@ -93,7 +93,7 @@ public class PrometheusMetricsUtil {
             .defaultValue(CLIENT_NONE.getValue())
             .build();
 
-    public static CollectorRegistry createNifiMetrics(NiFiMetricsHolder nifiMetricsHolder, ProcessGroupStatus status,
+    public static CollectorRegistry createNifiMetrics(NiFiMetricsRegistry nifiMetricsRegistry, ProcessGroupStatus status,
                                                       String instId, String parentProcessGroupId, String compType, String metricsStrategy) {
 
         final String instanceId = StringUtils.isEmpty(instId) ? DEFAULT_LABEL_STRING : instId;
@@ -116,40 +116,37 @@ public class PrometheusMetricsUtil {
             }
         }
 
-        nifiMetricsHolder.AMOUNT_FLOWFILES_SENT.labels(instanceId, componentType, componentName, componentId, parentPGId).set(status.getFlowFilesSent());
-        nifiMetricsHolder.AMOUNT_FLOWFILES_TRANSFERRED.labels(instanceId, componentType, componentName, componentId, parentPGId).set(status.getFlowFilesTransferred());
-        nifiMetricsHolder.AMOUNT_FLOWFILES_RECEIVED.labels(instanceId, componentType, componentName, componentId, parentPGId).set(status.getFlowFilesReceived());
+        nifiMetricsRegistry.setDataPoint(status.getFlowFilesSent(), "AMOUNT_FLOWFILES_SENT", instanceId, componentType, componentName, componentId, parentPGId);
+        nifiMetricsRegistry.setDataPoint(status.getFlowFilesTransferred(), "AMOUNT_FLOWFILES_TRANSFERRED", instanceId, componentType, componentName, componentId, parentPGId);
+        nifiMetricsRegistry.setDataPoint(status.getFlowFilesReceived(), "AMOUNT_FLOWFILES_RECEIVED", instanceId, componentType, componentName, componentId, parentPGId);
 
-        nifiMetricsHolder.AMOUNT_BYTES_SENT.labels(instanceId, componentType, componentName, componentId, parentPGId).set(status.getBytesSent());
-        nifiMetricsHolder.AMOUNT_BYTES_READ.labels(instanceId, componentType, componentName, componentId, parentPGId).set(status.getBytesRead());
-        nifiMetricsHolder.AMOUNT_BYTES_WRITTEN.labels(instanceId, componentType, componentName, componentId, parentPGId).set(status.getBytesWritten());
-        nifiMetricsHolder.TOTAL_BYTES_READ.labels(instanceId, componentType, componentName, componentId, parentPGId).inc(status.getBytesRead());
-        nifiMetricsHolder.TOTAL_BYTES_WRITTEN.labels(instanceId, componentType, componentName, componentId, parentPGId).inc(status.getBytesWritten());
-        nifiMetricsHolder.AMOUNT_BYTES_RECEIVED.labels(instanceId, componentType, componentName, componentId, parentPGId).set(status.getBytesReceived());
-        nifiMetricsHolder.AMOUNT_BYTES_TRANSFERRED.labels(instanceId, componentType, componentName, componentId, parentPGId).set(status.getBytesTransferred());
+        nifiMetricsRegistry.setDataPoint(status.getBytesSent(), "AMOUNT_BYTES_SENT", instanceId, componentType, componentName, componentId, parentPGId);
+        nifiMetricsRegistry.setDataPoint(status.getBytesRead(), "AMOUNT_BYTES_READ", instanceId, componentType, componentName, componentId, parentPGId);
+        nifiMetricsRegistry.setDataPoint(status.getBytesWritten(), "AMOUNT_BYTES_WRITTEN", instanceId, componentType, componentName, componentId, parentPGId);
+        nifiMetricsRegistry.incrementCounter(status.getBytesRead(), "TOTAL_BYTES_READ", instanceId, componentType, componentName, componentId, parentPGId);
+        nifiMetricsRegistry.incrementCounter(status.getBytesWritten(), "TOTAL_BYTES_WRITTEN", instanceId, componentType, componentName, componentId, parentPGId);
+        nifiMetricsRegistry.setDataPoint(status.getBytesReceived(), "AMOUNT_BYTES_RECEIVED", instanceId, componentType, componentName, componentId, parentPGId);
+        nifiMetricsRegistry.setDataPoint(status.getBytesTransferred(), "AMOUNT_BYTES_TRANSFERRED", instanceId, componentType, componentName, componentId, parentPGId);
 
-        nifiMetricsHolder.SIZE_CONTENT_OUTPUT_TOTAL.labels(instanceId, componentType, componentName, componentId, parentPGId, "", "", "", "")
-                .set(status.getOutputContentSize());
-        nifiMetricsHolder.SIZE_CONTENT_INPUT_TOTAL.labels(instanceId, componentType, componentName, componentId, parentPGId, "", "", "", "")
-                .set(status.getInputContentSize());
-        nifiMetricsHolder.SIZE_CONTENT_QUEUED_TOTAL.labels(instanceId, componentType, componentName, componentId, parentPGId, "", "", "", "")
-                .set(status.getQueuedContentSize());
+        nifiMetricsRegistry.setDataPoint(status.getOutputContentSize(), "SIZE_CONTENT_OUTPUT_TOTAL",
+                instanceId, componentType, componentName, componentId, parentPGId, "", "", "", "");
+        nifiMetricsRegistry.setDataPoint(status.getInputContentSize(), "SIZE_CONTENT_INPUT_TOTAL",
+                instanceId, componentType, componentName, componentId, parentPGId, "", "", "", "");
+        nifiMetricsRegistry.setDataPoint(status.getQueuedContentSize(), "SIZE_CONTENT_QUEUED_TOTAL",
+                instanceId, componentType, componentName, componentId, parentPGId, "", "", "", "");
 
-        nifiMetricsHolder.AMOUNT_ITEMS_OUTPUT.labels(instanceId, componentType, componentName, componentId, parentPGId, "", "", "", "")
-                .set(status.getOutputCount());
-        nifiMetricsHolder.AMOUNT_ITEMS_INPUT.labels(instanceId, componentType, componentName, componentId, parentPGId, "", "", "", "")
-                .set(status.getInputCount());
-        nifiMetricsHolder.AMOUNT_ITEMS_QUEUED.labels(instanceId, componentType, componentName, componentId, parentPGId,"", "", "", "")
-                .set(status.getQueuedCount());
+        nifiMetricsRegistry.setDataPoint(status.getOutputCount(), "AMOUNT_ITEMS_OUTPUT", instanceId, componentType, componentName, componentId, parentPGId, "", "", "", "");
+        nifiMetricsRegistry.setDataPoint(status.getInputCount(), "AMOUNT_ITEMS_INPUT", instanceId, componentType, componentName, componentId, parentPGId, "", "", "", "");
+        nifiMetricsRegistry.setDataPoint(status.getQueuedCount(), "AMOUNT_ITEMS_QUEUED", instanceId, componentType, componentName, componentId, parentPGId,"", "", "", "");
 
-        nifiMetricsHolder.AMOUNT_THREADS_TOTAL_ACTIVE.labels(instanceId, componentType, componentName, componentId, parentPGId)
-                .set(status.getActiveThreadCount() == null ? 0 : status.getActiveThreadCount());
-        nifiMetricsHolder.AMOUNT_THREADS_TOTAL_TERMINATED.labels(instanceId, componentType, componentName, componentId, parentPGId)
-                .set(status.getTerminatedThreadCount() == null ? 0 : status.getTerminatedThreadCount());
+        nifiMetricsRegistry.setDataPoint(status.getActiveThreadCount() == null ? 0 : status.getActiveThreadCount(), "AMOUNT_THREADS_TOTAL_ACTIVE",
+                instanceId, componentType, componentName, componentId, parentPGId);
+        nifiMetricsRegistry.setDataPoint(status.getTerminatedThreadCount() == null ? 0 : status.getTerminatedThreadCount(), "AMOUNT_THREADS_TOTAL_TERMINATED",
+                instanceId, componentType, componentName, componentId, parentPGId);
 
         // Report metrics for child process groups if specified
         if (METRICS_STRATEGY_PG.getValue().equals(metricsStrategy) || METRICS_STRATEGY_COMPONENTS.getValue().equals(metricsStrategy)) {
-            status.getProcessGroupStatus().forEach((childGroupStatus) -> createNifiMetrics(nifiMetricsHolder, childGroupStatus, instanceId, componentId, "ProcessGroup", metricsStrategy));
+            status.getProcessGroupStatus().forEach((childGroupStatus) -> createNifiMetrics(nifiMetricsRegistry, childGroupStatus, instanceId, componentId, "ProcessGroup", metricsStrategy));
         }
 
         if (METRICS_STRATEGY_COMPONENTS.getValue().equals(metricsStrategy)) {
@@ -158,8 +155,8 @@ public class PrometheusMetricsUtil {
                 Map<String, Long> counters = processorStatus.getCounters();
 
                 if (counters != null) {
-                    counters.entrySet().stream().forEach(entry -> nifiMetricsHolder.PROCESSOR_COUNTERS
-                            .labels(processorStatus.getName(), entry.getKey(), processorStatus.getId(), instanceId).set(entry.getValue()));
+                    counters.entrySet().stream().forEach(entry -> nifiMetricsRegistry.setDataPoint(entry.getValue(), "PROCESSOR_COUNTERS",
+                            processorStatus.getName(), entry.getKey(), processorStatus.getId(), instanceId));
                 }
 
                 final String procComponentType = "Processor";
@@ -167,34 +164,36 @@ public class PrometheusMetricsUtil {
                 final String procComponentName = StringUtils.isEmpty(processorStatus.getName()) ? DEFAULT_LABEL_STRING : processorStatus.getName();
                 final String parentId = StringUtils.isEmpty(processorStatus.getGroupId()) ? DEFAULT_LABEL_STRING : processorStatus.getGroupId();
 
-                nifiMetricsHolder.AMOUNT_FLOWFILES_SENT.labels(instanceId, procComponentType, procComponentName, procComponentId, parentId).set(processorStatus.getFlowFilesSent());
-                nifiMetricsHolder.AMOUNT_FLOWFILES_RECEIVED.labels(instanceId, procComponentType, procComponentName, procComponentId, parentId).set(processorStatus.getFlowFilesReceived());
-                nifiMetricsHolder.AMOUNT_FLOWFILES_REMOVED.labels(instanceId, procComponentType, procComponentName, procComponentId, parentId).set(processorStatus.getFlowFilesRemoved());
+                nifiMetricsRegistry.setDataPoint(processorStatus.getFlowFilesSent(), "AMOUNT_FLOWFILES_SENT", instanceId, procComponentType, procComponentName, procComponentId, parentId);
+                nifiMetricsRegistry.setDataPoint(processorStatus.getFlowFilesReceived(), "AMOUNT_FLOWFILES_RECEIVED",
+                        instanceId, procComponentType, procComponentName, procComponentId, parentId);
+                nifiMetricsRegistry.setDataPoint(processorStatus.getFlowFilesRemoved(), "AMOUNT_FLOWFILES_REMOVED",
+                        instanceId, procComponentType, procComponentName, procComponentId, parentId);
 
-                nifiMetricsHolder.AMOUNT_BYTES_SENT.labels(instanceId, procComponentType, procComponentName, procComponentId, parentId).set(processorStatus.getBytesSent());
-                nifiMetricsHolder.AMOUNT_BYTES_READ.labels(instanceId, procComponentType, procComponentName, procComponentId, parentId).set(processorStatus.getBytesRead());
-                nifiMetricsHolder.AMOUNT_BYTES_WRITTEN.labels(instanceId, procComponentType, procComponentName, procComponentId, parentId).set(processorStatus.getBytesWritten());
-                nifiMetricsHolder.TOTAL_BYTES_READ.labels(instanceId, procComponentType, procComponentName, procComponentId, parentId).inc(status.getBytesRead());
-                nifiMetricsHolder.TOTAL_BYTES_WRITTEN.labels(instanceId, procComponentType, procComponentName, procComponentId, parentId).inc(status.getBytesWritten());
-                nifiMetricsHolder.AMOUNT_BYTES_RECEIVED.labels(instanceId, procComponentType, procComponentName, procComponentId, parentId).set(processorStatus.getBytesReceived());
+                nifiMetricsRegistry.setDataPoint(processorStatus.getBytesSent(), "AMOUNT_BYTES_SENT", instanceId, procComponentType, procComponentName, procComponentId, parentId);
+                nifiMetricsRegistry.setDataPoint(processorStatus.getBytesRead(), "AMOUNT_BYTES_READ", instanceId, procComponentType, procComponentName, procComponentId, parentId);
+                nifiMetricsRegistry.setDataPoint(processorStatus.getBytesWritten(), "AMOUNT_BYTES_WRITTEN", instanceId, procComponentType, procComponentName, procComponentId, parentId);
+                nifiMetricsRegistry.incrementCounter(status.getBytesRead(), "TOTAL_BYTES_READ", instanceId, procComponentType, procComponentName, procComponentId, parentId);
+                nifiMetricsRegistry.incrementCounter(status.getBytesWritten(), "TOTAL_BYTES_WRITTEN", instanceId, procComponentType, procComponentName, procComponentId, parentId);
+                nifiMetricsRegistry.setDataPoint(processorStatus.getBytesReceived(), "AMOUNT_BYTES_RECEIVED", instanceId, procComponentType, procComponentName, procComponentId, parentId);
 
-                nifiMetricsHolder.SIZE_CONTENT_OUTPUT_TOTAL.labels(instanceId, procComponentType, procComponentName, procComponentId, parentId, "", "", "", "")
-                        .set(processorStatus.getOutputBytes());
-                nifiMetricsHolder.SIZE_CONTENT_INPUT_TOTAL.labels(instanceId, procComponentType, procComponentName, procComponentId, parentId, "", "", "", "")
-                        .set(processorStatus.getInputBytes());
+                nifiMetricsRegistry.setDataPoint(processorStatus.getOutputBytes(), "SIZE_CONTENT_OUTPUT_TOTAL",
+                        instanceId, procComponentType, procComponentName, procComponentId, parentId, "", "", "", "");
+                nifiMetricsRegistry.setDataPoint(processorStatus.getInputBytes(), "SIZE_CONTENT_INPUT_TOTAL",
+                        instanceId, procComponentType, procComponentName, procComponentId, parentId, "", "", "", "");
 
-                nifiMetricsHolder.AMOUNT_ITEMS_OUTPUT.labels(instanceId, procComponentType, procComponentName, procComponentId, parentId, "", "", "", "")
-                        .set(processorStatus.getOutputCount());
-                nifiMetricsHolder.AMOUNT_ITEMS_INPUT.labels(instanceId, procComponentType, procComponentName, procComponentId, parentId, "", "", "", "")
-                        .set(processorStatus.getInputCount());
+                nifiMetricsRegistry.setDataPoint(processorStatus.getOutputCount(), "AMOUNT_ITEMS_OUTPUT",
+                        instanceId, procComponentType, procComponentName, procComponentId, parentId, "", "", "", "");
+                nifiMetricsRegistry.setDataPoint(processorStatus.getInputCount(), "AMOUNT_ITEMS_INPUT",
+                        instanceId, procComponentType, procComponentName, procComponentId, parentId, "", "", "", "");
 
-                nifiMetricsHolder.AVERAGE_LINEAGE_DURATION.labels(instanceId, procComponentType, procComponentName, procComponentId, parentId, "", "", "", "")
-                        .set(processorStatus.getAverageLineageDuration());
+                nifiMetricsRegistry.setDataPoint(processorStatus.getAverageLineageDuration(), "AVERAGE_LINEAGE_DURATION",
+                        instanceId, procComponentType, procComponentName, procComponentId, parentId, "", "", "", "");
 
-                nifiMetricsHolder.AMOUNT_THREADS_TOTAL_ACTIVE.labels(instanceId, procComponentType, procComponentName, procComponentId, parentId)
-                        .set(status.getActiveThreadCount() == null ? 0 : status.getActiveThreadCount());
-                nifiMetricsHolder.AMOUNT_THREADS_TOTAL_TERMINATED.labels(instanceId, procComponentType, procComponentName, procComponentId, parentId)
-                        .set(status.getTerminatedThreadCount() == null ? 0 : status.getTerminatedThreadCount());
+                nifiMetricsRegistry.setDataPoint(status.getActiveThreadCount() == null ? 0 : status.getActiveThreadCount(), "AMOUNT_THREADS_TOTAL_ACTIVE",
+                        instanceId, procComponentType, procComponentName, procComponentId, parentId);
+                nifiMetricsRegistry.setDataPoint(status.getTerminatedThreadCount() == null ? 0 : status.getTerminatedThreadCount(), "AMOUNT_THREADS_TOTAL_TERMINATED",
+                        instanceId, procComponentType, procComponentName, procComponentId, parentId);
 
             }
             for (ConnectionStatus connectionStatus : status.getConnectionStatus()) {
@@ -206,82 +205,80 @@ public class PrometheusMetricsUtil {
                 final String destinationName = StringUtils.isEmpty(connectionStatus.getDestinationName()) ? DEFAULT_LABEL_STRING : connectionStatus.getDestinationName();
                 final String parentId = StringUtils.isEmpty(connectionStatus.getGroupId()) ? DEFAULT_LABEL_STRING : connectionStatus.getGroupId();
                 final String connComponentType = "Connection";
-                nifiMetricsHolder.SIZE_CONTENT_OUTPUT_TOTAL.labels(instanceId, connComponentType, connComponentName, connComponentId, parentId, sourceId, sourceName, destinationId, destinationName)
-                        .set(connectionStatus.getOutputBytes());
-                nifiMetricsHolder.SIZE_CONTENT_INPUT_TOTAL.labels(instanceId, connComponentType, connComponentName, connComponentId, parentId, sourceId, sourceName, destinationId, destinationName)
-                        .set(connectionStatus.getInputBytes());
-                nifiMetricsHolder.SIZE_CONTENT_QUEUED_TOTAL.labels(instanceId, connComponentType, connComponentName, connComponentId, parentId, sourceId, sourceName, destinationId, destinationName)
-                        .set(connectionStatus.getQueuedBytes());
+                nifiMetricsRegistry.setDataPoint(connectionStatus.getOutputBytes(), "SIZE_CONTENT_OUTPUT_TOTAL",
+                        instanceId, connComponentType, connComponentName, connComponentId, parentId, sourceId, sourceName, destinationId, destinationName);
+                nifiMetricsRegistry.setDataPoint(connectionStatus.getInputBytes(), "SIZE_CONTENT_INPUT_TOTAL",
+                        instanceId, connComponentType, connComponentName, connComponentId, parentId, sourceId, sourceName, destinationId, destinationName);
+                nifiMetricsRegistry.setDataPoint(connectionStatus.getQueuedBytes(), "SIZE_CONTENT_QUEUED_TOTAL",
+                        instanceId, connComponentType, connComponentName, connComponentId, parentId, sourceId, sourceName, destinationId, destinationName);
 
-                nifiMetricsHolder.AMOUNT_ITEMS_OUTPUT.labels(instanceId, connComponentType, connComponentName, connComponentId, parentId, sourceId, sourceName, destinationId, destinationName)
-                        .set(connectionStatus.getOutputCount());
-                nifiMetricsHolder.AMOUNT_ITEMS_INPUT.labels(instanceId, connComponentType, connComponentName, connComponentId, parentId, sourceId, sourceName, destinationId, destinationName)
-                        .set(connectionStatus.getInputCount());
-                nifiMetricsHolder.AMOUNT_ITEMS_QUEUED.labels(instanceId, connComponentType, connComponentName, connComponentId, parentId, sourceId, sourceName, destinationId, destinationName)
-                        .set(connectionStatus.getQueuedCount());
+                nifiMetricsRegistry.setDataPoint(connectionStatus.getOutputCount(), "AMOUNT_ITEMS_OUTPUT",
+                        instanceId, connComponentType, connComponentName, connComponentId, parentId, sourceId, sourceName, destinationId, destinationName);
+                nifiMetricsRegistry.setDataPoint(connectionStatus.getInputCount(), "AMOUNT_ITEMS_INPUT",
+                        instanceId, connComponentType, connComponentName, connComponentId, parentId, sourceId, sourceName, destinationId, destinationName);
+                nifiMetricsRegistry.setDataPoint(connectionStatus.getQueuedCount(), "AMOUNT_ITEMS_QUEUED",
+                        instanceId, connComponentType, connComponentName, connComponentId, parentId, sourceId, sourceName, destinationId, destinationName);
 
-                nifiMetricsHolder.BACKPRESSURE_BYTES_THRESHOLD.labels(
-                        instanceId, connComponentType, connComponentName, connComponentId, parentId, sourceId, sourceName, destinationId, destinationName)
-                        .set(connectionStatus.getBackPressureBytesThreshold());
-                nifiMetricsHolder.BACKPRESSURE_OBJECT_THRESHOLD.labels(
-                        instanceId, connComponentType, connComponentName, connComponentId, parentId, sourceId, sourceName, destinationId, destinationName)
-                        .set(connectionStatus.getBackPressureObjectThreshold());
+                nifiMetricsRegistry.setDataPoint(connectionStatus.getBackPressureBytesThreshold(), "BACKPRESSURE_BYTES_THRESHOLD",
+                        instanceId, connComponentType, connComponentName, connComponentId, parentId, sourceId, sourceName, destinationId, destinationName);
+                nifiMetricsRegistry.setDataPoint(connectionStatus.getBackPressureObjectThreshold(), "BACKPRESSURE_OBJECT_THRESHOLD",
+                        instanceId, connComponentType, connComponentName, connComponentId, parentId, sourceId, sourceName, destinationId, destinationName);
                 boolean isBackpressureEnabled = (connectionStatus.getBackPressureObjectThreshold() > 0 && connectionStatus.getBackPressureObjectThreshold() <= connectionStatus.getQueuedCount())
                         || (connectionStatus.getBackPressureBytesThreshold() > 0 && connectionStatus.getBackPressureBytesThreshold() <= connectionStatus.getMaxQueuedBytes());
-                nifiMetricsHolder.IS_BACKPRESSURE_ENABLED.labels(instanceId, connComponentType, connComponentName, connComponentId, parentId, sourceId, sourceName, destinationId, destinationName)
-                        .set(isBackpressureEnabled ? 1 : 0);
+                nifiMetricsRegistry.setDataPoint(isBackpressureEnabled ? 1 : 0, "IS_BACKPRESSURE_ENABLED",
+                        instanceId, connComponentType, connComponentName, connComponentId, parentId, sourceId, sourceName, destinationId, destinationName);
             }
             for (PortStatus portStatus : status.getInputPortStatus()) {
                 final String portComponentId = StringUtils.isEmpty(portStatus.getId()) ? DEFAULT_LABEL_STRING : portStatus.getId();
                 final String portComponentName = StringUtils.isEmpty(portStatus.getName()) ? DEFAULT_LABEL_STRING : portStatus.getId();
                 final String parentId = StringUtils.isEmpty(portStatus.getGroupId()) ? DEFAULT_LABEL_STRING : portStatus.getId();
                 final String portComponentType = "InputPort";
-                nifiMetricsHolder.AMOUNT_FLOWFILES_SENT.labels(instanceId, portComponentType, portComponentName, portComponentId, parentId).set(portStatus.getFlowFilesSent());
-                nifiMetricsHolder.AMOUNT_FLOWFILES_RECEIVED.labels(instanceId, portComponentType, portComponentName, portComponentId, parentId).set(portStatus.getFlowFilesReceived());
+                nifiMetricsRegistry.setDataPoint(portStatus.getFlowFilesSent(), "AMOUNT_FLOWFILES_SENT", instanceId, portComponentType, portComponentName, portComponentId, parentId);
+                nifiMetricsRegistry.setDataPoint(portStatus.getFlowFilesReceived(), "AMOUNT_FLOWFILES_RECEIVED", instanceId, portComponentType, portComponentName, portComponentId, parentId);
 
-                nifiMetricsHolder.AMOUNT_BYTES_SENT.labels(instanceId, portComponentType, portComponentName, portComponentId, parentId).set(portStatus.getBytesSent());
-                nifiMetricsHolder.AMOUNT_BYTES_READ.labels(instanceId, portComponentType, portComponentName, portComponentId, parentId).set(portStatus.getInputBytes());
-                nifiMetricsHolder.AMOUNT_BYTES_WRITTEN.labels(instanceId, portComponentType, portComponentName, portComponentId, parentId).set(portStatus.getOutputBytes());
-                nifiMetricsHolder.TOTAL_BYTES_READ.labels(instanceId, portComponentType, portComponentName, portComponentId, parentId).inc(status.getBytesRead());
-                nifiMetricsHolder.TOTAL_BYTES_WRITTEN.labels(instanceId, portComponentType, portComponentName, portComponentId, parentId).inc(status.getBytesWritten());
-                nifiMetricsHolder.AMOUNT_BYTES_RECEIVED.labels(instanceId, portComponentType, portComponentName, portComponentId, parentId).set(portStatus.getBytesReceived());
+                nifiMetricsRegistry.setDataPoint(portStatus.getBytesSent(), "AMOUNT_BYTES_SENT", instanceId, portComponentType, portComponentName, portComponentId, parentId);
+                nifiMetricsRegistry.setDataPoint(portStatus.getInputBytes(), "AMOUNT_BYTES_READ", instanceId, portComponentType, portComponentName, portComponentId, parentId);
+                nifiMetricsRegistry.setDataPoint(portStatus.getOutputBytes(), "AMOUNT_BYTES_WRITTEN", instanceId, portComponentType, portComponentName, portComponentId, parentId);
+                nifiMetricsRegistry.incrementCounter(status.getBytesRead(), "TOTAL_BYTES_READ", instanceId, portComponentType, portComponentName, portComponentId, parentId);
+                nifiMetricsRegistry.incrementCounter(status.getBytesWritten(), "TOTAL_BYTES_WRITTEN", instanceId, portComponentType, portComponentName, portComponentId, parentId);
+                nifiMetricsRegistry.setDataPoint(portStatus.getBytesReceived(), "AMOUNT_BYTES_RECEIVED", instanceId, portComponentType, portComponentName, portComponentId, parentId);
 
-                nifiMetricsHolder.AMOUNT_ITEMS_OUTPUT.labels(instanceId, portComponentType, portComponentName, portComponentId, parentId, "", "", "", "")
-                        .set(portStatus.getOutputCount());
-                nifiMetricsHolder.AMOUNT_ITEMS_INPUT.labels(instanceId, portComponentType, portComponentName, portComponentId, parentId, "", "", "", "")
-                        .set(portStatus.getInputCount());
+                nifiMetricsRegistry.setDataPoint(portStatus.getOutputCount(), "AMOUNT_ITEMS_OUTPUT",
+                        instanceId, portComponentType, portComponentName, portComponentId, parentId, "", "", "", "");
+                nifiMetricsRegistry.setDataPoint(portStatus.getInputCount(), "AMOUNT_ITEMS_INPUT",
+                        instanceId, portComponentType, portComponentName, portComponentId, parentId, "", "", "", "");
 
                 final Boolean isTransmitting = portStatus.isTransmitting();
-                nifiMetricsHolder.IS_TRANSMITTING.labels(instanceId, portComponentType, portComponentName, portComponentId, parentId, portStatus.getRunStatus().name())
-                        .set(isTransmitting == null ? 0 : (isTransmitting ? 1 : 0));
+                nifiMetricsRegistry.setDataPoint(isTransmitting == null ? 0 : (isTransmitting ? 1 : 0), "IS_TRANSMITTING",
+                        instanceId, portComponentType, portComponentName, portComponentId, parentId, portStatus.getRunStatus().name());
 
-                nifiMetricsHolder.AMOUNT_THREADS_TOTAL_ACTIVE.labels(instanceId, portComponentType, portComponentName, portComponentId, parentId).set(portStatus.getActiveThreadCount());
+                nifiMetricsRegistry.setDataPoint(portStatus.getActiveThreadCount(), "AMOUNT_THREADS_TOTAL_ACTIVE", instanceId, portComponentType, portComponentName, portComponentId, parentId);
             }
             for (PortStatus portStatus : status.getOutputPortStatus()) {
                 final String portComponentId = StringUtils.isEmpty(portStatus.getId()) ? DEFAULT_LABEL_STRING : portStatus.getId();
                 final String portComponentName = StringUtils.isEmpty(portStatus.getName()) ? DEFAULT_LABEL_STRING : portStatus.getName();
                 final String parentId = StringUtils.isEmpty(portStatus.getGroupId()) ? DEFAULT_LABEL_STRING : portStatus.getGroupId();
                 final String portComponentType = "OutputPort";
-                nifiMetricsHolder.AMOUNT_FLOWFILES_SENT.labels(instanceId, portComponentType, portComponentName, portComponentId, parentId).set(portStatus.getFlowFilesSent());
-                nifiMetricsHolder.AMOUNT_FLOWFILES_RECEIVED.labels(instanceId, portComponentType, portComponentName, portComponentId, parentId).set(portStatus.getFlowFilesReceived());
+                nifiMetricsRegistry.setDataPoint(portStatus.getFlowFilesSent(), "AMOUNT_FLOWFILES_SENT", instanceId, portComponentType, portComponentName, portComponentId, parentId);
+                nifiMetricsRegistry.setDataPoint(portStatus.getFlowFilesReceived(), "AMOUNT_FLOWFILES_RECEIVED", instanceId, portComponentType, portComponentName, portComponentId, parentId);
 
-                nifiMetricsHolder.AMOUNT_BYTES_SENT.labels(instanceId, portComponentType, portComponentName, portComponentId, parentId).set(portStatus.getBytesSent());
-                nifiMetricsHolder.AMOUNT_BYTES_READ.labels(instanceId, portComponentType, portComponentName, portComponentId, parentId).set(portStatus.getInputBytes());
-                nifiMetricsHolder.AMOUNT_BYTES_WRITTEN.labels(instanceId, portComponentType, portComponentName, portComponentId, parentId).set(portStatus.getOutputBytes());
-                nifiMetricsHolder.TOTAL_BYTES_READ.labels(instanceId, portComponentType, portComponentName, portComponentId, parentId).inc(status.getBytesRead());
-                nifiMetricsHolder.TOTAL_BYTES_WRITTEN.labels(instanceId, portComponentType, portComponentName, portComponentId, parentId).inc(status.getBytesWritten());
-                nifiMetricsHolder.AMOUNT_BYTES_RECEIVED.labels(instanceId, portComponentType, portComponentName, portComponentId, parentId).set(portStatus.getBytesReceived());
+                nifiMetricsRegistry.setDataPoint(portStatus.getBytesSent(), "AMOUNT_BYTES_SENT", instanceId, portComponentType, portComponentName, portComponentId, parentId);
+                nifiMetricsRegistry.setDataPoint(portStatus.getInputBytes(), "AMOUNT_BYTES_READ", instanceId, portComponentType, portComponentName, portComponentId, parentId);
+                nifiMetricsRegistry.setDataPoint(portStatus.getOutputBytes(), "AMOUNT_BYTES_WRITTEN", instanceId, portComponentType, portComponentName, portComponentId, parentId);
+                nifiMetricsRegistry.incrementCounter(status.getBytesRead(), "TOTAL_BYTES_READ", instanceId, portComponentType, portComponentName, portComponentId, parentId);
+                nifiMetricsRegistry.incrementCounter(status.getBytesWritten(), "TOTAL_BYTES_WRITTEN", instanceId, portComponentType, portComponentName, portComponentId, parentId);
+                nifiMetricsRegistry.setDataPoint(portStatus.getBytesReceived(), "AMOUNT_BYTES_RECEIVED", instanceId, portComponentType, portComponentName, portComponentId, parentId);
 
-                nifiMetricsHolder.AMOUNT_ITEMS_OUTPUT.labels(instanceId, portComponentType, portComponentName, portComponentId, parentId, "", "", "", "")
-                        .set(portStatus.getOutputCount());
-                nifiMetricsHolder.AMOUNT_ITEMS_INPUT.labels(instanceId, portComponentType, portComponentName, portComponentId, parentId, "", "", "", "")
-                        .set(portStatus.getInputCount());
+                nifiMetricsRegistry.setDataPoint(portStatus.getOutputCount(), "AMOUNT_ITEMS_OUTPUT",
+                        instanceId, portComponentType, portComponentName, portComponentId, parentId, "", "", "", "");
+                nifiMetricsRegistry.setDataPoint(portStatus.getInputCount(), "AMOUNT_ITEMS_INPUT",
+                        instanceId, portComponentType, portComponentName, portComponentId, parentId, "", "", "", "");
 
                 final Boolean isTransmitting = portStatus.isTransmitting();
-                nifiMetricsHolder.IS_TRANSMITTING.labels(instanceId, portComponentType, portComponentName, portComponentId, parentId, portStatus.getRunStatus().name())
-                        .set(isTransmitting == null ? 0 : (isTransmitting ? 1 : 0));
+                nifiMetricsRegistry.setDataPoint(isTransmitting == null ? 0 : (isTransmitting ? 1 : 0), "IS_TRANSMITTING",
+                        instanceId, portComponentType, portComponentName, portComponentId, parentId, portStatus.getRunStatus().name());
 
-                nifiMetricsHolder.AMOUNT_THREADS_TOTAL_ACTIVE.labels(instanceId, portComponentType, portComponentName, portComponentId, parentId).set(portStatus.getActiveThreadCount());
+                nifiMetricsRegistry.setDataPoint(portStatus.getActiveThreadCount(), "AMOUNT_THREADS_TOTAL_ACTIVE", instanceId, portComponentType, portComponentName, portComponentId, parentId);
             }
             for (RemoteProcessGroupStatus remoteProcessGroupStatus : status.getRemoteProcessGroupStatus()) {
                 final String rpgComponentId = StringUtils.isEmpty(remoteProcessGroupStatus.getId()) ? DEFAULT_LABEL_STRING : remoteProcessGroupStatus.getId();
@@ -289,54 +286,53 @@ public class PrometheusMetricsUtil {
                 final String parentId = StringUtils.isEmpty(remoteProcessGroupStatus.getGroupId()) ? DEFAULT_LABEL_STRING : remoteProcessGroupStatus.getGroupId();
                 final String rpgComponentType = "RemoteProcessGroup";
 
-                nifiMetricsHolder.AMOUNT_BYTES_WRITTEN.labels(instanceId, rpgComponentType, rpgComponentName, rpgComponentId, parentId).set(remoteProcessGroupStatus.getSentContentSize());
-                nifiMetricsHolder.AMOUNT_BYTES_RECEIVED.labels(instanceId, rpgComponentType, rpgComponentName, rpgComponentId, parentId).set(remoteProcessGroupStatus.getReceivedContentSize());
+                nifiMetricsRegistry.setDataPoint(remoteProcessGroupStatus.getSentContentSize(), "AMOUNT_BYTES_WRITTEN", instanceId, rpgComponentType, rpgComponentName, rpgComponentId, parentId);
+                nifiMetricsRegistry.setDataPoint(remoteProcessGroupStatus.getReceivedContentSize(), "AMOUNT_BYTES_RECEIVED", instanceId, rpgComponentType, rpgComponentName, rpgComponentId, parentId);
 
-                nifiMetricsHolder.AMOUNT_ITEMS_OUTPUT.labels(instanceId, rpgComponentType, rpgComponentName, rpgComponentId, parentId, "", "", "", "")
-                        .set(remoteProcessGroupStatus.getSentCount());
-                nifiMetricsHolder.AMOUNT_ITEMS_INPUT.labels(instanceId, rpgComponentType, rpgComponentName, rpgComponentId, parentId, "", "", "", "")
-                        .set(remoteProcessGroupStatus.getReceivedCount());
+                nifiMetricsRegistry.setDataPoint(remoteProcessGroupStatus.getSentCount(), "AMOUNT_ITEMS_OUTPUT",
+                        instanceId, rpgComponentType, rpgComponentName, rpgComponentId, parentId, "", "", "", "");
+                nifiMetricsRegistry.setDataPoint(remoteProcessGroupStatus.getReceivedCount(), "AMOUNT_ITEMS_INPUT",
+                        instanceId, rpgComponentType, rpgComponentName, rpgComponentId, parentId, "", "", "", "");
 
-                nifiMetricsHolder.ACTIVE_REMOTE_PORT_COUNT.labels(instanceId, rpgComponentType, rpgComponentName, rpgComponentId, parentId, "", "", "", "")
-                        .set(remoteProcessGroupStatus.getActiveRemotePortCount());
-                nifiMetricsHolder.INACTIVE_REMOTE_PORT_COUNT.labels(instanceId, rpgComponentType, rpgComponentName, rpgComponentId, parentId, "", "", "", "")
-                        .set(remoteProcessGroupStatus.getInactiveRemotePortCount());
+                nifiMetricsRegistry.setDataPoint(remoteProcessGroupStatus.getActiveRemotePortCount(), "ACTIVE_REMOTE_PORT_COUNT",
+                        instanceId, rpgComponentType, rpgComponentName, rpgComponentId, parentId, "", "", "", "");
+                nifiMetricsRegistry.setDataPoint(remoteProcessGroupStatus.getInactiveRemotePortCount(), "INACTIVE_REMOTE_PORT_COUNT",
+                        instanceId, rpgComponentType, rpgComponentName, rpgComponentId, parentId, "", "", "", "");
 
-                nifiMetricsHolder.AVERAGE_LINEAGE_DURATION.labels(instanceId, rpgComponentType, rpgComponentName, rpgComponentId, parentId, "", "", "", "")
-                        .set(remoteProcessGroupStatus.getAverageLineageDuration());
+                nifiMetricsRegistry.setDataPoint(remoteProcessGroupStatus.getAverageLineageDuration(), "AVERAGE_LINEAGE_DURATION",
+                        instanceId, rpgComponentType, rpgComponentName, rpgComponentId, parentId, "", "", "", "");
 
-                nifiMetricsHolder.IS_TRANSMITTING.labels(instanceId, rpgComponentType, rpgComponentName, rpgComponentId, parentId, remoteProcessGroupStatus.getTransmissionStatus().name())
-                        .set(TransmissionStatus.Transmitting.equals(remoteProcessGroupStatus.getTransmissionStatus()) ? 1 : 0);
+                nifiMetricsRegistry.setDataPoint(TransmissionStatus.Transmitting.equals(remoteProcessGroupStatus.getTransmissionStatus()) ? 1 : 0, "IS_TRANSMITTING",
+                        instanceId, rpgComponentType, rpgComponentName, rpgComponentId, parentId, remoteProcessGroupStatus.getTransmissionStatus().name());
 
-                nifiMetricsHolder.AMOUNT_THREADS_TOTAL_ACTIVE.labels(instanceId, rpgComponentType, rpgComponentName, rpgComponentId, parentId).set(remoteProcessGroupStatus.getActiveThreadCount());
+                nifiMetricsRegistry.setDataPoint(remoteProcessGroupStatus.getActiveThreadCount(), "AMOUNT_THREADS_TOTAL_ACTIVE",
+                        instanceId, rpgComponentType, rpgComponentName, rpgComponentId, parentId);
             }
         }
 
-        return nifiMetricsHolder.getRegistry();
+        return nifiMetricsRegistry.getRegistry();
     }
 
-    public static CollectorRegistry createJvmMetrics(JvmMetricsHolder jvmMetricsHolder, JvmMetrics jvmMetrics, String instId) {
+    public static CollectorRegistry createJvmMetrics(JvmMetricsRegistry jvmMetricsRegistry, JvmMetrics jvmMetrics, String instId) {
         final String instanceId = StringUtils.isEmpty(instId) ? DEFAULT_LABEL_STRING : instId;
-        jvmMetricsHolder.JVM_HEAP_USED.labels(instanceId).set(jvmMetrics.heapUsed(DataUnit.B));
-        jvmMetricsHolder.JVM_HEAP_USAGE.labels(instanceId).set(jvmMetrics.heapUsage());
-        jvmMetricsHolder.JVM_HEAP_NON_USAGE.labels(instanceId).set(jvmMetrics.nonHeapUsage());
-
-        jvmMetricsHolder.JVM_THREAD_COUNT.labels(instanceId).set(jvmMetrics.threadCount());
-        jvmMetricsHolder.JVM_DAEMON_THREAD_COUNT.labels(instanceId).set(jvmMetrics.daemonThreadCount());
-
-        jvmMetricsHolder.JVM_UPTIME.labels(instanceId).set(jvmMetrics.uptime());
-        jvmMetricsHolder.JVM_FILE_DESCRIPTOR_USAGE.labels(instanceId).set(jvmMetrics.fileDescriptorUsage());
+        jvmMetricsRegistry.setDataPoint(jvmMetrics.heapUsed(DataUnit.B), "JVM_HEAP_USED", instanceId);
+        jvmMetricsRegistry.setDataPoint(jvmMetrics.heapUsage(), "JVM_HEAP_USAGE", instanceId);
+        jvmMetricsRegistry.setDataPoint(jvmMetrics.nonHeapUsage(), "JVM_HEAP_NON_USAGE", instanceId);
+        jvmMetricsRegistry.setDataPoint(jvmMetrics.threadCount(), "JVM_THREAD_COUNT", instanceId);
+        jvmMetricsRegistry.setDataPoint(jvmMetrics.daemonThreadCount(), "JVM_DAEMON_THREAD_COUNT", instanceId);
+        jvmMetricsRegistry.setDataPoint(jvmMetrics.uptime(), "JVM_UPTIME", instanceId);
+        jvmMetricsRegistry.setDataPoint(jvmMetrics.fileDescriptorUsage(), "JVM_FILE_DESCRIPTOR_USAGE", instanceId);
 
         jvmMetrics.garbageCollectors()
                 .forEach((name, stat) -> {
-                    jvmMetricsHolder.JVM_GC_RUNS.labels(instanceId, name).set(stat.getRuns());
-                    jvmMetricsHolder.JVM_GC_TIME.labels(instanceId, name).set(stat.getTime(TimeUnit.MILLISECONDS));
+                    jvmMetricsRegistry.setDataPoint(stat.getRuns(), "JVM_GC_RUNS", instanceId, name);
+                    jvmMetricsRegistry.setDataPoint(stat.getTime(TimeUnit.MILLISECONDS), "JVM_GC_TIME", instanceId, name);
                 });
 
-        return jvmMetricsHolder.getRegistry();
+        return jvmMetricsRegistry.getRegistry();
     }
 
-    public static CollectorRegistry createConnectionStatusAnalyticsMetrics(ConnectionAnalyticsMetricsHolder connectionAnalyticsMetricsHolder, StatusAnalytics statusAnalytics,
+    public static CollectorRegistry createConnectionStatusAnalyticsMetrics(ConnectionAnalyticsMetricsRegistry connectionAnalyticsMetricsRegistry, StatusAnalytics statusAnalytics,
                                                                            String instId, String connComponentType, String connName,
                                                                            String connId, String pgId, String srcId, String srcName, String destId, String destName) {
         if(statusAnalytics != null) {
@@ -351,24 +347,24 @@ public class PrometheusMetricsUtil {
 
 
             Map<String, Long> predictions = statusAnalytics.getPredictions();
-            connectionAnalyticsMetricsHolder.TIME_TO_BYTES_BACKPRESSURE_PREDICTION.labels(
-                    instanceId, connComponentType, connComponentName, connComponentId, parentId, sourceId, sourceName, destinationId, destinationName)
-                    .set(predictions.get("timeToBytesBackpressureMillis"));
-            connectionAnalyticsMetricsHolder.TIME_TO_COUNT_BACKPRESSURE_PREDICTION.labels(
-                    instanceId, connComponentType, connComponentName, connComponentId, parentId, sourceId, sourceName, destinationId, destinationName)
-                    .set(predictions.get("timeToCountBackpressureMillis"));
-            connectionAnalyticsMetricsHolder.BYTES_AT_NEXT_INTERVAL_PREDICTION.labels(
-                    instanceId, connComponentType, connComponentName, connComponentId, parentId, sourceId, sourceName, destinationId, destinationName)
-                    .set(predictions.get("nextIntervalBytes"));
-            connectionAnalyticsMetricsHolder.COUNT_AT_NEXT_INTERVAL_PREDICTION.labels(
-                    instanceId, connComponentType, connComponentName, connComponentId, parentId, sourceId, sourceName, destinationId, destinationName)
-                    .set(predictions.get("nextIntervalCount"));
+            connectionAnalyticsMetricsRegistry.setDataPoint(predictions.get("timeToBytesBackpressureMillis"),
+                    "TIME_TO_BYTES_BACKPRESSURE_PREDICTION",
+                    instanceId, connComponentType, connComponentName, connComponentId, parentId, sourceId, sourceName, destinationId, destinationName);
+            connectionAnalyticsMetricsRegistry.setDataPoint(predictions.get("timeToCountBackpressureMillis"),
+                    "TIME_TO_COUNT_BACKPRESSURE_PREDICTION",
+                    instanceId, connComponentType, connComponentName, connComponentId, parentId, sourceId, sourceName, destinationId, destinationName);
+            connectionAnalyticsMetricsRegistry.setDataPoint(predictions.get("nextIntervalBytes"),
+                    "BYTES_AT_NEXT_INTERVAL_PREDICTION",
+                    instanceId, connComponentType, connComponentName, connComponentId, parentId, sourceId, sourceName, destinationId, destinationName);
+            connectionAnalyticsMetricsRegistry.setDataPoint(predictions.get("nextIntervalCount"),
+                    "COUNT_AT_NEXT_INTERVAL_PREDICTION",
+                    instanceId, connComponentType, connComponentName, connComponentId, parentId, sourceId, sourceName, destinationId, destinationName);
         }
 
-        return connectionAnalyticsMetricsHolder.getRegistry();
+        return connectionAnalyticsMetricsRegistry.getRegistry();
     }
 
-    public static CollectorRegistry createBulletinMetrics(BulletinMetricsHolder bulletinMetricsHolder, String instId, String compType, String compId, String pgId, String nodeAddr,
+    public static CollectorRegistry createBulletinMetrics(BulletinMetricsRegistry bulletinMetricsRegistry, String instId, String compType, String compId, String pgId, String nodeAddr,
                                                           String cat, String srcName, String srcId, String lvl) {
         final String instanceId = StringUtils.isEmpty(instId) ? DEFAULT_LABEL_STRING : instId;
         final String componentType = StringUtils.isEmpty(compType) ? DEFAULT_LABEL_STRING : compType;
@@ -379,7 +375,7 @@ public class PrometheusMetricsUtil {
         final String category = StringUtils.isEmpty(cat) ? DEFAULT_LABEL_STRING : cat;
         final String parentId = StringUtils.isEmpty(pgId) ? DEFAULT_LABEL_STRING : pgId;
         final String level = StringUtils.isEmpty(lvl) ? DEFAULT_LABEL_STRING : lvl;
-        bulletinMetricsHolder.BULLETIN.labels(instanceId, componentType, componentId, parentId, nodeAddress, category, sourceName, sourceId, level).set(1);
-        return bulletinMetricsHolder.getRegistry();
+        bulletinMetricsRegistry.setDataPoint(1, "BULLETIN", instanceId, componentType, componentId, parentId, nodeAddress, category, sourceName, sourceId, level);
+        return bulletinMetricsRegistry.getRegistry();
     }
 }

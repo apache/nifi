@@ -16,29 +16,16 @@
  */
 package org.apache.nifi.prometheus.util;
 
-import io.prometheus.client.CollectorRegistry;
 import io.prometheus.client.Gauge;
 
-public class BulletinMetricsHolder {
+public class BulletinMetricsRegistry extends AbstractMetricsRegistry {
 
-    private CollectorRegistry registry = new CollectorRegistry();
-
-    public BulletinMetricsHolder() {
+    public BulletinMetricsRegistry() {
+        nameToGaugeMap.put("BULLETIN", Gauge.build()
+                .name("nifi_bulletin")
+                .help("Bulletin reported by the NiFi instance")
+                .labelNames("instance", "component_type", "component_id", "parent_id",
+                        "node_address", "category", "source_name", "source_id", "level")
+                .register(registry));
     }
-
-    public BulletinMetricsHolder(final CollectorRegistry registry) {
-        this();
-        this.registry = registry;
-    }
-
-    public CollectorRegistry getRegistry() {
-        return registry;
-    }
-
-    public final Gauge BULLETIN = Gauge.build()
-            .name("nifi_bulletin")
-            .help("Bulletin reported by the NiFi instance")
-            .labelNames("instance", "component_type", "component_id", "parent_id",
-                    "node_address", "category", "source_name", "source_id", "level")
-            .register(registry);
 }
