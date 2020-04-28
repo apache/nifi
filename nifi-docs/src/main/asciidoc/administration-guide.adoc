@@ -1973,24 +1973,25 @@ that indicates that any user is allowed to have full permissions to the data, or
 allowed to access the data. Which ACL is used depends on the value of the `Access Control` property for the `ZooKeeperStateProvider` (see the
 <<state_providers>> section for more information).
 
-In order to use an ACL that indicates that only the Creator is allowed to access the data, we need to tell ZooKeeper who the Creator is. There are two
+In order to use an ACL that indicates that only the Creator is allowed to access the data, we need to tell ZooKeeper who the Creator is. There are three
 mechanisms for accomplishing this. The first mechanism is to provide authentication using Kerberos. See <<zk_kerberos_client>> for more information.
 
-The second option is to use a user name and password. This is configured by specifying a value for the `Username` and a value for the `Password` properties
+The second option, which additionally ensures that network communication is encrypted, is to authenticate using an X.509 certificate on a TLS-enabled ZooKeeper
+server. See <<zk_tls_client>> for more information.
+
+The third option is to use a username and password. This is configured by specifying a value for the `Username` and a value for the `Password` properties
 for the `ZooKeeperStateProvider` (see the <<state_providers>> section for more information). The important thing to keep in mind here, though, is that ZooKeeper
-will pass around the password in plain text. This means that using a user name and password should not be used unless ZooKeeper is running on localhost as a
-one-instance cluster, or if communications with ZooKeeper occur only over encrypted communications, such as a VPN or an SSL connection. ZooKeeper will be
-providing support for SSL connections in version 3.5.0.
+will pass around the password in plain text. This means that using a username and password should not be used unless ZooKeeper is running on localhost as a
+one-instance cluster, or if communications with ZooKeeper occur only over encrypted communications, such as a VPN or an SSL connection.
 
 
 
 [[securing_zookeeper]]
-=== Securing ZooKeeper
+=== Securing ZooKeeper with Kerberos
 When NiFi communicates with ZooKeeper, all communications, by default, are non-secure, and anyone who logs into ZooKeeper is able to view and manipulate all
-of the NiFi state that is stored in ZooKeeper. To prevent this, we can use Kerberos to manage the authentication. At this time, ZooKeeper does not provide
-support for encryption via SSL. Support for SSL in ZooKeeper is being actively developed and is expected to be available in the 3.5.x release version.
+of the NiFi state that is stored in ZooKeeper. To prevent this, one option is to use Kerberos to manage authentication.
 
-In order to secure the communications, we need to ensure that both the client and the server support the same configuration. Instructions for configuring the
+In order to secure the communications with Kerberos, we need to ensure that both the client and the server support the same configuration. Instructions for configuring the
 NiFi ZooKeeper client and embedded ZooKeeper server to use Kerberos are provided below.
 
 If Kerberos is not already setup in your environment, you can find information on installing and setting up a Kerberos Server at
@@ -2180,6 +2181,46 @@ java.arg.16=-Dsun.security.krb5.debug=true
 
 This will cause the debug output to be written to the NiFi Bootstrap log file. By default, this is located at _$NIFI_HOME/logs/nifi-bootstrap.log_.
 This output can be rather verbose but provides extremely valuable information for troubleshooting Kerberos failures.
+
+[[zk_tls_client]]
+=== Securing ZooKeeper with TLS
+As discussed above, communications with ZooKeeper are insecure by default. The second option for securely authenticating to and communicating with ZooKeeper is to use
+certificate-based authentication with a TLS-enabled ZooKeeper server (available since ZooKeeper's 3.5.x releases). Instructions for enabling TLS on an external
+ZooKeeper ensemble can be found in the link:https://zookeeper.apache.org/doc/r3.5.5/zookeeperAdmin.html#sc_authOptions[ZooKeeper Administrator's Guide].
+
+Once you have a TLS-enabled instance of ZooKeeper, TLS can be enabled for the NiFi client by creating a keystore and truststore and configuring the following properties
+in the _$NIFI_HOME/conf/nifi.properties_ file:
+
+[options="header,footer"]
+|===
+|Property Name|Description|Default
+|`nifi.zookeeper.client.secure`|Whether to acccess ZooKeeper using client TLS.|false
+|`nifi.zookeeper.security.keystore`|Filename of the Keystore containing the private key to use when communicating with ZooKeeper.|_none_
+|`nifi.zookeeper.security.keystoreType`|Optional. The type of the Keystore. Must be `PKCS12`, `JKS`, or `PEM`. If not specified the type will be determined from the file extension (`.p12`, `.jks`, `.pem`).|_none_
+|`nifi.zookeeper.security.keystorePasswd`|The password for the Keystore.|_none_
+|`nifi.zookeeper.security.truststore`|Filename of the Truststore that will be used to verify the ZooKeeper server(s).|_none_
+|`nifi.zookeeper.security.truststoreType`|Optional. The type of the Truststore. Must be `PKCS12`, `JKS`, or `PEM`. If not specified the type will be determined from the file extension (`.p12`, `.jks`, `.pem`).|_none_
+|`nifi.zookeeper.security.truststorePasswd`|The password for the Truststore.|_none_
+|===
+
+These can be different from or identical to the configuration values in the `nifi.security.\*` security properties. If they are identical, the keystore and truststore must
+still contain the appropriate keys and certificates for use with ZooKeeper (i.e., the keys and certificates need to align with the ZooKeeper configuration either way).
+If not re-using the `nifi.security.*` keystore and truststore, NiFi's TLS Toolkit can still be used to help generate the keystore and truststore used for ZooKeeper client
+access.
+
+After updating the above properties and starting NiFi, network communication with ZooKeeper will be secure and ZooKeeper will now use the NiFi node's certificate principal
+when authenticating access. This will be reflected in log messages like the following on the ZooKeeper server:
+
+[source]
+2020-02-24 23:37:52,671 [myid:2] - INFO  [nioEventLoopGroup-4-1:X509AuthenticationProvider@172] - Authenticated Id 'CN=nifi-node1,OU=NIFI' for Scheme 'x509'
+
+ZooKeeper uses Netty to support network encryption and certificate-based authentication. When TLS is enabled, both the ZooKeeper server and its clients must be configured to use Netty-based
+connections instead of the default NIO implementations. This is configured automatically for NiFi when `nifi.zookeeper.client.secure` is set to
+_true_. Once Netty is enabled, you should see log messages like the following in _$NIFI_HOME/logs/nifi-app.log_:
+
+[source]
+2020-02-24 23:37:54,082 INFO [nioEventLoopGroup-3-1] o.apache.zookeeper.ClientCnxnSocketNetty SSL handler added for channel: [id: 0xa831f9c3]
+2020-02-24 23:37:54,104 INFO [nioEventLoopGroup-3-1] o.apache.zookeeper.ClientCnxnSocketNetty channel is connected: [id: 0xa831f9c3, L:/172.17.0.4:56510 - R:8e38869cd1d1/172.17.0.3:2281]
 
 [[zookeeper_migrator]]
 === ZooKeeper Migrator
@@ -3432,6 +3473,13 @@ for storing data. Each 'directory' in this structure is referred to as a ZNode. 
 that should be used for storing data. The default value is `/root`. This is important to set correctly, as which cluster
 the NiFi instance attempts to join is determined by which ZooKeeper instance it connects to and the ZooKeeper Root Node
 that is specified.
+|`nifi.zookeeper.client.secure`|Whether to acccess ZooKeeper using client TLS.
+|`nifi.zookeeper.security.keystore`|Filename of the Keystore containing the private key to use when communicating with ZooKeeper.
+|`nifi.zookeeper.security.keystoreType`|Optional. The type of the Keystore. Must be `PKCS12`, `JKS`, or `PEM`. If not specified the type will be determined from the file extension (`.p12`, `.jks`, `.pem`).
+|`nifi.zookeeper.security.keystorePasswd`|The password for the Keystore.
+|`nifi.zookeeper.security.truststore`|Filename of the Truststore that will be used to verify the ZooKeeper server(s).
+|`nifi.zookeeper.security.truststoreType`|Optional. The type of the Truststore. Must be `PKCS12`, `JKS`, or `PEM`. If not specified the type will be determined from the file extension (`.p12`, `.jks`, `.pem`).
+|`nifi.zookeeper.security.truststorePasswd`|The password for the Truststore.
 |====
 
 [[kerberos_properties]]
@@ -3711,7 +3759,7 @@ This section describes the original process for installing custom processors tha
 Firstly, we will configure a directory for the custom processors. See <<processor-location-options>> for more about these configuration options.
 
    nifi.nar.library.directory.myCustomLibs=./my-custom-nars/lib
- 
+
 Ensure that this directory exists and has appropriate permissions for the nifi user and group.
 
 Now, we must place our custom processor nar in the configured directory. The configured directory is relative to the NiFi Home directory; for example, let us say that our NiFi Home Dir is `/var/lib/nifi`, we would place our custom processor nar in `/var/lib/nifi/my-custom-nars/lib`.
@@ -3725,7 +3773,7 @@ Restart NiFi and the custom processor should now be available when adding a new 
 
 This section describes the process to use the Autoloading feature for custom processors.
 
-To use the autoloading feature, the `nifi.nar.library.autoload.directory` property must be configured to point at the desired directory. By default, this points at `./extensions`. 
+To use the autoloading feature, the `nifi.nar.library.autoload.directory` property must be configured to point at the desired directory. By default, this points at `./extensions`.
 
 For example:
 
