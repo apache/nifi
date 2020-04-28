@@ -49,6 +49,7 @@ import org.apache.nifi.processor.util.pattern.PartialFunctions;
 import org.apache.nifi.processor.util.pattern.PartialFunctions.FetchFlowFiles;
 import org.apache.nifi.processor.util.pattern.PartialFunctions.FlowFileGroup;
 import org.apache.nifi.processor.util.pattern.PutGroup;
+import org.apache.nifi.processor.util.pattern.Put;
 import org.apache.nifi.processor.util.pattern.RollbackOnFailure;
 import org.apache.nifi.processor.util.pattern.RoutingResult;
 import org.apache.nifi.stream.io.StreamUtils;
@@ -146,15 +147,8 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
             .defaultValue("false")
             .build();
 
-    static final PropertyDescriptor SUPPORT_TRANSACTIONS = new PropertyDescriptor.Builder()
-            .name("Support Fragmented Transactions")
-            .description("If true, when a FlowFile is consumed by this Processor, the Processor will first check the fragment.identifier and fragment.count attributes of that FlowFile. "
-                    + "If the fragment.count value is greater than 1, the Processor will not process any FlowFile with that fragment.identifier until all are available; "
-                    + "at that point, it will process all FlowFiles with that fragment.identifier as a single transaction, in the order specified by the FlowFiles' fragment.index attributes. "
-                    + "This Provides atomicity of those SQL statements. If this value is false, these attributes will be ignored and the updates will occur independent of one another.")
-            .allowableValues("true", "false")
-            .defaultValue("true")
-            .build();
+    static final PropertyDescriptor SUPPORT_TRANSACTIONS = Put.SUPPORT_TRANSACTIONS;
+
     static final PropertyDescriptor TRANSACTION_TIMEOUT = new PropertyDescriptor.Builder()
             .name("Transaction Timeout")
             .description("If the <Support Fragmented Transactions> property is set to true, specifies how long to wait for all FlowFiles for a particular fragment.identifier attribute "

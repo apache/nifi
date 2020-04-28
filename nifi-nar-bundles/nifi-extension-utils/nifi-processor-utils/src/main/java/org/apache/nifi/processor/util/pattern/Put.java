@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processor.util.pattern;
 
+import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
@@ -44,6 +45,15 @@ public class Put<FC, C extends AutoCloseable> {
     protected PartialFunctions.Cleanup<FC, C> cleanup;
     protected ComponentLog logger;
 
+    public static final PropertyDescriptor SUPPORT_TRANSACTIONS = new PropertyDescriptor.Builder()
+            .name("Support Fragmented Transactions")
+            .description("If true, when a FlowFile is consumed by this Processor, the Processor will first check the fragment.identifier and fragment.count attributes of that FlowFile. "
+                    + "If the fragment.count value is greater than 1, the Processor will not process any FlowFile with that fragment.identifier until all are available; "
+                    + "at that point, it will process all FlowFiles with that fragment.identifier as a single transaction, in the order specified by the FlowFiles' fragment.index attributes. "
+                    + "This Provides atomicity of those SQL statements. If this value is false, these attributes will be ignored and the updates will occur independent of one another.")
+            .allowableValues("true", "false")
+            .defaultValue("true")
+            .build();
     /**
      * Put fetched FlowFiles to a data storage.
      * @param context process context passed from a Processor onTrigger.
