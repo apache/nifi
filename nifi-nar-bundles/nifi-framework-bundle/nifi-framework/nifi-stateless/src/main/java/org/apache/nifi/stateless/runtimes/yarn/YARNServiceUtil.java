@@ -18,14 +18,14 @@ package org.apache.nifi.stateless.runtimes.yarn;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.BasicResponseHandler;
 import org.apache.http.impl.client.HttpClientBuilder;
-
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
+import org.apache.nifi.stateless.core.security.StatelessSecurityUtility;
 
 public class YARNServiceUtil {
     private final String YARNUrl;
@@ -84,9 +84,9 @@ public class YARNServiceUtil {
             this.YARNUrl + "/app/v1/services?user.name=" + System.getProperty("user.name")
         );
         System.out.println("Running YARN service with the following definition:");
-        System.out.println(spec);
+        System.out.println(StatelessSecurityUtility.formatJson(spec));
         System.out.println("Launch Command");
-        System.out.println(String.join(",", updatedLaunchCommand));
+        System.out.println(StatelessSecurityUtility.formatArgs(updatedLaunchCommand, true));
 
         try {
             request.setEntity(new StringEntity(spec.toString(), " application/json", StandardCharsets.UTF_8.toString()));

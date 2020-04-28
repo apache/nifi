@@ -84,5 +84,8 @@ class FingerprintFactoryGroovyTest extends GroovyTestCase {
 
         // Assert the fingerprint does not contain the password
         assert !(fingerprint =~ "originalPlaintextPassword")
+        def maskedValue = (fingerprint =~ /\[MASKED\] \([\w\/\+=]+\)/)
+        assert maskedValue
+        logger.info("Masked value: ${maskedValue[0]}")
     }
 }
