@@ -45,7 +45,6 @@ import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.nar.NarClassLoadersHolder;
-import org.apache.nifi.prometheus.util.PrometheusMetricsUtil;
 import org.apache.nifi.registry.client.NiFiRegistryException;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.IllegalClusterResourceRequestException;
@@ -138,6 +137,7 @@ import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.text.Collator;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.EnumSet;
@@ -425,11 +425,11 @@ public class FlowResource extends ApplicationResource {
 
         if ("prometheus".equalsIgnoreCase(producer)) {
             // get this process group flow
-            serviceFacade.generateFlowMetrics();
+            final Collection<CollectorRegistry> allRegistries = serviceFacade.generateFlowMetrics();
             // generate a streaming response
             final StreamingOutput response = output -> {
                 Writer writer = new BufferedWriter(new OutputStreamWriter(output));
-                for (CollectorRegistry collectorRegistry : PrometheusMetricsUtil.ALL_REGISTRIES) {
+                for (CollectorRegistry collectorRegistry : allRegistries) {
                     TextFormat.write004(writer, collectorRegistry.metricFamilySamples());
                     // flush the response
                     output.flush();

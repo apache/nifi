@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web;
 
+import io.prometheus.client.CollectorRegistry;
 import org.apache.nifi.authorization.AuthorizeAccess;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.user.NiFiUser;
@@ -317,7 +318,7 @@ public interface NiFiServiceFacade {
     /**
      * Gets the metrics for the flow.
      */
-    void generateFlowMetrics();
+    Collection<CollectorRegistry> generateFlowMetrics();
 
     /**
      * Updates the configuration for this controller.

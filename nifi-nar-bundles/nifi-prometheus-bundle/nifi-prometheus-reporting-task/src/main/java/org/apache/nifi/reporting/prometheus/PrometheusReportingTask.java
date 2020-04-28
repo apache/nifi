@@ -34,6 +34,8 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.metrics.jvm.JmxJvmMetrics;
+import org.apache.nifi.prometheus.util.JvmMetricsRegistry;
+import org.apache.nifi.prometheus.util.NiFiMetricsRegistry;
 import org.apache.nifi.reporting.AbstractReportingTask;
 import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.prometheus.util.PrometheusMetricsUtil;
@@ -128,13 +130,15 @@ public class PrometheusReportingTask extends AbstractReportingTask {
                 ProcessGroupStatus rootGroupStatus = reportingContext.getEventAccess().getControllerStatus();
                 String instanceId = reportingContext.getProperty(PrometheusMetricsUtil.INSTANCE_ID).evaluateAttributeExpressions().getValue();
                 String metricsStrategy = reportingContext.getProperty(METRICS_STRATEGY).getValue();
-                return PrometheusMetricsUtil.createNifiMetrics(rootGroupStatus, instanceId, "", "RootProcessGroup", metricsStrategy);
+                NiFiMetricsRegistry nifiMetricsRegistry = new NiFiMetricsRegistry();
+                return PrometheusMetricsUtil.createNifiMetrics(nifiMetricsRegistry, rootGroupStatus, instanceId, "", "RootProcessGroup", metricsStrategy);
             };
             metricsCollectors.add(nifiMetrics);
             if (context.getProperty(SEND_JVM_METRICS).asBoolean()) {
                 Function<ReportingContext, CollectorRegistry> jvmMetrics = (reportingContext) -> {
                     String instanceId = reportingContext.getProperty(PrometheusMetricsUtil.INSTANCE_ID).evaluateAttributeExpressions().getValue();
-                    return PrometheusMetricsUtil.createJvmMetrics(JmxJvmMetrics.getInstance(), instanceId);
+                    JvmMetricsRegistry jvmMetricsRegistry = new JvmMetricsRegistry();
+                    return PrometheusMetricsUtil.createJvmMetrics(jvmMetricsRegistry, JmxJvmMetrics.getInstance(), instanceId);
                 };
                 metricsCollectors.add(jvmMetrics);
             }
