@@ -110,7 +110,7 @@ public class GetAzureEventHub extends AbstractProcessor {
             .required(false)
             .build();
     static final PropertyDescriptor POLICY_PRIMARY_KEY =  AzureEventHubUtils.POLICY_PRIMARY_KEY;
-    static final PropertyDescriptor USE_MANANGED_IDENTITY = AzureEventHubUtils.USE_MANANGED_IDENTITY;
+    static final PropertyDescriptor USE_MANANGED_IDENTITY = AzureEventHubUtils.USE_MANAGED_IDENTITY;
 
     static final PropertyDescriptor NUM_PARTITIONS = new PropertyDescriptor.Builder()
             .name("Number of Event Hub Partitions")
@@ -161,8 +161,6 @@ public class GetAzureEventHub extends AbstractProcessor {
             .description("Any FlowFile that is successfully received from the event hub will be transferred to this Relationship.")
             .build();
 
-    static final String MANANGED_IDENDITY_POLICY = AzureEventHubUtils.MANANGED_IDENDITY_POLICY;
-
     private final ConcurrentMap<String, PartitionReceiver> partitionToReceiverMap = new ConcurrentHashMap<>();
     private volatile BlockingQueue<String> partitionNames = new LinkedBlockingQueue<>();
     private volatile Instant configuredEnqueueTime;
@@ -210,7 +208,7 @@ public class GetAzureEventHub extends AbstractProcessor {
 
     @Override
     protected Collection<ValidationResult> customValidate(ValidationContext context) {
-        List<ValidationResult> retVal = AzureEventHubUtils.customValidate(ACCESS_POLICY, context);
+        List<ValidationResult> retVal = AzureEventHubUtils.customValidate(ACCESS_POLICY, POLICY_PRIMARY_KEY, context);
         return retVal;
     }
 
@@ -312,14 +310,13 @@ public class GetAzureEventHub extends AbstractProcessor {
         final String eventHubName = context.getProperty(EVENT_HUB_NAME).getValue();
         final String serviceBusEndpoint = context.getProperty(SERVICE_BUS_ENDPOINT).getValue();
         final boolean useManagedIdentity = context.getProperty(USE_MANANGED_IDENTITY).asBoolean();
-        final String policyName, policyKey, connectionString;
+        final String connectionString;
+
         if(useManagedIdentity){
-            policyName =  MANANGED_IDENDITY_POLICY;
-            policyKey = null;
             connectionString = AzureEventHubUtils.getManagedIdentityConnectionString(namespace,eventHubName);
         } else {
-            policyName = context.getProperty(ACCESS_POLICY).getValue();
-            policyKey = context.getProperty(POLICY_PRIMARY_KEY).getValue();
+            final String policyName = context.getProperty(ACCESS_POLICY).getValue();
+            final String policyKey = context.getProperty(POLICY_PRIMARY_KEY).getValue();
             connectionString = new ConnectionStringBuilder()
                                     .setEndpoint(new URI("amqps://"+namespace+serviceBusEndpoint))
                                     .setEventHubName(eventHubName)

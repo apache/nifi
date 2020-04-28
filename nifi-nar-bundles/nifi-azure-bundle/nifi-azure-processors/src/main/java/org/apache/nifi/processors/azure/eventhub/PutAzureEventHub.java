@@ -98,7 +98,7 @@ public class PutAzureEventHub extends AbstractProcessor {
             .required(false)
             .build();
     static final PropertyDescriptor POLICY_PRIMARY_KEY = AzureEventHubUtils.POLICY_PRIMARY_KEY;
-    static final PropertyDescriptor USE_MANANGED_IDENTITY = AzureEventHubUtils.USE_MANANGED_IDENTITY;
+    static final PropertyDescriptor USE_MANANGED_IDENTITY = AzureEventHubUtils.USE_MANAGED_IDENTITY;
 
     static final PropertyDescriptor PARTITIONING_KEY_ATTRIBUTE_NAME = new PropertyDescriptor.Builder()
             .name("partitioning-key-attribute-name")
@@ -179,7 +179,7 @@ public class PutAzureEventHub extends AbstractProcessor {
 
     @Override
     protected Collection<ValidationResult> customValidate(ValidationContext context) {
-        List<ValidationResult> retVal = AzureEventHubUtils.customValidate(ACCESS_POLICY, context);
+        List<ValidationResult> retVal = AzureEventHubUtils.customValidate(ACCESS_POLICY, POLICY_PRIMARY_KEY, context);
         return retVal;
     }
 
@@ -324,7 +324,7 @@ public class PutAzureEventHub extends AbstractProcessor {
             final boolean useManagedIdentiy = context.getProperty(USE_MANANGED_IDENTITY).asBoolean();
             final String policyName, policyKey;
             if(useManagedIdentiy) {
-                policyName = AzureEventHubUtils.MANANGED_IDENDITY_POLICY;
+                policyName = AzureEventHubUtils.MANAGED_IDENDITY_POLICY;
                 policyKey =null;
             } else {
                 policyName = context.getProperty(ACCESS_POLICY).getValue();
@@ -361,7 +361,7 @@ public class PutAzureEventHub extends AbstractProcessor {
         try {
             EventHubClientImpl.USER_AGENT = "ApacheNiFi-azureeventhub/3.1.1";
             final String connectionString;
-            if(policyName == AzureEventHubUtils.MANANGED_IDENDITY_POLICY) {
+            if(policyName == AzureEventHubUtils.MANAGED_IDENDITY_POLICY) {
                 connectionString = AzureEventHubUtils.getManagedIdentityConnectionString(namespace, eventHubName);
             } else{
                 connectionString = getConnectionString(namespace, eventHubName, policyName, policyKey);

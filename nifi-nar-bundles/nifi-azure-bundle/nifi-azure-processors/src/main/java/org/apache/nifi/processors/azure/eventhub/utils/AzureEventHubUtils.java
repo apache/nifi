@@ -29,7 +29,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 
 public final class AzureEventHubUtils {
 
-    public static final String MANANGED_IDENDITY_POLICY = ConnectionStringBuilder.MANAGED_IDENTITY_AUTHENTICATION;
+    public static final String MANAGED_IDENDITY_POLICY = ConnectionStringBuilder.MANAGED_IDENTITY_AUTHENTICATION;
 
     public static final PropertyDescriptor POLICY_PRIMARY_KEY = new PropertyDescriptor.Builder()
         .name("Shared Access Policy Primary Key")
@@ -40,32 +40,34 @@ public final class AzureEventHubUtils {
         .required(false)
         .build();
 
-    public static final PropertyDescriptor USE_MANANGED_IDENTITY = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor USE_MANAGED_IDENTITY = new PropertyDescriptor.Builder()
         .name("use-managed-identity")
         .displayName("Use Azure Managed Identity")
-        .description("Choose whether or not to use the managed identity of azure vm/vmss. ")
+        .description("Choose whether or not to use the managed identity of Azure VM/VMSS")
         .required(false).defaultValue("false").allowableValues("true", "false")
         .addValidator(StandardValidators.BOOLEAN_VALIDATOR).build();
 
-    public static List<ValidationResult> customValidate(PropertyDescriptor accessPolicyDescriptor, ValidationContext context) {
+    public static List<ValidationResult> customValidate(PropertyDescriptor accessPolicyDescriptor,
+        PropertyDescriptor policyKeyDescriptor,
+        ValidationContext context) {
         List<ValidationResult> retVal = new ArrayList<>();
 
         boolean accessPolicyIsSet  = context.getProperty(accessPolicyDescriptor).isSet();
-        boolean policyKeyIsSet     = context.getProperty(POLICY_PRIMARY_KEY).isSet();
-        boolean useManagedIdentity = context.getProperty(USE_MANANGED_IDENTITY).asBoolean();
+        boolean policyKeyIsSet     = context.getProperty(policyKeyDescriptor).isSet();
+        boolean useManagedIdentity = context.getProperty(USE_MANAGED_IDENTITY).asBoolean();
 
         if (useManagedIdentity && (accessPolicyIsSet || policyKeyIsSet) ) {
             final String msg = String.format(
-                "%s and %s with %s fields cannot be set at the same time.",
-                USE_MANANGED_IDENTITY.getDisplayName(),
+                "('%s') and ('%s' with '%s') fields cannot be set at the same time.",
+                USE_MANAGED_IDENTITY.getDisplayName(),
                 accessPolicyDescriptor.getDisplayName(),
                 POLICY_PRIMARY_KEY.getDisplayName()
             );
             retVal.add(new ValidationResult.Builder().valid(false).explanation(msg).build());
         } else if (!useManagedIdentity && (!accessPolicyIsSet || !policyKeyIsSet)) {
             final String msg = String.format(
-                "Either %s or %s with %s must be set",
-                USE_MANANGED_IDENTITY.getDisplayName(),
+                "either('%s') or (%s with '%s') must be set",
+                USE_MANAGED_IDENTITY.getDisplayName(),
                 accessPolicyDescriptor.getDisplayName(),
                 POLICY_PRIMARY_KEY.getDisplayName()
             );
@@ -76,6 +78,13 @@ public final class AzureEventHubUtils {
 
     public static String getManagedIdentityConnectionString(final String namespace, final String eventHubName){
         return new ConnectionStringBuilder().setNamespaceName(namespace).setEventHubName(eventHubName)
-                    .setAuthentication(MANANGED_IDENDITY_POLICY).toString();
+                    .setAuthentication(MANAGED_IDENDITY_POLICY).toString();
+    }
+    public static String getSharedAccessSignatureConnectionString(final String namespace, final String eventHubName, final String sasName, final String sasKey) {
+        return new ConnectionStringBuilder()
+                    .setNamespaceName(namespace)
+                    .setEventHubName(eventHubName)
+                    .setSasKeyName(sasName)
+                    .setSasKey(sasKey).toString();
     }
 }

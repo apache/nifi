@@ -118,8 +118,11 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .required(false)
             .build();
-    static final PropertyDescriptor POLICY_PRIMARY_KEY = AzureEventHubUtils.POLICY_PRIMARY_KEY;
-    static final PropertyDescriptor USE_MANANGED_IDENTITY = AzureEventHubUtils.USE_MANANGED_IDENTITY;
+    static final PropertyDescriptor POLICY_PRIMARY_KEY = new PropertyDescriptor.Builder()
+            .fromPropertyDescriptor(AzureEventHubUtils.POLICY_PRIMARY_KEY)
+            .name("event-hub-shared-access-policy-primary-key")
+            .build();
+    static final PropertyDescriptor USE_MANANGED_IDENTITY = AzureEventHubUtils.USE_MANAGED_IDENTITY;
     static final PropertyDescriptor CONSUMER_GROUP = new PropertyDescriptor.Builder()
             .name("event-hub-consumer-group")
             .displayName("Consumer Group")
@@ -329,7 +332,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
                     .valid(false)
                     .build());
         }
-        results.addAll(AzureEventHubUtils.customValidate(ACCESS_POLICY_NAME, validationContext));
+        results.addAll(AzureEventHubUtils.customValidate(ACCESS_POLICY_NAME, POLICY_PRIMARY_KEY, validationContext));
         return results;
     }
 
@@ -625,11 +628,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
             validateRequiredProperty(ACCESS_POLICY_NAME, sasName);
             final String sasKey = context.getProperty(POLICY_PRIMARY_KEY).evaluateAttributeExpressions().getValue();
             validateRequiredProperty(POLICY_PRIMARY_KEY, sasKey);
-            connectionString = new ConnectionStringBuilder()
-                                    .setNamespaceName(namespaceName)
-                                    .setEventHubName( eventHubName)
-                                    .setSasKeyName(sasName)
-                                    .setSasKey(sasKey).toString();
+            connectionString = AzureEventHubUtils.getSharedAccessSignatureConnectionString(namespaceName, eventHubName, sasName, sasKey);
         }
         eventProcessorHost = EventProcessorHost.EventProcessorHostBuilder
                                 .newBuilder(consumerHostname, consumerGroupName)
