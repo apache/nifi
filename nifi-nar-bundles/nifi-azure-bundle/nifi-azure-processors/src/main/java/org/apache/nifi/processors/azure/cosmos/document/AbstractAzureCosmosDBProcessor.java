@@ -103,6 +103,7 @@ public abstract class AbstractAzureCosmosDBProcessor extends AbstractProcessor {
 
     static final PropertyDescriptor CONTAINER_ID = new PropertyDescriptor.Builder()
         .name("azure-cosmos-container-id")
+        .displayName("Azure Cosmos Container ID")
         .description("Azure Cosmos DB Container Id to use")
         .required(true)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -121,6 +122,7 @@ public abstract class AbstractAzureCosmosDBProcessor extends AbstractProcessor {
 
     static final PropertyDescriptor PARTITION_KEY = new PropertyDescriptor.Builder()
         .name("azure-cosmos-partition-key")
+        .displayName("Azure Cosmos Partition Key")
         .description("Partition Key Field Name defined during Azure Cosmos Container Creation Time")
         .required(true)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
