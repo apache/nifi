@@ -141,6 +141,18 @@ public class Put<FC, C extends AutoCloseable> {
                         .filter(flowFile -> !transferredFlowFiles.contains(flowFile)).collect(Collectors.toList());
                 result.routeTo(unprocessedFlowFiles, Relationship.SELF);
 
+                //If the processor `Put` flowfiles transactionally and some result don't routeto 'succcess',
+                //we should apply onFailed function（if have）and route all flowfiles of one transaction to the same relationship
+                if (context.getProperties().containsKey(SUPPORT_TRANSACTIONS) && context.getProperty(SUPPORT_TRANSACTIONS).asBoolean()) {
+                    if (result.contains(REL_RETRY) || result.contains(REL_FAILURE)) {
+                        if (onFailed != null) {
+                            onFailed.apply(context, session, functionContext, connection, null);
+                        }
+                        result.routeTo(transferredFlowFiles,result.contains(REL_RETRY) ? REL_RETRY : REL_FAILURE);
+                        return;
+                    }
+                }
+
                 // OnCompleted processing.
                 if (onCompleted != null) {
                     onCompleted.apply(context, session, functionContext, connection);
