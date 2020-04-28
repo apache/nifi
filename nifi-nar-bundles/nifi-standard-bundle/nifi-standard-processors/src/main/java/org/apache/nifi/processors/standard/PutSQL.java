@@ -171,19 +171,9 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
             .defaultValue("false")
             .build();
 
-    static final Relationship REL_SUCCESS = new Relationship.Builder()
-            .name("success")
-            .description("A FlowFile is routed to this relationship after the database is successfully updated")
-            .build();
-    static final Relationship REL_RETRY = new Relationship.Builder()
-            .name("retry")
-            .description("A FlowFile is routed to this relationship if the database cannot be updated but attempting the operation again may succeed")
-            .build();
-    static final Relationship REL_FAILURE = new Relationship.Builder()
-            .name("failure")
-            .description("A FlowFile is routed to this relationship if the database cannot be updated and retrying the operation will also fail, "
-                    + "such as an invalid query or an integrity constraint violation")
-            .build();
+    static final Relationship REL_SUCCESS = Put.REL_SUCCESS;
+    static final Relationship REL_RETRY = Put.REL_RETRY;
+    static final Relationship REL_FAILURE = Put.REL_FAILURE;
 
     private static final String FRAGMENT_ID_ATTR = FragmentAttributes.FRAGMENT_ID.key();
     private static final String FRAGMENT_INDEX_ATTR = FragmentAttributes.FRAGMENT_INDEX.key();

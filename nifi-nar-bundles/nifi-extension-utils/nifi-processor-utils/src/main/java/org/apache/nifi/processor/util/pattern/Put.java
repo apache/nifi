@@ -54,6 +54,20 @@ public class Put<FC, C extends AutoCloseable> {
             .allowableValues("true", "false")
             .defaultValue("true")
             .build();
+
+    public static final Relationship REL_SUCCESS = new Relationship.Builder()
+            .name("success")
+            .description("A FlowFile is routed to this relationship after the database is successfully updated")
+            .build();
+    public static final Relationship REL_RETRY = new Relationship.Builder()
+            .name("retry")
+            .description("A FlowFile is routed to this relationship if the database cannot be updated but attempting the operation again may succeed")
+            .build();
+    public static final Relationship REL_FAILURE = new Relationship.Builder()
+            .name("failure")
+            .description("A FlowFile is routed to this relationship if the database cannot be updated and retrying the operation will also fail, "
+                    + "such as an invalid query or an integrity constraint violation")
+            .build();
     /**
      * Put fetched FlowFiles to a data storage.
      * @param context process context passed from a Processor onTrigger.

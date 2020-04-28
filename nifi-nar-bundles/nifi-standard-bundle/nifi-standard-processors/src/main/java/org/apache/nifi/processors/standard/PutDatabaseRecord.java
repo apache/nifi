@@ -128,15 +128,8 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
             .description("Successfully created FlowFile from SQL query result set.")
             .build();
 
-    static final Relationship REL_RETRY = new Relationship.Builder()
-            .name("retry")
-            .description("A FlowFile is routed to this relationship if the database cannot be updated but attempting the operation again may succeed")
-            .build();
-    static final Relationship REL_FAILURE = new Relationship.Builder()
-            .name("failure")
-            .description("A FlowFile is routed to this relationship if the database cannot be updated and retrying the operation will also fail, "
-                    + "such as an invalid query or an integrity constraint violation")
-            .build();
+    static final Relationship REL_RETRY = Put.REL_RETRY;
+    static final Relationship REL_FAILURE = Put.REL_FAILURE;
 
     protected static Set<Relationship> relationships;
 
