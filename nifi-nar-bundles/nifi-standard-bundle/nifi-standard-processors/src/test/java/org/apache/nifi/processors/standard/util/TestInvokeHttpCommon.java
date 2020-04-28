@@ -1036,34 +1036,49 @@ public abstract class TestInvokeHttpCommon {
         // dynamic form properties
         PropertyDescriptor dynamicProp1 = new PropertyDescriptor.Builder()
             .dynamic(true)
-            .name("post.form.name1")
+            .name(InvokeHTTP.FORM_BASE +  ":name1")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
         runner.setProperty(dynamicProp1, "form data 1");
 
         PropertyDescriptor dynamicProp2 = new PropertyDescriptor.Builder()
             .dynamic(true)
-            .name("post.form.name2")
+            .name(InvokeHTTP.FORM_BASE + ":name2")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
         runner.setProperty(dynamicProp2, "form data 2");
 
-        PropertyDescriptor dynamicProp3 = new PropertyDescriptor.Builder()
-            .dynamic(true)
-            .name("post.form.content")
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .build();
-        runner.setProperty(dynamicProp3, InvokeHTTP.FLOWFILE_CONTENT_FORM_MARKER);
-
-        PropertyDescriptor dynamicProp4 = new PropertyDescriptor.Builder()
-            .dynamic(true)
-            .name(InvokeHTTP.FLOWFILE_CONTENT_FORM_FILE_NAME)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .build();
-        runner.setProperty(dynamicProp4,"file_name");
+        runner.setProperty(InvokeHTTP.PROP_FORM_BODY_FORM_NAME ,"content");
+        runner.setProperty(InvokeHTTP.PROP_SET_FORM_FILE_NAME, "true");
 
         final Map<String, String> attrs = new HashMap<>();
         attrs.put(CoreAttributes.MIME_TYPE.key(), "text/csv");
+        attrs.put(CoreAttributes.FILENAME.key(), "file_name");
+        runner.enqueue("Hello".getBytes(), attrs);
+
+        runner.run(1);
+        runner.assertTransferCount(InvokeHTTP.REL_SUCCESS_REQ, 1);
+        runner.assertTransferCount(InvokeHTTP.REL_RESPONSE, 1);
+    }
+
+    @Test
+    public void testPostFormContentOnly() throws Exception {
+        final String suppliedMimeType = "text/plain";
+        MultipartFormHandler handler = new MultipartFormHandler();
+        handler.addExpectedPart("content", "Hello");
+        handler.addFileName("content", "file_name");
+        addHandler(handler);
+
+        runner.setProperty(InvokeHTTP.PROP_METHOD, "POST");
+        runner.setProperty(InvokeHTTP.PROP_URL, url + "/post");
+        runner.setProperty(InvokeHTTP.PROP_CONTENT_TYPE, suppliedMimeType);
+
+        runner.setProperty(InvokeHTTP.PROP_FORM_BODY_FORM_NAME ,"content");
+        runner.setProperty(InvokeHTTP.PROP_SET_FORM_FILE_NAME, "true");
+
+        final Map<String, String> attrs = new HashMap<>();
+        attrs.put(CoreAttributes.MIME_TYPE.key(), "text/csv");
+        attrs.put(CoreAttributes.FILENAME.key(), "file_name");
         runner.enqueue("Hello".getBytes(), attrs);
 
         runner.run(1);
@@ -1087,24 +1102,19 @@ public abstract class TestInvokeHttpCommon {
         // dynamic form properties
         PropertyDescriptor dynamicProp1 = new PropertyDescriptor.Builder()
             .dynamic(true)
-            .name("post.form.name1")
+            .name(InvokeHTTP.FORM_BASE + ":name1")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
         runner.setProperty(dynamicProp1, "form data 1");
 
         PropertyDescriptor dynamicProp2 = new PropertyDescriptor.Builder()
             .dynamic(true)
-            .name("post.form.name2")
+            .name(InvokeHTTP.FORM_BASE + ":name2")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
         runner.setProperty(dynamicProp2, "form data 2");
 
-        PropertyDescriptor dynamicProp3 = new PropertyDescriptor.Builder()
-            .dynamic(true)
-            .name("post.form.content")
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .build();
-        runner.setProperty(dynamicProp3, InvokeHTTP.FLOWFILE_CONTENT_FORM_MARKER);
+        runner.setProperty(InvokeHTTP.PROP_FORM_BODY_FORM_NAME ,"content");
 
         final Map<String, String> attrs = new HashMap<>();
         attrs.put(CoreAttributes.MIME_TYPE.key(), "text/csv");
@@ -1113,6 +1123,89 @@ public abstract class TestInvokeHttpCommon {
         runner.run(1);
         runner.assertTransferCount(InvokeHTTP.REL_SUCCESS_REQ, 1);
         runner.assertTransferCount(InvokeHTTP.REL_RESPONSE, 1);
+    }
+
+    @Test
+    public void testPostWithFormDataNoFile() throws Exception {
+        final String suppliedMimeType = "text/plain";
+        MultipartFormHandler handler = new MultipartFormHandler();
+        handler.addExpectedPart("name1", "form data 1");
+        handler.addExpectedPart("name2", "form data 2");
+        addHandler(handler);
+
+        runner.setProperty(InvokeHTTP.PROP_METHOD, "POST");
+        runner.setProperty(InvokeHTTP.PROP_URL, url + "/post");
+        runner.setProperty(InvokeHTTP.PROP_CONTENT_TYPE, suppliedMimeType);
+        runner.setProperty(InvokeHTTP.PROP_SEND_BODY, "false");
+
+        // dynamic form properties
+        PropertyDescriptor dynamicProp1 = new PropertyDescriptor.Builder()
+            .dynamic(true)
+            .name(InvokeHTTP.FORM_BASE + ":name1")
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .build();
+        runner.setProperty(dynamicProp1, "form data 1");
+
+        PropertyDescriptor dynamicProp2 = new PropertyDescriptor.Builder()
+            .dynamic(true)
+            .name(InvokeHTTP.FORM_BASE + ":name2")
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .build();
+        runner.setProperty(dynamicProp2, "form data 2");
+
+
+        final Map<String, String> attrs = new HashMap<>();
+        attrs.put(CoreAttributes.MIME_TYPE.key(), "text/csv");
+        runner.enqueue("Hello".getBytes(), attrs);
+
+        runner.run(1);
+        runner.assertTransferCount(InvokeHTTP.REL_SUCCESS_REQ, 1);
+        runner.assertTransferCount(InvokeHTTP.REL_RESPONSE, 1);
+    }
+
+    @Test
+    public void testPostNoSendBodyWithContentFails() throws Exception {
+        final String suppliedMimeType = "text/plain";
+
+        runner.setProperty(InvokeHTTP.PROP_METHOD, "POST");
+        runner.setProperty(InvokeHTTP.PROP_URL, url + "/post");
+        runner.setProperty(InvokeHTTP.PROP_CONTENT_TYPE, suppliedMimeType);
+        runner.setProperty(InvokeHTTP.PROP_SEND_BODY, "false");
+
+        runner.setProperty(InvokeHTTP.PROP_FORM_BODY_FORM_NAME ,"content");
+        runner.assertNotValid();
+    }
+
+    @Test
+    public void testPostNoFormContentWithFileNameFails() throws Exception {
+        final String suppliedMimeType = "text/plain";
+        runner.setProperty(InvokeHTTP.PROP_METHOD, "POST");
+        runner.setProperty(InvokeHTTP.PROP_URL, url + "/post");
+        runner.setProperty(InvokeHTTP.PROP_CONTENT_TYPE, suppliedMimeType);
+
+        // dynamic form properties
+        PropertyDescriptor dynamicProp1 = new PropertyDescriptor.Builder()
+            .dynamic(true)
+            .name(InvokeHTTP.FORM_BASE +  ":name1")
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .build();
+        runner.setProperty(dynamicProp1, "form data 1");
+
+        PropertyDescriptor dynamicProp2 = new PropertyDescriptor.Builder()
+            .dynamic(true)
+            .name(InvokeHTTP.FORM_BASE + ":name2")
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .build();
+        runner.setProperty(dynamicProp2, "form data 2");
+
+        runner.setProperty(InvokeHTTP.PROP_SET_FORM_FILE_NAME, "true");
+
+        final Map<String, String> attrs = new HashMap<>();
+        attrs.put(CoreAttributes.MIME_TYPE.key(), "text/csv");
+        attrs.put(CoreAttributes.FILENAME.key(), "file_name");
+        runner.enqueue("Hello".getBytes(), attrs);
+
+        runner.assertNotValid();
     }
 
     @Test

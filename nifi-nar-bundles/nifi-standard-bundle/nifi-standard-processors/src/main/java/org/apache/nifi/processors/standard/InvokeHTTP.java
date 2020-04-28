@@ -140,13 +140,11 @@ import org.joda.time.format.DateTimeFormatter;
         description =
             "Send request header with a key matching the Dynamic Property Key and a value created by evaluating "
                 + "the Attribute Expression Language set in the value of the Dynamic Property."),
-    @DynamicProperty(name = "post.form.<NAME>", value = "Attribute Expression Language", expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
+    @DynamicProperty(name = "post:form:<NAME>", value = "Attribute Expression Language", expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
         description =
-            "When the HTTP Method is POST, dynamic properties with the property name in the form of post.form.<NAME>,"
+            "When the HTTP Method is POST, dynamic properties with the property name in the form of post:form:<NAME>,"
                 + " where the <NAME> will be the form data name, will be used to fill out the multipart form parts."
-                + "  If the value is the literal 'FLOWFILE_CONTENT', that form part will have the flowfile's data."
-                + "  The property name post.form.filename will set the filename to set for the flowfile content."
-                + "  If send message body is false, the properties will be ignored.")
+                + "  If send message body is false, the flowfile will not be sent, but any other form data will be.")
 })
 public final class InvokeHTTP extends AbstractProcessor {
     // flowfile attribute keys returned after reading the response
@@ -162,8 +160,7 @@ public final class InvokeHTTP extends AbstractProcessor {
 
     public static final String DEFAULT_CONTENT_TYPE = "application/octet-stream";
 
-    public static final String FLOWFILE_CONTENT_FORM_MARKER = "FLOWFILE_CONTENT";
-    public static final String FLOWFILE_CONTENT_FORM_FILE_NAME = "post.form.filename";
+    public static final String FORM_BASE= "post:form";
 
     // Set of flowfile attributes which we generally always ignore during
     // processing, including when converting http headers, copying attributes, etc.
@@ -180,7 +177,7 @@ public final class InvokeHTTP extends AbstractProcessor {
     public static final String HTTP = "http";
     public static final String HTTPS = "https";
 
-    private static final Pattern DYNAMIC_FORM_PARAMETER_NAME = Pattern.compile("post\\.form\\.(?<formDataName>.*)$");
+    private static final Pattern DYNAMIC_FORM_PARAMETER_NAME = Pattern.compile("post:form:(?<formDataName>.*)$");
 
     // properties
     public static final PropertyDescriptor PROP_METHOD = new PropertyDescriptor.Builder()
@@ -315,6 +312,30 @@ public final class InvokeHTTP extends AbstractProcessor {
             .allowableValues("true", "false")
             .required(false)
             .build();
+
+    public static final PropertyDescriptor PROP_FORM_BODY_FORM_NAME = new PropertyDescriptor.Builder()
+        .name("form-body-form-name")
+        .displayName("Flowfile Form Data Name")
+        .description("When Send Message Body is true, and Flowfile Form Data Name is set, "
+            + " the Flowfile will be sent as the message body in multipart/form format with this value "
+            + "as the form data name.")
+        .required(false)
+        .addValidator(
+            StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING, true))
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+        .build();
+
+    public static final PropertyDescriptor PROP_SET_FORM_FILE_NAME = new PropertyDescriptor.Builder()
+        .name("set-form-filename")
+        .displayName("Set Flowfile Form Data File Name")
+        .description(
+            "When Send Message Body is true, Flowfile Form Data Name is set, "
+            + "and Set Flowfile Form Data File Name is true, the Flowfile's fileName value "
+            + "will be set as the filename property of the form data.")
+        .required(false)
+        .defaultValue("true")
+        .allowableValues("true","false")
+        .build();
 
     // Per RFC 7235, 2617, and 2616.
     // basic-credentials = base64-user-pass
@@ -469,7 +490,9 @@ public final class InvokeHTTP extends AbstractProcessor {
             PROP_PENALIZE_NO_RETRY,
             PROP_USE_ETAG,
             PROP_ETAG_MAX_CACHE_SIZE,
-            IGNORE_RESPONSE_CONTENT));
+            IGNORE_RESPONSE_CONTENT,
+            PROP_FORM_BODY_FORM_NAME,
+            PROP_SET_FORM_FILE_NAME));
 
     // relationships
     public static final Relationship REL_SUCCESS_REQ = new Relationship.Builder()
@@ -531,7 +554,7 @@ public final class InvokeHTTP extends AbstractProcessor {
 
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(String propertyDescriptorName) {
-        if (propertyDescriptorName.startsWith("post.form.")) {
+        if (propertyDescriptorName.startsWith(FORM_BASE)) {
 
             Matcher matcher = DYNAMIC_FORM_PARAMETER_NAME.matcher(propertyDescriptorName);
             if (matcher.matches()) {
@@ -627,6 +650,35 @@ public final class InvokeHTTP extends AbstractProcessor {
                 // static validation message string:
                 results.add(new ValidationResult.Builder().subject(headerKey).valid(false).explanation("Matches excluded HTTP header name").build());
             }
+        }
+
+        // Check for dynamic properties for form components.
+        // Even if the flowfile is not sent, we may still send form parameters.
+        boolean hasFormData = false;
+        Map<String, PropertyDescriptor> propertyDescriptors = new HashMap<>();
+        for (final Map.Entry<PropertyDescriptor, String> entry : validationContext.getProperties().entrySet()) {
+            Matcher matcher = DYNAMIC_FORM_PARAMETER_NAME.matcher(entry.getKey().getName());
+            if (matcher.matches()) {
+                hasFormData = true;
+                break;
+            }
+        }
+
+        // if form data exists, and send body is true, Flowfile Form Data Name must be set.
+        final boolean sendBody = validationContext.getProperty(PROP_SEND_BODY).asBoolean();
+        final boolean contentNameSet = validationContext.getProperty(PROP_FORM_BODY_FORM_NAME).isSet();
+        if (hasFormData) {
+            if (sendBody && !contentNameSet) {
+                results.add(new ValidationResult.Builder().subject(PROP_FORM_BODY_FORM_NAME.getDisplayName())
+                    .valid(false).explanation(
+                        "If dynamic form data properties are set, and send body is true, Flowfile Form Data Name must be configured.")
+                    .build());
+            }
+        }
+        if (!sendBody && contentNameSet) {
+            results.add(new ValidationResult.Builder().subject(PROP_FORM_BODY_FORM_NAME.getDisplayName())
+                .valid(false).explanation("If Flowfile Form Data Name is configured, Send Message Body must be true.")
+                .build());
         }
 
         return results;
@@ -1058,65 +1110,66 @@ public final class InvokeHTTP extends AbstractProcessor {
         return requestBuilder.build();
     }
 
-    private RequestBody getRequestBodyToSend(final ProcessSession session, final ProcessContext context, final FlowFile requestFlowFile) {
-        if(context.getProperty(PROP_SEND_BODY).asBoolean()) {
-            String evalContentType = context.getProperty(PROP_CONTENT_TYPE)
-                .evaluateAttributeExpressions(requestFlowFile).getValue();
-            final String contentType = StringUtils.isBlank(evalContentType) ? DEFAULT_CONTENT_TYPE : evalContentType;
-            Map<String,PropertyDescriptor> propertyDescriptors = new HashMap<>();
-            for (final Map.Entry<PropertyDescriptor, String> entry : context.getProperties().entrySet()) {
-                Matcher matcher = DYNAMIC_FORM_PARAMETER_NAME.matcher(entry.getKey().getName());
-                if (matcher.matches()) {
-                    propertyDescriptors.put(matcher.group("formDataName"),entry.getKey());
-                }
+    private RequestBody getRequestBodyToSend(final ProcessSession session, final ProcessContext context,
+        final FlowFile requestFlowFile) {
+
+        boolean sendBody = context.getProperty(PROP_SEND_BODY).asBoolean();
+
+        String evalContentType = context.getProperty(PROP_CONTENT_TYPE)
+            .evaluateAttributeExpressions(requestFlowFile).getValue();
+        final String contentType = StringUtils.isBlank(evalContentType) ? DEFAULT_CONTENT_TYPE : evalContentType;
+        String contentKey = context.getProperty(PROP_FORM_BODY_FORM_NAME).evaluateAttributeExpressions(requestFlowFile).getValue();
+
+        // Check for dynamic properties for form components.
+        // Even if the flowfile is not sent, we may still send form parameters.
+        Map<String, PropertyDescriptor> propertyDescriptors = new HashMap<>();
+        for (final Map.Entry<PropertyDescriptor, String> entry : context.getProperties().entrySet()) {
+            Matcher matcher = DYNAMIC_FORM_PARAMETER_NAME.matcher(entry.getKey().getName());
+            if (matcher.matches()) {
+                propertyDescriptors.put(matcher.group("formDataName"), entry.getKey());
             }
-            RequestBody requestBody =  new RequestBody() {
-                @Nullable
-                @Override
-                public MediaType contentType() {
-                    return MediaType.parse(contentType);
-                }
-
-                @Override
-                public void writeTo(BufferedSink sink) throws IOException {
-                    session.exportTo(requestFlowFile, sink.outputStream());
-                }
-
-                @Override
-                public long contentLength() {
-                    return useChunked ? -1 : requestFlowFile.getSize();
-                }
-            };
-
-            if (propertyDescriptors.size() > 0) {
-                // we have form data
-                MultipartBody.Builder builder = new Builder().setType(MultipartBody.FORM);
-                String contentKey = null;
-                String contentFileName = null;
-
-                // loop through the dynamic form parameters
-                // we can't add the content before we know if there is a file name or not, so we
-                // get the keys and do them after this
-                for (final Map.Entry<String, PropertyDescriptor> entry : propertyDescriptors.entrySet()) {
-                    final String propValue = context.getProperty(entry.getValue().getName()).evaluateAttributeExpressions(requestFlowFile).getValue();
-                    if (propValue.equals(FLOWFILE_CONTENT_FORM_MARKER)) {
-                        contentKey = entry.getKey();
-                    } else if (entry.getValue().getName().equals(FLOWFILE_CONTENT_FORM_FILE_NAME)) {
-                        contentFileName = propValue;
-                    } else {
-                        builder.addFormDataPart(entry.getKey(), propValue);
-                    }
-                }
-                if (contentKey != null) {
-                    builder.addFormDataPart(contentKey, contentFileName, requestBody);
-                }
-                return builder.build();
-            } else {
-                return requestBody;
-            }
-        } else {
-            return RequestBody.create(null, new byte[0]);
         }
+
+        RequestBody requestBody = new RequestBody() {
+            @Nullable
+            @Override
+            public MediaType contentType() {
+                return MediaType.parse(contentType);
+            }
+
+            @Override
+            public void writeTo(BufferedSink sink) throws IOException {
+                session.exportTo(requestFlowFile, sink.outputStream());
+            }
+
+            @Override
+            public long contentLength() {
+                return useChunked ? -1 : requestFlowFile.getSize();
+            }
+        };
+
+        if (propertyDescriptors.size() > 0 || StringUtils.isNotEmpty(contentKey)) {
+            // we have form data
+            MultipartBody.Builder builder = new Builder().setType(MultipartBody.FORM);
+            boolean useFileName = context.getProperty(PROP_SET_FORM_FILE_NAME).asBoolean();
+            String contentFileName = null;
+            if (useFileName) {
+                contentFileName = requestFlowFile.getAttribute(CoreAttributes.FILENAME.key());
+            }
+            // loop through the dynamic form parameters
+            for (final Map.Entry<String, PropertyDescriptor> entry : propertyDescriptors.entrySet()) {
+                final String propValue = context.getProperty(entry.getValue().getName())
+                    .evaluateAttributeExpressions(requestFlowFile).getValue();
+                builder.addFormDataPart(entry.getKey(), propValue);
+            }
+            if (sendBody) {
+                builder.addFormDataPart(contentKey, contentFileName, requestBody);
+            }
+            return builder.build();
+        } else if (sendBody) {
+            return requestBody;
+        }
+        return RequestBody.create(null, new byte[0]);
     }
 
     private Request.Builder setHeaderProperties(final ProcessContext context, Request.Builder requestBuilder, final FlowFile requestFlowFile) {
