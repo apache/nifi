@@ -1227,7 +1227,7 @@ public class TestPutSQL {
         runner.enableControllerService(service);
         runner.setProperty(PutSQL.CONNECTION_POOL, "dbcp");
         runner.setProperty(PutSQL.BATCH_SIZE, "1");
-
+        runner.setProperty(PutSQL.SUPPORT_TRANSACTIONS, "true");
         recreateTable("PERSONS", createPersons);
 
         final Map<String, String> attributes = new HashMap<>();
@@ -1286,7 +1286,7 @@ public class TestPutSQL {
         runner.setProperty(PutSQL.CONNECTION_POOL, "dbcp");
         runner.setProperty(PutSQL.BATCH_SIZE, "1");
         runner.setProperty(RollbackOnFailure.ROLLBACK_ON_FAILURE, "true");
-
+        runner.setProperty(PutSQL.SUPPORT_TRANSACTIONS, "true");
         recreateTable("PERSONS", createPersons);
 
         final Map<String, String> attributes = new HashMap<>();
