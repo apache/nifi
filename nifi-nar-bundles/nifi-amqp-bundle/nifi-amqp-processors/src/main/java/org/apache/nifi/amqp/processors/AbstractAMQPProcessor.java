@@ -19,6 +19,12 @@ package org.apache.nifi.amqp.processors;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.DefaultSaslConfig;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import javax.net.ssl.SSLContext;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -30,13 +36,6 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.ssl.SSLContextService;
-
-import javax.net.ssl.SSLContext;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
 
 
 /**
@@ -118,7 +117,7 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
                     + "Possible values are REQUIRED, WANT, NONE. This property is only used when an SSL Context "
                     + "has been defined and enabled.")
             .required(false)
-            .allowableValues(SSLContextService.ClientAuth.values())
+            .allowableValues(SslContextFactory.ClientAuth.values())
             .defaultValue("REQUIRED")
             .build();
 
@@ -227,12 +226,12 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
         final String rawClientAuth = context.getProperty(CLIENT_AUTH).getValue();
 
         if (sslService != null) {
-            final SSLContextService.ClientAuth clientAuth;
+            final SslContextFactory.ClientAuth clientAuth;
             if (StringUtils.isBlank(rawClientAuth)) {
-                clientAuth = SSLContextService.ClientAuth.REQUIRED;
+                clientAuth = SslContextFactory.ClientAuth.REQUIRED;
             } else {
                 try {
-                    clientAuth = SSLContextService.ClientAuth.valueOf(rawClientAuth);
+                    clientAuth = SslContextFactory.ClientAuth.valueOf(rawClientAuth);
                 } catch (final IllegalArgumentException iae) {
                     throw new IllegalStateException(String.format("Unrecognized client auth '%s'. Possible values are [%s]",
                             rawClientAuth, StringUtils.join(SslContextFactory.ClientAuth.values(), ", ")));

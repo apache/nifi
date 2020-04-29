@@ -21,7 +21,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
 import org.apache.nifi.components.AllowableValue;
 
 /**
@@ -42,6 +41,7 @@ public interface RestrictedSSLContextService extends SSLContextService {
          * Prepopulate protocols with generic instance types commonly used
          * see: http://docs.oracle.com/javase/7/docs/technotes/guides/security/StandardNames.html#SSLContext
          */
+        // TODO: Remove because it allows downgrades?
         supportedProtocols.add("TLS");
 
         /*

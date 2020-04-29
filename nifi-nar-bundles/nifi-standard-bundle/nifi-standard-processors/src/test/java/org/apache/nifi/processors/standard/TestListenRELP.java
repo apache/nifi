@@ -16,6 +16,14 @@
  */
 package org.apache.nifi.processors.standard;
 
+import java.io.IOException;
+import java.net.Socket;
+import java.nio.channels.SocketChannel;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.BlockingQueue;
+import javax.net.ssl.SSLContext;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -30,6 +38,7 @@ import org.apache.nifi.processors.standard.relp.response.RELPResponse;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.ssl.StandardSSLContextService;
 import org.apache.nifi.util.MockFlowFile;
@@ -39,15 +48,6 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-
-import javax.net.ssl.SSLContext;
-import java.io.IOException;
-import java.net.Socket;
-import java.nio.channels.SocketChannel;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.BlockingQueue;
 
 public class TestListenRELP {
 
@@ -223,7 +223,7 @@ public class TestListenRELP {
 
             // create either a regular socket or ssl socket based on context being passed in
             if (sslContextService != null) {
-                final SSLContext sslContext = sslContextService.createSSLContext(SSLContextService.ClientAuth.REQUIRED);
+                final SSLContext sslContext = sslContextService.createSSLContext(SslContextFactory.ClientAuth.REQUIRED);
                 socket = sslContext.getSocketFactory().createSocket("localhost", realPort);
             } else {
                 socket = new Socket("localhost", realPort);

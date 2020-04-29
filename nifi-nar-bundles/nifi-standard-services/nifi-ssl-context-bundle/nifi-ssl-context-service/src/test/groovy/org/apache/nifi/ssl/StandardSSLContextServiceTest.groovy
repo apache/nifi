@@ -19,6 +19,7 @@ package org.apache.nifi.ssl
 import org.apache.nifi.components.ValidationContext
 import org.apache.nifi.components.ValidationResult
 import org.apache.nifi.components.Validator
+import org.apache.nifi.security.util.SslContextFactory
 import org.apache.nifi.state.MockStateManager
 import org.apache.nifi.util.MockProcessContext
 import org.apache.nifi.util.MockValidationContext
@@ -175,7 +176,7 @@ class StandardSSLContextServiceTest {
         runner.assertValid(sslContextService)
 
         // Act
-        SSLContext sslContext = sslContextService.createSSLContext(SSLContextService.ClientAuth.NONE)
+        SSLContext sslContext = sslContextService.createSSLContext(SslContextFactory.ClientAuth.NONE)
 
         // Assert
         assert sslContext
@@ -197,7 +198,7 @@ class StandardSSLContextServiceTest {
         runner.assertValid(sslContextService)
 
         // Act
-        SSLContext sslContext = sslContextService.createSSLContext(SSLContextService.ClientAuth.NONE)
+        SSLContext sslContext = sslContextService.createSSLContext(SslContextFactory.ClientAuth.NONE)
 
         // Assert
         assert sslContext

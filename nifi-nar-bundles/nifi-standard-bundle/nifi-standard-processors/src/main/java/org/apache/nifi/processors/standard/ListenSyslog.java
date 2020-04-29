@@ -16,6 +16,28 @@
  */
 package org.apache.nifi.processors.standard;
 
+import static org.apache.nifi.processor.util.listen.ListenerProperties.NETWORK_INTF_NAME;
+
+import java.io.IOException;
+import java.io.OutputStream;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.nio.ByteBuffer;
+import java.nio.channels.SelectableChannel;
+import java.nio.channels.SocketChannel;
+import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+import javax.net.ssl.SSLContext;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
@@ -54,29 +76,6 @@ import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.syslog.attributes.SyslogAttributes;
 import org.apache.nifi.syslog.events.SyslogEvent;
 import org.apache.nifi.syslog.parsers.SyslogParser;
-
-import javax.net.ssl.SSLContext;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.net.InetAddress;
-import java.net.NetworkInterface;
-import java.nio.ByteBuffer;
-import java.nio.channels.SelectableChannel;
-import java.nio.channels.SocketChannel;
-import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
-
-import static org.apache.nifi.processor.util.listen.ListenerProperties.NETWORK_INTF_NAME;
 
 @SupportsBatching
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
@@ -185,8 +184,8 @@ public class ListenSyslog extends AbstractSyslogProcessor {
         .displayName("Client Auth")
         .description("The client authentication policy to use for the SSL Context. Only used if an SSL Context Service is provided.")
         .required(false)
-        .allowableValues(SSLContextService.ClientAuth.values())
-        .defaultValue(SSLContextService.ClientAuth.REQUIRED.name())
+        .allowableValues(SslContextFactory.ClientAuth.values())
+        .defaultValue(SslContextFactory.ClientAuth.REQUIRED.name())
         .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -350,7 +349,7 @@ public class ListenSyslog extends AbstractSyslogProcessor {
 
             if (sslContextService != null) {
                 final String clientAuthValue = context.getProperty(CLIENT_AUTH).getValue();
-                sslContext = sslContextService.createSSLContext(SSLContextService.ClientAuth.valueOf(clientAuthValue));
+                sslContext = sslContextService.createSSLContext(SslContextFactory.ClientAuth.valueOf(clientAuthValue));
                 clientAuth = SslContextFactory.ClientAuth.valueOf(clientAuthValue);
             }
 

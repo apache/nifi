@@ -26,6 +26,8 @@ import org.eclipse.jetty.server.Connector
 import org.eclipse.jetty.server.HttpConfiguration
 import org.eclipse.jetty.server.Server
 import org.eclipse.jetty.server.ServerConnector
+import org.eclipse.jetty.server.SslConnectionFactory
+import org.eclipse.jetty.util.ssl.SslContextFactory
 import org.junit.After
 import org.junit.AfterClass
 import org.junit.Before
@@ -222,6 +224,18 @@ class JettyServerGroovyTest extends GroovyTestCase {
         ServerConnector connector = connectors.first() as ServerConnector
         assert connector.host == "secure.host.com"
         assert connector.port == 8443
+        assert connector.getProtocols() == ['ssl', 'http/1.1']
+
+        // This kind of testing is not ideal as it breaks encapsulation, but is necessary to enforce verification of the TLS protocol versions specified
+        SslConnectionFactory connectionFactory = connector.getConnectionFactory("ssl") as SslConnectionFactory
+        SslContextFactory sslContextFactory = connectionFactory._sslContextFactory as SslContextFactory
+        logger.debug("SSL Context Factory: ${sslContextFactory.dump()}")
+
+        // Using the getters is subject to NPE due to blind array copies
+        assert sslContextFactory._sslProtocol == "TLSv1.2"
+        assert (sslContextFactory._includeProtocols as List<String>) == ["TLSv1.2", "TLSv1.3"]
+        assert (sslContextFactory._excludeProtocols as List<String>).containsAll(["TLS", "TLSv1", "TLSv1.1", "SSL", "SSLv2", "SSLv2Hello", "SSLv3"])
+        assert sslContextFactory._selectedProtocols == null
     }
 }
 

@@ -18,6 +18,16 @@ package org.apache.nifi.processors.elasticsearch;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.Proxy;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import okhttp3.Authenticator;
 import okhttp3.Credentials;
 import okhttp3.OkHttpClient;
@@ -36,31 +46,10 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxySpec;
-import org.apache.nifi.security.util.SslContextFactory;
+import org.apache.nifi.security.util.OkHttpClientUtils;
+import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.StringUtils;
-import org.apache.nifi.util.Tuple;
-
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.Proxy;
-import java.net.URL;
-import java.security.KeyManagementException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.UnrecoverableKeyException;
-import java.security.cert.CertificateException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
 
 /**
  * A base class for Elasticsearch processors that use the HTTP API
@@ -200,11 +189,11 @@ public abstract class AbstractElasticsearchHttpProcessor extends AbstractElastic
             final Proxy proxy = proxyConfig.createProxy();
             okHttpClient.proxy(proxy);
 
-            if (proxyConfig.hasCredential()){
+            if (proxyConfig.hasCredential()) {
                 okHttpClient.proxyAuthenticator(new Authenticator() {
                     @Override
                     public Request authenticate(Route route, Response response) throws IOException {
-                        final String credential=Credentials.basic(proxyConfig.getProxyUserName(), proxyConfig.getProxyUserPassword());
+                        final String credential = Credentials.basic(proxyConfig.getProxyUserName(), proxyConfig.getProxyUserPassword());
                         return response.request().newBuilder()
                                 .header("Proxy-Authorization", credential)
                                 .build();
@@ -213,35 +202,15 @@ public abstract class AbstractElasticsearchHttpProcessor extends AbstractElastic
             }
         }
 
-
         // Set timeouts
         okHttpClient.connectTimeout((context.getProperty(CONNECT_TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS).intValue()), TimeUnit.MILLISECONDS);
         okHttpClient.readTimeout(context.getProperty(RESPONSE_TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS).intValue(), TimeUnit.MILLISECONDS);
 
+        // Apply the TLS configuration if present
         final SSLContextService sslService = context.getProperty(PROP_SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
-        final SSLContext sslContext = sslService == null ? null : sslService.createSSLContext(SSLContextService.ClientAuth.NONE);
-
-        // check if the ssl context is set and add the factory if so
-        if (sslContext != null) {
-            try {
-                Tuple<SSLContext, TrustManager[]> sslContextTuple = SslContextFactory.createTrustSslContextWithTrustManagers(
-                        sslService.getKeyStoreFile(),
-                        sslService.getKeyStorePassword() != null ? sslService.getKeyStorePassword().toCharArray() : null,
-                        sslService.getKeyPassword() != null ? sslService.getKeyPassword().toCharArray() : null,
-                        sslService.getKeyStoreType(),
-                        sslService.getTrustStoreFile(),
-                        sslService.getTrustStorePassword() != null ? sslService.getTrustStorePassword().toCharArray() : null,
-                        sslService.getTrustStoreType(),
-                        SslContextFactory.ClientAuth.WANT,
-                        sslService.getSslAlgorithm()
-                );
-                List<X509TrustManager> x509TrustManagers = Arrays.stream(sslContextTuple.getValue())
-                        .filter(trustManager -> trustManager instanceof X509TrustManager)
-                        .map(trustManager -> (X509TrustManager) trustManager).collect(Collectors.toList());
-                okHttpClient.sslSocketFactory(sslContextTuple.getKey().getSocketFactory(), x509TrustManagers.get(0));
-            } catch (CertificateException | UnrecoverableKeyException | NoSuchAlgorithmException | KeyStoreException | KeyManagementException | IOException e) {
-                throw new ProcessException(e);
-            }
+        if (sslService != null) {
+            final TlsConfiguration tlsConfiguration = sslService.createTlsConfiguration();
+            OkHttpClientUtils.applyTlsToOkHttpClientBuilder(tlsConfiguration, okHttpClient);
         }
 
         okHttpClientAtomicReference.set(okHttpClient.build());
@@ -250,7 +219,7 @@ public abstract class AbstractElasticsearchHttpProcessor extends AbstractElastic
     @Override
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
         List<ValidationResult> results = new ArrayList<>(super.customValidate(validationContext));
-        if(validationContext.getProperty(PROXY_HOST).isSet() != validationContext.getProperty(PROXY_PORT).isSet()) {
+        if (validationContext.getProperty(PROXY_HOST).isSet() != validationContext.getProperty(PROXY_PORT).isSet()) {
             results.add(new ValidationResult.Builder()
                     .valid(false)
                     .explanation("Proxy Host and Proxy Port must be both set or empty")
@@ -286,7 +255,7 @@ public abstract class AbstractElasticsearchHttpProcessor extends AbstractElastic
             throw new IllegalArgumentException("Elasticsearch REST API verb not supported by this processor: " + verb);
         }
 
-        if(!StringUtils.isEmpty(username) && !StringUtils.isEmpty(password)) {
+        if (!StringUtils.isEmpty(username) && !StringUtils.isEmpty(password)) {
             String credential = Credentials.basic(username, password);
             requestBuilder = requestBuilder.header("Authorization", credential);
         }

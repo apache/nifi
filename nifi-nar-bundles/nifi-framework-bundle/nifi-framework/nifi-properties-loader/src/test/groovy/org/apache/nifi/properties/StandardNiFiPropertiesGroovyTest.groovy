@@ -958,4 +958,37 @@ class StandardNiFiPropertiesGroovyTest extends GroovyTestCase {
         // Assert
         assert hosts.size() == 0
     }
+
+    @Test
+    void testStaticFactoryMethodShouldAcceptRawProperties() throws Exception {
+        // Arrange
+        Properties rawProperties = new Properties()
+        rawProperties.setProperty("key", "value")
+        logger.info("rawProperties has ${rawProperties.size()} properties: ${rawProperties.stringPropertyNames()}")
+        assert rawProperties.size() == 1
+
+        // Act
+        NiFiProperties niFiProperties = NiFiProperties.createBasicNiFiProperties("", rawProperties)
+        logger.info("niFiProperties has ${niFiProperties.size()} properties: ${niFiProperties.getPropertyKeys()}")
+
+        // Assert
+        assert niFiProperties.size() == 1
+        assert niFiProperties.getPropertyKeys() == ["key"] as Set
+    }
+
+    @Test
+    void testStaticFactoryMethodShouldAcceptMap() throws Exception {
+        // Arrange
+        def mapProperties = ["key": "value"]
+        logger.info("rawProperties has ${mapProperties.size()} properties: ${mapProperties.keySet()}")
+        assert mapProperties.size() == 1
+
+        // Act
+        NiFiProperties niFiProperties = NiFiProperties.createBasicNiFiProperties("", mapProperties)
+        logger.info("niFiProperties has ${niFiProperties.size()} properties: ${niFiProperties.getPropertyKeys()}")
+
+        // Assert
+        assert niFiProperties.size() == 1
+        assert niFiProperties.getPropertyKeys() == ["key"] as Set
+    }
 }

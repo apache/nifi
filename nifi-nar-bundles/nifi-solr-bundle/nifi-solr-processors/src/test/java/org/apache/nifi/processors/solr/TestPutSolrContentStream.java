@@ -16,10 +16,26 @@
  */
 package org.apache.nifi.processors.solr;
 
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.security.PrivilegedActionException;
+import java.security.PrivilegedExceptionAction;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+import javax.security.auth.login.LoginException;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.kerberos.KerberosCredentialsService;
 import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.security.krb.KerberosKeytabUser;
 import org.apache.nifi.security.krb.KerberosUser;
@@ -39,24 +55,6 @@ import org.apache.solr.common.util.NamedList;
 import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.Mockito;
-
-import javax.net.ssl.SSLContext;
-import javax.security.auth.login.LoginException;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.security.PrivilegedActionException;
-import java.security.PrivilegedExceptionAction;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.eq;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 /**
  * Test for PutSolr processor.
@@ -239,7 +237,7 @@ public class TestPutSolrContentStream {
         Assert.assertEquals(1, qResponse.getResults().getNumFound());
 
         // run the processor with a delete-by-query command
-        runner.enqueue("<delete><query>first:bob</query></delete>".getBytes("UTF-8"));
+        runner.enqueue("<delete><query>first:bob</query></delete>".getBytes(StandardCharsets.UTF_8));
         runner.run(1, false);
 
         // prove the document got deleted
@@ -280,7 +278,7 @@ public class TestPutSolrContentStream {
             runner.run();
 
             runner.assertAllFlowFilesTransferred(PutSolrContentStream.REL_FAILURE, 1);
-            verify(proc.getSolrClient(), times(1)).request(any(SolrRequest.class), eq((String)null));
+            verify(proc.getSolrClient(), times(1)).request(any(SolrRequest.class), eq(null));
         }
     }
 
@@ -296,7 +294,7 @@ public class TestPutSolrContentStream {
             runner.run();
 
             runner.assertAllFlowFilesTransferred(PutSolrContentStream.REL_CONNECTION_FAILURE, 1);
-            verify(proc.getSolrClient(), times(1)).request(any(SolrRequest.class), eq((String)null));
+            verify(proc.getSolrClient(), times(1)).request(any(SolrRequest.class), eq(null));
         }
     }
 
@@ -312,7 +310,7 @@ public class TestPutSolrContentStream {
             runner.run();
 
             runner.assertAllFlowFilesTransferred(PutSolrContentStream.REL_FAILURE, 1);
-            verify(proc.getSolrClient(), times(1)).request(any(SolrRequest.class), eq((String)null));
+            verify(proc.getSolrClient(), times(1)).request(any(SolrRequest.class), eq(null));
         }
     }
 
@@ -329,7 +327,7 @@ public class TestPutSolrContentStream {
             runner.run();
 
             runner.assertAllFlowFilesTransferred(PutSolrContentStream.REL_FAILURE, 1);
-            verify(proc.getSolrClient(), times(1)).request(any(SolrRequest.class), eq((String)null));
+            verify(proc.getSolrClient(), times(1)).request(any(SolrRequest.class), eq(null));
         }
     }
 
@@ -345,7 +343,7 @@ public class TestPutSolrContentStream {
             runner.run();
 
             runner.assertAllFlowFilesTransferred(PutSolrContentStream.REL_CONNECTION_FAILURE, 1);
-            verify(proc.getSolrClient(), times(1)).request(any(SolrRequest.class), eq((String)null));
+            verify(proc.getSolrClient(), times(1)).request(any(SolrRequest.class), eq(null));
         }
     }
 
@@ -588,67 +586,6 @@ public class TestPutSolrContentStream {
         }
     }
 
-    /**
-     * Mock implementation so we don't need to have a real keystore/truststore available for testing.
-     */
-    private class MockSSLContextService extends AbstractControllerService implements SSLContextService {
-
-        @Override
-        public SSLContext createSSLContext(ClientAuth clientAuth) throws ProcessException {
-            return null;
-        }
-
-        @Override
-        public String getTrustStoreFile() {
-            return null;
-        }
-
-        @Override
-        public String getTrustStoreType() {
-            return null;
-        }
-
-        @Override
-        public String getTrustStorePassword() {
-            return null;
-        }
-
-        @Override
-        public boolean isTrustStoreConfigured() {
-            return false;
-        }
-
-        @Override
-        public String getKeyStoreFile() {
-            return null;
-        }
-
-        @Override
-        public String getKeyStoreType() {
-            return null;
-        }
-
-        @Override
-        public String getKeyStorePassword() {
-            return null;
-        }
-
-        @Override
-        public String getKeyPassword() {
-            return null;
-        }
-
-        @Override
-        public boolean isKeyStoreConfigured() {
-            return false;
-        }
-
-        @Override
-        public String getSslAlgorithm() {
-            return null;
-        }
-    }
-
     // Override the createSolrClient method to inject a custom SolrClient.
     private class CollectionVerifyingProcessor extends PutSolrContentStream {
 
@@ -695,7 +632,7 @@ public class TestPutSolrContentStream {
             mockSolrClient = Mockito.mock(SolrClient.class);
             try {
                 when(mockSolrClient.request(any(SolrRequest.class),
-                        eq((String)null))).thenThrow(throwable);
+                        eq(null))).thenThrow(throwable);
             } catch (SolrServerException e) {
                 Assert.fail(e.getMessage());
             } catch (IOException e) {

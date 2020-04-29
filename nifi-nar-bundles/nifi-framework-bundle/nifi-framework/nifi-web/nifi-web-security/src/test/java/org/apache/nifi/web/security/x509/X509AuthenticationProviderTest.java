@@ -95,7 +95,7 @@ public class X509AuthenticationProviderTest {
             return AuthorizationResult.approved();
         });
 
-        x509AuthenticationProvider = new X509AuthenticationProvider(certificateIdentityProvider, authorizer, NiFiProperties.createBasicNiFiProperties(null, null));
+        x509AuthenticationProvider = new X509AuthenticationProvider(certificateIdentityProvider, authorizer, NiFiProperties.createBasicNiFiProperties(null));
     }
 
     @Test(expected = InvalidAuthenticationException.class)

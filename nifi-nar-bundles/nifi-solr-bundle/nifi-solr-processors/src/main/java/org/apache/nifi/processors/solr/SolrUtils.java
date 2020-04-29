@@ -18,14 +18,33 @@
  */
 package org.apache.nifi.processors.solr;
 
+import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.SortedMap;
+import java.util.TreeMap;
+import java.util.concurrent.TimeUnit;
+import javax.net.ssl.SSLContext;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.HttpClient;
 import org.apache.http.config.Registry;
 import org.apache.http.config.RegistryBuilder;
-import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.conn.socket.ConnectionSocketFactory;
 import org.apache.http.conn.socket.PlainConnectionSocketFactory;
+import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.context.PropertyContext;
@@ -36,6 +55,7 @@ import org.apache.nifi.kerberos.KerberosCredentialsService;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.ListRecordSet;
@@ -60,27 +80,6 @@ import org.apache.solr.common.params.ModifiableSolrParams;
 import org.apache.solr.common.params.MultiMapSolrParams;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.net.ssl.SSLContext;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.math.BigInteger;
-import java.nio.charset.StandardCharsets;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.SortedMap;
-import java.util.TreeMap;
-import java.util.concurrent.TimeUnit;
 
 public class SolrUtils {
 
@@ -252,7 +251,7 @@ public class SolrUtils {
         }
 
         if (sslContextService != null) {
-            final SSLContext sslContext = sslContextService.createSSLContext(SSLContextService.ClientAuth.REQUIRED);
+            final SSLContext sslContext = sslContextService.createSSLContext(SslContextFactory.ClientAuth.REQUIRED);
             final SSLConnectionSocketFactory sslSocketFactory = new SSLConnectionSocketFactory(sslContext);
             HttpClientUtil.setSchemaRegistryProvider(new HttpClientUtil.SchemaRegistryProvider() {
                 @Override
@@ -277,7 +276,7 @@ public class SolrUtils {
             return new HttpSolrClient.Builder(solrLocation).withHttpClient(httpClient).build();
         } else {
             // CloudSolrClient.Builder now requires a List of ZK addresses and znode for solr as separate parameters
-            final String zk[] = solrLocation.split("/");
+            final String[] zk = solrLocation.split("/");
             final List zkList = Arrays.asList(zk[0].split(","));
             String zkRoot = "/";
             if (zk.length > 1 && ! zk[1].isEmpty()) {
@@ -458,9 +457,9 @@ public class SolrUtils {
                 break;
             case BIGINT:
                 if (coercedValue instanceof Long) {
-                    addFieldToSolrDocument(inputDocument,fieldName,(Long) coercedValue,fieldsToIndex);
+                    addFieldToSolrDocument(inputDocument,fieldName, coercedValue,fieldsToIndex);
                 } else {
-                    addFieldToSolrDocument(inputDocument,fieldName,(BigInteger)coercedValue,fieldsToIndex);
+                    addFieldToSolrDocument(inputDocument,fieldName, coercedValue,fieldsToIndex);
                 }
                 break;
             case BOOLEAN:
@@ -497,7 +496,7 @@ public class SolrUtils {
     }
 
     private static void addFieldToSolrDocument(SolrInputDocument inputDocument,String fieldName,Object fieldValue,List<String> fieldsToIndex){
-        if ((!fieldsToIndex.isEmpty() && fieldsToIndex.contains(fieldName)) || fieldsToIndex.isEmpty()){
+        if (fieldsToIndex.isEmpty() || fieldsToIndex.contains(fieldName)){
             inputDocument.addField(fieldName, fieldValue);
         }
     }
