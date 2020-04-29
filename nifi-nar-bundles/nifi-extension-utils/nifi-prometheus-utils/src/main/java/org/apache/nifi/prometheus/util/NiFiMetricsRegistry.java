@@ -171,6 +171,20 @@ public class NiFiMetricsRegistry extends AbstractMetricsRegistry {
                         "source_id", "source_name", "destination_id", "destination_name")
                 .register(registry));
 
+        nameToGaugeMap.put("PERCENT_USED_BYTES",  Gauge.build()
+                .name("nifi_percent_used_bytes")
+                .help("The percentage of connection that is filled based on content bytes")
+                .labelNames("instance", "component_type", "component_name", "component_id", "parent_id",
+                        "source_id", "source_name", "destination_id", "destination_name")
+                .register(registry));
+
+        nameToGaugeMap.put("PERCENT_USED_COUNT",  Gauge.build()
+                .name("nifi_percent_used_count")
+                .help("The percentage of connection that is filled based on object count")
+                .labelNames("instance", "component_type", "component_name", "component_id", "parent_id",
+                        "source_id", "source_name", "destination_id", "destination_name")
+                .register(registry));
+
         // Port metrics
         nameToGaugeMap.put("IS_TRANSMITTING",  Gauge.build()
                 .name("nifi_transmitting")
