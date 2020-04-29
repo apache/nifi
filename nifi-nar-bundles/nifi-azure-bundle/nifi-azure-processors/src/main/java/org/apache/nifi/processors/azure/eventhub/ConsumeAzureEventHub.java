@@ -121,7 +121,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
             .fromPropertyDescriptor(AzureEventHubUtils.POLICY_PRIMARY_KEY)
             .name("event-hub-shared-access-policy-primary-key")
             .build();
-    static final PropertyDescriptor USE_MANANGED_IDENTITY = AzureEventHubUtils.USE_MANAGED_IDENTITY;
+    static final PropertyDescriptor USE_MANAGED_IDENTITY = AzureEventHubUtils.USE_MANAGED_IDENTITY;
     static final PropertyDescriptor CONSUMER_GROUP = new PropertyDescriptor.Builder()
             .name("event-hub-consumer-group")
             .displayName("Consumer Group")
@@ -257,7 +257,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
 
     static {
         PROPERTIES = Collections.unmodifiableList(Arrays.asList(
-                NAMESPACE, EVENT_HUB_NAME, ACCESS_POLICY_NAME, POLICY_PRIMARY_KEY, USE_MANANGED_IDENTITY, CONSUMER_GROUP, CONSUMER_HOSTNAME,
+                NAMESPACE, EVENT_HUB_NAME, ACCESS_POLICY_NAME, POLICY_PRIMARY_KEY, USE_MANAGED_IDENTITY, CONSUMER_GROUP, CONSUMER_HOSTNAME,
                 RECORD_READER, RECORD_WRITER,
                 INITIAL_OFFSET, PREFETCH_COUNT, BATCH_SIZE, RECEIVE_TIMEOUT,
                 STORAGE_ACCOUNT_NAME, STORAGE_ACCOUNT_KEY, STORAGE_CONTAINER_NAME
@@ -619,7 +619,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
         final String storageConnectionString = String.format(FORMAT_STORAGE_CONNECTION_STRING, storageAccountName, storageAccountKey);
 
         final String connectionString;
-        final boolean useManagedIdentity = context.getProperty(USE_MANANGED_IDENTITY).asBoolean();
+        final boolean useManagedIdentity = context.getProperty(USE_MANAGED_IDENTITY).asBoolean();
         if(useManagedIdentity) {
             connectionString = AzureEventHubUtils.getManagedIdentityConnectionString(namespaceName, eventHubName);
         } else {

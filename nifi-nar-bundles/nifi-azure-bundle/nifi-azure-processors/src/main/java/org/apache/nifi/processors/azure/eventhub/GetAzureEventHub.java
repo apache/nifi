@@ -110,7 +110,7 @@ public class GetAzureEventHub extends AbstractProcessor {
             .required(false)
             .build();
     static final PropertyDescriptor POLICY_PRIMARY_KEY =  AzureEventHubUtils.POLICY_PRIMARY_KEY;
-    static final PropertyDescriptor USE_MANANGED_IDENTITY = AzureEventHubUtils.USE_MANAGED_IDENTITY;
+    static final PropertyDescriptor USE_MANAGED_IDENTITY = AzureEventHubUtils.USE_MANAGED_IDENTITY;
 
     static final PropertyDescriptor NUM_PARTITIONS = new PropertyDescriptor.Builder()
             .name("Number of Event Hub Partitions")
@@ -161,6 +161,7 @@ public class GetAzureEventHub extends AbstractProcessor {
             .description("Any FlowFile that is successfully received from the event hub will be transferred to this Relationship.")
             .build();
 
+
     private final ConcurrentMap<String, PartitionReceiver> partitionToReceiverMap = new ConcurrentHashMap<>();
     private volatile BlockingQueue<String> partitionNames = new LinkedBlockingQueue<>();
     private volatile Instant configuredEnqueueTime;
@@ -182,7 +183,7 @@ public class GetAzureEventHub extends AbstractProcessor {
         _propertyDescriptors.add(NAMESPACE);
         _propertyDescriptors.add(ACCESS_POLICY);
         _propertyDescriptors.add(POLICY_PRIMARY_KEY);
-        _propertyDescriptors.add(USE_MANANGED_IDENTITY);
+        _propertyDescriptors.add(USE_MANAGED_IDENTITY);
         _propertyDescriptors.add(NUM_PARTITIONS);
         _propertyDescriptors.add(CONSUMER_GROUP);
         _propertyDescriptors.add(ENQUEUE_TIME);
@@ -309,7 +310,7 @@ public class GetAzureEventHub extends AbstractProcessor {
         final String namespace = context.getProperty(NAMESPACE).getValue();
         final String eventHubName = context.getProperty(EVENT_HUB_NAME).getValue();
         final String serviceBusEndpoint = context.getProperty(SERVICE_BUS_ENDPOINT).getValue();
-        final boolean useManagedIdentity = context.getProperty(USE_MANANGED_IDENTITY).asBoolean();
+        final boolean useManagedIdentity = context.getProperty(USE_MANAGED_IDENTITY).asBoolean();
         final String connectionString;
 
         if(useManagedIdentity){

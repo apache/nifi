@@ -84,7 +84,7 @@ public class GetAzureEventHubTest {
         testRunner.assertNotValid();
         testRunner.setProperty(PutAzureEventHub.NAMESPACE,namespaceName);
         testRunner.assertNotValid();
-        testRunner.setProperty(PutAzureEventHub.USE_MANANGED_IDENTITY,"true");
+        testRunner.setProperty(PutAzureEventHub.USE_MANAGED_IDENTITY,"true");
         testRunner.assertNotValid();
         testRunner.setProperty(GetAzureEventHub.NUM_PARTITIONS,"4");
         testRunner.assertValid();

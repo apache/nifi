@@ -127,7 +127,7 @@ public class TestConsumeAzureEventHub {
         testRunner.setProperty(ConsumeAzureEventHub.STORAGE_ACCOUNT_KEY, storageAccountKey);
         testRunner.assertNotValid();
 
-        testRunner.setProperty(ConsumeAzureEventHub.USE_MANANGED_IDENTITY,"true");
+        testRunner.setProperty(ConsumeAzureEventHub.USE_MANAGED_IDENTITY,"true");
         testRunner.assertValid();
     }
     @Test

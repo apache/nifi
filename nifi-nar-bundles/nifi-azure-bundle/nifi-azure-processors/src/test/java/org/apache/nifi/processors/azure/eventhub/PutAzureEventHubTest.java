@@ -94,7 +94,7 @@ public class PutAzureEventHubTest {
         testRunner.assertNotValid();
         testRunner.setProperty(PutAzureEventHub.NAMESPACE,namespaceName);
         testRunner.assertNotValid();
-        testRunner.setProperty(PutAzureEventHub.USE_MANANGED_IDENTITY,"true");
+        testRunner.setProperty(PutAzureEventHub.USE_MANAGED_IDENTITY,"true");
         testRunner.assertValid();
     }
     @Test

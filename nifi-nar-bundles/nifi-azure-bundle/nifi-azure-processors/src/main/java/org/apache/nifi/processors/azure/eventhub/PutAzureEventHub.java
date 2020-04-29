@@ -98,7 +98,7 @@ public class PutAzureEventHub extends AbstractProcessor {
             .required(false)
             .build();
     static final PropertyDescriptor POLICY_PRIMARY_KEY = AzureEventHubUtils.POLICY_PRIMARY_KEY;
-    static final PropertyDescriptor USE_MANANGED_IDENTITY = AzureEventHubUtils.USE_MANAGED_IDENTITY;
+    static final PropertyDescriptor USE_MANAGED_IDENTITY = AzureEventHubUtils.USE_MANAGED_IDENTITY;
 
     static final PropertyDescriptor PARTITIONING_KEY_ATTRIBUTE_NAME = new PropertyDescriptor.Builder()
             .name("partitioning-key-attribute-name")
@@ -143,7 +143,7 @@ public class PutAzureEventHub extends AbstractProcessor {
         _propertyDescriptors.add(NAMESPACE);
         _propertyDescriptors.add(ACCESS_POLICY);
         _propertyDescriptors.add(POLICY_PRIMARY_KEY);
-        _propertyDescriptors.add(USE_MANANGED_IDENTITY);
+        _propertyDescriptors.add(USE_MANAGED_IDENTITY);
         _propertyDescriptors.add(PARTITIONING_KEY_ATTRIBUTE_NAME);
         _propertyDescriptors.add(MAX_BATCH_SIZE);
         propertyDescriptors = Collections.unmodifiableList(_propertyDescriptors);
@@ -321,7 +321,7 @@ public class PutAzureEventHub extends AbstractProcessor {
             final int numThreads = context.getMaxConcurrentTasks();
             senderQueue = new LinkedBlockingQueue<>(numThreads);
             executor = Executors.newScheduledThreadPool(4);
-            final boolean useManagedIdentiy = context.getProperty(USE_MANANGED_IDENTITY).asBoolean();
+            final boolean useManagedIdentiy = context.getProperty(USE_MANAGED_IDENTITY).asBoolean();
             final String policyName, policyKey;
             if(useManagedIdentiy) {
                 policyName = AzureEventHubUtils.MANAGED_IDENTITY_POLICY;
@@ -364,7 +364,7 @@ public class PutAzureEventHub extends AbstractProcessor {
             if(policyName == AzureEventHubUtils.MANAGED_IDENTITY_POLICY) {
                 connectionString = AzureEventHubUtils.getManagedIdentityConnectionString(namespace, eventHubName);
             } else{
-                connectionString = AzureEventHubUtils.getSharedAccessSignatureConnectionString(namespace, eventHubName, policyName, policyKey);
+                connectionString = getConnectionString(namespace, eventHubName, policyName, policyKey);
             }
             return EventHubClient.createFromConnectionStringSync(connectionString, executor);
         } catch (IOException | EventHubException | IllegalConnectionStringFormatException e) {
@@ -374,7 +374,7 @@ public class PutAzureEventHub extends AbstractProcessor {
     }
 
     protected String getConnectionString(final String namespace, final String eventHubName, final String policyName, final String policyKey){
-        return new ConnectionStringBuilder().setNamespaceName(namespace).setEventHubName(eventHubName).setSasKeyName(policyName).setSasKey(policyKey).toString();
+        return AzureEventHubUtils.getSharedAccessSignatureConnectionString(namespace, eventHubName, policyName, policyKey);
     }
 
     /**
