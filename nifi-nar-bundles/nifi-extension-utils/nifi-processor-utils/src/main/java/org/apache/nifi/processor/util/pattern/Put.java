@@ -52,7 +52,7 @@ public class Put<FC, C extends AutoCloseable> {
                     + "at that point, it will process all FlowFiles with that fragment.identifier as a single transaction, in the order specified by the FlowFiles' fragment.index attributes. "
                     + "This Provides atomicity of those SQL statements. If this value is false, these attributes will be ignored and the updates will occur independent of one another.")
             .allowableValues("true", "false")
-            .defaultValue("true")
+            .defaultValue("false")
             .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -143,18 +143,19 @@ public class Put<FC, C extends AutoCloseable> {
 
                 //If the processor `Put` flowfiles transactionally and some result don't routeto 'succcess',
                 //we should apply onFailed function（if have）and route all flowfiles of one transaction to the same relationship
+                boolean failed = false;
                 if (context.getProperties().containsKey(SUPPORT_TRANSACTIONS) && context.getProperty(SUPPORT_TRANSACTIONS).asBoolean()) {
                     if (result.contains(REL_RETRY) || result.contains(REL_FAILURE)) {
-                        if (onFailed != null) {
-                            onFailed.apply(context, session, functionContext, connection, null);
-                        }
+                        failed = true;
+                        result.getRoutedFlowFiles().clear();
                         result.routeTo(transferredFlowFiles,result.contains(REL_RETRY) ? REL_RETRY : REL_FAILURE);
-                        return;
                     }
                 }
-
+                if (failed && onFailed != null) {
+                    onFailed.apply(context, session, functionContext, connection, null);
+                }
                 // OnCompleted processing.
-                if (onCompleted != null) {
+                if (!failed && onCompleted != null) {
                     onCompleted.apply(context, session, functionContext, connection);
                 }
 
