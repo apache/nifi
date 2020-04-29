@@ -324,7 +324,7 @@ public class PutAzureEventHub extends AbstractProcessor {
             final boolean useManagedIdentiy = context.getProperty(USE_MANANGED_IDENTITY).asBoolean();
             final String policyName, policyKey;
             if(useManagedIdentiy) {
-                policyName = AzureEventHubUtils.MANAGED_IDENDITY_POLICY;
+                policyName = AzureEventHubUtils.MANAGED_IDENTITY_POLICY;
                 policyKey =null;
             } else {
                 policyName = context.getProperty(ACCESS_POLICY).getValue();
@@ -361,10 +361,10 @@ public class PutAzureEventHub extends AbstractProcessor {
         try {
             EventHubClientImpl.USER_AGENT = "ApacheNiFi-azureeventhub/3.1.1";
             final String connectionString;
-            if(policyName == AzureEventHubUtils.MANAGED_IDENDITY_POLICY) {
+            if(policyName == AzureEventHubUtils.MANAGED_IDENTITY_POLICY) {
                 connectionString = AzureEventHubUtils.getManagedIdentityConnectionString(namespace, eventHubName);
             } else{
-                connectionString = getConnectionString(namespace, eventHubName, policyName, policyKey);
+                connectionString = AzureEventHubUtils.getSharedAccessSignatureConnectionString(namespace, eventHubName, policyName, policyKey);
             }
             return EventHubClient.createFromConnectionStringSync(connectionString, executor);
         } catch (IOException | EventHubException | IllegalConnectionStringFormatException e) {

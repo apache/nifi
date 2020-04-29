@@ -29,7 +29,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 
 public final class AzureEventHubUtils {
 
-    public static final String MANAGED_IDENDITY_POLICY = ConnectionStringBuilder.MANAGED_IDENTITY_AUTHENTICATION;
+    public static final String MANAGED_IDENTITY_POLICY = ConnectionStringBuilder.MANAGED_IDENTITY_AUTHENTICATION;
 
     public static final PropertyDescriptor POLICY_PRIMARY_KEY = new PropertyDescriptor.Builder()
         .name("Shared Access Policy Primary Key")
@@ -63,7 +63,7 @@ public final class AzureEventHubUtils {
                 accessPolicyDescriptor.getDisplayName(),
                 POLICY_PRIMARY_KEY.getDisplayName()
             );
-            retVal.add(new ValidationResult.Builder().valid(false).explanation(msg).build());
+            retVal.add(new ValidationResult.Builder().subject("Credentials config").valid(false).explanation(msg).build());
         } else if (!useManagedIdentity && (!accessPolicyIsSet || !policyKeyIsSet)) {
             final String msg = String.format(
                 "either('%s') or (%s with '%s') must be set",
@@ -71,14 +71,14 @@ public final class AzureEventHubUtils {
                 accessPolicyDescriptor.getDisplayName(),
                 POLICY_PRIMARY_KEY.getDisplayName()
             );
-            retVal.add(new ValidationResult.Builder().valid(false).explanation(msg).build());
+            retVal.add(new ValidationResult.Builder().subject("Credentials config").valid(false).explanation(msg).build());
         }
         return retVal;
     }
 
     public static String getManagedIdentityConnectionString(final String namespace, final String eventHubName){
         return new ConnectionStringBuilder().setNamespaceName(namespace).setEventHubName(eventHubName)
-                    .setAuthentication(MANAGED_IDENDITY_POLICY).toString();
+                    .setAuthentication(MANAGED_IDENTITY_POLICY).toString();
     }
     public static String getSharedAccessSignatureConnectionString(final String namespace, final String eventHubName, final String sasName, final String sasKey) {
         return new ConnectionStringBuilder()
