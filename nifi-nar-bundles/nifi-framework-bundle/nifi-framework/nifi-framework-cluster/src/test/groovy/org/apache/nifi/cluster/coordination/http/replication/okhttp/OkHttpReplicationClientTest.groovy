@@ -212,7 +212,7 @@ class OkHttpReplicationClientTest extends GroovyTestCase {
     }
 
     @Test
-    void testShouldFailIfKeyPasswordIsBlankAndKeystorePassword() {
+    void testShouldFailIfKeyPasswordAndKeystorePasswordAreBlank() {
         // Arrange
         Map propsMap = [
                 (NiFiProperties.SECURITY_TRUSTSTORE)       : "./src/test/resources/conf/truststore.jks",
@@ -242,13 +242,13 @@ class OkHttpReplicationClientTest extends GroovyTestCase {
                         (NiFiProperties.WEB_HTTPS_PORT): "51552",]
 
         Map tlsPropsMap = [
-                (NiFiProperties.SECURITY_TRUSTSTORE)       : "./src/test/resources/conf/truststore.jks",
-                (NiFiProperties.SECURITY_TRUSTSTORE_TYPE)  : "JKS",
-                (NiFiProperties.SECURITY_TRUSTSTORE_PASSWD): "passwordpassword",
                 (NiFiProperties.SECURITY_KEYSTORE)         : "./src/test/resources/conf/keystore.jks",
-                (NiFiProperties.SECURITY_KEYSTORE_TYPE)    : "JKS",
                 (NiFiProperties.SECURITY_KEYSTORE_PASSWD)  : "passwordpassword",
                 (NiFiProperties.SECURITY_KEY_PASSWD)       : "",
+                (NiFiProperties.SECURITY_KEYSTORE_TYPE)    : "JKS",
+                (NiFiProperties.SECURITY_TRUSTSTORE)       : "./src/test/resources/conf/truststore.jks",
+                (NiFiProperties.SECURITY_TRUSTSTORE_PASSWD): "passwordpassword",
+                (NiFiProperties.SECURITY_TRUSTSTORE_TYPE)  : "JKS",
         ] + propsMap
 
 

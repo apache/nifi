@@ -16,44 +16,17 @@
  */
 package org.apache.nifi.processors.standard;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import com.google.api.client.util.Charsets;
 import com.google.common.base.Optional;
 import com.google.common.collect.Iterables;
 import com.google.common.io.Files;
-import okhttp3.Call;
-import okhttp3.Callback;
-import okhttp3.MediaType;
-import okhttp3.MultipartBody;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.RequestBody;
-import okhttp3.Response;
-import org.apache.nifi.controller.AbstractControllerService;
-import org.apache.nifi.http.HttpContextMap;
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processors.standard.util.HTTPUtils;
-import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.security.util.SslContextFactory;
-import org.apache.nifi.ssl.SSLContextService;
-import org.apache.nifi.ssl.StandardRestrictedSSLContextService;
-import org.apache.nifi.ssl.StandardSSLContextService;
-import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Test;
-
-import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.SSLContext;
-import javax.servlet.AsyncContext;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -68,39 +41,71 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.servlet.AsyncContext;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import okhttp3.Call;
+import okhttp3.Callback;
+import okhttp3.MediaType;
+import okhttp3.MultipartBody;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
+import org.apache.nifi.controller.AbstractControllerService;
+import org.apache.nifi.http.HttpContextMap;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processors.standard.util.HTTPUtils;
+import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.security.util.CertificateUtils;
+import org.apache.nifi.security.util.SslContextFactory;
+import org.apache.nifi.security.util.TlsConfiguration;
+import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.ssl.StandardRestrictedSSLContextService;
+import org.apache.nifi.ssl.StandardSSLContextService;
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
 
 public class ITestHandleHttpRequest {
 
+    private static final String KEYSTORE = "src/test/resources/keystore.jks";
+    private static final String KEYSTORE_PASSWORD = "passwordpassword";
+    private static final String KEYSTORE_TYPE = "JKS";
+    private static final String TRUSTSTORE = "src/test/resources/truststore.jks";
+    private static final String TRUSTSTORE_PASSWORD = "passwordpassword";
+    private static final String TRUSTSTORE_TYPE = "JKS";
+    private static final String CLIENT_KEYSTORE = "src/test/resources/client-keystore.p12";
+    private static final String CLIENT_KEYSTORE_TYPE = "PKCS12";
+
     private HandleHttpRequest processor;
+
+    private TlsConfiguration clientTlsConfiguration;
+    private TlsConfiguration trustOnlyTlsConfiguration;
 
     private static Map<String, String> getTruststoreProperties() {
         final Map<String, String> props = new HashMap<>();
-        props.put(StandardSSLContextService.TRUSTSTORE.getName(), "src/test/resources/truststore.jks");
-        props.put(StandardSSLContextService.TRUSTSTORE_PASSWORD.getName(), "passwordpassword");
-        props.put(StandardSSLContextService.TRUSTSTORE_TYPE.getName(), "JKS");
+        props.put(StandardSSLContextService.TRUSTSTORE.getName(), TRUSTSTORE);
+        props.put(StandardSSLContextService.TRUSTSTORE_PASSWORD.getName(), TRUSTSTORE_PASSWORD);
+        props.put(StandardSSLContextService.TRUSTSTORE_TYPE.getName(), TRUSTSTORE_TYPE);
         return props;
     }
 
     private static Map<String, String> getServerKeystoreProperties() {
         final Map<String, String> properties = new HashMap<>();
-        properties.put(StandardSSLContextService.KEYSTORE.getName(), "src/test/resources/keystore.jks");
-        properties.put(StandardSSLContextService.KEYSTORE_PASSWORD.getName(), "passwordpassword");
-        properties.put(StandardSSLContextService.KEYSTORE_TYPE.getName(), "JKS");
+        properties.put(StandardSSLContextService.KEYSTORE.getName(), KEYSTORE);
+        properties.put(StandardSSLContextService.KEYSTORE_PASSWORD.getName(), KEYSTORE_PASSWORD);
+        properties.put(StandardSSLContextService.KEYSTORE_TYPE.getName(), KEYSTORE_TYPE);
         return properties;
     }
 
-    private static Map<String, String> getClientKeystoreProperties() {
-        final Map<String, String> properties = new HashMap<>();
-        properties.put(StandardSSLContextService.KEYSTORE.getName(), "src/test/resources/client-keystore.p12");
-        properties.put(StandardSSLContextService.KEYSTORE_PASSWORD.getName(), "passwordpassword");
-        properties.put(StandardSSLContextService.KEYSTORE_TYPE.getName(), "PKCS12");
-        return properties;
-    }
-
-    private static SSLContext useSSLContextService(final TestRunner controller, final Map<String, String> sslProperties, SSLContextService.ClientAuth clientAuth) {
+    private static SSLContext useSSLContextService(final TestRunner controller, final Map<String, String> sslProperties, SslContextFactory.ClientAuth clientAuth) {
         final SSLContextService service = new StandardRestrictedSSLContextService();
         try {
             controller.addControllerService("ssl-service", service, sslProperties);
@@ -114,6 +119,14 @@ public class ITestHandleHttpRequest {
         return service.createSSLContext(clientAuth);
     }
 
+    @Before
+    public void setUp() throws Exception {
+        clientTlsConfiguration = new TlsConfiguration(CLIENT_KEYSTORE, KEYSTORE_PASSWORD, null, CLIENT_KEYSTORE_TYPE,
+                TRUSTSTORE, TRUSTSTORE_PASSWORD, TRUSTSTORE_TYPE, CertificateUtils.getHighestCurrentSupportedTlsProtocolVersion());
+        trustOnlyTlsConfiguration = new TlsConfiguration(null, null, null, null,
+                TRUSTSTORE, TRUSTSTORE_PASSWORD, TRUSTSTORE_TYPE, CertificateUtils.getHighestCurrentSupportedTlsProtocolVersion());
+    }
+
     @After
     public void tearDown() throws Exception {
         if (processor != null) {
@@ -121,8 +134,8 @@ public class ITestHandleHttpRequest {
         }
     }
 
-    @Test(timeout=30000)
-    public void testRequestAddedToService() throws InitializationException, MalformedURLException, IOException, InterruptedException {
+    @Test(timeout = 30000)
+    public void testRequestAddedToService() throws InitializationException, IOException, InterruptedException {
         CountDownLatch serverReady = new CountDownLatch(1);
         CountDownLatch requestSent = new CountDownLatch(1);
 
@@ -176,8 +189,8 @@ public class ITestHandleHttpRequest {
         mff.assertAttributeEquals("http.headers.header3", "apple=orange");
     }
 
-    @Test(timeout=30000)
-    public void testMultipartFormDataRequest() throws InitializationException, MalformedURLException, IOException, InterruptedException {
+    @Test(timeout = 30000)
+    public void testMultipartFormDataRequest() throws InitializationException, IOException, InterruptedException {
         CountDownLatch serverReady = new CountDownLatch(1);
         CountDownLatch requestSent = new CountDownLatch(1);
 
@@ -191,37 +204,40 @@ public class ITestHandleHttpRequest {
         runner.setProperty(HandleHttpRequest.HTTP_CONTEXT_MAP, "http-context-map");
 
         final Thread httpThread = new Thread(new Runnable() {
-          @Override
-          public void run() {
-            try {
-              serverReady.await();
+            @Override
+            public void run() {
+                try {
+                    serverReady.await();
 
-              final int port = ((HandleHttpRequest) runner.getProcessor()).getPort();
+                    final int port = ((HandleHttpRequest) runner.getProcessor()).getPort();
 
-              MultipartBody multipartBody = new MultipartBody.Builder()
-                .setType(MultipartBody.FORM)
-                .addFormDataPart("p1", "v1")
-                .addFormDataPart("p2", "v2")
-                .addFormDataPart("file1", "my-file-text.txt", RequestBody.create(MediaType.parse("text/plain"), createTextFile("my-file-text.txt", "Hello", "World")))
-                .addFormDataPart("file2", "my-file-data.json", RequestBody.create(MediaType.parse("application/json"), createTextFile("my-file-text.txt", "{ \"name\":\"John\", \"age\":30 }")))
-                .addFormDataPart("file3", "my-file-binary.bin", RequestBody.create(MediaType.parse("application/octet-stream"), generateRandomBinaryData(100)))
-                .build();
+                    MultipartBody multipartBody = new MultipartBody.Builder()
+                            .setType(MultipartBody.FORM)
+                            .addFormDataPart("p1", "v1")
+                            .addFormDataPart("p2", "v2")
+                            .addFormDataPart("file1", "my-file-text.txt",
+                                    RequestBody.create(MediaType.parse("text/plain"), createTextFile("my-file-text.txt", "Hello", "World")))
+                            .addFormDataPart("file2", "my-file-data.json",
+                                    RequestBody.create(MediaType.parse("application/json"), createTextFile("my-file-text.txt", "{ \"name\":\"John\", \"age\":30 }")))
+                            .addFormDataPart("file3", "my-file-binary.bin",
+                                    RequestBody.create(MediaType.parse("application/octet-stream"), generateRandomBinaryData(100)))
+                            .build();
 
-              Request request = new Request.Builder()
-              .url(String.format("http://localhost:%s/my/path", port))
-              .post(multipartBody).build();
+                    Request request = new Request.Builder()
+                            .url(String.format("http://localhost:%s/my/path", port))
+                            .post(multipartBody).build();
 
-              OkHttpClient client =
-                  new OkHttpClient.Builder()
-                    .readTimeout(3000, TimeUnit.MILLISECONDS)
-                    .writeTimeout(3000, TimeUnit.MILLISECONDS)
-                  .build();
+                    OkHttpClient client =
+                            new OkHttpClient.Builder()
+                                    .readTimeout(3000, TimeUnit.MILLISECONDS)
+                                    .writeTimeout(3000, TimeUnit.MILLISECONDS)
+                                    .build();
 
-                sendRequest(client, request, requestSent);
-            } catch (Exception e) {
-                // Do nothing as HandleHttpRequest doesn't respond normally
+                    sendRequest(client, request, requestSent);
+                } catch (Exception e) {
+                    // Do nothing as HandleHttpRequest doesn't respond normally
+                }
             }
-          }
         });
 
         httpThread.start();
@@ -286,8 +302,8 @@ public class ITestHandleHttpRequest {
         mff.assertAttributeExists("http.headers.multipart.content-disposition");
     }
 
-    @Test(timeout=30000)
-    public void testMultipartFormDataRequestFailToRegisterContext() throws InitializationException, MalformedURLException, IOException, InterruptedException {
+    @Test(timeout = 30000)
+    public void testMultipartFormDataRequestFailToRegisterContext() throws InitializationException, IOException, InterruptedException {
         CountDownLatch serverReady = new CountDownLatch(1);
         CountDownLatch requestSent = new CountDownLatch(1);
         CountDownLatch resultReady = new CountDownLatch(1);
@@ -304,49 +320,52 @@ public class ITestHandleHttpRequest {
 
         AtomicInteger responseCode = new AtomicInteger(0);
         final Thread httpThread = new Thread(new Runnable() {
-          @Override
-          public void run() {
-            try {
-              serverReady.await();
+            @Override
+            public void run() {
+                try {
+                    serverReady.await();
 
-              final int port = ((HandleHttpRequest) runner.getProcessor()).getPort();
+                    final int port = ((HandleHttpRequest) runner.getProcessor()).getPort();
 
-              MultipartBody multipartBody = new MultipartBody.Builder()
-                .setType(MultipartBody.FORM)
-                .addFormDataPart("p1", "v1")
-                .addFormDataPart("p2", "v2")
-                .addFormDataPart("file1", "my-file-text.txt", RequestBody.create(MediaType.parse("text/plain"), createTextFile("my-file-text.txt", "Hello", "World")))
-                .addFormDataPart("file2", "my-file-data.json", RequestBody.create(MediaType.parse("application/json"), createTextFile("my-file-text.txt", "{ \"name\":\"John\", \"age\":30 }")))
-                .addFormDataPart("file3", "my-file-binary.bin", RequestBody.create(MediaType.parse("application/octet-stream"), generateRandomBinaryData(100)))
-                .build();
+                    MultipartBody multipartBody = new MultipartBody.Builder()
+                            .setType(MultipartBody.FORM)
+                            .addFormDataPart("p1", "v1")
+                            .addFormDataPart("p2", "v2")
+                            .addFormDataPart("file1", "my-file-text.txt",
+                                    RequestBody.create(MediaType.parse("text/plain"), createTextFile("my-file-text.txt", "Hello", "World")))
+                            .addFormDataPart("file2", "my-file-data.json",
+                                    RequestBody.create(MediaType.parse("application/json"), createTextFile("my-file-text.txt", "{ \"name\":\"John\", \"age\":30 }")))
+                            .addFormDataPart("file3", "my-file-binary.bin",
+                                    RequestBody.create(MediaType.parse("application/octet-stream"), generateRandomBinaryData(100)))
+                            .build();
 
-              Request request = new Request.Builder()
-              .url(String.format("http://localhost:%s/my/path", port))
-              .post(multipartBody).build();
+                    Request request = new Request.Builder()
+                            .url(String.format("http://localhost:%s/my/path", port))
+                            .post(multipartBody).build();
 
-              OkHttpClient client =
-                  new OkHttpClient.Builder()
-                    .readTimeout(20000, TimeUnit.MILLISECONDS)
-                    .writeTimeout(20000, TimeUnit.MILLISECONDS)
-                  .build();
+                    OkHttpClient client =
+                            new OkHttpClient.Builder()
+                                    .readTimeout(20000, TimeUnit.MILLISECONDS)
+                                    .writeTimeout(20000, TimeUnit.MILLISECONDS)
+                                    .build();
 
-                Callback callback = new Callback() {
-                    @Override
-                    public void onFailure(Call call, IOException e) {
-                        // Not going to happen
-                    }
+                    Callback callback = new Callback() {
+                        @Override
+                        public void onFailure(Call call, IOException e) {
+                            // Not going to happen
+                        }
 
-                    @Override
-                    public void onResponse(Call call, Response response) throws IOException {
-                        responseCode.set(response.code());
-                        resultReady.countDown();
-                    }
-                };
-                sendRequest(client, request, callback, requestSent);
-            } catch (final Throwable t) {
-                // Do nothing as HandleHttpRequest doesn't respond normally
+                        @Override
+                        public void onResponse(Call call, Response response) throws IOException {
+                            responseCode.set(response.code());
+                            resultReady.countDown();
+                        }
+                    };
+                    sendRequest(client, request, callback, requestSent);
+                } catch (final Throwable t) {
+                    // Do nothing as HandleHttpRequest doesn't respond normally
+                }
             }
-          }
         });
 
         httpThread.start();
@@ -359,31 +378,31 @@ public class ITestHandleHttpRequest {
     }
 
     private byte[] generateRandomBinaryData(int i) {
-      byte[] bytes = new byte[100];
-      new Random().nextBytes(bytes);
-      return bytes;
+        byte[] bytes = new byte[100];
+        new Random().nextBytes(bytes);
+        return bytes;
     }
 
 
     private File createTextFile(String fileName, String... lines) throws IOException {
-      File file = new File(fileName);
-      file.deleteOnExit();
-      for (String string : lines) {
-        Files.append(string, file, Charsets.UTF_8);
-      }
-      return file;
+        File file = new File(fileName);
+        file.deleteOnExit();
+        for (String string : lines) {
+            Files.append(string, file, Charsets.UTF_8);
+        }
+        return file;
     }
 
 
     protected MockFlowFile findFlowFile(List<MockFlowFile> flowFilesForRelationship, String attributeName, String attributeValue) {
-      Optional<MockFlowFile> optional = Iterables.tryFind(flowFilesForRelationship, ff -> ff.getAttribute(attributeName).equals(attributeValue));
-      Assert.assertTrue(optional.isPresent());
-      return optional.get();
+        Optional<MockFlowFile> optional = Iterables.tryFind(flowFilesForRelationship, ff -> ff.getAttribute(attributeName).equals(attributeValue));
+        Assert.assertTrue(optional.isPresent());
+        return optional.get();
     }
 
 
-    @Test(timeout=30000)
-    public void testFailToRegister() throws InitializationException, MalformedURLException, IOException, InterruptedException {
+    @Test(timeout = 30000)
+    public void testFailToRegister() throws InitializationException, IOException, InterruptedException {
         CountDownLatch serverReady = new CountDownLatch(1);
         CountDownLatch requestSent = new CountDownLatch(1);
         CountDownLatch resultReady = new CountDownLatch(1);
@@ -420,7 +439,7 @@ public class ITestHandleHttpRequest {
 
                     sendRequest(connection, requestSent);
                 } catch (final Throwable t) {
-                    if(connection != null ) {
+                    if (connection != null) {
                         try {
                             responseCode[0] = connection.getResponseCode();
                         } catch (IOException e) {
@@ -450,7 +469,7 @@ public class ITestHandleHttpRequest {
 
         CountDownLatch serverReady = new CountDownLatch(1);
         CountDownLatch requestSent = new CountDownLatch(nrOfRequests);
-        CountDownLatch cleanupDone = new CountDownLatch(nrOfRequests-1);
+        CountDownLatch cleanupDone = new CountDownLatch(nrOfRequests - 1);
 
         processor = new HandleHttpRequest() {
             @Override
@@ -483,10 +502,10 @@ public class ITestHandleHttpRequest {
                     final int port = ((HandleHttpRequest) runner.getProcessor()).getPort();
 
                     OkHttpClient client =
-                        new OkHttpClient.Builder()
-                            .readTimeout(3000, TimeUnit.MILLISECONDS)
-                            .writeTimeout(3000, TimeUnit.MILLISECONDS)
-                            .build();
+                            new OkHttpClient.Builder()
+                                    .readTimeout(3000, TimeUnit.MILLISECONDS)
+                                    .writeTimeout(3000, TimeUnit.MILLISECONDS)
+                                    .build();
                     client.dispatcher().setMaxRequests(nrOfRequests);
                     client.dispatcher().setMaxRequestsPerHost(nrOfRequests);
 
@@ -503,13 +522,13 @@ public class ITestHandleHttpRequest {
                         }
                     };
                     IntStream.rangeClosed(1, nrOfRequests).forEach(
-                        requestCounter -> {
-                            Request request = new Request.Builder()
-                                .url(String.format("http://localhost:%s/my/" + requestCounter , port))
-                                .get()
-                                .build();
-                            sendRequest(client, request, callback, requestSent);
-                        }
+                            requestCounter -> {
+                                Request request = new Request.Builder()
+                                        .url(String.format("http://localhost:%s/my/" + requestCounter, port))
+                                        .get()
+                                        .build();
+                                sendRequest(client, request, callback, requestSent);
+                            }
                     );
                 } catch (final Throwable t) {
                     // Do nothing as HandleHttpRequest doesn't respond normally
@@ -529,7 +548,7 @@ public class ITestHandleHttpRequest {
 
         assertEquals(1, contextMap.size());
         assertEquals(0, nrOfPendingRequests);
-        assertEquals(responses.size(), nrOfRequests-1);
+        assertEquals(responses.size(), nrOfRequests - 1);
         for (Response response : responses) {
             assertEquals(HttpServletResponse.SC_SERVICE_UNAVAILABLE, response.code());
             assertTrue("Unexpected HTTP response for rejected requests", new String(response.body().bytes()).contains("Processor is shutting down"));
@@ -561,8 +580,8 @@ public class ITestHandleHttpRequest {
 
         final Map<String, String> sslProperties = getServerKeystoreProperties();
         sslProperties.putAll(getTruststoreProperties());
-        sslProperties.put(StandardSSLContextService.SSL_ALGORITHM.getName(), "TLSv1.2");
-        useSSLContextService(runner, sslProperties, twoWaySsl ? SSLContextService.ClientAuth.WANT : SSLContextService.ClientAuth.NONE);
+        sslProperties.put(StandardSSLContextService.SSL_ALGORITHM.getName(), CertificateUtils.getHighestCurrentSupportedTlsProtocolVersion());
+        useSSLContextService(runner, sslProperties, twoWaySsl ? SslContextFactory.ClientAuth.REQUIRED : SslContextFactory.ClientAuth.NONE);
 
         final Thread httpThread = new Thread(new Runnable() {
             @Override
@@ -574,27 +593,15 @@ public class ITestHandleHttpRequest {
                     final HttpsURLConnection connection = (HttpsURLConnection) new URL("https://localhost:"
                             + port + "/my/path?query=true&value1=value1&value2=&value3&value4=apple=orange").openConnection();
 
+                    SSLContext clientSslContext;
                     if (twoWaySsl) {
-                        // use a client certificate, do not reuse the server's keystore
-                        SSLContext clientSslContext = SslContextFactory.createSslContext(
-                                getClientKeystoreProperties().get(StandardSSLContextService.KEYSTORE.getName()),
-                                getClientKeystoreProperties().get(StandardSSLContextService.KEYSTORE_PASSWORD.getName()).toCharArray(),
-                                "JKS",
-                                getTruststoreProperties().get(StandardSSLContextService.TRUSTSTORE.getName()),
-                                getTruststoreProperties().get(StandardSSLContextService.TRUSTSTORE_PASSWORD.getName()).toCharArray(),
-                                "JKS",
-                                null,
-                                "TLSv1.2");
-                        connection.setSSLSocketFactory(clientSslContext.getSocketFactory());
+                        // Use a client certificate, do not reuse the server's keystore
+                        clientSslContext = SslContextFactory.createSslContext(clientTlsConfiguration);
                     } else {
-                        // with one-way SSL, the client still needs a truststore
-                        SSLContext clientSslContext = SslContextFactory.createTrustSslContext(
-                                getTruststoreProperties().get(StandardSSLContextService.TRUSTSTORE.getName()),
-                                getTruststoreProperties().get(StandardSSLContextService.TRUSTSTORE_PASSWORD.getName()).toCharArray(),
-                                "JKS",
-                                "TLSv1.2");
-                        connection.setSSLSocketFactory(clientSslContext.getSocketFactory());
+                        // With one-way SSL, the client still needs a truststore
+                        clientSslContext = SslContextFactory.createSslContext(trustOnlyTlsConfiguration);
                     }
+                    connection.setSSLSocketFactory(clientSslContext.getSocketFactory());
                     connection.setDoOutput(false);
                     connection.setRequestMethod("GET");
                     connection.setRequestProperty("header1", "value1");
@@ -635,7 +642,7 @@ public class ITestHandleHttpRequest {
                 serverReady.countDown();
 
                 requestSent.await();
-                while (getRequestQueueSize()  == 0) {
+                while (getRequestQueueSize() == 0) {
                     Thread.sleep(200);
                 }
             }
@@ -649,7 +656,7 @@ public class ITestHandleHttpRequest {
 
     private void sendRequest(HttpURLConnection connection, CountDownLatch requestSent) throws Exception {
         Future<InputStream> executionFuture = Executors.newSingleThreadExecutor()
-            .submit(() -> connection.getInputStream());
+                .submit(() -> connection.getInputStream());
 
         requestSent.countDown();
 
@@ -685,7 +692,7 @@ public class ITestHandleHttpRequest {
 
         @Override
         public boolean register(final String identifier, final HttpServletRequest request, final HttpServletResponse response, final AsyncContext context) {
-            if(registerSuccessfully) {
+            if (registerSuccessfully) {
                 responseMap.put(identifier, response);
             }
             return registerSuccessfully;

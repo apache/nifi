@@ -18,8 +18,12 @@ package org.apache.nifi.processors.standard;
 
 import static org.apache.commons.lang3.StringUtils.trimToEmpty;
 
+import com.burgstaller.okhttp.AuthenticationCacheInterceptor;
+import com.burgstaller.okhttp.CachingAuthenticatorDecorator;
+import com.burgstaller.okhttp.digest.CachingAuthenticator;
+import com.burgstaller.okhttp.digest.DigestAuthenticator;
+import com.google.common.io.Files;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.Proxy;
@@ -28,7 +32,6 @@ import java.net.URL;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyManagementException;
-import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.Principal;
@@ -50,23 +53,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import javax.net.ssl.HostnameVerifier;
-import javax.net.ssl.KeyManager;
-import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSession;
-import javax.net.ssl.SSLSocketFactory;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.TrustManagerFactory;
-import javax.net.ssl.X509TrustManager;
-
-import com.burgstaller.okhttp.AuthenticationCacheInterceptor;
-import com.burgstaller.okhttp.CachingAuthenticatorDecorator;
-import com.burgstaller.okhttp.digest.CachingAuthenticator;
-import com.burgstaller.okhttp.digest.DigestAuthenticator;
-import com.google.common.io.Files;
 import okhttp3.Cache;
 import okhttp3.Credentials;
 import okhttp3.MediaType;
@@ -110,11 +99,10 @@ import org.apache.nifi.processors.standard.util.ProxyAuthenticator;
 import org.apache.nifi.processors.standard.util.SoftLimitBoundedByteArrayOutputStream;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxySpec;
-import org.apache.nifi.security.util.SslContextFactory;
+import org.apache.nifi.security.util.OkHttpClientUtils;
+import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.ssl.SSLContextService;
-import org.apache.nifi.ssl.SSLContextService.ClientAuth;
 import org.apache.nifi.stream.io.StreamUtils;
-import org.apache.nifi.util.Tuple;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 
@@ -731,106 +719,18 @@ public final class InvokeHTTP extends AbstractProcessor {
         // Set whether to follow redirects
         okHttpClientBuilder.followRedirects(context.getProperty(PROP_FOLLOW_REDIRECTS).asBoolean());
 
+        // Apply the TLS configuration if present
         final SSLContextService sslService = context.getProperty(PROP_SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
-        final SSLContext sslContext = sslService == null ? null : sslService.createSSLContext(ClientAuth.NONE);
-
-        // check if the ssl context is set and add the factory if so
-        if (sslContext != null) {
-            Tuple<SSLContext, TrustManager[]> sslContextTuple =SslContextFactory.createTrustSslContextWithTrustManagers(
-                        sslService.getKeyStoreFile(),
-                        sslService.getKeyStorePassword() != null ? sslService.getKeyStorePassword().toCharArray() : null,
-                        sslService.getKeyPassword() != null ? sslService.getKeyPassword().toCharArray() : null,
-                        sslService.getKeyStoreType(),
-                        sslService.getTrustStoreFile(),
-                        sslService.getTrustStorePassword() != null ? sslService.getTrustStorePassword().toCharArray() : null,
-                        sslService.getTrustStoreType(),
-                        SslContextFactory.ClientAuth.NONE,
-                        sslService.getSslAlgorithm());
-            List<X509TrustManager> x509TrustManagers = Arrays.stream(sslContextTuple.getValue())
-                    .filter(trustManager -> trustManager instanceof X509TrustManager)
-                    .map(trustManager -> (X509TrustManager) trustManager).collect(Collectors.toList());
-            okHttpClientBuilder.sslSocketFactory(sslContextTuple.getKey().getSocketFactory(), x509TrustManagers.get(0));
-            }
+        if (sslService != null) {
+            final TlsConfiguration tlsConfiguration = sslService.createTlsConfiguration();
+            OkHttpClientUtils.applyTlsToOkHttpClientBuilder(tlsConfiguration, okHttpClientBuilder);
+        }
 
         setAuthenticator(okHttpClientBuilder, context);
 
         useChunked = context.getProperty(PROP_USE_CHUNKED_ENCODING).asBoolean();
 
         okHttpClientAtomicReference.set(okHttpClientBuilder.build());
-    }
-
-    /*
-        Overall, this method is based off of examples from OkHttp3 documentation:
-            https://square.github.io/okhttp/3.x/okhttp/okhttp3/OkHttpClient.Builder.html#sslSocketFactory-javax.net.ssl.SSLSocketFactory-javax.net.ssl.X509TrustManager-
-            https://github.com/square/okhttp/blob/master/samples/guide/src/main/java/okhttp3/recipes/CustomTrust.java#L156
-
-        In-depth documentation on Java Secure Socket Extension (JSSE) Classes and interfaces:
-            https://docs.oracle.com/javase/8/docs/technotes/guides/security/jsse/JSSERefGuide.html#JSSEClasses
-     */
-    private void setSslSocketFactory(OkHttpClient.Builder okHttpClientBuilder, SSLContextService sslService, SSLContext sslContext, boolean setAsSocketFactory)
-            throws IOException, KeyStoreException, CertificateException, NoSuchAlgorithmException, UnrecoverableKeyException, KeyManagementException {
-
-        final KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-        final TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance("X509");
-        // initialize the KeyManager array to null and we will overwrite later if a keystore is loaded
-        KeyManager[] keyManagers = null;
-
-        // we will only initialize the keystore if properties have been supplied by the SSLContextService
-        if (sslService.isKeyStoreConfigured()) {
-            final String keystoreLocation = sslService.getKeyStoreFile();
-            final String keystorePass = sslService.getKeyStorePassword();
-            final String keystoreType = sslService.getKeyStoreType();
-
-            // prepare the keystore
-            final KeyStore keyStore = KeyStore.getInstance(keystoreType);
-
-            try (FileInputStream keyStoreStream = new FileInputStream(keystoreLocation)) {
-                keyStore.load(keyStoreStream, keystorePass.toCharArray());
-            }
-
-            keyManagerFactory.init(keyStore, keystorePass.toCharArray());
-            keyManagers = keyManagerFactory.getKeyManagers();
-        }
-
-        // we will only initialize the truststure if properties have been supplied by the SSLContextService
-        if (sslService.isTrustStoreConfigured()) {
-            // load truststore
-            final String truststoreLocation = sslService.getTrustStoreFile();
-            final String truststorePass = sslService.getTrustStorePassword();
-            final String truststoreType = sslService.getTrustStoreType();
-
-            char[] truststorePasswordChars = new char[0];
-            if (StringUtils.isNotBlank(truststorePass)) {
-                truststorePasswordChars = truststorePass.toCharArray();
-            }
-
-            KeyStore truststore = KeyStore.getInstance(truststoreType);
-            truststore.load(new FileInputStream(truststoreLocation), truststorePasswordChars);
-            trustManagerFactory.init(truststore);
-        }
-
-         /*
-            TrustManagerFactory.getTrustManagers returns a trust manager for each type of trust material. Since we are getting a trust manager factory that uses "X509"
-            as it's trust management algorithm, we are able to grab the first (and thus the most preferred) and use it as our x509 Trust Manager
-
-            https://docs.oracle.com/javase/8/docs/api/javax/net/ssl/TrustManagerFactory.html#getTrustManagers--
-         */
-        final X509TrustManager x509TrustManager;
-        TrustManager[] trustManagers = trustManagerFactory.getTrustManagers();
-        if (trustManagers[0] != null) {
-            x509TrustManager = (X509TrustManager) trustManagers[0];
-        } else {
-            throw new IllegalStateException("List of trust managers is null");
-        }
-
-        // if keystore properties were not supplied, the keyManagers array will be null
-        sslContext.init(keyManagers, trustManagerFactory.getTrustManagers(), null);
-
-        final SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
-        okHttpClientBuilder.sslSocketFactory(sslSocketFactory, x509TrustManager);
-        if (setAsSocketFactory) {
-            okHttpClientBuilder.socketFactory(sslSocketFactory);
-        }
     }
 
     private void setAuthenticator(OkHttpClient.Builder okHttpClientBuilder, ProcessContext context) {

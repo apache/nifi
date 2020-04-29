@@ -41,8 +41,16 @@ public class StringUtils {
         return true;
     }
 
+    public static boolean isNotBlank(final String str) {
+        return !isBlank(str);
+    }
+
     public static boolean isEmpty(final String str) {
         return str == null || str.isEmpty();
+    }
+
+    public static boolean isNotEmpty(final String str) {
+        return !isEmpty(str);
     }
 
     public static boolean startsWith(final String str, final String prefix) {

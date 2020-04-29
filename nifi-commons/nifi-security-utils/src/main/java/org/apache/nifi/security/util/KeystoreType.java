@@ -16,11 +16,42 @@
  */
 package org.apache.nifi.security.util;
 
+import java.util.Arrays;
+import java.util.stream.Collectors;
+import org.apache.nifi.util.StringUtils;
+
 /**
  * Keystore types.
  */
 public enum KeystoreType {
+    PKCS12("PKCS12", "A PKCS12 Keystore"),
+    JKS("JKS", "A Java Keystore");
 
-    PKCS12,
-    JKS;
+    private final String type;
+    private final String description;
+
+    KeystoreType(String type, String description) {
+        this.type = type;
+        this.description = description;
+    }
+
+    public String getType() {
+        return this.type;
+    }
+
+    public String getDescription() {
+        return this.description;
+    }
+
+    @Override
+    public String toString() {
+        return getType();
+    }
+
+    public static boolean isValidKeystoreType(String type) {
+        if (StringUtils.isBlank(type)) {
+            return false;
+        }
+        return (Arrays.stream(values()).map(kt -> kt.getType().toLowerCase()).collect(Collectors.toList()).contains(type.toLowerCase()));
+    }
 }

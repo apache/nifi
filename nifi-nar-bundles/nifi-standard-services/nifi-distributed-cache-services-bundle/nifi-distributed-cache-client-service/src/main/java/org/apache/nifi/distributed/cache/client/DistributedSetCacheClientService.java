@@ -25,7 +25,6 @@ import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
@@ -40,8 +39,8 @@ import org.apache.nifi.distributed.cache.protocol.exception.HandshakeException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.remote.StandardVersionNegotiator;
 import org.apache.nifi.remote.VersionNegotiator;
+import org.apache.nifi.security.util.SslContextFactory.ClientAuth;
 import org.apache.nifi.ssl.SSLContextService;
-import org.apache.nifi.ssl.SSLContextService.ClientAuth;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

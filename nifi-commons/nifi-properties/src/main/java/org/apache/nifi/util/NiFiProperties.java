@@ -1672,10 +1672,28 @@ public abstract class NiFiProperties {
      * framework for default property loading behavior or helpful in tests
      * needing to create specific instances of NiFiProperties. If properties
      * file specified cannot be found/read a runtime exception will be thrown.
-     * If one is not specified no properties will be loaded by default.
+     * If one is not specified an empty object will be returned.
      *
      * @param propertiesFilePath   if provided properties will be loaded from
-     *                             given file; else will be loaded from System property. Can be null.
+     *                             given file; else will be loaded from System property.
+     *                             Can be null. Passing {@code ""} skips any attempt to load from the file system.
+     * @return NiFiProperties
+     */
+    public static NiFiProperties createBasicNiFiProperties(final String propertiesFilePath) {
+        return createBasicNiFiProperties(propertiesFilePath, new Properties());
+    }
+
+    /**
+     * Creates an instance of NiFiProperties. This should likely not be called
+     * by any classes outside of the NiFi framework but can be useful by the
+     * framework for default property loading behavior or helpful in tests
+     * needing to create specific instances of NiFiProperties. If properties
+     * file specified cannot be found/read a runtime exception will be thrown.
+     * If one is not specified, only the provided properties will be returned.
+     *
+     * @param propertiesFilePath   if provided properties will be loaded from
+     *                             given file; else will be loaded from System property.
+     *                             Can be null. Passing {@code ""} skips any attempt to load from the file system.
      * @param additionalProperties allows overriding of properties with the
      *                             supplied values. these will be applied after loading from any properties
      *                             file. Can be null or empty.
@@ -1684,18 +1702,65 @@ public abstract class NiFiProperties {
     public static NiFiProperties createBasicNiFiProperties(final String propertiesFilePath, final Map<String, String> additionalProperties) {
         final Map<String, String> addProps = (additionalProperties == null) ? Collections.EMPTY_MAP : additionalProperties;
         final Properties properties = new Properties();
+        addProps.forEach(properties::put);
+
+        return createBasicNiFiProperties(propertiesFilePath, properties);
+    }
+
+    /**
+     * Creates an instance of NiFiProperties. This should likely not be called
+     * by any classes outside of the NiFi framework but can be useful by the
+     * framework for default property loading behavior or helpful in tests
+     * needing to create specific instances of NiFiProperties. If properties
+     * file specified cannot be found/read a runtime exception will be thrown.
+     * If one is not specified, only the provided properties will be returned.
+     *
+     * @param propertiesFilePath   if provided properties will be loaded from
+     *                             given file; else will be loaded from System property.
+     *                             Can be null. Passing {@code ""} skips any attempt to load from the file system.
+     * @param additionalProperties allows overriding of properties with the
+     *                             supplied values. these will be applied after loading from any properties
+     *                             file. Can be null or empty.
+     * @return NiFiProperties
+     */
+    public static NiFiProperties createBasicNiFiProperties(final String propertiesFilePath, final Properties additionalProperties) {
+        final Properties properties = new Properties();
+
+        // If the provided file path is null or provided, load from file. If it is "", skip this
+        if (propertiesFilePath == null || StringUtils.isNotBlank(propertiesFilePath)) {
+            readFromPropertiesFile(propertiesFilePath, properties);
+        }
+
+        // The Properties(Properties) constructor does NOT inherit the provided values, just uses them as default values
+        if (additionalProperties != null) {
+            additionalProperties.forEach(properties::put);
+        }
+        return new NiFiProperties() {
+            @Override
+            public String getProperty(String key) {
+                return properties.getProperty(key);
+            }
+
+            @Override
+            public Set<String> getPropertyKeys() {
+                return properties.stringPropertyNames();
+            }
+        };
+    }
+
+    private static void readFromPropertiesFile(String propertiesFilePath, Properties properties) {
         final String nfPropertiesFilePath = (propertiesFilePath == null)
                 ? System.getProperty(NiFiProperties.PROPERTIES_FILE_PATH)
                 : propertiesFilePath;
         if (nfPropertiesFilePath != null) {
             final File propertiesFile = new File(nfPropertiesFilePath.trim());
             if (!propertiesFile.exists()) {
-                throw new RuntimeException("Properties file doesn't exist \'"
-                        + propertiesFile.getAbsolutePath() + "\'");
+                throw new RuntimeException("Properties file doesn't exist '"
+                        + propertiesFile.getAbsolutePath() + "'");
             }
             if (!propertiesFile.canRead()) {
-                throw new RuntimeException("Properties file exists but cannot be read \'"
-                        + propertiesFile.getAbsolutePath() + "\'");
+                throw new RuntimeException("Properties file exists but cannot be read '"
+                        + propertiesFile.getAbsolutePath() + "'");
             }
             InputStream inStream = null;
             try {
@@ -1716,20 +1781,6 @@ public abstract class NiFiProperties {
                 }
             }
         }
-        addProps.entrySet().stream().forEach((entry) -> {
-            properties.setProperty(entry.getKey(), entry.getValue());
-        });
-        return new NiFiProperties() {
-            @Override
-            public String getProperty(String key) {
-                return properties.getProperty(key);
-            }
-
-            @Override
-            public Set<String> getPropertyKeys() {
-                return properties.stringPropertyNames();
-            }
-        };
     }
 
     /**

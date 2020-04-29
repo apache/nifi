@@ -38,12 +38,13 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.ssl.SSLContextService.ClientAuth;
+import org.apache.nifi.security.util.SslContextFactory.ClientAuth;
 import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.MockValidationContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -262,7 +263,10 @@ public class SSLContextServiceTest {
         }
     }
 
+    // TODO: Remove test
+    @Ignore("This test is no longer valid as a truststore must be present if the keystore is")
     @Test
+    @Deprecated
     public void testGoodKeyOnly() {
         try {
             TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
@@ -301,6 +305,9 @@ public class SSLContextServiceTest {
             properties.put(StandardSSLContextService.KEYSTORE_PASSWORD.getName(), KEYSTORE_AND_TRUSTSTORE_PASSWORD);
             properties.put(StandardSSLContextService.KEY_PASSWORD.getName(), "keypassword");
             properties.put(StandardSSLContextService.KEYSTORE_TYPE.getName(), JKS_TYPE);
+            properties.put(StandardSSLContextService.TRUSTSTORE.getName(), TRUSTSTORE_PATH);
+            properties.put(StandardSSLContextService.TRUSTSTORE_PASSWORD.getName(), KEYSTORE_AND_TRUSTSTORE_PASSWORD);
+            properties.put(StandardSSLContextService.TRUSTSTORE_TYPE.getName(), JKS_TYPE);
             runner.addControllerService("test-diff-keys", service, properties);
             runner.enableControllerService(service);
 

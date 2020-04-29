@@ -16,6 +16,12 @@
  */
 package org.apache.nifi.nar;
 
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -24,18 +30,11 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.util.NiFiProperties;
 import org.junit.Test;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-
 public class NarThreadContextClassLoaderTest {
 
     @Test
     public void validateWithPropertiesConstructor() throws Exception {
-        NiFiProperties properties = NiFiProperties.createBasicNiFiProperties("src/test/resources/nifi.properties", null);
+        NiFiProperties properties = NiFiProperties.createBasicNiFiProperties("src/test/resources/nifi.properties");
         Bundle systemBundle = SystemBundle.create(properties);
         ExtensionDiscoveringManager extensionManager = new StandardExtensionDiscoveringManager();
         extensionManager.discoverExtensions(systemBundle, Collections.emptySet());
@@ -60,7 +59,7 @@ public class NarThreadContextClassLoaderTest {
 
     @Test
     public void validateWithDefaultConstructor() throws Exception {
-        NiFiProperties properties = NiFiProperties.createBasicNiFiProperties("src/test/resources/nifi.properties", null);
+        NiFiProperties properties = NiFiProperties.createBasicNiFiProperties("src/test/resources/nifi.properties");
         Bundle systemBundle = SystemBundle.create(properties);
         ExtensionDiscoveringManager extensionManager = new StandardExtensionDiscoveringManager();
         extensionManager.discoverExtensions(systemBundle, Collections.emptySet());

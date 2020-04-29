@@ -16,6 +16,21 @@
  */
 package org.apache.nifi.cluster.protocol.impl;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.Socket;
+import java.security.cert.Certificate;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.stream.Collectors;
+import javax.net.ssl.SSLPeerUnverifiedException;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.SSLSocket;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.cluster.protocol.ProtocolContext;
 import org.apache.nifi.cluster.protocol.ProtocolException;
@@ -24,10 +39,10 @@ import org.apache.nifi.cluster.protocol.ProtocolListener;
 import org.apache.nifi.cluster.protocol.ProtocolMessageMarshaller;
 import org.apache.nifi.cluster.protocol.ProtocolMessageUnmarshaller;
 import org.apache.nifi.cluster.protocol.message.ConnectionRequestMessage;
-import org.apache.nifi.cluster.protocol.message.OffloadMessage;
 import org.apache.nifi.cluster.protocol.message.DisconnectMessage;
 import org.apache.nifi.cluster.protocol.message.FlowRequestMessage;
 import org.apache.nifi.cluster.protocol.message.HeartbeatMessage;
+import org.apache.nifi.cluster.protocol.message.OffloadMessage;
 import org.apache.nifi.cluster.protocol.message.ProtocolMessage;
 import org.apache.nifi.cluster.protocol.message.ReconnectionRequestMessage;
 import org.apache.nifi.events.BulletinFactory;
@@ -41,25 +56,8 @@ import org.apache.nifi.util.StopWatch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.net.ssl.SSLPeerUnverifiedException;
-import javax.net.ssl.SSLSession;
-import javax.net.ssl.SSLSocket;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.Socket;
-import java.security.cert.Certificate;
-import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.stream.Collectors;
-
 /**
  * Implements a listener for protocol messages sent over unicast socket.
- *
  */
 public class SocketProtocolListener extends SocketListener implements ProtocolListener {
 
@@ -67,6 +65,9 @@ public class SocketProtocolListener extends SocketListener implements ProtocolLi
     private final ProtocolContext<ProtocolMessage> protocolContext;
     private final Collection<ProtocolHandler> handlers = new CopyOnWriteArrayList<>();
     private volatile BulletinRepository bulletinRepository;
+
+    private static int EXCEPTION_THRESHOLD_MILLIS = 10_000;
+    private volatile long tlsErrorLastSeen = -1;
 
     public SocketProtocolListener(
             final int numThreads,
@@ -190,15 +191,54 @@ public class SocketProtocolListener extends SocketListener implements ProtocolLi
             final NodeIdentifier nodeId = getNodeIdentifier(request);
             final String from = nodeId == null ? hostname : nodeId.toString();
             logger.info("Finished processing request {} (type={}, length={} bytes) from {} in {}",
-                requestId, request.getType(), countingIn.getBytesRead(), from, stopWatch.getDuration());
+                    requestId, request.getType(), countingIn.getBytesRead(), from, stopWatch.getDuration());
         } catch (final IOException | ProtocolException e) {
-            logger.warn("Failed processing protocol message from " + hostname + " due to " + e, e);
+            String msg = "Failed processing protocol message from " + hostname + " due to ";
+            // Suppress repeated TLS errors
+            if (CertificateUtils.isTlsError(e)) {
+                boolean printedAsWarning = handleTlsError(msg, e);
 
-            if (bulletinRepository != null) {
-                final Bulletin bulletin = BulletinFactory.createBulletin("Clustering", "WARNING", String.format("Failed to process protocol message from %s due to: %s", hostname, e.toString()));
-                bulletinRepository.addBulletin(bulletin);
+                // TODO: Move into handleTlsError and refactor shared behavior
+                // If the error was printed as a warning, reset the last seen timer
+                if (printedAsWarning) {
+                    tlsErrorLastSeen = System.currentTimeMillis();
+                }
+            } else {
+                logger.warn(msg + e, e);
+                publishBulletinWarning(msg + e);
             }
         }
+    }
+
+    private boolean handleTlsError(String msg, Throwable e) {
+        final String populatedMessage = msg + e.getLocalizedMessage();
+        if (tlsErrorRecentlySeen()) {
+            logger.debug(populatedMessage);
+            return false;
+        } else {
+            logger.warn(populatedMessage);
+            publishBulletinWarning(populatedMessage);
+            return true;
+        }
+    }
+
+    private void publishBulletinWarning(String message) {
+        if (bulletinRepository != null) {
+            final Bulletin bulletin = BulletinFactory.createBulletin("Clustering", "WARNING", message);
+            bulletinRepository.addBulletin(bulletin);
+        }
+    }
+
+    /**
+     * Returns {@code true} if any related exception (determined by {@link CertificateUtils#isTlsError(Throwable)}) has occurred within the last
+     * {@link #EXCEPTION_THRESHOLD_MILLIS} milliseconds. Does not evaluate the error locally,
+     * simply checks the last time the timestamp was updated.
+     *
+     * @return true if the time since the last similar exception occurred is below the threshold
+     */
+    private boolean tlsErrorRecentlySeen() {
+        long now = System.currentTimeMillis();
+        return now - tlsErrorLastSeen < EXCEPTION_THRESHOLD_MILLIS;
     }
 
     private NodeIdentifier getNodeIdentifier(final ProtocolMessage message) {
@@ -247,8 +287,8 @@ public class SocketProtocolListener extends SocketListener implements ProtocolLi
         cert.checkValidity();
 
         final Set<String> identities = CertificateUtils.getSubjectAlternativeNames(cert).stream()
-            .map(CertificateUtils::extractUsername)
-            .collect(Collectors.toSet());
+                .map(CertificateUtils::extractUsername)
+                .collect(Collectors.toSet());
 
         return identities;
     }

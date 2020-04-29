@@ -16,139 +16,128 @@
  */
 package org.apache.nifi.bootstrap.http;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
+import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.List;
+import javax.net.ssl.SSLContext;
+import javax.xml.parsers.ParserConfigurationException;
 import okhttp3.mockwebserver.MockWebServer;
 import org.apache.nifi.bootstrap.NotificationServiceManager;
+import org.apache.nifi.security.util.CertificateUtils;
 import org.apache.nifi.security.util.SslContextFactory;
+import org.apache.nifi.security.util.TlsConfiguration;
+import org.apache.nifi.security.util.TlsException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.internal.util.io.IOUtil;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXException;
-import ch.qos.logback.classic.Logger;
-
-import javax.net.ssl.SSLContext;
-import javax.xml.parsers.ParserConfigurationException;
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.security.KeyManagementException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.UnrecoverableKeyException;
-import java.security.cert.CertificateException;
-import java.util.List;
-
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 public class TestHttpNotificationServiceSSL extends TestHttpNotificationServiceCommon {
 
-    static final String CONFIGURATION_FILE_TEXT = "\n"+
-            "<services>\n"+
-            "         <service>\n"+
-            "            <id>http-notification</id>\n"+
-            "            <class>org.apache.nifi.bootstrap.notification.http.HttpNotificationService</class>\n"+
-            "            <property name=\"URL\">${test.server}</property>\n"+
-            "            <property name=\"Truststore Filename\">./src/test/resources/truststore.jks</property>\n"+
-            "            <property name=\"Truststore Type\">JKS</property>\n"+
-            "            <property name=\"Truststore Password\">passwordpassword</property>\n"+
-            "            <property name=\"Keystore Filename\">./src/test/resources/keystore.jks</property>\n"+
-            "            <property name=\"Keystore Type\">JKS</property>\n"+
-            "            <property name=\"Key Password\">passwordpassword</property>\n"+
-            "            <property name=\"Keystore Password\">passwordpassword</property>\n"+
-            "            <property name=\"testProp\">${literal('testing')}</property>\n"+
-            "         </service>\n"+
+    static final String CONFIGURATION_FILE_TEXT = "\n" +
+            "<services>\n" +
+            "         <service>\n" +
+            "            <id>http-notification</id>\n" +
+            "            <class>org.apache.nifi.bootstrap.notification.http.HttpNotificationService</class>\n" +
+            "            <property name=\"URL\">${test.server}</property>\n" +
+            "            <property name=\"Truststore Filename\">./src/test/resources/truststore.jks</property>\n" +
+            "            <property name=\"Truststore Type\">JKS</property>\n" +
+            "            <property name=\"Truststore Password\">passwordpassword</property>\n" +
+            "            <property name=\"Keystore Filename\">./src/test/resources/keystore.jks</property>\n" +
+            "            <property name=\"Keystore Type\">JKS</property>\n" +
+            "            <property name=\"Key Password\">passwordpassword</property>\n" +
+            "            <property name=\"Keystore Password\">passwordpassword</property>\n" +
+            "            <property name=\"testProp\">${literal('testing')}</property>\n" +
+            "         </service>\n" +
             "</services>";
 
-    static final String CONFIGURATION_FILE_TEXT_NO_KEYSTORE_PASSWORD = "\n"+
-            "<services>\n"+
-            "         <service>\n"+
-            "            <id>http-notification</id>\n"+
-            "            <class>org.apache.nifi.bootstrap.notification.http.HttpNotificationService</class>\n"+
-            "            <property name=\"URL\">${test.server}</property>\n"+
-            "            <property name=\"Truststore Filename\">./src/test/resources/truststore.jks</property>\n"+
-            "            <property name=\"Truststore Type\">JKS</property>\n"+
-            "            <property name=\"Truststore Password\">passwordpassword</property>\n"+
-            "            <property name=\"Keystore Filename\">./src/test/resources/keystore.jks</property>\n"+
-            "            <property name=\"Keystore Type\">JKS</property>\n"+
-            "            <property name=\"Key Password\">passwordpassword</property>\n"+
-            "            <property name=\"testProp\">${literal('testing')}</property>\n"+
-            "         </service>\n"+
+    static final String CONFIGURATION_FILE_TEXT_NO_KEYSTORE_PASSWORD = "\n" +
+            "<services>\n" +
+            "         <service>\n" +
+            "            <id>http-notification</id>\n" +
+            "            <class>org.apache.nifi.bootstrap.notification.http.HttpNotificationService</class>\n" +
+            "            <property name=\"URL\">${test.server}</property>\n" +
+            "            <property name=\"Truststore Filename\">./src/test/resources/truststore.jks</property>\n" +
+            "            <property name=\"Truststore Type\">JKS</property>\n" +
+            "            <property name=\"Truststore Password\">passwordpassword</property>\n" +
+            "            <property name=\"Keystore Filename\">./src/test/resources/keystore.jks</property>\n" +
+            "            <property name=\"Keystore Type\">JKS</property>\n" +
+            "            <property name=\"Key Password\">passwordpassword</property>\n" +
+            "            <property name=\"testProp\">${literal('testing')}</property>\n" +
+            "         </service>\n" +
             "</services>";
 
-    static final String CONFIGURATION_FILE_TEXT_NO_KEY_PASSWORD = "\n"+
-            "<services>\n"+
-            "         <service>\n"+
-            "            <id>http-notification</id>\n"+
-            "            <class>org.apache.nifi.bootstrap.notification.http.HttpNotificationService</class>\n"+
-            "            <property name=\"URL\">${test.server}</property>\n"+
-            "            <property name=\"Truststore Filename\">./src/test/resources/truststore.jks</property>\n"+
-            "            <property name=\"Truststore Type\">JKS</property>\n"+
-            "            <property name=\"Truststore Password\">passwordpassword</property>\n"+
-            "            <property name=\"Keystore Filename\">./src/test/resources/keystore.jks</property>\n"+
-            "            <property name=\"Keystore Type\">JKS</property>\n"+
-            "            <property name=\"Keystore Password\">passwordpassword</property>\n"+
-            "            <property name=\"testProp\">${literal('testing')}</property>\n"+
-            "         </service>\n"+
+    static final String CONFIGURATION_FILE_TEXT_NO_KEY_PASSWORD = "\n" +
+            "<services>\n" +
+            "         <service>\n" +
+            "            <id>http-notification</id>\n" +
+            "            <class>org.apache.nifi.bootstrap.notification.http.HttpNotificationService</class>\n" +
+            "            <property name=\"URL\">${test.server}</property>\n" +
+            "            <property name=\"Truststore Filename\">./src/test/resources/truststore.jks</property>\n" +
+            "            <property name=\"Truststore Type\">JKS</property>\n" +
+            "            <property name=\"Truststore Password\">passwordpassword</property>\n" +
+            "            <property name=\"Keystore Filename\">./src/test/resources/keystore.jks</property>\n" +
+            "            <property name=\"Keystore Type\">JKS</property>\n" +
+            "            <property name=\"Keystore Password\">passwordpassword</property>\n" +
+            "            <property name=\"testProp\">${literal('testing')}</property>\n" +
+            "         </service>\n" +
             "</services>";
 
-    static final String CONFIGURATION_FILE_TEXT_BLANK_KEY_PASSWORD = "\n"+
-            "<services>\n"+
-            "         <service>\n"+
-            "            <id>http-notification</id>\n"+
-            "            <class>org.apache.nifi.bootstrap.notification.http.HttpNotificationService</class>\n"+
-            "            <property name=\"URL\">${test.server}</property>\n"+
-            "            <property name=\"Truststore Filename\">./src/test/resources/truststore.jks</property>\n"+
-            "            <property name=\"Truststore Type\">JKS</property>\n"+
-            "            <property name=\"Truststore Password\">passwordpassword</property>\n"+
-            "            <property name=\"Keystore Filename\">./src/test/resources/keystore.jks</property>\n"+
-            "            <property name=\"Keystore Type\">JKS</property>\n"+
-            "            <property name=\"Keystore Password\">passwordpassword</property>\n"+
-            "            <property name=\"Key Password\"></property>\n"+
-            "            <property name=\"testProp\">${literal('testing')}</property>\n"+
-            "         </service>\n"+
+    static final String CONFIGURATION_FILE_TEXT_BLANK_KEY_PASSWORD = "\n" +
+            "<services>\n" +
+            "         <service>\n" +
+            "            <id>http-notification</id>\n" +
+            "            <class>org.apache.nifi.bootstrap.notification.http.HttpNotificationService</class>\n" +
+            "            <property name=\"URL\">${test.server}</property>\n" +
+            "            <property name=\"Truststore Filename\">./src/test/resources/truststore.jks</property>\n" +
+            "            <property name=\"Truststore Type\">JKS</property>\n" +
+            "            <property name=\"Truststore Password\">passwordpassword</property>\n" +
+            "            <property name=\"Keystore Filename\">./src/test/resources/keystore.jks</property>\n" +
+            "            <property name=\"Keystore Type\">JKS</property>\n" +
+            "            <property name=\"Keystore Password\">passwordpassword</property>\n" +
+            "            <property name=\"Key Password\"></property>\n" +
+            "            <property name=\"testProp\">${literal('testing')}</property>\n" +
+            "         </service>\n" +
             "</services>";
 
-    static final String CONFIGURATION_FILE_TEXT_BLANK_KEYSTORE_PASSWORD = "\n"+
-            "<services>\n"+
-            "         <service>\n"+
-            "            <id>http-notification</id>\n"+
-            "            <class>org.apache.nifi.bootstrap.notification.http.HttpNotificationService</class>\n"+
-            "            <property name=\"URL\">${test.server}</property>\n"+
-            "            <property name=\"Truststore Filename\">./src/test/resources/truststore.jks</property>\n"+
-            "            <property name=\"Truststore Type\">JKS</property>\n"+
-            "            <property name=\"Truststore Password\">passwordpassword</property>\n"+
-            "            <property name=\"Keystore Filename\">./src/test/resources/keystore.jks</property>\n"+
-            "            <property name=\"Keystore Type\">JKS</property>\n"+
-            "            <property name=\"Keystore Password\"></property>\n"+
-            "            <property name=\"Key Password\">passwordpassword</property>\n"+
-            "            <property name=\"testProp\">${literal('testing')}</property>\n"+
-            "         </service>\n"+
+    static final String CONFIGURATION_FILE_TEXT_BLANK_KEYSTORE_PASSWORD = "\n" +
+            "<services>\n" +
+            "         <service>\n" +
+            "            <id>http-notification</id>\n" +
+            "            <class>org.apache.nifi.bootstrap.notification.http.HttpNotificationService</class>\n" +
+            "            <property name=\"URL\">${test.server}</property>\n" +
+            "            <property name=\"Truststore Filename\">./src/test/resources/truststore.jks</property>\n" +
+            "            <property name=\"Truststore Type\">JKS</property>\n" +
+            "            <property name=\"Truststore Password\">passwordpassword</property>\n" +
+            "            <property name=\"Keystore Filename\">./src/test/resources/keystore.jks</property>\n" +
+            "            <property name=\"Keystore Type\">JKS</property>\n" +
+            "            <property name=\"Keystore Password\"></property>\n" +
+            "            <property name=\"Key Password\">passwordpassword</property>\n" +
+            "            <property name=\"testProp\">${literal('testing')}</property>\n" +
+            "         </service>\n" +
             "</services>";
 
     @Before
-    public void startServer() throws IOException, UnrecoverableKeyException, CertificateException, NoSuchAlgorithmException, KeyStoreException, KeyManagementException {
+    public void startServer() throws IOException, TlsException {
         tempConfigFilePath = "./target/TestHttpNotificationService-config.xml";
 
         Files.deleteIfExists(Paths.get(tempConfigFilePath));
 
         mockWebServer = new MockWebServer();
 
-        final SSLContext sslContext = SslContextFactory.createSslContext(
-                "./src/test/resources/keystore.jks",
-                "passwordpassword".toCharArray(),
-                null,
-                "JKS",
-                "./src/test/resources/truststore.jks",
-                "passwordpassword".toCharArray(),
-                "JKS",
-                SslContextFactory.ClientAuth.REQUIRED,
-                "TLS");
-
+        TlsConfiguration tlsConfiguration = new TlsConfiguration("./src/test/resources/keystore.jks", "passwordpassword", null, "JKS",
+                "./src/test/resources/truststore.jks", "passwordpassword", "JKS", CertificateUtils.getHighestCurrentSupportedTlsProtocolVersion());
+        final SSLContext sslContext = SslContextFactory.createSslContext(tlsConfiguration, SslContextFactory.ClientAuth.REQUIRED);
         mockWebServer.useHttps(sslContext.getSocketFactory(), false);
 
         String configFileOutput = CONFIGURATION_FILE_TEXT.replace("${test.server}", String.valueOf(mockWebServer.url("/")));
@@ -177,9 +166,9 @@ public class TestHttpNotificationServiceSSL extends TestHttpNotificationServiceC
 
         List<ILoggingEvent> logsList = listAppender.list;
         boolean notificationServiceFailed = false;
-        for(ILoggingEvent logMessage : logsList) {
-            if(logMessage.getFormattedMessage().contains("is not valid for the following reasons")) {
-                    notificationServiceFailed = true;
+        for (ILoggingEvent logMessage : logsList) {
+            if (logMessage.getFormattedMessage().contains("is not valid for the following reasons")) {
+                notificationServiceFailed = true;
             }
         }
 
@@ -202,8 +191,8 @@ public class TestHttpNotificationServiceSSL extends TestHttpNotificationServiceC
 
         List<ILoggingEvent> logsList = listAppender.list;
         boolean notificationServiceFailed = false;
-        for(ILoggingEvent logMessage : logsList) {
-            if(logMessage.getFormattedMessage().contains("is not valid for the following reasons")) {
+        for (ILoggingEvent logMessage : logsList) {
+            if (logMessage.getFormattedMessage().contains("is not valid for the following reasons")) {
                 notificationServiceFailed = true;
             }
         }
@@ -227,8 +216,8 @@ public class TestHttpNotificationServiceSSL extends TestHttpNotificationServiceC
 
         List<ILoggingEvent> logsList = listAppender.list;
         boolean notificationServiceFailed = false;
-        for(ILoggingEvent logMessage : logsList) {
-            if(logMessage.getFormattedMessage().contains("'Keystore Password' validated against '' is invalid because Keystore Password cannot be empty")) {
+        for (ILoggingEvent logMessage : logsList) {
+            if (logMessage.getFormattedMessage().contains("'Keystore Password' validated against '' is invalid because Keystore Password cannot be empty")) {
                 notificationServiceFailed = true;
             }
         }
@@ -252,8 +241,8 @@ public class TestHttpNotificationServiceSSL extends TestHttpNotificationServiceC
 
         List<ILoggingEvent> logsList = listAppender.list;
         boolean notificationServiceFailed = false;
-        for(ILoggingEvent logMessage : logsList) {
-            if(logMessage.getFormattedMessage().contains("'Key Password' validated against '' is invalid because Key Password cannot be empty")) {
+        for (ILoggingEvent logMessage : logsList) {
+            if (logMessage.getFormattedMessage().contains("'Key Password' validated against '' is invalid because Key Password cannot be empty")) {
                 notificationServiceFailed = true;
             }
         }

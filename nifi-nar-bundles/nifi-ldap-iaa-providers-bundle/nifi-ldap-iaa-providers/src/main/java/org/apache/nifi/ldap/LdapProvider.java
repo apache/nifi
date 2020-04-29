@@ -16,6 +16,11 @@
  */
 package org.apache.nifi.ldap;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import javax.naming.Context;
+import javax.net.ssl.SSLContext;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authentication.AuthenticationResponse;
 import org.apache.nifi.authentication.LoginCredentials;
@@ -26,8 +31,11 @@ import org.apache.nifi.authentication.exception.IdentityAccessException;
 import org.apache.nifi.authentication.exception.InvalidLoginCredentialsException;
 import org.apache.nifi.authentication.exception.ProviderCreationException;
 import org.apache.nifi.authentication.exception.ProviderDestructionException;
+import org.apache.nifi.configuration.NonComponentConfigurationContext;
 import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.security.util.SslContextFactory.ClientAuth;
+import org.apache.nifi.security.util.TlsConfiguration;
+import org.apache.nifi.security.util.TlsException;
 import org.apache.nifi.util.FormatUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,18 +54,6 @@ import org.springframework.security.ldap.authentication.LdapAuthenticationProvid
 import org.springframework.security.ldap.search.FilterBasedLdapUserSearch;
 import org.springframework.security.ldap.search.LdapUserSearch;
 import org.springframework.security.ldap.userdetails.LdapUserDetails;
-
-import javax.naming.Context;
-import javax.net.ssl.SSLContext;
-import java.io.IOException;
-import java.security.KeyManagementException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.UnrecoverableKeyException;
-import java.security.cert.CertificateException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Abstract LDAP based implementation of a login identity provider.
@@ -240,17 +236,18 @@ public class LdapProvider implements LoginIdentityProvider {
         final String rawTimeout = configurationContext.getProperty(configurationProperty);
         if (StringUtils.isNotBlank(rawTimeout)) {
             try {
-                final Long timeout = FormatUtils.getTimeDuration(rawTimeout, TimeUnit.MILLISECONDS);
-                baseEnvironment.put(environmentKey, timeout.toString());
+                final long timeout = (long) FormatUtils.getPreciseTimeDuration(rawTimeout, TimeUnit.MILLISECONDS);
+                baseEnvironment.put(environmentKey, timeout);
             } catch (final IllegalArgumentException iae) {
                 throw new ProviderCreationException(String.format("The %s '%s' is not a valid time duration", configurationProperty, rawTimeout));
             }
         }
     }
 
-    private SSLContext getConfiguredSslContext(final LoginIdentityProviderConfigurationContext configurationContext) {
+    public static SSLContext getConfiguredSslContext(final NonComponentConfigurationContext configurationContext) {
         final String rawKeystore = configurationContext.getProperty("TLS - Keystore");
         final String rawKeystorePassword = configurationContext.getProperty("TLS - Keystore Password");
+        // TODO: Should support different key password
         final String rawKeystoreType = configurationContext.getProperty("TLS - Keystore Type");
         final String rawTruststore = configurationContext.getProperty("TLS - Truststore");
         final String rawTruststorePassword = configurationContext.getProperty("TLS - Truststore Password");
@@ -258,44 +255,14 @@ public class LdapProvider implements LoginIdentityProvider {
         final String rawClientAuth = configurationContext.getProperty("TLS - Client Auth");
         final String rawProtocol = configurationContext.getProperty("TLS - Protocol");
 
-        // create the ssl context
-        final SSLContext sslContext;
         try {
-            if (StringUtils.isBlank(rawKeystore) && StringUtils.isBlank(rawTruststore)) {
-                sslContext = null;
-            } else {
-                // ensure the protocol is specified
-                if (StringUtils.isBlank(rawProtocol)) {
-                    throw new ProviderCreationException("TLS - Protocol must be specified.");
-                }
-
-                if (StringUtils.isBlank(rawKeystore)) {
-                    sslContext = SslContextFactory.createTrustSslContext(rawTruststore, rawTruststorePassword.toCharArray(), rawTruststoreType, rawProtocol);
-                } else if (StringUtils.isBlank(rawTruststore)) {
-                    sslContext = SslContextFactory.createSslContext(rawKeystore, rawKeystorePassword.toCharArray(), rawKeystoreType, rawProtocol);
-                } else {
-                    // determine the client auth if specified
-                    final ClientAuth clientAuth;
-                    if (StringUtils.isBlank(rawClientAuth)) {
-                        clientAuth = ClientAuth.NONE;
-                    } else {
-                        try {
-                            clientAuth = ClientAuth.valueOf(rawClientAuth);
-                        } catch (final IllegalArgumentException iae) {
-                            throw new ProviderCreationException(String.format("Unrecognized client auth '%s'. Possible values are [%s]",
-                                    rawClientAuth, StringUtils.join(ClientAuth.values(), ", ")));
-                        }
-                    }
-
-                    sslContext = SslContextFactory.createSslContext(rawKeystore, rawKeystorePassword.toCharArray(), rawKeystoreType,
-                            rawTruststore, rawTruststorePassword.toCharArray(), rawTruststoreType, clientAuth, rawProtocol);
-                }
-            }
-        } catch (final KeyStoreException | NoSuchAlgorithmException | CertificateException | UnrecoverableKeyException | KeyManagementException | IOException e) {
-            throw new ProviderCreationException(e.getMessage(), e);
+            TlsConfiguration tlsConfiguration = new TlsConfiguration(rawKeystore, rawKeystorePassword, null, rawKeystoreType, rawTruststore, rawTruststorePassword, rawTruststoreType, rawProtocol);
+            ClientAuth clientAuth = ClientAuth.isValidClientAuthType(rawClientAuth) ? ClientAuth.valueOf(rawClientAuth) : ClientAuth.NONE;
+            return SslContextFactory.createSslContext(tlsConfiguration, clientAuth);
+        } catch (TlsException e) {
+            logger.error("Encountered an error configuring TLS for LDAP identity provider: {}", e.getLocalizedMessage());
+            throw new ProviderCreationException("Error configuring TLS for LDAP identity provider", e);
         }
-
-        return sslContext;
     }
 
     @Override

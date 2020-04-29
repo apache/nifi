@@ -23,14 +23,14 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
 import javax.net.ssl.SSLContext;
-
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.security.util.SslContextFactory;
+import org.apache.nifi.security.util.TlsConfiguration;
 
 /**
  * Definition for SSLContextService.
@@ -41,32 +41,28 @@ import org.apache.nifi.processor.exception.ProcessException;
         + "that configuration throughout the application")
 public interface SSLContextService extends ControllerService {
 
-    public static enum ClientAuth {
+    // May need to back out if NAR-specific API can't be modified in minor release
+    TlsConfiguration createTlsConfiguration();
 
-        WANT,
-        REQUIRED,
-        NONE
-    }
+    SSLContext createSSLContext(final SslContextFactory.ClientAuth clientAuth) throws ProcessException;
 
-    public SSLContext createSSLContext(final ClientAuth clientAuth) throws ProcessException;
+    String getTrustStoreFile();
 
-    public String getTrustStoreFile();
+    String getTrustStoreType();
 
-    public String getTrustStoreType();
+    String getTrustStorePassword();
 
-    public String getTrustStorePassword();
+    boolean isTrustStoreConfigured();
 
-    public boolean isTrustStoreConfigured();
+    String getKeyStoreFile();
 
-    public String getKeyStoreFile();
+    String getKeyStoreType();
 
-    public String getKeyStoreType();
+    String getKeyStorePassword();
 
-    public String getKeyStorePassword();
+    String getKeyPassword();
 
-    public String getKeyPassword();
-
-    public boolean isKeyStoreConfigured();
+    boolean isKeyStoreConfigured();
 
     String getSslAlgorithm();
 
@@ -83,6 +79,8 @@ public interface SSLContextService extends ControllerService {
          * see: http://docs.oracle.com/javase/7/docs/technotes/guides/security/StandardNames.html#SSLContext
          */
         supportedProtocols.add("TLS");
+
+        // This is still available for outgoing connections to legacy services, but can be disabled with jdk.tls.disabledAlgorithms
         supportedProtocols.add("SSL");
 
         // Determine those provided by the JVM on the system

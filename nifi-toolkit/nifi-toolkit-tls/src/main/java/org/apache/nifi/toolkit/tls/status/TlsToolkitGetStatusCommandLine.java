@@ -16,8 +16,13 @@
  */
 package org.apache.nifi.toolkit.tls.status;
 
+import java.net.URI;
+import java.net.URISyntaxException;
+import javax.net.ssl.SSLContext;
 import org.apache.commons.cli.CommandLine;
+import org.apache.nifi.security.util.CertificateUtils;
 import org.apache.nifi.security.util.SslContextFactory;
+import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.toolkit.tls.commandLine.BaseCommandLine;
 import org.apache.nifi.toolkit.tls.commandLine.CommandLineParseException;
 import org.apache.nifi.toolkit.tls.commandLine.ExitCode;
@@ -25,10 +30,6 @@ import org.apache.nifi.toolkit.tls.configuration.GetStatusConfig;
 import org.apache.nifi.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.net.ssl.SSLContext;
-import java.net.URI;
-import java.net.URISyntaxException;
 
 public class TlsToolkitGetStatusCommandLine extends BaseCommandLine {
 
@@ -44,7 +45,7 @@ public class TlsToolkitGetStatusCommandLine extends BaseCommandLine {
     public static final String TRUSTSTORE_PASSWORD_ARG = "trustStorePassword";
     public static final String PROTOCOL_ARG = "protocol";
 
-    public static final String DEFAULT_PROTOCOL = "TLS";
+    public static final String DEFAULT_PROTOCOL = CertificateUtils.getHighestCurrentSupportedTlsProtocolVersion();
     public static final String DEFAULT_KEYSTORE_TYPE = "JKS";
 
     public static final String DESCRIPTION = "Checks the status of an HTTPS endpoint by making a GET request using a supplied keystore and truststore.";
@@ -101,8 +102,9 @@ public class TlsToolkitGetStatusCommandLine extends BaseCommandLine {
             printUsageAndThrow("Invalid Url", ExitCode.INVALID_ARGS);
         }
 
+        // TODO: Refactor this whole thing
         final String keystoreFilename = commandLine.getOptionValue(KEYSTORE_ARG);
-        final String keystoreTypeStr = commandLine.getOptionValue(KEYSTORE_TYPE_ARG, DEFAULT_KEYSTORE_TYPE);
+        String keystoreTypeStr = commandLine.getOptionValue(KEYSTORE_TYPE_ARG, DEFAULT_KEYSTORE_TYPE);
         final String keystorePassword = commandLine.getOptionValue(KEYSTORE_PASSWORD_ARG);
         final String keyPassword = commandLine.getOptionValue(KEY_PASSWORD_ARG);
 
@@ -112,34 +114,19 @@ public class TlsToolkitGetStatusCommandLine extends BaseCommandLine {
 
         final String protocol = commandLine.getOptionValue(PROTOCOL_ARG, DEFAULT_PROTOCOL);
 
-        final boolean keystoreProvided = !StringUtils.isBlank(keystoreFilename);
-        final boolean truststoreProvided = !StringUtils.isBlank(truststoreFilename);
+        // This use case specifically allows truststore configuration without keystore configuration, but attempts to default the keystore type value
+        if (StringUtils.isBlank(keystoreFilename)) {
+            keystoreTypeStr = null;
+        }
 
         try {
-            final char[] keystorePass = keystorePassword == null ? null : keystorePassword.toCharArray();
-            final char[] keyPass = keyPassword == null ? null : keyPassword.toCharArray();
-            final char[] trustPass = truststorePassword == null ? null : truststorePassword.toCharArray();
+            TlsConfiguration tlsConfiguration = new TlsConfiguration(keystoreFilename, keystorePassword, keyPassword, keystoreTypeStr,
+                    truststoreFilename, truststorePassword, truststoreTypeStr, protocol);
 
-            if (keystoreProvided && truststoreProvided) {
-                this.sslContext = SslContextFactory.createSslContext(
-                        keystoreFilename,
-                        keystorePass,
-                        keyPass,
-                        keystoreTypeStr,
-                        truststoreFilename,
-                        trustPass,
-                        truststoreTypeStr,
-                        SslContextFactory.ClientAuth.NONE, protocol);
-
-            } else if (truststoreProvided) {
-                this.sslContext = SslContextFactory.createTrustSslContext(
-                        truststoreFilename,
-                        trustPass,
-                        truststoreTypeStr,
-                        protocol);
-
+            if (tlsConfiguration.isAnyTruststorePopulated()) {
+                this.sslContext = SslContextFactory.createSslContext(tlsConfiguration);
             } else {
-                printUsageAndThrow("No keystore or truststore was provided", ExitCode.INVALID_ARGS);
+                printUsageAndThrow("No truststore was provided", ExitCode.INVALID_ARGS);
             }
         } catch (Exception e) {
             logger.error(e.getMessage(), e);

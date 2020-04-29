@@ -16,10 +16,14 @@
  */
 package org.apache.nifi.reporting.s2s;
 
+import java.util.concurrent.TimeUnit;
+import javax.net.ssl.SSLContext;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
+import org.apache.nifi.components.state.StateManager;
+import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
@@ -29,12 +33,10 @@ import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.remote.protocol.http.HttpProxy;
 import org.apache.nifi.remote.util.SiteToSiteRestApiClient;
 import org.apache.nifi.reporting.ReportingContext;
+import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.StringUtils;
-
-import javax.net.ssl.SSLContext;
-import java.util.concurrent.TimeUnit;
 
 public class SiteToSiteUtils {
 
@@ -143,9 +145,9 @@ public class SiteToSiteUtils {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
-    public static SiteToSiteClient getClient(ReportingContext reportContext, ComponentLog logger) {
+    public static SiteToSiteClient getClient(PropertyContext reportContext, ComponentLog logger, StateManager stateManager) {
         final SSLContextService sslContextService = reportContext.getProperty(SiteToSiteUtils.SSL_CONTEXT).asControllerService(SSLContextService.class);
-        final SSLContext sslContext = sslContextService == null ? null : sslContextService.createSSLContext(SSLContextService.ClientAuth.REQUIRED);
+        final SSLContext sslContext = sslContextService == null ? null : sslContextService.createSSLContext(SslContextFactory.ClientAuth.REQUIRED);
         final EventReporter eventReporter = (EventReporter) (severity, category, message) -> {
             switch (severity) {
                 case WARNING:
@@ -165,6 +167,10 @@ public class SiteToSiteUtils {
                 : new HttpProxy(reportContext.getProperty(SiteToSiteUtils.HTTP_PROXY_HOSTNAME).getValue(), reportContext.getProperty(SiteToSiteUtils.HTTP_PROXY_PORT).asInteger(),
                 reportContext.getProperty(SiteToSiteUtils.HTTP_PROXY_USERNAME).getValue(), reportContext.getProperty(SiteToSiteUtils.HTTP_PROXY_PASSWORD).getValue());
 
+        // If no state manager was provided and this context supports retrieving it, do so
+        if (stateManager == null && reportContext instanceof ReportingContext) {
+            stateManager = ((ReportingContext) reportContext).getStateManager();
+        }
         return new SiteToSiteClient.Builder()
                 .urls(SiteToSiteRestApiClient.parseClusterUrls(destinationUrl))
                 .portName(reportContext.getProperty(SiteToSiteUtils.PORT_NAME).getValue())
@@ -174,7 +180,7 @@ public class SiteToSiteUtils {
                 .timeout(reportContext.getProperty(SiteToSiteUtils.TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS)
                 .transportProtocol(mode)
                 .httpProxy(httpProxy)
-                .stateManager(reportContext.getStateManager())
+                .stateManager(stateManager)
                 .build();
     }
 

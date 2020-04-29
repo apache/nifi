@@ -16,24 +16,23 @@
  */
 package org.apache.nifi.jms.cf;
 
+import static org.apache.nifi.jms.cf.JMSConnectionFactoryProperties.JMS_BROKER_URI;
+import static org.apache.nifi.jms.cf.JMSConnectionFactoryProperties.JMS_CONNECTION_FACTORY_IMPL;
+import static org.apache.nifi.jms.cf.JMSConnectionFactoryProperties.JMS_SSL_CONTEXT_SERVICE;
+
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import javax.jms.ConnectionFactory;
+import javax.net.ssl.SSLContext;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.security.util.SslContextFactory.ClientAuth;
 import org.apache.nifi.ssl.SSLContextService;
-import org.apache.nifi.ssl.SSLContextService.ClientAuth;
-
-import javax.jms.ConnectionFactory;
-import javax.net.ssl.SSLContext;
-import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-
-import static org.apache.nifi.jms.cf.JMSConnectionFactoryProperties.JMS_BROKER_URI;
-import static org.apache.nifi.jms.cf.JMSConnectionFactoryProperties.JMS_CONNECTION_FACTORY_IMPL;
-import static org.apache.nifi.jms.cf.JMSConnectionFactoryProperties.JMS_SSL_CONTEXT_SERVICE;
 
 /**
  * Handler class to create a JMS Connection Factory by instantiating the vendor specific javax.jms.ConnectionFactory
@@ -241,7 +240,7 @@ public class JMSConnectionFactoryHandler implements IJMSConnectionFactoryProvide
      * 'queueManager' property will correspond to setQueueManager method name
      */
     private String toMethodName(String propertyName) {
-        char c[] = propertyName.toCharArray();
+        char[] c = propertyName.toCharArray();
         c[0] = Character.toUpperCase(c[0]);
         return "set" + new String(c);
     }

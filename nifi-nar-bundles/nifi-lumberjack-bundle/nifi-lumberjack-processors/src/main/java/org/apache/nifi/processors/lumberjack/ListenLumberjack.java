@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.lumberjack;
 
+import com.google.gson.Gson;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
@@ -26,9 +27,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
-
 import javax.net.ssl.SSLContext;
-
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
@@ -58,10 +57,9 @@ import org.apache.nifi.processors.lumberjack.frame.LumberjackEncoder;
 import org.apache.nifi.processors.lumberjack.handler.LumberjackSocketChannelHandlerFactory;
 import org.apache.nifi.processors.lumberjack.response.LumberjackChannelResponse;
 import org.apache.nifi.processors.lumberjack.response.LumberjackResponse;
+import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
-
-import com.google.gson.Gson;
 
 @Deprecated
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
@@ -143,7 +141,7 @@ public class ListenLumberjack extends AbstractListenEventBatchingProcessor<Lumbe
         SSLContext sslContext = null;
         final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
         if (sslContextService != null) {
-            sslContext = sslContextService.createSSLContext(SSLContextService.ClientAuth.REQUIRED);
+            sslContext = sslContextService.createSSLContext(SslContextFactory.ClientAuth.REQUIRED);
         }
 
         // if we decide to support SSL then get the context and pass it in here

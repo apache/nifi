@@ -17,12 +17,13 @@
 package org.apache.nifi.ssl;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
 import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.security.util.CertificateUtils;
 
 /**
  * Simple extension of the regular {@link SSLContextService} to allow for restricted implementations
@@ -47,7 +48,7 @@ public interface RestrictedSSLContextService extends SSLContextService {
         /*
          * Add specifically supported TLS versions
          */
-        supportedProtocols.add("TLSv1.2");
+        supportedProtocols.addAll(Arrays.asList(CertificateUtils.getCurrentSupportedTlsProtocolVersions()));
 
         final int numProtocols = supportedProtocols.size();
 

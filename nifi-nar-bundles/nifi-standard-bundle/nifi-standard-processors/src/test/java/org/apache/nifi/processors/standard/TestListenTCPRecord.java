@@ -16,6 +16,14 @@
  */
 package org.apache.nifi.processors.standard;
 
+import java.io.Closeable;
+import java.io.IOException;
+import java.net.Socket;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import javax.net.ssl.SSLContext;
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.json.JsonTreeReader;
 import org.apache.nifi.processor.ProcessContext;
@@ -23,6 +31,8 @@ import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.schema.access.SchemaAccessUtils;
 import org.apache.nifi.security.util.SslContextFactory;
+import org.apache.nifi.security.util.TlsConfiguration;
+import org.apache.nifi.security.util.TlsException;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.record.MockRecordWriter;
@@ -38,23 +48,23 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.net.ssl.SSLContext;
-import java.io.Closeable;
-import java.io.IOException;
-import java.net.Socket;
-import java.nio.charset.StandardCharsets;
-import java.security.KeyManagementException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.UnrecoverableKeyException;
-import java.security.cert.CertificateException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-
 public class TestListenTCPRecord {
-
     static final Logger LOGGER = LoggerFactory.getLogger(TestListenTCPRecord.class);
+
+    private static final String KEYSTORE = "src/test/resources/keystore.jks";
+    private static final String KEYSTORE_PASSWORD = "passwordpassword";
+    private static final String KEYSTORE_TYPE = "JKS";
+    private static final String TRUSTSTORE = "src/test/resources/truststore.jks";
+    private static final String TRUSTSTORE_PASSWORD = "passwordpassword";
+    private static final String TRUSTSTORE_TYPE = "JKS";
+    private static final String CLIENT_KEYSTORE = "src/test/resources/client-keystore.p12";
+    private static final String CLIENT_KEYSTORE_TYPE = "PKCS12";
+
+    // TODO: The NiFi SSL classes don't yet support TLSv1.3, so set the CS version explicitly
+    private static final String TLS_PROTOCOL_VERSION = "TLSv1.2";
+
+    private static TlsConfiguration clientTlsConfiguration;
+    private static TlsConfiguration trustOnlyTlsConfiguration;
 
     static final String SCHEMA_TEXT = "{\n" +
             "  \"name\": \"syslogRecord\",\n" +
@@ -68,6 +78,7 @@ public class TestListenTCPRecord {
             "}";
 
     static final List<String> DATA;
+
     static {
         final List<String> data = new ArrayList<>();
         data.add("[");
@@ -101,6 +112,11 @@ public class TestListenTCPRecord {
 
         runner.setProperty(ListenTCPRecord.RECORD_READER, readerId);
         runner.setProperty(ListenTCPRecord.RECORD_WRITER, writerId);
+
+        clientTlsConfiguration = new TlsConfiguration(CLIENT_KEYSTORE, KEYSTORE_PASSWORD, null, CLIENT_KEYSTORE_TYPE,
+                TRUSTSTORE, TRUSTSTORE_PASSWORD, TRUSTSTORE_TYPE, TLS_PROTOCOL_VERSION);
+        trustOnlyTlsConfiguration = new TlsConfiguration(null, null, null, null,
+                TRUSTSTORE, TRUSTSTORE_PASSWORD, TRUSTSTORE_TYPE, TLS_PROTOCOL_VERSION);
     }
 
     @Test
@@ -123,7 +139,7 @@ public class TestListenTCPRecord {
         runTCP(DATA, 3, null);
 
         List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(ListenTCPRecord.REL_SUCCESS);
-        for (int i=0; i < mockFlowFiles.size(); i++) {
+        for (int i = 0; i < mockFlowFiles.size(); i++) {
             final MockFlowFile flowFile = mockFlowFiles.get(i);
             flowFile.assertAttributeEquals("record.count", "1");
 
@@ -153,22 +169,13 @@ public class TestListenTCPRecord {
     }
 
     @Test
-    public void testTLSClientAuthRequiredAndClientCertProvided() throws InitializationException, IOException, InterruptedException, UnrecoverableKeyException,
-            CertificateException, NoSuchAlgorithmException, KeyStoreException, KeyManagementException {
+    public void testTLSClientAuthRequiredAndClientCertProvided() throws InitializationException, IOException, InterruptedException, TlsException {
 
-        runner.setProperty(ListenTCPRecord.CLIENT_AUTH, SSLContextService.ClientAuth.REQUIRED.name());
+        runner.setProperty(ListenTCPRecord.CLIENT_AUTH, SslContextFactory.ClientAuth.REQUIRED.name());
         configureProcessorSslContextService();
 
         // Make an SSLContext with a key and trust store to send the test messages
-        final SSLContext clientSslContext = SslContextFactory.createSslContext(
-                "src/test/resources/keystore.jks",
-                "passwordpassword".toCharArray(),
-                "jks",
-                "src/test/resources/truststore.jks",
-                "passwordpassword".toCharArray(),
-                "jks",
-                org.apache.nifi.security.util.SslContextFactory.ClientAuth.valueOf("NONE"),
-                "TLSv1.2");
+        final SSLContext clientSslContext = SslContextFactory.createSslContext(clientTlsConfiguration);
 
         runTCP(DATA, 1, clientSslContext);
 
@@ -183,36 +190,26 @@ public class TestListenTCPRecord {
     }
 
     @Test
-    public void testTLSClientAuthRequiredAndClientCertNotProvided() throws InitializationException, CertificateException, UnrecoverableKeyException,
-            NoSuchAlgorithmException, KeyStoreException, KeyManagementException, IOException, InterruptedException {
+    public void testTLSClientAuthRequiredAndClientCertNotProvided() throws InitializationException, IOException, InterruptedException, TlsException {
 
-        runner.setProperty(ListenTCPRecord.CLIENT_AUTH, SSLContextService.ClientAuth.REQUIRED.name());
+        runner.setProperty(ListenTCPRecord.CLIENT_AUTH, SslContextFactory.ClientAuth.REQUIRED.name());
         runner.setProperty(ListenTCPRecord.READ_TIMEOUT, "5 seconds");
         configureProcessorSslContextService();
 
         // Make an SSLContext that only has the trust store, this should not work since the processor has client auth REQUIRED
-        final SSLContext clientSslContext = SslContextFactory.createTrustSslContext(
-                "src/test/resources/truststore.jks",
-                "passwordpassword".toCharArray(),
-                "jks",
-                "TLS");
+        final SSLContext clientSslContext = SslContextFactory.createSslContext(trustOnlyTlsConfiguration);
 
         runTCP(DATA, 0, clientSslContext);
     }
 
     @Test
-    public void testTLSClientAuthNoneAndClientCertNotProvided() throws InitializationException, CertificateException, UnrecoverableKeyException,
-            NoSuchAlgorithmException, KeyStoreException, KeyManagementException, IOException, InterruptedException {
+    public void testTLSClientAuthNoneAndClientCertNotProvided() throws InitializationException, IOException, InterruptedException, TlsException {
 
-        runner.setProperty(ListenTCPRecord.CLIENT_AUTH, SSLContextService.ClientAuth.NONE.name());
+        runner.setProperty(ListenTCPRecord.CLIENT_AUTH, SslContextFactory.ClientAuth.NONE.name());
         configureProcessorSslContextService();
 
         // Make an SSLContext that only has the trust store, this should work since the processor has client auth NONE
-        final SSLContext clientSslContext = SslContextFactory.createTrustSslContext(
-                "src/test/resources/truststore.jks",
-                "passwordpassword".toCharArray(),
-                "jks",
-                "TLSv1.2");
+        final SSLContext clientSslContext = SslContextFactory.createSslContext(trustOnlyTlsConfiguration);
 
         runTCP(DATA, 1, clientSslContext);
 
@@ -248,7 +245,7 @@ public class TestListenTCPRecord {
             // call onTrigger until we processed all the records, or a certain amount of time passes
             int numTransferred = 0;
             long startTime = System.currentTimeMillis();
-            while (numTransferred < expectedTransferred  && (System.currentTimeMillis() - startTime < timeout)) {
+            while (numTransferred < expectedTransferred && (System.currentTimeMillis() - startTime < timeout)) {
                 proc.onTrigger(context, processSessionFactory);
                 numTransferred = runner.getFlowFilesForRelationship(ListenTCPRecord.REL_SUCCESS).size();
                 Thread.sleep(100);

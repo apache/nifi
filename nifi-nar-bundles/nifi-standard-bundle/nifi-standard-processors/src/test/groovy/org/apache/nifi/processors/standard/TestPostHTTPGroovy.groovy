@@ -330,8 +330,9 @@ class TestPostHTTPGroovy extends GroovyTestCase {
         runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_TYPE, KEYSTORE_TYPE)
         runner.setProperty(sslContextService, StandardSSLContextService.SSL_ALGORITHM, protocol)
         runner.enableControllerService(sslContextService)
-        logger.info("PostHTTP supported protocols: ${sslContextService.createSSLContext(SSLContextService.ClientAuth.NONE).protocol}")
-        logger.info("PostHTTP supported cipher suites: ${sslContextService.createSSLContext(SSLContextService.ClientAuth.NONE).supportedSSLParameters.cipherSuites}")
+        def sslContext = sslContextService.createSSLContext(org.apache.nifi.security.util.SslContextFactory.ClientAuth.NONE)
+        logger.info("PostHTTP supported protocols: ${sslContext.protocol}")
+        logger.info("PostHTTP supported cipher suites: ${sslContext.supportedSSLParameters.cipherSuites}")
     }
 
     /**
