@@ -370,8 +370,8 @@ public class PrometheusMetricsUtil {
         return connectionAnalyticsMetricsRegistry.getRegistry();
     }
 
-    private static int getUtilization(final double used, final double total) {
-        return (int) Math.round((used / total) * 100);
+    private static double getUtilization(final double used, final double total) {
+        return (used / total) * 100;
     }
 
     public static CollectorRegistry createBulletinMetrics(BulletinMetricsRegistry bulletinMetricsRegistry, String instId, String compType, String compId, String pgId, String nodeAddr,
