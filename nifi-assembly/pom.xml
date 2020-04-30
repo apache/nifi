@@ -812,6 +812,21 @@ language governing permissions and limitations under the License. -->
             </dependencies>
         </profile>
         <profile>
+            <id>include-h2o</id>
+            <!-- This profile handles the inclusion of h2o artifacts. -->
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>org.apache.nifi</groupId>
+                    <artifactId>nifi-h2o-record-nar</artifactId>
+                    <version>1.12.0-SNAPSHOT</version>
+                    <type>nar</type>
+                </dependency>
+            </dependencies>
+        </profile>
+        <profile>
             <id>include-atlas</id>
             <!-- This profile handles the inclusion of atlas artifacts. The NAR
             is quite large and makes the resultant binary distribution significantly
