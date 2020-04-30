@@ -58,6 +58,11 @@ public class StandardFlowSerializerTest {
             = "<tagName> \"This\" is an ' example with many characters that need to be filtered and escaped \u0002 in it. \u007f \u0086 " + Character.MIN_SURROGATE;
     private static final String SERIALIZED_COMMENTS
             = "&lt;tagName&gt; \"This\" is an ' example with many characters that need to be filtered and escaped  in it. &#127; &#134; ";
+    private static final String RAW_VARIABLE_NAME = "Name with \u0001 escape needed";
+    private static final String SERIALIZED_VARIABLE_NAME = "Name with  escape needed";
+    private static final String RAW_VARIABLE_VALUE = "Value with \u0001 escape needed";
+    private static final String SERIALIZED_VARIABLE_VALUE = "Value with  escape needed";
+
     private volatile String propsFile = StandardFlowSerializerTest.class.getResource("/standardflowserializertest.nifi.properties").getFile();
 
     private FlowController controller;
@@ -108,6 +113,8 @@ public class StandardFlowSerializerTest {
         dummy.setComments(RAW_COMMENTS);
         controller.getFlowManager().getRootGroup().addProcessor(dummy);
 
+        controller.getFlowManager().getRootGroup().setVariables(Collections.singletonMap(RAW_VARIABLE_NAME, RAW_VARIABLE_VALUE));
+
         // serialize the controller
         final ByteArrayOutputStream os = new ByteArrayOutputStream();
         final Document doc = serializer.transform(controller, ScheduledStateLookup.IDENTITY_LOOKUP);
@@ -117,5 +124,10 @@ public class StandardFlowSerializerTest {
         final String serializedFlow = os.toString(StandardCharsets.UTF_8.name());
         assertTrue(serializedFlow.contains(SERIALIZED_COMMENTS));
         assertFalse(serializedFlow.contains(RAW_COMMENTS));
+        assertTrue(serializedFlow.contains(SERIALIZED_VARIABLE_NAME));
+        assertFalse(serializedFlow.contains(RAW_VARIABLE_NAME));
+        assertTrue(serializedFlow.contains(SERIALIZED_VARIABLE_VALUE));
+        assertFalse(serializedFlow.contains(RAW_VARIABLE_VALUE));
+        assertFalse(serializedFlow.contains("\u0001"));
     }
 }
