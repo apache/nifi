@@ -59,6 +59,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
+import java.nio.charset.StandardCharsets;
 import java.sql.Blob;
 import java.sql.Clob;
 import java.sql.NClob;
@@ -102,6 +103,7 @@ import org.apache.avro.io.DatumWriter;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.avro.AvroTypeUtil;
+import org.apache.nifi.serialization.record.util.DataTypeUtils;
 
 import javax.xml.bind.DatatypeConverter;
 
@@ -259,17 +261,7 @@ public class JdbcCommon {
                     if (javaSqlType == CLOB) {
                         Clob clob = rs.getClob(i);
                         if (clob != null) {
-                            long numChars = clob.length();
-                            char[] buffer = new char[(int) numChars];
-                            InputStream is = clob.getAsciiStream();
-                            int index = 0;
-                            int c = is.read();
-                            while (c >= 0) {
-                                buffer[index++] = (char) c;
-                                c = is.read();
-                            }
-                            rec.put(i - 1, new String(buffer));
-                            clob.free();
+                            rec.put(i - 1, DataTypeUtils.toString(clob, (String) null, StandardCharsets.UTF_8));
                         } else {
                             rec.put(i - 1, null);
                         }
@@ -279,13 +271,7 @@ public class JdbcCommon {
                     if (javaSqlType == NCLOB) {
                         NClob nClob = rs.getNClob(i);
                         if (nClob != null) {
-                            final Reader characterStream = nClob.getCharacterStream();
-                            long numChars = (int) nClob.length();
-                            final CharBuffer buffer = CharBuffer.allocate((int) numChars);
-                            characterStream.read(buffer);
-                            buffer.flip();
-                            rec.put(i - 1, buffer.toString());
-                            nClob.free();
+                            rec.put(i - 1, DataTypeUtils.toString(nClob, (String) null, StandardCharsets.UTF_8));
                         } else {
                             rec.put(i - 1, null);
                         }
