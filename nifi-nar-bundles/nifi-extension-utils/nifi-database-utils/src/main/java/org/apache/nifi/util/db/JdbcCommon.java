@@ -58,10 +58,8 @@ import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
-import java.nio.CharBuffer;
 import java.sql.Blob;
 import java.sql.Clob;
-import java.sql.NClob;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -256,36 +254,18 @@ public class JdbcCommon {
                     final Schema fieldSchema = schema.getFields().get(i - 1).schema();
 
                     // Need to handle CLOB and BLOB before getObject() is called, due to ResultSet's maximum portability statement
-                    if (javaSqlType == CLOB) {
+                    if (javaSqlType == CLOB || javaSqlType == NCLOB) {
                         Clob clob = rs.getClob(i);
                         if (clob != null) {
-                            long numChars = clob.length();
-                            char[] buffer = new char[(int) numChars];
-                            InputStream is = clob.getAsciiStream();
-                            int index = 0;
-                            int c = is.read();
-                            while (c >= 0) {
-                                buffer[index++] = (char) c;
-                                c = is.read();
+                            StringBuilder sb = new StringBuilder();
+                            char[] buffer = new char[32 * 1024]; // 32K default buffer
+                            try (Reader reader = clob.getCharacterStream()) {
+                                int charsRead;
+                                while ((charsRead = reader.read(buffer)) != -1) {
+                                    sb.append(buffer, 0, charsRead);
+                                }
                             }
-                            rec.put(i - 1, new String(buffer));
-                            clob.free();
-                        } else {
-                            rec.put(i - 1, null);
-                        }
-                        continue;
-                    }
-
-                    if (javaSqlType == NCLOB) {
-                        NClob nClob = rs.getNClob(i);
-                        if (nClob != null) {
-                            final Reader characterStream = nClob.getCharacterStream();
-                            long numChars = (int) nClob.length();
-                            final CharBuffer buffer = CharBuffer.allocate((int) numChars);
-                            characterStream.read(buffer);
-                            buffer.flip();
-                            rec.put(i - 1, buffer.toString());
-                            nClob.free();
+                            rec.put(i - 1, sb.toString());
                         } else {
                             rec.put(i - 1, null);
                         }
