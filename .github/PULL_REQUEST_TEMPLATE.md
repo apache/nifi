@@ -32,4 +32,4 @@ to ensure the following steps have been taken:
 - [ ] Have you ensured that format looks appropriate for the output in which it is rendered?
 
 ### Note:
-Please ensure that once the PR is submitted, you check travis-ci for build issues and submit an update to your PR as soon as possible.
+Please ensure that once the PR is submitted, you check GitHub Actions CI for build issues and submit an update to your PR as soon as possible.
