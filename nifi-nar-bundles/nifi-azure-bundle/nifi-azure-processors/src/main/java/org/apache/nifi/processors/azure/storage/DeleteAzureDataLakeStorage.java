@@ -62,7 +62,7 @@ public class DeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageProc
             session.transfer(flowFile, REL_SUCCESS);
 
             final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
-            session.getProvenanceReporter().send(flowFile, fileClient.getFileUrl(), transferMillis);
+            session.getProvenanceReporter().invokeRemoteProcess(flowFile, fileClient.getFileUrl(), "File deleted");
         } catch (Exception e) {
             getLogger().error("Failed to delete the specified file from Azure Data Lake Storage,  due to {}", e);
             flowFile = session.penalize(flowFile);
