@@ -1044,7 +1044,10 @@ NOTE: The `nifi.cluster.load.balance.host=` entry must be manually populated her
 ** `<property name="Connect String"></property>` -> `<property name="Connect String">node1.nifi:2181,node2.nifi:2182,node3.nifi:2183</property>`
 * `cp node1.nifi/conf/state-management.xml node2.nifi/conf/state-management.xml` -- Copies the modified `state-management.xml` file from `node1` to `node2`
 * `cp node1.nifi/conf/state-management.xml node3.nifi/conf/state-management.xml` -- Copies the modified `state-management.xml` file from `node1` to `node3`
-. Update the `authorizers.xml` file. This file contains the *Initial Node Identities* and *Initial User Identities*. The *users* consist of all human users _and_ all nodes in the cluster. The `authorizers.xml` file can be identical on each node (assuming no other changes were made), so the modified file will be copied to the other nodes.
+. Update the `authorizers.xml` file. This file contains the *Initial Node Identities* and *Initial User Identities*. The *users* consist of all human users _and_ all nodes in the cluster. The `authorizers.xml` file can be identical on each node (assuming no other changes were made), so the modified file will be copied to the other nodes. 
++
+NOTE: Each `Initial User Identity` must have a **unique** name (`Initial User Identity 1`, `Initial User Identity 2`, etc.). 
+
 * `$EDITOR node1.nifi/conf/authorizers.xml` -- Opens the `authorizers.xml` file in a text editor
 * Update the following lines:
 ** In the `<userGroupProvider>` section, `<property name="Initial User Identity 1"></property>` -> `<property name="Initial User Identity 1">CN=my_username</property>` -- Adds an initial user with the DN generated in the client certificate
