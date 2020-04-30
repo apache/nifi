@@ -65,7 +65,7 @@ public class FetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageProce
             session.transfer(flowFile, REL_SUCCESS);
 
             final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
-            session.getProvenanceReporter().send(flowFile, fileClient.getFileUrl(), transferMillis);
+            session.getProvenanceReporter().fetch(flowFile, fileClient.getFileUrl(), transferMillis);
         } catch (Exception e) {
             getLogger().error("Failure to fetch file from Azure Data Lake Storage, due to {}", e);
             flowFile = session.penalize(flowFile);
