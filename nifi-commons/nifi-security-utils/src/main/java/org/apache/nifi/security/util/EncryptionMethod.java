@@ -103,8 +103,7 @@ public enum EncryptionMethod {
 
     @Override
     public String toString() {
-        final ToStringBuilder builder = new ToStringBuilder(this);
-        ToStringBuilder.setDefaultStyle(ToStringStyle.SHORT_PREFIX_STYLE);
+        final ToStringBuilder builder = new ToStringBuilder(this, ToStringStyle.SHORT_PREFIX_STYLE);
         builder.append("Algorithm name", algorithm);
         builder.append("Requires unlimited strength JCE policy", unlimitedStrength);
         builder.append("Algorithm Provider", provider);

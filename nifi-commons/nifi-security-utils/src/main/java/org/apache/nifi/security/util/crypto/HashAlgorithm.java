@@ -113,8 +113,7 @@ public enum HashAlgorithm {
 
     @Override
     public String toString() {
-        final ToStringBuilder builder = new ToStringBuilder(this);
-        ToStringBuilder.setDefaultStyle(ToStringStyle.SHORT_PREFIX_STYLE);
+        final ToStringBuilder builder = new ToStringBuilder(this, ToStringStyle.SHORT_PREFIX_STYLE);
         builder.append("Algorithm Name", name);
         builder.append("Digest Length", digestBytesLength + " bytes");
         builder.append("Description", description);

@@ -53,8 +53,7 @@ public enum RepositoryType {
 
     @Override
     public String toString() {
-        final ToStringBuilder builder = new ToStringBuilder(this);
-        ToStringBuilder.setDefaultStyle(ToStringStyle.SHORT_PREFIX_STYLE);
+        final ToStringBuilder builder = new ToStringBuilder(this, ToStringStyle.SHORT_PREFIX_STYLE);
         builder.append("Repository", name);
         builder.append("Package path", packagePath);
         builder.append("Encryption process", encryptionProcess);
