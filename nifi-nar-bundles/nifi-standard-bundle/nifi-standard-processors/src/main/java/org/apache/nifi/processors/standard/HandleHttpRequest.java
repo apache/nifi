@@ -112,6 +112,8 @@ import java.util.regex.Pattern;
     @WritesAttribute(attribute = HTTPUtils.HTTP_REQUEST_URI, description = "The full Request URL"),
     @WritesAttribute(attribute = "http.auth.type", description = "The type of HTTP Authorization used"),
     @WritesAttribute(attribute = "http.principal.name", description = "The name of the authenticated user making the request"),
+    @WritesAttribute(attribute = "http.query.param.XXX", description = "Each of query parameters in the request will be added as an attribute, "
+            + "prefixed with \"http.query.param.\""),
     @WritesAttribute(attribute = HTTPUtils.HTTP_SSL_CERT, description = "The Distinguished Name of the requestor. This value will not be populated "
             + "unless the Processor is configured to use an SSLContext Service"),
     @WritesAttribute(attribute = "http.issuer.dn", description = "The Distinguished Name of the entity that issued the Subject's certificate. "
@@ -729,13 +731,6 @@ public class HandleHttpRequest extends AbstractProcessor {
           putAttribute(attributes, "http.locale", request.getLocale());
           putAttribute(attributes, "http.server.name", request.getServerName());
           putAttribute(attributes, HTTPUtils.HTTP_PORT, request.getServerPort());
-
-          final Enumeration<String> paramEnumeration = request.getParameterNames();
-          while (paramEnumeration.hasMoreElements()) {
-              final String paramName = paramEnumeration.nextElement();
-              final String value = request.getParameter(paramName);
-              attributes.put("http.param." + paramName, value);
-          }
 
           final Cookie[] cookies = request.getCookies();
           if (cookies != null) {
