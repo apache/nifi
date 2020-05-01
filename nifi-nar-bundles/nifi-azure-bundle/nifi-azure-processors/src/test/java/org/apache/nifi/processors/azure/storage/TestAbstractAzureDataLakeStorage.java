@@ -23,6 +23,7 @@ import org.junit.Test;
 
 import static org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor.ACCOUNT_KEY;
 import static org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor.ACCOUNT_NAME;
+import static org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor.USE_MANAGED_IDENTITY;
 import static org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor.DIRECTORY;
 import static org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor.FILE;
 import static org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor.FILESYSTEM;
@@ -53,6 +54,14 @@ public class TestAbstractAzureDataLakeStorage {
     public void testValidWhenAccountNameAndSasTokenSpecified() {
         runner.removeProperty(ACCOUNT_KEY);
         runner.setProperty(SAS_TOKEN, "sasToken");
+
+        runner.assertValid();
+    }
+
+    @Test
+    public void testValidWhenAccountNameAndUseManagedIdentity() {
+        runner.removeProperty(ACCOUNT_KEY);
+        runner.setProperty(USE_MANAGED_IDENTITY, "true");
 
         runner.assertValid();
     }
