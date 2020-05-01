@@ -16,17 +16,18 @@
  */
 package org.apache.nifi.processors.azure.storage;
 
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
-
 import static org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor.ACCOUNT_KEY;
 import static org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor.ACCOUNT_NAME;
 import static org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor.DIRECTORY;
 import static org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor.FILE;
 import static org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor.FILESYSTEM;
 import static org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor.SAS_TOKEN;
+import static org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor.USE_MANAGED_IDENTITY;
+
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.Before;
+import org.junit.Test;
 
 public class TestAbstractAzureDataLakeStorage {
 
@@ -53,6 +54,14 @@ public class TestAbstractAzureDataLakeStorage {
     public void testValidWhenAccountNameAndSasTokenSpecified() {
         runner.removeProperty(ACCOUNT_KEY);
         runner.setProperty(SAS_TOKEN, "sasToken");
+
+        runner.assertValid();
+    }
+
+    @Test
+    public void testValidWhenAccountNameAndUseManagedIdentity() {
+        runner.removeProperty(ACCOUNT_KEY);
+        runner.setProperty(USE_MANAGED_IDENTITY, "true");
 
         runner.assertValid();
     }
