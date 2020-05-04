@@ -18,6 +18,7 @@ package org.apache.nifi.processors.azure.storage;
 
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processors.azure.AbstractAzureBlobProcessor;
+import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 import org.apache.nifi.util.MockFlowFile;
 import org.junit.Before;
 import org.junit.Test;
@@ -49,7 +50,7 @@ public class ITFetchAzureBlobStorage extends AbstractAzureBlobStorageIT {
 
     @Test
     public void testFetchBlobUserMetadata() throws Exception {
-        runner.setProperty(FetchAzureBlobStorage.WRITE_USER_METADATA, "true");
+        runner.setProperty(AzureStorageUtils.WRITE_USER_METADATA, "true");
         runner.assertValid();
         runner.enqueue(new byte[0]);
         runner.run();
