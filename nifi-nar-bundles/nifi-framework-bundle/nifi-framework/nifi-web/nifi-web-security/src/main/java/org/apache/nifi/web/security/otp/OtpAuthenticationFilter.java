@@ -16,15 +16,18 @@
  */
 package org.apache.nifi.web.security.otp;
 
+import java.util.regex.Pattern;
+import javax.servlet.http.HttpServletRequest;
 import org.apache.nifi.web.security.NiFiAuthenticationFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
 
-import javax.servlet.http.HttpServletRequest;
-import java.util.regex.Pattern;
-
 /**
+ * This filter is used to capture one time passwords (OTP) from requests made to download files through the browser.
+ * It's required because when we initiate a download in the browser, it must be opened in a new tab. The new tab
+ * cannot be initialized with authentication headers, so we must add a token as a query parameter instead. As
+ * tokens in URL strings are visible in various places, this must only be used once - hence our OTP.
  */
 public class OtpAuthenticationFilter extends NiFiAuthenticationFilter {
 
