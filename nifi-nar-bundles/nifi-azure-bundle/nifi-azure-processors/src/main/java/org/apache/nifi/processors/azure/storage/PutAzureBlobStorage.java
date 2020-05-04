@@ -23,6 +23,7 @@ import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.StringJoiner;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -127,11 +128,11 @@ public class PutAzureBlobStorage extends AbstractAzureBlobProcessor {
                     if (!userMetadata.isEmpty()) {
                         blob.setMetadata(userMetadata);
 
-                        StringBuilder userMetaBldr = new StringBuilder();
+                        StringJoiner userMetaJoiner = new StringJoiner(" ");
                         for (String userKey : userMetadata.keySet()) {
-                            userMetaBldr.append(userKey).append("=").append(userMetadata.get(userKey));
+                            userMetaJoiner.add(String.format("%s=%s", userKey, userMetadata.get(userKey)));
                         }
-                        attributes.put(AZURE_USERMETA_ATTR_KEY, userMetaBldr.toString());
+                        attributes.put(AZURE_USERMETA_ATTR_KEY, userMetaJoiner.toString());
                     }
                     blob.upload(in, length, null, null, operationContext);
                     BlobProperties properties = blob.getProperties();

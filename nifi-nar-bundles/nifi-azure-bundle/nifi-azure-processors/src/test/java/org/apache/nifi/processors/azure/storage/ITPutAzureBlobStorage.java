@@ -52,6 +52,7 @@ public class ITPutAzureBlobStorage extends AbstractAzureBlobStorageIT {
     @Test
     public void testPutBlobUsermetadata() throws Exception {
         runner.setProperty("hello", "world");
+        runner.setProperty("bla", "fasel");
         runner.assertValid();
         runner.enqueue("0123456789".getBytes());
         runner.run();
@@ -76,7 +77,7 @@ public class ITPutAzureBlobStorage extends AbstractAzureBlobStorageIT {
         for (MockFlowFile flowFile : flowFilesForRelationship) {
             flowFile.assertContentEquals("0123456789".getBytes());
             flowFile.assertAttributeEquals("azure.length", "10");
-            flowFile.assertAttributeEquals("azure.usermetadata", "hello=world");
+            flowFile.assertAttributeEquals("azure.usermetadata", "bla=fasel hello=world");
         }
 
         Iterable<ListBlobItem> blobs = container.listBlobs(TEST_BLOB_NAME);
