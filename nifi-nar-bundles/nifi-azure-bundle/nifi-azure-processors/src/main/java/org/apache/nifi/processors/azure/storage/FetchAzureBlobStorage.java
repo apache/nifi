@@ -35,7 +35,6 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
@@ -60,15 +59,6 @@ import com.microsoft.azure.storage.blob.CloudBlobContainer;
 })
 public class FetchAzureBlobStorage extends AbstractAzureBlobProcessor {
 
-    protected static final PropertyDescriptor WRITE_USER_METADATA = new PropertyDescriptor.Builder()
-        .name("write-user-metadata")
-        .displayName("Write User Metadata")
-        .description("If set to 'True', the user defined metadata associated with the Blob object will be written as FlowFile attributes")
-        .required(true)
-        .allowableValues(new AllowableValue("true", "True"), new AllowableValue("false", "False"))
-        .defaultValue("false")
-        .build();
-
     private Map<String, String> writeUserMetadata(HashMap<String, String> userMetadata) {
         final Map<String, String> metadata = new HashMap<>();
         if (userMetadata != null) {
@@ -82,7 +72,7 @@ public class FetchAzureBlobStorage extends AbstractAzureBlobProcessor {
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
-        properties.add(WRITE_USER_METADATA);
+        properties.add(AzureStorageUtils.WRITE_USER_METADATA);
         return Collections.unmodifiableList(properties);
     }
 
@@ -113,7 +103,7 @@ public class FetchAzureBlobStorage extends AbstractAzureBlobProcessor {
             // distribution of download over threads, investigate
             flowFile = session.write(flowFile, os -> {
                 try {
-                    if (context.getProperty(WRITE_USER_METADATA).asBoolean()) {
+                    if (context.getProperty(AzureStorageUtils.WRITE_USER_METADATA).asBoolean()) {
                         blob.downloadAttributes();
                         attributes.putAll(writeUserMetadata(blob.getMetadata()));
                     }

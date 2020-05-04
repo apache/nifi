@@ -23,6 +23,7 @@ import com.microsoft.azure.storage.StorageCredentialsAccountAndKey;
 import com.microsoft.azure.storage.StorageCredentialsSharedAccessSignature;
 import com.microsoft.azure.storage.blob.CloudBlobClient;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
@@ -119,6 +120,15 @@ public final class AzureStorageUtils {
             .identifiesControllerService(AzureStorageCredentialsService.class)
             .required(false)
             .build();
+
+    public static final PropertyDescriptor WRITE_USER_METADATA = new PropertyDescriptor.Builder()
+        .name("write-user-metadata")
+        .displayName("Write User Metadata")
+        .description("If set to 'True', the user defined metadata associated with the Blob object will be written as FlowFile attributes")
+        .required(true)
+        .allowableValues(new AllowableValue("true", "True"), new AllowableValue("false", "False"))
+        .defaultValue("false")
+        .build();
 
     private AzureStorageUtils() {
         // do not instantiate

@@ -36,7 +36,6 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
@@ -96,15 +95,6 @@ public class ListAzureBlobStorage extends AbstractListProcessor<BlobInfo> {
             .required(false)
             .build();
 
-    protected static final PropertyDescriptor WRITE_USER_METADATA = new PropertyDescriptor.Builder()
-        .name("write-user-metadata")
-        .displayName("Write User Metadata")
-        .description("If set to 'True', the user defined metadata associated with the Blob object will be written as FlowFile attributes")
-        .required(true)
-        .allowableValues(new AllowableValue("true", "True"), new AllowableValue("false", "False"))
-        .defaultValue("false")
-        .build();
-
     private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
             LISTING_STRATEGY,
             AzureStorageUtils.CONTAINER,
@@ -113,7 +103,7 @@ public class ListAzureBlobStorage extends AbstractListProcessor<BlobInfo> {
             AzureStorageUtils.ACCOUNT_KEY,
             AzureStorageUtils.PROP_SAS_TOKEN,
             PROP_PREFIX,
-            WRITE_USER_METADATA,
+            AzureStorageUtils.WRITE_USER_METADATA,
             AzureStorageUtils.PROXY_CONFIGURATION_SERVICE,
             ListedEntityTracker.TRACKING_STATE_CACHE,
             ListedEntityTracker.TRACKING_TIME_WINDOW,
@@ -156,7 +146,7 @@ public class ListAzureBlobStorage extends AbstractListProcessor<BlobInfo> {
         attributes.put("azure.timestamp", String.valueOf(entity.getTimestamp()));
         attributes.put("mime.type", entity.getContentType());
         attributes.put("lang", entity.getContentLanguage());
-        if (context.getProperty(WRITE_USER_METADATA).asBoolean()) {
+        if (context.getProperty(AzureStorageUtils.WRITE_USER_METADATA).asBoolean()) {
             attributes.putAll(writeUserMetadata(entity));
         }
 
