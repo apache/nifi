@@ -25,6 +25,10 @@ import javax.servlet.http.HttpServletRequest;
 import java.util.regex.Pattern;
 
 /**
+ * This filter is used to capture one time pins (OTP) from requests made to download files through the browser.
+ * It's required because when we initiate a download in the browser, it must be opened in a new tab. The new tab
+ * cannot be initialized with authentication headers, so we must add a token as a query parameter instead. As
+ * tokens in URL strings are visible in various places, this must only be used once - hence our OTP.
  */
 public class OtpAuthenticationFilter extends NiFiAuthenticationFilter {
 
