@@ -44,6 +44,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
 
 public final class AzureStorageUtils {
     public static final String BLOCK = "Block";
@@ -145,6 +146,21 @@ public final class AzureStorageUtils {
         final CloudBlobClient cloudBlobClient = cloudStorageAccount.createCloudBlobClient();
 
         return cloudBlobClient;
+    }
+
+    public static Map<String, String> writeUserMetadata(Map<String, String> userMetadata) {
+        final Map<String, String> metadata = new HashMap<>();
+        if (userMetadata != null) {
+            for (Map.Entry<String, String> e : userMetadata.entrySet()) {
+                metadata.put("azure.user.metadata." + e.getKey(), e.getValue());
+            }
+        }
+        return metadata;
+    }
+
+    public static Map<String, String> writeUserMetadata(BlobInfo blobInfo) {
+        final Map<String, String> metadata = writeUserMetadata(blobInfo.getMetadata());
+        return metadata;
     }
 
     public static AzureStorageCredentialsDetails getStorageCredentialsDetails(PropertyContext context, FlowFile flowFile) {

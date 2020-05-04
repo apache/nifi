@@ -110,17 +110,6 @@ public class ListAzureBlobStorage extends AbstractListProcessor<BlobInfo> {
             ListedEntityTracker.INITIAL_LISTING_TARGET
             ));
 
-    private Map<String, String> writeUserMetadata(BlobInfo blobInfo) {
-        Map<String, String> userMetadata = blobInfo.getMetadata();
-        final Map<String, String> metadata = new HashMap<>();
-        if (userMetadata != null) {
-            for (Map.Entry<String, String> e : userMetadata.entrySet()) {
-                metadata.put("azure.user.metadata." + e.getKey(), e.getValue());
-            }
-        }
-        return metadata;
-    }
-
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return PROPERTIES;
@@ -147,7 +136,7 @@ public class ListAzureBlobStorage extends AbstractListProcessor<BlobInfo> {
         attributes.put("mime.type", entity.getContentType());
         attributes.put("lang", entity.getContentLanguage());
         if (context.getProperty(AzureStorageUtils.WRITE_USER_METADATA).asBoolean()) {
-            attributes.putAll(writeUserMetadata(entity));
+            attributes.putAll(AzureStorageUtils.writeUserMetadata(entity));
         }
 
         return attributes;

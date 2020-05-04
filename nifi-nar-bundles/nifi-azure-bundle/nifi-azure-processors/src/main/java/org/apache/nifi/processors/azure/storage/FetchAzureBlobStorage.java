@@ -59,16 +59,6 @@ import com.microsoft.azure.storage.blob.CloudBlobContainer;
 })
 public class FetchAzureBlobStorage extends AbstractAzureBlobProcessor {
 
-    private Map<String, String> writeUserMetadata(HashMap<String, String> userMetadata) {
-        final Map<String, String> metadata = new HashMap<>();
-        if (userMetadata != null) {
-            for (Map.Entry<String, String> e : userMetadata.entrySet()) {
-                metadata.put("azure.user.metadata." + e.getKey(), e.getValue());
-            }
-        }
-        return metadata;
-    }
-
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
@@ -105,7 +95,7 @@ public class FetchAzureBlobStorage extends AbstractAzureBlobProcessor {
                 try {
                     if (context.getProperty(AzureStorageUtils.WRITE_USER_METADATA).asBoolean()) {
                         blob.downloadAttributes();
-                        attributes.putAll(writeUserMetadata(blob.getMetadata()));
+                        attributes.putAll(AzureStorageUtils.writeUserMetadata(blob.getMetadata()));
                     }
                     blob.download(os, null, null, operationContext);
                 } catch (StorageException e) {
