@@ -130,6 +130,7 @@ public abstract class AbstractAzureCosmosDBProcessor extends AbstractProcessor {
 
     static final PropertyDescriptor CHARACTER_SET = new PropertyDescriptor.Builder()
         .name("charactor-set")
+        .displayName("Charactor Set")
         .description("The Character Set in which the data is encoded")
         .required(false)
         .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
@@ -203,9 +204,10 @@ public abstract class AbstractAzureCosmosDBProcessor extends AbstractProcessor {
         try {
             ConnectionPolicy connectionPolicy = ConnectionPolicy.getDefaultPolicy();
             this.cosmosClient = new CosmosClientBuilder()
-                .setEndpoint(uri)
-                .setKey(accessKey)
-                .setConnectionPolicy(connectionPolicy).setConsistencyLevel(clevel)
+                .endpoint(uri)
+                .key(accessKey)
+                .connectionPolicy(connectionPolicy)
+                .consistencyLevel(clevel)
                 .buildClient();
         } catch (NullPointerException e) {
             getLogger().error("Failed to build cosmosClient due to {}",  e);

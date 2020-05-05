@@ -22,11 +22,12 @@ import com.azure.cosmos.CosmosClientBuilder;
 import com.azure.cosmos.CosmosClientException;
 import com.azure.cosmos.CosmosContainer;
 import com.azure.cosmos.CosmosDatabase;
-import com.azure.cosmos.CosmosPagedIterable;
+
 import com.azure.cosmos.models.CosmosContainerProperties;
 import com.azure.cosmos.models.CosmosItemRequestOptions;
 import com.azure.cosmos.models.FeedOptions;
 import com.azure.cosmos.models.PartitionKey;
+import com.azure.cosmos.util.CosmosPagedIterable;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import org.apache.nifi.processor.Processor;
@@ -92,9 +93,9 @@ public abstract class ITAbstractAzureCosmosDBDocument {
         final String testDBURI =  getComosURI();
         final String testDBContainer = getCosmosKey();
         client = new CosmosClientBuilder()
-                .setEndpoint(testDBURI)
-                .setKey(testDBContainer)
-                .setConnectionPolicy(ConnectionPolicy.getDefaultPolicy())
+                .endpoint(testDBURI)
+                .key(testDBContainer)
+                .connectionPolicy(ConnectionPolicy.getDefaultPolicy())
                 .buildClient();
         cdb = client.createDatabaseIfNotExists(TEST_COSMOS_DB_NAME).getDatabase();
         CosmosContainerProperties containerProperties =
@@ -150,9 +151,9 @@ public abstract class ITAbstractAzureCosmosDBDocument {
         final String testDBContainer = getCosmosKey();
 
         client = new CosmosClientBuilder()
-                    .setEndpoint(testDBURI)
-                    .setKey(testDBContainer)
-                    .setConnectionPolicy(ConnectionPolicy.getDefaultPolicy())
+                    .endpoint(testDBURI)
+                    .key(testDBContainer)
+                    .connectionPolicy(ConnectionPolicy.getDefaultPolicy())
                     .buildClient();
         cdb =  client.getDatabase(TEST_COSMOS_DB_NAME);
         container =  cdb.getContainer(TEST_COSMOS_CONTAINER_NAME);

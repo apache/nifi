@@ -129,9 +129,10 @@ public class AzureCosmosDBConnectionControllerService extends AbstractController
         try {
             ConnectionPolicy connectionPolicy = ConnectionPolicy.getDefaultPolicy();
             this.cosmosClient = new CosmosClientBuilder()
-                                    .setEndpoint(uri)
-                                    .setKey(accessKey)
-                                    .setConnectionPolicy(connectionPolicy).setConsistencyLevel(clevel)
+                                    .endpoint(uri)
+                                    .key(accessKey)
+                                    .connectionPolicy(connectionPolicy)
+                                    .consistencyLevel(clevel)
                                     .buildClient();
         } catch (Exception e) {
             getLogger().error("Failed to build cosmosClient {} due to {}", new Object[] { this.getClass().getName(), e }, e);
