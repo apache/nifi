@@ -58,11 +58,8 @@ import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
-import java.nio.CharBuffer;
-import java.nio.charset.StandardCharsets;
 import java.sql.Blob;
 import java.sql.Clob;
-import java.sql.NClob;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -103,7 +100,6 @@ import org.apache.avro.io.DatumWriter;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.avro.AvroTypeUtil;
-import org.apache.nifi.serialization.record.util.DataTypeUtils;
 
 import javax.xml.bind.DatatypeConverter;
 
@@ -258,20 +254,18 @@ public class JdbcCommon {
                     final Schema fieldSchema = schema.getFields().get(i - 1).schema();
 
                     // Need to handle CLOB and BLOB before getObject() is called, due to ResultSet's maximum portability statement
-                    if (javaSqlType == CLOB) {
+                    if (javaSqlType == CLOB || javaSqlType == NCLOB) {
                         Clob clob = rs.getClob(i);
                         if (clob != null) {
-                            rec.put(i - 1, DataTypeUtils.toString(clob, (String) null, StandardCharsets.UTF_8));
-                        } else {
-                            rec.put(i - 1, null);
-                        }
-                        continue;
-                    }
-
-                    if (javaSqlType == NCLOB) {
-                        NClob nClob = rs.getNClob(i);
-                        if (nClob != null) {
-                            rec.put(i - 1, DataTypeUtils.toString(nClob, (String) null, StandardCharsets.UTF_8));
+                            StringBuilder sb = new StringBuilder();
+                            char[] buffer = new char[32 * 1024]; // 32K default buffer
+                            try (Reader reader = clob.getCharacterStream()) {
+                                int charsRead;
+                                while ((charsRead = reader.read(buffer)) != -1) {
+                                    sb.append(buffer, 0, charsRead);
+                                }
+                            }
+                            rec.put(i - 1, sb.toString());
                         } else {
                             rec.put(i - 1, null);
                         }
