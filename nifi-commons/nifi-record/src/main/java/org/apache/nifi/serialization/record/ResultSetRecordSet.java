@@ -54,6 +54,7 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
     private static final String DATE_CLASS_NAME = Date.class.getName();
     private static final String DOUBLE_CLASS_NAME = Double.class.getName();
     private static final String FLOAT_CLASS_NAME = Float.class.getName();
+    private static final String BIGDECIMAL_CLASS_NAME = BigDecimal.class.getName();
 
     public ResultSetRecordSet(final ResultSet rs, final RecordSchema readerSchema) throws SQLException {
         this.rs = rs;
@@ -357,10 +358,10 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
                 return RecordFieldType.CHAR;
             case Types.DATE:
                 return RecordFieldType.DATE;
+            case Types.NUMERIC:
             case Types.DECIMAL:
                 return RecordFieldType.BIGDECIMAL;
             case Types.DOUBLE:
-            case Types.NUMERIC:
             case Types.REAL:
                 return RecordFieldType.DOUBLE;
             case Types.FLOAT:
@@ -397,6 +398,9 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
                 }
                 if (DOUBLE_CLASS_NAME.equals(valueClassName)) {
                     return RecordFieldType.DOUBLE;
+                }
+                if (BIGDECIMAL_CLASS_NAME.equals(valueClassName)) {
+                    return RecordFieldType.BIGDECIMAL;
                 }
 
                 return RecordFieldType.RECORD;

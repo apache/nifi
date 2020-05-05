@@ -57,6 +57,11 @@ public class XmlSchemaInference extends HierarchicalSchemaInference<XmlNode> {
             if (text.contains(".")) {
                 try {
                     final double doubleValue = Double.parseDouble(text);
+
+                    if (doubleValue == Double.POSITIVE_INFINITY || doubleValue == Double.NEGATIVE_INFINITY) {
+                        return RecordFieldType.BIGDECIMAL.getDataType();
+                    }
+
                     if (doubleValue > Float.MAX_VALUE || doubleValue < Float.MIN_VALUE) {
                         return RecordFieldType.DOUBLE.getDataType();
                     }

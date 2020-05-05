@@ -42,7 +42,6 @@ import org.codehaus.jackson.util.MinimalPrettyPrinter;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.text.DateFormat;
 import java.util.Map;
@@ -378,7 +377,7 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
                 generator.writeString(coercedValue.toString());
                 break;
             case BIGDECIMAL:
-                generator.writeNumber((BigDecimal) coercedValue);
+                generator.writeNumber(DataTypeUtils.toBigDecimal(coercedValue, fieldName));
                 break;
             case BIGINT:
                 if (coercedValue instanceof Long) {

@@ -230,7 +230,7 @@ public class PutORCTest {
         final int timeMillis = nowTime.get(ChronoField.MILLI_OF_DAY);
         final Timestamp timestampMillis = Timestamp.valueOf(nowDateTime);
         final Date dt = Date.valueOf(nowDate);
-        final BigDecimal dec = BigDecimal.valueOf(1234.56D);
+        final BigDecimal bigDecimal = new BigDecimal("9223372036854775807.12345");
 
         configure(proc, 10, (numUsers, readerFactory) -> {
             for (int i = 0; i < numUsers; i++) {
@@ -239,7 +239,7 @@ public class PutORCTest {
                         timeMillis,
                         timestampMillis,
                         dt,
-                        dec);
+                        bigDecimal);
             }
             return null;
         });
@@ -284,7 +284,7 @@ public class PutORCTest {
                     final DateFormat noTimeOfDayDateFormat = new SimpleDateFormat("yyyy-MM-dd");
                     noTimeOfDayDateFormat.setTimeZone(TimeZone.getTimeZone("gmt"));
                     assertEquals(noTimeOfDayDateFormat.format(dt), ((DateWritableV2) x.get(3)).get().toString());
-                    assertEquals(dec.doubleValue(), ((HiveDecimalWritable) x.get(4)).doubleValue(), Double.MIN_VALUE);
+                    assertEquals(bigDecimal, ((HiveDecimalWritable) x.get(4)).getHiveDecimal().bigDecimalValue());
                     return null;
                 }
         );
@@ -482,7 +482,7 @@ public class PutORCTest {
         RecordReader recordReader = reader.rows();
 
         TypeInfo typeInfo =
-                TypeInfoUtils.getTypeInfoFromTypeString("struct<name:string,favorite_number:int,favorite_color:string,scale:decimal>");
+                TypeInfoUtils.getTypeInfoFromTypeString("struct<name:string,favorite_number:int,favorite_color:string,scale:double>");
         StructObjectInspector inspector = (StructObjectInspector)
                 OrcStruct.createObjectInspector(typeInfo);
 

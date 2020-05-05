@@ -1302,8 +1302,12 @@ public class DataTypeUtils {
                 return new BigDecimal((BigInteger) number);
             }
 
-            if (number instanceof Float || number instanceof Double) {
-                return BigDecimal.valueOf(number.doubleValue());
+            if (number instanceof Float) {
+                return new BigDecimal(Float.toString((Float) number));
+            }
+
+            if (number instanceof Double) {
+                return new BigDecimal(Double.toString((Double) number));
             }
         }
 

@@ -145,6 +145,7 @@ public class XMLRecordReader implements RecordReader {
             case BOOLEAN:
             case BYTE:
             case CHAR:
+            case BIGDECIMAL:
             case DOUBLE:
             case FLOAT:
             case INT:
@@ -528,6 +529,7 @@ public class XMLRecordReader implements RecordReader {
             case BOOLEAN:
             case BYTE:
             case CHAR:
+            case BIGDECIMAL:
             case DOUBLE:
             case FLOAT:
             case INT:

@@ -311,12 +311,14 @@ public class KuduLookupService extends AbstractControllerService implements Reco
                 case INT64:
                     fields.add(new RecordField(cs.getName(), RecordFieldType.LONG.getDataType()));
                     break;
+                case DECIMAL:
+                    fields.add(new RecordField(cs.getName(), RecordFieldType.BIGDECIMAL.getDataType()));
+                    break;
                 case UNIXTIME_MICROS:
                     fields.add(new RecordField(cs.getName(), RecordFieldType.TIMESTAMP.getDataType()));
                     break;
                 case BINARY:
                 case STRING:
-                case DECIMAL:
                     fields.add(new RecordField(cs.getName(), RecordFieldType.STRING.getDataType()));
                     break;
                 case DOUBLE:

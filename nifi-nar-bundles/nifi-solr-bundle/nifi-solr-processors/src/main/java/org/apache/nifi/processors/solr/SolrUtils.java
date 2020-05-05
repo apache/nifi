@@ -463,7 +463,8 @@ public class SolrUtils {
                 }
                 break;
             case BIGDECIMAL:
-                addFieldToSolrDocument(inputDocument, fieldName, coercedValue, fieldsToIndex);
+                addFieldToSolrDocument(inputDocument, fieldName, DataTypeUtils.toBigDecimal(coercedValue, fieldName), fieldsToIndex);
+                break;
             case BOOLEAN:
                 final String stringValue = coercedValue.toString();
                 if ("true".equalsIgnoreCase(stringValue)) {

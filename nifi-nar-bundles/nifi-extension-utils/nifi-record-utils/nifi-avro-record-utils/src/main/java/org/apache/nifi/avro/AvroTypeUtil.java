@@ -256,6 +256,12 @@ public class AvroTypeUtil {
             case LONG:
                 schema = Schema.create(Type.LONG);
                 break;
+            case BIGDECIMAL:
+                // One more byte than below to allow the dot in the string representation
+                schema = Schema.createFixed(fieldName + "Type", null,  "org.apache.nifi",39);
+                // 38 is the maximum allowed precision and 19 digit is needed to represent long values
+                LogicalTypes.decimal(38,19).addToSchema(schema);
+                break;
             case MAP:
                 schema = Schema.createMap(buildAvroSchema(((MapDataType) dataType).getValueType(), fieldName, false));
                 break;

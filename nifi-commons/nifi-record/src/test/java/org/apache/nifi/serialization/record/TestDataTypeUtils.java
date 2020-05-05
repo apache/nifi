@@ -329,7 +329,7 @@ public class TestDataTypeUtils {
 
     @Test
     public void testInferDataTypeWithBigDecimal() {
-        assertEquals(RecordFieldType.BIGDECIMAL.getDataType(), DataTypeUtils.inferDataType(BigDecimal.valueOf(12L), RecordFieldType.BIGDECIMAL.getDataType()));
+        assertEquals(RecordFieldType.BIGDECIMAL.getDataType(), DataTypeUtils.inferDataType(BigDecimal.valueOf(12L), null));
     }
 
     @Test
@@ -352,6 +352,23 @@ public class TestDataTypeUtils {
     @Test
     public void testGetSQLTypeValueWithBigDecimal() {
         assertEquals(Types.NUMERIC, DataTypeUtils.getSQLTypeValue(RecordFieldType.BIGDECIMAL.getDataType()));
+    }
+
+    @Test
+    public void testChooseDataTypeWhenExpectedIsBigDecimal() {
+        // GIVEN
+        final List<DataType> dataTypes = Arrays.asList(
+                RecordFieldType.FLOAT.getDataType(),
+                RecordFieldType.DOUBLE.getDataType(),
+                RecordFieldType.BIGDECIMAL.getDataType()
+        );
+
+        final Object value = new BigDecimal("1.2");
+        final DataType expected = RecordFieldType.BIGDECIMAL.getDataType();
+
+        // WHEN
+        // THEN
+        testChooseDataTypeAlsoReverseTypes(value, dataTypes, expected);
     }
 
     @Test
@@ -675,11 +692,17 @@ public class TestDataTypeUtils {
     }
 
     private void whenExpectingValidBigDecimalConversion(final BigDecimal expectedValue, final Object incomingValue) {
-        final String failureMessage = "Conversion from " + incomingValue.getClass().getSimpleName() + " to " + expectedValue.getClass().getSimpleName() + " failed";
-        final BigDecimal result = whenExpectingValidConversion(expectedValue, incomingValue, RecordFieldType.BIGDECIMAL.getDataType());
+        // Checking indirect conversion
+        final String failureMessage = "Conversion from " + incomingValue.getClass().getSimpleName() + " to " + expectedValue.getClass().getSimpleName() + " failed, when ";
+        final BigDecimal indirectResult = whenExpectingValidConversion(expectedValue, incomingValue, RecordFieldType.BIGDECIMAL.getDataType());
         // In some cases, direct equality check comes with false negative as the changing representation brings in
         // insignificant changes what might break the comparison. For example 12F will be represented as "12.0"
-        assertEquals(failureMessage, 0, expectedValue.compareTo(result));
+        assertEquals(failureMessage + "indirect", 0, expectedValue.compareTo(indirectResult));
+
+        // Checking direct conversion
+        final BigDecimal directResult = DataTypeUtils.toBigDecimal(incomingValue, "field");
+        assertEquals(failureMessage + "direct", 0, expectedValue.compareTo(directResult));
+
     }
 
     private <T> T whenExpectingValidConversion(final T expectedValue, final Object incomingValue, final DataType dataType) {

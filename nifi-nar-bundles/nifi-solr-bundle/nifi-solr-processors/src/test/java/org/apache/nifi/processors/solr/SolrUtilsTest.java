@@ -57,6 +57,6 @@ public class SolrUtilsTest {
         SolrUtils.writeRecord(record, inputDocument, fieldsToIndex, "parent");
 
         // then
-        Mockito.verify(inputDocument, Mockito.times(1)).addField(Mockito.eq("parent_test"), Mockito.eq(bigDecimalValue));
+        Mockito.verify(inputDocument, Mockito.times(1)).addField("parent_test", bigDecimalValue);
     }
 }
