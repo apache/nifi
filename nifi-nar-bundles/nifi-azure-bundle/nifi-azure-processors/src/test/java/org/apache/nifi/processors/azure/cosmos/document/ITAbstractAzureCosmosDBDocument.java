@@ -108,17 +108,31 @@ public abstract class ITAbstractAzureCosmosDBDocument {
     public static void dropTestDBAndContainer() throws CosmosClientException {
         resetTestCosmosConnection();
         if(container != null) {
-            container.delete();
-            container = null;
+            try {
+                container.delete();
+            }catch(CosmosClientException e) {
+                logger.info(e.getMessage());
+            } finally {
+                container = null;
+            }
         }
         if(cdb != null) {
-            cdb.delete();
-            cdb = null;
-
+            try {
+                cdb.delete();
+            }catch(CosmosClientException e) {
+                logger.info(e.getMessage());
+            } finally {
+                cdb = null;
+            }
         }
         if(client != null){
-            client.close();
-            client = null;
+            try {
+                client.close();
+            }catch(CosmosClientException e) {
+                logger.info(e.getMessage());
+            } finally {
+                client = null;
+            }
         }
     }
 
@@ -127,8 +141,8 @@ public abstract class ITAbstractAzureCosmosDBDocument {
         final String testDBURI =  getComosURI();
         final String testDBContainer = getCosmosKey();
         runner = TestRunners.newTestRunner(getProcessorClass());
-        runner.setProperty(AbstractAzureCosmosDBProcessor.URI, testDBURI);
-        runner.setProperty(AbstractAzureCosmosDBProcessor.DB_ACCESS_KEY, testDBContainer);
+        runner.setProperty(AzureCosmosDBUtils.URI, testDBURI);
+        runner.setProperty(AzureCosmosDBUtils.DB_ACCESS_KEY, testDBContainer);
         runner.setProperty(AbstractAzureCosmosDBProcessor.DATABASE_NAME, TEST_COSMOS_DB_NAME);
         runner.setProperty(AbstractAzureCosmosDBProcessor.CONTAINER_ID, TEST_COSMOS_CONTAINER_NAME);
         runner.setProperty(AbstractAzureCosmosDBProcessor.PARTITION_KEY, TEST_COSMOS_PARTITION_KEY_FIELD_NAME);
@@ -137,10 +151,16 @@ public abstract class ITAbstractAzureCosmosDBDocument {
     }
 
     protected static void closeClient() {
-        client.close();
-        client =null;
-        cdb = null;
-        container = null;
+        try{
+            client.close();
+
+        }catch(CosmosClientException e){
+            logger.info(e.getMessage());
+        } finally {
+            client =null;
+            cdb = null;
+            container = null;
+        }
     }
 
     protected static void resetTestCosmosConnection() {
@@ -163,14 +183,14 @@ public abstract class ITAbstractAzureCosmosDBDocument {
     protected abstract Class<? extends Processor> getProcessorClass();
 
     protected void configureCosmosConnectionControllerService() throws Exception {
-        runner.removeProperty(AbstractAzureCosmosDBProcessor.URI);
-        runner.removeProperty(AbstractAzureCosmosDBProcessor.DB_ACCESS_KEY);
+        runner.removeProperty(AzureCosmosDBUtils.URI);
+        runner.removeProperty(AzureCosmosDBUtils.DB_ACCESS_KEY);
 
         AzureCosmosDBConnectionControllerService service = new AzureCosmosDBConnectionControllerService();
         runner.addControllerService("connService", service);
 
-        runner.setProperty(service, AzureCosmosDBConnectionControllerService.URI,getComosURI());
-        runner.setProperty(service, AzureCosmosDBConnectionControllerService.DB_ACCESS_KEY, getCosmosKey());
+        runner.setProperty(service, AzureCosmosDBUtils.URI,getComosURI());
+        runner.setProperty(service, AzureCosmosDBUtils.DB_ACCESS_KEY, getCosmosKey());
         // now, after enabling and setting the service, it should be valid
         runner.enableControllerService(service);
         runner.setProperty(AbstractAzureCosmosDBProcessor.CONNECTION_SERVICE, service.getIdentifier());
@@ -185,7 +205,6 @@ public abstract class ITAbstractAzureCosmosDBDocument {
             "select * from c order by c._ts", queryOptions, JsonNode.class );
 
         response.forEach(data ->{
-            System.out.println(data);
             if (data.get(TEST_COSMOS_PARTITION_KEY_FIELD_NAME) != null){
                 PartitionKey pkey = new PartitionKey(data.get(TEST_COSMOS_PARTITION_KEY_FIELD_NAME).asText());
                 container.deleteItem(data.get("id").asText(), pkey, new CosmosItemRequestOptions());

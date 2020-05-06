@@ -27,10 +27,8 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
-import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.services.azure.cosmos.AzureCosmosDBConnectionService;
 import org.apache.nifi.util.StringUtils;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -39,6 +37,8 @@ import com.azure.cosmos.ConnectionPolicy;
 import com.azure.cosmos.ConsistencyLevel;
 import com.azure.cosmos.CosmosClient;
 import com.azure.cosmos.CosmosClientBuilder;
+import com.azure.cosmos.CosmosClientException;
+import org.apache.nifi.processors.azure.cosmos.document.AzureCosmosDBUtils;
 
 @Tags({"azure", "cosmos", "document", "service"})
 @CapabilityDescription(
@@ -46,64 +46,31 @@ import com.azure.cosmos.CosmosClientBuilder;
                 " and provides access to that connection to other AzureCosmosDB-related components."
 )
 public class AzureCosmosDBConnectionControllerService extends AbstractControllerService implements AzureCosmosDBConnectionService {
-    static final String CONSISTENCY_STRONG = "STRONG";
-    static final String CONSISTENCY_BOUNDED_STALENESS= "BOUNDED_STALENESS";
-    static final String CONSISTENCY_SESSION = "SESSION";
-    static final String CONSISTENCY_CONSISTENT_PREFIX = "CONSISTENT_PREFIX";
-    static final String CONSISTENCY_EVENTUAL = "EVENTUAL";
     private String uri;
     private String accessKey;
     protected CosmosClient cosmosClient;
 
-    public static final PropertyDescriptor URI = new PropertyDescriptor.Builder()
-        .name("azure-cosmos-db-uri")
-        .displayName("Azure Cosmos DB URI")
-        .description("CosmosURI, typically of the form: https://{databaseaccount}.documents.azure.com:443/. Note this URI is for Azure Cosmos DB with SQL API")
-        .required(true)
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .build();
-
-    public static final PropertyDescriptor DB_ACCESS_KEY = new PropertyDescriptor.Builder()
-        .name("azure-cosmos-db-key")
-        .displayName("Azure Cosmos DB Access Key")
-        .description("Azure Cosmos DB Access Key from Azure Portal (Settings->Keys)")
-        .required(true)
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .sensitive(true)
-        .build();
-
-    public static final PropertyDescriptor CONSISTENCY = new PropertyDescriptor.Builder()
-        .name("azure-cosmos-consistency-level")
-        .displayName("Azure Cosmos DB Consistency Level")
-        .description("Azure Cosmos DB Consistency Level to use")
-        .required(false)
-        .allowableValues(CONSISTENCY_STRONG, CONSISTENCY_BOUNDED_STALENESS, CONSISTENCY_SESSION,
-                CONSISTENCY_CONSISTENT_PREFIX, CONSISTENCY_EVENTUAL)
-        .defaultValue(CONSISTENCY_SESSION)
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .build();
-
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) {
-        this.uri = context.getProperty(URI).getValue();
-        this.accessKey = context.getProperty(DB_ACCESS_KEY).getValue();
+        this.uri = context.getProperty(AzureCosmosDBUtils.URI).getValue();
+        this.accessKey = context.getProperty(AzureCosmosDBUtils.DB_ACCESS_KEY).getValue();
         final ConsistencyLevel clevel;
-        final String selectedConsistency = context.getProperty(CONSISTENCY).getValue();
+        final String selectedConsistency = context.getProperty(AzureCosmosDBUtils.CONSISTENCY).getValue();
 
         switch(selectedConsistency) {
-            case CONSISTENCY_STRONG:
+            case AzureCosmosDBUtils.CONSISTENCY_STRONG:
                 clevel =  ConsistencyLevel.STRONG;
                 break;
-            case CONSISTENCY_CONSISTENT_PREFIX:
+            case AzureCosmosDBUtils.CONSISTENCY_CONSISTENT_PREFIX:
                 clevel = ConsistencyLevel.CONSISTENT_PREFIX;
                 break;
-            case CONSISTENCY_SESSION:
+            case AzureCosmosDBUtils.CONSISTENCY_SESSION:
                 clevel = ConsistencyLevel.SESSION;
                 break;
-            case CONSISTENCY_BOUNDED_STALENESS:
+            case AzureCosmosDBUtils.CONSISTENCY_BOUNDED_STALENESS:
                 clevel = ConsistencyLevel.BOUNDED_STALENESS;
                 break;
-            case CONSISTENCY_EVENTUAL:
+            case AzureCosmosDBUtils.CONSISTENCY_EVENTUAL:
                 clevel = ConsistencyLevel.EVENTUAL;
                 break;
             default:
@@ -120,31 +87,32 @@ public class AzureCosmosDBConnectionControllerService extends AbstractController
     @OnStopped
     public final void closeClient() {
         if (this.cosmosClient != null) {
-            cosmosClient.close();
-            cosmosClient = null;
+            try{
+                cosmosClient.close();
+            }catch(CosmosClientException e) {
+                getLogger().error(e.getMessage(), e);
+            } finally {
+                this.cosmosClient = null;
+            }
         }
     }
 
     protected void createCosmosClient(final String uri, final String accessKey, final ConsistencyLevel clevel){
-        try {
-            ConnectionPolicy connectionPolicy = ConnectionPolicy.getDefaultPolicy();
-            this.cosmosClient = new CosmosClientBuilder()
-                                    .endpoint(uri)
-                                    .key(accessKey)
-                                    .connectionPolicy(connectionPolicy)
-                                    .consistencyLevel(clevel)
-                                    .buildClient();
-        } catch (Exception e) {
-            getLogger().error("Failed to build cosmosClient {} due to {}", new Object[] { this.getClass().getName(), e }, e);
-        }
+        ConnectionPolicy connectionPolicy = ConnectionPolicy.getDefaultPolicy();
+        this.cosmosClient = new CosmosClientBuilder()
+                                .endpoint(uri)
+                                .key(accessKey)
+                                .connectionPolicy(connectionPolicy)
+                                .consistencyLevel(clevel)
+                                .buildClient();
     }
 
     static List<PropertyDescriptor> descriptors = new ArrayList<>();
 
     static {
-        descriptors.add(URI);
-        descriptors.add(DB_ACCESS_KEY);
-        descriptors.add(CONSISTENCY);
+        descriptors.add(AzureCosmosDBUtils.URI);
+        descriptors.add(AzureCosmosDBUtils.DB_ACCESS_KEY);
+        descriptors.add(AzureCosmosDBUtils.CONSISTENCY);
     }
 
     @Override
@@ -171,15 +139,16 @@ public class AzureCosmosDBConnectionControllerService extends AbstractController
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
         final List<ValidationResult> results = new ArrayList<>();
 
-        final String uri = validationContext.getProperty(AzureCosmosDBConnectionControllerService.URI).getValue();
-        final String db_access_key = validationContext.getProperty(AzureCosmosDBConnectionControllerService.DB_ACCESS_KEY).getValue();
+        final String uri = validationContext.getProperty(AzureCosmosDBUtils.URI).getValue();
+        final String db_access_key = validationContext.getProperty(AzureCosmosDBUtils.DB_ACCESS_KEY).getValue();
 
         if (StringUtils.isBlank(uri) || StringUtils.isBlank(db_access_key)) {
-            results.add(new ValidationResult.Builder().subject("AzureStorageCredentialsControllerService")
+            results.add(new ValidationResult.Builder()
+                    .subject("AzureStorageCredentialsControllerService")
                     .valid(false)
                     .explanation(
-                        "either " + AzureCosmosDBConnectionControllerService.URI.getDisplayName()
-                        + " or " + AzureCosmosDBConnectionControllerService.DB_ACCESS_KEY.getDisplayName() + " is required")
+                        "either " + AzureCosmosDBUtils.URI.getDisplayName()
+                        + " or " + AzureCosmosDBUtils.DB_ACCESS_KEY.getDisplayName() + " is required")
                     .build());
         }
         return results;

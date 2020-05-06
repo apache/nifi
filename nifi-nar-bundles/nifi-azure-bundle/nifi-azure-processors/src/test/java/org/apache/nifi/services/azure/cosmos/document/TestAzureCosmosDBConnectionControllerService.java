@@ -22,6 +22,7 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
 import org.junit.Test;
+import org.apache.nifi.processors.azure.cosmos.document.AzureCosmosDBUtils;
 
 public class TestAzureCosmosDBConnectionControllerService {
 
@@ -61,11 +62,11 @@ public class TestAzureCosmosDBConnectionControllerService {
     }
 
     private void configureURI() {
-        runner.setProperty(service, AzureCosmosDBConnectionControllerService.URI, MOCK_URI);
+        runner.setProperty(service, AzureCosmosDBUtils.URI, MOCK_URI);
     }
 
     private void configureDBAccessKey() {
-        runner.setProperty(service, AzureCosmosDBConnectionControllerService.DB_ACCESS_KEY, DB_ACCESS_KEY);
+        runner.setProperty(service, AzureCosmosDBUtils.DB_ACCESS_KEY, DB_ACCESS_KEY);
     }
 
 }

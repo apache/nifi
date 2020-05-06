@@ -50,22 +50,21 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.services.azure.cosmos.AzureCosmosDBConnectionService;
 
 public abstract class AbstractAzureCosmosDBProcessor extends AbstractProcessor {
-    static final String CONSISTENCY_STRONG = "STRONG";
-    static final String CONSISTENCY_BOUNDED_STALENESS= "BOUNDED_STALENESS";
-    static final String CONSISTENCY_SESSION = "SESSION";
-    static final String CONSISTENCY_CONSISTENT_PREFIX = "CONSISTENT_PREFIX";
-    static final String CONSISTENCY_EVENTUAL = "EVENTUAL";
 
-    static final Relationship REL_SUCCESS = new Relationship.Builder().name("success")
-    .description("All FlowFiles that are written to Azure Cosmos DB are routed to this relationship").build();
+    static final Relationship REL_SUCCESS = new Relationship.Builder()
+        .name("success")
+        .description("All FlowFiles that are written to Azure Cosmos DB are routed to this relationship")
+        .build();
 
-    static final Relationship REL_FAILURE = new Relationship.Builder().name("failure")
-    .description("All FlowFiles that cannot be written to Azure Cosmos DB are routed to this relationship").build();
+    static final Relationship REL_FAILURE = new Relationship.Builder()
+        .name("failure")
+        .description("All FlowFiles that cannot be written to Azure Cosmos DB are routed to this relationship")
+        .build();
 
     static final Relationship REL_ORIGINAL = new Relationship.Builder()
-            .name("original")
-            .description("All input FlowFiles that are part of a successful query execution go here.")
-            .build();
+        .name("original")
+        .description("All input FlowFiles that are part of a successful query execution go here.")
+        .build();
 
     static final PropertyDescriptor CONNECTION_SERVICE = new PropertyDescriptor.Builder()
         .name("azure-cosmos-db-connection-service")
@@ -75,28 +74,10 @@ public abstract class AbstractAzureCosmosDBProcessor extends AbstractProcessor {
         .identifiesControllerService(AzureCosmosDBConnectionService.class)
         .build();
 
-
-    static final PropertyDescriptor URI = new PropertyDescriptor.Builder()
-        .name("azure-cosmos-db-uri")
-        .displayName("Azure Cosmos DB URI")
-        .description("Azure Cosmos DB URI, typically of the form: https://{databaseaccount}.documents.azure.com:443/. Note this host URL is for Azure Cosmos DB with CORE SQL API")
-        .required(false)
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .build();
-
-    static final PropertyDescriptor DB_ACCESS_KEY = new PropertyDescriptor.Builder()
-        .name("azure-cosmos-db-key")
-        .displayName("Azure Cosmos DB Access Key")
-        .description("Azure Cosmos DB Access Key from Azure Portal (Settings->Keys)")
-        .required(false)
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .sensitive(true)
-        .build();
-
     static final PropertyDescriptor DATABASE_NAME = new PropertyDescriptor.Builder()
         .name("azure-cosmos-db-name")
         .displayName("Azure Cosmos DB Name")
-        .description("The name of the database to use")
+        .description("A database is analogous to a namespace. It is the unit of management for a set of containers")
         .required(true)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
@@ -104,26 +85,16 @@ public abstract class AbstractAzureCosmosDBProcessor extends AbstractProcessor {
     static final PropertyDescriptor CONTAINER_ID = new PropertyDescriptor.Builder()
         .name("azure-cosmos-container-id")
         .displayName("Azure Cosmos Container ID")
-        .description("Azure Cosmos DB Container Id to use")
+        .description("Unique Identifier for the container and used for id-based routing trhough REST and all SDKs")
         .required(true)
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .build();
-
-    static final PropertyDescriptor CONSISTENCY = new PropertyDescriptor.Builder()
-        .name("azure-cosmos-consistency-level")
-        .displayName("Azure Cosmos DB Consistency Level")
-        .description("Azure Cosmos DB Consistency Level to use")
-        .required(false)
-        .defaultValue(CONSISTENCY_SESSION)
-        .allowableValues(CONSISTENCY_STRONG, CONSISTENCY_BOUNDED_STALENESS, CONSISTENCY_SESSION,
-                CONSISTENCY_CONSISTENT_PREFIX, CONSISTENCY_EVENTUAL)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
 
     static final PropertyDescriptor PARTITION_KEY = new PropertyDescriptor.Builder()
         .name("azure-cosmos-partition-key")
         .displayName("Azure Cosmos Partition Key")
-        .description("Partition Key Field Name defined during Azure Cosmos Container Creation Time")
+        .description("The Partition Key is used to automatically partition data among multiple servers for scalability. "
+            + "Choose a JSON property name that has a wide range of values and is likely to have evenly distributed across patterns." )
         .required(true)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
@@ -142,9 +113,9 @@ public abstract class AbstractAzureCosmosDBProcessor extends AbstractProcessor {
     static {
         List<PropertyDescriptor> _temp = new ArrayList<>();
         _temp.add(CONNECTION_SERVICE);
-        _temp.add(URI);
-        _temp.add(DB_ACCESS_KEY);
-        _temp.add(CONSISTENCY);
+        _temp.add(AzureCosmosDBUtils.URI);
+        _temp.add(AzureCosmosDBUtils.DB_ACCESS_KEY);
+        _temp.add(AzureCosmosDBUtils.CONSISTENCY);
         _temp.add(DATABASE_NAME);
         _temp.add(CONTAINER_ID);
         _temp.add(PARTITION_KEY);
@@ -153,10 +124,10 @@ public abstract class AbstractAzureCosmosDBProcessor extends AbstractProcessor {
 
     protected CosmosClient cosmosClient;
     protected CosmosContainer container;
-    protected AzureCosmosDBConnectionService connectionService = null;
+    protected AzureCosmosDBConnectionService connectionService;
 
     @OnScheduled
-    public void createClient(ProcessContext context) throws NullPointerException, CosmosClientException {
+    public void createClient(ProcessContext context) throws CosmosClientException {
         final ComponentLog logger = getLogger();
 
         if (context.getProperty(CONNECTION_SERVICE).isSet()) {
@@ -164,25 +135,25 @@ public abstract class AbstractAzureCosmosDBProcessor extends AbstractProcessor {
             this.cosmosClient = this.connectionService.getCosmosClient();
         } else {
             final String uri, accessKey;
-            uri =  context.getProperty(URI).getValue();
-            accessKey = context.getProperty(DB_ACCESS_KEY).getValue();
+            uri =  context.getProperty(AzureCosmosDBUtils.URI).getValue();
+            accessKey = context.getProperty(AzureCosmosDBUtils.DB_ACCESS_KEY).getValue();
             final ConsistencyLevel clevel;
-            final String selectedConsistency = context.getProperty(CONSISTENCY).getValue();
+            final String selectedConsistency = context.getProperty(AzureCosmosDBUtils.CONSISTENCY).getValue();
 
             switch(selectedConsistency) {
-                case CONSISTENCY_STRONG:
+                case AzureCosmosDBUtils.CONSISTENCY_STRONG:
                     clevel =  ConsistencyLevel.STRONG;
                     break;
-                case CONSISTENCY_CONSISTENT_PREFIX:
+                case AzureCosmosDBUtils.CONSISTENCY_CONSISTENT_PREFIX:
                     clevel = ConsistencyLevel.CONSISTENT_PREFIX;
                     break;
-                case CONSISTENCY_SESSION:
+                case AzureCosmosDBUtils.CONSISTENCY_SESSION:
                     clevel = ConsistencyLevel.SESSION;
                     break;
-                case CONSISTENCY_BOUNDED_STALENESS:
+                case AzureCosmosDBUtils.CONSISTENCY_BOUNDED_STALENESS:
                     clevel = ConsistencyLevel.BOUNDED_STALENESS;
                     break;
-                case CONSISTENCY_EVENTUAL:
+                case AzureCosmosDBUtils.CONSISTENCY_EVENTUAL:
                     clevel = ConsistencyLevel.EVENTUAL;
                     break;
                 default:
@@ -200,19 +171,14 @@ public abstract class AbstractAzureCosmosDBProcessor extends AbstractProcessor {
         getCosmosDocumentContainer(context);
     }
 
-    protected void createCosmosClient(final String uri, final String accessKey, final ConsistencyLevel clevel) throws NullPointerException {
-        try {
-            ConnectionPolicy connectionPolicy = ConnectionPolicy.getDefaultPolicy();
-            this.cosmosClient = new CosmosClientBuilder()
-                .endpoint(uri)
-                .key(accessKey)
-                .connectionPolicy(connectionPolicy)
-                .consistencyLevel(clevel)
-                .buildClient();
-        } catch (NullPointerException e) {
-            getLogger().error("Failed to build cosmosClient due to {}",  e);
-            throw e;
-        }
+    protected void createCosmosClient(final String uri, final String accessKey, final ConsistencyLevel clevel) {
+        ConnectionPolicy connectionPolicy = ConnectionPolicy.getDefaultPolicy();
+        this.cosmosClient = new CosmosClientBuilder()
+                                .endpoint(uri)
+                                .key(accessKey)
+                                .connectionPolicy(connectionPolicy)
+                                .consistencyLevel(clevel)
+                                .buildClient();
     }
 
     protected abstract void doPostActionOnSchedule(final ProcessContext context);
@@ -227,8 +193,8 @@ public abstract class AbstractAzureCosmosDBProcessor extends AbstractProcessor {
         CosmosContainerProperties containerProperties =
             new CosmosContainerProperties(containerID, "/"+partitionKey);
 
-        //  Create container with 1000 RU/s by default if Not exists
-        this.container = database.createContainerIfNotExists(containerProperties, 1000).getContainer();
+        //  Create container with 400 RU/s by default if Not exists.
+        this.container = database.createContainerIfNotExists(containerProperties, 400).getContainer();
         doPostActionOnSchedule(context);
     }
 
@@ -243,7 +209,7 @@ public abstract class AbstractAzureCosmosDBProcessor extends AbstractProcessor {
             try{
                 this.container = null;
                 this.cosmosClient.close();
-            }catch(Exception e) {
+            }catch(CosmosClientException e) {
                 logger.error(e.getMessage(), e);
             } finally {
                 this.cosmosClient = null;
@@ -256,7 +222,7 @@ public abstract class AbstractAzureCosmosDBProcessor extends AbstractProcessor {
         if (connectionService != null) {
             return connectionService.getURI();
         } else {
-            return context.getProperty(URI).getValue();
+            return context.getProperty(AzureCosmosDBUtils.URI).getValue();
         }
     }
 
@@ -264,11 +230,11 @@ public abstract class AbstractAzureCosmosDBProcessor extends AbstractProcessor {
         if (connectionService != null) {
             return connectionService.getAccessKey();
         } else {
-            return context.getProperty(DB_ACCESS_KEY).getValue();
+            return context.getProperty(AzureCosmosDBUtils.DB_ACCESS_KEY).getValue();
         }
     }
     protected String getConsistencyLevel(final ProcessContext context) {
-        final String consistencyProperty = context.getProperty(CONSISTENCY).getValue();
+        final String consistencyProperty = context.getProperty(AzureCosmosDBUtils.CONSISTENCY).getValue();
         return consistencyProperty;
     }
 
@@ -297,8 +263,8 @@ public abstract class AbstractAzureCosmosDBProcessor extends AbstractProcessor {
         List<ValidationResult> retVal = new ArrayList<>();
 
         boolean connectionServiceIsSet = context.getProperty(CONNECTION_SERVICE).isSet();
-        boolean uriIsSet    = context.getProperty(URI).isSet();
-        boolean accessKeyIsSet    = context.getProperty(DB_ACCESS_KEY).isSet();
+        boolean uriIsSet    = context.getProperty(AzureCosmosDBUtils.URI).isSet();
+        boolean accessKeyIsSet    = context.getProperty(AzureCosmosDBUtils.DB_ACCESS_KEY).isSet();
         boolean databaseIsSet = context.getProperty(DATABASE_NAME).isSet();
         boolean collectionIsSet = context.getProperty(CONTAINER_ID).isSet();
         boolean partitionIsSet = context.getProperty(PARTITION_KEY).isSet();
@@ -307,16 +273,16 @@ public abstract class AbstractAzureCosmosDBProcessor extends AbstractProcessor {
             final String msg = String.format(
                 "%s and %s with %s fields cannot be set at the same time.",
                 AbstractAzureCosmosDBProcessor.CONNECTION_SERVICE.getDisplayName(),
-                AbstractAzureCosmosDBProcessor.URI.getDisplayName(),
-                AbstractAzureCosmosDBProcessor.DB_ACCESS_KEY.getDisplayName()
+                AzureCosmosDBUtils.URI.getDisplayName(),
+                AzureCosmosDBUtils.DB_ACCESS_KEY.getDisplayName()
             );
             retVal.add(new ValidationResult.Builder().valid(false).explanation(msg).build());
         } else if (!connectionServiceIsSet && (!uriIsSet || !accessKeyIsSet)) {
             final String msg = String.format(
                 "Either %s or %s with %s must be set",
                 AbstractAzureCosmosDBProcessor.CONNECTION_SERVICE.getDisplayName(),
-                AbstractAzureCosmosDBProcessor.URI.getDisplayName(),
-                AbstractAzureCosmosDBProcessor.DB_ACCESS_KEY.getDisplayName()
+                AzureCosmosDBUtils.URI.getDisplayName(),
+                AzureCosmosDBUtils.DB_ACCESS_KEY.getDisplayName()
             );
             retVal.add(new ValidationResult.Builder().valid(false).explanation(msg).build());
         }

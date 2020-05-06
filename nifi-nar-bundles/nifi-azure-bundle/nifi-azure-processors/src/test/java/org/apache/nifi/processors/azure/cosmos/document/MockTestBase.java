@@ -48,8 +48,8 @@ public class MockTestBase {
                 // setup connnection controller service
                 AzureCosmosDBConnectionControllerService service = new MockConnectionService();
                 testRunner.addControllerService("connService", service);
-                testRunner.setProperty(service, AzureCosmosDBConnectionControllerService.URI, MOCK_URI);
-                testRunner.setProperty(service, AzureCosmosDBConnectionControllerService.DB_ACCESS_KEY, MOCK_DB_ACCESS_KEY);
+                testRunner.setProperty(service, AzureCosmosDBUtils.URI, MOCK_URI);
+                testRunner.setProperty(service, AzureCosmosDBUtils.DB_ACCESS_KEY, MOCK_DB_ACCESS_KEY);
 
                 // now, after enabling and setting the service, it should be valid
                 testRunner.enableControllerService(service);

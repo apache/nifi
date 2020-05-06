@@ -112,7 +112,7 @@ public class PutAzureCosmosDBRecord extends AbstractAzureCosmosDBProcessor {
             try {
                 this.container.createItem(record);
             }catch (ConflictException e) {
-                //  insert with unique id is expeected, but incase test data contains data with duplicate id(s).
+                //  insert with unique id is expected, but incase test data contains data with duplicate id(s).
                 this.container.upsertItem(record);
             }
         }
@@ -164,17 +164,21 @@ public class PutAzureCosmosDBRecord extends AbstractAzureCosmosDBProcessor {
             if(batch.size() > 0) {
                 bulkInsert(batch);
             }
-        } catch (SchemaNotFoundException | IOException | MalformedRecordException | CosmosClientException e) {
+
+        } catch (SchemaNotFoundException | MalformedRecordException | IOException e) {
             logger.error("PutAzureCosmoDBRecord failed with error:", e);
             session.transfer(flowFile, REL_FAILURE);
-            error = true;
+            throw new ProcessException(e.getMessage());
+        } catch (CosmosClientException ce) {
+            logger.error("PutAzureCosmoDBRecord failed with error:", ce);
+            session.transfer(flowFile, REL_FAILURE);
+            context.yield();
         } finally {
-            if (!error) {
-                session.getProvenanceReporter().send(flowFile, getURI(context));
-                session.transfer(flowFile, REL_SUCCESS);
-            }
+            session.getProvenanceReporter().send(flowFile, getURI(context));
+            session.transfer(flowFile, REL_SUCCESS);
         }
         session.commit();
+
     }
 
     @Override

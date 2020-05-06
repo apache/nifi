@@ -82,9 +82,9 @@ public class PutAzureCosmosDBRecordTest extends MockTestBase {
     @Test
     public void testPutCosmosRecordProcessorConfigValidity() throws Exception {
         setBasicMockProperties(false);
-        testRunner.setProperty(PutAzureCosmosDBRecord.URI, MOCK_URI);
+        testRunner.setProperty(AzureCosmosDBUtils.URI, MOCK_URI);
         testRunner.assertNotValid();
-        testRunner.setProperty(PutAzureCosmosDBRecord.DB_ACCESS_KEY, MOCK_DB_ACCESS_KEY);
+        testRunner.setProperty(AzureCosmosDBUtils.DB_ACCESS_KEY, MOCK_DB_ACCESS_KEY);
 
         testRunner.assertNotValid();
 
@@ -284,7 +284,7 @@ class MockPutAzureCosmosDBRecord extends PutAzureCosmosDBRecord {
     private List<Map<String, Object>> mockBackend = new ArrayList<>();
 
     @Override
-    protected void createCosmosClient(final String uri, final String accessKey, final ConsistencyLevel clevel) throws NullPointerException {
+    protected void createCosmosClient(final String uri, final String accessKey, final ConsistencyLevel clevel) {
         this.cosmosClient =  mockClient;
     }
     @Override
