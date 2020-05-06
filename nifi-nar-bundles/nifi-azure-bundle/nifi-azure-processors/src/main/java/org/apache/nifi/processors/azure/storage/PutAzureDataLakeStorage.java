@@ -98,7 +98,7 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
             final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
             session.getProvenanceReporter().send(flowFile, fileClient.getFileUrl(), transferMillis);
         } catch (Exception e) {
-            getLogger().error("Failed to create file, due to {}", e);
+            getLogger().error("Failed to create file", e);
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
         }
