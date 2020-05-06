@@ -33,6 +33,7 @@ import org.apache.avro.util.Utf8;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.DataType;
+import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
@@ -690,5 +691,55 @@ public class TestAvroTypeUtil {
 
         // THEN
         assertEquals(expected, actual);
+    }
+
+    @Test
+    public void testConvertNifiRecordIntoAvroRecord() throws IOException {
+        // given
+        final MapRecord nifiRecord = givenRecordContainingNumericMap();
+        final Schema avroSchema = givenAvroSchemaContainingNumericMap();
+
+        // when
+        final GenericRecord result = AvroTypeUtil.createAvroRecord(nifiRecord, avroSchema);
+
+        // then
+        final HashMap<String, Object> numbers = (HashMap<String, Object>) result.get("numbers");
+        Assert.assertTrue(Long.class.isInstance(numbers.get("number1")));
+        Assert.assertTrue(Long.class.isInstance(numbers.get("number2")));
+    }
+
+    private MapRecord givenRecordContainingNumericMap() {
+
+        final Map<String, Object> numberValues = new HashMap<>();
+        numberValues.put("number1", 123); // Intentionally an Integer as validation accepts it
+        numberValues.put("number2", 123L);
+
+        final List<RecordField> numberFields = Arrays.asList(
+            new RecordField("number1", RecordFieldType.LONG.getDataType()),
+            new RecordField("number2", RecordFieldType.LONG.getDataType())
+        );
+
+        final RecordSchema nifiNumberSchema = new SimpleRecordSchema(numberFields);
+        final MapRecord numberRecord = new MapRecord(new SimpleRecordSchema(numberFields), numberValues);
+
+        final Map<String, Object> values = new HashMap<>();
+        values.put("id", 1);
+        values.put("numbers", numberRecord);
+
+        final List<RecordField> fields = Arrays.asList(
+                new RecordField("id", RecordFieldType.INT.getDataType()),
+                new RecordField("numbers", RecordFieldType.RECORD.getRecordDataType(nifiNumberSchema))
+        );
+
+        return new MapRecord(new SimpleRecordSchema(fields), values);
+    }
+
+    private Schema givenAvroSchemaContainingNumericMap() {
+        final List<Field> avroFields = Arrays.asList(
+                new Field("id", Schema.create(Type.INT), "", ""),
+                new Field("numbers", Schema.createMap(Schema.create(Type.LONG)), "", "")
+        );
+
+        return Schema.createRecord(avroFields);
     }
 }
