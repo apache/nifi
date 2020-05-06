@@ -78,8 +78,8 @@ import java.util.Map;
         @WritesAttribute(attribute = "mime.type", description = "MimeType of the content"),
         @WritesAttribute(attribute = "lang", description = "Language code for the content"),
         @WritesAttribute(attribute = "azure.blobtype", description = "This is the type of blob and can be either page or block type"),
-        @WritesAttribute(attribute = "azure.user.metadata.___", description = "If 'Write User Metadata' is set to 'True', the user defined metadata associated to the Blob object that is being listed " +
-    "will be written as part of the flowfile attributes")})
+        @WritesAttribute(attribute = "azure.user.metadata.___", description = "If 'Write User Metadata' is set to 'True', " +
+        "the user defined metadata associated to the Blob object that is being listed will be written as part of the flowfile attributes")})
 @Stateful(scopes = { Scope.CLUSTER }, description = "After performing a listing of blobs, the timestamp of the newest blob is stored. " +
         "This allows the Processor to list only blobs that have been added or modified after this date the next time that the Processor is run.  State is " +
         "stored across the cluster so that this Processor can be run on Primary Node only and if a new Primary Node is selected, the new node can pick up " +
