@@ -445,7 +445,7 @@ public class TestLookupRecord {
     @Test
     public void testLookupArray() throws InitializationException, IOException {
         TestRunner runner = TestRunners.newTestRunner(LookupRecord.class);
-        final MapLookup lookupService = new MapLookup();
+        final MapLookup lookupService = new MapLookupForInPlaceReplacement();
 
         final JsonTreeReader jsonReader = new JsonTreeReader();
         runner.addControllerService("reader", jsonReader);
@@ -487,7 +487,7 @@ public class TestLookupRecord {
     @Test
     public void testLookupArrayKeyNotInLRS() throws InitializationException, IOException {
         TestRunner runner = TestRunners.newTestRunner(LookupRecord.class);
-        final MapLookup lookupService = new MapLookup();
+        final MapLookup lookupService = new MapLookupForInPlaceReplacement();
 
         final JsonTreeReader jsonReader = new JsonTreeReader();
         runner.addControllerService("reader", jsonReader);
@@ -525,7 +525,7 @@ public class TestLookupRecord {
     }
 
     private static class MapLookup extends AbstractControllerService implements StringLookupService {
-        private final Map<String, String> values = new HashMap<>();
+        protected final Map<String, String> values = new HashMap<>();
         private Map<String, Object> expectedContext;
 
         public void addValue(final String key, final String value) {
@@ -606,6 +606,18 @@ public class TestLookupRecord {
         @Override
         public Set<String> getRequiredKeys() {
             return Collections.singleton("lookup");
+        }
+    }
+
+    private static class MapLookupForInPlaceReplacement extends MapLookup implements StringLookupService {
+        @Override
+        public Optional<String> lookup(final Map<String, Object> coordinates) {
+            final String key = (String)coordinates.values().iterator().next();
+            if (key == null) {
+                return Optional.empty();
+            }
+
+            return Optional.ofNullable(values.get(key));
         }
     }
 }
