@@ -35,10 +35,8 @@ import static org.testng.Assert.assertNotNull;
 import static org.testng.Assert.assertNull;
 
 public class StandaloneSwapFileIT extends FrameworkIntegrationTest {
-    @Test
+    @Test(timeout=60_000)
     public void testSwapOnRestart() throws ExecutionException, InterruptedException, IOException {
-        Thread.sleep(20000L);
-
         final ProcessorNode generator = createProcessorNode(GenerateProcessor.class);
         generator.setProperties(Collections.singletonMap(GenerateProcessor.COUNT.getName(), "60000"));
 

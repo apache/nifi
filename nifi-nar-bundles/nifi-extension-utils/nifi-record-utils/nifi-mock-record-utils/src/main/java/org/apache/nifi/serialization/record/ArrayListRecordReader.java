@@ -21,6 +21,7 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -37,7 +38,7 @@ public class ArrayListRecordReader extends AbstractControllerService implements 
 
     @Override
     public ArrayListReader createRecordReader(final Map<String, String> variables, final InputStream in, final long inputLength, final ComponentLog logger) {
-        return new ArrayListReader(records, schema);
+        return new ArrayListReader(records, schema, in);
     }
 
     public void addRecord(final Record record) {
@@ -47,10 +48,12 @@ public class ArrayListRecordReader extends AbstractControllerService implements 
     public static class ArrayListReader implements RecordReader {
         private final RecordSchema schema;
         private final Iterator<Record> itr;
+        private final InputStream in;
 
-        public ArrayListReader(final List<Record> records, final RecordSchema schema) {
+        public ArrayListReader(final List<Record> records, final RecordSchema schema, InputStream in) {
             this.itr = records.iterator();
             this.schema = schema;
+            this.in = in;
         }
 
         @Override
@@ -64,7 +67,8 @@ public class ArrayListRecordReader extends AbstractControllerService implements 
         }
 
         @Override
-        public void close(){
+        public void close() throws IOException {
+            in.close();
         }
     }
 }

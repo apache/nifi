@@ -89,13 +89,19 @@ public class ImportFlowVersion extends AbstractNiFiRegistryCommand<StringResult>
         metadata.setBucketIdentifier(versionedFlow.getBucketIdentifier());
         metadata.setFlowIdentifier(flowId);
         metadata.setVersion(version);
-        metadata.setComments(deserializedSnapshot.getSnapshotMetadata().getComments());
+
+        final VersionedFlowSnapshotMetadata deserializedSnapshotMetadata = deserializedSnapshot.getSnapshotMetadata();
+        if (deserializedSnapshotMetadata != null) {
+            metadata.setComments(deserializedSnapshotMetadata.getComments());
+        }
 
         // create a new snapshot using the new metadata and the contents from the deserialized snapshot
         final VersionedFlowSnapshot snapshot = new VersionedFlowSnapshot();
         snapshot.setSnapshotMetadata(metadata);
         snapshot.setFlowContents(deserializedSnapshot.getFlowContents());
-
+        snapshot.setExternalControllerServices(deserializedSnapshot.getExternalControllerServices());
+        snapshot.setParameterContexts(deserializedSnapshot.getParameterContexts());
+        snapshot.setFlowEncodingVersion(deserializedSnapshot.getFlowEncodingVersion());
 
         final VersionedFlowSnapshot createdSnapshot = snapshotClient.create(snapshot);
         final VersionedFlowSnapshotMetadata createdMetadata = createdSnapshot.getSnapshotMetadata();

@@ -150,7 +150,8 @@
         urls: {
             api: '../nifi-api',
             controller: '../nifi-api/controller',
-            parameterContexts: '../nifi-api/parameter-contexts'
+            parameterContexts: '../nifi-api/parameter-contexts',
+            downloadToken: '../nifi-api/access/download-token'
         }
     };
 
@@ -1374,6 +1375,45 @@
                 if (nfCanvasUtils.isProcessGroup(selection)) {
                     nfFlowVersion.showChangeFlowVersionDialog(selectionData.id);
                 }
+            }
+        },
+
+        /**
+         * Downloads the current flow
+         */
+        downloadFlow: function (selection) {
+            var processGroupId = null;
+
+            if (selection.empty()) {
+                processGroupId = nfCanvasUtils.getGroupId();
+            } else if (selection.size() === 1) {
+                var selectionData = selection.datum();
+                if (nfCanvasUtils.isProcessGroup(selection)) {
+                    processGroupId = selectionData.id;
+                }
+            }
+
+            if (processGroupId !== null) {
+                nfCommon.getAccessToken(config.urls.downloadToken).done(function (downloadToken) {
+                    var parameters = {};
+
+                    // conditionally include the download token
+                    if (!nfCommon.isBlank(downloadToken)) {
+                        parameters['access_token'] = downloadToken;
+                    }
+
+                    // open the url
+                    var uri = '../nifi-api/process-groups/' + encodeURIComponent(processGroupId) + '/download';
+                    if (!$.isEmptyObject(parameters)) {
+                        uri += ('?' + $.param(parameters));
+                    }
+                    window.open(uri);
+                }).fail(function () {
+                    nfDialog.showOkDialog({
+                        headerText: 'Download Flow',
+                        dialogContent: 'Unable to generate access token for downloading content.'
+                    });
+                });
             }
         },
 

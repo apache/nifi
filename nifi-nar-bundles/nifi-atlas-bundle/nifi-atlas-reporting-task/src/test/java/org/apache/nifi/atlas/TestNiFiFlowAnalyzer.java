@@ -63,10 +63,10 @@ public class TestNiFiFlowAnalyzer {
         final NiFiFlowAnalyzer analyzer = new NiFiFlowAnalyzer();
 
         final NiFiFlow nifiFlow = new NiFiFlow(rootPG.getId());
-        nifiFlow.setClusterName("cluster1");
+        nifiFlow.setNamespace("namespace1");
         analyzer.analyzeProcessGroup(nifiFlow, rootPG);
 
-        assertEquals("1234-5678-0000-0000@cluster1", nifiFlow.getQualifiedName());
+        assertEquals("1234-5678-0000-0000@namespace1", nifiFlow.getQualifiedName());
     }
 
     private ProcessorStatus createProcessor(ProcessGroupStatus pgStatus, String type) {
@@ -237,7 +237,7 @@ public class TestNiFiFlowAnalyzer {
         final NiFiFlowAnalyzer analyzer = new NiFiFlowAnalyzer();
 
         final NiFiFlow nifiFlow = new NiFiFlow(rootPG.getId());
-        nifiFlow.setClusterName("cluster1");
+        nifiFlow.setNamespace("namespace1");
         analyzer.analyzeProcessGroup(nifiFlow, rootPG);
 
         assertEquals(4, nifiFlow.getProcessors().size());
@@ -259,7 +259,7 @@ public class TestNiFiFlowAnalyzer {
         assertEquals(1, pathC.getInputs().size());
         final AtlasObjectId queue = pathC.getInputs().iterator().next();
         assertEquals(TYPE_NIFI_QUEUE, queue.getTypeName());
-        assertEquals(toQualifiedName("cluster1", pathC.getId()), queue.getUniqueAttributes().get(ATTR_QUALIFIED_NAME));
+        assertEquals(toQualifiedName("namespace1", pathC.getId()), queue.getUniqueAttributes().get(ATTR_QUALIFIED_NAME));
 
         // Should be able to find a path from a given processor GUID.
         final NiFiFlowPath pathForPr0 = nifiFlow.findPath(pr0.getId());

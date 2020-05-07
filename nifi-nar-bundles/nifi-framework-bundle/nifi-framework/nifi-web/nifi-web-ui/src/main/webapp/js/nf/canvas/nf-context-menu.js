@@ -430,6 +430,18 @@
     };
 
     /**
+     * Returns whether the process group supports downloading the current flow.
+     *
+     * @param selection
+     * @returns {boolean}
+     */
+    var supportsDownloadFlow = function (selection) {
+        // download is allowed when either nothing is selected or a single readable process group is selected
+        return (selection.empty() && nfCanvasUtils.canReadCurrentGroup()) ||
+                (selection.size() === 1 && nfCanvasUtils.isProcessGroup(selection) && nfCanvasUtils.canRead(selection));
+    };
+
+    /**
      * Determines whether the current selection supports flow versioning.
      *
      * @param selection
@@ -494,36 +506,11 @@
      * @returns {boolean}
      */
     var supportsCommitFlowVersion = function (selection) {
-        // ensure this selection supports flow versioning above
-        if (supportsFlowVersioning(selection) === false) {
-            return false;
-        }
-
-        var versionControlInformation;
-        if (selection.empty()) {
-            // check bread crumbs for version control information in the current group
-            var breadcrumbEntities = nfNgBridge.injector.get('breadcrumbsCtrl').getBreadcrumbs();
-            if (breadcrumbEntities.length > 0) {
-                var breadcrumbEntity = breadcrumbEntities[breadcrumbEntities.length - 1];
-                if (breadcrumbEntity.permissions.canRead) {
-                    versionControlInformation = breadcrumbEntity.breadcrumb.versionControlInformation;
-                } else {
-                    return false;
-                }
-            } else {
-                return false;
-            }
-        } else {
-            var processGroupData = selection.datum();
-            versionControlInformation = processGroupData.component.versionControlInformation;
-        }
-
-        if (nfCommon.isUndefinedOrNull(versionControlInformation)) {
-            return false;
-        }
+        var versionControlInformation = getFlowVersionControlInformation(selection);
 
         // check the selection for version control information
-        return versionControlInformation.state === 'LOCALLY_MODIFIED';
+        return versionControlInformation !== null &&
+            versionControlInformation.state === 'LOCALLY_MODIFIED';
     };
 
     /**
@@ -533,36 +520,11 @@
      * @returns {boolean}
      */
     var supportsForceCommitFlowVersion = function (selection) {
-        // ensure this selection supports flow versioning above
-        if (supportsFlowVersioning(selection) === false) {
-            return false;
-        }
-
-        var versionControlInformation;
-        if (selection.empty()) {
-            // check bread crumbs for version control information in the current group
-            var breadcrumbEntities = nfNgBridge.injector.get('breadcrumbsCtrl').getBreadcrumbs();
-            if (breadcrumbEntities.length > 0) {
-                var breadcrumbEntity = breadcrumbEntities[breadcrumbEntities.length - 1];
-                if (breadcrumbEntity.permissions.canRead) {
-                    versionControlInformation = breadcrumbEntity.breadcrumb.versionControlInformation;
-                } else {
-                    return false;
-                }
-            } else {
-                return false;
-            }
-        } else {
-            var processGroupData = selection.datum();
-            versionControlInformation = processGroupData.component.versionControlInformation;
-        }
-
-        if (nfCommon.isUndefinedOrNull(versionControlInformation)) {
-            return false;
-        }
+        var versionControlInformation = getFlowVersionControlInformation(selection);
 
         // check the selection for version control information
-        return versionControlInformation.state === 'LOCALLY_MODIFIED_AND_STALE';
+        return versionControlInformation !== null &&
+            versionControlInformation.state === 'LOCALLY_MODIFIED_AND_STALE';
     };
 
 
@@ -573,36 +535,12 @@
      * @returns {boolean}
      */
     var hasLocalChanges = function (selection) {
-        // ensure this selection supports flow versioning above
-        if (supportsFlowVersioning(selection) === false) {
-            return false;
-        }
-
-        var versionControlInformation;
-        if (selection.empty()) {
-            // check bread crumbs for version control information in the current group
-            var breadcrumbEntities = nfNgBridge.injector.get('breadcrumbsCtrl').getBreadcrumbs();
-            if (breadcrumbEntities.length > 0) {
-                var breadcrumbEntity = breadcrumbEntities[breadcrumbEntities.length - 1];
-                if (breadcrumbEntity.permissions.canRead) {
-                    versionControlInformation = breadcrumbEntity.breadcrumb.versionControlInformation;
-                } else {
-                    return false;
-                }
-            } else {
-                return false;
-            }
-        } else {
-            var processGroupData = selection.datum();
-            versionControlInformation = processGroupData.component.versionControlInformation;
-        }
-
-        if (nfCommon.isUndefinedOrNull(versionControlInformation)) {
-            return false;
-        }
+        var versionControlInformation = getFlowVersionControlInformation(selection);
 
         // check the selection for version control information
-        return versionControlInformation.state === 'LOCALLY_MODIFIED' || versionControlInformation.state === 'LOCALLY_MODIFIED_AND_STALE';
+        return versionControlInformation !== null &&
+            (versionControlInformation.state === 'LOCALLY_MODIFIED' ||
+             versionControlInformation.state === 'LOCALLY_MODIFIED_AND_STALE');
     };
 
     /**
@@ -612,9 +550,36 @@
      * @returns {boolean}
      */
     var supportsChangeFlowVersion = function (selection) {
-        // ensure this selection supports flow versioning above
+        var versionControlInformation = getFlowVersionControlInformation(selection);
+
+        return versionControlInformation !== null &&
+            versionControlInformation.state !== 'LOCALLY_MODIFIED' &&
+            versionControlInformation.state !== 'LOCALLY_MODIFIED_AND_STALE' &&
+            versionControlInformation.state !== 'SYNC_FAILURE';
+    };
+
+    /**
+     * Determines whether the current selection supports stopping flow versioning.
+     *
+     * @param selection
+     * @returns {boolean}
+     */
+    var supportsStopFlowVersioning = function (selection) {
+        var versionControlInformation = getFlowVersionControlInformation(selection);
+
+        return versionControlInformation !== null;
+    };
+
+    /**
+     * Convenience function to perform all flow versioning pre-checks and retrieve
+     * valid version information.
+     *
+     * @param selection
+     */
+    var getFlowVersionControlInformation = function (selection) {
+        // ensure this selection supports flow versioning
         if (supportsFlowVersioning(selection) === false) {
-            return false;
+            return null;
         }
 
         var versionControlInformation;
@@ -626,56 +591,22 @@
                 if (breadcrumbEntity.permissions.canRead) {
                     versionControlInformation = breadcrumbEntity.breadcrumb.versionControlInformation;
                 } else {
-                    return false;
+                    return null;
                 }
             } else {
-                return false;
+                return null;
             }
         } else {
             var processGroupData = selection.datum();
             versionControlInformation = processGroupData.component.versionControlInformation;
         }
 
-        if (nfCommon.isUndefinedOrNull(versionControlInformation)) {
-            return false;
+        if (nfCommon.isDefinedAndNotNull(versionControlInformation)) {
+            return versionControlInformation;;
         }
 
-        // check the selection for version control information
-        return versionControlInformation.state !== 'LOCALLY_MODIFIED' &&
-            versionControlInformation.state !== 'LOCALLY_MODIFIED_AND_STALE' &&
-            versionControlInformation.state !== 'SYNC_FAILURE';
-    };
-
-    /**
-     * Determines whether the current selection supports stopping flow versioning.
-     *
-     * @param selection
-     */
-    var supportsStopFlowVersioning = function (selection) {
-        // ensure this selection supports flow versioning above
-        if (supportsFlowVersioning(selection) === false) {
-            return false;
-        }
-
-        if (selection.empty()) {
-            // check bread crumbs for version control information in the current group
-            var breadcrumbEntities = nfNgBridge.injector.get('breadcrumbsCtrl').getBreadcrumbs();
-            if (breadcrumbEntities.length > 0) {
-                var breadcrumbEntity = breadcrumbEntities[breadcrumbEntities.length - 1];
-                if (breadcrumbEntity.permissions.canRead) {
-                    return nfCommon.isDefinedAndNotNull(breadcrumbEntity.breadcrumb.versionControlInformation);
-                } else {
-                    return false;
-                }
-            } else {
-                return false;
-            }
-        }
-
-        // check the selection for version control information
-        var processGroupData = selection.datum();
-        return nfCommon.isDefinedAndNotNull(processGroupData.component.versionControlInformation);
-    };
+        return null;
+    }
 
     /**
      * Determines whether the current selection could have provenance.
@@ -909,6 +840,8 @@
         {separator: true},
         {id: 'move-into-parent-menu-item', condition: canMoveToParent, menuItem: {clazz: 'fa fa-arrows', text: 'Move to parent group', action: 'moveIntoParent'}},
         {id: 'group-menu-item', condition: canGroup, menuItem: {clazz: 'icon icon-group', text: 'Group', action: 'group'}},
+        {separator: true},
+        {id: 'download-menu-item', condition: supportsDownloadFlow, menuItem: {clazz: 'fa', text: 'Download flow', action: 'downloadFlow'}},
         {separator: true},
         {id: 'upload-template-menu-item', condition: canUploadTemplate, menuItem: {clazz: 'icon icon-template-import', text: 'Upload template', action: 'uploadTemplate'}},
         {id: 'template-menu-item', condition: canCreateTemplate, menuItem: {clazz: 'icon icon-template-save', text: 'Create template', action: 'template'}},

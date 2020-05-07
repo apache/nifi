@@ -158,11 +158,14 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, UserG
                         if (authorizers.containsKey(authorizer.getIdentifier())) {
                             throw new Exception("Duplicate Authorizer identifier in Authorizers configuration: " + authorizer.getIdentifier());
                         }
-                        authorizers.put(authorizer.getIdentifier(), createAuthorizer(authorizer.getIdentifier(), authorizer.getClazz(),authorizer.getClasspath()));
+                        authorizers.put(authorizer.getIdentifier(), createAuthorizer(authorizer.getIdentifier(), authorizer.getClazz(), authorizer.getClasspath()));
                     }
 
-                    // configure each authorizer
+                    // configure each authorizer, except the authorizer that is selected in nifi.properties
                     for (final org.apache.nifi.authorization.generated.Authorizer provider : authorizerConfiguration.getAuthorizer()) {
+                        if (provider.getIdentifier().equals(authorizerIdentifier)) {
+                            continue;
+                        }
                         final Authorizer instance = authorizers.get(provider.getIdentifier());
                         instance.onConfigured(loadAuthorizerConfiguration(provider.getIdentifier(), provider.getProperty()));
                     }
@@ -174,7 +177,23 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, UserG
                     if (authorizer == null) {
                         throw new Exception(String.format("The specified authorizer '%s' could not be found.", authorizerIdentifier));
                     } else {
+                        // install integrity checks
                         authorizer = AuthorizerFactory.installIntegrityChecks(authorizer);
+
+                        // configure authorizer after integrity checks are installed
+                        AuthorizerConfigurationContext authorizerConfigurationContext = null;
+                        for (final org.apache.nifi.authorization.generated.Authorizer provider : authorizerConfiguration.getAuthorizer()) {
+                            if (provider.getIdentifier().equals(authorizerIdentifier)) {
+                                authorizerConfigurationContext = loadAuthorizerConfiguration(provider.getIdentifier(), provider.getProperty());
+                                break;
+                            }
+                        }
+
+                        if (authorizerConfigurationContext == null) {
+                            throw new IllegalStateException("Unable to load configuration for authorizer with id: " + authorizerIdentifier);
+                        }
+
+                        authorizer.onConfigured(authorizerConfigurationContext);
                     }
                 }
             }
@@ -315,8 +334,16 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, UserG
             throw new Exception(String.format("Multiple bundles found for the specified authorizer class '%s', only one is allowed.", authorizerClassName));
         }
 
+        // start with ClassLoad from authorizer's bundle
         final Bundle authorizerBundle = authorizerBundles.get(0);
         ClassLoader authorizerClassLoader = authorizerBundle.getClassLoader();
+
+        // if additional classpath resources were specified, replace with a new ClassLoader that wraps the original one
+        if (StringUtils.isNotEmpty(classpathResources)) {
+            logger.info(String.format("Replacing Authorizer ClassLoader for '%s' to include additional resources: %s", identifier, classpathResources));
+            URL[] urls = ClassLoaderUtils.getURLsForClasspath(classpathResources, null, true);
+            authorizerClassLoader = new URLClassLoader(urls, authorizerClassLoader);
+        }
 
         // get the current context classloader
         final ClassLoader currentClassLoader = Thread.currentThread().getContextClassLoader();
@@ -346,11 +373,6 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, UserG
             if (currentClassLoader != null) {
                 Thread.currentThread().setContextClassLoader(currentClassLoader);
             }
-        }
-
-        if (StringUtils.isNotEmpty(classpathResources)) {
-            URL[] urls = ClassLoaderUtils.getURLsForClasspath(classpathResources, null, true);
-            authorizerClassLoader = new URLClassLoader(urls, authorizerClassLoader);
         }
 
         return AuthorizerFactory.withNarLoader(instance, authorizerClassLoader);

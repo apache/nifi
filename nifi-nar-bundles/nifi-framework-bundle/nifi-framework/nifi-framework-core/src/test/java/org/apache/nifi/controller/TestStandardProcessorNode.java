@@ -17,9 +17,11 @@
 
 package org.apache.nifi.controller;
 
+import org.apache.nifi.admin.service.AuditService;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
+import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -29,11 +31,16 @@ import org.apache.nifi.controller.exception.ControllerServiceInstantiationExcept
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
 import org.apache.nifi.controller.kerberos.KerberosConfig;
 import org.apache.nifi.controller.reporting.ReportingTaskInstantiationException;
+import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.engine.FlowEngine;
+import org.apache.nifi.events.VolatileBulletinRepository;
 import org.apache.nifi.expression.ExpressionLanguageCompiler;
 import org.apache.nifi.nar.ExtensionDiscoveringManager;
+import org.apache.nifi.nar.InstanceClassLoader;
+import org.apache.nifi.nar.NarClassLoader;
 import org.apache.nifi.nar.NarCloseable;
+import org.apache.nifi.nar.OSUtil;
 import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
 import org.apache.nifi.nar.SystemBundle;
 import org.apache.nifi.parameter.ParameterContext;
@@ -46,8 +53,11 @@ import org.apache.nifi.processor.StandardProcessContext;
 import org.apache.nifi.processor.StandardProcessorInitializationContext;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.provenance.MockProvenanceRepository;
 import org.apache.nifi.registry.VariableDescriptor;
 import org.apache.nifi.registry.VariableRegistry;
+import org.apache.nifi.registry.flow.FlowRegistryClient;
+import org.apache.nifi.registry.variable.FileBasedVariableRegistry;
 import org.apache.nifi.registry.variable.StandardComponentVariableRegistry;
 import org.apache.nifi.test.processors.ModifiesClasspathNoAnnotationProcessor;
 import org.apache.nifi.test.processors.ModifiesClasspathProcessor;
@@ -58,7 +68,6 @@ import org.apache.nifi.util.SynchronousValidationTrigger;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mockito;
 
 import java.io.File;
 import java.net.MalformedURLException;
@@ -75,11 +84,17 @@ import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.atomic.AtomicReference;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class TestStandardProcessorNode {
 
@@ -88,13 +103,25 @@ public class TestStandardProcessorNode {
     private ExtensionDiscoveringManager extensionManager;
     private NiFiProperties niFiProperties;
 
+    private final AtomicReference<InstanceClassLoader> currentInstanceClassLoaderHolder = new AtomicReference<>();
+
     @Before
     public void setup() {
         variableRegistry = new MockVariableRegistry();
         niFiProperties = NiFiProperties.createBasicNiFiProperties("src/test/resources/conf/nifi.properties", null);
 
         systemBundle = SystemBundle.create(niFiProperties);
-        extensionManager = new StandardExtensionDiscoveringManager();
+        extensionManager = new StandardExtensionDiscoveringManager() {
+            @Override
+            public InstanceClassLoader createInstanceClassLoader(String classType, String instanceIdentifier, Bundle bundle, Set<URL> additionalUrls) {
+                InstanceClassLoader instanceClassLoader = super.createInstanceClassLoader(classType, instanceIdentifier, bundle, additionalUrls);
+
+                currentInstanceClassLoaderHolder.set(instanceClassLoader);
+
+                return instanceClassLoader;
+
+            }
+        };
         extensionManager.discoverExtensions(systemBundle, Collections.emptySet());
     }
 
@@ -106,8 +133,8 @@ public class TestStandardProcessorNode {
         ProcessorInitializationContext initContext = new StandardProcessorInitializationContext(uuid, null, null, null, KerberosConfig.NOT_CONFIGURED);
         processor.initialize(initContext);
 
-        final ReloadComponent reloadComponent = Mockito.mock(ReloadComponent.class);
-        final BundleCoordinate coordinate = Mockito.mock(BundleCoordinate.class);
+        final ReloadComponent reloadComponent = mock(ReloadComponent.class);
+        final BundleCoordinate coordinate = mock(BundleCoordinate.class);
 
         final LoggableComponent<Processor> loggableComponent = new LoggableComponent<>(processor, coordinate, null);
         final StandardProcessorNode procNode = new StandardProcessorNode(loggableComponent, uuid, createValidationContextFactory(), null, null,
@@ -174,6 +201,69 @@ public class TestStandardProcessorNode {
 
             // Should pass validation
             assertTrue(procNode.computeValidationErrors(procNode.getValidationContext()).isEmpty());
+        } finally {
+            extensionManager.removeInstanceClassLoader(procNode.getIdentifier());
+        }
+    }
+
+    @Test
+    public void testNativeLibLoadedFromDynamicallyModifiesClasspathProperty() throws Exception {
+        // GIVEN
+        assumeTrue("Test only runs on Mac OS", new OSUtil(){}.isOsMac());
+
+        // Init NiFi
+        NarClassLoader narClassLoader = mock(NarClassLoader.class);
+        when(narClassLoader.getURLs()).thenReturn(new URL[0]);
+
+        Bundle narBundle = SystemBundle.create(niFiProperties, narClassLoader);
+
+        HashMap<String, String> additionalProperties = new HashMap<>();
+        additionalProperties.put(NiFiProperties.ADMINISTRATIVE_YIELD_DURATION, "1 sec");
+        additionalProperties.put(NiFiProperties.STATE_MANAGEMENT_CONFIG_FILE, "target/test-classes/state-management.xml");
+        additionalProperties.put(NiFiProperties.STATE_MANAGEMENT_LOCAL_PROVIDER_ID, "local-provider");
+        additionalProperties.put(NiFiProperties.PROVENANCE_REPO_IMPLEMENTATION_CLASS, MockProvenanceRepository.class.getName());
+        additionalProperties.put("nifi.remote.input.socket.port", "");
+        additionalProperties.put("nifi.remote.input.secure", "");
+
+        final NiFiProperties nifiProperties = NiFiProperties.createBasicNiFiProperties("src/test/resources/conf/nifi.properties", additionalProperties);
+
+        final FlowController flowController = FlowController.createStandaloneInstance(mock(FlowFileEventRepository.class), nifiProperties,
+                mock(Authorizer.class), mock(AuditService.class), null, new VolatileBulletinRepository(),
+                new FileBasedVariableRegistry(nifiProperties.getVariableRegistryPropertiesPaths()),
+                mock(FlowRegistryClient.class), extensionManager);
+
+        // Init processor
+        final PropertyDescriptor classpathProp = new PropertyDescriptor.Builder().name("Classpath Resources")
+                .dynamicallyModifiesClasspath(true).addValidator(StandardValidators.NON_EMPTY_VALIDATOR).build();
+
+        final ModifiesClasspathProcessor processor = new ModifiesClasspathProcessor(Arrays.asList(classpathProp));
+        final String uuid = UUID.randomUUID().toString();
+
+        final ValidationContextFactory validationContextFactory = createValidationContextFactory();
+        final ProcessScheduler processScheduler = mock(ProcessScheduler.class);
+        final TerminationAwareLogger componentLog = mock(TerminationAwareLogger.class);
+
+        final ReloadComponent reloadComponent = new StandardReloadComponent(flowController);
+        ProcessorInitializationContext initContext = new StandardProcessorInitializationContext(uuid, componentLog, null, null, KerberosConfig.NOT_CONFIGURED);
+        ((Processor) processor).initialize(initContext);
+
+        final LoggableComponent<Processor> loggableComponent = new LoggableComponent<>(processor, narBundle.getBundleDetails().getCoordinate(), componentLog);
+        final StandardProcessorNode procNode = new StandardProcessorNode(loggableComponent, uuid, validationContextFactory, processScheduler,
+                null, new StandardComponentVariableRegistry(variableRegistry), reloadComponent, extensionManager, new SynchronousValidationTrigger());
+
+        final Map<String, String> properties = new HashMap<>();
+        properties.put(classpathProp.getName(), "src/test/resources/native");
+        procNode.setProperties(properties);
+
+        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, procNode.getProcessor().getClass(), procNode.getIdentifier())){
+            // Should pass validation
+            assertTrue(procNode.computeValidationErrors(procNode.getValidationContext()).isEmpty());
+
+            // WHEN
+            String actualLibraryLocation = currentInstanceClassLoaderHolder.get().findLibrary("testjni");
+
+            // THEN
+            assertThat(actualLibraryLocation, containsString(currentInstanceClassLoaderHolder.get().getIdentifier()));
         } finally {
             extensionManager.removeInstanceClassLoader(procNode.getIdentifier());
         }
@@ -400,8 +490,8 @@ public class TestStandardProcessorNode {
     private StandardProcessorNode createProcessorNode(final Processor processor, final ReloadComponent reloadComponent) {
         final String uuid = UUID.randomUUID().toString();
         final ValidationContextFactory validationContextFactory = createValidationContextFactory();
-        final ProcessScheduler processScheduler = Mockito.mock(ProcessScheduler.class);
-        final TerminationAwareLogger componentLog = Mockito.mock(TerminationAwareLogger.class);
+        final ProcessScheduler processScheduler = mock(ProcessScheduler.class);
+        final TerminationAwareLogger componentLog = mock(TerminationAwareLogger.class);
 
         extensionManager.createInstanceClassLoader(processor.getClass().getName(), uuid, systemBundle, null);
 

@@ -27,13 +27,12 @@ import org.apache.nifi.remote.client.PeerSelector;
 import org.apache.nifi.remote.client.PeerStatusProvider;
 import org.apache.nifi.remote.client.SiteToSiteClientConfig;
 import org.apache.nifi.remote.exception.HandshakeException;
-import org.apache.nifi.remote.exception.NoContentException;
-import org.apache.nifi.remote.exception.NoValidPeerException;
 import org.apache.nifi.remote.exception.PortNotRunningException;
 import org.apache.nifi.remote.exception.ProtocolException;
 import org.apache.nifi.remote.exception.UnknownPortException;
 import org.apache.nifi.remote.io.http.HttpCommunicationsSession;
 import org.apache.nifi.remote.protocol.CommunicationsSession;
+import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.remote.protocol.http.HttpClientTransaction;
 import org.apache.nifi.remote.util.SiteToSiteRestApiClient;
 import org.apache.nifi.web.api.dto.remote.PeerDTO;
@@ -42,7 +41,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -64,7 +62,7 @@ public class HttpClient extends AbstractSiteToSiteClient implements PeerStatusPr
     public HttpClient(final SiteToSiteClientConfig config) {
         super(config);
 
-        peerSelector = new PeerSelector(this, config.getPeerPersistenceFile());
+        peerSelector = new PeerSelector(this, config.getPeerPersistence());
         peerSelector.setEventReporter(config.getEventReporter());
 
         taskExecutor = Executors.newScheduledThreadPool(1, new ThreadFactory() {
@@ -127,11 +125,9 @@ public class HttpClient extends AbstractSiteToSiteClient implements PeerStatusPr
     @Override
     public Transaction createTransaction(final TransferDirection direction) throws HandshakeException, PortNotRunningException, ProtocolException, UnknownPortException, IOException {
         final int timeoutMillis = (int) config.getTimeout(TimeUnit.MILLISECONDS);
-        Integer peersWithNoContent = 0;
 
-        ArrayList<PeerStatus> peers = peerSelector.getPeerStatuses(direction);
-
-        for  (PeerStatus peerStatus : peers) {
+        PeerStatus peerStatus;
+        while ((peerStatus = peerSelector.getNextPeerStatus(direction)) != null) {
             logger.debug("peerStatus={}", peerStatus);
 
             final CommunicationsSession commSession = new HttpCommunicationsSession();
@@ -173,11 +169,6 @@ public class HttpClient extends AbstractSiteToSiteClient implements PeerStatusPr
             try {
                 transactionUrl = apiClient.initiateTransaction(direction, portId);
                 commSession.setUserDn(apiClient.getTrustedPeerDn());
-            } catch (final NoContentException e) {
-                apiClient.close();
-                peersWithNoContent++;
-                logger.debug("Peer {} has no flowfiles to provide", peer);
-                continue;
             } catch (final Exception e) {
                 apiClient.close();
                 logger.warn("Penalizing a peer {} due to {}", peer, e.toString());
@@ -220,12 +211,8 @@ public class HttpClient extends AbstractSiteToSiteClient implements PeerStatusPr
             return transaction;
         }
 
-        if(peersWithNoContent > 0) {
-            return null;
-        }
-        String error = new String("Couldn't find a valid peer to communicate with.");
-        logger.info(error);
-        throw new NoValidPeerException(error);
+        logger.info("Couldn't find a valid peer to communicate with.");
+        return null;
     }
 
     private String resolveNodeApiUrl(final PeerDescription description) {
@@ -245,5 +232,10 @@ public class HttpClient extends AbstractSiteToSiteClient implements PeerStatusPr
         for (final HttpClientTransaction transaction : activeTransactions) {
             transaction.getCommunicant().getCommunicationsSession().interrupt();
         }
+    }
+
+    @Override
+    public SiteToSiteTransportProtocol getTransportProtocol() {
+        return SiteToSiteTransportProtocol.HTTP;
     }
 }

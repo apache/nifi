@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web;
 
+import io.prometheus.client.CollectorRegistry;
 import org.apache.nifi.authorization.AuthorizeAccess;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.user.NiFiUser;
@@ -134,7 +135,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 /**
  * Defines the NiFiServiceFacade interface.
@@ -198,9 +198,10 @@ public interface NiFiServiceFacade {
      * Searches the controller for the specified query string.
      *
      * @param query query
+     * @param activeGroupId the id of the group currently selected in the editor
      * @return results
      */
-    SearchResultsDTO searchController(String query);
+    SearchResultsDTO searchController(String query, String activeGroupId);
 
     /**
      * Submits a provenance request.
@@ -313,6 +314,11 @@ public interface NiFiServiceFacade {
      * @return Flow configuration transfer object
      */
     FlowConfigurationEntity getFlowConfiguration();
+
+    /**
+     * Gets the metrics for the flow.
+     */
+    Collection<CollectorRegistry> generateFlowMetrics();
 
     /**
      * Updates the configuration for this controller.
@@ -1408,6 +1414,14 @@ public interface NiFiServiceFacade {
     FlowComparisonEntity getLocalModifications(String processGroupId);
 
     /**
+     * Determines whether the process group with the given id or any of its descendants are under version control.
+     *
+     * @param groupId the ID of the Process Group
+     * @return <code>true</code> if any process group in the hierarchy is under version control, <code>false</code> otherwise.
+     */
+    boolean isAnyProcessGroupUnderVersionControl(final String groupId);
+
+    /**
      * Returns the Version Control information for the Process Group with the given ID
      *
      * @param processGroupId the ID of the Process Group
@@ -1415,7 +1429,6 @@ public interface NiFiServiceFacade {
      *         process group is not under version control
      */
     VersionControlInformationEntity getVersionControlInformation(String processGroupId);
-
 
     /**
      * Adds the given Versioned Flow to the registry specified by the given ID
@@ -1457,15 +1470,17 @@ public interface NiFiServiceFacade {
      * @param snapshot the Snapshot to persist
      * @param externalControllerServiceReferences a mapping of controller service id to ExternalControllerServiceReference for any Controller Service that is referenced in the flow but not included
      * in the VersionedProcessGroup
-     * @oaram ParameterContext the parameter contexts to include
+     * @param parameterContexts a map of the Parameter Contexts to include keyed by name
      * @param comments about the snapshot
      * @param expectedVersion the version to save the flow as
      * @return the snapshot that represents what was stored in the registry
      *
      * @throws NiFiCoreException if unable to register the snapshot with the flow registry
      */
-    VersionedFlowSnapshot registerVersionedFlowSnapshot(String registryId, VersionedFlow flow, VersionedProcessGroup snapshot, Collection<VersionedParameterContext> parameterContexts,
-                                                        Map<String, ExternalControllerServiceReference> externalControllerServiceReferences, String comments, int expectedVersion);
+    VersionedFlowSnapshot registerVersionedFlowSnapshot(String registryId, VersionedFlow flow, VersionedProcessGroup snapshot,
+                                                        Map<String, VersionedParameterContext> parameterContexts,
+                                                        Map<String, ExternalControllerServiceReference> externalControllerServiceReferences,
+                                                        String comments, int expectedVersion);
 
     /**
      * Updates the Version Control Information on the Process Group with the given ID
@@ -1502,6 +1517,24 @@ public interface NiFiServiceFacade {
     VersionedFlowSnapshot getVersionedFlowSnapshot(VersionControlInformationDTO versionControlInfo, boolean fetchRemoteFlows);
 
     /**
+     * Get the latest Versioned Flow Snapshot from the registry for the Process Group with the given ID
+     *
+     * @param processGroupId the ID of the Process Group
+     * @return the latest Versioned Flow Snapshot for download
+     *
+     * @throws ResourceNotFoundException if the Versioned Flow Snapshot could not be found
+     */
+    VersionedFlowSnapshot getVersionedFlowSnapshotByGroupId(String processGroupId);
+
+    /**
+     * Get the current state of the Process Group with the given ID, converted to a Versioned Flow Snapshot
+     *
+     * @param processGroupId the ID of the Process Group
+     * @return the current Process Group converted to a Versioned Flow Snapshot for download
+     */
+    VersionedFlowSnapshot getCurrentFlowSnapshotByGroupId(String processGroupId);
+
+    /**
      * Returns the name of the Flow Registry that is registered with the given ID. If no Flow Registry exists with the given ID, will return
      * the ID itself as the name
      *
@@ -1518,7 +1551,7 @@ public interface NiFiServiceFacade {
      * @param updatedSnapshot the snapshot to update the Process Group to
      * @return the set of all components that would be affected by updating the Process Group
      */
-    Set<AffectedComponentEntity> getComponentsAffectedByVersionChange(String processGroupId, VersionedFlowSnapshot updatedSnapshot);
+    Set<AffectedComponentEntity> getComponentsAffectedByFlowUpdate(String processGroupId, VersionedFlowSnapshot updatedSnapshot);
 
     /**
      * Verifies that the Process Group with the given identifier can be updated to the proposed flow
@@ -1555,7 +1588,6 @@ public interface NiFiServiceFacade {
      */
     void verifyCanRevertLocalModifications(String groupId, VersionedFlowSnapshot versionedFlowSnapshot);
 
-
     /**
      * Updates the Process group with the given ID to match the new snapshot
      *
@@ -1567,12 +1599,10 @@ public interface NiFiServiceFacade {
      * @param updateSettings whether or not the process group's name and position should be updated
      * @param updateDescendantVersionedFlows if a child/descendant Process Group is under Version Control, specifies whether or not to
      *            update the contents of that Process Group
-     * @param  idGenerator the id generator
      * @return the Process Group
      */
     ProcessGroupEntity updateProcessGroupContents(Revision revision, String groupId, VersionControlInformationDTO versionControlInfo, VersionedFlowSnapshot snapshot,
-                                                  String componentIdSeed, boolean verifyNotModified, boolean updateSettings, boolean updateDescendantVersionedFlows, Supplier<String> idGenerator);
-
+                                                  String componentIdSeed, boolean verifyNotModified, boolean updateSettings, boolean updateDescendantVersionedFlows);
 
     /**
      * Returns a Set representing all components that will be affected by updating the Parameter Context that is represented by the given DTO.
@@ -1674,6 +1704,14 @@ public interface NiFiServiceFacade {
      * @param reportingTaskId the reporting task id
      */
     void clearReportingTaskState(String reportingTaskId);
+
+    /**
+     * Gets the state for the specified RemoteProcessGroup.
+     *
+     * @param remoteProcessGroupId the RemoteProcessGroup id
+     * @return  the component state
+     */
+    ComponentStateDTO getRemoteProcessGroupState(String remoteProcessGroupId);
 
 
     // ----------------------------------------

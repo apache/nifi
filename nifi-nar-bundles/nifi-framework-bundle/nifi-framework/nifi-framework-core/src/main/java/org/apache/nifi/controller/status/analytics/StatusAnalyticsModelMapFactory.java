@@ -44,20 +44,26 @@ public class StatusAnalyticsModelMapFactory {
     private final static String OUTPUT_COUNT_METRIC = "outputCount";
     private final static String OUTPUT_BYTES_METRIC = "outputBytes";
 
+    final ExtensionManager extensionManager;
+    final NiFiProperties niFiProperties;
+
+    public StatusAnalyticsModelMapFactory(ExtensionManager extensionManager, NiFiProperties niFiProperties) {
+        this.extensionManager = extensionManager;
+        this.niFiProperties = niFiProperties;
+    }
+
     /**
      * Return mapping of models and extraction functions for connection status analytics prediction instances
-     * @param extensionManager Extension Manager object for instantiating classes
-     * @param niFiProperties NiFi Properties object
      * @return
      */
-    public static Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> getConnectionStatusModelMap(ExtensionManager extensionManager, NiFiProperties niFiProperties){
-            Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> modelMap = new HashMap<>();
-            StatusMetricExtractFunction extract = getConnectionStatusExtractFunction();
-            Tuple<StatusAnalyticsModel, StatusMetricExtractFunction> countModelFunction = new Tuple<>(createModelInstance(extensionManager, niFiProperties), extract);
-            Tuple<StatusAnalyticsModel, StatusMetricExtractFunction> byteModelFunction = new Tuple<>(createModelInstance(extensionManager, niFiProperties), extract);
-            modelMap.put(QUEUED_COUNT_METRIC, countModelFunction);
-            modelMap.put(QUEUED_BYTES_METRIC, byteModelFunction);
-            return modelMap;
+    public Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> getConnectionStatusModelMap(){
+        Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> modelMap = new HashMap<>();
+        StatusMetricExtractFunction extract = getConnectionStatusExtractFunction();
+        Tuple<StatusAnalyticsModel, StatusMetricExtractFunction> countModelFunction = new Tuple<>(createModelInstance(extensionManager, niFiProperties), extract);
+        Tuple<StatusAnalyticsModel, StatusMetricExtractFunction> byteModelFunction = new Tuple<>(createModelInstance(extensionManager, niFiProperties), extract);
+        modelMap.put(QUEUED_COUNT_METRIC, countModelFunction);
+        modelMap.put(QUEUED_BYTES_METRIC, byteModelFunction);
+        return modelMap;
     }
 
     /**
@@ -66,7 +72,7 @@ public class StatusAnalyticsModelMapFactory {
      * @param nifiProperties NiFi Properties object
      * @return statusAnalyticsModel
      */
-    private static StatusAnalyticsModel createModelInstance(ExtensionManager extensionManager, NiFiProperties nifiProperties) {
+    private StatusAnalyticsModel createModelInstance(ExtensionManager extensionManager, NiFiProperties nifiProperties) {
         final String implementationClassName = nifiProperties.getProperty(NiFiProperties.ANALYTICS_CONNECTION_MODEL_IMPLEMENTATION, NiFiProperties.DEFAULT_ANALYTICS_CONNECTION_MODEL_IMPLEMENTATION);
         if (implementationClassName == null) {
             throw new RuntimeException("Cannot create Analytics Model because the NiFi Properties is missing the following property: "
@@ -83,7 +89,7 @@ public class StatusAnalyticsModelMapFactory {
      * Get a connection status extract function instance
      * @return StatusMetricExtractFunction
      */
-    private static StatusMetricExtractFunction getConnectionStatusExtractFunction() {
+    private StatusMetricExtractFunction getConnectionStatusExtractFunction() {
 
         return (metric, statusHistory) -> {
 

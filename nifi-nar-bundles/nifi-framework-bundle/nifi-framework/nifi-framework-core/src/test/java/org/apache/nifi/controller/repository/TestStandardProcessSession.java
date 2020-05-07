@@ -19,6 +19,7 @@ package org.apache.nifi.controller.repository;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
+import org.apache.nifi.controller.Counter;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.queue.NopConnectionEventListener;
@@ -28,6 +29,7 @@ import org.apache.nifi.controller.repository.claim.ResourceClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 import org.apache.nifi.controller.repository.claim.StandardContentClaim;
 import org.apache.nifi.controller.repository.claim.StandardResourceClaimManager;
+import org.apache.nifi.controller.repository.metrics.RingBufferEventRepository;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.groups.ProcessGroup;
@@ -112,6 +114,8 @@ public class TestStandardProcessSession {
 
     private ProvenanceEventRepository provenanceRepo;
     private MockFlowFileRepository flowFileRepo;
+    private CounterRepository counterRepository;
+    private FlowFileEventRepository flowFileEventRepository;
     private final Relationship FAKE_RELATIONSHIP = new Relationship.Builder().name("FAKE").build();
     private static StandardResourceClaimManager resourceClaimManager;
 
@@ -153,8 +157,8 @@ public class TestStandardProcessSession {
         resourceClaimManager = new StandardResourceClaimManager();
 
         System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, TestStandardProcessSession.class.getResource("/conf/nifi.properties").getFile());
-        final FlowFileEventRepository flowFileEventRepo = Mockito.mock(FlowFileEventRepository.class);
-        final CounterRepository counterRepo = Mockito.mock(CounterRepository.class);
+        flowFileEventRepository = new RingBufferEventRepository(1);
+        counterRepository = new StandardCounterRepository();
         provenanceRepo = new MockProvenanceRepository();
 
         final Connection connection = createConnection();
@@ -194,7 +198,7 @@ public class TestStandardProcessSession {
         contentRepo.initialize(new StandardResourceClaimManager());
         flowFileRepo = new MockFlowFileRepository(contentRepo);
 
-        context = new RepositoryContext(connectable, new AtomicLong(0L), contentRepo, flowFileRepo, flowFileEventRepo, counterRepo, provenanceRepo);
+        context = new RepositoryContext(connectable, new AtomicLong(0L), contentRepo, flowFileRepo, flowFileEventRepository, counterRepository, provenanceRepo);
         session = new StandardProcessSession(context, () -> false);
     }
 
@@ -294,6 +298,179 @@ public class TestStandardProcessSession {
 
         verify(conn1, times(1)).poll(any(Set.class));
         verify(conn2, times(1)).poll(any(Set.class));
+    }
+
+    @Test
+    public void testCheckpointMergesCounters() {
+        final Relationship relationship = new Relationship.Builder().name("A").build();
+
+        FlowFile flowFile = session.create();
+        session.transfer(flowFile, relationship);
+        session.adjustCounter("a", 1, false);
+        session.checkpoint();
+
+        flowFile = session.create();
+        session.transfer(flowFile, relationship);
+        session.adjustCounter("a", 1, false);
+        session.adjustCounter("b", 3, false);
+        session.checkpoint();
+
+        assertEquals(0, counterRepository.getCounters().size());
+        session.commit();
+
+        // We should have 2 different counters with the name "a" and 2 different counters with the name "b" -
+        // one for the "All Instances" context and one for the individual instance's context.
+        final List<Counter> counters = counterRepository.getCounters();
+        assertEquals(4, counters.size());
+
+        int aCounters = 0;
+        int bCounters = 0;
+        for (final Counter counter : counters) {
+            switch (counter.getName()) {
+                case "a":
+                    assertEquals(2, counter.getValue());
+                    aCounters++;
+                    break;
+                case "b":
+                    assertEquals(3, counter.getValue());
+                    bCounters++;
+                    break;
+            }
+        }
+
+        assertEquals(2, aCounters);
+        assertEquals(2, bCounters);
+    }
+
+    @Test
+    public void testCombineCounters() {
+        final Relationship relationship = new Relationship.Builder().name("A").build();
+
+        FlowFile flowFile = session.create();
+        session.transfer(flowFile, relationship);
+        session.adjustCounter("a", 1, false);
+        session.adjustCounter("b", 3, false);
+        session.adjustCounter("a", 3, true);
+        session.adjustCounter("b", 5, true);
+        session.checkpoint();
+
+        flowFile = session.create();
+        session.transfer(flowFile, relationship);
+        session.adjustCounter("a", 1, true);
+        session.adjustCounter("b", 2, true);
+        session.commit();
+
+        context.getFlowFileEventRepository().reportTransferEvents(10L).getReportEntries().forEach((k, v) -> {
+            v.getCounters().forEach((key, value) -> {
+                if (key.equals("a")) {
+                    assertEquals(5L, (long) value);
+                }
+
+                if (key.equals("b")) {
+                    assertEquals(10L, (long) value);
+                }
+            });
+        });
+    }
+
+    @Test
+    public void testReadCountCorrectWhenSkippingWithReadCallback() throws IOException {
+        final byte[] content = "This and that and the other.".getBytes(StandardCharsets.UTF_8);
+
+        final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
+            .id(1000L)
+            .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
+            .entryDate(System.currentTimeMillis())
+            .contentClaim(contentRepo.create(content))
+            .size(content.length)
+            .build();
+
+        flowFileQueue.put(flowFileRecord);
+
+        FlowFile flowFile = session.get();
+        session.read(flowFile, in -> {
+            assertEquals('T', (char) in.read());
+            in.mark(10);
+            assertEquals(5, in.skip(5L));
+            assertEquals('n', (char) in.read());
+            in.reset();
+        });
+
+        session.transfer(flowFile);
+        session.commit();
+
+        final RepositoryStatusReport report = flowFileEventRepository.reportTransferEvents(0L);
+        final long bytesRead = report.getReportEntry("connectable-1").getBytesRead();
+        assertEquals(1, bytesRead);
+    }
+
+    @Test
+    public void testReadCountCorrectWhenSkippingWithReadInputStream() throws IOException {
+        final byte[] content = "This and that and the other.".getBytes(StandardCharsets.UTF_8);
+
+        final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
+            .id(1000L)
+            .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
+            .entryDate(System.currentTimeMillis())
+            .contentClaim(contentRepo.create(content))
+            .size(content.length)
+            .build();
+
+        flowFileQueue.put(flowFileRecord);
+
+        FlowFile flowFile = session.get();
+        try (InputStream in = session.read(flowFile)) {
+            assertEquals('T', (char) in.read());
+            in.mark(10);
+            assertEquals(5, in.skip(5L));
+            assertEquals('n', (char) in.read());
+            in.reset();
+        }
+
+        session.transfer(flowFile);
+        session.commit();
+
+        final RepositoryStatusReport report = flowFileEventRepository.reportTransferEvents(0L);
+        final long bytesRead = report.getReportEntry("connectable-1").getBytesRead();
+        assertEquals(1, bytesRead);
+    }
+
+    public void testCheckpointMergesMaps() {
+        for (int i=0; i < 2; i++) {
+            final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
+                .id(i)
+                .entryDate(System.currentTimeMillis())
+                .size(0L)
+                .build();
+
+            flowFileQueue.put(flowFileRecord);
+        }
+
+        final Relationship relationship = new Relationship.Builder().name("A").build();
+
+        for (int i=0; i < 2; i++) {
+            FlowFile ff1 = session.get();
+            assertNotNull(ff1);
+            session.transfer(ff1, relationship);
+            session.adjustCounter("counter", 1, false);
+            session.adjustCounter("counter", 1, true);
+            session.checkpoint();
+        }
+
+        session.commit();
+
+        final RepositoryStatusReport report = flowFileEventRepository.reportTransferEvents(0L);
+        final FlowFileEvent queueFlowFileEvent = report.getReportEntry("conn-uuid");
+        assertNotNull(queueFlowFileEvent);
+        assertEquals(2, queueFlowFileEvent.getFlowFilesOut());
+        assertEquals(0L, queueFlowFileEvent.getContentSizeOut());
+
+        final FlowFileEvent componentFlowFileEvent = report.getReportEntry("connectable-1");
+        final Map<String, Long> counters = componentFlowFileEvent.getCounters();
+        assertNotNull(counters);
+        assertEquals(1, counters.size());
+        assertTrue(counters.containsKey("counter"));
+        assertEquals(4L, counters.get("counter").longValue()); // increment twice for each FlowFile, once immediate, once not.
     }
 
     @Test
@@ -2223,6 +2400,11 @@ public class TestStandardProcessSession {
         @Override
         public long loadFlowFiles(QueueProvider queueProvider) throws IOException {
             return 0;
+        }
+
+        @Override
+        public Set<String> findQueuesWithFlowFiles(final FlowFileSwapManager flowFileSwapManager) throws IOException {
+            return Collections.emptySet();
         }
 
         @Override

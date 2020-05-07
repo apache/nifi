@@ -315,28 +315,6 @@ public class TestStandardFlowFileQueue {
     }
 
     @Test
-    public void testLowestPrioritySwappedOutFirst() {
-        final List<FlowFilePrioritizer> prioritizers = new ArrayList<>();
-        prioritizers.add(new FlowFileSizePrioritizer());
-        queue.setPriorities(prioritizers);
-
-        long maxSize = 20000;
-        for (int i = 1; i <= 20000; i++) {
-            queue.put(new MockFlowFileRecord(maxSize - i));
-        }
-
-        assertEquals(1, swapManager.swapOutCalledCount);
-        assertEquals(20000, queue.size().getObjectCount());
-
-        assertEquals(10000, queue.getQueueDiagnostics().getLocalQueuePartitionDiagnostics().getActiveQueueSize().getObjectCount());
-        final List<FlowFileRecord> flowFiles = queue.poll(Integer.MAX_VALUE, new HashSet<FlowFileRecord>());
-        assertEquals(10000, flowFiles.size());
-        for (int i = 0; i < 10000; i++) {
-            assertEquals(i, flowFiles.get(i).getSize());
-        }
-    }
-
-    @Test
     public void testSwapIn() {
         for (int i = 1; i <= 20000; i++) {
             queue.put(new MockFlowFileRecord());

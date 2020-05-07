@@ -1,0 +1,29 @@
+[
+  {
+    "foo" : {
+      "foo" : "key"
+    },
+    "locales": [
+      {
+        "language" : "fr",
+        "region" : "CA"
+      }, {
+        "language" : "fr",
+        "region" : "FR"
+      }
+    ]
+  }, {
+    "foo" : {
+      "foo" : "key"
+    },
+    "locales": [
+      {
+        "language" : "fr",
+        "region" : "CA"
+      }, {
+        "language" : "fr",
+        "region" : "FR"
+      }
+    ]
+  }
+]

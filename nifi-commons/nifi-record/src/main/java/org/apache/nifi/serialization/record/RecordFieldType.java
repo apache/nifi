@@ -232,7 +232,7 @@ public enum RecordFieldType {
         this.defaultFormat = null;
         this.defaultDataType = new DataType(this, defaultFormat);
 
-        this.narrowDataTypes = new HashSet<>(Arrays.asList(narrowDataTypes));
+        this.narrowDataTypes = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(narrowDataTypes)));
     }
 
     private RecordFieldType(final String simpleName, final String defaultFormat) {
@@ -363,5 +363,9 @@ public enum RecordFieldType {
 
     public static RecordFieldType of(final String typeString) {
       return SIMPLE_NAME_MAP.get(typeString);
+    }
+
+    public Set<RecordFieldType> getNarrowDataTypes() {
+        return narrowDataTypes;
     }
 }

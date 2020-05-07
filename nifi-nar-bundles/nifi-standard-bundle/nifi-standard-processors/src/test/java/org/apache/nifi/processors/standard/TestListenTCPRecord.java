@@ -258,7 +258,7 @@ public class TestListenTCPRecord {
             runner.assertTransferCount(ListenTCPRecord.REL_SUCCESS, expectedTransferred);
         } finally {
             // unschedule to close connections
-            proc.onStopped();
+            proc.onUnscheduled();
             IOUtils.closeQuietly(sender);
         }
     }

@@ -19,6 +19,8 @@ package org.apache.nifi.reporting.prometheus;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 
 import org.apache.http.HttpEntity;
@@ -27,8 +29,11 @@ import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.util.EntityUtils;
+import org.apache.nifi.controller.status.PortStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
+import org.apache.nifi.controller.status.RunStatus;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.prometheus.util.PrometheusMetricsUtil;
 import org.apache.nifi.state.MockStateManager;
 import org.apache.nifi.util.MockComponentLog;
 import org.apache.nifi.util.MockConfigurationContext;
@@ -59,7 +64,7 @@ public class TestPrometheusReportingTask {
         reportingContextStub = new MockReportingContext(Collections.emptyMap(),
                 new MockStateManager(testedReportingTask), new MockVariableRegistry());
 
-        reportingContextStub.setProperty(PrometheusReportingTask.INSTANCE_ID.getName(), "localhost");
+        reportingContextStub.setProperty(PrometheusMetricsUtil.INSTANCE_ID.getName(), "localhost");
 
         configurationContextStub = new MockConfigurationContext(reportingContextStub.getProperties(),
                 reportingContextStub.getControllerServiceLookup());
@@ -82,6 +87,36 @@ public class TestPrometheusReportingTask {
         rootGroupStatus.setOutputCount(100);
         rootGroupStatus.setInputCount(1000);
 
+        PortStatus outputPortStatus = new PortStatus();
+        outputPortStatus.setId("9876");
+        outputPortStatus.setName("out");
+        outputPortStatus.setGroupId("1234");
+        outputPortStatus.setRunStatus(RunStatus.Stopped);
+        outputPortStatus.setActiveThreadCount(1);
+
+        rootGroupStatus.setOutputPortStatus(Collections.singletonList(outputPortStatus));
+        // Create a nested group status
+        ProcessGroupStatus groupStatus2 = new ProcessGroupStatus();
+        groupStatus2.setFlowFilesReceived(5);
+        groupStatus2.setBytesReceived(10000);
+        groupStatus2.setFlowFilesSent(10);
+        groupStatus2.setBytesSent(20000);
+        groupStatus2.setQueuedCount(100);
+        groupStatus2.setQueuedContentSize(1024L);
+        groupStatus2.setActiveThreadCount(2);
+        groupStatus2.setBytesRead(12345L);
+        groupStatus2.setBytesWritten(11111L);
+        groupStatus2.setFlowFilesTransferred(5);
+        groupStatus2.setBytesTransferred(10000);
+        groupStatus2.setOutputContentSize(1000L);
+        groupStatus2.setInputContentSize(1000L);
+        groupStatus2.setOutputCount(100);
+        groupStatus2.setInputCount(1000);
+        groupStatus2.setId("3378");
+        groupStatus2.setName("nestedPG");
+        Collection<ProcessGroupStatus> nestedGroupStatuses = new ArrayList<>();
+        nestedGroupStatuses.add(groupStatus2);
+        rootGroupStatus.setProcessGroupStatus(nestedGroupStatuses);
     }
 
     @Test
@@ -91,6 +126,33 @@ public class TestPrometheusReportingTask {
         reportingContextStub.getEventAccess().setProcessGroupStatus(rootGroupStatus);
         testedReportingTask.onTrigger(reportingContextStub);
 
+        String content = getMetrics();
+        Assert.assertTrue(content.contains(
+                "nifi_amount_flowfiles_received{instance=\"localhost\",component_type=\"RootProcessGroup\",component_name=\"root\",component_id=\"1234\",parent_id=\"\",} 5.0"));
+        Assert.assertTrue(content.contains(
+                "nifi_amount_threads_active{instance=\"localhost\",component_type=\"RootProcessGroup\",component_name=\"root\",component_id=\"1234\",parent_id=\"\",} 5.0"));
+        Assert.assertTrue(content.contains(
+                "nifi_amount_threads_active{instance=\"localhost\",component_type=\"ProcessGroup\",component_name=\"nestedPG\",component_id=\"3378\",parent_id=\"1234\",} 2.0"));
+
+        // Rename the component
+        rootGroupStatus.setName("rootroot");
+        content = getMetrics();
+        Assert.assertFalse(content.contains(
+                "nifi_amount_flowfiles_received{instance=\"localhost\",component_type=\"RootProcessGroup\",component_name=\"root\",component_id=\"1234\",parent_id=\"\",} 5.0"));
+        Assert.assertFalse(content.contains(
+                "nifi_amount_threads_active{instance=\"localhost\",component_type=\"RootProcessGroup\",component_name=\"root\",component_id=\"1234\",parent_id=\"\",} 5.0"));
+        Assert.assertTrue(content.contains(
+                "nifi_amount_flowfiles_received{instance=\"localhost\",component_type=\"RootProcessGroup\",component_name=\"rootroot\",component_id=\"1234\",parent_id=\"\",} 5.0"));
+        Assert.assertTrue(content.contains(
+                "nifi_amount_threads_active{instance=\"localhost\",component_type=\"RootProcessGroup\",component_name=\"rootroot\",component_id=\"1234\",parent_id=\"\",} 5.0"));
+        try {
+            testedReportingTask.OnStopped();
+        } catch (Exception e) {
+            // Ignore
+        }
+    }
+
+    private String getMetrics() throws IOException {
         URL url = new URL("http://localhost:9092/metrics");
         HttpURLConnection con = (HttpURLConnection) url.openConnection();
         con.setRequestMethod("GET");
@@ -101,11 +163,24 @@ public class TestPrometheusReportingTask {
         HttpGet request = new HttpGet("http://localhost:9092/metrics");
         HttpResponse response = client.execute(request);
         HttpEntity entity = response.getEntity();
-        String content = EntityUtils.toString(entity);
-        Assert.assertEquals(true, content.contains(
-                "nifi_amount_flowfiles_received{instance=\"localhost\",component_type=\"RootProcessGroup\",component_name=\"root\",component_id=\"1234\",parent_id=\"\",} 5.0"));
-        Assert.assertEquals(true, content.contains(
-                "nifi_amount_threads_active{instance=\"localhost\",component_type=\"RootProcessGroup\",component_name=\"root\",component_id=\"1234\",parent_id=\"\",} 5.0"));
+        return EntityUtils.toString(entity);
     }
 
+    @Test
+    public void testNullLabel() throws IOException, InitializationException {
+        rootGroupStatus.setName(null);
+        testedReportingTask.initialize(reportingInitContextStub);
+        testedReportingTask.onScheduled(configurationContextStub);
+        reportingContextStub.getEventAccess().setProcessGroupStatus(rootGroupStatus);
+        testedReportingTask.onTrigger(reportingContextStub);
+
+        String content = getMetrics();
+        Assert.assertTrue(content.contains("parent_id=\"\""));
+
+        try {
+            testedReportingTask.OnStopped();
+        } catch(Exception e) {
+            // Ignore
+        }
+    }
 }

@@ -29,6 +29,7 @@ import org.apache.nifi.authorization.User;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.cluster.protocol.DataFlow;
+import org.apache.nifi.cluster.protocol.StandardDataFlow;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
 import org.apache.nifi.controller.flow.FlowManager;
@@ -59,6 +60,7 @@ import org.apache.nifi.registry.variable.FileBasedVariableRegistry;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.scheduling.SchedulingStrategy;
+import org.apache.nifi.services.FlowService;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.api.dto.BundleDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
@@ -204,14 +206,12 @@ public class TestFlowController {
 
         // create a mock proposed data flow with the same auth fingerprint as the current authorizer
         final String authFingerprint = authorizer.getFingerprint();
-        final DataFlow proposedDataFlow = Mockito.mock(DataFlow.class);
-        when(proposedDataFlow.getAuthorizerFingerprint()).thenReturn(authFingerprint.getBytes(StandardCharsets.UTF_8));
-
         final File flowFile = new File("src/test/resources/conf/reporting-task-with-cs-flow-0.7.0.xml");
         final String flow = IOUtils.toString(new FileInputStream(flowFile), StandardCharsets.UTF_8);
-        when(proposedDataFlow.getFlow()).thenReturn(flow.getBytes(StandardCharsets.UTF_8));
 
-        controller.synchronize(standardFlowSynchronizer, proposedDataFlow);
+        final DataFlow proposedDataFlow = new StandardDataFlow(flow.getBytes(StandardCharsets.UTF_8), null, authFingerprint.getBytes(StandardCharsets.UTF_8), Collections.emptySet());
+
+        controller.synchronize(standardFlowSynchronizer, proposedDataFlow, Mockito.mock(FlowService.class));
 
         // should be two controller services
         final Set<ControllerServiceNode> controllerServiceNodes = controller.getFlowManager().getAllControllerServices();
@@ -268,37 +268,39 @@ public class TestFlowController {
 
         // create a mock proposed data flow with the same auth fingerprint as the current authorizer
         final String authFingerprint = authorizer.getFingerprint();
-        final DataFlow proposedDataFlow = Mockito.mock(DataFlow.class);
-        when(proposedDataFlow.getAuthorizerFingerprint()).thenReturn(authFingerprint.getBytes(StandardCharsets.UTF_8));
-
         final File flowFile = new File("src/test/resources/conf/processor-with-cs-flow-0.7.0.xml");
         final String flow = IOUtils.toString(new FileInputStream(flowFile), StandardCharsets.UTF_8);
-        when(proposedDataFlow.getFlow()).thenReturn(flow.getBytes(StandardCharsets.UTF_8));
 
-        controller.synchronize(standardFlowSynchronizer, proposedDataFlow);
+        final DataFlow proposedDataFlow = new StandardDataFlow(flow.getBytes(StandardCharsets.UTF_8), null, authFingerprint.getBytes(StandardCharsets.UTF_8), Collections.emptySet());
 
-        // should be two controller services
-        final Set<ControllerServiceNode> controllerServiceNodes = controller.getFlowManager().getAllControllerServices();
-        assertNotNull(controllerServiceNodes);
-        assertEquals(1, controllerServiceNodes.size());
+        controller.synchronize(standardFlowSynchronizer, proposedDataFlow, Mockito.mock(FlowService.class));
 
-        // find the controller service that was moved to the root group
-        final ControllerServiceNode rootGroupCs = controllerServiceNodes.stream().filter(c -> c.getProcessGroup() != null).findFirst().get();
-        assertNotNull(rootGroupCs);
+        try {
+            // should be two controller services
+            final Set<ControllerServiceNode> controllerServiceNodes = controller.getFlowManager().getAllControllerServices();
+            assertNotNull(controllerServiceNodes);
+            assertEquals(1, controllerServiceNodes.size());
 
-        // should be one processor
-        final Collection<ProcessorNode> processorNodes = controller.getFlowManager().getRootGroup().getProcessors();
-        assertNotNull(processorNodes);
-        assertEquals(1, processorNodes.size());
+            // find the controller service that was moved to the root group
+            final ControllerServiceNode rootGroupCs = controllerServiceNodes.stream().filter(c -> c.getProcessGroup() != null).findFirst().get();
+            assertNotNull(rootGroupCs);
 
-        // verify the processor is still pointing at the controller service that got moved to the root group
-        final ProcessorNode processorNode = processorNodes.stream().findFirst().get();
-        final PropertyDescriptor procControllerServiceProp = processorNode.getRawPropertyValues().entrySet().stream()
+            // should be one processor
+            final Collection<ProcessorNode> processorNodes = controller.getFlowManager().getRootGroup().getProcessors();
+            assertNotNull(processorNodes);
+            assertEquals(1, processorNodes.size());
+
+            // verify the processor is still pointing at the controller service that got moved to the root group
+            final ProcessorNode processorNode = processorNodes.stream().findFirst().get();
+            final PropertyDescriptor procControllerServiceProp = processorNode.getRawPropertyValues().entrySet().stream()
                 .filter(e -> e.getValue().equals(rootGroupCs.getIdentifier()))
                 .map(Map.Entry::getKey)
                 .findFirst()
                 .get();
-        assertNotNull(procControllerServiceProp);
+            assertNotNull(procControllerServiceProp);
+        } finally {
+            purgeFlow();
+        }
     }
 
     @Test
@@ -311,34 +313,100 @@ public class TestFlowController {
         final DataFlow proposedDataFlow = Mockito.mock(DataFlow.class);
         when(proposedDataFlow.getAuthorizerFingerprint()).thenReturn(authFingerprint.getBytes(StandardCharsets.UTF_8));
 
-        controller.synchronize(standardFlowSynchronizer, proposedDataFlow);
+        controller.synchronize(standardFlowSynchronizer, proposedDataFlow, Mockito.mock(FlowService.class));
 
         assertEquals(authFingerprint, authorizer.getFingerprint());
     }
 
     @Test(expected = UninheritableFlowException.class)
-    public void testSynchronizeFlowWhenAuthorizationsAreDifferent() {
+    public void testSynchronizeFlowWhenAuthorizationsAreDifferent() throws IOException {
         final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(
                 createEncryptorFromProperties(nifiProperties), nifiProperties, extensionManager);
+
+        final File flowFile = new File("src/test/resources/conf/processor-with-cs-flow-0.7.0.xml");
+        final String flow = IOUtils.toString(new FileInputStream(flowFile), StandardCharsets.UTF_8);
+
+        final String authFingerprint = "<authorizations></authorizations>";
+        final DataFlow proposedDataFlow = new StandardDataFlow(flow.getBytes(StandardCharsets.UTF_8), null, authFingerprint.getBytes(StandardCharsets.UTF_8), Collections.emptySet());
+
+        controller.synchronize(standardFlowSynchronizer, proposedDataFlow, Mockito.mock(FlowService.class));
+        controller.initializeFlow();
+
+        try {
+            controller.synchronize(standardFlowSynchronizer, proposedDataFlow, Mockito.mock(FlowService.class));
+            assertNotEquals(authFingerprint, authorizer.getFingerprint());
+        } finally {
+            purgeFlow();
+        }
+    }
+
+    private void purgeFlow() {
+        final ProcessGroup processGroup = controller.getFlowManager().getRootGroup();
+        for (final ProcessorNode procNode : processGroup.getProcessors()) {
+            processGroup.removeProcessor(procNode);
+        }
+        for (final ControllerServiceNode serviceNode : controller.getFlowManager().getAllControllerServices()) {
+            controller.getControllerServiceProvider().removeControllerService(serviceNode);
+        }
+    }
+
+    @Test
+    public void testSynchronizeFlowWhenAuthorizationsAreDifferentAndFlowEmpty() {
+        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(
+            createEncryptorFromProperties(nifiProperties), nifiProperties, extensionManager);
 
         // create a mock proposed data flow with different auth fingerprint as the current authorizer
         final String authFingerprint = "<authorizations></authorizations>";
         final DataFlow proposedDataFlow = Mockito.mock(DataFlow.class);
         when(proposedDataFlow.getAuthorizerFingerprint()).thenReturn(authFingerprint.getBytes(StandardCharsets.UTF_8));
 
-        controller.synchronize(standardFlowSynchronizer, proposedDataFlow);
+        controller.synchronize(standardFlowSynchronizer, proposedDataFlow, Mockito.mock(FlowService.class));
         assertNotEquals(authFingerprint, authorizer.getFingerprint());
+
+        assertTrue(authorizer.getGroups().isEmpty());
+        assertTrue(authorizer.getUsers().isEmpty());
+        assertTrue(authorizer.getAccessPolicies().isEmpty());
     }
 
-    @Test(expected = UninheritableFlowException.class)
-    public void testSynchronizeFlowWhenProposedAuthorizationsAreNull() {
+    @Test
+    public void testSynchronizeFlowWhenProposedAuthorizationsAreNull() throws IOException {
+        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(
+            createEncryptorFromProperties(nifiProperties), nifiProperties, extensionManager);
+
+        final File flowFile = new File("src/test/resources/conf/processor-with-cs-flow-0.7.0.xml");
+        final String flow = IOUtils.toString(new FileInputStream(flowFile), StandardCharsets.UTF_8);
+
+        final String authFingerprint = "<authorizations></authorizations>";
+        final DataFlow proposedDataFlow = new StandardDataFlow(flow.getBytes(StandardCharsets.UTF_8), null, authFingerprint.getBytes(StandardCharsets.UTF_8), Collections.emptySet());
+        controller.synchronize(standardFlowSynchronizer, proposedDataFlow, Mockito.mock(FlowService.class));
+
+        controller.initializeFlow();
+
+        final DataFlow dataflowWithNullAuthorizations = new StandardDataFlow(flow.getBytes(StandardCharsets.UTF_8), null, null, Collections.emptySet());
+
+        try {
+            controller.synchronize(standardFlowSynchronizer, dataflowWithNullAuthorizations, Mockito.mock(FlowService.class));
+            Assert.fail("Was able to synchronize controller with null authorizations but dataflow wasn't empty");
+        } catch (final UninheritableFlowException expected) {
+            // expected
+        } finally {
+            purgeFlow();
+        }
+    }
+
+    @Test
+    public void testSynchronizeFlowWhenProposedAuthorizationsAreNullAndEmptyFlow() {
         final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(
                 createEncryptorFromProperties(nifiProperties), nifiProperties, extensionManager);
 
         final DataFlow proposedDataFlow = Mockito.mock(DataFlow.class);
         when(proposedDataFlow.getAuthorizerFingerprint()).thenReturn(null);
 
-        controller.synchronize(standardFlowSynchronizer, proposedDataFlow);
+        controller.synchronize(standardFlowSynchronizer, proposedDataFlow, Mockito.mock(FlowService.class));
+
+        assertTrue(authorizer.getGroups().isEmpty());
+        assertTrue(authorizer.getUsers().isEmpty());
+        assertTrue(authorizer.getAccessPolicies().isEmpty());
     }
 
     /**
@@ -374,7 +442,7 @@ public class TestFlowController {
         controller.shutdown(true);
         controller = FlowController.createStandaloneInstance(flowFileEventRepo, nifiProperties, authorizer,
             auditService, encryptor, bulletinRepo, variableRegistry, Mockito.mock(FlowRegistryClient.class), extensionManager);
-        controller.synchronize(standardFlowSynchronizer, proposedDataFlow);
+        controller.synchronize(standardFlowSynchronizer, proposedDataFlow, Mockito.mock(FlowService.class));
         assertEquals(authFingerprint, authorizer.getFingerprint());
     }
 
@@ -391,7 +459,7 @@ public class TestFlowController {
         when(proposedDataFlow.getMissingComponents()).thenReturn(missingComponents);
 
         try {
-            controller.synchronize(standardFlowSynchronizer, proposedDataFlow);
+            controller.synchronize(standardFlowSynchronizer, proposedDataFlow, Mockito.mock(FlowService.class));
             Assert.fail("Should have thrown exception");
         } catch (UninheritableFlowException e) {
             assertTrue(e.getMessage().contains("Proposed flow has missing components that are not considered missing in the current flow (1,2)"));
@@ -436,7 +504,7 @@ public class TestFlowController {
         when(proposedDataFlow.getMissingComponents()).thenReturn(new HashSet<>());
 
         try {
-            standardFlowSynchronizer.sync(mockFlowController, proposedDataFlow, stringEncryptor);
+            standardFlowSynchronizer.sync(mockFlowController, proposedDataFlow, stringEncryptor, Mockito.mock(FlowService.class));
             Assert.fail("Should have thrown exception");
         } catch (UninheritableFlowException e) {
             assertTrue(e.getMessage(), e.getMessage().contains("Current flow has missing components that are not considered missing in the proposed flow (1,2,3)"));
@@ -466,6 +534,8 @@ public class TestFlowController {
         // first sync should work because we are syncing to an empty flow controller
         syncFlow("src/test/resources/nifi/fingerprint/flow4.xml", standardFlowSynchronizer);
 
+        controller.initializeFlow();
+
         // second sync should fail because the bundle of the processor is different
         try {
             syncFlow("src/test/resources/nifi/fingerprint/flow4-with-different-bundle.xml", standardFlowSynchronizer);
@@ -482,17 +552,16 @@ public class TestFlowController {
         }
         assertNotNull(flowString);
 
-        final DataFlow proposedDataFlow1 = Mockito.mock(DataFlow.class);
-        when(proposedDataFlow1.getFlow()).thenReturn(flowString.getBytes(StandardCharsets.UTF_8));
-
+        final byte[] flowBytes = flowString.getBytes(StandardCharsets.UTF_8);
         final String authFingerprint = authorizer.getFingerprint();
-        when(proposedDataFlow1.getAuthorizerFingerprint()).thenReturn(authFingerprint.getBytes(StandardCharsets.UTF_8));
+        final byte[] authFingerprintBytes = authFingerprint.getBytes(StandardCharsets.UTF_8);
+        final DataFlow proposedDataFlow1 = new StandardDataFlow(flowBytes, null, authFingerprintBytes, Collections.emptySet());
 
-        controller.synchronize(standardFlowSynchronizer, proposedDataFlow1);
+        controller.synchronize(standardFlowSynchronizer, proposedDataFlow1, Mockito.mock(FlowService.class));
     }
 
     @Test
-    public void testCreateMissingProcessor() throws ProcessorInstantiationException {
+    public void testCreateMissingProcessor() {
         final ProcessorNode procNode = controller.getFlowManager().createProcessor("org.apache.nifi.NonExistingProcessor", "1234-Processor",
                 systemBundle.getBundleDetails().getCoordinate());
         assertNotNull(procNode);

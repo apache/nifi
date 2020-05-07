@@ -41,6 +41,7 @@ public class ClojureScriptEngineConfigurator extends AbstractModuleClassloaderCo
                     + "[org.apache.nifi.script ScriptingComponentHelper ScriptingComponentUtils]\n"
                     + "[org.apache.nifi.logging ComponentLog]\n"
                     + "[org.apache.nifi.lookup LookupService RecordLookupService StringLookupService LookupFailureException]\n"
+                    + "[org.apache.nifi.record.sink RecordSinkService]\n"
                     + ")\n";
 
 

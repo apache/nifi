@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.atlas.provenance;
 
-import org.apache.nifi.atlas.resolver.ClusterResolver;
+import org.apache.nifi.atlas.resolver.NamespaceResolver;
 import org.apache.nifi.controller.status.ConnectionStatus;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.lineage.ComputeLineageResult;
@@ -24,8 +24,8 @@ import org.apache.nifi.provenance.lineage.ComputeLineageResult;
 import java.util.List;
 
 public interface AnalysisContext {
-    String getNiFiClusterName();
-    ClusterResolver getClusterResolver();
+    String getNiFiNamespace();
+    NamespaceResolver getNamespaceResolver();
     List<ConnectionStatus> findConnectionTo(String componentId);
     List<ConnectionStatus> findConnectionFrom(String componentId);
     ComputeLineageResult queryLineage(long eventId);

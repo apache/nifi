@@ -1,0 +1,22 @@
+{
+  "name": "Test",
+  "type": "record",
+  "fields": [
+    {
+      "name": "Records",
+      "type": {
+        "type": "array",
+        "items": {
+          "name": "Records_record",
+          "type": "record",
+          "fields": [
+            {
+              "name": "id",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

@@ -18,6 +18,7 @@ package org.apache.nifi.remote.client;
 
 import org.apache.nifi.remote.PeerDescription;
 import org.apache.nifi.remote.PeerStatus;
+import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 
 import java.io.IOException;
 import java.util.Set;
@@ -56,5 +57,11 @@ public interface PeerStatusProvider {
      * @throws IOException thrown when it fails to fetch peer statuses of the remote cluster from the specified peer
      */
     Set<PeerStatus> fetchRemotePeerStatuses(final PeerDescription peerDescription) throws IOException;
+
+    /**
+     * Returns the transport protocol being used.
+     * @return the transport protocol
+     */
+    SiteToSiteTransportProtocol getTransportProtocol();
 
 }

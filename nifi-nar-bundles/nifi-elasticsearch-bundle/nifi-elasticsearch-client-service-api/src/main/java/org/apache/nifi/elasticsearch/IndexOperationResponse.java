@@ -17,20 +17,44 @@
 
 package org.apache.nifi.elasticsearch;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+
 public class IndexOperationResponse {
     private long took;
-    private long ingestTook;
+    private boolean hasErrors;
+    private List<Map<String, Object>> items;
 
-    public IndexOperationResponse(long took, long ingestTook) {
+    public IndexOperationResponse(long took) {
         this.took = took;
-        this.ingestTook = ingestTook;
     }
 
     public long getTook() {
         return took;
     }
 
-    public long getIngestTook() {
-        return ingestTook;
+    public boolean hasErrors() {
+        return hasErrors;
+    }
+
+    public static IndexOperationResponse fromJsonResponse(String response) throws IOException {
+        ObjectMapper mapper = new ObjectMapper();
+        Map<String, Object> parsedResponse = mapper.readValue(response, Map.class);
+        int took = (int) parsedResponse.get("took");
+        boolean hasErrors = (boolean) parsedResponse.get("errors");
+        List<Map<String, Object>> items = (List<Map<String, Object>>)parsedResponse.get("items");
+
+        IndexOperationResponse retVal = new IndexOperationResponse(took);
+        retVal.hasErrors = hasErrors;
+        retVal.items = items;
+
+        return retVal;
+    }
+
+    public List<Map<String, Object>> getItems() {
+        return items;
     }
 }

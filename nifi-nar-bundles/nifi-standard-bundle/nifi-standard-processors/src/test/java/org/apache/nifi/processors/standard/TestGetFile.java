@@ -16,112 +16,28 @@
  */
 package org.apache.nifi.processors.standard;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.FileSystems;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.attribute.PosixFilePermission;
-import java.nio.file.attribute.PosixFilePermissions;
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Set;
-
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Test;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.List;
+import java.util.Locale;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 public class TestGetFile {
-
-    @Test
-    public void testWithInaccessibleDir() throws IOException {
-        // Some systems don't support POSIX (Windows) and will fail if run. Should ignore the test in that event
-        if (!FileSystems.getDefault().supportedFileAttributeViews().contains("posix")) {
-            return;
-        }
-        File inaccessibleDir = new File("target/inaccessible");
-        inaccessibleDir.deleteOnExit();
-        inaccessibleDir.mkdir();
-        Set<PosixFilePermission> posixFilePermissions = new HashSet<>();
-        Files.setPosixFilePermissions(inaccessibleDir.toPath(), posixFilePermissions);
-        final TestRunner runner = TestRunners.newTestRunner(new GetFile());
-        runner.setProperty(GetFile.DIRECTORY, inaccessibleDir.getAbsolutePath());
-        try {
-            runner.run();
-            fail();
-        } catch (AssertionError e) {
-            assertTrue(e.getCause().getMessage()
-                    .endsWith("does not have sufficient permissions (i.e., not writable and readable)"));
-        }
-    }
-
-    @Test
-    public void testWithUnreadableDir() throws IOException {
-        // Some systems don't support POSIX (Windows) and will fail if run. Should ignore the test in that event
-        if (!FileSystems.getDefault().supportedFileAttributeViews().contains("posix")) {
-            return;
-        }
-        File unreadableDir = new File("target/unreadable");
-        unreadableDir.deleteOnExit();
-        unreadableDir.mkdir();
-        Set<PosixFilePermission> posixFilePermissions = new HashSet<>();
-        posixFilePermissions.add(PosixFilePermission.GROUP_EXECUTE);
-        posixFilePermissions.add(PosixFilePermission.GROUP_WRITE);
-        posixFilePermissions.add(PosixFilePermission.OTHERS_EXECUTE);
-        posixFilePermissions.add(PosixFilePermission.OTHERS_WRITE);
-        posixFilePermissions.add(PosixFilePermission.OWNER_EXECUTE);
-        posixFilePermissions.add(PosixFilePermission.OWNER_WRITE);
-        Files.setPosixFilePermissions(unreadableDir.toPath(), posixFilePermissions);
-        final TestRunner runner = TestRunners.newTestRunner(new GetFile());
-        runner.setProperty(GetFile.DIRECTORY, unreadableDir.getAbsolutePath());
-        try {
-            runner.run();
-            fail();
-        } catch (AssertionError e) {
-            Throwable ex = e.getCause();
-            assertTrue(e.getCause().getMessage()
-                    .endsWith("does not have sufficient permissions (i.e., not writable and readable)"));
-        }
-    }
-
-    @Test
-    public void testWithUnwritableDir() throws IOException {
-        // Some systems don't support POSIX (Windows) and will fail if run. Should ignore the test in that event
-        if (!FileSystems.getDefault().supportedFileAttributeViews().contains("posix")) {
-            return;
-        }
-        File unwritableDir = new File("target/unwritable");
-        unwritableDir.deleteOnExit();
-        unwritableDir.mkdir();
-        Set<PosixFilePermission> posixFilePermissions = new HashSet<>();
-        posixFilePermissions.add(PosixFilePermission.GROUP_EXECUTE);
-        posixFilePermissions.add(PosixFilePermission.GROUP_READ);
-        posixFilePermissions.add(PosixFilePermission.OTHERS_EXECUTE);
-        posixFilePermissions.add(PosixFilePermission.OTHERS_READ);
-        posixFilePermissions.add(PosixFilePermission.OWNER_EXECUTE);
-        posixFilePermissions.add(PosixFilePermission.OWNER_READ);
-        Files.setPosixFilePermissions(unwritableDir.toPath(), posixFilePermissions);
-        final TestRunner runner = TestRunners.newTestRunner(new GetFile());
-        runner.setProperty(GetFile.DIRECTORY, unwritableDir.getAbsolutePath());
-        try {
-            runner.run();
-            fail();
-        } catch (AssertionError e) {
-            assertTrue(e.getCause().getMessage()
-                    .endsWith("does not have sufficient permissions (i.e., not writable and readable)"));
-        }
-    }
 
     @Test
     public void testFilePickedUp() throws IOException {
@@ -237,29 +153,6 @@ public class TestGetFile {
         } catch (Exception doNothing) {
         }
 
-        boolean verifyPermissions = false;
-        try {
-            /* If you mount an NTFS partition in Linux, you are unable to change the permissions of the files,
-            * because every file has the same permissions, controlled by the 'fmask' and 'dmask' mount options.
-            * Executing a chmod command will not fail, but it does not change the file's permissions.
-            * From Java perspective the NTFS mount point, as a FileStore supports the 'unix' and 'posix' file
-            * attribute views, but the setPosixFilePermissions() has no effect.
-            *
-            * If you set verifyPermissions to true without the following extra check, the test case will fail
-            * on a file system, where Nifi source is located on a NTFS mount point in Linux.
-            * The purpose of the extra check is to ensure, that setPosixFilePermissions() changes the file's
-            * permissions, and set verifyPermissions, after we are convinced.
-            */
-            Set<PosixFilePermission> perms = PosixFilePermissions.fromString("r--r-----");
-            Files.setPosixFilePermissions(targetPath, perms);
-            Set<PosixFilePermission> permsAfterSet = Files.getPosixFilePermissions(targetPath);
-            if (perms.equals(permsAfterSet)) {
-                verifyPermissions = true;
-            }
-
-        } catch (Exception doNothing) {
-        }
-
         final TestRunner runner = TestRunners.newTestRunner(new GetFile());
         runner.setProperty(GetFile.DIRECTORY, "target/test/data/in");
         runner.run();
@@ -276,8 +169,6 @@ public class TestGetFile {
                 fail();
             }
         }
-        if (verifyPermissions) {
-            successFiles.get(0).assertAttributeEquals("file.permissions", "r--r-----");
-        }
+        //permissions are not verified as these are very environmentally specific
     }
 }

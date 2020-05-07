@@ -17,13 +17,6 @@
 
 package org.apache.nifi.controller.state.server;
 
-import java.io.BufferedInputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Properties;
-
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.zookeeper.server.DatadirCleanupManager;
 import org.apache.zookeeper.server.ServerCnxnFactory;
@@ -37,6 +30,13 @@ import org.apache.zookeeper.server.quorum.QuorumPeerConfig;
 import org.apache.zookeeper.server.quorum.QuorumPeerConfig.ConfigException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.BufferedInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Properties;
 
 public class ZooKeeperStateServer extends ZooKeeperServerMain {
     private static final Logger logger = LoggerFactory.getLogger(ZooKeeperStateServer.class);
@@ -82,7 +82,21 @@ public class ZooKeeperStateServer extends ZooKeeperServerMain {
         final ServerConfig config = new ServerConfig();
         config.readFrom(quorumPeerConfig);
         try {
-            transactionLog = new FileTxnSnapLog(config.getDataLogDir(), config.getDataDir());
+            for (int i=0; i < 10; i++) {
+                try {
+                    transactionLog = new FileTxnSnapLog(config.getDataLogDir(), config.getDataDir());
+                    break;
+                } catch (final FileTxnSnapLog.DatadirException dde) {
+                    // The constructor for FileTxnSnapLog sometimes throws a DatadirException indicating that it is unable to create data directory,
+                    // but the data directory already exists. It appears to be a race condition with another ZooKeeper thread. Even if we create the
+                    // directory before entering the constructor, we sometimes see the issue occur. So we just give it up to 10 tries
+                    try {
+                        Thread.sleep(50L);
+                    } catch (final InterruptedException ie) {
+                        Thread.currentThread().interrupt();;
+                    }
+                }
+            }
 
             embeddedZkServer = new ZooKeeperServer();
             embeddedZkServer.setTxnLogFactory(transactionLog);

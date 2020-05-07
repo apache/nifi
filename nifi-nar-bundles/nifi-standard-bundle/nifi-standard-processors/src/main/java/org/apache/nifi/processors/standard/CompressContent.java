@@ -37,6 +37,7 @@ import lzma.streams.LzmaOutputStream;
 import org.apache.commons.compress.compressors.CompressorStreamFactory;
 import org.apache.commons.compress.compressors.bzip2.BZip2CompressorInputStream;
 import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
+import org.apache.commons.compress.compressors.lz4.FramedLZ4CompressorInputStream;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -73,14 +74,16 @@ import org.xerial.snappy.SnappyOutputStream;
 @SideEffectFree
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)
-@Tags({"content", "compress", "decompress", "gzip", "bzip2", "lzma", "xz-lzma2", "snappy", "snappy framed"})
+@Tags({"content", "compress", "decompress", "gzip", "bzip2", "lzma", "xz-lzma2", "snappy", "snappy framed", "lz4-framed"})
 @CapabilityDescription("Compresses or decompresses the contents of FlowFiles using a user-specified compression algorithm and updates the mime.type "
-    + "attribute as appropriate")
+    + "attribute as appropriate. This processor operates in a very memory efficient way so very large objects well beyond the heap size "
+    + "are generally fine to process")
 @ReadsAttribute(attribute = "mime.type", description = "If the Compression Format is set to use mime.type attribute, this attribute is used to "
     + "determine the compression type. Otherwise, this attribute is ignored.")
 @WritesAttribute(attribute = "mime.type", description = "If the Mode property is set to compress, the appropriate MIME Type is set. If the Mode "
     + "property is set to decompress and the file is successfully decompressed, this attribute is removed, as the MIME Type is no longer known.")
 @SystemResourceConsideration(resource = SystemResource.CPU)
+@SystemResourceConsideration(resource = SystemResource.MEMORY)
 public class CompressContent extends AbstractProcessor {
 
     public static final String COMPRESSION_FORMAT_ATTRIBUTE = "use mime.type attribute";
@@ -90,22 +93,25 @@ public class CompressContent extends AbstractProcessor {
     public static final String COMPRESSION_FORMAT_LZMA = "lzma";
     public static final String COMPRESSION_FORMAT_SNAPPY = "snappy";
     public static final String COMPRESSION_FORMAT_SNAPPY_FRAMED = "snappy framed";
+    public static final String COMPRESSION_FORMAT_LZ4_FRAMED ="lz4-framed";
 
     public static final String MODE_COMPRESS = "compress";
     public static final String MODE_DECOMPRESS = "decompress";
 
     public static final PropertyDescriptor COMPRESSION_FORMAT = new PropertyDescriptor.Builder()
     .name("Compression Format")
-    .description("The compression format to use. Valid values are: GZIP, BZIP2, XZ-LZMA2, LZMA, Snappy, and Snappy Framed")
+    .description("The compression format to use. Valid values are: GZIP, BZIP2, XZ-LZMA2, LZMA, Snappy, Snappy Framed, and LZ4-Framed")
     .allowableValues(COMPRESSION_FORMAT_ATTRIBUTE, COMPRESSION_FORMAT_GZIP, COMPRESSION_FORMAT_BZIP2,
-            COMPRESSION_FORMAT_XZ_LZMA2, COMPRESSION_FORMAT_LZMA, COMPRESSION_FORMAT_SNAPPY, COMPRESSION_FORMAT_SNAPPY_FRAMED)
+            COMPRESSION_FORMAT_XZ_LZMA2, COMPRESSION_FORMAT_LZMA, COMPRESSION_FORMAT_SNAPPY, COMPRESSION_FORMAT_SNAPPY_FRAMED,
+            COMPRESSION_FORMAT_LZ4_FRAMED)
     .defaultValue(COMPRESSION_FORMAT_ATTRIBUTE)
     .required(true)
     .build();
     public static final PropertyDescriptor COMPRESSION_LEVEL = new PropertyDescriptor.Builder()
     .name("Compression Level")
-    .description("The compression level to use; this is valid only when using GZIP compression. A lower value results in faster processing "
-        + "but less compression; a value of 0 indicates no compression but simply archiving")
+    .description("The compression level to use; this is valid only when using gzip or xz-lzma2 compression. A lower value results in faster processing "
+        + "but less compression; a value of 0 indicates no (that is, simple archiving) for gzip or minimal for xz-lzma2 compression."
+        + " Higher levels can mean much larger memory usage such as the case with levels 7-9 for xz-lzma/2 so be careful relative to heap size.")
         .defaultValue("1")
         .required(true)
         .allowableValues("0", "1", "2", "3", "4", "5", "6", "7", "8", "9")
@@ -161,6 +167,7 @@ public class CompressContent extends AbstractProcessor {
         mimeTypeMap.put("application/x-lzma", COMPRESSION_FORMAT_LZMA);
         mimeTypeMap.put("application/x-snappy", COMPRESSION_FORMAT_SNAPPY);
         mimeTypeMap.put("application/x-snappy-framed", COMPRESSION_FORMAT_SNAPPY_FRAMED);
+        mimeTypeMap.put("application/x-lz4-framed", COMPRESSION_FORMAT_LZ4_FRAMED);
         this.compressionFormatMimeTypeMap = Collections.unmodifiableMap(mimeTypeMap);
     }
 
@@ -227,6 +234,9 @@ public class CompressContent extends AbstractProcessor {
             case COMPRESSION_FORMAT_SNAPPY_FRAMED:
                 fileExtension = ".sz";
                 break;
+            case COMPRESSION_FORMAT_LZ4_FRAMED:
+                fileExtension = ".lz4";
+                break;
             default:
                 fileExtension = "";
                 break;
@@ -257,7 +267,8 @@ public class CompressContent extends AbstractProcessor {
                                     mimeTypeRef.set("application/x-lzma");
                                     break;
                                 case COMPRESSION_FORMAT_XZ_LZMA2:
-                                    compressionOut = new XZOutputStream(bufferedOut, new LZMA2Options());
+                                    final int xzCompressionLevel = context.getProperty(COMPRESSION_LEVEL).asInteger();
+                                    compressionOut = new XZOutputStream(bufferedOut, new LZMA2Options(xzCompressionLevel));
                                     mimeTypeRef.set("application/x-xz");
                                     break;
                                 case COMPRESSION_FORMAT_SNAPPY:
@@ -267,6 +278,10 @@ public class CompressContent extends AbstractProcessor {
                                 case COMPRESSION_FORMAT_SNAPPY_FRAMED:
                                     compressionOut = new SnappyFramedOutputStream(bufferedOut);
                                     mimeTypeRef.set("application/x-snappy-framed");
+                                    break;
+                                case COMPRESSION_FORMAT_LZ4_FRAMED:
+                                    mimeTypeRef.set("application/x-lz4-framed");
+                                    compressionOut = new CompressorStreamFactory().createCompressorOutputStream(compressionFormat.toLowerCase(), bufferedOut);
                                     break;
                                 case COMPRESSION_FORMAT_BZIP2:
                                 default:
@@ -295,6 +310,9 @@ public class CompressContent extends AbstractProcessor {
                                     break;
                                 case COMPRESSION_FORMAT_SNAPPY_FRAMED:
                                     compressionIn = new SnappyFramedInputStream(bufferedIn);
+                                    break;
+                                case COMPRESSION_FORMAT_LZ4_FRAMED:
+                                    compressionIn = new FramedLZ4CompressorInputStream(bufferedIn, true);
                                     break;
                                 default:
                                     compressionIn = new CompressorStreamFactory().createCompressorInputStream(compressionFormat.toLowerCase(), bufferedIn);

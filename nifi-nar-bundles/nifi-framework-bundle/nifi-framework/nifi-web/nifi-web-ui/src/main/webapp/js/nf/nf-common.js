@@ -1233,7 +1233,8 @@
             }, {
                 text: 'Round robin',
                 value: 'ROUND_ROBIN',
-                description: 'FlowFiles will be distributed to nodes in the cluster in a Round-Robin fashion.'
+                description: 'FlowFiles will be distributed to nodes in the cluster in a Round-Robin fashion. However, if a node in the cluster is not able to receive data as fast as other nodes,'
+                                + ' that node may be skipped in one or more iterations in order to maximize throughput of data distribution across the cluster.'
             }, {
                 text: 'Single node',
                 value: 'SINGLE_NODE',
@@ -1709,13 +1710,25 @@
             return formattedGarbageCollections;
         },
 
+        /**
+         * Returns whether the specified resource is for a global policy.
+         *
+         * @param resource
+         */
+        isGlobalPolicy: function (value) {
+            return nfCommon.getPolicyTypeListing(value) !== null;
+        },
+
+        /**
+         * Gets the policy type for the specified resource.
+         *
+         * @param value
+         * @returns {*}
+         */
         getPolicyTypeListing: function (value) {
-            var nest = d3.nest()
-                .key(function (d) {
-                    return d.value;
-                })
-                .map(policyTypeListing, d3.map);
-            return nest.get(value)[0];
+            return policyTypeListing.find(function (policy) {
+                return value === policy.value;
+            });
         },
 
         /**

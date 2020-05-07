@@ -28,6 +28,7 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.type.ChoiceDataType;
+import org.apache.nifi.serialization.record.type.MapDataType;
 import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.codehaus.jackson.JsonFactory;
@@ -160,9 +161,9 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
                     } catch (final Exception e) {
                         return textValue;
                     }
+                default:
+                    return textValue;
             }
-
-            return textValue;
         }
 
         if (fieldNode.isArray()) {
@@ -189,7 +190,24 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
 
         if (fieldNode.isObject()) {
             RecordSchema childSchema = null;
-            if (dataType != null && RecordFieldType.RECORD == dataType.getFieldType()) {
+            if (dataType != null && RecordFieldType.MAP == dataType.getFieldType()) {
+                final MapDataType mapDataType = (MapDataType) dataType;
+                final DataType valueType = mapDataType.getValueType();
+
+                final Map<String, Object> mapValue = new HashMap<>();
+
+                final Iterator<Map.Entry<String, JsonNode>> fieldItr = fieldNode.getFields();
+                while (fieldItr.hasNext()) {
+                    final Map.Entry<String, JsonNode> entry = fieldItr.next();
+                    final String elementName = entry.getKey();
+                    final JsonNode elementNode = entry.getValue();
+
+                    final Object nodeValue = getRawNodeValue(elementNode, valueType, fieldName + "['" + elementName + "']");
+                    mapValue.put(elementName, nodeValue);
+                }
+
+                return mapValue;
+            } else if (dataType != null && RecordFieldType.RECORD == dataType.getFieldType()) {
                 final RecordDataType recordDataType = (RecordDataType) dataType;
                 childSchema = recordDataType.getChildSchema();
             } else if (dataType != null && RecordFieldType.CHOICE == dataType.getFieldType()) {

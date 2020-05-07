@@ -17,6 +17,7 @@
 
 package org.apache.nifi.processors.standard;
 
+import org.apache.commons.lang3.SystemUtils;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.flowfile.FlowFile;
@@ -28,7 +29,9 @@ import org.apache.nifi.processors.standard.util.FileInfo;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.Assume;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
@@ -40,8 +43,6 @@ import java.io.IOException;
 import java.nio.file.FileStore;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.attribute.BasicFileAttributes;
-import java.nio.file.attribute.FileTime;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -53,10 +54,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-import java.util.function.BiPredicate;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -103,6 +102,11 @@ public class TestListFile {
             }
         }
     };
+
+    @BeforeClass
+    public static void setupClass() {
+        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
+    }
 
     @Before
     public void setUp() throws Exception {
@@ -179,60 +183,7 @@ public class TestListFile {
             }
         }
 
-        final BasicFileAttributes basicFileAttributes = new BasicFileAttributes() {
-            @Override
-            public FileTime lastModifiedTime() {
-                return FileTime.fromMillis(System.currentTimeMillis());
-            }
-
-            @Override
-            public FileTime lastAccessTime() {
-                return FileTime.fromMillis(System.currentTimeMillis());
-            }
-
-            @Override
-            public FileTime creationTime() {
-                return FileTime.fromMillis(System.currentTimeMillis());
-            }
-
-            @Override
-            public boolean isRegularFile() {
-                return false;
-            }
-
-            @Override
-            public boolean isDirectory() {
-                return false;
-            }
-
-            @Override
-            public boolean isSymbolicLink() {
-                return false;
-            }
-
-            @Override
-            public boolean isOther() {
-                return false;
-            }
-
-            @Override
-            public long size() {
-                return 0;
-            }
-
-            @Override
-            public Object fileKey() {
-                return null;
-            }
-        };
-
-        processor = new ListFile() {
-            @Override
-            protected Stream<Path> getPathStream(final Path basePath, final int maxDepth, final BiPredicate<Path, BasicFileAttributes> matcher) throws IOException {
-                return paths.stream()
-                    .filter(path -> matcher.test(path, basicFileAttributes));
-            }
-        };
+        processor = new ListFile();
 
         runner = TestRunners.newTestRunner(processor);
         runner.setProperty(AbstractListProcessor.TARGET_SYSTEM_TIMESTAMP_PRECISION, AbstractListProcessor.PRECISION_SECONDS.getValue());
@@ -493,6 +444,91 @@ public class TestListFile {
         final List<MockFlowFile> successFiles2 = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
         assertEquals(1, successFiles2.size());
     }
+
+    @Test
+    public void testListWithUnreadableFiles() throws Exception {
+        final File file1 = new File(TESTDIR + "/unreadable.txt");
+        assertTrue(file1.createNewFile());
+        assertTrue(file1.setReadable(false));
+
+        final File file2 = new File(TESTDIR + "/readable.txt");
+        assertTrue(file2.createNewFile());
+
+        final long now = getTestModifiedTime();
+        assertTrue(file1.setLastModified(now));
+        assertTrue(file2.setLastModified(now));
+
+        runner.setProperty(ListFile.DIRECTORY, testDir.getAbsolutePath());
+        runner.setProperty(ListFile.FILE_FILTER, ".*");
+        runNext();
+
+        final List<MockFlowFile> successFiles = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
+        assertEquals(1, successFiles.size());
+    }
+
+    @Test
+    public void testListWithinUnreadableDirectory() throws Exception {
+        final File subdir = new File(TESTDIR + "/subdir");
+        assertTrue(subdir.mkdir());
+        assertTrue(subdir.setReadable(false));
+
+        final File file1 = new File(TESTDIR + "/subdir/unreadable.txt");
+        assertTrue(file1.createNewFile());
+        assertTrue(file1.setReadable(false));
+
+        final File file2 = new File(TESTDIR + "/subdir/readable.txt");
+        assertTrue(file2.createNewFile());
+
+        final File file3 = new File(TESTDIR + "/secondReadable.txt");
+        assertTrue(file3.createNewFile());
+
+        final long now = getTestModifiedTime();
+        assertTrue(file1.setLastModified(now));
+        assertTrue(file2.setLastModified(now));
+        assertTrue(file3.setLastModified(now));
+
+        runner.setProperty(ListFile.DIRECTORY, testDir.getAbsolutePath());
+        runner.setProperty(ListFile.FILE_FILTER, ".*");
+        runNext();
+
+        final List<MockFlowFile> successFiles = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
+        assertEquals(1, successFiles.size());
+        assertEquals("secondReadable.txt", successFiles.get(0).getAttribute("filename"));
+
+        subdir.setReadable(true);
+    }
+
+    @Test
+    public void testListingNeedsSufficientPrivilegesAndFittingFilter() throws Exception {
+        final File file = new File(TESTDIR + "/file.txt");
+        assertTrue(file.createNewFile());
+        runner.setProperty(ListFile.DIRECTORY, testDir.getAbsolutePath());
+
+        // Run with privileges but without fitting filter
+        runner.setProperty(ListFile.FILE_FILTER, "willBeFilteredOut");
+        assertTrue(file.setLastModified(getTestModifiedTime()));
+        runNext();
+
+        final List<MockFlowFile> successFiles1 = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
+        assertEquals(0, successFiles1.size());
+
+        // Run with privileges and with fitting filter
+        runner.setProperty(ListFile.FILE_FILTER, "file.*");
+        assertTrue(file.setLastModified(getTestModifiedTime()));
+        runNext();
+
+        final List<MockFlowFile> successFiles2 = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
+        assertEquals(1, successFiles2.size());
+
+        // Run without privileges and with fitting filter
+        assertTrue(file.setReadable(false));
+        assertTrue(file.setLastModified(getTestModifiedTime()));
+        runNext();
+
+        final List<MockFlowFile> successFiles3 = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
+        assertEquals(0, successFiles3.size());
+    }
+
 
     @Test
     public void testFilterFilePattern() throws Exception {

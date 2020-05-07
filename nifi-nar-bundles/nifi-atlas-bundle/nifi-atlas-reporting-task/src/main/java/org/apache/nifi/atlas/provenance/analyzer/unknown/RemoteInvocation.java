@@ -20,7 +20,7 @@ import org.apache.nifi.provenance.ProvenanceEventType;
 
 /**
  * Analyze a REMOTE_INVOCATION event and create 'nifi_data' when there is no specific Analyzer implementation found.
- * <li>qualifiedName=NiFiComponentId@clusterName (example: processor GUID@cl1)
+ * <li>qualifiedName=NiFiComponentId@namespace (example: processor GUID@ns1)
  * <li>name=NiFiComponentType (example: XXX)
  */
 public class RemoteInvocation extends UnknownOutput {

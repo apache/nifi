@@ -48,6 +48,7 @@ public class StandardQueryResult implements QueryResult, ProgressiveResult {
     private final Lock writeLock = rwLock.writeLock();
     // guarded by writeLock
     private final SortedSet<ProvenanceEventRecord> matchingRecords = new TreeSet<>(new EventIdComparator());
+    private long hitCount = 0L;
     private int numCompletedSteps = 0;
     private Date expirationDate;
     private String error;
@@ -163,6 +164,7 @@ public class StandardQueryResult implements QueryResult, ProgressiveResult {
             }
 
             this.matchingRecords.addAll(newEvents);
+            hitCount += totalHits;
 
             // If we've added more records than the query's max, then remove the trailing elements.
             // We do this, rather than avoiding the addition of the elements because we want to choose
@@ -188,10 +190,12 @@ public class StandardQueryResult implements QueryResult, ProgressiveResult {
                 queryComplete = true;
 
                 if (numCompletedSteps >= numSteps) {
-                    logger.info("Completed {} comprised of {} steps in {} millis", query, numSteps, queryTime);
+                    logger.info("Completed {} comprised of {} steps in {} millis. Index found {} hits. Read {} events from Event Files.",
+                        query, numSteps, queryTime, hitCount, matchingRecords.size());
                 } else {
-                    logger.info("Completed {} comprised of {} steps in {} millis (only completed {} steps because the maximum number of results was reached)",
-                        query, numSteps, queryTime, numCompletedSteps);
+                    logger.info("Completed {} comprised of {} steps in {} millis. Index found {} hits. Read {} events from Event Files. "
+                            + "Only completed {} steps because the maximum number of results was reached.",
+                        query, numSteps, queryTime, hitCount, matchingRecords.size(), numCompletedSteps);
                 }
             }
         } finally {

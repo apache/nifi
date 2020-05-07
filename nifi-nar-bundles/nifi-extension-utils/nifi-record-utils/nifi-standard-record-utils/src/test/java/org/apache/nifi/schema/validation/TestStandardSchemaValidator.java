@@ -30,11 +30,15 @@ import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TimeZone;
 
 import org.apache.nifi.serialization.SimpleRecordSchema;
@@ -46,9 +50,25 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.validation.SchemaValidationResult;
 import org.apache.nifi.serialization.record.validation.ValidationError;
+import org.apache.nifi.serialization.record.validation.ValidationErrorType;
 import org.junit.Test;
 
 public class TestStandardSchemaValidator {
+    private static final int FLOAT_BITS_PRECISION = 24;
+    private static final int DOUBLE_BITS_PRECISION = 53;
+
+    private static final Long MAX_PRECISE_WHOLE_IN_FLOAT = Double.valueOf(Math.pow(2, FLOAT_BITS_PRECISION)).longValue();
+    private static final Long MAX_PRECISE_WHOLE_IN_DOUBLE = Double.valueOf(Math.pow(2, DOUBLE_BITS_PRECISION)).longValue();
+
+    private static final Set<RecordFieldType> NUMERIC_TYPES = new HashSet<>(Arrays.asList(
+            RecordFieldType.BYTE,
+            RecordFieldType.SHORT,
+            RecordFieldType.INT,
+            RecordFieldType.LONG,
+            RecordFieldType.BIGINT,
+            RecordFieldType.FLOAT,
+            RecordFieldType.DOUBLE
+    ));
 
     @Test
     public void testValidateCorrectSimpleTypesStrictValidation() throws ParseException {
@@ -64,6 +84,12 @@ public class TestStandardSchemaValidator {
                 fields.add(new RecordField(fieldType.name().toLowerCase(), fieldType.getMapDataType(RecordFieldType.INT.getDataType())));
             } else {
                 fields.add(new RecordField(fieldType.name().toLowerCase(), fieldType.getDataType()));
+            }
+
+            if (NUMERIC_TYPES.contains(fieldType)) {
+                for (final RecordFieldType narrowType : fieldType.getNarrowDataTypes()) {
+                    fields.add(new RecordField(narrowType.name().toLowerCase() + "_as_" + fieldType.name().toLowerCase(), fieldType.getDataType()));
+                }
             }
         }
 
@@ -103,6 +129,22 @@ public class TestStandardSchemaValidator {
         valueMap.put("map", intMap);
         valueMap.put("mapRecord", mapRecord);
 
+        valueMap.put("byte_as_short", (byte) 8);
+
+        valueMap.put("short_as_int", (short) 8);
+        valueMap.put("byte_as_int", (byte) 8);
+
+        valueMap.put("int_as_long", 9);
+        valueMap.put("short_as_long", (short) 8);
+        valueMap.put("byte_as_long", (byte) 1);
+
+        valueMap.put("byte_as_bigint", (byte) 8);
+        valueMap.put("short_as_bigint", (short) 8);
+        valueMap.put("int_as_bigint", 8);
+        valueMap.put("long_as_bigint", 8L);
+
+        valueMap.put("float_as_double", 8.0F);
+
         final Record record = new MapRecord(schema, valueMap);
 
         final SchemaValidationContext validationContext = new SchemaValidationContext(schema, false, true);
@@ -114,6 +156,75 @@ public class TestStandardSchemaValidator {
         assertTrue(result.getValidationErrors().isEmpty());
     }
 
+    @Test
+    public void testStringDoesNotAllowNarrowTypesWhenStrictValidation() {
+        whenValueIsNotAcceptedAsDataTypeThenConsideredAsInvalid(12345, RecordFieldType.STRING);
+    }
+
+    @Test
+    public void testDoubleWithinFloatRangeIsConsideredAsValid() {
+        whenValueIsAcceptedAsDataTypeThenConsideredAsValid(1.5191525220870972D, RecordFieldType.FLOAT);
+    }
+
+    @Test
+    public void testByteIsConsideredToBeValidFloatingPoint() {
+        whenValueIsAcceptedAsDataTypeThenConsideredAsValid((byte) 9, RecordFieldType.FLOAT);
+        whenValueIsAcceptedAsDataTypeThenConsideredAsValid((byte) 9, RecordFieldType.DOUBLE);
+    }
+
+    @Test
+    public void testShortIsConsideredToBeValidFloatingPoint() {
+        whenValueIsAcceptedAsDataTypeThenConsideredAsValid((short) 9, RecordFieldType.FLOAT);
+        whenValueIsAcceptedAsDataTypeThenConsideredAsValid((short) 9, RecordFieldType.DOUBLE);
+    }
+
+    @Test
+    public void testIntegerWithinRangeIsConsideredToBeValidFloatingPoint() {
+        whenValueIsAcceptedAsDataTypeThenConsideredAsValid(MAX_PRECISE_WHOLE_IN_FLOAT.intValue(), RecordFieldType.FLOAT);
+        whenValueIsAcceptedAsDataTypeThenConsideredAsValid(Integer.MAX_VALUE, RecordFieldType.DOUBLE);
+    }
+
+    @Test
+    public void testIntegerOutsideRangeIsConsideredAsInvalid() {
+        whenValueIsNotAcceptedAsDataTypeThenConsideredAsInvalid(MAX_PRECISE_WHOLE_IN_FLOAT.intValue() + 1, RecordFieldType.FLOAT);
+        // Double handles integer completely
+    }
+
+    @Test
+    public void testLongWithinRangeIsConsideredToBeValidFloatingPoint() {
+        whenValueIsAcceptedAsDataTypeThenConsideredAsValid(MAX_PRECISE_WHOLE_IN_FLOAT, RecordFieldType.FLOAT);
+        whenValueIsAcceptedAsDataTypeThenConsideredAsValid(MAX_PRECISE_WHOLE_IN_DOUBLE, RecordFieldType.DOUBLE);
+    }
+
+    @Test
+    public void testLongOutsideRangeIsConsideredAsInvalid() {
+        whenValueIsNotAcceptedAsDataTypeThenConsideredAsInvalid(MAX_PRECISE_WHOLE_IN_FLOAT + 1, RecordFieldType.FLOAT);
+        whenValueIsNotAcceptedAsDataTypeThenConsideredAsInvalid(MAX_PRECISE_WHOLE_IN_DOUBLE + 1, RecordFieldType.DOUBLE);
+    }
+
+    @Test
+    public void testBigintWithinRangeIsConsideredToBeValidFloatingPoint() {
+        whenValueIsAcceptedAsDataTypeThenConsideredAsValid(BigInteger.valueOf(5L), RecordFieldType.FLOAT);
+        whenValueIsAcceptedAsDataTypeThenConsideredAsValid(BigInteger.valueOf(5L), RecordFieldType.DOUBLE);
+    }
+
+    @Test
+    public void testBigintOutsideRangeIsConsideredAsInvalid() {
+        whenValueIsNotAcceptedAsDataTypeThenConsideredAsInvalid(String.join("", Collections.nCopies(100, "1")), RecordFieldType.FLOAT);
+        whenValueIsNotAcceptedAsDataTypeThenConsideredAsInvalid(String.join("", Collections.nCopies(100, "1")), RecordFieldType.DOUBLE);
+    }
+
+    @Test
+    public void testDoubleAboveFloatRangeIsConsideredAsInvalid() {
+        final double aboveFloatRange = Float.MAX_VALUE * 1.1;
+        whenValueIsNotAcceptedAsDataTypeThenConsideredAsInvalid(aboveFloatRange, RecordFieldType.FLOAT);
+    }
+
+    @Test
+    public void testDoubleBelowFloatRangeIsConsideredAsInvalid() {
+        final double belowFloatRange = Float.MAX_VALUE * -1.1;
+        whenValueIsNotAcceptedAsDataTypeThenConsideredAsInvalid(belowFloatRange, RecordFieldType.FLOAT);
+    }
 
     @Test
     public void testValidateWrongButCoerceableType() throws ParseException {
@@ -310,5 +421,47 @@ public class TestStandardSchemaValidator {
         assertTrue(result.isValid());
         assertNotNull(result.getValidationErrors());
         assertTrue(result.getValidationErrors().isEmpty());
+    }
+
+    private void whenValueIsAcceptedAsDataTypeThenConsideredAsValid(final Object value, final RecordFieldType schemaDataType) {
+        final SchemaValidationResult result = whenSingleValueIsTested(value, schemaDataType);
+        thenSingleValueIsValid(result);
+    }
+
+    private void whenValueIsNotAcceptedAsDataTypeThenConsideredAsInvalid(final Object value, final RecordFieldType schemaDataType) {
+        final SchemaValidationResult result = whenSingleValueIsTested(value, schemaDataType);
+        thenSingleValueIsInvalid(result);
+    }
+
+    private SchemaValidationResult whenSingleValueIsTested(final Object value, final RecordFieldType schemaDataType) {
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("test", schemaDataType.getDataType()));
+
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+        final Map<String, Object> valueMap = new LinkedHashMap<>();
+        valueMap.put("test", value);
+
+        final Record record = new MapRecord(schema, valueMap);
+        final SchemaValidationContext validationContext = new SchemaValidationContext(schema, false, true);
+        final StandardSchemaValidator validator = new StandardSchemaValidator(validationContext);
+
+        return validator.validate(record);
+    }
+
+    private void thenSingleValueIsValid(SchemaValidationResult result) {
+        assertTrue(result.isValid());
+        assertNotNull(result.getValidationErrors());
+        assertTrue(result.getValidationErrors().isEmpty());
+    }
+
+    private void thenSingleValueIsInvalid(SchemaValidationResult result) {
+        assertFalse(result.isValid());
+
+        final Collection<ValidationError> validationErrors = result.getValidationErrors();
+        assertEquals(1, validationErrors.size());
+
+        final ValidationError validationError = validationErrors.iterator().next();
+        assertEquals("/test", validationError.getFieldName().get());
+        assertEquals(ValidationErrorType.INVALID_FIELD, validationError.getType());
     }
 }

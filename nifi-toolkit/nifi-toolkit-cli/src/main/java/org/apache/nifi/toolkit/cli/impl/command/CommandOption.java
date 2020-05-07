@@ -82,6 +82,9 @@ public enum CommandOption {
     PG_VAR_NAME("var", "varName", "The name of a variable", true),
     PG_VAR_VALUE("val", "varValue", "The value of a variable", true),
 
+    POS_X("px", "posX", "The x coordinate of a position", true),
+    POS_Y("py", "posY", "The y coordinate of a position", true),
+
     // NiFi - Controller Services
     CS_ID("cs", "controllerServiceId", "The id of a controller service", true),
 

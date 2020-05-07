@@ -385,38 +385,37 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
         return selector != null && channel != null && channel.isConnected();
     }
 
-    private synchronized void establishConnection() throws IOException {
+    private void establishConnection() throws IOException {
         SocketChannel socketChannel = null;
 
         try {
-            selector = Selector.open();
-            socketChannel = createChannel();
+            final PeerChannel peerChannel;
+            synchronized (this) {
+                if (isConnectionEstablished()) {
+                    return;
+                }
 
-            socketChannel.configureBlocking(true);
+                selector = Selector.open();
+                socketChannel = createChannel();
+                socketChannel.configureBlocking(true);
 
-            channel = createPeerChannel(socketChannel, nodeIdentifier.toString());
-            channel.performHandshake();
+                peerChannel = createPeerChannel(socketChannel, nodeIdentifier.toString());
+                channel = peerChannel;
+            }
 
-            socketChannel.configureBlocking(false);
-            selectionKey = socketChannel.register(selector, SelectionKey.OP_WRITE | SelectionKey.OP_READ);
+            // Perform handshake outside of the synchronized block. We do this because if the server-side is not very responsive,
+            // the handshake may take some time. We don't want to block any other threads from interacting with this Client in
+            // the meantime, especially web threads that may be calling #register or #unregister.
+            peerChannel.performHandshake();
+
+            synchronized (this) {
+                socketChannel.configureBlocking(false);
+                selectionKey = socketChannel.register(selector, SelectionKey.OP_WRITE | SelectionKey.OP_READ);
+            }
         } catch (Exception e) {
             logger.error("Unable to connect to {} for load balancing", nodeIdentifier, e);
 
-            if (selector != null) {
-                try {
-                    selector.close();
-                } catch (final Exception e1) {
-                    e.addSuppressed(e1);
-                }
-            }
-
-            if (channel != null) {
-                try {
-                    channel.close();
-                } catch (final Exception e1) {
-                    e.addSuppressed(e1);
-                }
-            }
+            close();
 
             if (socketChannel != null) {
                 try {

@@ -88,6 +88,13 @@ public interface FlowFileRepository extends Closeable {
     long loadFlowFiles(QueueProvider queueProvider) throws IOException;
 
     /**
+     * Searches through the repository to find the ID's of all FlowFile Queues that currently have data queued
+     * @return the set of all FlowFileQueue identifiers for which a FlowFile is queued
+     * @throws IOException if unable to read from the FlowFile Repository
+     */
+    Set<String> findQueuesWithFlowFiles(FlowFileSwapManager flowFileSwapManager) throws IOException;
+
+    /**
      * @return <code>true</code> if the Repository is volatile (i.e., its data
      * is lost upon application restart), <code>false</code> otherwise
      */
@@ -167,7 +174,8 @@ public interface FlowFileRepository extends Closeable {
      * @return a Mapping of Resource Claim to a representation of the FlowFiles/Swap Files that reference those Resource Claims
      * @throws IOException if an IO failure occurs when attempting to find references
      */
-    default Map<ResourceClaim, Set<ResourceClaimReference>> findResourceClaimReferences(Set<ResourceClaim> resourceClaims, FlowFileSwapManager swapManager) throws IOException {
+    default Map<ResourceClaim, Set<ResourceClaimReference>> findResourceClaimReferences(Set<ResourceClaim> resourceClaims, FlowFileSwapManager swapManager)
+        throws IOException {
         return null;
     }
 }

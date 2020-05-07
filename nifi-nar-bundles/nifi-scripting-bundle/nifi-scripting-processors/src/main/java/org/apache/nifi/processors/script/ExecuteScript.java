@@ -28,6 +28,7 @@ import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnAdded;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -269,6 +270,14 @@ public class ExecuteScript extends AbstractSessionFactoryProcessor implements Se
     @OnStopped
     public void stop() {
         scriptingComponentHelper.stop();
+    }
+
+    @OnAdded
+    public void added() {
+        // Create the resources whether or not they have been created already, this method is guaranteed to have the instance classloader set
+        // as the thread context class loader. Other methods that call createResources() may be called from other threads with different
+        // classloaders
+        scriptingComponentHelper.createResources();
     }
 
     @Override

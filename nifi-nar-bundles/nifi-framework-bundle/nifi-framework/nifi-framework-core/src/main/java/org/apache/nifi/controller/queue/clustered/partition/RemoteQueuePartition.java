@@ -56,6 +56,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BooleanSupplier;
 import java.util.stream.Collectors;
 
 /**
@@ -214,7 +215,13 @@ public class RemoteQueuePartition implements QueuePartition {
             }
         };
 
-        clientRegistry.register(flowFileQueue.getIdentifier(), nodeIdentifier, priorityQueue::isEmpty, this::getFlowFile,
+        // Consider the queue empty unless a FlowFile is available. This means that if the queue has only penalized FlowFiles, it will be considered empty.
+        // This is what we want for the purpose of load balancing the data. Otherwise, we would have a situation where we create a connection to the other node,
+        // determine that now FlowFile is available to send, and then notify the node of this and close the connection. And then this would repeat over and over
+        // until the FlowFile is no longer penalized. Instead, we want to consider the queue empty until a FlowFile is actually available, and only then bother
+        // creating the connection to send data.
+        final BooleanSupplier emptySupplier = () -> !priorityQueue.isFlowFileAvailable();
+        clientRegistry.register(flowFileQueue.getIdentifier(), nodeIdentifier, emptySupplier, this::getFlowFile,
             failureCallback, successCallback, flowFileQueue::getLoadBalanceCompression, flowFileQueue::isPropagateBackpressureAcrossNodes);
 
         running = true;

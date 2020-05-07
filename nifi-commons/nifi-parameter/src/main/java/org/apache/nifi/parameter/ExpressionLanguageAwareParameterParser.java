@@ -103,7 +103,6 @@ public class ExpressionLanguageAwareParameterParser extends AbstractParameterPar
             lastChar = c;
         }
 
-        logger.debug("For input {} found {} Parameter references: {}", input, tokens.size(), tokens);
         return new StandardParameterTokenList(input, tokens);
     }
 

@@ -18,6 +18,7 @@ package org.apache.nifi.controller.repository.metrics;
 
 import org.apache.nifi.controller.repository.FlowFileEvent;
 
+import java.util.HashMap;
 import java.util.Map;
 
 public final class StandardFlowFileEvent implements FlowFileEvent, Cloneable {
@@ -193,5 +194,32 @@ public final class StandardFlowFileEvent implements FlowFileEvent, Cloneable {
 
     public void setCounters(final Map<String, Long> counters) {
         this.counters = counters;
+    }
+
+    public void add(final FlowFileEvent event) {
+        flowFilesIn += event.getFlowFilesIn();
+        flowFilesOut += event.getFlowFilesOut();
+        flowFilesRemoved += event.getFlowFilesRemoved();
+        contentSizeIn += event.getContentSizeIn();
+        contentSizeOut += event.getContentSizeOut();
+        contentSizeRemoved += event.getContentSizeRemoved();
+        bytesRead += event.getBytesRead();
+        bytesWritten += event.getBytesWritten();
+        processingNanos += event.getProcessingNanoseconds();
+        aggregateLineageMillis += event.getAggregateLineageMillis();
+        flowFilesReceived += event.getFlowFilesReceived();
+        bytesReceived += event.getBytesReceived();
+        flowFilesSent += event.getFlowFilesSent();
+        bytesSent += event.getBytesSent();
+        invocations += event.getInvocations();
+
+        final Map<String, Long> eventCounters = event.getCounters();
+        if (eventCounters != null) {
+            if (counters == null) {
+                counters = new HashMap<>();
+            }
+
+            eventCounters.forEach((k, v) -> counters.merge(k, v, Long::sum));
+        }
     }
 }

@@ -26,6 +26,7 @@ import org.apache.nifi.web.api.dto.flow.ProcessGroupFlowDTO;
 import org.apache.nifi.web.api.entity.ActivateControllerServicesEntity;
 import org.apache.nifi.web.api.entity.ClusteSummaryEntity;
 import org.apache.nifi.web.api.entity.ComponentEntity;
+import org.apache.nifi.web.api.entity.ConnectionStatusEntity;
 import org.apache.nifi.web.api.entity.ControllerServicesEntity;
 import org.apache.nifi.web.api.entity.CurrentUserEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
@@ -250,6 +251,17 @@ public class JerseyFlowClient extends AbstractJerseyClient implements FlowClient
         return executeAction("Error retrieving templates", () -> {
             final WebTarget target = flowTarget.path("templates");
             return getRequestBuilder(target).get(TemplatesEntity.class);
+        });
+    }
+
+    @Override
+    public ConnectionStatusEntity getConnectionStatus(final String connectionId, final boolean nodewise) throws NiFiClientException, IOException {
+        return executeAction("Error retrieving Connection status", () -> {
+            final WebTarget target = flowTarget.path("/connections/{connectionId}/status")
+                .resolveTemplate("connectionId", connectionId)
+                .queryParam("nodewise", nodewise);
+
+            return getRequestBuilder(target).get(ConnectionStatusEntity.class);
         });
     }
 }

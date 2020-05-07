@@ -57,4 +57,6 @@ public interface KeyProvider {
      * @throws KeyManagementException if the key is invalid, the ID conflicts, etc.
      */
      boolean addKey(String keyId, SecretKey key) throws OperationNotSupportedException, KeyManagementException;
+
+     // TODO: Add #getActiveKeyId() method
 }

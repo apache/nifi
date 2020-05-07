@@ -35,7 +35,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.stream.Collectors;
 
 /**
  * Generic publisher of messages to JMS compliant messaging system.
@@ -77,11 +76,7 @@ final class JMSPublisher extends JMSWorker {
     void setMessageHeaderAndProperties(final Message message, final Map<String, String> flowFileAttributes) throws JMSException {
         if (flowFileAttributes != null && !flowFileAttributes.isEmpty()) {
 
-            Map<String, String> flowFileAttributesToSend = flowFileAttributes.entrySet().stream()
-                    .filter(entry -> !entry.getKey().contains("-") && !entry.getKey().contains(".")) // '-' and '.' are illegal chars in JMS property names
-                    .collect(Collectors.toMap(Entry::getKey, Entry::getValue));
-
-            for (Entry<String, String> entry : flowFileAttributesToSend.entrySet()) {
+            for (Entry<String, String> entry : flowFileAttributes.entrySet()) {
                 try {
                     if (entry.getKey().equals(JmsHeaders.DELIVERY_MODE)) {
                         this.jmsTemplate.setDeliveryMode(Integer.parseInt(entry.getValue()));
@@ -105,14 +100,14 @@ final class JMSPublisher extends JMSWorker {
                         if (destination != null) {
                             message.setJMSReplyTo(destination);
                         } else {
-                            logUnbuildableDestination(entry.getKey(), JmsHeaders.REPLY_TO);
+                            logUnbuildableDestination(entry.getValue(), JmsHeaders.REPLY_TO);
                         }
                     } else if (entry.getKey().equals(JmsHeaders.DESTINATION)) {
                         Destination destination = buildDestination(entry.getValue());
                         if (destination != null) {
                             message.setJMSDestination(destination);
                         } else {
-                            logUnbuildableDestination(entry.getKey(), JmsHeaders.DESTINATION);
+                            logUnbuildableDestination(entry.getValue(), JmsHeaders.DESTINATION);
                         }
                     } else {
                         // not a special attribute handled above, so send it as a property using the specified property type

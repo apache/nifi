@@ -16,13 +16,11 @@
  */
 package org.apache.nifi.controller.status.analytics;
 
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.status.history.ComponentStatusRepository;
-import org.apache.nifi.util.Tuple;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,10 +37,10 @@ public class CachingConnectionStatusAnalyticsEngine extends ConnectionStatusAnal
     private static final Logger LOG = LoggerFactory.getLogger(CachingConnectionStatusAnalyticsEngine.class);
 
     public CachingConnectionStatusAnalyticsEngine(FlowManager flowManager, ComponentStatusRepository statusRepository,
-            FlowFileEventRepository flowFileEventRepository, Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> modelMap,
+            FlowFileEventRepository flowFileEventRepository, StatusAnalyticsModelMapFactory statusAnalyticsModelMapFactory,
             long predictionIntervalMillis, long queryIntervalMillis, String scoreName, double scoreThreshold) {
 
-        super(flowManager, statusRepository, flowFileEventRepository, modelMap, predictionIntervalMillis,
+        super(flowManager, statusRepository, flowFileEventRepository, statusAnalyticsModelMapFactory, predictionIntervalMillis,
                            queryIntervalMillis, scoreName, scoreThreshold);
         this.cache = Caffeine.newBuilder()
                 .expireAfterWrite(30, TimeUnit.MINUTES)

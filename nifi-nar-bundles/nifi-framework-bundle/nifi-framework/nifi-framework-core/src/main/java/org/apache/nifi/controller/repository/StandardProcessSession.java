@@ -85,6 +85,8 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -563,7 +565,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
 
         final Map<String, Long> combined = new HashMap<>();
         combined.putAll(first);
-        combined.putAll(second);
+        second.forEach((key, value) -> combined.merge(key, value, Long::sum));
         return combined;
     }
 
@@ -1116,15 +1118,22 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
      *
      * @param claim claim to destroy
      */
-    private void destroyContent(final ContentClaim claim) {
+    private void destroyContent(final ContentClaim claim, final StandardRepositoryRecord repoRecord) {
         if (claim == null) {
             return;
         }
 
         final int decrementedClaimCount = context.getContentRepository().decrementClaimantCount(claim);
+        boolean removed = false;
         if (decrementedClaimCount <= 0) {
             resetWriteClaims(); // Have to ensure that we are not currently writing to the claim before we can destroy it.
-            context.getContentRepository().remove(claim);
+            removed = context.getContentRepository().remove(claim);
+        }
+
+        // If we were not able to remove the content claim yet, mark it as a transient claim so that it will be cleaned up when the
+        // FlowFile Repository is updated if it's available for cleanup at that time.
+        if (!removed) {
+            repoRecord.addTransientClaim(claim);
         }
     }
 
@@ -2354,7 +2363,14 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             throw new FlowFileAccessException("Failed to access ContentClaim for " + source.toString(), e);
         }
 
-        final InputStream rawIn = getInputStream(source, record.getCurrentClaim(), record.getCurrentClaimOffset(), true);
+        final InputStream rawIn;
+        try {
+            rawIn = getInputStream(source, record.getCurrentClaim(), record.getCurrentClaimOffset(), true);
+        } catch (final ContentNotFoundException nfe) {
+            handleContentNotFound(nfe, record);
+            throw nfe;
+        }
+
         final InputStream limitedIn = new LimitedInputStream(rawIn, source.getSize());
         final ByteCountingInputStream countingStream = new ByteCountingInputStream(limitedIn);
         final FlowFileAccessInputStream ffais = new FlowFileAccessInputStream(countingStream, source, record.getCurrentClaim());
@@ -2368,13 +2384,13 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                 try {
                     return ffais.read();
                 } catch (final ContentNotFoundException cnfe) {
-                    handleContentNotFound(cnfe, record);
                     close();
+                    handleContentNotFound(cnfe, record);
                     throw cnfe;
                 } catch (final FlowFileAccessException ffae) {
                     LOG.error("Failed to read content from " + sourceFlowFile + "; rolling back session", ffae);
-                    rollback(true);
                     close();
+                    rollback(true);
                     throw ffae;
                 }
             }
@@ -2389,13 +2405,13 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                 try {
                     return ffais.read(b, off, len);
                 } catch (final ContentNotFoundException cnfe) {
-                    handleContentNotFound(cnfe, record);
                     close();
+                    handleContentNotFound(cnfe, record);
                     throw cnfe;
                 } catch (final FlowFileAccessException ffae) {
                     LOG.error("Failed to read content from " + sourceFlowFile + "; rolling back session", ffae);
-                    rollback(true);
                     close();
+                    rollback(true);
                     throw ffae;
                 }
             }
@@ -2554,14 +2570,14 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                 bytesRead += readCount;
             }
         } catch (final ContentNotFoundException nfe) {
-            destroyContent(newClaim);
+            destroyContent(newClaim, destinationRecord);
             handleContentNotFound(nfe, destinationRecord);
             handleContentNotFound(nfe, sourceRecords);
         } catch (final IOException ioe) {
-            destroyContent(newClaim);
+            destroyContent(newClaim, destinationRecord);
             throw new FlowFileAccessException("Failed to merge " + sources.size() + " into " + destination + " due to " + ioe.toString(), ioe);
         } catch (final Throwable t) {
-            destroyContent(newClaim);
+            destroyContent(newClaim, destinationRecord);
             throw t;
         }
 
@@ -2690,20 +2706,20 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             return createTaskTerminationStream(errorHandlingOutputStream);
         } catch (final ContentNotFoundException nfe) {
             resetWriteClaims(); // need to reset write claim before we can remove the claim
-            destroyContent(newClaim);
+            destroyContent(newClaim, record);
             handleContentNotFound(nfe, record);
             throw nfe;
         } catch (final FlowFileAccessException ffae) {
             resetWriteClaims(); // need to reset write claim before we can remove the claim
-            destroyContent(newClaim);
+            destroyContent(newClaim, record);
             throw ffae;
         } catch (final IOException ioe) {
             resetWriteClaims(); // need to reset write claim before we can remove the claim
-            destroyContent(newClaim);
+            destroyContent(newClaim, record);
             throw new ProcessException("IOException thrown from " + connectableDescription + ": " + ioe.toString(), ioe);
         } catch (final Throwable t) {
             resetWriteClaims(); // need to reset write claim before we can remove the claim
-            destroyContent(newClaim);
+            destroyContent(newClaim, record);
             throw t;
         }
     }
@@ -2737,19 +2753,19 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             }
         } catch (final ContentNotFoundException nfe) {
             resetWriteClaims(); // need to reset write claim before we can remove the claim
-            destroyContent(newClaim);
+            destroyContent(newClaim, record);
             handleContentNotFound(nfe, record);
         } catch (final FlowFileAccessException ffae) {
             resetWriteClaims(); // need to reset write claim before we can remove the claim
-            destroyContent(newClaim);
+            destroyContent(newClaim, record);
             throw ffae;
         } catch (final IOException ioe) {
             resetWriteClaims(); // need to reset write claim before we can remove the claim
-            destroyContent(newClaim);
+            destroyContent(newClaim, record);
             throw new ProcessException("IOException thrown from " + connectableDescription + ": " + ioe.toString(), ioe);
         } catch (final Throwable t) {
             resetWriteClaims(); // need to reset write claim before we can remove the claim
-            destroyContent(newClaim);
+            destroyContent(newClaim, record);
             throw t;
         }
 
@@ -2835,7 +2851,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             // whenever the FlowFile is removed, the claim count will be decremented; if we decremented
             // it here also, we would be decrementing the claimant count twice!
             if (newClaim != oldClaim) {
-                destroyContent(newClaim);
+                destroyContent(newClaim, record);
             }
 
             handleContentNotFound(nfe, record);
@@ -2844,7 +2860,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
 
             // See above explanation for why this is done only if newClaim != oldClaim
             if (newClaim != oldClaim) {
-                destroyContent(newClaim);
+                destroyContent(newClaim, record);
             }
 
             throw new ProcessException("IOException thrown from " + connectableDescription + ": " + ioe.toString(), ioe);
@@ -2853,7 +2869,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
 
             // See above explanation for why this is done only if newClaim != oldClaim
             if (newClaim != oldClaim) {
-                destroyContent(newClaim);
+                destroyContent(newClaim, record);
             }
 
             throw t;
@@ -3004,16 +3020,16 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                 }
             }
         } catch (final ContentNotFoundException nfe) {
-            destroyContent(newClaim);
+            destroyContent(newClaim, record);
             handleContentNotFound(nfe, record);
         } catch (final IOException ioe) {
-            destroyContent(newClaim);
+            destroyContent(newClaim, record);
             throw new ProcessException("IOException thrown from " + connectableDescription + ": " + ioe.toString(), ioe);
         } catch (final FlowFileAccessException ffae) {
-            destroyContent(newClaim);
+            destroyContent(newClaim, record);
             throw ffae;
         } catch (final Throwable t) {
-            destroyContent(newClaim);
+            destroyContent(newClaim, record);
             throw t;
         }
 
@@ -3060,7 +3076,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             bytesWritten += newSize;
             bytesRead += newSize;
         } catch (final Throwable t) {
-            destroyContent(newClaim);
+            destroyContent(newClaim, record);
             throw new FlowFileAccessException("Failed to import data from " + source + " for " + destination + " due to " + t.toString(), t);
         }
 
@@ -3104,7 +3120,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             }
         } catch (final Throwable t) {
             if (newClaim != null) {
-                destroyContent(newClaim);
+                destroyContent(newClaim, record);
             }
 
             throw new FlowFileAccessException("Failed to import data from " + source + " for " + destination + " due to " + t.toString(), t);
@@ -3350,7 +3366,6 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
 
         private final Map<Long, StandardRepositoryRecord> records = new ConcurrentHashMap<>();
         private final Map<String, StandardFlowFileEvent> connectionCounts = new ConcurrentHashMap<>();
-        private final Map<FlowFileQueue, Set<FlowFileRecord>> unacknowledgedFlowFiles = new ConcurrentHashMap<>();
 
         private Map<String, Long> countersOnCommit = new HashMap<>();
         private Map<String, Long> immediateCounters = new HashMap<>();
@@ -3377,16 +3392,10 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             this.reportedEvents.addAll(session.provenanceReporter.getEvents());
 
             this.records.putAll(session.records);
-            this.connectionCounts.putAll(session.connectionCounts);
-            this.unacknowledgedFlowFiles.putAll(session.unacknowledgedFlowFiles);
 
-            if (session.countersOnCommit != null) {
-                this.countersOnCommit.putAll(session.countersOnCommit);
-            }
-
-            if (session.immediateCounters != null) {
-                this.immediateCounters.putAll(session.immediateCounters);
-            }
+            mergeMapsWithMutableValue(this.connectionCounts, session.connectionCounts, (destination, toMerge) -> destination.add(toMerge));
+            mergeMaps(this.countersOnCommit, session.countersOnCommit, Long::sum);
+            mergeMaps(this.immediateCounters, session.immediateCounters, Long::sum);
 
             this.deleteOnCommit.putAll(session.deleteOnCommit);
             this.removedFlowFiles.addAll(session.removedFlowFiles);
@@ -3400,6 +3409,41 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             this.flowFilesOut += session.flowFilesOut;
             this.contentSizeIn += session.contentSizeIn;
             this.contentSizeOut += session.contentSizeOut;
+        }
+
+        private <K, V> void mergeMaps(final Map<K, V> destination, final Map<K, V> toMerge, final BiFunction<? super V, ? super V, ? extends V> merger) {
+            if (toMerge == null) {
+                return;
+            }
+
+            if (destination.isEmpty()) {
+                destination.putAll(toMerge);
+            } else {
+                toMerge.forEach((key, value) -> destination.merge(key, value, merger));
+            }
+        }
+
+        private <K, V> void mergeMapsWithMutableValue(final Map<K, V> destination, final Map<K, V> toMerge, final BiConsumer<? super V, ? super V> merger) {
+            if (toMerge == null) {
+                return;
+            }
+
+            if (destination.isEmpty()) {
+                destination.putAll(toMerge);
+                return;
+            }
+
+            for (final Map.Entry<K, V> entry : toMerge.entrySet()) {
+                final K key = entry.getKey();
+                final V value = entry.getValue();
+
+                final V destinationValue = destination.get(key);
+                if (destinationValue == null) {
+                    destination.put(key, value);
+                } else {
+                    merger.accept(destinationValue, value);
+                }
+            }
         }
 
         private StandardRepositoryRecord getRecord(final FlowFile flowFile) {

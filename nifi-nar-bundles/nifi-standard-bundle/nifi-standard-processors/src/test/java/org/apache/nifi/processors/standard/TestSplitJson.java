@@ -235,4 +235,23 @@ public class TestSplitJson {
             testRunner.getFlowFilesForRelationship(SplitJson.REL_SPLIT).get(i).assertContentEquals("null");
         }
     }
+
+    @Test
+    public void testSplit_pathToInputStringNullValue() throws Exception {
+        final TestRunner testRunner = TestRunners.newTestRunner(new SplitJson());
+        testRunner.setProperty(SplitJson.ARRAY_JSON_PATH_EXPRESSION, "$.*");
+        ProcessSession session = testRunner.getProcessSessionFactory().createSession();
+        FlowFile ff = session.create();
+        ff = session.write(ff, new OutputStreamCallback() {
+            @Override
+            public void process(OutputStream out) throws IOException {
+                try (OutputStream outputStream = new BufferedOutputStream(out)) {
+                    outputStream.write("null".getBytes(StandardCharsets.UTF_8));
+                }
+            }
+        });
+        testRunner.enqueue(ff);
+        testRunner.run();
+        testRunner.assertTransferCount(SplitJson.REL_FAILURE, 1);
+    }
 }

@@ -175,18 +175,19 @@ public class WriteAheadStorePartition implements EventStorePartition {
         }
 
         // Claim a Record Writer Lease so that we have a writer to persist the events to
-        boolean claimed = false;
-        RecordWriterLease lease = null;
-        while (!claimed) {
+        RecordWriterLease lease;
+        while (true) {
             lease = getLease();
-            claimed = lease.tryClaim();
-
-            if (claimed) {
+            if (lease.tryClaim()) {
                 break;
             }
 
-            if (lease.shouldRoll()) {
-                tryRollover(lease);
+            final RolloverState rolloverState = lease.getRolloverState();
+            if (rolloverState.isRollover()) {
+                final boolean success = tryRollover(lease);
+                if (success) {
+                    logger.info("Successfully rolled over Event Writer for {} due to {}", this, rolloverState);
+                }
             }
         }
 
@@ -202,10 +203,11 @@ public class WriteAheadStorePartition implements EventStorePartition {
 
         // Roll over the writer if necessary
         Integer eventsRolledOver = null;
-        final boolean shouldRoll = lease.shouldRoll();
+        final RolloverState rolloverState = lease.getRolloverState();
         try {
-            if (shouldRoll && tryRollover(lease)) {
+            if (rolloverState.isRollover() && tryRollover(lease)) {
                 eventsRolledOver = writer.getRecordsWritten();
+                logger.info("Successfully rolled over Event Writer for {} after writing {} events due to {}", this, eventsRolledOver, rolloverState);
             }
         } catch (final IOException ioe) {
             logger.error("Updated {} but failed to rollover to a new Event File", this, ioe);
@@ -258,7 +260,7 @@ public class WriteAheadStorePartition implements EventStorePartition {
         final RecordWriter updatedWriter = recordWriterFactory.createWriter(updatedEventFile, idGenerator, false, true);
         updatedWriter.writeHeader(nextEventId);
 
-        final RecordWriterLease updatedLease = new RecordWriterLease(updatedWriter, config.getMaxEventFileCapacity(), config.getMaxEventFileCount());
+        final RecordWriterLease updatedLease = new RecordWriterLease(updatedWriter, config.getMaxEventFileCapacity(), config.getMaxEventFileCount(), config.getMaxEventFileLife(TimeUnit.MILLISECONDS));
         final boolean updated = eventWriterLeaseRef.compareAndSet(lease, updatedLease);
 
         if (!updated) {
@@ -319,7 +321,7 @@ public class WriteAheadStorePartition implements EventStorePartition {
             // Update max event id to be equal to be the greater of the current value or the
             // max value just written.
             final long maxIdWritten = maxId;
-            this.maxEventId.getAndUpdate(cur -> maxIdWritten > cur ? maxIdWritten : cur);
+            this.maxEventId.getAndUpdate(cur -> Math.max(maxIdWritten, cur));
 
             if (config.isAlwaysSync()) {
                 writer.sync();
@@ -473,30 +475,47 @@ public class WriteAheadStorePartition implements EventStorePartition {
     public void purgeOldEvents(final long olderThan, final TimeUnit unit) {
         final long timeCutoff = System.currentTimeMillis() - unit.toMillis(olderThan);
 
-        getEventFilesFromDisk().filter(file -> file.lastModified() < timeCutoff)
+        final List<File> removed = getEventFilesFromDisk().filter(file -> file.lastModified() < timeCutoff)
             .sorted(DirectoryUtils.SMALLEST_ID_FIRST)
-            .forEach(this::delete);
+            .filter(this::delete)
+            .collect(Collectors.toList());
+
+        if (removed.isEmpty()) {
+            logger.debug("No Provenance Event files that exceed time-based threshold of {} {}", olderThan, unit);
+        } else {
+            logger.info("Purged {} Provenance Event files from Provenance Repository because the events were older than {} {}: {}", removed.size(), olderThan, unit, removed);
+        }
     }
 
+    private File getActiveEventFile() {
+        final RecordWriterLease lease = eventWriterLeaseRef.get();
+        return lease == null ? null : lease.getWriter().getFile();
+    }
 
     @Override
     public long purgeOldestEvents() {
         final List<File> eventFiles = getEventFilesFromDisk().sorted(DirectoryUtils.SMALLEST_ID_FIRST).collect(Collectors.toList());
-        if (eventFiles.isEmpty()) {
+        if (eventFiles.size() < 2) {
+            // If there are no Event Files, there's nothing to do. If there is exactly 1 Event File, it means that the only Event File
+            // that exists is the Active Event File, which we are writing to, so we don't want to remove it either.
             return 0L;
         }
 
-        final RecordWriterLease lease = eventWriterLeaseRef.get();
-        final File currentFile = lease == null ? null : lease.getWriter().getFile();
+        final File currentFile = getActiveEventFile();
+        if (currentFile == null) {
+            logger.debug("There is currently no Active Event File for {}. Will not purge oldest events until the Active Event File has been established.", this);
+            return 0L;
+        }
+
         for (final File eventFile : eventFiles) {
             if (eventFile.equals(currentFile)) {
-                continue;
+                break;
             }
 
             final long fileSize = eventFile.length();
 
             if (delete(eventFile)) {
-                logger.debug("{} Deleted {} event file ({}) due to storage limits", this, eventFile, FormatUtils.formatDataSize(fileSize));
+                logger.info("{} Deleted {} event file ({}) due to storage limits", this, eventFile, FormatUtils.formatDataSize(fileSize));
                 return fileSize;
             } else {
                 logger.warn("{} Failed to delete oldest event file {}. This file should be cleaned up manually.", this, eventFile);
@@ -508,6 +527,12 @@ public class WriteAheadStorePartition implements EventStorePartition {
     }
 
     private boolean delete(final File file) {
+        final File activeEventFile = getActiveEventFile();
+        if (file.equals(activeEventFile)) {
+            logger.debug("Attempting to age off Active Event File {}. Will return without deleting the file.", file);
+            return false;
+        }
+
         final long firstEventId = DirectoryUtils.getMinId(file);
         synchronized (minEventIdToPathMap) {
             minEventIdToPathMap.remove(firstEventId);
@@ -542,7 +567,7 @@ public class WriteAheadStorePartition implements EventStorePartition {
         final long eventsToReindex = maxEventId - minEventIdToReindex;
 
         logger.info("The last Provenance Event indexed for partition {} is {}, but the last event written to partition has ID {}. "
-            + "Re-indexing up to the last {} events to ensure that the Event Index is accurate and up-to-date",
+            + "Re-indexing up to the last {} events for {} to ensure that the Event Index is accurate and up-to-date",
             partitionName, minEventIdToReindex, maxEventId, eventsToReindex, partitionDirectory);
 
         // Find the first event file that we care about.

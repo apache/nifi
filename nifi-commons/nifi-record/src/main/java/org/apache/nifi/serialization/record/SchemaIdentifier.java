@@ -39,12 +39,17 @@ public interface SchemaIdentifier {
     OptionalInt getVersion();
 
     /**
+     * @return the schema version ID of the schema, if one has been defined.
+     */
+    OptionalLong getSchemaVersionId();
+
+    /**
      * @return the name of the branch where the schema is located, if one has been defined
      */
     Optional<String> getBranch();
 
 
-    SchemaIdentifier EMPTY = new StandardSchemaIdentifier(null, null, null, null);
+    SchemaIdentifier EMPTY = new StandardSchemaIdentifier(null, null, null, null, null);
 
     static Builder builder() {
         return new StandardSchemaIdentifier.Builder();
@@ -60,6 +65,8 @@ public interface SchemaIdentifier {
         Builder id(Long id);
 
         Builder version(Integer version);
+
+        Builder schemaVersionId(Long schemaVersionId);
 
         Builder branch(String branch);
 

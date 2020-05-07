@@ -65,7 +65,6 @@ public class ExpressionLanguageAgnosticParameterParser extends AbstractParameter
             }
         }
 
-        logger.debug("For input {} found {} Parameter references: {}", input, references.size(), references);
         return new StandardParameterTokenList(input, references);
     }
 }

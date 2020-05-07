@@ -37,4 +37,8 @@ public class ValidationState {
     public Collection<ValidationResult> getValidationErrors() {
         return validationErrors;
     }
+
+    public String toString() {
+        return status.toString();
+    }
 }

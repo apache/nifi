@@ -43,6 +43,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
@@ -115,6 +116,13 @@ public class GenerateFlowFile extends AbstractProcessor {
             .defaultValue("UTF-8")
             .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
             .build();
+    public static final PropertyDescriptor MIME_TYPE = new PropertyDescriptor.Builder()
+            .name("mime-type")
+            .displayName("Mime Type")
+            .description("Specifies the value to set for the \"mime.type\" attribute.")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
 
     public static final Relationship SUCCESS = new Relationship.Builder()
             .name("success")
@@ -134,6 +142,7 @@ public class GenerateFlowFile extends AbstractProcessor {
         descriptors.add(UNIQUE_FLOWFILES);
         descriptors.add(CUSTOM_TEXT);
         descriptors.add(CHARSET);
+        descriptors.add(MIME_TYPE);
         this.descriptors = Collections.unmodifiableList(descriptors);
 
         final Set<Relationship> relationships = new HashSet<>();
@@ -224,6 +233,10 @@ public class GenerateFlowFile extends AbstractProcessor {
                 String dynamicValue = context.getProperty(property).evaluateAttributeExpressions().getValue();
                 generatedAttributes.put(property.getName(), dynamicValue);
             }
+        }
+
+        if(context.getProperty(MIME_TYPE).isSet()) {
+            generatedAttributes.put(CoreAttributes.MIME_TYPE.key(), context.getProperty(MIME_TYPE).getValue());
         }
 
         for (int i = 0; i < context.getProperty(BATCH_SIZE).asInteger(); i++) {

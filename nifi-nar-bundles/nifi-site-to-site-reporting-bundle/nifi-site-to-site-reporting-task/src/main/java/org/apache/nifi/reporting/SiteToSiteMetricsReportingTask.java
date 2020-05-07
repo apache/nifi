@@ -54,6 +54,7 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.remote.Transaction;
 import org.apache.nifi.remote.TransferDirection;
+import org.apache.nifi.reporting.s2s.SiteToSiteUtils;
 import org.apache.nifi.reporting.util.metrics.MetricNames;
 import org.apache.nifi.reporting.util.metrics.MetricsService;
 import org.apache.nifi.reporting.util.metrics.api.MetricsBuilder;
@@ -113,7 +114,7 @@ public class SiteToSiteMetricsReportingTask extends AbstractSiteToSiteReportingT
         properties.add(HOSTNAME);
         properties.add(APPLICATION_ID);
         properties.add(FORMAT);
-        properties.remove(BATCH_SIZE);
+        properties.remove(SiteToSiteUtils.BATCH_SIZE);
         return properties;
     }
 
@@ -190,9 +191,13 @@ public class SiteToSiteMetricsReportingTask extends AbstractSiteToSiteReportingT
                 data = getData(context, new ByteArrayInputStream(metricsObject.toString().getBytes(StandardCharsets.UTF_8)), attributes);
             }
 
+            Transaction transaction = null;
             try {
+                // Lazily create SiteToSiteClient to provide a StateManager
+                setup(context);
+
                 long start = System.nanoTime();
-                final Transaction transaction = getClient().createTransaction(TransferDirection.SEND);
+                transaction = getClient().createTransaction(TransferDirection.SEND);
                 if (transaction == null) {
                     getLogger().debug("All destination nodes are penalized; will attempt to send data later");
                     return;
@@ -211,7 +216,14 @@ public class SiteToSiteMetricsReportingTask extends AbstractSiteToSiteReportingT
                 final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
                 getLogger().info("Successfully sent metrics to destination in {}ms; Transaction ID = {}", new Object[]{transferMillis, transactionId});
             } catch (final Exception e) {
-                throw new ProcessException("Failed to send metrics to destination due to:" + e.getMessage(), e);
+                if (transaction != null) {
+                    transaction.error();
+                }
+                if (e instanceof ProcessException) {
+                    throw (ProcessException) e;
+                } else {
+                    throw new ProcessException("Failed to send metrics to destination due to:" + e.getMessage(), e);
+                }
             }
 
         } else {

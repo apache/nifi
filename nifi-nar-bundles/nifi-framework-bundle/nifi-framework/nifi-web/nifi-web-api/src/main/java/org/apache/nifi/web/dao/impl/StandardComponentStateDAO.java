@@ -23,6 +23,7 @@ import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.service.ControllerServiceNode;
+import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.dao.ComponentStateDAO;
 
@@ -88,6 +89,11 @@ public class StandardComponentStateDAO implements ComponentStateDAO {
     @Override
     public void clearState(ReportingTaskNode reportingTask) {
         clearState(reportingTask.getIdentifier());
+    }
+
+    @Override
+    public StateMap getState(RemoteProcessGroup remoteProcessGroup, Scope scope) {
+        return getState(remoteProcessGroup.getIdentifier(), scope);
     }
 
     /* setters */

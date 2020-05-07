@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.jolt.record;
 
+import org.apache.commons.lang3.SystemUtils;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.json.JsonRecordSetWriter;
 import org.apache.nifi.processor.Relationship;
@@ -32,7 +33,9 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.Assume;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -54,6 +57,12 @@ public class TestJoltTransformRecord {
     private JoltTransformRecord processor;
     private MockRecordParser parser;
     private JsonRecordSetWriter writer;
+
+    //The pretty printed json comparisons dont work on windows
+    @BeforeClass
+    public static void setUpSuite() {
+        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
+    }
 
     @Before
     public void setup() throws Exception {
@@ -162,6 +171,24 @@ public class TestJoltTransformRecord {
         runner.assertQueueEmpty();
         runner.assertTransferCount(JoltTransformRecord.REL_FAILURE, 0);
         runner.assertTransferCount(JoltTransformRecord.REL_SUCCESS, 0);
+    }
+
+    @Test
+    public void testNoRecords() throws IOException {
+        generateTestData(0, null);
+        final String outputSchemaText = new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformRecord/chainrOutputSchema.avsc")));
+        runner.setProperty(writer, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
+        runner.setProperty(writer, SchemaAccessUtils.SCHEMA_TEXT, outputSchemaText);
+        runner.setProperty(writer, "Pretty Print JSON", "true");
+        runner.enableControllerService(writer);
+        final String spec = new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformRecord/chainrSpec.json")));
+        runner.setProperty(JoltTransformRecord.JOLT_SPEC, spec);
+        runner.enqueue("{}");
+        runner.run();
+        runner.assertQueueEmpty();
+        runner.assertTransferCount(JoltTransformRecord.REL_FAILURE, 0);
+        runner.assertTransferCount(JoltTransformRecord.REL_SUCCESS, 1);
+        runner.assertTransferCount(JoltTransformRecord.REL_ORIGINAL, 1);
     }
 
     @Test

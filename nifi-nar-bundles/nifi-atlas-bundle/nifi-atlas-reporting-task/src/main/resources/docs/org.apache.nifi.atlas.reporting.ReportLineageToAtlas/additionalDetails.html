@@ -27,7 +27,7 @@
         <ul>
             <li><a href="#how-it-works">Information reported to Atlas</a></li>
             <li><a href="#nifi-atlas-types">NiFi Atlas Types</a></li>
-            <li><a href="#cluster-name">Cluster Name Resolution</a></li>
+            <li><a href="#namespaces">Namespaces (formerly Cluster Name Resolution)</a></li>
             <li><a href="#nifi-flow-structure">NiFi flow structure</a>
                 <ul>
                     <li><a href="#path-separation">Path Separation Logic</a></li>
@@ -58,7 +58,7 @@
         <p>Technically each information is sent using different protocol, Atlas REST API v2, and Notification via a Kafka topic as shown in above image.</p>
 
 
-        <p>As both information types use the same <a href="#nifi-atlas-types">NiFi Atlas Types</a> and <a href="#cluster-name">Cluster Name Resolution</a> concepts, it is recommended to start reading those sections first.</p>
+        <p>As both information types use the same <a href="#nifi-atlas-types">NiFi Atlas Types</a> and <a href="#namespaces">Namespaces</a> concepts, it is recommended to start reading those sections first.</p>
 
         <h3 id="nifi-atlas-types">NiFi Atlas Types</h3>
 
@@ -82,7 +82,7 @@
             </li>
             Attributes:
             <ul>
-                <li>qualifiedName: Root ProcessGroup ID@clusterName (e.g. 86420a14-2fab-3e1e-4331-fb6ab42f58e0@cl1)</li>
+                <li>qualifiedName: Root ProcessGroup ID@namespace (e.g. 86420a14-2fab-3e1e-4331-fb6ab42f58e0@ns1)</li>
                 <li>name: Name of the Root ProcessGroup.</li>
                 <li>url: URL of the NiFi instance. This can be specified via reporting task 'NiFi URL for Atlas' property.</li>
             </ul>
@@ -91,7 +91,7 @@
             <li>nifi_flow_path <p>Part of a NiFi data flow containing one or more processing NiFi components such as Processors and RemoteGroupPorts. The reporting task divides a NiFi flow into multiple flow paths. See <a href="#path-separation">Path Separation Logic</a> for details.</p></li>
             Attributes:
             <ul>
-                <li>qualifiedName: The first NiFi component Id in a path@clusterName (e.g. 529e6722-9b49-3b66-9c94-00da9863ca2d@cl1)</li>
+                <li>qualifiedName: The first NiFi component Id in a path@namespace (e.g. 529e6722-9b49-3b66-9c94-00da9863ca2d@ns1)</li>
                 <li>name: NiFi component namess within a path are concatenated (e.g. GenerateFlowFile, PutFile, LogAttribute)</li>
                 <li>url: A deep link to the first NiFi component in corresponding NiFi UI</li>
             </ul>
@@ -100,7 +100,7 @@
             <li>nifi_input/output_port <p>Represents a RootGroupPort which can be accessed by RemoteProcessGroup via Site-to-Site protocol.</p></li>
             Attributes:
             <ul>
-                <li>qualifiedName: Port ID@clusterName (e.g. 3f6d405e-6e3d-38c9-c5af-ce158f8e593d@cl1)</li>
+                <li>qualifiedName: Port ID@namespace (e.g. 3f6d405e-6e3d-38c9-c5af-ce158f8e593d@ns1)</li>
                 <li>name: Name of the Port.</li>
             </ul>
         </ul>
@@ -108,7 +108,7 @@
             <li>nifi_data <p>Represents <a href="#unknown-datasets">Unknown DataSets</a> created by CREATE/SEND/RECEIVE NiFi provenance events those do not have particular provenance event analyzer.</p></li>
             Attributes:
             <ul>
-                <li>qualifiedName: ID of a Processor which generated the provenance event@clusterName (e.g. db8bb12c-5cd3-3011-c971-579f460ebedf@cl1)</li>
+                <li>qualifiedName: ID of a Processor which generated the provenance event@namespace (e.g. db8bb12c-5cd3-3011-c971-579f460ebedf@ns1)</li>
                 <li>name: Name of the Processor.</li>
             </ul>
         </ul>
@@ -121,40 +121,41 @@
             </ul>
         </ul>
 
-        <h3 id="cluster-name">Cluster Name Resolution</h3>
+        <h3 id="namespaces">Namespaces</h3>
 
         <p>An entity in Atlas can be identified by its GUID for any existing objects, or type name and unique attribute can be used if GUID is not known. Qualified name is commonly used as the unique attribute.</p>
-        <p>Since one Atlas instance can be used to manage multiple environments, i.e clusters, Atlas has to manage objects in different clusters those may have the same name. For example, a Hive table 'request_logs' in a 'cluster-A' and 'cluster-B'. In such case, cluster name embedded in qualified names are crucial.</p>
+        <p>One Atlas instance can be used to manage multiple environments and objects in different environments may have the same name. For example, a Hive table 'request_logs' in two different clusters, 'cluster-A' and 'cluster-B'. For this reason the qualified names contain a so-called metadata namespace.</p>
+        <p>It's common practice to provide the cluster name as the namespace, but it can be any arbitrary string.</p>
 
-        <p>For these requirements, a qualified name has 'componentId@clusterName' format. E.g. A Hive table qualified name would be dbName.tableName@clusterName (default.request_logs@cluster-A).</p>
+        <p>With this, a qualified name has 'componentId@namespace' format. E.g. A Hive table qualified name would be dbName.tableName@namespace (default.request_logs@cluster-A).</p>
 
-        <p>From this NiFi reporting task standpoint, a cluster name is need to be resolved at following situations:
+        <p>From this NiFi reporting task standpoint, a namespace is needed to be resolved at following situations:
             <ul>
-                <li>To register NiFi component entities. Which cluster name should be used to represent the current NiFi cluster?</li>
-                <li>To create lineages from NiFi component to other DataSets. Which cluster does the DataSet resides?</li>
+                <li>To register NiFi component entities. Which namespace should be used to represent the current NiFi environment?</li>
+                <li>To create lineages from NiFi component to other DataSets. Which environment does the DataSet resides in?</li>
             </ul>
         </p>
 
-        <p>To answer such questions, ReportLineageToAtlas reporting task provides a way to define mappings from ip address or hostname to a cluster name.
-        The mapping can be defined by Dynamic Properties with a name in 'hostnamePattern.ClusterName' format, having its value as a set of Regular Expression Patterns to match ip addresses or host names to a particular cluster name.</p>
+        <p>To answer such questions, ReportLineageToAtlas reporting task provides a way to define mappings from IP address or hostname to a namespace.
+        The mapping can be defined by Dynamic Properties with a name in 'hostnamePattern.namespace' format, having its value as a set of Regular Expression Patterns to match IP addresses or host names to a particular namespace.</p>
 
-        <p>As an example, following mapping definition would resolve cluster name 'cluster-A' for ip address such as '192.168.30.123' or hostname 'namenode1.a.example.com', and 'cluster-B' for '192.168.40.223' or 'nifi3.b.example.com'.</p>
+        <p>As an example, following mapping definition would resolve namespace 'namespace-A' for IP address such as '192.168.30.123' or hostname 'namenode1.a.example.com', and 'namespace-B' for '192.168.40.223' or 'nifi3.b.example.com'.</p>
 
         <pre>
-# Dynamic Property Name for cluster-A
-hostnamePattern.cluster-A
+# Dynamic Property Name for namespace-A
+hostnamePattern.namespace-A
 # Value can have multiple Regular Expression patterns separated by new line
 192\.168\.30\.\d+
 [^\.]+\.a\.example\.com
 
-# Dynamic Property Name for cluster-B
-hostnamePattern.cluster-B
+# Dynamic Property Name for namespace-B
+hostnamePattern.namespace-B
 # Values
 192\.168\.40\.\d+
 [^\.]+\.b\.example\.com
         </pre>
 
-        <p>If any cluster name mapping does not match, then a name defined at 'Atlas Default Cluster Name' is used.</p>
+        <p>If no namespace mapping matches, then a name defined at 'Atlas Default Metadata Namespace' is used.</p>
 
 
         <h3 id="nifi-flow-structure">NiFi flow structure</h3>
@@ -271,11 +272,11 @@ Processor 3</pre>
         <p>To identify such Process and DataSet Atlas entities, this reporting task uses NiFi Provenance Events. At least, the reporting task needs to derive following information from a NiFi Provenance event record:
             <ul>
                 <li>typeName (e.g. fs_path, hive_table)</li>
-                <li>qualifiedName in uniqueId@clusterName (e.g. /data/A1.csv@BranchOffice1)</li>
+                <li>qualifiedName in uniqueId@namespace (e.g. /data/A1.csv@ns1)</li>
             </ul>
         </p>
 
-        <p>'clusterName' in 'qualifiedName' attribute is resolved by mapping ip-address or hostname available at NiFi Provenance event 'transitUri' to a cluster name. See <a href="cluster-name">Cluster Name Resolution</a> for detail.</p>
+        <p>'namespace' in 'qualifiedName' attribute is resolved by mapping ip-address or hostname available at NiFi Provenance event 'transitUri' to a namespace. See <a href="namespaces">Namespaces</a> for detail.</p>
 
         <p>For 'typeName' and 'qualifiedName', different analysis rules are needed for different DataSet. ReportLineageToAtlas provides an extension point called 'NiFiProvenanceEventAnalyzer' to implement such analysis logic for particular DataSets.</p>
 
@@ -327,8 +328,8 @@ Processor 3</pre>
                 <td>
                     nifi_input_port
                 </td>
-                <td>rootGroupPortGUID@clusterName
-                    (e.g. 35dbc0ab-015e-1000-144c-a8d71255027d@cl1)</td>
+                <td>rootGroupPortGUID@namespace
+                    (e.g. 35dbc0ab-015e-1000-144c-a8d71255027d@ns1)</td>
                 <td></td>
             </tr>
             <tr>
@@ -343,7 +344,7 @@ upstream (nifi_flow_path)
      (nifi_input_port)
                     </pre>
                 </td>
-                <td>remoteInputPortGUID@clusterName<br/>(e.g. f31a6b53-3077-4c59-144c-a8d71255027d@cl1)
+                <td>remoteInputPortGUID@namespace<br/>(e.g. f31a6b53-3077-4c59-144c-a8d71255027d@ns1)
                     <p>NOTE: The remoteInputPortGUID is the client side component ID and different from the remote target port GUID. Multiple Remote Input Ports can send to the same target remote input port.</p></td>
                 <td></td>
             </tr>
@@ -363,8 +364,8 @@ upstream (nifi_flow_path)
                 <td>
                     nifi_output_port
                 </td>
-                <td>rootGroupPortGUID@clusterName
-                    (e.g. 45dbc0ab-015e-1000-144c-a8d71255027d@cl1)</td>
+                <td>rootGroupPortGUID@namespace
+                    (e.g. 45dbc0ab-015e-1000-144c-a8d71255027d@ns1)</td>
                 <td></td>
             </tr>
             <tr>
@@ -382,9 +383,9 @@ remote target port
                 </td>
                 <td>
                     <ul>
-                        <li>For 'nifi_flow_path': remoteOutputPortGUID@clusterName<br/>(e.g. 7375f8f6-4604-468d-144c-a8d71255027d@cl1)
+                        <li>For 'nifi_flow_path': remoteOutputPortGUID@namespace<br/>(e.g. 7375f8f6-4604-468d-144c-a8d71255027d@ns1)
                             <p>NOTE: The remoteOutputPortGUID is the client side component ID and different from the remote target port GUID. Multiple Remote Output Ports can pull from the same target remote output port.</p></li>
-                        <li>For 'nifi_queue': downstreamPathGUID@clusterName<br/>(e.g. bb530e58-ee14-3cac-144c-a8d71255027d@cl1)</li>
+                        <li>For 'nifi_queue': downstreamPathGUID@namespace<br/>(e.g. bb530e58-ee14-3cac-144c-a8d71255027d@ns1)</li>
                     </ul>
                 </td>
                 <td></td>
@@ -409,7 +410,7 @@ remote target port
                     nifi_input_port<br/>
                     nifi_output_port
                 </td>
-                <td>rootGroupPortGUID@clusterName<br/>(e.g. 35dbc0ab-015e-1000-144c-a8d71255027d@cl1)</td>
+                <td>rootGroupPortGUID@namespace<br/>(e.g. 35dbc0ab-015e-1000-144c-a8d71255027d@ns1)</td>
                 <td></td>
             </tr>
             <tr>
@@ -435,7 +436,7 @@ remote target port
                     (Protocol can be either PLAINTEXT, SSL, SASL_PLAINTEXT or SASL_SSL)
                 </td>
                 <td>kafka_topic</td>
-                <td>topicName@clusterName<br/>(e.g. testTopic@cl1)</td>
+                <td>topicName@namespace<br/>(e.g. testTopic@ns1)</td>
                 <td><strong>NOTE:</strong>With Atlas earlier than 0.8.2, the same topic name in different clusters can not be created using the pre-built 'kafka_topic'. See <a href="https://issues.apache.org/jira/browse/ATLAS-2286">ATLAS-2286</a>.</td>
             </tr>
             <tr>
@@ -444,7 +445,7 @@ remote target port
                 <td>SEND</td>
                 <td>thrift://hive.example.com:9083</td>
                 <td>hive_table</td>
-                <td>tableName@clusterName<br/>(e.g. myTable@cl1)</td>
+                <td>tableName@namespace<br/>(e.g. myTable@ns1)</td>
                 <td></td>
             </tr>
 
@@ -460,7 +461,7 @@ remote target port
                 </td>
                 <td>jdbc:hive2://hive.example.com:10000/default</td>
                 <td>hive_table</td>
-                <td>tableName@clusterName<br/>(e.g. myTable@cl1)</td>
+                <td>tableName@namespace<br/>(e.g. myTable@ns1)</td>
                 <td>The corresponding Processors parse Hive QL to set 'query.input.tables' and 'query.output.tables' FlowFile attributes. These attribute values are used to create qualified name.</td>
             </tr>
             <tr>
@@ -485,7 +486,7 @@ remote target port
                 </td>
                 <td>hdfs://nn.example.com:8020/user/nifi/5262553828219</td>
                 <td>hdfs_path</td>
-                <td>/path/fileName@clusterName<br/>(e.g. /app/warehouse/hive/db/default@cl1)</td>
+                <td>/path/fileName@namespace<br/>(e.g. /app/warehouse/hive/db/default@ns1)</td>
                 <td></td>
             </tr>
             <tr>
@@ -508,7 +509,7 @@ remote target port
                 </td>
                 <td>hbase://hmaster.example.com:16000/tableA/rowX</td>
                 <td>hbase_table</td>
-                <td>tableName@clusterName<br/>(e.g. myTable@cl1)</td>
+                <td>tableName@namespace<br/>(e.g. myTable@ns1)</td>
                 <td></td>
             </tr>
             <tr>
@@ -541,7 +542,7 @@ remote target port
                 </td>
                 <td></td>
                 <td>nifi_data</td>
-                <td>processorGuid@clusterName<br/>db8bb12c-5cd3-3011-c971-579f460ebedf@cl1</td>
+                <td>processorGuid@namespace<br/>db8bb12c-5cd3-3011-c971-579f460ebedf@ns1</td>
                 <td></td>
             </tr>
         </table>

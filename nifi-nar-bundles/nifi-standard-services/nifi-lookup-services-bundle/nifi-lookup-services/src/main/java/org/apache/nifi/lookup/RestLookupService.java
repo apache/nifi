@@ -40,6 +40,7 @@ import org.apache.nifi.components.Validator;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxyConfigurationService;
@@ -48,6 +49,7 @@ import org.apache.nifi.record.path.FieldValue;
 import org.apache.nifi.record.path.RecordPath;
 import org.apache.nifi.record.path.validation.RecordPathValidator;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
+import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
@@ -57,12 +59,20 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.StringUtils;
+import org.apache.nifi.util.Tuple;
 
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.Proxy;
+import java.security.KeyManagementException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.UnrecoverableKeyException;
+import java.security.cert.CertificateException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -71,6 +81,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -120,6 +131,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
         .required(false)
         .identifiesControllerService(SSLContextService.class)
         .build();
+
     public static final PropertyDescriptor PROP_BASIC_AUTH_USERNAME = new PropertyDescriptor.Builder()
         .name("rest-lookup-basic-auth-username")
         .displayName("Basic Authentication Username")
@@ -138,6 +150,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
         .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("^[\\x20-\\x7e\\x80-\\xff]+$")))
         .build();
+
     public static final PropertyDescriptor PROP_DIGEST_AUTH = new PropertyDescriptor.Builder()
         .name("rest-lookup-digest-auth")
         .displayName("Use Digest Authentication")
@@ -146,6 +159,24 @@ public class RestLookupService extends AbstractControllerService implements Reco
         .required(false)
         .defaultValue("false")
         .allowableValues("true", "false")
+        .build();
+
+    public static final PropertyDescriptor PROP_CONNECT_TIMEOUT = new PropertyDescriptor.Builder()
+        .name("rest-lookup-connection-timeout")
+        .displayName("Connection Timeout")
+        .description("Max wait time for connection to remote service.")
+        .required(true)
+        .defaultValue("5 secs")
+        .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+        .build();
+
+    public static final PropertyDescriptor PROP_READ_TIMEOUT = new PropertyDescriptor.Builder()
+        .name("rest-lookup-read-timeout")
+        .displayName("Read Timeout")
+        .description("Max wait time for response from remote service.")
+        .required(true)
+        .defaultValue("15 secs")
+        .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
         .build();
 
     private static final ProxySpec[] PROXY_SPECS = {ProxySpec.HTTP_AUTH, ProxySpec.SOCKS};
@@ -170,7 +201,9 @@ public class RestLookupService extends AbstractControllerService implements Reco
             PROXY_CONFIGURATION_SERVICE,
             PROP_BASIC_AUTH_USERNAME,
             PROP_BASIC_AUTH_PASSWORD,
-            PROP_DIGEST_AUTH
+            PROP_DIGEST_AUTH,
+            PROP_CONNECT_TIMEOUT,
+            PROP_READ_TIMEOUT
         ));
         KEYS = Collections.emptySet();
     }
@@ -199,14 +232,42 @@ public class RestLookupService extends AbstractControllerService implements Reco
 
         setAuthenticator(builder, context);
 
+        // Set timeouts
+        builder.connectTimeout((context.getProperty(PROP_CONNECT_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue()), TimeUnit.MILLISECONDS);
+        builder.readTimeout(context.getProperty(PROP_READ_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue(), TimeUnit.MILLISECONDS);
+
         if (proxyConfigurationService != null) {
             setProxy(builder);
         }
 
         final SSLContextService sslService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
-        final SSLContext sslContext = sslService == null ? null : sslService.createSSLContext(SSLContextService.ClientAuth.WANT);
         if (sslService != null) {
-            builder.sslSocketFactory(sslContext.getSocketFactory());
+            Tuple<SSLContext, TrustManager[]> sslContextTuple = null;
+            try {
+                sslContextTuple = SslContextFactory.createTrustSslContextWithTrustManagers(
+                        sslService.getKeyStoreFile(),
+                        sslService.getKeyStorePassword() != null ? sslService.getKeyStorePassword().toCharArray() : null,
+                        sslService.getKeyPassword() != null ? sslService.getKeyPassword().toCharArray() : null,
+                        sslService.getKeyStoreType(),
+                        sslService.getTrustStoreFile(),
+                        sslService.getTrustStorePassword() != null ? sslService.getTrustStorePassword().toCharArray() : null,
+                        sslService.getTrustStoreType(),
+                        SslContextFactory.ClientAuth.WANT,
+                        sslService.getSslAlgorithm()
+                );
+            } catch (CertificateException | UnrecoverableKeyException | NoSuchAlgorithmException | KeyStoreException | KeyManagementException | IOException e) {
+                throw new ProcessException(e);
+            }
+            List<X509TrustManager> x509TrustManagers = Arrays.stream(sslContextTuple.getValue())
+                    .filter(trustManager -> trustManager instanceof X509TrustManager)
+                    .map(trustManager -> (X509TrustManager) trustManager).collect(Collectors.toList());
+            builder.sslSocketFactory(sslContextTuple.getKey().getSocketFactory(), x509TrustManagers.get(0));
+
+            if (sslContextTuple.getValue().length > 0) {
+                builder.sslSocketFactory(sslContextTuple.getKey().getSocketFactory(), (X509TrustManager) sslContextTuple.getValue()[0]);
+            } else {
+                throw new ProcessException("Failed to create SSL socket factory with trust manager.");
+            }
         }
 
         client = builder.build();

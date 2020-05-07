@@ -62,23 +62,23 @@ public class MockPutKudu extends PutKudu {
     }
 
     @Override
-    protected Insert insertRecordToKudu(KuduTable kuduTable, Record record, List<String> fieldNames, Boolean ignoreNull) {
+    protected Insert insertRecordToKudu(KuduTable kuduTable, Record record, List<String> fieldNames, Boolean ignoreNull, Boolean lowercaseFields) {
         Insert insert = insertQueue.poll();
         return insert != null ? insert : mock(Insert.class);
     }
 
     @Override
-    protected Upsert upsertRecordToKudu(KuduTable kuduTable, Record record, List<String> fieldNames, Boolean ignoreNull) {
+    protected Upsert upsertRecordToKudu(KuduTable kuduTable, Record record, List<String> fieldNames, Boolean ignoreNull, Boolean lowercaseFields) {
         return mock(Upsert.class);
     }
 
     @Override
-    protected Delete deleteRecordFromKudu(KuduTable kuduTable, Record record, List<String> fieldNames, Boolean ignoreNull) {
+    protected Delete deleteRecordFromKudu(KuduTable kuduTable, Record record, List<String> fieldNames, Boolean ignoreNull, Boolean lowercaseFields) {
         return mock(Delete.class);
     }
 
     @Override
-    protected Update updateRecordToKudu(KuduTable kuduTable, Record record, List<String> fieldNames, Boolean ignoreNull) {
+    protected Update updateRecordToKudu(KuduTable kuduTable, Record record, List<String> fieldNames, Boolean ignoreNull, Boolean lowercaseFields) {
         return mock(Update.class);
     }
 
@@ -117,7 +117,16 @@ public class MockPutKudu extends PutKudu {
     }
 
     @Override
-    protected KerberosUser loginKerberosUser(final String principal, final String keytab) throws LoginException {
+    protected KerberosUser loginKerberosKeytabUser(final String principal, final String keytab) throws LoginException {
+        return createMockKerberosUser(principal);
+    }
+
+    @Override
+    protected KerberosUser loginKerberosPasswordUser(String principal, String password) throws LoginException {
+        return createMockKerberosUser(principal);
+    }
+
+    private KerberosUser createMockKerberosUser(final String principal) {
         return new KerberosUser() {
 
             @Override
@@ -162,7 +171,7 @@ public class MockPutKudu extends PutKudu {
     }
 
     @Override
-    protected KuduSession getKuduSession(KuduClient client) {
+    protected KuduSession createKuduSession(KuduClient client) {
         return session;
     }
 }

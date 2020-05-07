@@ -432,6 +432,33 @@ public class PutHDFSTest {
             fileSystem.getFileStatus(new Path("target/test-classes/randombytes-1")).getPermission());
     }
 
+    @Test
+    public void testPutFileWithCloseException() throws IOException {
+        mockFileSystem = new MockFileSystem(true);
+        String dirName = "target/testPutFileCloseException";
+        File file = new File(dirName);
+        file.mkdirs();
+        Path p = new Path(dirName).makeQualified(mockFileSystem.getUri(), mockFileSystem.getWorkingDirectory());
+
+        TestRunner runner = TestRunners.newTestRunner(new TestablePutHDFS(kerberosProperties, mockFileSystem));
+        runner.setProperty(PutHDFS.DIRECTORY, dirName);
+        runner.setProperty(PutHDFS.CONFLICT_RESOLUTION, "replace");
+
+        try (FileInputStream fis = new FileInputStream("src/test/resources/testdata/randombytes-1")) {
+            Map<String, String> attributes = new HashMap<>();
+            attributes.put(CoreAttributes.FILENAME.key(), "randombytes-1");
+            runner.enqueue(fis, attributes);
+            runner.run();
+        }
+
+        List<MockFlowFile> failedFlowFiles = runner
+                .getFlowFilesForRelationship(PutHDFS.REL_FAILURE);
+        assertFalse(failedFlowFiles.isEmpty());
+        assertTrue(failedFlowFiles.get(0).isPenalized());
+
+        mockFileSystem.delete(p, true);
+    }
+
     private class TestablePutHDFS extends PutHDFS {
 
         private KerberosProperties testKerberosProperties;
@@ -461,6 +488,15 @@ public class PutHDFSTest {
 
     private class MockFileSystem extends FileSystem {
         private final Map<Path, FileStatus> pathToStatus = new HashMap<>();
+        private final boolean failOnClose;
+
+        public MockFileSystem() {
+            failOnClose = false;
+        }
+
+        public MockFileSystem(boolean failOnClose) {
+            this.failOnClose = failOnClose;
+        }
 
         @Override
         public URI getUri() {
@@ -476,7 +512,17 @@ public class PutHDFSTest {
         public FSDataOutputStream create(final Path f, final FsPermission permission, final boolean overwrite, final int bufferSize, final short replication,
                                          final long blockSize, final Progressable progress) {
             pathToStatus.put(f, newFile(f, permission));
-            return new FSDataOutputStream(new ByteArrayOutputStream(), new Statistics(""));
+            if(failOnClose) {
+                return new FSDataOutputStream(new ByteArrayOutputStream(), new Statistics("")) {
+                    @Override
+                    public void close() throws IOException {
+                        super.close();
+                        throw new IOException("Fail on close");
+                    }
+                };
+            } else {
+                return new FSDataOutputStream(new ByteArrayOutputStream(), new Statistics(""));
+            }
         }
 
         @Override

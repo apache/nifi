@@ -46,8 +46,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLSocket;
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.DataInputStream;
 import java.io.EOFException;
 import java.io.IOException;
@@ -112,10 +110,7 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
 
 
     @Override
-    public void receiveFlowFiles(final Socket socket) throws IOException {
-        final InputStream in = new BufferedInputStream(socket.getInputStream());
-        final OutputStream out = new BufferedOutputStream(socket.getOutputStream());
-
+    public void receiveFlowFiles(final Socket socket, final InputStream in, final OutputStream out) throws IOException {
         String peerDescription = socket.getInetAddress().getHostName();
         if (socket instanceof SSLSocket) {
             logger.debug("Connection received from peer {}", peerDescription);
@@ -504,7 +499,7 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
             throw new IOException("Expected a Data Frame Indicator from Peer " + peerDescription + " but received a value of " + dataFrameIndicator);
         }
 
-        int dataFrameLength = in.readUnsignedShort();
+        int dataFrameLength = in.readInt();
         logger.trace("Received Data Frame Length of {} for {}", dataFrameLength, peerDescription);
 
         byte[] buffer = getDataBuffer();
@@ -540,7 +535,7 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
                 throw new IOException("Expected a Data Frame Indicator from Peer " + peerDescription + " but received a value of " + dataFrameIndicator);
             }
 
-            dataFrameLength = in.readUnsignedShort();
+            dataFrameLength = in.readInt();
             logger.trace("Received Data Frame Length of {} for {}", dataFrameLength, peerDescription);
         }
 

@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.atlas.provenance.analyzer;
 
-import org.apache.atlas.typesystem.Referenceable;
+import org.apache.atlas.v1.model.instance.Referenceable;
 import org.apache.nifi.atlas.provenance.AnalysisContext;
 import org.apache.nifi.atlas.provenance.DataSetRefs;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
@@ -30,16 +30,19 @@ import static org.apache.nifi.atlas.provenance.analyzer.DatabaseAnalyzerUtil.par
 
 /**
  * Analyze provenance events for PutHiveStreamingProcessor.
- * <li>qualifiedName=tableName@clusterName (example: myTable@cl1)
+ * <li>qualifiedName=tableName@namespace (example: myTable@ns1)
  * <li>name=tableName (example: myTable)
  */
 public class PutHiveStreaming extends AbstractHiveAnalyzer {
 
     @Override
     public DataSetRefs analyze(AnalysisContext context, ProvenanceEventRecord event) {
+        if (event.getTransitUri() == null) {
+            return null;
+        }
 
         final URI uri = parseUri(event.getTransitUri());
-        final String clusterName = context.getClusterResolver().fromHostNames(uri.getHost());
+        final String namespace = context.getNamespaceResolver().fromHostNames(uri.getHost());
         final Set<Tuple<String, String>> outputTables = parseTableNames(null, event.getAttribute(ATTR_OUTPUT_TABLES));
         if (outputTables.isEmpty()) {
             return null;
@@ -47,7 +50,7 @@ public class PutHiveStreaming extends AbstractHiveAnalyzer {
 
         final DataSetRefs refs = new DataSetRefs(event.getComponentId());
         outputTables.forEach(tableName -> {
-            final Referenceable ref = createTableRef(clusterName, tableName);
+            final Referenceable ref = createTableRef(namespace, tableName);
             refs.addOutput(ref);
         });
         return refs;
@@ -55,6 +58,6 @@ public class PutHiveStreaming extends AbstractHiveAnalyzer {
 
     @Override
     public String targetComponentTypePattern() {
-        return "^PutHiveStreaming$";
+        return "^PutHive(3)?Streaming$";
     }
 }

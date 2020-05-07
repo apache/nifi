@@ -12,6 +12,8 @@
 	{ "name" : "componentType", "type" : "string"},
 	{ "name" : "componentName", "type" : "string"},
 	{ "name" : "parentId", "type" : ["string", "null"]},
+	{ "name" : "parentName", "type" : ["string", "null"]},
+	{ "name" : "parentPath", "type" : ["string", "null"]},
 	{ "name" : "platform", "type" : "string"},
 	{ "name" : "application", "type" : "string"},
 	{ "name" : "componentId", "type" : "string"},
@@ -84,6 +86,6 @@
 	{ "name" : "invocations", "type" : ["long", "null"]},
 	{ "name" : "processingNanos", "type" : ["long", "null"]},
 	{ "name" : "executionNode", "type" : ["string", "null"]},
-	{ "name" : "counters", "type": { "type": "map", "values": "string" }}
+	{ "name" : "counters", "type": ["null", { "type": "map", "values": "string" }]}
   ]
 }

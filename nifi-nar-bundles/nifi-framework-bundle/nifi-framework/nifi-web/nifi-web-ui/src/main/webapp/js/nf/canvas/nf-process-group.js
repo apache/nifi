@@ -1165,7 +1165,7 @@
                                 // update the tip
                                 tip.html(function () {
                                     var vci = processGroupData.component.versionControlInformation;
-                                    var versionControlTip = $('<div></div>').text('Tracking to "' + vci.flowName + '" version ' + vci.version + ' in "' + vci.registryName + ' - ' + vci.bucketName + '"');
+                                    var versionControlTip = $('<div></div>').text('Tracking to "' + vci.flowName + '" Version ' + vci.version + ' in "' + vci.registryName + ' - ' + vci.bucketName + '"');
                                     var versionControlStateTip = $('<div></div>').text(nfCommon.getVersionControlTooltip(vci));
                                     return $('<div></div>').append(versionControlTip).append('<br/>').append(versionControlStateTip).html();
                                 });

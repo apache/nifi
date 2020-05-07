@@ -48,8 +48,11 @@ import org.apache.nifi.util.Tuple;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.AccessDeniedException;
 import java.nio.file.FileStore;
 import java.nio.file.FileVisitOption;
+import java.nio.file.FileVisitResult;
+import java.nio.file.FileVisitor;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -68,6 +71,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -80,8 +84,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiPredicate;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static org.apache.nifi.expression.ExpressionLanguageScope.VARIABLE_REGISTRY;
 import static org.apache.nifi.processor.util.StandardValidators.POSITIVE_INTEGER_VALIDATOR;
@@ -547,41 +549,71 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
             }
         };
 
-        final Stream<Path> inputStream = getPathStream(basePath, maxDepth, matcher);
-
-        final Stream<FileInfo> listing = inputStream.map(p -> {
-            File file = p.toFile();
-            BasicFileAttributes attributes = lastModifiedMap.get(p);
-
-            final FileInfo fileInfo = new FileInfo.Builder()
-                .directory(false)
-                .filename(file.getName())
-                .fullPathFileName(file.getAbsolutePath())
-                .lastModifiedTime(attributes.lastModifiedTime().toMillis())
-                .size(attributes.size())
-                .build();
-
-            return fileInfo;
-        });
-
-        // Perform the actual listing
         try {
             final long start = System.currentTimeMillis();
-            final List<FileInfo> fileInfos = listing.collect(Collectors.toList());
+            final List<FileInfo> result = new LinkedList<>();
+
+            Files.walkFileTree(basePath, Collections.singleton(FileVisitOption.FOLLOW_LINKS), maxDepth, new FileVisitor<Path>() {
+                @Override
+                public FileVisitResult preVisitDirectory(final Path dir, final BasicFileAttributes attributes) throws IOException {
+                    if (Files.isReadable(dir)) {
+                        return FileVisitResult.CONTINUE;
+                    } else {
+                        getLogger().debug("The following directory is not readable: {}", new Object[] {dir.toString()});
+                        return FileVisitResult.SKIP_SUBTREE;
+                    }
+                }
+
+                @Override
+                public FileVisitResult visitFile(final Path path, final BasicFileAttributes attributes) throws IOException {
+                    if (matcher.test(path, attributes)) {
+                        final File file = path.toFile();
+                        final BasicFileAttributes fileAttributes = lastModifiedMap.get(path);
+                        final FileInfo fileInfo = new FileInfo.Builder()
+                                .directory(false)
+                                .filename(file.getName())
+                                .fullPathFileName(file.getAbsolutePath())
+                                .lastModifiedTime(fileAttributes.lastModifiedTime().toMillis())
+                                .size(fileAttributes.size())
+                                .build();
+
+                        result.add(fileInfo);
+                    }
+
+                    return FileVisitResult.CONTINUE;
+                }
+
+                @Override
+                public FileVisitResult visitFileFailed(final Path path, final IOException e) throws IOException {
+                    if (e instanceof AccessDeniedException) {
+                        getLogger().debug("The following file is not readable: {}", new Object[] {path.toString()});
+                        return FileVisitResult.SKIP_SUBTREE;
+                    } else {
+                        getLogger().error("Error during visiting file {}: {}", new Object[] {path.toString(), e.getMessage()}, e);
+                        return FileVisitResult.TERMINATE;
+                    }
+                }
+
+                @Override
+                public FileVisitResult postVisitDirectory(final Path dir, final IOException e) throws IOException {
+                    if (e != null) {
+                        getLogger().error("Error during visiting directory {}: {}", new Object[] {dir.toString(), e.getMessage()}, e);
+                    }
+
+                    return FileVisitResult.CONTINUE;
+                }
+            });
+
             final long millis = System.currentTimeMillis() - start;
 
-            getLogger().debug("Took {} milliseconds to perform listing and gather {} entries", new Object[] {millis, fileInfos.size()});
-            return fileInfos;
+            getLogger().debug("Took {} milliseconds to perform listing and gather {} entries", new Object[] {millis, result.size()});
+            return result;
         } catch (final ProcessorStoppedException pse) {
             getLogger().info("Processor was stopped so will not complete listing of Files");
             return Collections.emptyList();
         } finally {
             performanceTracker.completeActiveDirectory();
         }
-    }
-
-    protected Stream<Path> getPathStream(final Path basePath, final int maxDepth, final BiPredicate<Path, BasicFileAttributes> matcher) throws IOException {
-        return Files.find(basePath, maxDepth, matcher, FileVisitOption.FOLLOW_LINKS);
     }
 
     @Override

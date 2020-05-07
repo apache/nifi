@@ -16,10 +16,31 @@
  */
 package org.apache.nifi.fingerprint;
 
+import static org.apache.nifi.controller.serialization.ScheduledStateLookup.IDENTITY_LOOKUP;
+import static org.apache.nifi.fingerprint.FingerprintFactory.FLOW_CONFIG_XSD;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.io.File;
+import java.io.IOException;
+import java.lang.reflect.Method;
+import java.util.Collections;
+import java.util.Optional;
+import javax.xml.XMLConstants;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.validation.Schema;
+import javax.xml.validation.SchemaFactory;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.connectable.Position;
 import org.apache.nifi.controller.ScheduledState;
+import org.apache.nifi.controller.serialization.FlowEncodingVersion;
 import org.apache.nifi.controller.serialization.FlowSerializer;
 import org.apache.nifi.controller.serialization.ScheduledStateLookup;
 import org.apache.nifi.controller.serialization.StandardFlowSerializer;
@@ -29,6 +50,7 @@ import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
+import org.apache.nifi.security.util.crypto.Argon2SecureHasher;
 import org.junit.Before;
 import org.junit.Test;
 import org.w3c.dom.Document;
@@ -36,25 +58,6 @@ import org.w3c.dom.Element;
 import org.xml.sax.ErrorHandler;
 import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
-
-import javax.xml.XMLConstants;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.validation.Schema;
-import javax.xml.validation.SchemaFactory;
-import java.io.IOException;
-import java.lang.reflect.Method;
-import java.util.Collections;
-import java.util.Optional;
-
-import static org.apache.nifi.controller.serialization.ScheduledStateLookup.IDENTITY_LOOKUP;
-import static org.apache.nifi.fingerprint.FingerprintFactory.FLOW_CONFIG_XSD;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 /**
  */
@@ -245,6 +248,7 @@ public class FingerprintFactoryTest {
 
     @Test
     public void testRemoteProcessGroupFingerprintWithProxy() throws Exception {
+        final String proxyPassword = "proxy-pass";
 
         // Fill out every configuration.
         final RemoteProcessGroup component = mock(RemoteProcessGroup.class);
@@ -260,10 +264,11 @@ public class FingerprintFactoryTest {
         when(component.getProxyHost()).thenReturn("proxy-host");
         when(component.getProxyPort()).thenReturn(3128);
         when(component.getProxyUser()).thenReturn("proxy-user");
-        when(component.getProxyPassword()).thenReturn("proxy-pass");
+        when(component.getProxyPassword()).thenReturn(proxyPassword);
         when(component.getVersionedComponentId()).thenReturn(Optional.empty());
 
         // Assert fingerprints with expected one.
+        final String hashedProxyPassword = "[MASKED] (" + new Argon2SecureHasher().hashBase64(proxyPassword) + ")";
         final String expected = "id" +
                 "NO_VALUE" +
                 "http://node1:8080/nifi, http://node2:8080/nifi" +
@@ -274,11 +279,11 @@ public class FingerprintFactoryTest {
                 "proxy-host" +
                 "3128" +
                 "proxy-user" +
-                "proxy-pass";
+                hashedProxyPassword;
 
         final Element rootElement = serializeElement(encryptor, RemoteProcessGroup.class, component, "addRemoteProcessGroup", IDENTITY_LOOKUP);
         final Element componentElement = (Element) rootElement.getElementsByTagName("remoteProcessGroup").item(0);
-        assertEquals(expected.toString(), fingerprint("addRemoteProcessGroupFingerprint", Element.class, componentElement));
+        assertEquals(expected, fingerprint("addRemoteProcessGroupFingerprint", Element.class, componentElement));
     }
 
     @Test
@@ -322,5 +327,30 @@ public class FingerprintFactoryTest {
         final Element rootElement = serializeElement(encryptor, RemoteProcessGroup.class, groupComponent, "addRemoteProcessGroup", IDENTITY_LOOKUP);
         final Element componentElement = (Element) rootElement.getElementsByTagName("inputPort").item(0);
         assertEquals(expected, fingerprint("addRemoteGroupPortFingerprint", Element.class, componentElement));
+    }
+
+    @Test
+    public void testControllerServicesIncludedInGroupFingerprint() throws ParserConfigurationException, IOException, SAXException {
+        final DocumentBuilderFactory docBuilderFactory = DocumentBuilderFactory.newInstance();
+        final DocumentBuilder docBuilder = docBuilderFactory.newDocumentBuilder();
+        final Document document = docBuilder.parse(new File("src/test/resources/nifi/fingerprint/group-with-controller-services.xml"));
+        final Element processGroup = document.getDocumentElement();
+
+        final StringBuilder sb = new StringBuilder();
+        fingerprinter.addProcessGroupFingerprint(sb, processGroup, new FlowEncodingVersion(1, 0));
+
+        final String fingerprint = sb.toString();
+        final String[] criticalFingerprintValues = new String[] {
+            "1234",
+            "s1", "service1", "prop1", "value1", "org.apache.nifi.services.FingerprintControllerService",
+            "s2", "service2", "another property", "another value", "org.apache.nifi.services.AnotherService",
+        };
+
+        for (final String criticalValue : criticalFingerprintValues) {
+            assertTrue("Fingerprint did not contain '" + criticalValue + "'", fingerprint.contains(criticalValue));
+        }
+
+        // Ensure that 's1' comes before 's2' in the fingerprint
+        assertTrue(fingerprint.indexOf("FingerprintControllerService") < fingerprint.indexOf("AnotherService"));
     }
 }

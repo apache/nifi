@@ -17,9 +17,6 @@
 
 package org.apache.nifi.schema.validation;
 
-import java.math.BigInteger;
-import java.util.Map;
-
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
@@ -35,7 +32,11 @@ import org.apache.nifi.serialization.record.validation.SchemaValidationResult;
 import org.apache.nifi.serialization.record.validation.ValidationError;
 import org.apache.nifi.serialization.record.validation.ValidationErrorType;
 
+import java.util.Map;
+
 public class StandardSchemaValidator implements RecordSchemaValidator {
+
+
     private final SchemaValidationContext validationContext;
 
     public StandardSchemaValidator(final SchemaValidationContext validationContext) {
@@ -233,36 +234,45 @@ public class StandardSchemaValidator implements RecordSchemaValidator {
                 }
 
                 return false;
-            case BIGINT:
-                return value instanceof BigInteger;
             case BOOLEAN:
                 return value instanceof Boolean;
-            case BYTE:
-                return value instanceof Byte;
             case CHAR:
                 return value instanceof Character;
             case DATE:
                 return value instanceof java.sql.Date;
-            case DOUBLE:
-                return value instanceof Double;
-            case FLOAT:
-                // Some readers do not provide float vs. double.
-                // We should consider if it makes sense to allow either a Float or a Double here or have
-                // a Reader indicate whether or not it supports higher precision, etc.
-                // Same goes for Short/Integer
-                return value instanceof Float;
-            case INT:
-                return value instanceof Integer;
-            case LONG:
-                return value instanceof Long;
-            case SHORT:
-                return value instanceof Short;
             case STRING:
                 return value instanceof String;
             case TIME:
                 return value instanceof java.sql.Time;
             case TIMESTAMP:
                 return value instanceof java.sql.Timestamp;
+
+            // Numeric data types
+            case BIGINT:
+            case LONG:
+            case INT:
+            case SHORT:
+            case BYTE:
+                return DataTypeUtils.isFittingNumberType(value, dataType.getFieldType());
+            case DOUBLE:
+                return DataTypeUtils.isFittingNumberType(value, dataType.getFieldType())
+                        || value instanceof Byte
+                        || value instanceof Short
+                        || value instanceof Integer
+                        || DataTypeUtils.isLongFitsToDouble(value)
+                        || DataTypeUtils.isBigIntFitsToDouble(value);
+            case FLOAT:
+                // Some readers do not provide float vs. double.
+                // We should consider if it makes sense to allow either a Float or a Double here or have
+                // a Reader indicate whether or not it supports higher precision, etc.
+                // Same goes for Short/Integer
+                return DataTypeUtils.isFittingNumberType(value, dataType.getFieldType())
+                        || value instanceof Byte
+                        || value instanceof Short
+                        || DataTypeUtils.isDoubleWithinFloatInterval(value)
+                        || DataTypeUtils.isIntegerFitsToFloat(value)
+                        || DataTypeUtils.isLongFitsToFloat(value)
+                        || DataTypeUtils.isBigIntFitsToFloat(value);
         }
 
         return false;

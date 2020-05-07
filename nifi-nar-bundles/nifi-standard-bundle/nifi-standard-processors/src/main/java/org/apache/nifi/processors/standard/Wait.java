@@ -87,7 +87,7 @@ import static org.apache.nifi.processor.FlowFileFilter.FlowFileFilterResult.REJE
 @WritesAttributes({
         @WritesAttribute(attribute = "wait.start.timestamp", description = "All FlowFiles will have an attribute 'wait.start.timestamp', which sets the "
         + "initial epoch timestamp when the file first entered this processor.  This is used to determine the expiration time of the FlowFile.  "
-        + "This attribute is not written when the FlowFile is transferred to failure or success"),
+        + "This attribute is not written when the FlowFile is transferred to failure, expired or success"),
         @WritesAttribute(attribute = "wait.counter.<counterName>", description = "If a signal exists when the processor runs, "
         + "each count value in the signal is copied.")
 })
@@ -375,7 +375,7 @@ public class Wait extends AbstractProcessor {
             final Relationship finalRelationship = relationship;
             final List<FlowFile> flowFilesWithSignalAttributes = routedFlowFiles.getValue().stream()
                     .map(f -> {
-                        if (REL_SUCCESS.equals(finalRelationship)) {
+                        if (REL_SUCCESS.equals(finalRelationship) || REL_EXPIRED.equals(finalRelationship)) {
                             // These flowFiles will be exiting the wait, clear the timer
                             f = clearWaitState(session, f);
                         }

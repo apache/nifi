@@ -17,7 +17,9 @@
 package org.apache.nifi.web.api.dto;
 
 import io.swagger.annotations.ApiModelProperty;
+import org.apache.nifi.web.api.dto.util.TimestampAdapter;
 
+import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import java.util.Date;
 import java.util.List;
 
@@ -51,6 +53,7 @@ public abstract class AsynchronousRequestDTO<T extends UpdateStepDTO> {
         this.uri = uri;
     }
 
+    @XmlJavaTypeAdapter(TimestampAdapter.class)
     @ApiModelProperty(value = "The timestamp of when the request was submitted", readOnly =  true)
     public Date getSubmissionTime() {
         return submissionTime;
@@ -60,6 +63,7 @@ public abstract class AsynchronousRequestDTO<T extends UpdateStepDTO> {
         this.submissionTime = submissionTime;
     }
 
+    @XmlJavaTypeAdapter(TimestampAdapter.class)
     @ApiModelProperty(value = "The timestamp of when the request was last updated", readOnly = true)
     public Date getLastUpdated() {
         return lastUpdated;

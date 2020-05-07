@@ -54,7 +54,7 @@ import com.amazonaws.util.Base64;
 
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"amazon", "aws", "lambda", "put"})
-@CapabilityDescription("Sends the contents to a specified Amazon Lamba Function. "
+@CapabilityDescription("Sends the contents to a specified Amazon Lambda Function. "
     + "The AWS credentials used for authentication must have permissions execute the Lambda function (lambda:InvokeFunction)."
     + "The FlowFile content must be JSON.")
 @WritesAttributes({

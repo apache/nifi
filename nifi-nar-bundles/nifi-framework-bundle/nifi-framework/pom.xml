@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-framework-bundle</artifactId>
-        <version>1.10.0-SNAPSHOT</version>
+        <version>1.12.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-framework</artifactId>
     <packaging>pom</packaging>
@@ -48,6 +48,7 @@
         <module>nifi-standard-prioritizers</module>
         <module>nifi-mock-authorizer</module>
         <module>nifi-shell-authorizer</module>
+        <module>nifi-stateless</module>
     </modules>
     <dependencies>
         <dependency>

@@ -311,29 +311,6 @@ public class ITestSFTPTransferWithSSHTestServer {
     }
 
     @Test
-    public void testGetInputStream() throws IOException {
-        final String filename = "./" + DIR_2 + "/" + FILE_1;
-        final Map<PropertyDescriptor, String> properties = createBaseProperties();
-
-        try(final SFTPTransfer transfer = createSFTPTransfer(properties);
-            final InputStream in = transfer.getInputStream(filename)) {
-            final String content = IOUtils.toString(in, StandardCharsets.UTF_8);
-            assertEquals("dir2 file1", content);
-        }
-    }
-
-    @Test(expected = FileNotFoundException.class)
-    public void testGetInputStreamWhenFileDoesNotExist() throws IOException {
-        final String filename = "./" + DIR_2 + "/DOES-NOT-EXIST";
-        final Map<PropertyDescriptor, String> properties = createBaseProperties();
-
-        try(final SFTPTransfer transfer = createSFTPTransfer(properties);
-            final InputStream in = transfer.getInputStream(filename)) {
-            IOUtils.toString(in, StandardCharsets.UTF_8);
-        }
-    }
-
-    @Test
     public void testDeleteFileWithoutPath() throws IOException {
         final Map<PropertyDescriptor, String> properties = createBaseProperties();
         properties.put(SFTPTransfer.REMOTE_PATH, DIR_2);

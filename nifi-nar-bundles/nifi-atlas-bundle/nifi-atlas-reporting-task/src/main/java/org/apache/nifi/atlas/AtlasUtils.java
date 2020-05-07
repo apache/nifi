@@ -36,15 +36,15 @@ public class AtlasUtils {
         return guid != null && !guid.startsWith("-");
     }
 
-    public static String toQualifiedName(String clusterName, String componentId) {
-        return componentId + "@" + clusterName;
+    public static String toQualifiedName(String namespace, String componentId) {
+        return componentId + "@" + namespace;
     }
 
     public static String getComponentIdFromQualifiedName(String qualifiedName) {
         return qualifiedName.split("@")[0];
     }
 
-    public static String getClusterNameFromQualifiedName(String qualifiedName) {
+    public static String getNamespaceFromQualifiedName(String qualifiedName) {
         return qualifiedName.split("@")[1];
     }
 
