@@ -63,8 +63,8 @@ public class FetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageProce
             }
 
             final DataLakeServiceClient storageClient = getStorageClient(context, flowFile);
-            final DataLakeFileSystemClient dataLakeFileSystemClient = storageClient.getFileSystemClient(fileSystem);
-            final DataLakeDirectoryClient directoryClient = dataLakeFileSystemClient.getDirectoryClient(directory);
+            final DataLakeFileSystemClient fileSystemClient = storageClient.getFileSystemClient(fileSystem);
+            final DataLakeDirectoryClient directoryClient = fileSystemClient.getDirectoryClient(directory);
             final DataLakeFileClient fileClient = directoryClient.getFileClient(fileName);
 
             if (fileClient.getProperties().isDirectory()) {
