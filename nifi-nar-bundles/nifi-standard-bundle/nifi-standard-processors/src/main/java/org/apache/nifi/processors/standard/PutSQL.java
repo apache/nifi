@@ -549,7 +549,9 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
 
         process.onCompleted((c, s, fc, conn) -> {
             try {
-                conn.commit();
+                if (!conn.getAutoCommit()) {
+                    conn.commit();
+                }
             } catch (SQLException e) {
                 // Throw ProcessException to rollback process session.
                 throw new ProcessException("Failed to commit database connection due to " + e, e);
@@ -558,7 +560,9 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
 
         process.onFailed((c, s, fc, conn, e) -> {
             try {
-                conn.rollback();
+                if (!conn.getAutoCommit()) {
+                    conn.rollback();
+                }
             } catch (SQLException re) {
                 // Just log the fact that rollback failed.
                 // ProcessSession will be rollback by the thrown Exception so don't have to do anything here.
