@@ -25,7 +25,12 @@ import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;
+import org.apache.nifi.controller.PropertyConfiguration;
+import org.apache.nifi.parameter.ExpressionLanguageAgnosticParameterParser;
+import org.apache.nifi.parameter.ExpressionLanguageAwareParameterParser;
 import org.apache.nifi.parameter.ParameterContext;
+import org.apache.nifi.parameter.ParameterParser;
+import org.apache.nifi.parameter.ParameterTokenList;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.reporting.InitializationException;
 
@@ -128,10 +133,10 @@ public class StatelessControllerServiceLookup implements ControllerServiceLookup
     public void enableControllerServices(final VariableRegistry variableRegistry) {
         for (final StatelessControllerServiceConfiguration config : controllerServiceMap.values()) {
             final ControllerService service = config.getService();
-            final Collection<ValidationResult> validationResults = validate(service, config.getName(), variableRegistry);
+            final Collection<ValidationResult> validationResults = validate(service, config, variableRegistry);
             if (!validationResults.isEmpty()) {
                 throw new RuntimeException("Failed to enable Controller Service {id=" + service.getIdentifier() + ", name=" + config.getName() + ", type=" + service.getClass() + "} because " +
-                    "validation failed: " + validationResults);
+                        "validation failed: " + validationResults);
             }
 
             try {
@@ -142,10 +147,11 @@ public class StatelessControllerServiceLookup implements ControllerServiceLookup
         }
     }
 
-    public Collection<ValidationResult> validate(final ControllerService service, final String serviceName, final VariableRegistry variableRegistry) {
+    public Collection<ValidationResult> validate(final ControllerService service, final StatelessControllerServiceConfiguration serviceName, final VariableRegistry variableRegistry) {
         final StateManager stateManager = controllerServiceStateManagers.get(service.getIdentifier());
         final SLF4JComponentLog logger = controllerServiceLoggers.get(service.getIdentifier());
-        final StatelessProcessContext processContext = new StatelessProcessContext(service, this, serviceName, logger, stateManager, variableRegistry, parameterContext);
+        final StatelessProcessContext processContext = new StatelessProcessContext(service, this, serviceName.getName(), logger, stateManager, variableRegistry, parameterContext);
+        serviceName.getProperties().forEach((k,v) -> processContext.setProperty(k,v.getRawValue()));
         final StatelessValidationContext validationContext = new StatelessValidationContext(processContext, this, stateManager, variableRegistry, parameterContext);
         return service.validate(validationContext);
     }
@@ -192,18 +198,27 @@ public class StatelessControllerServiceLookup implements ControllerServiceLookup
             throw new IllegalStateException("Controller service " + service + " has not been added to this TestRunner via the #addControllerService method");
         }
 
-        final ValidationContext validationContext = new StatelessValidationContext(context, this, serviceStateManager, registry, parameterContext).getControllerServiceValidationContext(service);
+        final ValidationContext validationContext = new StatelessValidationContext(context, this, serviceStateManager, registry, parameterContext);
         final ValidationResult validationResult = property.validate(value, validationContext);
 
         final StatelessControllerServiceConfiguration configuration = getControllerServiceConfigToUpdate(service);
-        final String oldValue = configuration.getProperties().get(property);
-        configuration.setProperty(property, value);
+        final PropertyConfiguration oldValue = configuration.getProperties().get(property);
+        final PropertyConfiguration propertyConfiguration = createPropertyConfiguration(value, property.isExpressionLanguageSupported());
+        configuration.setProperty(property, propertyConfiguration);
 
-        if ((value == null && oldValue != null) || (value != null && !value.equals(oldValue))) {
-            service.onPropertyModified(property, oldValue, value);
+        if (oldValue == null && value != null) {
+            service.onPropertyModified(property, null, value);
+        } else if ((value == null && oldValue.getRawValue() != null) || (value != null && !value.equals(oldValue.getRawValue()))) {
+            service.onPropertyModified(property, oldValue.getRawValue(), value);
         }
 
         return validationResult;
+    }
+
+    private PropertyConfiguration createPropertyConfiguration(final String value, final boolean supportsEl) {
+        final ParameterParser parameterParser = supportsEl ? new ExpressionLanguageAwareParameterParser() : new ExpressionLanguageAgnosticParameterParser();
+        final ParameterTokenList parameterTokenList = parameterParser.parseTokens(value);
+        return new PropertyConfiguration(value, parameterTokenList, parameterTokenList.toReferenceList());
     }
 
 }
