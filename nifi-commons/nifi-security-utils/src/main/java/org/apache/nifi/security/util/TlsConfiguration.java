@@ -199,6 +199,32 @@ public class TlsConfiguration {
     }
 
     /**
+     * Returns a {@link TlsConfiguration} instantiated from the relevant {@link NiFiProperties} properties for the truststore <em>only</em>. No keystore properties are read or used.
+     *
+     * @param niFiProperties the NiFi properties
+     * @return a populated TlsConfiguration container object
+     */
+    public static TlsConfiguration fromNiFiPropertiesTruststoreOnly(NiFiProperties niFiProperties) {
+        if (niFiProperties == null) {
+            throw new IllegalArgumentException("The NiFi properties cannot be null");
+        }
+
+        String truststorePath = niFiProperties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE);
+        String truststorePassword = niFiProperties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD);
+        String truststoreType = niFiProperties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_TYPE);
+        String protocol = TLS_PROTOCOL_VERSION;
+
+        final TlsConfiguration tlsConfiguration = new TlsConfiguration(null, null, null, null, truststorePath, truststorePassword,
+                truststoreType, protocol);
+        if (logger.isDebugEnabled()) {
+            logger.debug("Instantiating TlsConfiguration from NiFi properties: null x4, {}, {}, {}, {}",
+                    truststorePath, tlsConfiguration.getTruststorePasswordForLogging(), truststoreType, protocol);
+        }
+
+        return tlsConfiguration;
+    }
+
+    /**
      * Returns {@code true} if the provided TlsConfiguration is {@code null} or <em>empty</em>
      * (i.e. neither any of the keystore nor truststore properties are populated).
      *

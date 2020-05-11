@@ -16,29 +16,14 @@
  */
 package org.apache.nifi.integration.accesscontrol;
 
-import java.io.File;
-import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.StringJoiner;
-import javax.net.ssl.SSLContext;
-import javax.ws.rs.client.Client;
 import javax.ws.rs.core.Response;
 import net.minidev.json.JSONObject;
 import org.apache.nifi.integration.util.SourceTestProcessor;
-import org.apache.nifi.nar.ExtensionDiscoveringManager;
-import org.apache.nifi.nar.ExtensionManagerHolder;
-import org.apache.nifi.nar.NarClassLoadersHolder;
-import org.apache.nifi.nar.NarUnpacker;
-import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
-import org.apache.nifi.nar.SystemBundle;
-import org.apache.nifi.security.util.CertificateUtils;
-import org.apache.nifi.security.util.SslContextFactory;
-import org.apache.nifi.security.util.TlsConfiguration;
-import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.api.dto.AccessConfigurationDTO;
 import org.apache.nifi.web.api.dto.AccessStatusDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
@@ -47,20 +32,10 @@ import org.apache.nifi.web.api.entity.AccessConfigurationEntity;
 import org.apache.nifi.web.api.entity.AccessStatusEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.security.jwt.JwtServiceTest;
-import org.apache.nifi.web.security.jwt.JwtServiceTest;
-import org.apache.nifi.web.util.WebUtils;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
-
-import javax.ws.rs.core.Response;
-import java.util.Calendar;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.StringJoiner;
 
 /**
  * Access token endpoint test.

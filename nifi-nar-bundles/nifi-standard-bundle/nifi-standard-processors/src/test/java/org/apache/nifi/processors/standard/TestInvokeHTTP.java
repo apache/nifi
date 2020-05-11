@@ -16,12 +16,25 @@
  */
 package org.apache.nifi.processors.standard;
 
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.lang.reflect.Field;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.lang3.SystemUtils;
 import org.apache.nifi.processors.standard.util.TestInvokeHttpCommon;
-import org.apache.nifi.web.util.TestServer;
 import org.apache.nifi.ssl.StandardSSLContextService;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunners;
+import org.apache.nifi.web.util.TestServer;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 import org.junit.After;
@@ -31,19 +44,6 @@ import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.lang.reflect.Field;
-import java.net.URL;
-import java.util.HashMap;
-import java.util.Map;
-
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 
 
 public class TestInvokeHTTP extends TestInvokeHttpCommon {
@@ -121,7 +121,7 @@ public class TestInvokeHTTP extends TestInvokeHttpCommon {
         // expected in request status.code and status.message
         // original flow file (+attributes)
         final MockFlowFile bundle = runner.getFlowFilesForRelationship(InvokeHTTP.REL_SUCCESS_REQ).get(0);
-        bundle.assertContentEquals("Hello".getBytes("UTF-8"));
+        bundle.assertContentEquals("Hello".getBytes(StandardCharsets.UTF_8));
         bundle.assertAttributeEquals(InvokeHTTP.STATUS_CODE, "200");
         bundle.assertAttributeEquals(InvokeHTTP.STATUS_MESSAGE, "OK");
         bundle.assertAttributeEquals("Foo", "Bar");
@@ -130,7 +130,7 @@ public class TestInvokeHTTP extends TestInvokeHttpCommon {
         // status code, status message, all headers from server response --> ff attributes
         // server response message body into payload of ff
         final MockFlowFile bundle1 = runner.getFlowFilesForRelationship(InvokeHTTP.REL_RESPONSE).get(0);
-        bundle1.assertContentEquals("/status/200".getBytes("UTF-8"));
+        bundle1.assertContentEquals("/status/200".getBytes(StandardCharsets.UTF_8));
         bundle1.assertAttributeEquals(InvokeHTTP.STATUS_CODE, "200");
         bundle1.assertAttributeEquals(InvokeHTTP.STATUS_MESSAGE, "OK");
         bundle1.assertAttributeEquals("Foo", "Bar");
@@ -183,7 +183,7 @@ public class TestInvokeHTTP extends TestInvokeHttpCommon {
         //expected in request status.code and status.message
         //original flow file (+attributes)
         final MockFlowFile bundle = runner.getFlowFilesForRelationship(InvokeHTTP.REL_SUCCESS_REQ).get(0);
-        bundle.assertContentEquals("Hello".getBytes("UTF-8"));
+        bundle.assertContentEquals("Hello".getBytes(StandardCharsets.UTF_8));
         bundle.assertAttributeEquals(InvokeHTTP.STATUS_CODE, "200");
         bundle.assertAttributeEquals(InvokeHTTP.STATUS_MESSAGE, "OK");
         bundle.assertAttributeEquals("Foo", "Bar");
@@ -192,7 +192,7 @@ public class TestInvokeHTTP extends TestInvokeHttpCommon {
         //status code, status message, all headers from server response --> ff attributes
         //server response message body into payload of ff
         final MockFlowFile bundle1 = runner.getFlowFilesForRelationship(InvokeHTTP.REL_RESPONSE).get(0);
-        bundle1.assertContentEquals("http://nifi.apache.org/".getBytes("UTF-8"));
+        bundle1.assertContentEquals("http://nifi.apache.org/".getBytes(StandardCharsets.UTF_8));
         bundle1.assertAttributeEquals(InvokeHTTP.STATUS_CODE, "200");
         bundle1.assertAttributeEquals(InvokeHTTP.STATUS_MESSAGE, "OK");
         bundle1.assertAttributeEquals("Foo", "Bar");
