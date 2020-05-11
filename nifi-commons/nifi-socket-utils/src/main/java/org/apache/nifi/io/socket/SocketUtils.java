@@ -66,7 +66,7 @@ public final class SocketUtils {
             Socket tempSocket = sslContext.getSocketFactory().createSocket(address.getHostName(), address.getPort());
             final SSLSocket sslSocket = (SSLSocket) tempSocket;
             // Enforce custom protocols on socket
-            sslSocket.setEnabledProtocols(CertificateUtils.CURRENT_SUPPORTED_TLS_PROTOCOL_VERSIONS);
+            sslSocket.setEnabledProtocols(CertificateUtils.getCurrentSupportedTlsProtocolVersions());
             socket = sslSocket;
         }
 
@@ -129,7 +129,7 @@ public final class SocketUtils {
             final SSLServerSocket sslServerSocket = (SSLServerSocket) serverSocket;
             sslServerSocket.setNeedClientAuth(config.getNeedClientAuth());
             // Enforce custom protocols on socket
-            sslServerSocket.setEnabledProtocols(CertificateUtils.CURRENT_SUPPORTED_TLS_PROTOCOL_VERSIONS);
+            sslServerSocket.setEnabledProtocols(CertificateUtils.getCurrentSupportedTlsProtocolVersions());
         }
 
         if (config.getSocketTimeout() != null) {

@@ -18,6 +18,7 @@ package org.apache.nifi.controller.queue.clustered.server
 
 import org.apache.nifi.events.EventReporter
 import org.apache.nifi.reporting.Severity
+import org.apache.nifi.security.util.CertificateUtils
 import org.apache.nifi.security.util.KeyStoreUtils
 import org.apache.nifi.security.util.KeystoreType
 import org.apache.nifi.security.util.SslContextFactory
@@ -82,6 +83,20 @@ class ConnectionLoadBalanceServerTest extends GroovyTestCase {
         }
     }
 
+    /**
+     * Asserts that the protocol versions in the parameters object are correct. In recent versions of Java, this enforces order as well, but in older versions, it just enforces presence.
+     *
+     * @param enabledProtocols the actual protocols, either in {@code String[]} or {@code Collection<String>} form
+     * @param expectedProtocols the specific protocol versions to be present (ordered as desired)
+     */
+    void assertProtocolVersions(def enabledProtocols, def expectedProtocols) {
+        if (CertificateUtils.getJavaVersion() > 8) {
+            assert enabledProtocols == expectedProtocols as String[]
+        } else {
+            assert enabledProtocols as Set == expectedProtocols as Set
+        }
+    }
+
     @Test
     void testRequestPeerListShouldUseTLS() {
         // Arrange
@@ -104,13 +119,13 @@ class ConnectionLoadBalanceServerTest extends GroovyTestCase {
         // Assert that the default parameters (which can't be modified) still have legacy protocols and no client auth
         def defaultSSLParameters = sslContext.defaultSSLParameters
         logger.info("Default SSL Parameters: ${KeyStoreUtils.sslParametersToString(defaultSSLParameters)}" as String)
-        assert defaultSSLParameters.getProtocols() == ["TLSv1.2", "TLSv1.1", "TLSv1"] as String[]
+        assertProtocolVersions(defaultSSLParameters.protocols, ["TLSv1.2", "TLSv1.1", "TLSv1"])
         assert !defaultSSLParameters.needClientAuth
 
         // Assert that the actual socket is set correctly due to the override in the LB server
         SSLServerSocket socket = lbServer.serverSocket as SSLServerSocket
         logger.info("Created SSL server socket: ${KeyStoreUtils.sslServerSocketToString(socket)}" as String)
-        assert socket.enabledProtocols == ["TLSv1.2", "TLSv1.3"] as String[]
+        assertProtocolVersions(socket.enabledProtocols, CertificateUtils.getCurrentSupportedTlsProtocolVersions())
         assert socket.needClientAuth
 
         // Clean up
@@ -167,62 +182,4 @@ class ConnectionLoadBalanceServerTest extends GroovyTestCase {
         // Clean up
         communicateAction.stop()
     }
-//
-//    @Test
-//    void testCommunicateActionShouldSuppressRepeatedExceptions() {
-//        // Arrange
-//        final int CONNECTION_ATTEMPTS = 100
-//        final int CONNECTION_THREADS = 3
-//
-//        Socket mockSocket = [:] as Socket
-//        LoadBalanceProtocol mockLBProtocol = [:] as LoadBalanceProtocol
-//        EventReporter mockER = [:] as EventReporter
-//
-//        ConnectionLoadBalanceServer clbServer = new ConnectionLoadBalanceServer(HOSTNAME, PORT, sslContext, NUM_THREADS, mockLBProtocol, mockER, TIMEOUT_MS)
-//
-//        ConnectionLoadBalanceServer.CommunicateAction communicateAction = new ConnectionLoadBalanceServer.CommunicateAction(mockLBProtocol, mockSocket)
-//
-//        // Run the "connection attempt" N times from separate threads
-//        CountDownLatch lock = new CountDownLatch(CONNECTION_ATTEMPTS);
-//
-//        ScheduledExecutorService executor = Executors.newScheduledThreadPool(CONNECTION_THREADS);
-//        ScheduledFuture<?> future = executor.scheduleAtFixedRate({ ->
-//            // TODO: Send connection attempt
-//            lock.countDown();
-//        }, 500, 100, TimeUnit.MILLISECONDS)
-//
-//        lock.await((CONNECTION_ATTEMPTS.intdiv(CONNECTION_THREADS)), TimeUnit.SECONDS);
-//        future.cancel(true);
-//
-//        final long listenerStart = System.currentTimeMillis()
-////        def listener = Thread.start {
-//        communicateAction.run()
-////        }
-////        listener.name = "listener-thread"
-//        logger.info("Listener started at ${listenerStart}")
-//
-//        // Act
-//        CONNECTION_ATTEMPTS.times { int i ->
-//            long now = System.currentTimeMillis()
-//            logger.info("Attempting connection ${i + 1} at ${now} [${now - listenerStart}]")
-//
-//        }
-//
-//        // Assert
-//
-//        // Clean up
-//        communicateAction.stop()
-//
-//        // TODO: Mock socket with IO streams that throw SSLPUE
-//
-//
-//        // TODO: Start accept thread
-//
-//
-//        // TODO: Assert that log output was suppressed
-//
-//        // TODO: Assert that event reporter was suppressed
-//
-//        // TODO: Stop accept thread
-//    }
 }

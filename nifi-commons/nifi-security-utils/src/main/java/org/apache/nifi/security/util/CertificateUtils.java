@@ -38,6 +38,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import javax.naming.InvalidNameException;
 import javax.naming.ldap.LdapName;
 import javax.naming.ldap.Rdn;
@@ -81,7 +83,8 @@ public final class CertificateUtils {
     private static final Map<ASN1ObjectIdentifier, Integer> dnOrderMap = createDnOrderMap();
 
     public static final String CURRENT_TLS_PROTOCOL_VERSION = "TLSv1.2";
-    public static final String[] CURRENT_SUPPORTED_TLS_PROTOCOL_VERSIONS = new String[] {"TLSv1.2", "TLSv1.3"};
+    public static final String[] JAVA_8_SUPPORTED_TLS_PROTOCOL_VERSIONS = new String[]{"TLSv1.2"};
+    public static final String[] JAVA_9_SUPPORTED_TLS_PROTOCOL_VERSIONS = new String[]{"TLSv1.2", "TLSv1.3"};
 
     static {
         Security.addProvider(new BouncyCastleProvider());
@@ -619,6 +622,52 @@ public final class CertificateUtils {
             } else {
                 return false;
             }
+        }
+    }
+
+    /**
+     * Returns the JVM Java major version based on the System properties (e.g. {@code JVM 1.8.0.231} -> {code 8}).
+     *
+     * @return the Java major version
+     */
+    public static int getJavaVersion() {
+        String version = System.getProperty("java.version");
+        return parseJavaVersion(version);
+    }
+
+    /**
+     * Returns the major version parsed from the provided Java version string (e.g. {@code "1.8.0.231"} -> {code 8}).
+     *
+     * @param version the Java version string
+     * @return the major version as an int
+     */
+    public static int parseJavaVersion(String version) {
+        String majorVersion;
+        if (version.startsWith("1.")) {
+            majorVersion = version.substring(2, 3);
+        } else {
+            Pattern majorVersion9PlusPattern = Pattern.compile("(\\d+).*");
+            Matcher m = majorVersion9PlusPattern.matcher(version);
+            if (m.find()) {
+                majorVersion = m.group(1);
+            } else {
+                throw new IllegalArgumentException("Could not detect major version of " + version);
+            }
+        }
+        return Integer.parseInt(majorVersion);
+    }
+
+    /**
+     * Returns a {@code String[]} of supported TLS protocol versions based on the current Java platform version.
+     *
+     * @return the supported TLS protocol version(s)
+     */
+    public static String[] getCurrentSupportedTlsProtocolVersions() {
+        int javaMajorVersion = getJavaVersion();
+        if (javaMajorVersion <= 8) {
+            return JAVA_8_SUPPORTED_TLS_PROTOCOL_VERSIONS;
+        } else {
+            return JAVA_9_SUPPORTED_TLS_PROTOCOL_VERSIONS;
         }
     }
 

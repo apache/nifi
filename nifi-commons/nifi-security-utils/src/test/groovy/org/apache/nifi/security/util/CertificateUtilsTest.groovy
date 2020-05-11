@@ -603,4 +603,38 @@ class CertificateUtilsTest extends GroovyTestCase {
         assert causedResults.every()
         assert !unrelatedResults.any()
     }
+
+    @Test
+    void testShouldParseJavaVersion() {
+        // Arrange
+        def possibleVersions = ["1.5.0", "1.6.0", "1.7.0.123", "1.8.0.231", "9.0.1", "10.1.2", "11.2.3", "12.3.456"]
+
+        // Act
+        def majorVersions = possibleVersions.collect { String version ->
+            logger.debug("Attempting to determine major version of ${version}")
+            CertificateUtils.parseJavaVersion(version)
+        }
+        logger.info("Major versions: ${majorVersions}")
+
+        // Assert
+        assert majorVersions == (5..12)
+    }
+
+    @Test
+    void testShouldGetCurrentSupportedTlsProtocolVersions() {
+        // Arrange
+        int javaMajorVersion = CertificateUtils.getJavaVersion()
+        logger.debug("Running on Java version: ${javaMajorVersion}")
+
+        // Act
+        def tlsVersions = CertificateUtils.getCurrentSupportedTlsProtocolVersions()
+        logger.info("Supported protocol versions for ${javaMajorVersion}: ${tlsVersions}")
+
+        // Assert
+        if (javaMajorVersion <= 8) {
+            assert tlsVersions == ["TLSv1.2"] as String[]
+        } else {
+            assert tlsVersions == ["TLSv1.2", "TLSv1.3"] as String[]
+        }
+    }
 }

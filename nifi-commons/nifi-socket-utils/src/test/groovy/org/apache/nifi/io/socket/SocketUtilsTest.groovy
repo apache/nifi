@@ -96,7 +96,7 @@ class SocketUtilsTest extends GroovyTestCase {
         // Assert
         String[] enabledProtocols = sslServerSocket.getEnabledProtocols()
         logger.info("Enabled protocols: ${enabledProtocols}")
-        assert enabledProtocols == CertificateUtils.CURRENT_SUPPORTED_TLS_PROTOCOL_VERSIONS
+        assert enabledProtocols == CertificateUtils.getCurrentSupportedTlsProtocolVersions()
         assert !enabledProtocols.contains("TLSv1")
         assert !enabledProtocols.contains("TLSv1.1")
     }
@@ -114,7 +114,7 @@ class SocketUtilsTest extends GroovyTestCase {
         // Assert
         String[] enabledProtocols = sslServerSocket.getEnabledProtocols()
         logger.info("Enabled protocols: ${enabledProtocols}")
-        assert enabledProtocols == CertificateUtils.CURRENT_SUPPORTED_TLS_PROTOCOL_VERSIONS
+        assert enabledProtocols == CertificateUtils.getCurrentSupportedTlsProtocolVersions()
         assert !enabledProtocols.contains("TLSv1")
         assert !enabledProtocols.contains("TLSv1.1")
     }

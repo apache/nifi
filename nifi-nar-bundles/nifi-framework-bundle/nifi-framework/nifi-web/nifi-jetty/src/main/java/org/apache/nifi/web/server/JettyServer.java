@@ -930,7 +930,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
 
         // Explicitly exclude legacy TLS protocol versions
         contextFactory.setProtocol(CertificateUtils.CURRENT_TLS_PROTOCOL_VERSION);
-        contextFactory.setIncludeProtocols(CertificateUtils.CURRENT_SUPPORTED_TLS_PROTOCOL_VERSIONS);
+        contextFactory.setIncludeProtocols(CertificateUtils.getCurrentSupportedTlsProtocolVersions());
         contextFactory.setExcludeProtocols("TLS", "TLSv1", "TLSv1.1", "SSL", "SSLv2", "SSLv2Hello", "SSLv3");
 
         // require client auth when not supporting login, Kerberos service, or anonymous access

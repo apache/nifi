@@ -346,7 +346,7 @@ public class SocketRemoteSiteListener implements RemoteSiteListener {
             final SSLServerSocket serverSocket = (SSLServerSocket) sslContext.getServerSocketFactory().createServerSocket(socketPort);
             serverSocket.setNeedClientAuth(true);
             // Enforce custom protocols on socket
-            serverSocket.setEnabledProtocols(CertificateUtils.CURRENT_SUPPORTED_TLS_PROTOCOL_VERSIONS);
+            serverSocket.setEnabledProtocols(CertificateUtils.getCurrentSupportedTlsProtocolVersions());
             return serverSocket;
         } else {
             return new ServerSocket(socketPort);

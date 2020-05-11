@@ -117,7 +117,7 @@ public class ConnectionLoadBalanceServer {
             final SSLServerSocket serverSocket = (SSLServerSocket) sslContext.getServerSocketFactory().createServerSocket(port, 50, inetAddress);
             serverSocket.setNeedClientAuth(true);
             // Enforce custom protocols on socket
-            serverSocket.setEnabledProtocols(CertificateUtils.CURRENT_SUPPORTED_TLS_PROTOCOL_VERSIONS);
+            serverSocket.setEnabledProtocols(CertificateUtils.getCurrentSupportedTlsProtocolVersions());
             return serverSocket;
         }
     }

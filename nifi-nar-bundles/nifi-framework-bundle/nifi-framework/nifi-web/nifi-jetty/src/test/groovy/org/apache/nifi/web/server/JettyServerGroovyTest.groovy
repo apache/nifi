@@ -20,6 +20,7 @@ import org.apache.log4j.AppenderSkeleton
 import org.apache.log4j.spi.LoggingEvent
 import org.apache.nifi.bundle.Bundle
 import org.apache.nifi.properties.StandardNiFiProperties
+import org.apache.nifi.security.util.CertificateUtils
 import org.apache.nifi.util.NiFiProperties
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.eclipse.jetty.server.Connector
@@ -170,16 +171,16 @@ class JettyServerGroovyTest extends GroovyTestCase {
                 (NiFiProperties.WEB_HTTPS_HOST): "secure.host.com",
         ]
         NiFiProperties mockProps = [
-                getPort    : { -> 8080 },
-                getSslPort : { -> 8443 },
-                getProperty: { String prop ->
+                getPort            : { -> 8080 },
+                getSslPort         : { -> 8443 },
+                getProperty        : { String prop ->
                     String value = badProps[prop] ?: "no_value"
                     logger.mock("getProperty(${prop}) -> ${value}")
                     value
                 },
-                getWebThreads: { -> NiFiProperties.DEFAULT_WEB_THREADS },
+                getWebThreads      : { -> NiFiProperties.DEFAULT_WEB_THREADS },
                 getWebMaxHeaderSize: { -> NiFiProperties.DEFAULT_WEB_MAX_HEADER_SIZE },
-                isHTTPSConfigured: { -> true }
+                isHTTPSConfigured  : { -> true }
         ] as StandardNiFiProperties
 
         // The web server should fail to start and exit Java
@@ -189,11 +190,11 @@ class JettyServerGroovyTest extends GroovyTestCase {
                 final String standardErr = systemErrRule.getLog()
                 List<String> errLines = standardErr.split("\n")
 
-                assert errLines.any { it =~ "Failed to start web server: "}
-                assert errLines.any { it =~ "Shutting down..."}
+                assert errLines.any { it =~ "Failed to start web server: " }
+                assert errLines.any { it =~ "Shutting down..." }
             }
         })
-        
+
         // Act
         JettyServer jettyServer = new JettyServer(mockProps, [] as Set<Bundle>)
 
@@ -205,19 +206,19 @@ class JettyServerGroovyTest extends GroovyTestCase {
     @Test
     void testShouldConfigureHTTPSConnector() {
         // Arrange
-       NiFiProperties httpsProps = new StandardNiFiProperties(rawProperties: new Properties([
+        NiFiProperties httpsProps = new StandardNiFiProperties(rawProperties: new Properties([
 //               (NiFiProperties.WEB_HTTP_PORT): null,
 //               (NiFiProperties.WEB_HTTP_HOST): null,
-               (NiFiProperties.WEB_HTTPS_PORT): "8443",
-               (NiFiProperties.WEB_HTTPS_HOST): "secure.host.com",
-       ]))
-        
+(NiFiProperties.WEB_HTTPS_PORT): "8443",
+(NiFiProperties.WEB_HTTPS_HOST): "secure.host.com",
+        ]))
+
         Server internalServer = new Server()
         JettyServer jetty = new JettyServer(internalServer, httpsProps)
 
         // Act
-       jetty.configureHttpsConnector(internalServer, new HttpConfiguration())
-       List<Connector> connectors = Arrays.asList(internalServer.connectors)
+        jetty.configureHttpsConnector(internalServer, new HttpConfiguration())
+        List<Connector> connectors = Arrays.asList(internalServer.connectors)
 
         // Assert
         assert connectors.size() == 1
@@ -233,7 +234,7 @@ class JettyServerGroovyTest extends GroovyTestCase {
 
         // Using the getters is subject to NPE due to blind array copies
         assert sslContextFactory._sslProtocol == "TLSv1.2"
-        assert (sslContextFactory._includeProtocols as List<String>) == ["TLSv1.2", "TLSv1.3"]
+        assert sslContextFactory._includeProtocols.containsAll(CertificateUtils.getCurrentSupportedTlsProtocolVersions())
         assert (sslContextFactory._excludeProtocols as List<String>).containsAll(["TLS", "TLSv1", "TLSv1.1", "SSL", "SSLv2", "SSLv2Hello", "SSLv3"])
         assert sslContextFactory._selectedProtocols == null
     }
