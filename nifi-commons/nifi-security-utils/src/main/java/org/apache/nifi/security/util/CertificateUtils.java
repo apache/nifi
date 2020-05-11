@@ -636,7 +636,7 @@ public final class CertificateUtils {
     }
 
     /**
-     * Returns the major version parsed from the provided Java version string (e.g. {@code "1.8.0.231"} -> {code 8}).
+     * Returns the major version parsed from the provided Java version string (e.g. {@code "1.8.0.231"} -> {@code 8}).
      *
      * @param version the Java version string
      * @return the major version as an int
