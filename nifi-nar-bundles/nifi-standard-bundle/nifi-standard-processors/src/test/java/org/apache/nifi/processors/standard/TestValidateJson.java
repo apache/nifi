@@ -16,6 +16,9 @@
  */
 package org.apache.nifi.processors.standard;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 
@@ -31,18 +34,19 @@ import org.junit.Test;
 public class TestValidateJson {
 
     private TestRunner testRunner;
+    String testingJson;
 
     @Before
-    public void init() {
+    public void init() throws IOException {
         testRunner = TestRunners.newTestRunner(ValidateJson.class);
+        testingJson = new String(Files.readAllBytes(Paths.get("src/test/resources/TestValidateJson/simple-example.json")), "UTF-8");
     }
 
-    final String testingJson = "{\"FieldOne\":\"stringValue\",\"FieldTwo\":1234,\"FieldThree\":[{\"arrayField\":\"arrayValue\"}]}";
     
     @Test
-    public void passSchema() {
+    public void passSchema() throws IOException {
 
-        String schema = "{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"type\":\"object\",\"properties\":{\"FieldOne\":{\"type\":\"string\",\"pattern\":\"[a-z]*Value\"},\"FieldTwo\":{\"type\":\"integer\"},\"FieldThree\":{\"type\":\"array\",\"items\":[{\"type\":\"object\",\"properties\":{\"arrayField\":{\"type\":\"string\"}},\"required\":[\"arrayField\"]}]}},\"required\":[\"FieldOne\",\"FieldTwo\",\"FieldThree\"]}";
+        String schema = new String(Files.readAllBytes(Paths.get("src/test/resources/TestValidateJson/schema-simple-example.json")), "UTF-8");
 
         testRunner.setProperty(ValidateJson.SCHEMA_TEXT, schema);
         testRunner.setProperty(ValidateJson.SCHEMA_VERSION, ValidateJson.SCHEMA_VERSION_7);
@@ -63,9 +67,9 @@ public class TestValidateJson {
     }
 
     @Test
-    public void failOnPatternSchemaCheck() {
+    public void failOnPatternSchemaCheck() throws IOException {
 
-        String schema = "{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"type\":\"object\",\"properties\":{\"FieldOne\":{\"type\":\"string\",\"pattern\":\"unmatched\"},\"FieldTwo\":{\"type\":\"integer\"},\"FieldThree\":{\"type\":\"array\",\"items\":[{\"type\":\"object\",\"properties\":{\"arrayField\":{\"type\":\"string\"}},\"required\":[\"arrayField\"]}]}},\"required\":[\"FieldOne\",\"FieldTwo\",\"FieldThree\"]}";
+        String schema = new String(Files.readAllBytes(Paths.get("src/test/resources/TestValidateJson/schema-simple-example-unmatched-pattern.json")), "UTF-8");
 
         testRunner.setProperty(ValidateJson.SCHEMA_TEXT, schema);
         testRunner.setProperty(ValidateJson.SCHEMA_VERSION, ValidateJson.SCHEMA_VERSION_7);
@@ -82,13 +86,13 @@ public class TestValidateJson {
         Assert.assertEquals(1, invalid.size());
 
         Map<String, String> attributes = invalid.get(0).getAttributes();
-        Assert.assertEquals("[$.FieldOne: does not match the regex pattern unmatched]", attributes.get(ValidateJson.ERROR_ATTRIBUTE_KEY));
+        Assert.assertEquals("[$.FieldOne: does not match the regex pattern ^unmatched$]", attributes.get(ValidateJson.ERROR_ATTRIBUTE_KEY));
     }
 
     @Test
-    public void failOnMissingRequiredValue() {
+    public void failOnMissingRequiredValue() throws IOException {
 
-        String schema = "{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"type\":\"object\",\"properties\":{\"FieldOne\":{\"type\":\"string\",\"pattern\":\"[a-z]*Value\"},\"FieldTwo\":{\"type\":\"integer\"},\"FieldThree\":{\"type\":\"array\",\"items\":[{\"type\":\"object\",\"properties\":{\"arrayField\":{\"type\":\"string\"}},\"required\":[\"arrayField\"]}]}},\"required\":[\"FieldOne\",\"FieldTwo\",\"FieldThree\",\"FieldFour\"]}";
+        String schema = new String(Files.readAllBytes(Paths.get("src/test/resources/TestValidateJson/schema-simple-example-missing-required.json")), "UTF-8");
         
         testRunner.setProperty(ValidateJson.SCHEMA_TEXT, schema);
         testRunner.setProperty(ValidateJson.SCHEMA_VERSION, ValidateJson.SCHEMA_VERSION_7);
@@ -109,9 +113,9 @@ public class TestValidateJson {
     }
 
     @Test
-    public void failOnInvalidJSON() {
+    public void failOnInvalidJSON() throws IOException {
 
-        String schema = "{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"type\":\"object\",\"properties\":{\"FieldOne\":{\"type\":\"string\",\"pattern\":\"[a-z]*Value\"},\"FieldTwo\":{\"type\":\"integer\"},\"FieldThree\":{\"type\":\"array\",\"items\":[{\"type\":\"object\",\"properties\":{\"arrayField\":{\"type\":\"string\"}},\"required\":[\"arrayField\"]}]}},\"required\":[\"FieldOne\",\"FieldTwo\",\"FieldThree\",\"FieldFour\"]}";
+        String schema = new String(Files.readAllBytes(Paths.get("src/test/resources/TestValidateJson/schema-simple-example.json")), "UTF-8");
 
         testRunner.setProperty(ValidateJson.SCHEMA_TEXT, schema);
         testRunner.setProperty(ValidateJson.SCHEMA_VERSION, ValidateJson.SCHEMA_VERSION_7);

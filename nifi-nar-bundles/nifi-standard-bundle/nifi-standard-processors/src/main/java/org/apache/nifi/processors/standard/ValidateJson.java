@@ -29,6 +29,7 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -145,6 +146,28 @@ public class ValidateJson extends AbstractProcessor {
         return descriptors;
     }
 
+    private ObjectMapper mapper = new ObjectMapper();
+    private VersionFlag schemaVersion;
+
+    @OnScheduled
+    public void onScheduled(final ProcessContext context) {
+        // Set JSON schema version to use from processor property
+        this.schemaVersion = VersionFlag.V201909;
+        if (context.getProperty(SCHEMA_VERSION).getValue() == SCHEMA_VERSION_4.getValue()) {
+            this.schemaVersion = VersionFlag.V4;
+        }
+        if (context.getProperty(SCHEMA_VERSION).getValue() == SCHEMA_VERSION_6.getValue()) {
+            this.schemaVersion = VersionFlag.V6;
+        }
+        if (context.getProperty(SCHEMA_VERSION).getValue() == SCHEMA_VERSION_7.getValue()) {
+            this.schemaVersion = VersionFlag.V7;
+        }
+        if (context.getProperty(SCHEMA_VERSION).getValue() == SCHEMA_VERSION_V201909.getValue()) {
+            this.schemaVersion = VersionFlag.V201909;
+        }
+    }
+
+
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();
@@ -152,64 +175,32 @@ public class ValidateJson extends AbstractProcessor {
             return;
         }
 
-        final AtomicReference<Exception> exceptions = new AtomicReference<>();
-        final AtomicReference<Set<ValidationMessage>> validationErrors = new AtomicReference<Set<ValidationMessage>>(null);
+        try (InputStream in = session.read(flowFile)) {
+            // Read in flowFile inputstream, and validate against schema
+            JsonNode node = mapper.readTree(in);
+            String schemaText = context.getProperty(SCHEMA_TEXT).evaluateAttributeExpressions().getValue();
+            JsonSchemaFactory factory = JsonSchemaFactory.getInstance(schemaVersion);
+            JsonSchema schema = factory.getSchema(schemaText);
+            Set<ValidationMessage> errors = schema.validate(node);
 
-        session.read(flowFile, new InputStreamCallback()  {
-
-            @Override
-            public void process(InputStream in) {
-                try {
-                    // Set JSON schema version to use from processor property
-                    VersionFlag schemaVersion = VersionFlag.V201909;
-                    if (context.getProperty(SCHEMA_VERSION).getValue() == SCHEMA_VERSION_4.getValue()) {
-                        schemaVersion = VersionFlag.V4;
-                    }
-                    if (context.getProperty(SCHEMA_VERSION).getValue() == SCHEMA_VERSION_6.getValue()) {
-                        schemaVersion = VersionFlag.V6;
-                    }
-                    if (context.getProperty(SCHEMA_VERSION).getValue() == SCHEMA_VERSION_7.getValue()) {
-                        schemaVersion = VersionFlag.V7;
-                    }
-                    if (context.getProperty(SCHEMA_VERSION).getValue() == SCHEMA_VERSION_V201909.getValue()) {
-                        schemaVersion = VersionFlag.V201909;
-                    }
-        
-                    // Read in flowFile inputstream, and validate against schema
-                    ObjectMapper mapper = new ObjectMapper();
-                    JsonNode node = mapper.readTree(in);
-                    String schemaText = context.getProperty(SCHEMA_TEXT).evaluateAttributeExpressions().getValue();
-                    JsonSchemaFactory factory = JsonSchemaFactory.getInstance(schemaVersion);
-                    JsonSchema schema = factory.getSchema(schemaText);
-                    validationErrors.set(schema.validate(node));
-                
-                } catch (JsonParseException jpe) {
-                    exceptions.set(jpe);
-                } catch (IOException ioe) {
-                    exceptions.set(ioe);
-                }
+            if (errors.size() > 0) {
+                // Schema checks failed
+                flowFile = session.putAttribute(flowFile, ERROR_ATTRIBUTE_KEY, errors.toString());
+                this.getLogger().info("Found {} to be invalid when validated against schema; routing to 'invalid'", new Object[]{flowFile});
+                session.getProvenanceReporter().route(flowFile, REL_INVALID);
+                session.transfer(flowFile, REL_INVALID);
+            } else {
+                // Schema check passed
+                this.getLogger().debug("Successfully validated {} against schema; routing to 'valid'", new Object[]{flowFile});
+                session.getProvenanceReporter().route(flowFile, REL_VALID);
+                session.transfer(flowFile, REL_VALID);
             }
-        });
 
-        // Failed to read flowFile - either IOException, or JsonParseException
-        if (exceptions.get() != null) {
-            this.getLogger().info("Failed to process {} due to {}; routing to 'failure'", new Object[]{flowFile, exceptions.get().getLocalizedMessage()});
-            session.getProvenanceReporter().route(flowFile, REL_FAILURE);
+        } catch (IOException ioe) {
+            // Failed to read flowFile
+            this.getLogger().error("Failed to process {} due to {}; routing to 'failure'", new Object[]{flowFile, ioe});
             session.transfer(flowFile, REL_FAILURE);
-
-        // Schema checks failed
-        } else if (validationErrors.get().size() > 0) {
-            flowFile = session.putAttribute(flowFile, ERROR_ATTRIBUTE_KEY, validationErrors.get().toString());
-            this.getLogger().info("Failed to validate {} against schema; routing to 'invalid'", new Object[]{flowFile});
-            session.getProvenanceReporter().route(flowFile, REL_INVALID);
-            session.transfer(flowFile, REL_INVALID);
-        
-        // Schema check passed
-        } else {
-            this.getLogger().debug("Successfully validated {} against schema; routing to 'valid'", new Object[]{flowFile});
-            session.getProvenanceReporter().route(flowFile, REL_VALID);
-            session.transfer(flowFile, REL_VALID);
         }
-                      
+      
     }
 }

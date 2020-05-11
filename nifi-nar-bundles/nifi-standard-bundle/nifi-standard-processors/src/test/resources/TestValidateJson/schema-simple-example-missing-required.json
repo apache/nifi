@@ -1,0 +1,35 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+            "FieldOne": {
+                "type": "string",
+                "pattern":"[a-z]*Value"
+            },
+            "FieldTwo": {
+                "type": "integer"
+            },
+            "FieldThree": {
+                "type": "array",
+                "items": [
+                    {
+                        "type": "object",
+                        "properties": {
+                            "arrayField": {
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "arrayField"
+                        ]
+                    }
+                ]
+            }
+        },
+    "required": [
+        "FieldOne",
+        "FieldTwo",
+        "FieldThree",
+        "FieldFour"
+    ]
+}
