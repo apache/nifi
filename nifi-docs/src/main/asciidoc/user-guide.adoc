@@ -2594,6 +2594,7 @@ The provenance event types are:
 |FORK                    |Indicates that one or more FlowFiles were derived from a parent FlowFile
 |JOIN                    |Indicates that a single FlowFile is derived from joining together multiple parent FlowFiles
 |RECEIVE                 |Indicates a provenance event for receiving data from an external process
+|REMOTE_INVOCATION       |Indicates that a remote invocation was requested to an external endpoint (e.g. deleting a remote resource)
 |REPLAY                  |Indicates a provenance event for replaying a FlowFile
 |ROUTE                   |Indicates that a FlowFile was routed to a specified relationship and provides information about why the FlowFile was routed to this relationship
 |SEND                    |Indicates a provenance event for sending data to an external process
