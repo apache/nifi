@@ -76,6 +76,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
+import java.util.stream.Collectors;
 
 import static java.lang.String.format;
 import static org.apache.nifi.processor.util.pattern.ExceptionHandler.createOnError;
@@ -576,6 +577,19 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
                     getLogger().warn("Failed to reset autocommit due to {}", new Object[]{se});
                 }
             }
+        });
+
+        process.adjustFailed((c, r) -> {
+            if (c.getProperty(SUPPORT_TRANSACTIONS).asBoolean()){
+                if (r.contains(REL_RETRY) || r.contains(REL_FAILURE)) {
+                    final List<FlowFile> transferredFlowFiles = r.getRoutedFlowFiles().values().stream()
+                            .flatMap(List::stream).collect(Collectors.toList());
+                    r.getRoutedFlowFiles().clear();
+                    r.routeTo(transferredFlowFiles, r.contains(REL_RETRY) ? REL_RETRY : REL_FAILURE);
+                    return true;
+                }
+            }
+            return false;
         });
 
         exceptionHandler = new ExceptionHandler<>();
