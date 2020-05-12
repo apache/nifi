@@ -584,8 +584,9 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
                 if (r.contains(REL_RETRY) || r.contains(REL_FAILURE)) {
                     final List<FlowFile> transferredFlowFiles = r.getRoutedFlowFiles().values().stream()
                             .flatMap(List::stream).collect(Collectors.toList());
+                    Relationship rerouteShip = r.contains(REL_RETRY) ? REL_RETRY : REL_FAILURE;
                     r.getRoutedFlowFiles().clear();
-                    r.routeTo(transferredFlowFiles, r.contains(REL_RETRY) ? REL_RETRY : REL_FAILURE);
+                    r.routeTo(transferredFlowFiles, rerouteShip);
                     return true;
                 }
             }
