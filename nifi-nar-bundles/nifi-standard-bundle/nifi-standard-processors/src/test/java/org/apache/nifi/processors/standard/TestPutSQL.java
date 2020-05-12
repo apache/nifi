@@ -341,7 +341,6 @@ public class TestPutSQL {
         runner.setProperty(PutSQL.OBTAIN_GENERATED_KEYS, "false");
         runner.setProperty(PutSQL.CONNECTION_POOL, "dbcp");
         recreateTable("PERSONS_AI",createPersonsAutoId);
-
         final Map<String, String> goodAttributes = new HashMap<>();
         goodAttributes.put("sql.args.1.type", String.valueOf(Types.INTEGER));
         goodAttributes.put("sql.args.1.value", "84");
