@@ -19,10 +19,10 @@ package org.apache.nifi.processors.azure.storage;
 import com.azure.storage.file.datalake.models.DataLakeStorageException;
 import com.google.common.collect.Sets;
 import org.apache.nifi.processor.Processor;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.util.MockFlowFile;
-import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -31,6 +31,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import static org.junit.Assert.assertEquals;
 
 public class ITFetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
 
@@ -51,7 +53,7 @@ public class ITFetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT 
 
         // WHEN
         // THEN
-        testSuccessfulFetch(this.fileSystemName, directory, filename, inputFlowFileContent, fileContent);
+        testSuccessfulFetch(fileSystemName, directory, filename, inputFlowFileContent, fileContent);
     }
 
     @Test
@@ -66,7 +68,7 @@ public class ITFetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT 
 
         // WHEN
         // THEN
-        testSuccessfulFetch(this.fileSystemName, directory, filename, inputFlowFileContent, fileContent);
+        testSuccessfulFetch(fileSystemName, directory, filename, inputFlowFileContent, fileContent);
     }
 
     @Test
@@ -81,7 +83,7 @@ public class ITFetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT 
 
         // WHEN
         // THEN
-        testSuccessfulFetch(this.fileSystemName, directory, filename, inputFlowFileContent, fileContent);
+        testSuccessfulFetch(fileSystemName, directory, filename, inputFlowFileContent, fileContent);
     }
 
     @Test
@@ -96,7 +98,7 @@ public class ITFetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT 
 
         // WHEN
         // THEN
-        testSuccessfulFetch(this.fileSystemName, directory, filename, inputFlowFileContent, fileContent);
+        testSuccessfulFetch(fileSystemName, directory, filename, inputFlowFileContent, fileContent);
     }
 
     @Test
@@ -114,10 +116,10 @@ public class ITFetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT 
 
         // WHEN
         // THEN
-        testSuccessfulFetch(this.fileSystemName, directory, filename1, inputFlowFileContent, fileContent1);
+        testSuccessfulFetch(fileSystemName, directory, filename1, inputFlowFileContent, fileContent1);
         runner.clearProvenanceEvents();
         runner.clearTransferState();
-        testSuccessfulFetch(this.fileSystemName, directory, filename2, inputFlowFileContent, fileContent2);
+        testSuccessfulFetch(fileSystemName, directory, filename2, inputFlowFileContent, fileContent2);
     }
 
     @Test
@@ -136,10 +138,10 @@ public class ITFetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT 
 
         // WHEN
         // THEN
-        testSuccessfulFetch(this.fileSystemName, directory1, filename1, inputFlowFileContent, fileContent1);
+        testSuccessfulFetch(fileSystemName, directory1, filename1, inputFlowFileContent, fileContent1);
         runner.clearProvenanceEvents();
         runner.clearTransferState();
-        testSuccessfulFetch(this.fileSystemName, directory2, filename2, inputFlowFileContent, fileContent2);
+        testSuccessfulFetch(fileSystemName, directory2, filename2, inputFlowFileContent, fileContent2);
     }
 
     @Test
@@ -156,9 +158,10 @@ public class ITFetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT 
 
         // WHEN
         // THEN
-        testSuccessfulFetch(this.fileSystemName, directory, filename, inputFlowFileContent, fileContent);
+        testSuccessfulFetch(fileSystemName, directory, filename, inputFlowFileContent, fileContent);
     }
 
+    @Ignore("Fetching a directory currently produces an empty flowfile. This will change in the future, and this test case will need to be modified.")
     @Test
     public void testFetchDirectory() {
         // GIVEN
@@ -173,7 +176,7 @@ public class ITFetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT 
 
         // WHEN
         // THEN
-        testSuccessfulFetch(this.fileSystemName, parentDirectory, childDirectory, inputFlowFileContent, expectedFlowFileContent);
+        testSuccessfulFetch(fileSystemName, parentDirectory, childDirectory, inputFlowFileContent, expectedFlowFileContent);
     }
 
     @Test
@@ -198,7 +201,7 @@ public class ITFetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT 
 
         // WHEN
         // THEN
-        testFailedFetch(this.fileSystemName, directory, filename, inputFlowFileContent, inputFlowFileContent, 404);
+        testFailedFetch(fileSystemName, directory, filename, inputFlowFileContent, inputFlowFileContent, 404);
     }
 
     @Test
@@ -212,7 +215,7 @@ public class ITFetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT 
 
         // WHEN
         // THEN
-        testFailedFetch(this.fileSystemName, directory, filename, inputFlowFileContent, inputFlowFileContent, 404);
+        testFailedFetch(fileSystemName, directory, filename, inputFlowFileContent, inputFlowFileContent, 404);
     }
 
     @Ignore("Takes some time, only recommended for manual testing.")
@@ -229,7 +232,7 @@ public class ITFetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT 
 
         // WHEN
         // THEN
-        testSuccessfulFetch(this.fileSystemName, directory, filename, inputFlowFileContent, fileContent);
+        testSuccessfulFetch(fileSystemName, directory, filename, inputFlowFileContent, fileContent);
     }
 
     @Test
@@ -245,7 +248,7 @@ public class ITFetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT 
 
         // WHEN
         // THEN
-        testFailedFetch(this.fileSystemName, invalidDirectoryName, filename, inputFlowFileContent, inputFlowFileContent, 404);
+        testFailedFetch(fileSystemName, invalidDirectoryName, filename, inputFlowFileContent, inputFlowFileContent, 404);
     }
 
     @Test
@@ -261,7 +264,7 @@ public class ITFetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT 
 
         // WHEN
         // THEN
-        testFailedFetch(this.fileSystemName, directory, invalidFilename, inputFlowFileContent, inputFlowFileContent, 404);
+        testFailedFetch(fileSystemName, directory, invalidFilename, inputFlowFileContent, inputFlowFileContent, 404);
     }
 
     @Test
@@ -278,7 +281,7 @@ public class ITFetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT 
         String inputFlowFileContent = "InputFlowFileContent";
 
         Map<String, String> attributes = new HashMap<>();
-        attributes.put(expLangFileSystem, this.fileSystemName);
+        attributes.put(expLangFileSystem, fileSystemName);
         attributes.put(expLangDirectory, directory);
         attributes.put(expLangFilename, filename);
 
@@ -294,6 +297,64 @@ public class ITFetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT 
                             fileContent);
     }
 
+    @Test
+    public void testFetchUsingExpressionLanguageFileSystemIsNotSpecified() {
+        // GIVEN
+        String expLangFileSystem = "az.filesystem";
+        String expLangDirectory = "az.directory";
+        String expLangFilename = "az.filename";
+
+        String directory = "TestDirectory";
+        String filename = "testFile.txt";
+        String fileContent = "AzureFileContent";
+
+        String inputFlowFileContent = "InputFlowFileContent";
+
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put(expLangDirectory, directory);
+        attributes.put(expLangFilename, filename);
+
+        createDirectoryAndUploadFile(directory, filename, fileContent);
+
+        // WHEN
+        // THEN
+        testFailedFetchWithProcessException("${" + expLangFileSystem + "}",
+                "${" + expLangDirectory + "}",
+                "${" + expLangFilename + "}",
+                attributes,
+                inputFlowFileContent,
+                inputFlowFileContent);
+    }
+
+    @Test
+    public void testFetchUsingExpressionLanguageFilenameIsNotSpecified() {
+        // GIVEN
+        String expLangFileSystem = "az.filesystem";
+        String expLangDirectory = "az.directory";
+        String expLangFilename = "az.filename";
+
+        String directory = "TestDirectory";
+        String filename = "testFile.txt";
+        String fileContent = "AzureFileContent";
+
+        String inputFlowFileContent = "InputFlowFileContent";
+
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put(expLangFileSystem, fileSystemName);
+        attributes.put(expLangDirectory, directory);
+
+        createDirectoryAndUploadFile(directory, filename, fileContent);
+
+        // WHEN
+        // THEN
+        testFailedFetchWithProcessException("${" + expLangFileSystem + "}",
+                "${" + expLangDirectory + "}",
+                "${" + expLangFilename + "}",
+                attributes,
+                inputFlowFileContent,
+                inputFlowFileContent);
+    }
+
     private void testSuccessfulFetch(String fileSystem, String directory, String filename, String inputFlowFileContent, String expectedFlowFileContent) {
         testSuccessfulFetch(fileSystem, directory, filename, Collections.emptyMap(), inputFlowFileContent, expectedFlowFileContent);
     }
@@ -302,16 +363,62 @@ public class ITFetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT 
         // GIVEN
         Set<ProvenanceEventType> expectedEventTypes = Sets.newHashSet(ProvenanceEventType.CONTENT_MODIFIED, ProvenanceEventType.FETCH);
 
+        setRunnerProperties(fileSystem, directory, filename);
+
+        // WHEN
+        startRunner(inputFlowFileContent, attributes);
+
+        // THEN
+        assertSuccess(expectedFlowFileContent, expectedEventTypes);
+    }
+
+    private void testFailedFetch(String fileSystem, String directory, String filename, String inputFlowFileContent, String expectedFlowFileContent, int expectedErrorCode) {
+        testFailedFetch(fileSystem, directory, filename, Collections.emptyMap(), inputFlowFileContent, expectedFlowFileContent, expectedErrorCode);
+    }
+
+    private void testFailedFetch(String fileSystem, String directory, String filename, Map<String, String> attributes,
+                                 String inputFlowFileContent, String expectedFlowFileContent, int expectedErrorCode) {
+        // GIVEN
+        setRunnerProperties(fileSystem, directory, filename);
+
+        // WHEN
+        startRunner(inputFlowFileContent, attributes);
+
+        // THEN
+        DataLakeStorageException e = (DataLakeStorageException)runner.getLogger().getErrorMessages().get(0).getThrowable();
+        assertEquals(expectedErrorCode, e.getStatusCode());
+
+        assertFailure(expectedFlowFileContent);
+    }
+
+    private void testFailedFetchWithProcessException(String fileSystem, String directory, String filename, Map<String, String> attributes,
+                                                     String inputFlowFileContent, String expectedFlowFileContent) {
+        // GIVEN
+        setRunnerProperties(fileSystem, directory, filename);
+
+        // WHEN
+        startRunner(inputFlowFileContent, attributes);
+
+        // THEN
+        Throwable exception = runner.getLogger().getErrorMessages().get(0).getThrowable();
+        assertEquals(ProcessException.class, exception.getClass());
+
+        assertFailure(expectedFlowFileContent);
+    }
+
+    private void setRunnerProperties(String fileSystem, String directory, String filename) {
         runner.setProperty(FetchAzureDataLakeStorage.FILESYSTEM, fileSystem);
         runner.setProperty(FetchAzureDataLakeStorage.DIRECTORY, directory);
         runner.setProperty(FetchAzureDataLakeStorage.FILE, filename);
         runner.assertValid();
+    }
 
-        // WHEN
+    private void startRunner(String inputFlowFileContent, Map<String, String> attributes) {
         runner.enqueue(inputFlowFileContent, attributes);
         runner.run();
+    }
 
-        // THEN
+    private void assertSuccess(String expectedFlowFileContent, Set<ProvenanceEventType> expectedEventTypes) {
         runner.assertAllFlowFilesTransferred(FetchAzureDataLakeStorage.REL_SUCCESS, 1);
         MockFlowFile flowFile = runner.getFlowFilesForRelationship(FetchAzureDataLakeStorage.REL_SUCCESS).get(0);
         flowFile.assertContentEquals(expectedFlowFileContent);
@@ -319,24 +426,10 @@ public class ITFetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT 
         Set<ProvenanceEventType> actualEventTypes = runner.getProvenanceEvents().stream()
                 .map(ProvenanceEventRecord::getEventType)
                 .collect(Collectors.toSet());
-        Assert.assertEquals(expectedEventTypes, actualEventTypes);
+        assertEquals(expectedEventTypes, actualEventTypes);
     }
 
-    private void testFailedFetch(String fileSystem, String directory, String filename, String inputFlowFileContent, String expectedFlowFileContent, int expectedErrorCode) {
-        // GIVEN
-        runner.setProperty(FetchAzureDataLakeStorage.FILESYSTEM, fileSystem);
-        runner.setProperty(FetchAzureDataLakeStorage.DIRECTORY, directory);
-        runner.setProperty(FetchAzureDataLakeStorage.FILE, filename);
-        runner.assertValid();
-
-        // WHEN
-        runner.enqueue(inputFlowFileContent);
-        runner.run();
-
-        // THEN
-        DataLakeStorageException e = (DataLakeStorageException)runner.getLogger().getErrorMessages().get(0).getThrowable();
-        Assert.assertEquals(expectedErrorCode, e.getStatusCode());
-
+    private void assertFailure(String expectedFlowFileContent) {
         runner.assertAllFlowFilesTransferred(FetchAzureDataLakeStorage.REL_FAILURE, 1);
         MockFlowFile flowFile = runner.getFlowFilesForRelationship(FetchAzureDataLakeStorage.REL_FAILURE).get(0);
         flowFile.assertContentEquals(expectedFlowFileContent);

@@ -25,7 +25,6 @@ import org.apache.nifi.processor.Processor;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.util.MockFlowFile;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -275,7 +274,7 @@ public class ITPutAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
         Set<ProvenanceEventType> actualEventTypes = runner.getProvenanceEvents().stream()
                 .map(ProvenanceEventRecord::getEventType)
                 .collect(Collectors.toSet());
-        Assert.assertEquals(expectedEventTypes, actualEventTypes);
+        assertEquals(expectedEventTypes, actualEventTypes);
     }
 
     private void assertFailure() {
