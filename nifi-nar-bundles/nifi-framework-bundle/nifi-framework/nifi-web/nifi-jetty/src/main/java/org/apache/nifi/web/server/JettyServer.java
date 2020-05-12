@@ -605,7 +605,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
             filters.add(StrictTransportSecurityFilter.class);
         }
         filters.forEach((filter) -> addFilters(filter, ALL_PATHS, webappContext));
-        addContentLengthFilters(ALL_PATHS, webappContext, props);
+        addDenialOfServiceFilters(ALL_PATHS, webappContext, props);
 
         try {
             // configure the class loader - webappClassLoader -> jetty nar -> web app's nar -> ...
@@ -667,16 +667,16 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
     }
 
     /**
-     * Adds configurable filters to the given context.  Currently, this implementation adds {@code DosFilter} and {@link ContentLengthFilter} filters.
+     * Adds configurable filters relating to preventing denial of service attacks to the given context. Currently, this implementation adds {@link org.eclipse.jetty.servlets.DoSFilter} and {@link ContentLengthFilter} filters.
      *
      * @param path          path spec for filters ({@code /*} by convention in this class)
      * @param webAppContext context to which filters will be added
      * @param props         the {@link NiFiProperties}
      */
-    private static void addContentLengthFilters(String path, WebAppContext webAppContext, NiFiProperties props) {
-        // Add the DOS filter to all requests
+    private static void addDenialOfServiceFilters(String path, WebAppContext webAppContext, NiFiProperties props) {
+        // Add the requests rate limiting filter to all requests
         int maxWebRequestsPerSecond = determineMaxWebRequestsPerSecond(props);
-        addDosFilter(path, webAppContext, maxWebRequestsPerSecond);
+        addWebRequestRateLimitingFilter(path, webAppContext, maxWebRequestsPerSecond);
 
         // Only add the ContentLengthFilter if the property is explicitly set (empty by default)
         int maxRequestSize = determineMaxRequestSize(props);
@@ -699,7 +699,14 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         return configuredMaxRequestsPerSecond > 0 ? configuredMaxRequestsPerSecond : defaultMaxRequestsPerSecond;
     }
 
-    private static void addDosFilter(String path, WebAppContext webAppContext, int maxWebRequestsPerSecond) {
+    /**
+     * Adds the {@link org.eclipse.jetty.servlets.DoSFilter} to the specified context and path. Limits incoming web requests to {@code maxWebRequestsPerSecond} per second.
+     *
+     * @param path the path to apply this filter
+     * @param webAppContext the context to apply this filter
+     * @param maxWebRequestsPerSecond the maximum number of allowed requests per second
+     */
+    private static void addWebRequestRateLimitingFilter(String path, WebAppContext webAppContext, int maxWebRequestsPerSecond) {
         FilterHolder holder = new FilterHolder(DoSFilter.class);
         holder.setInitParameters(new HashMap<String, String>() {{
             put("maxRequestsPerSec", String.valueOf(maxWebRequestsPerSecond));

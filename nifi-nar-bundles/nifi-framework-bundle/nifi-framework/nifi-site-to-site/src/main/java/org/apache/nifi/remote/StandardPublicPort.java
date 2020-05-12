@@ -48,6 +48,7 @@ import org.apache.nifi.authorization.util.IdentityMappingUtil;
 import org.apache.nifi.authorization.util.UserGroupUtil;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.connectable.ConnectableType;
+import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.AbstractPort;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ScheduledState;
@@ -263,9 +264,20 @@ public class StandardPublicPort extends AbstractPort implements PublicPort {
         return receiveRequest.getProtocol().receiveFlowFiles(receiveRequest.getPeer(), context, session, codec);
     }
 
+    /**
+     * Returns {@code true} if the port is not a <em>local</em> input port (remote input ports are
+     * handled by {@link StandardRemoteGroupPort}), or if the local input port has at least one
+     * available connection.
+     *
+     * @return true if this port is valid
+     */
     @Override
     public boolean isValid() {
-        return getConnectableType() != ConnectableType.INPUT_PORT || !getConnections(Relationship.ANONYMOUS).isEmpty();
+        if (getConnectableType() == ConnectableType.INPUT_PORT) {
+            Set<Connection> availableConnections = getConnections(Relationship.ANONYMOUS);
+            return !availableConnections.isEmpty();
+        }
+        return true;
     }
 
     @Override
