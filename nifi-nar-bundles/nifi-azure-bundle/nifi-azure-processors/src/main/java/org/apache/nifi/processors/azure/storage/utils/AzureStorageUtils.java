@@ -85,12 +85,13 @@ public final class AzureStorageUtils {
             .sensitive(true)
             .build();
 
-    public static final PropertyDescriptor STORAGE_SUFFIX = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor ENDPOINT_SUFFIX = new PropertyDescriptor.Builder()
             .name("storage-endpoint-suffix")
             .displayName("Storage Endpoint Suffix")
             .description(
-                    "Storage accounts in public Azure always use a common FQDN suffix " +
-                    "the preferred way is to configure them through a controller service specified in the Storage Credentials property. " +
+                    "Storage accounts in public Azure always use a common FQDN suffix. " +
+                    "Override this endpoint suffix with a different suffix in certain circumsances (like Azure Stack or non-public Azure regions). " +
+                    "The preferred way is to configure them through a controller service specified in the Storage Credentials property. " +
                     "The controller service can provide a common/shared configuration for multiple/all Azure processors. Furthermore, the credentials " +
                     "can also be looked up dynamically with the 'Lookup' version of the service.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -103,9 +104,7 @@ public final class AzureStorageUtils {
     public static final PropertyDescriptor CONTAINER = new PropertyDescriptor.Builder()
             .name("container-name")
             .displayName("Container Name")
-            .description("Name of the Azure storage container (blob.core.windows.net) but in certain circumstances it will be necessary " +
-                    "to customize this endpoint with a different suffix. Examples of when this is needed: Private Links, Azure Stack, " +
-                    "non-public Azure regions")
+            .description("Name of the Azure storage container. In case of PutAzureBlobStorage processor, container will be created if it does not exist.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(true)
@@ -172,7 +171,7 @@ public final class AzureStorageUtils {
 
     public static AzureStorageCredentialsDetails createStorageCredentialsDetails(PropertyContext context, Map<String, String> attributes) {
         final String accountName = context.getProperty(ACCOUNT_NAME).evaluateAttributeExpressions(attributes).getValue();
-        final String storageSuffix = context.getProperty(STORAGE_SUFFIX).evaluateAttributeExpressions(attributes).getValue();
+        final String storageSuffix = context.getProperty(ENDPOINT_SUFFIX).evaluateAttributeExpressions(attributes).getValue();
         final String accountKey = context.getProperty(ACCOUNT_KEY).evaluateAttributeExpressions(attributes).getValue();
         final String sasToken = context.getProperty(PROP_SAS_TOKEN).evaluateAttributeExpressions(attributes).getValue();
 
