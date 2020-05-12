@@ -43,5 +43,7 @@
         <module>nifi-utils</module>
         <module>nifi-web-utils</module>
         <module>nifi-write-ahead-log</module>
+        <module>minifi-commons-schema</module>
+        <module>minifi-utils</module>
     </modules>
 </project>

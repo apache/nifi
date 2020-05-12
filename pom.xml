@@ -26,6 +26,7 @@
         <module>nifi-api</module>
         <module>nifi-framework-api</module>
         <module>nifi-bootstrap</module>
+        <module>minifi-bootstrap</module>
         <module>nifi-mock</module>
         <module>nifi-nar-bundles</module>
         <module>nifi-assembly</module>

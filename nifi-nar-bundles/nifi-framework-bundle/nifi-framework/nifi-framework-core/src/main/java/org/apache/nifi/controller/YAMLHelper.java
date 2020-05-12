@@ -1,3 +1,19 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.nifi.controller;
 
 import org.apache.commons.lang3.StringUtils;
@@ -65,7 +81,7 @@ public class YAMLHelper {
             processGroupSchema.setName(flowControllerProperties.getName());
             processGroupSchema.setComment(flowControllerProperties.getComment());
 
-            addProcessGroup(doc, element, processGroupSchema, new org.apache.nifi.minifi.bootstrap.util.ParentGroupIdResolver(processGroupSchema));
+            addProcessGroup(doc, element, processGroupSchema, new ParentGroupIdResolver(processGroupSchema));
 
             SecurityPropertiesSchema securityProperties = configSchema.getSecurityProperties();
             if (securityProperties.useSSL()) {
@@ -145,7 +161,8 @@ public class YAMLHelper {
         }
     }
 
-    protected static void addProcessGroup(Document doc, Element element, ProcessGroupSchema processGroupSchema, org.apache.nifi.minifi.bootstrap.util.ParentGroupIdResolver parentGroupIdResolver) throws ConfigurationChangeException {
+    protected static void addProcessGroup(Document doc, Element element, ProcessGroupSchema processGroupSchema, ParentGroupIdResolver parentGroupIdResolver)
+            throws ConfigurationChangeException {
         try {
             String processGroupId = processGroupSchema.getId();
             addTextElement(element, "id", processGroupId);
@@ -324,8 +341,8 @@ public class YAMLHelper {
             addPosition(element);
             addTextElement(element, "comment", remoteProcessGroupProperties.getComment());
             // In the case we have multiple urls, select the first
-            addTextElement(element, "url", Arrays.asList(remoteProcessGroupProperties.getUrl().split(",")).get(0));
-            addTextElement(element, "urls", remoteProcessGroupProperties.getUrl());
+            addTextElement(element, "url", Arrays.asList(remoteProcessGroupProperties.getUrls().split(",")).get(0));
+            addTextElement(element, "urls", remoteProcessGroupProperties.getUrls());
             addTextElement(element, "timeout", remoteProcessGroupProperties.getTimeout());
             addTextElement(element, "yieldPeriod", remoteProcessGroupProperties.getYieldPeriod());
             addTextElement(element, "transmitting", "true");
@@ -375,7 +392,8 @@ public class YAMLHelper {
         }
     }
 
-    protected static void addConnection(final Element parentElement, ConnectionSchema connectionProperties, org.apache.nifi.minifi.bootstrap.util.ParentGroupIdResolver parentGroupIdResolver) throws ConfigurationChangeException {
+    protected static void addConnection(final Element parentElement, ConnectionSchema connectionProperties, ParentGroupIdResolver parentGroupIdResolver)
+            throws ConfigurationChangeException {
         try {
             final Document doc = parentElement.getOwnerDocument();
             final Element element = doc.createElement("connection");

@@ -21,16 +21,14 @@ import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.MissingBundleException;
 import org.apache.nifi.controller.StandardFlowSynchronizer;
 import org.apache.nifi.controller.UninheritableFlowException;
-import org.apache.nifi.controller.YAMLFlowSynchronizer;
 import org.apache.nifi.controller.serialization.FlowSerializationException;
 import org.apache.nifi.controller.serialization.FlowSynchronizationException;
 import org.apache.nifi.controller.serialization.FlowSynchronizer;
 import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.services.FlowService;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.file.FileUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -39,17 +37,13 @@ import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
-import java.util.zip.GZIPInputStream;
 
 public final class MiNiFiYAMLFlowConfigurationDAO implements FlowConfigurationDAO {
 
     private final Path configYamlPath;
     private final StringEncryptor encryptor;
-    private final FlowConfigurationArchiveManager archiveManager;
     private final NiFiProperties nifiProperties;
     private final ExtensionManager extensionManager;
-
-    private static final Logger LOG = LoggerFactory.getLogger(MiNiFiYAMLFlowConfigurationDAO.class);
 
     public MiNiFiYAMLFlowConfigurationDAO(final Path yamlFile, final StringEncryptor encryptor, final NiFiProperties nifiProperties,
                                           final ExtensionManager extensionManager) throws IOException {
@@ -70,8 +64,6 @@ public final class MiNiFiYAMLFlowConfigurationDAO implements FlowConfigurationDA
         this.configYamlPath = yamlFile;
         this.encryptor = encryptor;
         this.extensionManager = extensionManager;
-
-        this.archiveManager = null;
     }
 
     @Override
@@ -81,13 +73,13 @@ public final class MiNiFiYAMLFlowConfigurationDAO implements FlowConfigurationDA
     }
 
     @Override
-    public synchronized void load(final FlowController controller, final DataFlow dataFlow)
+    public synchronized void load(FlowController controller, DataFlow dataFlow, FlowService flowService)
             throws IOException, FlowSerializationException, FlowSynchronizationException, UninheritableFlowException, MissingBundleException {
 
-        final FlowSynchronizer flowSynchronizer = new YAMLFlowSynchronizer(encryptor, nifiProperties, extensionManager);
-        controller.synchronize(flowSynchronizer, dataFlow);
+        final FlowSynchronizer flowSynchronizer = new StandardFlowSynchronizer(encryptor, nifiProperties, extensionManager);
+        controller.synchronize(flowSynchronizer, dataFlow, flowService);
 
-        if (YAMLFlowSynchronizer.isEmpty(dataFlow)) {
+        if (StandardFlowSynchronizer.isEmpty(dataFlow)) {
             // If the dataflow is empty, we want to save it. We do this because when we start up a brand new cluster with no
             // dataflow, we need to ensure that the flow is consistent across all nodes in the cluster and that upon restart
             // of NiFi, the root group ID does not change. However, we don't always want to save it, because if the flow is
