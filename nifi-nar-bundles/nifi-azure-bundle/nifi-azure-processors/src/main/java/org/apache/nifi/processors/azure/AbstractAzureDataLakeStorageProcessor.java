@@ -28,11 +28,11 @@ import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.commons.lang3.StringUtils;
 
+import com.azure.identity.ManagedIdentityCredential;
+import com.azure.identity.ManagedIdentityCredentialBuilder;
 import com.azure.storage.common.StorageSharedKeyCredential;
 import com.azure.storage.file.datalake.DataLakeServiceClient;
 import com.azure.storage.file.datalake.DataLakeServiceClientBuilder;
-import com.azure.identity.ManagedIdentityCredential;
-import com.azure.identity.ManagedIdentityCredentialBuilder;
 
 import java.util.Arrays;
 import java.util.ArrayList;
@@ -120,7 +120,7 @@ public abstract class AbstractAzureDataLakeStorageProcessor extends AbstractProc
             .build();
 
     public static final PropertyDescriptor ENDPOINT_SUFFIX = new PropertyDescriptor.Builder()
-            .name("endpoint-suffix").displayName("EndpointSuffix")
+            .name("endpoint-suffix").displayName("Endpoint Suffix")
             .description("Endpoint Suffix")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -139,11 +139,11 @@ public abstract class AbstractAzureDataLakeStorageProcessor extends AbstractProc
             Arrays.asList(AbstractAzureDataLakeStorageProcessor.ACCOUNT_NAME,
                     AbstractAzureDataLakeStorageProcessor.ACCOUNT_KEY,
                     AbstractAzureDataLakeStorageProcessor.SAS_TOKEN,
+                    AbstractAzureDataLakeStorageProcessor.ENDPOINT_SUFFIX,
                     AbstractAzureDataLakeStorageProcessor.USE_MANAGED_IDENTITY,
                     AbstractAzureDataLakeStorageProcessor.FILESYSTEM,
                     AbstractAzureDataLakeStorageProcessor.DIRECTORY,
-                    AbstractAzureDataLakeStorageProcessor.FILE,
-                    AbstractAzureDataLakeStorageProcessor.ENDPOINT_SUFFIX));
+                    AbstractAzureDataLakeStorageProcessor.FILE));
 
     private static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(
             new HashSet<>(Arrays.asList(
@@ -160,18 +160,31 @@ public abstract class AbstractAzureDataLakeStorageProcessor extends AbstractProc
 
         final boolean useManagedIdentity = validationContext.getProperty(USE_MANAGED_IDENTITY).asBoolean();
         final String accountName = validationContext.getProperty(ACCOUNT_NAME).getValue();
+        final boolean accountKeyIsSet  = validationContext.getProperty(ACCOUNT_KEY).isSet();
+        final boolean sasTokenIsSet     = validationContext.getProperty(SAS_TOKEN).isSet();
 
-        if(!useManagedIdentity) {
+        if(useManagedIdentity){
+            if(accountKeyIsSet || sasTokenIsSet) {
+                final String msg = String.format(
+                    "('%s') and ('%s' or '%s') fields cannot be set at the same time.",
+                    USE_MANAGED_IDENTITY.getDisplayName(),
+                    ACCOUNT_KEY.getDisplayName(),
+                    SAS_TOKEN.getDisplayName()
+                );
+                results.add(new ValidationResult.Builder().subject("Credentials config").valid(false).explanation(msg).build());
+            }
+        } else {
             final String accountKey = validationContext.getProperty(ACCOUNT_KEY).getValue();
             final String sasToken = validationContext.getProperty(SAS_TOKEN).getValue();
-
-            if (StringUtils.isNotBlank(accountName)
-                    && ((StringUtils.isNotBlank(accountKey) && StringUtils.isNotBlank(sasToken)) || (StringUtils.isBlank(accountKey) && StringUtils.isBlank(sasToken)))) {
-                    results.add(new ValidationResult.Builder().subject("Azure Storage Credentials").valid(false)
-                            .explanation("either " + ACCOUNT_NAME.getDisplayName() + " with " + ACCOUNT_KEY.getDisplayName() +
-                                    " or " + ACCOUNT_NAME.getDisplayName() + " with " + SAS_TOKEN.getDisplayName() +
-                                    " must be specified, not both")
-                            .build());
+            if (StringUtils.isNotBlank(accountName) && ((StringUtils.isNotBlank(accountKey) && StringUtils.isNotBlank(sasToken))
+            || (StringUtils.isBlank(accountKey) && StringUtils.isBlank(sasToken)))) {
+                final String msg = String.format("either " + ACCOUNT_NAME.getDisplayName() + " with " + ACCOUNT_KEY.getDisplayName() +
+                    " or " + ACCOUNT_NAME.getDisplayName() + " with " + SAS_TOKEN.getDisplayName() +
+                    " must be specified, not both"
+                );
+                results.add(new ValidationResult.Builder().subject("Credentials Config").valid(false)
+                    .explanation(msg)
+                    .build());
             }
         }
         return results;
