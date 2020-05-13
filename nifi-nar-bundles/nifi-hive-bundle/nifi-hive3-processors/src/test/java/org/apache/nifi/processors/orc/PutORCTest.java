@@ -127,7 +127,7 @@ public class PutORCTest {
 
         final RecordSchema recordSchema = AvroTypeUtil.createSchema(schema);
         for (final RecordField recordField : recordSchema.getFields()) {
-            readerFactory.addSchemaField(recordField.getFieldName(), recordField.getDataType().getFieldType(), recordField.isNullable());
+            readerFactory.addSchemaField(recordField);
         }
 
         if (recordGenerator == null) {
@@ -230,7 +230,7 @@ public class PutORCTest {
         final int timeMillis = nowTime.get(ChronoField.MILLI_OF_DAY);
         final Timestamp timestampMillis = Timestamp.valueOf(nowDateTime);
         final Date dt = Date.valueOf(nowDate);
-        final BigDecimal bigDecimal = new BigDecimal("9223372036854775807.12345");
+        final BigDecimal bigDecimal = new BigDecimal("92.12");
 
         configure(proc, 10, (numUsers, readerFactory) -> {
             for (int i = 0; i < numUsers; i++) {

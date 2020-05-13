@@ -31,6 +31,7 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -50,9 +51,9 @@ public class ResultSetRecordSetTest {
             {11, "float", Types.FLOAT, RecordFieldType.FLOAT.getDataType()},
             {12, "smallint", Types.SMALLINT, RecordFieldType.SHORT.getDataType()},
             {13, "tinyint", Types.TINYINT, RecordFieldType.BYTE.getDataType()},
-            {14, "bigDecimal1", Types.DECIMAL,RecordFieldType.BIGDECIMAL.getDataType()},
-            {15, "bigDecimal2", Types.NUMERIC, RecordFieldType.BIGDECIMAL.getDataType()},
-            {16, "bigDecimal3", Types.JAVA_OBJECT, RecordFieldType.BIGDECIMAL.getDataType()},
+            {14, "bigDecimal1", Types.DECIMAL,RecordFieldType.DECIMAL.getDecimalDataType(7, 3)},
+            {15, "bigDecimal2", Types.NUMERIC, RecordFieldType.DECIMAL.getDecimalDataType(4, 0)},
+            {16, "bigDecimal3", Types.JAVA_OBJECT, RecordFieldType.DECIMAL.getDecimalDataType(501, 1)},
     };
 
     @Mock
@@ -71,6 +72,11 @@ public class ResultSetRecordSetTest {
             Mockito.when(resultSetMetaData.getColumnName((Integer) column[0])).thenReturn((String) column[1]);
             Mockito.when(resultSetMetaData.getColumnType((Integer) column[0])).thenReturn((Integer) column[2]);
         }
+
+        // Big decimal values are necessary in order to determine precision and scale
+        Mockito.when(resultSet.getBigDecimal(14)).thenReturn(BigDecimal.valueOf(1234.567D));
+        Mockito.when(resultSet.getBigDecimal(15)).thenReturn(BigDecimal.valueOf(1234L));
+        Mockito.when(resultSet.getBigDecimal(16)).thenReturn(new BigDecimal(String.join("", Collections.nCopies(500, "1")) + ".1"));
 
         // This will be handled by a dedicated branch for Java Objects, needs some further details
         Mockito.when(resultSetMetaData.getColumnClassName(16)).thenReturn(BigDecimal.class.getName());
@@ -103,7 +109,7 @@ public class ResultSetRecordSetTest {
     public void testCreateSchemaWhenOtherType() throws SQLException {
         // given
         final List<RecordField> fields = new ArrayList<>();
-        fields.add(new RecordField("column", RecordFieldType.BIGDECIMAL.getDataType()));
+        fields.add(new RecordField("column", RecordFieldType.DECIMAL.getDecimalDataType(30, 10)));
         final RecordSchema recordSchema = new SimpleRecordSchema(fields);
         final ResultSet resultSet = givenResultSetForOther();
 
@@ -112,7 +118,7 @@ public class ResultSetRecordSetTest {
         final RecordSchema resultSchema = testSubject.getSchema();
 
         // then
-        Assert.assertEquals(RecordFieldType.BIGDECIMAL.getDataType(), resultSchema.getField(0).getDataType());
+        Assert.assertEquals(RecordFieldType.DECIMAL.getDecimalDataType(30, 10), resultSchema.getField(0).getDataType());
     }
 
     @Test

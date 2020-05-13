@@ -124,10 +124,10 @@ public class TestCSVRecordReader {
     @Test
     public void testBigDecimal() throws IOException, MalformedRecordException {
         final String value = String.join("", Collections.nCopies(500, "1")) + ".2";
-        final String text = "bigDecimal\n" + value;
+        final String text = "decimal\n" + value;
 
         final List<RecordField> fields = new ArrayList<>();
-        fields.add(new RecordField("bigDecimal", RecordFieldType.BIGDECIMAL.getDataType()));
+        fields.add(new RecordField("decimal", RecordFieldType.DECIMAL.getDecimalDataType(30, 10)));
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
         try (final InputStream bais = new ByteArrayInputStream(text.getBytes(StandardCharsets.UTF_8));
@@ -135,7 +135,7 @@ public class TestCSVRecordReader {
                      RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), StandardCharsets.UTF_8.name())) {
 
             final Record record = reader.nextRecord();
-            final BigDecimal result = (BigDecimal)record.getValue("bigDecimal");
+            final BigDecimal result = (BigDecimal)record.getValue("decimal");
 
             assertEquals(new BigDecimal(value), result);
         }

@@ -224,7 +224,7 @@ public class FlowFileTable extends AbstractTable implements QueryableTable, Tran
                 return typeFactory.createJavaType(HashMap.class);
             case BIGINT:
                 return typeFactory.createJavaType(BigInteger.class);
-            case BIGDECIMAL:
+            case DECIMAL:
                 return typeFactory.createJavaType(BigDecimal.class);
             case CHOICE:
                 final ChoiceDataType choiceDataType = (ChoiceDataType) fieldType;

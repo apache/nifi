@@ -47,6 +47,7 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.type.ChoiceDataType;
+import org.apache.nifi.serialization.record.type.DecimalDataType;
 import org.apache.nifi.serialization.record.type.MapDataType;
 import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.apache.orc.MemoryManager;
@@ -293,9 +294,9 @@ public class NiFiOrcUtils {
             return getPrimitiveOrcTypeFromPrimitiveFieldType(dataType);
         }
 
-        if (RecordFieldType.BIGDECIMAL.equals(fieldType)) {
-            // 38 is the maximum allowed precision and 19 digit is needed to represent long values
-            return TypeInfoFactory.getDecimalTypeInfo(38, 19);
+        if (RecordFieldType.DECIMAL.equals(fieldType)) {
+            DecimalDataType decimalDataType = (DecimalDataType) dataType;
+            return TypeInfoFactory.getDecimalTypeInfo(decimalDataType.getPrecision(), decimalDataType.getScale());
         }
         if (RecordFieldType.DATE.equals(fieldType)) {
             return TypeInfoFactory.dateTypeInfo;
@@ -418,7 +419,7 @@ public class NiFiOrcUtils {
         if (RecordFieldType.FLOAT.equals(dataType)) {
             return "FLOAT";
         }
-        if (RecordFieldType.BIGDECIMAL.equals(dataType)) {
+        if (RecordFieldType.DECIMAL.equals(dataType)) {
             return "DECIMAL";
         }
         if (RecordFieldType.STRING.equals(dataType)) {

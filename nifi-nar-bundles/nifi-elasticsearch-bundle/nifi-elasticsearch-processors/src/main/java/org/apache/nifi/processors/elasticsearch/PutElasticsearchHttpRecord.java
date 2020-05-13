@@ -694,7 +694,7 @@ public class PutElasticsearchHttpRecord extends AbstractElasticsearchHttpProcess
                     generator.writeNumber((BigInteger) coercedValue);
                 }
                 break;
-            case BIGDECIMAL:
+            case DECIMAL:
                 generator.writeNumber(DataTypeUtils.toBigDecimal(coercedValue, fieldName));
                 break;
             case BOOLEAN:

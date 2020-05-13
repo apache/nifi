@@ -62,7 +62,8 @@ public class InferenceSchemaStrategy implements JsonSchemaAccessStrategy {
             } else if (entry.getValue() instanceof Date) {
                 field = new RecordField(entry.getKey(), RecordFieldType.DATE.getDataType());
             } else if (entry.getValue() instanceof BigDecimal) {
-                field = new RecordField(entry.getKey(), RecordFieldType.BIGDECIMAL.getDataType());
+                final BigDecimal bigDecimal = (BigDecimal) entry.getValue();
+                field = new RecordField(entry.getKey(), RecordFieldType.DECIMAL.getDecimalDataType(bigDecimal.precision(), bigDecimal.scale()));
             } else if (entry.getValue() instanceof List) {
                 field = new RecordField(entry.getKey(), RecordFieldType.ARRAY.getDataType());
             } else if (entry.getValue() instanceof Map) {

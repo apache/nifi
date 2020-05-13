@@ -365,7 +365,7 @@ public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingT
                 case FLOAT:
                 case INT:
                 case BIGINT:
-                case BIGDECIMAL:
+                case DECIMAL:
                 case LONG:
                 case SHORT:
                 case STRING:

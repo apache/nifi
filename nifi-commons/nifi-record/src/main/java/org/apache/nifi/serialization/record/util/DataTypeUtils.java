@@ -128,7 +128,7 @@ public class DataTypeUtils {
         NUMERIC_VALIDATORS.put(RecordFieldType.SHORT, value -> value instanceof Short);
         NUMERIC_VALIDATORS.put(RecordFieldType.DOUBLE, value -> value instanceof Double);
         NUMERIC_VALIDATORS.put(RecordFieldType.FLOAT, value -> value instanceof Float);
-        NUMERIC_VALIDATORS.put(RecordFieldType.BIGDECIMAL, value -> value instanceof BigDecimal);
+        NUMERIC_VALIDATORS.put(RecordFieldType.DECIMAL, value -> value instanceof BigDecimal);
     }
 
     public static Object convertType(final Object value, final DataType dataType, final String fieldName) {
@@ -176,7 +176,7 @@ public class DataTypeUtils {
                 return toCharacter(value, fieldName);
             case DATE:
                 return toDate(value, dateFormat, fieldName);
-            case BIGDECIMAL:
+            case DECIMAL:
                 return toBigDecimal(value, fieldName);
             case DOUBLE:
                 return toDouble(value, fieldName);
@@ -232,7 +232,7 @@ public class DataTypeUtils {
                 return isCharacterTypeCompatible(value);
             case DATE:
                 return isDateTypeCompatible(value, dataType.getFormat());
-            case BIGDECIMAL:
+            case DECIMAL:
                 return isBigDecimalTypeCompatible(value);
             case DOUBLE:
                 return isDoubleTypeCompatible(value);
@@ -490,7 +490,8 @@ public class DataTypeUtils {
                 return RecordFieldType.BIGINT.getDataType();
             }
             if (value instanceof BigDecimal) {
-                return RecordFieldType.BIGDECIMAL.getDataType();
+                final BigDecimal bigDecimal = (BigDecimal) value;
+                return RecordFieldType.DECIMAL.getDecimalDataType(bigDecimal.precision(), bigDecimal.scale());
             }
         }
 
@@ -1816,7 +1817,7 @@ public class DataTypeUtils {
                 return Types.DOUBLE;
             case FLOAT:
                 return Types.FLOAT;
-            case BIGDECIMAL:
+            case DECIMAL:
                 return Types.NUMERIC;
             case INT:
                 return Types.INTEGER;

@@ -86,7 +86,7 @@ public class TestPutKudu {
     public static final String DEFAULT_TABLE_NAME = "Nifi-Kudu-Table";
     public static final String DEFAULT_MASTERS = "testLocalHost:7051";
     public static final String SKIP_HEAD_LINE = "false";
-    public static final String TABLE_SCHEMA = "id,stringVal,num32Val,doubleVal,bigDecimalVal";
+    public static final String TABLE_SCHEMA = "id,stringVal,num32Val,doubleVal,decimalVal";
 
     private TestRunner testRunner;
 
@@ -123,7 +123,7 @@ public class TestPutKudu {
         readerFactory.addSchemaField("stringVal", RecordFieldType.STRING);
         readerFactory.addSchemaField("num32Val", RecordFieldType.INT);
         readerFactory.addSchemaField("doubleVal", RecordFieldType.DOUBLE);
-        readerFactory.addSchemaField("bigDecimalVal", RecordFieldType.BIGDECIMAL);
+        readerFactory.addSchemaField("decimalVal", RecordFieldType.DECIMAL);
 
         for (int i=0; i < numOfRecord; i++) {
             readerFactory.addRecord(i, "val_" + i, 1000 + i, 100.88 + i, new BigDecimal(111.111D).add(BigDecimal.valueOf(i)));

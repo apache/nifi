@@ -376,7 +376,7 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
             case STRING:
                 generator.writeString(coercedValue.toString());
                 break;
-            case BIGDECIMAL:
+            case DECIMAL:
                 generator.writeNumber(DataTypeUtils.toBigDecimal(coercedValue, fieldName));
                 break;
             case BIGINT:

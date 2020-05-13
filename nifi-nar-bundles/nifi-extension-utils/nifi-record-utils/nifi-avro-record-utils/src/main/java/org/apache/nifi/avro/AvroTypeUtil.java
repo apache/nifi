@@ -44,6 +44,7 @@ import org.apache.nifi.serialization.record.SchemaIdentifier;
 import org.apache.nifi.serialization.record.StandardSchemaIdentifier;
 import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.type.ChoiceDataType;
+import org.apache.nifi.serialization.record.type.DecimalDataType;
 import org.apache.nifi.serialization.record.type.MapDataType;
 import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
@@ -256,11 +257,10 @@ public class AvroTypeUtil {
             case LONG:
                 schema = Schema.create(Type.LONG);
                 break;
-            case BIGDECIMAL:
-                // One more byte than below to allow the dot in the string representation
-                schema = Schema.createFixed(fieldName + "Type", null,  "org.apache.nifi",39);
-                // 38 is the maximum allowed precision and 19 digit is needed to represent long values
-                LogicalTypes.decimal(38,19).addToSchema(schema);
+            case DECIMAL:
+                final DecimalDataType decimalDataType = (DecimalDataType) dataType;
+                schema = Schema.createFixed(fieldName + "Type", null,  "org.apache.nifi",decimalDataType.getPrecision() + 1);
+                LogicalTypes.decimal(decimalDataType.getPrecision(),decimalDataType.getScale()).addToSchema(schema);
                 break;
             case MAP:
                 schema = Schema.createMap(buildAvroSchema(((MapDataType) dataType).getValueType(), fieldName, false));
@@ -347,7 +347,8 @@ public class AvroTypeUtil {
                 case LOGICAL_TYPE_TIMESTAMP_MICROS:
                     return RecordFieldType.TIMESTAMP.getDataType();
                 case LOGICAL_TYPE_DECIMAL:
-                    return RecordFieldType.BIGDECIMAL.getDataType();
+                    final LogicalTypes.Decimal decimal = (LogicalTypes.Decimal) logicalType;
+                    return RecordFieldType.DECIMAL.getDecimalDataType(decimal.getPrecision(), decimal.getScale());
             }
         }
 

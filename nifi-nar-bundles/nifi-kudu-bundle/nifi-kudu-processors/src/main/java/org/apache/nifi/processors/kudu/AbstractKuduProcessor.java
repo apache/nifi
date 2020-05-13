@@ -388,7 +388,7 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
                 return Type.FLOAT;
             case DOUBLE:
                 return Type.DOUBLE;
-            case BIGDECIMAL:
+            case DECIMAL:
                 return Type.DECIMAL;
             case TIMESTAMP:
                 return Type.UNIXTIME_MICROS;
@@ -401,7 +401,7 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
     }
 
     private ColumnTypeAttributes getKuduTypeAttributes(final DataType nifiType) {
-        return nifiType.getFieldType().equals(RecordFieldType.BIGDECIMAL)
+        return nifiType.getFieldType().equals(RecordFieldType.DECIMAL)
                 ? new ColumnTypeAttributes.ColumnTypeAttributesBuilder().precision(38).scale(19).build()
                 : null;
     }

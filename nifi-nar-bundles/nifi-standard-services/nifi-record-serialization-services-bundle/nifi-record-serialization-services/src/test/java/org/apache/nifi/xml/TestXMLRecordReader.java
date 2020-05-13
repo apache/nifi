@@ -406,7 +406,7 @@ public class TestXMLRecordReader {
         // given
         final InputStream is = new FileInputStream("src/test/resources/xml/people2.xml");
         final List<RecordField> fields = getSimpleRecordFields();
-        fields.add(new RecordField("ID", RecordFieldType.BIGDECIMAL.getDataType()));
+        fields.add(new RecordField("ID", RecordFieldType.DECIMAL.getDecimalDataType(38, 10)));
         final XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(fields), true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 

@@ -45,7 +45,7 @@ public class SolrUtilsTest {
         // given
         final String value = "12345678901234567890.123456789012345678901234567890";
         final BigDecimal bigDecimalValue = new BigDecimal(value);
-        final List<RecordField> fields = Collections.singletonList(new RecordField("test", RecordFieldType.BIGDECIMAL.getDataType()));
+        final List<RecordField> fields = Collections.singletonList(new RecordField("test", RecordFieldType.DECIMAL.getDecimalDataType(30, 10)));
 
         final Map<String, Object> values = new HashMap<>();
         values.put("test", bigDecimalValue);

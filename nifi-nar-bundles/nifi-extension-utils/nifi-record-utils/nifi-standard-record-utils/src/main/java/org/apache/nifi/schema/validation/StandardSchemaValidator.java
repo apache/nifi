@@ -272,7 +272,7 @@ public class StandardSchemaValidator implements RecordSchemaValidator {
                         || DataTypeUtils.isIntegerFitsToFloat(value)
                         || DataTypeUtils.isLongFitsToFloat(value)
                         || DataTypeUtils.isBigIntFitsToFloat(value);
-            case BIGDECIMAL:
+            case DECIMAL:
                 return DataTypeUtils.isFittingNumberType(value, dataType.getFieldType())
                         || value instanceof Byte
                         || value instanceof Short

@@ -91,7 +91,7 @@ public class CSVSchemaInference implements SchemaInferenceEngine<CSVRecordAndFie
                     final double doubleValue = Double.parseDouble(value);
 
                     if (doubleValue == Double.POSITIVE_INFINITY || doubleValue == Double.NEGATIVE_INFINITY) {
-                        return RecordFieldType.BIGDECIMAL.getDataType();
+                        return RecordFieldType.DECIMAL.getDecimalDataType(value.length() - 1, value.length() - 1 - value.indexOf("."));
                     }
 
                     if (doubleValue > Float.MAX_VALUE || doubleValue < Float.MIN_VALUE) {

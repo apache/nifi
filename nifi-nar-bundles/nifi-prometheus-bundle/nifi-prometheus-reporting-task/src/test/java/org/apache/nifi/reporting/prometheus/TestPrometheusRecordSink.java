@@ -72,7 +72,7 @@ public class TestPrometheusRecordSink {
 
         List<RecordField> recordFields = Arrays.asList(
                 new RecordField("field1", RecordFieldType.INT.getDataType()),
-                new RecordField("field2", RecordFieldType.BIGDECIMAL.getDataType()),
+                new RecordField("field2", RecordFieldType.DECIMAL.getDecimalDataType(30, 10)),
                 new RecordField("field3", RecordFieldType.STRING.getDataType())
         );
         RecordSchema recordSchema = new SimpleRecordSchema(recordFields);

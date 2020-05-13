@@ -44,7 +44,7 @@ public class InferenceSchemaStrategyTest {
             {"boolean", true, RecordFieldType.BOOLEAN.getDataType()},
             {"double", 1D, RecordFieldType.DOUBLE.getDataType()},
             {"date", new Date(), RecordFieldType.DATE.getDataType()},
-            {"bigdecimal", BigDecimal.ONE, RecordFieldType.BIGDECIMAL.getDataType()},
+            {"decimal", BigDecimal.valueOf(123.456D), RecordFieldType.DECIMAL.getDecimalDataType(6, 3)},
             {"array", new ArrayList<String>(), RecordFieldType.ARRAY.getDataType()},
 
             // date subclasses

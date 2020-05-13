@@ -250,7 +250,7 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
             case BOOLEAN:
             case BYTE:
             case CHAR:
-            case BIGDECIMAL:
+            case DECIMAL:
             case DOUBLE:
             case FLOAT:
             case INT:

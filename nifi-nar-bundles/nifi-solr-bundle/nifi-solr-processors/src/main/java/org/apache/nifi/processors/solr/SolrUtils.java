@@ -462,7 +462,7 @@ public class SolrUtils {
                     addFieldToSolrDocument(inputDocument,fieldName, coercedValue,fieldsToIndex);
                 }
                 break;
-            case BIGDECIMAL:
+            case DECIMAL:
                 addFieldToSolrDocument(inputDocument, fieldName, DataTypeUtils.toBigDecimal(coercedValue, fieldName), fieldsToIndex);
                 break;
             case BOOLEAN:
