@@ -94,7 +94,7 @@ public class GetAzureQueueStorage extends AbstractAzureQueueStorage {
             .build();
 
     private static final List<PropertyDescriptor> properties = Collections.unmodifiableList(Arrays.asList(
-            AzureStorageUtils.STORAGE_CREDENTIALS_SERVICE, AzureStorageUtils.ACCOUNT_NAME, AzureStorageUtils.ACCOUNT_KEY, AzureStorageUtils.STORAGE_SUFFIX, AzureStorageUtils.PROP_SAS_TOKEN,
+            AzureStorageUtils.STORAGE_CREDENTIALS_SERVICE, AzureStorageUtils.ACCOUNT_NAME, AzureStorageUtils.ACCOUNT_KEY, AzureStorageUtils.ENDPOINT_SUFFIX, AzureStorageUtils.PROP_SAS_TOKEN,
             QUEUE, AUTO_DELETE, BATCH_SIZE, VISIBILITY_TIMEOUT, AzureStorageUtils.PROXY_CONFIGURATION_SERVICE));
 
     @Override

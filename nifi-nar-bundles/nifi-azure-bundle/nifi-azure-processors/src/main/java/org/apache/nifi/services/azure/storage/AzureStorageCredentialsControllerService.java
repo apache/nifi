@@ -60,7 +60,7 @@ public class AzureStorageCredentialsControllerService extends AbstractController
             .unmodifiableList(Arrays.asList(
                     ACCOUNT_NAME,
                     AzureStorageUtils.ACCOUNT_KEY,
-                    AzureStorageUtils.STORAGE_SUFFIX,
+                    AzureStorageUtils.ENDPOINT_SUFFIX,
                     AzureStorageUtils.PROP_SAS_TOKEN));
 
     private ConfigurationContext context;
