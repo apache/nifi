@@ -399,6 +399,7 @@
     <profiles>
         <profile>
             <id>development-mode</id>
+            <!-- test -->
             <activation>
                 <activeByDefault>true</activeByDefault>
             </activation>
