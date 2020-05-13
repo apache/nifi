@@ -238,9 +238,11 @@ public class NiFiOrcUtils {
     }
 
     public static String generateHiveDDL(RecordSchema recordSchema, String tableName, boolean hiveFieldNames) {
-        StringBuilder sb = new StringBuilder("CREATE EXTERNAL TABLE IF NOT EXISTS `");
-        sb.append(tableName);
-        sb.append("` (");
+        StringBuilder sb = new StringBuilder("CREATE EXTERNAL TABLE IF NOT EXISTS ");
+        String[] tableSections = tableName.split("\\.");
+        String quotedTableName = Arrays.stream(tableSections).map((section) -> "`" + section + "`").collect(Collectors.joining("."));
+        sb.append(quotedTableName);
+        sb.append(" (");
         List<String> hiveColumns = new ArrayList<>();
         List<RecordField> fields = recordSchema.getFields();
         if (fields != null) {

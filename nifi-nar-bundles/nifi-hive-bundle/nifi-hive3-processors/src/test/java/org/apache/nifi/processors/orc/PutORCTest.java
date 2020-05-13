@@ -451,6 +451,29 @@ public class PutORCTest {
         testRunner.assertAllFlowFilesTransferred(PutORC.REL_SUCCESS, 1);
     }
 
+    @Test
+    public void testDDLQuoteTableNameSections() throws IOException, InitializationException {
+        configure(proc, 100);
+
+        final String filename = "testORCWithDefaults-" + System.currentTimeMillis();
+
+        final Map<String, String> flowFileAttributes = new HashMap<>();
+        flowFileAttributes.put(CoreAttributes.FILENAME.key(), filename);
+
+        testRunner.setProperty(PutORC.HIVE_TABLE_NAME, "mydb.myTable");
+
+        testRunner.enqueue("trigger", flowFileAttributes);
+        testRunner.run();
+        testRunner.assertAllFlowFilesTransferred(PutORC.REL_SUCCESS, 1);
+
+        final Path orcFile = new Path(DIRECTORY + "/" + filename);
+
+        // verify the successful flow file has the expected attributes
+        final MockFlowFile mockFlowFile = testRunner.getFlowFilesForRelationship(PutORC.REL_SUCCESS).get(0);
+        mockFlowFile.assertAttributeEquals(PutORC.HIVE_DDL_ATTRIBUTE,
+                "CREATE EXTERNAL TABLE IF NOT EXISTS `mydb`.`myTable` (`name` STRING, `favorite_number` INT, `favorite_color` STRING, `scale` DOUBLE) STORED AS ORC");
+    }
+
     private void verifyORCUsers(final Path orcUsers, final int numExpectedUsers) throws IOException {
         verifyORCUsers(orcUsers, numExpectedUsers, null);
     }
