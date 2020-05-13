@@ -25,6 +25,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
@@ -43,10 +44,12 @@ import javax.jms.Topic;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import org.apache.commons.lang3.SerializationUtils;
 import org.apache.nifi.jms.processors.JMSConsumer.ConsumerCallback;
 import org.apache.nifi.jms.processors.JMSConsumer.JMSResponse;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.util.MockComponentLog;
 import org.junit.Test;
 import org.springframework.jms.connection.CachingConnectionFactory;
 import org.springframework.jms.core.JmsTemplate;
@@ -242,7 +245,7 @@ public class JMSPublisherConsumerIT {
             flowFileAttributes.put(JmsHeaders.REPLY_TO, "myTopic");
             flowFileAttributes.put(JmsHeaders.DELIVERY_MODE, "1");
             flowFileAttributes.put(JmsHeaders.PRIORITY, "1");
-            flowFileAttributes.put(JmsHeaders.EXPIRATION, "never"); // value expected to be integer, make sure non-integer doesn't cause problems
+            flowFileAttributes.put(JmsHeaders.EXPIRATION, "never"); // value expected to be long, make sure non-long doesn't cause problems
             publisher.publish(destinationName, "hellomq".getBytes(), flowFileAttributes);
 
             Message receivedMessage = jmsTemplate.receive(destinationName);
@@ -260,6 +263,34 @@ public class JMSPublisherConsumerIT {
         }
     }
 
+    @Test
+    public void validateNIFI6721() throws Exception {
+
+        final String destinationName = "validateNIFI6721";
+        JmsTemplate jmsTemplate = CommonTest.buildJmsTemplateForDestination(false);
+
+        try {
+            MockComponentLog mockLog = new MockComponentLog("test", this);
+
+            JMSPublisher publisher = new JMSPublisher((CachingConnectionFactory) jmsTemplate.getConnectionFactory(), jmsTemplate, mockLog);
+            Map<String, String> flowFileAttributes = new HashMap<>();
+            flowFileAttributes.put(JmsHeaders.EXPIRATION, "never"); // value expected to be long, make sure non-long doesn't cause problems
+            publisher.publish(destinationName, "hellomq-0".getBytes(), flowFileAttributes);
+            assertEquals(mockLog.getWarnMessages().size(), 0);
+
+            long expiration = Instant.now().toEpochMilli() + 1000 * 120;
+            flowFileAttributes.put(JmsHeaders.EXPIRATION, Long.toString(expiration));
+            publisher.publish(destinationName, "hellomq-1".getBytes(), flowFileAttributes);
+            assertEquals(mockLog.getWarnMessages().size(), 0);
+
+            flowFileAttributes.put(JmsHeaders.EXPIRATION, "0");
+            publisher.publish(destinationName, "hellomq-2".getBytes(), flowFileAttributes);
+            assertEquals(mockLog.getWarnMessages().size(), 0);
+
+        } finally {
+            ((CachingConnectionFactory) jmsTemplate.getConnectionFactory()).destroy();
+        }
+    }
     /**
      * At the moment the only two supported message types are TextMessage and
      * BytesMessage which is sufficient for the type if JMS use cases NiFi is

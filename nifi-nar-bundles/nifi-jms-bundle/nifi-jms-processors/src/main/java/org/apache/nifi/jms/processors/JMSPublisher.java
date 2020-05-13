@@ -16,12 +16,11 @@
  */
 package org.apache.nifi.jms.processors;
 
-import org.apache.nifi.logging.ComponentLog;
-import org.springframework.jms.connection.CachingConnectionFactory;
-import org.springframework.jms.core.JmsTemplate;
-import org.springframework.jms.core.MessageCreator;
-import org.springframework.jms.core.SessionCallback;
-import org.springframework.jms.support.JmsHeaders;
+import java.time.Instant;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Map.Entry;
 
 import javax.jms.BytesMessage;
 import javax.jms.Destination;
@@ -31,10 +30,14 @@ import javax.jms.Queue;
 import javax.jms.Session;
 import javax.jms.TextMessage;
 import javax.jms.Topic;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Map.Entry;
+
+import org.apache.commons.lang3.math.NumberUtils;
+import org.apache.nifi.logging.ComponentLog;
+import org.springframework.jms.connection.CachingConnectionFactory;
+import org.springframework.jms.core.JmsTemplate;
+import org.springframework.jms.core.MessageCreator;
+import org.springframework.jms.core.SessionCallback;
+import org.springframework.jms.support.JmsHeaders;
 
 /**
  * Generic publisher of messages to JMS compliant messaging system.
@@ -82,8 +85,16 @@ final class JMSPublisher extends JMSWorker {
                         this.jmsTemplate.setDeliveryMode(Integer.parseInt(entry.getValue()));
                         this.jmsTemplate.setExplicitQosEnabled(true);
                     } else if (entry.getKey().equals(JmsHeaders.EXPIRATION)) {
-                        this.jmsTemplate.setTimeToLive(Integer.parseInt(entry.getValue()));
-                        this.jmsTemplate.setExplicitQosEnabled(true);
+                        if(NumberUtils.isCreatable(entry.getValue())) {
+                            long expiration = Long.parseLong(entry.getValue());
+                            if(expiration > 0) { // expiration == 0 means no expiration in jms
+                                long ttl = expiration - Instant.now().toEpochMilli();
+                                if(ttl > 0) {
+                                    this.jmsTemplate.setTimeToLive(ttl);
+                                    this.jmsTemplate.setExplicitQosEnabled(true);
+                                }
+                            }
+                        }
                     } else if (entry.getKey().equals(JmsHeaders.PRIORITY)) {
                         this.jmsTemplate.setPriority(Integer.parseInt(entry.getValue()));
                         this.jmsTemplate.setExplicitQosEnabled(true);
