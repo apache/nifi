@@ -349,20 +349,14 @@ public class KeyStoreUtils {
     public static String sslParametersToString(SSLParameters sslParameters) {
         return new ToStringBuilder(sslParameters)
                 .append("protocols", sslParameters.getProtocols())
-                // .append("cipherSuites", sslParameters.getCipherSuites())
                 .append("wantClientAuth", sslParameters.getWantClientAuth())
                 .append("needClientAuth", sslParameters.getNeedClientAuth())
-                // .append("identificationAlgorithm", sslParameters.getEndpointIdentificationAlgorithm())
-                // .append("algorithmConstraints", sslParameters.getAlgorithmConstraints())
-                // .append("sniNames", sslParameters.getServerNames())
-                // .append("sniMatchers", sslParameters.getSNIMatchers())
                 .toString();
     }
 
     public static String sslServerSocketToString(SSLServerSocket sslServerSocket) {
         return new ToStringBuilder(sslServerSocket)
                 .append("enabledProtocols", sslServerSocket.getEnabledProtocols())
-                // .append("enabledCipherSuites", sslServerSocket.getEnabledCipherSuites())
                 .append("needClientAuth", sslServerSocket.getNeedClientAuth())
                 .append("wantClientAuth", sslServerSocket.getWantClientAuth())
                 .append("useClientMode", sslServerSocket.getUseClientMode())

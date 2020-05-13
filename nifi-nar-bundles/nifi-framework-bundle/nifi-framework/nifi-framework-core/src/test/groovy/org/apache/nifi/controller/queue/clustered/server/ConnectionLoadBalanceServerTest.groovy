@@ -135,7 +135,10 @@ class ConnectionLoadBalanceServerTest extends GroovyTestCase {
     @Test
     void testShouldHandleSSLPeerUnverifiedException() {
         // Arrange
+        final long testStartMillis = System.currentTimeMillis()
         final int CONNECTION_ATTEMPTS = 100
+        // If this test takes longer than 3 seconds, it's likely because of external delays, which would invalidate the assertions
+        final long MAX_TEST_DURATION_MILLIS = 3000
         final String peerDescription = "Test peer"
         final SSLPeerUnverifiedException e = new SSLPeerUnverifiedException("Test exception")
 
@@ -143,8 +146,8 @@ class ConnectionLoadBalanceServerTest extends GroovyTestCase {
         OutputStream socketOutputStream = new ByteArrayOutputStream()
 
         Socket mockSocket = [
-                getInputStream: { -> socketInputStream},
-                getOutputStream: { -> socketOutputStream},
+                getInputStream : { -> socketInputStream },
+                getOutputStream: { -> socketOutputStream },
         ] as Socket
         LoadBalanceProtocol mockLBProtocol = [
                 receiveFlowFiles: { Socket s, InputStream i, OutputStream o -> null }
@@ -177,7 +180,16 @@ class ConnectionLoadBalanceServerTest extends GroovyTestCase {
         logger.info("After ${CONNECTION_ATTEMPTS} attempts, debug: ${output.debug}, error: ${output.error}")
 
         // Assert
-        assert output.debug > output.error
+        logger.info("output.debug (${output.debug}) > output.error (${output.error}): ${output.debug > output.error}")
+
+        // Only enforce if the test completed in a reasonable amount of time (i.e. external delays did not influence the timing)
+        long testStopMillis = System.currentTimeMillis()
+        long testDurationMillis = testStopMillis - testStartMillis
+        if (testDurationMillis > MAX_TEST_DURATION_MILLIS) {
+            logger.warn("The test took ${testDurationMillis} ms, which is longer than the max duration ${MAX_TEST_DURATION_MILLIS} ms, so the timing may be suspect and the assertion will not be enforced")
+        } else {
+            assert output.debug > output.error
+        }
 
         // Clean up
         communicateAction.stop()
