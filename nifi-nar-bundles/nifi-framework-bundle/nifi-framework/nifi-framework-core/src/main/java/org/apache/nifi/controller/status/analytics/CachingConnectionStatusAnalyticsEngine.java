@@ -19,7 +19,6 @@ package org.apache.nifi.controller.status.analytics;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.nifi.controller.flow.FlowManager;
-import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.status.history.ComponentStatusRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,13 +36,13 @@ public class CachingConnectionStatusAnalyticsEngine extends ConnectionStatusAnal
     private static final Logger LOG = LoggerFactory.getLogger(CachingConnectionStatusAnalyticsEngine.class);
 
     public CachingConnectionStatusAnalyticsEngine(FlowManager flowManager, ComponentStatusRepository statusRepository,
-            FlowFileEventRepository flowFileEventRepository, StatusAnalyticsModelMapFactory statusAnalyticsModelMapFactory,
+            StatusAnalyticsModelMapFactory statusAnalyticsModelMapFactory,
             long predictionIntervalMillis, long queryIntervalMillis, String scoreName, double scoreThreshold) {
 
-        super(flowManager, statusRepository, flowFileEventRepository, statusAnalyticsModelMapFactory, predictionIntervalMillis,
+        super(flowManager, statusRepository,  statusAnalyticsModelMapFactory, predictionIntervalMillis,
                            queryIntervalMillis, scoreName, scoreThreshold);
         this.cache = Caffeine.newBuilder()
-                .expireAfterWrite(30, TimeUnit.MINUTES)
+                .expireAfterAccess(5, TimeUnit.MINUTES)
                 .build();
     }
 
@@ -60,9 +59,6 @@ public class CachingConnectionStatusAnalyticsEngine extends ConnectionStatusAnal
             LOG.debug("Creating new status analytics object for connection id: {}", identifier);
             connectionStatusAnalytics = super.getStatusAnalytics(identifier);
             cache.put(identifier, connectionStatusAnalytics);
-        } else {
-            LOG.debug("Pulled existing analytics from cache for connection id: {}", identifier);
-            ((ConnectionStatusAnalytics)connectionStatusAnalytics).refresh();
         }
         return connectionStatusAnalytics;
 
