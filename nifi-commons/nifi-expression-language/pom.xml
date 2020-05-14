@@ -22,6 +22,7 @@
     <artifactId>nifi-expression-language</artifactId>
     <packaging>jar</packaging>
     <build>
+    	<pluginManagement>
         <plugins>
             <plugin>
                 <groupId>org.antlr</groupId>
@@ -51,6 +52,7 @@
                 </configuration>
             </plugin>
         </plugins>
+    	</pluginManagement>
     </build>
     <dependencies>
         <dependency>
