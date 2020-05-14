@@ -112,7 +112,7 @@ public class ITFetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT 
         String inputFlowFileContent = "InputFlowFileContent";
 
         createDirectoryAndUploadFile(directory, filename1, fileContent1);
-        createDirectoryAndUploadFile(directory, filename2, fileContent2);
+        uploadFile(directory, filename2, fileContent2);
 
         // WHEN
         // THEN
@@ -161,7 +161,6 @@ public class ITFetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT 
         testSuccessfulFetch(fileSystemName, directory, filename, inputFlowFileContent, fileContent);
     }
 
-    @Ignore("Fetching a directory currently produces an empty flowfile. This will change in the future, and this test case will need to be modified.")
     @Test
     public void testFetchDirectory() {
         // GIVEN
@@ -170,13 +169,12 @@ public class ITFetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT 
         String filename = "testFile.txt";
         String fileContent = "AzureFileContent";
         String inputFlowFileContent = "InputFlowFileContent";
-        String expectedFlowFileContent = "";
 
         createDirectoryAndUploadFile(parentDirectory + "/" + childDirectory, filename, fileContent);
 
         // WHEN
         // THEN
-        testSuccessfulFetch(fileSystemName, parentDirectory, childDirectory, inputFlowFileContent, expectedFlowFileContent);
+        testFailedFetchWithProcessException(fileSystemName, parentDirectory, childDirectory, inputFlowFileContent, inputFlowFileContent);
     }
 
     @Test
@@ -389,6 +387,10 @@ public class ITFetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT 
         assertEquals(expectedErrorCode, e.getStatusCode());
 
         assertFailure(expectedFlowFileContent);
+    }
+
+    private void testFailedFetchWithProcessException(String fileSystem, String directory, String filename, String inputFlowFileContent, String expectedFlowFileContent) {
+        testFailedFetchWithProcessException(fileSystem, directory, filename, Collections.emptyMap(), inputFlowFileContent, expectedFlowFileContent);
     }
 
     private void testFailedFetchWithProcessException(String fileSystem, String directory, String filename, Map<String, String> attributes,

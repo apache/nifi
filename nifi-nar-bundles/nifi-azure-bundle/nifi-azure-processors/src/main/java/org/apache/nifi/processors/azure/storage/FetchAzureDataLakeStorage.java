@@ -67,6 +67,10 @@ public class FetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageProce
             final DataLakeDirectoryClient directoryClient = dataLakeFileSystemClient.getDirectoryClient(directory);
             final DataLakeFileClient fileClient = directoryClient.getFileClient(fileName);
 
+            if (fileClient.getProperties().isDirectory()) {
+                throw new ProcessException(FILE.getDisplayName() + " (" + fileName + ") points to a directory. Full path: " + fileClient.getFilePath());
+            }
+
             flowFile = session.write(flowFile, os -> fileClient.read(os));
             session.getProvenanceReporter().modifyContent(flowFile);
             session.transfer(flowFile, REL_SUCCESS);
