@@ -16,16 +16,15 @@
  */
 package org.apache.nifi.web.security.otp;
 
-import org.apache.nifi.web.security.token.OtpAuthenticationToken;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.util.concurrent.TimeUnit;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
+
+import java.util.concurrent.TimeUnit;
+import org.apache.nifi.web.security.token.OtpAuthenticationToken;
+import org.junit.Before;
+import org.junit.Test;
 
 public class OtpServiceTest {
 
@@ -90,7 +89,7 @@ public class OtpServiceTest {
                 final OtpAuthenticationToken authenticationToken = new OtpAuthenticationToken("user-identity-" + i);
                 otpService.generateDownloadToken(authenticationToken);
             } catch (final IllegalStateException iae) {
-                // ensure we failed when we've past the limit
+                // ensure we failed when we've passed the limit
                 assertEquals(OtpService.MAX_CACHE_SOFT_LIMIT + 1, i);
                 throw iae;
             }
@@ -105,7 +104,7 @@ public class OtpServiceTest {
                 final OtpAuthenticationToken authenticationToken = new OtpAuthenticationToken("user-identity-" + i);
                 otpService.generateUiExtensionToken(authenticationToken);
             } catch (final IllegalStateException iae) {
-                // ensure we failed when we've past the limit
+                // ensure we failed when we've passed the limit
                 assertEquals(OtpService.MAX_CACHE_SOFT_LIMIT + 1, i);
                 throw iae;
             }
@@ -132,7 +131,7 @@ public class OtpServiceTest {
         // sleep for 2 seconds which should sufficiently expire the valid token
         Thread.sleep(WAIT_TIME);
 
-        // attempt to get the token now that its expired
+        // attempt to get the token now that it's expired
         otpServiceWithTightExpiration.getAuthenticationFromUiExtensionToken(downloadToken);
     }
 
@@ -146,12 +145,9 @@ public class OtpServiceTest {
         // sleep for 2 seconds which should sufficiently expire the valid token
         Thread.sleep(WAIT_TIME);
 
-        // attempt to get the token now that its expired
+        // attempt to get the token now that it's expired
         otpServiceWithTightExpiration.getAuthenticationFromDownloadToken(downloadToken);
     }
-
-    // TODO: Create a test that validates expiry when using asMap(). Cache entries will lazy expire - do we need to force a read of the cache before the map reflects the expiries accurately?
-    // if not, we need to call cache.cleanup() before using the caches.
 
     @Test
     public void testDownloadTokenIsTheSameForSubsequentRequests() {
@@ -261,7 +257,7 @@ public class OtpServiceTest {
     }
 
     @Test
-    public void testDownloadTokenExpirationFromBothCaches() throws Exception {
+    public void testShouldGenerateNewDownloadTokenAfterExpiration() throws Exception {
         final OtpService otpServiceWithTightExpiration = new OtpService(CACHE_EXPIRY_TIME, TimeUnit.SECONDS);
 
         final OtpAuthenticationToken authenticationToken = new OtpAuthenticationToken(USER_1);
