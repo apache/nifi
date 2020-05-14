@@ -170,6 +170,7 @@
                         <exclude>src/test/resources/syslog/syslog5424/log_all.txt</exclude>
                         <exclude>src/test/resources/syslog/syslog5424/log_mix.txt</exclude>
                         <exclude>src/test/resources/syslog/syslog5424/log_mix_in_error.txt</exclude>
+                        <exclude>src/test/resources/text/testschema</exclude>
                         <exclude>src/test/resources/xml/people.xml</exclude>
                         <exclude>src/test/resources/xml/people2.xml</exclude>
                         <exclude>src/test/resources/xml/people3.xml</exclude>
