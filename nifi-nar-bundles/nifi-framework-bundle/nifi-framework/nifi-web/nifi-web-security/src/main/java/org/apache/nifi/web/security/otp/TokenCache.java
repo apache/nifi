@@ -25,7 +25,6 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import org.apache.nifi.web.security.util.CacheKey;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.checker.units.qual.K;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,8 +35,6 @@ import org.slf4j.LoggerFactory;
  */
 public class TokenCache extends AbstractCache<CacheKey, String> {
     private static final Logger logger = LoggerFactory.getLogger(TokenCache.class);
-
-    private static final String HMAC_SHA256 = "HmacSHA256";
 
     private final String contentsDescription;
     private final Cache<CacheKey, String> internalCache;
