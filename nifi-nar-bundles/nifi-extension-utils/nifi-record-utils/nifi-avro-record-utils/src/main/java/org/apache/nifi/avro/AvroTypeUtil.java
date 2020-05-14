@@ -259,8 +259,8 @@ public class AvroTypeUtil {
                 break;
             case DECIMAL:
                 final DecimalDataType decimalDataType = (DecimalDataType) dataType;
-                schema = Schema.createFixed(fieldName + "Type", null,  "org.apache.nifi",decimalDataType.getPrecision() + 1);
-                LogicalTypes.decimal(decimalDataType.getPrecision(),decimalDataType.getScale()).addToSchema(schema);
+                schema = Schema.create(Type.BYTES);
+                LogicalTypes.decimal(decimalDataType.getPrecision(), decimalDataType.getScale()).addToSchema(schema);
                 break;
             case MAP:
                 schema = Schema.createMap(buildAvroSchema(((MapDataType) dataType).getValueType(), fieldName, false));
