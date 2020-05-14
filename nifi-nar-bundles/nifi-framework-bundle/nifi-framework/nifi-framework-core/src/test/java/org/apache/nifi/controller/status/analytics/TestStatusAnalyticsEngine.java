@@ -92,13 +92,13 @@ public abstract class TestStatusAnalyticsEngine {
 
     @Test
     public void testGetStatusAnalytics() {
-        StatusAnalyticsEngine statusAnalyticsEngine = getStatusAnalyticsEngine(flowManager,flowFileEventRepository, statusRepository, statusAnalyticsModelMapFactory, DEFAULT_PREDICT_INTERVAL_MILLIS,
+        StatusAnalyticsEngine statusAnalyticsEngine = getStatusAnalyticsEngine(flowManager, statusRepository, statusAnalyticsModelMapFactory, DEFAULT_PREDICT_INTERVAL_MILLIS,
                                                                                 DEFAULT_QUERY_INTERVAL_MILLIS, DEFAULT_SCORE_NAME, DEFAULT_SCORE_THRESHOLD);
         StatusAnalytics statusAnalytics = statusAnalyticsEngine.getStatusAnalytics("1");
         assertNotNull(statusAnalytics);
     }
 
-    public abstract StatusAnalyticsEngine getStatusAnalyticsEngine(FlowManager flowManager, FlowFileEventRepository flowFileEventRepository,
+    public abstract StatusAnalyticsEngine getStatusAnalyticsEngine(FlowManager flowManager,
                                                                    ComponentStatusRepository componentStatusRepository, StatusAnalyticsModelMapFactory statusAnalyticsModelMapFactory,
                                                                     long predictIntervalMillis, long queryIntervalMillis, String scoreName, double scoreThreshold);
 
