@@ -75,7 +75,8 @@ public class TestFreeFormTextRecordSetWriterProcessor extends AbstractProcessor 
         final FlowFile flowFileRef = flowFile;
         flowFile = session.write(flowFile, out -> {
             try {
-
+                // The "reader" RecordSchema must be passed in here as the controller service expects to inherit it from the record itself
+                // See the InheritSchemaFromRecord class for more details
                 final RecordSchema schema = writerFactory.getSchema(flowFileRef.getAttributes(), recordSchema);
 
                 boolean multipleRecords = Boolean.parseBoolean(context.getProperty(MULTIPLE_RECORDS).getValue());
@@ -117,6 +118,7 @@ public class TestFreeFormTextRecordSetWriterProcessor extends AbstractProcessor 
         recordFields.put("NAME", "John Doe");
         recordFields.put("AGE", 22);
         recordFields.put("COUNTRY", "USA");
+        // Username is an additional "field" in the output but is not present in the record and will be supplied by an attribute for the test(s).
 
         List<Record> records = new ArrayList<>();
         records.add(new MapRecord(recordSchema, recordFields));

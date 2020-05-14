@@ -57,6 +57,8 @@ public class TestFreeFormTextRecordSetWriter {
         attributes.put("user.name", "jdoe64");
         runner.enqueue("", attributes);
         runner.run();
+        // In addition to making sure a flow file was output successfully, also check nothing got rolled back into the incoming queue. May be a moot point as there is a
+        // fake processor, but in operation the flow file could be rolled back on error.
         runner.assertQueueEmpty();
         runner.assertAllFlowFilesTransferred(TestFreeFormTextRecordSetWriterProcessor.SUCCESS, 1);
 
@@ -78,6 +80,8 @@ public class TestFreeFormTextRecordSetWriter {
         attributes.put("ID", "jdoe64");
         runner.enqueue("", attributes);
         runner.run();
+        // In addition to making sure a flow file was output successfully, also check nothing got rolled back into the incoming queue. May be a moot point as there is a
+        // fake processor, but in operation the flow file could be rolled back on error.
         runner.assertQueueEmpty();
         runner.assertAllFlowFilesTransferred(TestFreeFormTextRecordSetWriterProcessor.SUCCESS, 1);
 
