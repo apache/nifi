@@ -62,10 +62,16 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceRepository;
 import org.apache.nifi.registry.flow.VersionControlInformation;
+import org.apache.nifi.registry.flow.VersionedFlowState;
+import org.apache.nifi.registry.flow.VersionedFlowStatus;
 import org.apache.nifi.remote.PublicPort;
 import org.apache.nifi.remote.RemoteGroupPort;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class StandardEventAccess implements UserAwareEventAccess {
+    private static final Logger logger = LoggerFactory.getLogger(StandardEventAccess.class);
+
     private final FlowFileEventRepository flowFileEventRepository;
     private final FlowController flowController;
     private final StatusAnalyticsEngine statusAnalyticsEngine;
@@ -552,8 +558,16 @@ public class StandardEventAccess implements UserAwareEventAccess {
         status.setBytesTransferred(bytesTransferred);
 
         final VersionControlInformation vci = group.getVersionControlInformation();
-        if (vci != null && vci.getStatus() != null && vci.getStatus().getState() != null) {
-            status.setVersionedFlowState(vci.getStatus().getState());
+        if (vci != null) {
+            try {
+                final VersionedFlowStatus flowStatus = vci.getStatus();
+                if (flowStatus != null && flowStatus.getState() != null) {
+                    status.setVersionedFlowState(flowStatus.getState());
+                }
+            } catch (final Exception e) {
+                logger.warn("Failed to determine Version Control State for {}. Will consider state to be SYNC_FAILURE", group, e);
+                status.setVersionedFlowState(VersionedFlowState.SYNC_FAILURE);
+            }
         }
 
         return status;

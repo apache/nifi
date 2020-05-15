@@ -374,7 +374,16 @@ public final class StandardProcessGroup implements ProcessGroup {
                 // update the vci counts for this child group
                 final VersionControlInformation vci = childGroup.getVersionControlInformation();
                 if (vci != null) {
-                    switch (vci.getStatus().getState()) {
+                    final VersionedFlowStatus flowStatus;
+                    try {
+                        flowStatus = vci.getStatus();
+                    } catch (final Exception e) {
+                        LOG.warn("Could not determine Version Control State for {}. Will consider state to be SYNC_FAILURE", this, e);
+                        syncFailure++;
+                        continue;
+                    }
+
+                    switch (flowStatus.getState()) {
                         case LOCALLY_MODIFIED:
                             locallyModified++;
                             break;
@@ -1646,7 +1655,10 @@ public final class StandardProcessGroup implements ProcessGroup {
 
     @Override
     public String toString() {
-        return new ToStringBuilder(this, ToStringStyle.SHORT_PREFIX_STYLE).append("identifier", getIdentifier()).toString();
+        return new ToStringBuilder(this, ToStringStyle.SHORT_PREFIX_STYLE)
+            .append("identifier", getIdentifier())
+            .append("name", getName())
+            .toString();
     }
 
     @Override
@@ -3345,28 +3357,33 @@ public final class StandardProcessGroup implements ProcessGroup {
                     return new StandardVersionedFlowStatus(VersionedFlowState.SYNC_FAILURE, syncFailureExplanation);
                 }
 
-                final boolean modified = isModified();
-                if (!modified) {
-                    final VersionControlInformation vci = StandardProcessGroup.this.versionControlInfo.get();
-                    if (vci.getFlowSnapshot() == null) {
-                        return new StandardVersionedFlowStatus(VersionedFlowState.SYNC_FAILURE, "Process Group has not yet been synchronized with Flow Registry");
+                try {
+                    final boolean modified = isModified();
+                    if (!modified) {
+                        final VersionControlInformation vci = StandardProcessGroup.this.versionControlInfo.get();
+                        if (vci.getFlowSnapshot() == null) {
+                            return new StandardVersionedFlowStatus(VersionedFlowState.SYNC_FAILURE, "Process Group has not yet been synchronized with Flow Registry");
+                        }
                     }
+
+                    final boolean stale = versionControlFields.isStale();
+
+                    final VersionedFlowState flowState;
+                    if (modified && stale) {
+                        flowState = VersionedFlowState.LOCALLY_MODIFIED_AND_STALE;
+                    } else if (modified) {
+                        flowState = VersionedFlowState.LOCALLY_MODIFIED;
+                    } else if (stale) {
+                        flowState = VersionedFlowState.STALE;
+                    } else {
+                        flowState = VersionedFlowState.UP_TO_DATE;
+                    }
+
+                    return new StandardVersionedFlowStatus(flowState, flowState.getDescription());
+                } catch (final Exception e) {
+                    LOG.warn("Could not correctly determine Versioned Flow Status for {}. Will consider state to be SYNC_FAILURE", this, e);
+                    return new StandardVersionedFlowStatus(VersionedFlowState.SYNC_FAILURE, "Could not properly determine flow status due to: " + e);
                 }
-
-                final boolean stale = versionControlFields.isStale();
-
-                final VersionedFlowState flowState;
-                if (modified && stale) {
-                    flowState = VersionedFlowState.LOCALLY_MODIFIED_AND_STALE;
-                } else if (modified) {
-                    flowState = VersionedFlowState.LOCALLY_MODIFIED;
-                } else if (stale) {
-                    flowState = VersionedFlowState.STALE;
-                } else {
-                    flowState = VersionedFlowState.UP_TO_DATE;
-                }
-
-                return new StandardVersionedFlowStatus(flowState, flowState.getDescription());
             }
         };
 
@@ -4909,15 +4926,16 @@ public final class StandardProcessGroup implements ProcessGroup {
             return null;
         }
 
-        final NiFiRegistryFlowMapper mapper = new NiFiRegistryFlowMapper(flowController.getExtensionManager());
-        final VersionedProcessGroup versionedGroup = mapper.mapProcessGroup(this, controllerServiceProvider, flowController.getFlowRegistryClient(), false);
+        try {
+            final NiFiRegistryFlowMapper mapper = new NiFiRegistryFlowMapper(flowController.getExtensionManager());
+            final VersionedProcessGroup versionedGroup = mapper.mapProcessGroup(this, controllerServiceProvider, flowController.getFlowRegistryClient(), false);
 
-        final ComparableDataFlow currentFlow = new StandardComparableDataFlow("Local Flow", versionedGroup);
-        final ComparableDataFlow snapshotFlow = new StandardComparableDataFlow("Versioned Flow", vci.getFlowSnapshot());
+            final ComparableDataFlow currentFlow = new StandardComparableDataFlow("Local Flow", versionedGroup);
+            final ComparableDataFlow snapshotFlow = new StandardComparableDataFlow("Versioned Flow", vci.getFlowSnapshot());
 
-        final FlowComparator flowComparator = new StandardFlowComparator(snapshotFlow, currentFlow, getAncestorServiceIds(), new EvolvingDifferenceDescriptor());
-        final FlowComparison comparison = flowComparator.compare();
-        final Set<FlowDifference> differences = comparison.getDifferences().stream()
+            final FlowComparator flowComparator = new StandardFlowComparator(snapshotFlow, currentFlow, getAncestorServiceIds(), new EvolvingDifferenceDescriptor());
+            final FlowComparison comparison = flowComparator.compare();
+            final Set<FlowDifference> differences = comparison.getDifferences().stream()
                 .filter(difference -> difference.getDifferenceType() != DifferenceType.BUNDLE_CHANGED)
                 .filter(FlowDifferenceFilters.FILTER_ADDED_REMOVED_REMOTE_PORTS)
                 .filter(FlowDifferenceFilters.FILTER_PUBLIC_PORT_NAME_CHANGES)
@@ -4927,8 +4945,11 @@ public final class StandardProcessGroup implements ProcessGroup {
                 .filter(diff -> !FlowDifferenceFilters.isScheduledStateNew(diff))
                 .collect(Collectors.toCollection(HashSet::new));
 
-        LOG.debug("There are {} differences between this Local Flow and the Versioned Flow: {}", differences.size(), differences);
-        return differences;
+            LOG.debug("There are {} differences between this Local Flow and the Versioned Flow: {}", differences.size(), differences);
+            return differences;
+        } catch (final RuntimeException e) {
+            throw new RuntimeException("Could not compute differences between local flow and Versioned Flow in NiFi Registry for " + this, e);
+        }
     }
 
 

@@ -36,6 +36,7 @@ import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedComponent;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedControllerService;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedProcessor;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
@@ -196,8 +197,8 @@ public class FlowDifferenceFilters {
         // Determine if this Flow Difference indicates that Processor B has all of the same Auto-Terminated Relationships as Processor A, plus some.
         // If that is the case, then it may be that a new Relationship was added, defaulting to 'Auto-Terminated' and that Processor B is still auto-terminated.
         // We want to be able to identify that case.
-        final Set<String> autoTerminatedA = processorA.getAutoTerminatedRelationships();
-        final Set<String> autoTerminatedB = processorB.getAutoTerminatedRelationships();
+        final Set<String> autoTerminatedA = replaceNull(processorA.getAutoTerminatedRelationships(), Collections.emptySet());
+        final Set<String> autoTerminatedB = replaceNull(processorB.getAutoTerminatedRelationships(), Collections.emptySet());
 
         // If B is smaller than A, then B cannot possibly contain all of A. So use that as a first comparison to avoid the expense of #containsAll
         if (autoTerminatedB.size() < autoTerminatedA.size() || !autoTerminatedB.containsAll(autoTerminatedA)) {
@@ -233,6 +234,9 @@ public class FlowDifferenceFilters {
         return true;
     }
 
+    private static <T> T replaceNull(final T value, final T replacement) {
+        return value == null ? replacement : value;
+    }
 
     /**
      * Determines whether or not the given Process Group has a Connection whose source is the given Processor and that contains the given relationship
