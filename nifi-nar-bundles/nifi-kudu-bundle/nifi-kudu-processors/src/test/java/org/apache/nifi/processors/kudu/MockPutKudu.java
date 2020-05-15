@@ -83,7 +83,7 @@ public class MockPutKudu extends PutKudu {
     }
 
     @Override
-    public KuduClient buildClient(final String masters, ProcessContext context) {
+    public KuduClient buildClient(ProcessContext context) {
         final KuduClient client = mock(KuduClient.class);
 
         try {
@@ -117,12 +117,12 @@ public class MockPutKudu extends PutKudu {
     }
 
     @Override
-    protected KerberosUser loginKerberosKeytabUser(final String principal, final String keytab) throws LoginException {
+    protected KerberosUser loginKerberosKeytabUser(final String principal, final String keytab, ProcessContext context) throws LoginException {
         return createMockKerberosUser(principal);
     }
 
     @Override
-    protected KerberosUser loginKerberosPasswordUser(String principal, String password) throws LoginException {
+    protected KerberosUser loginKerberosPasswordUser(String principal, String password, ProcessContext context) throws LoginException {
         return createMockKerberosUser(principal);
     }
 
