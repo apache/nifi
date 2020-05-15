@@ -43,7 +43,12 @@ public class StandardRestrictedSSLContextService extends StandardSSLContextServi
             .defaultValue("TLS")
             .required(false)
             .allowableValues(RestrictedSSLContextService.buildAlgorithmAllowableValues())
-            .description("The algorithm to use for this SSL context. By default, this will choose the highest supported TLS protocol version.")
+            .description("The algorithm to use for this TLS/SSL context. \"TLS\" will instruct NiFi to allow all supported protocol versions and choose the highest available protocol for each connection. " +
+                    "Java 8 enabled TLSv1.2, which is now the lowest version supported for incoming connections. " +
+                    "Java 11 enabled TLSv1.3. Depending on the version of Java NiFi is running on, different protocol versions will be available. " +
+                    "With \"TLS\" selected, as new protocol versions are made available, NiFi will automatically select them. " +
+                    "It is recommended unless a specific protocol version is needed. " +
+                    "On Java 11, for example, TLSv1.3 will be the default, but if a client does not support it, TLSv1.2 will be offered as a fallback. TLSv1.0 and TLSv1.1 are not supported at all. ")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .sensitive(false)
             .build();

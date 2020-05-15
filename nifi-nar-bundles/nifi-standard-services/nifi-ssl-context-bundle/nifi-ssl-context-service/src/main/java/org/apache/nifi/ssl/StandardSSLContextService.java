@@ -107,14 +107,18 @@ public class StandardSSLContextService extends AbstractControllerService impleme
             .sensitive(true)
             .required(false)
             .build();
-    // TODO: Add user-facing comment explaining protocol version compatibility with Java 8/11
     public static final PropertyDescriptor SSL_ALGORITHM = new PropertyDescriptor.Builder()
             .name("SSL Protocol")
             .displayName("TLS Protocol")
             .defaultValue("TLS")
             .required(false)
             .allowableValues(SSLContextService.buildAlgorithmAllowableValues())
-            .description("The algorithm to use for this TLS/SSL context")
+            .description("The algorithm to use for this TLS/SSL context. \"TLS\" will instruct NiFi to allow all supported protocol versions and choose the highest available protocol for each connection. " +
+                    "Java 8 enabled TLSv1.2, which is now the lowest version supported for incoming connections. " +
+                    "Java 11 enabled TLSv1.3. Depending on the version of Java NiFi is running on, different protocol versions will be available. " +
+                    "With \"TLS\" selected, as new protocol versions are made available, NiFi will automatically select them. " +
+                    "It is recommended unless a specific protocol version is needed. " +
+                    "For outgoing connections, legacy protocol versions like \"TLSv1.0\" are supported, but discouraged unless necessary. ")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .sensitive(false)
             .build();
