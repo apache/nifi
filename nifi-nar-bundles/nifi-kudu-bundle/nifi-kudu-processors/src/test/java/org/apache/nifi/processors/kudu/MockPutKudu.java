@@ -25,6 +25,8 @@ import org.apache.kudu.client.Insert;
 import org.apache.kudu.client.Upsert;
 import org.apache.kudu.client.Update;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.security.krb.KerberosUser;
 import org.apache.nifi.serialization.record.Record;
 
@@ -83,7 +85,7 @@ public class MockPutKudu extends PutKudu {
     }
 
     @Override
-    public KuduClient buildClient(final String masters, ProcessContext context) {
+    public KuduClient buildClient(ProcessContext context) {
         final KuduClient client = mock(KuduClient.class);
 
         try {
@@ -96,7 +98,7 @@ public class MockPutKudu extends PutKudu {
     }
 
     @Override
-    public KuduClient getKuduClient() {
+    protected void onTrigger(ProcessContext context, ProcessSession session, KuduClient kuduClient)  throws ProcessException {
         final KuduClient client = mock(KuduClient.class);
 
         try {
@@ -105,7 +107,7 @@ public class MockPutKudu extends PutKudu {
             throw new AssertionError(e);
         }
 
-        return client;
+        super.onTrigger(context, session, client);
     }
 
     public boolean loggedIn() {
@@ -117,12 +119,12 @@ public class MockPutKudu extends PutKudu {
     }
 
     @Override
-    protected KerberosUser loginKerberosKeytabUser(final String principal, final String keytab) throws LoginException {
+    protected KerberosUser loginKerberosKeytabUser(final String principal, final String keytab, ProcessContext context) throws LoginException {
         return createMockKerberosUser(principal);
     }
 
     @Override
-    protected KerberosUser loginKerberosPasswordUser(String principal, String password) throws LoginException {
+    protected KerberosUser loginKerberosPasswordUser(String principal, String password, ProcessContext context) throws LoginException {
         return createMockKerberosUser(principal);
     }
 
