@@ -69,6 +69,28 @@ public class ITPutAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     }
 
     @Test
+    public void testPutFileToExistingDirectoryWithReplaceResolution() throws Exception {
+        fileSystemClient.createDirectory(DIRECTORY);
+
+        runner.setProperty(PutAzureDataLakeStorage.CONFLICT_RESOLUTION, PutAzureDataLakeStorage.REPLACE_RESOLUTION);
+
+        runProcessor(FILE_DATA);
+
+        assertSuccess(DIRECTORY, FILE_NAME, FILE_DATA);
+    }
+
+    @Test
+    public void testPutFileToExistingDirectoryWithIgnoreResolution() throws Exception {
+        fileSystemClient.createDirectory(DIRECTORY);
+
+        runner.setProperty(PutAzureDataLakeStorage.CONFLICT_RESOLUTION, PutAzureDataLakeStorage.IGNORE_RESOLUTION);
+
+        runProcessor(FILE_DATA);
+
+        assertSuccess(DIRECTORY, FILE_NAME, FILE_DATA);
+    }
+
+    @Test
     public void testPutFileToNonExistingDirectory() throws Exception {
         runProcessor(FILE_DATA);
 
@@ -156,16 +178,36 @@ public class ITPutAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
         assertSuccess(directory, fileName, FILE_DATA);
     }
 
-    @Ignore
-    // the existing file gets overwritten without error
-    // seems to be a bug in the Azure lib
     @Test
-    public void testPutFileToExistingFile() {
+    public void testPutFileToExistingFileWithFailResolution() {
         fileSystemClient.createFile(String.format("%s/%s", DIRECTORY, FILE_NAME));
 
         runProcessor(FILE_DATA);
 
         assertFailure();
+    }
+
+    @Test
+    public void testPutFileToExistingFileWithReplaceResolution() throws Exception {
+        fileSystemClient.createFile(String.format("%s/%s", DIRECTORY, FILE_NAME));
+
+        runner.setProperty(PutAzureDataLakeStorage.CONFLICT_RESOLUTION, PutAzureDataLakeStorage.REPLACE_RESOLUTION);
+
+        runProcessor(FILE_DATA);
+
+        assertSuccess(DIRECTORY, FILE_NAME, FILE_DATA);
+    }
+
+    @Test
+    public void testPutFileToExistingFileWithIgnoreResolution() throws Exception {
+        String azureFileContent = "AzureFileContent";
+        createDirectoryAndUploadFile(DIRECTORY, FILE_NAME, azureFileContent);
+
+        runner.setProperty(PutAzureDataLakeStorage.CONFLICT_RESOLUTION, PutAzureDataLakeStorage.IGNORE_RESOLUTION);
+
+        runProcessor(FILE_DATA);
+
+        assertSuccessWithIgnoreResolution(DIRECTORY, FILE_NAME, FILE_DATA, azureFileContent.getBytes());
     }
 
     @Test
@@ -232,6 +274,11 @@ public class ITPutAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
         assertProvenanceEvents();
     }
 
+    private void assertSuccessWithIgnoreResolution(String directory, String fileName, byte[] fileData, byte[] azureFileData) throws Exception {
+        assertSimpleFlowFile(fileData);
+        assertAzureFile(directory, fileName, azureFileData);
+    }
+
     private void assertFlowFile(String directory, String fileName, byte[] fileData) throws Exception {
         runner.assertAllFlowFilesTransferred(PutAzureDataLakeStorage.REL_SUCCESS, 1);
 
@@ -251,6 +298,14 @@ public class ITPutAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
         flowFile.assertAttributeEquals("azure.primaryUri", primaryUri);
 
         flowFile.assertAttributeEquals("azure.length", Integer.toString(fileData.length));
+    }
+
+    private void assertSimpleFlowFile(byte[] fileData) throws Exception {
+        runner.assertAllFlowFilesTransferred(PutAzureDataLakeStorage.REL_SUCCESS, 1);
+
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutAzureDataLakeStorage.REL_SUCCESS).get(0);
+
+        flowFile.assertContentEquals(fileData);
     }
 
     private void assertAzureFile(String directory, String fileName, byte[] fileData) {
