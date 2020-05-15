@@ -99,7 +99,7 @@ public class TlsCertificateSigningRequestPerformer {
 
             HttpClientBuilder httpClientBuilder = httpClientBuilderSupplier.get();
             SSLContextBuilder sslContextBuilder = SSLContextBuilder.create();
-            sslContextBuilder.useProtocol("TLSv1.2");
+            sslContextBuilder.useProtocol(CertificateUtils.getHighestCurrentSupportedTlsProtocolVersion());
 
             // We will be validating that we are talking to the correct host once we get the response's hmac of the token and public key of the ca
             sslContextBuilder.loadTrustMaterial(null, new TrustSelfSignedStrategy());

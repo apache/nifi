@@ -919,7 +919,7 @@ public interface SiteToSiteClient extends Closeable {
             if (keyManagerFactory != null && trustManagerFactory != null) {
                 try {
                     // initialize the ssl context
-                    final SSLContext sslContext = SSLContext.getInstance(CertificateUtils.CURRENT_TLS_PROTOCOL_VERSION);
+                    final SSLContext sslContext = SSLContext.getInstance(CertificateUtils.getHighestCurrentSupportedTlsProtocolVersion());
                     sslContext.init(keyManagerFactory.getKeyManagers(), trustManagerFactory.getTrustManagers(), new SecureRandom());
                     sslContext.getDefaultSSLParameters().setNeedClientAuth(true);
 

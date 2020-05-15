@@ -31,7 +31,7 @@ import org.slf4j.LoggerFactory;
 public class TlsConfiguration {
     private static final Logger logger = LoggerFactory.getLogger(TlsConfiguration.class);
 
-    private static final String TLS_PROTOCOL_VERSION = CertificateUtils.CURRENT_TLS_PROTOCOL_VERSION;
+    private static final String TLS_PROTOCOL_VERSION = CertificateUtils.getHighestCurrentSupportedTlsProtocolVersion();
     private static final String MASKED_PASSWORD_LOG = "********";
     private static final String NULL_LOG = "null";
 

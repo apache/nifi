@@ -107,6 +107,7 @@ public class StandardSSLContextService extends AbstractControllerService impleme
             .sensitive(true)
             .required(false)
             .build();
+    // TODO: Add user-facing comment explaining protocol version compatibility with Java 8/11
     public static final PropertyDescriptor SSL_ALGORITHM = new PropertyDescriptor.Builder()
             .name("SSL Protocol")
             .displayName("TLS Protocol")

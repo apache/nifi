@@ -136,7 +136,7 @@ public class TestHttpNotificationServiceSSL extends TestHttpNotificationServiceC
         mockWebServer = new MockWebServer();
 
         TlsConfiguration tlsConfiguration = new TlsConfiguration("./src/test/resources/keystore.jks", "passwordpassword", null, "JKS",
-                "./src/test/resources/truststore.jks", "passwordpassword", "JKS", CertificateUtils.CURRENT_TLS_PROTOCOL_VERSION);
+                "./src/test/resources/truststore.jks", "passwordpassword", "JKS", CertificateUtils.getHighestCurrentSupportedTlsProtocolVersion());
         final SSLContext sslContext = SslContextFactory.createSslContext(tlsConfiguration, SslContextFactory.ClientAuth.REQUIRED);
         mockWebServer.useHttps(sslContext.getSocketFactory(), false);
 

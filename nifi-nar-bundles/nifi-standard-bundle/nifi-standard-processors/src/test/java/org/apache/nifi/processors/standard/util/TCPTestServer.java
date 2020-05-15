@@ -55,7 +55,7 @@ public class TCPTestServer implements Runnable {
         if (!isServerRunning()) {
             if(ssl){
                 TlsConfiguration tlsConfiguration = new TlsConfiguration("src/test/resources/keystore.jks","passwordpassword", null, "JKS", "src/test/resources/truststore.jks",
-                        "passwordpassword", "JKS", CertificateUtils.CURRENT_TLS_PROTOCOL_VERSION);
+                        "passwordpassword", "JKS", CertificateUtils.getHighestCurrentSupportedTlsProtocolVersion());
                 final SSLContext sslCtx = SslContextFactory.createSslContext(tlsConfiguration, SslContextFactory.ClientAuth.REQUIRED);
 
                 ServerSocketFactory sslSocketFactory = sslCtx.getServerSocketFactory();

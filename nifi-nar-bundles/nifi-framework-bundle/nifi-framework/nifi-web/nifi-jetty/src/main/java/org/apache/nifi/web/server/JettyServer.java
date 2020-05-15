@@ -929,7 +929,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         contextFactory.setEndpointIdentificationAlgorithm(null);
 
         // Explicitly exclude legacy TLS protocol versions
-        contextFactory.setProtocol(CertificateUtils.CURRENT_TLS_PROTOCOL_VERSION);
+        // contextFactory.setProtocol(CertificateUtils.getHighestCurrentSupportedTlsProtocolVersion());
         contextFactory.setIncludeProtocols(CertificateUtils.getCurrentSupportedTlsProtocolVersions());
         contextFactory.setExcludeProtocols("TLS", "TLSv1", "TLSv1.1", "SSL", "SSLv2", "SSLv2Hello", "SSLv3");
 

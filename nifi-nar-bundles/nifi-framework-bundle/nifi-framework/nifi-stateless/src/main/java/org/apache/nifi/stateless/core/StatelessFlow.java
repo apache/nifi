@@ -373,7 +373,7 @@ public class StatelessFlow implements RunnableFlow {
 
             try {
                 TlsConfiguration tlsConfiguration = new TlsConfiguration(keystore, keystorePass, keyPass, keystoreType,
-                        truststore, truststorePass, truststoreType, CertificateUtils.CURRENT_TLS_PROTOCOL_VERSION);
+                        truststore, truststorePass, truststoreType, CertificateUtils.getHighestCurrentSupportedTlsProtocolVersion());
                 return SslContextFactory.createSslContext(tlsConfiguration, SslContextFactory.ClientAuth.REQUIRED);
             } catch (final Exception e) {
                 throw new RuntimeException("Failed to create Keystore", e);

@@ -43,8 +43,6 @@ class TlsConfigurationTest extends GroovyTestCase {
     private static final String TRUSTSTORE_PASSWORD = "truststorepassword"
     private static final KeystoreType TRUSTSTORE_TYPE = KeystoreType.JKS
 
-    private static final String PROTOCOL = CertificateUtils.CURRENT_TLS_PROTOCOL_VERSION
-
     private static final Map<String, String> DEFAULT_PROPS = [
             (NiFiProperties.SECURITY_KEYSTORE)         : KEYSTORE_PATH,
             (NiFiProperties.SECURITY_KEYSTORE_PASSWD)  : KEYSTORE_PASSWORD,

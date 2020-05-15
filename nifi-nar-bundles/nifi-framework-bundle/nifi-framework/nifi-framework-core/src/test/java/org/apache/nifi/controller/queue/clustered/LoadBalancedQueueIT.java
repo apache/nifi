@@ -193,7 +193,7 @@ public class LoadBalancedQueueIT {
         final String truststore = "src/test/resources/localhost-ts.jks";
         final String truststorePass = "wAOR0nQJ2EXvOP0JZ2EaqA/n7W69ILS4sWAHghmIWCc";
         TlsConfiguration tlsConfiguration = new TlsConfiguration(keystore, keystorePass, keyPass, KeystoreType.JKS,
-                truststore, truststorePass, KeystoreType.JKS, CertificateUtils.CURRENT_TLS_PROTOCOL_VERSION);
+                truststore, truststorePass, KeystoreType.JKS, CertificateUtils.getHighestCurrentSupportedTlsProtocolVersion());
         sslContext = SslContextFactory.createSslContext(tlsConfiguration, SslContextFactory.ClientAuth.REQUIRED);
     }
 

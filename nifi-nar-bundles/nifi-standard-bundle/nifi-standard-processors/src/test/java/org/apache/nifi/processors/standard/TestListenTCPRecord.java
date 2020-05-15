@@ -112,9 +112,9 @@ public class TestListenTCPRecord {
         runner.setProperty(ListenTCPRecord.RECORD_WRITER, writerId);
 
         clientTlsConfiguration = new TlsConfiguration(CLIENT_KEYSTORE, KEYSTORE_PASSWORD, null, CLIENT_KEYSTORE_TYPE,
-                TRUSTSTORE, TRUSTSTORE_PASSWORD, TRUSTSTORE_TYPE, CertificateUtils.CURRENT_TLS_PROTOCOL_VERSION);
+                TRUSTSTORE, TRUSTSTORE_PASSWORD, TRUSTSTORE_TYPE, CertificateUtils.getHighestCurrentSupportedTlsProtocolVersion());
         trustOnlyTlsConfiguration = new TlsConfiguration(null, null, null, null,
-                TRUSTSTORE, TRUSTSTORE_PASSWORD, TRUSTSTORE_TYPE, CertificateUtils.CURRENT_TLS_PROTOCOL_VERSION);
+                TRUSTSTORE, TRUSTSTORE_PASSWORD, TRUSTSTORE_TYPE, CertificateUtils.getHighestCurrentSupportedTlsProtocolVersion());
     }
 
     @Test

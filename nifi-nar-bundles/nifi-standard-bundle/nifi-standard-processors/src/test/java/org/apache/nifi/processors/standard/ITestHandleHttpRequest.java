@@ -122,9 +122,9 @@ public class ITestHandleHttpRequest {
     @Before
     public void setUp() throws Exception {
         clientTlsConfiguration = new TlsConfiguration(CLIENT_KEYSTORE, KEYSTORE_PASSWORD, null, CLIENT_KEYSTORE_TYPE,
-                TRUSTSTORE, TRUSTSTORE_PASSWORD, TRUSTSTORE_TYPE, CertificateUtils.CURRENT_TLS_PROTOCOL_VERSION);
+                TRUSTSTORE, TRUSTSTORE_PASSWORD, TRUSTSTORE_TYPE, CertificateUtils.getHighestCurrentSupportedTlsProtocolVersion());
         trustOnlyTlsConfiguration = new TlsConfiguration(null, null, null, null,
-                TRUSTSTORE, TRUSTSTORE_PASSWORD, TRUSTSTORE_TYPE, CertificateUtils.CURRENT_TLS_PROTOCOL_VERSION);
+                TRUSTSTORE, TRUSTSTORE_PASSWORD, TRUSTSTORE_TYPE, CertificateUtils.getHighestCurrentSupportedTlsProtocolVersion());
     }
 
     @After
@@ -580,7 +580,7 @@ public class ITestHandleHttpRequest {
 
         final Map<String, String> sslProperties = getServerKeystoreProperties();
         sslProperties.putAll(getTruststoreProperties());
-        sslProperties.put(StandardSSLContextService.SSL_ALGORITHM.getName(), "TLSv1.2");
+        sslProperties.put(StandardSSLContextService.SSL_ALGORITHM.getName(), CertificateUtils.getHighestCurrentSupportedTlsProtocolVersion());
         useSSLContextService(runner, sslProperties, twoWaySsl ? SslContextFactory.ClientAuth.REQUIRED : SslContextFactory.ClientAuth.NONE);
 
         final Thread httpThread = new Thread(new Runnable() {

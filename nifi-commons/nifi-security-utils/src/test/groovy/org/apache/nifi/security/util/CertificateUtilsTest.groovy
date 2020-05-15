@@ -637,4 +637,22 @@ class CertificateUtilsTest extends GroovyTestCase {
             assert tlsVersions == ["TLSv1.2", "TLSv1.3"] as String[]
         }
     }
+
+    @Test
+    void testShouldGetMaxCurrentSupportedTlsProtocolVersion() {
+        // Arrange
+        int javaMajorVersion = CertificateUtils.getJavaVersion()
+        logger.debug("Running on Java version: ${javaMajorVersion}")
+
+        // Act
+        def tlsVersion = CertificateUtils.getHighestCurrentSupportedTlsProtocolVersion()
+        logger.info("Highest supported protocol version for ${javaMajorVersion}: ${tlsVersion}")
+
+        // Assert
+        if (javaMajorVersion <= 8) {
+            assert tlsVersion == "TLSv1.2"
+        } else {
+            assert tlsVersion == "TLSv1.3"
+        }
+    }
 }

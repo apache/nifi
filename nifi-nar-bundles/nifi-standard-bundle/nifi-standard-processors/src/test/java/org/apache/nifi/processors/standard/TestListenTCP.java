@@ -64,9 +64,9 @@ public class TestListenTCP {
         runner.setProperty(ListenTCP.PORT, "0");
 
         clientTlsConfiguration = new TlsConfiguration(CLIENT_KEYSTORE, KEYSTORE_PASSWORD, null, CLIENT_KEYSTORE_TYPE,
-                TRUSTSTORE, TRUSTSTORE_PASSWORD, TRUSTSTORE_TYPE, CertificateUtils.CURRENT_TLS_PROTOCOL_VERSION);
+                TRUSTSTORE, TRUSTSTORE_PASSWORD, TRUSTSTORE_TYPE, CertificateUtils.getHighestCurrentSupportedTlsProtocolVersion());
         trustOnlyTlsConfiguration = new TlsConfiguration(null, null, null, null,
-                TRUSTSTORE, TRUSTSTORE_PASSWORD, TRUSTSTORE_TYPE, CertificateUtils.CURRENT_TLS_PROTOCOL_VERSION);
+                TRUSTSTORE, TRUSTSTORE_PASSWORD, TRUSTSTORE_TYPE, CertificateUtils.getHighestCurrentSupportedTlsProtocolVersion());
     }
 
     @Test
@@ -263,7 +263,7 @@ public class TestListenTCP {
         runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE, TRUSTSTORE);
         runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_PASSWORD, TRUSTSTORE_PASSWORD);
         runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_TYPE, TRUSTSTORE_TYPE);
-        runner.setProperty(sslContextService, StandardSSLContextService.SSL_ALGORITHM, CertificateUtils.CURRENT_TLS_PROTOCOL_VERSION);
+        runner.setProperty(sslContextService, StandardSSLContextService.SSL_ALGORITHM, CertificateUtils.getHighestCurrentSupportedTlsProtocolVersion());
         runner.enableControllerService(sslContextService);
 
         runner.setProperty(ListenTCP.SSL_CONTEXT_SERVICE, "ssl-context");

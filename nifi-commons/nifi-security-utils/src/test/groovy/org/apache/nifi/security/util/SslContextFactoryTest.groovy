@@ -44,7 +44,11 @@ class SslContextFactoryTest extends GroovyTestCase {
     private static final String TRUSTSTORE_PASSWORD = "truststorepassword"
     private static final KeystoreType TRUSTSTORE_TYPE = KeystoreType.JKS
 
-    private static final String PROTOCOL = CertificateUtils.CURRENT_TLS_PROTOCOL_VERSION
+    private static final String PROTOCOL = CertificateUtils.getHighestCurrentSupportedTlsProtocolVersion()
+
+    // The default TLS protocol versions for different Java versions
+    private static final List<String> JAVA_8_TLS_PROTOCOL_VERSIONS = ["TLSv1.2", "TLSv1.1", "TLSv1"]
+    private static final List<String> JAVA_9_TLS_PROTOCOL_VERSIONS = ["TLSv1.3", "TLSv1.2", "TLSv1.1", "TLSv1"]
 
     private static final Map<String, String> DEFAULT_PROPS = [
             (NiFiProperties.SECURITY_KEYSTORE)         : KEYSTORE_PATH,
@@ -79,6 +83,14 @@ class SslContextFactoryTest extends GroovyTestCase {
 
     }
 
+    static List<String> getCurrentTlsProtocolVersions() {
+        if (CertificateUtils.getJavaVersion() <= 8) {
+            return JAVA_8_TLS_PROTOCOL_VERSIONS
+        } else {
+            return JAVA_9_TLS_PROTOCOL_VERSIONS
+        }
+    }
+
     /**
      * Asserts that the protocol versions are correct. In recent versions of Java, this enforces order as well, but in older versions, it just enforces presence.
      *
@@ -107,7 +119,7 @@ class SslContextFactoryTest extends GroovyTestCase {
 
         def defaultSSLParameters = sslContext.defaultSSLParameters
         logger.info("Default SSL Parameters: ${KeyStoreUtils.sslParametersToString(defaultSSLParameters)}" as String)
-        assertProtocolVersions(defaultSSLParameters.protocols, ["TLSv1.2", "TLSv1.1", "TLSv1"])
+        assertProtocolVersions(defaultSSLParameters.protocols, getCurrentTlsProtocolVersions())
         assert !defaultSSLParameters.needClientAuth
         assert !defaultSSLParameters.wantClientAuth
 
@@ -137,7 +149,7 @@ class SslContextFactoryTest extends GroovyTestCase {
 
         def defaultSSLParameters = sslContext.defaultSSLParameters
         logger.info("Default SSL Parameters: ${KeyStoreUtils.sslParametersToString(defaultSSLParameters)}" as String)
-        assertProtocolVersions(defaultSSLParameters.protocols, ["TLSv1.2", "TLSv1.1", "TLSv1"])
+        assertProtocolVersions(defaultSSLParameters.protocols, getCurrentTlsProtocolVersions())
         assert !defaultSSLParameters.needClientAuth
         assert !defaultSSLParameters.wantClientAuth
 
@@ -214,7 +226,7 @@ class SslContextFactoryTest extends GroovyTestCase {
 
         def defaultSSLParameters = sslContext.defaultSSLParameters
         logger.info("Default SSL Parameters: ${KeyStoreUtils.sslParametersToString(defaultSSLParameters)}" as String)
-        assertProtocolVersions(defaultSSLParameters.protocols, ["TLSv1.2", "TLSv1.1", "TLSv1"])
+        assertProtocolVersions(defaultSSLParameters.protocols, getCurrentTlsProtocolVersions())
         assert !defaultSSLParameters.needClientAuth
         assert !defaultSSLParameters.wantClientAuth
 

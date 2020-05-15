@@ -457,7 +457,7 @@ public class TestHttpClient {
         sslContextFactory.setKeyStorePath("src/test/resources/certs/keystore.jks");
         sslContextFactory.setKeyStorePassword("passwordpassword");
         sslContextFactory.setKeyStoreType("JKS");
-        sslContextFactory.setProtocol(CertificateUtils.CURRENT_TLS_PROTOCOL_VERSION);
+        sslContextFactory.setProtocol(CertificateUtils.getHighestCurrentSupportedTlsProtocolVersion());
         sslContextFactory.setExcludeProtocols("TLS", "TLSv1", "TLSv1.1");
 
         httpConnector = new ServerConnector(server);

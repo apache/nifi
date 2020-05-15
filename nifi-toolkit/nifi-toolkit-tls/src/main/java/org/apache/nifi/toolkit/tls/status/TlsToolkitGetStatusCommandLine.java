@@ -45,7 +45,7 @@ public class TlsToolkitGetStatusCommandLine extends BaseCommandLine {
     public static final String TRUSTSTORE_PASSWORD_ARG = "trustStorePassword";
     public static final String PROTOCOL_ARG = "protocol";
 
-    public static final String DEFAULT_PROTOCOL = CertificateUtils.CURRENT_TLS_PROTOCOL_VERSION;
+    public static final String DEFAULT_PROTOCOL = CertificateUtils.getHighestCurrentSupportedTlsProtocolVersion();
     public static final String DEFAULT_KEYSTORE_TYPE = "JKS";
 
     public static final String DESCRIPTION = "Checks the status of an HTTPS endpoint by making a GET request using a supplied keystore and truststore.";

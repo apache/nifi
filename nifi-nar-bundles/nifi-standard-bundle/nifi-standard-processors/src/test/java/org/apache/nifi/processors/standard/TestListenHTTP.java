@@ -107,9 +107,9 @@ public class TestListenHTTP {
         runner.setVariable(BASEPATH_VARIABLE, HTTP_BASE_PATH);
 
         clientTlsConfiguration = new TlsConfiguration(CLIENT_KEYSTORE, KEYSTORE_PASSWORD, null, CLIENT_KEYSTORE_TYPE,
-                TRUSTSTORE, TRUSTSTORE_PASSWORD, TRUSTSTORE_TYPE, CertificateUtils.CURRENT_TLS_PROTOCOL_VERSION);
+                TRUSTSTORE, TRUSTSTORE_PASSWORD, TRUSTSTORE_TYPE, CertificateUtils.getHighestCurrentSupportedTlsProtocolVersion());
         trustOnlyTlsConfiguration = new TlsConfiguration(null, null, null, null,
-                TRUSTSTORE, TRUSTSTORE_PASSWORD, TRUSTSTORE_TYPE, CertificateUtils.CURRENT_TLS_PROTOCOL_VERSION);
+                TRUSTSTORE, TRUSTSTORE_PASSWORD, TRUSTSTORE_TYPE, CertificateUtils.getHighestCurrentSupportedTlsProtocolVersion());
     }
 
     @After
@@ -157,7 +157,7 @@ public class TestListenHTTP {
     @Test
     public void testSecurePOSTRequestsReceivedWithoutEL() throws Exception {
         SSLContextService sslContextService = configureProcessorSslContextService(false);
-        runner.setProperty(sslContextService, StandardRestrictedSSLContextService.RESTRICTED_SSL_ALGORITHM, "TLSv1.2");
+        runner.setProperty(sslContextService, StandardRestrictedSSLContextService.RESTRICTED_SSL_ALGORITHM, CertificateUtils.getHighestCurrentSupportedTlsProtocolVersion());
         runner.enableControllerService(sslContextService);
 
         runner.setProperty(ListenHTTP.PORT, Integer.toString(availablePort));
@@ -170,7 +170,7 @@ public class TestListenHTTP {
     @Test
     public void testSecurePOSTRequestsReturnCodeReceivedWithoutEL() throws Exception {
         SSLContextService sslContextService = configureProcessorSslContextService(false);
-        runner.setProperty(sslContextService, StandardRestrictedSSLContextService.RESTRICTED_SSL_ALGORITHM, "TLSv1.2");
+        runner.setProperty(sslContextService, StandardRestrictedSSLContextService.RESTRICTED_SSL_ALGORITHM, CertificateUtils.getHighestCurrentSupportedTlsProtocolVersion());
         runner.enableControllerService(sslContextService);
 
         runner.setProperty(ListenHTTP.PORT, Integer.toString(availablePort));
@@ -184,7 +184,7 @@ public class TestListenHTTP {
     @Test
     public void testSecurePOSTRequestsReceivedWithEL() throws Exception {
         SSLContextService sslContextService = configureProcessorSslContextService(false);
-        runner.setProperty(sslContextService, StandardRestrictedSSLContextService.RESTRICTED_SSL_ALGORITHM, "TLSv1.2");
+        runner.setProperty(sslContextService, StandardRestrictedSSLContextService.RESTRICTED_SSL_ALGORITHM, CertificateUtils.getHighestCurrentSupportedTlsProtocolVersion());
         runner.enableControllerService(sslContextService);
 
         runner.setProperty(ListenHTTP.PORT, HTTP_SERVER_PORT_EL);
@@ -197,7 +197,7 @@ public class TestListenHTTP {
     @Test
     public void testSecurePOSTRequestsReturnCodeReceivedWithEL() throws Exception {
         SSLContextService sslContextService = configureProcessorSslContextService(false);
-        runner.setProperty(sslContextService, StandardRestrictedSSLContextService.RESTRICTED_SSL_ALGORITHM, "TLSv1.2");
+        runner.setProperty(sslContextService, StandardRestrictedSSLContextService.RESTRICTED_SSL_ALGORITHM, CertificateUtils.getHighestCurrentSupportedTlsProtocolVersion());
         runner.enableControllerService(sslContextService);
 
         runner.setProperty(ListenHTTP.PORT, Integer.toString(availablePort));
@@ -211,7 +211,7 @@ public class TestListenHTTP {
     @Test
     public void testSecureTwoWaySslPOSTRequestsReceivedWithoutEL() throws Exception {
         SSLContextService sslContextService = configureProcessorSslContextService(true);
-        runner.setProperty(sslContextService, StandardRestrictedSSLContextService.RESTRICTED_SSL_ALGORITHM, "TLSv1.2");
+        runner.setProperty(sslContextService, StandardRestrictedSSLContextService.RESTRICTED_SSL_ALGORITHM, CertificateUtils.getHighestCurrentSupportedTlsProtocolVersion());
         runner.enableControllerService(sslContextService);
 
         runner.setProperty(ListenHTTP.PORT, Integer.toString(availablePort));
@@ -224,7 +224,7 @@ public class TestListenHTTP {
     @Test
     public void testSecureTwoWaySslPOSTRequestsReturnCodeReceivedWithoutEL() throws Exception {
         SSLContextService sslContextService = configureProcessorSslContextService(true);
-        runner.setProperty(sslContextService, StandardRestrictedSSLContextService.RESTRICTED_SSL_ALGORITHM, "TLSv1.2");
+        runner.setProperty(sslContextService, StandardRestrictedSSLContextService.RESTRICTED_SSL_ALGORITHM, CertificateUtils.getHighestCurrentSupportedTlsProtocolVersion());
         runner.enableControllerService(sslContextService);
 
         runner.setProperty(ListenHTTP.PORT, Integer.toString(availablePort));
@@ -238,7 +238,7 @@ public class TestListenHTTP {
     @Test
     public void testSecureTwoWaySslPOSTRequestsReceivedWithEL() throws Exception {
         SSLContextService sslContextService = configureProcessorSslContextService(true);
-        runner.setProperty(sslContextService, StandardRestrictedSSLContextService.RESTRICTED_SSL_ALGORITHM, "TLSv1.2");
+        runner.setProperty(sslContextService, StandardRestrictedSSLContextService.RESTRICTED_SSL_ALGORITHM, CertificateUtils.getHighestCurrentSupportedTlsProtocolVersion());
         runner.enableControllerService(sslContextService);
 
         runner.setProperty(ListenHTTP.PORT, HTTP_SERVER_PORT_EL);
@@ -251,7 +251,7 @@ public class TestListenHTTP {
     @Test
     public void testSecureTwoWaySslPOSTRequestsReturnCodeReceivedWithEL() throws Exception {
         SSLContextService sslContextService = configureProcessorSslContextService(true);
-        runner.setProperty(sslContextService, StandardRestrictedSSLContextService.RESTRICTED_SSL_ALGORITHM, "TLSv1.2");
+        runner.setProperty(sslContextService, StandardRestrictedSSLContextService.RESTRICTED_SSL_ALGORITHM, CertificateUtils.getHighestCurrentSupportedTlsProtocolVersion());
         runner.enableControllerService(sslContextService);
 
         runner.setProperty(ListenHTTP.PORT, Integer.toString(availablePort));
@@ -265,7 +265,7 @@ public class TestListenHTTP {
     @Test
     public void testSecureInvalidSSLConfiguration() throws Exception {
         SSLContextService sslContextService = configureInvalidProcessorSslContextService();
-        runner.setProperty(sslContextService, StandardSSLContextService.SSL_ALGORITHM, "TLSv1.2");
+        runner.setProperty(sslContextService, StandardSSLContextService.SSL_ALGORITHM, CertificateUtils.getHighestCurrentSupportedTlsProtocolVersion());
         runner.enableControllerService(sslContextService);
 
         runner.setProperty(ListenHTTP.PORT, HTTP_SERVER_PORT_EL);
