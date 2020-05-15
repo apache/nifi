@@ -705,7 +705,7 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
                         LOG.error("Failed to generate predictions", e);
                     }
                 }
-            }, 0L, 30, TimeUnit.SECONDS);
+            }, 0L, 15, TimeUnit.SECONDS);
 
         }
 

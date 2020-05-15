@@ -42,7 +42,7 @@ public class CachingConnectionStatusAnalyticsEngine extends ConnectionStatusAnal
         super(flowManager, statusRepository,  statusAnalyticsModelMapFactory, predictionIntervalMillis,
                            queryIntervalMillis, scoreName, scoreThreshold);
         this.cache = Caffeine.newBuilder()
-                .expireAfterWrite(30, TimeUnit.MINUTES)
+                .expireAfterAccess(5, TimeUnit.MINUTES)
                 .build();
     }
 
