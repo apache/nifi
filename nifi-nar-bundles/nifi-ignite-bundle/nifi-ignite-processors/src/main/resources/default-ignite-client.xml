@@ -15,18 +15,13 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
-<beans xmlns="http://www.springframework.org/schema/beans"
-       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-       xmlns:util="http://www.springframework.org/schema/util"
-       xsi:schemaLocation="
-        http://www.springframework.org/schema/beans
-        http://www.springframework.org/schema/beans/spring-beans.xsd
-        http://www.springframework.org/schema/util
-        http://www.springframework.org/schema/util/spring-util.xsd">
+<beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns="http://www.springframework.org/schema/beans"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans.xsd">
 
-     <bean abstract="true" id="ignite.cfg" class="org.apache.ignite.configuration.IgniteConfiguration">
+    <bean abstract="true" id="thickIgniteClient" class="org.apache.ignite.configuration.IgniteConfiguration">
         <property name="peerClassLoadingEnabled" value="false"/>
-		<property name="clientMode" value="true"/>
         <property name="discoverySpi">
             <bean class="org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi">
                 <property name="ipFinder">
@@ -40,6 +35,14 @@
                     </bean>
                 </property>
             </bean>
+        </property>
+    </bean>
+
+    <bean abstract="true" id="thinIgniteClient" class="org.apache.ignite.configuration.ClientConfiguration">
+        <property name="addresses">
+            <list>
+                <value>127.0.0.1:10800</value>
+            </list>
         </property>
     </bean>
 </beans>
