@@ -516,6 +516,12 @@ Caused by: org.codehaus.commons.compiler.CompileException: Line 21, Column 180: 
             <code>Integer</code>, <code>Long</code> (64-bit Integer), <code>Float</code>, or <code>Double</code>, respectively. So the above query would need to instead be written as
             <code>SELECT * FROM FLOWFILE WHERE RPATH_STRING(project, '/maintainer/name') LIKE 'Apache%'</code>, which will produce the desired output.
         </p>
+        <p>
+            Similarly for root level elements <code>CAST_INT</code>, <code>CAST_LONG</code>, <code>CAST_FLOAT</code>, and <code>CAST_DOUBLE</code> 
+            that can be used when you want to cause the return type to be of type <code>Integer</code>, <code>Long</code> (64-bit Integer), <code>Float</code>, or <code>Double</code>.
+            <br>
+            <b>Example:</b> <code>SELECT sum(CAST_DOUBLE(<i>measurement</i>)) FROM FLOWFILE GROUP BY <i>aggregate</i></code>
+        </p>
 
 
         <h3>Aggregate Functions</h3>

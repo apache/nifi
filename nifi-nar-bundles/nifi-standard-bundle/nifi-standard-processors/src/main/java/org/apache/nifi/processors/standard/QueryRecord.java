@@ -396,7 +396,7 @@ public class QueryRecord extends AbstractProcessor {
             session.remove(createdFlowFiles);
             session.transfer(original, REL_FAILURE);
         } catch (final Exception e) {
-            getLogger().error("Unable to query {} due to {}", new Object[] {original, e});
+            getLogger().error("Unable to query {} due to {}", new Object[] {original, e.getCause() == null ? e : e.getCause()});
             session.remove(createdFlowFiles);
             session.transfer(original, REL_FAILURE);
         }
@@ -506,6 +506,11 @@ public class QueryRecord extends AbstractProcessor {
         rootSchema.add("RPATH_DOUBLE", ScalarFunctionImpl.create(DoubleRecordPath.class, "eval"));
         rootSchema.add("RPATH_FLOAT", ScalarFunctionImpl.create(FloatRecordPath.class, "eval"));
 
+        rootSchema.add("CAST_FLOAT", ScalarFunctionImpl.create(ChoiceFunction.class, "toFloat"));
+        rootSchema.add("CAST_DOUBLE", ScalarFunctionImpl.create(ChoiceFunction.class, "toDouble"));
+        rootSchema.add("CAST_INT", ScalarFunctionImpl.create(ChoiceFunction.class, "toInt"));
+        rootSchema.add("CAST_LONG", ScalarFunctionImpl.create(ChoiceFunction.class, "toLong"));
+
         return rootSchema;
     }
 
@@ -599,6 +604,61 @@ public class QueryRecord extends AbstractProcessor {
     // User-Defined Functions for Calcite
     // ------------------------------------------------------------
 
+    public static class ChoiceFunction {
+        public static Float toFloat(final Object ele) {
+            if (ele instanceof Number) {
+                return ((Number) ele).floatValue();
+            }
+            if (ele instanceof String) {
+                return Float.parseFloat((String) ele);
+            }
+
+            throw new RuntimeException(
+                    "Cannot cast to Float against " + ele + " because the value returned is of type " + ele.getClass());
+        }
+
+        public static Integer toInt(final Object ele) {
+            if (ele instanceof Number) {
+                return ((Number) ele).intValue();
+            }
+            if (ele instanceof String) {
+                return Integer.parseInt((String) ele);
+            }
+            if (ele instanceof Date) {
+                return (int) ((Date) ele).getTime();
+            }
+
+            throw new RuntimeException("Cannot cast to Integer against " + ele
+                    + " because the value returned is of type " + ele.getClass());
+        }
+
+        public static Double toDouble(final Object ele) {
+            if (ele instanceof Number) {
+                return ((Number) ele).doubleValue();
+            }
+            if (ele instanceof String) {
+                return Double.parseDouble((String) ele);
+            }
+
+            throw new RuntimeException("Cannot cast to Double against " + ele
+                    + " because the value returned is of type " + ele.getClass());
+        }
+
+        public static Long toLong(final Object ele){
+            if (ele instanceof Number) {
+                return ((Number) ele).longValue();
+            }
+            if (ele instanceof String) {
+                return Long.parseLong((String) ele);
+            }
+            if (ele instanceof Date) {
+                return ((Date) ele).getTime();
+            }
+
+            throw new RuntimeException("Cannot cast to Long against " + ele
+                    + " because the value returned is of type " + ele.getClass());
+        }
+    }
 
     public static class ObjectRecordPath extends RecordPathFunction {
         private static final RecordField ROOT_RECORD_FIELD = new RecordField("root", RecordFieldType.MAP.getMapDataType(RecordFieldType.STRING.getDataType()));
@@ -694,71 +754,25 @@ public class QueryRecord extends AbstractProcessor {
 
     public static class IntegerRecordPath extends RecordPathFunction {
         public Integer eval(Object record, String recordPath) {
-            return eval(record, recordPath, val -> {
-                if (val instanceof Number) {
-                    return ((Number) val).intValue();
-                }
-                if (val instanceof String) {
-                    return Integer.parseInt((String) val);
-                }
-                if (val instanceof Date) {
-                    return (int) ((Date) val).getTime();
-                }
-
-                throw new RuntimeException("Cannot evaluate RecordPath " + recordPath + " as Integer against " + record
-                    + " because the value returned is of type " + val.getClass());
-            });
+            return eval(record, recordPath, ChoiceFunction::toInt);
         }
     }
 
     public static class LongRecordPath extends RecordPathFunction {
         public Long eval(Object record, String recordPath) {
-            return eval(record, recordPath, val -> {
-                if (val instanceof Number) {
-                    return ((Number) val).longValue();
-                }
-                if (val instanceof String) {
-                    return Long.parseLong((String) val);
-                }
-                if (val instanceof Date) {
-                    return ((Date) val).getTime();
-                }
-
-                throw new RuntimeException("Cannot evaluate RecordPath " + recordPath + " as Long against " + record
-                    + " because the value returned is of type " + val.getClass());
-            });
+            return eval(record, recordPath, ChoiceFunction::toLong);
         }
     }
 
     public static class FloatRecordPath extends RecordPathFunction {
         public Float eval(Object record, String recordPath) {
-            return eval(record, recordPath, val -> {
-                if (val instanceof Number) {
-                    return ((Number) val).floatValue();
-                }
-                if (val instanceof String) {
-                    return Float.parseFloat((String) val);
-                }
-
-                throw new RuntimeException("Cannot evaluate RecordPath " + recordPath + " as Float against " + record
-                    + " because the value returned is of type " + val.getClass());
-            });
+            return eval(record, recordPath, ChoiceFunction::toFloat);
         }
     }
 
     public static class DoubleRecordPath extends RecordPathFunction {
         public Double eval(Object record, String recordPath) {
-            return eval(record, recordPath, val -> {
-                if (val instanceof Number) {
-                    return ((Number) val).doubleValue();
-                }
-                if (val instanceof String) {
-                    return Double.parseDouble((String) val);
-                }
-
-                throw new RuntimeException("Cannot evaluate RecordPath " + recordPath + " as Double against " + record
-                    + " because the value returned is of type " + val.getClass());
-            });
+            return eval(record, recordPath, ChoiceFunction::toDouble);
         }
     }
 
@@ -803,16 +817,20 @@ public class QueryRecord extends AbstractProcessor {
                 return null;
             }
 
-            if (record instanceof Record) {
-                return eval((Record) record, recordPath, transform);
-            } else if (record instanceof Record[]) {
-                return eval((Record[]) record, recordPath, transform);
-            } else if (record instanceof Iterable) {
-                return eval((Iterable<Record>) record, recordPath, transform);
-            } else if (record instanceof Map) {
-                return eval((Map<?, ?>) record, recordPath, transform);
+            try{
+                if (record instanceof Record) {
+                    return eval((Record) record, recordPath, transform);
+                } else if (record instanceof Record[]) {
+                    return eval((Record[]) record, recordPath, transform);
+                } else if (record instanceof Iterable) {
+                    return eval((Iterable<Record>) record, recordPath, transform);
+                } else if (record instanceof Map) {
+                    return eval((Map<?, ?>) record, recordPath, transform);
+                }    
+            } catch (IllegalArgumentException e){
+                throw new RuntimeException("Cannot evaluate RecordPath " + recordPath + "  against " + record + " because " + e.getMessage());
             }
-
+            
             throw new RuntimeException("Cannot evaluate RecordPath " + recordPath + " against given argument because the argument is of type " + record.getClass() + " instead of Record");
         }
 
