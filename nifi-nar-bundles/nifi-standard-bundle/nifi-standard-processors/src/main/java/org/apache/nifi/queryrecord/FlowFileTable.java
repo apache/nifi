@@ -43,6 +43,7 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.type.ArrayDataType;
+import org.apache.nifi.serialization.record.type.ChoiceDataType;
 
 import java.lang.reflect.Type;
 import java.math.BigInteger;
@@ -223,10 +224,67 @@ public class FlowFileTable extends AbstractTable implements QueryableTable, Tran
             case BIGINT:
                 return typeFactory.createJavaType(BigInteger.class);
             case CHOICE:
+                final ChoiceDataType choiceDataType = (ChoiceDataType) fieldType;
+                DataType widestDataType = choiceDataType.getPossibleSubTypes().get(0);
+                for (final DataType possibleType : choiceDataType.getPossibleSubTypes()) {
+                    if (possibleType == widestDataType) {
+                        continue;
+                    }
+                    if (possibleType.getFieldType().isWiderThan(widestDataType.getFieldType())) {
+                        widestDataType = possibleType;
+                        continue;
+                    }
+                    if (widestDataType.getFieldType().isWiderThan(possibleType.getFieldType())) {
+                        continue;
+                    }
+
+                    // Neither is wider than the other.
+                    widestDataType = null;
+                    break;
+                }
+
+                // If one of the CHOICE data types is the widest, use it.
+                if (widestDataType != null) {
+                    return getRelDataType(widestDataType, typeFactory);
+                }
+
+                // None of the data types is strictly the widest. Check if all data types are numeric.
+                // This would happen, for instance, if the data type is a choice between float and integer.
+                // If that is the case, we can use a String type for the table schema because all values will fit
+                // into a String. This will still allow for casting, etc. if the query requires it.
+                boolean allNumeric = true;
+                for (final DataType possibleType : choiceDataType.getPossibleSubTypes()) {
+                    if (!isNumeric(possibleType)) {
+                        allNumeric = false;
+                        break;
+                    }
+                }
+
+                if (allNumeric) {
+                    return typeFactory.createJavaType(String.class);
+                }
+
+                // There is no specific type that we can use for the schema. This would happen, for instance, if our
+                // CHOICE is between an integer and a Record.
                 return typeFactory.createJavaType(Object.class);
         }
 
         throw new IllegalArgumentException("Unknown Record Field Type: " + fieldType);
+    }
+
+    private boolean isNumeric(final DataType dataType) {
+        switch (dataType.getFieldType()) {
+            case BIGINT:
+            case BYTE:
+            case DOUBLE:
+            case FLOAT:
+            case INT:
+            case LONG:
+            case SHORT:
+                return true;
+            default:
+                return false;
+        }
     }
 
     @Override
