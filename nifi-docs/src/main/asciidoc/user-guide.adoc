@@ -144,7 +144,7 @@ able to view and modify the dataflow. For information on securing the system, se
 
 When a DFM navigates to the UI for the first time, a blank canvas is provided on which a dataflow can be built:
 
-image::nifi-toolbar-components.png["NiFi Components Toolbar"]
+image:images/nifi-toolbar-components.png["NiFi Components Toolbar"]
 
 The Components Toolbar runs across the top left portion of your screen. It consists of the components you can drag onto the
 canvas to build your dataflow. Each component is described in more detail in <<building-dataflow>>.
@@ -164,7 +164,7 @@ and configure system properties, such as how many system resources should be pro
 On the right side of the canvas is Search, and the Global Menu. For more information on search refer to <<search>>. The Global Menu
 contains options that allow you to manipulate existing components on the canvas:
 
-image::global-menu.png[NiFi Global Menu]
+image:images/global-menu.png[NiFi Global Menu]
 
 Additionally, the UI has some features that allow you to easily navigate around the canvas. You can use the
 Navigate Palette to pan around the canvas, and to zoom in and out. The “Birds Eye View” of the dataflow provides a high-level
@@ -173,7 +173,7 @@ bottom of the screen. As you navigate into and out of Process Groups, the breadc
 the depth in the flow, and each Process Group that you entered to reach this depth. Each of the Process Groups listed in the
 breadcrumbs is a link that will take you back up to that level in the flow.
 
-image::nifi-navigation.png["NiFi Navigation"]
+image:images/nifi-navigation.png["NiFi Navigation"]
 
 [[UI-with-multi-tenant-authorization]]
 == Accessing the UI with Multi-Tenant Authorization
@@ -231,7 +231,7 @@ Clicking the 'login' link will open the log in page. If the user is logging in w
 a form to do so. If NiFi is not configured to support anonymous access and the user is logging in with their username/password, they will
 be immediately sent to the login form bypassing the canvas.
 
-image::login.png["Log In"]
+image:images/login.png["Log In"]
 
 
 [[building-dataflow]]
@@ -247,16 +247,16 @@ the components together.
 The User Interface section above outlined the different segments of the UI and pointed out a Components Toolbar.
 This section looks at each of the Components in that toolbar:
 
-image::components.png["Components"]
+image:images/components.png["Components"]
 
 [[processor]]
-image:iconProcessor.png["Processor", width=32]
+image:images/iconProcessor.png["Processor", width=32]
 *Processor*: The Processor is the most commonly used component, as it is responsible for data ingress, egress, routing, and
 	manipulating. There are many different types of Processors. In fact, this is a very common Extension Point in NiFi,
 	meaning that many vendors may implement their own Processors to perform whatever functions are necessary for their use case.
 	When a Processor is dragged onto the canvas, the user is presented with a dialog to choose which type of Processor to use:
 
-image::add-processor.png["Add Processor Dialog"]
+image:images/add-processor.png["Add Processor Dialog"]
 
 In the top-right corner, the user is able to filter the list based on the Processor Type or the Tags associated with a Processor.
 Processor developers have the ability to add Tags to their Processors. These tags are used in this dialog for filtering and are
@@ -265,16 +265,16 @@ in the Tag Cloud. Clicking a Tag in the Cloud will filter the available Processo
 Tags are selected, only those Processors that contain all of those Tags are shown. For example, if we want to show only those
 Processors that allow us to ingest files, we can select both the `files` Tag and the `ingest` Tag:
 
-image::add-processor-with-tag-cloud.png["Add Processor with Tag Cloud"]
+image:images/add-processor-with-tag-cloud.png["Add Processor with Tag Cloud"]
 
 Restricted components will be marked with a
-image:restricted.png["Restricted"]
+image:images/restricted.png["Restricted"]
 icon next to their name. These are components
 that can be used to execute arbitrary unsanitized code provided by the operator through the NiFi REST API/UI or can be used to obtain
 or alter data on the NiFi host system using the NiFi OS credentials. These components could be used by an otherwise authorized NiFi
 user to go beyond the intended use of the application, escalate privilege, or could expose data about the internals of the NiFi process
 or the host system. All of these capabilities should be considered privileged, and admins should be aware of these capabilities and
-explicitly enable them for a subset of trusted users. Before a user is allowed to create and modify restricted components they must be granted access. Hovering over the image:restricted.png["Restricted"]
+explicitly enable them for a subset of trusted users. Before a user is allowed to create and modify restricted components they must be granted access. Hovering over the image:images/restricted.png["Restricted"]
 icon will display the specific permissions a restricted component requires. Permissions can be
 assigned regardless of restrictions. In this case, the user will have access to all restricted components. Alternatively, users can
 be assigned access to specific restrictions. If the user has been granted access to all restrictions a component requires, they will
@@ -291,7 +291,7 @@ down the Shift key and dragging a selection box around the desired components.
 Once you have dragged a Processor onto the canvas, you can interact with it by right-clicking on the Processor and
 selecting an option from the context menu. The options available to you from the context menu vary, depending on the privileges assigned to you.
 
-image::nifi-processor-menu.png["Processor Menu"]
+image:images/nifi-processor-menu.png["Processor Menu"]
 
 While the options available from the context menu vary, the following options are typically available when you have full privileges to work with a Processor:
 
@@ -315,7 +315,7 @@ NOTE: For Processors, Ports, Remote Process Groups, Connections and Labels, it i
 
 
 [[input_port]]
-image:iconInputPort.png["Input Port", width=32]
+image:images/iconInputPort.png["Input Port", width=32]
 *Input Port*: Input Ports provide a mechanism for transferring data into a Process Group. When an Input Port is dragged
 onto the canvas, the DFM is prompted to name the Port. All Ports within a Process Group must have unique names.
 
@@ -329,7 +329,7 @@ link:administration-guide.html[System Administrator’s Guide].
 
 
 [[output_port]]
-image:iconOutputPort.png["Output Port", width=32]
+image:images/iconOutputPort.png["Output Port", width=32]
 *Output Port*: Output Ports provide a mechanism for transferring data from a Process Group to destinations outside
 of the Process Group. When an Output Port is dragged onto the canvas, the DFM is prompted to name the Port. All Ports
 within a Process Group must have unique names.
@@ -343,7 +343,7 @@ link:administration-guide.html[System Administrator’s Guide].
 
 
 [[process_group]]
-image:iconProcessGroup.png["Process Group", width=32]
+image:images/iconProcessGroup.png["Process Group", width=32]
 *Process Group*: Process Groups can be used to logically group a set of components so that the dataflow is easier to understand
 and maintain. When a Process Group is dragged onto the canvas, the DFM is prompted to name the Process Group. All Process
 Groups within the same parent group must have unique names. The Process Group will then be nested within that parent group.
@@ -351,7 +351,7 @@ Groups within the same parent group must have unique names. The Process Group wi
 Once you have dragged a Process Group onto the canvas, you can interact with it by right-clicking on the Process Group and selecting an option from the
 context menu. The options available to you from the context menu vary, depending on the privileges assigned to you.
 
-image::nifi-process-group-menu.png["Process Group Menu"]
+image:images/nifi-process-group-menu.png["Process Group Menu"]
 
 While the options available from the context menu vary, the following options are typically available when you have full privileges to work with the Process Group:
 
@@ -378,14 +378,14 @@ NOTE: It is also possible to double-click on the Process Group to enter it.
 
 
 [[remote_process_group]]
-image:iconRemoteProcessGroup.png["Remote Process Group", width=32]
+image:images/iconRemoteProcessGroup.png["Remote Process Group", width=32]
 *Remote Process Group*: Remote Process Groups appear and behave similar to Process Groups. However, the Remote Process Group (RPG) references a remote instance of NiFi. When an RPG is dragged onto the canvas, rather than being prompted for a name, the DFM is prompted for the URL of the remote NiFi instance. If the remote NiFi is a clustered instance, adding two or more cluster node URLs is recommended so that an initial connection can be made even if one of the nodes is unavailable. Multiple URLs can be specified in a comma-separated format.
 
 When data is transferred to a clustered instance of NiFi via an RPG, the RPG will first connect to the remote instance whose URL is configured to determine which nodes are in the cluster and how busy each node is. This information is then used to load balance the data that is pushed to each node. The remote instances are then interrogated periodically to determine information about any nodes that are dropped from or added to the cluster and to recalculate the load balancing based on each node's load. For more information, see the section on <<site-to-site,Site-to-Site>>.
 
 Once you have dragged a Remote Process Group onto the canvas, you can interact with it by right-clicking on the Remote Process Group and selecting an option from the context menu. The options available to you from the menu vary, depending on the privileges assigned to you.
 
-image::nifi-rpg-menu.png["Remote Process Group Menu"]
+image:images/nifi-rpg-menu.png["Remote Process Group Menu"]
 
 The following options are typically available when you have full privileges to work with the Remote Process Group:
 
@@ -406,7 +406,7 @@ The following options are typically available when you have full privileges to w
 
 
 [[funnel]]
-image:iconFunnel.png["Funnel"]
+image:images/iconFunnel.png["Funnel"]
 *Funnel*: Funnels are used to combine the data from many Connections into a single Connection. This has two advantages.
 First, if many Connections are created with the same destination, the canvas can become cluttered if those Connections
 have to span a large space. By funneling these Connections into a single Connection, that single Connection can then be
@@ -416,22 +416,22 @@ one Connection, rather than prioritizing the data on each Connection independent
 
 
 [[template]]
-image:iconTemplate.png["Template"]
+image:images/iconTemplate.png["Template"]
 *Template*: Templates can be created by DFMs from sections of the flow, or they can be imported from other
 dataflows. These Templates provide larger building blocks for creating a  complex flow quickly. When the Template is
 dragged onto the canvas, the DFM is provided a dialog to choose which Template to add to the canvas:
 
-image::instantiate-template.png["Instantiate Template Dialog"]
+image:images/instantiate-template.png["Instantiate Template Dialog"]
 
 Clicking the drop-down box shows all available Templates. Any Template that was created with a description will show a question mark
 icon, indicating that there is more information. Hovering over the icon with the mouse will show this description:
 
-image::instantiate-template-description.png["Instantiate Template Dialog"]
+image:images/instantiate-template-description.png["Instantiate Template Dialog"]
 
 
 
 [[label]]
-image:iconLabel.png["Label"]
+image:images/iconLabel.png["Label"]
 *Label*: Labels are used to provide documentation to parts of a dataflow. When a Label is dropped onto the canvas,
 it is created with a default size. The Label can then be resized by dragging the handle in the bottom-right corner.
 The Label has no text when initially created. The text of the Label can be added by right-clicking on the Label and
@@ -447,11 +447,11 @@ Add Controller Service, and Add Reporting Task dialogs include a column identify
 as the name of the component, the organization or group that created the component, and the NAR bundle that contains
 the component.
 
-image::add-processor-version-example.png["Add Processor Version Example"]
+image:images/add-processor-version-example.png["Add Processor Version Example"]
 
 Each component displayed on the canvas also contains this information.
 
-image::processor-version-information-example.png["Processor Version Information Example"]
+image:images/processor-version-information-example.png["Processor Version Information Example"]
 
 ==== Sorting and Filtering Components
 When you are adding a component, you can sort on version number or filter based on originating source.
@@ -461,7 +461,7 @@ To sort based on version, click the version column to display in ascending or de
 To filter based on source group, click the source drop-down in the upper left of your Add Component dialog,
 and select the group you want to view.
 
-image::add-processor-version-sort-filter.png["Add Processor Version Sort and Filter"]
+image:images/add-processor-version-sort-filter.png["Add Processor Version Sort and Filter"]
 
 ==== Changing Component Versions
 To change a component version, perform the following steps.
@@ -469,10 +469,10 @@ To change a component version, perform the following steps.
 1. Right-click the component on the canvas to display configuration options.
 2. Select Change version.
 +
-image::processor-change-version.png["Processor Change Version"]
+image:images/processor-change-version.png["Processor Change Version"]
 3. In the Component Version dialog, select the version you want to run from the Version drop-down menu.
 +
-image::component-version-dialog.png["Component Version"]
+image:images/component-version-dialog.png["Component Version"]
 
 ==== Understanding Version Dependencies
 When you are configuring a component, you can also view information about version dependencies.
@@ -481,19 +481,19 @@ When you are configuring a component, you can also view information about versio
 . Click the Properties tab.
 . Click the information icon to view any version dependency information.
 
-image::configure-processor-with-version-information.png["Configuration Version Requirements"]
+image:images/configure-processor-with-version-information.png["Configuration Version Requirements"]
 
 In the following example, MyProcessor version 1.0 is configured properly with the controller service StandardMyService version 1.0:
 
-image::processor-cs-version-match.png["Processor and Controller Service Version Match"]
+image:images/processor-cs-version-match.png["Processor and Controller Service Version Match"]
 
 If the version of MyProcessor is changed to an incompatible version (MyProcessor 2.0), validation errors will be displayed on the processor:
 
-image::processor-cs-version-mismatch-warnings.png["Processor and Controller Service Version Mismatch Warnings"]
+image:images/processor-cs-version-mismatch-warnings.png["Processor and Controller Service Version Mismatch Warnings"]
 
 and an error message will be displayed in the processor's controller service configuration since the service is no longer valid:
 
-image::processor-cs-version-mismatch-config.png["Processor and Controller Service Version Mismatch Property"]
+image:images/processor-cs-version-mismatch-config.png["Processor and Controller Service Version Mismatch Property"]
 
 
 
@@ -518,7 +518,7 @@ unpaired Unicode surrogate codepoints will not be retained in any configuration:
 
 The first tab in the Processor Configuration dialog is the Settings tab:
 
-image::settings-tab.png["Settings Tab"]
+image:images/settings-tab.png["Settings Tab"]
 
 This tab contains several different configuration items. First, it allows the DFM to change the name of the Processor.
 The name of a Processor by default is the same as the Processor type. Next to the Processor Name is a checkbox, indicating
@@ -562,7 +562,7 @@ auto-terminated, the auto-termination status will be cleared (turned off) if the
 
 The second tab in the Processor Configuration dialog is the Scheduling Tab:
 
-image::scheduling-tab.png["Scheduling Tab"]
+image:images/scheduling-tab.png["Scheduling Tab"]
 
 ===== Scheduling Strategy
 The first configuration option is the Scheduling Strategy. There are three possible options for scheduling components:
@@ -658,11 +658,11 @@ The Execution setting is used to determine on which node(s) the Processor will b
 scheduled to execute. Selecting 'All Nodes' will result in this Processor being scheduled on every node in the cluster. Selecting
 'Primary Node' will result in this Processor being scheduled on the Primary Node only.  Processors that have been configured for 'Primary Node' execution are identified by a "P" next to the processor icon:
 
-image::primary-node-processor.png["Primary Node Processor"]
+image:images/primary-node-processor.png["Primary Node Processor"]
 
 To quickly identify 'Primary Node' processors, the "P" icon is also shown in the Processors tab on the Summary page:
 
-image::primary-node-processors-summary.png["Primary Node Processors in Summary Page"]
+image:images/primary-node-processors-summary.png["Primary Node Processors in Summary Page"]
 
 ===== Run Duration
 The right-hand side of the Scheduling tab contains a slider for choosing the 'Run Duration'. This controls how long the Processor should be scheduled
@@ -680,11 +680,11 @@ Lower Latency or Higher Throughput.
 The Properties tab provides a mechanism to configure Processor-specific behavior. There are no default properties. Each type of Processor
 must define which Properties make sense for its use case. Below, we see the Properties tab for a RouteOnAttribute Processor:
 
-image::properties-tab.png["Properties Tab"]
+image:images/properties-tab.png["Properties Tab"]
 
 This Processor, by default, has only a single property: 'Routing Strategy'. The default value is 'Route to Property name'. Next to
 the name of this property is a small question mark symbol (
-image:iconInfo.png["Info"]
+image:images/iconInfo.png["Info"]
 ). This help symbol is seen in other places throughout the User Interface, and it indicates that more information is available.
 Hovering over this symbol with the mouse will provide additional details about the property and the default value, as well as
 historical values that have been set for the Property.
@@ -692,31 +692,31 @@ historical values that have been set for the Property.
 Clicking on the value for the property will allow a DFM to change the value. Depending on the values that are allowed for the property,
 the user is either provided a drop-down from which to choose a value or is given a text area to type a value:
 
-image::edit-property-dropdown.png["Edit Property with Dropdown"]
+image:images/edit-property-dropdown.png["Edit Property with Dropdown"]
 
 In the top-right corner of the tab is a button for adding a New Property. Clicking this button will provide the DFM with a dialog to
 enter the name and value of a new property. Not all Processors allow User-Defined properties. In processors that do not allow them,
 the Processor becomes invalid when User-Defined properties are applied. RouteOnAttribute, however, does allow User-Defined properties.
 In fact, this Processor will not be valid until the user has added a property.
 
-image:edit-property-textarea.png["Edit Property with Text Area"]
+image:images/edit-property-textarea.png["Edit Property with Text Area"]
 
 Note that after a User-Defined property has been added, an icon will appear on the right-hand side of that row (
-image:iconDelete.png["Delete Icon"]
+image:images/iconDelete.png["Delete Icon"]
 ). Clicking it will remove the User-Defined property from the Processor.
 
 Some processors also have an Advanced User Interface (UI) built into them. For example, the UpdateAttribute processor has an Advanced UI. To access the Advanced UI, click the "Advanced" button that appears at the bottom of the Configure Processor window. Only processors that have an Advanced UI will have this button.
 
 Some processors have properties that refer to other components, such as Controller Services, which also need to be configured. For example, the GetHTTP processor has an SSLContextService property, which refers to the StandardSSLContextService controller service. When DFMs want to configure this property but have not yet created and configured the controller service, they have the option to create the service on the spot, as depicted in the image below. For more information about configuring Controller Services, see the <<Controller_Services>> section.
 
-image:create-service-ssl-context.png["Create Service"]
+image:images/create-service-ssl-context.png["Create Service"]
 
 ==== Comments Tab
 
 The last tab in the Processor configuration dialog is the Comments tab. This tab simply provides an area for users to include
 whatever comments are appropriate for this component. Use of the Comments tab is optional:
 
-image::comments-tab.png["Comments Tab"]
+image:images/comments-tab.png["Comments Tab"]
 
 
 ==== Additional Help
@@ -734,7 +734,7 @@ The values of properties in the flow, including sensitive properties, can be par
 
 The UI indicates whether a Parameter can be used for a property value.
 
-image::el-param-support-help-text.png[Expression Language and Parameters Help Text]
+image:images/el-param-support-help-text.png[Expression Language and Parameters Help Text]
 
 NOTE: Parameters have numerous advantages over <<Variables>>. In addition to sensitive value support, Parameters offer more granular control over access policies. Additionally, properties that reference Parameters are validated against the substituted value, unlike most properties that reference Variables using Expression Language.
 
@@ -745,11 +745,11 @@ Parameters are created within Parameter Contexts. Parameter Contexts are globall
 ===== Creating a Parameter Context
 To create a Parameter Context, select Parameter Contexts from the Global Menu:
 
-image:parameter-contexts-selection.png["Global Menu - Parameter Contexts"]
+image:images/parameter-contexts-selection.png["Global Menu - Parameter Contexts"]
 
 In the Parameter Contexts window, click the `+` button in the upper-right corner and the Add Parameter Context window opens. The window has two tabs: Settings and Parameters.
 
-image:parameter-contexts-settings.png["Parameter Contexts - Settings"]
+image:images/parameter-contexts-settings.png["Parameter Contexts - Settings"]
 
 On the "Settings" tab, add a name for the Parameter Context and a description if desired.  Select "Apply" to save the Parameter Context or select the "Parameters" tab to add parameters to the context.
 
@@ -758,11 +758,11 @@ Parameters can be added during Parameter Context creation or added to existing P
 
 During Parameter Context creation, select the "Parameters" tab. Click the `+` button to open the Add Parameter window.
 
-image:add-parameter-during-parameter-context-creation.png[Add Parameter]
+image:images/add-parameter-during-parameter-context-creation.png[Add Parameter]
 
-To add parameters to an existing Parameter Context, open the Parameter Context window and click the Edit button (image:iconEdit.png["Edit"]) in the row of the desired Parameter Context.
+To add parameters to an existing Parameter Context, open the Parameter Context window and click the Edit button (image:images/iconEdit.png["Edit"]) in the row of the desired Parameter Context.
 
-image:edit-parameter-context.png[Edit Parameter Context]
+image:images/edit-parameter-context.png[Edit Parameter Context]
 
 On the "Parameters" tab, click the `+` button to open the Add Parameter window.
 
@@ -780,11 +780,11 @@ The Add Parameter window has the following settings:
 
 Once these settings are configured, select "Apply". The Referencing Components lists the components referenced by the currently selected parameter. Add additional Parameters or edit any existing Parameters.
 
-image:update-parameter-context.png[Update Parameter Context]
+image:images/update-parameter-context.png[Update Parameter Context]
 
 To complete the process, select "Apply" from the Parameter Context window. The following operations are performed to validate all components that reference the added or modified parameters: Stopping/Restarting affected Processors, Disabling/Re-enabling affected Controller Services, Updating Parameter Context.
 
-image:parameters-validate-affected-components.png[Validate Affected Components]
+image:images/parameters-validate-affected-components.png[Validate Affected Components]
 
 The Referencing Components section now lists an aggregation of all the components referenced by the set of parameters added/edited/deleted, organized by process group.
 
@@ -799,15 +799,15 @@ NOTE: A user can only set the Parameter Context of a Process Group to one of the
 
 To assign a Parameter Context to a Process Group, click Configure, either from the Operate Palette or from the Process Group context menu.
 
-image:process-group-configuration-parameters.png[Configure Process Group Parameter Context]
+image:images/process-group-configuration-parameters.png[Configure Process Group Parameter Context]
 
 In the Flow Configuration window, select the "General" tab. From the Process Group Parameter Context drop-down menu, select an existing Parameter Context or create a new one.
 
-image:process-group-parameter-context-menu.png[Process Group Parameter Context Menu]
+image:images/process-group-parameter-context-menu.png[Process Group Parameter Context Menu]
 
 Select "Apply" to save the configuration changes. The Process Group context menu now includes a "Parameters" option which allows quick access to the Update Parameter Context window for the assigned Parameter Context.
 
-image:context-menu-parameters-option.png[Context Menu Parameters Option]
+image:images/context-menu-parameters-option.png[Context Menu Parameters Option]
 
 If the Parameter Context for a Process Group is changed, all components that reference any Parameters in that Process Group will be stopped, validated, and restarted assuming the components were previously running and are still valid.
 
@@ -843,41 +843,41 @@ When referencing a Parameter from within link:expression-language-guide.html[Exp
 ===== Referencing and Creating Parameters During Component Configuration
 Parameters can be easily referenced or created as you configure the components in your flow. For example, assume a process group  has the Parameter Context "Kafka Settings" assigned to it. "Kafka Settings" contains the parameters `kafka.broker` and `kafka.topic1`.
 
-image::existing-parameters-example.png[Existing Parameters]
+image:images/existing-parameters-example.png[Existing Parameters]
 
 To reference `kafka.broker` as the value for the "Kafka Brokers" property in the PublishKafka processor, clear the default value and begin a new entry with the start delimiter `#{`. Next use the keystroke `control+space` to show the list of available parameters:
 
-image::autocomplete-parameter-example.png[Autocomplete Parameter Example]
+image:images/autocomplete-parameter-example.png[Autocomplete Parameter Example]
 
 Select `kafka.broker` and complete the entry with a closing curly brace `}`.
 
-image:existing-parameter-selected.png[Existing Parameter Selected]
+image:images/existing-parameter-selected.png[Existing Parameter Selected]
 
 Help text describing this process is displayed when hovering over the Expression Language and Parameters eligibility indicators.
 
-image::el-param-support-help-text.png[Expression Language and Parameters Help Text]
+image:images/el-param-support-help-text.png[Expression Language and Parameters Help Text]
 
-Parameters can also be created on the fly. For example, to create a parameter for the "Topic Name" property, select the "Convert to Parameter" icon (image:iconConvertToParameter.png["Convert to Parameter"]) in that property's row. This icon will only be available if the user has appropriate permissions to modify the Parameter Context (see <<accessing-parameters>> for more information).
+Parameters can also be created on the fly. For example, to create a parameter for the "Topic Name" property, select the "Convert to Parameter" icon (image:images/iconConvertToParameter.png["Convert to Parameter"]) in that property's row. This icon will only be available if the user has appropriate permissions to modify the Parameter Context (see <<accessing-parameters>> for more information).
 
-image::convert-property-to-parameter.png[Convert Property to Parameter]
+image:images/convert-property-to-parameter.png[Convert Property to Parameter]
 
 The Add Parameter dialog will open. Configure the new parameter as desired.
 
-image::configure-parameter-on-the-fly.png[Configure Parameter On the Fly]
+image:images/configure-parameter-on-the-fly.png[Configure Parameter On the Fly]
 
 Select "Apply". The process group's Parameter Context will be updated and the new parameter will be referenced by the property with the proper syntax applied automatically.
 
-image::new-parameter-referenced.png[New Parameter Referenced]
+image:images/new-parameter-referenced.png[New Parameter Referenced]
 
 Properties values that are selectable can also reference parameters. In addition to applying the "Convert to Parameter" method described earlier, the option "Reference parameter.." is available in the value drop-down menu.
 
-image::reference-parameter-option.png[Reference Parameter Option]
+image:images/reference-parameter-option.png[Reference Parameter Option]
 
 Selecting "Reference parameter..." will display a drop-down list of available parameters, determined by the parameter context assigned to the component's process group and the user's access policies.
 
-image::reference-parameter-available-parameters.png[Reference Parameter Available Parameters]
+image:images/reference-parameter-available-parameters.png[Reference Parameter Available Parameters]
 
-Hovering over the question mark icon (image:iconInfo.png["Info"]) displays the parameter's description.
+Hovering over the question mark icon (image:images/iconInfo.png["Info"]) displays the parameter's description.
 
 
 ===== Using Parameters with Sensitive Properties
@@ -900,14 +900,14 @@ For a user to see Parameter Contexts, they must be added to either the "access t
 
 NOTE: The "access parameter contexts" policies are inherited from the "access the controller" policies unless overridden.
 
-View and modify policies can also be set on individual parameter contexts to determine which users can view or add parameters to the context. Select "Parameter Contexts" from the Global Menu. Select the "Access Policies" button (image:iconAccessPolicies.png["Access Policies"]) in the row of the desired parameter context to manage these policies.
+View and modify policies can also be set on individual parameter contexts to determine which users can view or add parameters to the context. Select "Parameter Contexts" from the Global Menu. Select the "Access Policies" button (image:images/iconAccessPolicies.png["Access Policies"]) in the row of the desired parameter context to manage these policies.
 
-image::individual-parameter-context-polices.png[Individual Parameter Context Policies]
+image:images/individual-parameter-context-polices.png[Individual Parameter Context Policies]
 
 See the <<administration-guide.adoc#component-level-access-policies,Component Level Access Policies>> section in the System Administrator's Guide for more information.
 
 ===== Process Group Access Policies
-A user can only set the Parameter Context of a Process Group to one of the Parameter Contexts that the user has the view policy for. Additionally, in order to set the Parameter Context, the user must have the modify policy for the Process Group. The Process Group access policies can be managed by highlighting the Process Group and selecting the "Access Policies" button (image:iconAccessPolicies.png["Access Policies"]) from the Operate Palette.
+A user can only set the Parameter Context of a Process Group to one of the Parameter Contexts that the user has the view policy for. Additionally, in order to set the Parameter Context, the user must have the modify policy for the Process Group. The Process Group access policies can be managed by highlighting the Process Group and selecting the "Access Policies" button (image:images/iconAccessPolicies.png["Access Policies"]) from the Operate Palette.
 
 ===== Component Access Policies
 To reference Parameters or convert properties to a Parameter in a component, a user needs to have the view and modify policies for the component. These policies are inherited if the user has view and modify policies to the component's process group, but these policies can be overridden on the component level.
@@ -948,7 +948,7 @@ WARNING: Custom properties via Variables and the _nifi.properties_ file are stil
 
 Expression Language support for a property is indicated in the UI.
 
-image::el-support-help-text.png[Expression Language Help Text]
+image:images/el-support-help-text.png[Expression Language Help Text]
 
 [[Variables]]
 ==== Variables
@@ -961,33 +961,33 @@ Variables are created and configured within the NiFi UI. They can be used in any
 
 To access the Variables window, right-click on the canvas with nothing selected:
 
-image::variables-context_menu-rpg.png["Variables in Context Menu for RPG"]
+image:images/variables-context_menu-rpg.png["Variables in Context Menu for RPG"]
 
 Select "Variables" from the Context Menu:
 
-image::variables_window_empty.png["Empty Variables Window"]
+image:images/variables_window_empty.png["Empty Variables Window"]
 
 "Variables" is also available in the right-click Context Menu when a process group is selected:
 
-image::variables-context_menu-pg.png["Variables in Context Menu for PG"]
+image:images/variables-context_menu-pg.png["Variables in Context Menu for PG"]
 
 ===== Creating a Variable
 
 In the Variables window, click the `+` button to create a new variable.  Add a name:
 
-image::variable-name.png["Variable Name Creation"]
+image:images/variable-name.png["Variable Name Creation"]
 
 and a value:
 
-image::variable-value.png["Variable Value Creation"]
+image:images/variable-value.png["Variable Value Creation"]
 
 Select "Apply":
 
-image::new_variable-apply.png["New Variable Applied"]
+image:images/new_variable-apply.png["New Variable Applied"]
 
 Steps to update the variable are performed (Identifying components affected, Stopping affected Processors, etc.).  For example, the Referencing Processors section now lists the "PutFile-Root" processor.  Selecting the name of the processor in the list will navigate to that processor on the canvas.  Looking at the properties of the processor, `${putfile_dir}` is referenced by the Directory property:
 
-image::variable-putfile-property.png["Processor Property Using Variable"]
+image:images/variable-putfile-property.png["Processor Property Using Variable"]
 
 ===== Variable Scope
 
@@ -997,15 +997,15 @@ Variables in a descendant group override the value in a parent group.  More spec
 
 For example, in addition to the `putfile_dir` variable that exists at the root process group, assume another `putfile_dir` variable was created within Process Group A.  If one of the components within Process Group A references `putfile_dir`, both variables will be listed, but the `putfile_dir` from the root group will have a strikethrough indicating that is is being overridden:
 
-image::variable-overridden.png["Variable Overridden"]
+image:images/variable-overridden.png["Variable Overridden"]
 
 A variable can only be modified for the process group it was created in, which is listed at the top of the Variables window.  To modify a variable defined in a different process group, select the "arrow" icon in that variable's row:
 
-image::variable_window-goto.png["Variable Go To"]
+image:images/variable_window-goto.png["Variable Go To"]
 
 which will navigate to the Variables window for that process group:
 
-image::variable_window-rpg.png["Variables Window for RPG"]
+image:images/variable_window-rpg.png["Variables Window for RPG"]
 
 ===== Variable Permissions
 
@@ -1013,7 +1013,7 @@ Variable permissions are based solely on the privileges configured on the corres
 
 For example, if a user does not have access to View a process group, the Variables window can not be viewed for that process group:
 
-image::variable_insufficient-permissions.png["Insufficient Permissions to View Variables"]
+image:images/variable_insufficient-permissions.png["Insufficient Permissions to View Variables"]
 
 If a user has access to View a process group but does not have access to Modify the process group, the variables can be viewed but not modified.
 
@@ -1023,21 +1023,21 @@ For information on how to manage privileges on components, see the <<administrat
 
 In addition to Referencing Processors, the Variables window also displays Referencing Controller Services:
 
-image::variables-window_controller-services.png["Referencing Controller Services"]
+image:images/variables-window_controller-services.png["Referencing Controller Services"]
 
 Selecting the name of the controller service will navigate to that controller service in the Configuration window:
 
-image::variable_nav-controller_services.png["Controller Service Using Variable"]
+image:images/variable_nav-controller_services.png["Controller Service Using Variable"]
 
 ===== Unauthorized Referencing Components
 
 When View or Modify privileges are not given to a component that references a variable, the UUID of the component will be displayed in the Variables window:
 
-image::variables-window_unauthorized.png["Unauthorized Referencing Components"]
+image:images/variables-window_unauthorized.png["Unauthorized Referencing Components"]
 
 In the above example, the variable `property1` is referenced by a processor that "user1" is not able to view:
 
-image::variable-unauthorized-ref-processor-canvas.png["Unauthorized Referencing Processor"]
+image:images/variable-unauthorized-ref-processor-canvas.png["Unauthorized Referencing Processor"]
 
 [[Custom_Properties]]
 ==== Referencing Custom Properties via nifi.properties
@@ -1067,36 +1067,36 @@ NOTE: If your NiFi instance is secured, your ability to view and add Controller 
 
 To add a Controller Service for a reporting task, select Controller Settings from the Global Menu.
 
-image:controller-settings-selection.png["Global Menu - Controller Settings"]
+image:images/controller-settings-selection.png["Global Menu - Controller Settings"]
 
 This displays the NiFi Settings window. The window has four tabs: General, Reporting Task Controller Services, Reporting Tasks and Registry Clients. The General tab provides settings for the overall maximum thread counts of the instance.
 
-image:settings-general-tab.png["Controller Settings General Tab"]
+image:images/settings-general-tab.png["Controller Settings General Tab"]
 
 To the right of the General tab is the Reporting Task Controller Services tab. From this tab, the DFM may click the `+` button in the upper-right corner to create a new Controller Service.
 
-image:controller-services-tab.png["Controller Services Tab"]
+image:images/controller-services-tab.png["Controller Services Tab"]
 
 The Add Controller Service window opens. This window is similar to the Add Processor window. It provides a list of the available Controller Services on the right and a tag cloud, showing the most common category tags used for Controller Services, on the left. The DFM may click any tag in the tag cloud in order to narrow down the list of Controller Services to those that fit the categories desired. The DFM may also use the Filter field at the top-right of the window to search for the desired Controller Service or use the Source drop-down at the top-left to filter the list by the group who created them. Upon selecting a Controller Service from the list, the DFM can see a description of the service below. Select the desired controller service and click Add, or simply double-click the name of the service to add it.
 
-image:add-controller-service-window.png["Add Controller Service Window"]
+image:images/add-controller-service-window.png["Add Controller Service Window"]
 
 Once you have added a Controller Service, you can configure it by clicking the "Configure" button in the
 far-right column. Other buttons in this column include "Enable", "Remove" and "Access Policies".
 
-image:controller-services-configure-buttons.png["Controller Services Buttons"]
+image:images/controller-services-configure-buttons.png["Controller Services Buttons"]
 
 You can obtain information about Controller Services by clicking the "Usage" and "Alerts" buttons in the left-hand column.
 
-image:controller-services-info-buttons.png["Controller Services Information Buttons"]
+image:images/controller-services-info-buttons.png["Controller Services Information Buttons"]
 
 When the DFM clicks the "Configure" button, a Configure Controller Service window opens. It has three tabs: Settings, Properties,and Comments. This window is similar to the Configure Processor window. The Settings tab provides a place for the DFM to give the Controller Service a unique name (if desired). It also lists the UUID, Type, Bundle and Support information for the service and provides a list of other components (reporting tasks or other controller services) that reference the service.
 
-image:configure-controller-service-settings.png["Configure Controller Service Settings"]
+image:images/configure-controller-service-settings.png["Configure Controller Service Settings"]
 
 The Properties tab lists the various properties that apply to the particular controller service. As with configuring processors, the DFM may hover over the question mark icons to see more information about each property.
 
-image:configure-controller-service-properties.png["Configure Controller Service Properties"]
+image:images/configure-controller-service-properties.png["Configure Controller Service Properties"]
 
 The Comments tab is just an open-text field, where the DFM may include comments about the service. After configuring a Controller Service, click  "Apply" to save the configuration and close the window, or click "Cancel" to discard the changes and close the window.
 
@@ -1106,64 +1106,64 @@ The Comments tab is just an open-text field, where the DFM may include comments 
 
 To add a Controller Service for a dataflow, you can either right click a Process Group and select Configure, or click Configure from the Operate Palette.
 
-image:process-group-configuration-options.png["Process Group Configuration Options"]
+image:images/process-group-configuration-options.png["Process Group Configuration Options"]
 
 When you click Configure from the Operate Palette with nothing selected on your canvas, you add a Controller Service for your Root Process Group. That Controller Service is then available to all nested Process Groups in your dataflow.  When you select a Process Group on the canvas and then click Configure from either the Operate Palette or the Process Group context menu, the service will be available to all Processors and Controller Services defined in that Process Group and below.
 
-image:process-group-controller-services-scope.png["Process Group Controller Services Scope"]
+image:images/process-group-controller-services-scope.png["Process Group Controller Services Scope"]
 
 Use the following steps to add a Controller Service:
 
 1. Click Configure, either from the Operate Palette, or from the Process Group context menu.  This displays the process group Configuration window.  The window has two tabs: General and Controller Services. The General tab is for settings that pertain to general information about the process group. For example, if configuring the root process group, the DFM can provide a unique name for the overall dataflow, as well as comments that describe the flow (Note: this information is visible to any other NiFi instance that connects remotely to this instance (using Remote Process Groups, a.k.a., Site-to-Site)).
 +
-image::process-group-configuration-window.png["Process Group Configuration Window"]
+image:images/process-group-configuration-window.png["Process Group Configuration Window"]
 2. From the Process Group Configuration page, select the Controller Services tab.
 3. Click the `+` button to display the Add Controller Service dialog.
 4. Select the Controller Service desired, and click Add.
-5. Perform any necessary Controller Service configuration tasks by clicking the Configure icon (image:iconConfigure.png["Configure"]) in the right-hand column.
+5. Perform any necessary Controller Service configuration tasks by clicking the Configure icon (image:images/iconConfigure.png["Configure"]) in the right-hand column.
 
 
 [[Enabling_Disabling_Controller_Services]]
 ==== Enabling/Disabling Controller Services
 
-After a Controller Service has been configured, it must be enabled in order to run. Do this using the "Enable" button (image:iconEnable.png["Enable Button"]) in the far-right column of the Controller Services tab. In order to modify an existing/running controller service, the DFM needs to stop/disable it (as well as all referencing reporting tasks and controller services). Do this using the "Disable" button (image:iconDisable.png["Disable Button"]). Rather than having to hunt down each component that is referenced by that controller service, the DFM has the ability to stop/disable them when disabling the controller service in question. When enabling a controller service, the DFM has the option to either start/enable the controller service and all referencing components or start/enable only the controller service itself.
+After a Controller Service has been configured, it must be enabled in order to run. Do this using the "Enable" button (image:images/iconEnable.png["Enable Button"]) in the far-right column of the Controller Services tab. In order to modify an existing/running controller service, the DFM needs to stop/disable it (as well as all referencing reporting tasks and controller services). Do this using the "Disable" button (image:images/iconDisable.png["Disable Button"]). Rather than having to hunt down each component that is referenced by that controller service, the DFM has the ability to stop/disable them when disabling the controller service in question. When enabling a controller service, the DFM has the option to either start/enable the controller service and all referencing components or start/enable only the controller service itself.
 
-image:enable-controller-service-scope.png["Enable Controller Service Scope"]
+image:images/enable-controller-service-scope.png["Enable Controller Service Scope"]
 
 [[Reporting_Tasks]]
 === Reporting Tasks
 
 Reporting Tasks run in the background to provide statistical reports about what is happening in the NiFi instance. The DFM adds and configures Reporting Tasks similar to the process for Controller Services.  To add a Reporting Task, select Controller Settings from the Global Menu.
 
-image:controller-settings-selection.png["Global Menu - Controller Settings"]
+image:images/controller-settings-selection.png["Global Menu - Controller Settings"]
 
 This displays the NiFi Settings window. Select the Reporting Tasks tab and click the `+` button in the upper-right corner to create a new Reporting Task.
 
-image:reporting-tasks-tab.png["Reporting Tasks Tab"]
+image:images/reporting-tasks-tab.png["Reporting Tasks Tab"]
 
 The Add Reporting Task window opens. This window is similar to the Add Processor window. It provides a list of the available Reporting Tasks on the right and a tag cloud, showing the most common category tags used for Reporting Tasks, on the left. The DFM may click any tag in the tag cloud in order to narrow down the list of Reporting Tasks to those that fit the categories desired. The DFM may also use the Filter field at the top-right of the window to search for the desired Reporting Task or use the Source drop-down at the top-left to filter the list by the group who created them. Upon selecting a Reporting Task from the list, the DFM can see a description of the task below. Select the desired reporting task and click Add, or simply double-click the name of the service to add it.
 
-image:add-reporting-task-window.png["Add Reporting Task Window"]
+image:images/add-reporting-task-window.png["Add Reporting Task Window"]
 
 Once a Reporting Task has been added, the DFM may configure it by clicking the "Edit" button in the far-right column. Other buttons in this column include "Start", "Remove", "State" and "Access Policies".
 
-image:reporting-tasks-edit-buttons.png["Reporting Tasks Edit Buttons"]
+image:images/reporting-tasks-edit-buttons.png["Reporting Tasks Edit Buttons"]
 
 You can obtain information about Reporting Tasks by clicking the "View Details", "Usage", and "Alerts" buttons in the left-hand column.
 
-image:reporting-tasks-info-buttons.png["Reporting Tasks Information Buttons"]
+image:images/reporting-tasks-info-buttons.png["Reporting Tasks Information Buttons"]
 
 When the DFM clicks the "Edit" button, a Configure Reporting Task window opens. It has three tabs: Settings, Properties, and Comments. This window is similar to the Configure Processor window. The Settings tab provides a place for the DFM to give the Reporting Task a unique name (if desired). It also lists the UUID, Type, and Bundle information for the task and provides settings for the task's Scheduling Strategy and Run Schedule (similar to the same settings in a processor). The DFM may hover the mouse over the question mark icons to see more information about each setting.
 
-image:configure-reporting-task-settings.png["Configure Reporting Task Settings"]
+image:images/configure-reporting-task-settings.png["Configure Reporting Task Settings"]
 
 The Properties tab lists the various properties that may be configured for the task. The DFM may hover the mouse over the question mark icons to see more information about each property.
 
-image:configure-reporting-task-properties.png["Configure Reporting Task Properties"]
+image:images/configure-reporting-task-properties.png["Configure Reporting Task Properties"]
 
 The Comments tab is just an open-text field, where the DFM may include comments about the task. After configuring the Reporting Task, click "Apply" to save the configuration and close the window, or click "Cancel" to discard the changes and close the window.
 
-When you want to run the Reporting Task, click the "Start" button (image:iconStart.png["Start Button"]).
+When you want to run the Reporting Task, click the "Start" button (image:images/iconStart.png["Start Button"]).
 
 
 [[Connecting_Components]]
@@ -1172,10 +1172,10 @@ When you want to run the Reporting Task, click the "Start" button (image:iconSta
 Once processors and other components have been added to the canvas and configured, the next step is to connect them
 to one another so that NiFi knows what to do with each FlowFile after it has been processed. This is accomplished by creating a
 Connection between each component. When the user hovers the mouse over the center of a component, a new Connection icon (
-image:addConnect.png["Connection Bubble"]
+image:images/addConnect.png["Connection Bubble"]
 ) appears:
 
-image:processor-connection-bubble.png["Processor with Connection Bubble"]
+image:images/processor-connection-bubble.png["Processor with Connection Bubble"]
 
 The user drags the Connection bubble from one component to another until the second component is highlighted. When the user
 releases the mouse, a 'Create Connection' dialog appears. This dialog consists of two tabs: 'Details' and 'Settings'. They are
@@ -1189,7 +1189,7 @@ and the same 'Create Connection' dialog appears.
 The Details tab of the 'Create Connection' dialog provides information about the source and destination components, including the component name, the
 component type, and the Process Group in which the component lives:
 
-image::create-connection.png["Create Connection"]
+image:images/create-connection.png["Create Connection"]
 
 Additionally, this tab provides the ability to choose which Relationships should be included in this Connection. At least one
 Relationship must be selected. If only one Relationship is available, it is automatically selected.
@@ -1201,7 +1201,7 @@ automatically be 'cloned', and a copy will be sent to each of those Connections.
 
 The Settings tab provides the ability to configure the Connection's Name, FlowFile Expiration, Back Pressure Thresholds, Load Balance Strategy and Prioritization:
 
-image:connection-settings.png["Connection Settings"]
+image:images/connection-settings.png["Connection Settings"]
 
 The Connection name is optional. If not specified, the name shown for the Connection will be names of the Relationships that are active for the Connection.
 
@@ -1212,7 +1212,7 @@ In this case, the expiration can be used in conjunction with Prioritizers to ens
 processed first and then anything that cannot be processed within a certain time period (one hour, for example) can be dropped. The expiration period is based on the time that the data entered the NiFi instance. In other words, if the file expiration on a given connection is set to '1 hour', and a file that has been in the NiFi instance for one hour reaches that connection, it will expire. The default
 value of `0 sec` indicates that the data will never expire. When a file expiration other than '0 sec' is set, a small clock icon appears on the connection label, so the DFM can see it at-a-glance when looking at a flow on the canvas.
 
-image:file_expiration_clock.png["File Expiration Indicator"]
+image:images/file_expiration_clock.png["File Expiration Indicator"]
 
 ===== Back Pressure
 NiFi provides two configuration elements for Back Pressure. These thresholds indicate how much data should be
@@ -1228,15 +1228,15 @@ These defaults can be changed by modifying the appropriate properties in the _ni
 
 When back pressure is enabled, small progress bars appear on the connection label, so the DFM can see it at-a-glance when looking at a flow on the canvas.  The progress bars change color based on the queue percentage: Green (0-60%), Yellow (61-85%) and Red (86-100%).
 
-image:back_pressure_indicators.png["Back Pressure Indicator Bars"]
+image:images/back_pressure_indicators.png["Back Pressure Indicator Bars"]
 
 Hovering your mouse over a bar displays the exact percentage.
 
-image:back_pressure_indicator_hover.png["Back Pressure Indicator Hover Text"]
+image:images/back_pressure_indicator_hover.png["Back Pressure Indicator Hover Text"]
 
 When the queue is completely full, the Connection is highlighted in red.
 
-image:back_pressure_full.png["Back Pressure Queue Full"]
+image:images/back_pressure_full.png["Back Pressure Queue Full"]
 
 ===== Load Balancing
 
@@ -1258,7 +1258,7 @@ NOTE: NiFi persists the nodes that are in a cluster across restarts.  This preve
 ====== Load Balance Compression
 After selecting the load balance strategy, the user can configure whether or not data should be compressed when being transferred between nodes in the cluster.
 
-image:load_balance_compression_options.png["Load Balance Compression Options"]
+image:images/load_balance_compression_options.png["Load Balance Compression Options"]
 
 The following compression options are available:
 
@@ -1267,26 +1267,26 @@ The following compression options are available:
 - *Compress attributes and content*: FlowFile attributes and contents will be compressed.
 
 ====== Load Balance Indicator
-When a load balance strategy has been implemented for a connection, a load balance indicator (image:iconLoadBalance.png["Load Balance Icon"]) will appear on the connection:
+When a load balance strategy has been implemented for a connection, a load balance indicator (image:images/iconLoadBalance.png["Load Balance Icon"]) will appear on the connection:
 
-image:load_balance_configured_connection.png["Connection Configured with Load Balance Strategy"]
+image:images/load_balance_configured_connection.png["Connection Configured with Load Balance Strategy"]
 
 Hovering over the icon will display the connection's load balance strategy and compression configuration.  The icon in this state also indicates that all data in the connection has been distributed across the cluster.
 
-image:load_balance_distributed_connection.png["Distributed Load Balance Connection"]
+image:images/load_balance_distributed_connection.png["Distributed Load Balance Connection"]
 
 When data is actively being transferred between the nodes in the cluster, the load balance indicator will change orientation and color:
 
-image:load_balance_active_connection.png["Active Load Balance Connection"]
+image:images/load_balance_active_connection.png["Active Load Balance Connection"]
 
 ====== Cluster Connection Summary
 To see where data has been distributed among the cluster nodes, select Summary from the Global Menu.  Then select the "Connections" tab and the "View Connection Details" icon for a source:
 
-image:summary_connections.png["NiFi Summary Connections"]
+image:images/summary_connections.png["NiFi Summary Connections"]
 
 This will open the Cluster Connection Summary dialog, which shows the data on each node in the cluster:
 
-image:cluster_connection_summary.png["Cluster Connection Summary Dialog"]
+image:images/cluster_connection_summary.png["Cluster Connection Summary Dialog"]
 
 ===== Prioritization
 The right-hand side of the tab provides the ability to prioritize the data in the queue so that higher priority data is
@@ -1312,12 +1312,12 @@ NOTE: With a <<load_balance_strategy>> configured, the connection has a queue pe
 ==== Changing Configuration and Context Menu Options
 After a connection has been drawn between two components, the connection's configuration may be changed, and the connection may be moved to a new destination; however, the processors on either side of the connection must be stopped before a configuration or destination change may be made.
 
-image:nifi-connection.png["Connection"]
+image:images/nifi-connection.png["Connection"]
 
 
 To change a connection's configuration or interact with the connection in other ways, right-click on the connection to open the connection context menu.
 
-image:nifi-connection-menu.png["Connection Menu"]
+image:images/nifi-connection-menu.png["Connection Menu"]
 
 The following options are available:
 
@@ -1334,7 +1334,7 @@ The following options are available:
 
 To add a bend point (or elbow) to an existing connection, simply double-click on the connection in the spot where you want the bend point to be. Then, you can use the mouse to grab the bend point and drag it so that the connection is bent in the desired way. You can add as many bend points as you want. You can also use the mouse to drag and move the label on the connection to any existing bend point. To remove a bend point, simply double-click it again.
 
-image:nifi-connection-bend-points.png["Connection Bend Points"]
+image:images/nifi-connection-bend-points.png["Connection Bend Points"]
 
 
 === Processor Validation
@@ -1343,13 +1343,13 @@ Before trying to start a Processor, it's important to make sure that the Process
 A status indicator is shown in the top-left of the Processor. If the Processor is invalid, the indicator
 will show a yellow Warning indicator with an exclamation mark indicating that there is a problem:
 
-image::invalid-processor.png["Invalid Processor"]
+image:images/invalid-processor.png["Invalid Processor"]
 
 In this case, hovering over the indicator icon with the mouse will provide a tooltip showing all of the validation
 errors for the Processor. Once all of the validation errors have been addressed, the status indicator will change
 to a Stop icon, indicating that the Processor is valid and ready to be started but currently is not running:
 
-image::valid-processor.png["Valid Processor"]
+image:images/valid-processor.png["Valid Processor"]
 
 
 
@@ -1423,9 +1423,9 @@ communicate with. For information on configuring NiFi to run securely, see the
 link:administration-guide.html[System Administrator’s Guide].
 
 [[Site-to-Site_Transport_Protocol]]
-*Transport Protocol*: On a Remote Process Group creation or configuration dialog, you can choose Transport Protocol to use for Site-to-Site communication as shown in the following image:
+*Transport Protocol*: On a Remote Process Group creation or configuration dialog, you can choose Transport Protocol to use for Site-to-Site communication as shown in the following image:images/
 
-image:configure-remote-process-group.png["Configure Remote Process Group"]
+image:images/configure-remote-process-group.png["Configure Remote Process Group"]
 
 By default, it is set to _RAW_ which uses raw socket communication using a dedicated port. _HTTP_ transport protocol is especially useful if the remote
 NiFi instance is in a restricted network that only allow access through HTTP(S) protocol or only accessible from a specific HTTP Proxy server.
@@ -1444,7 +1444,7 @@ value entered is not valid, the Remote Process Group will not be valid and will 
 
 To create an Input Port for Site-to-Site in a child Process Group, enter the name for the port and select "Remote connections (site-to-site)" from the Receive From drop-down menu.
 
-image::add-input-port-S2S.png["Add Input Port for Site-to-Site"]
+image:images/add-input-port-S2S.png["Add Input Port for Site-to-Site"]
 
 If Site-to-Site is configured to run securely, you will need to manage the input port's "receive data via site-to-site" component access policy. Only those users who have been added to the policy will be able to communicate with the port.
 
@@ -1453,7 +1453,7 @@ If Site-to-Site is configured to run securely, you will need to manage the input
 
 To create an Output Port for Site-to-Site in a child Process Group, enter the name for the port and select "Remote connections (site-to-site)" from the Send To drop-down menu.
 
-image::add-output-port-S2S.png["Add Output Port for Site-to-Site"]
+image:images/add-output-port-S2S.png["Add Output Port for Site-to-Site"]
 
 In addition to other instances of NiFi, some other applications may use a Site-to-Site client in order to push data to or receive data from a NiFi instance. For example, NiFi provides an Apache Storm spout and an Apache Spark Receiver that are able to pull data from NiFi's Output Ports for Site-to-Site connections.
 
@@ -1483,7 +1483,7 @@ After you drag the GenerateFlowFile and LogAttribute processors to the canvas an
 
 The dataflow should look like the following:
 
-image::simple-flow.png["Simple Flow"]
+image:images/simple-flow.png["Simple Flow"]
 
 
 Now see the following section on how to start and stop the dataflow. When the dataflow is running, be sure to note the statistical information that is displayed on the face of each processor (see <<processor_anatomy>>).
@@ -1512,7 +1512,7 @@ In order to start a component, the following conditions must be met:
 sections under <<monitoring>> (<<processor_anatomy>>, <<process_group_anatomy>>, <<remote_group_anatomy>>).
 
 Components can be started by selecting all of the components to start and then clicking the "Start" button (
-image:buttonStart.png["Start"]
+image:images/buttonStart.png["Start"]
 ) in the
 Operate Palette or by right-clicking a single component and choosing Start from the context menu.
 
@@ -1520,7 +1520,7 @@ If starting a Process Group, all components within that Process Group (including
 be started, with the exception of those components that are invalid or disabled.
 
 Once started, the status indicator of a Processor will change to a Play symbol (
-image:iconRun.png["Run"]
+image:images/iconRun.png["Run"]
 ).
 
 
@@ -1528,14 +1528,14 @@ image:iconRun.png["Run"]
 
 A component can be stopped any time that it is running. A component is stopped by right-clicking on the component
 and clicking Stop from the context menu, or by selecting the component and clicking the "Stop" button (
-image:buttonStop.png["Stop"]
+image:images/buttonStop.png["Stop"]
 ) in the Operate Palette.
 
 If a Process Group is stopped, all of the components within the Process Group (including child Process Groups)
 will be stopped.
 
 Once stopped, the status indicator of a component will change to the Stop symbol (
-image:iconStop.png["Stop"]
+image:images/iconStop.png["Stop"]
 ).
 
 Stopping a component does not interrupt its currently running tasks. Rather, it stops scheduling new tasks to
@@ -1551,19 +1551,19 @@ intentionally not running and those that may have been stopped temporarily (for 
 configuration) and inadvertently were never restarted.
 
 When it is desirable to re-enable a component, it can be enabled by selecting the component and
-clicking the "Enable" button (image:buttonEnable.png["Enable"]
+clicking the "Enable" button (image:images/buttonEnable.png["Enable"]
 ) in the Operate Palette. This is available only when the selected component or components are disabled.
 Alternatively, a component can be enabled by checking the checkbox next  to the "Enabled" option in
 the Settings tab of the Processor configuration dialog or the configuration dialog for a Port.
 
 Once enabled, the component's status indicator will change to either Invalid (
-image:iconAlert.png["Invalid"]
+image:images/iconAlert.png["Invalid"]
 ) or Stopped (
-image:iconStop.png["Stopped"]
+image:images/iconStop.png["Stopped"]
 ), depending on whether or not the component is valid.
 
 A component is then disabled by selecting the component and clicking the "Disable" button (
-image:buttonDisable.png["Disable"]
+image:images/buttonDisable.png["Disable"]
 ) in the Operate Palette, or by clearing the checkbox next to the "Enabled" option in the Settings tab
 of the Processor configuration dialog or the configuration dialog for a Port.
 
@@ -1576,15 +1576,15 @@ Only Ports and Processors can be enabled and disabled.
 Remote Process Groups provide a mechanism for sending data to or retrieving data from a remote instance
 of NiFi. When a Remote Process Group (RPG) is added to the canvas, it is added with the Transmission Disabled,
 as indicated by the icon (
-image:iconTransmissionInactive.png["Transmission Disabled"]
+image:images/iconTransmissionInactive.png["Transmission Disabled"]
 ) in the top-left corner. When Transmission is Disabled, it can be enabled by right-clicking on the
 RPG and clicking the "Enable transmission" menu item. This will cause all ports for which there is a Connection
 to begin transmitting data. This will cause the status indicator to then change to the Transmission Enabled icon (
-image:iconTransmissionActive.png["Transmission Enabled"]
+image:images/iconTransmissionActive.png["Transmission Enabled"]
 ).
 
 If there are problems communicating with the Remote Process Group, a Warning indicator (
-image:iconAlert.png["Warning"]
+image:images/iconAlert.png["Warning"]
 ) may instead be present in the top-left corner. Hovering over this Warning indicator with the mouse will provide
 more information about the problem.
 
@@ -1593,7 +1593,7 @@ more information about the problem.
 
 There are times when the DFM may want to either enable or disable transmission for only a specific port within the Remote Process Group. This can be accomplished by right-clicking on the Remote Process Group and choosing the "Manage remote ports" menu item. This provides a configuration dialog from which ports can be configured:
 
-image::remote-group-ports-dialog.png["Remote Process Group Ports"]
+image:images/remote-group-ports-dialog.png["Remote Process Group Ports"]
 
 The left-hand side lists all of the Input Ports that the remote instance of NiFi allows data to be sent to. The right-hand side lists all of the Output Ports from which this instance is able to pull data. If the remote instance is using secure communications (the URL of the NiFi instance begins with `https://`, rather than `http://`), any ports that the remote instance has not made available to this instance will not be shown.
 
@@ -1601,9 +1601,9 @@ NOTE: If a port that is expected to be shown is not shown in this dialog, ensure
 
 Each port is shown with its Name, its Description, configured number of Concurrent Tasks, and whether or not data sent to this port will be Compressed.  Additionally, the port's configured Batch Settings (Count, Size and Duration) are displayed. To the left of this information is a toggle switch to turn the port on or off. Ports that have no connections attached to them are grayed out:
 
-image::remote-port-connection-status.png["Remote Port Statuses"]
+image:images/remote-port-connection-status.png["Remote Port Statuses"]
 
-The on/off toggle switch provides a mechanism to enable and disable transmission for each port in the Remote Process Group independently. Those ports that are connected but are not currently transmitting can be configured by clicking the pencil icon (image:iconEdit.png["Edit"]) below the on/off toggle switch. Clicking this icon will allow the DFM to change the number of Concurrent Tasks, whether or not compression should be used when transmitting data to or from this port, and Batch Settings.
+The on/off toggle switch provides a mechanism to enable and disable transmission for each port in the Remote Process Group independently. Those ports that are connected but are not currently transmitting can be configured by clicking the pencil icon (image:images/iconEdit.png["Edit"]) below the on/off toggle switch. Clicking this icon will allow the DFM to change the number of Concurrent Tasks, whether or not compression should be used when transmitting data to or from this port, and Batch Settings.
 
 For an Input Port, the batch settings control how NiFi sends data to the remote input port in a transaction. NiFi will transfer flow files, as they are queued in incoming relationships, until any of the limits (Count, Size, Duration) is met. If none of the settings are configured, a 500 milliseconds batch duration is used by default.
 
@@ -1622,7 +1622,7 @@ A hyperlink can be used to navigate directly to a component on the NiFi canvas. 
 
 The default URL for a NiFI instance is `http://<hostname>:8080/nifi`, which points to the root process group.  When a component is selected on the canvas, the URL is updated with the component's process group id and component id in the form `http://<hostname>:8080/nifi/?processGroupId=<UUID>&componentIds=<UUIDs>`.  In the following screenshot, the GenerateFlowFile processor in the process group PG1 is the selected component:
 
-image::component-linking-processor.png["Component Linking Processor Example"]
+image:images/component-linking-processor.png["Component Linking Processor Example"]
 
 NOTE: Linking to multiple components on the canvas is supported, with the restriction that the length of the URL cannot exceed a 2000 character limit.
 
@@ -1635,21 +1635,21 @@ Components on the NiFi canvas can be aligned to more precisely arrange your data
 
 Here is an example of aligning components vertically on your canvas.  With all components selected/highlighted, right-click:
 
-image:align-vertically-before.png["Align Vertically Example Before"]
+image:images/align-vertically-before.png["Align Vertically Example Before"]
 
 and select "Align vertically" to achieve these results:
 
-image:align-vertically-after.png["Align Vertically Example After"]
+image:images/align-vertically-after.png["Align Vertically Example After"]
 
 ==== Align Horizontally
 
 Here is an example of aligning components horizontally on your canvas.  With all components selected/highlighted, right-click:
 
-image:align-horizontally-before.png["Align Horizontally Example Before"]
+image:images/align-horizontally-before.png["Align Horizontally Example Before"]
 
 and select "Align horizontally" to achieve these results:
 
-image:align-horizontally-after.png["Align Horizontally Example Before"]
+image:images/align-horizontally-after.png["Align Horizontally Example Before"]
 
 [[search]]
 == Search Components in DataFlow
@@ -1772,7 +1772,7 @@ monitoring artifacts below.
 NiFi provides a significant amount of information about each Processor on the canvas. The following diagram
 shows the anatomy of a Processor:
 
-image:processor-anatomy.png["Anatomy of a Processor"]
+image:images/processor-anatomy.png["Anatomy of a Processor"]
 
 The image outlines the following elements:
 
@@ -1791,14 +1791,14 @@ The image outlines the following elements:
 	it will also show the Node that emitted the Bulletin. Bulletins automatically expire after five minutes.
 
 - *Status Indicator*: Shows the current Status of the Processor. The following indicators are possible:
-	** image:iconRun.png["Running"]
+	** image:images/iconRun.png["Running"]
 		*Running*: The Processor is currently running.
-	** image:iconStop.png["Stopped"]
+	** image:images/iconStop.png["Stopped"]
 		*Stopped*: The Processor is valid and enabled but is not running.
-	** image:iconAlert.png["Invalid"]
+	** image:images/iconAlert.png["Invalid"]
 		*Invalid*: The Processor is enabled but is not currently valid and cannot be started.
 		Hovering over this icon will provide a tooltip indicating why the Processor is not valid.
-	** image:iconDisable.png["Disabled"]
+	** image:images/iconDisable.png["Disabled"]
 		*Disabled*: The Processor is not running and cannot be started until it has been enabled.
 		This status does not indicate whether or not the Processor is valid.
 
@@ -1856,7 +1856,7 @@ The Process Group provides a mechanism for grouping components together into a l
 to organize the DataFlow in a way that makes it more understandable from a higher level.
 The following image highlights the different elements that make up the anatomy of a Process Group:
 
-image::process-group-anatomy.png["Anatomy of a Process Group"]
+image:images/process-group-anatomy.png["Anatomy of a Process Group"]
 
 The Process Group consists of the following elements:
 
@@ -1896,27 +1896,27 @@ The Process Group consists of the following elements:
 - *Component Counts*: The Component Counts element provides information about how many components of each type exist
 	within the Process Group. The following provides information about each of these icons and their meanings:
 
-	** image:iconTransmissionActive.png["Transmission Active"]
+	** image:images/iconTransmissionActive.png["Transmission Active"]
 		*Transmitting Ports*: The number of Remote Process Group Ports that currently are configured to transmit data to remote
 			instances of NiFi or pull data from remote instances of NiFi.
 
-	** image:iconTransmissionInactive.png["Transmission Inactive"]
+	** image:images/iconTransmissionInactive.png["Transmission Inactive"]
 		*Non-Transmitting Ports*: The number of Remote Process Group Ports that are currently connected to components within this
 			Process Group but currently have their transmission disabled.
 
-	** image:iconRun.png["Running"]
+	** image:images/iconRun.png["Running"]
 		*Running Components*: The number of Processors, Input Ports, and Output Ports that are currently running within this
 			Process Group.
 
-	** image:iconStop.png["Stopped Components"]
+	** image:images/iconStop.png["Stopped Components"]
 		*Stopped Components*: The number of Processors, Input Ports, and Output Ports that are currently not running but are
 			valid and enabled. These components are ready to be started.
 
-	** image:iconAlert.png["Invalid Components"]
+	** image:images/iconAlert.png["Invalid Components"]
 		*Invalid Components*: The number of Processors, Input Ports, and Output Ports that are enabled but are currently
 			not in a valid state. This may be due to misconfigured properties or missing Relationships.
 
-	** image:iconDisable.png["Disabled Components"]
+	** image:images/iconDisable.png["Disabled Components"]
 		*Disabled Components*: The number of Processors, Input Ports, and Output Ports that are currently disabled. These
 			components may or may not be valid. If the Process Group is started, these components will not cause any errors
 			but will not be started.
@@ -1938,7 +1938,7 @@ and state of a Remote Process Group, such as queue sizes, the information render
 Process Group is related to the interaction that occurs between this instance of NiFi and the remote
 instance.
 
-image::remote-group-anatomy.png["Anatomy of a Remote Process Group"]
+image:images/remote-group-anatomy.png["Anatomy of a Remote Process Group"]
 
 The image above shows the different elements that make up a Remote Process Group. Here, we provide an
 explanation of the icons and details about the information provided.
@@ -1946,10 +1946,10 @@ explanation of the icons and details about the information provided.
 - *Transmission Status*: The Transmission Status indicates whether or not data Transmission between this
 	instance of NiFi and the remote instance is currently enabled. The icon shown will be the
 	Transmission Enabled icon (
-image:iconTransmissionActive.png["Transmission Active"]
+image:images/iconTransmissionActive.png["Transmission Active"]
 	) if any of the Input Ports or Output Ports is currently configured to transmit or the Transmission
 	Disabled icon (
-image:iconTransmissionInactive.png["Transmission Inactive"]
+image:images/iconTransmissionInactive.png["Transmission Inactive"]
 	) if all of the Input Ports and Output Ports that are currently connected are stopped.
 
 - *Remote Instance Name*: This is the name of the NiFi instance that was reported by the remote instance.
@@ -1962,9 +1962,9 @@ image:iconTransmissionInactive.png["Transmission Inactive"]
 - *Secure Indicator*: This icon indicates whether or not communications with the remote NiFi instance are
 	secure. If communications with the remote instance are secure, this will be indicated by the "Locked"
 	icon (
-image:iconSecure.png["Secure"]
+image:images/iconSecure.png["Secure"]
 	). If the communications are not secure, this will be indicated by the "Unlocked" icon (
-image:iconNotSecure.png["Not Secure"]
+image:images/iconNotSecure.png["Not Secure"]
 	). If the communications are secure, this instance of NiFi will not be able to communicate with the
 	remote instance until an administrator for the remote instance grants access. Whenever the Remote Process
 	Group is added to the canvas, this will automatically initiate a request to have a user for this instance of NiFi created on the
@@ -1992,7 +1992,7 @@ The FlowFiles enqueued in a Connection can be viewed when necessary. The Queue l
 a Connection's context menu. The listing will return the top 100 FlowFiles in the active queue according to the
 configured priority. The listing can be performed even if the source and destination are actively running.
 
-Additionally, details for a Flowfile in the listing can be viewed by clicking the "Details" button (image:iconDetails.png["Details"]) in the left most column. From here, the FlowFile details and attributes are available as well as buttons for
+Additionally, details for a Flowfile in the listing can be viewed by clicking the "Details" button (image:images/iconDetails.png["Details"]) in the left most column. From here, the FlowFile details and attributes are available as well as buttons for
 downloading or viewing the content. Viewing the content is only available if the `nifi.content.viewer.url` has been configured.
 If the source or destination of the Connection are actively running, there is a chance that the desired FlowFile will
 no longer be in the active queue.
@@ -2015,12 +2015,12 @@ of the User Interface. See the <<User_Interface>> section for more information a
 
 The Summary Page is opened by selecting Summary from the Global Menu. This opens the Summary table dialog:
 
-image::summary-table.png["Summary Table"]
+image:images/summary-table.png["Summary Table"]
 
 This dialog provides a great deal of information about each of the components on the canvas. Below, we have annotated
 the different elements within the dialog in order to make the discussion of the dialog easier.
 
-image::summary-annotated.png["Summary Table Annotated"]
+image:images/summary-annotated.png["Summary Table Annotated"]
 
 The Summary page is primarily comprised of a table that provides information about each of the components on the canvas. Above this
 table is a set of five tabs that can be used to view the different types of components. The information provided in the table
@@ -2082,7 +2082,7 @@ The amount of historical information that is stored is configurable in the NiFi 
 configuration information reference the Component Status Repository of the link:administration-guide.html[System Administrator’s Guide].
 When the Status History dialog is opened, it provides a graph of historical statistics:
 
-image::stats-history.png["Status History"]
+image:images/stats-history.png["Status History"]
 
 The left-hand side of the dialog provides information about the component that the stats are for, as well as a textual
 representation of the statistics being graphed. The following information is provided on the left-hand side:
@@ -2110,7 +2110,7 @@ representation of the statistics being graphed. The following information is pro
 The right-hand side of the dialog provides a drop-down list of the different types of metrics to render in the graphs below.
 The top graph is larger so as to provide an easier-to-read rendering of the information. In the bottom-right corner of
 this graph is a small handle (
-image:iconResize.png["Resize"]
+image:images/iconResize.png["Resize"]
 ) that can be dragged to resize the graph. The blank areas of the dialog can also be dragged around
 to move the entire dialog.
 
@@ -2128,19 +2128,19 @@ When NiFi is connected to a NiFi Registry, dataflows can be version controlled o
 === Connecting to a NiFi Registry
 To connect NiFi to a Registry, select Controller Settings from the Global Menu.
 
-image::controller-settings-selection.png["Global Menu - Controller Settings"]
+image:images/controller-settings-selection.png["Global Menu - Controller Settings"]
 
 This displays the NiFi Settings window. Select the Registry Clients tab and click the `+` button in the upper-right corner to register a new Registry client.
 
-image::registry-clients-tab.png["Registry Clients Tab"]
+image:images/registry-clients-tab.png["Registry Clients Tab"]
 
 In the Add Registry Client window, provide a name and URL.
 
-image::add-registry-client.png["Add Registry Client Dialog"]
+image:images/add-registry-client.png["Add Registry Client Dialog"]
 
 Click "Add" to complete the registration.
 
-image::registry-client-added.png["Registry Client Added"]
+image:images/registry-client-added.png["Registry Client Added"]
 
 NOTE: Versioned flows are stored and organized in registry buckets. Bucket Policies and Special Privileges configured by the registry administrator determine which buckets a user can import versioned flows from and which buckets a user can save versioned flows to. Information on Bucket Policies and Special Privileges can be found in the NiFi Registry User Guide (link:https://nifi.apache.org/docs/nifi-registry-docs/html/user-guide.html[https://nifi.apache.org/docs/nifi-registry-docs/html/user-guide.html^]).
 
@@ -2148,19 +2148,19 @@ NOTE: Versioned flows are stored and organized in registry buckets. Bucket Polic
 === Version States
 Versioned process groups exist in the following states:
 
-** image:iconUpToDate.png["Up to date"]
+** image:images/iconUpToDate.png["Up to date"]
 	*Up to date*: The flow version is the latest.
 
-** image:iconLocallyModified.png["Locally Modified"]
+** image:images/iconLocallyModified.png["Locally Modified"]
 	*Locally modified*: Local changes have been made.
 
-** image:iconStale.png["Stale"]
+** image:images/iconStale.png["Stale"]
 	*Stale*: A newer version of the flow is available.
 
-** image:iconLocallyModifiedStale.png["Locally Modified and Stale"]
+** image:images/iconLocallyModifiedStale.png["Locally Modified and Stale"]
 	*Locally modified and stale*: Local changes have been made and a newer version of the flow is available.
 
-** image:iconSyncFailure.png["Sync Failure"]
+** image:images/iconSyncFailure.png["Sync Failure"]
 	*Sync failure*: Unable to synchronize the flow with the registry.
 
 Version state information is displayed:
@@ -2169,55 +2169,55 @@ Version state information is displayed:
 2. At the bottom of a process group, for the versioned flows contained in the process group.
 3. In the Status Bar at the top of the UI, for the versioned flows contained in the root process group.
 
-image::version-states-display.png["Version States Displayed"]
+image:images/version-states-display.png["Version States Displayed"]
 
 Version state information is also shown in the "Process Groups" tab of the Summary Page.
 
-image::version-state-summary-page.png["Version State in Summary Page"]
+image:images/version-state-summary-page.png["Version State in Summary Page"]
 
 NOTE: To see the most recent version states, it may be necessary to right-click on the NiFi canvas and select 'Refresh' from the context menu.
 
 === Import a Versioned Flow
 When a NiFi instance is connected to a registry, an "Import" link will appear in the Add Process Group dialog.
 
-image::add-process-group-import.png["Import Process Group"]
+image:images/add-process-group-import.png["Import Process Group"]
 
 Selecting the link will open the Import Version dialog.
 
-image::import-version-dialog.png["Import Version Dialog"]
+image:images/import-version-dialog.png["Import Version Dialog"]
 
 Connected registries will appear as options in the Registry drop-down menu.  For the chosen Registry, buckets the user has access to will appear as options in the Bucket drop-down menu.  The names of the flows in the chosen bucket will appear as options in the Name drop-down menu.  Select the desired version of the flow to import and select "Import" for the dataflow to be placed on the canvas.
 
-image::versioned-flow-imported.png["Versioned Flow Imported"]
+image:images/versioned-flow-imported.png["Versioned Flow Imported"]
 
-Since the version imported in this example is the latest version (MySQL CDC, Version 3), the state of the versioned process group is "Up to date" (image:iconUpToDate.png["Up To Date Icon"]).  If the version imported had been an older version, the state would be "Stale" (image:iconStale.png["Stale Icon"]).
+Since the version imported in this example is the latest version (MySQL CDC, Version 3), the state of the versioned process group is "Up to date" (image:images/iconUpToDate.png["Up To Date Icon"]).  If the version imported had been an older version, the state would be "Stale" (image:images/iconStale.png["Stale Icon"]).
 
 === Start Version Control
 To place a process group under version control, right-click on the process group and in the context menu, select "Version->Start version control".
 
-image::start-version-control.png["Start Version Control"]
+image:images/start-version-control.png["Start Version Control"]
 
 In the Save Flow Version window, select a Registry and Bucket and enter a Name for the Flow.  If desired, add content for the Description and Comment fields.
 
-image::save-flow-version-dialog.png["Save Flow Version Dialog"]
+image:images/save-flow-version-dialog.png["Save Flow Version Dialog"]
 
 Select Save and Version 1 of the flow is saved.
 
-image::versioned-process-group.png["Versioned Process Group"]
+image:images/versioned-process-group.png["Versioned Process Group"]
 
-As the first and latest version of the flow, the state of the versioned process group is "Up to date" (image:iconUpToDate.png["Up To Date Icon"]).
+As the first and latest version of the flow, the state of the versioned process group is "Up to date" (image:images/iconUpToDate.png["Up To Date Icon"]).
 
 NOTE: The root process group can not be placed under version control.
 
 [[managing_local_changes]]
 === Managing Local Changes
-When changes are made to a versioned process group, the state of the component updates to "Locally modified" (image:iconLocallyModified.png["Locally Modified Icon"]).  The DFM can show, revert or commit the local changes. These options are available for selection in the context menu when right-clicking on the process group:
+When changes are made to a versioned process group, the state of the component updates to "Locally modified" (image:images/iconLocallyModified.png["Locally Modified Icon"]).  The DFM can show, revert or commit the local changes. These options are available for selection in the context menu when right-clicking on the process group:
 
-image::local-changes-pg-selected.png["Local Changes PG Selected"]
+image:images/local-changes-pg-selected.png["Local Changes PG Selected"]
 
 or when right-clicking on the canvas inside the process group:
 
-image::local-changes-pg-inside.png["Local Changes Inside PG"]
+image:images/local-changes-pg-inside.png["Local Changes Inside PG"]
 
 The following actions are not considered local changes:
 
@@ -2238,40 +2238,40 @@ WARNING: Variables do not support sensitive values and will be included when ver
 ==== Show Local Changes
 The local changes made to a versioned process group can be viewed in the Show Local Changes dialog by selecting "Version->Show local changes" from the context menu.
 
-image::show-local-changes-dialog.png["Show Local Changes Dialog"]
+image:images/show-local-changes-dialog.png["Show Local Changes Dialog"]
 
-You can navigate to a component by selecting the "Go To" icon (image:iconGoTo.png["Go To"]) in its row.
+You can navigate to a component by selecting the "Go To" icon (image:images/iconGoTo.png["Go To"]) in its row.
 
 NOTE:  As described in the <<managing_local_changes>> section, there are exceptions to which actions are reviewable local changes.  Additionally, multiple changes to the same property will only appear as one change in the list as the changes are determined by diffing the current state of the process group and the saved version of the process group noted in the Show Local Changes dialog.
 
 ==== Revert Local Changes
 Revert the local changes made to a versioned process group by selecting "Version->Revert local changes" from the context menu.  The Revert Local Changes dialog displays a list of the local changes for the DFM to review and consider prior to initiating the revert.  Select "Revert" to remove all changes.
 
-image::revert-local-changes-dialog.png["Revert Local Changes Dialog"]
+image:images/revert-local-changes-dialog.png["Revert Local Changes Dialog"]
 
-You can navigate to a component by selecting the "Go To" icon (image:iconGoTo.png["Go To"]) in its row.
+You can navigate to a component by selecting the "Go To" icon (image:images/iconGoTo.png["Go To"]) in its row.
 
 NOTE:  As described in the <<managing_local_changes>> section, there are exceptions to which actions are revertible local changes.  Additionally, multiple changes to the same property will only appear as one change in the list as the changes are determined by diffing the current state of the process group and the saved version of the process group noted in the Revert Local Changes dialog.
 
 ==== Commit Local Changes
 To commit and save a flow version, select "Version->Commit local changes" from the context menu.  In the Save Flow Version dialog, add comments if desired and select "Save".
 
-image::save-flow-version-commit.png["Save Flow Version Commit"]
+image:images/save-flow-version-commit.png["Save Flow Version Commit"]
 
-Local changes can not be committed if the version that has been modified is not the latest version.  In this scenario, the version state is "Locally modified and stale" (image:iconLocallyModifiedStale.png["Locally Modified and Stale"]).
+Local changes can not be committed if the version that has been modified is not the latest version.  In this scenario, the version state is "Locally modified and stale" (image:images/iconLocallyModifiedStale.png["Locally Modified and Stale"]).
 
 === Change Version
 To change the version of a flow, right-click on the versioned process group and select "Version->Change version".
 
-image::change-version.png["Change Version"]
+image:images/change-version.png["Change Version"]
 
 In the Change Version dialog, select the desired version and select "Change":
 
-image::change-version-dialog.png["Change Version Dialog"]
+image:images/change-version-dialog.png["Change Version Dialog"]
 
 The version of the flow is changed:
 
-image::flow-version-changed.png["Flow Version Changed"]
+image:images/flow-version-changed.png["Flow Version Changed"]
 
 In the example shown, the versioned flow is upgraded from an older to the newer latest version.  However, a versioned flow can also be rollbacked to an older version.
 
@@ -2280,17 +2280,17 @@ NOTE: For "Change version" to be an available selection, local changes to the pr
 === Stop Version Control
 To stop version control on a flow, right-click on the versioned process group and select "Version->Stop version control":
 
-image:stop-version-control.png["Stop Version Control"]
+image:images/stop-version-control.png["Stop Version Control"]
 
 In the Stop Version Control dialog, select "Disconnect".
 
-image::stop-version-control-dialog.png["Stop Version Control Dialog"]
+image:images/stop-version-control-dialog.png["Stop Version Control Dialog"]
 
 The removal of the process group from version control is confirmed.
 
-image:disconnect-dialog.png["Disconnect Confirmation Dialog"]
+image:images/disconnect-dialog.png["Disconnect Confirmation Dialog"]
 
-image::process-group-version-control-stopped.png["Version Control Stopped on Process Group"]
+image:images/process-group-version-control-stopped.png["Version Control Stopped on Process Group"]
 
 === Nested Versioned Flows
 A versioned process group can contain other versioned process groups.  However, local changes to a parent process group cannot be reverted or saved if it contains a child process group that also has local changes.  The child process group must first be reverted or have its changes committed for those actions to be performed on the parent process group.
@@ -2303,17 +2303,17 @@ When a versioned flow is imported, a Parameter Context will be created for each 
 
 A flow has a Parameter Context "PC1" with the following parameters:
 
-image::pc1_parameters.png[PC1 Parameters]
+image:images/pc1_parameters.png[PC1 Parameters]
 
 The flow is exported and saved to the Flow Registry.
 
 A NiFi instance has a Parameter Context also named "PC1" with the following parameters:
 
-image::nifi_pc1_parameters.png[NiFi PC1 Parameters]
+image:images/nifi_pc1_parameters.png[NiFi PC1 Parameters]
 
 The versioned flow is imported into the NiFi instance. The Parameter Context "PC1" now has the following parameters:
 
-image::nifi_pc1_parameters_new.png[New NiFi PC1 Parameters]
+image:images/nifi_pc1_parameters_new.png[New NiFi PC1 Parameters]
 
 The "Letters" parameter did not exist in the NiFi instance and was added. The "Numbers" parameter existed in both the versioned flow and NiFi instance with identical values, so no changes were made. "Password" is a sensitive Parameter missing from the NiFi instance, so it was added but with no value. "Port" existed in the NiFi instance with a different value than the versioned flow, so its value remained unchanged.
 
@@ -2331,35 +2331,35 @@ Version 1 of a flow does not have a Parameter Context associated with it. A new 
 === Variables in Versioned Flows
 Variables are included when a process group is placed under version control.  If a versioned flow is imported that references a variable not defined in the versioned process group, the reference is maintained if the variable exists.  If the referenced variable does not exist, a copy of the variable will be defined in the process group.  To illustrate, assume the variable “RPG_Var" is defined in the root process group:
 
-image::rpg-variable.png["Root Process Group Defined Variable"]
+image:images/rpg-variable.png["Root Process Group Defined Variable"]
 
 A process group PG1 is created:
 
-image::PG1_process_group.png["PG1 Process Group"]
+image:images/PG1_process_group.png["PG1 Process Group"]
 
 The GetFile processor in PG1 references the variable "RPG_Var":
 
-image::PG1_variable_ref_1.png["PG1 References RPG Variable"]
+image:images/PG1_variable_ref_1.png["PG1 References RPG Variable"]
 
 PG1 is saved as a versioned flow:
 
-image::PG1_versioned_flow.png["PG1 Versioned Flow"]
+image:images/PG1_versioned_flow.png["PG1 Versioned Flow"]
 
 If PG1 versioned flow is imported into this same NiFi instance:
 
-image::PG1_imported_same.png["PG1 Imported to Same NiFi"]
+image:images/PG1_imported_same.png["PG1 Imported to Same NiFi"]
 
 the added GetFile processor will also reference the "RPG_Var" variable that exists in the root process group:
 
-image::PG1_variable_ref_2.png["Both PG1 Reference RPG Variable"]
+image:images/PG1_variable_ref_2.png["Both PG1 Reference RPG Variable"]
 
 If PG1 versioned flow is imported into a different NiFi instance where "RPG_Var" does not exist:
 
-image::PG1_imported_diff.png["PG1 Imported to Different NiFi"]
+image:images/PG1_imported_diff.png["PG1 Imported to Different NiFi"]
 
 A "RPG_Var" variable is created in the PG1 process group:
 
-image::PG1_variable_ref_PG.png["PG1 References PG Variable Copy"]
+image:images/PG1_variable_ref_PG.png["PG1 References PG Variable Copy"]
 
 [[Restricted_Components_in_Versioned_Flows]]
 === Restricted Components in Versioned Flows
@@ -2369,99 +2369,99 @@ To import a versioned flow or revert local changes in a versioned flow, a user m
 
 * "sys_admin" has access to all restricted components.
 +
-image::sys_admin-restricted-component-access-policy.png["Sys_admin Restricted Component Access Policy"]
+image:images/sys_admin-restricted-component-access-policy.png["Sys_admin Restricted Component Access Policy"]
 
 * "test_user" has access to restricted components requiring 'read filesystem' and 'write filesystem'.
 +
-image::test_user-restricted-component-read-filesystem.png["Test_user Restricted Component Read Filesystem"]
+image:images/test_user-restricted-component-read-filesystem.png["Test_user Restricted Component Read Filesystem"]
 +
-image::test_user-restricted-component-write-filesystem.png["Test_user Restricted Component Write Filesystem"]
+image:images/test_user-restricted-component-write-filesystem.png["Test_user Restricted Component Write Filesystem"]
 
 ==== Restricted Controller Service Created in Root Process Group
 In this first example, sys_admin creates a KeytabCredentialsService controller service at the root process group level.
 
-image:keytabCredentialsService-rpg.png["KeytabCredentialsService Controller Service RPG Level"]
+image:images/keytabCredentialsService-rpg.png["KeytabCredentialsService Controller Service RPG Level"]
 
 KeytabCredentialService controller service is a restricted component that requires 'access keytab' permissions:
 
-image:keytabcredentialsservice-permissions.png["KeytabCredentialService Required Permissions"]
+image:images/keytabcredentialsservice-permissions.png["KeytabCredentialService Required Permissions"]
 
 Sys_admin creates a process group ABC containing a flow with GetFile and PutHDFS processors:
 
-image:abc-restricted-component-flow.png["Restricted Component Flow"]
+image:images/abc-restricted-component-flow.png["Restricted Component Flow"]
 
 GetFile processor is a restricted component that requires 'write filesystem' and 'read filesystem' permissions:
 
-image:getfile-permissions.png["GetFile Required Permissions"]
+image:images/getfile-permissions.png["GetFile Required Permissions"]
 
 PutHDFS is a restricted component that requires 'write filesystem' permissions:
 
-image:puthdfs-permissions.png["PutHDFS Required Permissions"]
+image:images/puthdfs-permissions.png["PutHDFS Required Permissions"]
 
 The PutHDFS processor is configured to use the root process group level KeytabCredentialsService controller service:
 
-image:puthdfs-properties.png["PutHDFS Properties"]
+image:images/puthdfs-properties.png["PutHDFS Properties"]
 
 Sys_admin saves the process group as a versioned flow:
 
-image:abc-versioned-flow.png["ABC Versioned Flow"]
+image:images/abc-versioned-flow.png["ABC Versioned Flow"]
 
 Test_user changes the flow by removing the KeytabCredentialsService controller service:
 
-image:puthdfs-no-kerberosCS.png["PutHDFS No Kerberos CS"]
+image:images/puthdfs-no-kerberosCS.png["PutHDFS No Kerberos CS"]
 
 If test_user chooses to revert this change:
 
-image:test_user-revert-local-changes.png["Test_user Revert Local Changes]
+image:images/test_user-revert-local-changes.png["Test_user Revert Local Changes]
 
 the revert is successful:
 
-image:revert-success.png["Revert Local Changes Successful"]
+image:images/revert-success.png["Revert Local Changes Successful"]
 
 Additionally, if test_user chooses to import the ABC versioned flow:
 
-image:test_user-import-abc-flow.png["Test_user Import Flow"]
+image:images/test_user-import-abc-flow.png["Test_user Import Flow"]
 
 The import is successful:
 
-image:test_user-import-success.png["Test_user Import Successful"]
+image:images/test_user-import-success.png["Test_user Import Successful"]
 
 ==== Restricted Controller Service Created in Process Group
 Now, consider a second scenario where the controller service is created on the process group level.
 
 Sys_admin creates a process group XYZ:
 
-image:xyz-process-group.png["XYZ Process Group"]
+image:images/xyz-process-group.png["XYZ Process Group"]
 
 Sys_admin creates a KeytabCredentialsService controller service at the process group level:
 
-image:keytabCredentialsService-pg.png["KeytabCredentialsService Controller Service PG Level"]
+image:images/keytabCredentialsService-pg.png["KeytabCredentialsService Controller Service PG Level"]
 
 The same GetFile and PutHDFS flow is created in the process group:
 
-image:xyz-flow.png["XYZ Versioned Flow"]
+image:images/xyz-flow.png["XYZ Versioned Flow"]
 
 However, PutHDFS now references the process group level controller service:
 
-image:puthdfs-properties_2.png["PutHDFS Properties"]
+image:images/puthdfs-properties_2.png["PutHDFS Properties"]
 
 Sys_admin saves the process group as a versioned flow.
 
 Test_user changes the flow by removing the KeytabCredentialsService controller service. However, with this configuration, if test_user attempts to revert this change:
 
-image:test_user-revert-local-changes-2.png["Test_user Revert Local Changes"]
+image:images/test_user-revert-local-changes-2.png["Test_user Revert Local Changes"]
 
 the revert is unsuccessful because test_user does not have the 'access keytab' permissions required by the KeytabCredentialService controller service:
 
-image:revert-failure.png["Revert Local Changes Fails"]
+image:images/revert-failure.png["Revert Local Changes Fails"]
 
 Similarly, if test_user tries to import the XYZ versioned flow:
 
-image:test_user-import-xyz-flow.png["Test_user Import Flow"]
+image:images/test_user-import-xyz-flow.png["Test_user Import Flow"]
 
 The import fails:
 
-image:import-xyz-flow-fails.png["XYZ Import Fails"]
+image:images/import-xyz-flow-fails.png["XYZ Import Fails"]
 
 
 [[templates]]
@@ -2479,7 +2479,7 @@ received from others can then be imported into an instance of NiFi and dragged o
 [[Create_Template]]
 === Creating a Template
 To create a Template, select the components that are to be a part of the template, and then click the
-"Create Template" (image:iconNewTemplate.png["Create Template"]) button in the Operate Palette (See <<User_Interface>> for more information on the Operate Palette).
+"Create Template" (image:images/iconNewTemplate.png["Create Template"]) button in the Operate Palette (See <<User_Interface>> for more information on the Operate Palette).
 
 Clicking this button without selecting anything will create a Template that contains all of the contents of the
 current Process Group. This means that creating a Template with nothing selected while on the Root Process Group
@@ -2502,7 +2502,7 @@ After receiving a Template that has been exported from another NiFi, the first s
 the template into this instance of NiFi. You may import templates into any Process Group where you have the appropriate
 authorization.
 
-From the Operate Palette, click the "Upload Template" (image:iconUploadTemplate.png["Upload Template"]) button (see <<User_Interface>> for more information on the Operate Palette).  This will display the Upload Template
+From the Operate Palette, click the "Upload Template" (image:images/iconUploadTemplate.png["Upload Template"]) button (see <<User_Interface>> for more information on the Operate Palette).  This will display the Upload Template
 dialog.  Click the find icon and use the File Selection dialog to choose which template file to upload.
 Select the file and click Open.
 Clicking the "Upload" button will attempt to import the Template into this instance of NiFi.
@@ -2513,7 +2513,7 @@ The Upload Template dialog will update to show "Success" or an error message if 
 
 Once a Template has been created (see <<Create_Template>>) or imported (see <<Import_Template>>), it is ready to be
 instantiated, or added to the canvas. This is accomplished by dragging the Template icon (
-image:iconTemplate.png["Template"]
+image:images/iconTemplate.png["Template"]
 ) from the Components Toolbar (see <<User_Interface>>) onto the canvas.
 
 This will present a dialog to choose which Template to add to the canvas. After choosing the Template to add, simply
@@ -2538,14 +2538,14 @@ filter the templates to see only those of interest, export, and delete Templates
 ==== Exporting a Template
 Once a Template has been created, it can be shared with others in the Template Management page.
 To export a Template, locate the Template in the table. The Filter in the top-right corner
-can be used to help find the appropriate Template if several are available. Then click the "Download" button (image:iconDownloadTemplate.png["Export"]). This will download the template as an XML file to your computer. This XML file can then be sent to others and imported into other instances of NiFi (see <<Import_Template>>).
+can be used to help find the appropriate Template if several are available. Then click the "Download" button (image:images/iconDownloadTemplate.png["Export"]). This will download the template as an XML file to your computer. This XML file can then be sent to others and imported into other instances of NiFi (see <<Import_Template>>).
 
 
 ==== Removing a Template
 
 Once it is decided that a Template is no longer needed, it can be easily removed from the Template Management page. To delete a Template, locate it in the table (the Filter in the top-right corner
 may be used to find the appropriate Template if several are available) and click the "Delete" button (
-image:iconDelete.png["Delete"]
+image:images/iconDelete.png["Delete"]
 ). This will prompt for confirmation. After confirming the deletion, the Template will be removed from this table
 and will no longer be available to add to the canvas.
 
@@ -2567,7 +2567,7 @@ When authorization is enabled, accessessing Data Provenance information requires
 Component Policy for the component which generated the event. In addition, access to event details which include FlowFile attributes and content require
 the 'view the data' Component Policy for the component which generated the event.
 
-image:provenance-annotated.png["Provenance Table"]
+image:images/provenance-annotated.png["Provenance Table"]
 
 [[provenance_events]]
 === Provenance Events
@@ -2606,21 +2606,21 @@ One of the most common tasks performed in the Data Provenance page is a search f
 click the "Search" button in the upper-right corner of the Data Provenance page. This opens a dialog window with parameters that the user can
 define for the search. The parameters include the processing event of interest, distinguishing characteristics about the FlowFile or the component that produced the event, the timeframe within which to search, and the size of the FlowFile.
 
-image:search-events.png["Search Events"]
+image:images/search-events.png["Search Events"]
 
 For example, to determine if a particular FlowFile was received, search for an Event Type of "RECEIVE" and include an
 identifier for the FlowFile, such as its uuid or filename. The asterisk (*) may be used as a wildcard for any number of characters.
 So, to determine whether a FlowFile with "ABC" anywhere in its filename was received at any time on Jan. 6, 2015, the search shown in the following
 image could be performed:
 
-image:search-receive-event-abc.png["Search for RECEIVE Event"]
+image:images/search-receive-event-abc.png["Search for RECEIVE Event"]
 
 [[event_details]]
 === Details of an Event
-In the far-left column of the Data Provenance page, there is a "View Details" icon for each event (image:iconDetails.png["Details"]).
+In the far-left column of the Data Provenance page, there is a "View Details" icon for each event (image:images/iconDetails.png["Details"]).
 Clicking this button opens a dialog window with three tabs: Details, Attributes, and Content.
 
-image:event-details.png["Event Details", width=700]
+image:images/event-details.png["Event Details", width=700]
 
 The Details tab shows various details about the event, such as when it occurred, what type of event it was, and the component that produced the event.
 The information that is displayed will vary according to the event type. This tab also shows information about the FlowFile that was processed. In
@@ -2630,7 +2630,7 @@ to that FlowFile are displayed on the right side of the Details tab.
 The Attributes tab shows the attributes that exist on the FlowFile as of that point in the flow. In order to see only the attributes that were modified as
 a result of the processing event, the user may select the checkbox next to "Only show modified" in the upper-right corner of the Attributes tab.
 
-image:event-attributes.png["Event Attributes", width=700]
+image:images/event-attributes.png["Event Attributes", width=700]
 
 === Replaying a FlowFile
 
@@ -2640,39 +2640,39 @@ and its size. In addition, it is here that the user may click the "Download" but
 at this point in the flow. The user may also click the "Submit" button to replay the FlowFile at this point in the flow. Upon clicking "Submit",
 the FlowFile is sent to the connection feeding the component that produced this processing event.
 
-image:event-content.png["Event Content", width=700]
+image:images/event-content.png["Event Content", width=700]
 
 === Viewing FlowFile Lineage
 
 It is often useful to see a graphical representation of the lineage or path a FlowFile took within the dataflow. To see a FlowFile's lineage,
-click on the "Show Lineage" icon ( image:iconLineage.png["Show Lineage", width=28] ) in the far-right column
-of the Data Provenance table. This opens a graph displaying the FlowFile ( image:lineage-flowfile.png["FlowFile", width=32] ) and the
+click on the "Show Lineage" icon ( image:images/iconLineage.png["Show Lineage", width=28] ) in the far-right column
+of the Data Provenance table. This opens a graph displaying the FlowFile ( image:images/lineage-flowfile.png["FlowFile", width=32] ) and the
 various processing events that have occurred. The selected event will be highlighted in red. It is possible to right-click or double-click on any
 event to see that event's details (see <<event_details>>).
 To see how the lineage evolved over time, click the slider at the bottom-left of the window and move it to the left to see the state of the lineage at earlier stages in the dataflow.
 
-image:lineage-graph-annotated.png["Lineage Graph", width=900]
+image:images/lineage-graph-annotated.png["Lineage Graph", width=900]
 
 ==== Find Parents
 Sometimes, a user may need to track down the original FlowFile that another FlowFile was spawned from. For example, when a FORK or CLONE event occurs, NiFi keeps
 track of the parent FlowFile that produced other FlowFiles, and it is possible to find that parent FlowFile in the Lineage. Right-click on the event in the
 lineage graph and select "Find parents" from the context menu.
 
-image:find-parents.png["Find Parents"]
+image:images/find-parents.png["Find Parents"]
 
 Once "Find parents" is selected, the graph is re-drawn to show the parent FlowFile and its lineage as well as the child and its lineage.
 
-image:parent-found.png["Parent Found"]
+image:images/parent-found.png["Parent Found"]
 
 
 ==== Expanding an Event
 In the same way that it is useful to find a parent FlowFile, the user may also want to determine what children were spawned from a given FlowFile. To do this, right-click on the event in the lineage graph and select "Expand" from the context menu.
 
-image:expand-event.png["Expand Event"]
+image:images/expand-event.png["Expand Event"]
 
 Once "Expand" is selected, the graph is re-drawn to show the children and their lineage.
 
-image:expanded-events.png["Expanded Events"]
+image:images/expanded-events.png["Expanded Events"]
 
 [[writeahead-provenance]]
 === Write Ahead Provenance Repository
@@ -2770,7 +2770,7 @@ Simply update _nifi.properties_ to reference a new key ID in `nifi.provenance.re
 ==== Writing and Reading Event Records
 Once the repository is initialized, all provenance event record write operations are serialized according to the configured schema writer (`EventIdFirstSchemaRecordWriter` by default for `WriteAheadProvenanceRepository`) to a `byte[]`. Those bytes are then encrypted using an implementation of `ProvenanceEventEncryptor` (the only current implementation is `AES/GCM/NoPadding`) and the encryption metadata (`keyId`, `algorithm`, `version`, `IV`) is serialized and prepended. The complete `byte[]` is then written to the repository on disk as normal.
 
-image:encrypted-wapr-hex.png["Encrypted provenance repository file on disk"]
+image:images/encrypted-wapr-hex.png["Encrypted provenance repository file on disk"]
 
 On record read, the process is reversed. The encryption metadata is parsed and used to decrypt the serialized bytes, which are then deserialized into a `ProvenanceEventRecord` object. The delegation to the normal schema record writer/reader allows for "random-access" (i.e. immediate seek without decryption of unnecessary records).
 
@@ -2856,7 +2856,7 @@ Simply update _nifi.properties_ to reference a new key ID in `nifi.content.repos
 === Writing and Reading Content Claims
 Once the repository is initialized, all content claim write operations are serialized using `RepositoryObjectStreamEncryptor` (the only currently existing implementation is `RepositoryObjectAESCTREncryptor`) to an `OutputStream`. The actual implementation is `EncryptedContentRepositoryOutputStream`, which encrypts the data written by the component via `StandardProcessSession` inline and the encryption metadata (`keyId`, `algorithm`, `version`, `IV`) is serialized and prepended. The complete `OutputStream` is then written to the repository on disk as normal.
 
-image:encrypted-content-hex.png["Encrypted content repository file on disk"]
+image:images/encrypted-content-hex.png["Encrypted content repository file on disk"]
 
 On content claim read, the process is reversed. The encryption metadata (`RepositoryObjectEncryptionMetadata`) is parsed and used to decrypt the serialized bytes, which are then deserialized into a `CipherInputStream` object. The delegation to the normal repository file system interaction allows for "random-access" (i.e. immediate seek without decryption of unnecessary content claims).
 
@@ -2935,7 +2935,7 @@ Simply update _nifi.properties_ to reference a new key ID in `nifi.flowfile.repo
 === Writing and Reading FlowFiles
 Once the repository is initialized, all flowfile record write operations are serialized using `RepositoryObjectBlockEncryptor` (the only currently existing implementation is `RepositoryObjectAESGCMEncryptor`) to the provided `DataOutputStream`. The original stream is swapped with a temporary wrapped stream, which encrypts the data written by the wrapped serializer/deserializer via `EncryptedSchemaRepositoryRecordSerde` inline and the encryption metadata (`keyId`, `algorithm`, `version`, `IV`, `cipherByteLength`) is serialized and prepended. The complete length and encrypted bytes are then written to the original `DataOutputStream` on disk as normal.
 
-image:encrypted-flowfile-hex.png["Encrypted flowfile repository journal file on disk"]
+image:images/encrypted-flowfile-hex.png["Encrypted flowfile repository journal file on disk"]
 
 On flowfile record read, the process is reversed. The encryption metadata (`RepositoryObjectEncryptionMetadata`) is parsed and used to decrypt the serialized bytes, which are then deserialized into a `DataInputStream` object.
 

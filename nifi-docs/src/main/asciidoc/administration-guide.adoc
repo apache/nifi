@@ -1083,16 +1083,16 @@ NOTE: Instructions requiring interaction with the UI assume the application is b
 
 From the UI, select “Users” from the Global Menu.  This opens a dialog to create and manage users and groups.
 
-image:nifi-users-dialog.png["NiFi Users Dialog"]
+image:images/nifi-users-dialog.png["NiFi Users Dialog"]
 
-Click the Add icon (image:iconAddUser.png["Add User Icon"]).  To create a user, enter the 'Identity' information relevant to the authentication method chosen to secure your NiFi instance.  Click OK.
+Click the Add icon (image:images/iconAddUser.png["Add User Icon"]).  To create a user, enter the 'Identity' information relevant to the authentication method chosen to secure your NiFi instance.  Click OK.
 
-image:user-creation-dialog.png["User Creation Dialog"]
+image:images/user-creation-dialog.png["User Creation Dialog"]
 
 To create a group, select the “Group” radio button, enter the name of the group and select the users to be included in the group.  Click OK.
 
 
-image:group-creation-dialog.png["Group Creation Dialog"]
+image:images/group-creation-dialog.png["Group Creation Dialog"]
 
 [[access-policies]]
 ==== Access Policies
@@ -1240,13 +1240,13 @@ NOTE:  You cannot modify the users/groups on an inherited policy.  Users and gro
 
 From the UI, select “Users” from the Global Menu. This opens the NiFi Users dialog.
 
-image:user-policies.png["User Policies Window"]
+image:images/user-policies.png["User Policies Window"]
 
-Select the View User Policies icon (image:iconUserPolicies.png["User Policies Icon"]).
+Select the View User Policies icon (image:images/iconUserPolicies.png["User Policies Icon"]).
 
-image:user-policies-detail.png["User Policies Detail"]
+image:images/user-policies-detail.png["User Policies Detail"]
 
-The User Policies window displays the global and component level policies that have been set for the chosen user.  Select the Go To icon (image:iconGoTo.png["Go To Icon"]) to navigate to that component in the canvas.
+The User Policies window displays the global and component level policies that have been set for the chosen user.  Select the Go To icon (image:images/iconGoTo.png["Go To Icon"]) to navigate to that component in the canvas.
 
 [[access-policy-config-examples]]
 ==== Access Policy Configuration Examples
@@ -1255,17 +1255,17 @@ The most effective way to understand how to create and apply access policies is 
 
 Let’s begin with two processors on the canvas as our starting point: GenerateFlowFile and LogAttribute.
 
-image:access-policy-config-start.png["Access Policy Config Start"]
+image:images/access-policy-config-start.png["Access Policy Config Start"]
 
 User1 can add components to the dataflow and is able to move, edit and connect all processors.  The details and properties of the root process group and processors are visible to User1.
 
-image:user1-full-access.png["User1 Full Access"]
+image:images/user1-full-access.png["User1 Full Access"]
 
 User1 wants to maintain their current privileges to the dataflow and its components.
 
 User2 is unable to add components to the dataflow or move, edit, or connect components.  The details and properties of the root process group and processors are hidden from User2.
 
-image:user2-restricted-access.png["User2 Restricted Access"]
+image:images/user2-restricted-access.png["User2 Restricted Access"]
 
 [[moving-a-processor]]
 ===== Moving a Processor
@@ -1273,18 +1273,18 @@ image:user2-restricted-access.png["User2 Restricted Access"]
 To allow User2 to move the GenerateFlowFile processor in the dataflow and only that processor, User1 performs the following steps:
 
 1. Select the GenerateFlowFile processor so that it is highlighted.
-2. Select the Access Policies icon (image:iconAccessPolicies.png["Access Policies Icon"]) from the Operate palette and the Access Policies dialog opens.
+2. Select the Access Policies icon (image:images/iconAccessPolicies.png["Access Policies Icon"]) from the Operate palette and the Access Policies dialog opens.
 3. Select “modify the component” from the policy drop-down. The “modify the component” policy that currently exists on the processor (child) is the “modify the component” policy inherited from the root process group (parent) on which User1 has privileges.
 +
-image::processor-modify-policy.png["Processor Modify Policy"]
+image:images/processor-modify-policy.png["Processor Modify Policy"]
 4. Select the Override link in the policy inheritance message.  When creating the replacement policy, you are given a choice to override with a copy of the inherited policy or an empty policy. Select the Override button to create a copy.
 +
-image::override_policy_copy_empty.png["Create Override Policy"]
-5. On the replacement policy that is created, select the Add User icon (image:iconAddUser.png["Add User Icon"]). Find or enter User2 in the User Identity field and select OK. With these changes, User1 maintains the ability to move both processors on the canvas.  User2 can now move the GenerateFlowFile processor but cannot move the LogAttribute processor.
+image:images/override_policy_copy_empty.png["Create Override Policy"]
+5. On the replacement policy that is created, select the Add User icon (image:images/iconAddUser.png["Add User Icon"]). Find or enter User2 in the User Identity field and select OK. With these changes, User1 maintains the ability to move both processors on the canvas.  User2 can now move the GenerateFlowFile processor but cannot move the LogAttribute processor.
 +
-image::processor-replacement-modify-policy.png["Processor Replacement Modify Policy"]
+image:images/processor-replacement-modify-policy.png["Processor Replacement Modify Policy"]
 +
-image::user2-moved-processor.png["User2 Moved Processor"]
+image:images/user2-moved-processor.png["User2 Moved Processor"]
 
 [[editing-a-processor]]
 ===== Editing a Processor
@@ -1292,27 +1292,27 @@ image::user2-moved-processor.png["User2 Moved Processor"]
 In the “Moving a Processor” example above, User2 was added to the “modify the component” policy for GenerateFlowFile.  Without the ability to view the processor properties, User2 is unable to modify the processor’s configuration.  In order to edit a component, a user must be on both the “view the component” and “modify the component” policies. To implement this, User1 performs the following steps:
 
 1. Select the GenerateFlowFile processor.
-2. Select the Access Policies icon (image:iconAccessPolicies.png["Access Policies Icon"]) from the Operate palette and the Access Policies dialog opens.
+2. Select the Access Policies icon (image:images/iconAccessPolicies.png["Access Policies Icon"]) from the Operate palette and the Access Policies dialog opens.
 3. Select "view the component” from the policy drop-down. The view the component” policy that currently exists on the processor (child) is the "view the component” policy inherited from the root process group (parent) on which User1 has privileges.
 +
-image::processor-view-policy.png["Processor View Policy"]
+image:images/processor-view-policy.png["Processor View Policy"]
 4. Select the Override link in the policy inheritance message, keep the default of Copy policy and select the Override button.
-5. On the override policy that is created, select the Add User icon (image:iconAddUser.png["Add User Icon"]). Find or enter User2 in the User Identity field and select OK. With these changes, User1 maintains the ability to view and edit the processors on the canvas. User2 can now view and edit the GenerateFlowFile processor.
+5. On the override policy that is created, select the Add User icon (image:images/iconAddUser.png["Add User Icon"]). Find or enter User2 in the User Identity field and select OK. With these changes, User1 maintains the ability to view and edit the processors on the canvas. User2 can now view and edit the GenerateFlowFile processor.
 +
-image::processor-replacement-view-policy.png["Processor Replacement View Policy"]
+image:images/processor-replacement-view-policy.png["Processor Replacement View Policy"]
 +
-image::user2-edit-processor.png["User2 Edit Processor"]
+image:images/user2-edit-processor.png["User2 Edit Processor"]
 
 [[creating-a-connection]]
 ===== Creating a Connection
 
 With the access policies configured as discussed in the previous two examples, User1 is able to connect GenerateFlowFile to LogAttribute:
 
-image:user1-create-connection.png["User1 Create Connection"]
+image:images/user1-create-connection.png["User1 Create Connection"]
 
 User2 cannot make the connection:
 
-image:user2-no-connection.png["User2 No Connection"]
+image:images/user2-no-connection.png["User2 No Connection"]
 
 This is because:
 
@@ -1322,53 +1322,53 @@ This is because:
 To allow User2 to connect GenerateFlowFile to LogAttribute, as User1:
 
 1. Select the root process group. The Operate palette is updated with details for the root process group.
-2. Select the Access Policies icon (image:iconAccessPolicies.png["Access Policies Icon"]) from the Operate palette and the Access Policies dialog opens.
+2. Select the Access Policies icon (image:images/iconAccessPolicies.png["Access Policies Icon"]) from the Operate palette and the Access Policies dialog opens.
 3. Select "modify the component” from the policy drop-down.
-  image:process-group-modify-policy.png["Process Group Modify Policy"]
+  image:images/process-group-modify-policy.png["Process Group Modify Policy"]
 [start=4]
-4. Select the Add User icon (image:iconAddUser.png["Add User Icon"]). Find or enter User2 and select OK.
+4. Select the Add User icon (image:images/iconAddUser.png["Add User Icon"]). Find or enter User2 and select OK.
 
-image:process-group-modify-policy-add-user2.png["Process Group Modify Policy Add User2"]
+image:images/process-group-modify-policy-add-user2.png["Process Group Modify Policy Add User2"]
 
-By adding User2 to the “modify the component” policy on the process group, User2 is added to the “modify the component” policy on the LogAttribute processor by policy inheritance.  To confirm this, highlight the LogAttribute processor and select the Access Policies icon (image:iconAccessPolicies.png["Access Policies Icon"]) from the Operate palette:
+By adding User2 to the “modify the component” policy on the process group, User2 is added to the “modify the component” policy on the LogAttribute processor by policy inheritance.  To confirm this, highlight the LogAttribute processor and select the Access Policies icon (image:images/iconAccessPolicies.png["Access Policies Icon"]) from the Operate palette:
 
-image:processor-inherited-modify-policy.png["User2 Inherited Edit Processor"]
+image:images/processor-inherited-modify-policy.png["User2 Inherited Edit Processor"]
 
 With these changes, User2 can now connect the GenerateFlowFile processor to the LogAttribute processor.
 
-image:user2-can-connect.png["User2 Can Connect"]
+image:images/user2-can-connect.png["User2 Can Connect"]
 
-image:user2-connected-processors.png["User2 Connected Processors"]
+image:images/user2-connected-processors.png["User2 Connected Processors"]
 
 [[editing-a-connection]]
 ===== Editing a Connection
 
 Assume User1 or User2 adds a ReplaceText processor to the root process group:
 
-image:replacetext-processor-added.png["ReplaceText Processor Added"]
+image:images/replacetext-processor-added.png["ReplaceText Processor Added"]
 
 User1 can select and change the existing connection (between GenerateFlowFile to LogAttribute) to now connect GenerateFlowFile to ReplaceText:
 
-image:user1-edit-connection.png["User1 Edit Connection"]
+image:images/user1-edit-connection.png["User1 Edit Connection"]
 
 User 2 is unable to perform this action.
 
-image:user2-no-edit-connection.png["User2 No Edit Connection"]
+image:images/user2-no-edit-connection.png["User2 No Edit Connection"]
 
 To allow User2 to connect GenerateFlowFile to ReplaceText, as User1:
 
 1. Select the root process group. The Operate palette is updated with details for the root process group.
-2. Select the Access Policies icon (image:iconAccessPolicies.png["Access Policies Icon"]).
+2. Select the Access Policies icon (image:images/iconAccessPolicies.png["Access Policies Icon"]).
 3. Select "view the component” from the policy drop-down.
-  image:process-group-view-policy.png["Process Group View Policy"]
+  image:images/process-group-view-policy.png["Process Group View Policy"]
 [start=4]
-4. Select the Add User icon (image:iconAddUser.png["Add User Icon"]). Find or enter User2 and select OK.
+4. Select the Add User icon (image:images/iconAddUser.png["Add User Icon"]). Find or enter User2 and select OK.
 
-image:process-group-view-policy-add-user2.png["Process Group View Policy Add User2"]
+image:images/process-group-view-policy-add-user2.png["Process Group View Policy Add User2"]
 
 Being added to both the view and modify policies for the process group, User2 can now connect the GenerateFlowFile processor to the ReplaceText processor.
 
-image:user2-edit-connection.png["User2 Edit Connection"]
+image:images/user2-edit-connection.png["User2 Edit Connection"]
 
 [[encryption]]
 == Encryption Configuration
@@ -1443,23 +1443,23 @@ For the existing KDFs, the salt format has not changed.
 
 The first 8 or 16 bytes of the input are the salt. The salt length is determined based on the selected algorithm's cipher block length. If the cipher block size cannot be determined (such as with a stream cipher like `RC4`), the default value of 8 bytes is used. On decryption, the salt is read in and combined with the password to derive the encryption key and IV.
 
-image:nifi-legacy-salt.png["NiFi Legacy Salt Encoding"]
+image:images/nifi-legacy-salt.png["NiFi Legacy Salt Encoding"]
 
 ==== OpenSSL PKCS#5 v1.5 EVP_BytesToKey
 
 OpenSSL allows for salted or unsalted key derivation. _*Unsalted key derivation is a security risk and is not recommended.*_ If a salt is present, the first 8 bytes of the input are the ASCII string "`Salted__`" (`0x53 61 6C 74 65 64 5F 5F`) and the next 8 bytes are the ASCII-encoded salt. On decryption, the salt is read in and combined with the password to derive the encryption key and IV. If there is no salt header, the entire input is considered to be the cipher text.
 
-image:openssl-salt.png["OpenSSL Salt Encoding"]
+image:images/openssl-salt.png["OpenSSL Salt Encoding"]
 
 For new KDFs, each of which allow for non-deterministic IVs, the IV must be stored alongside the cipher text. This is not a vulnerability, as the IV is not required to be secret, but simply to be unique for messages encrypted using the same key to reduce the success of cryptographic attacks. For these KDFs, the output consists of the salt, followed by the salt delimiter, UTF-8 string "`NiFiSALT`" (`0x4E 69 46 69 53 41 4C 54`) and then the IV, followed by the IV delimiter, UTF-8 string "`NiFiIV`" (`0x4E 69 46 69 49 56`), followed by the cipher text.
 
 ==== Bcrypt, Scrypt, PBKDF2
 
-image:bcrypt-salt.png["Bcrypt Salt & IV Encoding"]
+image:images/bcrypt-salt.png["Bcrypt Salt & IV Encoding"]
 
-image:scrypt-salt.png["Scrypt Salt & IV Encoding"]
+image:images/scrypt-salt.png["Scrypt Salt & IV Encoding"]
 
-image:pbkdf2-salt.png["PBKDF2 Salt & IV Encoding"]
+image:images/pbkdf2-salt.png["PBKDF2 Salt & IV Encoding"]
 
 === Java Cryptography Extension (JCE) Limited Strength Jurisdiction Policies
 
@@ -1538,7 +1538,7 @@ A number of PBE algorithms provided by NiFi impose strict limits on the length o
 
 By default, the `Allow Insecure Cryptographic Modes` property in `EncryptContent` processor settings is set to `not-allowed`. This means that if a password of fewer than `10` characters is provided, a validation error will occur. 10 characters is a conservative estimate and does not take into consideration full entropy calculations, patterns, etc.
 
-image:allow-weak-crypto.png["Allow Insecure Cryptographic Modes", width=940]
+image:images/allow-weak-crypto.png["Allow Insecure Cryptographic Modes", width=940]
 
 On a JVM with limited strength cryptography, some PBE algorithms limit the maximum password length to 7, and in this case it will not be possible to provide a "safe" password. It is recommended to install the JCE Unlimited Strength Jurisdiction Policy files for the JVM to mitigate this issue.
 
@@ -1584,7 +1584,7 @@ For more information about each utility, see the link:toolkit-guide.html[NiFi To
 This section provides a quick overview of NiFi Clustering and instructions on how to set up a basic cluster.
 In the future, we hope to provide supplemental documentation that covers the NiFi Cluster Architecture in depth.
 
-image::zero-master-cluster-http-access.png["NiFi Cluster HTTP Access"]
+image:images/zero-master-cluster-http-access.png["NiFi Cluster HTTP Access"]
 
 === Zero-Master Clustering
 NiFi employs a Zero-Master Clustering paradigm. Each node in the cluster performs the same tasks on
@@ -1625,7 +1625,7 @@ ZooKeeper is used to automatically elect a Primary Node. If that node disconnect
 Primary Node will automatically be elected. Users can determine which node is currently elected as the Primary Node by
 looking at the Cluster Management page of the User Interface.
 
-image::primary-node-cluster-mgt.png["Primary Node in Cluster Management UI"]
+image:images/primary-node-cluster-mgt.png["Primary Node in Cluster Management UI"]
 
 *Isolated Processors*: In a NiFi cluster, the same dataflow runs on all the nodes. As a result, every component in the flow
 runs on every node. However, there may be cases when the DFM would not want every processor to run on every node. The most
@@ -1666,27 +1666,27 @@ nodes and waits for each node to respond, indicating that it has made the change
 
 A DFM may manually disconnect a node from the cluster. A node may also become disconnected for other reasons, such as due to a lack of heartbeat. The Cluster Coordinator will show a bulletin on the User Interface when a node is disconnected. The DFM will not be able to make any changes to the dataflow until the issue of the disconnected node is resolved. The DFM or the Administrator will need to troubleshoot the issue with the node and resolve it before any new changes can be made to the dataflow. However, it is worth noting that just because a node is disconnected does not mean that it is not working.  This may happen for a few reasons, for example when the node is unable to communicate with the Cluster Coordinator due to network problems.
 
-To manually disconnect a node, select the "Disconnect" icon (image:iconDisconnect.png["Disconnect Icon"]) from the node's row.
+To manually disconnect a node, select the "Disconnect" icon (image:images/iconDisconnect.png["Disconnect Icon"]) from the node's row.
 
-image::disconnected-node-cluster-mgt.png["Disconnected Node in Cluster Management UI"]
+image:images/disconnected-node-cluster-mgt.png["Disconnected Node in Cluster Management UI"]
 
-A disconnected node can be connected (image:iconConnect.png["Connect Icon"]), offloaded (image:iconOffload.png["Offload Icon"]) or deleted (image:iconDelete.png["Delete Icon"]).
+A disconnected node can be connected (image:images/conConnect.png["Connect Icon"]), offloaded (image:images/conOffload.png["Offload Icon"]) or deleted (image:images/conDelete.png["Delete Icon"]).
 
 NOTE: Not all nodes in a "Disconnected" state can be offloaded. If the node is disconnected and unreachable, the offload request can not be received by the node to start the offloading. Additionally, offloading may be interrupted or prevented due to firewall rules.
 
 ==== Offload Nodes
 
-Flowfiles that remain on a disconnected node can be rebalanced to other active nodes in the cluster via offloading.  In the Cluster Management dialog, select the "Offload" icon (image:iconOffload.png["Offload Icon"]) for a Disconnected node. This will stop all processors, terminate all processors, stop transmitting on all remote process groups and rebalance flowfiles to the other connected nodes in the cluster.
+Flowfiles that remain on a disconnected node can be rebalanced to other active nodes in the cluster via offloading.  In the Cluster Management dialog, select the "Offload" icon (image:images/iconOffload.png["Offload Icon"]) for a Disconnected node. This will stop all processors, terminate all processors, stop transmitting on all remote process groups and rebalance flowfiles to the other connected nodes in the cluster.
 
-image::offloading-node-cluster-mgt.png["Offloading Node in Cluster Management UI"]
+image:images/offloading-node-cluster-mgt.png["Offloading Node in Cluster Management UI"]
 
 Nodes that remain in "Offloading" state due to errors encountered (out of memory, no network connection, etc.) can be reconnected to the cluster by restarting NiFi on the node. Offloaded nodes can be either reconnected to the cluster (by selecting Connect or restarting NiFi on the node) or deleted from the cluster.
 
-image::offloaded-node-cluster-mgt.png["Offloaded Node in Cluster Management UI"]
+image:images/offloaded-node-cluster-mgt.png["Offloaded Node in Cluster Management UI"]
 
 ==== Delete Nodes
 
-There are cases where a DFM may wish to continue making changes to the flow, even though a node is not connected to the cluster. In this case, the DFM may elect to delete the node from the cluster entirely. In the Cluster Management dialog, select the "Delete" icon (image:iconDelete.png["Delete Icon"]) for a Disconnected or Offloaded node. Once deleted, the node cannot be rejoined to the cluster until it has been restarted.
+There are cases where a DFM may wish to continue making changes to the flow, even though a node is not connected to the cluster. In this case, the DFM may elect to delete the node from the cluster entirely. In the Cluster Management dialog, select the "Delete" icon (image:images/iconDelete.png["Delete Icon"]) for a Disconnected or Offloaded node. Once deleted, the node cannot be rejoined to the cluster until it has been restarted.
 
 ==== Decommission Nodes
 
@@ -1791,7 +1791,7 @@ For each Node, the minimum properties to configure are as follows:
 Now, it is possible to start up the cluster. It does not matter which order the instances start up. Navigate to the URL for
 one of the nodes, and the User Interface should look similar to the following:
 
-image:ncm.png["Clustered User Interface"]
+image:images/ncm.png["Clustered User Interface"]
 
 === Troubleshooting
 
@@ -2431,7 +2431,7 @@ root@kdc:~#
 == Analytics Framework
 NiFi has an internal analytics framework which can be enabled to predict back pressure occurrence, given the configured settings for threshold on a queue.  The model used by default for prediction is an ordinary least squares (OLS) linear regression. It uses recent observations from a queue (either number of objects or content size over time) and calculates a regression line for that data. The line's equation is then used to determine the next value that will be reached within a given time interval (e.g. number of objects in queue in the next 5 minutes). Below is an example graph of the linear regression model for Queue/Object Count over time which is used for predictions:
 
-image:back_pressure_prediction_model_example.png["Back pressure prediction based on Queue/Object Count"]
+image:images/back_pressure_prediction_model_example.png["Back pressure prediction based on Queue/Object Count"]
 
 In order to generate predictions, local status snapshot history is queried to obtain enough data to generate a model.  By default, component status snapshots are captured every minute. Internal models need at least 2 or more observations to generate a prediction, therefore it may take up to 2 or more minutes for predictions to be available by default.  If predictions are needed sooner than what is provided by default, the timing of snapshots can be adjusted using the `nifi.components.status.snapshot.frequency` value in _nifi.properties_.
 
@@ -3640,8 +3640,8 @@ In your new NiFi installation:
 
 1. Start each of your new NiFi instances.
 2. Verify that:
-   * All your dataflows have returned to a running state. Some processors may have new properties that need to be configured, in which case they will be stopped and marked Invalid (image:iconAlert.png["Invalid"]).
-   * All your expected controller services and reporting tasks are running again. Address any controller services or reporting tasks that are marked Invalid (image:iconAlert.png["Invalid"]).
+   * All your dataflows have returned to a running state. Some processors may have new properties that need to be configured, in which case they will be stopped and marked Invalid (image:images/iconAlert.png["Invalid"]).
+   * All your expected controller services and reporting tasks are running again. Address any controller services or reporting tasks that are marked Invalid (image:images/iconAlert.png["Invalid"]).
 3. After confirming your new NiFi instances are stable and working as expected, the old installation can be removed.
 
 NOTE:  If the original NiFi was setup to run as a service, update any symlinks or service scripts to point to the new NiFi version executables.

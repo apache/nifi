@@ -123,24 +123,24 @@ editing the `nifi.properties` file in the NiFi `conf` directory, but the default
 
 This will bring up the User Interface, which at this point is a blank canvas for orchestrating a dataflow:
 
-image:new-flow.png["New Flow"]
+image:images/new-flow.png["New Flow"]
 
 The UI has multiple tools to create and manage your first dataflow:
 
-image:nifi-toolbar-components.png["Toolbar Components"]
+image:images/nifi-toolbar-components.png["Toolbar Components"]
 
 The Global Menu contains the following options:
 
-image:global-menu.png["Global Menu"]
+image:images/global-menu.png["Global Menu"]
 
 
 === Adding a Processor
 
 We can now begin creating our dataflow by adding a Processor to our canvas. To do this, drag the Processor icon
-(image:iconProcessor.png["Processor"]) from the top-left of the screen into the middle of the canvas (the graph paper-like
+(image:images/iconProcessor.png["Processor"]) from the top-left of the screen into the middle of the canvas (the graph paper-like
 background) and drop it there. This will give us a dialog that allows us to choose which Processor we want to add:
 
-image:add-processor.png["Add Processor"]
+image:images/add-processor.png["Add Processor"]
 
 We have quite a few options to choose from. For the sake of becoming oriented with the system, let's say that we
 just want to bring in files from our local disk into NiFi. When a developer creates a Processor, the developer can
@@ -166,7 +166,7 @@ properties have been configured. The most important property to configure for Ge
 to pick up files. If we set the directory name to `./data-in`, this will cause the Processor to start picking up
 any data in the `data-in` subdirectory of the NiFi Home directory. We can choose to configure several different
 Properties for this Processor. If unsure what a particular Property does, we can hover over the Help icon (
-image:iconInfo.png["Help"]
+image:images/iconInfo.png["Help"]
 )
 next to the Property Name with the mouse in order to read a description of the property. Additionally, the
 tooltip that is displayed when hovering over the Help icon will provide the default value for that property,
@@ -189,7 +189,7 @@ the flow.
 
 Now that we have added and configured our GetFile processor and applied the configuration, we can see in the
 top-left corner of the Processor an Alert icon (
-image:iconAlert.png[Alert]
+image:images/iconAlert.png[Alert]
 ) signaling that the Processor is not in a valid state. Hovering over this icon, we can see that the `success`
 relationship has not been defined. This simply means that we have not told NiFi what to do with the data that the Processor
 transfers to the `success` Relationship.
@@ -200,14 +200,14 @@ we will add a LogAttributes Processor.
 
 We can now send the output of the GetFile Processor to the LogAttribute Processor. Hover over the GetFile Processor
 with the mouse and a Connection Icon (
-image:iconConnection.png[Connection]
+image:images/iconConnection.png[Connection]
 ) will appear over the middle of the Processor. We can drag this icon from the GetFile Processor to the LogAttribute
 Processor. This gives us a dialog to choose which Relationships we want to include for this connection. Because GetFile
 has only a single Relationship, `success`, it is automatically selected for us.
 
 Clicking on the Settings tab provides a handful of options for configuring how this Connection should behave:
 
-image:connection-settings.png[Connection Settings]
+image:images/connection-settings.png[Connection Settings]
 
 We can give the Connection a name, if we like. Otherwise, the Connection name will be based on the selected Relationships.
 We can also set an expiration for the data. By default, it is set to "0 sec" which indicates that the data should not
@@ -228,7 +228,7 @@ will be used.
 
 For the sake of this discussion, we can simply click `Add` to add the Connection to our graph. We should now see that the Alert
 icon has changed to a Stopped icon (
-image:iconStop.png[Stopped]
+image:images/iconStop.png[Stopped]
 ). The LogAttribute Processor, however, is now invalid because its `success` Relationship has not been connected to
 anything. Let's address this by signaling that data that is routed to `success` by LogAttribute should be "Auto Terminated,"
 meaning that NiFi should consider the FlowFile's processing complete and "drop" the data. To do this, we configure the
@@ -531,7 +531,7 @@ As we extract Attributes from FlowFiles' contents and add user-defined Attribute
 we have some mechanism by which we can use them. The NiFi Expression Language allows us to access and manipulate FlowFile Attribute
 values as we configure our flows. Not all Processor properties allow the Expression Language to be used, but many do. In order to
 determine whether or not a property supports the Expression Language, a user can hover over the Help icon (
-image:iconInfo.png["Help"]
+image:images/iconInfo.png["Help"]
 ) in the Properties tab of the Processor Configure dialog. This will provide a tooltip that shows a description of the property, the
 default value, if any, and whether or not the property supports the Expression Language.
 
@@ -579,14 +579,14 @@ A template can be thought of as a reusable sub-flow. To create a template, follo
   the Shift key while selecting additional components (to include the Connections between those components), or by holding the Shift key
 	while dragging a box around the desired components on the canvas.
 - Select the Create Template Icon (
-	image:iconNewTemplate.png[New Template Icon]
+	image:images/iconNewTemplate.png[New Template Icon]
 	) from the Operate palette.
 - Provide a name and optionally a description for the template.
 - Click the `Create` button.
 
 Once we have created a template, we can now use it as a building block in our flow, just as we would a Processor. To do this, we will
 click and drag the Template icon (
-	image:iconTemplate.png[Template]
+	image:images/iconTemplate.png[Template]
 	) from the Component toolbar onto our canvas. We can then choose the template that we would like to add
 to our canvas and click the `Add` button.
 
@@ -596,7 +596,7 @@ On the right-hand side of the table is an icon to Export, or Download, the templ
 that they can use your template.
 
 To import a template into your NiFi instance, select the Upload Template icon (
-	image:iconUploadTemplate.png[Upload Template]
+	image:images/iconUploadTemplate.png[Upload Template]
 	) from the Operator palette, click the Search Icon and navigate to the file on
 your computer. Then click the `Upload` button. The template will now show up in your table, and you can drag it onto your canvas as you would
 any other template that you have created.
@@ -661,7 +661,7 @@ the system and is transformed, routed, split, aggregated, and distributed to oth
 all stored within NiFi's Provenance Repository. In order to search and view this information, we can select Data Provenance from the Global Menu. This will provide us a table that lists
 the Provenance events that we have searched for:
 
-image:provenance-table.png[Provenance Table]
+image:images/provenance-table.png[Provenance Table]
 
 Initially, this table is populated with the most recent 1,000 Provenance Events that have occurred (though it may take a few
 seconds for the information to be processed after the events occur). From this dialog, there is a `Search` button that allows the
@@ -674,17 +674,17 @@ choose which Attributes will be important to your specific dataflows and make th
 === Event Details
 Once we have performed our search, our table will be populated only with the events that match the search criteria. From here, we
 can choose the Info icon (
-image:iconDetails.png[Details Icon]
+image:images/iconDetails.png[Details Icon]
 ) on the left-hand side of the table to view the details of that event:
 
-image:event-details.png[Event Details]
+image:images/event-details.png[Event Details]
 
 From here, we can see exactly when that event occurred, which FlowFile the event affected, which component (Processor, etc.) performed the event,
 how long the event took, and the overall time that the data had been in NiFi when the event occurred (total latency).
 
 The next tab provides a listing of all Attributes that existed on the FlowFile at the time that the event occurred:
 
-image:event-attributes.png[Event Attributes]
+image:images/event-attributes.png[Event Attributes]
 
 From here, we can see all the Attributes that existed on the FlowFile when the event occurred, as well as the previous values for those
 Attributes. This allows us to know which Attributes changed as a result of this event and how they changed. Additionally, in the right-hand
@@ -696,7 +696,7 @@ to understand 'why' the FlowFile was processed the way that it was, especially w
 
 Finally, we have the Content tab:
 
-image:event-content.png[Event Content]
+image:images/event-content.png[Event Content]
 
 This tab provides us information about where in the Content Repository the FlowFile's content was stored. If the event modified the content
 of the FlowFile, we will see the 'before' (input) and 'after' (output) content claims. We are then given the option to Download the content or to View the
@@ -710,12 +710,12 @@ this iterative development of the flow until it is processing the data exactly a
 === Lineage Graph
 
 In addition to viewing the details of a Provenance event, we can also view the lineage of the FlowFile involved by clicking on the Lineage Icon (
-image:iconLineage.png[Lineage]
+image:images/iconLineage.png[Lineage]
 ) from the table view.
 
 This provides us with a graphical representation of exactly what happened to that piece of data as it traversed the system:
 
-image:lineage-graph-annotated.png[Lineage Graph]
+image:images/lineage-graph-annotated.png[Lineage Graph]
 
 From here, we can right-click on any of the events represented and click the `View Details` menu item to see the <<EventDetails>>.
 This graphical representation shows us exactly which events occurred to the data. There are a few "special" event types to be

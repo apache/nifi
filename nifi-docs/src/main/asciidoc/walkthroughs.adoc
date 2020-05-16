@@ -46,14 +46,14 @@ NOTE: The following instructions are for installing a single node of NiFi. This 
 * `nifi-toolkit-1.11.4-bin.tar.gz` [42 MB]
 . If you are directed to a mirror page, click the first link on the page to download the respective archive file.
 +
-image::install-download-link.png["Download site"]
+image:images/install-download-link.png["Download site"]
 . Note that the `nifi-1.11.4-bin.tar.gz` and the `nifi-toolkit-1.11.4-bin.tar.gz` compressed files are downloaded to your `Downloads` folder.
 . Download the GPG signature and checksums for those files. They are found on the initial download page next to each binary file.
 * `gpg --verify -v nifi-1.11.4-bin.tar.gz.asc` -- Verifies the GPG signature provided on the binary by the Release Manager (RM). See link:https://nifi.apache.org/gpg.html#verifying-a-release-signature[NiFi GPG Guide: Verifying a Release Signature^] for further details
 * `shasum -a 256 nifi-1.11.4-bin.tar.gz` -- Calculates a SHA-256 checksum over the downloaded artifact. This should be compared with the contents of `nifi-1.11.4-bin.tar.gz.sha256` for equality
 * `shasum -a 512 nifi-1.11.4-bin.tar.gz` -- Calculates a SHA-512 checksum over the downloaded artifact. This should be compared with the contents of `nifi-1.11.4-bin.tar.gz.sha512` for equality
 +
-image::verify-release-gpg-and-checksums.png["Verifying the GPG signature and checksums]
+image:images/verify-release-gpg-and-checksums.png["Verifying the GPG signature and checksums]
 . Extract the files from each `tar.gz` file. This can be done by double-clicking on the files in the Finder or running the following commands in the terminal.
   * `tar -xvzf nifi-1.11.4-bin.tar.gz` -- Uncompresses the `gzip` file and extracts the `tar` archive contents to `nifi-1.11.4/`
   * `tar -xvzf nifi-toolkit-1.11.4-bin.tar.gz` -- Uncompresses the `gzip` file and extracts the `tar` archive contents to `nifi-toolkit-1.11.4/`
@@ -177,15 +177,15 @@ drwxr-xr-x  116 alopresto  staff   3.6K Apr  6 15:50 lib/
 * `cd /etc/nifi-1.11.4` -- Changes the terminal to the NiFi home directory
 * `ls -alGh` -- Lists the contents of the directory (optional)
 +
-image::nifi-home-dir-listing.png["NiFi Home directory contents"]
+image:images/nifi-home-dir-listing.png["NiFi Home directory contents"]
 . At this point, NiFi can be started with default configuration values (available at link:http://localhost:8080/nifi[`http://localhost:8080/nifi`^]).
 * `./bin/nifi.sh start` -- Starts NiFi
 * `tail -f logs/nifi-app.log` -- Tails the application log which will indicate when the application has started
 +
-image::nifi-app-log-ui-available.png["NiFi application log listing available URLS"]
+image:images/nifi-app-log-ui-available.png["NiFi application log listing available URLS"]
 . Navigate to the URL in a web browser (link:http://localhost:8080/nifi[`http://localhost:8080/nifi`^] or any listed in the `nifi-app.log` output).
 +
-image::nifi-application-running-browser.png["NiFi application running in browser"]
+image:images/nifi-application-running-browser.png["NiFi application running in browser"]
 
 === Modification of Configuration Values
 Many web applications run on `:8080` by default, so this port may already be occupied on the machine. This section will demonstrate changing the port used by NiFi. All of the following commands are run from `$NIFI_HOME`.
@@ -231,14 +231,14 @@ Apache NiFi provides a toolkit (a collection of command-line tools for system ad
 
 The end result will consist of a self-signed NiFi CA (the root), a keystore and truststore containing the necessary certificates for the NiFi instance to operate, and a client certificate for a human user to access NiFi.
 
-image::nifi-tls-toolkit-standalone-cert-diagram.png["NiFi TLS Toolkit Standalone Certificate Diagram"]
+image:images/nifi-tls-toolkit-standalone-cert-diagram.png["NiFi TLS Toolkit Standalone Certificate Diagram"]
 
 . Start in the directory where the NiFi toolkit was downloaded and unarchived. For this section, the directory `/etc/nifi-toolkit-1.11.4` will be used. This directory will be referred to as the "NiFi Toolkit home directory" and can be set explicitly (this is not done automatically by NiFi Toolkit nor is it required).
 * `export NIFI_TOOLKIT_HOME="/etc/nifi-toolkit-1.11.4/"` -- Sets an environment variable (`$NIFI_TOOLKIT_HOME`) which references the installation directory (optional)
 * `cd /etc/nifi-toolkit-1.11.4` -- Changes the terminal to the NiFi Toolkit home directory
 * `ls -alGh` -- Lists the contents of the directory (optional)
 +
-image::nifi-toolkit-home-dir-listing.png["NiFi Toolkit Home directory contents"]
+image:images/nifi-toolkit-home-dir-listing.png["NiFi Toolkit Home directory contents"]
 . Generate the certificate and key for the NiFi instance. Running this command will first generate the NiFi CA root certificate and private key, then generate and sign the certificate for the application instance, and finally generate a pre-configured `nifi.properties` file.
 * `./bin/tls-toolkit.sh standalone -n "localhost"` -- Generates the signed certificate for `localhost`
 +
@@ -364,15 +364,15 @@ Note that there are now log entries about the keystore and truststore being load
 --
 The browser warning of an insecure server certificate
 
-image::browser-warning-insecure-site.png["Browser warning on untrusted server TLS certificate"]
+image:images/browser-warning-insecure-site.png["Browser warning on untrusted server TLS certificate"]
 
 The browser prompting for a client certificate to present
 
-image::browser-present-client-cert.png["Browser prompting for client certificate to present"]
+image:images/browser-present-client-cert.png["Browser prompting for client certificate to present"]
 
 The application running. Note the user's DN in the top-right corner
 
-image::nifi-running-tls-client-certificate.png["NiFi running with user logged in by client certificate]
+image:images/nifi-running-tls-client-certificate.png["NiFi running with user logged in by client certificate]
 --
 
 ==== Additional Notes
@@ -386,18 +386,18 @@ image::nifi-running-tls-client-certificate.png["NiFi running with user logged in
 * `open /etc/nifi-toolkit-1.11.4/nifi-cert.pem` -- Opens the certificate in Keychain Access
 * Right-click the `localhost` certificate and select *Get Info*
 
-image::keychain-access-certificate-listing.png["Keychain Access listing certificates"]
+image:images/keychain-access-certificate-listing.png["Keychain Access listing certificates"]
 
 * Expand the *Trust* section in the dialog
 * Change *Secure Sockets Layer (SSL)* to *Always Trust*
 
-image::keychain-access-trust-certificate.png["Trusting the CA certificate for TLS/SSL"]
+image:images/keychain-access-trust-certificate.png["Trusting the CA certificate for TLS/SSL"]
 
 * Close the dialog
 * Restart the browser
 * Navigate to link:https://localhost:9443/nifi[`https://localhost:9443/nifi`^]
 
-image::nifi-trusted-server-certificate.png["Browser showing trusted NiFi server certificate"]
+image:images/nifi-trusted-server-certificate.png["Browser showing trusted NiFi server certificate"]
 --
 
 === Securing NiFi with Provided Certificates
@@ -546,7 +546,7 @@ NOTE: For more information on converting certificates between various forms, see
 
 The end result will consist of a self-signed external CA (the root), a keystore and truststore containing the necessary certificates for the NiFi instance to operate, and a client certificate for a human user to access NiFi.
 
-image::nifi-tls-standalone-external-certificate-diagram.png["NiFi TLS Standalone Provided Certificate Diagram"]
+image:images/nifi-tls-standalone-external-certificate-diagram.png["NiFi TLS Standalone Provided Certificate Diagram"]
 
 WARNING: Depending on the version of Java used, some commands below may display a warning `Warning:
 The JKS keystore uses a proprietary format. It is recommended to migrate to PKCS12 which is an industry standard format using "keytool -importkeystore -srckeystore keystore.jks -destkeystore keystore.jks -deststoretype pkcs12".` As of version 1.11.4, NiFi still handles JKS keystores better than PKCS12 keystores, but either is acceptable. This may change in future versions. PKCS12 keystores are used for client certificates and keys as browsers prefer loading this format.
@@ -556,7 +556,7 @@ The JKS keystore uses a proprietary format. It is recommended to migrate to PKCS
 * `cd /etc/nifi-1.11.4` -- Changes the terminal to the NiFi home directory
 * `ls -alGh` -- Lists the contents of the directory (optional)
 +
-image::nifi-home-dir-listing.png["NiFi Home directory contents"]
+image:images/nifi-home-dir-listing.png["NiFi Home directory contents"]
 . Determine if the server certificate (`nifi.pem`) contains the complete certificate chain or just the server certificate. If the sequence `-----BEGIN CERTIFICATE-----` occurs only once, this is just the server certificate. If it occurs multiple times, the certificate chain is present. If the certificate chain is present, continue with Step 4. If it is not present, continue to Step 3.
 * `cat nifi.pem` -- Prints the Base64-encoded contents
 . Concatenate the server certificate and CA certificate to form the certificate chain.
@@ -884,7 +884,7 @@ Prerequisites:
 
 The end result will consist of a self-signed external CA (the root), a keystore and truststore containing the necessary certificates for each NiFi node to operate, and a client certificate for a human user to access NiFi.
 
-image::nifi-cluster-tls-toolkit-certificate-diagram.png["NiFi Cluster with TLS Toolkit Certificates Diagram"]
+image:images/nifi-cluster-tls-toolkit-certificate-diagram.png["NiFi Cluster with TLS Toolkit Certificates Diagram"]
 
 . Create the NiFi Client Certificates. When using the `standalone` mode of the TLS Toolkit, it is important that *all certificates are generated from the same instance, using the same generated NiFi CA certificate to sign each*. The certificates can be generated by a single command, or individually. By default, the Distinguished Name (DN) will be `CN=<provided_hostname>, OU=NIFI`. For more information on toolkit flag options, see link:toolkit-guide.html#usage-8[NiFi Toolkit Guide: TLS Toolkit Usage^].
 .. Navigate to the `nifi-toolkit-1.11.4/` directory.
@@ -1055,13 +1055,13 @@ NOTE: Each `Initial User Identity` must have a **unique** name (`Initial User Id
 ** In the `<userGroupProvider>` section, add the line `<property name="Initial User Identity 3">CN=node2.nifi, OU=NIFI</property>` -- Adds an initial user for `node2`
 ** In the `<userGroupProvider>` section, add the line `<property name="Initial User Identity 4">CN=node3.nifi, OU=NIFI</property>` -- Adds an initial user for `node3`
 +
-image::authorizers-xml-initial-user-identities.png["authorizers.xml with Initial User Identities"]
+image:images/authorizers-xml-initial-user-identities.png["authorizers.xml with Initial User Identities"]
 ** In the `<accessPolicyProvider>` section, `<property name="Initial Admin Identity"></property>` -> `<property name="Initial Admin Identity">CN=my_username</property>` -- Adds an initial admin with the DN generated in the client certificate
 ** In the `<accessPolicyProvider>` section, `<property name="Node Identity 1"></property>` -> `<property name="Node Identity 1">CN=node1.nifi, OU=NIFI</property>` -- Adds an initial node with the DN generated in the `node1` certificate
 ** In the `<accessPolicyProvider>` section, add the line `<property name="Node Identity 2">CN=node2.nifi, OU=NIFI</property>`
 ** In the `<accessPolicyProvider>` section, add the line `<property name="Node Identity 3">CN=node3.nifi, OU=NIFI</property>`
 +
-image::authorizers-xml-initial-node-identities.png["authorizers.xml with Initial Node Identities"]
+image:images/authorizers-xml-initial-node-identities.png["authorizers.xml with Initial Node Identities"]
 * `cp node1.nifi/conf/authorizers.xml node2.nifi/conf/authorizers.xml` -- Copies the modified `authorizers.xml` file from `node1` to `node2`
 * `cp node1.nifi/conf/authorizers.xml node3.nifi/conf/authorizers.xml` -- Copies the modified `authorizers.xml` file from `node1` to `node3`
 . By default, NiFi waits for nodes to join for 5 minutes before the cluster is available. Because the number of nodes is known, this delay can be modified on each node to start up much faster. (Optional)
@@ -1086,11 +1086,11 @@ image::authorizers-xml-initial-node-identities.png["authorizers.xml with Initial
 --
 _The running cluster_
 
-image::nifi-secure-cluster-no-permissions.png["NiFi secure cluster running with no Initial Admin Identity permissions"]
+image:images/nifi-secure-cluster-no-permissions.png["NiFi secure cluster running with no Initial Admin Identity permissions"]
 
 _The cluster status from the global menu at the top right_
 
-image::nifi-secure-cluster-status.png["NiFi secure cluster status pane"]
+image:images/nifi-secure-cluster-status.png["NiFi secure cluster status pane"]
 --
 . To update the Initial Admin Identity's permissions for the root process group, stop each node in the cluster and remove the `authorizations.xml` and `users.xml` file from each node. These files will be regenerated when the node starts again and be populated with the correct permissions. 
 * `./node1.nifi/bin/nifi.sh stop` -- Stops `node1`
@@ -1107,5 +1107,5 @@ image::nifi-secure-cluster-status.png["NiFi secure cluster status pane"]
 --
 _The running cluster with permissions_
 
-image::nifi-secure-cluster-permissions.png["NiFi secure cluster running with Initial Admin Identity permissions"]
+image:images/nifi-secure-cluster-permissions.png["NiFi secure cluster running with Initial Admin Identity permissions"]
 --

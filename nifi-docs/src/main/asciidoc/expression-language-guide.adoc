@@ -144,7 +144,7 @@ whether or not the Expression Language is supported.
 
 In the application, when configuring a component property, the User Interface provides an Information
 icon (
-image:iconInfo.png["Info"]
+image:images/iconInfo.png["Info"]
 ) next to the name of the Property. Hovering over this icon with the mouse will provide a tooltip that
 provides helpful information about the Property. This information includes a description of the Property,
 the default value (if any), historically configured values (if any), and the evaluation scope of this

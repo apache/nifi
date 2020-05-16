@@ -33,7 +33,7 @@ There are three repositories that are utilized by NiFi. Each exists within the O
 - The Content Repository holds the content for current and past FlowFiles.
 - The Provenance Repository holds the history of FlowFiles.
 
-image::zero-master-node.png["NiFi Architecture Diagram"]
+image:images/zero-master-node.png["NiFi Architecture Diagram"]
 
 === FlowFile Repository
 FlowFiles that are actively being processed by the system are held in a hash map in the JVM memory (more about that in <<DeeperView>>). This makes it very efficient to process them, but requires a secondary mechanism to provide durability of data across process restarts due to a number of reasons, such as power loss, kernel panics, system upgrades, and maintenance cycles. The FlowFile Repository is a "Write-Ahead Log" (or data record) of the metadata of each of the FlowFiles that currently exist in the system. This FlowFile metadata includes all the attributes associated with the FlowFile, a pointer to the actual content of the FlowFile (which exists in the Content Repo) and the state of the FlowFile, such as which Connection/Queue the FlowFile belongs in. This Write-Ahead Log provides NiFi the resiliency it needs to handle restarts and unexpected system failures.
@@ -119,7 +119,7 @@ keytool -importkeystore -srckeystore /Library/Java/JavaVirtualMachines/jdk1.8.0_
 
 === WebCrawler Template
 
-image::WebCrawler.png["Web Crawler Flow"]
+image:images/WebCrawler.png["Web Crawler Flow"]
 
 NOTE: It is not uncommon for bulletins with messages such as "Connection timed out" to appear on the InvokeHttp processor due to the random nature of web crawling.
 
@@ -130,7 +130,7 @@ ProvenanceReporter is used to emit the Provenance Events for the FlowFile. If th
 
 In our WebCrawler flow, the GetHTTP processor creates the initial FlowFile using "ProcessSession.create()" and records the receipt of data using "ProvenanceReporter.receive()". This method call also provides the URL from which the data was received, how long it took the transfer the data, and any FlowFile attributes that were added to the FlowFile. HTTP Headers, for instance, can be added as FlowFile attributes.
 
-image::DataIngress.png["Data Ingress"]
+image:images/DataIngress.png["Data Ingress"]
 
 === Pass by Reference
 An important aspect of flow-based programming is the idea of resource-constrained relationships between the black boxes. In NiFi these are queues and processors respectively. FlowFiles are routed from one processor to another through queues simply by passing a reference to the FlowFile (similar to the "Claim Check" pattern in EIP).
@@ -142,7 +142,7 @@ After the RouteOnAttribute processor examines the FlowFile's status code attribu
 The ProvenanceReporter documents the changes that occurred, which includes a CLONE and two ROUTE events. Each of these events has a pointer to the relevant content and contains a copy of the respective FlowFiles in the form of a snapshot.
 
 
-image::PassByReference.png["Pass By Reference"]
+image:images/PassByReference.png["Pass By Reference"]
 
 === Extended Routing Use-cases
 In addition to routing FlowFiles based on attributes, some processors also route based on content. While it is not as efficient, sometimes it is necessary because you want to split up the content of the FlowFile into multiple FlowFiles.
@@ -156,7 +156,7 @@ The funnel is a component that takes input from one or more connections and rout
 
 From a developer point of view, you can view a Funnel just as a very simple processor. When it is scheduled to run, it simply does a "ProcessSession.get()" and then "ProcessSession.transfer()" to the output connection . If there is more than one output connection (like the example below) then a "ProcessSession.clone()" is run. Finally a "ProcessSession.commit()" is called, completing the transaction.
 
-image::Funnels.png["Funnel"]
+image:images/Funnels.png["Funnel"]
 
 === Copy on Write
 In the previous example, there was only routing but no changes to the content of the FlowFile. This next example focuses on the CompressContent processor of the template that compresses the bundle of merged FlowFiles containing webpages that were queued to be analyzed.
@@ -165,7 +165,7 @@ In this example, the content C1 for FlowFile F1 is being compressed in the Compr
 
 NOTE: For the sake of focusing on the Copy on Write event, the FlowFile's (F1) provenance events leading up to this point are omitted.
 
-image::CopyOnWrite.png["Copy On Write"]
+image:images/CopyOnWrite.png["Copy On Write"]
 
 ==== Extended Copy on Write Use-case
 A unique case of Copy on Write is the MergeContent processor. Just about every processor only acts on one FlowFile at a time. The MergeContent processor is unique in that it takes in multiple FlowFiles and combines them into one. Currently, MergeContent has multiple different Merge Strategies but all of them require the contents of the input FlowFiles to be copied to a new merged location. After MergeContent finishes, it emits a provenance event of type "JOIN" that establishes that the given parents were joined together to create a new child FlowFile.
@@ -181,7 +181,7 @@ In this example, the previous processor (InvokeHTTP) fetched information from a 
 
 NOTE: For the sake of focusing on the ATTRIBUTES_MODIFIED event the FlowFile's (F1) provenance events leading up to this point are omitted.
 
-image::UpdatingAttributes.png["Updating Attributes"]
+image:images/UpdatingAttributes.png["Updating Attributes"]
 
 ==== Typical Use-case Note
 In addition to adding arbitrary attributes via UpdateAttribute, extracting information from the content of a FlowFile into the attributes is a very common use-case.  One such example in the Web Crawler flow is the ExtractText processor. We cannot use the URL when it is embedded within the content of the FlowFile, so we much extract the URL from the contents of the FlowFile and place it as an attribute. This way we can use the Expression Language to reference this attribute in the URL Property of InvokeHttp.

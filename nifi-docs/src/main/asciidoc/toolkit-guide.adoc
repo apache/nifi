@@ -677,7 +677,7 @@ Example usage on Windows:
 
 Executing the above command line should result in a bulletin appearing in NiFi:
 
-image::nifi-notifications.png["NiFi Notifications"]
+image:images/nifi-notifications.png["NiFi Notifications"]
 
 == S2S
 S2S is a command line tool (invoked as `./bin/s2s.sh` or `bin\s2s.bat`) that can either read a list of DataPackets from stdin to send over site-to-site or write the received DataPackets to stdout.
