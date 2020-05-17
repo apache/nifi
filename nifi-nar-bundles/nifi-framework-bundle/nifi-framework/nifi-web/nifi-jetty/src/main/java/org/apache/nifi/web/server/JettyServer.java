@@ -16,8 +16,39 @@
  */
 package org.apache.nifi.web.server;
 
-import com.google.common.base.Strings;
-import com.google.common.collect.Lists;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileFilter;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.net.SocketException;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
+import java.util.stream.Collectors;
+
+import javax.servlet.DispatcherType;
+import javax.servlet.Filter;
+import javax.servlet.ServletContext;
+
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.NiFiServer;
@@ -73,6 +104,7 @@ import org.eclipse.jetty.server.handler.gzip.GzipHandler;
 import org.eclipse.jetty.servlet.DefaultServlet;
 import org.eclipse.jetty.servlet.FilterHolder;
 import org.eclipse.jetty.servlet.ServletHolder;
+import org.eclipse.jetty.util.Scanner;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
 import org.eclipse.jetty.webapp.Configuration;
@@ -86,37 +118,8 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.context.support.WebApplicationContextUtils;
 
-import javax.servlet.DispatcherType;
-import javax.servlet.Filter;
-import javax.servlet.ServletContext;
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileFilter;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.net.InetAddress;
-import java.net.NetworkInterface;
-import java.net.SocketException;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.EnumSet;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.jar.JarEntry;
-import java.util.jar.JarFile;
-import java.util.stream.Collectors;
+import com.google.common.base.Strings;
+import com.google.common.collect.Lists;
 
 /**
  * Encapsulates the Jetty instance.
@@ -158,6 +161,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
     private Collection<WebAppContext> componentUiExtensionWebContexts;
 
     private DeploymentManager deploymentManager;
+    private Scanner scanner;
 
     public JettyServer(final NiFiProperties props, final Set<Bundle> bundles) {
         final QueuedThreadPool threadPool = new QueuedThreadPool(props.getWebThreads());
@@ -229,6 +233,10 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
 
             if (war.getName().toLowerCase().startsWith("nifi-web-api")) {
                 webApiWar = war;
+                File explodedWar = new File("./lib/nifi-web-api.war");
+                if (explodedWar.exists()) {
+                    webApiWar = explodedWar;
+                }
             } else if (war.getName().toLowerCase().startsWith("nifi-web-error")) {
                 webErrorWar = war;
             } else if (war.getName().toLowerCase().startsWith("nifi-web-docs")) {
@@ -236,13 +244,11 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
             } else if (war.getName().toLowerCase().startsWith("nifi-web-content-viewer")) {
                 webContentViewerWar = war;
             } else if (war.getName().toLowerCase().startsWith("nifi-web")) {
-            	//ZTI-TODO: For development only, allow for changing JS files on the fly
-            	File explodedWar = new File("./lib/nifi-web-ui.war");
+                webUiWar = war;
+                //ZTI-TODO: For development only, allow for changing JS files on the fly
+                File explodedWar = new File("./lib/nifi-web-ui.war");
                 if (explodedWar.exists()) {
                     webUiWar = explodedWar;
-                }
-                else {
-                    webUiWar = war;
                 }
             } else {
                 otherWars.put(war, warBundle);
@@ -958,6 +964,26 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
             // start the server
             server.start();
 
+            scanner = new Scanner();
+            scanner.setScanDirs(Arrays.asList(new File("./lib/nifi-web-api.war")));
+            scanner.setScanInterval(1);
+            scanner.setRecursive(true);
+            scanner.setReportDirs(true);
+            scanner.addListener(new Scanner.DiscreteListener() {
+                @Override
+                public void fileChanged(String filename) throws Exception {
+                    JettyServer.this.stop();
+                    JettyServer.this.start();
+                }
+                @Override
+                public void fileAdded(String filename) throws Exception {
+                }
+                @Override
+                public void fileRemoved(String filename) throws Exception {
+                }
+            });
+            scanner.start();
+
             // ensure everything started successfully
             for (Handler handler : server.getChildHandlers()) {
                 // see if the handler is a web app
@@ -1176,6 +1202,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
     public void stop() {
         try {
             server.stop();
+            scanner.stop();
         } catch (Exception ex) {
             logger.warn("Failed to stop web server", ex);
         }
