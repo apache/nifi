@@ -263,4 +263,31 @@ public class RunMongoAggregationIT {
 
         runner.assertTransferCount(RunMongoAggregation.REL_RESULTS, mappings.size());
     }
+
+    @Test
+    public void testEmptyResponse() throws Exception {
+        final String queryInput = "[\n" +
+                "  {\n" +
+                "    \"$match\": {\n" +
+                "      \"val\": \"no_exists\"\n" +
+                "    }\n" +
+                "  },\n" +
+                "  {\n" +
+                "    \"$group\": {\n" +
+                "      \"_id\": \"null\",\n" +
+                "      \"doc_count\": {\n" +
+                "        \"$sum\": 1\n" +
+                "      }\n" +
+                "    }\n" +
+                "  }\n" +
+                "]";
+
+        runner.setProperty(RunMongoAggregation.QUERY, queryInput);
+        runner.enqueue("test");
+        runner.run(1, true, true);
+
+        runner.assertTransferCount(RunMongoAggregation.REL_ORIGINAL, 1);
+        runner.assertTransferCount(RunMongoAggregation.REL_FAILURE, 0);
+        runner.assertTransferCount(RunMongoAggregation.REL_RESULTS, 1);
+    }
 }
