@@ -16,12 +16,20 @@
  */
 package org.apache.nifi.processors.azure.storage.utils;
 
+import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+
 import com.microsoft.azure.storage.CloudStorageAccount;
 import com.microsoft.azure.storage.OperationContext;
 import com.microsoft.azure.storage.StorageCredentials;
 import com.microsoft.azure.storage.StorageCredentialsAccountAndKey;
 import com.microsoft.azure.storage.StorageCredentialsSharedAccessSignature;
 import com.microsoft.azure.storage.blob.CloudBlobClient;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
@@ -36,13 +44,6 @@ import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxySpec;
 import org.apache.nifi.services.azure.storage.AzureStorageCredentialsDetails;
 import org.apache.nifi.services.azure.storage.AzureStorageCredentialsService;
-
-import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
 
 public final class AzureStorageUtils {
     public static final String BLOCK = "Block";
@@ -87,18 +88,16 @@ public final class AzureStorageUtils {
 
     public static final PropertyDescriptor ENDPOINT_SUFFIX = new PropertyDescriptor.Builder()
             .name("storage-endpoint-suffix")
-            .displayName("Storage Endpoint Suffix")
+            .displayName("Common Storage Account Endpoint Suffix")
             .description(
                     "Storage accounts in public Azure always use a common FQDN suffix. " +
                     "Override this endpoint suffix with a different suffix in certain circumsances (like Azure Stack or non-public Azure regions). " +
                     "The preferred way is to configure them through a controller service specified in the Storage Credentials property. " +
                     "The controller service can provide a common/shared configuration for multiple/all Azure processors. Furthermore, the credentials " +
                     "can also be looked up dynamically with the 'Lookup' version of the service.")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(false)
             .sensitive(false)
-            .defaultValue("core.windows.net")
             .build();
 
     public static final PropertyDescriptor CONTAINER = new PropertyDescriptor.Builder()
