@@ -41,6 +41,7 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.math.BigDecimal;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.ArrayList;
@@ -276,18 +277,25 @@ public class TestQueryRecord {
 
         runner.run();
 
-        runner.assertTransferCount(QueryRecord.REL_FAILURE, 1);
+        runner.assertTransferCount(REL_NAME, 1);
+
+        final List<Record> written = writer.getRecordsWritten();
+        assertEquals(1, written.size());
+
+        final Record output = written.get(0);
+        assertEquals("John Doe", output.getValue("name"));
+        assertEquals("Software Engineer", output.getValue("title"));
+        assertEquals(BigDecimal.valueOf(90.5D), output.getValue("height_total"));
     }
 
     @Test
     public void testCollectionFunctionsWithCastChoice() throws InitializationException {
         final Record record = createHierarchicalArrayRecord();
-        final Record record2 = createHierarchicalArrayRecord();
-        record2.setValue("height", 30);
 
         final ArrayListRecordReader recordReader = new ArrayListRecordReader(record.getSchema());
         recordReader.addRecord(record);
-        recordReader.addRecord(record2);
+        recordReader.addRecord(record);
+
         final ArrayListRecordWriter writer = new ArrayListRecordWriter(record.getSchema());
 
         TestRunner runner = getRunner();
@@ -300,10 +308,8 @@ public class TestQueryRecord {
         runner.setProperty(QueryRecord.RECORD_WRITER_FACTORY, "writer");
         runner.setProperty(REL_NAME,
                 "SELECT title, name, " +
-                    "sum(CAST_DOUBLE(height)) as height_total_double, " +
-                    "sum(CAST_INT(height)) as height_total_int, " +
-                    "sum(CAST_LONG(height)) as height_total_long, " +
-                    "sum(CAST_FLOAT(height)) as height_total_float " +
+                    "sum(CAST(height AS DOUBLE)) as height_total_double, " +
+                    "sum(CAST(height AS REAL)) as height_total_float " +
                 "FROM FLOWFILE " +
                 "GROUP BY title, name");
 
@@ -316,12 +322,53 @@ public class TestQueryRecord {
         final List<Record> written = writer.getRecordsWritten();
         assertEquals(1, written.size());
 
-        final Number height = (Number)90.5;
+        final Number height = 121.0;
         final Record output = written.get(0);
         assertEquals("John Doe", output.getValue("name"));
         assertEquals("Software Engineer", output.getValue("title"));
         assertEquals(height.doubleValue(), output.getValue("height_total_double"));
         assertEquals(height.floatValue(), output.getValue("height_total_float"));
+    }
+
+    @Test
+    public void testCollectionFunctionsWithCastChoiceWithInts() throws InitializationException {
+        final Record record = createHierarchicalArrayRecord();
+        record.setValue("height", 30);
+
+        final ArrayListRecordReader recordReader = new ArrayListRecordReader(record.getSchema());
+        recordReader.addRecord(record);
+        recordReader.addRecord(record);
+
+        final ArrayListRecordWriter writer = new ArrayListRecordWriter(record.getSchema());
+
+        TestRunner runner = getRunner();
+        runner.addControllerService("reader", recordReader);
+        runner.enableControllerService(recordReader);
+        runner.addControllerService("writer", writer);
+        runner.enableControllerService(writer);
+
+        runner.setProperty(QueryRecord.RECORD_READER_FACTORY, "reader");
+        runner.setProperty(QueryRecord.RECORD_WRITER_FACTORY, "writer");
+        runner.setProperty(REL_NAME,
+            "SELECT title, name, " +
+                "sum(CAST(height AS INT)) as height_total_int, " +
+                "sum(CAST(height AS BIGINT)) as height_total_long " +
+                "FROM FLOWFILE " +
+                "GROUP BY title, name");
+
+        runner.enqueue(new byte[0]);
+
+        runner.run();
+
+        runner.assertTransferCount(REL_NAME, 1);
+
+        final List<Record> written = writer.getRecordsWritten();
+        assertEquals(1, written.size());
+
+        final Number height = 60;
+        final Record output = written.get(0);
+        assertEquals("John Doe", output.getValue("name"));
+        assertEquals("Software Engineer", output.getValue("title"));
         assertEquals(height.longValue(), output.getValue("height_total_long"));
         assertEquals(height.intValue(), output.getValue("height_total_int"));
     }
@@ -720,7 +767,7 @@ public class TestQueryRecord {
         personFields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
         personFields.add(new RecordField("age", RecordFieldType.INT.getDataType()));
         personFields.add(new RecordField("title", RecordFieldType.STRING.getDataType()));
-        personFields.add(new RecordField("height", RecordFieldType.CHOICE.getChoiceDataType(RecordFieldType.LONG.getDataType(), RecordFieldType.INT.getDataType())));
+        personFields.add(new RecordField("height", RecordFieldType.CHOICE.getChoiceDataType(RecordFieldType.DOUBLE.getDataType(), RecordFieldType.INT.getDataType())));
         personFields.add(new RecordField("addresses", RecordFieldType.ARRAY.getArrayDataType( RecordFieldType.RECORD.getRecordDataType(addressSchema)) ));
         final RecordSchema personSchema = new SimpleRecordSchema(personFields);
 
