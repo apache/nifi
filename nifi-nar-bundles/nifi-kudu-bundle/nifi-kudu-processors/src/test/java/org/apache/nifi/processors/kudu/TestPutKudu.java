@@ -123,7 +123,7 @@ public class TestPutKudu {
         readerFactory.addSchemaField("stringVal", RecordFieldType.STRING);
         readerFactory.addSchemaField("num32Val", RecordFieldType.INT);
         readerFactory.addSchemaField("doubleVal", RecordFieldType.DOUBLE);
-        readerFactory.addSchemaField("decimalVal", RecordFieldType.DECIMAL);
+        readerFactory.addSchemaField(new RecordField("decimalVal", RecordFieldType.DECIMAL.getDecimalDataType(6, 3)));
 
         for (int i=0; i < numOfRecord; i++) {
             readerFactory.addRecord(i, "val_" + i, 1000 + i, 100.88 + i, new BigDecimal(111.111D).add(BigDecimal.valueOf(i)));

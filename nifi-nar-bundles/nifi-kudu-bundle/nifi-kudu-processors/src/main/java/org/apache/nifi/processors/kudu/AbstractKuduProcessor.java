@@ -56,6 +56,7 @@ import org.apache.nifi.security.krb.KerberosUser;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordFieldType;
+import org.apache.nifi.serialization.record.type.DecimalDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.apache.nifi.util.StringUtils;
 
@@ -401,9 +402,12 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
     }
 
     private ColumnTypeAttributes getKuduTypeAttributes(final DataType nifiType) {
-        return nifiType.getFieldType().equals(RecordFieldType.DECIMAL)
-                ? new ColumnTypeAttributes.ColumnTypeAttributesBuilder().precision(38).scale(19).build()
-                : null;
+        if (nifiType.getFieldType().equals(RecordFieldType.DECIMAL)) {
+            final DecimalDataType decimalDataType = (DecimalDataType) nifiType;
+            return new ColumnTypeAttributes.ColumnTypeAttributesBuilder().precision(decimalDataType.getPrecision()).scale(decimalDataType.getScale()).build();
+        } else {
+            return null;
+        }
     }
 
     /**
