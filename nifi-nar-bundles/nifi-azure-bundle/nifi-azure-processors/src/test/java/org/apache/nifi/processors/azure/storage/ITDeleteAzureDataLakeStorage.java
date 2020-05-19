@@ -142,7 +142,7 @@ public class ITDeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT
         String inputFlowFileContent = "InputFlowFileContent";
 
         createDirectoryAndUploadFile(directory, filename1, fileContent1);
-        createDirectoryAndUploadFile(directory, filename2, fileContent2);
+        uploadFile(directory, filename2, fileContent2);
 
         // WHEN
         // THEN
