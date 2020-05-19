@@ -82,11 +82,10 @@ public final class CertificateUtils {
     private static final String PEER_NOT_AUTHENTICATED_MSG = "peer not authenticated";
     private static final Map<ASN1ObjectIdentifier, Integer> dnOrderMap = createDnOrderMap();
 
-    public static final String CURRENT_TLS_PROTOCOL_VERSION = "TLSv1.2";
-    public static final String JAVA_8_MAX_SUPPORTED_TLS_PROTOCOL_VERSION = CURRENT_TLS_PROTOCOL_VERSION;
-    public static final String JAVA_9_MAX_SUPPORTED_TLS_PROTOCOL_VERSION = "TLSv1.3";
-    public static final String[] JAVA_8_SUPPORTED_TLS_PROTOCOL_VERSIONS = new String[]{CURRENT_TLS_PROTOCOL_VERSION};
-    public static final String[] JAVA_9_SUPPORTED_TLS_PROTOCOL_VERSIONS = new String[]{CURRENT_TLS_PROTOCOL_VERSION, "TLSv1.3"};
+    public static final String JAVA_8_MAX_SUPPORTED_TLS_PROTOCOL_VERSION = "TLSv1.2";
+    public static final String JAVA_11_MAX_SUPPORTED_TLS_PROTOCOL_VERSION = "TLSv1.3";
+    public static final String[] JAVA_8_SUPPORTED_TLS_PROTOCOL_VERSIONS = new String[]{JAVA_8_MAX_SUPPORTED_TLS_PROTOCOL_VERSION};
+    public static final String[] JAVA_11_SUPPORTED_TLS_PROTOCOL_VERSIONS = new String[]{JAVA_11_MAX_SUPPORTED_TLS_PROTOCOL_VERSION, JAVA_8_MAX_SUPPORTED_TLS_PROTOCOL_VERSION};
 
     static {
         Security.addProvider(new BouncyCastleProvider());
@@ -666,19 +665,24 @@ public final class CertificateUtils {
      */
     public static String[] getCurrentSupportedTlsProtocolVersions() {
         int javaMajorVersion = getJavaVersion();
-        if (javaMajorVersion <= 8) {
+        if (javaMajorVersion < 11) {
             return JAVA_8_SUPPORTED_TLS_PROTOCOL_VERSIONS;
         } else {
-            return JAVA_9_SUPPORTED_TLS_PROTOCOL_VERSIONS;
+            return JAVA_11_SUPPORTED_TLS_PROTOCOL_VERSIONS;
         }
     }
 
+    /**
+     * Returns the highest supported TLS protocol version based on the current Java platform version.
+     *
+     * @return the TLS protocol (e.g. {@code "TLSv1.2"})
+     */
     public static String getHighestCurrentSupportedTlsProtocolVersion() {
         int javaMajorVersion = getJavaVersion();
-        if (javaMajorVersion <= 8) {
+        if (javaMajorVersion < 11) {
             return JAVA_8_MAX_SUPPORTED_TLS_PROTOCOL_VERSION;
         } else {
-            return JAVA_9_MAX_SUPPORTED_TLS_PROTOCOL_VERSION;
+            return JAVA_11_MAX_SUPPORTED_TLS_PROTOCOL_VERSION;
         }
     }
 

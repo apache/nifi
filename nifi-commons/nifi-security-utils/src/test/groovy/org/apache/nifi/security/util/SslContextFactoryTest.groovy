@@ -48,7 +48,7 @@ class SslContextFactoryTest extends GroovyTestCase {
 
     // The default TLS protocol versions for different Java versions
     private static final List<String> JAVA_8_TLS_PROTOCOL_VERSIONS = ["TLSv1.2", "TLSv1.1", "TLSv1"]
-    private static final List<String> JAVA_9_TLS_PROTOCOL_VERSIONS = ["TLSv1.3", "TLSv1.2", "TLSv1.1", "TLSv1"]
+    private static final List<String> JAVA_11_TLS_PROTOCOL_VERSIONS = ["TLSv1.3", "TLSv1.2", "TLSv1.1", "TLSv1"]
 
     private static final Map<String, String> DEFAULT_PROPS = [
             (NiFiProperties.SECURITY_KEYSTORE)         : KEYSTORE_PATH,
@@ -84,10 +84,10 @@ class SslContextFactoryTest extends GroovyTestCase {
     }
 
     static List<String> getCurrentTlsProtocolVersions() {
-        if (CertificateUtils.getJavaVersion() <= 8) {
+        if (CertificateUtils.getJavaVersion() < 11) {
             return JAVA_8_TLS_PROTOCOL_VERSIONS
         } else {
-            return JAVA_9_TLS_PROTOCOL_VERSIONS
+            return JAVA_11_TLS_PROTOCOL_VERSIONS
         }
     }
 

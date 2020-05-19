@@ -631,10 +631,10 @@ class CertificateUtilsTest extends GroovyTestCase {
         logger.info("Supported protocol versions for ${javaMajorVersion}: ${tlsVersions}")
 
         // Assert
-        if (javaMajorVersion <= 8) {
+        if (javaMajorVersion < 11) {
             assert tlsVersions == ["TLSv1.2"] as String[]
         } else {
-            assert tlsVersions == ["TLSv1.2", "TLSv1.3"] as String[]
+            assert tlsVersions == ["TLSv1.3", "TLSv1.2"] as String[]
         }
     }
 
@@ -649,7 +649,7 @@ class CertificateUtilsTest extends GroovyTestCase {
         logger.info("Highest supported protocol version for ${javaMajorVersion}: ${tlsVersion}")
 
         // Assert
-        if (javaMajorVersion <= 8) {
+        if (javaMajorVersion < 11) {
             assert tlsVersion == "TLSv1.2"
         } else {
             assert tlsVersion == "TLSv1.3"
