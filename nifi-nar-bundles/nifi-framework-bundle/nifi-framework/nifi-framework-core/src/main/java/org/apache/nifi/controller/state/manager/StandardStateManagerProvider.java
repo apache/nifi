@@ -197,6 +197,7 @@ public class StandardStateManagerProvider implements StateManagerProvider{
         final ParameterParser parser = new ExpressionLanguageAwareParameterParser();
         final Map<PropertyDescriptor, PropertyValue> propertyMap = new HashMap<>();
         final Map<PropertyDescriptor, PropertyConfiguration> propertyStringMap = new HashMap<>();
+        //set default configuration
         for (final PropertyDescriptor descriptor : provider.getPropertyDescriptors()) {
             propertyMap.put(descriptor, new StandardPropertyValue(descriptor.getDefaultValue(),null, parameterLookup, variableRegistry));
 
@@ -205,12 +206,12 @@ public class StandardStateManagerProvider implements StateManagerProvider{
 
             propertyStringMap.put(descriptor, configuration);
         }
-
+        //set properties from actual configuration
         for (final Map.Entry<String, String> entry : providerConfig.getProperties().entrySet()) {
             final PropertyDescriptor descriptor = provider.getPropertyDescriptor(entry.getKey());
 
-            final ParameterTokenList references = parser.parseTokens(descriptor.getDefaultValue());
-            final PropertyConfiguration configuration = new PropertyConfiguration(descriptor.getDefaultValue(), references, references.toReferenceList());
+            final ParameterTokenList references = parser.parseTokens(entry.getValue());
+            final PropertyConfiguration configuration = new PropertyConfiguration(entry.getValue(), references, references.toReferenceList());
 
             propertyStringMap.put(descriptor, configuration);
             propertyMap.put(descriptor, new StandardPropertyValue(entry.getValue(),null, parameterLookup, variableRegistry));
