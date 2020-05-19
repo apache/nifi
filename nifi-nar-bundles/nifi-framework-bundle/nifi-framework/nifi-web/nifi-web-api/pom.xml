@@ -131,10 +131,12 @@
                             </goals>
                             <configuration>
                                 <overwrite>false</overwrite>
-                                <!-- <outputDirectory>c:/dev/nifi-1.11.4/lib/nifi-web-api.war/WEB-INF/classes</outputDirectory> 
-<outputDirectory>C:/dev/projects/zingest-nifi/dist/zingest-2.6.11\nifi-1.11.4/lib/nifi-web-api.war/WEB-INF/classes</outputDirectory>-->
-                                
-                                <resources>
+                                <!-- 
+                                <outputDirectory>c:/dev/nifi-1.11.4/lib/nifi-web-api.war/WEB-INF/classes</outputDirectory> 
+                                <outputDirectory>C:/dev/projects/zingest-nifi/dist/zingest-2.6.11\nifi-1.11.4/lib/nifi-web-api.war/WEB-INF/classes</outputDirectory>
+                                -->
+                               <outputDirectory>c:/dev/nifi-1.11.4/lib/nifi-web-api.war/WEB-INF/classes</outputDirectory> 
+                               <resources>
                                     <resource>
                                         <directory>${project.build.directory}/classes</directory>
                                     </resource>
