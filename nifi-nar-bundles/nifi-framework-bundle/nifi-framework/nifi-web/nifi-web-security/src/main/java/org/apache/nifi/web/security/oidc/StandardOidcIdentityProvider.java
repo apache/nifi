@@ -48,15 +48,6 @@ import com.nimbusds.openid.connect.sdk.claims.IDTokenClaimsSet;
 import com.nimbusds.openid.connect.sdk.op.OIDCProviderMetadata;
 import com.nimbusds.openid.connect.sdk.token.OIDCTokens;
 import com.nimbusds.openid.connect.sdk.validators.IDTokenValidator;
-import net.minidev.json.JSONObject;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.util.FormatUtils;
-import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.security.jwt.JwtService;
-import org.apache.nifi.web.security.token.LoginAuthenticationToken;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.net.URI;
 import java.net.URL;
@@ -65,6 +56,14 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import net.minidev.json.JSONObject;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.util.FormatUtils;
+import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.web.security.jwt.JwtService;
+import org.apache.nifi.web.security.token.LoginAuthenticationToken;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 /**
@@ -129,7 +128,7 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
             // client secret
             final String rawClientSecret = properties.getOidcClientSecret();
             if (StringUtils.isBlank(rawClientSecret)) {
-                throw new RuntimeException("Client secret is required when configured an OIDC Provider.");
+                throw new RuntimeException("Client secret is required when configuring an OIDC Provider.");
             }
             clientSecret = new Secret(rawClientSecret);
 
@@ -298,9 +297,8 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
                 String identity = claimsSet.getStringClaim(properties.getOidcClaimIdentifyingUser());
                 if (StringUtils.isBlank(identity)) {
                     // explicitly try to get the identity from the UserInfo endpoint with the configured claim
-                    logger.warn("The identity of the user was tried to get with the claim '" +
-                            properties.getOidcClaimIdentifyingUser() + "'. The according additional scope is not " +
-                            "configured correctly. Trying to get it from the UserInfo endpoint.");
+                    logger.warn("Failed to obtain the identity of the user with the claim '" +
+                            properties.getOidcClaimIdentifyingUser() + "'. The claim is configured incorrectly. Will attempt to obtain the identity from the UserInfo endpoint.");
 
                     // extract the bearer access token
                     final BearerAccessToken bearerAccessToken = oidcTokens.getBearerAccessToken();
