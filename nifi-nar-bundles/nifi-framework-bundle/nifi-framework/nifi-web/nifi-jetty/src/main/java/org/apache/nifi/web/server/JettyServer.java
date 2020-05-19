@@ -161,7 +161,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
     private Collection<WebAppContext> componentUiExtensionWebContexts;
 
     private DeploymentManager deploymentManager;
-    private Scanner scanner;
+    private Scanner webApiScanner;
 
     public JettyServer(final NiFiProperties props, final Set<Bundle> bundles) {
         final QueuedThreadPool threadPool = new QueuedThreadPool(props.getWebThreads());
@@ -233,9 +233,31 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
 
             if (war.getName().toLowerCase().startsWith("nifi-web-api")) {
                 webApiWar = war;
-                File explodedWar = new File("./lib/nifi-web-api.war");
+
+                final String devWebApiWarPath = "./lib/nifi-web-api.war";
+                File explodedWar = new File(devWebApiWarPath);
                 if (explodedWar.exists()) {
                     webApiWar = explodedWar;
+
+                    // Scanner for detecting file changes to restart server
+                    webApiScanner = new Scanner();
+                    webApiScanner.setScanDirs(Arrays.asList(new File(devWebApiWarPath)));
+                    webApiScanner.setScanInterval(1);
+                    webApiScanner.setRecursive(true);
+                    webApiScanner.setReportDirs(true);
+                    webApiScanner.addListener(new Scanner.DiscreteListener() {
+                        @Override
+                        public void fileChanged(String filename) throws Exception {
+                            JettyServer.this.stop();
+                            JettyServer.this.start();
+                        }
+                        @Override
+                        public void fileAdded(String filename) throws Exception {
+                        }
+                        @Override
+                        public void fileRemoved(String filename) throws Exception {
+                        }
+                    });
                 }
             } else if (war.getName().toLowerCase().startsWith("nifi-web-error")) {
                 webErrorWar = war;
@@ -964,25 +986,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
             // start the server
             server.start();
 
-            scanner = new Scanner();
-            scanner.setScanDirs(Arrays.asList(new File("./lib/nifi-web-api.war")));
-            scanner.setScanInterval(1);
-            scanner.setRecursive(true);
-            scanner.setReportDirs(true);
-            scanner.addListener(new Scanner.DiscreteListener() {
-                @Override
-                public void fileChanged(String filename) throws Exception {
-                    JettyServer.this.stop();
-                    JettyServer.this.start();
-                }
-                @Override
-                public void fileAdded(String filename) throws Exception {
-                }
-                @Override
-                public void fileRemoved(String filename) throws Exception {
-                }
-            });
-            scanner.start();
+            webApiScanner.start();
 
             // ensure everything started successfully
             for (Handler handler : server.getChildHandlers()) {
@@ -1202,7 +1206,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
     public void stop() {
         try {
             server.stop();
-            scanner.stop();
+            webApiScanner.stop();
         } catch (Exception ex) {
             logger.warn("Failed to stop web server", ex);
         }
