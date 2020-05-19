@@ -55,6 +55,14 @@ public class StandardSSLContextService extends AbstractControllerService impleme
     public static final String STORE_TYPE_JKS = "JKS";
     public static final String STORE_TYPE_PKCS12 = "PKCS12";
 
+    // Shared description for other SSL context services
+    public static final String COMMON_TLS_PROTOCOL_DESCRIPTION = "The algorithm to use for this TLS/SSL context. \"TLS\" will instruct NiFi to allow all supported protocol versions " +
+            "and choose the highest available protocol for each connection. " +
+            "Java 8 enabled TLSv1.2, which is now the lowest version supported for incoming connections. " +
+            "Java 11 enabled TLSv1.3. Depending on the version of Java NiFi is running on, different protocol versions will be available. " +
+            "With \"TLS\" selected, as new protocol versions are made available, NiFi will automatically select them. " +
+            "It is recommended unless a specific protocol version is needed. ";
+
     public static final PropertyDescriptor TRUSTSTORE = new PropertyDescriptor.Builder()
             .name("Truststore Filename")
             .description("The fully-qualified filename of the Truststore")
@@ -113,11 +121,7 @@ public class StandardSSLContextService extends AbstractControllerService impleme
             .defaultValue("TLS")
             .required(false)
             .allowableValues(SSLContextService.buildAlgorithmAllowableValues())
-            .description("The algorithm to use for this TLS/SSL context. \"TLS\" will instruct NiFi to allow all supported protocol versions and choose the highest available protocol for each connection. " +
-                    "Java 8 enabled TLSv1.2, which is now the lowest version supported for incoming connections. " +
-                    "Java 11 enabled TLSv1.3. Depending on the version of Java NiFi is running on, different protocol versions will be available. " +
-                    "With \"TLS\" selected, as new protocol versions are made available, NiFi will automatically select them. " +
-                    "It is recommended unless a specific protocol version is needed. " +
+            .description(COMMON_TLS_PROTOCOL_DESCRIPTION +
                     "For outgoing connections, legacy protocol versions like \"TLSv1.0\" are supported, but discouraged unless necessary. ")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .sensitive(false)

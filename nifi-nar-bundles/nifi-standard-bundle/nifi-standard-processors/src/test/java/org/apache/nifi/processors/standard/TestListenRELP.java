@@ -38,7 +38,6 @@ import org.apache.nifi.processors.standard.relp.response.RELPResponse;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.security.util.CertificateUtils;
 import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.ssl.StandardSSLContextService;
@@ -51,6 +50,9 @@ import org.junit.Test;
 import org.mockito.Mockito;
 
 public class TestListenRELP {
+
+    // TODO: The NiFi SSL classes don't yet support TLSv1.3, so set the CS version explicitly
+    private static final String TLS_PROTOCOL_VERSION = "TLSv1.2";
 
     public static final String OPEN_FRAME_DATA = "relp_version=0\nrelp_software=librelp,1.2.7,http://librelp.adiscon.com\ncommands=syslog";
     public static final String SYSLOG_FRAME_DATA = "this is a syslog message here";
@@ -153,7 +155,7 @@ public class TestListenRELP {
     public void testTLS() throws InitializationException, IOException, InterruptedException {
         final SSLContextService sslContextService = new StandardSSLContextService();
         runner.addControllerService("ssl-context", sslContextService);
-        runner.setProperty(sslContextService, StandardSSLContextService.SSL_ALGORITHM, CertificateUtils.getHighestCurrentSupportedTlsProtocolVersion());
+        runner.setProperty(sslContextService, StandardSSLContextService.SSL_ALGORITHM, TLS_PROTOCOL_VERSION);
         runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE, "src/test/resources/truststore.jks");
         runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_PASSWORD, "passwordpassword");
         runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_TYPE, "JKS");
@@ -162,7 +164,7 @@ public class TestListenRELP {
         runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE_TYPE, "JKS");
         runner.enableControllerService(sslContextService);
 
-        runner.setProperty(PostHTTP.SSL_CONTEXT_SERVICE, "ssl-context");
+        runner.setProperty(ListenRELP.SSL_CONTEXT_SERVICE, "ssl-context");
 
         final List<RELPFrame> frames = new ArrayList<>();
         frames.add(OPEN_FRAME);

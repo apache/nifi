@@ -131,7 +131,7 @@ class SocketRemoteSiteListenerTest extends GroovyTestCase {
         // Assert that the default parameters (which can't be modified) still have legacy protocols and no client auth
         def defaultSSLParameters = sslContext.defaultSSLParameters
         logger.info("Default SSL Parameters: ${KeyStoreUtils.sslParametersToString(defaultSSLParameters)}" as String)
-        assertProtocolVersions(defaultSSLParameters.getProtocols(), ["TLSv1.2", "TLSv1.1", "TLSv1"])
+        assertProtocolVersions(defaultSSLParameters.getProtocols(), CertificateUtils.getCurrentSupportedTlsProtocolVersions().sort().reverse() + ["TLSv1.1", "TLSv1"])
         assert !defaultSSLParameters.needClientAuth
     }
 }

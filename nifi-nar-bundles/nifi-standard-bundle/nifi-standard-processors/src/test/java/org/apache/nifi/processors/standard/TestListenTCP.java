@@ -26,7 +26,6 @@ import org.apache.commons.io.IOUtils;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.security.util.CertificateUtils;
 import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.security.util.TlsException;
@@ -51,6 +50,9 @@ public class TestListenTCP {
     private static final String CLIENT_KEYSTORE = "src/test/resources/client-keystore.p12";
     private static final String CLIENT_KEYSTORE_TYPE = "PKCS12";
 
+    // TODO: The NiFi SSL classes don't yet support TLSv1.3, so set the CS version explicitly
+    private static final String TLS_PROTOCOL_VERSION = "TLSv1.2";
+
     private static TlsConfiguration clientTlsConfiguration;
     private static TlsConfiguration trustOnlyTlsConfiguration;
 
@@ -64,9 +66,9 @@ public class TestListenTCP {
         runner.setProperty(ListenTCP.PORT, "0");
 
         clientTlsConfiguration = new TlsConfiguration(CLIENT_KEYSTORE, KEYSTORE_PASSWORD, null, CLIENT_KEYSTORE_TYPE,
-                TRUSTSTORE, TRUSTSTORE_PASSWORD, TRUSTSTORE_TYPE, CertificateUtils.getHighestCurrentSupportedTlsProtocolVersion());
+                TRUSTSTORE, TRUSTSTORE_PASSWORD, TRUSTSTORE_TYPE, TLS_PROTOCOL_VERSION);
         trustOnlyTlsConfiguration = new TlsConfiguration(null, null, null, null,
-                TRUSTSTORE, TRUSTSTORE_PASSWORD, TRUSTSTORE_TYPE, CertificateUtils.getHighestCurrentSupportedTlsProtocolVersion());
+                TRUSTSTORE, TRUSTSTORE_PASSWORD, TRUSTSTORE_TYPE, TLS_PROTOCOL_VERSION);
     }
 
     @Test
@@ -263,7 +265,7 @@ public class TestListenTCP {
         runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE, TRUSTSTORE);
         runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_PASSWORD, TRUSTSTORE_PASSWORD);
         runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_TYPE, TRUSTSTORE_TYPE);
-        runner.setProperty(sslContextService, StandardSSLContextService.SSL_ALGORITHM, CertificateUtils.getHighestCurrentSupportedTlsProtocolVersion());
+        runner.setProperty(sslContextService, StandardSSLContextService.SSL_ALGORITHM, TLS_PROTOCOL_VERSION);
         runner.enableControllerService(sslContextService);
 
         runner.setProperty(ListenTCP.SSL_CONTEXT_SERVICE, "ssl-context");
