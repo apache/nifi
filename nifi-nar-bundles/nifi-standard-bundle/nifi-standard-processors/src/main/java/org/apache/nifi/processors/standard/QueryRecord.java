@@ -797,7 +797,7 @@ public class QueryRecord extends AbstractProcessor {
                 return null;
             }
 
-            try{
+            try {
                 if (record instanceof Record) {
                     return eval((Record) record, recordPath, transform);
                 } else if (record instanceof Record[]) {
@@ -807,8 +807,8 @@ public class QueryRecord extends AbstractProcessor {
                 } else if (record instanceof Map) {
                     return eval((Map<?, ?>) record, recordPath, transform);
                 }
-            } catch (IllegalArgumentException e){
-                throw new RuntimeException("Cannot evaluate RecordPath " + recordPath + "  against " + record + " because " + e.getMessage());
+            } catch (IllegalArgumentException e) {
+                throw new RuntimeException("Cannot evaluate RecordPath " + recordPath + " against " + record, e);
             }
 
             throw new RuntimeException("Cannot evaluate RecordPath " + recordPath + " against given argument because the argument is of type " + record.getClass() + " instead of Record");
