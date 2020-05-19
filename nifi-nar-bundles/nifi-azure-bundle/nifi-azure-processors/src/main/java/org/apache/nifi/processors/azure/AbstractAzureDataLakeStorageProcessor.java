@@ -139,8 +139,8 @@ public abstract class AbstractAzureDataLakeStorageProcessor extends AbstractProc
             Arrays.asList(AbstractAzureDataLakeStorageProcessor.ACCOUNT_NAME,
                     AbstractAzureDataLakeStorageProcessor.ACCOUNT_KEY,
                     AbstractAzureDataLakeStorageProcessor.SAS_TOKEN,
-                    AbstractAzureDataLakeStorageProcessor.ENDPOINT_SUFFIX,
                     AbstractAzureDataLakeStorageProcessor.USE_MANAGED_IDENTITY,
+                    AbstractAzureDataLakeStorageProcessor.ENDPOINT_SUFFIX,
                     AbstractAzureDataLakeStorageProcessor.FILESYSTEM,
                     AbstractAzureDataLakeStorageProcessor.DIRECTORY,
                     AbstractAzureDataLakeStorageProcessor.FILE));
@@ -159,33 +159,30 @@ public abstract class AbstractAzureDataLakeStorageProcessor extends AbstractProc
         final List<ValidationResult> results = new ArrayList<>();
 
         final boolean useManagedIdentity = validationContext.getProperty(USE_MANAGED_IDENTITY).asBoolean();
-        final String accountName = validationContext.getProperty(ACCOUNT_NAME).getValue();
         final boolean accountKeyIsSet  = validationContext.getProperty(ACCOUNT_KEY).isSet();
         final boolean sasTokenIsSet     = validationContext.getProperty(SAS_TOKEN).isSet();
 
-        if(useManagedIdentity){
-            if(accountKeyIsSet || sasTokenIsSet) {
-                final String msg = String.format(
-                    "('%s') and ('%s' or '%s') fields cannot be set at the same time.",
-                    USE_MANAGED_IDENTITY.getDisplayName(),
-                    ACCOUNT_KEY.getDisplayName(),
-                    SAS_TOKEN.getDisplayName()
-                );
-                results.add(new ValidationResult.Builder().subject("Credentials config").valid(false).explanation(msg).build());
-            }
-        } else {
-            final String accountKey = validationContext.getProperty(ACCOUNT_KEY).getValue();
-            final String sasToken = validationContext.getProperty(SAS_TOKEN).getValue();
-            if (StringUtils.isNotBlank(accountName) && ((StringUtils.isNotBlank(accountKey) && StringUtils.isNotBlank(sasToken))
-            || (StringUtils.isBlank(accountKey) && StringUtils.isBlank(sasToken)))) {
-                final String msg = String.format("either " + ACCOUNT_NAME.getDisplayName() + " with " + ACCOUNT_KEY.getDisplayName() +
-                    " or " + ACCOUNT_NAME.getDisplayName() + " with " + SAS_TOKEN.getDisplayName() +
-                    " must be specified, not both"
-                );
-                results.add(new ValidationResult.Builder().subject("Credentials Config").valid(false)
-                    .explanation(msg)
-                    .build());
-            }
+        int credential_config_found = 0;
+        if(useManagedIdentity) credential_config_found++;
+        if(accountKeyIsSet) credential_config_found++;
+        if(sasTokenIsSet) credential_config_found++;
+
+        if(credential_config_found == 0){
+            final String msg = String.format(
+                "At least one of ['%s', '%s', '%s'] should be set",
+                ACCOUNT_KEY.getDisplayName(),
+                SAS_TOKEN.getDisplayName(),
+                USE_MANAGED_IDENTITY.getDisplayName()
+            );
+            results.add(new ValidationResult.Builder().subject("Credentials config").valid(false).explanation(msg).build());
+        } else if(credential_config_found > 1) {
+            final String msg = String.format(
+                "Only one of ['%s', '%s', '%s'] should be set",
+                ACCOUNT_KEY.getDisplayName(),
+                SAS_TOKEN.getDisplayName(),
+                USE_MANAGED_IDENTITY.getDisplayName()
+            );
+            results.add(new ValidationResult.Builder().subject("Credentials config").valid(false).explanation(msg).build());
         }
         return results;
     }
